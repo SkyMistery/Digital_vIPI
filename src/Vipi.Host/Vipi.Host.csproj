@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.Ui\Vipi.Ui.csproj" />
+    <ProjectReference Include="..\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+    <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
+    <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

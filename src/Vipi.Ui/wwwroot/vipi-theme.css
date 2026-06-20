@@ -1,0 +1,61 @@
+/*
+ * Tema brand IVAO — vIPI/vLOA Interactive. PIANO_vIPI_Tool §15.
+ * Colori come CSS custom properties; font self-hosted (woff2 da aggiungere in /fonts).
+ * I colori semantici si usano per stati/interazioni e per i blocchi Callout (estensione deliberata, §22.5).
+ */
+:root {
+    /* Palette principale (§15.1) */
+    --ivao-blue: #0D2C99;        /* primario: titoli, header, elementi chiave */
+    --ivao-light-blue: #3C55AC;  /* secondario: sotto-titoli, accenti */
+    --ivao-grey: #D7D7DC;        /* sfondi, bordi, superfici neutre */
+
+    /* Semantici (stati/interazioni + callout) */
+    --ivao-green: #2EC662;       /* OK / online */
+    --ivao-yellow: #F9CC2C;      /* warning */
+    --ivao-red: #E93434;         /* errore / offline */
+    --ivao-info-blue: #7EA2D6;   /* info */
+
+    /* Tipografia (§15.2) — Bootstrap 5 scale (1rem = 16px) */
+    --ivao-font-heading: "Nunito Sans", system-ui, sans-serif;
+    --ivao-font-body: "Poppins", system-ui, sans-serif;
+}
+
+body {
+    font-family: var(--ivao-font-body);
+    color: #1b1b1f;
+    text-align: left;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--ivao-font-heading);
+    color: var(--ivao-blue);
+    text-align: left;
+}
+
+h1 { font-size: 2.5rem; }   /* 40px */
+h2 { font-size: 2rem; }     /* 32px */
+h3 { font-size: 1.75rem; }  /* 28px */
+h4 { font-size: 1.5rem; }   /* 24px */
+h5 { font-size: 1.25rem; }  /* 20px */
+h6 { font-size: 1rem; }     /* 16px */
+
+h2, h3 { color: var(--ivao-light-blue); }
+
+/* Badge stato live */
+.vipi-badge { display: inline-block; padding: .15em .6em; border-radius: 1em; color: #fff; font-size: .85rem; }
+.vipi-badge--online { background: var(--ivao-green); }
+.vipi-badge--offline { background: var(--ivao-red); }
+
+/* Callout colorati (§22.5 / REVIEW §14) */
+.vipi-callout { border-left: 4px solid; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+.vipi-callout--info { border-color: var(--ivao-info-blue); background: rgba(126, 162, 214, .12); }
+.vipi-callout--success { border-color: var(--ivao-green); background: rgba(46, 198, 98, .12); }
+.vipi-callout--warning { border-color: var(--ivao-yellow); background: rgba(249, 204, 44, .15); }
+.vipi-callout--danger { border-color: var(--ivao-red); background: rgba(233, 52, 52, .12); }
+
+/* Collasso morbido (PIANO §20.3): striscia compressa, sempre riespandibile */
+.vipi-collapsed-strip {
+    background: var(--ivao-grey);
+    border: 1px dashed var(--ivao-light-blue);
+    padding: .5rem .75rem; border-radius: 4px; cursor: pointer; font-style: italic;
+}

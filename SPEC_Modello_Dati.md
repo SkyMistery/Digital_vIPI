@@ -1,0 +1,390 @@
+# Specifica del Modello Dati — vIPI/vLOA Interactive
+
+**Documento:** Specifica tecnica del modello dati (sorgente per lo schema EF Core)
+**Versione:** 0.1
+**Data:** 13 giugno 2026
+**Riferimento:** `PIANO_vIPI_Tool.md` (§4, §17, §20)
+
+---
+
+## 1. Scopo e principi
+
+Questo documento definisce le entità persistite, i campi, i tipi, le enumerazioni, le relazioni e i vincoli. È la sorgente da cui derivare le entità di dominio (`vIPI.Domain`) e le configurazioni EF Core (`vIPI.Infrastructure`).
+
+Principi:
+
+- **Anagrafica importata vs struttura manuale.** Le posizioni e i settori di base si importano dalle API IVAO (anagrafica piatta + FIR + shape). La **gerarchia operativa**, l'**ownership dei settori** e le **regole di unificazione** sono dato manuale curato dagli editor.
+- **Versionamento dei documenti.** Ogni documento ha versioni immutabili (audit + diff). I `ContentBlock` appartengono a una **versione**, non al documento direttamente.
+- **Concorrenza ottimistica.** Le entità editabili portano un token `RowVersion`.
+- **Soft delete** dove serve conservare lo storico (`IsArchived`), niente hard delete dai flussi normali.
+
+---
+
+## 2. Diagramma ER (Mermaid)
+
+```mermaid
+erDiagram
+    FIR ||--o{ POSITION : contiene
+    FIR ||--o{ SECTOR : contiene
+    FIR ||--o{ UNIFICATION_RULE : definisce
+    POSITION ||--o{ FREQUENCY : ha
+    POSITION ||--o{ POSITION_SECTOR : possiede_default
+    SECTOR  ||--o{ POSITION_SECTOR : assegnato_a
+    POSITION ||--o{ HIERARCHY_RELATION : padre
+    POSITION ||--o{ HIERARCHY_RELATION : figlio
+    POSITION ||--o{ DOCUMENT : scope_vipi
+    DOCUMENT ||--o{ DOCUMENT_PARTY : coinvolge
+    POSITION ||--o{ DOCUMENT_PARTY : parte_vloa
+    DOCUMENT ||--o{ DOCUMENT_VERSION : versiona
+    DOCUMENT_VERSION ||--o{ CONTENT_BLOCK : contiene
+    SECTOR ||--o{ CONTENT_BLOCK : scope
+    SECTOR ||--o{ CONTENT_BLOCK : coord_from
+    SECTOR ||--o{ CONTENT_BLOCK : coord_to
+    SHARED_BLOCK ||--o{ CONTENT_BLOCK : riferito_da
+    DOCUMENT ||--o{ AUDIT_LOG : tracciato
+    NAV_REFERENCE }o--|| AIRAC_CYCLE : appartiene
+```
+
+---
+
+## 3. Entità
+
+> Convenzioni: PK = chiave primaria; FK = chiave esterna; `?` = nullable; tutti i timestamp sono UTC.
+
+### 3.1 `Fir`
+Regione di informazioni di volo (es. Roma `LIRR`, Milano `LIMM`, Brindisi `LIBB`).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Code` | string(8) | univoco (es. `LIRR`) |
+| `Name` | string(120) | |
+| `CountryPrefix` | string(2) | `LI` per l'Italia |
+
+### 3.2 `Position`
+Anagrafica piatta delle posizioni (callsign apribili). **Importata** dalle API IVAO.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Callsign` | string(16) | **univoco** (es. `LIRR_NE_CTR`) |
+| `FirId` | int FK→Fir | FIR di appartenenza (dall'API) |
+| `Type` | enum `PositionType` | DEL/GND/TWR/APP/CTR |
+| `Kind` | enum `PositionKind` | Airport \| Acc (determina quale API: ATCPositions vs subcenters) |
+| `FacilityId` | int? | id facility IVAO |
+| `Name` | string(120) | nome leggibile (es. "Roma Radar NE") |
+| `DefaultFrequency` | string(8)? | frequenza primaria (MHz) |
+| `GeometryRef` | string(256)? | riferimento/handle alla shape (vedi `SectorGeometry`) |
+| `CoverageOrder` | int | priorità top-down (più basso = più alto in gerarchia) |
+| `ImportedAtUtc` | datetime? | quando importata dall'API |
+| `IsActive` | bool | default true |
+
+### 3.3 `Sector`
+Volume di spazio aereo atomico. Unità minima di ownership e di tag dei contenuti.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Key` | string(24) | univoco per FIR (es. `LIRR-NE-01`) |
+| `Name` | string(120) | |
+| `FirId` | int FK→Fir | |
+| `Description` | string(400)? | |
+| `GeometryId` | int? FK→SectorGeometry | shape per la mappa AoR |
+
+### 3.4 `SectorGeometry`
+Shape geografica (per la vista mappa AoR). Separata dal `Sector` per non appesantire le query testuali.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Format` | enum `GeometryFormat` | GeoJson \| Wkt |
+| `Data` | text | poligono/i |
+| `SourceCallsign` | string(16)? | callsign da cui è stata importata |
+| `ImportedAtUtc` | datetime? | |
+
+### 3.5 `PositionSector` (associazione)
+Settori che una posizione possiede **di default** (configurazione "da sola"). La risoluzione runtime applica poi le `UnificationRule`.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `PositionId` | int FK→Position | PK composta |
+| `SectorId` | int FK→Sector | PK composta |
+
+### 3.6 `HierarchyRelation`
+Relazione top-down **manuale** padre→figlio tra posizioni (es. `LIRR_NE_CTR` → `LIRP_APP` → `LIRP_TWR`).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `ParentPositionId` | int FK→Position | |
+| `ChildPositionId` | int FK→Position | |
+| `FirId` | int FK→Fir | |
+
+Vincoli: coppia (Parent, Child) univoca; nessun ciclo (validato a livello applicativo).
+
+### 3.7 `UnificationRule`
+Regola dichiarativa **editabile** che riassegna l'ownership dei settori in base a quali callsign sono online (§20.5 del piano).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `FirId` | int FK→Fir | |
+| `Name` | string(120) | es. "Split WS2/WS5" |
+| `Priority` | int | ordine di applicazione |
+| `ConditionJson` | text | predicato su callsign online (es. `{"online":["LIMM_WS5_CTR"]}`) |
+| `AssignmentJson` | text | mappa sector→ownerPosition risultante |
+| `IsActive` | bool | |
+| `RowVersion` | rowversion | concorrenza |
+
+### 3.8 `Frequency`
+Frequenze associate a una posizione (per la vista ridotta e gli handoff).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `PositionId` | int FK→Position | |
+| `Label` | string(80) | es. "Roma Tower" |
+| `Callsign` | string(16) | |
+| `FrequencyMhz` | string(8) | es. `118.450` |
+| `IsPrimary` | bool | (grassetto nelle tabelle) |
+
+### 3.9 `Document`
+Un documento vIPI o vLOA. I contenuti vivono nelle **versioni**.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Type` | enum `DocumentType` | Vipi \| Vloa |
+| `ScopePositionId` | int? FK→Position | per vIPI: la posizione/aeroporto di riferimento |
+| `Title` | string(200) | |
+| `Language` | enum `Language` | It (vIPI) \| En (vLOA) — fisso per documento |
+| `Status` | enum `DocumentStatus` | Draft \| Published \| Archived |
+| `CurrentVersionId` | int? FK→DocumentVersion | versione pubblicata corrente |
+| `LastUpdatedUtc` | datetime | |
+| `LastUpdatedAiracCycle` | string(6) | calcolato da `AiracService` (es. `2606`) |
+| `RowVersion` | rowversion | |
+
+### 3.10 `DocumentParty` (per le vLOA)
+Le parti di una vLOA (bilaterale). Per le vIPI non si usa.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `DocumentId` | int FK→Document | |
+| `PositionId` | int FK→Position | una delle due unità |
+| `Role` | enum `PartyRole` | Home (IT) \| Neighbour |
+
+> Edit-right vLOA: solo CH/AOD italiano sulla parte `Home` (vedi §20.7 del piano).
+
+### 3.11 `DocumentVersion`
+Versione immutabile (audit + diff).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `DocumentId` | int FK→Document | |
+| `VersionNumber` | int | progressivo per documento |
+| `Status` | enum `DocumentStatus` | Draft \| Published \| Archived |
+| `CreatedByVid` | int | autore (VID IVAO) |
+| `CreatedUtc` | datetime | |
+| `AiracCycle` | string(6) | ciclo al momento della creazione |
+| `Note` | string(400)? | changelog |
+
+### 3.12 `ContentBlock`
+Unità minima di documentazione. **Cuore** del modello di visibilità (§20 del piano).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `DocumentVersionId` | int FK→DocumentVersion | |
+| `Section` | enum `BlockSection` | vedi §4 |
+| `Order` | int | ordinamento nella sezione |
+| `Tier` | enum `BlockTier` | Reduced \| Extended |
+| `Format` | enum `BlockFormat` | Table \| Prose \| Image \| List |
+| `Visibility` | enum `BlockVisibility` | Operational \| Handoff \| Always |
+| `ScopeSectorId` | int? FK→Sector | settore a cui il blocco si riferisce |
+| `FromSectorId` | int? FK→Sector | solo per coordinamenti (Handoff relazionale) |
+| `ToSectorId` | int? FK→Sector | solo per coordinamenti |
+| `SharedBlockId` | int? FK→SharedBlock | se il contenuto è riusato per riferimento |
+| `Body` | text? | Markdown (prosa) — null se usa SharedBlock |
+| `BodyJson` | text? | struttura tabellare (Format=Table) |
+
+Vincoli: se `Visibility = Handoff` e il blocco è un coordinamento, `FromSectorId`/`ToSectorId` valorizzati. Se `SharedBlockId` valorizzato, `Body`/`BodyJson` nulli.
+
+### 3.13 `SharedBlock`
+Contenuto condiviso per **riferimento** (modifica una volta, aggiorna ovunque). La duplicazione, invece, è una semplice copia in `ContentBlock` senza `SharedBlockId`.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Key` | string(64) | univoco (es. `minime-separazione-generali`) |
+| `Title` | string(160) | |
+| `Format` | enum `BlockFormat` | |
+| `Body` | text? | |
+| `BodyJson` | text? | |
+| `RowVersion` | rowversion | |
+
+### 3.14 `AuditLog`
+Tracciamento delle modifiche (chi, quando, cosa).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | long PK | |
+| `Vid` | int | utente IVAO |
+| `Action` | enum `AuditAction` | Create \| Update \| Publish \| Archive \| HierarchyChange |
+| `EntityType` | string(60) | es. `Document`, `UnificationRule` |
+| `EntityId` | string(40) | |
+| `TimestampUtc` | datetime | |
+| `DetailsJson` | text? | diff/contesto |
+
+### 3.15 `NavReference` (validazione semantica)
+Dataset di riferimento per la validazione dei riferimenti nav (FIX/aerovie) legato all'AIRAC (§17.2 del piano).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Type` | enum `NavRefType` | Fix \| Airway \| Navaid |
+| `Ident` | string(16) | es. `BAVOM` |
+| `AiracCycle` | string(6) | ciclo di validità |
+
+### 3.16 (Non persistito) `AtcSnapshot`
+Stato live in **cache memoria**, non in DB: lista ATC online normalizzata dal polling (callsign, vid, frequenza, posizione). Aggiornata ogni 60 s. Documentata qui per completezza; non genera tabella.
+
+---
+
+## 4. Enumerazioni
+
+```csharp
+enum PositionType   { Del, Gnd, Twr, App, Ctr }
+enum PositionKind   { Airport, Acc }
+enum GeometryFormat { GeoJson, Wkt }
+enum DocumentType   { Vipi, Vloa }
+enum DocumentStatus { Draft, Published, Archived }
+enum Language       { It, En }
+enum PartyRole      { Home, Neighbour }
+enum BlockTier      { Reduced, Extended }
+enum BlockFormat    { Table, Prose, Image, List }
+enum BlockVisibility{ Operational, Handoff, Always }
+enum AuditAction    { Create, Update, Publish, Archive, HierarchyChange }
+enum NavRefType     { Fix, Airway, Navaid }
+
+// Sezioni logiche dei documenti (derivate dagli esempi vIPI/vLOA)
+enum BlockSection {
+    Aor, Frequencies, OperationalSettings, Atis, Airport,
+    TrafficManagement, Coordination, OperationalTechnique,
+    Separations, AreasCorridors, BestPractice, Purpose, Validity, Other
+}
+
+// Stato runtime del settore — NON persistito, calcolato dall'AorService
+enum SectorState { Covered, Online }
+```
+
+---
+
+## 5. Indici e vincoli principali
+
+- `Position.Callsign` UNIQUE; indice su `FirId`.
+- `Sector.Key` UNIQUE per `FirId`.
+- `HierarchyRelation` UNIQUE su (`ParentPositionId`,`ChildPositionId`); validazione anti-ciclo applicativa.
+- `Document` indice su (`Type`,`ScopePositionId`,`Status`).
+- `ContentBlock` indice su (`DocumentVersionId`,`Section`,`Order`); indice su `ScopeSectorId`.
+- `SharedBlock.Key` UNIQUE.
+- `NavReference` indice su (`Type`,`Ident`,`AiracCycle`).
+- `RowVersion` su `Document`, `UnificationRule`, `SharedBlock` per concorrenza ottimistica.
+
+---
+
+## 6. Note di derivazione EF Core
+
+- Owned types per `BodyJson` se si preferisce, altrimenti `text` semplice (più leggero per SQLite).
+- `RowVersion` mappato a `BLOB` con `IsRowVersion()` (SQLite usa trigger/`xmin`-like via `rowversion` shim o concorrenza su timestamp — valutare `ConcurrencyToken` su `LastUpdatedUtc` se rowversion nativo non disponibile in SQLite).
+- Enum salvati come **stringa** (più leggibili e stabili nel DB) via `HasConversion<string>()`.
+- Cascade: eliminazione `Document` → `DocumentVersion` → `ContentBlock` (cascade); `Sector`/`Position` mai cancellati a cascata (restrict) per integrità storica.
+
+---
+
+*Documento collegato:* `SPEC_Logica_AoR.md` — usa `Position`, `Sector`, `PositionSector`, `HierarchyRelation`, `UnificationRule`, `ContentBlock.Visibility/ScopeSectorId`.
+
+---
+
+## 7. Aggiornamenti round 4 (16 giugno 2026)
+
+Queste modifiche recepiscono il flusso e le decisioni in `REVIEW_Flusso_e_Gap.md`. Dove indicato, **sostituiscono** quanto sopra.
+
+### 7.1 `DocumentSection` (nuova entità ad albero) — sezioni annidate fino a 3 livelli
+
+Sostituisce l'uso di `ContentBlock.Section` come enum piatto. Le sezioni diventano un albero per versione di documento; la TOC dinamica si genera percorrendolo.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `DocumentVersionId` | int FK→DocumentVersion | |
+| `ParentSectionId` | int? FK→DocumentSection | null = sezione radice |
+| `Title` | string(200) | |
+| `Order` | int | ordine tra fratelli |
+| `Depth` | int | 0 = radice … max **3** (vincolo applicativo) |
+| `SectionKind` | enum `BlockSection` | semantica della sezione (Aor, Coordination, …) |
+
+Vincoli: `Depth ≤ 3`; nessun ciclo; `(DocumentVersionId, ParentSectionId, Order)` ordinato.
+
+### 7.2 `ContentBlock` — modifiche
+
+- **`Section` (enum) → `SectionId` (int FK→DocumentSection)**: il blocco appartiene a un nodo dell'albero, non più a un enum.
+- **`CollapsedByDefault: bool`** (nuovo): se il blocco (tipicamente una tabella) è compresso di default nella **vista ridotta**. Indipendente dalla logica live/AoR.
+- **`CalloutKind: enum? CalloutKind`** (nuovo): valorizzato solo se `Format = Callout`.
+
+### 7.3 `Position` — attributo remotizzazione
+
+- **`ApproachKind: enum? ApproachKind { Remotized, Standalone }`** (nuovo, solo per `Type = App`): se `Remotized`, la documentazione dell'APP vive **dentro la vIPI dell'ACC**; se `Standalone`, ha un **documento proprio** (caso del punto 3.2 del flusso).
+
+### 7.4 Nuovi formati di blocco
+
+- **`Format = AorMap`**: blocco mappa AoR. `BodyJson` contiene la lista dei settori/geometrie da disegnare e le opzioni di resa (overlap, stati Covered/Online). Permette **N sezioni AoR per documento** (una ACC + una per ogni APP remotizzato).
+- **`Format = Callout`**: riquadro informativo colorato, piazzabile in qualsiasi sezione/profondità. Variante in `CalloutKind`.
+
+### 7.5 `VectoringMinima` / `VectoringMinimaSet` — **implementazione FUTURE**
+
+> ⚠️ Documentato ora, **non** nella prima release.
+
+Le minime di vettoramento si importano dal **sectorfile della divisione su GitHub** (file EuroScope/Aurora), non dalle API IVAO né a mano.
+
+`VectoringMinimaSet`:
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `ScopeSectorId` | int? FK→Sector | settore/area di riferimento |
+| `Source` | enum | `SectorfileGitHub` |
+| `SourceAiracCycle` | string(6) | AIRAC del sectorfile (mostrato per verificare l'allineamento col documento) |
+| `SourceCommit` | string(40)? | commit del repo |
+| `ImportedAtUtc` | datetime? | |
+
+`VectoringMinimaRow`: `{ Id, SetId FK, AreaName, MinimaFt, Note }`.
+
+Servizio `SectorfileImportService` (Infrastructure): legge il file dal repo GitHub, lo parsa, popola minime; ri-eseguibile a ogni cambio AIRAC (lega `AiracService`). **Stessa fonte** alimenta la whitelist fix per la validazione CoP (§7.6).
+
+### 7.6 `CoordinationPoint` (whitelist per validazione CoP)
+
+Per la validazione dei trasferimenti (QoL-7): i CoP non sono tutti fix reali — esistono punti convenzionali tipo `Jx` (`J1`, `J2`…) assenti dal nav-data.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `Ident` | string(16) | es. `BAVOM`, `J1` |
+| `Kind` | enum `CopKind` | `Fix` (da sectorfile/nav-data) \| `Conventional` (whitelist editabile) |
+| `AiracCycle` | string(6)? | per i `Fix` |
+
+Il validatore semantico accetta `Fix` ∪ `Conventional`; segnala (warning) solo ciò che non rientra in nessuna delle due.
+
+### 7.7 Enumerazioni aggiuntive
+
+```csharp
+enum ApproachKind { Remotized, Standalone }      // solo Position.Type = App
+enum CalloutKind  { Info, Success, Warning, Danger }
+enum CopKind      { Fix, Conventional }
+
+// BlockFormat esteso:
+enum BlockFormat  { Table, Prose, Image, List, AorMap, Callout }
+```
+
+> `BlockSection` resta come elenco di valori semantici, ma ora vive su `DocumentSection.SectionKind` invece che su `ContentBlock.Section`. Valutare l'aggiunta di `VectoringMinima` come valore quando si implementeranno le minime.
