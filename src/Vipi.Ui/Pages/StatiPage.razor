@@ -1,0 +1,23 @@
+@page "/sop/stati"
+@layout SopLayout
+
+<PageTitle>Stati &amp; messaggi · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/sop">Home</a> › <b>Stati &amp; messaggi</b></div>
+    <div class="doc-head"><div><h2 style="margin-bottom:2px">Stati &amp; messaggi</h2><span class="muted">Stati vuoti, errori e avvisi che la UI deve gestire</span></div></div>
+    <div class="states-grid">
+        <div class="state-card"><h5>Nessun ATC online</h5>
+            <div class="empty-ph"><span class="ei">📡</span><div><b>Nessuna posizione ATC online nel tuo dominio</b></div><div class="muted" style="font-size:12.5px">La vista resta in modalità completa: tutto espanso.</div></div></div>
+        <div class="state-card"><h5>Feed live non aggiornato</h5>
+            <div class="callout warning" style="margin:0"><span class="cic">⚠️</span><div><p class="ct">Dati live non aggiornati</p>Ultimo aggiornamento &gt; 2 min fa. I collassi potrebbero non riflettere la realtà: i blocchi restano sempre riespandibili.</div></div></div>
+        <div class="state-card"><h5>METAR / TAF non disponibile</h5>
+            <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR non disponibile per LIRF</b></div><div class="muted" style="font-size:12.5px">Servizio meteo non raggiungibile. Riprova più tardi.</div></div></div>
+        <div class="state-card"><h5>Documento assente</h5>
+            <div class="empty-ph"><span class="ei">📄</span><div><b>Nessuna vIPI per questa posizione</b></div><div class="muted" style="font-size:12.5px">Il documento non è ancora stato creato dagli editor.</div></div></div>
+        <div class="state-card"><h5>Accesso in sola lettura</h5>
+            <div class="callout info" style="margin:0"><span class="cic">🔒</span><div><p class="ct">Sola lettura</p>Non hai un ruolo staff (CH/AOD): puoi consultare ma non modificare i documenti.</div></div></div>
+        <div class="state-card"><h5>Collasso morbido (live)</h5>
+            <details class="acc-item collapsed-strip" open><summary><span>🔇 Dettagli operativi LIRP — delegati: APP online</span><span class="tag-state tag-online">online</span></summary><div class="body"><p class="muted" style="font-size:13px">Compresso ma sempre riespandibile: nessuna perdita di accesso all'informazione.</p></div></details></div>
+    </div>
+</div>

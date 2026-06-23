@@ -9,5 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />
     <Project Path="tests/Vipi.Domain.Tests/Vipi.Domain.Tests.csproj" />
+    <Project Path="tests/Vipi.Infrastructure.Tests/Vipi.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

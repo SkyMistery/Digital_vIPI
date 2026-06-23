@@ -1,0 +1,110 @@
+@using System.Text.Json
+
+@if (_columns is not null)
+{
+    <table class="cfg-table@(_hasPrimary ? " freq-table" : "")" id="@_tableId">
+        <thead>
+            <tr>@foreach (var c in _columns) { <th>@c</th> }</tr>
+        </thead>
+        <tbody>
+            @if (_unified)
+            {
+                @for (var i = 0; i < _rows.Count; i++)
+                {
+                    var row = _rows[i];
+                    var startsGroup = i == 0 || _rows[i - 1].Group != row.Group;
+                    var span = startsGroup ? GroupSpan(i) : 0;
+                    <tr data-r="@row.R" class="@RowClass(row, startsGroup)">
+                        @if (startsGroup)
+                        {
+                            <td class="uni" rowspan="@span">@row.Group</td>
+                        }
+                        @RenderCells(row)
+                    </tr>
+                }
+            }
+            else
+            {
+                @foreach (var row in _rows)
+                {
+                    <tr class="@RowClass(row, false)">@RenderCells(row)</tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private record Row(string? R, string? Group, bool Primary, bool Star, string[] Cells);
+
+    private string? _tableId;
+    private string[]? _columns;
+    private bool _unified;
+    private bool _hasPrimary;
+    private List<Row> _rows = new();
+
+    protected override void OnParametersSet()
+    {
+        _tableId = null; _columns = null; _unified = false; _hasPrimary = false; _rows = new();
+        if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(Block.BodyJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("tableId", out var tid)) _tableId = tid.GetString();
+            if (root.TryGetProperty("unified", out var u)) _unified = u.GetBoolean();
+            if (root.TryGetProperty("columns", out var cols) && cols.ValueKind == JsonValueKind.Array)
+                _columns = cols.EnumerateArray().Select(e => e.GetString() ?? "").ToArray();
+            if (root.TryGetProperty("rows", out var rows) && rows.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var r in rows.EnumerateArray())
+                {
+                    var cells = r.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
+                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToArray()
+                        : Array.Empty<string>();
+                    var primary = r.TryGetProperty("primary", out var p) && p.GetBoolean();
+                    var star = r.TryGetProperty("star", out var st) && st.GetBoolean();
+                    if (primary) _hasPrimary = true;
+                    _rows.Add(new Row(
+                        r.TryGetProperty("r", out var rv) ? rv.GetString() : null,
+                        r.TryGetProperty("group", out var gv) ? gv.GetString() : null,
+                        primary, star, cells));
+                }
+            }
+        }
+        catch (JsonException) { _columns = null; }
+    }
+
+    private int GroupSpan(int i)
+    {
+        var g = _rows[i].Group;
+        var n = 0;
+        for (var j = i; j < _rows.Count && _rows[j].Group == g; j++) n++;
+        return n;
+    }
+
+    private string RowClass(Row row, bool startsGroup)
+    {
+        var cls = new List<string>();
+        if (startsGroup && _unified) cls.Add("grp-start");
+        if (row.Primary) cls.Add("primary");
+        return string.Join(' ', cls);
+    }
+
+    private RenderFragment RenderCells(Row row) => __builder =>
+    {
+        var last = row.Cells.Length - 1;
+        for (var i = 0; i < row.Cells.Length; i++)
+        {
+            <td>
+                @row.Cells[i]
+                @if (row.Star && i == last)
+                {
+                    <span class="freq-key"> ★</span>
+                }
+            </td>
+        }
+    };
+}

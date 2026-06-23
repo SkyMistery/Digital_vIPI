@@ -13,6 +13,14 @@ public static class DependencyInjection
         services.AddSingleton<IAiracService, AiracService>();
         services.AddSingleton<IAorService, AorService>();
         services.AddSingleton<IContentService, ContentService>();
+        services.AddSingleton<IStationResolver, StationResolver>();
+        services.AddScoped<IVipiViewService, VipiViewService>();
+        services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
+        services.AddScoped<IEditingService, EditingService>();
+        services.AddScoped<Aor.ITopologyEditingService, Aor.TopologyEditingService>();
+        services.AddScoped<ITransferService, TransferService>();
+        services.AddScoped<ISearchService, SearchService>();
+        services.AddScoped<IChangesService, ChangesService>();
         return services;
     }
 }

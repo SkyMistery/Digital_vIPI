@@ -1,0 +1,35 @@
+@page "/sop/{Acc}/editor-vloa"
+@layout SopLayout
+@inject IEditingService Editing
+@inject NavigationManager Nav
+
+<PageTitle>Editor vLOA · IVAO Italia</PageTitle>
+
+<div class="wrap">
+    @if (_error is not null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Non disponibile</p>@_error</div></div>
+    }
+    else
+    {
+        <p class="help">Apertura editor vLOA…</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private string? _error;
+
+    // L'editor è generico: la vLOA si edita con lo stesso EditorPage via ?doc={id}. Qui troviamo l'id e reindirizziamo.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var docs = await Editing.ListDocumentsAsync();
+            var vloa = docs.FirstOrDefault(d => d.Type == DocumentType.Vloa);
+            if (vloa is null) { _error = "Nessuna vLOA presente."; return; }
+            Nav.NavigateTo($"/sop/{Acc.ToLowerInvariant()}/editor?doc={vloa.Id}", forceLoad: false);
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+}

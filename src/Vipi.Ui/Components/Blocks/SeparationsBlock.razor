@@ -1,0 +1,63 @@
+@using System.Text.Json
+
+@foreach (var g in _groups)
+{
+    <h4>@g.Title</h4>
+    <div class="sep-box" style="margin-bottom:18px">
+        <div class="sep-grid">
+            @foreach (var it in g.Items)
+            {
+                <div class="it"><span class="muted">@it.Label</span><b>@it.Value</b></div>
+            }
+        </div>
+        @if (g.WarningText is not null)
+        {
+            <div class="callout warning" style="margin:14px 0 0">
+                <span class="cic">⚠️</span>
+                <div>
+                    <p class="ct">@g.WarningTitle</p>
+                    @MarkdownLite.Render(g.WarningText)
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private record Sep(string Label, string Value);
+    private record Grp(string Title, List<Sep> Items, string? WarningTitle, string? WarningText);
+
+    private List<Grp> _groups = new();
+
+    protected override void OnParametersSet()
+    {
+        _groups = new();
+        if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(Block.BodyJson);
+            if (!doc.RootElement.TryGetProperty("data", out var data)) return;
+            if (!data.TryGetProperty("groups", out var groups)) return;
+            foreach (var g in groups.EnumerateArray())
+            {
+                var items = new List<Sep>();
+                if (g.TryGetProperty("items", out var its))
+                    foreach (var it in its.EnumerateArray())
+                        items.Add(new Sep(Str(it, "label"), Str(it, "value")));
+                string? wt = null, wx = null;
+                if (g.TryGetProperty("warning", out var w))
+                {
+                    wt = Str(w, "title");
+                    wx = Str(w, "text");
+                }
+                _groups.Add(new Grp(Str(g, "title"), items, wt, wx));
+            }
+        }
+        catch (JsonException) { }
+    }
+
+    private static string Str(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) ? v.GetString() ?? "" : "";
+}

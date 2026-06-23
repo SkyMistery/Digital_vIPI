@@ -1,0 +1,74 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject IStationResolver Stations
+@inject ICurrentUserProvider Users
+
+<div class="topbar">
+    <div class="brand">
+        <span class="logo">vIPI</span>
+        <div>vIPI <small>/ vLOA · IVAO Italia</small></div>
+    </div>
+    <nav class="acc-nav">
+        @foreach (var acc in Stations.Accs)
+        {
+            <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/sop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
+        }
+    </nav>
+    <div class="right">
+        <div class="zoom-ctrl" role="group" aria-label="Zoom pagina">
+            <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
+            <span id="vipiZoomPct" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
+            <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
+        </div>
+        @if (_onDoc)
+        {
+            <div class="tier-toggle">
+                <a class="@(_reduced ? null : "on")" style="text-decoration:none" href="@DocUrl(false)">Estesa</a>
+                <a class="@(_reduced ? "on" : null)" style="text-decoration:none" href="@DocUrl(true)">Ridotta</a>
+            </div>
+        }
+        <div class="live-badge" style="background:#eceef5;color:#5b6072;border-color:#d7d7dc">
+            <span class="dot" style="background:#c3c7d4;animation:none"></span> Live · non connesso
+        </div>
+        @if (_user is { } u)
+        {
+            <div class="user-chip"><span class="avatar">@Initials(u.Name)</span></div>
+        }
+    </div>
+</div>
+
+@Body
+
+@code {
+    private string? _acc;
+    private bool _onDoc;
+    private bool _reduced;
+    private CurrentUser? _user;
+
+    protected override void OnParametersSet()
+    {
+        _user = Users.Get();
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        // /sop/{acc}/{vipi?}
+        _acc = segments.Length >= 2 && segments[0].Equals("sop", StringComparison.OrdinalIgnoreCase)
+            ? segments[1] : null;
+        var leaf = segments.Length >= 3 ? segments[2].ToLowerInvariant() : "";
+        _onDoc = leaf is "vipi" or "ridotta";
+        _reduced = leaf == "ridotta";
+    }
+
+    private bool IsActiveAcc(string code) =>
+        _acc is not null && code.Equals(_acc, StringComparison.OrdinalIgnoreCase);
+
+    private string DocUrl(bool reduced) =>
+        $"/sop/{_acc?.ToLowerInvariant()}/" + (reduced ? "ridotta" : "vipi");
+
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}"
+            : (name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper());
+    }
+}

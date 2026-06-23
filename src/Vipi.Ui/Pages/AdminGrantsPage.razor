@@ -1,0 +1,142 @@
+@page "/sop/admin/permessi"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditAuthorizationService Authz
+@inject IStationResolver Stations
+@inject IDivisionMembersProvider Members
+
+<PageTitle>Permessi editing · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1000px">
+    <div class="breadcrumb"><a href="/sop">Admin</a> › <b>Permessi editing</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Permessi editing</h2><span class="muted">Concedi a un VID il diritto di editare tutti i documenti di una FIR</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può gestire i permessi.</div></div>
+    }
+    else
+    {
+        <div class="callout info"><span class="cic">ℹ️</span><div><p class="ct">Grant per VID</p>Seleziona un CH dall'elenco divisione (API IVAO) oppure inserisci un VID a mano.</div></div>
+
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+
+        <div class="apt-2col" style="margin-top:14px">
+            <div>
+                <h4>Permessi attivi</h4>
+                @if (_grants is null) { <p class="help">Caricamento…</p> }
+                else if (_grants.Count == 0) { <p class="help">Nessun permesso concesso.</p> }
+                else
+                {
+                    <table>
+                        <thead><tr><th>VID</th><th>Nome</th><th>FIR</th><th>Concesso da</th><th>Quando</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var g in _grants)
+                            {
+                                <tr>
+                                    <td><b>@g.Vid</b></td>
+                                    <td>@(string.IsNullOrWhiteSpace(g.DisplayName) ? "—" : g.DisplayName)</td>
+                                    <td>@g.FirCode</td>
+                                    <td>@g.GrantedByVid</td>
+                                    <td>@g.GrantedAtUtc.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => Revoke(g.Id)">Revoca</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            <div class="xfe-form">
+                <h4>Concedi permesso</h4>
+                @if (_members is { Count: > 0 })
+                {
+                    <div class="field"><label>CH divisione</label>
+                        <select @bind="_selectedVid" @bind:after="OnMemberPicked">
+                            <option value="0">— seleziona —</option>
+                            @foreach (var m in _members)
+                            {
+                                <option value="@m.Vid">@m.Vid — @m.Name (@m.Rating)</option>
+                            }
+                        </select>
+                    </div>
+                }
+                else if (_membersError is not null)
+                {
+                    <p class="help">Elenco CH non disponibile (@_membersError). Inserisci il VID a mano.</p>
+                }
+                <div class="field"><label>VID</label><input type="number" placeholder="es. 123456" @bind="_vid" /></div>
+                <div class="field"><label>Nome (opzionale)</label><input placeholder="es. Mario Rossi" @bind="_name" /></div>
+                <div class="field"><label>FIR</label>
+                    <select @bind="_firCode">
+                        @foreach (var acc in Stations.Accs) { <option value="@acc.Code">@acc.Code — @acc.Name</option> }
+                    </select>
+                </div>
+                <button class="btn primary" style="width:100%;margin-top:4px" disabled="@_busy" @onclick="Add">+ Concedi</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<GrantRow>? _grants;
+    private bool _busy;
+    private string? _status, _error;
+
+    private int _vid;
+    private string _name = "";
+    private string _firCode = "LIRR";
+
+    private IReadOnlyList<DivisionMember>? _members;
+    private string? _membersError;
+    private int _selectedVid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        await LoadAsync();
+        try { _members = await Members.GetDivisionControllersAsync(); }
+        catch (Exception ex) { _membersError = ex.Message; }
+    }
+
+    private void OnMemberPicked()
+    {
+        var m = _members?.FirstOrDefault(x => x.Vid == _selectedVid);
+        if (m is null) return;
+        _vid = m.Vid;
+        _name = m.Name;
+    }
+
+    private async Task LoadAsync()
+    {
+        try { _grants = await Authz.ListGrantsAsync(); }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+
+    private async Task Add()
+    {
+        _busy = true; _status = null; _error = null;
+        try
+        {
+            if (_vid <= 0) throw new InvalidOperationException("VID non valido.");
+            await Authz.AddGrantAsync(_vid, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _firCode);
+            _vid = 0; _name = "";
+            await LoadAsync();
+            _status = "Permesso concesso.";
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Revoke(int id)
+    {
+        _busy = true; _status = null; _error = null;
+        try { await Authz.RevokeGrantAsync(id); await LoadAsync(); _status = "Permesso revocato."; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+}

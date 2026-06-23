@@ -12,6 +12,14 @@ public static class DependencyInjection
     {
         services.AddDbContext<VipiDbContext>(o => o.UseSqlite(connectionString));
         services.AddScoped<TopologyBuilder>();
+        services.AddScoped<Vipi.Application.Abstractions.ITopologyProvider, TopologyBuilder>();
+        services.AddScoped<Vipi.Application.Abstractions.IContentRepository, EfContentRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.ITopologyEditingRepository, EfTopologyEditingRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.ITransferRepository, EfTransferRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         return services;
     }
 }

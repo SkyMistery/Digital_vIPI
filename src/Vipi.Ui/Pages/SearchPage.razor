@@ -1,0 +1,79 @@
+@page "/sop/search"
+@layout SopLayout
+@rendermode InteractiveServer
+@using System.Net
+@using System.Text.RegularExpressions
+@inject ISearchService Search
+
+<PageTitle>Ricerca · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1000px">
+    <div class="breadcrumb"><a href="/sop">Home</a> › <b>Ricerca</b></div>
+
+    <div class="searchbar" style="background:#fff;border:1px solid var(--line);max-width:none;margin:6px 0 16px">
+        <span class="ico">🔍</span>
+        <input @bind="_q" @bind:event="oninput" @onkeyup="OnKey" placeholder="Cerca CoP, FIX, callsign, frequenze…" style="color:var(--ink)" />
+    </div>
+    <div class="apt-quick" style="margin-bottom:18px">
+        @foreach (var (label, sc) in _scopes)
+        {
+            <span class="ch @(_scope == sc ? "on" : "")" style="cursor:pointer" @onclick="() => SetScope(sc)">@label</span>
+        }
+    </div>
+
+    @if (string.IsNullOrWhiteSpace(_q) || _q.Trim().Length < 2)
+    {
+        <p class="muted" style="font-size:13px">Digita almeno 2 caratteri.</p>
+    }
+    else
+    {
+        <p class="muted" style="font-size:13px;margin-bottom:12px">@_hits.Count risultati per <b>@_q</b></p>
+        <div class="res">
+            @foreach (var h in _hits)
+            {
+                <a class="res-row" href="@h.Url" style="display:block;text-decoration:none;color:inherit">
+                    <div class="res-where">@h.Where</div>
+                    <div class="res-snip">@Highlight(h.Snippet)</div>
+                </a>
+            }
+            @if (_hits.Count == 0)
+            {
+                <p class="help">Nessun risultato.</p>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+
+    private string _q = "";
+    private SearchScope _scope = SearchScope.All;
+    private IReadOnlyList<SearchHit> _hits = new List<SearchHit>();
+
+    private static readonly (string, SearchScope)[] _scopes =
+    {
+        ("Tutti", SearchScope.All), ("vIPI", SearchScope.Vipi), ("vLOA", SearchScope.Vloa), ("Aeroporti", SearchScope.Airport),
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Q) && string.IsNullOrEmpty(_q)) _q = Q!;
+        await RunAsync();
+    }
+
+    private async Task OnKey(KeyboardEventArgs e) => await RunAsync();
+    private async Task SetScope(SearchScope sc) { _scope = sc; await RunAsync(); }
+
+    private async Task RunAsync() => _hits = await Search.SearchAsync(_q, _scope);
+
+    // Evidenziazione sicura: encode dell'HTML, poi <mark> attorno alle occorrenze del termine (no XSS).
+    private MarkupString Highlight(string text)
+    {
+        var enc = WebUtility.HtmlEncode(text);
+        var term = WebUtility.HtmlEncode(_q.Trim());
+        if (term.Length == 0) return new MarkupString(enc);
+        var html = Regex.Replace(enc, Regex.Escape(term), m => $"<mark>{m.Value}</mark>", RegexOptions.IgnoreCase);
+        return new MarkupString(html);
+    }
+}

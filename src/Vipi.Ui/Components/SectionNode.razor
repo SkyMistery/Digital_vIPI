@@ -1,0 +1,54 @@
+@* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup). *@
+@if (Section.Depth == 0)
+{
+    <div class="block" id="@Section.Id">
+        <h3 style="margin-top:0">@Section.Title</h3>
+        @Blocks
+        @Children
+    </div>
+}
+else
+{
+    <details class="@SubClass" id="@Section.Id" open>
+        <summary>
+            <span>@Section.Title</span>
+            <span class="sum-right"><span class="chev">▸</span></span>
+        </summary>
+        <div class="body">
+            @Blocks
+            @Children
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
+
+    private string SubClass => Section.Depth == 1 ? "coord-sub" : "coord-sub2";
+
+    private RenderFragment Blocks => __builder =>
+    {
+        foreach (var block in Section.Blocks)
+        {
+            if (block.State == RenderState.Collapsed)
+            {
+                <details class="collapsed-strip">
+                    <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
+                    <BlockRenderer Block="block" />
+                </details>
+            }
+            else
+            {
+                <BlockRenderer Block="block" />
+            }
+        }
+    };
+
+    private RenderFragment Children => __builder =>
+    {
+        foreach (var child in Section.Children)
+        {
+            <SectionNode Section="child" />
+        }
+    };
+}

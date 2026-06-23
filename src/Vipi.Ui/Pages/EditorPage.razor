@@ -1,0 +1,303 @@
+@page "/sop/{Acc}/editor"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStationResolver Stations
+@inject IEditingService Editing
+@inject IEditAuthorizationService Authz
+
+<PageTitle>Editor — vIPI @(_acc?.Name) · IVAO Italia</PageTitle>
+
+<div class="wrap">
+    <div class="breadcrumb"><a href="/sop">Admin</a> › <a href="/sop/@Acc.ToLowerInvariant()/vipi">vIPI @_acc?.Name</a> › <b>Editor</b></div>
+
+    @if (_acc is null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div>
+    }
+    else if (_error is not null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Operazione non consentita</p>@_error</div></div>
+    }
+    else if (_doc is null)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Nessun documento</p>Nessuna vIPI per @_acc.Name.</div></div>
+    }
+    else
+    {
+        <div class="ed-toolbar">
+            <h2 style="margin:0;flex:1">Editor — @_doc.Title</h2>
+            <span class="pill @(Editable ? "grey" : "green")">@(Editable ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicato v{_doc.VersionNumber}")</span>
+            @if (_lock is not null && _lock.Locked && !_lock.IsMine)
+            {
+                @* documento bloccato da altri → solo lettura (+ force admin) *@
+                @if (_isAdmin)
+                {
+                    <button class="btn ghost" disabled="@_busy" @onclick="ForceUnlock">🔓 Forza sblocco</button>
+                }
+            }
+            else
+            {
+                <span class="pill green">🔓 lock tuo@(_lock?.ExpiresUtc is not null ? $" · scade {_lock.ExpiresUtc:HH:mm}" : "")</span>
+                @if (!Editable)
+                {
+                    <button class="btn primary" disabled="@_busy" @onclick="CreateDraft">✎ Crea bozza per modificare</button>
+                }
+                else
+                {
+                    <button class="btn ghost" disabled="@_busy" @onclick="AddBlock">+ Blocco</button>
+                    <button class="btn primary" disabled="@_busy" @onclick="Publish">Pubblica</button>
+                }
+                <button class="btn ghost" disabled="@_busy" @onclick="ReleaseLock">Rilascia</button>
+            }
+            <a class="btn ghost" href="/sop/@Acc.ToLowerInvariant()/vipi">👁️ Anteprima</a>
+            <a class="btn ghost" href="/sop/@Acc.ToLowerInvariant()/versioni">📜 Versioni</a>
+        </div>
+
+        @if (_lock is not null && _lock.Locked && !_lock.IsMine)
+        {
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Documento in modifica</p>Bloccato da VID @_lock.ByVid (@_lock.ByName) fino alle @_lock.ExpiresUtc?.ToString("HH:mm") UTC. Sola lettura finché non si libera@(_isAdmin ? " (o forza lo sblocco)" : "").</div></div>
+        }
+
+        @if (_status is not null)
+        {
+            <div class="callout success"><span class="cic">✓</span><div>@_status</div></div>
+        }
+
+        <div class="ed-layout">
+            <div class="panel">
+                <h5>Struttura (max 3 livelli)</h5>
+                <ul class="tree">
+                    @foreach (var (s, depth) in _flat)
+                    {
+                        <li class="@(depth == 1 ? "l2" : depth == 2 ? "l3" : depth >= 3 ? "l4" : "") @(s.Id == _selId ? "sel" : "")">
+                            <span class="lbl-txt" style="cursor:pointer" @onclick="() => Select(s.Id)">@(depth > 0 ? "└ " : "")@s.Title</span>
+                            <span class="ty">@s.Blocks.Count blk</span>
+                            @if (Editable)
+                            {
+                                <span style="margin-left:6px;white-space:nowrap">
+                                    <button class="btn ghost" disabled="@_busy" title="Su" @onclick="() => MoveSection(s.Id, -1)">▲</button>
+                                    <button class="btn ghost" disabled="@_busy" title="Giù" @onclick="() => MoveSection(s.Id, 1)">▼</button>
+                                    <button class="btn ghost" disabled="@_busy" title="Elimina" @onclick="() => DeleteSection(s.Id)">🗑</button>
+                                </span>
+                            }
+                        </li>
+                    }
+                </ul>
+                @if (Editable)
+                {
+                    <div class="field" style="border-top:1px solid #e3e7f0;padding-top:10px;margin-top:6px">
+                        <label>Aggiungi sezione</label>
+                        <input placeholder="Titolo nuova sezione" @bind="_newSectionTitle" />
+                        <select @bind="_newSectionParent" style="margin-top:6px">
+                            <option value="0">— Radice (livello 0) —</option>
+                            @foreach (var (s, depth) in _flat.Where(t => t.Depth < 3))   @* DocumentSection.MaxDepth *@
+                            {
+                                <option value="@s.Id">@(new string('·', depth + 1)) @s.Title (figlia, liv. @(depth + 1))</option>
+                            }
+                        </select>
+                        <button class="btn ghost" disabled="@_busy" style="margin-top:6px" @onclick="AddSection">+ Aggiungi sezione</button>
+                    </div>
+                }
+                <p class="help">Seleziona una sezione per modificarne i blocchi.@(Editable ? "" : " Crea una bozza per editare.")</p>
+            </div>
+
+            <div class="panel ed-canvas">
+                @if (_selected is null)
+                {
+                    <p class="help">Nessuna sezione selezionata.</p>
+                }
+                else
+                {
+                    <div class="ed-nodehead"><span class="nh-ico">📄</span><div><div class="nh-t">@_selected.Title</div><div class="nh-sub">@_selected.Blocks.Count blocchi · profondità @_selected.Depth</div></div></div>
+
+                    @if (_selected.Blocks.Count == 0)
+                    {
+                        <p class="help">Sezione senza blocchi.@(Editable ? " Usa “+ Blocco” per aggiungerne uno." : "")</p>
+                    }
+
+                    @foreach (var blk in _selected.Blocks)
+                    {
+                        <div class="field" style="border:1px solid #e3e7f0;border-radius:8px;padding:12px;margin-bottom:12px">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span class="ty">@blk.Format</span>
+                                <span style="flex:1"></span>
+                                @if (Editable)
+                                {
+                                    <button class="btn ghost" disabled="@_busy" title="Su" @onclick="() => MoveBlock(blk.Id, -1)">▲</button>
+                                    <button class="btn ghost" disabled="@_busy" title="Giù" @onclick="() => MoveBlock(blk.Id, 1)">▼</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => SaveBlock(blk)">Salva</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => DeleteBlock(blk.Id)">🗑</button>
+                                }
+                            </div>
+                            @if (blk.Format == BlockFormat.Prose || blk.Format == BlockFormat.Callout)
+                            {
+                                <label>Testo (Markdown)</label>
+                                <textarea rows="3" disabled="@(!Editable)" @bind="blk.Body"></textarea>
+                            }
+                            else
+                            {
+                                <label>Contenuto strutturato (JSON)</label>
+                                <textarea rows="4" disabled="@(!Editable)" @bind="blk.BodyJson" style="font-family:monospace;font-size:12px"></textarea>
+                            }
+                            <div style="display:flex;gap:18px;margin-top:8px">
+                                <div>
+                                    <label>Tier</label>
+                                    <div class="seg">
+                                        <button class="@(blk.Tier == BlockTier.Extended ? "on" : "")" disabled="@(!Editable)" @onclick="() => blk.Tier = BlockTier.Extended">Estesa</button>
+                                        <button class="@(blk.Tier == BlockTier.Reduced ? "on" : "")" disabled="@(!Editable)" @onclick="() => blk.Tier = BlockTier.Reduced">Ridotta</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label>Visibilità</label>
+                                    <div class="seg">
+                                        @foreach (var v in _visibilities)
+                                        {
+                                            <button class="@(blk.Visibility == v ? "on" : "")" disabled="@(!Editable)" @onclick="() => blk.Visibility = v">@v</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public int? Doc { get; set; }
+
+    private AccInfo? _acc;
+    private EditableDocument? _doc;
+    private int _docId;
+    private int? _selId;
+    private bool _busy;
+    private string? _status;
+    private string? _error;
+
+    private LockInfo? _lock;
+    private bool _isAdmin;
+    private bool Editable => _doc?.IsEditable == true && _lock?.IsMine == true;
+
+    private string _newSectionTitle = "";
+    private int _newSectionParent;   // 0 = radice
+
+    private static readonly BlockVisibility[] _visibilities =
+        { BlockVisibility.Operational, BlockVisibility.Handoff, BlockVisibility.Always };
+
+    // Sezioni appiattite (sezione + profondità) per il tree.
+    private List<(EditableSection Section, int Depth)> _flat = new();
+    private EditableSection? _selected => _selId is int id ? _flat.FirstOrDefault(t => t.Section.Id == id).Section : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var docs = await Editing.ListDocumentsAsync();
+            // ?doc={id} = edita un documento specifico (aeroporto, vLOA, …); altrimenti la vIPI ACC di scope.
+            var summary = Doc is int wantedId
+                ? docs.FirstOrDefault(d => d.Id == wantedId)
+                : docs.FirstOrDefault(d =>
+                    d.Type == DocumentType.Vipi &&
+                    d.Scope.Equals(_acc!.Code, StringComparison.OrdinalIgnoreCase));
+            if (summary is null) { _doc = null; return; }
+
+            _docId = summary.Id;
+            _doc = await Editing.LoadForEditAsync(_docId);
+            _isAdmin = Authz.IsAdmin;
+            if (_doc is not null)
+            {
+                // Aprire l'editor = intento di modifica → acquisisce (o ispeziona) il lock.
+                _lock = await Editing.AcquireLockAsync(_docId);
+                Flatten();
+                _selId ??= _flat.FirstOrDefault().Section?.Id;
+            }
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+
+    private void Flatten()
+    {
+        _flat = new();
+        if (_doc is null) return;
+        void Walk(EditableSection s, int depth)
+        {
+            _flat.Add((s, depth));
+            foreach (var c in s.Children) Walk(c, depth + 1);
+        }
+        foreach (var r in _doc.Sections) Walk(r, 0);
+    }
+
+    private void Select(int id) { _selId = id; _status = null; }
+
+    private async Task Guarded(Func<Task> action, string okMessage)
+    {
+        _busy = true; _status = null; _error = null;
+        try
+        {
+            await action();
+            await LoadAsync();
+            _status = okMessage;
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (EditConflictException ex) { _error = ex.Message; }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private Task CreateDraft() => Guarded(async () =>
+        await Editing.CreateDraftAsync(_docId), "Bozza creata: ora puoi modificare.");
+
+    private Task ReleaseLock() => Guarded(async () =>
+        await Editing.ReleaseLockAsync(_docId), "Lock rilasciato.");
+
+    private Task ForceUnlock() => Guarded(async () =>
+        await Editing.ForceUnlockAsync(_docId), "Sblocco forzato.");
+
+    private Task SaveBlock(EditableBlock blk) => Guarded(async () =>
+        await Editing.UpdateBlockAsync(blk.Id, new BlockEdit
+        {
+            Tier = blk.Tier, Visibility = blk.Visibility, CalloutKind = blk.CalloutKind,
+            Body = blk.Body, BodyJson = blk.BodyJson, RowVersion = blk.RowVersion,
+        }), "Blocco salvato.");
+
+    private Task AddBlock() => Guarded(async () =>
+    {
+        if (_selId is int sid)
+            await Editing.AddBlockAsync(sid, BlockFormat.Prose, BlockTier.Reduced, BlockVisibility.Always);
+    }, "Blocco aggiunto.");
+
+    private Task DeleteBlock(int blockId) => Guarded(async () =>
+        await Editing.DeleteBlockAsync(blockId), "Blocco eliminato.");
+
+    private Task MoveBlock(int blockId, int dir) => Guarded(async () =>
+        await Editing.MoveBlockAsync(blockId, dir), "Blocco spostato.");
+
+    private Task AddSection() => Guarded(async () =>
+    {
+        int? parent = _newSectionParent == 0 ? null : _newSectionParent;
+        await Editing.AddSectionAsync(_doc!.VersionId, parent, _newSectionTitle, BlockSection.Other);
+        _newSectionTitle = "";
+    }, "Sezione aggiunta.");
+
+    private Task DeleteSection(int sectionId) => Guarded(async () =>
+    {
+        await Editing.DeleteSectionAsync(sectionId);
+        if (_selId == sectionId) _selId = null;
+    }, "Sezione eliminata.");
+
+    private Task MoveSection(int sectionId, int dir) => Guarded(async () =>
+        await Editing.MoveSectionAsync(sectionId, dir), "Sezione spostata.");
+
+    private Task Publish() => Guarded(async () =>
+        await Editing.PublishAsync(_doc!.VersionId, note: null), "Documento pubblicato.");
+}

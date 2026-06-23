@@ -31,6 +31,8 @@ public class VipiDbContext : DbContext
     public DbSet<CoordinationPoint> CoordinationPoints => Set<CoordinationPoint>();
     public DbSet<VectoringMinimaSet> VectoringMinimaSets => Set<VectoringMinimaSet>();
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
+    public DbSet<Transfer> Transfers => Set<Transfer>();
+    public DbSet<EditGrant> EditGrants => Set<EditGrant>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -107,6 +109,7 @@ public class VipiDbContext : DbContext
         b.Entity<DocumentSection>(e =>
         {
             e.HasIndex(x => new { x.DocumentVersionId, x.ParentSectionId, x.Order });
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasOne(x => x.DocumentVersion).WithMany(v => v.Sections).HasForeignKey(x => x.DocumentVersionId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.ParentSection).WithMany(s => s.Children).HasForeignKey(x => x.ParentSectionId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -114,6 +117,7 @@ public class VipiDbContext : DbContext
         b.Entity<ContentBlock>(e =>
         {
             e.HasIndex(x => new { x.DocumentVersionId, x.SectionId, x.Order });
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasIndex(x => x.ScopeSectorId);
             e.HasOne(x => x.DocumentVersion).WithMany(v => v.Blocks).HasForeignKey(x => x.DocumentVersionId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Section).WithMany(s => s.Blocks).HasForeignKey(x => x.SectionId).OnDelete(DeleteBehavior.Restrict);
@@ -136,5 +140,18 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.ScopeSector).WithMany().HasForeignKey(x => x.ScopeSectorId).OnDelete(DeleteBehavior.Restrict));
         b.Entity<VectoringMinimaRow>(e =>
             e.HasOne(x => x.Set).WithMany(s => s.Rows).HasForeignKey(x => x.SetId).OnDelete(DeleteBehavior.Cascade));
+
+        b.Entity<Transfer>(e =>
+        {
+            e.HasIndex(x => new { x.FirId, x.RelationKey, x.Phase, x.Order });
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
+            e.HasOne(x => x.Fir).WithMany().HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<EditGrant>(e =>
+        {
+            e.HasIndex(x => new { x.Vid, x.FirId }).IsUnique();
+            e.HasOne(x => x.Fir).WithMany().HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

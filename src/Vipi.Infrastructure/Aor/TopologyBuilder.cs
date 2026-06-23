@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Infrastructure.Persistence;
 
@@ -8,12 +9,19 @@ namespace Vipi.Infrastructure.Aor;
 /// <summary>
 /// Costruisce la <see cref="Topology"/> pura (Application) leggendo l'anagrafica di una FIR dal DB.
 /// Qui vive la conoscenza del formato JSON delle <c>UnificationRule</c>; la logica AoR resta DB-agnostica.
+/// Implementa <see cref="ITopologyProvider"/> (porta usata da Application/UI).
 /// </summary>
-public sealed class TopologyBuilder
+public sealed class TopologyBuilder : ITopologyProvider
 {
     private readonly VipiDbContext _db;
 
     public TopologyBuilder(VipiDbContext db) => _db = db;
+
+    public async Task<Topology?> BuildByFirCodeAsync(string firCode, CancellationToken ct = default)
+    {
+        var firId = await _db.Firs.Where(f => f.Code == firCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct);
+        return firId is int id ? await BuildAsync(id, ct) : null;
+    }
 
     public async Task<Topology> BuildAsync(int firId, CancellationToken ct = default)
     {

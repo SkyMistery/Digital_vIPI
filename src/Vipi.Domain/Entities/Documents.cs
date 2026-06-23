@@ -16,6 +16,12 @@ public class Document
     public string LastUpdatedAiracCycle { get; set; } = default!; // calcolato da AiracService, es. "2606"
     public byte[]? RowVersion { get; set; }
 
+    // Lock di editing esclusivo (PIANO sicurezza): impedisce a due editor di lavorare lo stesso documento.
+    public int? LockedByVid { get; set; }
+    public string? LockedByName { get; set; }
+    public DateTime? LockedAtUtc { get; set; }
+    public DateTime? LockExpiresUtc { get; set; }
+
     public ICollection<DocumentParty> Parties { get; set; } = new List<DocumentParty>();
     public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
 }
@@ -61,6 +67,8 @@ public class DocumentSection
     public int Depth { get; set; }                     // 0 = radice … max 3 (vincolo applicativo)
     public BlockSection SectionKind { get; set; }
 
+    public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
+
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();
     public ICollection<ContentBlock> Blocks { get; set; } = new List<ContentBlock>();
 
@@ -94,6 +102,7 @@ public class ContentBlock
     public SharedBlock? SharedBlock { get; set; }
     public string? Body { get; set; }                  // Markdown (prosa); null se usa SharedBlock
     public string? BodyJson { get; set; }              // struttura tabellare (Format=Table)
+    public byte[]? RowVersion { get; set; }            // concorrenza ottimistica in editing
 }
 
 /// <summary>Contenuto condiviso per riferimento (modifica una volta, aggiorna ovunque). SPEC §3.13.</summary>

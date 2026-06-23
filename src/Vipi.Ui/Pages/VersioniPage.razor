@@ -1,0 +1,123 @@
+@page "/sop/versioni"
+@page "/sop/{Acc}/versioni"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditingService Editing
+
+<PageTitle>Bozze &amp; versioni · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/sop">Admin</a> › <b>Bozze &amp; versioni</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Bozze &amp; versioni</h2><span class="muted">Stato dei documenti e storico versioni (dal database)</span></div>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Operazione non consentita</p>@_error</div></div>
+    }
+    else if (_docs is null)
+    {
+        <p class="help">Caricamento…</p>
+    }
+    else if (_docs.Count == 0)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Nessun documento</p>Non ci sono documenti in archivio.</div></div>
+    }
+    else
+    {
+        @if (_status is not null)
+        {
+            <div class="callout success"><span class="cic">✓</span><div>@_status</div></div>
+        }
+
+        @foreach (var d in _docs)
+        {
+            <div class="doc-rowi">
+                <span class="di">@Icon(d)</span>
+                <div><b>@d.Title</b><div class="muted" style="font-size:12px">@d.Type · scope @d.Scope</div></div>
+                <span class="pill @(d.HasDraft ? "grey" : "green")">@(d.HasDraft ? "Bozza aperta" : "Solo pubblicato")</span>
+                <a class="btn ghost" href="@EditorLink(d)">Apri editor →</a>
+            </div>
+
+            <div style="margin:6px 0 20px 14px">
+                @if (_versions.TryGetValue(d.Id, out var vers))
+                {
+                    @foreach (var v in vers)
+                    {
+                        <div class="ver-row @(v.IsCurrent ? "current" : "")">
+                            <span class="vb">v@v.VersionNumber</span>
+                            <div>
+                                <b>@StatusLabel(v.Status)</b>
+                                @if (v.IsCurrent) { <span class="pill green">corrente</span> }
+                                <div class="vmeta">VID @v.CreatedByVid · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
+                            </div>
+                            <span class="vact">
+                                @if (v.Status == DocumentStatus.Draft)
+                                {
+                                    <button class="btn primary" disabled="@_busy" @onclick="() => Publish(v.Id)">Pubblica</button>
+                                }
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string? Acc { get; set; }
+
+    private IReadOnlyList<DocumentSummary>? _docs;
+    private readonly Dictionary<int, IReadOnlyList<VersionInfo>> _versions = new();
+    private bool _busy;
+    private string? _status;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _docs = await Editing.ListDocumentsAsync();
+            _versions.Clear();
+            foreach (var d in _docs)
+                _versions[d.Id] = await Editing.ListVersionsAsync(d.Id);
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+
+    private async Task Publish(int versionId)
+    {
+        _busy = true; _status = null; _error = null;
+        try
+        {
+            await Editing.PublishAsync(versionId, note: null);
+            await LoadAsync();
+            _status = "Versione pubblicata.";
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private static string Icon(DocumentSummary d) =>
+        d.Type == DocumentType.Vloa ? "🌍" : "📘";
+
+    private static string StatusLabel(DocumentStatus s) => s switch
+    {
+        DocumentStatus.Draft => "Bozza",
+        DocumentStatus.Published => "Pubblicata",
+        DocumentStatus.Archived => "Archiviata",
+        _ => s.ToString(),
+    };
+
+    private string EditorLink(DocumentSummary d)
+    {
+        var acc = (Acc ?? "lirr").ToLowerInvariant();
+        // L'editor generico edita qualunque documento per id (vIPI ACC, aeroporto, vLOA).
+        return $"/sop/{acc}/editor?doc={d.Id}";
+    }
+}

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\Vipi.Ui\Vipi.Ui.csproj" />
@@ -11,6 +11,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
   </PropertyGroup>
 
 </Project>

@@ -1,0 +1,92 @@
+@page "/sop/{Acc}"
+@layout SopLayout
+@inject IStationResolver Stations
+@inject IAiracService Airac
+@inject IEditAuthorizationService Authz
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>@_acc.Name · vIPI IVAO Italia</PageTitle>
+
+    <div class="wrap reading-cap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <b>@_acc.Name (@_acc.Code)</b></div>
+        <div class="doc-head">
+            <div>
+                <h2 style="margin-bottom:2px">@_acc.Name <span class="muted" style="font-weight:400;font-size:20px">— @_acc.Code</span></h2>
+                <p class="muted" style="margin:0">Scegli cosa consultare sotto la FIR di @_acc.Code.</p>
+            </div>
+            <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
+        </div>
+
+        @{ var a = Acc.ToLowerInvariant(); }
+        <div class="choice-grid" style="margin-top:18px">
+            <a class="big-choice" href="/sop/@a/vipi" style="text-decoration:none;color:inherit">
+                <span class="ic">📘</span>
+                <div>
+                    <h4 style="margin:0">vIPI di @_acc.Name</h4>
+                    <span class="muted" style="font-size:13.5px">Documento di ACC: separazioni, AoR, configurazioni, frequenze, minime e coordinamenti. Include gli APP remotizzati.</span>
+                </div>
+                <span class="arr" style="margin-left:auto;font-size:22px;color:var(--ivao-lightblue)">→</span>
+            </a>
+
+            <div class="choice">
+                <h4><span class="ic">🛫</span> Aeroporti</h4>
+                <p class="muted">vIPI dei singoli aeroporti sotto la FIR.</p>
+                <ul class="linklist">
+                    <li onclick="location.href='/sop/@a/aeroporto'"><span>LIRF · Roma Fiumicino</span><span class="arr">→</span></li>
+                    <li><span>LIRA · Roma Ciampino</span><span class="meta">in arrivo</span></li>
+                </ul>
+            </div>
+
+            <div class="choice">
+                <h4><span class="ic">📡</span> Avvicinamenti non remotizzati</h4>
+                <p class="muted">APP con documentazione propria.</p>
+                <ul class="linklist">
+                    <li onclick="location.href='/sop/@a/app'"><span>LIRP_APP · Pisa</span><span class="arr">→</span></li>
+                </ul>
+            </div>
+
+            <div class="choice">
+                <h4><span class="ic">🌍</span> vLOA con stati esteri</h4>
+                <p class="muted">Lettere di accordo con i centri confinanti.</p>
+                <ul class="linklist">
+                    <li onclick="location.href='/sop/@a/vloa'"><span>LIRR ↔ DTTC · Tunisi</span><span class="meta">EN</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section-title"><h3>Strumenti</h3><span class="ln"></span></div>
+        <div class="choice-grid">
+            <a class="choice" href="/sop/@a/ridotta" style="text-decoration:none;color:inherit"><h4><span class="ic">⚡</span> Vista ridotta (live)</h4><p class="muted">L'essenziale per la tua postazione: frequenze e trasferimenti.</p></a>
+            <a class="choice" href="/sop/@a/aor3d" style="text-decoration:none;color:inherit"><h4><span class="ic">🧊</span> AoR 3D</h4><p class="muted">Volumi dei settori per quota.</p></a>
+            <a class="choice" href="/sop/@a/export" style="text-decoration:none;color:inherit"><h4><span class="ic">📄</span> Export PDF</h4><p class="muted">Esporta la vista Estesa.</p></a>
+        </div>
+
+        @if (_canEdit)
+        {
+            <div class="section-title"><h3>Admin <span class="pill blue" style="font-size:11px">CH/AOD</span></h3><span class="ln"></span></div>
+            <div class="choice-grid">
+                <a class="choice" href="/sop/@a/editor" style="text-decoration:none;color:inherit"><h4><span class="ic">✏️</span> Editor vIPI</h4><p class="muted">Struttura, blocchi, pubblicazione.</p></a>
+                <a class="choice" href="/sop/@a/topologia" style="text-decoration:none;color:inherit"><h4><span class="ic">🧭</span> Topologia settori</h4><p class="muted">Gerarchia, unificazioni, simulatore.</p></a>
+                <a class="choice" href="/sop/@a/editor-trasferimenti" style="text-decoration:none;color:inherit"><h4><span class="ic">🔄</span> Editor trasferimenti</h4><p class="muted">Righe strutturate CoP/FL/catena.</p></a>
+                <a class="choice" href="/sop/@a/editor-vloa" style="text-decoration:none;color:inherit"><h4><span class="ic">🤝</span> Editor vLOA</h4><p class="muted">Lettera di accordo bilaterale.</p></a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private AccInfo? _acc;
+    private bool _canEdit;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        _canEdit = _acc is not null && await Authz.CanEditFirAsync(_acc.Code);
+    }
+}

@@ -485,3 +485,9 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+
+# Runtime SQLite DB (rigenerato all'avvio)
+src/Vipi.Host/vipi.db
+vipi.db
+# Artefatti stray
+src/Vipi.Host/r.html

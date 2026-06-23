@@ -1,0 +1,62 @@
+@page "/sop/{Acc}/vloa"
+@layout SopLayout
+@inject IVipiViewService ViewService
+@inject IStationResolver Stations
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_view is null)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vLOA</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLOA pubblicata per @_acc.Name.</div></div>
+    </div>
+}
+else
+{
+    <PageTitle>@_view.Title · IVAO Italia</PageTitle>
+
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+        <div class="doc-layout">
+            <aside class="toc">
+                <p class="toc-h">Contents</p>
+                <ul>
+                    @foreach (var s in _view.Sections)
+                    {
+                        <li><a href="#@s.Id">@s.Title</a></li>
+                    }
+                </ul>
+            </aside>
+
+            <div>
+                <div class="doc-head">
+                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Letter of Agreement (EN)</span></div>
+                    <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+                </div>
+                <div class="callout info"><span class="cic">🌍</span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (CH/AOD). The neighbour side is read-only.</div></div>
+
+                @foreach (var s in _view.Sections)
+                {
+                    <SectionNode Section="s" />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+
+    private AccInfo? _acc;
+    private DocumentView? _view;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) { _view = null; return; }
+        _view = await ViewService.BuildVloaAsync(_acc.Code, BlockTier.Extended, live: false);
+    }
+}

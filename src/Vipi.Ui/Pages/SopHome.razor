@@ -1,65 +1,56 @@
 @page "/sop"
+@layout SopLayout
+@rendermode InteractiveServer
 @inject IAiracService Airac
-@inject ICurrentUserProvider Users
+@inject IStationResolver Stations
+@inject IEditAuthorizationService Authz
 
 <PageTitle>vIPI · IVAO Italia</PageTitle>
 
-<link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css" />
+<div class="wrap">
+    <div class="hero">
+        <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
+        <h1>Documentazione operativa</h1>
+        <p>Seleziona un ACC per consultare le vIPI, gli aeroporti, gli avvicinamenti e le vLOA con i centri confinanti. Oppure cerca direttamente una postazione.</p>
+        <form class="searchbar" action="/sop/search" method="get"><span class="ico">🔍</span><input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze… es. VALMA, LIRR_NE_CTR" /></form>
+    </div>
 
-<header class="vipi-header">
-    <h1>vIPI / vLOA Interactive</h1>
-    <p>Documentazione operativa ATC — IVAO Italia · Aggiornato AIRAC @Airac.GetCycle(DateTime.UtcNow)</p>
-</header>
-
-@if (_user is { } u)
-{
-    <div class="vipi-callout vipi-callout--info">
-        Loggato come <strong>@u.Name</strong> (VID @u.Vid) · FIR @u.Fir
-        @if (u.CanEdit)
+    <div class="section-title"><h3>Area Control Centre</h3><span class="ln"></span></div>
+    <div class="acc-grid">
+        @foreach (var acc in Stations.Accs)
         {
-            <span class="vipi-badge vipi-badge--online" style="margin-left:.5rem">Editor (CH/AOD)</span>
+            var s = Stats[acc.Code];
+            <a class="acc-card off" href="/sop/@acc.Code.ToLowerInvariant()" style="text-decoration:none">
+                <div class="onl"><span class="dot"></span> offline</div>
+                <div class="code">@acc.Code</div>
+                <div class="name">@acc.Name</div>
+                <div class="stat"><span>Settori</span><b>@s.Sectors</b></div>
+                <div class="stat"><span>Aeroporti</span><b>@s.Airports</b></div>
+                <div class="stat"><span>vLOA estere</span><b>@s.Vloa</b></div>
+            </a>
         }
     </div>
-}
-else
-{
-    <div class="vipi-callout vipi-callout--warning">Consultazione anonima (sola lettura).</div>
-}
 
-<h2>Centri di controllo</h2>
-<nav class="vipi-acc-grid">
-    @foreach (var acc in Accs)
-    {
-        <a class="vipi-acc-card" href="/sop/@acc.Code.ToLowerInvariant()">
-            <strong>@acc.Code</strong>
-            <span>@acc.Name</span>
-        </a>
-    }
-</nav>
-
-<style>
-    .vipi-acc-grid { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .vipi-acc-card {
-        display: flex; flex-direction: column; min-width: 9rem; padding: 1rem;
-        border: 1px solid var(--ivao-grey); border-radius: 8px; text-decoration: none;
-        color: var(--ivao-blue); background: #fff;
-    }
-    .vipi-acc-card strong { font-family: var(--ivao-font-heading); font-size: 1.5rem; }
-    .vipi-acc-card:hover { border-color: var(--ivao-light-blue); }
-    .vipi-header { border-bottom: 3px solid var(--ivao-blue); margin-bottom: 1.5rem; }
-</style>
+    <div class="section-title"><h3>Pagine</h3><span class="ln"></span></div>
+    <div class="choice-grid">
+        <a class="choice" href="/sop/changed" style="text-decoration:none;color:inherit"><h4><span class="ic">🆕</span> Cosa è cambiato dall'ultimo AIRAC</h4><p class="muted">Documenti modificati nel ciclo corrente.</p></a>
+        <a class="choice" href="/sop/search" style="text-decoration:none;color:inherit"><h4><span class="ic">🔎</span> Ricerca full-text</h4><p class="muted">Cerca CoP, FIX, callsign e frequenze su tutte le vIPI e vLOA.</p></a>
+        <a class="choice" href="/sop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Bozze &amp; versioni</h4><p class="muted">Stato documenti, storico e pubblicazioni programmate.</p></a>
+        <a class="choice" href="/sop/screens" style="text-decoration:none;color:inherit"><h4><span class="ic">🧩</span> Tutte le schermate</h4><p class="muted">Indice di navigazione di tutte le pagine implementate.</p></a>
+        @if (Authz.IsAdmin)
+        {
+            <a class="choice" href="/sop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per FIR.</p></a>
+        }
+    </div>
+</div>
 
 @code {
-    // Home a 4 ACC (PIANO §22.1 / ADR-0001 D8). FIR pilota: Roma.
-    private static readonly (string Code, string Name)[] Accs =
+    // Conteggi indicativi (demo) finché non c'è l'anagrafica completa.
+    private static readonly Dictionary<string, (int Sectors, int Airports, int Vloa)> Stats = new()
     {
-        ("LIRR", "Roma ACC"),
-        ("LIMM", "Milano ACC"),
-        ("LIPP", "Padova ACC"),
-        ("LIBB", "Brindisi ACC"),
+        ["LIRR"] = (7, 12, 4),
+        ["LIMM"] = (9, 14, 5),
+        ["LIPP"] = (6, 10, 6),
+        ["LIBB"] = (5, 9, 3),
     };
-
-    private CurrentUser? _user;
-
-    protected override void OnInitialized() => _user = Users.Get();
 }

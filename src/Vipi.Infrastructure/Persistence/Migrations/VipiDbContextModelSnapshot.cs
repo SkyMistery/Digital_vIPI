@@ -80,6 +80,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
+
                     b.Property<int?>("ScopeSectorId")
                         .HasColumnType("INTEGER");
 
@@ -161,6 +165,18 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("LastUpdatedUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("LockExpiresUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LockedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LockedByName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("LockedByVid")
+                        .HasColumnType("INTEGER");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("BLOB");
@@ -234,6 +250,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("ParentSectionId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("SectionKind")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -286,6 +306,37 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("DocumentVersions");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FirId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GrantedByVid")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Vid")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirId");
+
+                    b.HasIndex("Vid", "FirId")
+                        .IsUnique();
+
+                    b.ToTable("EditGrants");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Fir", b =>
@@ -560,6 +611,61 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("SharedBlocks");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AirportIcao")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cop")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FirId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FlRule")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HandlerChainJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelationKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelationLabel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("StandardFallback")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirId", "RelationKey", "Phase", "Order");
+
+                    b.ToTable("Transfers");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
                 {
                     b.Property<int>("Id")
@@ -766,6 +872,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Fir", "Fir")
+                        .WithMany()
+                        .HasForeignKey("FirId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fir");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Frequency", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Position", "Position")
@@ -842,6 +959,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Fir");
 
                     b.Navigation("Geometry");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Fir", "Fir")
+                        .WithMany()
+                        .HasForeignKey("FirId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Fir");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>

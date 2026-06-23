@@ -1,5 +1,20 @@
 namespace Vipi.Domain.Entities;
 
+/// <summary>
+/// Concessione di editing: abilita un VID a modificare TUTTI i documenti di una FIR (vIPI/aeroporto/vLOA,
+/// topologia, trasferimenti). Gli admin (staff IT-AO*) non hanno bisogno di grant. PIANO sicurezza.
+/// </summary>
+public class EditGrant
+{
+    public int Id { get; set; }
+    public int Vid { get; set; }                       // VID IVAO abilitato
+    public string? DisplayName { get; set; }           // nome opzionale per l'elenco admin
+    public int FirId { get; set; }
+    public Fir? Fir { get; set; }
+    public int GrantedByVid { get; set; }              // admin che ha concesso
+    public DateTime GrantedAtUtc { get; set; }
+}
+
 /// <summary>Tracciamento delle modifiche (chi, quando, cosa). SPEC_Modello_Dati §3.14.</summary>
 public class AuditLog
 {
@@ -10,6 +25,28 @@ public class AuditLog
     public string EntityId { get; set; } = default!;
     public DateTime TimestampUtc { get; set; }
     public string? DetailsJson { get; set; }           // diff/contesto
+}
+
+/// <summary>
+/// Trasferimento di traffico come riga strutturata (SPEC §7.4, PIANO §22.4): una relazione FIR↔FIR,
+/// fase, aeroporto, CoP, regola di FL, catena ordinata di handler (JSON) e fallback standard.
+/// Alimenta sia la vista Estesa (catena completa) sia la Ridotta (risoluzione "primo online" = F3).
+/// </summary>
+public class Transfer
+{
+    public int Id { get; set; }
+    public int FirId { get; set; }
+    public Fir? Fir { get; set; }
+    public string RelationKey { get; set; } = default!;     // es. "LIRR-LIMM" (FIR↔FIR)
+    public string RelationLabel { get; set; } = default!;   // es. "Roma ↔ Milano"
+    public TransferPhase Phase { get; set; }
+    public string AirportIcao { get; set; } = default!;     // aeroporto (dest per arrivi, origine per partenze)
+    public string Cop { get; set; } = default!;             // Coordination Point
+    public string FlRule { get; set; } = default!;          // es. "FL280↑"
+    public string HandlerChainJson { get; set; } = "[]";    // array ordinato di handler (sector/callsign): ["ES2","WS2"]
+    public string StandardFallback { get; set; } = "UNICOM"; // se nessun handler online
+    public int Order { get; set; }
+    public byte[]? RowVersion { get; set; }
 }
 
 /// <summary>Dataset di riferimento per la validazione semantica dei riferimenti nav, legato all'AIRAC. SPEC §3.15.</summary>

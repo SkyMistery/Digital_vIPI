@@ -1,0 +1,70 @@
+@page "/sop/changed"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IChangesService Changes
+
+<PageTitle>Cosa è cambiato · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/sop">Home</a> › <b>Cosa è cambiato</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Cosa è cambiato</h2><span class="muted">Documenti pubblicati nel ciclo AIRAC corrente</span></div>
+        <span class="airac">📅 AIRAC @Changes.CurrentCycle</span>
+    </div>
+
+    <div class="apt-quick" style="margin:6px 0 20px">
+        <span class="ch @(_fir is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetFir(null)">Tutti</span>
+        @foreach (var f in _firs)
+        {
+            <span class="ch @(_fir == f ? "on" : "")" style="cursor:pointer" @onclick="() => SetFir(f)">@f</span>
+        }
+    </div>
+
+    @if (_rows is null)
+    {
+        <p class="help">Caricamento…</p>
+    }
+    else if (Filtered.Count == 0)
+    {
+        <div class="callout info"><span class="cic">✅</span><div><p class="ct">Nessuna modifica</p>Nessun documento pubblicato nel ciclo @Changes.CurrentCycle@(_fir is null ? "" : $" per {_fir}").</div></div>
+    }
+    else
+    {
+        <div class="chg">
+            @foreach (var r in Filtered)
+            {
+                <div class="chg-row">
+                    <span class="chg-tag @(r.IsNew ? "add" : "mod")">@(r.IsNew ? "Nuovo" : "Aggiornato")</span>
+                    <div style="flex:1">
+                        <b>@r.DocTitle</b> <span class="muted">· @r.FirCode · v@r.VersionNumber</span>
+                        @if (!string.IsNullOrWhiteSpace(r.Note)) { <div class="muted">@r.Note</div> }
+                        <div class="diff">
+                            <span>sezioni @r.PrevSections → <b>@r.CurrSections</b></span> ·
+                            <span>blocchi @r.PrevBlocks → <b>@r.CurrBlocks</b></span> ·
+                            <span class="muted">VID @r.PublishedByVid · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
+                        </div>
+                    </div>
+                    <a class="chg-link" href="@r.Url">Apri →</a>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<ChangeRow>? _rows;
+    private string? _fir;
+
+    private IReadOnlyList<string> _firs = System.Array.Empty<string>();
+    private IReadOnlyList<ChangeRow> Filtered =>
+        _rows is null ? System.Array.Empty<ChangeRow>()
+        : (_fir is null ? _rows : _rows.Where(r => r.FirCode == _fir).ToList());
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rows = await Changes.ListChangedAsync();
+        _firs = _rows.Select(r => r.FirCode).Distinct().OrderBy(x => x).ToList();
+    }
+
+    private void SetFir(string? f) => _fir = f;
+}

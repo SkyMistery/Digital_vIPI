@@ -55,3 +55,6 @@ public enum CopKind { Fix, Conventional }
 
 /// <summary>Stato runtime di un settore (NON persistito, calcolato da AorService).</summary>
 public enum SectorState { Covered, Online }
+
+/// <summary>Fase di un trasferimento di traffico rispetto all'aeroporto della relazione.</summary>
+public enum TransferPhase { Arrival, Departure }

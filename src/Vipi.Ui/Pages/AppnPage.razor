@@ -1,0 +1,121 @@
+@page "/sop/{Acc}/app"
+@layout SopLayout
+@inject IStationResolver Stations
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>LIRP_APP — Pisa · vIPI IVAO Italia</PageTitle>
+
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>LIRP_APP · Pisa (non remotizzato)</b></div>
+        <div class="doc-layout">
+            <aside class="toc">
+                <p class="toc-h">Sommario</p>
+                <ul>
+                    <li><a class="active" href="#p-sep">Separazioni</a></li>
+                    <li><a href="#p-aor">AoR avvicinamento</a></li>
+                    <li><a href="#p-freq">Frequenze</a></li>
+                    <li><a href="#p-vfr">VFR</a></li>
+                    <li><a href="#p-min">Minime di vettoramento</a></li>
+                    <li><a href="#p-coord">Coordinamenti</a></li>
+                </ul>
+            </aside>
+            <div>
+                <div class="doc-head">
+                    <div><h2 style="margin-bottom:2px">LIRP_APP — Pisa</h2><span class="muted">Avvicinamento non remotizzato · doc proprio</span></div>
+                    <span class="airac">📅 AIRAC 2606</span>
+                </div>
+                <div class="callout info"><span class="cic">📡</span><div><p class="ct">APP con documentazione propria</p>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</div></div>
+
+                <div class="block" id="p-sep">
+                    <h3>Separazioni</h3>
+                    <div class="sep-box"><div class="sep-grid">
+                        <div class="it"><span class="muted">Radar</span><b>3 NM</b></div>
+                        <div class="it"><span class="muted">Verticale</span><b>1000 ft</b></div>
+                    </div></div>
+                </div>
+
+                <div class="block" id="p-aor">
+                    <h3>AoR avvicinamento</h3>
+                    <svg viewBox="0 0 420 200" width="100%" style="background:#f7f9ff;border:1px solid var(--line);border-radius:11px">
+                        <circle cx="210" cy="100" r="80" fill="#3C55AC" fill-opacity="0.12" stroke="#3C55AC" stroke-width="2" />
+                    </svg>
+                    <p class="muted" style="font-size:13px;margin:8px 0 0">Cerchio di competenza ~40 NM dal campo, fino a FL145.</p>
+                </div>
+
+                <div class="block" id="p-freq">
+                    <h3>Frequenze</h3>
+                    <table>
+                        <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
+                        <tbody>
+                            <tr class="freq-table primary"><td>Approach</td><td>LIRP_APP</td><td>124.250 <span class="freq-key">★</span></td></tr>
+                            <tr><td>Tower</td><td>LIRP_TWR</td><td>118.600</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="block" id="p-vfr">
+                    <h3>VFR</h3>
+                    <p style="font-size:14px;margin:0">L'APP fornisce servizio informazioni e traffico noto ai VFR; la separazione VFR/IFR non è fornita salvo SVFR. Il traffico VFR in arrivo viene consegnato alla TWR per l'inserimento nel circuito. Punti di riporto, quota di circuito e codici sono nella vIPI dell'aeroporto.</p>
+                </div>
+
+                <div class="block" id="p-min">
+                    <h3>Minime di vettoramento <span class="pill future">In sviluppo</span></h3>
+                    <div class="callout warning"><span class="cic">🛠️</span><div><p class="ct">Mappe da GitHub</p>Carte MVA importate dal sectorfile della divisione.</div></div>
+                    <div class="mva-grid">
+                        <figure class="mva-card"><svg viewBox="0 0 220 150"><rect width="220" height="150" fill="#f7f9ff" /><circle cx="110" cy="75" r="55" fill="#3C55AC" fill-opacity="0.12" stroke="#3C55AC" stroke-width="1.5" /></svg><figcaption>TMA Pisa — carta MVA</figcaption></figure>
+                    </div>
+                </div>
+
+                <div class="block" id="p-coord">
+                    <div class="blk-head"><h3 style="margin:0">Coordinamenti</h3><div class="exp-ctrl"><button data-exp="open">⊕ Espandi tutto</button><button data-exp="close">⊖ Comprimi tutto</button></div></div>
+                    <p class="muted" style="margin-top:0;font-size:13.5px">Come il settore TW1: trasferimenti verso gli ACC e verso la/e torre/i, ciascuno con una sotto-sezione per ente.</p>
+
+                    <details class="coord-sub" open>
+                        <summary><span>Trasferimenti verso ACC</span><span class="sum-right"><span class="grp-exp sub-exp"><a data-exp="open">espandi</a> · <a data-exp="close">comprimi</a></span><span class="chev">▸</span></span></summary>
+                        <div class="body">
+                            <details class="coord-sub2" open>
+                                <summary><span>Settore Roma EW</span><span class="chev">▸</span></summary>
+                                <div class="body">
+                                    <p style="font-size:14px;margin:4px 0 10px"><b>LIRP_APP trasferisce</b> le partenze in salita all'EW al CoP; <b>riceve</b> gli arrivi in discesa.</p>
+                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>VALMA</td><td>FL150↑</td><td>LIRR_EW</td></tr></tbody></table>
+                                </div>
+                            </details>
+                            <details class="coord-sub2">
+                                <summary><span>Settore Roma SU</span><span class="chev">▸</span></summary>
+                                <div class="body">
+                                    <p style="font-size:14px;margin:4px 0 10px"><b>LIRP_APP riceve</b> dal SU gli arrivi meridionali; restituisce i sorvoli al livello concordato.</p>
+                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>ELKAP</td><td>FL150↓</td><td>LIRR_SU</td></tr></tbody></table>
+                                </div>
+                            </details>
+                        </div>
+                    </details>
+
+                    <details class="coord-sub" open>
+                        <summary><span>Trasferimenti verso le torri</span><span class="sum-right"><span class="grp-exp sub-exp"><a data-exp="open">espandi</a> · <a data-exp="close">comprimi</a></span><span class="chev">▸</span></span></summary>
+                        <div class="body">
+                            <details class="coord-sub2" open>
+                                <summary><span>LIRP_TWR · Pisa</span><span class="chev">▸</span></summary>
+                                <div class="body">
+                                    <p style="font-size:14px;margin:4px 0 10px"><b>Trasferimento in finale</b>: consegna a 2000 ft o stabilizzato sul localizer; <b>riceve</b> le partenze al decollo.</p>
+                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>—</td><td>2000 ft</td><td>LIRP_TWR</td></tr></tbody></table>
+                                </div>
+                            </details>
+                            <div class="callout info" style="margin-top:8px"><span class="cic">ℹ️</span><div><p class="ct">APP che copre più aeroporti</p>Se l'avvicinamento serve più scali (es. <b>Catania APP</b>), questa sezione contiene <b>una sotto-sezione per ogni torre</b>.</div></div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private AccInfo? _acc;
+    protected override void OnParametersSet() => _acc = Stations.Resolve(Acc);
+}

@@ -1,0 +1,5 @@
+<div class="prose">@MarkdownLite.Render(Block.Body)</div>
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+}

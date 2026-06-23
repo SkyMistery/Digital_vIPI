@@ -77,6 +77,30 @@ public class ContentServiceTests
         Assert.NotEqual(op.State, ho.State);
     }
 
+    [Fact] // S7 — vLOA neighbour cross-FIR (Tunisi DTTC): handoff compresso se offline, espanso se online
+    public void S7_VloaNeighbour_HandoffFollowsNeighbourOnline()
+    {
+        // Il neighbour non è LI*: la sua scope key ("DTTC") è trattata come un settore qualsiasi.
+        var offline = _sut.BuildView(new[] { Ho("DTTC") }, Aor("DTTC", SectorState.Covered), BlockTier.Extended, live: true)[0];
+        var online  = _sut.BuildView(new[] { Ho("DTTC") }, Aor("DTTC", SectorState.Online),  BlockTier.Extended, live: true)[0];
+
+        Assert.Equal(RenderState.Collapsed, offline.State); // DTTC offline → coordinamento non necessario
+        Assert.Equal(RenderState.Expanded, online.State);   // DTTC online  → serve il coordinamento vLOA
+    }
+
+    [Fact] // S10 — robustezza al feed stale: un falso positivo comprime ma NON rimuove (collasso morbido riespandibile)
+    public void S10_StaleFeed_SoftCollapse_NeverRemoved()
+    {
+        // LIRP_APP segnalato online per errore → blocco operativo Pisa compresso.
+        var aor = Aor("PISA", SectorState.Online);
+
+        var view = _sut.BuildView(new[] { Op("PISA") }, aor, BlockTier.Extended, live: true);
+
+        Assert.Single(view);                                        // mai rimosso: il blocco resta nella vista
+        Assert.Equal(RenderState.Collapsed, view[0].State);
+        Assert.False(string.IsNullOrEmpty(view[0].CollapseLabel));  // striscia etichettata = riespandibile a mano
+    }
+
     [Fact] // Tier Ridotta: i blocchi Extended sono filtrati via
     public void ReducedTier_FiltersExtendedBlocks()
     {

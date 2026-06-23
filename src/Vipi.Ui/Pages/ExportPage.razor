@@ -1,0 +1,54 @@
+@page "/sop/{Acc}/export"
+@layout SopLayout
+@inject IVipiViewService ViewService
+@inject IStationResolver Stations
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>Export PDF · @_acc.Name</PageTitle>
+
+    <div class="wrap" style="max-width:900px">
+        <div class="breadcrumb noprint"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Export PDF</b></div>
+        <div class="doc-head noprint"><div><h2 style="margin-bottom:2px">Export PDF</h2><span class="muted">Esportazione del documento (vista Estesa)</span></div></div>
+        <div class="callout info noprint"><span class="cic">📄</span><div><p class="ct">Solo vista Estesa</p>Si esporta la <b>vista Estesa</b> completa. Usa il bottone per aprire la stampa del browser e scegli <b>"Salva come PDF"</b>.</div></div>
+        <div class="export-opts noprint" style="margin-bottom:16px">
+            <span style="flex:1"></span>
+            <button class="btn primary" onclick="window.print()">⬇️ Salva PDF / Stampa</button>
+        </div>
+
+        @if (_view is null)
+        {
+            <div class="callout warning noprint"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI pubblicata per @_acc.Name.</div></div>
+        }
+        else
+        {
+            <div class="printable">
+                <div class="doc-head">
+                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">@_acc.Name · vista Estesa</span></div>
+                    <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+                </div>
+                @foreach (var s in _view.Sections)
+                {
+                    <SectionNode Section="s" />
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private AccInfo? _acc;
+    private DocumentView? _view;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) { _view = null; return; }
+        _view = await ViewService.BuildAccVipiAsync(_acc.Code, BlockTier.Extended, live: false);
+    }
+}

@@ -1,0 +1,66 @@
+@page "/sop/{Acc}/aeroporto"
+@layout SopLayout
+@inject IVipiViewService ViewService
+@inject IStationResolver Stations
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_view is null)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_icao</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI aeroporto pubblicata per @_icao.</div></div>
+    </div>
+}
+else
+{
+    <PageTitle>@_view.Title · vIPI IVAO Italia</PageTitle>
+
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+
+        <div class="doc-layout">
+            <aside class="toc">
+                <p class="toc-h">Sommario</p>
+                <ul>
+                    @foreach (var s in _view.Sections)
+                    {
+                        <li><a href="#@s.Id">@s.Title</a></li>
+                    }
+                </ul>
+            </aside>
+
+            <div>
+                <div class="doc-head">
+                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Aeroporto · @_acc.Name</span></div>
+                    <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+                </div>
+
+                @foreach (var s in _view.Sections)
+                {
+                    <SectionNode Section="s" />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? Icao { get; set; }
+
+    private AccInfo? _acc;
+    private DocumentView? _view;
+    private string _icao = "LIRF";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) { _view = null; return; }
+
+        _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
+        _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false);
+    }
+}

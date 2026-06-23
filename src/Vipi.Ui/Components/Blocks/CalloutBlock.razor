@@ -1,0 +1,49 @@
+@using System.Text.Json
+
+<div class="callout @Kind">
+    <span class="cic">@Icon</span>
+    <div>
+        <p class="ct">@Title</p>
+        @MarkdownLite.Render(Block.Body)
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private CalloutKind K => Block.CalloutKind ?? CalloutKind.Info;
+    private string Kind => K.ToString().ToLowerInvariant();
+
+    private string Icon => K switch
+    {
+        CalloutKind.Success => "✅",
+        CalloutKind.Warning => "⚠️",
+        CalloutKind.Danger => "⛔",
+        _ => "ℹ️",
+    };
+
+    private string Title
+    {
+        get
+        {
+            // Titolo esplicito da BodyJson, altrimenti predefinito per tipo.
+            if (!string.IsNullOrWhiteSpace(Block.BodyJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(Block.BodyJson);
+                    if (doc.RootElement.TryGetProperty("title", out var t) && t.GetString() is { Length: > 0 } s)
+                        return s;
+                }
+                catch (JsonException) { }
+            }
+            return K switch
+            {
+                CalloutKind.Success => "OK",
+                CalloutKind.Warning => "Attenzione",
+                CalloutKind.Danger => "Importante",
+                _ => "Nota",
+            };
+        }
+    }
+}

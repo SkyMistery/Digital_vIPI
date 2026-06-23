@@ -1,0 +1,95 @@
+using Vipi.Domain;
+
+namespace Vipi.Application.Content;
+
+// ---- Modelli per il percorso di editing (CH/AOD). Distinti dai RawDocument/View di consultazione. ----
+
+/// <summary>Riga di selezione documento nell'editor (vIPI ACC, vIPI aeroporto, vLOA).</summary>
+public sealed class DocumentSummary
+{
+    public required int Id { get; init; }
+    public required DocumentType Type { get; init; }
+    public required string Title { get; init; }
+    public required DocumentStatus Status { get; init; }
+    public required string Scope { get; init; }        // es. "LIRR" o "LIRF"
+    public required bool HasDraft { get; init; }
+    public int? CurrentVersionId { get; init; }
+}
+
+/// <summary>Documento aperto in editing: la versione di lavoro (bozza se esiste, sennò la pubblicata) con tutti i campi modificabili.</summary>
+public sealed class EditableDocument
+{
+    public required int DocumentId { get; init; }
+    public required int VersionId { get; init; }
+    public required int VersionNumber { get; init; }
+    public required DocumentStatus VersionStatus { get; init; }
+    public required string Title { get; init; }
+    public required IReadOnlyList<EditableSection> Sections { get; init; }
+
+    /// <summary>Vero se la versione di lavoro è una bozza editabile.</summary>
+    public bool IsEditable => VersionStatus == DocumentStatus.Draft;
+}
+
+public sealed class EditableSection
+{
+    public required int Id { get; init; }
+    public required string Title { get; init; }
+    public required int Depth { get; init; }
+    public required int Order { get; init; }
+    public required IReadOnlyList<EditableBlock> Blocks { get; init; }
+    public required IReadOnlyList<EditableSection> Children { get; init; }
+}
+
+public sealed class EditableBlock
+{
+    public required int Id { get; init; }
+    public required int Order { get; init; }
+    public required BlockFormat Format { get; init; }
+    // Campi editabili: settabili per il two-way binding dell'editor.
+    public required BlockTier Tier { get; set; }
+    public required BlockVisibility Visibility { get; set; }
+    public CalloutKind? CalloutKind { get; set; }
+    public string? Body { get; set; }
+    public string? BodyJson { get; set; }
+    /// <summary>Token di concorrenza (base64) catturato al caricamento; rispedito su salvataggio.</summary>
+    public string? RowVersion { get; set; }
+}
+
+/// <summary>Riga dello storico versioni (pagina Bozze &amp; versioni).</summary>
+public sealed class VersionInfo
+{
+    public required int Id { get; init; }
+    public required int VersionNumber { get; init; }
+    public required DocumentStatus Status { get; init; }
+    public required int CreatedByVid { get; init; }
+    public required DateTime CreatedUtc { get; init; }
+    public required string AiracCycle { get; init; }
+    public string? Note { get; init; }
+    public required bool IsCurrent { get; init; }
+}
+
+/// <summary>Stato del lock di editing esclusivo di un documento.</summary>
+public sealed class LockInfo
+{
+    /// <summary>Esiste un lock attivo (non scaduto).</summary>
+    public required bool Locked { get; init; }
+    public int? ByVid { get; init; }
+    public string? ByName { get; init; }
+    public DateTime? ExpiresUtc { get; init; }
+    /// <summary>Il lock attivo è del VID corrente (può editare).</summary>
+    public required bool IsMine { get; init; }
+
+    public static LockInfo Free() => new() { Locked = false, IsMine = false };
+}
+
+/// <summary>Patch dei campi editabili di un blocco (null = invariato non distinguibile da "azzera": per Body/BodyJson si passa sempre il valore voluto).</summary>
+public sealed class BlockEdit
+{
+    public required BlockTier Tier { get; init; }
+    public required BlockVisibility Visibility { get; init; }
+    public CalloutKind? CalloutKind { get; init; }
+    public string? Body { get; init; }
+    public string? BodyJson { get; init; }
+    /// <summary>Token di concorrenza originale (base64) per il controllo ottimistico in update.</summary>
+    public string? RowVersion { get; init; }
+}

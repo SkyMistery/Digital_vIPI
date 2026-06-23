@@ -1,0 +1,36 @@
+@* Dispatch del blocco al componente giusto in base a Format + variant del BodyJson. *@
+@{
+    var variant = BlockJson.Variant(Block.BodyJson);
+}
+@switch (Block.Format)
+{
+    case BlockFormat.Prose when variant == "tip":
+        <TipBlock Block="Block" />
+        break;
+    case BlockFormat.Prose:
+    case BlockFormat.List:
+        <ProseBlock Block="Block" />
+        break;
+    case BlockFormat.Table when variant == "separations":
+        <SeparationsBlock Block="Block" />
+        break;
+    case BlockFormat.Table:
+        <TableBlock Block="Block" />
+        break;
+    case BlockFormat.Callout:
+        <CalloutBlock Block="Block" />
+        break;
+    case BlockFormat.AorMap when variant == "area":
+        <AreaMapBlock Block="Block" />
+        break;
+    case BlockFormat.AorMap:
+        <AorBlock Block="Block" />
+        break;
+    case BlockFormat.Image:
+        <figure class="img-ph"><span>🖼️ Immagine (placeholder)</span></figure>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+}

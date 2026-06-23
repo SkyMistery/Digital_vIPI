@@ -1,7 +1,9 @@
-﻿@page "/"
+@page "/"
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>vIPI · IVAO Italia</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+@code {
+    // Host di sviluppo: la home reindirizza al portale vIPI montato dalla RCL.
+    protected override void OnInitialized() => Nav.NavigateTo("/sop", replace: true);
+}

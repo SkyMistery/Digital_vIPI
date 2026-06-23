@@ -1,0 +1,70 @@
+using Vipi.Application.Content;
+using Vipi.Domain;
+
+namespace Vipi.Application.Abstractions;
+
+/// <summary>
+/// Porta di scrittura dei contenuti (impl. EF in Infrastructure). Persistenza pura: non controlla
+/// l'autorizzazione (lo fa <see cref="EditingService"/>) ma applica i vincoli strutturali
+/// (versione bozza, profondità sezioni). Concorrenza ottimistica via RowVersion sul Document.
+/// </summary>
+public interface IEditingRepository
+{
+    /// <summary>Elenco documenti selezionabili nell'editor.</summary>
+    Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default);
+
+    /// <summary>Carica la versione di lavoro (bozza se esiste, sennò la pubblicata corrente) come modello editabile. Null se il documento non esiste.</summary>
+    Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>Crea una nuova bozza clonando la versione pubblicata corrente. Se esiste già una bozza, ne ritorna l'Id (idempotente). Ritorna l'Id della versione bozza.</summary>
+    Task<int> CreateDraftAsync(int documentId, int authorVid, CancellationToken ct = default);
+
+    /// <summary>Aggiorna i campi editabili di un blocco. Errore se il blocco non appartiene a una versione bozza.</summary>
+    Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
+
+    /// <summary>Aggiunge un blocco in coda a una sezione di una bozza. Ritorna l'Id del nuovo blocco.</summary>
+    Task<int> AddBlockAsync(int sectionId, BlockFormat format, BlockTier tier, BlockVisibility visibility, CancellationToken ct = default);
+
+    /// <summary>Elimina un blocco da una bozza. Errore se non è una bozza.</summary>
+    Task DeleteBlockAsync(int blockId, CancellationToken ct = default);
+
+    /// <summary>Rinomina una sezione di una bozza.</summary>
+    Task RenameSectionAsync(int sectionId, string title, CancellationToken ct = default);
+
+    /// <summary>Aggiunge una sezione (radice se parentSectionId è null) in coda ai fratelli. Errore se supera la profondità massima o se non è una bozza. Ritorna l'Id.</summary>
+    Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
+
+    /// <summary>Elimina una sezione (ricorsivamente: figli + blocchi) da una bozza.</summary>
+    Task DeleteSectionAsync(int sectionId, CancellationToken ct = default);
+
+    /// <summary>Sposta una sezione di un posto tra i fratelli (direction -1 = su, +1 = giù).</summary>
+    Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
+
+    /// <summary>Sposta un blocco di un posto nella sua sezione (direction -1 = su, +1 = giù).</summary>
+    Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
+
+    /// <summary>Pubblica una versione bozza: la rende corrente, archivia la precedente pubblicata, aggiorna il documento e scrive l'audit.</summary>
+    Task PublishAsync(int versionId, int actorVid, string? note, CancellationToken ct = default);
+
+    /// <summary>Storico versioni di un documento (più recente prima).</summary>
+    Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
+
+    // Risoluzione del documento proprietario (per l'autorizzazione FIR-scoped sulle op annidate).
+    Task<int?> GetDocumentIdByVersionAsync(int versionId, CancellationToken ct = default);
+    Task<int?> GetDocumentIdBySectionAsync(int sectionId, CancellationToken ct = default);
+    Task<int?> GetDocumentIdByBlockAsync(int blockId, CancellationToken ct = default);
+
+    // --- Lock di editing esclusivo (acquisizione atomica DB-side) ---
+    /// <summary>Acquisisce il lock se libero/scaduto/proprio (TTL minuti, sliding); altrimenti ritorna l'info del titolare corrente.</summary>
+    Task<LockInfo> AcquireOrInspectLockAsync(int documentId, int vid, string? name, int ttlMinutes, CancellationToken ct = default);
+    /// <summary>Ispeziona il lock dal punto di vista del VID (IsMine), senza acquisirlo.</summary>
+    Task<LockInfo> InspectLockAsync(int documentId, int vid, CancellationToken ct = default);
+    /// <summary>Estende la scadenza se il VID è il titolare.</summary>
+    Task RenewLockAsync(int documentId, int vid, int ttlMinutes, CancellationToken ct = default);
+    /// <summary>Rilascia il lock se il VID è il titolare.</summary>
+    Task ReleaseLockAsync(int documentId, int vid, CancellationToken ct = default);
+    /// <summary>Rilascia il lock incondizionatamente (force admin).</summary>
+    Task ForceUnlockAsync(int documentId, CancellationToken ct = default);
+    /// <summary>Vero se il VID detiene un lock attivo (non scaduto) sul documento.</summary>
+    Task<bool> IsLockHeldByAsync(int documentId, int vid, CancellationToken ct = default);
+}

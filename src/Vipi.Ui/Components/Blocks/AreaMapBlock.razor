@@ -1,0 +1,40 @@
+@using System.Globalization
+@using System.Text.Json
+
+<div class="area-wrap">
+    <svg viewBox="0 0 260 170" class="area-svg" role="img" aria-label="AoR @_label">
+        <polygon points="@_points" fill="@_color" fill-opacity="@_fill.ToString(CultureInfo.InvariantCulture)" stroke="@_color" stroke-width="2" />
+        <text x="108" y="92" font-family="Nunito Sans" font-size="13" fill="@_color" font-weight="700">@_label</text>
+    </svg>
+    <div class="area-meta">
+        <div class="area-alt"><span class="muted">Da</span><b>@_from</b><span class="muted">a</span><b>@_to</b></div>
+        @if (!string.IsNullOrEmpty(_desc))
+        {
+            <p style="font-size:13.5px;margin:10px 0 0">@_desc</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private string _label = "", _color = "#0D2C99", _points = "", _from = "", _to = "", _desc = "";
+    private double _fill = 0.14;
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(Block.BodyJson);
+            var r = doc.RootElement;
+            _label = Str(r, "label"); _color = Str(r, "color"); _points = Str(r, "points");
+            _from = Str(r, "from"); _to = Str(r, "to"); _desc = Str(r, "desc");
+            if (r.TryGetProperty("fill", out var f)) _fill = f.GetDouble();
+        }
+        catch (JsonException) { }
+    }
+
+    private static string Str(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) ? v.GetString() ?? "" : "";
+}

@@ -1,0 +1,204 @@
+@page "/sop/{Acc}/ridotta"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IVipiViewService ViewService
+@inject IStationResolver Stations
+@inject ITransferService Transfers
+@inject ITopologyProvider Topology
+@inject IOnlineAtcProvider Online
+@inject Microsoft.JSInterop.IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_view is null)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI pubblicata per @_acc.Name.</div></div>
+    </div>
+}
+else
+{
+    <PageTitle>@_acc.Name — Ridotta · vIPI IVAO Italia</PageTitle>
+
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
+        <div class="reduced-top">
+            <h2 style="margin:0">@_view.Title — Ridotta</h2>
+            <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+            <span class="live-badge" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">
+                <span class="dot" style="width:8px;height:8px;border-radius:50%;background:#1a7f37;display:inline-block"></span>
+                Live · @_p
+            </span>
+        </div>
+
+        <div class="reduced-controls" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0 14px">
+            <label style="font-size:13px;font-weight:600">La mia posizione:
+                <select @bind="_p" @bind:after="OnPositionChangedAsync" style="margin-left:6px;padding:4px 8px">
+                    @foreach (var pos in _positions)
+                    {
+                        <option value="@pos">@pos</option>
+                    }
+                </select>
+            </label>
+            <span class="muted" style="font-size:13px">
+                @_snapshot.Callsigns.Count ATC online ·
+                aggiornato @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))
+            </span>
+        </div>
+
+        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">Modalità ridotta · live</p>Proiezione <b>Ridotta</b> con collasso AoR basato su chi è online ora. Le sezioni sono indipendenti e riespandibili a mano.</div></div>
+
+        <div class="block">
+            <h3 style="margin-top:0">🟢 Online nel mio dominio</h3>
+            @if (_domainOnline.Count > 0)
+            {
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    @foreach (var cs in _domainOnline)
+                    {
+                        <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">@cs</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="muted" style="margin:0;font-size:13px">Nessun subordinato online nel dominio di <b>@_p</b>: copri tutti i settori.</p>
+            }
+        </div>
+
+        <div id="red-sector">
+            @foreach (var s in _view.Sections)
+            {
+                <SectionNode Section="s" />
+            }
+
+            <div class="block">
+                <h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3>
+                @if (_resolved.Count == 0)
+                {
+                    <p class="help">Nessun trasferimento per questa FIR.</p>
+                }
+                else
+                {
+                    <p class="muted" style="font-size:13px;margin-top:0">Primo handler online evidenziato; se nessuno è online si applica lo standard/fallback.</p>
+                    @foreach (var rel in _resolved.GroupBy(t => t.Row.RelationLabel))
+                    {
+                        <details class="acc-item" open>
+                            <summary><span>@rel.Key</span><span class="tag-state tag-covered">@rel.Count() righe</span></summary>
+                            <div class="body">
+                                @foreach (var phase in rel.GroupBy(t => t.Row.Phase))
+                                {
+                                    <p class="muted" style="font-weight:600;margin:8px 0 4px">@(phase.Key == TransferPhase.Arrival ? "Arrivi" : "Partenze")</p>
+                                    <table>
+                                        <thead><tr><th>Aeroporto</th><th>CoP</th><th>FL</th><th>Catena handler</th><th>Primo online</th></tr></thead>
+                                        <tbody>
+                                            @foreach (var t in phase.OrderBy(x => x.Row.AirportIcao).ThenBy(x => x.Row.Order))
+                                            {
+                                                <tr>
+                                                    <td><b>@t.Row.AirportIcao</b></td>
+                                                    <td>@t.Row.Cop</td>
+                                                    <td>@t.Row.FlRule</td>
+                                                    <td>@string.Join(" → ", t.Row.HandlerChain)</td>
+                                                    <td>
+                                                        @if (t.IsOnline)
+                                                        {
+                                                            <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:2px 9px;border-radius:999px;font-weight:700">@t.ResolvedHandler</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="muted">@t.ResolvedHandler <small>(nessuno online)</small></span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </details>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+
+    private AccInfo? _acc;
+    private Topology? _topo;
+    private IReadOnlyList<string> _positions = Array.Empty<string>();
+    private string _p = "";
+    private DocumentView? _view;
+    private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
+    private IReadOnlyList<ResolvedTransferRow> _resolved = Array.Empty<ResolvedTransferRow>();
+    private IReadOnlyList<string> _domainOnline = Array.Empty<string>();
+
+    private DotNetObjectReference<RidottaPage>? _ref;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) { _view = null; return; }
+
+        _topo = await Topology.BuildByFirCodeAsync(_acc.Code);
+        _positions = _topo is null
+            ? Array.Empty<string>()
+            : _topo.DefaultSectors.Keys.OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
+
+        // Default P = prima radice (callsign senza genitore), altrimenti prima posizione.
+        if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
+            _p = _positions.FirstOrDefault(c => _topo is not null && !_topo.Parent.ContainsKey(c))
+                 ?? _positions.FirstOrDefault() ?? "";
+
+        await LoadAsync();
+    }
+
+    private async Task OnPositionChangedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_acc is null) return;
+
+        _snapshot = Online.GetCurrent();
+        _view = await ViewService.BuildAccVipiAsync(_acc.Code, BlockTier.Reduced, live: true, _p);
+        _resolved = await Transfers.ListResolvedByFirAsync(_acc.Code);
+
+        _domainOnline = _topo is null || string.IsNullOrEmpty(_p)
+            ? Array.Empty<string>()
+            : _topo.DomainOf(_p)
+                .Where(cs => _snapshot.Callsigns.Contains(cs))
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ref = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("vipiLive.subscribe", _ref);
+        }
+    }
+
+    /// <summary>Chiamato dal browser (SSE) a ogni cambio della cache ATC.</summary>
+    [JSInvokable]
+    public async Task OnLiveUpdate()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe"); } catch { /* circuito chiuso */ }
+        _ref?.Dispose();
+    }
+}

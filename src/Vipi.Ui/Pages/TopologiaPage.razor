@@ -1,0 +1,272 @@
+@page "/sop/{Acc}/topologia"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStationResolver Stations
+@inject ITopologyProvider Topo
+@inject IAorService Aor
+@inject ITopologyEditingService TopoEdit
+
+<PageTitle>Topologia settori — @(_acc?.Name) · IVAO Italia</PageTitle>
+
+<div class="wrap">
+    <div class="breadcrumb"><a href="/sop">Admin</a> › <a href="/sop/@Acc?.ToLowerInvariant()">FIR @_acc?.Code</a> › <b>Topologia settori</b></div>
+    <div class="ed-toolbar">
+        <h2 style="margin:0;flex:1">Topologia settori — FIR @_acc?.Code</h2>
+        <span class="pill grey">Simulatore live (motore reale)</span>
+    </div>
+
+    @if (_acc is null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div>
+    }
+    else if (_topology is null)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Topologia non disponibile</p>Nessuna anagrafica per la FIR @_acc.Code.</div></div>
+    }
+    else
+    {
+        <div class="callout info" style="margin-top:0"><span class="cic">🧭</span><div><p class="ct">Questo simulatore usa il motore reale</p>Scegli la posizione aperta (P) e chi è online: l'ownership e lo stato dei settori sono calcolati da <b>IAorService</b> — gli stessi dei test S1–S10.</div></div>
+
+        <div class="topo-layout">
+            <div class="panel">
+                @if (_editErr is not null)
+                {
+                    <div class="callout warning" style="margin-top:0"><span class="cic">🔒</span><div>@_editErr Modifiche disabilitate; il simulatore resta utilizzabile.</div></div>
+                }
+
+                <div class="sub-h">Gerarchia <span class="hint">top-down (padre → figlio)</span></div>
+                <ul class="htree">
+                    @if (_edit is not null)
+                    {
+                        @foreach (var h in _edit.Hierarchy)
+                        {
+                            <li class="h2">
+                                <span class="pos">@h.ChildCallsign</span><span class="sct">⊂ @h.ParentCallsign</span>
+                                @if (_canEdit) { <button class="btn ghost" disabled="@_busy" style="margin-left:6px" @onclick="() => DeleteHierarchy(h.Id)">🗑</button> }
+                            </li>
+                        }
+                    }
+                </ul>
+                @if (_canEdit && _edit is not null)
+                {
+                    <div class="field" style="border-top:1px solid #e3e7f0;padding-top:8px;margin-top:6px">
+                        <label>Nuova relazione (figlio ⊂ padre)</label>
+                        <div style="display:flex;gap:6px">
+                            <select @bind="_newChild"><option value="0">figlio…</option>@foreach (var p in _edit.Positions) { <option value="@p.Id">@p.Callsign</option> }</select>
+                            <select @bind="_newParent"><option value="0">padre…</option>@foreach (var p in _edit.Positions) { <option value="@p.Id">@p.Callsign</option> }</select>
+                            <button class="btn ghost" disabled="@_busy" @onclick="AddHierarchy">+ </button>
+                        </div>
+                    </div>
+                }
+
+                <div class="sub-h" style="margin-top:18px">Unificazioni <span class="hint">regole</span></div>
+                @if (_edit is null || _edit.Rules.Count == 0)
+                {
+                    <p class="help">Nessuna regola.</p>
+                }
+                else
+                {
+                    @foreach (var r in _edit.Rules)
+                    {
+                        <div class="rule-card @(r.IsActive ? "fired" : "")">
+                            <div class="rc-head">
+                                <span class="rc-name">@r.Name</span>
+                                <span class="rc-fire">@(r.IsActive ? "attiva" : "inattiva") · prio @r.Priority</span>
+                            </div>
+                            <div class="rc-cond">cond: <code>@r.ConditionJson</code> · assign: <code>@r.AssignmentJson</code></div>
+                            @if (_canEdit)
+                            {
+                                <div style="margin-top:6px">
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleRule(r.Id, !r.IsActive)">@(r.IsActive ? "Disattiva" : "Attiva")</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => DeleteRule(r.Id)">🗑</button>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                @if (_canEdit && _edit is not null)
+                {
+                    <div class="field" style="border-top:1px solid #e3e7f0;padding-top:8px;margin-top:6px">
+                        <label>Nuova regola</label>
+                        <input placeholder="Nome" @bind="_rName" />
+                        <input type="number" placeholder="Priorità" @bind="_rPrio" style="margin-top:6px" />
+                        <input placeholder='Condizione JSON es. {"online":["LIRR_ES_CTR"]}' @bind="_rCond" style="margin-top:6px;font-family:monospace;font-size:12px" />
+                        <input placeholder='Assegnazione JSON es. {"LIRR-ES":"LIRR_ES_CTR"}' @bind="_rAssign" style="margin-top:6px;font-family:monospace;font-size:12px" />
+                        <button class="btn ghost" disabled="@_busy" style="margin-top:6px" @onclick="AddRule">+ Aggiungi regola</button>
+                    </div>
+                }
+            </div>
+
+            <div class="panel sim">
+                <h5><span class="live-dot"></span> Simulatore</h5>
+                <div class="sim-presets">
+                    <button class="@(_preset=="S1"?"on":"")" @onclick='() => Preset("S1")'>S1</button>
+                    <button class="@(_preset=="S2"?"on":"")" @onclick='() => Preset("S2")'>S2</button>
+                    <button class="@(_preset=="S4"?"on":"")" @onclick='() => Preset("S4")'>S4</button>
+                    <button class="@(_preset=="S5"?"on":"")" @onclick='() => Preset("S5")'>S5</button>
+                    <button class="@(_preset=="S6"?"on":"")" @onclick='() => Preset("S6")'>S6</button>
+                </div>
+                <div class="sim-p"><label>Posizione (P)</label>
+                    <select @bind="_p" @bind:after="Recompute">
+                        @foreach (var cs in _positions) { <option value="@cs">@cs</option> }
+                    </select>
+                </div>
+                <div class="sub-h" style="margin-bottom:8px">Online</div>
+                <ul class="sim-online">
+                    @foreach (var cs in _positions)
+                    {
+                        var isP = cs.Equals(_p, StringComparison.OrdinalIgnoreCase);
+                        <li class="@(_online.Contains(cs) ? "on" : "")">
+                            <label style="cursor:pointer;display:flex;align-items:center;gap:8px;width:100%">
+                                <input type="checkbox" checked="@_online.Contains(cs)" @onchange="() => ToggleOnline(cs)" />
+                                <span class="cs">@cs</span>
+                                @if (isP) { <span class="ptag">P</span> }
+                            </label>
+                        </li>
+                    }
+                </ul>
+
+                <div class="sub-h" style="margin-bottom:8px">Ownership risolta in Dom(P)</div>
+                @if (_result is null || _result.State.Count == 0)
+                {
+                    <p class="help">Nessun settore nel dominio di P.</p>
+                }
+                else
+                {
+                    <table class="res-table">
+                        <thead><tr><th>Settore</th><th>Owner</th><th>Stato</th></tr></thead>
+                        <tbody>
+                            @foreach (var kv in _result.State.OrderBy(k => k.Key))
+                            {
+                                <tr>
+                                    <td>@kv.Key</td>
+                                    <td>@(_result.Ownership.TryGetValue(kv.Key, out var o) ? o : "—")</td>
+                                    <td><span class="st-pill @(kv.Value == SectorState.Online ? "st-online" : "st-covered")">@kv.Value</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="derived2">
+                        <div class="dh">⚙️ Effetto sui blocchi (tabella di verità)</div>
+                        <ul>
+                            <li class="eff-op">Operational dei settori <b>Covered</b>: espansi · dei settori <b>Online</b>: compressi</li>
+                            <li class="eff-ho">Handoff verso settori <b>Online</b>: espansi · verso <b>Covered</b>: compressi</li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+
+    private AccInfo? _acc;
+    private Topology? _topology;
+    private List<string> _positions = new();
+    private string _p = "";
+    private readonly HashSet<string> _online = new(StringComparer.OrdinalIgnoreCase);
+    private AorResult? _result;
+    private string? _preset;
+
+    // Editing (3B)
+    private TopologyEditData? _edit;
+    private bool _canEdit;
+    private bool _busy;
+    private string? _editErr;
+    private int _newChild, _newParent;
+    private string _rName = "", _rCond = "", _rAssign = "";
+    private int _rPrio = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        await LoadAllAsync(resetSim: true);
+    }
+
+    private async Task LoadAllAsync(bool resetSim)
+    {
+        _topology = await Topo.BuildByFirCodeAsync(_acc!.Code);
+        if (_topology is null) return;
+
+        // Posizioni della FIR = unione dei callsign citati nella topologia.
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var k in _topology.DefaultSectors.Keys) set.Add(k);
+        foreach (var kv in _topology.Parent) { set.Add(kv.Key); set.Add(kv.Value); }
+        _positions = set.OrderBy(x => x).ToList();
+
+        if (resetSim)
+        {
+            _p = _positions.FirstOrDefault(x => x.EndsWith("_CTR", StringComparison.OrdinalIgnoreCase)) ?? _positions.FirstOrDefault() ?? "";
+            if (_p != "") _online.Add(_p);
+        }
+
+        // Dati di editing (richiedono CanEdit): se non autorizzato, simulatore comunque attivo.
+        try { _edit = await TopoEdit.LoadAsync(_acc.Code); _canEdit = true; }
+        catch (Vipi.Application.Content.EditNotAllowedException ex) { _canEdit = false; _editErr = ex.Message; }
+
+        Recompute();
+    }
+
+    private void ToggleOnline(string cs)
+    {
+        if (!_online.Remove(cs)) _online.Add(cs);
+        _preset = null;
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        if (_topology is null || string.IsNullOrEmpty(_p)) { _result = null; return; }
+        _online.Add(_p); // P è sempre online
+        _result = Aor.Resolve(_topology, _p, _online);
+    }
+
+    private void Preset(string name)
+    {
+        _preset = name;
+        _online.Clear();
+        (string p, string[] online) = name switch
+        {
+            "S1" => ("LIRR_NE_CTR", new[] { "LIRR_NE_CTR" }),
+            "S2" => ("LIRR_NE_CTR", new[] { "LIRR_NE_CTR", "LIRP_APP" }),
+            "S4" => ("LIRR_SU_CTR", new[] { "LIRR_SU_CTR", "LIRR_ES_CTR" }),
+            "S5" => ("LIRR_NE_CTR", new[] { "LIRR_NE_CTR", "LIRR_TS_CTR" }),
+            "S6" => ("LIRR_NE_CTR", new[] { "LIRR_NE_CTR", "LIRP_TWR" }),
+            _ => (_p, new[] { _p }),
+        };
+        if (_positions.Contains(p)) _p = p;
+        foreach (var o in online) if (_positions.Contains(o)) _online.Add(o);
+        Recompute();
+    }
+
+    // --- Editing topologia (3B): dopo ogni modifica ricarico tutto e ricalcolo il simulatore ---
+    private async Task EditGuarded(Func<Task> action)
+    {
+        _busy = true; _editErr = null;
+        try { await action(); await LoadAllAsync(resetSim: false); }
+        catch (Vipi.Application.Content.EditNotAllowedException ex) { _editErr = ex.Message; }
+        catch (ValidationException ex) { _editErr = ex.Message; }
+        catch (InvalidOperationException ex) { _editErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private Task ToggleRule(int id, bool active) => EditGuarded(() => TopoEdit.SetRuleActiveAsync(_acc!.Code, id, active));
+    private Task DeleteRule(int id) => EditGuarded(() => TopoEdit.DeleteRuleAsync(_acc!.Code, id));
+    private Task DeleteHierarchy(int id) => EditGuarded(() => TopoEdit.DeleteHierarchyAsync(_acc!.Code, id));
+
+    private Task AddRule() => EditGuarded(async () =>
+    {
+        await TopoEdit.AddRuleAsync(_acc!.Code, _rName, _rPrio, _rCond, _rAssign);
+        _rName = ""; _rCond = ""; _rAssign = ""; _rPrio = 10;
+    });
+
+    private Task AddHierarchy() => EditGuarded(async () =>
+    {
+        if (_newChild == 0 || _newParent == 0) throw new InvalidOperationException("Seleziona figlio e padre.");
+        await TopoEdit.AddHierarchyAsync(_acc!.Code, _newParent, _newChild);
+        _newChild = 0; _newParent = 0;
+    });
+}

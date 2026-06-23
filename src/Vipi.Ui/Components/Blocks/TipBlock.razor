@@ -1,0 +1,34 @@
+@using System.Text.Json
+
+<div class="tip">
+    @if (!string.IsNullOrEmpty(_title))
+    {
+        <p class="tip-title">@_title</p>
+    }
+    @foreach (var line in _lines)
+    {
+        <p>@line</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private string _title = "";
+    private List<string> _lines = new();
+
+    protected override void OnParametersSet()
+    {
+        _title = ""; _lines = new();
+        if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(Block.BodyJson);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("title", out var t)) _title = t.GetString() ?? "";
+            if (r.TryGetProperty("lines", out var ls) && ls.ValueKind == JsonValueKind.Array)
+                _lines = ls.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+        }
+        catch (JsonException) { }
+    }
+}
