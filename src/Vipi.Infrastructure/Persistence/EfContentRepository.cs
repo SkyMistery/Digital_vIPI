@@ -47,6 +47,7 @@ public sealed class EfContentRepository : IContentRepository
         System.Linq.Expressions.Expression<Func<Document, bool>> predicate, CancellationToken ct)
     {
         var doc = await _db.Documents
+            .AsNoTracking()
             .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
             .Where(predicate)
             .FirstOrDefaultAsync(ct);

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
@@ -12,6 +13,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /sop/live/atc
+// usa DisableBuffering() e dev'essere consegnata subito, non compressa/bufferizzata.
+builder.Services.AddResponseCompression(o =>
+{
+    o.EnableForHttps = true;
+    o.Providers.Add<BrotliCompressionProvider>();
+    o.Providers.Add<GzipCompressionProvider>();
+    o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
+});
 
 // Layer vIPI (Clean Architecture). ADR-0001 D2.
 builder.Services.AddVipiApplication();
@@ -54,7 +65,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseStaticFiles();
+// Compressione prima dei file statici così CSS/JS escono compressi.
+app.UseResponseCompression();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=604800", // 7 giorni
+});
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
