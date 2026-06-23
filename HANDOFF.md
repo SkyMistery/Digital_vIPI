@@ -1,158 +1,110 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 20 giugno 2026
+**Ultimo aggiornamento:** 23 giugno 2026
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
-**Stato progetto:** design UI **completo** sia in consultazione sia in editing (mockup **v2**, **17 schermate** interattive, incl. editor node-driven, Topologia settori con simulatore, editor trasferimenti, editor vLOA e vista **AoR 3D** ruotabile). Codice **non** ancora iniziato. La UI verrà **rifinita più avanti**, quando si inizia a collegarla ai dati reali e si capisce meglio il funzionamento live.
+**Stato:** progetto **in sviluppo attivo**. Design UI completo (mockup v2, 17 schermate) **e** codice avanzato: solution .NET 8 a 4 layer + Host Blazor Server, **56 test verdi**, consultazione+editing+sicurezza funzionanti dal DB. **Live IVAO (F3) implementato**: polling + cache + SSE, Ridotta live (AoR reattivo, "primo online", online nel dominio), auto-elenco CH permessi.
 
 ---
 
 ## 1. In una frase
+Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e le **vLOA** (lettere di accordo) della divisione IVAO Italia da Word statici a contenuto strutturato, con due livelli (Estesa/Ridotta), logica di visibilità live legata a chi è online (AoR top-down) ed editing per lo staff.
 
-Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e le **vLOA** (lettere di accordo) della divisione IVAO Italia da documenti Word statici a documentazione strutturata, con due livelli di dettaglio (Estesa/Ridotta), logica di visibilità live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD).
+## 2. Come far girare il progetto
+```bash
+cd "vIPI Ivao Italy"            # cartella interna con la solution
+dotnet build Vipi.slnx
+dotnet test  Vipi.slnx          # 49 test
+dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /sop
+```
+- DB **SQLite** creato/migrato all'avvio (`src/Vipi.Host/vipi.db`); cancellalo per ri-seedare da zero.
+- In dev l'utente è `DevCurrentUserProvider` (VID 654321, staff `IT-AOC` → **admin**, può tutto).
+- Migrazioni: `dotnet ef migrations add <Nome> --project src/Vipi.Infrastructure --startup-project src/Vipi.Infrastructure -o Persistence/Migrations`.
 
----
-
-## 2. Indice dei documenti (tutti in questa cartella)
-
-| File | Contenuto |
-|---|---|
-| `PIANO_vIPI_Tool.md` | Piano e architettura completi. **Round più recenti: §22 (round 4), §23 (round 5 — integrazione/auth).** |
-| `SPEC_Modello_Dati.md` | Modello dati / schema EF Core. **§7 = aggiornamenti round 4.** |
-| `SPEC_Logica_AoR.md` | Logica di visibilità AoR + scenari di test. **§8 = collasso live vs accordion UI.** |
-| `REVIEW_Flusso_e_Gap.md` | Confronto flusso utente vs documenti, gap e proposte QoL. **§13–15 = decisioni round 4 + callout + validazione CoP.** |
-| `docs/adr/ADR-0001-scelte-architetturali-fondanti.md` | 10 decisioni fondanti. **D1/D7/D9 emendati da ADR-0002.** |
-| `docs/adr/ADR-0002-integrazione-e-autenticazione-portabile.md` | Integrazione come RCL Blazor + auth portabile (3 scenari). |
-| `mockups/vipi-ui-mockup-v2.html` | **Mockup CANONICO**. **17 schermate** interattive (consultazione + editing + AoR 3D), brand IVAO. Vedi §7 e **§7.1** (aggiornamenti 20 giu). |
-| `mockups/vipi-ui-mockup.html` | Mockup v1 (5 schermate). Storico, superato da v2. |
-| `Esempi documenti/*.docx` | Esempi reali di vIPI/vLOA (fonte del contenuto, non importati automaticamente). IPI MILANO ACC.docx = riferimento per tabelle config/frequenze/separazioni. |
-
-> Ordine di lettura consigliato per una nuova chat: questo HANDOFF → ADR-0001/0002 → PIANO §22–23 → mockup **v2**.
-
----
-
-## 3. Decisioni chiave già prese (non rimetterle in discussione salvo richiesta)
-
-**Architettura**
-- Stack: **C# / ASP.NET Core**, Clean Architecture a 4 layer (Domain/Application/Infrastructure/Web-UI).
-- DB: **SQLite** + EF Core, migrazioni versionate, concorrenza ottimistica.
-- UI: **componenti Blazor impacchettati come Razor Class Library (RCL)** — *non* Razor Pages (emendamento ADR-0002).
-- Integrazione: la vIPI è una **RCL montata in-process** nel sito host; **eredita l'autenticazione** dell'host via astrazione `ICurrentUserProvider`. Niente API esposte, niente doppio login.
-- Portabilità: 3 scenari con stessa codebase → **A** sito attuale, **B** sito nuovo (stesso stack), **C** app autonoma futura (host minimo + OIDC proprio). Regola: RCL/logica non dipendono da tipi specifici dell'host.
-
-**Dominio / contenuti**
-- Contenuto strutturato: albero `DocumentSection` (annidamento **max 3 livelli**) + `ContentBlock` taggati con `Tier` (Reduced/Extended), `Visibility` (Operational/Handoff/Always), `ScopeSectorId`, `Format` (Table/Prose/Image/List/**AorMap/Callout**).
-- Visibilità live = collasso **morbido** (mai rimozione) secondo tabella di verità in `SPEC_Logica_AoR.md`. Due collassi distinti: live/AoR (dominio) e accordion UI (presentazione).
-- Gerarchia top-down, ownership settori e regole di unificazione = **dato manuale** curato dagli editor (le API IVAO non lo espongono).
-- **Single source of truth Estesa/Ridotta:** non esistono due documenti. C'è **un'unica struttura** (albero + blocchi); la Estesa è la resa completa, la **Ridotta è una proiezione** dello stesso dato (filtrata per `Tier`/posizione live + collasso morbido). Il dato si inserisce **una volta sola**.
-- **Trasferimenti come righe strutturate:** per alimentare entrambe le viste, ogni trasferimento è un record (CoP, FL, flusso/destinazione, **catena ordinata di handler** + trasferimento *standard* di fallback), non una tabella libera. Estesa = raggruppa per settore interagente; Ridotta = risolve la catena in base a chi è online (primo online; se nessuno → standard, poi UNICOM).
-
-**Funzionalità & UX (round 4)**
-- Navigazione: home con **4 ACC** (LIRR/LIMM/LIPP/LIBB) + ricerca callsign + live, **coesistono**. Default apertura = **Estesa**.
-- APP **remotizzati** → doc nella vIPI di ACC; **non remotizzati** → documento proprio (`Position.ApproachKind`).
-- Template d'ordine vIPI ACC: sommario → separazioni → AoR → config → frequenze → minime → coordinamenti (annidati per settore→aeroporto→trasferimenti+CoP).
-- **Più sezioni AoR e più sezioni minime** per documento.
-- **Callout colorati** (Info/Success/Warning/Danger) piazzabili ovunque.
-- QoL accettate: breadcrumb, deep-link a sezione, ricerca full-text, pannello "chi è online nel mio dominio", anteprima "vista controllore" nell'editor, toggle densità tabelle.
-- "Cosa è cambiato dall'ultimo AIRAC" = **pagina a parte**, non dentro il documento.
-- Export PDF = **solo Estesa**.
-
-**Autenticazione (dal codice del sito host `Ivao.It`)**
-- Host = ASP.NET Core + Blazor Server + ASP.NET Core Identity, IVAO OIDC come external login.
-- Identità nei **claim di sessione**: `id` (vid), `centerId` (FIR), `divisionId`, `userStaffPositions` (es. `IT-DIR`). CH/AOD rilevabili da lì → **non serve** la chiamata API `userStaffPositions` negli scenari embedded.
-- Staff position IT già mappate a **ruoli Identity** dal sito (`IvaoRolesHandler`).
+## 3. Mappa documenti
+| File | Contenuto | Stato |
+|---|---|---|
+| `README.md` | **Stato del codice** (architettura, capability, prossimi passi). | ⭐ fonte verità codice |
+| `HANDOFF.md` | Questo file: contesto per riprendere. | ⭐ leggere per primo |
+| `PIANO_vIPI_Tool.md` | Piano/architettura di design. | design ref (vedi banner) |
+| `SPEC_Modello_Dati.md` | Schema dati di design. | design ref (entità aggiornate, vedi §5) |
+| `SPEC_Logica_AoR.md` | Logica visibilità + scenari S1–S10. | design ref; **S1–S10 implementati+testati** |
+| `REVIEW_Flusso_e_Gap.md` | Confronto flusso vs documenti. | storico |
+| `docs/CONFIG.md` | **Riferimento configurazione** completo (Division/Ivao/Auth/secrets). | ⭐ config |
+| `docs/adr/ADR-0001/0002` | Decisioni fondanti + integrazione/auth. | valide |
+| `docs/adr/ADR-0003` | Trasporto live = **SSE** (F3). | valida |
+| `docs/adr/ADR-0004` | Configurazione divisione + codici admin. | valida |
+| `mockups/vipi-ui-mockup-v2.html` | Mockup canonico 17 schermate. | storico/riferimento UI |
+| `Esempi documenti/*.docx` | Esempi reali (riferimento contenuto, non importati). | riferimento |
 
 ---
 
-## 4. Decisioni ancora APERTE (da affrontare)
+## 4. STATO CODICE — cosa è implementato (e dove)
 
-1. **Minime di vettoramento + SID** — modellate ma **implementazione FUTURE**. Fonte = **sectorfile divisione su GitHub** per *entrambe* (formato/struttura repo/schedulazione del parsing da definire). Le **SID di ogni aeroporto si prendono sempre dal sectorfile su GitHub**, non si inseriscono a mano; la tabella si allinea all'AIRAC del sectorfile.
-2. **Live: SSE vs circuito Blazor** — su host Blazor Server gli aggiornamenti push viaggiano nativamente sul circuito; decidere se SSE (ADR-0001 D6) serve ancora. → ADR successivo.
-3. **Codici staff position esatti CH/AOD** da mappare a `CanEdit` (verificare gli `staffPositionId` reali).
-4. ~~**Numerazione template vIPI ACC**~~ ✅ **Risolto (20 giu):** ordine in PIANO §22.3 → …(7) coordinamenti, (8) settore SCCAM, (9) aree regolamentate. Eventuali ATIS/best-practice restano aggiungibili come sezioni opzionali.
-5. **Dove generare lo scheletro .NET** — domanda posta, non ancora risposta (nuova solution separata vs dentro `Ivao.It` vs solo struttura su carta). L'utente ha preferito **progettare la UI prima** (fatto).
-6. **Registrazione app IVAO** — l'utente ha le credenziali; redirect URL serve solo per lo scenario C (app autonoma). Per A/B non necessario.
+**Solution (Clean Architecture, net8.0):** `Vipi.Domain` · `Vipi.Application` · `Vipi.Infrastructure` (EF Core + SQLite) · `Vipi.Ui` (RCL Blazor) · `Vipi.Host` (Blazor Server dev) + 3 progetti test.
 
----
+**Cuore AoR/visibilità (✅ testato S1–S10):** `Application/Aor/AorService.cs` (ownership/stato settori, top-down, unificazioni), `Topology.cs`, `Infrastructure/Aor/TopologyBuilder.cs` (implementa la porta `ITopologyProvider`). Tabella di verità visibilità in `Application/Content/ContentService.cs`.
 
-## 5. Prossimi passi proposti
+**Consultazione dal DB (✅):** pipeline `IContentRepository` → `IVipiViewService` → `SectionNode`/`BlockRenderer`. Rotte sotto `/sop`:
+- `/{acc}/vipi` (Estesa ACC) · `/{acc}/ridotta` (proiezione tier Reduced + sezione Trasferimenti) · `/{acc}/aeroporto` (vIPI aeroporto LIRF) · `/{acc}/vloa` (LIRR↔DTTC).
+- `/search` (ricerca full-text reale), `/changed` (cosa è cambiato nel ciclo AIRAC), `/{acc}/export` (Estesa → stampa/PDF browser).
+- Stub dichiarati: METAR/TAF, SID, mappe AoR (SVG statico), `/{acc}/aor3d` (SVG statico).
 
-1. ~~**Progettare l'EDITOR**~~ ✅ **FATTO** (sessione 20 giu): editor node-driven, Topologia settori con simulatore, editor trasferimenti, editor vLOA. Vedi §7.
-2. **Scaffolding solution .NET** (F0/F1) — **prossimo passo principale**: `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Ui` (RCL) + test; astrazione `ICurrentUserProvider` con i due adapter (host / OIDC); modello di dominio round 4; schema EF Core + prima migration SQLite; tema brand; seed strutturale FIR **Roma** (pilota).
-3. **Derivare i componenti Blazor** dalle schermate v2 approvate, collegandoli al dominio e al polling IVAO.
-4. **Rifinitura UI** — **rimandata di proposito**: si raffina quando la UI è funzionante e si capisce il comportamento live reale (l'utente l'ha chiesto esplicitamente).
-5. **ADR successivi**: SSE vs circuito Blazor; formato shape AoR (GeoJSON vs WKT); parsing sectorfile (quando si fanno le minime).
+**Editing persistente (✅):** `Application/Content/EditingService.cs` + `Infrastructure/Persistence/EfEditingRepository.cs`:
+- Workflow **bozza→pubblicato** (clona versione, audit, archivia precedente). CRUD **blocchi e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli). `EditorPage` (`/{acc}/editor`, anche `?doc={id}` per qualunque documento), `VersioniPage` (`/sop/versioni`).
+- Editor specializzati: `TopologiaPage` (simulatore live riusa `IAorService` + CRUD regole/gerarchia), `XferEditorPage` (trasferimenti), `VloaEditorPage` (redirect all'editor generico).
 
-### 5.1 Placeholder UI da collegare ai dati veri (wiring, non schermate mancanti)
-- **Mappe AoR**: ora SVG statici → geometria reale dal database IVAO (GeoJSON/WKT).
-- **Minime di vettoramento (carte MVA)**: "in sviluppo" → parsing sectorfile GitHub.
-- **METAR/TAF, lista online, collassi live**: ora mock → polling IVAO + motore AoR.
-- **SID**: tabella mock → sectorfile GitHub.
+**Sicurezza/permessi (✅):** `Application/Auth/EditAuthorizationService.cs`:
+- **Admin** = staff position derivati dal **codice divisione** (`DivisionOptions.Code` + `AdminRolePatterns` → `^{Code}-{ruolo}$`, es. IT-DIR/IT-WM/IT-AOC) → edita tutto + gestisce permessi. Override esplicito opzionale via `Auth:AdminStaffCodes` (pattern completi). **Divisione configurabile** (sezione `Division`): vedi §7.
+- **Multi-divisione:** tutto ciò che cambia passando divisione è in `DivisionOptions` (Application): `Code` (prefisso staff + id API membri), `IcaoPrefixes` (filtro ATC online), `AdminRolePatterns`. Per IT→DE basta la sezione `Division` in appsettings. Il **contenuto seed** (Roma/LIRR) resta dato separato.
+- **Grant per-FIR** (`EditGrant`, VID→FIR): chi non è admin edita una FIR solo con grant; copre tutti i tipi (vIPI/aeroporto/vLOA/topologia/trasferimenti). Schermata `/sop/admin/permessi` (solo admin): aggiungi/revoca per VID manuale.
+- **Lock** documento esclusivo (30 min sliding, acquisizione atomica via `ExecuteUpdateAsync`, release su publish/abbandono, **force admin**) → impedisce editing concorrente. `EditConflictException`.
+- **Concorrenza ottimistica** (`RowVersion` su `ContentBlock`/`DocumentSection`) → conflitto gestito.
+- **Validazione**: `UnificationRule` hard (sectorKey/callsign devono esistere), trasferimenti soft (catena non vuota/no duplicati).
+- Verifiche **sempre server-side**. Security review fatta: **XSS in `AorBlock` corretto** (SVG hand-built ora HTML-encoded).
 
----
+**Persistenza:** `VipiDbContext` mappa tutte le entità; enum→stringa; migrazioni `InitialCreate`, `Transfers`, `AuthLockConcurrency`. Seed: `RomaStructureSeed` (anagrafica/gerarchia/regole), `RomaContentSeed` (vIPI ACC), `RomaAirportSeed` (LIRF), `RomaVloaSeed` (vLOA + FIR/posizione DTTC), `RomaTransferSeed`.
 
-## 6. Note operative per la nuova chat
+**Modello dati — aggiunte rispetto a SPEC §3:** `Transfer` (+enum `TransferPhase`; catena handler = array JSON), `EditGrant`; campi **lock** su `Document`; `RowVersion` su `ContentBlock`/`DocumentSection`.
 
-- **Cartelle connesse:** `vIPI Ivao Italy` (progetto, questa) e `Ivao Italy site` (codice del sito host `Ivao.It` — utile per riferimenti su auth/claims/struttura).
-- **FIR pilota:** Roma (LIRR). Validare modello e logica AoR su una sola FIR prima di estendere.
-- **Brand obbligatorio:** palette §15.1 del PIANO (blu `#0D2C99`, light blue `#3C55AC`, ecc.), font Nunito Sans (titoli) + Poppins (testo).
-- **Nessun import dai docx:** gli esempi servono come riferimento di contenuto; i dati si inseriscono a mano tramite editor.
-- **Parte più rischiosa:** la logica AoR/visibilità → coprire con test (preferibilmente property-based) sugli scenari S1–S10 di `SPEC_Logica_AoR.md`.
+**Live IVAO (✅ F3):** `src/Vipi.Infrastructure/Ivao/` — `OnlineAtcCache` (singleton, evento `Changed`, impl. `IOnlineAtcProvider`), `IvaoApiClient` (typed HttpClient → `/v2/tracker/now/atc/summary`, filtro prefisso `LI`), `IvaoTokenProvider` (client_credentials, serve solo per i membri divisione: il tracker è pubblico), `AtcPollingHostedService` (`BackgroundService`, 60s), `IvaoOptions` (sezione `Ivao`), DI via `AddVipiIvao(config)`. Transport **SSE** `/sop/live/atc` (`Program.cs`) + `Vipi.Ui/wwwroot/vipi-live.js` (`EventSource`→JS interop). `VipiViewService` calcola AoR reale quando `live=true`. `RidottaPage` ora `InteractiveServer` (selettore P, badge, online-nel-dominio, refresh SSE). `TransferOnlineResolver` + `ITransferService.ListResolvedByFirAsync` (primo-online). `IDivisionMembersProvider` per dropdown CH in `AdminGrantsPage`. Decisione in **ADR-0003**.
+
+**Note implementative / hardening F3:** SSE con `DisableBuffering()` (consegna immediata dietro proxy). `UseHttpsRedirection` solo in prod (in dev l'host è http → niente warning). `TransferOnlineResolver`: match esatto/segmento + sottostringa **solo per token ≥4 char** (evita falsi positivi su token corti). "Online nel mio dominio" ha empty-state esplicito ("copri tutti i settori"). Cache vuota prima del primo poll = `OnlineAtcSnapshot.Empty` (viste sicure).
 
 ---
 
-## 7. Mockup v2 — schermate e decisioni UI (sessione 19 giu 2026)
+## 5. PROSSIMI PASSI (ordinati per valore)
 
-> ⚠️ **Alcune voci di questa sezione sono superate da §7.1 (20 giu):** Aree regolamentate e SCCAM non sono più gruppi dei Coordinamenti ma **sezioni top-level**; "METAR live" → **METAR & TAF**; "Confine · UNICOM" → **UNICOM**; gli APP non remotizzati usano la struttura TW1 (verso ACC / verso torri). Sezione tenuta come storico.
-
-File: `mockups/vipi-ui-mockup-v2.html`. Barra grigia in alto = navigatore del prototipo (non fa parte del prodotto). Top bar blu **sticky** col toggle Estesa/Ridotta. Container fluido fino a ~1640px.
-
-**Schermate (10):** 1 Home (4 ACC + ricerca + pagine) · 2 Landing ACC · 3 vIPI ACC Estesa · 3b vIPI Aeroporto · 3c APP non remotizzato · 3d vLOA estera · 4 Vista Ridotta · 5 Editor (illustrativo) · 6 Cosa è cambiato (AIRAC) · 7 Ricerca full-text.
-
-**vIPI ACC Estesa (screen 3):**
-- Separazioni: sottosezioni **Standard** e **Ridotta** (con condizioni di riduzione).
-- AoR: toggle per mostrare/nascondere settori + **selettore Configurazioni** che evidenzia le righe corrispondenti nella tabella Configurazioni operative (mappatura config→righe da formalizzare: a mano o derivata dai settori attivi).
-- Configurazioni operative: 4 colonne **Settore Unificato (cella unica per gruppo) | Settore | Center Point | Range** (stile IPI Milano).
-- Frequenze: **Settore unico (cella unica) | Posizione | Callsign | Frequenza**; principale evidenziata (★), scelta nell'editor.
-- Minime di vettoramento = **mappe** (carte MVA), da sectorfile GitHub.
-- Coordinamenti: gruppi **Settori ACC / Settori APP / vLOA estere / Aree regolamentate**; settore → flusso (Dest/DEP/OVF) con prosa + tabella CoP/FL/Next + immagini + **tip** (riquadro navy). Gli APP (es. TW1) hanno sezione **VFR** = solo paragrafo di gestione (punti/codici stanno nell'aeroporto). Espandi/Comprimi tutto: globale, per gruppo e per singolo settore. Aree regolamentate: shape + range quota + descrizione.
-
-**vIPI Aeroporto (3b):** METAR live + decodifica · Quote di transizione (TA + tabella TL per fasce QNH) **affiancate** alle Frequenze · Piste (TORA/LDA/APP proc/Patterns/Circling) con **suggerimento pista dal vento** (dep/arr ricalcolati) · SID con **selettore pista** (default = pista partenze), **ricerca**, colonna **Transition** (una riga per coppia SID+transition), preferenziali in cima.
-
-**Vista Ridotta (4):** centrata. Switcher rapido **"Il mio settore" ↔ aeroporto** (gli aeroporti sotto controllo diretto; quelli passati a una posizione online diventano "delegato" ma restano selezionabili in sola lettura). Vista rapida aeroporto = TA, TL, piste suggerite, **selettore pista** + tabella SID (Punto/SID/Transition/Salita iniz./Cat./WTC). Sezioni indipendenti (Frequenze e Trasferimenti aperti insieme).
-- **Trasferimenti (cuore della Ridotta):** maxi-sezione = **relazione FIR↔FIR** (Roma↔Milano, Roma↔Padova, Roma↔Roma interno, Roma↔estero). Dentro: sottosezioni **Arrivi** poi **Partenze**; in ciascuna **una card per aeroporto** (arrivi = aeroporto di destinazione; partenze = aeroporto di origine). Riga = **CoP · FL(↑/↓) · → settore successivo**.
-- Risoluzione "settore successivo" sugli online (toggle WS2/ES2/TS/DTTC…): primo della **catena** online; per i CoP la catena può differire (es. LIMC: VALMA→WS2 sempre; DEVOX/RIXUV→ES2 se aperto, sennò WS2).
-- **Interni vs esterni:** gli interni all'ACC si mostrano **solo se** qualcuno della catena è online (altrimenti li tieni); gli esterni si mostrano **sempre** (rilascio al livello giusto, "→ Confine · UNICOM" se nessuno online).
-
-**vLOA (3d):** documento bilaterale, transfer points per direzione (LIRR→DTTC / DTTC→LIRR), coordinamento. **APP non remotizzato (3c):** doc proprio (separazioni, AoR a cerchio, frequenze, VFR-paragrafo, minime-mappe, coordinamenti verso ACC/TWR). **Cosa è cambiato (6):** lista con badge Modificato/Aggiunto/Rimosso + diff inline. **Ricerca (7):** risultati con snippet evidenziati e filtri.
-
-**Note di stile:** valori numerici grandi (TA, FL separazioni, piste) sono stati rimpiccioliti su richiesta. Lessico: "Vento in prua" (non "testa-vento").
+1. **✅ Polling IVAO (F3) — FATTO.** Rifiniture aperte:
+   - **Identità "P"**: oggi selettore manuale in Ridotta (default prima radice). Va legato al **callsign connesso del CH loggato** (richiede che `ICurrentUserProvider` esponga il callsign).
+   - **Mapping token-handler → callsign** trasferimenti: oggi euristica match-segmento (`WS2`↔`LIMM_WS2_CTR`). Valutare tabella esplicita.
+   - **Endpoint membri divisione** (`/v2/divisions/IT/members`) da confermare; il `rating` non è nel summary tracker.
+   - Estendere `live=true` a **vIPI aeroporto / vLOA** (oggi solo ACC Ridotta).
+2. **Dati reali (placeholder dichiarati):** shape AoR (GeoJSON/WKT — ADR formato), METAR/TAF (API meteo), SID + minime MVA (parsing **sectorfile GitHub**), AoR 3D (Three.js).
+3. **Auth di produzione:** adapter reali `ICurrentUserProvider` — `HostIdentity` (scenari A/B, claim del sito `Ivao.It`) e OIDC (scenario C); mappare gli **staff code reali** (vedi §6 nodo aperto). Integrazione: montare la RCL nel sito host.
+4. **Copertura/rifiniture:** seed altre FIR (LIMM/LIPP/LIBB), viewer **audit log**, "scarta bozza", editor visuale mappe AoR (oggi JSON grezzo), test property-based AoR, **rifinitura UI** (rimandata di proposito finché il live non gira).
+5. **Housekeeping:** **niente è committato** (tutta la sessione è in working tree) — valutare commit logici: editor/topologia/trasferimenti · sicurezza/permessi · pagine-consultazione.
 
 ---
 
-## 7.1 Aggiornamenti UI — sessione 20 giugno 2026
+## 6. Nodi aperti / decisioni
+**Risolte in questa sessione:** modello editing persistente; modello autorizzazione (admin via staff code + grant per-FIR); lock esclusivo 30 min + force admin; validazione hard regole/soft trasferimenti; export = stampa browser; "cosa è cambiato" = lista+note+conteggi; catena handler trasferimenti = array JSON.
 
-Il mockup `vipi-ui-mockup-v2.html` è cresciuto da 10 a **17 schermate** (chip nel navigatore in alto). Riepilogo modifiche e nuove schermate:
+**Risolte F3 (sessione 23 giu):** trasporto live = **SSE** (ADR-0003); polling cache singleton 60s; token solo per membri divisione (tracker pubblico).
 
-**Modifiche a schermate esistenti**
-- **vIPI ACC Estesa:** **SCCAM** e **Aree regolamentate** sono ora **sezioni top-level a sé**, *fuori* dai Coordinamenti (prima erano gruppi dentro Coordinamenti). SCCAM = AoR dal DB IVAO + descrizioni; Aree regolamentate = shape + range + descrizione.
-- **vIPI Aeroporto (3b):** la sezione meteo è ora **METAR & TAF** con toggle; il TAF mostra validità + timeline dei gruppi di cambiamento (BECMG/TEMPO) decodificati.
-- **APP non remotizzato (3c):** tolta la separazione netta "verso ACC / verso TWR"; ora come **TW1**: una sezione **Trasferimenti verso ACC** e una **verso le torri** (una sotto-sezione per torre se l'APP copre più scali, es. Catania).
-- **vLOA estera (3d):** ricostruita con struttura completa (EN): **Purpose · Areas of Responsibility (2 AoR: IT + estero) · Frequencies (2 tabelle) · General procedures · Coordination (identica ai Coordinamenti ACC) · Military areas coordination and management · Validity and Revision**.
-- **Vista Ridotta (4):** più **compatta e a tutta larghezza**; sezioni piccole affiancate in alto; relazioni FIR↔FIR in **masonry**. I **settori di destinazione hanno un colore stabile** (WS2 blu, ES2 verde, CE1 viola, TS arancio, DTTC rosso, **UNICOM** grigio): si nota a colpo d'occhio quando cambia il "next". (Etichetta "Confine · UNICOM" → solo **UNICOM**.)
+**Ancora aperte:**
+- **Staff code esatti IVAO:** admin derivati da `Division.Code` + ruoli (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`), da confermare col sito host. Il codice "CH" non è gate: i permessi passano **solo** dai grant per-FIR; l'auto-elenco CH popola il dropdown via `IDivisionMembersProvider` (path `DivisionMembersPathFormat` = `/v2/divisions/{Code}/members`, da confermare).
+- Identità **P** = callsign connesso del CH (oggi selettore manuale); mapping token-handler trasferimenti (oggi euristica); GeoJSON vs WKT (shape); formato/schedulazione parsing sectorfile (SID + minime).
 
-**Nuove schermate**
-- **5 · Editor admin** — ora **node-driven**: selezioni un nodo nell'albero → canvas + proprietà cambiano per tipo (prosa/tabella/frequenze con principale ★/AorMap/SCCAM AoR+testo/aree/sezioni-gruppi/settori-flussi coordinamento/minime future). CTA verso Topologia e Trasferimenti; toolbar bozza/validato/pubblica.
-- **5b · Topologia settori** — albero gerarchia/copertura + editor regole (unificazioni figlio⊂genitore, adiacenze condizionate, neighbour vLOA) + **simulatore live** che calcola l'ownership risolta (Covered/Online) ed effetti su blocchi/tabelle, con preset scenari **S1–S7**. È la dimostrazione visiva della logica di `SPEC_Logica_AoR.md`.
-- **5c · Editor trasferimenti** — inserimento trasferimenti come **righe strutturate** (CoP · FL · catena di handler ordinata · fallback std), tabella per relazione FIR↔FIR, form "nuova riga" con costruttore catena e **anteprima di risoluzione** Estesa vs Ridotta su online. Migrazioni/collassi derivano dalla Topologia, non si scrivono qui.
-- **5d · Editor vLOA** — stesso motore dell'editor (mount riutilizzabile), albero sezioni vLOA; banner bilaterale **Home LIRR editabile / Neighbour DTTC sola lettura**.
-- **5e · Bozze & versioni** — stato documenti (bozza/pubblicato/programmato), storico versioni con confronto/ripristino, diff e pubblicazioni programmate per ciclo AIRAC.
-- **4b · Vista Ridotta APP** — Ridotta per una posizione di avvicinamento (LIRP): frequenze, vista rapida aeroporto, trasferimenti verso ACC e verso le torri (badge colorati).
-- **8 · Stati & messaggi** — galleria stati: nessun ATC online, feed live stale, METAR/TAF non disponibile, documento assente, accesso sola lettura, collasso morbido.
-- **9 · Export PDF** — export **solo Estesa** con opzioni e anteprima a "foglio".
-- **🧊 AoR 3D** — vista tridimensionale dei settori come **volumi estrusi** dalla quota inferiore a quella superiore, **ruotabile** (orbit manuale, zoom rotellina), con legenda/toggle per settore. Mostra le interagenze laterali e verticali (es. NE basso sotto NE alto). Usa **Three.js r128** da CDN (caricato solo lì), init lazy all'apertura, **fallback** se la libreria non è disponibile. Dati settori illustrativi → shape reali dal DB IVAO. Entry point: bottone "Vista 3D ↗" nella sezione AoR della vIPI ACC.
-  - **Costo/performance:** impatto **server nullo** (rendering client-side su GPU; Three.js ~150 KB gzip, una tantum + cache). Rendering **on-demand** (disegna solo all'interazione, niente loop continuo a riposo). In produzione (Blazor): caricare Three.js **lazy solo sul componente AoR 3D** e valutare il **self-host** del file invece del CDN. Alternativa più leggera ma meno fedele: pseudo-3D in CSS.
+## 7. Note operative per la nuova chat
+- **Configurazione:** riferimento completo in `docs/CONFIG.md` (sezioni `Division`/`Ivao`/`Auth`, secrets, env var). Divisione/admin: ADR-0004.
+- **Caveman mode** spesso attivo in queste chat (comunicazione compressa) — non è parte del prodotto.
+- **Divisione pilota:** Italia (`Division:Code=IT`), **FIR pilota:** Roma (LIRR). Validare su una sola FIR prima di estendere.
+- **Brand:** palette §15.1 PIANO (blu `#0D2C99`…), font Nunito Sans + Poppins; tema in `Vipi.Ui/wwwroot/vipi-theme.css` (contiene anche le regole `@media print`).
+- **Parte più rischiosa:** logica AoR/visibilità → già coperta da test S1–S10; mantenerla testata ad ogni modifica.
+- **Pagine interattive** usano `@rendermode InteractiveServer` (editor, topologia, trasferimenti, ricerca, changed, admin permessi).
+- **Sicurezza:** ogni nuova operazione di scrittura deve passare per i service Application (guardia authz + lock), mai bypassare dal repo/UI.
 
-**Note tecniche mockup**
-- L'editor è generalizzato in una funzione `mount(tree, canvas, props, nodes, default)` riusata da vIPI ed vLOA; handler delegati su canvas/props (toggle, segmented, data-goto, radio frequenza principale).
-- Decisioni di dominio confermate da queste schermate: SCCAM e Aree regolamentate sono **sezioni di pari livello** (non coordinamenti); la vLOA ha **due AoR e due tabelle frequenze**; gli APP non remotizzati separano i trasferimenti **verso ACC** e **verso torre/i**.
-- ⚠️ Interattività **simulata** con dati mock: la prova reale arriva con i componenti Blazor + dati (vedi §5.1).
+---
+
+## 8. Mockup v2 — storico UI (sessioni 19–20 giu)
+Il mockup `mockups/vipi-ui-mockup-v2.html` (17 schermate) resta il riferimento visivo. Le schermate sono state derivate in componenti Blazor reali (vedi §4). Note: SCCAM e Aree regolamentate sono sezioni top-level; la vLOA ha due AoR e due tabelle frequenze; gli APP non remotizzati separano i trasferimenti verso ACC e verso torre. L'interattività del mockup era simulata; ora i dati vengono dal DB (tranne gli stub di §5 punto 2 — live/meteo/sectorfile/3D).

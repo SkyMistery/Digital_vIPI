@@ -1,5 +1,7 @@
 # vIPI/vLOA Interactive — Documento di Pianificazione e Architettura
 
+> ℹ️ **Documento di design.** Per lo **stato corrente del codice** vedi `README.md` (§Stato) e `HANDOFF.md` (§4). Gran parte del piano è implementata; modello dati con aggiunte (Transfer, EditGrant, lock, RowVersion) e permessi evoluti (admin via staff code + grant per-FIR + lock documento) — dettagli in HANDOFF.
+
 **Progetto:** Portale web interattivo per la documentazione operativa ATC (vIPI e vLOA) — IVAO Italia
 **Versione documento:** 0.5 (pianificazione + design UI completati)
 **Data:** 13 giugno 2026 · *agg. 16 giugno 2026 (round 4–5)*

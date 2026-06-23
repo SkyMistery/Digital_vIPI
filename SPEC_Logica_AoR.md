@@ -1,5 +1,7 @@
 # Specifica della Logica AoR e Visibilità — vIPI/vLOA Interactive
 
+> ✅ **Implementata e testata.** Gli scenari **S1–S10** sono coperti da test automatici (`AorServiceTests`, `ContentServiceTests`, `RomaAorIntegrationTests`). Motore: `Vipi.Application/Aor/AorService.cs` + tabella di verità in `ContentService.cs`. Il **collasso live** dipende dal polling IVAO (fase F3, non ancora attivo): oggi la consultazione gira con `live=false`.
+
 **Documento:** Specifica funzionale + scenari di test della logica di visibilità (la parte più critica del sistema)
 **Versione:** 0.1
 **Data:** 13 giugno 2026

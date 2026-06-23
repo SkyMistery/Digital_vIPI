@@ -1,5 +1,7 @@
 # Specifica del Modello Dati — vIPI/vLOA Interactive
 
+> ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-FIR); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `README.md`/`HANDOFF.md`.
+
 **Documento:** Specifica tecnica del modello dati (sorgente per lo schema EF Core)
 **Versione:** 0.1
 **Data:** 13 giugno 2026
