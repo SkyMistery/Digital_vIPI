@@ -3,7 +3,7 @@ namespace Vipi.Application.Content;
 /// <summary>
 /// Risolve il "primo online" di una catena handler di trasferimento (F3). Puro/testabile.
 ///
-/// I token della catena (es. "WS2", "ES2", "DTTC") sono codici settore di FIR confinanti, non
+/// I token della catena (es. "WS2", "ES2", "DTTC") sono codici settore di ACC confinanti, non
 /// necessariamente uguali al callsign IVAO. Euristica per stabilire se un token è online:
 ///  1. match esatto col callsign;
 ///  2. token uguale a un segmento del callsign (split su '_'): es. "WS2" ↔ "LIMM_WS2_CTR";

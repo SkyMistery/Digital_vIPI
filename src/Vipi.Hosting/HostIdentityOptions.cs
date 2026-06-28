@@ -15,8 +15,8 @@ public sealed class HostIdentityOptions
     /// <summary>Claim del nome visualizzato. Si prova in ordine finché uno è valorizzato.</summary>
     public List<string> NameClaims { get; set; } = new() { "name", "given_name", "preferred_username" };
 
-    /// <summary>Claim della FIR/centro (opzionale). Default: "centerId".</summary>
-    public string FirClaim { get; set; } = "centerId";
+    /// <summary>Claim della ACC/centro (opzionale). Default: "centerId".</summary>
+    public string AccClaim { get; set; } = "centerId";
 
     /// <summary>
     /// Claim delle posizioni staff. Può essere presente più volte (claim multipli) oppure una sola volta

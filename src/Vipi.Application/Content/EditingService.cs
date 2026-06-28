@@ -5,14 +5,14 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Use-case di editing. Autorizzazione FIR-scoped via <see cref="IEditAuthorizationService"/>
-/// (admin o grant sulla FIR del documento); identità (UserId) per audit/CreatedBy. Verifica server-side.
+/// Use-case di editing. Autorizzazione ACC-scoped via <see cref="IEditAuthorizationService"/>
+/// (admin o grant sulla ACC del documento); identità (UserId) per audit/CreatedBy. Verifica server-side.
 /// </summary>
 public interface IEditingService
 {
     Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default);
 
-    /// <summary>Solo i documenti che l'utente corrente può editare (admin = tutti; altri = filtrati per grant sulla FIR).</summary>
+    /// <summary>Solo i documenti che l'utente corrente può editare (admin = tutti; altri = filtrati per grant sulla ACC).</summary>
     Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default);
 
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
@@ -42,10 +42,10 @@ public interface IEditingService
     Task ForceUnlockAsync(int documentId, CancellationToken ct = default);
 }
 
-/// <summary>Sollevata quando l'utente non è autorizzato a editare (non admin e senza grant sulla FIR).</summary>
+/// <summary>Sollevata quando l'utente non è autorizzato a editare (non admin e senza grant sulla ACC).</summary>
 public sealed class EditNotAllowedException : Exception
 {
-    public EditNotAllowedException() : base("Editing non consentito: serve un permesso sulla FIR (o ruolo admin).") { }
+    public EditNotAllowedException() : base("Editing non consentito: serve un permesso sulla ACC (o ruolo admin).") { }
 }
 
 /// <summary>Sollevata quando il documento è bloccato da un altro editor (o il lock è scaduto e va riacquisito).</summary>
@@ -68,11 +68,11 @@ public sealed class EditingService : IEditingService
         _authz = authz;
     }
 
-    // Lista dei documenti = metadati per il picker dell'editor (non sensibile). Le aperture/modifiche sono FIR-gated.
+    // Lista dei documenti = metadati per il picker dell'editor (non sensibile). Le aperture/modifiche sono ACC-gated.
     public Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default) =>
         _repo.ListDocumentsAsync(ct);
 
-    // Picker editor: filtra i documenti per i permessi del UserId corrente (admin = tutti; altri = grant sulla FIR).
+    // Picker editor: filtra i documenti per i permessi del UserId corrente (admin = tutti; altri = grant sulla ACC).
     public async Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default)
     {
         var all = await _repo.ListDocumentsAsync(ct);
@@ -103,14 +103,14 @@ public sealed class EditingService : IEditingService
         (int, int)? parties = null;
         IReadOnlyList<int>? scope = null;
         int? primary = null;
-        string firCode;
+        string accCode;
         if (type == DocumentType.Vloa)
         {
             if (homeSectorId is not int home || neighbourSectorId is not int neigh)
                 throw new Aor.ValidationException("La vLOA richiede un settore Home e uno Neighbour.");
             if (home == neigh) throw new Aor.ValidationException("Home e Neighbour non possono coincidere.");
             parties = (home, neigh);
-            firCode = await _repo.GetFirCodeBySectorAsync(home, ct)
+            accCode = await _repo.GetAccCodeBySectorAsync(home, ct)
                 ?? throw new Aor.ValidationException("Settore Home inesistente.");
         }
         else
@@ -121,11 +121,11 @@ public sealed class EditingService : IEditingService
             primary = primarySectorId ?? scope[0];
             if (!scope.Contains(primary.Value))
                 throw new Aor.ValidationException("Il settore primario deve far parte dello scope.");
-            firCode = await _repo.GetFirCodeBySectorAsync(primary.Value, ct)
+            accCode = await _repo.GetAccCodeBySectorAsync(primary.Value, ct)
                 ?? throw new Aor.ValidationException("Settore di scope inesistente.");
         }
 
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
         var language = type == DocumentType.Vloa ? Language.En : Language.It;
         return await _repo.CreateDocumentAsync(type, title, language, scope, primary, parties, _authz.CurrentUserId ?? 0, ct);
     }
@@ -233,7 +233,7 @@ public sealed class EditingService : IEditingService
     private static EditConflictException LockedByOther(LockInfo lk) =>
         new($"In modifica da VID {lk.ByUserId} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC.");
 
-    // --- Risoluzione del documento proprietario per l'autorizzazione FIR-scoped (ritorna il documentId) ---
+    // --- Risoluzione del documento proprietario per l'autorizzazione ACC-scoped (ritorna il documentId) ---
     private async Task<int> AuthorizeVersionAsync(int versionId, CancellationToken ct)
     {
         var docId = await _repo.GetDocumentIdByVersionAsync(versionId, ct) ?? throw new EditNotAllowedException();

@@ -81,8 +81,8 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal(DocumentStatus.Draft, ver.Status);
         Assert.Equal(1, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id && s.ParentSectionId == null));
 
-        // FIR risolta dal settore di scope.
-        Assert.False(string.IsNullOrEmpty(await _repo.GetFirCodeBySectorAsync(scopeSec)));
+        // ACC risolta dal settore di scope.
+        Assert.False(string.IsNullOrEmpty(await _repo.GetAccCodeBySectorAsync(scopeSec)));
     }
 
     [Fact]

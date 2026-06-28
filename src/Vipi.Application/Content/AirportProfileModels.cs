@@ -37,7 +37,7 @@ public sealed class AirportProfileData
     public required int AirportId { get; init; }
     public required string Icao { get; init; }
     public required string Name { get; init; }
-    public required string FirCode { get; init; }
+    public required string AccCode { get; init; }
     public int? TransitionAltitudeFt { get; init; }
     public string? AtisFrequency { get; init; }
     public required IReadOnlyList<TlRow> TransitionLevels { get; init; }

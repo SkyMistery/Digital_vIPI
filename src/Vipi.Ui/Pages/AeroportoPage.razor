@@ -20,11 +20,11 @@ else if (_listMode)
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Aeroporti</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name</h2><p class="muted" style="margin:0">Tutti gli aeroporti sotto la FIR di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name</h2><p class="muted" style="margin:0">Tutti gli aeroporti sotto la ACC di @_acc.Code.</p></div>
         </div>
         @if (_allAirports.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Non ci sono ancora aeroporti assegnati a questa FIR.</div></div>
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Non ci sono ancora aeroporti assegnati a questa ACC.</div></div>
         }
         else
         {
@@ -309,7 +309,7 @@ else
         _acc = Stations.Resolve(Acc);
         if (_acc is null) { _view = null; return; }
 
-        // Senza ?icao= la pagina è l'elenco degli aeroporti della FIR; con ?icao= mostra il documento.
+        // Senza ?icao= la pagina è l'elenco degli aeroporti della ACC; con ?icao= mostra il documento.
         _listMode = string.IsNullOrWhiteSpace(Icao);
         if (_listMode)
         {

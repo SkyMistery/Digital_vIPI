@@ -13,11 +13,11 @@ else
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vLOA</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Lettere di accordo con i centri confinanti sotto la FIR di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Lettere di accordo con i centri confinanti sotto la ACC di @_acc.Code.</p></div>
         </div>
         @if (_vloas.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono ancora lettere di accordo pubblicate per questa FIR.</div></div>
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</div></div>
         }
         else
         {

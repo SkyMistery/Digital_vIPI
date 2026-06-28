@@ -55,6 +55,9 @@ app.UseVipiModule();
 app.MapGet("/sop", (HttpContext ctx) => Results.Redirect($"/vsop{ctx.Request.QueryString}", permanent: true));
 app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"/vsop/{rest}{ctx.Request.QueryString}", permanent: true));
 
+// Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
+app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly);   // monta la RCL vIPI

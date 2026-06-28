@@ -38,8 +38,8 @@ public class TopologyEditingTests : IAsyncLifetime
 
     private async Task<AorResult> Resolve(string p, params string[] online)
     {
-        var firId = await _db.Firs.Select(f => f.Id).FirstAsync();
-        var topology = await new TopologyBuilder(_db).BuildAsync(firId);
+        var accId = await _db.Accs.Select(f => f.Id).FirstAsync();
+        var topology = await new TopologyBuilder(_db).BuildAsync(accId);
         return _aor.Resolve(topology, p, new HashSet<string>(online, StringComparer.OrdinalIgnoreCase));
     }
 

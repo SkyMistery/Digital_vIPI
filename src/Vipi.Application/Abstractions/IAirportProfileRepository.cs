@@ -12,8 +12,8 @@ public interface IAirportProfileRepository
     /// <summary>Carica il profilo completo (entità + frequenze proprie dai settori + link risolti). null = ICAO non assegnato.</summary>
     Task<AirportProfileData?> LoadAsync(string icao, CancellationToken ct = default);
 
-    /// <summary>Codice FIR dell'aeroporto (per la guardia di autorizzazione). null = ICAO inesistente.</summary>
-    Task<string?> GetFirCodeByIcaoAsync(string icao, CancellationToken ct = default);
+    /// <summary>Codice ACC dell'aeroporto (per la guardia di autorizzazione). null = ICAO inesistente.</summary>
+    Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Tutte le frequenze nel DB (per il picker di link), con ICAO/callsign del settore sorgente.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);

@@ -5,24 +5,24 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
 
-/// <summary>Implementazione EF di <see cref="ITopologyEditingRepository"/> (regole + gerarchia, FIR-scoped).</summary>
+/// <summary>Implementazione EF di <see cref="ITopologyEditingRepository"/> (regole + gerarchia, ACC-scoped).</summary>
 public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
 {
     private readonly VipiDbContext _db;
     public EfTopologyEditingRepository(VipiDbContext db) => _db = db;
 
-    public async Task<TopologyEditData?> LoadAsync(string firCode, CancellationToken ct = default)
+    public async Task<TopologyEditData?> LoadAsync(string accCode, CancellationToken ct = default)
     {
-        var firId = await FirIdAsync(firCode, ct);
-        if (firId is not int fid) return null;
+        var accId = await AccIdAsync(accCode, ct);
+        if (accId is not int fid) return null;
 
-        var sectors = await _db.Sectors.Where(s => s.FirId == fid)
+        var sectors = await _db.Sectors.Where(s => s.AccId == fid)
             .OrderBy(s => s.Callsign)
             .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
         var refs = sectors.Select(s => new SectorRef(s.Id, s.Callsign)).ToList();
         var byId = sectors.ToDictionary(s => s.Id, s => s.Callsign);
 
-        var rules = await _db.UnificationRules.Where(r => r.FirId == fid)
+        var rules = await _db.UnificationRules.Where(r => r.AccId == fid)
             .OrderBy(r => r.Priority)
             .Select(r => new RuleRow
             {
@@ -39,29 +39,29 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
                 ParentSectorId = s.ParentSectorId!.Value, ParentCallsign = byId[s.ParentSectorId!.Value],
             }).ToList();
 
-        return new TopologyEditData { FirId = fid, Sectors = refs, Rules = rules, Hierarchy = hierarchy };
+        return new TopologyEditData { AccId = fid, Sectors = refs, Rules = rules, Hierarchy = hierarchy };
     }
 
-    public async Task<FirVocabulary?> GetVocabularyAsync(string firCode, CancellationToken ct = default)
+    public async Task<AccVocabulary?> GetVocabularyAsync(string accCode, CancellationToken ct = default)
     {
-        var firId = await FirIdAsync(firCode, ct);
-        if (firId is not int fid) return null;
+        var accId = await AccIdAsync(accCode, ct);
+        if (accId is not int fid) return null;
 
-        // Settore == posizione: il vocabolario è l'insieme dei callsign noti (qualsiasi FIR, per ammettere i neighbour).
+        // Settore == posizione: il vocabolario è l'insieme dei callsign noti (qualsiasi ACC, per ammettere i neighbour).
         var callsigns = await _db.Sectors.Select(s => s.Callsign).ToListAsync(ct);
 
-        return new FirVocabulary
+        return new AccVocabulary
         {
             Callsigns = callsigns.ToHashSet(StringComparer.OrdinalIgnoreCase),
         };
     }
 
-    public async Task<int> AddRuleAsync(string firCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default)
+    public async Task<int> AddRuleAsync(string accCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default)
     {
-        var fid = await FirIdAsync(firCode, ct) ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
+        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var rule = new UnificationRule
         {
-            FirId = fid,
+            AccId = fid,
             Name = string.IsNullOrWhiteSpace(name) ? "Nuova regola" : name.Trim(),
             Priority = priority,
             ConditionJson = string.IsNullOrWhiteSpace(conditionJson) ? "{}" : conditionJson,
@@ -73,33 +73,33 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
         return rule.Id;
     }
 
-    public async Task SetRuleActiveAsync(string firCode, int ruleId, bool active, CancellationToken ct = default)
+    public async Task SetRuleActiveAsync(string accCode, int ruleId, bool active, CancellationToken ct = default)
     {
-        var rule = await RuleInFirAsync(firCode, ruleId, ct);
+        var rule = await RuleInAccAsync(accCode, ruleId, ct);
         rule.IsActive = active;
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteRuleAsync(string firCode, int ruleId, CancellationToken ct = default)
+    public async Task DeleteRuleAsync(string accCode, int ruleId, CancellationToken ct = default)
     {
-        var rule = await RuleInFirAsync(firCode, ruleId, ct);
+        var rule = await RuleInAccAsync(accCode, ruleId, ct);
         _db.UnificationRules.Remove(rule);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
+    public async Task SetParentAsync(string accCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
     {
-        var fid = await FirIdAsync(firCode, ct) ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
+        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         if (parentSectorId == childSectorId)
             throw new InvalidOperationException("Un settore non può essere padre di sé stesso.");
 
-        var child = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == childSectorId && s.FirId == fid, ct)
-            ?? throw new InvalidOperationException("Settore figlio non appartiene alla FIR.");
+        var child = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == childSectorId && s.AccId == fid, ct)
+            ?? throw new InvalidOperationException("Settore figlio non appartiene alla ACC.");
 
         if (parentSectorId is int pid)
         {
-            if (!await _db.Sectors.AnyAsync(s => s.Id == pid && s.FirId == fid, ct))
-                throw new InvalidOperationException("Settore padre non appartiene alla FIR.");
+            if (!await _db.Sectors.AnyAsync(s => s.Id == pid && s.AccId == fid, ct))
+                throw new InvalidOperationException("Settore padre non appartiene alla ACC.");
             await EnsureNoCycleAsync(childSectorId, pid, ct);
         }
 
@@ -120,13 +120,13 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
         }
     }
 
-    private async Task<int?> FirIdAsync(string firCode, CancellationToken ct) =>
-        await _db.Firs.Where(f => f.Code == firCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct);
+    private async Task<int?> AccIdAsync(string accCode, CancellationToken ct) =>
+        await _db.Accs.Where(f => f.Code == accCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct);
 
-    private async Task<UnificationRule> RuleInFirAsync(string firCode, int ruleId, CancellationToken ct)
+    private async Task<UnificationRule> RuleInAccAsync(string accCode, int ruleId, CancellationToken ct)
     {
-        var fid = await FirIdAsync(firCode, ct) ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
-        return await _db.UnificationRules.FirstOrDefaultAsync(r => r.Id == ruleId && r.FirId == fid, ct)
-            ?? throw new InvalidOperationException($"Regola {ruleId} non appartiene alla FIR {firCode}.");
+        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
+        return await _db.UnificationRules.FirstOrDefaultAsync(r => r.Id == ruleId && r.AccId == fid, ct)
+            ?? throw new InvalidOperationException($"Regola {ruleId} non appartiene alla ACC {accCode}.");
     }
 }

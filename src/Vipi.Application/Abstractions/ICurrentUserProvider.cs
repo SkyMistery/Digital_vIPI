@@ -7,7 +7,7 @@ namespace Vipi.Application.Abstractions;
 public sealed record CurrentUser(
     int UserId,
     string Name,
-    string? Fir,
+    string? Acc,
     IReadOnlyCollection<string> StaffPositions)
 {
     /// <summary>Vero se l'utente è CH/AOD della divisione IT → abilitato all'editing (RF-7).</summary>

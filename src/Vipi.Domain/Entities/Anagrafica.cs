@@ -1,21 +1,59 @@
 namespace Vipi.Domain.Entities;
 
-/// <summary>Regione di informazioni di volo (es. Roma LIRR). SPEC_Modello_Dati §3.1.</summary>
-public class Fir
+/// <summary>Area Control Center (es. Roma LIRR). Importato dalla sorgente esterna (centers); read-only nei campi di origine. SPEC_Modello_Dati §3.1.</summary>
+public class Acc
 {
     public int Id { get; set; }
-    public string Code { get; set; } = default!;       // univoco, es. "LIRR"
+    public string Code { get; set; } = default!;       // univoco, es. "LIRR" (centerId della sorgente)
     public string Name { get; set; } = default!;
     public string CountryPrefix { get; set; } = "LI";  // "LI" per l'Italia
+
+    /// <summary>ACC militare (da sorgente). Solo informativo/filtro.</summary>
+    public bool IsMilitary { get; set; }
+
+    /// <summary>Nascosto dall'admin: resta nel DB ma non compare nella navigazione pubblica (home/landing). Default false = attivo.</summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>Istante dell'ultimo import dalla sorgente.</summary>
+    public DateTime? ImportedAtUtc { get; set; }
 
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
     public ICollection<Airport> Airports { get; set; } = new List<Airport>();
     public ICollection<UnificationRule> UnificationRules { get; set; } = new List<UnificationRule>();
+    public ICollection<AccSector> AccSectors { get; set; } = new List<AccSector>();
 }
 
 /// <summary>
-/// Aeroporto appartenente a una FIR. Entità di prima classe (non più solo stringa su <see cref="Sector"/>):
-/// permette creazione/rimozione/spostamento sotto una FIR. I settori d'aeroporto (TWR/GND/DEL/APP)
+/// Settore ATC di un ACC (subcenter), importato dalla sorgente: identificato dal callsign
+/// <see cref="ComposePosition"/> (chiave naturale univoca) e legato all'ACC via <see cref="CenterId"/>.
+/// I campi di origine (position, middleIdentifier, frequency, regionMapPolygon) sono read-only/import;
+/// i limiti di quota li imposta l'admin (la sorgente oggi non li espone → predisposti nullable).
+/// </summary>
+public class AccSector
+{
+    public int Id { get; set; }
+    public string ComposePosition { get; set; } = default!;   // univoco, es. "LIBB_ES_CTR" (chiave naturale)
+    public string CenterId { get; set; } = default!;          // FK → Acc.Code, es. "LIBB"
+    public Acc? Acc { get; set; }
+
+    public string? Position { get; set; }                     // es. "CTR"
+    public string? MiddleIdentifier { get; set; }             // es. "ES"
+    public string? Frequency { get; set; }                    // MHz, da /v2/subcenters/{compose}
+    public string? RegionMapPolygon { get; set; }             // poligono shape (JSON grezzo), da /v2/subcenters/{compose}
+
+    /// <summary>Limite inferiore (ft/FL). Impostato dall'admin nella webapp. Predisposto anche per la sorgente.</summary>
+    public int? LowerLimit { get; set; }
+    /// <summary>Limite superiore (ft/FL). Impostato dall'admin nella webapp. Predisposto anche per la sorgente.</summary>
+    public int? UpperLimit { get; set; }
+
+    /// <summary>Nascosto dall'admin (resta nel DB, fuori dalla navigazione pubblica). Default false = attivo.</summary>
+    public bool IsHidden { get; set; }
+    public DateTime? ImportedAtUtc { get; set; }
+}
+
+/// <summary>
+/// Aeroporto appartenente a una ACC. Entità di prima classe (non più solo stringa su <see cref="Sector"/>):
+/// permette creazione/rimozione/spostamento sotto una ACC. I settori d'aeroporto (TWR/GND/DEL/APP)
 /// vi puntano via <see cref="Sector.AirportId"/>; <see cref="Sector.AirportIcao"/> resta come denormalizzazione.
 /// </summary>
 public class Airport
@@ -23,8 +61,8 @@ public class Airport
     public int Id { get; set; }
     public string Icao { get; set; } = default!;       // univoco, es. "LIRF"
     public string Name { get; set; } = default!;
-    public int FirId { get; set; }
-    public Fir? Fir { get; set; }
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
 
     /// <summary>Transition Altitude (ft). Sorgente strutturata: da qui si rigenera la sezione del documento.</summary>
     public int? TransitionAltitudeFt { get; set; }
@@ -56,8 +94,8 @@ public class Sector
     public int Id { get; set; }
     public string Callsign { get; set; } = default!;   // univoco, es. "LIRR_NE_CTR" — identificatore AoR
     public string Name { get; set; } = default!;
-    public int FirId { get; set; }
-    public Fir? Fir { get; set; }
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
 
     public SectorType Type { get; set; }               // Del/Gnd/Twr/ITwr/App/Ctr
     public SectorKind Kind { get; set; }               // Acc | Airport
@@ -105,8 +143,8 @@ public class SectorGeometry
 public class UnificationRule
 {
     public int Id { get; set; }
-    public int FirId { get; set; }
-    public Fir? Fir { get; set; }
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
     public string Name { get; set; } = default!;       // es. "Split WS2/WS5"
     public int Priority { get; set; }                  // ordine di applicazione
     public string ConditionJson { get; set; } = "{}";  // predicato su callsign online

@@ -1,7 +1,7 @@
 namespace Vipi.Domain.Entities;
 
 /// <summary>
-/// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una FIR (vIPI/aeroporto/vLOA,
+/// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una ACC (vIPI/aeroporto/vLOA,
 /// topologia, trasferimenti). Gli admin (staff IT-AO*) non hanno bisogno di grant. PIANO sicurezza.
 /// </summary>
 public class EditGrant
@@ -9,8 +9,8 @@ public class EditGrant
     public int Id { get; set; }
     public int UserId { get; set; }                       // UserId IVAO abilitato
     public string? DisplayName { get; set; }           // nome opzionale per l'elenco admin
-    public int FirId { get; set; }
-    public Fir? Fir { get; set; }
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
     public int GrantedByUserId { get; set; }              // admin che ha concesso
     public DateTime GrantedAtUtc { get; set; }
 }
@@ -46,16 +46,16 @@ public class AuditLog
 }
 
 /// <summary>
-/// Trasferimento di traffico come riga strutturata (SPEC §7.4, PIANO §22.4): una relazione FIR↔FIR,
+/// Trasferimento di traffico come riga strutturata (SPEC §7.4, PIANO §22.4): una relazione ACC↔ACC,
 /// fase, aeroporto, CoP, regola di FL, catena ordinata di handler (JSON) e fallback standard.
 /// Alimenta sia la vista Estesa (catena completa) sia la Ridotta (risoluzione "primo online" = F3).
 /// </summary>
 public class Transfer
 {
     public int Id { get; set; }
-    public int FirId { get; set; }
-    public Fir? Fir { get; set; }
-    public string RelationKey { get; set; } = default!;     // es. "LIRR-LIMM" (FIR↔FIR)
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
+    public string RelationKey { get; set; } = default!;     // es. "LIRR-LIMM" (ACC↔ACC)
     public string RelationLabel { get; set; } = default!;   // es. "Roma ↔ Milano"
     public TransferPhase Phase { get; set; }
     public string AirportIcao { get; set; } = default!;     // aeroporto (dest per arrivi, origine per partenze)

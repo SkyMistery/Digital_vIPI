@@ -5,15 +5,15 @@ using Vipi.Application.Content;
 
 namespace Vipi.Application.Aor;
 
-/// <summary>Use-case editing topologia (FIR-scoped via <see cref="IEditAuthorizationService"/>) + validazione hard delle regole.</summary>
+/// <summary>Use-case editing topologia (ACC-scoped via <see cref="IEditAuthorizationService"/>) + validazione hard delle regole.</summary>
 public interface ITopologyEditingService
 {
-    Task<TopologyEditData?> LoadAsync(string firCode, CancellationToken ct = default);
-    Task<int> AddRuleAsync(string firCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default);
-    Task SetRuleActiveAsync(string firCode, int ruleId, bool active, CancellationToken ct = default);
-    Task DeleteRuleAsync(string firCode, int ruleId, CancellationToken ct = default);
+    Task<TopologyEditData?> LoadAsync(string accCode, CancellationToken ct = default);
+    Task<int> AddRuleAsync(string accCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default);
+    Task SetRuleActiveAsync(string accCode, int ruleId, bool active, CancellationToken ct = default);
+    Task DeleteRuleAsync(string accCode, int ruleId, CancellationToken ct = default);
     /// <summary>Imposta il padre (contenimento) di un settore figlio. parentSectorId null = radice.</summary>
-    Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default);
+    Task SetParentAsync(string accCode, int childSectorId, int? parentSectorId, CancellationToken ct = default);
 }
 
 /// <summary>Errore di validazione semantica (input rifiutato con motivo leggibile).</summary>
@@ -34,41 +34,41 @@ public sealed class TopologyEditingService : ITopologyEditingService
         _authz = authz;
     }
 
-    // Lettura aperta a chi apre la pagina (la pagina stessa è in area admin/editor); le scritture sono FIR-gated.
-    public Task<TopologyEditData?> LoadAsync(string firCode, CancellationToken ct = default) =>
-        _repo.LoadAsync(firCode, ct);
+    // Lettura aperta a chi apre la pagina (la pagina stessa è in area admin/editor); le scritture sono ACC-gated.
+    public Task<TopologyEditData?> LoadAsync(string accCode, CancellationToken ct = default) =>
+        _repo.LoadAsync(accCode, ct);
 
-    public async Task<int> AddRuleAsync(string firCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default)
+    public async Task<int> AddRuleAsync(string accCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await ValidateRuleAsync(firCode, conditionJson, assignmentJson, ct);
-        return await _repo.AddRuleAsync(firCode, name, priority, conditionJson, assignmentJson, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await ValidateRuleAsync(accCode, conditionJson, assignmentJson, ct);
+        return await _repo.AddRuleAsync(accCode, name, priority, conditionJson, assignmentJson, ct);
     }
 
-    public async Task SetRuleActiveAsync(string firCode, int ruleId, bool active, CancellationToken ct = default)
+    public async Task SetRuleActiveAsync(string accCode, int ruleId, bool active, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.SetRuleActiveAsync(firCode, ruleId, active, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetRuleActiveAsync(accCode, ruleId, active, ct);
     }
 
-    public async Task DeleteRuleAsync(string firCode, int ruleId, CancellationToken ct = default)
+    public async Task DeleteRuleAsync(string accCode, int ruleId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.DeleteRuleAsync(firCode, ruleId, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeleteRuleAsync(accCode, ruleId, ct);
     }
 
-    public async Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
+    public async Task SetParentAsync(string accCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
         if (parentSectorId == childSectorId) throw new ValidationException("Un settore non può essere padre di sé stesso.");
-        await _repo.SetParentAsync(firCode, childSectorId, parentSectorId, ct);
+        await _repo.SetParentAsync(accCode, childSectorId, parentSectorId, ct);
     }
 
     /// <summary>Validazione hard: settore assegnato e owner (callsign) ∈ settori noti.</summary>
-    private async Task ValidateRuleAsync(string firCode, string conditionJson, string assignmentJson, CancellationToken ct)
+    private async Task ValidateRuleAsync(string accCode, string conditionJson, string assignmentJson, CancellationToken ct)
     {
-        var vocab = await _repo.GetVocabularyAsync(firCode, ct)
-            ?? throw new ValidationException($"FIR {firCode} inesistente.");
+        var vocab = await _repo.GetVocabularyAsync(accCode, ct)
+            ?? throw new ValidationException($"ACC {accCode} inesistente.");
 
         var unknownSectors = new List<string>();
         var unknownCallsigns = new List<string>();

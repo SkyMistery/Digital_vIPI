@@ -13,13 +13,14 @@ public static class DependencyInjection
         services.AddSingleton<IAiracService, AiracService>();
         services.AddSingleton<IAorService, AorService>();
         services.AddSingleton<IContentService, ContentService>();
-        services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le FIR dal DB
+        services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
         services.AddScoped<Auth.IStaffRosterService, Auth.StaffRosterService>();
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<Aor.ITopologyEditingService, Aor.TopologyEditingService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
+        services.AddScoped<IAccAdminService, AccAdminService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();
         services.AddScoped<ITransferService, TransferService>();
         services.AddScoped<ISearchService, SearchService>();

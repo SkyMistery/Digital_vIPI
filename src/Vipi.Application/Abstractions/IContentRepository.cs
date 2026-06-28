@@ -6,7 +6,7 @@ namespace Vipi.Application.Abstractions;
 public interface IContentRepository
 {
     /// <summary>
-    /// Carica la vIPI pubblicata di un ACC (per codice FIR, es. "LIRR") come struttura grezza
+    /// Carica la vIPI pubblicata di un ACC (per codice ACC, es. "LIRR") come struttura grezza
     /// (albero sezioni + blocchi non filtrati). Null se non esiste.
     /// </summary>
     Task<RawDocument?> LoadAccVipiAsync(string accCode, CancellationToken ct = default);
@@ -18,10 +18,10 @@ public interface IContentRepository
     Task<RawDocument?> LoadAirportVipiAsync(string icao, CancellationToken ct = default);
 
     /// <summary>
-    /// Carica la vLOA pubblicata la cui parte Home appartiene alla FIR indicata (es. "LIRR"). Null se non esiste.
+    /// Carica la vLOA pubblicata la cui parte Home appartiene alla ACC indicata (es. "LIRR"). Null se non esiste.
     /// </summary>
     Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Carica una specifica vLOA pubblicata per id documento (viewer multi-vLOA per FIR). Null se non esiste.</summary>
+    /// <summary>Carica una specifica vLOA pubblicata per id documento (viewer multi-vLOA per ACC). Null se non esiste.</summary>
     Task<RawDocument?> LoadVloaByIdAsync(int docId, CancellationToken ct = default);
 }

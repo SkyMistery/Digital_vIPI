@@ -12,7 +12,7 @@ public class VipiDbContext : DbContext
 {
     public VipiDbContext(DbContextOptions<VipiDbContext> options) : base(options) { }
 
-    public DbSet<Fir> Firs => Set<Fir>();
+    public DbSet<Acc> Accs => Set<Acc>();
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<SectorGeometry> SectorGeometries => Set<SectorGeometry>();
@@ -38,6 +38,7 @@ public class VipiDbContext : DbContext
     public DbSet<AirportSid> AirportSids => Set<AirportSid>();
     public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
     public DbSet<ImportPolicy> ImportPolicies => Set<ImportPolicy>();
+    public DbSet<AccSector> AccSectors => Set<AccSector>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -51,21 +52,31 @@ public class VipiDbContext : DbContext
                 if (t.IsEnum) prop.SetProviderClrType(typeof(string));
             }
 
-        b.Entity<Fir>().HasIndex(x => x.Code).IsUnique();
+        b.Entity<Acc>().HasIndex(x => x.Code).IsUnique();
+
+        b.Entity<AccSector>(e =>
+        {
+            e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
+            e.HasIndex(x => x.CenterId);
+            // FK su Acc.Code (chiave alternata): il centerId della sorgente è il codice ACC.
+            e.HasOne(x => x.Acc).WithMany(a => a.AccSectors)
+                .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         b.Entity<Airport>(e =>
         {
             e.HasIndex(x => x.Icao).IsUnique();
-            e.HasIndex(x => x.FirId);
-            e.HasOne(x => x.Fir).WithMany(f => f.Airports).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.AccId);
+            e.HasOne(x => x.Acc).WithMany(f => f.Airports).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<Sector>(e =>
         {
             e.HasIndex(x => x.Callsign).IsUnique();
-            e.HasIndex(x => x.FirId);
+            e.HasIndex(x => x.AccId);
             e.HasIndex(x => x.DocumentId);
-            e.HasOne(x => x.Fir).WithMany(f => f.Sectors).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Acc).WithMany(f => f.Sectors).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Airport).WithMany(a => a.Sectors).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Geometry).WithMany().HasForeignKey(x => x.GeometryId).OnDelete(DeleteBehavior.SetNull);
             // Contenimento ad albero: padre→figli (no cascata per evitare cicli di delete su SQLite).
@@ -76,9 +87,9 @@ public class VipiDbContext : DbContext
 
         b.Entity<UnificationRule>(e =>
         {
-            e.HasIndex(x => new { x.FirId, x.Priority });
+            e.HasIndex(x => new { x.AccId, x.Priority });
             e.Property(x => x.RowVersion).IsConcurrencyToken();
-            e.HasOne(x => x.Fir).WithMany(f => f.UnificationRules).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Acc).WithMany(f => f.UnificationRules).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<Frequency>(e =>
@@ -140,15 +151,15 @@ public class VipiDbContext : DbContext
 
         b.Entity<Transfer>(e =>
         {
-            e.HasIndex(x => new { x.FirId, x.RelationKey, x.Phase, x.Order });
+            e.HasIndex(x => new { x.AccId, x.RelationKey, x.Phase, x.Order });
             e.Property(x => x.RowVersion).IsConcurrencyToken();
-            e.HasOne(x => x.Fir).WithMany().HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<EditGrant>(e =>
         {
-            e.HasIndex(x => new { x.UserId, x.FirId }).IsUnique();
-            e.HasOne(x => x.Fir).WithMany().HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.UserId, x.AccId }).IsUnique();
+            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<StaffMember>(e =>

@@ -108,8 +108,12 @@ public static class IvaoServiceCollectionExtensions
         services.AddScoped<IAirportDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
         services.AddScoped<IAirportDetailProvider>(sp => sp.GetRequiredService<IvaoApiClient>());
 
+        // Anagrafica ACC/center IVAO (stesso adapter HTTP).
+        services.AddScoped<IAccDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
+
         services.AddHostedService<AtcPollingHostedService>();
         services.AddHostedService<StaffRosterVerificationService>();
+        services.AddHostedService<AccImportHostedService>();
         return services;
     }
 }

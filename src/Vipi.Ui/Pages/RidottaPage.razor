@@ -85,7 +85,7 @@ else
                 <h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3>
                 @if (_resolved.Count == 0)
                 {
-                    <p class="help">Nessun trasferimento per questa FIR.</p>
+                    <p class="help">Nessun trasferimento per questa ACC.</p>
                 }
                 else
                 {
@@ -152,7 +152,7 @@ else
         _acc = Stations.Resolve(Acc);
         if (_acc is null) { _view = null; return; }
 
-        _topo = await Topology.BuildByFirCodeAsync(_acc.Code);
+        _topo = await Topology.BuildByAccCodeAsync(_acc.Code);
         _positions = _topo is null
             ? Array.Empty<string>()
             : _topo.Sectors.OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
@@ -163,7 +163,7 @@ else
             ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign
             : null;
 
-        // Default P = la posizione su cui sono connesso (se nota in questa FIR), altrimenti la radice.
+        // Default P = la posizione su cui sono connesso (se nota in questa ACC), altrimenti la radice.
         if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
             _p = (_myCallsign is not null && _positions.Contains(_myCallsign))
                 ? _myCallsign
@@ -184,7 +184,7 @@ else
 
         _snapshot = Online.GetCurrent();
         _view = await ViewService.BuildAccVipiAsync(_acc.Code, BlockTier.Reduced, live: true, _p);
-        _resolved = await Transfers.ListResolvedByFirAsync(_acc.Code);
+        _resolved = await Transfers.ListResolvedByAccAsync(_acc.Code);
 
         _domainOnline = _topo is null || string.IsNullOrEmpty(_p)
             ? Array.Empty<string>()

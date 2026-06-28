@@ -13,11 +13,11 @@ else
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Avvicinamenti non remotizzati</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name</h2><p class="muted" style="margin:0">APP con documentazione propria sotto la FIR di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name</h2><p class="muted" style="margin:0">APP con documentazione propria sotto la ACC di @_acc.Code.</p></div>
         </div>
         @if (_apps.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun APP non remotizzato</p>Non ci sono ancora avvicinamenti con documento dedicato per questa FIR.</div></div>
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun APP non remotizzato</p>Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</div></div>
         }
         else
         {

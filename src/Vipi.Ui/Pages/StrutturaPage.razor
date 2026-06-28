@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/struttura"
+﻿@page "/vsop/admin/sectorstructure"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
@@ -7,12 +7,12 @@
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 
-<PageTitle>Struttura (FIR, settori) · vIPI IVAO Italia</PageTitle>
+<PageTitle>Struttura (ACC, settori) · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <b>Struttura</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">FIR, settori, contenimento, frequenze e documenti</span></div>
+        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">ACC, settori, contenimento, frequenze e documenti</span></div>
     </div>
 
     @if (_msg is not null)
@@ -20,33 +20,20 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    <div class="section-title"><h3>FIR</h3><span class="ln"></span></div>
+    <div class="section-title"><h3>ACC</h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/aeroporti">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
     <div class="block">
-        @if (_firs.Count == 0)
+        @if (_accs.Count == 0)
         {
-            <p class="help">Nessuna FIR. Creane una per iniziare.</p>
+            <p class="help">Nessun ACC disponibile. Importali dalla <a href="/vsop/admin/acc">pagina ACC</a>.</p>
         }
         else
         {
-            <div class="fir-pills">
-                @foreach (var f in _firs)
+            <div class="acc-pills">
+                @foreach (var f in _accs)
                 {
-                    <button class="btn @(f.Code == _firCode ? "primary" : "ghost")" disabled="@_busy" @onclick="() => SelectFir(f.Code)">
+                    <button class="btn @(f.Code == _accCode ? "primary" : "ghost")" disabled="@_busy" @onclick="() => SelectAcc(f.Code)">
                         @f.Code · @f.Name <span class="muted" style="font-size:11px">(@f.Sectors set)</span>
                     </button>
-                }
-            </div>
-        }
-        @if (Authz.IsAdmin)
-        {
-            <div class="inline-form">
-                <div class="field narrow"><label>Codice</label><input placeholder="LIMM" @bind="_newFirCode" /></div>
-                <div class="field"><label>Nome</label><input placeholder="Milano FIR" @bind="_newFirName" /></div>
-                <div class="field narrow"><label>Prefisso ICAO</label><input placeholder="LI" @bind="_newFirPrefix" /></div>
-                <button class="btn primary" disabled="@_busy" @onclick="CreateFir">+ Crea FIR</button>
-                @if (_firCode is not null)
-                {
-                    <button class="btn ghost danger" disabled="@_busy" @onclick="DeleteFir" title="La FIR dev'essere senza settori">🗑 Elimina @_firCode</button>
                 }
             </div>
         }
@@ -54,7 +41,7 @@
 
     @if (_data is not null)
     {
-        <div class="section-title"><h3>Settori <span class="pill blue">@_data.FirCode</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/aeroporti">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+        <div class="section-title"><h3>Settori <span class="pill blue">@_data.AccCode</span></h3><span class="ln"></span></div>
         <div class="topo-layout">
             @* --- Settori (entità unificata) + contenimento --- *@
             <div class="panel">
@@ -207,15 +194,13 @@
 </div>
 
 @code {
-    private IReadOnlyList<FirRow> _firs = Array.Empty<FirRow>();
-    private string? _firCode;
+    private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();
+    private string? _accCode;
     private StructureData? _data;
     private bool _busy;
     private bool _canEdit;
     private string? _msg;
 
-    // form FIR
-    private string _newFirCode = "", _newFirName = "", _newFirPrefix = "";
     // form settore
     private string _sCallsign = "", _sName = "", _sFreq = "";
     private SectorType _sType = SectorType.Ctr;
@@ -237,25 +222,25 @@
     protected override async Task OnInitializedAsync()
     {
         _canEdit = Authz.IsAdmin;
-        await ReloadFirsAsync();
+        await ReloadAccsAsync();
     }
 
-    private async Task ReloadFirsAsync()
+    private async Task ReloadAccsAsync()
     {
-        _firs = await Struct.ListFirsAsync();
-        if (_firCode is null && _firs.Count > 0) _firCode = _firs[0].Code;
+        _accs = await Struct.ListAccsAsync();
+        if (_accCode is null && _accs.Count > 0) _accCode = _accs[0].Code;
         await ReloadDataAsync();
     }
 
     private async Task ReloadDataAsync()
     {
-        _data = _firCode is null ? null : await Struct.LoadAsync(_firCode);
-        if (_firCode is not null) _canEdit = await Authz.CanEditFirAsync(_firCode);
+        _data = _accCode is null ? null : await Struct.LoadAsync(_accCode);
+        if (_accCode is not null) _canEdit = await Authz.CanEditAccAsync(_accCode);
     }
 
-    private async Task SelectFir(string code)
+    private async Task SelectAcc(string code)
     {
-        _firCode = code;
+        _accCode = code;
         _docScopeIds.Clear(); _docPrimary = 0;
         await ReloadDataAsync();
     }
@@ -266,47 +251,34 @@
     private async Task Guarded(Func<Task> action)
     {
         _busy = true; _msg = null;
-        try { await action(); await ReloadFirsAsync(); }
+        try { await action(); await ReloadAccsAsync(); }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }
 
-    private Task CreateFir() => Guarded(async () =>
-    {
-        await Struct.CreateFirAsync(_newFirCode, _newFirName, _newFirPrefix);
-        _firCode = _newFirCode.Trim().ToUpperInvariant();
-        _newFirCode = _newFirName = _newFirPrefix = "";
-    });
-
-    private Task DeleteFir() => Guarded(async () =>
-    {
-        await Struct.DeleteFirAsync(_firCode!);
-        _firCode = null;
-    });
-
     private Task AddSector() => Guarded(async () =>
     {
-        await Struct.AddSectorAsync(_firCode!, _sCallsign, _sType, _sKind, _sName, _sFreq, _sCoverage,
+        await Struct.AddSectorAsync(_accCode!, _sCallsign, _sType, _sKind, _sName, _sFreq, _sCoverage,
             _sType == SectorType.App ? ApproachKind.Standalone : null,
             _sParent == 0 ? null : _sParent,
             _sKind == SectorKind.Airport && _sAirportId != 0 ? _sAirportId : null);
         _sCallsign = _sName = _sFreq = ""; _sParent = 0; _sAirportId = 0;
     });
-    private Task DeleteSector(int id) => Guarded(() => Struct.DeleteSectorAsync(_firCode!, id));
+    private Task DeleteSector(int id) => Guarded(() => Struct.DeleteSectorAsync(_accCode!, id));
 
     private Task SetParent(int childId, string? parentValue) =>
-        Guarded(() => Topo.SetParentAsync(_firCode!, childId,
+        Guarded(() => Topo.SetParentAsync(_accCode!, childId,
             string.IsNullOrEmpty(parentValue) ? null : int.Parse(parentValue)));
 
     private Task AddFrequency() => Guarded(async () =>
     {
         if (_fqSector == 0) throw new InvalidOperationException("Seleziona il settore.");
-        await Struct.AddFrequencyAsync(_firCode!, _fqSector, _fqLabel, "", _fqMhz, _fqPrimary);
+        await Struct.AddFrequencyAsync(_accCode!, _fqSector, _fqLabel, "", _fqMhz, _fqPrimary);
         _fqLabel = _fqMhz = ""; _fqPrimary = false; _fqSector = 0;
     });
-    private Task DeleteFrequency(int id) => Guarded(() => Struct.DeleteFrequencyAsync(_firCode!, id));
+    private Task DeleteFrequency(int id) => Guarded(() => Struct.DeleteFrequencyAsync(_accCode!, id));
 
     private static string ChipStyle(bool inScope, bool taken)
     {
@@ -332,7 +304,7 @@
             int? home = _docType == DocumentType.Vloa ? (_docHome == 0 ? null : _docHome) : null;
             int? neigh = _docType == DocumentType.Vloa ? (_docNeighbour == 0 ? null : _docNeighbour) : null;
             var id = await Editing.CreateDocumentAsync(_docType, _docTitle, scope, primary, home, neigh);
-            Nav.NavigateTo($"/vsop/{_firCode!.ToLowerInvariant()}/editor?doc={id}");
+            Nav.NavigateTo($"/vsop/{_accCode!.ToLowerInvariant()}/editor?doc={id}");
         }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }

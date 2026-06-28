@@ -20,13 +20,13 @@
     @if (Stations.Accs.Count == 0)
     {
         <div class="callout info"><span class="cic">📭</span><div>
-            <p class="ct">Nessuna FIR ancora</p>
+            <p class="ct">Nessuna ACC ancora</p>
             Il database è vuoto. @(Authz.IsAdmin
-                ? "Crea la prima FIR per iniziare a inserire posizioni, topologia e documenti."
-                : "Lo staff non ha ancora creato FIR: torna più tardi.")
+                ? "Crea la prima ACC per iniziare a inserire posizioni, topologia e documenti."
+                : "Lo staff non ha ancora creato ACC: torna più tardi.")
             @if (Authz.IsAdmin)
             {
-                <div style="margin-top:10px"><a class="btn primary" href="/vsop/admin/struttura">+ Crea FIR / struttura</a></div>
+                <div style="margin-top:10px"><a class="btn primary" href="/vsop/admin/sectorstructure">+ Crea ACC / struttura</a></div>
             }
         </div></div>
     }
@@ -56,8 +56,9 @@
         <div class="choice-grid">
             <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Bozze &amp; versioni</h4><p class="muted">Stato documenti, storico e pubblicazioni programmate.</p></a>
             <a class="choice" href="/vsop/screens" style="text-decoration:none;color:inherit"><h4><span class="ic">🧩</span> Tutte le schermate</h4><p class="muted">Indice di navigazione di tutte le pagine accessibili.</p></a>
-            <a class="choice" href="/vsop/admin/struttura" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura (ACC, posizioni, settori)</h4><p class="muted">Crea e gestisci FIR, posizioni, settori, ownership e frequenze.</p></a>
-            <a class="choice" href="/vsop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per FIR.</p></a>
+            <a class="choice" href="/vsop/admin/acc" style="text-decoration:none;color:inherit"><h4><span class="ic">🛰️</span> ACC</h4><p class="muted">Importa gli ACC dalla sorgente e nascondi quelli non operativi.</p></a>
+            <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura settori</h4><p class="muted">Gestisci settori, contenimento, frequenze e documenti.</p></a>
+            <a class="choice" href="/vsop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</p></a>
         </div>
     }
 </div>

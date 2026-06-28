@@ -23,10 +23,10 @@ public sealed class HierarchyRow
     public required string ParentCallsign { get; init; }
 }
 
-/// <summary>Dati di editing della topologia di una FIR (anagrafica in sola lettura, regole/contenimento editabili).</summary>
+/// <summary>Dati di editing della topologia di una ACC (anagrafica in sola lettura, regole/contenimento editabili).</summary>
 public sealed class TopologyEditData
 {
-    public required int FirId { get; init; }
+    public required int AccId { get; init; }
     public required IReadOnlyList<SectorRef> Sectors { get; init; }
     public required IReadOnlyList<RuleRow> Rules { get; init; }
     public required IReadOnlyList<HierarchyRow> Hierarchy { get; init; }

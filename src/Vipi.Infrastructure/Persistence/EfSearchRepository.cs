@@ -14,32 +14,32 @@ public sealed class EfSearchRepository : ISearchRepository
     private readonly VipiDbContext _db;
     public EfSearchRepository(VipiDbContext db) => _db = db;
 
-    private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string FirCode, string UrlBase);
+    private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string AccCode, string UrlBase);
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope, int limit, CancellationToken ct = default)
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
-            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             .AsNoTracking().ToListAsync(ct);
 
-        // Risolve i metadati (FIR + rotta) e applica il filtro di scope.
+        // Risolve i metadati (ACC + rotta) e applica il filtro di scope.
         var metas = new List<DocMeta>();
         foreach (var d in docs)
         {
-            string? fir; string urlBase;
+            string? acc; string urlBase;
             if (d.Type == DocumentType.Vloa)
             {
-                fir = await _db.DocumentParties
+                acc = await _db.DocumentParties
                     .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Sector!.Fir!.Code).FirstOrDefaultAsync(ct);
+                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
                 urlBase = $"vloa/{d.Id}";
                 if (scope is not (SearchScope.All or SearchScope.Vloa)) continue;
             }
             else
             {
                 var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-                fir = primary?.Fir?.Code;
+                acc = primary?.Acc?.Code;
                 var isAirport = primary?.Kind == SectorKind.Airport;
                 urlBase = isAirport
                     ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
@@ -48,8 +48,8 @@ public sealed class EfSearchRepository : ISearchRepository
                 if (scope == SearchScope.Airport && !isAirport) continue;
                 if (scope == SearchScope.Vloa) continue;
             }
-            if (fir is null) continue;
-            metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, fir, urlBase));
+            if (acc is null) continue;
+            metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, acc, urlBase));
         }
 
         var versionIds = metas.Select(m => m.VersionId).ToList();
@@ -66,7 +66,7 @@ public sealed class EfSearchRepository : ISearchRepository
         foreach (var m in metas)
         {
             if (hits.Count >= limit) break;
-            var url = $"/vsop/{m.FirCode.ToLowerInvariant()}/{m.UrlBase}";
+            var url = $"/vsop/{m.AccCode.ToLowerInvariant()}/{m.UrlBase}";
 
             // 1) titolo documento
             if (Has(m.Title))

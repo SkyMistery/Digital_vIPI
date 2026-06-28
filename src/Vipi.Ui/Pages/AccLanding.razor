@@ -18,7 +18,7 @@ else
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@_acc.Name <span class="muted" style="font-weight:400;font-size:20px">— @_acc.Code</span></h2>
-                <p class="muted" style="margin:0">Scegli cosa consultare sotto la FIR di @_acc.Code.</p>
+                <p class="muted" style="margin:0">Scegli cosa consultare sotto la ACC di @_acc.Code.</p>
             </div>
             <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         </div>
@@ -37,7 +37,7 @@ else
 
             <div class="choice">
                 <h4><a href="/vsop/@a/airports" style="text-decoration:none;color:inherit"><span class="ic">🛫</span> Aeroporti →</a></h4>
-                <p class="muted">vIPI dei singoli aeroporti sotto la FIR.</p>
+                <p class="muted">vIPI dei singoli aeroporti sotto la ACC.</p>
                 <ul class="linklist">
                     @if (_airports.Count == 0)
                     {
@@ -115,7 +115,7 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
-        _canEdit = await Authz.CanEditFirAsync(_acc.Code);
+        _canEdit = await Authz.CanEditAccAsync(_acc.Code);
 
         var data = await Structure.LoadAsync(_acc.Code);
         if (data is not null)

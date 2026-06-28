@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
 
         // Meteo reale (NOAA aviationweather.gov): HttpClient con UA + provider singleton (cache TTL per ICAO).
         services.AddHttpClient(Weather.NoaaWeatherClient.HttpClientName, c =>

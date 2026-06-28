@@ -77,7 +77,7 @@ public class ContentServiceTests
         Assert.NotEqual(op.State, ho.State);
     }
 
-    [Fact] // S7 — vLOA neighbour cross-FIR (Tunisi DTTC): handoff compresso se offline, espanso se online
+    [Fact] // S7 — vLOA neighbour cross-ACC (Tunisi DTTC): handoff compresso se offline, espanso se online
     public void S7_VloaNeighbour_HandoffFollowsNeighbourOnline()
     {
         // Il neighbour non è LI*: la sua scope key ("DTTC") è trattata come un settore qualsiasi.

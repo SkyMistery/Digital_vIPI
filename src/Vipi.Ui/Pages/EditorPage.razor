@@ -164,7 +164,7 @@
             </div>
         </div>
 
-        @* ---------- In evidenza nella landing ACC (struttura FIR, indipendente dalla bozza) ---------- *@
+        @* ---------- In evidenza nella landing ACC (struttura ACC, indipendente dalla bozza) ---------- *@
         <div class="panel" style="margin-top:18px">
             <h5>In evidenza nella landing ACC <span class="pill grey" style="font-size:11px">max 3</span></h5>
             <p class="help">Scegli quali aeroporti, avvicinamenti e vLOA compaiono (nell'ordine) nelle card della pagina di @_acc.Name. Senza scelta, mostra i primi 3 per ICAO/callsign/titolo.</p>
@@ -177,7 +177,7 @@
                     <h5>Aeroporti</h5>
                     @if (_featAirports.Count == 0)
                     {
-                        <p class="help">Nessun aeroporto nella FIR.</p>
+                        <p class="help">Nessun aeroporto nella ACC.</p>
                     }
                     else
                     {
@@ -200,7 +200,7 @@
                     <h5>Avvicinamenti non remotizzati</h5>
                     @if (_featApps.Count == 0)
                     {
-                        <p class="help">Nessun APP nella FIR.</p>
+                        <p class="help">Nessun APP nella ACC.</p>
                     }
                     else
                     {
@@ -223,7 +223,7 @@
                     <h5>vLOA</h5>
                     @if (_featVloas.Count == 0)
                     {
-                        <p class="help">Nessuna vLOA pubblicata nella FIR.</p>
+                        <p class="help">Nessuna vLOA pubblicata nella ACC.</p>
                     }
                     else
                     {
@@ -273,7 +273,7 @@
     private List<(EditableSection Section, int Depth)> _flat = new();
     private EditableSection? _selected => _selId is int id ? _flat.FirstOrDefault(t => t.Section.Id == id).Section : null;
 
-    // --- "In evidenza" nella landing ACC (FeaturedRank su aeroporti/APP della FIR) ---
+    // --- "In evidenza" nella landing ACC (FeaturedRank su aeroporti/APP della ACC) ---
     private IReadOnlyList<AirportRow> _featAirports = Array.Empty<AirportRow>();
     private IReadOnlyList<SectorRow> _featApps = Array.Empty<SectorRow>();
     private IReadOnlyList<VloaRow> _featVloas = Array.Empty<VloaRow>();

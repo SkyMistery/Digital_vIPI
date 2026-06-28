@@ -8,6 +8,6 @@ namespace Vipi.Application.Abstractions;
 /// </summary>
 public interface ITopologyProvider
 {
-    /// <summary>Costruisce la topologia di una FIR dato il suo codice (es. "LIRR"). Null se la FIR non esiste.</summary>
-    Task<Topology?> BuildByFirCodeAsync(string firCode, CancellationToken ct = default);
+    /// <summary>Costruisce la topologia di una ACC dato il suo codice (es. "LIRR"). Null se la ACC non esiste.</summary>
+    Task<Topology?> BuildByAccCodeAsync(string accCode, CancellationToken ct = default);
 }

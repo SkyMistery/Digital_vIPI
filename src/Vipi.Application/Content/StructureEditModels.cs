@@ -2,20 +2,20 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Riga FIR per l'elenco struttura.</summary>
-public sealed record FirRow(int Id, string Code, string Name, string CountryPrefix, int Sectors);
+/// <summary>Riga ACC per l'elenco struttura.</summary>
+public sealed record AccRow(int Id, string Code, string Name, string CountryPrefix, int Sectors);
 
-/// <summary>Aeroporto di una FIR per l'editor struttura.</summary>
+/// <summary>Aeroporto di una ACC per l'editor struttura.</summary>
 public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null);
 
 /// <summary>
-/// Aeroporto (cross-FIR) per la pagina di gestione aeroporti: FIR assegnata + n. settori che vi puntano.
+/// Aeroporto (cross-ACC) per la pagina di gestione aeroporti: ACC assegnata + n. settori che vi puntano.
 /// <paramref name="HasTower"/> = ha almeno una torre (TWR o I_TWR): invariante "ogni aeroporto ha sempre una torre".
 /// </summary>
-public sealed record AirportAdminRow(int Id, string Icao, string Name, string FirCode, int Sectors, bool HasTower);
+public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower);
 
-/// <summary>Settore sintetico (id+callsign+FIR) per popolare i menu padre nella gestione aeroporti.</summary>
-public sealed record SectorBriefRow(int Id, string Callsign, string FirCode);
+/// <summary>Settore sintetico (id+callsign+ACC) per popolare i menu padre nella gestione aeroporti.</summary>
+public sealed record SectorBriefRow(int Id, string Callsign, string AccCode);
 
 /// <summary>Esito della generazione automatica del documento di aeroporto.</summary>
 public sealed record AirportDocResult(string Icao, bool Created, int SectorsCreated, int? DocumentId, string? Skipped);
@@ -30,15 +30,15 @@ public sealed record SectorRow(
 /// <summary>Frequenza di un settore.</summary>
 public sealed record FrequencyRow(int Id, int SectorId, string Label, string Callsign, string FrequencyMhz, bool IsPrimary);
 
-/// <summary>vLOA pubblicata di una FIR (per elenco/card landing): documento + centro confinante + ordine "in evidenza".</summary>
+/// <summary>vLOA pubblicata di una ACC (per elenco/card landing): documento + centro confinante + ordine "in evidenza".</summary>
 public sealed record VloaRow(int DocId, string Title, string? Neighbour, int? FeaturedRank = null);
 
-/// <summary>Dati struttura completi di una FIR per la pagina di authoring.</summary>
+/// <summary>Dati struttura completi di una ACC per la pagina di authoring.</summary>
 public sealed class StructureData
 {
-    public required int FirId { get; init; }
-    public required string FirCode { get; init; }
-    public required string FirName { get; init; }
+    public required int AccId { get; init; }
+    public required string AccCode { get; init; }
+    public required string AccName { get; init; }
     public required IReadOnlyList<AirportRow> Airports { get; init; }
     public required IReadOnlyList<SectorRow> Sectors { get; init; }
     public required IReadOnlyList<FrequencyRow> Frequencies { get; init; }

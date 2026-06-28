@@ -21,7 +21,7 @@
     {
         <div class="section-title"><h3>Dashboard</h3><span class="ln"></span></div>
         <div class="choice-grid">
-            <a class="choice" href="/vsop/admin/struttura" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura</h4><p class="muted">FIR, posizioni, settori, ownership, frequenze e topologia.</p></a>
+            <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura</h4><p class="muted">ACC, posizioni, settori, ownership, frequenze e topologia.</p></a>
             <a class="choice" href="/vsop/editor" style="text-decoration:none;color:inherit"><h4><span class="ic">✏️</span> Editor documenti</h4><p class="muted">Crea e modifica vIPI, aeroporti, vLOA e trasferimenti.</p></a>
             <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Bozze &amp; versioni</h4><p class="muted">Stato dei documenti, storico versioni e pubblicazioni.</p></a>
             <a class="choice" href="/vsop/admin/audit" style="text-decoration:none;color:inherit"><h4><span class="ic">📜</span> Audit log</h4><p class="muted">Chi ha fatto cosa: pubblicazioni e modifiche permessi.</p></a>
@@ -41,14 +41,14 @@
                 else
                 {
                     <table>
-                        <thead><tr><th>VID</th><th>Nome</th><th>FIR</th><th>Concesso da</th><th>Quando</th><th></th></tr></thead>
+                        <thead><tr><th>VID</th><th>Nome</th><th>ACC</th><th>Concesso da</th><th>Quando</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var g in _grants)
                             {
                                 <tr>
                                     <td><b>@g.UserId</b></td>
                                     <td>@(string.IsNullOrWhiteSpace(g.DisplayName) ? "—" : g.DisplayName)</td>
-                                    <td>@g.FirCode</td>
+                                    <td>@g.AccCode</td>
                                     <td>@g.GrantedByUserId</td>
                                     <td>@g.GrantedAtUtc.ToString("dd MMM yyyy HH:mm")</td>
                                     <td><button class="btn ghost" disabled="@_busy" @onclick="() => Revoke(g.Id)">Revoca</button></td>
@@ -79,8 +79,8 @@
                 }
                 <div class="field"><label>VID</label><input type="number" placeholder="es. 123456" @bind="_userId" /></div>
                 <div class="field"><label>Nome (opzionale)</label><input placeholder="es. Mario Rossi" @bind="_name" /></div>
-                <div class="field"><label>FIR</label>
-                    <select @bind="_firCode">
+                <div class="field"><label>ACC</label>
+                    <select @bind="_accCode">
                         @foreach (var acc in Stations.Accs) { <option value="@acc.Code">@acc.Code — @acc.Name</option> }
                     </select>
                 </div>
@@ -97,7 +97,7 @@
 
     private int _userId;
     private string _name = "";
-    private string _firCode = "LIRR";
+    private string _accCode = "LIRR";
 
     private IReadOnlyList<StaffRosterEntry>? _members;
     private int _selectedUserId;
@@ -129,7 +129,7 @@
         try
         {
             if (_userId <= 0) throw new InvalidOperationException("VID non valido.");
-            await Authz.AddGrantAsync(_userId, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _firCode);
+            await Authz.AddGrantAsync(_userId, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _accCode);
             _userId = 0; _name = "";
             await LoadAsync();
             _status = "Permesso concesso.";

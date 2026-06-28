@@ -12,50 +12,50 @@ public sealed class EfTransferRepository : ITransferRepository
     private readonly VipiDbContext _db;
     public EfTransferRepository(VipiDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<TransferRow>> ListByFirAsync(string firCode, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TransferRow>> ListByAccAsync(string accCode, CancellationToken ct = default)
     {
         var rows = await _db.Transfers
-            .Where(t => t.Fir!.Code == firCode)
+            .Where(t => t.Acc!.Code == accCode)
             .OrderBy(t => t.RelationKey).ThenBy(t => t.Phase).ThenBy(t => t.Order)
             .AsNoTracking().ToListAsync(ct);
 
         return rows.Select(Map).ToList();
     }
 
-    public async Task<int> AddAsync(string firCode, TransferInput input, CancellationToken ct = default)
+    public async Task<int> AddAsync(string accCode, TransferInput input, CancellationToken ct = default)
     {
-        var firId = await _db.Firs.Where(f => f.Code == firCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct)
-            ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
+        var accId = await _db.Accs.Where(f => f.Code == accCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
 
         var nextOrder = (await _db.Transfers
-            .Where(t => t.FirId == firId && t.RelationKey == input.RelationKey && t.Phase == input.Phase)
+            .Where(t => t.AccId == accId && t.RelationKey == input.RelationKey && t.Phase == input.Phase)
             .MaxAsync(t => (int?)t.Order, ct) ?? 0) + 1;
 
-        var t = new Transfer { FirId = firId, Order = nextOrder };
+        var t = new Transfer { AccId = accId, Order = nextOrder };
         Apply(t, input);
         _db.Transfers.Add(t);
         await _db.SaveChangesAsync(ct);
         return t.Id;
     }
 
-    public async Task UpdateAsync(string firCode, int id, TransferInput input, CancellationToken ct = default)
+    public async Task UpdateAsync(string accCode, int id, TransferInput input, CancellationToken ct = default)
     {
-        var t = await InFirAsync(firCode, id, ct);
+        var t = await InAccAsync(accCode, id, ct);
         Apply(t, input);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(string firCode, int id, CancellationToken ct = default)
+    public async Task DeleteAsync(string accCode, int id, CancellationToken ct = default)
     {
-        var t = await _db.Transfers.FirstOrDefaultAsync(x => x.Id == id && x.Fir!.Code == firCode, ct);
+        var t = await _db.Transfers.FirstOrDefaultAsync(x => x.Id == id && x.Acc!.Code == accCode, ct);
         if (t is null) return;
         _db.Transfers.Remove(t);
         await _db.SaveChangesAsync(ct);
     }
 
-    private async Task<Transfer> InFirAsync(string firCode, int id, CancellationToken ct) =>
-        await _db.Transfers.FirstOrDefaultAsync(x => x.Id == id && x.Fir!.Code == firCode, ct)
-            ?? throw new InvalidOperationException($"Trasferimento {id} non appartiene alla FIR {firCode}.");
+    private async Task<Transfer> InAccAsync(string accCode, int id, CancellationToken ct) =>
+        await _db.Transfers.FirstOrDefaultAsync(x => x.Id == id && x.Acc!.Code == accCode, ct)
+            ?? throw new InvalidOperationException($"Trasferimento {id} non appartiene alla ACC {accCode}.");
 
     private static void Apply(Transfer t, TransferInput i)
     {

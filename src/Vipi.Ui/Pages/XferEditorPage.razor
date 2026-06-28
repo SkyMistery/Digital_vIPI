@@ -9,7 +9,7 @@
 <div class="wrap">
     <div class="breadcrumb"><a href="/vsop">Admin</a> › <a href="/vsop/@Acc?.ToLowerInvariant()/editor">Editor</a> › <b>Trasferimenti</b></div>
     <div class="ed-toolbar">
-        <h2 style="margin:0;flex:1">Editor trasferimenti — FIR @_acc?.Code</h2>
+        <h2 style="margin:0;flex:1">Editor trasferimenti — ACC @_acc?.Code</h2>
         <a class="btn ghost" href="/vsop/@Acc?.ToLowerInvariant()/topologia">🧭 Topologia</a>
     </div>
     <div class="callout info"><span class="cic">🔄</span><div><p class="ct">Una riga, due viste</p>Ogni trasferimento si inserisce <b>una volta sola</b> come riga strutturata con la <b>catena handler ordinata</b>: l'Estesa la mostra completa, la Ridotta risolverà il "primo online" col polling (fase F3). Il fallback standard si applica se nessuno è online.</div></div>
@@ -60,7 +60,7 @@
 
             <div class="panel xfe-form">
                 <h5>Nuova riga</h5>
-                <div class="field"><label>Relazione (FIR↔FIR)</label><input placeholder="Roma ↔ Milano" @bind="_label" /></div>
+                <div class="field"><label>Relazione (ACC↔ACC)</label><input placeholder="Roma ↔ Milano" @bind="_label" /></div>
                 <div class="field"><label>Chiave relazione</label><input placeholder="LIRR-LIMM" @bind="_key" /></div>
                 <div class="field"><label>Fase</label>
                     <div class="seg">
@@ -118,7 +118,7 @@
         await LoadAsync();
     }
 
-    private async Task LoadAsync() => _rows = (await Transfers.ListByFirAsync(_acc!.Code)).ToList();
+    private async Task LoadAsync() => _rows = (await Transfers.ListByAccAsync(_acc!.Code)).ToList();
 
     private void AddHandler()
     {

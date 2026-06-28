@@ -42,7 +42,7 @@ public sealed class VipiViewService : IVipiViewService
     public async Task<DocumentView?> BuildAccVipiAsync(
         string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default)
     {
-        // F3: in live calcolo l'AoR reale dalla topologia della FIR + chi è online ora.
+        // F3: in live calcolo l'AoR reale dalla topologia della ACC + chi è online ora.
         var aor = live ? await ResolveLiveAorAsync(accCode, viewerPosition, ct) : null;
         return await BuildAsync(_repo.LoadAccVipiAsync(accCode, ct), tier, live, aor);
     }
@@ -57,9 +57,9 @@ public sealed class VipiViewService : IVipiViewService
         BuildAsync(_repo.LoadVloaByIdAsync(docId, ct), tier, live, null);
 
     /// <summary>AoR reale per la vista di <paramref name="viewerPosition"/> (default = radice topologia).</summary>
-    private async Task<AorResult?> ResolveLiveAorAsync(string firCode, string? viewerPosition, CancellationToken ct)
+    private async Task<AorResult?> ResolveLiveAorAsync(string accCode, string? viewerPosition, CancellationToken ct)
     {
-        var topo = await _topology.BuildByFirCodeAsync(firCode, ct);
+        var topo = await _topology.BuildByAccCodeAsync(accCode, ct);
         if (topo is null) return null;
 
         var p = viewerPosition ?? DefaultViewer(topo);

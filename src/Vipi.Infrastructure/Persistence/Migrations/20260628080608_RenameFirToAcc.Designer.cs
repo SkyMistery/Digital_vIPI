@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628080608_RenameFirToAcc")]
+    partial class RenameFirToAcc
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -50,54 +53,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Accs");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CenterId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ComposePosition")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Frequency")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsHidden")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("LowerLimit")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("MiddleIdentifier")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Position")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RegionMapPolygon")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("UpperLimit")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CenterId");
-
-                    b.HasIndex("ComposePosition")
-                        .IsUnique();
-
-                    b.ToTable("AccSectors");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
@@ -1079,18 +1034,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("VectoringMinimaSets");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany("AccSectors")
-                        .HasForeignKey("CenterId")
-                        .HasPrincipalKey("Code")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -1376,8 +1319,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
-                    b.Navigation("AccSectors");
-
                     b.Navigation("Airports");
 
                     b.Navigation("Sectors");

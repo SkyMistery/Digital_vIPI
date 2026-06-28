@@ -7,8 +7,8 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// Authoring struttura da zero (DB vuoto): crea FIR → settori (entità unificata) → frequenze,
-/// e verifica che <see cref="EfStationDirectory"/> esponga la FIR appena creata.
+/// Authoring struttura da zero (DB vuoto): crea ACC → settori (entità unificata) → frequenze,
+/// e verifica che <see cref="EfStationDirectory"/> esponga la ACC appena creata.
 /// </summary>
 public class StructureEditingTests : IAsyncLifetime
 {
@@ -32,11 +32,11 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Builds_Full_Fir_From_Scratch()
+    public async Task Builds_Full_Acc_From_Scratch()
     {
-        var firId = await _repo.CreateFirAsync("LIMM", "Milano FIR", "LI");
-        Assert.True(firId > 0);
-        Assert.True(await _repo.FirExistsAsync("LIMM"));
+        var accId = await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
+        Assert.True(accId > 0);
+        Assert.True(await _repo.AccExistsAsync("LIMM"));
 
         var secId = await _repo.AddSectorAsync("LIMM", "LIMM_NW_CTR", SectorType.Ctr, SectorKind.Acc,
             "Milano Radar NW", "128.800", 10, null, null, null);
@@ -50,30 +50,30 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Contains(data.Sectors, s => s.Id == childId && s.ParentSectorId == secId);
         Assert.Contains(data.Frequencies, f => f.Id == freqId && f.IsPrimary);
 
-        // La directory di navigazione vede la FIR creata.
+        // La directory di navigazione vede la ACC creata.
         var accs = new EfStationDirectory(_db).ListAccs();
-        Assert.Contains(accs, a => a.Code == "LIMM" && a.Name == "Milano FIR");
+        Assert.Contains(accs, a => a.Code == "LIMM" && a.Name == "Milano ACC");
     }
 
     [Fact]
     public async Task Duplicate_Callsign_Is_Rejected()
     {
-        await _repo.CreateFirAsync("LIMM", "Milano FIR", "LI");
+        await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
         await _repo.AddSectorAsync("LIMM", "LIMM_NW_CTR", SectorType.Ctr, SectorKind.Acc, "NW", null, 10, null, null, null);
         Assert.True(await _repo.CallsignExistsAsync("LIMM_NW_CTR"));
     }
 
     [Fact]
-    public async Task AutoAssign_Creates_Only_Known_Fir_And_Skips_Existing()
+    public async Task AutoAssign_Creates_Only_Known_Acc_And_Skips_Existing()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");   // già assegnato
 
-        var candidates = new List<(string FirCode, string Icao, string Name)>
+        var candidates = new List<(string AccCode, string Icao, string Name)>
         {
             ("LIRR", "LIRF", "Roma Fiumicino"),  // skip: ICAO già presente
             ("LIRR", "LIRA", "Roma Ciampino"),   // crea
-            ("LIMM", "LIMC", "Milano Malpensa"), // skip: FIR inesistente
+            ("LIMM", "LIMC", "Milano Malpensa"), // skip: ACC inesistente
         };
 
         var created = await _repo.AutoAssignAirportsAsync(candidates);
@@ -95,7 +95,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task EnsureSectors_Merge_Rebuild_Creates_Published_Doc_With_Managed_Sections()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportProfileRepository(_db);
 
@@ -141,7 +141,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task Reimport_Overwrites_Ivao_Fields_But_Preserves_Editorial()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportProfileRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
@@ -168,7 +168,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task Rebuild_Renders_Rules_And_Links_And_Preserves_Manual_Sections()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportProfileRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
@@ -206,7 +206,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task Default_Transition_Levels_Follow_Ta()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportProfileRepository(_db);
 
@@ -235,7 +235,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task Airport_Must_Keep_At_Least_One_Tower()
     {
-        await _repo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         var apId = await _repo.CreateAirportAsync("LIRR", "LIRN", "Napoli");
 
         // Aeroporto senza settori → segnalato come "senza torre".
@@ -264,7 +264,7 @@ public class StructureEditingTests : IAsyncLifetime
     [Fact]
     public async Task Deleting_Sector_Cleans_Dependencies()
     {
-        await _repo.CreateFirAsync("LIMM", "Milano FIR", "LI");
+        await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
         var secId = await _repo.AddSectorAsync("LIMM", "LIMM_NW_CTR", SectorType.Ctr, SectorKind.Acc, "NW", null, 10, null, null, null);
         await _repo.AddFrequencyAsync("LIMM", secId, "Radar", "LIMM_NW_CTR", "128.800", true);
 

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Vipi.Infrastructure.Tests;
 
-/// <summary>Autorizzazione FIR-scoped + lock esclusivo + concorrenza ottimistica sui blocchi.</summary>
+/// <summary>Autorizzazione ACC-scoped + lock esclusivo + concorrenza ottimistica sui blocchi.</summary>
 public class AuthLockTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
@@ -52,7 +52,7 @@ public class AuthLockTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Admin_Can_Edit_Any_Fir()
+    public async Task Admin_Can_Edit_Any_Acc()
     {
         var (editing, _, _) = Build(Admin(1));
         var draftId = await editing.CreateDraftAsync(_accDocId); // non lancia
@@ -67,9 +67,9 @@ public class AuthLockTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Granted_User_Edits_Only_Granted_Fir()
+    public async Task Granted_User_Edits_Only_Granted_Acc()
     {
-        // admin concede a 555 la FIR LIRR
+        // admin concede a 555 la ACC LIRR
         var (_, adminAuthz, _) = Build(Admin(1));
         await adminAuthz.AddGrantAsync(555, "Mario", "LIRR");
 
@@ -77,7 +77,7 @@ public class AuthLockTests : IAsyncLifetime
         var draftId = await editing.CreateDraftAsync(_accDocId);   // LIRR concesso → ok
         Assert.True(draftId > 0);
 
-        await Assert.ThrowsAsync<EditNotAllowedException>(() => authz.EnsureCanEditFirAsync("LIMM")); // altra FIR → negato
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => authz.EnsureCanEditAccAsync("LIMM")); // altra ACC → negato
     }
 
     [Fact]

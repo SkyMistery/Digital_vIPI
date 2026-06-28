@@ -6,28 +6,28 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Use-case di authoring dell'anagrafica/struttura FIR. La creazione di una FIR è admin-only (non esiste
-/// ancora una FIR su cui dare grant); le altre scritture sono FIR-gated via <see cref="IEditAuthorizationService"/>.
+/// Use-case di authoring dell'anagrafica/struttura ACC. La creazione di una ACC è admin-only (non esiste
+/// ancora una ACC su cui dare grant); le altre scritture sono ACC-gated via <see cref="IEditAuthorizationService"/>.
 /// Validazioni hard sugli input (univocità callsign/sectorKey, campi obbligatori). Riusa <see cref="ValidationException"/>.
 /// </summary>
 public interface IStructureEditingService
 {
-    Task<IReadOnlyList<FirRow>> ListFirsAsync(CancellationToken ct = default);
-    Task<StructureData?> LoadAsync(string firCode, CancellationToken ct = default);
+    Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default);
+    Task<StructureData?> LoadAsync(string accCode, CancellationToken ct = default);
 
-    Task<int> CreateFirAsync(string code, string name, string? countryPrefix, CancellationToken ct = default);
-    Task DeleteFirAsync(string firCode, CancellationToken ct = default);
+    Task<int> CreateAccAsync(string code, string name, string? countryPrefix, CancellationToken ct = default);
+    Task DeleteAccAsync(string accCode, CancellationToken ct = default);
 
-    Task<int> CreateAirportAsync(string firCode, string icao, string name, CancellationToken ct = default);
-    Task DeleteAirportAsync(string firCode, int airportId, CancellationToken ct = default);
-    Task MoveAirportAsync(int airportId, string fromFirCode, string targetFirCode, CancellationToken ct = default);
+    Task<int> CreateAirportAsync(string accCode, string icao, string name, CancellationToken ct = default);
+    Task DeleteAirportAsync(string accCode, int airportId, CancellationToken ct = default);
+    Task MoveAirportAsync(int airportId, string fromAccCode, string targetAccCode, CancellationToken ct = default);
 
-    /// <summary>Gestione aeroporti (admin): elenco cross-FIR + settori per i menu.</summary>
+    /// <summary>Gestione aeroporti (admin): elenco cross-ACC + settori per i menu.</summary>
     Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Assegna automaticamente (admin) gli aeroporti dell'anagrafica IVAO la cui FIR di competenza
+    /// Assegna automaticamente (admin) gli aeroporti dell'anagrafica IVAO la cui ACC di competenza
     /// (centerId) esiste già nel DB e che non sono ancora assegnati. Ritorna il numero di aeroporti creati.
     /// </summary>
     Task<int> AutoAssignKnownAirportsAsync(CancellationToken ct = default);
@@ -38,21 +38,21 @@ public interface IStructureEditingService
     /// </summary>
     Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default);
 
-    Task<int> AddSectorAsync(string firCode, string callsign, SectorType type, SectorKind kind, string name,
+    Task<int> AddSectorAsync(string accCode, string callsign, SectorType type, SectorKind kind, string name,
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default);
-    Task DeleteSectorAsync(string firCode, int sectorId, CancellationToken ct = default);
+    Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default);
 
-    /// <summary>Imposta gli aeroporti "in evidenza" della FIR (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
-    Task SetFeaturedAirportsAsync(string firCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default);
-    /// <summary>Imposta gli APP "in evidenza" della FIR (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
-    Task SetFeaturedAppsAsync(string firCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default);
-    /// <summary>Imposta le vLOA "in evidenza" della FIR (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
-    Task SetFeaturedVloasAsync(string firCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default);
+    /// <summary>Imposta gli aeroporti "in evidenza" della ACC (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
+    Task SetFeaturedAirportsAsync(string accCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default);
+    /// <summary>Imposta gli APP "in evidenza" della ACC (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
+    Task SetFeaturedAppsAsync(string accCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default);
+    /// <summary>Imposta le vLOA "in evidenza" della ACC (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
+    Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default);
 
-    Task<int> AddFrequencyAsync(string firCode, int sectorId, string label, string callsign,
+    Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
         string frequencyMhz, bool isPrimary, CancellationToken ct = default);
-    Task DeleteFrequencyAsync(string firCode, int frequencyId, CancellationToken ct = default);
+    Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IStructureEditingService"/>
@@ -77,51 +77,51 @@ public sealed class StructureEditingService : IStructureEditingService
         _policy = policy;
     }
 
-    public Task<IReadOnlyList<FirRow>> ListFirsAsync(CancellationToken ct = default) => _repo.ListFirsAsync(ct);
+    public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
 
-    public Task<StructureData?> LoadAsync(string firCode, CancellationToken ct = default) => _repo.LoadAsync(firCode, ct);
+    public Task<StructureData?> LoadAsync(string accCode, CancellationToken ct = default) => _repo.LoadAsync(accCode, ct);
 
-    public async Task<int> CreateFirAsync(string code, string name, string? countryPrefix, CancellationToken ct = default)
+    public async Task<int> CreateAccAsync(string code, string name, string? countryPrefix, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
-        if (code.Length is < 2 or > 8) throw new ValidationException("Codice FIR non valido (es. LIRR).");
-        if (name.Length == 0) throw new ValidationException("Nome FIR obbligatorio.");
-        if (await _repo.FirExistsAsync(code, ct)) throw new ValidationException($"FIR {code} già esistente.");
+        if (code.Length is < 2 or > 8) throw new ValidationException("Codice ACC non valido (es. LIRR).");
+        if (name.Length == 0) throw new ValidationException("Nome ACC obbligatorio.");
+        if (await _repo.AccExistsAsync(code, ct)) throw new ValidationException($"ACC {code} già esistente.");
         var prefix = string.IsNullOrWhiteSpace(countryPrefix) ? code.Substring(0, 2) : countryPrefix.Trim().ToUpperInvariant();
-        return await _repo.CreateFirAsync(code, name, prefix, ct);
+        return await _repo.CreateAccAsync(code, name, prefix, ct);
     }
 
-    public async Task DeleteFirAsync(string firCode, CancellationToken ct = default)
+    public async Task DeleteAccAsync(string accCode, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
-        await _repo.DeleteFirAsync(firCode, ct);
+        await _repo.DeleteAccAsync(accCode, ct);
     }
 
-    public async Task<int> CreateAirportAsync(string firCode, string icao, string name, CancellationToken ct = default)
+    public async Task<int> CreateAirportAsync(string accCode, string icao, string name, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
         icao = (icao ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (icao.Length != 4) throw new ValidationException("ICAO aeroporto non valido (4 lettere, es. LIRF).");
         if (name.Length == 0) throw new ValidationException("Nome aeroporto obbligatorio.");
         if (await _repo.AirportIcaoExistsAsync(icao, ct)) throw new ValidationException($"Aeroporto {icao} già esistente.");
-        return await _repo.CreateAirportAsync(firCode, icao, name, ct);
+        return await _repo.CreateAirportAsync(accCode, icao, name, ct);
     }
 
-    public async Task DeleteAirportAsync(string firCode, int airportId, CancellationToken ct = default)
+    public async Task DeleteAirportAsync(string accCode, int airportId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.DeleteAirportAsync(firCode, airportId, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeleteAirportAsync(accCode, airportId, ct);
     }
 
-    public async Task MoveAirportAsync(int airportId, string fromFirCode, string targetFirCode, CancellationToken ct = default)
+    public async Task MoveAirportAsync(int airportId, string fromAccCode, string targetAccCode, CancellationToken ct = default)
     {
-        // Spostamento cross-FIR: serve poter editare sia origine sia destinazione.
-        await _authz.EnsureCanEditFirAsync(fromFirCode, ct);
-        await _authz.EnsureCanEditFirAsync(targetFirCode, ct);
-        await _repo.MoveAirportAsync(airportId, targetFirCode, ct);
+        // Spostamento cross-ACC: serve poter editare sia origine sia destinazione.
+        await _authz.EnsureCanEditAccAsync(fromAccCode, ct);
+        await _authz.EnsureCanEditAccAsync(targetAccCode, ct);
+        await _repo.MoveAirportAsync(airportId, targetAccCode, ct);
     }
 
     public Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default)
@@ -141,8 +141,8 @@ public sealed class StructureEditingService : IStructureEditingService
         _authz.EnsureAdmin();
         var ivao = await _directory.GetAirportsAsync(ct);
         var candidates = ivao
-            .Where(a => !string.IsNullOrWhiteSpace(a.FirCode))
-            .Select(a => (FirCode: a.FirCode!, a.Icao, a.Name))
+            .Where(a => !string.IsNullOrWhiteSpace(a.AccCode))
+            .Select(a => (AccCode: a.AccCode!, a.Icao, a.Name))
             .ToList();
         return await _repo.AutoAssignAirportsAsync(candidates, ct);
     }
@@ -165,7 +165,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
         // 1 — assicura i settori d'aeroporto (DEL/GND/TWR + fallback TWR).
         var (created, found) = await _repo.EnsureAirportSectorsAsync(icao, sectors, ct);
-        if (!found) return new AirportDocResult(icao, false, 0, null, "Aeroporto non assegnato a una FIR.");
+        if (!found) return new AirportDocResult(icao, false, 0, null, "Aeroporto non assegnato a una ACC.");
 
         // L'ATIS non è un settore controllabile: ne tengo solo la frequenza per la tabella Frequenze.
         var atisFreq = positions
@@ -204,11 +204,11 @@ public sealed class StructureEditingService : IStructureEditingService
         };
     }
 
-    public async Task<int> AddSectorAsync(string firCode, string callsign, SectorType type, SectorKind kind, string name,
+    public async Task<int> AddSectorAsync(string accCode, string callsign, SectorType type, SectorKind kind, string name,
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (callsign.Length == 0) throw new ValidationException("Callsign obbligatorio (es. LIRR_NE_CTR).");
@@ -219,51 +219,51 @@ public sealed class StructureEditingService : IStructureEditingService
         if (kind == SectorKind.Airport && (await _policy.GetAsync(ct)).Sectors)
             throw new ValidationException("I settori d'aeroporto sono gestiti dalla sorgente (sola lettura): usa «Genera documenti». Per aggiungerli a mano, escludi «Settori» in «Sorgenti dati».");
         if (await _repo.CallsignExistsAsync(callsign, ct)) throw new ValidationException($"Callsign {callsign} già esistente.");
-        return await _repo.AddSectorAsync(firCode, callsign, type, kind, name,
+        return await _repo.AddSectorAsync(accCode, callsign, type, kind, name,
             string.IsNullOrWhiteSpace(defaultFrequency) ? null : defaultFrequency.Trim(),
             coverageOrder, type == SectorType.App ? approachKind : null, parentSectorId,
             kind == SectorKind.Airport ? airportId : null, ct);
     }
 
-    public async Task DeleteSectorAsync(string firCode, int sectorId, CancellationToken ct = default)
+    public async Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.DeleteSectorAsync(firCode, sectorId, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeleteSectorAsync(accCode, sectorId, ct);
     }
 
-    public async Task SetFeaturedAirportsAsync(string firCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default)
+    public async Task SetFeaturedAirportsAsync(string accCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.SetFeaturedAirportsAsync(firCode, orderedAirportIds ?? Array.Empty<int>(), ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetFeaturedAirportsAsync(accCode, orderedAirportIds ?? Array.Empty<int>(), ct);
     }
 
-    public async Task SetFeaturedAppsAsync(string firCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default)
+    public async Task SetFeaturedAppsAsync(string accCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.SetFeaturedAppsAsync(firCode, orderedAppSectorIds ?? Array.Empty<int>(), ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetFeaturedAppsAsync(accCode, orderedAppSectorIds ?? Array.Empty<int>(), ct);
     }
 
-    public async Task SetFeaturedVloasAsync(string firCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default)
+    public async Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.SetFeaturedVloasAsync(firCode, orderedVloaDocIds ?? Array.Empty<int>(), ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetFeaturedVloasAsync(accCode, orderedVloaDocIds ?? Array.Empty<int>(), ct);
     }
 
-    public async Task<int> AddFrequencyAsync(string firCode, int sectorId, string label, string callsign,
+    public async Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
         string frequencyMhz, bool isPrimary, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
         label = (label ?? "").Trim();
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         frequencyMhz = (frequencyMhz ?? "").Trim();
         if (label.Length == 0) throw new ValidationException("Etichetta frequenza obbligatoria.");
         if (frequencyMhz.Length == 0) throw new ValidationException("Frequenza obbligatoria (es. 118.700).");
-        return await _repo.AddFrequencyAsync(firCode, sectorId, label, callsign, frequencyMhz, isPrimary, ct);
+        return await _repo.AddFrequencyAsync(accCode, sectorId, label, callsign, frequencyMhz, isPrimary, ct);
     }
 
-    public async Task DeleteFrequencyAsync(string firCode, int frequencyId, CancellationToken ct = default)
+    public async Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.DeleteFrequencyAsync(firCode, frequencyId, ct);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeleteFrequencyAsync(accCode, frequencyId, ct);
     }
 }

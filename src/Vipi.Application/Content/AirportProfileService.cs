@@ -7,13 +7,13 @@ namespace Vipi.Application.Content;
 /// <summary>
 /// Use-case di authoring del profilo strutturato dell'aeroporto (regole pista, quote di transizione,
 /// frequenze+link, piste, SID) e rigenerazione del documento. Letture libere (servono anche al viewer);
-/// scritture FIR-gated via <see cref="IEditAuthorizationService"/>. Validazioni hard sugli input.
+/// scritture ACC-gated via <see cref="IEditAuthorizationService"/>. Validazioni hard sugli input.
 /// </summary>
 public interface IAirportProfileService
 {
     /// <summary>Lettura per il viewer (nessuna guardia): regole pista + link frequenze + resto.</summary>
     Task<AirportProfileData?> LoadForViewAsync(string icao, CancellationToken ct = default);
-    /// <summary>Lettura per l'editor: richiede il permesso di editare la FIR dell'aeroporto.</summary>
+    /// <summary>Lettura per l'editor: richiede il permesso di editare la ACC dell'aeroporto.</summary>
     Task<AirportProfileData?> LoadForEditAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Policy di import globale (per editor e viewer): quali categorie sono di sorgente (sola lettura).</summary>
@@ -178,9 +178,9 @@ public sealed class AirportProfileService : IAirportProfileService
 
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)
     {
-        var fir = await _repo.GetFirCodeByIcaoAsync(Norm(icao), ct)
+        var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
             ?? throw new ValidationException($"Aeroporto {Norm(icao)} inesistente.");
-        await _authz.EnsureCanEditFirAsync(fir, ct);
+        await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 
     private static string Norm(string icao) => (icao ?? "").Trim().ToUpperInvariant();

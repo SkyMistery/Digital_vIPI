@@ -7,7 +7,7 @@ public sealed class ChangeRow
 {
     public required string DocTitle { get; init; }
     public required DocumentType Type { get; init; }
-    public required string FirCode { get; init; }
+    public required string AccCode { get; init; }
     public required string Url { get; init; }
     public required int VersionNumber { get; init; }
     public string? Note { get; init; }

@@ -23,6 +23,15 @@ public sealed class IvaoOptions
     /// <summary>Path anagrafica aeroporti IVAO (paginato). Richiede scope <c>configuration</c>.</summary>
     public string AirportsPath { get; set; } = "/v2/airports";
 
+    /// <summary>Path anagrafica center/ACC IVAO (paginato). Richiede scope <c>configuration</c>.</summary>
+    public string CentersPath { get; set; } = "/v2/centers";
+
+    /// <summary>Template subcenter di un ACC: <c>{0}</c> = ICAO ACC. Es. <c>/v2/centers/LIBB/subcenters</c>.</summary>
+    public string SubcentersPathFormat { get; set; } = "/v2/centers/{0}/subcenters";
+
+    /// <summary>Template dettaglio subcenter: <c>{0}</c> = composePosition. Es. <c>/v2/subcenters/LIBB_ES_CTR</c>.</summary>
+    public string SubcenterDetailPathFormat { get; set; } = "/v2/subcenters/{0}";
+
     /// <summary>Paese (countryId IVAO, es. "IT" per l'Italia) per cui scaricare gli aeroporti.</summary>
     public string AirportsCountryId { get; set; } = "IT";
 
@@ -41,4 +50,7 @@ public sealed class IvaoOptions
 
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
+
+    /// <summary>Ogni quante ore re-importare automaticamente ACC + settori ATC dalla sorgente (default giornaliero).</summary>
+    public int AccImportHours { get; set; } = 24;
 }

@@ -13,10 +13,10 @@
     </div>
 
     <div class="apt-quick" style="margin:6px 0 20px">
-        <span class="ch @(_fir is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetFir(null)">Tutti</span>
-        @foreach (var f in _firs)
+        <span class="ch @(_acc is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(null)">Tutti</span>
+        @foreach (var f in _accs)
         {
-            <span class="ch @(_fir == f ? "on" : "")" style="cursor:pointer" @onclick="() => SetFir(f)">@f</span>
+            <span class="ch @(_acc == f ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(f)">@f</span>
         }
     </div>
 
@@ -26,7 +26,7 @@
     }
     else if (Filtered.Count == 0)
     {
-        <div class="callout info"><span class="cic">✅</span><div><p class="ct">Nessuna modifica</p>Nessun documento pubblicato nel ciclo @Changes.CurrentCycle@(_fir is null ? "" : $" per {_fir}").</div></div>
+        <div class="callout info"><span class="cic">✅</span><div><p class="ct">Nessuna modifica</p>Nessun documento pubblicato nel ciclo @Changes.CurrentCycle@(_acc is null ? "" : $" per {_acc}").</div></div>
     }
     else
     {
@@ -36,7 +36,7 @@
                 <div class="chg-row">
                     <span class="chg-tag @(r.IsNew ? "add" : "mod")">@(r.IsNew ? "Nuovo" : "Aggiornato")</span>
                     <div style="flex:1">
-                        <b>@r.DocTitle</b> <span class="muted">· @r.FirCode · v@r.VersionNumber</span>
+                        <b>@r.DocTitle</b> <span class="muted">· @r.AccCode · v@r.VersionNumber</span>
                         @if (!string.IsNullOrWhiteSpace(r.Note)) { <div class="muted">@r.Note</div> }
                         <div class="diff">
                             <span>sezioni @r.PrevSections → <b>@r.CurrSections</b></span> ·
@@ -53,18 +53,18 @@
 
 @code {
     private IReadOnlyList<ChangeRow>? _rows;
-    private string? _fir;
+    private string? _acc;
 
-    private IReadOnlyList<string> _firs = System.Array.Empty<string>();
+    private IReadOnlyList<string> _accs = System.Array.Empty<string>();
     private IReadOnlyList<ChangeRow> Filtered =>
         _rows is null ? System.Array.Empty<ChangeRow>()
-        : (_fir is null ? _rows : _rows.Where(r => r.FirCode == _fir).ToList());
+        : (_acc is null ? _rows : _rows.Where(r => r.AccCode == _acc).ToList());
 
     protected override async Task OnInitializedAsync()
     {
         _rows = await Changes.ListChangedAsync();
-        _firs = _rows.Select(r => r.FirCode).Distinct().OrderBy(x => x).ToList();
+        _accs = _rows.Select(r => r.AccCode).Distinct().OrderBy(x => x).ToList();
     }
 
-    private void SetFir(string? f) => _fir = f;
+    private void SetAcc(string? f) => _acc = f;
 }

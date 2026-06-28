@@ -7,7 +7,7 @@ using Vipi.Domain.Services;
 namespace Vipi.Infrastructure.Persistence.Seed;
 
 /// <summary>
-/// Seed demo della vLOA bilaterale LIRR ↔ DTTC (Roma ↔ Tunisi). Crea (se mancano) una FIR/posizione
+/// Seed demo della vLOA bilaterale LIRR ↔ DTTC (Roma ↔ Tunisi). Crea (se mancano) una ACC/posizione
 /// estera minimale DTTC, poi un Document Type=Vloa con due DocumentParty (Home=LIRR, Neighbour=DTTC)
 /// e le sezioni EN rese dalla stessa pipeline documentale. Idempotente.
 /// </summary>
@@ -21,12 +21,12 @@ public static class RomaVloaSeed
         if (home is null) return;
         if (await db.Documents.AnyAsync(d => d.Type == DocumentType.Vloa, ct)) return;
 
-        // FIR + settore estero DTTC (minimal, per la parte Neighbour).
-        var dttcFir = await db.Firs.FirstOrDefaultAsync(f => f.Code == "DTTC", ct);
-        if (dttcFir is null)
+        // ACC + settore estero DTTC (minimal, per la parte Neighbour).
+        var dttcAcc = await db.Accs.FirstOrDefaultAsync(f => f.Code == "DTTC", ct);
+        if (dttcAcc is null)
         {
-            dttcFir = new Fir { Code = "DTTC", Name = "Tunis FIR", CountryPrefix = "DT" };
-            db.Firs.Add(dttcFir);
+            dttcAcc = new Acc { Code = "DTTC", Name = "Tunis ACC", CountryPrefix = "DT" };
+            db.Accs.Add(dttcAcc);
             await db.SaveChangesAsync(ct);
         }
         var dttc = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == "DTTC_CTR", ct);
@@ -34,7 +34,7 @@ public static class RomaVloaSeed
         {
             dttc = new Sector
             {
-                FirId = dttcFir.Id, Callsign = "DTTC_CTR", Type = SectorType.Ctr, Kind = SectorKind.Acc,
+                AccId = dttcAcc.Id, Callsign = "DTTC_CTR", Type = SectorType.Ctr, Kind = SectorKind.Acc,
                 Name = "Tunis Control", DefaultFrequency = "129.300", CoverageOrder = 10,
                 ImportedAtUtc = DateTime.UtcNow, IsActive = true,
             };
@@ -70,8 +70,8 @@ public static class RomaVloaSeed
         b.Prose(purpose, "This Letter of Agreement establishes coordination, transfer of control and transfer of communications between **Roma ACC (LIRR)** and **Tunis ACC (DTTC)** for traffic crossing the common boundary.");
 
         var aor = b.Section("Areas of Responsibility", BlockSection.Aor, 2);
-        b.Prose(aor, "Both shapes are imported from the IVAO database; the common boundary is the LIRR/DTTC FIR limit.");
-        b.Prose(aor, "**Roma ACC (LIRR):** southern sectors bordering Tunis FIR, GND→FL660. **Tunis ACC (DTTC):** northern Tunis FIR bordering Roma, GND→UNL.");
+        b.Prose(aor, "Both shapes are imported from the IVAO database; the common boundary is the LIRR/DTTC ACC limit.");
+        b.Prose(aor, "**Roma ACC (LIRR):** southern sectors bordering Tunis ACC, GND→FL660. **Tunis ACC (DTTC):** northern Tunis ACC bordering Roma, GND→UNL.");
 
         var freq = b.Section("Frequencies", BlockSection.Frequencies, 3);
         b.Table(freq, new { columns = new[] { "Unit", "Callsign", "Frequency" }, unified = false,

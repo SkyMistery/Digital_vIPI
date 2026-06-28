@@ -9,7 +9,7 @@ namespace Vipi.Application.Auth;
 /// Autorizzazione all'editing. Admin = staff position che matcha i ruoli admin della divisione
 /// (<see cref="DivisionOptions"/>: <c>^{Code}-{ruolo}$</c>, es. IT-DIR/IT-WM/IT-AOC) oppure i pattern
 /// espliciti in <see cref="AuthOptions.AdminStaffCodes"/>: editano tutto e gestiscono i grant. Gli altri
-/// editano una FIR solo con un <see cref="Vipi.Domain.Entities.EditGrant"/>. Verifica sempre server-side.
+/// editano una ACC solo con un <see cref="Vipi.Domain.Entities.EditGrant"/>. Verifica sempre server-side.
 /// </summary>
 public interface IEditAuthorizationService
 {
@@ -17,18 +17,18 @@ public interface IEditAuthorizationService
     int? CurrentUserId { get; }
     string? CurrentName { get; }
 
-    Task EnsureCanEditFirAsync(string firCode, CancellationToken ct = default);
+    Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default);
     Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default);
 
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare la FIR (admin o grant).</summary>
-    Task<bool> CanEditFirAsync(string firCode, CancellationToken ct = default);
+    /// <summary>Check non-throwing per la UI: true se l'utente può editare la ACC (admin o grant).</summary>
+    Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare il documento (admin o grant sulla sua FIR).</summary>
+    /// <summary>Check non-throwing per la UI: true se l'utente può editare il documento (admin o grant sulla sua ACC).</summary>
     Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default);
 
     // Gestione grant (solo admin)
     Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default);
-    Task<int> AddGrantAsync(int UserId, string? displayName, string firCode, CancellationToken ct = default);
+    Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default);
     Task RevokeGrantAsync(int grantId, CancellationToken ct = default);
     void EnsureAdmin();
 }
@@ -73,34 +73,34 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
     public int? CurrentUserId => _user.Get()?.UserId;
     public string? CurrentName => _user.Get()?.Name;
 
-    public async Task EnsureCanEditFirAsync(string firCode, CancellationToken ct = default)
+    public async Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default)
     {
         if (IsAdmin) return;
         var u = _user.Get();
-        if (u is not null && await _grants.HasGrantAsync(u.UserId, firCode, ct)) return;
+        if (u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct)) return;
         throw new EditNotAllowedException();
     }
 
-    public async Task<bool> CanEditFirAsync(string firCode, CancellationToken ct = default)
+    public async Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default)
     {
         if (IsAdmin) return true;
         var u = _user.Get();
-        return u is not null && await _grants.HasGrantAsync(u.UserId, firCode, ct);
+        return u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct);
     }
 
     public async Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default)
     {
         if (IsAdmin) return;
-        var fir = await _grants.GetDocumentFirCodeAsync(documentId, ct)
+        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct)
             ?? throw new EditNotAllowedException();
-        await EnsureCanEditFirAsync(fir, ct);
+        await EnsureCanEditAccAsync(acc, ct);
     }
 
     public async Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default)
     {
         if (IsAdmin) return true;
-        var fir = await _grants.GetDocumentFirCodeAsync(documentId, ct);
-        return fir is not null && await CanEditFirAsync(fir, ct);
+        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct);
+        return acc is not null && await CanEditAccAsync(acc, ct);
     }
 
     public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default)
@@ -109,10 +109,10 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
         return _grants.ListAsync(ct);
     }
 
-    public Task<int> AddGrantAsync(int UserId, string? displayName, string firCode, CancellationToken ct = default)
+    public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default)
     {
         EnsureAdmin();
-        return _grants.AddAsync(UserId, displayName, firCode, CurrentUserId ?? 0, ct);
+        return _grants.AddAsync(UserId, displayName, accCode, CurrentUserId ?? 0, ct);
     }
 
     public Task RevokeGrantAsync(int grantId, CancellationToken ct = default)

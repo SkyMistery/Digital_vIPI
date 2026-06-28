@@ -7,7 +7,7 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Aor;
 
 /// <summary>
-/// Costruisce la <see cref="Topology"/> pura (Application) leggendo l'anagrafica di una FIR dal DB.
+/// Costruisce la <see cref="Topology"/> pura (Application) leggendo l'anagrafica di una ACC dal DB.
 /// Qui vive la conoscenza del formato JSON delle <c>UnificationRule</c>; la logica AoR resta DB-agnostica.
 /// Implementa <see cref="ITopologyProvider"/> (porta usata da Application/UI).
 /// </summary>
@@ -17,16 +17,16 @@ public sealed class TopologyBuilder : ITopologyProvider
 
     public TopologyBuilder(VipiDbContext db) => _db = db;
 
-    public async Task<Topology?> BuildByFirCodeAsync(string firCode, CancellationToken ct = default)
+    public async Task<Topology?> BuildByAccCodeAsync(string accCode, CancellationToken ct = default)
     {
-        var firId = await _db.Firs.Where(f => f.Code == firCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct);
-        return firId is int id ? await BuildAsync(id, ct) : null;
+        var accId = await _db.Accs.Where(f => f.Code == accCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct);
+        return accId is int id ? await BuildAsync(id, ct) : null;
     }
 
-    public async Task<Topology> BuildAsync(int firId, CancellationToken ct = default)
+    public async Task<Topology> BuildAsync(int accId, CancellationToken ct = default)
     {
         // Settore == posizione: callsign + padre (contenimento ad albero).
-        var sectors = await _db.Sectors.Where(s => s.FirId == firId)
+        var sectors = await _db.Sectors.Where(s => s.AccId == accId)
             .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
         var callsignById = sectors.ToDictionary(s => s.Id, s => s.Callsign);
 
@@ -37,7 +37,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             .ToDictionary(s => s.Callsign, s => callsignById[s.ParentSectorId!.Value],
                 StringComparer.OrdinalIgnoreCase);
 
-        var rules = await _db.UnificationRules.Where(u => u.FirId == firId && u.IsActive)
+        var rules = await _db.UnificationRules.Where(u => u.AccId == accId && u.IsActive)
             .OrderBy(u => u.Priority).ToListAsync(ct);
 
         var ruleSpecs = rules.Select(r => new UnificationRuleSpec(

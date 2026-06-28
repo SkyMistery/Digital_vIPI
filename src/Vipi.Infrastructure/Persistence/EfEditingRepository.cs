@@ -23,7 +23,7 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default)
     {
         var docs = await _db.Documents
-            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -241,8 +241,8 @@ public sealed class EfEditingRepository : IEditingRepository
         return doc.Id;
     }
 
-    public async Task<string?> GetFirCodeBySectorAsync(int sectorId, CancellationToken ct = default) =>
-        await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Fir!.Code).FirstOrDefaultAsync(ct);
+    public async Task<string?> GetAccCodeBySectorAsync(int sectorId, CancellationToken ct = default) =>
+        await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default)
     {
@@ -583,6 +583,6 @@ public sealed class EfEditingRepository : IEditingRepository
         if (s is null) return "—";
         if (s.Kind == SectorKind.Airport)
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
-        return s.Fir?.Code ?? s.Callsign;
+        return s.Acc?.Code ?? s.Callsign;
     }
 }

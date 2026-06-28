@@ -18,7 +18,7 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && d.Status == DocumentStatus.Published
-                 && d.Sectors.Any(s => s.Kind == SectorKind.Acc && s.Fir!.Code == accCode),
+                 && d.Sectors.Any(s => s.Kind == SectorKind.Acc && s.Acc!.Code == accCode),
             ct);
     }
 
@@ -36,7 +36,7 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vloa
                  && d.Status == DocumentStatus.Published
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Fir!.Code == accCode),
+                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == accCode),
             ct);
     }
 

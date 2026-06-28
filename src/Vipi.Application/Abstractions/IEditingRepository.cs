@@ -28,8 +28,8 @@ public interface IEditingRepository
         IReadOnlyList<int>? scopeSectorIds, int? primarySectorId,
         (int homeSectorId, int neighbourSectorId)? parties, int authorUserId, CancellationToken ct = default);
 
-    /// <summary>Codice FIR del settore (per l'autorizzazione FIR-scoped alla creazione). Null se il settore non esiste.</summary>
-    Task<string?> GetFirCodeBySectorAsync(int sectorId, CancellationToken ct = default);
+    /// <summary>Codice ACC del settore (per l'autorizzazione ACC-scoped alla creazione). Null se il settore non esiste.</summary>
+    Task<string?> GetAccCodeBySectorAsync(int sectorId, CancellationToken ct = default);
 
     /// <summary>Aggiorna i campi editabili di un blocco. Errore se il blocco non appartiene a una versione bozza.</summary>
     Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
@@ -61,7 +61,7 @@ public interface IEditingRepository
     /// <summary>Storico versioni di un documento (più recente prima).</summary>
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
 
-    // Risoluzione del documento proprietario (per l'autorizzazione FIR-scoped sulle op annidate).
+    // Risoluzione del documento proprietario (per l'autorizzazione ACC-scoped sulle op annidate).
     Task<int?> GetDocumentIdByVersionAsync(int versionId, CancellationToken ct = default);
     Task<int?> GetDocumentIdBySectionAsync(int sectionId, CancellationToken ct = default);
     Task<int?> GetDocumentIdByBlockAsync(int blockId, CancellationToken ct = default);

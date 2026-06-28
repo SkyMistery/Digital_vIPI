@@ -15,7 +15,7 @@ public sealed class EfChangesRepository : IChangesRepository
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
-            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             .Include(d => d.CurrentVersion)
             .AsNoTracking().ToListAsync(ct);
 
@@ -25,23 +25,23 @@ public sealed class EfChangesRepository : IChangesRepository
             var cur = d.CurrentVersion!;
             if (cur.AiracCycle != airacCycle) continue;
 
-            // FIR + rotta
-            string? fir; string urlBase;
+            // ACC + rotta
+            string? acc; string urlBase;
             if (d.Type == DocumentType.Vloa)
             {
-                fir = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Sector!.Fir!.Code).FirstOrDefaultAsync(ct);
+                acc = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
+                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
                 urlBase = $"vloa/{d.Id}";
             }
             else
             {
                 var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-                fir = primary?.Fir?.Code;
+                acc = primary?.Acc?.Code;
                 urlBase = primary?.Kind == SectorKind.Airport
                     ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
                     : "vipi";
             }
-            if (fir is null) continue;
+            if (acc is null) continue;
 
             // versione precedente (numero più alto < corrente)
             var prevVersionId = await _db.DocumentVersions
@@ -57,8 +57,8 @@ public sealed class EfChangesRepository : IChangesRepository
             {
                 DocTitle = d.Title,
                 Type = d.Type,
-                FirCode = fir,
-                Url = $"/vsop/{fir.ToLowerInvariant()}/{urlBase}",
+                AccCode = acc,
+                Url = $"/vsop/{acc.ToLowerInvariant()}/{urlBase}",
                 VersionNumber = cur.VersionNumber,
                 Note = cur.Note,
                 PublishedByUserId = cur.CreatedByUserId,

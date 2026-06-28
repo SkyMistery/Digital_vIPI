@@ -35,11 +35,11 @@ public sealed class HostIdentityCurrentUserProvider : ICurrentUserProvider
             .Select(c => principal.FindFirst(c)?.Value)
             .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? $"UserId {UserId}";
 
-        var fir = principal.FindFirst(_opt.FirClaim)?.Value;
+        var acc = principal.FindFirst(_opt.AccClaim)?.Value;
 
         var positions = ExtractStaffPositions(principal.FindAll(_opt.StaffPositionsClaim).Select(c => c.Value));
 
-        return new CurrentUser(UserId, name, string.IsNullOrWhiteSpace(fir) ? null : fir, positions)
+        return new CurrentUser(UserId, name, string.IsNullOrWhiteSpace(acc) ? null : acc, positions)
         {
             CanEdit = positions.Count > 0,
         };

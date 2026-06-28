@@ -39,7 +39,7 @@ public sealed class DevCurrentUserProvider : ICurrentUserProvider
                 return new CurrentUser(
                     UserId: info.UserId,
                     Name: info.Nickname ?? $"UserId {info.UserId}",
-                    Fir: null,
+                    Acc: null,
                     StaffPositions: info.StaffPositionCodes)
                 {
                     CanEdit = info.StaffPositionCodes.Count > 0,

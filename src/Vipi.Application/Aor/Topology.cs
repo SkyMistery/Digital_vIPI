@@ -1,13 +1,13 @@
 namespace Vipi.Application.Aor;
 
 /// <summary>
-/// Vista in-memory, pura e DB-agnostica, della topologia di una FIR: contenimento (albero) + regole.
+/// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + regole.
 /// Settore == posizione: ogni settore è identificato dal proprio callsign e possiede sé stesso di default.
 /// SPEC_Logica_AoR §2-3.
 /// </summary>
 public sealed class Topology
 {
-    /// <summary>Tutti i callsign dei settori della FIR (radici incluse, anche senza figli).</summary>
+    /// <summary>Tutti i callsign dei settori della ACC (radici incluse, anche senza figli).</summary>
     public required IReadOnlyCollection<string> Sectors { get; init; }
 
     /// <summary>Padre top-down (contenimento) di ogni settore (childCallsign → parentCallsign). Radici assenti.</summary>

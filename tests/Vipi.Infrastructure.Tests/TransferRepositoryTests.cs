@@ -42,7 +42,7 @@ public class TransferRepositoryTests : IAsyncLifetime
     {
         await _repo.AddAsync("LIRR", Input(new[] { "ES2", "WS2" }));
 
-        var rows = await _repo.ListByFirAsync("LIRR");
+        var rows = await _repo.ListByAccAsync("LIRR");
         var row = Assert.Single(rows);
         Assert.Equal(new[] { "ES2", "WS2" }, row.HandlerChain); // ordine preservato
         Assert.Equal("UNICOM", row.StandardFallback);
@@ -54,18 +54,18 @@ public class TransferRepositoryTests : IAsyncLifetime
         var id = await _repo.AddAsync("LIRR", Input(new[] { "WS2" }));
 
         await _repo.UpdateAsync("LIRR", id, Input(new[] { "ES2", "WS2", "CE1" }));
-        var updated = (await _repo.ListByFirAsync("LIRR")).Single();
+        var updated = (await _repo.ListByAccAsync("LIRR")).Single();
         Assert.Equal(3, updated.HandlerChain.Count);
 
         await _repo.DeleteAsync("LIRR", id);
-        Assert.Empty(await _repo.ListByFirAsync("LIRR"));
+        Assert.Empty(await _repo.ListByAccAsync("LIRR"));
     }
 
     [Fact]
     public async Task Seed_Populates_Demo_Transfers()
     {
         await RomaTransferSeed.SeedAsync(_db);
-        var rows = await _repo.ListByFirAsync("LIRR");
+        var rows = await _repo.ListByAccAsync("LIRR");
         Assert.NotEmpty(rows);
         Assert.Contains(rows, r => r.Cop == "DEVOX" && r.HandlerChain.SequenceEqual(new[] { "ES2", "WS2" }));
     }

@@ -9,9 +9,9 @@
 <PageTitle>Topologia settori — @(_acc?.Name) · IVAO Italia</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <a href="/vsop/@Acc?.ToLowerInvariant()">FIR @_acc?.Code</a> › <b>Topologia settori</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <a href="/vsop/@Acc?.ToLowerInvariant()">ACC @_acc?.Code</a> › <b>Topologia settori</b></div>
     <div class="ed-toolbar">
-        <h2 style="margin:0;flex:1">Topologia settori — FIR @_acc?.Code</h2>
+        <h2 style="margin:0;flex:1">Topologia settori — ACC @_acc?.Code</h2>
         <span class="pill grey">Simulatore live (motore reale)</span>
     </div>
 
@@ -21,7 +21,7 @@
     }
     else if (_topology is null)
     {
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Topologia non disponibile</p>Nessuna anagrafica per la FIR @_acc.Code.</div></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Topologia non disponibile</p>Nessuna anagrafica per la ACC @_acc.Code.</div></div>
     }
     else
     {
@@ -188,10 +188,10 @@
 
     private async Task LoadAllAsync(bool resetSim)
     {
-        _topology = await Topo.BuildByFirCodeAsync(_acc!.Code);
+        _topology = await Topo.BuildByAccCodeAsync(_acc!.Code);
         if (_topology is null) return;
 
-        // Posizioni della FIR = unione dei callsign citati nella topologia.
+        // Posizioni della ACC = unione dei callsign citati nella topologia.
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var k in _topology.Sectors) set.Add(k);
         foreach (var kv in _topology.Parent) { set.Add(kv.Key); set.Add(kv.Value); }

@@ -17,7 +17,7 @@ public class RomaAorIntegrationTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
-    private int _firId;
+    private int _accId;
 
     private readonly AorService _aor = new();
 
@@ -27,7 +27,7 @@ public class RomaAorIntegrationTests : IAsyncLifetime
         var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
         _db = new VipiDbContext(options);
         await _db.Database.EnsureCreatedAsync();
-        _firId = await RomaStructureSeed.SeedAsync(_db);
+        _accId = await RomaStructureSeed.SeedAsync(_db);
     }
 
     public async Task DisposeAsync()
@@ -38,7 +38,7 @@ public class RomaAorIntegrationTests : IAsyncLifetime
 
     private async Task<AorResult> Resolve(string p, params string[] online)
     {
-        var topology = await new TopologyBuilder(_db).BuildAsync(_firId);
+        var topology = await new TopologyBuilder(_db).BuildAsync(_accId);
         return _aor.Resolve(topology, p, new HashSet<string>(online, StringComparer.OrdinalIgnoreCase));
     }
 

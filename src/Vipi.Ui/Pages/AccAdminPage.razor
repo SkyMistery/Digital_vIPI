@@ -1,0 +1,239 @@
+@page "/vsop/admin/acc"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IAccAdminService Acc
+@inject IEditAuthorizationService Authz
+
+<PageTitle>ACC · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>ACC</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">ACC</h2><span class="muted">Area Control Center importati dalla sorgente. Tutti attivi: nascondine alcuni se serve.</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+    }
+    else
+    {
+        @if (_msg is not null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
+        }
+        @if (_ok is not null)
+        {
+            <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
+        }
+
+        <div class="section-title">
+            <h3>ACC <span class="pill blue">@_accs.Count</span></h3><span class="ln"></span>
+            <button class="btn primary" disabled="@_busy" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">⟳ Importa da sorgente</button>
+            <a class="btn ghost" href="/vsop/admin/sectorstructure">Struttura settori →</a>
+        </div>
+        <div class="block">
+            <div class="field"><input placeholder="🔎 filtra per codice o nome…" @bind="_q" @bind:event="oninput" /></div>
+            @if (_accs.Count == 0)
+            {
+                <p class="help">Nessun ACC. Premi «Importa da sorgente» per popolare l'elenco.</p>
+            }
+            else if (!ShownAccs().Any())
+            {
+                <p class="help">Nessun risultato per «@_q».</p>
+            }
+            else
+            {
+                <table class="res-table">
+                    <thead><tr><th>Codice</th><th>Nome</th><th>Militare</th><th>Stato</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var a in ShownAccs())
+                        {
+                            <tr style="@(a.IsHidden ? "opacity:.5" : "")">
+                                <td><b>@a.Code</b></td>
+                                <td>@a.Name</td>
+                                <td>@(a.IsMilitary ? "🪖 sì" : "—")</td>
+                                <td>
+                                    @if (a.IsHidden)
+                                    {
+                                        <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                    }
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
+                                        @(a.IsHidden ? "👁 Mostra" : "🚫 Nascondi")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="section-title"><h3>Settori ACC <span class="pill blue">@_subs.Count</span></h3><span class="ln"></span></div>
+        <div class="block">
+            <p class="muted" style="font-size:11.5px;margin:0 0 8px">Subcenter importati dalla sorgente (callsign · ACC · position · middle id · freq · shape). I limiti di quota li imposti tu. I settori di un ACC nascosto risultano nascosti.</p>
+            <div class="field"><input placeholder="🔎 filtra per callsign, ACC, position…" @bind="_qSub" @bind:event="oninput" /></div>
+            @if (_subs.Count == 0)
+            {
+                <p class="help">Nessun settore ACC. Premi «Importa da sorgente».</p>
+            }
+            else if (!ShownSubs().Any())
+            {
+                <p class="help">Nessun risultato per «@_qSub».</p>
+            }
+            else
+            {
+                <table class="res-table">
+                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var s in ShownSubs())
+                        {
+                            var eff = s.IsHidden || s.AccHidden;
+                            <tr style="@(eff ? "opacity:.5" : "")">
+                                <td><b>@s.ComposePosition</b></td>
+                                <td><span class="pill blue">@s.CenterId</span></td>
+                                <td>@(s.Position ?? "—")</td>
+                                <td>@(s.MiddleIdentifier ?? "—")</td>
+                                <td>@(s.Frequency ?? "—")</td>
+                                <td>@(s.HasPolygon ? "✓" : "—")</td>
+                                <td><input style="width:70px" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" /></td>
+                                <td><input style="width:70px" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" /></td>
+                                <td>
+                                    @if (s.AccHidden)
+                                    {
+                                        <span class="pill" style="background:#eef1f7;color:#57606a" title="L'ACC è nascosto">nascosto (ACC)</span>
+                                    }
+                                    else if (s.IsHidden)
+                                    {
+                                        <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                    }
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => SaveLimits(s.Id)" title="Salva limiti">💾</button>
+                                    <button class="btn ghost" disabled="@(_busy || s.AccHidden)" @onclick="() => SetSubHidden(s.Id, !s.IsHidden)"
+                                            title="@(s.AccHidden ? "L'ACC è nascosto: mostra prima l'ACC" : "Mostra/nascondi")">
+                                        @(s.IsHidden ? "👁" : "🚫")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AccAdminRow> _accs = Array.Empty<AccAdminRow>();
+    private IReadOnlyList<AccSectorRow> _subs = Array.Empty<AccSectorRow>();
+    private readonly Dictionary<int, int?> _lower = new();
+    private readonly Dictionary<int, int?> _upper = new();
+    private string _q = "";
+    private string _qSub = "";
+    private bool _busy;
+    private string? _msg;
+    private string? _ok;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _accs = await Acc.ListAccsAsync();
+        _subs = await Acc.ListSubcentersAsync();
+        _lower.Clear(); _upper.Clear();
+        foreach (var s in _subs) { _lower[s.Id] = s.LowerLimit; _upper[s.Id] = s.UpperLimit; }
+    }
+
+    private IEnumerable<AccAdminRow> ShownAccs() =>
+        _accs.Where(a => string.IsNullOrWhiteSpace(_q)
+            || a.Code.Contains(_q, StringComparison.OrdinalIgnoreCase)
+            || a.Name.Contains(_q, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<AccSectorRow> ShownSubs() =>
+        _subs.Where(s => string.IsNullOrWhiteSpace(_qSub)
+            || s.ComposePosition.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+            || s.CenterId.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+            || (s.Position ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+            || (s.MiddleIdentifier ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase));
+
+    // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
+    private static int ParseLower(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("GND", StringComparison.OrdinalIgnoreCase)) return 0;
+        return int.TryParse(s, out var n) ? Math.Max(0, n) : 0;
+    }
+
+    // Limite superiore: "UNL"/vuoto = null (illimitato); altrimenti la quota in ft.
+    private static int? ParseUpper(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("UNL", StringComparison.OrdinalIgnoreCase)) return null;
+        return int.TryParse(s, out var n) ? n : (int?)null;
+    }
+
+    private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
+    private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
+
+    private async Task Import()
+    {
+        _busy = true; _msg = null; _ok = null;
+        try
+        {
+            var r = await Acc.ImportFromSourceAsync();
+            await ReloadAsync();
+            _ok = $"Import completato. ACC: {r.AccsCreated} creati, {r.AccsUpdated} aggiornati · " +
+                  $"Settori ACC: {r.SubcentersCreated} creati, {r.SubcentersUpdated} aggiornati.";
+        }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SetHidden(int accId, bool hidden)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try { await Acc.SetHiddenAsync(accId, hidden); await ReloadAsync(); }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SetSubHidden(int id, bool hidden)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try { await Acc.SetSubcenterHiddenAsync(id, hidden); await ReloadAsync(); }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveLimits(int id)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try
+        {
+            await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
+            await ReloadAsync();
+            _ok = "Limiti salvati.";
+        }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+}

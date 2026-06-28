@@ -2,11 +2,11 @@ using Vipi.Application.Abstractions;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Informazioni di un ACC per la navigazione documentale (derivato dalle FIR nel DB).</summary>
+/// <summary>Informazioni di un ACC per la navigazione documentale (derivato dalle ACC nel DB).</summary>
 public sealed record AccInfo(string Code, string Name);
 
 /// <summary>
-/// Risolve la navigazione per ACC dalle FIR esistenti nel DB (via <see cref="IStationDirectory"/>).
+/// Risolve la navigazione per ACC dalle ACC esistenti nel DB (via <see cref="IStationDirectory"/>).
 /// </summary>
 public interface IStationResolver
 {

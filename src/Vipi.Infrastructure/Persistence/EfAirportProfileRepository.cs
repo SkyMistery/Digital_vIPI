@@ -21,12 +21,12 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
     private static readonly string[] ManagedSectionTitles =
         { "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
 
-    public async Task<string?> GetFirCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
-        await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Fir!.Code).FirstOrDefaultAsync(ct);
+    public async Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
+        await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task<AirportProfileData?> LoadAsync(string icao, CancellationToken ct = default)
     {
-        var airport = await _db.Airports.AsNoTracking().Include(a => a.Fir)
+        var airport = await _db.Airports.AsNoTracking().Include(a => a.Acc)
             .FirstOrDefaultAsync(a => a.Icao == icao, ct);
         if (airport is null) return null;
 
@@ -64,7 +64,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
 
         return new AirportProfileData
         {
-            AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, FirCode = airport.Fir!.Code,
+            AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt, AtisFrequency = airport.AtisFrequency,
             TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, OwnFrequencies = own, Links = links,
         };

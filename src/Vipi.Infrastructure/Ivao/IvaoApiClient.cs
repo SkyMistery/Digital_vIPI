@@ -11,7 +11,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// Adapter HTTP verso le API IVAO v2 (typed HttpClient). Legge il riepilogo ATC online e l'elenco
 /// membri divisione, normalizzando in modelli dell'Application. PIANO §7.1. Filtro per prefisso ICAO.
 /// </summary>
-public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IAirportDirectory, IAirportDetailProvider
+public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IAirportDirectory, IAirportDetailProvider, IAccDirectory
 {
     private readonly HttpClient _http;
     private readonly IvaoTokenProvider _token;
@@ -154,6 +154,145 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default)
+    {
+        if (!_token.IsConfigured)
+            throw new InvalidOperationException(
+                "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere l'anagrafica ACC/center.");
+
+        // Parsing tollerante: la risposta può essere paginata ({items,pages}) o un array nudo, e i nomi dei
+        // campi variano tra endpoint. Estraiamo via JsonDocument senza vincolarci a un DTO rigido.
+        var all = new List<SourceCenter>();
+        int rawItems = 0;
+        string lastSnippet = "";
+        for (int page = 1; ; page++)
+        {
+            var path = $"{_opt.CentersPath}?page={page}&countryId={Uri.EscapeDataString(_opt.AirportsCountryId)}";
+            using var req = new HttpRequestMessage(HttpMethod.Get, Combine(path));
+            await AuthorizeAsync(req, ct);
+
+            using var res = await _http.SendAsync(req, ct);
+            var body = await res.Content.ReadAsStringAsync(ct);
+            if (!res.IsSuccessStatusCode)
+            {
+                var s = string.IsNullOrWhiteSpace(body) ? "" : $" — {body[..Math.Min(body.Length, 200)]}";
+                throw new InvalidOperationException(
+                    $"IVAO {(int)res.StatusCode} {res.StatusCode} su {_opt.CentersPath} (scope: {_opt.Scopes}).{s}");
+            }
+            lastSnippet = body.Length > 300 ? body[..300] : body;
+
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            bool paginated = root.ValueKind == System.Text.Json.JsonValueKind.Object;
+            int pages = 1;
+            System.Text.Json.JsonElement items;
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Array) items = root;
+            else if (!root.TryGetProperty("items", out items)) root.TryGetProperty("data", out items);
+            if (paginated)
+            {
+                if (root.TryGetProperty("pages", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Number) pages = p.GetInt32();
+                else if (root.TryGetProperty("totalPages", out var tp) && tp.ValueKind == System.Text.Json.JsonValueKind.Number) pages = tp.GetInt32();
+            }
+
+            if (items.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var it in items.EnumerateArray())
+                {
+                    rawItems++;
+                    var callsign = (JsonStr(it, "composePosition") ?? JsonStr(it, "id") ?? "").Trim().ToUpperInvariant();
+                    var centerId = (JsonStr(it, "centerId") ?? (callsign.Contains('_') ? callsign.Split('_')[0] : callsign)).Trim().ToUpperInvariant();
+                    if (callsign.Length == 0 && centerId.Length > 0) callsign = $"{centerId}_CTR";
+                    if (callsign.Length == 0) continue;
+                    var name = JsonStr(it, "atcCallsign") ?? JsonStr(it, "name") ?? callsign;
+                    var military = JsonBool(it, "military") || JsonBool(it, "isMilitary");
+                    all.Add(new SourceCenter(callsign, centerId, name.Trim(), military, FormatFrequency(JsonNum(it, "frequency"))));
+                }
+            }
+
+            if (!paginated || page >= Math.Max(1, pages)) break;
+        }
+
+        if (all.Count == 0)
+            throw new InvalidOperationException(
+                $"/v2/centers: nessun ACC riconosciuto (elementi grezzi letti: {rawItems}). " +
+                $"Verifica endpoint/scope o segnala lo schema. Risposta: {lastSnippet}");
+
+        return all.OrderBy(c => c.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SourceSubcenter>> GetSubcentersAsync(string accIcao, CancellationToken ct = default)
+    {
+        if (!_token.IsConfigured)
+            throw new InvalidOperationException(
+                "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere i subcenter.");
+
+        accIcao = (accIcao ?? "").Trim().ToUpperInvariant();
+        if (accIcao.Length == 0) return Array.Empty<SourceSubcenter>();
+
+        // 1) Lista subcenter dell'ACC: composePosition, centerId, position, middleIdentifier.
+        var listPath = string.Format(_opt.SubcentersPathFormat, Uri.EscapeDataString(accIcao));
+        var listBody = await GetStringAsync(listPath, ct);
+        if (listBody is null) return Array.Empty<SourceSubcenter>();
+
+        var basics = new List<(string Compose, string Center, string? Pos, string? Mid)>();
+        using (var doc = System.Text.Json.JsonDocument.Parse(listBody))
+        {
+            var root = doc.RootElement;
+            var items = root.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? root
+                : (root.TryGetProperty("items", out var it) ? it
+                    : (root.TryGetProperty("data", out var dt) ? dt : default));
+            if (items.ValueKind == System.Text.Json.JsonValueKind.Array)
+                foreach (var s in items.EnumerateArray())
+                {
+                    var compose = (JsonStr(s, "composePosition") ?? JsonStr(s, "id") ?? "").Trim().ToUpperInvariant();
+                    if (compose.Length == 0) continue;
+                    var center = (JsonStr(s, "centerId") ?? accIcao).Trim().ToUpperInvariant();
+                    basics.Add((compose, center, JsonStr(s, "position"), JsonStr(s, "middleIdentifier")));
+                }
+        }
+
+        // 2) Dettaglio per ogni subcenter: frequency + regionMapPolygon (best-effort).
+        var result = new List<SourceSubcenter>(basics.Count);
+        foreach (var b in basics)
+        {
+            string? freq = null, polygon = null;
+            var detailBody = await GetStringAsync(string.Format(_opt.SubcenterDetailPathFormat, Uri.EscapeDataString(b.Compose)), ct);
+            if (detailBody is not null)
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(detailBody);
+                var d = doc.RootElement;
+                freq = FormatFrequency(JsonNum(d, "frequency"));
+                if (d.TryGetProperty("regionMapPolygon", out var poly) && poly.ValueKind != System.Text.Json.JsonValueKind.Null
+                    && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    polygon = poly.GetRawText();
+            }
+            result.Add(new SourceSubcenter(b.Compose, b.Center, b.Pos, b.Mid, freq, polygon));
+        }
+
+        return result;
+    }
+
+    // GET autorizzato che ritorna il body come stringa (null su 4xx/5xx). Best-effort per i dati di riferimento.
+    private async Task<string?> GetStringAsync(string path, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, Combine(path));
+        await AuthorizeAsync(req, ct);
+        using var res = await _http.SendAsync(req, ct);
+        if (!res.IsSuccessStatusCode) return null;
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    private static string? JsonStr(System.Text.Json.JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+    private static bool JsonBool(System.Text.Json.JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+    private static double? JsonNum(System.Text.Json.JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number ? v.GetDouble() : null;
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<SourceAtcPosition>> GetAtcPositionsAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
@@ -258,7 +397,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
     private sealed record StaffPosDto(
         [property: JsonPropertyName("id")] string? Id);
 
-    // /v2/airports?countryId=…: pagina + solo i campi utili all'editor. centerId = FIR di competenza.
+    // /v2/airports?countryId=…: pagina + solo i campi utili all'editor. centerId = ACC di competenza.
     private sealed record AirportsPageDto(
         [property: JsonPropertyName("items")] List<AirportDto>? Items,
         [property: JsonPropertyName("pages")] int Pages);

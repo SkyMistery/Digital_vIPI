@@ -53,7 +53,7 @@ public class ImportPolicyTests : IAsyncLifetime
         _store = new EfImportPolicyStore(_db);
 
         var structRepo = new EfStructureEditingRepository(_db);
-        await structRepo.CreateFirAsync("LIRR", "Roma FIR", "LI");
+        await structRepo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await structRepo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
     }
 
