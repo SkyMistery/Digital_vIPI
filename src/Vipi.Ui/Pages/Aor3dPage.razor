@@ -1,11 +1,11 @@
-@page "/sop/{Acc}/aor3d"
+﻿@* DISABILITATA (rebuild /vsop, Round 12) — rotta rimossa. Ex: "/vsop/{Acc}/aor3d". Vedi PAGINE_DISABILITATE.md *@
 @layout SopLayout
 @inject IStationResolver Stations
 
 <PageTitle>AoR 3D — @(_acc?.Name) · IVAO Italia</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc?.Name</a> › <b>AoR 3D</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc?.Name</a> › <b>AoR 3D</b></div>
     <div class="doc-head"><div><h2 style="margin-bottom:2px">AoR 3D — @_acc?.Name</h2><span class="muted">Volumi dei settori per quota · interagenze laterali e verticali</span></div><span class="airac">📅 AIRAC 2606</span></div>
     <div class="callout info"><span class="cic">🧊</span><div><p class="ct">Vista tridimensionale</p>Ogni settore è un <b>volume</b> esteso dalla sua quota inferiore a quella superiore. Le sovrapposizioni mostrano le interagenze (es. un settore basso sotto uno alto). <em>Rappresentazione statica: la resa 3D interattiva (Three.js, orbit/zoom) e le shape reali dal database IVAO arrivano in una fase successiva.</em></div></div>
     <div class="aor3d-bar">

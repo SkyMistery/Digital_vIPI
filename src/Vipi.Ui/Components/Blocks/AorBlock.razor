@@ -1,14 +1,8 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using System.Text.Json
-@inject NavigationManager Nav
 
 <div class="aor-block">
-    @if (_acc is not null)
-    {
-        <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
-            <a class="btn ghost" href="/sop/@_acc/aor3d" style="padding:6px 12px;font-size:12.5px;text-decoration:none">🧊 Vista 3D ↗</a>
-        </div>
-    }
+    @* Link "Vista 3D" rimosso: la pagina AoR 3D è disabilitata (rebuild /vsop, Round 12). *@
     <div class="aor-toggles">
         @foreach (var s in _sectors)
         {
@@ -50,15 +44,10 @@
 
     private List<Sec> _sectors = new();
     private List<Cfg> _configs = new();
-    private string? _acc;
 
     protected override void OnParametersSet()
     {
         _sectors = new(); _configs = new();
-
-        // Ricava il codice ACC dall'URL (/sop/{acc}/vipi) per il link alla Vista 3D.
-        var segs = new Uri(Nav.Uri).AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        _acc = segs.Length >= 2 && segs[0].Equals("sop", StringComparison.OrdinalIgnoreCase) ? segs[1] : null;
 
         if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
         try

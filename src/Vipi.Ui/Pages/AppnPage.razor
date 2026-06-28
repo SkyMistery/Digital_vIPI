@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/app"
+﻿@page "/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 
@@ -11,7 +11,7 @@ else
     <PageTitle>LIRP_APP — Pisa · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>LIRP_APP · Pisa (non remotizzato)</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>LIRP_APP · Pisa (non remotizzato)</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
@@ -116,6 +116,7 @@ else
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? Icao { get; set; }
     private AccInfo? _acc;
     protected override void OnParametersSet() => _acc = Stations.Resolve(Acc);
 }

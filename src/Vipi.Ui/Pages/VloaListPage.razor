@@ -1,0 +1,50 @@
+@page "/vsop/{Acc}/vloa"
+@layout SopLayout
+@inject IStationResolver Stations
+@inject IStructureEditingService Structure
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>vLOA @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <div class="wrap reading-cap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vLOA</b></div>
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Lettere di accordo con i centri confinanti sotto la FIR di @_acc.Code.</p></div>
+        </div>
+        @if (_vloas.Count == 0)
+        {
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono ancora lettere di accordo pubblicate per questa FIR.</div></div>
+        }
+        else
+        {
+            <div class="choice-grid" style="margin-top:14px">
+                @foreach (var v in _vloas)
+                {
+                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/@v.DocId" style="text-decoration:none;color:inherit">
+                        <h4><span class="ic">🤝</span> @v.Title</h4>
+                        <p class="muted">@(v.Neighbour ?? "Lettera di accordo bilaterale")</p>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private AccInfo? _acc;
+    private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        var data = await Structure.LoadAsync(_acc.Code);
+        _vloas = data?.Vloas.OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title).ToList()
+            ?? (IReadOnlyList<VloaRow>)Array.Empty<VloaRow>();
+    }
+}

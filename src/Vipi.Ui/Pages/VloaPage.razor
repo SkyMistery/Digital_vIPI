@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/vloa"
+﻿@page "/vsop/{Acc}/vloa/{DocId:int}"
 @layout SopLayout
 @inject IVipiViewService ViewService
 @inject IStationResolver Stations
@@ -10,8 +10,8 @@
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vLOA</b></div>
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLOA pubblicata per @_acc.Name.</div></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>—</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLOA pubblicata con questo identificativo per @_acc.Name.</div></div>
     </div>
 }
 else
@@ -19,7 +19,7 @@ else
     <PageTitle>@_view.Title · IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_view.Title</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">Contents</p>
@@ -49,6 +49,7 @@ else
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
+    [Parameter] public int DocId { get; set; }
 
     private AccInfo? _acc;
     private DocumentView? _view;
@@ -57,6 +58,6 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) { _view = null; return; }
-        _view = await ViewService.BuildVloaAsync(_acc.Code, BlockTier.Extended, live: false);
+        _view = await ViewService.BuildVloaByIdAsync(DocId, BlockTier.Extended, live: false);
     }
 }

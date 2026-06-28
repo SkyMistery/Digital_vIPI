@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/topologia"
+﻿@page "/vsop/{Acc}/topologia"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -9,7 +9,7 @@
 <PageTitle>Topologia settori — @(_acc?.Name) · IVAO Italia</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/sop">Admin</a> › <a href="/sop/@Acc?.ToLowerInvariant()">FIR @_acc?.Code</a> › <b>Topologia settori</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <a href="/vsop/@Acc?.ToLowerInvariant()">FIR @_acc?.Code</a> › <b>Topologia settori</b></div>
     <div class="ed-toolbar">
         <h2 style="margin:0;flex:1">Topologia settori — FIR @_acc?.Code</h2>
         <span class="pill grey">Simulatore live (motore reale)</span>
@@ -42,7 +42,7 @@
                         {
                             <li class="h2">
                                 <span class="pos">@h.ChildCallsign</span><span class="sct">⊂ @h.ParentCallsign</span>
-                                @if (_canEdit) { <button class="btn ghost" disabled="@_busy" style="margin-left:6px" @onclick="() => DeleteHierarchy(h.Id)">🗑</button> }
+                                @if (_canEdit) { <button class="btn ghost" disabled="@_busy" style="margin-left:6px" @onclick="() => ClearParent(h.ChildSectorId)">🗑</button> }
                             </li>
                         }
                     }
@@ -50,10 +50,10 @@
                 @if (_canEdit && _edit is not null)
                 {
                     <div class="field" style="border-top:1px solid #e3e7f0;padding-top:8px;margin-top:6px">
-                        <label>Nuova relazione (figlio ⊂ padre)</label>
+                        <label>Imposta contenimento (figlio ⊂ padre)</label>
                         <div style="display:flex;gap:6px">
-                            <select @bind="_newChild"><option value="0">figlio…</option>@foreach (var p in _edit.Positions) { <option value="@p.Id">@p.Callsign</option> }</select>
-                            <select @bind="_newParent"><option value="0">padre…</option>@foreach (var p in _edit.Positions) { <option value="@p.Id">@p.Callsign</option> }</select>
+                            <select @bind="_newChild"><option value="0">figlio…</option>@foreach (var p in _edit.Sectors) { <option value="@p.Id">@p.Callsign</option> }</select>
+                            <select @bind="_newParent"><option value="0">padre…</option>@foreach (var p in _edit.Sectors) { <option value="@p.Id">@p.Callsign</option> }</select>
                             <button class="btn ghost" disabled="@_busy" @onclick="AddHierarchy">+ </button>
                         </div>
                     </div>
@@ -193,7 +193,7 @@
 
         // Posizioni della FIR = unione dei callsign citati nella topologia.
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var k in _topology.DefaultSectors.Keys) set.Add(k);
+        foreach (var k in _topology.Sectors) set.Add(k);
         foreach (var kv in _topology.Parent) { set.Add(kv.Key); set.Add(kv.Value); }
         _positions = set.OrderBy(x => x).ToList();
 
@@ -255,7 +255,7 @@
 
     private Task ToggleRule(int id, bool active) => EditGuarded(() => TopoEdit.SetRuleActiveAsync(_acc!.Code, id, active));
     private Task DeleteRule(int id) => EditGuarded(() => TopoEdit.DeleteRuleAsync(_acc!.Code, id));
-    private Task DeleteHierarchy(int id) => EditGuarded(() => TopoEdit.DeleteHierarchyAsync(_acc!.Code, id));
+    private Task ClearParent(int childSectorId) => EditGuarded(() => TopoEdit.SetParentAsync(_acc!.Code, childSectorId, null));
 
     private Task AddRule() => EditGuarded(async () =>
     {
@@ -266,7 +266,7 @@
     private Task AddHierarchy() => EditGuarded(async () =>
     {
         if (_newChild == 0 || _newParent == 0) throw new InvalidOperationException("Seleziona figlio e padre.");
-        await TopoEdit.AddHierarchyAsync(_acc!.Code, _newParent, _newChild);
+        await TopoEdit.SetParentAsync(_acc!.Code, _newChild, _newParent);
         _newChild = 0; _newParent = 0;
     });
 }

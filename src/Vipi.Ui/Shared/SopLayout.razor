@@ -1,68 +1,94 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject NavigationManager Nav
 @inject IStationResolver Stations
 @inject ICurrentUserProvider Users
+@inject IEditAuthorizationService Authz
+@inject IEditingService Editing
+@inject IOnlineAtcProvider Online
+@inject IOptions<VipiChromeOptions> Chrome
+@inject IStringLocalizer<SharedResource> L
 
-<div class="topbar">
-    <div class="brand">
-        <span class="logo">vIPI</span>
-        <div>vIPI <small>/ vLOA · IVAO Italia</small></div>
-    </div>
-    <nav class="acc-nav">
-        @foreach (var acc in Stations.Accs)
-        {
-            <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/sop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
-        }
-    </nav>
-    <div class="right">
-        <div class="zoom-ctrl" role="group" aria-label="Zoom pagina">
-            <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
-            <span id="vipiZoomPct" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
-            <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
-        </div>
-        @if (_onDoc)
-        {
-            <div class="tier-toggle">
-                <a class="@(_reduced ? null : "on")" style="text-decoration:none" href="@DocUrl(false)">Estesa</a>
-                <a class="@(_reduced ? "on" : null)" style="text-decoration:none" href="@DocUrl(true)">Ridotta</a>
+<div class="vipi-root">
+<a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
+@if (Chrome.Value.RenderTopbar)
+{
+    <header class="topbar">
+        <a class="brand" href="/vsop" aria-label="Home vIPI / vLOA">
+            <span class="logo">vIPI</span>
+            <div>vIPI <small>@L["Chrome_BrandSubtitle"]</small></div>
+        </a>
+        <nav class="acc-nav" aria-label="@L["Chrome_AccNav"]">
+            @foreach (var acc in Stations.Accs)
+            {
+                <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
+            }
+        </nav>
+        <div class="right">
+            <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
+                <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
+                <span id="vipiZoomPct" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
+                <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
             </div>
-        }
-        <div class="live-badge" style="background:#eceef5;color:#5b6072;border-color:#d7d7dc">
-            <span class="dot" style="background:#c3c7d4;animation:none"></span> Live · non connesso
+            @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
+            @if (_myCallsign is not null)
+            {
+                <div class="live-badge" title="@L["Chrome_ConnectedAs"]">
+                    <span class="dot"></span> @_myCallsign
+                </div>
+            }
+            else
+            {
+                <div class="live-badge" style="background:#eceef5;color:#5b6072;border-color:#d7d7dc">
+                    <span class="dot" style="background:#c3c7d4;animation:none"></span> @L["Chrome_LiveDisconnected"]
+                </div>
+            }
+            @if (_canEdit)
+            {
+                <a class="editor-btn" href="/vsop/editor" title="@L["Chrome_OpenEditor"]">✏️ @L["Chrome_Editor"]</a>
+            }
+            @if (_isAdmin)
+            {
+                <a class="editor-btn icon-only" href="/vsop/admin/permessi" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]">🔑</a>
+            }
+            @if (_user is { } u)
+            {
+                <div class="user-chip"><span class="avatar" title="@u.Name">@Initials(u.Name)</span></div>
+            }
         </div>
-        @if (_user is { } u)
-        {
-            <div class="user-chip"><span class="avatar">@Initials(u.Name)</span></div>
-        }
-    </div>
-</div>
+    </header>
+}
 
-@Body
+<main id="vipi-main">@Body</main>
+</div>
 
 @code {
     private string? _acc;
-    private bool _onDoc;
-    private bool _reduced;
     private CurrentUser? _user;
+    private bool _isAdmin;
+    private bool _canEdit;
+    private string? _myCallsign;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _user = Users.Get();
+
+        // Se l'utente loggato è online come ATC (stesso UserId), mostra il suo callsign nel badge live.
+        _myCallsign = _user is { } cu
+            ? Online.GetCurrent().Details.FirstOrDefault(d => d.UserId == cu.UserId)?.Callsign
+            : null;
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        // /sop/{acc}/{vipi?}
-        _acc = segments.Length >= 2 && segments[0].Equals("sop", StringComparison.OrdinalIgnoreCase)
+        // /vsop/{acc}/{vipi?}
+        _acc = segments.Length >= 2 && segments[0].Equals("vsop", StringComparison.OrdinalIgnoreCase)
             ? segments[1] : null;
-        var leaf = segments.Length >= 3 ? segments[2].ToLowerInvariant() : "";
-        _onDoc = leaf is "vipi" or "ridotta";
-        _reduced = leaf == "ridotta";
+
+        // Tasto Editor: visibile solo a chi può editare almeno un documento (admin o grant).
+        _isAdmin = Authz.IsAdmin;
+        _canEdit = _user is not null && (_isAdmin || (await Editing.ListEditableDocumentsAsync()).Count > 0);
     }
 
     private bool IsActiveAcc(string code) =>
         _acc is not null && code.Equals(_acc, StringComparison.OrdinalIgnoreCase);
-
-    private string DocUrl(bool reduced) =>
-        $"/sop/{_acc?.ToLowerInvariant()}/" + (reduced ? "ridotta" : "vipi");
 
     private static string Initials(string name)
     {

@@ -1,25 +1,34 @@
-@page "/sop/admin/permessi"
+﻿@page "/vsop/admin/permessi"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
 @inject IStationResolver Stations
-@inject IDivisionMembersProvider Members
+@inject IStaffRosterService Roster
 
-<PageTitle>Permessi editing · IVAO Italia</PageTitle>
+<PageTitle>Area AOD / DIR · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/sop">Admin</a> › <b>Permessi editing</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Area AOD / DIR</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Permessi editing</h2><span class="muted">Concedi a un VID il diritto di editare tutti i documenti di una FIR</span></div>
+        <div><h2 style="margin-bottom:2px">Area AOD / DIR</h2><span class="muted">Tutte le funzioni riservate allo staff AOC/AOAC/AOA</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può gestire i permessi.</div></div>
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può accedere a quest'area.</div></div>
     }
     else
     {
-        <div class="callout info"><span class="cic">ℹ️</span><div><p class="ct">Grant per VID</p>Seleziona un CH dall'elenco divisione (API IVAO) oppure inserisci un VID a mano.</div></div>
+        <div class="section-title"><h3>Dashboard</h3><span class="ln"></span></div>
+        <div class="choice-grid">
+            <a class="choice" href="/vsop/admin/struttura" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura</h4><p class="muted">FIR, posizioni, settori, ownership, frequenze e topologia.</p></a>
+            <a class="choice" href="/vsop/editor" style="text-decoration:none;color:inherit"><h4><span class="ic">✏️</span> Editor documenti</h4><p class="muted">Crea e modifica vIPI, aeroporti, vLOA e trasferimenti.</p></a>
+            <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Bozze &amp; versioni</h4><p class="muted">Stato dei documenti, storico versioni e pubblicazioni.</p></a>
+            <a class="choice" href="/vsop/admin/audit" style="text-decoration:none;color:inherit"><h4><span class="ic">📜</span> Audit log</h4><p class="muted">Chi ha fatto cosa: pubblicazioni e modifiche permessi.</p></a>
+        </div>
+
+        <div class="section-title"><h3>Permessi editing</h3><span class="ln"></span></div>
+        <div class="callout info"><span class="cic">ℹ️</span><div><p class="ct">Grant per VID</p>Seleziona uno staffista dall'elenco (staff IT che si è loggato almeno una volta) oppure inserisci un VID a mano.</div></div>
 
         @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
         @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
@@ -37,10 +46,10 @@
                             @foreach (var g in _grants)
                             {
                                 <tr>
-                                    <td><b>@g.Vid</b></td>
+                                    <td><b>@g.UserId</b></td>
                                     <td>@(string.IsNullOrWhiteSpace(g.DisplayName) ? "—" : g.DisplayName)</td>
                                     <td>@g.FirCode</td>
-                                    <td>@g.GrantedByVid</td>
+                                    <td>@g.GrantedByUserId</td>
                                     <td>@g.GrantedAtUtc.ToString("dd MMM yyyy HH:mm")</td>
                                     <td><button class="btn ghost" disabled="@_busy" @onclick="() => Revoke(g.Id)">Revoca</button></td>
                                 </tr>
@@ -54,21 +63,21 @@
                 <h4>Concedi permesso</h4>
                 @if (_members is { Count: > 0 })
                 {
-                    <div class="field"><label>CH divisione</label>
-                        <select @bind="_selectedVid" @bind:after="OnMemberPicked">
+                    <div class="field"><label>Staffista IT</label>
+                        <select @bind="_selectedUserId" @bind:after="OnMemberPicked">
                             <option value="0">— seleziona —</option>
                             @foreach (var m in _members)
                             {
-                                <option value="@m.Vid">@m.Vid — @m.Name (@m.Rating)</option>
+                                <option value="@m.UserId">@m.UserId@(string.IsNullOrWhiteSpace(m.DisplayName) ? "" : $" — {m.DisplayName}") (@string.Join(", ", m.StaffPositions))</option>
                             }
                         </select>
                     </div>
                 }
-                else if (_membersError is not null)
+                else
                 {
-                    <p class="help">Elenco CH non disponibile (@_membersError). Inserisci il VID a mano.</p>
+                    <p class="help">Nessuno staffista nell'elenco: comparirà dopo il primo login. Inserisci il VID a mano.</p>
                 }
-                <div class="field"><label>VID</label><input type="number" placeholder="es. 123456" @bind="_vid" /></div>
+                <div class="field"><label>VID</label><input type="number" placeholder="es. 123456" @bind="_userId" /></div>
                 <div class="field"><label>Nome (opzionale)</label><input placeholder="es. Mario Rossi" @bind="_name" /></div>
                 <div class="field"><label>FIR</label>
                     <select @bind="_firCode">
@@ -86,28 +95,26 @@
     private bool _busy;
     private string? _status, _error;
 
-    private int _vid;
+    private int _userId;
     private string _name = "";
     private string _firCode = "LIRR";
 
-    private IReadOnlyList<DivisionMember>? _members;
-    private string? _membersError;
-    private int _selectedVid;
+    private IReadOnlyList<StaffRosterEntry>? _members;
+    private int _selectedUserId;
 
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
         await LoadAsync();
-        try { _members = await Members.GetDivisionControllersAsync(); }
-        catch (Exception ex) { _membersError = ex.Message; }
+        _members = await Roster.ListActiveAsync();
     }
 
     private void OnMemberPicked()
     {
-        var m = _members?.FirstOrDefault(x => x.Vid == _selectedVid);
+        var m = _members?.FirstOrDefault(x => x.UserId == _selectedUserId);
         if (m is null) return;
-        _vid = m.Vid;
-        _name = m.Name;
+        _userId = m.UserId;
+        _name = m.DisplayName ?? "";
     }
 
     private async Task LoadAsync()
@@ -121,9 +128,9 @@
         _busy = true; _status = null; _error = null;
         try
         {
-            if (_vid <= 0) throw new InvalidOperationException("VID non valido.");
-            await Authz.AddGrantAsync(_vid, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _firCode);
-            _vid = 0; _name = "";
+            if (_userId <= 0) throw new InvalidOperationException("VID non valido.");
+            await Authz.AddGrantAsync(_userId, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _firCode);
+            _userId = 0; _name = "";
             await LoadAsync();
             _status = "Permesso concesso.";
         }

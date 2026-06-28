@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\Vipi.Hosting\Vipi.Hosting.csproj" />
     <ProjectReference Include="..\Vipi.Ui\Vipi.Ui.csproj" />
     <ProjectReference Include="..\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />

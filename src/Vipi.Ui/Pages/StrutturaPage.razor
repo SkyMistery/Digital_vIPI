@@ -1,0 +1,342 @@
+﻿@page "/vsop/admin/struttura"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStructureEditingService Struct
+@inject ITopologyEditingService Topo
+@inject IEditingService Editing
+@inject IEditAuthorizationService Authz
+@inject NavigationManager Nav
+
+<PageTitle>Struttura (FIR, settori) · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <b>Struttura</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">FIR, settori, contenimento, frequenze e documenti</span></div>
+    </div>
+
+    @if (_msg is not null)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
+    }
+
+    <div class="section-title"><h3>FIR</h3><span class="ln"></span></div>
+    <div class="block">
+        @if (_firs.Count == 0)
+        {
+            <p class="help">Nessuna FIR. Creane una per iniziare.</p>
+        }
+        else
+        {
+            <div class="fir-pills">
+                @foreach (var f in _firs)
+                {
+                    <button class="btn @(f.Code == _firCode ? "primary" : "ghost")" disabled="@_busy" @onclick="() => SelectFir(f.Code)">
+                        @f.Code · @f.Name <span class="muted" style="font-size:11px">(@f.Sectors set)</span>
+                    </button>
+                }
+            </div>
+        }
+        @if (Authz.IsAdmin)
+        {
+            <div class="inline-form">
+                <div class="field narrow"><label>Codice</label><input placeholder="LIMM" @bind="_newFirCode" /></div>
+                <div class="field"><label>Nome</label><input placeholder="Milano FIR" @bind="_newFirName" /></div>
+                <div class="field narrow"><label>Prefisso ICAO</label><input placeholder="LI" @bind="_newFirPrefix" /></div>
+                <button class="btn primary" disabled="@_busy" @onclick="CreateFir">+ Crea FIR</button>
+                @if (_firCode is not null)
+                {
+                    <button class="btn ghost danger" disabled="@_busy" @onclick="DeleteFir" title="La FIR dev'essere senza settori">🗑 Elimina @_firCode</button>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_data is not null)
+    {
+        <div class="section-title"><h3>Settori <span class="pill blue">@_data.FirCode</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/aeroporti">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+        <div class="topo-layout">
+            @* --- Settori (entità unificata) + contenimento --- *@
+            <div class="panel">
+                <div class="sub-h">Settori (callsign apribili)</div>
+                @if (_data.Sectors.Count == 0)
+                {
+                    <p class="help">Nessun settore.</p>
+                }
+                else
+                {
+                    <table class="res-table">
+                        <thead><tr><th>Callsign</th><th>Tipo</th><th>Padre</th><th>Freq</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var s in _data.Sectors)
+                            {
+                                <tr>
+                                    <td><b>@s.Callsign</b>@(s.IsPrimary ? " ★" : "")<br /><span class="muted" style="font-size:11px">@s.Name@(s.AirportIcao is not null ? $" · {s.AirportIcao}" : "")</span></td>
+                                    <td>@s.Type / @s.Kind</td>
+                                    <td>
+                                        <select disabled="@(!_canEdit || _busy)" @onchange="e => SetParent(s.Id, e.Value?.ToString())">
+                                            <option value="">— radice —</option>
+                                            @foreach (var p in _data.Sectors.Where(x => x.Id != s.Id))
+                                            {
+                                                <option value="@p.Id" selected="@(s.ParentSectorId == p.Id)">@p.Callsign</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>@s.DefaultFrequency</td>
+                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeleteSector(s.Id)">🗑</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                <div class="add-form">
+                    <div class="field"><label>Nuovo settore</label>
+                        <input placeholder="Callsign es. LIMM_NW_CTR" @bind="_sCallsign" />
+                    </div>
+                    <div class="field"><input placeholder="Nome es. Milano Radar NW" @bind="_sName" /></div>
+                    <div class="row">
+                        <div class="field"><label>Tipo</label><select @bind="_sType">@foreach (var t in Enum.GetValues<SectorType>()) { <option value="@t">@(t == SectorType.ITwr ? "I_TWR" : t.ToString())</option> }</select></div>
+                        <div class="field"><label>Natura</label><select @bind="_sKind">@foreach (var k in Enum.GetValues<SectorKind>()) { <option value="@k">@k</option> }</select></div>
+                    </div>
+                    <div class="row">
+                        <div class="field"><label>Frequenza</label><input placeholder="es. 128.800" @bind="_sFreq" /></div>
+                        <div class="field"><label>CoverageOrder</label><input type="number" placeholder="10" @bind="_sCoverage" title="più basso = più in alto" /></div>
+                    </div>
+                    <div class="row">
+                        <div class="field"><label>Padre (contenimento)</label>
+                            <select @bind="_sParent"><option value="0">— radice —</option>@foreach (var p in _data.Sectors) { <option value="@p.Id">@p.Callsign</option> }</select>
+                        </div>
+                        @if (_sKind == SectorKind.Airport)
+                        {
+                            <div class="field"><label>Aeroporto</label>
+                                @if (_data.Airports.Count == 0)
+                                {
+                                    <span class="help" style="display:block">Crea prima un aeroporto nella <a href="/vsop/admin/aeroporti">pagina Aeroporti</a>.</span>
+                                }
+                                else
+                                {
+                                    <select @bind="_sAirportId"><option value="0">aeroporto…</option>@foreach (var a in _data.Airports) { <option value="@a.Id">@a.Icao — @a.Name</option> }</select>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <button class="btn ghost" disabled="@_busy" @onclick="AddSector">+ Aggiungi settore</button>
+                </div>
+            </div>
+
+            @* --- Frequenze --- *@
+            <div class="panel">
+                <div class="sub-h">Frequenze</div>
+                @if (_data.Frequencies.Count > 0)
+                {
+                    <table class="res-table">
+                        <thead><tr><th>Settore</th><th>Label</th><th>MHz</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var fq in _data.Frequencies)
+                            {
+                                <tr>
+                                    <td>@CallsignOf(fq.SectorId)</td>
+                                    <td>@fq.Label @(fq.IsPrimary ? "★" : "")</td>
+                                    <td>@fq.FrequencyMhz</td>
+                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeleteFrequency(fq.Id)">🗑</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                @if (_data.Sectors.Count > 0)
+                {
+                    <div class="add-form">
+                        <div class="field"><label>Nuova frequenza</label>
+                            <select @bind="_fqSector"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select>
+                        </div>
+                        <div class="row">
+                            <div class="field"><input placeholder="Label es. Milano Radar" @bind="_fqLabel" /></div>
+                            <div class="field"><input placeholder="MHz es. 128.800" @bind="_fqMhz" /></div>
+                        </div>
+                        <label class="check"><input type="checkbox" @bind="_fqPrimary" /> Primaria</label>
+                        <button class="btn ghost" disabled="@_busy" @onclick="AddFrequency">+ Aggiungi frequenza</button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="section-title"><h3>📄 Nuovo documento</h3><span class="ln"></span></div>
+        <div class="block">
+            <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                <div class="field narrow"><label>Tipo</label>
+                    <select @bind="_docType">
+                        <option value="@DocumentType.Vipi">vIPI</option>
+                        <option value="@DocumentType.Vloa">vLOA</option>
+                    </select>
+                </div>
+                <div class="field"><label>Titolo</label><input placeholder="es. vIPI Milano ACC" @bind="_docTitle" /></div>
+                @if (_docType == DocumentType.Vloa)
+                {
+                    <div class="field"><label>Home</label><select @bind="_docHome"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select></div>
+                    <div class="field"><label>Neighbour</label><select @bind="_docNeighbour"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select></div>
+                }
+                <button class="btn primary" disabled="@_busy" @onclick="CreateDocument">Crea e apri editor</button>
+            </div>
+            @if (_docType == DocumentType.Vipi)
+            {
+                <div style="margin-top:10px">
+                    <label class="muted" style="font-size:12px">Settori descritti (★ = primario):</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                        @foreach (var s in _data.Sectors)
+                        {
+                            var inScope = _docScopeIds.Contains(s.Id);
+                            var taken = s.DocumentId is not null;
+                            <span class="@(inScope ? "xo-chip on" : "xo-chip")" style="@ChipStyle(inScope, taken)">
+                                <label style="@(taken ? "cursor:not-allowed" : "cursor:pointer")">
+                                    <input type="checkbox" checked="@inScope" disabled="@taken" @onchange="() => ToggleScope(s.Id)" style="margin-right:4px" />@s.Callsign
+                                </label>
+                                @if (inScope)
+                                {
+                                    <input type="radio" name="primary" checked="@(_docPrimary == s.Id)" @onchange="() => _docPrimary = s.Id" title="primario" style="margin-left:6px" />
+                                }
+                            </span>
+                        }
+                    </div>
+                    <p class="muted" style="font-size:11px;margin-top:4px">Un settore già descritto da un altro documento non è selezionabile.</p>
+                </div>
+            }
+            <p class="muted" style="font-size:12px;margin:10px 0 0">Il documento nasce vuoto (una sezione iniziale); poi lo riempi nell'editor.</p>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<FirRow> _firs = Array.Empty<FirRow>();
+    private string? _firCode;
+    private StructureData? _data;
+    private bool _busy;
+    private bool _canEdit;
+    private string? _msg;
+
+    // form FIR
+    private string _newFirCode = "", _newFirName = "", _newFirPrefix = "";
+    // form settore
+    private string _sCallsign = "", _sName = "", _sFreq = "";
+    private SectorType _sType = SectorType.Ctr;
+    private SectorKind _sKind = SectorKind.Acc;
+    private int _sCoverage = 10;
+    private int _sParent;
+    private int _sAirportId;
+    // form frequenza
+    private int _fqSector;
+    private string _fqLabel = "", _fqMhz = "";
+    private bool _fqPrimary;
+    // form documento
+    private DocumentType _docType = DocumentType.Vipi;
+    private string _docTitle = "";
+    private int _docHome, _docNeighbour;
+    private readonly HashSet<int> _docScopeIds = new();
+    private int _docPrimary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canEdit = Authz.IsAdmin;
+        await ReloadFirsAsync();
+    }
+
+    private async Task ReloadFirsAsync()
+    {
+        _firs = await Struct.ListFirsAsync();
+        if (_firCode is null && _firs.Count > 0) _firCode = _firs[0].Code;
+        await ReloadDataAsync();
+    }
+
+    private async Task ReloadDataAsync()
+    {
+        _data = _firCode is null ? null : await Struct.LoadAsync(_firCode);
+        if (_firCode is not null) _canEdit = await Authz.CanEditFirAsync(_firCode);
+    }
+
+    private async Task SelectFir(string code)
+    {
+        _firCode = code;
+        _docScopeIds.Clear(); _docPrimary = 0;
+        await ReloadDataAsync();
+    }
+
+    private string CallsignOf(int sectorId) =>
+        _data?.Sectors.FirstOrDefault(s => s.Id == sectorId)?.Callsign ?? "—";
+
+    private async Task Guarded(Func<Task> action)
+    {
+        _busy = true; _msg = null;
+        try { await action(); await ReloadFirsAsync(); }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private Task CreateFir() => Guarded(async () =>
+    {
+        await Struct.CreateFirAsync(_newFirCode, _newFirName, _newFirPrefix);
+        _firCode = _newFirCode.Trim().ToUpperInvariant();
+        _newFirCode = _newFirName = _newFirPrefix = "";
+    });
+
+    private Task DeleteFir() => Guarded(async () =>
+    {
+        await Struct.DeleteFirAsync(_firCode!);
+        _firCode = null;
+    });
+
+    private Task AddSector() => Guarded(async () =>
+    {
+        await Struct.AddSectorAsync(_firCode!, _sCallsign, _sType, _sKind, _sName, _sFreq, _sCoverage,
+            _sType == SectorType.App ? ApproachKind.Standalone : null,
+            _sParent == 0 ? null : _sParent,
+            _sKind == SectorKind.Airport && _sAirportId != 0 ? _sAirportId : null);
+        _sCallsign = _sName = _sFreq = ""; _sParent = 0; _sAirportId = 0;
+    });
+    private Task DeleteSector(int id) => Guarded(() => Struct.DeleteSectorAsync(_firCode!, id));
+
+    private Task SetParent(int childId, string? parentValue) =>
+        Guarded(() => Topo.SetParentAsync(_firCode!, childId,
+            string.IsNullOrEmpty(parentValue) ? null : int.Parse(parentValue)));
+
+    private Task AddFrequency() => Guarded(async () =>
+    {
+        if (_fqSector == 0) throw new InvalidOperationException("Seleziona il settore.");
+        await Struct.AddFrequencyAsync(_firCode!, _fqSector, _fqLabel, "", _fqMhz, _fqPrimary);
+        _fqLabel = _fqMhz = ""; _fqPrimary = false; _fqSector = 0;
+    });
+    private Task DeleteFrequency(int id) => Guarded(() => Struct.DeleteFrequencyAsync(_firCode!, id));
+
+    private static string ChipStyle(bool inScope, bool taken)
+    {
+        var bg = inScope ? "background:#dafbe7;color:#1a7f37;font-weight:700" : "background:#eef1f7";
+        var dim = taken ? ";opacity:.45" : "";
+        return $"padding:3px 9px;border-radius:999px;font-size:12px;{bg}{dim}";
+    }
+
+    private void ToggleScope(int sectorId)
+    {
+        if (!_docScopeIds.Add(sectorId)) _docScopeIds.Remove(sectorId);
+        if (_docPrimary == sectorId && !_docScopeIds.Contains(sectorId)) _docPrimary = 0;
+        if (_docPrimary == 0 && _docScopeIds.Count > 0) _docPrimary = _docScopeIds.First();
+    }
+
+    private async Task CreateDocument()
+    {
+        _busy = true; _msg = null;
+        try
+        {
+            IReadOnlyList<int>? scope = _docType == DocumentType.Vloa ? null : _docScopeIds.ToList();
+            int? primary = _docType == DocumentType.Vloa ? null : (_docPrimary == 0 ? null : _docPrimary);
+            int? home = _docType == DocumentType.Vloa ? (_docHome == 0 ? null : _docHome) : null;
+            int? neigh = _docType == DocumentType.Vloa ? (_docNeighbour == 0 ? null : _docNeighbour) : null;
+            var id = await Editing.CreateDocumentAsync(_docType, _docTitle, scope, primary, home, neigh);
+            Nav.NavigateTo($"/vsop/{_firCode!.ToLowerInvariant()}/editor?doc={id}");
+        }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+}

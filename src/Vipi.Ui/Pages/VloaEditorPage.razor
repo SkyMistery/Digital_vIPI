@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/editor-vloa"
+﻿@page "/vsop/{Acc}/editor-vloa"
 @layout SopLayout
 @inject IEditingService Editing
 @inject NavigationManager Nav
@@ -28,7 +28,7 @@
             var docs = await Editing.ListDocumentsAsync();
             var vloa = docs.FirstOrDefault(d => d.Type == DocumentType.Vloa);
             if (vloa is null) { _error = "Nessuna vLOA presente."; return; }
-            Nav.NavigateTo($"/sop/{Acc.ToLowerInvariant()}/editor?doc={vloa.Id}", forceLoad: false);
+            Nav.NavigateTo($"/vsop/{Acc.ToLowerInvariant()}/editor?doc={vloa.Id}", forceLoad: false);
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }

@@ -1,4 +1,4 @@
-@page "/sop/changed"
+﻿@page "/vsop/changed"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IChangesService Changes
@@ -6,7 +6,7 @@
 <PageTitle>Cosa è cambiato · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/sop">Home</a> › <b>Cosa è cambiato</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>Cosa è cambiato</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Cosa è cambiato</h2><span class="muted">Documenti pubblicati nel ciclo AIRAC corrente</span></div>
         <span class="airac">📅 AIRAC @Changes.CurrentCycle</span>
@@ -41,7 +41,7 @@
                         <div class="diff">
                             <span>sezioni @r.PrevSections → <b>@r.CurrSections</b></span> ·
                             <span>blocchi @r.PrevBlocks → <b>@r.CurrBlocks</b></span> ·
-                            <span class="muted">VID @r.PublishedByVid · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
+                            <span class="muted">VID @r.PublishedByUserId · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
                         </div>
                     </div>
                     <a class="chg-link" href="@r.Url">Apri →</a>

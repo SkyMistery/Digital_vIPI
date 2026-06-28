@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/ridotta"
+﻿@* DISABILITATA (rebuild /vsop, Round 12) — rotta rimossa. Ex: "/vsop/{Acc}/ridotta". Vedi PAGINE_DISABILITATE.md *@
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IVipiViewService ViewService
@@ -6,6 +6,7 @@
 @inject ITransferService Transfers
 @inject ITopologyProvider Topology
 @inject IOnlineAtcProvider Online
+@inject ICurrentUserProvider Users
 @inject Microsoft.JSInterop.IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -16,7 +17,7 @@
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
         <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI pubblicata per @_acc.Name.</div></div>
     </div>
 }
@@ -25,7 +26,7 @@ else
     <PageTitle>@_acc.Name — Ridotta · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
         <div class="reduced-top">
             <h2 style="margin:0">@_view.Title — Ridotta</h2>
             <span class="airac">📅 AIRAC @_view.AiracCycle</span>
@@ -44,6 +45,11 @@ else
                     }
                 </select>
             </label>
+            @if (_myCallsign is not null)
+            {
+                <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700"
+                      title="Rilevato dalla tua connessione IVAO">🟢 Connesso come @_myCallsign</span>
+            }
             <span class="muted" style="font-size:13px">
                 @_snapshot.Callsigns.Count ATC online ·
                 aggiornato @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))
@@ -137,6 +143,7 @@ else
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
     private IReadOnlyList<ResolvedTransferRow> _resolved = Array.Empty<ResolvedTransferRow>();
     private IReadOnlyList<string> _domainOnline = Array.Empty<string>();
+    private string? _myCallsign;
 
     private DotNetObjectReference<RidottaPage>? _ref;
 
@@ -148,12 +155,20 @@ else
         _topo = await Topology.BuildByFirCodeAsync(_acc.Code);
         _positions = _topo is null
             ? Array.Empty<string>()
-            : _topo.DefaultSectors.Keys.OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
+            : _topo.Sectors.OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
 
-        // Default P = prima radice (callsign senza genitore), altrimenti prima posizione.
+        // Callsign su cui l'utente loggato è connesso ora (stesso UserId nell'ATC online).
+        _snapshot = Online.GetCurrent();
+        _myCallsign = Users.Get() is { } u
+            ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign
+            : null;
+
+        // Default P = la posizione su cui sono connesso (se nota in questa FIR), altrimenti la radice.
         if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
-            _p = _positions.FirstOrDefault(c => _topo is not null && !_topo.Parent.ContainsKey(c))
-                 ?? _positions.FirstOrDefault() ?? "";
+            _p = (_myCallsign is not null && _positions.Contains(_myCallsign))
+                ? _myCallsign
+                : _positions.FirstOrDefault(c => _topo is not null && !_topo.Parent.ContainsKey(c))
+                  ?? _positions.FirstOrDefault() ?? "";
 
         await LoadAsync();
     }

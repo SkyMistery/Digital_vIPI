@@ -1,11 +1,11 @@
-@page "/sop/{Acc}/ridotta-app"
+﻿@* DISABILITATA (rebuild /vsop, Round 12) — rotta rimossa. Ex: "/vsop/{Acc}/ridotta-app". Vedi PAGINE_DISABILITATE.md *@
 @layout SopLayout
 @inject IStationResolver Stations
 
 <PageTitle>LIRP Pisa APP — Ridotta · IVAO Italia</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc?.Name</a> › <b>Vista ridotta · APP</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc?.Name</a> › <b>Vista ridotta · APP</b></div>
     <div class="reduced-top">
         <h2 style="margin:0">LIRP Pisa APP — Ridotta</h2>
         <div class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · LIRP_APP</div>

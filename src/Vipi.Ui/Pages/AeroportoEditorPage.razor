@@ -1,0 +1,487 @@
+﻿@page "/vsop/{Acc}/aeroporto/editor"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Content
+@using Vipi.Application.Aor
+@using Vipi.Application.Auth
+@using Vipi.Application.Abstractions
+@using Vipi.Domain
+@inject IAirportProfileService Profile
+@inject IStationResolver Stations
+@inject NavigationManager Nav
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>Editor aeroporto @_icao · vIPI</PageTitle>
+    <div class="wrap struct">
+        <div class="breadcrumb">
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>Editor</b>
+        </div>
+
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">✎ Editor aeroporto @_icao</h2><span class="muted">@_acc.Name</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ Re-importa da IVAO</button>
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Rebuild">📄 Rigenera e pubblica</button>
+            </div>
+        </div>
+
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✅</span><div>@_status</div></div> }
+
+        @if (_data is null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>Aeroporto non trovato o nessun profilo. Genera prima il documento da «Gestione aeroporti».</div></div>
+        }
+        else
+        {
+            @if (!_canEdit)
+            {
+                <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per editare la FIR @_data.FirCode.</div></div>
+            }
+
+            <div class="wx-tabs" style="margin:10px 0 16px">
+                @foreach (var p in _panels)
+                {
+                    <button class="wx-tab @(_panel == p ? "on" : "")" @onclick="() => _panel = p">@p</button>
+                }
+            </div>
+
+            @* ===================== REGOLE PISTE ===================== *@
+            @if (_panel == "Regole piste")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">Regole scelta pista</h3>
+                    <p class="help">La <b>prima</b> regola che soddisfa le condizioni correnti (vento + pioggia/neve + orario/giorno/parità) prevale sul calcolo automatico headwind nel viewer. L'ordine conta: trascina le più specifiche in alto.</p>
+
+                    @{ var issues = RuleIssues(); }
+                    @if (issues.Errors.Count > 0)
+                    {
+                        <div class="callout danger"><span class="cic">⛔</span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
+                    }
+                    @if (issues.Warnings.Count > 0)
+                    {
+                        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in issues.Warnings) { <div>@m</div> }</div></div>
+                    }
+
+                    @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
+                    {
+                        <div class="rule-card">
+                            <div class="rule-head">
+                                <span class="rule-ord">#@(idx + 1)</span>
+                                <div style="display:flex;gap:6px">
+                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="Su">↑</button>
+                                    <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="Giù">↓</button>
+                                    <button class="btn ghost" @onclick="() => _rules.Remove(r)">✕ Rimuovi</button>
+                                </div>
+                            </div>
+                            <div class="rule-grid">
+                                <label>Vento da°<input type="number" min="0" max="360" @bind="r.DirFrom" /></label>
+                                <label>a°<input type="number" min="0" max="360" @bind="r.DirTo" /></label>
+                                <label>kt min<input type="number" min="0" @bind="r.SpdMin" /></label>
+                                <label>kt max<input type="number" min="0" @bind="r.SpdMax" /></label>
+                                <label>Pioggia<select @bind="r.Rain"><option value="">indiff</option><option value="yes">sì</option><option value="no">no</option></select></label>
+                                <label>Neve<select @bind="r.Snow"><option value="">indiff</option><option value="yes">sì</option><option value="no">no</option></select></label>
+                                <label>Orario da (Z)<input type="time" @bind="r.TimeFrom" /></label>
+                                <label>a (Z)<input type="time" @bind="r.TimeTo" /></label>
+                                <label>Parità giorno<select @bind="r.Parity"><option value="">indiff</option><option value="even">pari</option><option value="odd">dispari</option></select></label>
+                            </div>
+                            <div class="rule-days">
+                                <span class="muted">Giorni:</span>
+                                @for (var b = 0; b < 7; b++)
+                                {
+                                    var bit = b;
+                                    <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
+                                }
+                            </div>
+                            <div class="rule-rwys">
+                                <div><span class="muted">DEP:</span>
+                                    @if (_rwys.Count == 0) { <i class="muted">nessuna pista definita</i> }
+                                    @foreach (var ident in RwIdents())
+                                    {
+                                        var id = ident;
+                                        <button type="button" class="pill" style="@RwChip(r.Dep, id)" @onclick="() => Toggle(r.Dep, id)">@id</button>
+                                    }
+                                </div>
+                                <div><span class="muted">ARR:</span>
+                                    @foreach (var ident in RwIdents())
+                                    {
+                                        var id = ident;
+                                        <button type="button" class="pill" style="@RwChip(r.Arr, id)" @onclick="() => Toggle(r.Arr, id)">@id</button>
+                                    }
+                                </div>
+                            </div>
+                            <label class="rule-note">Note<input @bind="r.Note" placeholder="testo libero (es. configurazione Malpensa pari)" /></label>
+                        </div>
+                    }
+
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        <button class="btn ghost" @onclick="@(() => _rules.Add(new RuleEdit()))">+ Regola</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">Salva regole</button>
+                    </div>
+                </div>
+            }
+
+            @* ===================== QUOTE DI TRANSIZIONE ===================== *@
+            @if (_panel == "Quote transizione")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">Quote di transizione</h3>
+                    <p class="help">Tabella di default <b>TL = TA + margine</b> per fascia QNH (QNH&lt;977 → +2500 ft; 977–994 → +2000; 995–1012 → +1500; QNH≥1013 → +1000), arrotondata al FL superiore. Salvando la TA le righe di default si ricalcolano; puoi comunque modificare fasce e livelli a mano.</p>
+                    @if (_policy.TransitionAltitude)
+                    {
+                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="Campo importato dalla sorgente: sola lettura. Modificabile solo se un amministratore esclude «TA» in /vsop/admin/sorgenti">🔒 da sorgente</span> La Transition Altitude è importata dalla sorgente (sola lettura).</p>
+                    }
+                    <div class="se-row">
+                        <label><b>Transition Altitude (ft)</b></label>
+                        <input type="number" style="width:100px" @bind="_ta" disabled="@(_policy.TransitionAltitude)" />
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">Salva TA</button>
+                    </div>
+                    <table class="res-table" style="max-width:460px">
+                        <thead><tr><th>QNH da (hPa)</th><th>QNH a (hPa)</th><th>Transition Level</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var t in _tls)
+                            {
+                                <tr>
+                                    <td><input type="number" style="width:90px" @bind="t.From" placeholder="aperto" /></td>
+                                    <td><input type="number" style="width:90px" @bind="t.To" placeholder="aperto" /></td>
+                                    <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
+                                    <td><button class="btn ghost" @onclick="() => _tls.Remove(t)">✕</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        <button class="btn ghost" @onclick="@(() => _tls.Add(new TlEdit()))">+ Riga</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">Salva tabella</button>
+                    </div>
+                </div>
+            }
+
+            @* ===================== FREQUENZE ===================== *@
+            @if (_panel == "Frequenze")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">Frequenze</h3>
+                    <p class="help">Le frequenze proprie derivano dai settori dell'aeroporto (gestione struttura). Qui puoi aggiungere link a frequenze già nel DB (riferimento vivo).</p>
+                    <table class="res-table">
+                        <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th><th>Origine</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var f in _data.OwnFrequencies)
+                            {
+                                <tr><td>@f.Name</td><td>@f.Callsign</td><td>@f.FrequencyMhz</td><td class="muted">settore</td><td></td></tr>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(_data.AtisFrequency))
+                            {
+                                <tr><td>ATIS</td><td>@(_icao)_ATIS</td><td>@_data.AtisFrequency</td><td class="muted">IVAO</td><td></td></tr>
+                            }
+                            @foreach (var id in _linkIds)
+                            {
+                                var lf = _linkable.FirstOrDefault(x => x.FrequencyId == id);
+                                <tr>
+                                    <td>@(lf?.Label ?? "—")</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                                    <td class="muted">link @(lf?.Icao)</td>
+                                    <td><button class="btn ghost" @onclick="() => _linkIds.Remove(id)">✕</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="se-row" style="margin-top:10px">
+                        <input style="width:200px" placeholder="cerca callsign/freq…" @bind="_freqSearch" @bind:event="oninput" />
+                        <select @bind="_pickFreqId" style="min-width:240px">
+                            <option value="0">— scegli frequenza —</option>
+                            @foreach (var lf in FilteredLinkable())
+                            {
+                                <option value="@lf.FrequencyId">@lf.Callsign · @lf.FrequencyMhz · @lf.Label @(lf.Icao is null ? "" : $"({lf.Icao})")</option>
+                            }
+                        </select>
+                        <button class="btn ghost" @onclick="AddLink">+ Link</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">Salva link</button>
+                    </div>
+                </div>
+            }
+
+            @* ===================== PISTE ===================== *@
+            @if (_panel == "Piste")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">Piste</h3>
+                    @if (_policy.Runways)
+                    {
+                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="Importate dalla sorgente: ident/lunghezza/bearing e l'insieme delle piste sono in sola lettura. Modificabili solo escludendo «Piste» in /vsop/admin/sorgenti">🔒 da sorgente</span> Pista, lunghezza e bearing sono importati dalla sorgente (sola lettura). Restano editabili solo le colonne TORA/LDA/APP/Patterns/Circling.</p>
+                    }
+                    else
+                    {
+                        <p class="help">Ident / lunghezza / bearing arrivano dalla sorgente (re-import li sovrascrive). Le altre colonne sono editoriali.</p>
+                    }
+                    <table class="res-table">
+                        <thead><tr><th>Pista</th><th>Lung. (m)</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var r in _rwys)
+                            {
+                                <tr>
+                                    <td><input style="width:64px" @bind="r.Ident" disabled="@(_policy.Runways)" /></td>
+                                    <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
+                                    <td><input style="width:80px" @bind="r.Tora" /></td>
+                                    <td><input style="width:80px" @bind="r.Lda" /></td>
+                                    <td><input style="width:150px" @bind="r.App" /></td>
+                                    <td><input style="width:70px" @bind="r.Patterns" /></td>
+                                    <td><input style="width:70px" @bind="r.Circling" /></td>
+                                    <td>@if (!_policy.Runways) { <button class="btn ghost" @onclick="() => _rwys.Remove(r)">✕</button> }</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        @if (!_policy.Runways) { <button class="btn ghost" @onclick="@(() => _rwys.Add(new RwEdit()))">+ Pista</button> }
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">Salva piste</button>
+                    </div>
+                </div>
+            }
+
+            @* ===================== SID ===================== *@
+            @if (_panel == "SID")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">SID</h3>
+                    <p class="help">Editabili a mano (l'import dal sectorfile GitHub è un follow-up).</p>
+                    <div style="overflow:auto">
+                    <table class="res-table sid-table">
+                        <thead><tr><th>Pista</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var s in _sids)
+                            {
+                                <tr>
+                                    <td><input style="width:56px" @bind="s.Runway" /></td>
+                                    <td><input style="width:70px" @bind="s.Fix" /></td>
+                                    <td><input style="width:90px" @bind="s.Name" /></td>
+                                    <td><input style="width:80px" @bind="s.Transition" /></td>
+                                    <td><input style="width:90px" @bind="s.InitialClimb" /></td>
+                                    <td><input style="width:70px" @bind="s.Type" /></td>
+                                    <td><input style="width:48px" @bind="s.Cat" /></td>
+                                    <td><input style="width:48px" @bind="s.Wtc" /></td>
+                                    <td><input style="width:120px" @bind="s.Condition" /></td>
+                                    <td><button class="btn ghost" @onclick="() => _sids.Remove(s)">✕</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    </div>
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        <button class="btn ghost" @onclick="@(() => _sids.Add(new SidEdit()))">+ SID</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveSids">Salva SID</button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? Icao { get; set; }
+
+    private AccInfo? _acc;
+    private string _icao = "LIRF";
+    private AirportProfileData? _data;
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+    private bool _canEdit;
+    private bool _busy;
+    private string? _error, _status;
+
+    private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID" };
+    private string _panel = "Regole piste";
+
+    private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
+    private int? _ta;
+    private List<TlEdit> _tls = new();
+    private List<RwEdit> _rwys = new();
+    private List<RuleEdit> _rules = new();
+    private List<SidEdit> _sids = new();
+    private List<int> _linkIds = new();
+    private string _freqSearch = "";
+    private int _pickFreqId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = _status = null;
+        try
+        {
+            _data = await Profile.LoadForEditAsync(_icao);
+            _canEdit = _data is not null;
+        }
+        catch (EditNotAllowedException)
+        {
+            _data = await Profile.LoadForViewAsync(_icao);
+            _canEdit = false;
+        }
+        if (_data is null) return;
+
+        _linkable = await Profile.ListLinkableFrequenciesAsync();
+        _policy = await Profile.GetImportPolicyAsync();
+        _ta = _data.TransitionAltitudeFt;
+        _tls = _data.TransitionLevels.Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
+        _rwys = _data.Runways.Select(r => new RwEdit
+        {
+            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
+            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
+        }).ToList();
+        _rules = _data.Rules.Select(r => new RuleEdit
+        {
+            DirFrom = r.WindDirFrom, DirTo = r.WindDirTo, SpdMin = r.WindSpeedMin, SpdMax = r.WindSpeedMax,
+            Rain = Tri(r.Rain), Snow = Tri(r.Snow),
+            Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
+            TimeFrom = MinToTime(r.TimeFromUtcMin), TimeTo = MinToTime(r.TimeToUtcMin),
+            DaysMask = r.DaysOfWeekMask ?? 0,
+            Parity = r.DateParity switch { DateParity.Even => "even", DateParity.Odd => "odd", _ => "" },
+        }).ToList();
+        _sids = _data.Sids.Select(s => new SidEdit
+        {
+            Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
+            Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+        }).ToList();
+        _linkIds = _data.Links.Select(l => l.SourceFrequencyId).ToList();
+    }
+
+    private IEnumerable<LinkableFrequencyRow> FilteredLinkable()
+    {
+        var q = (_freqSearch ?? "").Trim();
+        return _linkable.Where(f =>
+            q.Length == 0 ||
+            f.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+            f.FrequencyMhz.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+            (f.Icao?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(50);
+    }
+
+    private void AddLink()
+    {
+        if (_pickFreqId != 0 && !_linkIds.Contains(_pickFreqId)) _linkIds.Add(_pickFreqId);
+        _pickFreqId = 0;
+    }
+
+    private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta), "TA salvata.");
+    private Task SaveTls() => Guarded(() => Profile.SaveTransitionLevelsAsync(_icao,
+        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()), "Tabella TL salvata.");
+    private Task SaveRwys() => Guarded(() => Profile.SaveRunwaysAsync(_icao,
+        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()),
+        "Piste salvate.");
+    private Task SaveRules() => Guarded(() => Profile.SaveRunwayRulesAsync(_icao,
+        _rules.Select(r => new RunwayRuleRow(0, r.DirFrom, r.DirTo, r.SpdMin, r.SpdMax, Tri(r.Rain), Tri(r.Snow),
+            JoinCsv(r.Dep), JoinCsv(r.Arr), r.Note,
+            TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
+            r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any })).ToList()),
+        "Regole salvate.");
+    private Task SaveSids() => Guarded(() => Profile.SaveSidsAsync(_icao,
+        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()),
+        "SID salvate.");
+    private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()), "Link salvati.");
+
+    private Task Reimport() => Guarded(() => Profile.ReimportFromSourceAsync(_icao), "Re-import completato (campi IVAO aggiornati).");
+    private Task Rebuild() => Guarded(() => Profile.RebuildDocumentAsync(_icao), "Documento rigenerato e pubblicato.");
+
+    private async Task Guarded(Func<Task> action, string ok)
+    {
+        _busy = true; _error = _status = null;
+        try
+        {
+            await action();
+            await LoadAsync();
+            _status = ok;
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (ValidationException ex) { _error = ex.Message; }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private static string Tri(bool? v) => v is true ? "yes" : v is false ? "no" : "";
+    private static bool? Tri(string? v) => v == "yes" ? true : v == "no" ? false : null;
+
+    // --- Regole: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
+    private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
+
+    private IReadOnlyList<string> RwIdents() =>
+        _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
+
+    private void Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); }
+    private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
+        ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
+
+    private static void ToggleDay(RuleEdit r, int bit) => r.DaysMask ^= (1 << bit);
+    private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
+        ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
+
+    private void Move(int idx, int dir)
+    {
+        var j = idx + dir;
+        if (j < 0 || j >= _rules.Count) return;
+        (_rules[idx], _rules[j]) = (_rules[j], _rules[idx]);
+    }
+
+    private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private static string JoinCsv(HashSet<string> set) => string.Join(",", set);
+
+    private static TimeOnly? MinToTime(int? min) => min is int m ? new TimeOnly(m / 60, m % 60) : null;
+    private static int? TimeToMin(TimeOnly? t) => t is TimeOnly v ? v.Hour * 60 + v.Minute : null;
+
+    private sealed record RuleValidation(List<string> Errors, List<string> Warnings);
+
+    /// <summary>Errori (bloccano il salvataggio) + avvisi (regole irraggiungibili o piste inesistenti) sulle regole correnti.</summary>
+    private RuleValidation RuleIssues()
+    {
+        var errors = new List<string>();
+        var warnings = new List<string>();
+        var known = RwIdents().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < _rules.Count; i++)
+        {
+            var r = _rules[i];
+            var n = i + 1;
+            if (r.Dep.Count == 0 && r.Arr.Count == 0)
+                errors.Add($"Regola #{n}: seleziona almeno una pista DEP o ARR.");
+            foreach (var id in r.Dep.Concat(r.Arr).Where(id => !known.Contains(id)).Distinct())
+                warnings.Add($"Regola #{n}: pista «{id}» non è tra le piste dell'aeroporto.");
+            if (r.TimeFrom is not null ^ r.TimeTo is not null)
+                warnings.Add($"Regola #{n}: finestra orario incompleta (manca inizio o fine).");
+            // Catch-all (nessun vincolo) che non è l'ultima → le successive non vengono mai raggiunte.
+            if (i < _rules.Count - 1 && IsCatchAll(r))
+                warnings.Add($"Regola #{n} non ha condizioni: cattura sempre, le regole successive sono irraggiungibili.");
+        }
+        return new RuleValidation(errors, warnings);
+    }
+
+    private static bool IsCatchAll(RuleEdit r) =>
+        r.DirFrom is null && r.DirTo is null && r.SpdMin is null && r.SpdMax is null
+        && r.Rain == "" && r.Snow == "" && r.TimeFrom is null && r.TimeTo is null
+        && r.DaysMask == 0 && r.Parity == "";
+
+    private sealed class TlEdit { public int Id; public int? From; public int? To; public string? Level; }
+    private sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling; }
+    private sealed class RuleEdit
+    {
+        public int? DirFrom; public int? DirTo; public int? SpdMin; public int? SpdMax;
+        public string Rain = ""; public string Snow = "";
+        public HashSet<string> Dep = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> Arr = new(StringComparer.OrdinalIgnoreCase);
+        public string? Note;
+        public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC
+        public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti
+        public string Parity = "";                                 // ""|"even"|"odd"
+    }
+    private sealed class SidEdit { public string? Runway; public string? Fix; public string? Name; public string? Transition; public string? InitialClimb; public string? Type; public string? Cat; public string? Wtc; public string? Condition; }
+}

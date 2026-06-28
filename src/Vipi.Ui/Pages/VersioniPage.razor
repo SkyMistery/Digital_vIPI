@@ -1,5 +1,5 @@
-@page "/sop/versioni"
-@page "/sop/{Acc}/versioni"
+﻿@page "/vsop/versioni"
+@page "/vsop/{Acc}/versioni"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditingService Editing
@@ -7,7 +7,7 @@
 <PageTitle>Bozze &amp; versioni · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/sop">Admin</a> › <b>Bozze &amp; versioni</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Bozze &amp; versioni</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Bozze &amp; versioni</h2><span class="muted">Stato dei documenti e storico versioni (dal database)</span></div>
     </div>
@@ -50,7 +50,7 @@
                             <div>
                                 <b>@StatusLabel(v.Status)</b>
                                 @if (v.IsCurrent) { <span class="pill green">corrente</span> }
-                                <div class="vmeta">VID @v.CreatedByVid · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
+                                <div class="vmeta">VID @v.CreatedByUserId · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
                             </div>
                             <span class="vact">
                                 @if (v.Status == DocumentStatus.Draft)
@@ -118,6 +118,6 @@
     {
         var acc = (Acc ?? "lirr").ToLowerInvariant();
         // L'editor generico edita qualunque documento per id (vIPI ACC, aeroporto, vLOA).
-        return $"/sop/{acc}/editor?doc={d.Id}";
+        return $"/vsop/{acc}/editor?doc={d.Id}";
     }
 }

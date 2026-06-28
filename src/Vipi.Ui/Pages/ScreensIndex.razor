@@ -1,10 +1,10 @@
-@page "/sop/screens"
+﻿@page "/vsop/screens"
 @layout SopLayout
 
 <PageTitle>Tutte le schermate · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/sop">Home</a> › <b>Tutte le schermate</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>Tutte le schermate</b></div>
     <div class="doc-head"><div><h2 style="margin-bottom:2px">Tutte le schermate</h2><span class="muted">Indice di navigazione — tutte le pagine del mockup v2 implementate</span></div></div>
 
     @foreach (var g in Groups)
@@ -26,33 +26,29 @@
     {
         new("Navigazione", new[]
         {
-            ("🏠 Home (4 ACC)", "/sop"),
-            ("📂 Landing ACC — Roma", "/sop/lirr"),
+            ("🏠 Home (4 ACC)", "/vsop"),
+            ("📂 Landing ACC — Roma", "/vsop/lirr"),
         }),
         new("Consultazione", new[]
         {
-            ("📘 vIPI ACC — Estesa", "/sop/lirr/vipi"),
-            ("⚡ Vista ridotta (live)", "/sop/lirr/ridotta"),
-            ("🛫 vIPI Aeroporto (LIRF)", "/sop/lirr/aeroporto"),
-            ("📡 APP non remotizzato (Pisa)", "/sop/lirr/app"),
-            ("🌍 vLOA estera (DTTC)", "/sop/lirr/vloa"),
-            ("⚡ Ridotta APP", "/sop/lirr/ridotta-app"),
-            ("🧊 AoR 3D", "/sop/lirr/aor3d"),
-            ("📄 Export PDF", "/sop/lirr/export"),
+            ("📘 vIPI ACC — Estesa", "/vsop/lirr/vipi"),
+            ("🛫 Aeroporti (elenco)", "/vsop/lirr/airports"),
+            ("🛫 vIPI Aeroporto (LIRF)", "/vsop/lirr/airports?icao=LIRF"),
+            ("📡 APP non remotizzati (elenco)", "/vsop/lirr/apps"),
+            ("📡 APP non remotizzato (Pisa)", "/vsop/lirr/apps/vipi?icao=LIRP"),
         }),
         new("Pagine", new[]
         {
-            ("🆕 Cosa è cambiato", "/sop/changed"),
-            ("🔎 Ricerca full-text", "/sop/search"),
-            ("🚦 Stati & messaggi", "/sop/stati"),
+            ("🆕 Cosa è cambiato", "/vsop/changed"),
+            ("🔎 Ricerca full-text", "/vsop/search"),
         }),
         new("Admin / Editor (CH/AOD)", new[]
         {
-            ("✏️ Editor vIPI", "/sop/lirr/editor"),
-            ("🧭 Topologia settori", "/sop/lirr/topologia"),
-            ("🔄 Editor trasferimenti", "/sop/lirr/editor-trasferimenti"),
-            ("🤝 Editor vLOA", "/sop/lirr/editor-vloa"),
-            ("🗂️ Bozze & versioni", "/sop/versioni"),
+            ("✏️ Editor vIPI", "/vsop/lirr/editor"),
+            ("🧭 Topologia settori", "/vsop/lirr/topologia"),
+            ("🔄 Editor trasferimenti", "/vsop/lirr/editor-trasferimenti"),
+            ("🤝 Editor vLOA", "/vsop/lirr/editor-vloa"),
+            ("🗂️ Bozze & versioni", "/vsop/versioni"),
         }),
     };
 }

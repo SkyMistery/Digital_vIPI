@@ -1,0 +1,55 @@
+﻿@page "/vsop/editor"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditingService Editing
+@inject IStationResolver Stations
+
+<PageTitle>Editor · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Editor</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Editor</h2><span class="muted">Scegli quale documento modificare (solo quelli a cui hai accesso)</span></div>
+    </div>
+
+    @if (_docs is null)
+    {
+        <p class="help">Caricamento…</p>
+    }
+    else if (_docs.Count == 0)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Nessun documento modificabile</p>Non hai i permessi per editare alcun documento. Rivolgiti allo staff AOC/AOAC per un grant.</div></div>
+    }
+    else
+    {
+        @foreach (var d in _docs)
+        {
+            <div class="doc-rowi">
+                <span class="di">@Icon(d)</span>
+                <div><b>@d.Title</b><div class="muted" style="font-size:12px">@d.Type · scope @d.Scope</div></div>
+                <span class="pill @(d.HasDraft ? "grey" : "green")">@(d.HasDraft ? "Bozza aperta" : "Solo pubblicato")</span>
+                <a class="btn ghost" href="@EditorLink(d)">Apri editor →</a>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<DocumentSummary>? _docs;
+
+    protected override async Task OnInitializedAsync() =>
+        _docs = await Editing.ListEditableDocumentsAsync();
+
+    private static string Icon(DocumentSummary d) =>
+        d.Type == DocumentType.Vloa ? "🌍" : "📘";
+
+    private string EditorLink(DocumentSummary d)
+    {
+        // L'editor apre il documento per id; la route richiede però un ACC valido (altrimenti torna vuota).
+        // Uso lo scope se è un ACC, sennò il primo ACC disponibile come contesto.
+        var acc = Stations.Resolve(d.Scope) is not null
+            ? d.Scope
+            : (Stations.Accs.FirstOrDefault()?.Code ?? d.Scope);
+        return $"/vsop/{acc.ToLowerInvariant()}/editor?doc={d.Id}";
+    }
+}

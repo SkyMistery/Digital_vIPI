@@ -1,0 +1,50 @@
+@page "/vsop/{Acc}/apps"
+@layout SopLayout
+@inject IStationResolver Stations
+@inject IStructureEditingService Structure
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>Avvicinamenti non remotizzati @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <div class="wrap reading-cap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Avvicinamenti non remotizzati</b></div>
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name</h2><p class="muted" style="margin:0">APP con documentazione propria sotto la FIR di @_acc.Code.</p></div>
+        </div>
+        @if (_apps.Count == 0)
+        {
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun APP non remotizzato</p>Non ci sono ancora avvicinamenti con documento dedicato per questa FIR.</div></div>
+        }
+        else
+        {
+            <div class="choice-grid" style="margin-top:14px">
+                @foreach (var ap in _apps)
+                {
+                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?icao=@(ap.AirportIcao ?? ap.Callsign)" style="text-decoration:none;color:inherit">
+                        <h4><span class="ic">📡</span> @ap.Callsign</h4>
+                        <p class="muted">@ap.Name</p>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    private AccInfo? _acc;
+    private IReadOnlyList<SectorRow> _apps = Array.Empty<SectorRow>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        var data = await Structure.LoadAsync(_acc.Code);
+        _apps = data?.Sectors.Where(s => s.Type == SectorType.App).OrderBy(s => s.Callsign).ToList()
+            ?? (IReadOnlyList<SectorRow>)Array.Empty<SectorRow>();
+    }
+}

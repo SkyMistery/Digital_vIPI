@@ -1,4 +1,4 @@
-@page "/sop/{Acc}/vipi"
+﻿@page "/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IVipiViewService ViewService
 @inject IStationResolver Stations
@@ -10,7 +10,7 @@
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vIPI</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vIPI</b></div>
         <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI pubblicata per @_acc.Name.</div></div>
     </div>
 }
@@ -19,7 +19,7 @@ else
     <PageTitle>@_view.Title · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc">

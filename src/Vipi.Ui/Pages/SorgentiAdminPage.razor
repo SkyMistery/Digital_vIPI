@@ -1,0 +1,101 @@
+﻿@page "/vsop/admin/sorgenti"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+@using Vipi.Application.Auth
+@inject IImportPolicyService Policy
+@inject IEditAuthorizationService Authz
+
+<PageTitle>Sorgenti dati · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/struttura">Struttura</a> › <b>Sorgenti dati</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Sorgenti dati</h2><span class="muted">Decidi quali dati arrivano dalla sorgente (oggi IVAO) e quali si gestiscono a mano</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+    }
+    else
+    {
+        @if (_msg is not null) { <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div> }
+        @if (_ok is not null) { <div class="callout"><span class="cic">✅</span><div>@_ok</div></div> }
+
+        <div class="block" style="max-width:720px">
+            <p class="help">
+                Le categorie <b>importate</b> dalla sorgente sono <b>autorevoli e in sola lettura</b> per gli utenti:
+                vengono sovrascritte ai re-import e non si possono modificare negli editor. Escludendo una categoria
+                la rendi <b>manuale</b>: l'import non la tocca più e gli editor la lasciano modificabile.
+            </p>
+
+            <table class="res-table" style="max-width:680px">
+                <thead><tr><th>Categoria</th><th>Provenienza</th><th></th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><b>Transition Altitude</b><br /><span class="muted" style="font-size:11px">Quota di transizione dell'aeroporto</span></td>
+                        <td>@Provenance(_p.TransitionAltitude)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.TransitionAltitude" /> importa dalla sorgente</label></td>
+                    </tr>
+                    <tr>
+                        <td><b>ATIS</b><br /><span class="muted" style="font-size:11px">Frequenza ATIS dell'aeroporto</span></td>
+                        <td>@Provenance(_p.Atis)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Atis" /> importa dalla sorgente</label></td>
+                    </tr>
+                    <tr>
+                        <td><b>Piste</b><br /><span class="muted" style="font-size:11px">Ident, lunghezza e bearing delle piste</span></td>
+                        <td>@Provenance(_p.Runways)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Runways" /> importa dalla sorgente</label></td>
+                    </tr>
+                    <tr>
+                        <td><b>Settori</b><br /><span class="muted" style="font-size:11px">Settori d'aeroporto (callsign/tipo/frequenza)</span></td>
+                        <td>@Provenance(_p.Sectors)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sectors" /> importa dalla sorgente</label></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top:14px">
+                <button class="btn primary" disabled="@_busy" @onclick="Save">Salva</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private sealed class PolicyEdit
+    {
+        public bool TransitionAltitude { get; set; } = true;
+        public bool Atis { get; set; } = true;
+        public bool Runways { get; set; } = true;
+        public bool Sectors { get; set; } = true;
+    }
+
+    private PolicyEdit _p = new();
+    private bool _busy;
+    private string? _msg, _ok;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        var s = await Policy.GetAsync();
+        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Atis = s.Atis, Runways = s.Runways, Sectors = s.Sectors };
+    }
+
+    private static string Provenance(bool imported) => imported ? "🔒 da sorgente (sola lettura)" : "✎ manuale";
+
+    private async Task Save()
+    {
+        _busy = true; _msg = _ok = null;
+        try
+        {
+            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Atis, _p.Runways, _p.Sectors));
+            _ok = "Policy delle sorgenti salvata.";
+        }
+        catch (EditNotAllowedException) { _msg = "Operazione riservata agli amministratori."; }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+}

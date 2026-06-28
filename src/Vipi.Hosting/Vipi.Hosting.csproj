@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Libreria di composizione del modulo: ha bisogno dell'ambiente ASP.NET Core (DI, endpoint, middleware). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.Ui\Vipi.Ui.csproj" />
+    <ProjectReference Include="..\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+    <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
+    <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

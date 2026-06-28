@@ -1,0 +1,363 @@
+﻿@page "/vsop/admin/aeroporti"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStructureEditingService Struct
+@inject IAirportDirectory AirportDir
+@inject IEditAuthorizationService Authz
+
+<PageTitle>Aeroporti · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/struttura">Struttura</a> › <b>Aeroporti</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Aeroporti</h2><span class="muted">Assegnazione aeroporti IVAO alle FIR, FIR di competenza e gerarchia di settori</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+    }
+    else
+    {
+        @if (_msg is not null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
+        }
+        @if (_ok is not null)
+        {
+            <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
+        }
+
+        <div class="topo-layout">
+            @* --- SINISTRA: aeroporti assegnati a una FIR --- *@
+            <div class="panel">
+                <div class="section-title"><h3>Assegnati a una FIR <span class="pill blue">@_assigned.Count</span></h3><span class="ln"></span></div>
+                <div class="block">
+                    <div class="field"><input placeholder="🔎 filtra per ICAO o nome…" @bind="_qAssigned" @bind:event="oninput" /></div>
+                    @if (_assigned.Count == 0)
+                    {
+                        <p class="help">Nessun aeroporto assegnato. Assegnane dalla tabella a destra.</p>
+                    }
+                    else if (!_assigned.Any(a => Match(a.Icao, a.Name, _qAssigned)))
+                    {
+                        <p class="help">Nessun risultato per «@_qAssigned».</p>
+                    }
+                    else
+                    {
+                        @if (_selAssigned.Count > 0)
+                        {
+                            <div class="bulk-bar">
+                                <b>@_selAssigned.Count selez.</b>
+                                <select @bind="_bulkMoveFir">
+                                    <option value="">sposta in FIR…</option>
+                                    @foreach (var f in _firs) { <option value="@f.Code">@f.Code</option> }
+                                </select>
+                                <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(_bulkMoveFir))" @onclick="BulkMoveAssigned">Sposta</button>
+                                <button class="btn primary" disabled="@_busy" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">📄 Genera documenti</button>
+                                <button class="btn ghost danger" disabled="@_busy" @onclick="BulkDeleteAssigned">🗑 Elimina selezionati</button>
+                                <button class="btn ghost" disabled="@_busy" @onclick="() => _selAssigned.Clear()">deseleziona</button>
+                            </div>
+                        }
+                        <table class="res-table">
+                            <thead><tr>
+                                <th class="col-chk"><input type="checkbox" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
+                                <th class="col-icao">ICAO</th><th>FIR</th><th>Settori</th><th></th>
+                            </tr></thead>
+                            <tbody>
+                                @foreach (var a in ShownAssigned())
+                                {
+                                    <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
+                                        <td class="col-chk"><input type="checkbox" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
+                                        <td class="col-icao sel-cell" @onclick="() => ClickAssigned(a.Id)"><b>@a.Icao</b><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
+                                        <td>
+                                            <select disabled="@_busy" @onchange="e => ChangeFir(a.Id, a.FirCode, e.Value?.ToString())">
+                                                @foreach (var f in _firs)
+                                                {
+                                                    <option value="@f.Code" selected="@(f.Code == a.FirCode)">@f.Code</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td class="sel-cell" @onclick="() => ClickAssigned(a.Id)">
+                                            @a.Sectors
+                                            @if (!a.HasTower)
+                                            {
+                                                <span class="pill" style="background:#ffe9c7;color:#9a6700;margin-left:6px" title="Ogni aeroporto deve avere almeno una torre (TWR o I_TWR). Genera i documenti o aggiungi la torre dalla pagina Struttura.">⚠ no TWR</span>
+                                            }
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            <a class="btn ghost" href="/vsop/@a.FirCode.ToLowerInvariant()/aeroporto/editor?icao=@a.Icao" title="Editor profilo aeroporto">✎</a>
+                                            <button class="btn ghost" disabled="@_busy" @onclick="() => Remove(a.Id, a.FirCode)" title="Solo se senza settori">🗑</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+
+            @* --- DESTRA: anagrafica aeroporti IVAO (DB) --- *@
+            <div class="panel">
+                <div class="section-title"><h3>Anagrafica IVAO <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
+                    @if (_ivao is not null)
+                    {
+                        <button class="btn primary" disabled="@_busy" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla FIR di competenza già esistente">⟳ Auto-assegna noti</button>
+                    }
+                </div>
+                <div class="block">
+                    @if (_ivaoErr is not null)
+                    {
+                        <div class="callout warning" style="margin-top:0"><span class="cic">🔒</span><div>Anagrafica IVAO non disponibile: @_ivaoErr</div></div>
+                    }
+                    else if (_ivao is null)
+                    {
+                        <p class="help">Carico l'anagrafica aeroporti da IVAO…</p>
+                    }
+                    else
+                    {
+                        <p class="muted" style="font-size:11.5px;margin:0 0 8px">In <span style="color:#1a7f37;font-weight:700">verde</span> gli aeroporti già assegnati. «Auto-assegna noti» crea quelli con FIR di competenza già presente nel DB; per gli altri scegli la FIR e premi «assegna».</p>
+                        <div class="field"><input placeholder="🔎 filtra per ICAO o nome…" @bind="_qIvao" @bind:event="oninput" /></div>
+                        @if (!_ivao.Any(a => Match(a.Icao, a.Name, _qIvao)))
+                        {
+                            <p class="help">Nessun risultato per «@_qIvao».</p>
+                        }
+                        else
+                        {
+                            @if (_selIvao.Count > 0)
+                            {
+                                <div class="bulk-bar">
+                                    <b>@_selIvao.Count selez.</b>
+                                    <select @bind="_bulkAssignFir">
+                                        <option value="">assegna a FIR…</option>
+                                        @foreach (var f in _firs) { <option value="@f.Code">@f.Code</option> }
+                                    </select>
+                                    <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(_bulkAssignFir))" @onclick="BulkAssignIvao">Assegna selezionati</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _selIvao.Clear()">deseleziona</button>
+                                </div>
+                            }
+                            <table class="res-table">
+                                <thead><tr>
+                                    <th class="col-chk"><input type="checkbox" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
+                                    <th class="col-icao">ICAO</th><th>FIR da DB</th><th>Assegnazione</th>
+                                </tr></thead>
+                                <tbody>
+                                    @foreach (var ap in ShownIvao())
+                                    {
+                                        var assignedFir = AssignedFirOf(ap.Icao);
+                                        var selectable = assignedFir is null;
+                                        <tr class="@(selectable && _selIvao.Contains(ap.Icao) ? "row-sel" : null)" style="@(assignedFir is not null ? "background:#dafbe7" : "")">
+                                            <td class="col-chk">
+                                                @if (selectable)
+                                                {
+                                                    <input type="checkbox" checked="@_selIvao.Contains(ap.Icao)" @onchange="e => ToggleIvao(ap.Icao, (bool)e.Value!)" />
+                                                }
+                                            </td>
+                                            <td class="col-icao @(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><b>@ap.Icao</b><br /><span class="muted" style="font-size:11px">@ap.Name</span></td>
+                                            <td class="@(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><span class="muted" style="font-size:12px">@(ap.FirCode ?? "—")</span></td>
+                                            <td>
+                                                @if (assignedFir is not null)
+                                                {
+                                                    <span style="color:#1a7f37;font-weight:700">✓ @assignedFir</span>
+                                                }
+                                                else
+                                                {
+                                                    var pick = _assignFir.GetValueOrDefault(ap.Icao, "");
+                                                    <div class="assign-cell">
+                                                        <select disabled="@_busy" value="@pick" @onchange="e => SetAssignFir(ap.Icao, e.Value?.ToString())">
+                                                            <option value="">FIR…</option>
+                                                            @foreach (var f in _firs) { <option value="@f.Code">@f.Code</option> }
+                                                        </select>
+                                                        <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">assegna</button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<FirRow> _firs = Array.Empty<FirRow>();
+    private IReadOnlyList<AirportAdminRow> _assigned = Array.Empty<AirportAdminRow>();
+    private IReadOnlyList<SourceAirport>? _ivao;
+    private string? _ivaoErr;
+    private readonly Dictionary<string, string> _assignFir = new(StringComparer.OrdinalIgnoreCase);
+    private string _qAssigned = "", _qIvao = "";
+    private bool _busy;
+    private string? _msg;
+    private string? _ok;
+
+    // selezione multipla (azioni bulk)
+    private readonly HashSet<int> _selAssigned = new();
+    private readonly HashSet<string> _selIvao = new(StringComparer.OrdinalIgnoreCase);
+    private string _bulkMoveFir = "", _bulkAssignFir = "";
+
+    private List<AirportAdminRow> ShownAssigned() =>
+        _assigned.Where(a => Match(a.Icao, a.Name, _qAssigned)).ToList();
+    private List<SourceAirport> ShownIvao() =>
+        (_ivao ?? Enumerable.Empty<SourceAirport>()).Where(a => Match(a.Icao, a.Name, _qIvao)).ToList();
+    private List<SourceAirport> ShownIvaoUnassigned() =>
+        ShownIvao().Where(a => AssignedFirOf(a.Icao) is null).ToList();
+
+    private void ToggleAssigned(int id, bool on) { if (on) _selAssigned.Add(id); else _selAssigned.Remove(id); }
+    private void ToggleAllAssigned(bool on)
+    {
+        foreach (var a in ShownAssigned()) { if (on) _selAssigned.Add(a.Id); else _selAssigned.Remove(a.Id); }
+    }
+    private void ToggleIvao(string icao, bool on) { if (on) _selIvao.Add(icao); else _selIvao.Remove(icao); }
+    private void ToggleAllIvao(bool on)
+    {
+        foreach (var a in ShownIvaoUnassigned()) { if (on) _selIvao.Add(a.Icao); else _selIvao.Remove(a.Icao); }
+    }
+
+    // Click sulle celle non editabili (ICAO, ecc.) = toggle della selezione di riga.
+    private void ClickAssigned(int id) => ToggleAssigned(id, !_selAssigned.Contains(id));
+    private void ClickIvao(string icao)
+    {
+        if (AssignedFirOf(icao) is not null) return;   // le righe già assegnate non sono selezionabili
+        ToggleIvao(icao, !_selIvao.Contains(icao));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        await ReloadAsync();
+        _ = LoadIvaoAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _firs = await Struct.ListFirsAsync();
+        _assigned = await Struct.ListAllAirportsAsync();
+    }
+
+    private async Task LoadIvaoAsync()
+    {
+        try { _ivao = await AirportDir.GetAirportsAsync(); }
+        catch (Exception ex) { _ivaoErr = ex.Message.Split('—')[0].Trim(); }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static bool Match(string icao, string name, string q) =>
+        string.IsNullOrWhiteSpace(q)
+        || icao.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || name.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+    private string? AssignedFirOf(string icao) =>
+        _assigned.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase))?.FirCode;
+
+    private async Task Guarded(Func<Task> action)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try { await action(); await ReloadAsync(); }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private void SetAssignFir(string icao, string? fir) => _assignFir[icao] = fir ?? "";
+
+    private Task Assign(SourceAirport ap) => Guarded(async () =>
+    {
+        var fir = _assignFir.GetValueOrDefault(ap.Icao, "");
+        if (string.IsNullOrEmpty(fir)) return;
+        await Struct.CreateAirportAsync(fir, ap.Icao, ap.Name);
+        _assignFir.Remove(ap.Icao);
+    });
+
+    private Task AutoAssign() => Guarded(async () =>
+    {
+        var n = await Struct.AutoAssignKnownAirportsAsync();
+        _ok = n == 0 ? "Nessun aeroporto da assegnare (già tutti presenti o FIR non create)."
+                     : $"Assegnati {n} aeroporti alla FIR di competenza.";
+    });
+
+    private Task ChangeFir(int id, string fromFir, string? toFir) =>
+        string.IsNullOrEmpty(toFir) || toFir == fromFir ? Task.CompletedTask
+            : Guarded(() => Struct.MoveAirportAsync(id, fromFir, toFir));
+
+    private Task Remove(int id, string firCode) => Guarded(() => Struct.DeleteAirportAsync(firCode, id));
+
+    // --- Azioni bulk: continuano oltre i fallimenti per-riga e riassumono il risultato. ---
+    private async Task RunBulk(Func<Task> body)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try { await body(); await ReloadAsync(); }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private Task BulkMoveAssigned() => RunBulk(async () =>
+    {
+        if (string.IsNullOrEmpty(_bulkMoveFir)) { _msg = "Scegli la FIR di destinazione."; return; }
+        var target = _bulkMoveFir;
+        int ok = 0, fail = 0;
+        foreach (var id in _selAssigned.ToList())
+        {
+            var a = _assigned.FirstOrDefault(x => x.Id == id);
+            if (a is null || a.FirCode == target) continue;
+            try { await Struct.MoveAirportAsync(id, a.FirCode, target); ok++; }
+            catch { fail++; }
+        }
+        _selAssigned.Clear(); _bulkMoveFir = "";
+        _ok = $"Spostati {ok} aeroporti in {target}" + (fail > 0 ? $", {fail} non spostati." : ".");
+    });
+
+    private Task GenerateDocs() => RunBulk(async () =>
+    {
+        int created = 0, sectors = 0, skipped = 0, fail = 0;
+        foreach (var id in _selAssigned.ToList())
+        {
+            var a = _assigned.FirstOrDefault(x => x.Id == id);
+            if (a is null) continue;
+            try
+            {
+                var r = await Struct.GenerateAirportDocumentAsync(a.Icao);
+                if (r.Created) { created++; sectors += r.SectorsCreated; } else skipped++;
+            }
+            catch { fail++; }
+        }
+        _selAssigned.Clear();
+        _ok = $"Documenti aeroporto generati: {created} (settori creati {sectors})"
+            + (skipped > 0 ? $", {skipped} già esistenti" : "")
+            + (fail > 0 ? $", {fail} falliti" : "") + ".";
+    });
+
+    private Task BulkDeleteAssigned() => RunBulk(async () =>
+    {
+        int ok = 0, fail = 0;
+        foreach (var id in _selAssigned.ToList())
+        {
+            var a = _assigned.FirstOrDefault(x => x.Id == id);
+            if (a is null) continue;
+            try { await Struct.DeleteAirportAsync(a.FirCode, id); ok++; }
+            catch { fail++; }
+        }
+        _selAssigned.Clear();
+        _ok = $"Eliminati {ok} aeroporti" + (fail > 0 ? $", {fail} non eliminati (settori collegati)." : ".");
+    });
+
+    private Task BulkAssignIvao() => RunBulk(async () =>
+    {
+        if (string.IsNullOrEmpty(_bulkAssignFir)) { _msg = "Scegli la FIR."; return; }
+        var target = _bulkAssignFir;
+        int ok = 0, fail = 0;
+        foreach (var icao in _selIvao.ToList())
+        {
+            var ap = _ivao?.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase));
+            if (ap is null || AssignedFirOf(icao) is not null) continue;
+            try { await Struct.CreateAirportAsync(target, ap.Icao, ap.Name); ok++; }
+            catch { fail++; }
+        }
+        _selIvao.Clear(); _bulkAssignFir = "";
+        _ok = $"Assegnati {ok} aeroporti a {target}" + (fail > 0 ? $", {fail} non assegnati." : ".");
+    });
+}

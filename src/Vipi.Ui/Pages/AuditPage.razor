@@ -1,0 +1,56 @@
+﻿@page "/vsop/admin/audit"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditAuthorizationService Authz
+@inject IAuditLogReader Audit
+
+<PageTitle>Audit log · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Audit log</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Audit log</h2><span class="muted">Ultime azioni registrate (pubblicazioni, permessi, struttura)</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può vedere l'audit.</div></div>
+    }
+    else if (_rows is null)
+    {
+        <p class="help">Caricamento…</p>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="callout info"><span class="cic">ℹ️</span><div>Nessun evento registrato.</div></div>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Quando (UTC)</th><th>VID</th><th>Azione</th><th>Entità</th><th>Id</th><th>Dettagli</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td>@r.TimestampUtc.ToString("dd MMM yyyy HH:mm:ss")</td>
+                        <td><b>@r.UserId</b></td>
+                        <td>@r.Action</td>
+                        <td>@r.EntityType</td>
+                        <td>@r.EntityId</td>
+                        <td class="muted" style="font-size:12px">@r.DetailsJson</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AuditEntry>? _rows;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _rows = await Audit.ListRecentAsync();
+    }
+}

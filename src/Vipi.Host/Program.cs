@@ -1,20 +1,13 @@
-using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.EntityFrameworkCore;
-using Vipi.Application;
-using Vipi.Application.Abstractions;
-using Vipi.Host;
+﻿using Microsoft.AspNetCore.ResponseCompression;
 using Vipi.Host.Components;
-using Vipi.Infrastructure;
-using Vipi.Infrastructure.Ivao;
-using Vipi.Infrastructure.Persistence;
-using Vipi.Infrastructure.Persistence.Seed;
+using Vipi.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /sop/live/atc
+// Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /vsop/live/atc
 // usa DisableBuffering() e dev'essere consegnata subito, non compressa/bufferizzata.
 builder.Services.AddResponseCompression(o =>
 {
@@ -24,38 +17,14 @@ builder.Services.AddResponseCompression(o =>
     o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
 });
 
-// Layer vIPI (Clean Architecture). ADR-0001 D2.
-builder.Services.AddVipiApplication();
-builder.Services.AddVipiInfrastructure(
-    builder.Configuration.GetConnectionString("Vipi") ?? "Data Source=vipi.db");
-
-// F3: polling IVAO + cache ATC online + hosted service. ADR-0001 D6.
-builder.Services.AddVipiIvao(builder.Configuration);
-
-// Identità divisione (Code + prefissi ICAO): basta cambiare la sezione "Division" per passare divisione.
-builder.Services.Configure<Vipi.Application.DivisionOptions>(
-    builder.Configuration.GetSection(Vipi.Application.DivisionOptions.SectionName));
-
-// Override opzionale dei codici staff admin (pattern completi); se vuoto si derivano da Division.Code.
-builder.Services.Configure<Vipi.Application.Auth.AuthOptions>(
-    builder.Configuration.GetSection(Vipi.Application.Auth.AuthOptions.SectionName));
-
-// Adapter di identità: in dev un CH fittizio. In A/B → HostIdentity; in C → OIDC. ADR-0002 D2/D3.
-builder.Services.AddScoped<ICurrentUserProvider, DevCurrentUserProvider>();
+// Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
+// In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
+builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.Environment.IsDevelopment());
 
 var app = builder.Build();
 
-// Dev: crea/migra il DB SQLite e popola il seed di Roma (struttura + contenuti demo).
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<VipiDbContext>();
-    db.Database.Migrate();
-    await RomaStructureSeed.SeedAsync(db);
-    await RomaContentSeed.SeedAsync(db);
-    await RomaAirportSeed.SeedAsync(db);
-    await RomaVloaSeed.SeedAsync(db);
-    await RomaTransferSeed.SeedAsync(db);
-}
+// Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
+app.MigrateVipiDatabase();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -70,54 +39,27 @@ app.UseResponseCompression();
 
 app.UseStaticFiles(new StaticFileOptions
 {
+    // In sviluppo niente cache: CSS/JS aggiornati sono sempre riletti (evita il "vecchio stile" in cache).
     OnPrepareResponse = ctx =>
-        ctx.Context.Response.Headers.CacheControl = "public,max-age=604800", // 7 giorni
+        ctx.Context.Response.Headers.CacheControl = app.Environment.IsDevelopment()
+            ? "no-cache, no-store, must-revalidate"
+            : "public,max-age=604800", // 7 giorni in produzione
 });
 app.UseAntiforgery();
 
+// Middleware del modulo (registrazione login staff nel roster).
+app.UseVipiModule();
+
+// Compat: i vecchi URL /sop* (pre-rebuild Round 12) redirigono al nuovo prefisso /vsop*,
+// preservando la query string (es. ?icao=LIRF). Tutti gli endpoint reali sono ora su /vsop.
+app.MapGet("/sop", (HttpContext ctx) => Results.Redirect($"/vsop{ctx.Request.QueryString}", permanent: true));
+app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"/vsop/{rest}{ctx.Request.QueryString}", permanent: true));
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(Vipi.Ui.Pages.SopHome).Assembly);  // monta la RCL vIPI
+    .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly);   // monta la RCL vIPI
 
-// F3: transport live SSE. Emette un evento a ogni cambio della cache ATC (+ heartbeat anti-timeout).
-// ADR-0003. Read-only, nessun dato sensibile.
-app.MapGet("/sop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, CancellationToken ct) =>
-{
-    ctx.Response.Headers.ContentType = "text/event-stream";
-    ctx.Response.Headers.CacheControl = "no-cache";
-    ctx.Response.Headers.Connection = "keep-alive";
-    // Disabilita il buffering: gli eventi devono raggiungere il browser subito, anche dietro reverse-proxy.
-    ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>()?.DisableBuffering();
-
-    var signal = new SemaphoreSlim(0);
-    void OnChanged() => signal.Release();
-    cache.Changed += OnChanged;
-
-    async Task EmitAsync()
-    {
-        var snap = cache.GetCurrent();
-        var payload = System.Text.Json.JsonSerializer.Serialize(
-            new { asOf = snap.AsOf, count = snap.Callsigns.Count });
-        await ctx.Response.WriteAsync($"data: {payload}\n\n", ct);
-        await ctx.Response.Body.FlushAsync(ct);
-    }
-
-    try
-    {
-        await EmitAsync(); // stato corrente subito alla connessione
-        while (!ct.IsCancellationRequested)
-        {
-            if (await signal.WaitAsync(TimeSpan.FromSeconds(25), ct))
-                await EmitAsync();
-            else
-            {
-                await ctx.Response.WriteAsync(": ping\n\n", ct); // heartbeat
-                await ctx.Response.Body.FlushAsync(ct);
-            }
-        }
-    }
-    catch (OperationCanceledException) { /* client disconnesso */ }
-    finally { cache.Changed -= OnChanged; }
-});
+// Endpoint del modulo (SSE live ATC).
+app.MapVipiModule();
 
 app.Run();

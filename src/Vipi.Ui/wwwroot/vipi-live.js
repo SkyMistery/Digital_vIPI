@@ -1,11 +1,11 @@
-// Transport live F3: sottoscrive l'endpoint SSE /sop/live/atc e notifica il componente Blazor
+﻿// Transport live F3: sottoscrive l'endpoint SSE /vsop/live/atc e notifica il componente Blazor
 // a ogni cambio della cache ATC. Il browser riconnette da solo su errore (EventSource nativo).
 window.vipiLive = {
     _src: null,
     subscribe: function (dotnetRef) {
         this.unsubscribe();
         try {
-            this._src = new EventSource('/sop/live/atc');
+            this._src = new EventSource('/vsop/live/atc');
             this._src.onmessage = function () {
                 dotnetRef.invokeMethodAsync('OnLiveUpdate');
             };

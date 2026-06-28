@@ -1,14 +1,15 @@
-@page "/sop/{Acc}/editor"
+﻿@page "/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
 @inject IEditingService Editing
 @inject IEditAuthorizationService Authz
+@inject IStructureEditingService Structure
 
 <PageTitle>Editor — vIPI @(_acc?.Name) · IVAO Italia</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/sop">Admin</a> › <a href="/sop/@Acc.ToLowerInvariant()/vipi">vIPI @_acc?.Name</a> › <b>Editor</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vipi">vIPI @_acc?.Name</a> › <b>Editor</b></div>
 
     @if (_acc is null)
     {
@@ -49,13 +50,13 @@
                 }
                 <button class="btn ghost" disabled="@_busy" @onclick="ReleaseLock">Rilascia</button>
             }
-            <a class="btn ghost" href="/sop/@Acc.ToLowerInvariant()/vipi">👁️ Anteprima</a>
-            <a class="btn ghost" href="/sop/@Acc.ToLowerInvariant()/versioni">📜 Versioni</a>
+            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">👁️ Anteprima</a>
+            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/versioni">📜 Versioni</a>
         </div>
 
         @if (_lock is not null && _lock.Locked && !_lock.IsMine)
         {
-            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Documento in modifica</p>Bloccato da VID @_lock.ByVid (@_lock.ByName) fino alle @_lock.ExpiresUtc?.ToString("HH:mm") UTC. Sola lettura finché non si libera@(_isAdmin ? " (o forza lo sblocco)" : "").</div></div>
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Documento in modifica</p>Bloccato da VID @_lock.ByUserId (@_lock.ByName) fino alle @_lock.ExpiresUtc?.ToString("HH:mm") UTC. Sola lettura finché non si libera@(_isAdmin ? " (o forza lo sblocco)" : "").</div></div>
         }
 
         @if (_status is not null)
@@ -162,6 +163,87 @@
                 }
             </div>
         </div>
+
+        @* ---------- In evidenza nella landing ACC (struttura FIR, indipendente dalla bozza) ---------- *@
+        <div class="panel" style="margin-top:18px">
+            <h5>In evidenza nella landing ACC <span class="pill grey" style="font-size:11px">max 3</span></h5>
+            <p class="help">Scegli quali aeroporti, avvicinamenti e vLOA compaiono (nell'ordine) nelle card della pagina di @_acc.Name. Senza scelta, mostra i primi 3 per ICAO/callsign/titolo.</p>
+            @if (_featStatus is not null)
+            {
+                <div class="callout success" style="margin:8px 0"><span class="cic">✓</span><div>@_featStatus</div></div>
+            }
+            <div class="ed-layout">
+                <div>
+                    <h5>Aeroporti</h5>
+                    @if (_featAirports.Count == 0)
+                    {
+                        <p class="help">Nessun aeroporto nella FIR.</p>
+                    }
+                    else
+                    {
+                        @foreach (var ap in _featAirports)
+                        {
+                            <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span style="flex:1">@ap.Icao · @ap.Name</span>
+                                <select value="@GetRank(_airportRank, ap.Id)" @onchange="e => SetRank(_airportRank, ap.Id, e)">
+                                    <option value="0">—</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                        }
+                        <button class="btn primary" disabled="@_busy" @onclick="SaveFeaturedAirports">Salva aeroporti in evidenza</button>
+                    }
+                </div>
+                <div>
+                    <h5>Avvicinamenti non remotizzati</h5>
+                    @if (_featApps.Count == 0)
+                    {
+                        <p class="help">Nessun APP nella FIR.</p>
+                    }
+                    else
+                    {
+                        @foreach (var ap in _featApps)
+                        {
+                            <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span style="flex:1">@ap.Callsign · @ap.Name</span>
+                                <select value="@GetRank(_appRank, ap.Id)" @onchange="e => SetRank(_appRank, ap.Id, e)">
+                                    <option value="0">—</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                        }
+                        <button class="btn primary" disabled="@_busy" @onclick="SaveFeaturedApps">Salva APP in evidenza</button>
+                    }
+                </div>
+                <div>
+                    <h5>vLOA</h5>
+                    @if (_featVloas.Count == 0)
+                    {
+                        <p class="help">Nessuna vLOA pubblicata nella FIR.</p>
+                    }
+                    else
+                    {
+                        @foreach (var v in _featVloas)
+                        {
+                            <div class="field" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span style="flex:1">@v.Title@(v.Neighbour is null ? "" : $" · {v.Neighbour}")</span>
+                                <select value="@GetRank(_vloaRank, v.DocId)" @onchange="e => SetRank(_vloaRank, v.DocId, e)">
+                                    <option value="0">—</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                        }
+                        <button class="btn primary" disabled="@_busy" @onclick="SaveFeaturedVloas">Salva vLOA in evidenza</button>
+                    }
+                </div>
+            </div>
+        </div>
     }
 </div>
 
@@ -191,11 +273,67 @@
     private List<(EditableSection Section, int Depth)> _flat = new();
     private EditableSection? _selected => _selId is int id ? _flat.FirstOrDefault(t => t.Section.Id == id).Section : null;
 
+    // --- "In evidenza" nella landing ACC (FeaturedRank su aeroporti/APP della FIR) ---
+    private IReadOnlyList<AirportRow> _featAirports = Array.Empty<AirportRow>();
+    private IReadOnlyList<SectorRow> _featApps = Array.Empty<SectorRow>();
+    private IReadOnlyList<VloaRow> _featVloas = Array.Empty<VloaRow>();
+    private readonly Dictionary<int, int> _airportRank = new();   // airportId -> rank (0 = nessuno)
+    private readonly Dictionary<int, int> _appRank = new();       // sectorId  -> rank (0 = nessuno)
+    private readonly Dictionary<int, int> _vloaRank = new();      // vLOA docId -> rank (0 = nessuno)
+    private string? _featStatus;
+
     protected override async Task OnInitializedAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
         await LoadAsync();
+        await LoadFeaturedAsync();
+    }
+
+    private async Task LoadFeaturedAsync()
+    {
+        var data = await Structure.LoadAsync(_acc!.Code);
+        if (data is null) return;
+        _featAirports = data.Airports.OrderBy(a => a.Icao).ToList();
+        _featApps = data.Sectors.Where(s => s.Type == SectorType.App).OrderBy(s => s.Callsign).ToList();
+        _featVloas = data.Vloas.OrderBy(v => v.Title).ToList();
+        _airportRank.Clear();
+        foreach (var a in _featAirports) _airportRank[a.Id] = a.FeaturedRank ?? 0;
+        _appRank.Clear();
+        foreach (var a in _featApps) _appRank[a.Id] = a.FeaturedRank ?? 0;
+        _vloaRank.Clear();
+        foreach (var v in _featVloas) _vloaRank[v.DocId] = v.FeaturedRank ?? 0;
+    }
+
+    private static int GetRank(Dictionary<int, int> map, int id) => map.TryGetValue(id, out var r) ? r : 0;
+
+    private void SetRank(Dictionary<int, int> map, int id, ChangeEventArgs e)
+        => map[id] = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+
+    private static IReadOnlyList<int> OrderedIds(Dictionary<int, int> map) =>
+        map.Where(kv => kv.Value is >= 1 and <= 3).OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+
+    private Task SaveFeaturedAirports() => GuardedFeatured(async () =>
+        await Structure.SetFeaturedAirportsAsync(_acc!.Code, OrderedIds(_airportRank)), "Aeroporti in evidenza aggiornati.");
+
+    private Task SaveFeaturedApps() => GuardedFeatured(async () =>
+        await Structure.SetFeaturedAppsAsync(_acc!.Code, OrderedIds(_appRank)), "APP in evidenza aggiornati.");
+
+    private Task SaveFeaturedVloas() => GuardedFeatured(async () =>
+        await Structure.SetFeaturedVloasAsync(_acc!.Code, OrderedIds(_vloaRank)), "vLOA in evidenza aggiornate.");
+
+    private async Task GuardedFeatured(Func<Task> action, string okMessage)
+    {
+        _busy = true; _featStatus = null; _error = null;
+        try
+        {
+            await action();
+            await LoadFeaturedAsync();
+            _featStatus = okMessage;
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (ValidationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
     }
 
     private async Task LoadAsync()

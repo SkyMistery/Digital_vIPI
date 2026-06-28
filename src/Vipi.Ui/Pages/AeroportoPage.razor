@@ -1,16 +1,49 @@
-@page "/sop/{Acc}/aeroporto"
+﻿@page "/vsop/{Acc}/airports"
 @layout SopLayout
+@rendermode InteractiveServer
+@using System.Text.Json
+@using Vipi.Application.Content
+@using Vipi.Application.Weather
 @inject IVipiViewService ViewService
 @inject IStationResolver Stations
+@inject IStructureEditingService Structure
+@inject Vipi.Application.Abstractions.IWeatherProvider Weather
+@inject IAirportProfileService Profile
 
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
+else if (_listMode)
+{
+    <PageTitle>Aeroporti @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <div class="wrap reading-cap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Aeroporti</b></div>
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name</h2><p class="muted" style="margin:0">Tutti gli aeroporti sotto la FIR di @_acc.Code.</p></div>
+        </div>
+        @if (_allAirports.Count == 0)
+        {
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Non ci sono ancora aeroporti assegnati a questa FIR.</div></div>
+        }
+        else
+        {
+            <div class="choice-grid" style="margin-top:14px">
+                @foreach (var ap in _allAirports)
+                {
+                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao" style="text-decoration:none;color:inherit">
+                        <h4><span class="ic">🛫</span> @ap.Icao</h4>
+                        <p class="muted">@ap.Name</p>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_icao</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_icao</b></div>
         <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI aeroporto pubblicata per @_icao.</div></div>
     </div>
 }
@@ -19,12 +52,13 @@ else
     <PageTitle>@_view.Title · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/sop">Home</a> › <a href="/sop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
                 <ul>
+                    <li><a href="#a-meteo">METAR &amp; TAF</a></li>
                     @foreach (var s in _view.Sections)
                     {
                         <li><a href="#@s.Id">@s.Title</a></li>
@@ -35,10 +69,204 @@ else
             <div>
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Aeroporto · @_acc.Name</span></div>
-                    <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <a class="pill" href="/vsop/@Acc.ToLowerInvariant()/aeroporto/editor?icao=@_icao">✎ Editor</a>
+                        <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+                    </div>
                 </div>
 
-                @foreach (var s in _view.Sections)
+                @* ---------- METAR / TAF live + parse ---------- *@
+                <div class="block" id="a-meteo">
+                    <h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">(live · NOAA)</span></h3>
+
+                    @if (_wx is not null && _wx.HasData)
+                    {
+                        <div class="wx-tabs">
+                            <button class="wx-tab @(_tab == "metar" ? "on" : "")" @onclick='() => _tab = "metar"'>METAR</button>
+                            <button class="wx-tab @(_tab == "taf" ? "on" : "")" @onclick='() => _tab = "taf"' disabled="@(_taf is null)">TAF</button>
+                        </div>
+
+                        @if (_tab == "metar" && _metar is not null)
+                        {
+                            <div class="wx-view">
+                                <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_metar.Raw</div>
+                                <div class="metar-parse">
+                                    <span class="mp"><span class="muted">Vento</span><b>@(_metar.Wind?.Label ?? "—")</b></span>
+                                    <span class="mp"><span class="muted">Visibilità</span><b>@(_metar.Visibility ?? "—")</b></span>
+                                    <span class="mp"><span class="muted">Nubi</span><b>@_metar.CloudsLabel</b></span>
+                                    <span class="mp"><span class="muted">QNH</span><b>@(_metar.QnhHpa is int q ? $"{q} hPa" : "—")</b></span>
+                                    <span class="mp"><span class="muted">Temp/DP</span><b>@(_metar.TempC is int t ? $"{t} / {_metar.DewpointC} °C" : "—")</b></span>
+                                    @if (_metar.Weather is not null)
+                                    {
+                                        <span class="mp"><span class="muted">Tempo</span><b>@_metar.Weather</b></span>
+                                    }
+                                    @if (_metar.Trend is not null)
+                                    {
+                                        <span class="mp"><span class="muted">Tendenza</span><b>@_metar.Trend</b></span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (_tab == "metar")
+                        {
+                            <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR non disponibile per @_icao</b></div></div>
+                        }
+
+                        @if (_tab == "taf" && _taf is not null)
+                        {
+                            <div class="wx-view">
+                                <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_taf.Raw</div>
+                                @if (_taf.ValidityRaw is not null)
+                                {
+                                    <div class="taf-valid">⏱️ Validità: <b style="margin:0 4px">@_taf.ValidityRaw</b></div>
+                                }
+                                <div class="taf-tl">
+                                    @foreach (var seg in _taf.Segments)
+                                    {
+                                        var cls = TafCss(seg.Kind);
+                                        <div class="taf-row @cls">
+                                            <div class="taf-head">
+                                                <span class="taf-kind @cls">@TafLabel(seg)</span>
+                                                <span class="taf-when">@(seg.PeriodRaw ?? "dall'inizio validità")</span>
+                                                <span class="taf-raw">@seg.Raw</span>
+                                            </div>
+                                            <div class="taf-parse">
+                                                @if (seg.Wind is not null)
+                                                {
+                                                    <span class="mp"><span class="muted">Vento</span><b>@seg.Wind.Label</b></span>
+                                                }
+                                                @if (seg.Wind?.GustKt is int g)
+                                                {
+                                                    <span class="mp"><span class="muted">Raffiche</span><b>@g kt</b></span>
+                                                }
+                                                @if (seg.Visibility is not null)
+                                                {
+                                                    <span class="mp"><span class="muted">Visibilità</span><b>@seg.Visibility</b></span>
+                                                }
+                                                @if (seg.Clouds.Count > 0)
+                                                {
+                                                    <span class="mp"><span class="muted">Nubi</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
+                                                }
+                                                @if (seg.Weather is not null)
+                                                {
+                                                    <span class="mp"><span class="muted">Tempo</span><b>@seg.Weather</b></span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <p class="muted" style="font-size:12px;margin:10px 0 0">Aggiornato @(_wx.AsOf?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</p>
+                    }
+                    else
+                    {
+                        <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR/TAF non disponibile per @_icao</b></div><div class="muted" style="font-size:12.5px">Servizio meteo non raggiungibile o ICAO senza bollettino. Riprova più tardi.</div></div>
+                    }
+                </div>
+
+                @* ---------- Pista suggerita: regole pista (prevalgono) o calcolo headwind ---------- *@
+                @if (_runways.Count > 0 || _ruleResult is not null)
+                {
+                    <div class="block">
+                        <h3 style="margin-top:0">🛫 Pista suggerita @(_ruleResult is not null ? "(regola)" : "dal vento")</h3>
+                        <div class="rwy-sugg">
+                            <div class="rs-head">🧭 Vento
+                                <input type="number" min="0" max="360" style="width:64px" value="@_windDir" @oninput="OnWindDir" /> °
+                                /
+                                <input type="number" min="0" max="99" style="width:54px" value="@_windKt" @oninput="OnWindKt" /> kt
+                                @if (_metar?.HasRain == true) { <span class="pill">🌧️ pioggia</span> }
+                                @if (_metar?.HasSnow == true) { <span class="pill">❄️ neve</span> }
+                                @if (_metar?.Wind is { Calm: false, DirectionDeg: not null })
+                                {
+                                    <button class="pill" style="font-size:12px" @onclick="UseMetarWind">↻ usa METAR</button>
+                                }
+                            </div>
+                            <div class="rs-out">
+                                @if (_ruleResult is not null)
+                                {
+                                    <div class="rs-card dep"><span class="muted">Partenze</span><b>@_ruleResult.Dep</b></div>
+                                    <div class="rs-card arr"><span class="muted">Arrivi</span><b>@_ruleResult.Arr</b></div>
+                                    <div class="rs-note muted">@(_ruleResult.Note ?? "Regola pista applicata.")</div>
+                                }
+                                else if (_sugg.Best is not null)
+                                {
+                                    <div class="rs-card dep"><span class="muted">Partenze</span><b>@(_sugg.DepIdent ?? _sugg.Best.Ident)</b></div>
+                                    <div class="rs-card arr"><span class="muted">Arrivi</span><b>@(_sugg.ArrIdent ?? _sugg.Best.Ident)</b></div>
+                                    <div class="rs-note muted">@_sugg.Note</div>
+                                }
+                                else
+                                {
+                                    <div class="rs-note muted">@_sugg.Note</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* ---------- Transizione + Frequenze affiancate ---------- *@
+                @if (_taSection is not null || _freqSection is not null || _profile is not null)
+                {
+                    <div class="apt-2col">
+                        @if (_taSection is not null)
+                        {
+                            <div class="block" id="@_taSection.Id">
+                                <h3 style="margin-top:0">@_taSection.Title</h3>
+                                <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "da inserire")</b></div>
+                                @if (_tlRows.Count > 0)
+                                {
+                                    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">Transition Level in base al QNH@(_metar?.QnhHpa is int ? $" (attuale {_metar!.QnhHpa} hPa)" : ""):</p>
+                                    <table class="tl-table">
+                                        <thead><tr>@foreach (var c in _tlCols) { <th>@c</th> }</tr></thead>
+                                        <tbody>
+                                            @foreach (var r in _tlRows)
+                                            {
+                                                var now = _metar?.QnhHpa is int q && QnhRowMatches(r.Range, q);
+                                                <tr class="@(now ? "tl-now" : "")">
+                                                    <td>@r.Range</td>
+                                                    <td>@r.Level @if (now) { <span class="pref-tag">QNH attuale</span> }</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        }
+                        @if (_profile is not null)
+                        {
+                            <div class="block" id="a-freq">
+                                <h3 style="margin-top:0">Frequenze</h3>
+                                <table>
+                                    <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var f in _profile.OwnFrequencies)
+                                        {
+                                            <tr class="@(f.IsPrimary ? "freq-table primary" : null)">
+                                                <td>@f.Name</td><td>@f.Callsign</td>
+                                                <td>@f.FrequencyMhz @if (f.IsPrimary) { <span class="freq-key">★</span> }</td>
+                                            </tr>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(_profile.AtisFrequency))
+                                        {
+                                            <tr><td>ATIS</td><td>@(_icao)_ATIS</td><td>@_profile.AtisFrequency</td></tr>
+                                        }
+                                        @foreach (var l in _profile.Links)
+                                        {
+                                            <tr><td>@l.Label</td><td>@l.Callsign</td><td>@l.FrequencyMhz</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else if (_freqSection is not null)
+                        {
+                            <SectionNode Section="_freqSection" />
+                        }
+                    </div>
+                }
+
+                @foreach (var s in _otherSections)
                 {
                     <SectionNode Section="s" />
                 }
@@ -53,14 +281,200 @@ else
 
     private AccInfo? _acc;
     private DocumentView? _view;
-    private string _icao = "LIRF";
+    private bool _listMode;
+    private IReadOnlyList<AirportRow> _allAirports = Array.Empty<AirportRow>();
+    private string _icao = "";
+    private Vipi.Application.Abstractions.WeatherReport? _wx;
+
+    private ParsedMetar? _metar;
+    private ParsedTaf? _taf;
+    private string _tab = "metar";
+
+    private List<string> _runways = new();
+    private int? _windDir;
+    private int _windKt;
+    private RunwaySuggestionResult _sugg = new(null, Array.Empty<RunwayPick>(), "");
+    private AirportProfileData? _profile;
+    private RunwayRuleResult? _ruleResult;
+
+    private SectionView? _taSection;
+    private SectionView? _freqSection;
+    private List<SectionView> _otherSections = new();
+    private int? _ta;
+    private IReadOnlyList<string> _tlCols = Array.Empty<string>();
+    private List<(string Range, string Level)> _tlRows = new();
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) { _view = null; return; }
 
-        _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
+        // Senza ?icao= la pagina è l'elenco degli aeroporti della FIR; con ?icao= mostra il documento.
+        _listMode = string.IsNullOrWhiteSpace(Icao);
+        if (_listMode)
+        {
+            var data = await Structure.LoadAsync(_acc.Code);
+            _allAirports = data?.Airports.OrderBy(x => x.Icao).ToList() ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+            return;
+        }
+
+        _icao = Icao!.ToUpperInvariant();
         _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false);
+        if (_view is null) return;
+
+        _wx = await Weather.GetAsync(_icao);
+        _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
+        _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
+
+        _profile = await Profile.LoadForViewAsync(_icao);
+        _runways = _profile is { Runways.Count: > 0 }
+            ? _profile.Runways.Select(r => r.Ident).ToList()
+            : ExtractRunways(_view);
+        SplitSections(_view);
+        // Vento iniziale dal METAR, se noto.
+        _windDir = _metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
+        _windKt = _metar?.Wind?.SpeedKt ?? 0;
+        Recompute();
+    }
+
+    private void OnWindDir(ChangeEventArgs e)
+    {
+        _windDir = int.TryParse(e.Value?.ToString(), out var v) ? v : null;
+        Recompute();
+    }
+
+    private void OnWindKt(ChangeEventArgs e)
+    {
+        _windKt = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0;
+        Recompute();
+    }
+
+    private void UseMetarWind()
+    {
+        if (_metar?.Wind is { Calm: false, DirectionDeg: int d } w) { _windDir = d; _windKt = w.SpeedKt; }
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        // Le regole pista (se presenti e applicabili alle condizioni correnti) prevalgono sul calcolo headwind.
+        _ruleResult = _profile is { Rules.Count: > 0 }
+            ? RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule), _windDir, _windKt,
+                _metar?.HasRain ?? false, _metar?.HasSnow ?? false, DateTime.UtcNow)
+            : null;
+        _sugg = RunwaySuggestion.Suggest(_runways, _windDir, _windKt);
+    }
+
+    private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
+        new(r.WindDirFrom, r.WindDirTo, r.WindSpeedMin, r.WindSpeedMax, r.Rain, r.Snow, r.DepRunways, r.ArrRunways, r.Note,
+            r.TimeFromUtcMin, r.TimeToUtcMin, r.DaysOfWeekMask, r.DateParity);
+
+    private static string TafCss(TafChangeKind k) => k switch
+    {
+        TafChangeKind.Base => "base",
+        TafChangeKind.Becmg => "becmg",
+        TafChangeKind.Tempo => "tempo",
+        _ => "becmg",
+    };
+
+    private static string TafLabel(TafSegment s) => s.Kind switch
+    {
+        TafChangeKind.Base => "Base",
+        TafChangeKind.Becmg => "BECMG",
+        TafChangeKind.Tempo => "TEMPO",
+        TafChangeKind.From => "FM",
+        TafChangeKind.Prob => $"PROB{s.Probability}",
+        _ => s.Kind.ToString().ToUpperInvariant(),
+    };
+
+    /// <summary>Separa le sezioni: transizione (custom + badge TA) e frequenze affiancate, il resto generico.</summary>
+    private void SplitSections(DocumentView view)
+    {
+        _taSection = _freqSection = null;
+        _otherSections = new();
+        _ta = null; _tlRows = new(); _tlCols = Array.Empty<string>();
+
+        foreach (var s in view.Sections)
+        {
+            if (_taSection is null && s.Title.Contains("transizione", StringComparison.OrdinalIgnoreCase))
+                _taSection = s;
+            else if (_freqSection is null &&
+                     (s.Kind == BlockSection.Frequencies || s.Title.Contains("Frequenz", StringComparison.OrdinalIgnoreCase)))
+                _freqSection = s;
+            else
+                _otherSections.Add(s);
+        }
+
+        if (_taSection is not null)
+        {
+            foreach (var b in _taSection.Blocks)
+            {
+                if (b.Format == BlockFormat.Prose && b.Body is not null && _ta is null)
+                {
+                    var m = System.Text.RegularExpressions.Regex.Match(b.Body, @"Altitude[^0-9]*(\d{3,5})");
+                    if (m.Success) _ta = int.Parse(m.Groups[1].Value);
+                }
+                else if (b.Format == BlockFormat.Table && b.BodyJson is not null && _tlRows.Count == 0)
+                    ParseTlTable(b.BodyJson);
+            }
+        }
+    }
+
+    private void ParseTlTable(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("columns", out var cols))
+                _tlCols = cols.EnumerateArray().Select(c => c.GetString() ?? "").ToList();
+            if (root.TryGetProperty("rows", out var rows))
+                foreach (var row in rows.EnumerateArray())
+                    if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() >= 2)
+                        _tlRows.Add((cells[0].GetString() ?? "", cells[1].GetString() ?? ""));
+        }
+        catch (JsonException) { _tlRows = new(); }
+    }
+
+    /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "&lt; 984").</summary>
+    private static bool QnhRowMatches(string range, int qnh)
+    {
+        var nums = System.Text.RegularExpressions.Regex.Matches(range, @"\d+")
+            .Select(m => int.Parse(m.Value)).ToList();
+        if (nums.Count == 0) return false;
+        if (range.Contains('≥') || range.Contains(">=")) return qnh >= nums[0];
+        if (range.Contains('≤') || range.Contains("<=")) return qnh <= nums[0];
+        if (range.Contains('>')) return qnh > nums[0];
+        if (range.Contains('<')) return qnh < nums[0];
+        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
+    }
+
+    /// <summary>Estrae gli identificativi pista dalla tabella "Piste" del documento (prima colonna).</summary>
+    private static List<string> ExtractRunways(DocumentView view)
+    {
+        var idents = new List<string>();
+        foreach (var s in view.Sections)
+        {
+            if (!s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (var b in s.Blocks)
+            {
+                if (b.Format != BlockFormat.Table || string.IsNullOrWhiteSpace(b.BodyJson)) continue;
+                try
+                {
+                    using var doc = JsonDocument.Parse(b.BodyJson!);
+                    if (!doc.RootElement.TryGetProperty("rows", out var rows)) continue;
+                    foreach (var row in rows.EnumerateArray())
+                    {
+                        if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() > 0)
+                        {
+                            var ident = cells[0].GetString();
+                            if (!string.IsNullOrWhiteSpace(ident)) idents.Add(ident!.Trim());
+                        }
+                    }
+                }
+                catch (JsonException) { /* tabella non standard: ignora */ }
+            }
+        }
+        return idents;
     }
 }
