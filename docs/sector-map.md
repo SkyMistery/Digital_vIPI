@@ -1,6 +1,6 @@
-# Sector map — FIR Roma (LIRR)
+# Sector map — ACC Roma (LIRR)
 
-Sorgente di verità leggibile della mappa **settori ↔ contenimento ↔ regole** della FIR pilota Roma
+Sorgente di verità leggibile della mappa **settori ↔ contenimento ↔ regole** della ACC pilota Roma
 (PIANO §11/§17.1). Dal round 5 **posizione e settore sono la stessa entità** (`Sector`): ogni settore
 è un callsign apribile su IVAO e, al tempo stesso, un volume di spazio aereo. Il contenimento top-down è
 un **albero a padre singolo** (`Sector.ParentSectorId`) — questo dato è **manuale** (le API IVAO non

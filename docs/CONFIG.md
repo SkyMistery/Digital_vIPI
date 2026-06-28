@@ -57,9 +57,16 @@ Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `
 | `Ivao:AtcSummaryPath` | string | `/v2/tracker/now/atc/summary` | Endpoint riepilogo ATC online (**pubblico**, nessun token). |
 | `Ivao:TokenEndpoint` | string | `https://api.ivao.aero/v2/oauth/token` | Endpoint token OpenID (client_credentials). |
 | `Ivao:DivisionMembersPathFormat` | string | `/v2/divisions/{0}/members` | Template path membri divisione; `{0}` = `Division:Code`. Richiede token. |
-| `Ivao:Scopes` | string | `tracker` | Scope richiesti per il token client_credentials. |
+| `Ivao:Scopes` | string | `tracker configuration` | Scope richiesti per il token client_credentials (`configuration` serve per aeroporti/ACC/subcenter). |
 | `Ivao:PollSeconds` | int | `60` | Intervallo di polling. Una sola chiamata/minuto a IVAO indipendentemente dagli utenti (RNF-1/RNF-4). **Minimo effettivo 15 s** (clamp nel hosted service). |
 | `Ivao:StaffVerifyHours` | int | `24` | Ogni quante ore ri-verificare il roster staffisti via `/v2/users/{vid}` (disattiva chi non è più staff IT). |
+| `Ivao:AirportsPath` | string | `/v2/airports` | Anagrafica aeroporti (paginato). Richiede scope `configuration`. |
+| `Ivao:AirportsCountryId` | string | `IT` | Paese (countryId) per aeroporti **e** ACC/center. |
+| `Ivao:AirportsCacheHours` | int | `12` | TTL cache di processo dell'anagrafica aeroporti. |
+| `Ivao:CentersPath` | string | `/v2/centers` | Anagrafica ACC/center (paginato). Scope `configuration`. |
+| `Ivao:SubcentersPathFormat` | string | `/v2/centers/{0}/subcenters` | Template settori (subcenter) di un ACC; `{0}` = ICAO ACC. |
+| `Ivao:SubcenterDetailPathFormat` | string | `/v2/subcenters/{0}` | Template dettaglio subcenter (freq + regionMapPolygon); `{0}` = composePosition. |
+| `Ivao:AccImportHours` | int | `24` | Ogni quante ore re-importare automaticamente ACC + settori ACC (job giornaliero). |
 | `Ivao:ClientId` | string | `""` | Credenziale app-to-app. **Vuota ⇒ nessun Bearer** (il tracker è pubblico). → §5 secrets. |
 | `Ivao:ClientSecret` | string | `""` | Segreto app-to-app. → §5 secrets. |
 
@@ -102,7 +109,7 @@ Usare solo se servono codici admin non derivabili dal codice divisione. Esempio:
 
 Regole di autorizzazione (`EditAuthorizationService`):
 - **Admin** (match dei pattern sopra) → edita tutto + gestisce i grant.
-- **Grant per-FIR** (`EditGrant`, VID→FIR, da `/sop/admin/permessi`) → edita le FIR concesse.
+- **Grant per-ACC** (`EditGrant`, VID→ACC, da `/sop/admin/permessi`) → edita le ACC concesse.
 - Altri → sola lettura (la sezione editor in `AccLanding` non compare).
 - Verifica **sempre server-side**; la UI nasconde solo gli entry-point.
 
@@ -112,7 +119,7 @@ Regole di autorizzazione (`EditAuthorizationService`):
 
 | Chiave | Default | Significato |
 |---|---|---|
-| `ConnectionStrings:Vipi` | `Data Source=vipi.db` | Connessione SQLite. Il DB è creato/migrato all'avvio. **Nessun seed**: si parte da DB vuoto e i dati reali si inseriscono dall'app (FIR/posizioni/topologia + documenti). Cancellare il file per ripartire da zero. |
+| `ConnectionStrings:Vipi` | `Data Source=vipi.db` | Connessione SQLite. Il DB è creato/migrato all'avvio. **Nessun seed**: si parte da DB vuoto e i dati reali si inseriscono dall'app (ACC/posizioni/topologia + documenti). Cancellare il file per ripartire da zero. |
 | `Logging:LogLevel:Default` | `Information` | Livello log. Il polling logga `Poll IVAO: {N} ATC divisione online` a ogni ciclo. |
 | `AllowedHosts` | `*` | Host consentiti. |
 
@@ -175,7 +182,7 @@ Mappata su `HostIdentityOptions` (`src/Vipi.Hosting/HostIdentityOptions.cs`). Us
 |---|---|---|---|
 | `HostIdentity:UserIdClaim` | string | `id` | Claim col VID utente (valore mappato su `CurrentUser.UserId`; default `id`). |
 | `HostIdentity:NameClaims` | string[] | `["name","given_name","preferred_username"]` | Claim del nome (primo valorizzato). |
-| `HostIdentity:FirClaim` | string | `centerId` | Claim FIR/centro (opzionale). |
+| `HostIdentity:AccClaim` | string | `centerId` | Claim ACC/centro (opzionale). |
 | `HostIdentity:StaffPositionsClaim` | string | `userStaffPositions` | Claim posizioni staff (multipli o array JSON). |
 
 In sviluppo (`useDevIdentity:true`) si usa l'utente fittizio e questa sezione è ignorata.

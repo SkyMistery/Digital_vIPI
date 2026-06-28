@@ -1,6 +1,6 @@
 # vIPI/vLOA Interactive — Documento di Pianificazione e Architettura
 
-> ℹ️ **Documento di design.** Per lo **stato corrente del codice** vedi `README.md` (§Stato) e `HANDOFF.md` (§4). Gran parte del piano è implementata; modello dati con aggiunte (Transfer, EditGrant, lock, RowVersion) e permessi evoluti (admin via staff code + grant per-FIR + lock documento) — dettagli in HANDOFF.
+> ℹ️ **Documento di design.** Per lo **stato corrente del codice** vedi `README.md` (§Stato) e `HANDOFF.md` (§4). Gran parte del piano è implementata; modello dati con aggiunte (Transfer, EditGrant, lock, RowVersion) e permessi evoluti (admin via staff code + grant per-ACC + lock documento) — dettagli in HANDOFF.
 
 **Progetto:** Portale web interattivo per la documentazione operativa ATC (vIPI e vLOA) — IVAO Italia
 **Versione documento:** 0.5 (pianificazione + design UI completati)
@@ -116,7 +116,7 @@ LIRR (ACC Roma)
  │    └─ LIRP_TWR
  ├─ LIBP_APP (Pescara) → CTR Pescara
  │    └─ LIBP_TWR
- └─ ... (tutti gli APP/TWR sotto Roma FIR)
+ └─ ... (tutti gli APP/TWR sotto Roma ACC)
 ```
 
 ### 4.3 Il ContentBlock e il tag di AoR
@@ -212,7 +212,7 @@ Input:
 
 Esempi (coerenti con la richiesta):
 
-- **Sono `LIRR_NE` (ACC, top-down su tutto il FIR), apre `LIRP_APP`:** i settori di Pisa escono dal mio AoR effettivo → i blocchi taggati con i settori di Pisa (la vIPI specifica di Pisa) spariscono dalla mia vista.
+- **Sono `LIRR_NE` (ACC, top-down su tutto il ACC), apre `LIRP_APP`:** i settori di Pisa escono dal mio AoR effettivo → i blocchi taggati con i settori di Pisa (la vIPI specifica di Pisa) spariscono dalla mia vista.
 - **Sono `LIRR_NE`, apre `LIRR_TS`:** i settori del TS sono sottoinsieme di quelli che coprivo → i relativi blocchi spariscono.
 - **Nessun subordinato online:** vedo tutto top-down (AoR effettivo = tutti i settori miei e dei subordinati chiusi).
 
@@ -303,14 +303,14 @@ Da produrre come parte integrante:
 | Fase | Obiettivo | Output |
 |---|---|---|
 | **F0 — Setup** | Solution, repo, CI minima, ADR iniziali, registrazione app IVAO (avviare subito). | Scheletro a 4 progetti + pipeline build/test. |
-| **F1 — Dominio & dati** | Modello dominio, EF Core + SQLite, mappa settori iniziale (granularità per-posizione). | DB migrabile + seed di una FIR pilota (es. Roma). |
+| **F1 — Dominio & dati** | Modello dominio, EF Core + SQLite, mappa settori iniziale (granularità per-posizione). | DB migrabile + seed di una ACC pilota (es. Roma). |
 | **F2 — Consultazione statica** | StationResolver + ContentService + viste ridotta/estesa. | Homepage di ricerca + pagina postazione funzionante (senza live). |
 | **F3 — Integrazione IVAO** | Polling, cache, ATC summary, gestione token. | Stato online consultabile internamente. |
 | **F4 — Logica AoR & live** | AorService + nascondimento dinamico + SSE + modalità live. | RF-5 e RF-6 complete. |
 | **F5 — Auth & editing** | OIDC IVAO, ruoli, editor CH/AOD, workflow + audit. | RF-7, RF-8. |
 | **F6 — Rifinitura** | Stampa/PDF, i18n, accessibilità, hardening, docs finali, deploy. | Release 1.0. |
 
-Suggerimento: partire con **una sola FIR pilota** (Roma o Milano, già negli esempi) per validare modello dati e logica AoR prima di estendere a tutta l'Italia.
+Suggerimento: partire con **una sola ACC pilota** (Roma o Milano, già negli esempi) per validare modello dati e logica AoR prima di estendere a tutta l'Italia.
 
 ---
 
@@ -384,9 +384,9 @@ Sono la **tabella di verità** che stabilisce, per ogni settore, chi lo possiede
 
 Strategia di popolamento (modellazione granulare confermata):
 
-> **Nota importante (correzione):** le API IVAO **non** espongono la gerarchia operativa top-down. Restituiscono solo l'elenco delle posizioni e a quale **FIR** appartengono (più le shape geografiche). La gerarchia operativa (chi copre chi, split, unificazioni) **va specificata a mano** da chi ha accesso editor.
+> **Nota importante (correzione):** le API IVAO **non** espongono la gerarchia operativa top-down. Restituiscono solo l'elenco delle posizioni e a quale **ACC** appartengono (più le shape geografiche). La gerarchia operativa (chi copre chi, split, unificazioni) **va specificata a mano** da chi ha accesso editor.
 
-1. **Import automatico delle posizioni italiane** — l'app importa dal DB/API tutte le posizioni italiane (callsign, FIR di appartenenza, frequenza, shape da `GET /v2/ATCPositions/{callsign}` e `GET /v2/subcenters/{callsign}`). Questo popola l'**anagrafica piatta** di posizioni e settori, **senza** relazioni gerarchiche.
+1. **Import automatico delle posizioni italiane** — l'app importa dal DB/API tutte le posizioni italiane (callsign, ACC di appartenenza, frequenza, shape da `GET /v2/ATCPositions/{callsign}` e `GET /v2/subcenters/{callsign}`). Questo popola l'**anagrafica piatta** di posizioni e settori, **senza** relazioni gerarchiche.
 2. **Definizione manuale delle relazioni** — gli editor, dall'interno del sistema, specificano le relazioni tra le postazioni: `ParentId`/catene di copertura, `CoverageOrder`, regole di split/unificazione e assegnazione dei `ContentBlock` agli `OwnerSector`. È un'apposita sezione dell'editor (un "costruttore di gerarchia").
 3. **Documentazione** della mappa risultante in `docs/sector-map.md`, sorgente di verità leggibile dagli autori.
 
@@ -409,13 +409,13 @@ Predisporre l'astrazione ma **non** implementarla ora. Idea: endpoint JSON di so
 
 | Tema | Decisione |
 |---|---|
-| FIR pilota | **Roma** |
+| ACC pilota | **Roma** |
 | Granularità settori | **Granulare da subito** (tutti i sotto-settori) |
 | Import dati | **Nessun import**: solo struttura/schema + editor; dati inseriti a mano |
 | Hosting | **VPS divisionale** |
 | Convenzione lingua | vIPI in **IT**, vLOA in **EN** |
 | Path di pubblicazione | `https://it.ivao.aero/sop` via **reverse proxy** (stesso dominio) |
-| Gerarchia top-down | **Manuale**: API importano solo posizioni + FIR; le relazioni le definiscono gli editor nel sistema |
+| Gerarchia top-down | **Manuale**: API importano solo posizioni + ACC; le relazioni le definiscono gli editor nel sistema |
 | Riferimento UI | Pagine SOP/LoA IVAO Austria (§10.1) reinterpretate col brand IT |
 | Auth & ruoli | IVAO SSO; ruoli da `GET /v2/users/{vid}/userStaffPositions` (CH/AOD ⇒ editor) |
 | Brand | Obbligatorio: palette §15.1, font Nunito Sans + Poppins §15.2 |
@@ -496,7 +496,7 @@ Sul portale italiano, una vLOA è modificabile **solo** da CH o membro AOD itali
 
 ---
 
-*Prossimo passo proposto:* approvato il piano, parto dalla **Fase F0/F1** generando lo scheletro della solution .NET a 4 progetti, il modello di dominio (con `AiracService`, entità Position/Sector/ContentBlock con `Visibility`, e il motore di unificazione), lo schema EF Core e il file di tema brand-compliant, con un seed **strutturale** (senza dati) della FIR di Roma.
+*Prossimo passo proposto:* approvato il piano, parto dalla **Fase F0/F1** generando lo scheletro della solution .NET a 4 progetti, il modello di dominio (con `AiracService`, entità Position/Sector/ContentBlock con `Visibility`, e il motore di unificazione), lo schema EF Core e il file di tema brand-compliant, con un seed **strutturale** (senza dati) della ACC di Roma.
 
 ---
 
@@ -560,7 +560,7 @@ L'analisi del codice del sito divisionale (`Ivao.It`) ha mostrato che è **ASP.N
 
 ### 23.2 Identità già disponibile nei claim
 
-Dopo il login, il `ClaimsPrincipal` contiene l'intero profilo IVAO: `id` (vid), `centerId` (FIR), `divisionId`, `isStaff`, `userStaffPositions` (es. `IT-DIR`, `IT-WM`). Esistono già `IvaoUser`, `ClaimsPrincipalIvaoExtensions`, le `Policies` (`IsStaff`) e il merge delle staff position in **ruoli Identity** (`IvaoRolesHandler`). Conseguenza: il rilevamento **CH/AOD non richiede** la chiamata API `userStaffPositions` (§14.4); si legge dai claim di sessione.
+Dopo il login, il `ClaimsPrincipal` contiene l'intero profilo IVAO: `id` (vid), `centerId` (ACC), `divisionId`, `isStaff`, `userStaffPositions` (es. `IT-DIR`, `IT-WM`). Esistono già `IvaoUser`, `ClaimsPrincipalIvaoExtensions`, le `Policies` (`IsStaff`) e il merge delle staff position in **ruoli Identity** (`IvaoRolesHandler`). Conseguenza: il rilevamento **CH/AOD non richiede** la chiamata API `userStaffPositions` (§14.4); si legge dai claim di sessione.
 
 ### 23.3 La vIPI è una RCL Blazor integrabile
 

@@ -57,7 +57,7 @@ DB interno si registra un nuovo adapter e si cambia quel valore, senza toccare A
 "HostIdentity": {
   "UserIdClaim": "id",
   "NameClaims": [ "name", "given_name", "preferred_username" ],
-  "FirClaim": "centerId",
+  "AccClaim": "centerId",
   "StaffPositionsClaim": "userStaffPositions"
 }
 ```
@@ -67,7 +67,7 @@ DB interno si registra un nuovo adapter e si cambia quel valore, senza toccare A
 ## Permessi
 - **Admin** = staff position che matcha i ruoli divisione (`^{Division.Code}-{ruolo}$`, es. `IT-DIR`).
   Se l'host usa codici diversi, elencarli come pattern in `Auth:AdminStaffCodes`.
-- **Grant per-FIR** = concessi dagli admin in `/sop/admin/permessi` (lista dagli staffisti che si sono
+- **Grant per-ACC** = concessi dagli admin in `/sop/admin/permessi` (lista dagli staffisti che si sono
   loggati almeno una volta). Audit in `/sop/admin/audit`.
 
 ## Configurazione divisione e segreti

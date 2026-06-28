@@ -1,6 +1,6 @@
 # Specifica del Modello Dati — vIPI/vLOA Interactive
 
-> ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-FIR); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `README.md`/`HANDOFF.md`.
+> ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-ACC); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `README.md`/`HANDOFF.md`.
 
 > 🔀 **Round 5 — Fusione Settore/Posizione (sostituisce §3.2/§3.3/§3.5/§3.6 e parte del §3.9/§3.10).** `Position` e `Sector` sono ora **un'unica entità `Sector`**: ogni settore è un callsign apribile (campi ex-`Position`: `Callsign` univoco, `Type`/`SectorType`, `Kind`/`SectorKind`, `ApproachKind?`, `DefaultFrequency`, `CoverageOrder`, `IsActive`) **e** un volume di spazio aereo. Il contenimento top-down è un **albero a padre singolo** `Sector.ParentSectorId` (self-FK) che **sostituisce** `HierarchyRelation` e `PositionSector` (eliminate). I settori d'aeroporto portano `AirportIcao`. Lo **scope dei documenti** è ora **uno-a-molti** `Document` 1 ──< N `Sector` (FK `Sector.DocumentId`, un settore con `IsPrimary`): `Document.ScopePositionId` è rimosso. `Frequency.PositionId`→`SectorId`; `DocumentParty.PositionId`→`SectorId`. Le `UnificationRule` restano (riassegnazioni arbitrarie); le loro chiavi JSON sono ora **callsign**. Enum rinominati: `PositionType`→`SectorType`, `PositionKind`→`SectorKind`. La vecchia `Sector.Key` è eliminata: l'identificatore è il `Callsign`.
 
@@ -17,7 +17,7 @@ Questo documento definisce le entità persistite, i campi, i tipi, le enumerazio
 
 Principi:
 
-- **Anagrafica importata vs struttura manuale.** Le posizioni e i settori di base si importano dalle API IVAO (anagrafica piatta + FIR + shape). La **gerarchia operativa**, l'**ownership dei settori** e le **regole di unificazione** sono dato manuale curato dagli editor.
+- **Anagrafica importata vs struttura manuale.** Le posizioni e i settori di base si importano dalle API IVAO (anagrafica piatta + ACC + shape). La **gerarchia operativa**, l'**ownership dei settori** e le **regole di unificazione** sono dato manuale curato dagli editor.
 - **Versionamento dei documenti.** Ogni documento ha versioni immutabili (audit + diff). I `ContentBlock` appartengono a una **versione**, non al documento direttamente.
 - **Concorrenza ottimistica.** Le entità editabili portano un token `RowVersion`.
 - **Soft delete** dove serve conservare lo storico (`IsArchived`), niente hard delete dai flussi normali.
@@ -28,9 +28,9 @@ Principi:
 
 ```mermaid
 erDiagram
-    FIR ||--o{ POSITION : contiene
-    FIR ||--o{ SECTOR : contiene
-    FIR ||--o{ UNIFICATION_RULE : definisce
+    ACC ||--o{ POSITION : contiene
+    ACC ||--o{ SECTOR : contiene
+    ACC ||--o{ UNIFICATION_RULE : definisce
     POSITION ||--o{ FREQUENCY : ha
     POSITION ||--o{ POSITION_SECTOR : possiede_default
     SECTOR  ||--o{ POSITION_SECTOR : assegnato_a
@@ -55,7 +55,7 @@ erDiagram
 
 > Convenzioni: PK = chiave primaria; FK = chiave esterna; `?` = nullable; tutti i timestamp sono UTC.
 
-### 3.1 `Fir`
+### 3.1 `Acc`
 Regione di informazioni di volo (es. Roma `LIRR`, Milano `LIMM`, Brindisi `LIBB`).
 
 | Campo | Tipo | Note |
@@ -72,7 +72,7 @@ Anagrafica piatta delle posizioni (callsign apribili). **Importata** dalle API I
 |---|---|---|
 | `Id` | int PK | |
 | `Callsign` | string(16) | **univoco** (es. `LIRR_NE_CTR`) |
-| `FirId` | int FK→Fir | FIR di appartenenza (dall'API) |
+| `AccId` | int FK→Acc | ACC di appartenenza (dall'API) |
 | `Type` | enum `PositionType` | DEL/GND/TWR/APP/CTR |
 | `Kind` | enum `PositionKind` | Airport \| Acc (determina quale API: ATCPositions vs subcenters) |
 | `FacilityId` | int? | id facility IVAO |
@@ -89,9 +89,9 @@ Volume di spazio aereo atomico. Unità minima di ownership e di tag dei contenut
 | Campo | Tipo | Note |
 |---|---|---|
 | `Id` | int PK | |
-| `Key` | string(24) | univoco per FIR (es. `LIRR-NE-01`) |
+| `Key` | string(24) | univoco per ACC (es. `LIRR-NE-01`) |
 | `Name` | string(120) | |
-| `FirId` | int FK→Fir | |
+| `AccId` | int FK→Acc | |
 | `Description` | string(400)? | |
 | `GeometryId` | int? FK→SectorGeometry | shape per la mappa AoR |
 
@@ -122,7 +122,7 @@ Relazione top-down **manuale** padre→figlio tra posizioni (es. `LIRR_NE_CTR` �
 | `Id` | int PK | |
 | `ParentPositionId` | int FK→Position | |
 | `ChildPositionId` | int FK→Position | |
-| `FirId` | int FK→Fir | |
+| `AccId` | int FK→Acc | |
 
 Vincoli: coppia (Parent, Child) univoca; nessun ciclo (validato a livello applicativo).
 
@@ -132,7 +132,7 @@ Regola dichiarativa **editabile** che riassegna l'ownership dei settori in base 
 | Campo | Tipo | Note |
 |---|---|---|
 | `Id` | int PK | |
-| `FirId` | int FK→Fir | |
+| `AccId` | int FK→Acc | |
 | `Name` | string(120) | es. "Split WS2/WS5" |
 | `Priority` | int | ordine di applicazione |
 | `ConditionJson` | text | predicato su callsign online (es. `{"online":["LIMM_WS5_CTR"]}`) |
@@ -287,8 +287,8 @@ enum SectorState { Covered, Online }
 
 ## 5. Indici e vincoli principali
 
-- `Position.Callsign` UNIQUE; indice su `FirId`.
-- `Sector.Key` UNIQUE per `FirId`.
+- `Position.Callsign` UNIQUE; indice su `AccId`.
+- `Sector.Key` UNIQUE per `AccId`.
 - `HierarchyRelation` UNIQUE su (`ParentPositionId`,`ChildPositionId`); validazione anti-ciclo applicativa.
 - `Document` indice su (`Type`,`ScopePositionId`,`Status`).
 - `ContentBlock` indice su (`DocumentVersionId`,`Section`,`Order`); indice su `ScopeSectorId`.

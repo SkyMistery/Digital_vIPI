@@ -50,19 +50,20 @@
 | `/vsop/{acc}/airports` | `AeroportoPage.razor` | Elenco + doc aeroporto | tutti |
 | `/vsop/{acc}/apps` | `AppsListPage.razor` | Elenco APP non remot. | tutti |
 | `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. | tutti (edit: AOD/DIR) |
-| `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della FIR | tutti |
+| `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della ACC | tutti |
 | `/vsop/{acc}/vloa/{docId}` | `VloaPage.razor` | Documento vLOA (per id) | tutti (edit: AOD/DIR) |
 | `/vsop/changed` | `ChangedPage.razor` | Cosa è cambiato | tutti |
 | `/vsop/search` | `SearchPage.razor` | Ricerca full-text | tutti |
 | `/vsop/screens` | `ScreensIndex.razor` | Indice schermate | staff |
 | `/vsop/versioni`, `/vsop/{acc}/versioni` | `VersioniPage.razor` | Bozze & versioni | staff |
 | `/vsop/editor` | `EditorHubPage.razor` | Hub editor | staff |
-| `/vsop/{acc}/editor` | `EditorPage.razor` | Editor vIPI ACC **+ picker "in evidenza"** | admin/grant FIR |
-| `/vsop/{acc}/topologia` | `TopologiaPage.razor` | Topologia/simulatore | admin/grant FIR |
-| `/vsop/{acc}/editor-trasferimenti` | `XferEditorPage.razor` | Editor trasferimenti | admin/grant FIR |
-| `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant FIR |
-| `/vsop/{acc}/aeroporto/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto | admin/grant FIR |
-| `/vsop/admin/struttura` | `StrutturaPage.razor` | FIR/settori/frequenze | admin |
+| `/vsop/{acc}/editor` | `EditorPage.razor` | Editor vIPI ACC **+ picker "in evidenza"** | admin/grant ACC |
+| `/vsop/{acc}/topologia` | `TopologiaPage.razor` | Topologia/simulatore | admin/grant ACC |
+| `/vsop/{acc}/editor-trasferimenti` | `XferEditorPage.razor` | Editor trasferimenti | admin/grant ACC |
+| `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
+| `/vsop/{acc}/aeroporto/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto | admin/grant ACC |
+| `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |
+| `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | Settori/contenimento/frequenze/documenti (ex `/admin/struttura`, redirect 301) | admin |
 | `/vsop/admin/aeroporti` | `AeroportiPage.razor` | Gestione aeroporti | admin |
 | `/vsop/admin/permessi` | `AdminGrantsPage.razor` | Permessi editing | admin |
 | `/vsop/admin/sorgenti` | `SorgentiAdminPage.razor` | Policy import sorgenti | admin |

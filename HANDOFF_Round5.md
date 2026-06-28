@@ -47,7 +47,7 @@ Piano completo (se serve rileggerlo): `C:\Users\cgran\.claude\plans\eager-nappin
 ## 4. Persistenza
 
 - `VipiDbContext`: rimossi DbSet/config di `Position`/`PositionSector`/`HierarchyRelation`. `Sector`: `Callsign` UNIQUE, self-FK `ParentSectorId` (Restrict), FK `DocumentId` (SetNull). `Frequency`→`Sector`. `DocumentParty.Sector` (Restrict).
-- Repository riscritti: `EfStructureEditingRepository` (CRUD settori unificati + `SetParent` lato topologia), `EfTopologyEditingRepository` (`AddHierarchy/DeleteHierarchy` → **`SetParentAsync`** con anti-ciclo; vocab = solo `Callsigns`), `EfEditingRepository` (`CreateDocumentAsync` con `scopeSectorIds`+`primarySectorId`; `GetFirCodeBySectorAsync`; `ScopeOf` da settore primario), `EfContentRepository`/`EfSearchRepository`/`EfChangesRepository`/`EfEditGrantRepository` (risolvono FIR/airport dai settori di scope).
+- Repository riscritti: `EfStructureEditingRepository` (CRUD settori unificati + `SetParent` lato topologia), `EfTopologyEditingRepository` (`AddHierarchy/DeleteHierarchy` → **`SetParentAsync`** con anti-ciclo; vocab = solo `Callsigns`), `EfEditingRepository` (`CreateDocumentAsync` con `scopeSectorIds`+`primarySectorId`; `GetAccCodeBySectorAsync`; `ScopeOf` da settore primario), `EfContentRepository`/`EfSearchRepository`/`EfChangesRepository`/`EfEditGrantRepository` (risolvono ACC/airport dai settori di scope).
 - **Porte (Abstractions)** aggiornate di conseguenza: `IStructureEditingRepository`, `ITopologyEditingRepository`, `IEditingRepository`; servizi `StructureEditingService`/`TopologyEditingService`/`EditingService` idem.
 - **Migrazioni**: tutte le vecchie cancellate, rigenerata un'unica **`InitialCreate`** in `src/Vipi.Infrastructure/Persistence/Migrations` (via design-time factory già presente).
 - **Seed** (`Persistence/Seed/`): `RomaStructureSeed` ricreato (settori con `ParentSectorId`; split SU/ES = gerarchia, nessuna rule); `RomaContentSeed` (vIPI ACC ora descrive NE+EW+SU+ES+TS, NE primario); `RomaAirportSeed`/`RomaVloaSeed` agganciano `Sector.DocumentId`/parties via settore.
@@ -73,7 +73,7 @@ dotnet test  Vipi.slnx     # atteso: 79 verdi
 1. **Ferma l'app Host se in esecuzione** (bloccava i DLL durante il lavoro — solo lock di copia, non errori).
 2. **Cancella `src/Vipi.Host/vipi.db`** (schema cambiato: greenfield).
 3. `dotnet run --project src/Vipi.Host` → `/sop/admin/struttura`: crea settori con padre, poi una vIPI multi-settore (scegli più settori + primario).
-4. Simulatore `/sop/{fir}/topologia`: S1/S2/S4/S5/S6 (S4 ora è puro contenimento).
+4. Simulatore `/sop/{acc}/topologia`: S1/S2/S4/S5/S6 (S4 ora è puro contenimento).
 
 ---
 

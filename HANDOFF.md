@@ -1,12 +1,42 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 giugno 2026
+**Ultimo aggiornamento:** 28 giugno 2026
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
-**Stato:** progetto **in sviluppo attivo**. Design UI completo (mockup v2, 17 schermate) **e** codice avanzato: solution .NET 8 a 4 layer + Host Blazor Server, **test verdi (106)**, consultazione+editing+sicurezza funzionanti dal DB. **Live IVAO (F3) implementato**: polling + cache + SSE, Ridotta live (AoR reattivo, "primo online", online nel dominio), auto-elenco CH permessi. **Sorgente dati esterna disaccoppiata** (interfacce neutre + `DataSource:Provider`) e **policy di import opt-out** (dati di sorgente in sola lettura). **Struttura pagine rifatta su prefisso `/vsop`** (Round 12): vedi `MAPPA_PAGINE.md`.
+**Stato:** progetto **in sviluppo attivo**. Design UI completo (mockup v2, 17 schermate) **e** codice avanzato: solution .NET 8 a 4 layer + Host Blazor Server, **test verdi (111)**, consultazione+editing+sicurezza funzionanti dal DB. **Live IVAO (F3) implementato**: polling + cache + SSE, Ridotta live (AoR reattivo, "primo online", online nel dominio), auto-elenco CH permessi. **Sorgente dati esterna disaccoppiata** (interfacce neutre + `DataSource:Provider`) e **policy di import opt-out** (dati di sorgente in sola lettura). **Struttura pagine rifatta su prefisso `/vsop`** (Round 12): vedi `MAPPA_PAGINE.md`. **ACC importati dalla sorgente** (Round 13).
+
+> 🛰️ **Round 13 — Rename `Fir`→`Acc` + import ACC/settori dalla sorgente.** `Fir` è stato rinominato **`Acc`** in tutto il progetto (entità/proprietà `AccId`/`AccCode`, servizi `ListAccsAsync`…, claim `AccClaim`, tabella `Accs`; migrazione **`RenameFirToAcc`** non distruttiva). Gli ACC **non si creano più a mano**: si **importano dalla sorgente** (IVAO `/v2/centers`) nella nuova pagina **`/vsop/admin/acc`**, con militare + mostra/nascondi. I **settori ACC** (subcenter) si importano da `/v2/centers/{icao}/subcenters` + `/v2/subcenters/{compose}` (freq + regionMapPolygon), con **limiti quota** impostati dall'admin (default **GND→UNL**, FSS **GND→19000**). Import **manuale + automatico giornaliero** (`AccImportHostedService`). La pagina struttura è ora **`/vsop/admin/sectorstructure`** (redirect 301 da `/struttura`) e NON crea più ACC. Migrazione **`AddAccSector`**. Dettagli sotto.
 
 > 🗺️ **Round 12 — Rebuild pagine `/vsop`.** Prefisso rotte `/sop`→`/vsop` (redirect 301 dai vecchi URL); Home e Landing ACC snellite; aeroporti su `/vsop/{acc}/airports` (elenco/doc con `?icao=`) e APP su `/vsop/{acc}/apps` + `/apps/vipi`; "3 in evidenza" (`FeaturedRank`) scelti dall'editor ACC. Pagine fuori scope **disabilitate, non cancellate** (Ridotta/Ridotta-APP/AoR3D/Export/vLOA/Stati). **Fonte di verità rapida: `MAPPA_PAGINE.md` + `PAGINE_DISABILITATE.md`.** Editor non toccati (prossimo giro).
 
 > 🔀 **Round 5 — Fusione Settore/Posizione.** `Position` e `Sector` sono ora **un'unica entità `Sector`** (callsign apribile + volume di spazio aereo); contenimento ad albero via `Sector.ParentSectorId` (sostituisce `HierarchyRelation`/`PositionSector`). Scope documenti **uno-a-molti** (`Sector.DocumentId` + `IsPrimary`): un documento descrive N settori, ogni settore ha un solo documento. Enum `PositionType`/`PositionKind` → `SectorType`/`SectorKind`. Migrazioni rigenerate da zero (greenfield). Dettagli in `SPEC_Modello_Dati.md` (banner Round 5).
+
+---
+
+## 🛰️ Round 13 — Rename Fir→Acc + import ACC/settori dalla sorgente ✅ COMPLETATO (28 giu, build verde, 111 test)
+
+**1. Rename `Fir` → `Acc` (FIR sparito dal progetto).** Entità `Acc` (`Domain/Entities/Anagrafica.cs`), proprietà `AccId`/`AccCode`/`CountryPrefix`, nav `Acc`; servizi `ListAccsAsync`/`CreateAccAsync`/`EnsureCanEditAccAsync`…; `FirRow`→`AccRow`; claim `HostIdentityOptions.AccClaim`; DbSet/tabella `Accs`. Fatto con regex sicura (escluse `First`/`confirm`/`fire`, cartella Migrations esclusa). Migrazione **`RenameFirToAcc`** riscritta a `RenameTable`/`RenameColumn`/`RenameIndex` + `AddColumn` → **non distruttiva** (verificata via `migrations script`: `ALTER TABLE "Firs" RENAME TO "Accs"`).
+
+**2. ACC = entità importata dalla sorgente** (non più creata a mano). Nuovi campi su `Acc`: `IsMilitary`, `IsHidden`, `ImportedAtUtc`. La pagina **`/vsop/admin/acc`** (`AccAdminPage`, admin) importa da sorgente e mostra la tabella ACC (Codice·Nome·Militare·Stato) con ricerca + mostra/nascondi. ACC nascosti esclusi dalla navigazione pubblica (`EfStationDirectory.ListAccs()` filtra `!IsHidden`).
+
+**3. Settori ACC (subcenter).** Nuova entità **`AccSector`** (`ComposePosition` unique = chiave naturale; `CenterId` FK→`Acc.Code`; `Position`, `MiddleIdentifier`, `Frequency`, `RegionMapPolygon`, `LowerLimit`/`UpperLimit`, `IsHidden`, `ImportedAtUtc`). Migrazione **`AddAccSector`** (FK su `Acc.Code` come chiave alternata `AK_Accs_Code`). Seconda tabella in `/vsop/admin/acc` con ricerca + mostra/nascondi + **limiti quota editabili** dall'admin. **Limiti**: `GND`=0 (mostrato "GND"), `UNL`=`UpperLimit` null (illimitato); default **GND→UNL**, settori **`Position=FSS` → GND→19000**. I settori di un ACC nascosto sono **effettivamente nascosti** (derivato `IsHidden || Acc.IsHidden`, reversibile; toggle settore disabilitato finché l'ACC è nascosto).
+
+**4. Sorgente (porta neutra, ADR-0006).** `IAccDirectory` (`Application/Abstractions/IAccDirectory.cs`): `GetCentersAsync` (`/v2/centers?page&countryId`) + `GetSubcentersAsync(icao)` (`/v2/centers/{icao}/subcenters` per la lista, poi `/v2/subcenters/{compose}` per freq+polygon). DTO `SourceCenter`/`SourceSubcenter` (con `LowerLimit`/`UpperLimit` **predisposti** ma oggi null: se la sorgente li esporrà, l'import li userà). Impl IVAO in `IvaoApiClient` con **parsing JSON tollerante** (array o `{items,pages}`, nomi campo alternativi); se 0 elementi → eccezione con risposta grezza (diagnostica). Opzioni in `IvaoOptions`: `CentersPath`, `SubcentersPathFormat`, `SubcenterDetailPathFormat`, `AccImportHours` (default 24).
+
+**5. Service/repo.** `IAccAdminService`/`AccAdminService` (admin-gated) + `IAccAdminRepository`/`EfAccAdminRepository`: `ImportFromSourceAsync` (ACC poi, per ogni ACC, i subcenter), `ListAccsAsync`/`ListSubcentersAsync`, `SetHiddenAsync`/`SetSubcenterHiddenAsync`/`SetSubcenterLimitsAsync`. Upsert idempotente che **preserva `IsHidden` e i limiti admin** (aggiorna i limiti solo se la sorgente li fornisce; FSS senza superiore → 19000).
+
+**6. Import automatico giornaliero.** `AccImportHostedService` (BackgroundService): primo run ~15s dopo l'avvio, poi ogni `AccImportHours` (24h). Job di sistema (usa direttamente porta+repo, **niente authz utente**); se mancano le credenziali sorgente salta in silenzio.
+
+**7. Pagina struttura.** Rinominata rotta `/vsop/admin/struttura` → **`/vsop/admin/sectorstructure`** (redirect 301 in `Program.cs`). La sezione "crea/elimina ACC" è **rimossa**: resta solo il selettore ACC (pill) + link «Gestione ACC / Aeroporti / Sorgenti». Breadcrumb pagina ACC: `Home › Area AOD / DIR › Struttura › ACC` (come Aeroporti).
+
+**Test** (`AccImportTests`, +5 → 111): dedup ACC per centerId, idempotenza + hide preservato, subcenter skip ACC ignoto + preserva limiti admin, default GND/UNL e FSS GND→19000, hide ACC ⇒ settori `AccHidden`, nav esclude ACC nascosti.
+
+**Da fare al deploy:** riavviare il Host → applica `RenameFirToAcc` + `AddAccSector`. Poi `/vsop/admin/acc` → «Importa da sorgente» (serve `Ivao:ClientId/Secret` + scope `configuration`).
+
+**Aperti / note:**
+- Schema `/v2/centers` e `/v2/subcenters` **dedotto** (`composePosition`/`centerId`/`position`/`middleIdentifier`/`atcCallsign`/`military`/`frequency`/`regionMapPolygon`). `GetCentersAsync` funziona live; se i subcenter tornassero 0, allineare i nomi campo in `IvaoApiClient` su una risposta reale.
+- Import **additivo** (non cancella ACC/settori spariti dalla sorgente: si nascondono).
+- `RegionMapPolygon` salvato grezzo: non ancora collegato alla mappa AoR.
+- Eventuale dato sporco: un import precedente (versione intermedia) poteva creare `Sector` con `Kind=Acc`; non più. Greenfield (`vipi.db`) consigliato in dev.
 
 ---
 
@@ -27,13 +57,13 @@ schermate · Struttura · Permessi) solo CH/AOD/DIR.
 coi **3 in evidenza** (titolo→elenco, voce→documento). **Rimossa** la sezione "Strumenti". Sezione **Admin invariata**.
 
 **4. Aeroporti/APP:**
-- `/vsop/{acc}/airports` (`AeroportoPage`): **una sola rotta** — senza `?icao=` mostra l'**elenco** della FIR,
+- `/vsop/{acc}/airports` (`AeroportoPage`): **una sola rotta** — senza `?icao=` mostra l'**elenco** della ACC,
   con `?icao=` il **documento** (ex `/aeroporto`, contenuto invariato).
 - `/vsop/{acc}/apps` (`AppsListPage`, nuova) = elenco APP non remotizzati (`Sector` con `Type=App`).
 - `/vsop/{acc}/apps/vipi?icao=` (`AppnPage`, ex `/app`) = documento APP (mockup, contenuto invariato).
 
 **5. "3 in evidenza":** campo **`FeaturedRank`** (1..3) su `Airport` e `Sector` (migrazione **`AddFeaturedRank`**);
-proiezioni `AirportRow`/`SectorRow` estese. Setter FIR-gated `IStructureEditingService.SetFeaturedAirportsAsync`/
+proiezioni `AirportRow`/`SectorRow` estese. Setter ACC-gated `IStructureEditingService.SetFeaturedAirportsAsync`/
 `SetFeaturedAppsAsync` (+ repo). UI: pannello **"In evidenza nella landing ACC"** nell'editor vIPI ACC (`EditorPage`).
 Fallback landing = primi 3 per ICAO/callsign.
 
@@ -98,7 +128,7 @@ Piano: `C:\Users\cgran\.claude\plans\atomic-stirring-nygaard.md`. Memoria: `sour
 
 **Cambio architetturale:** i dati dell'aeroporto (quote transizione, frequenze, piste, SID, **regole pista**)
 non vivono più solo come JSON nei `ContentBlock`: sono **entità strutturate** (sorgente di verità) da cui si
-**rigenera** il documento. L'editor edita le entità (atomico, FIR-gated, **no lock**); il documento resta la
+**rigenera** il documento. L'editor edita le entità (atomico, ACC-gated, **no lock**); il documento resta la
 proiezione per viewer/ricerca/PDF. Piano: `C:\Users\cgran\.claude\plans\ancient-waddling-wind.md`.
 
 **Entità** (`Domain/Entities/Anagrafica.cs`, FK→Airport cascade, indice `(AirportId,Order)`):
@@ -110,7 +140,7 @@ riferimento vivo). Su `Airport`: **`TransitionAltitudeFt`** + **`AtisFrequency`*
 
 **Application:** `AirportProfileModels.cs` (record `*Row` + `AirportProfileData`), porta
 `IAirportProfileRepository`, service `IAirportProfileService`/`AirportProfileService`
-(`LoadForView` senza authz per il viewer · `LoadForEdit`/Save*/Reimport/Rebuild FIR-gated · `ListLinkableFrequencies`).
+(`LoadForView` senza authz per il viewer · `LoadForEdit`/Save*/Reimport/Rebuild ACC-gated · `ListLinkableFrequencies`).
 - `Weather/MetarParser.cs`: `ParsedMetar.HasRain/HasSnow` (da codici RA/DZ, SN/SG).
 - `Weather/RunwaySuggestion.cs`: `EvaluateRules(rules, windDir, windKt, rain, snow)` → DEP/ARR (prima regola
   applicabile, arco vento con wrap); il viewer prova le regole, **fallback** a `Suggest` (headwind).
@@ -122,7 +152,7 @@ altre, risolve i link al valore corrente). `EfStructureEditingRepository.Generat
 `EnsureAirportSectorsAsync`; l'orchestrazione (ensure-sectors → merge → rebuild) è in `StructureEditingService`.
 Il bottone «📄 Genera documenti» di `AeroportiPage` ora **rigenera sempre** (niente più skip "già esistente").
 
-**UI:** `AeroportoEditorPage` (`/sop/{acc}/aeroporto/editor?icao=`, InteractiveServer, FIR-gated) — 5 pannelli
+**UI:** `AeroportoEditorPage` (`/sop/{acc}/aeroporto/editor?icao=`, InteractiveServer, ACC-gated) — 5 pannelli
 (regole, quote+TA, frequenze+picker link, piste, SID) + «↻ Re-importa da IVAO» + «📄 Rigenera e pubblica».
 Link «✎ Editor» da `AeroportoPage` (testata) e da `AeroportiPage` (riga). `AeroportoPage` (viewer): il widget pista
 usa le **regole** (prevalgono) poi fallback headwind, mostra chip pioggia/neve; la sezione **Frequenze** è resa
@@ -138,27 +168,27 @@ toggle manuale pioggia/neve nel viewer (oggi solo da METAR live).
 
 ## 🛫 Round 6 — Aeroporti come entità + pagina dedicata ✅ COMPLETATO (26 giu, build verde, 80 test)
 
-**Modello — entità `Airport`** (`Domain/Entities/Anagrafica.cs`): `Id, Icao(unico), Name, FirId→Fir, Sectors`. `Fir.Airports`. Su `Sector`: `AirportId?→Airport (OnDelete SetNull)`, `AirportIcao` **resta come denormalizzazione** (letta da `EfContentRepository`, `EfEditingRepository` fallback, ecc. — non rimuovere).
+**Modello — entità `Airport`** (`Domain/Entities/Anagrafica.cs`): `Id, Icao(unico), Name, AccId→Acc, Sectors`. `Acc.Airports`. Su `Sector`: `AirportId?→Airport (OnDelete SetNull)`, `AirportIcao` **resta come denormalizzazione** (letta da `EfContentRepository`, `EfEditingRepository` fallback, ecc. — non rimuovere).
 - ⚠️ **L'aeroporto NON ha gerarchia propria.** Il `ParentSectorId` su `Airport` (ex Round 6 intermedio) è stato **rimosso**: la gerarchia si **ricostruisce dai settori che puntano all'aeroporto** (`Sector.AirportId`). `Sector.ParentSectorId` (contenimento settori) è cosa diversa e resta.
 - **Migrazioni:** `AddAirport`, `AddAirportParentSector`, `RemoveAirportParentSector` (in `Infrastructure/Persistence/Migrations`). Generate con `--startup-project src/Vipi.Infrastructure` (c'è `DesignTimeDbContextFactory`; Host non referenzia EF.Design). Applicate all'avvio dell'Host; per greenfield cancella `src/Vipi.Host/vipi.db*`.
 
-**Anagrafica aeroporti IVAO** (`IIvaoAirportDirectory` / record `IvaoAirport(Icao,Name,FirCode,City)`; impl. in `IvaoApiClient`; cache di processo singleton `IvaoAirportCache`, TTL `Ivao:AirportsCacheHours`=12). Endpoint `/v2/airports?page=N&countryId=IT` — **scope `configuration`**. **`countryId=IT`**; paginato (`pages`, ~221 IT); ogni item ha **`centerId` = codice FIR di competenza** → `IvaoAirport.FirCode` (es. LIRF→LIRR; null per campi minori). Vedi memoria `ivao-api-app-token-limits`.
+**Anagrafica aeroporti IVAO** (`IIvaoAirportDirectory` / record `IvaoAirport(Icao,Name,AccCode,City)`; impl. in `IvaoApiClient`; cache di processo singleton `IvaoAirportCache`, TTL `Ivao:AirportsCacheHours`=12). Endpoint `/v2/airports?page=N&countryId=IT` — **scope `configuration`**. **`countryId=IT`**; paginato (`pages`, ~221 IT); ogni item ha **`centerId` = codice ACC di competenza** → `IvaoAirport.AccCode` (es. LIRF→LIRR; null per campi minori). Vedi memoria `ivao-api-app-token-limits`.
 
 **Service/Repo** (`IStructureEditingService`/`EfStructureEditingRepository`):
-- `CreateAirportAsync(firCode,icao,name)`, `DeleteAirportAsync` (blocca se settori puntano), `MoveAirportAsync(id,fromFir,toFir)` (sposta aeroporto + suoi settori, stacca i padri fuori FIR), `ListAllAirportsAsync()→AirportAdminRow(Id,Icao,Name,FirCode,Sectors)`, `ListAllSectorsAsync()→SectorBriefRow` (oggi non usato dalla pagina ma tenuto per la futura ricostruzione settori→aeroporto).
-- **`AutoAssignKnownAirportsAsync()`** (admin): scarica la directory IVAO e delega a `EfStructureEditingRepository.AutoAssignAirportsAsync(candidates)` che crea in blocco gli aeroporti il cui `centerId` è una FIR esistente e l'ICAO è libero (verità esistenza nel DB, una `SaveChanges`); ritorna il conteggio creati. Test: `AutoAssign_Creates_Only_Known_Fir_And_Skips_Existing`.
-- `AddSectorAsync` prende `int? airportId` (non più stringa ICAO); il campo aeroporto nel form settore compare **solo se Kind=Airport** (dropdown degli aeroporti della FIR).
+- `CreateAirportAsync(accCode,icao,name)`, `DeleteAirportAsync` (blocca se settori puntano), `MoveAirportAsync(id,fromAcc,toAcc)` (sposta aeroporto + suoi settori, stacca i padri fuori ACC), `ListAllAirportsAsync()→AirportAdminRow(Id,Icao,Name,AccCode,Sectors)`, `ListAllSectorsAsync()→SectorBriefRow` (oggi non usato dalla pagina ma tenuto per la futura ricostruzione settori→aeroporto).
+- **`AutoAssignKnownAirportsAsync()`** (admin): scarica la directory IVAO e delega a `EfStructureEditingRepository.AutoAssignAirportsAsync(candidates)` che crea in blocco gli aeroporti il cui `centerId` è una ACC esistente e l'ICAO è libero (verità esistenza nel DB, una `SaveChanges`); ritorna il conteggio creati. Test: `AutoAssign_Creates_Only_Known_Acc_And_Skips_Existing`.
+- `AddSectorAsync` prende `int? airportId` (non più stringa ICAO); il campo aeroporto nel form settore compare **solo se Kind=Airport** (dropdown degli aeroporti della ACC).
 
 **UI:**
-- **`AeroportiPage`** (`/sop/admin/aeroporti`, admin) = **unico** punto di gestione aeroporti. Sinistra = assegnati (cambia FIR, rimuovi); destra = anagrafica IVAO (riga **verde** se già assegnato) con **«⟳ Auto-assegna noti»** e assegnazione **per-riga** (`Dictionary<string,string>` keyed per ICAO — niente più bug del select condiviso). **Ricerca** ICAO/Nome client-side su entrambe le tabelle. Stile brand (`doc-head`/`section-title`/`block`/`pill`).
-- **`StrutturaPage`** (`/sop/admin/struttura`): **niente più gestione aeroporti** — solo FIR, settori, frequenze, documenti, + il dropdown aeroporto nel form settore (`Kind=Airport`, usa `_data.Airports`). Link «Gestione aeroporti →».
+- **`AeroportiPage`** (`/sop/admin/aeroporti`, admin) = **unico** punto di gestione aeroporti. Sinistra = assegnati (cambia ACC, rimuovi); destra = anagrafica IVAO (riga **verde** se già assegnato) con **«⟳ Auto-assegna noti»** e assegnazione **per-riga** (`Dictionary<string,string>` keyed per ICAO — niente più bug del select condiviso). **Ricerca** ICAO/Nome client-side su entrambe le tabelle. Stile brand (`doc-head`/`section-title`/`block`/`pill`).
+- **`StrutturaPage`** (`/sop/admin/struttura`): **niente più gestione aeroporti** — solo ACC, settori, frequenze, documenti, + il dropdown aeroporto nel form settore (`Kind=Airport`, usa `_data.Airports`). Link «Gestione aeroporti →».
 - **CSS:** controlli dentro `.struct .res-table` (select/input/btn + header) tematizzati in `vipi-theme.css`.
 
-**Note operative:** `AeroportiPage` è admin-only e l'Host **non semina** (DB parte vuoto) → servono prima le FIR (poi «Auto-assegna noti» popola gli aeroporti di competenza). Credenziali IVAO dev in user-secrets (`Ivao:ClientId/Secret`) → la directory gira live; senza, le tabelle IVAO mostrano l'errore "non disponibile" (gestito).
+**Note operative:** `AeroportiPage` è admin-only e l'Host **non semina** (DB parte vuoto) → servono prima le ACC (poi «Auto-assegna noti» popola gli aeroporti di competenza). Credenziali IVAO dev in user-secrets (`Ivao:ClientId/Secret`) → la directory gira live; senza, le tabelle IVAO mostrano l'errore "non disponibile" (gestito).
 
 **Follow-up aperti:** ricostruzione/visualizzazione gerarchia aeroporto **dai settori** (`Sector.AirportId`) — il dato c'è, manca la UI.
 
-**Fix (26 giu):** `EfStructureEditingRepository.DeleteFirAsync` ora **elimina in cascata gli aeroporti** della FIR (FK `Sector.AirportId`=SetNull → sicuro); prima falliva con `FOREIGN KEY constraint failed` perché il guard controllava solo i settori. I settori restano un blocco esplicito (portano documenti).
+**Fix (26 giu):** `EfStructureEditingRepository.DeleteAccAsync` ora **elimina in cascata gli aeroporti** della ACC (FK `Sector.AirportId`=SetNull → sicuro); prima falliva con `FOREIGN KEY constraint failed` perché il guard controllava solo i settori. I settori restano un blocco esplicito (portano documenti).
 
 ---
 
@@ -201,7 +231,7 @@ dotnet test  Vipi.slnx          # 106 test
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
 - ⚠️ **AZIONE PENDENTE (Round 10/11/12):** **riavviare il Host** per applicare le migrazioni nuove `Rename_Vid_To_UserId` + `AddImportPolicy` + **`AddFeaturedRank`** sul `vipi.db` esistente (le prime due verificate su copia, zero perdita dati; la terza aggiunge solo colonne nullable). Il Host era in esecuzione ed è stato **fermato** alla chiusura di questa sessione (bloccava le DLL in build). Inoltre, per veder comparire le **quote di transizione di default**, rigenerare i documenti aeroporto (LIRN e gli altri già generati hanno la tabella TL vuota): editor aeroporto → opz. «Salva TA» → «📄 Rigenera e pubblica» (oppure «Genera documenti» da `/vsop/admin/aeroporti`).
-- DB **SQLite** creato/migrato all'avvio (`src/Vipi.Host/vipi.db`). **Nessun seed**: si parte da DB **vuoto**; i dati reali si inseriscono dall'app — `/sop/admin/struttura` (FIR, settori con contenimento padre, frequenze) + "Crea nuovo documento" (vIPI = N settori di scope, uno primario) → editor. Cancella `vipi.db*` per ripartire da zero (schema cambiato in Round 5 e poi in **Round 8/9/10/11**: migrazioni `AddAirportProfile`, `AddRunwayRuleSchedule`, `Rename_Vid_To_UserId`, `AddImportPolicy`). I `*Seed.cs` di Roma restano solo come riferimento/uso nei test.
+- DB **SQLite** creato/migrato all'avvio (`src/Vipi.Host/vipi.db`). **Nessun seed**: si parte da DB **vuoto**; i dati reali si inseriscono dall'app — `/sop/admin/struttura` (ACC, settori con contenimento padre, frequenze) + "Crea nuovo documento" (vIPI = N settori di scope, uno primario) → editor. Cancella `vipi.db*` per ripartire da zero (schema cambiato in Round 5 e poi in **Round 8/9/10/11**: migrazioni `AddAirportProfile`, `AddRunwayRuleSchedule`, `Rename_Vid_To_UserId`, `AddImportPolicy`). I `*Seed.cs` di Roma restano solo come riferimento/uso nei test.
 - In dev l'utente è `DevCurrentUserProvider` (VID 704798, staff `IT-AOC` → **admin**, può tutto).
 - Migrazioni: `dotnet ef migrations add <Nome> --project src/Vipi.Infrastructure --startup-project src/Vipi.Infrastructure -o Persistence/Migrations`. ⚠️ Per i **rename** di proprietà/colonna EF scaffolda `RENAME COLUMN` solo se i campi combaciano: **verificare a mano** la migrazione generata (no Drop+Add che perde dati).
 
@@ -246,17 +276,17 @@ dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vs
 **Sicurezza/permessi (✅):** `Application/Auth/EditAuthorizationService.cs`:
 - **Admin** = staff position derivati dal **codice divisione** (`DivisionOptions.Code` + `AdminRolePatterns` → `^{Code}-{ruolo}$`, es. IT-DIR/IT-WM/IT-AOC) → edita tutto + gestisce permessi. Override esplicito opzionale via `Auth:AdminStaffCodes` (pattern completi). **Divisione configurabile** (sezione `Division`): vedi §7.
 - **Multi-divisione:** tutto ciò che cambia passando divisione è in `DivisionOptions` (Application): `Code` (prefisso staff + id API membri), `IcaoPrefixes` (filtro ATC online), `AdminRolePatterns`. Per IT→DE basta la sezione `Division` in appsettings. Il **contenuto seed** (Roma/LIRR) resta dato separato.
-- **Grant per-FIR** (`EditGrant`, VID→FIR): chi non è admin edita una FIR solo con grant; copre tutti i tipi (vIPI/aeroporto/vLOA/topologia/trasferimenti). Schermata `/sop/admin/permessi` (solo admin): aggiungi/revoca per VID manuale.
+- **Grant per-ACC** (`EditGrant`, VID→ACC): chi non è admin edita una ACC solo con grant; copre tutti i tipi (vIPI/aeroporto/vLOA/topologia/trasferimenti). Schermata `/sop/admin/permessi` (solo admin): aggiungi/revoca per VID manuale.
 - **Lock** documento esclusivo (30 min sliding, acquisizione atomica via `ExecuteUpdateAsync`, release su publish/abbandono, **force admin**) → impedisce editing concorrente. `EditConflictException`.
 - **Concorrenza ottimistica** (`RowVersion` su `ContentBlock`/`DocumentSection`) → conflitto gestito.
 - **Validazione**: `UnificationRule` hard (sectorKey/callsign devono esistere), trasferimenti soft (catena non vuota/no duplicati).
 - Verifiche **sempre server-side**. Security review fatta: **XSS in `AorBlock` corretto** (SVG hand-built ora HTML-encoded).
 
-**Persistenza:** `VipiDbContext` mappa tutte le entità; enum→stringa; migrazioni (greenfield da Round 5): `InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy`. Seed: `RomaStructureSeed` (anagrafica/gerarchia/regole), `RomaContentSeed` (vIPI ACC), `RomaAirportSeed` (LIRF), `RomaVloaSeed` (vLOA + FIR/posizione DTTC), `RomaTransferSeed`.
+**Persistenza:** `VipiDbContext` mappa tutte le entità; enum→stringa; migrazioni (greenfield da Round 5): `InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy`. Seed: `RomaStructureSeed` (anagrafica/gerarchia/regole), `RomaContentSeed` (vIPI ACC), `RomaAirportSeed` (LIRF), `RomaVloaSeed` (vLOA + ACC/posizione DTTC), `RomaTransferSeed`.
 
 **Modello dati — aggiunte rispetto a SPEC §3:** `Transfer` (+enum `TransferPhase`; catena handler = array JSON), `EditGrant`; campi **lock** su `Document`; `RowVersion` su `ContentBlock`/`DocumentSection`.
 
-**Live IVAO (✅ F3):** `src/Vipi.Infrastructure/Ivao/` — `OnlineAtcCache` (singleton, evento `Changed`, impl. `IOnlineAtcProvider`), `IvaoApiClient` (typed HttpClient → `/v2/tracker/now/atc/summary`, filtro prefisso `LI`), `IvaoTokenProvider` (client_credentials, serve solo per i membri divisione: il tracker è pubblico), `AtcPollingHostedService` (`BackgroundService`, 60s), `IvaoOptions` (sezione `Ivao`), DI via `AddVipiIvao(config)`. Transport **SSE** `/sop/live/atc` (`Program.cs`) + `Vipi.Ui/wwwroot/vipi-live.js` (`EventSource`→JS interop). `VipiViewService` calcola AoR reale quando `live=true`. `RidottaPage` ora `InteractiveServer` (selettore P, badge, online-nel-dominio, refresh SSE). `TransferOnlineResolver` + `ITransferService.ListResolvedByFirAsync` (primo-online). `IDivisionMembersProvider` per dropdown CH in `AdminGrantsPage`. Decisione in **ADR-0003**.
+**Live IVAO (✅ F3):** `src/Vipi.Infrastructure/Ivao/` — `OnlineAtcCache` (singleton, evento `Changed`, impl. `IOnlineAtcProvider`), `IvaoApiClient` (typed HttpClient → `/v2/tracker/now/atc/summary`, filtro prefisso `LI`), `IvaoTokenProvider` (client_credentials, serve solo per i membri divisione: il tracker è pubblico), `AtcPollingHostedService` (`BackgroundService`, 60s), `IvaoOptions` (sezione `Ivao`), DI via `AddVipiIvao(config)`. Transport **SSE** `/sop/live/atc` (`Program.cs`) + `Vipi.Ui/wwwroot/vipi-live.js` (`EventSource`→JS interop). `VipiViewService` calcola AoR reale quando `live=true`. `RidottaPage` ora `InteractiveServer` (selettore P, badge, online-nel-dominio, refresh SSE). `TransferOnlineResolver` + `ITransferService.ListResolvedByAccAsync` (primo-online). `IDivisionMembersProvider` per dropdown CH in `AdminGrantsPage`. Decisione in **ADR-0003**.
 
 **Note implementative / hardening F3:** SSE con `DisableBuffering()` (consegna immediata dietro proxy). `UseHttpsRedirection` solo in prod (in dev l'host è http → niente warning). `TransferOnlineResolver`: match esatto/segmento + sottostringa **solo per token ≥4 char** (evita falsi positivi su token corti). "Online nel mio dominio" ha empty-state esplicito ("copri tutti i settori"). Cache vuota prima del primo poll = `OnlineAtcSnapshot.Empty` (viste sicure).
 
@@ -276,27 +306,27 @@ dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vs
    - **Endpoint membri divisione** (`/v2/divisions/IT/members`) da confermare; il `rating` non è nel summary tracker.
    - Estendere `live=true` a **vIPI aeroporto / vLOA** (oggi solo ACC Ridotta).
 2. **Dati reali (placeholder dichiarati):** ✅ **METAR/TAF FATTO** (NOAA aviationweather.gov, `IWeatherProvider`/`NoaaWeatherClient`, reso in `AeroportoPage`, cache TTL — sezione `Weather`). Restano: shape AoR (GeoJSON/WKT — ADR formato), SID + minime MVA (parsing **sectorfile GitHub**), AoR 3D (Three.js).
-   - **Authoring da zero (FATTO):** DB parte vuoto. `IStructureEditingService`/`EfStructureEditingRepository` (FIR/posizioni/settori/ownership/frequenze) + `StrutturaPage` (`/sop/admin/struttura`); `EditingService.CreateDocumentAsync` (vIPI/vLOA vuoti) con entry "Crea nuovo documento". `StationResolver` ora DB-driven (`IStationDirectory`/`EfStationDirectory`). Token IVAO divisione: solo config (`Ivao:ClientId/Secret`, vedi `docs/CONFIG.md`).
+   - **Authoring da zero (FATTO):** DB parte vuoto. `IStructureEditingService`/`EfStructureEditingRepository` (ACC/posizioni/settori/ownership/frequenze) + `StrutturaPage` (`/sop/admin/struttura`); `EditingService.CreateDocumentAsync` (vIPI/vLOA vuoti) con entry "Crea nuovo documento". `StationResolver` ora DB-driven (`IStationDirectory`/`EfStationDirectory`). Token IVAO divisione: solo config (`Ivao:ClientId/Secret`, vedi `docs/CONFIG.md`).
 3. **Auth di produzione:** adapter reali `ICurrentUserProvider` — `HostIdentity` (scenari A/B, claim del sito `Ivao.It`) e OIDC (scenario C); mappare gli **staff code reali** (vedi §6 nodo aperto). Integrazione: montare la RCL nel sito host.
-4. **Copertura/rifiniture:** seed altre FIR (LIMM/LIPP/LIBB), viewer **audit log**, "scarta bozza", editor visuale mappe AoR (oggi JSON grezzo), test property-based AoR, **rifinitura UI** (rimandata di proposito finché il live non gira).
+4. **Copertura/rifiniture:** seed altre ACC (LIMM/LIPP/LIBB), viewer **audit log**, "scarta bozza", editor visuale mappe AoR (oggi JSON grezzo), test property-based AoR, **rifinitura UI** (rimandata di proposito finché il live non gira).
 5. **Deploy Round 10/11/12 (PENDENTE):** riavviare il Host (applica `Rename_Vid_To_UserId` + `AddImportPolicy` + `AddFeaturedRank`); poi **rigenerare i documenti aeroporto** già creati (LIRN ecc.) per popolare le quote di transizione di default. Provare `/vsop/admin/sorgenti` (toggle categorie → editor read-only/manuale) e i "3 in evidenza" dall'editor vIPI ACC.
 6. **Housekeeping:** **niente è committato** (tutto in working tree, incl. Round 10/11 + doc aggiornati) — valutare commit logici: decoupling sorgente · policy import · I_TWR+quote transizione · doc.
 
 ---
 
 ## 6. Nodi aperti / decisioni
-**Risolte in questa sessione:** modello editing persistente; modello autorizzazione (admin via staff code + grant per-FIR); lock esclusivo 30 min + force admin; validazione hard regole/soft trasferimenti; export = stampa browser; "cosa è cambiato" = lista+note+conteggi; catena handler trasferimenti = array JSON.
+**Risolte in questa sessione:** modello editing persistente; modello autorizzazione (admin via staff code + grant per-ACC); lock esclusivo 30 min + force admin; validazione hard regole/soft trasferimenti; export = stampa browser; "cosa è cambiato" = lista+note+conteggi; catena handler trasferimenti = array JSON.
 
 **Risolte F3 (sessione 23 giu):** trasporto live = **SSE** (ADR-0003); polling cache singleton 60s; token solo per membri divisione (tracker pubblico).
 
 **Ancora aperte:**
-- **Staff code esatti IVAO:** admin derivati da `Division.Code` + ruoli (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`), da confermare col sito host. Il codice "CH" non è gate: i permessi passano **solo** dai grant per-FIR; l'auto-elenco CH popola il dropdown via `IDivisionMembersProvider` (path `DivisionMembersPathFormat` = `/v2/divisions/{Code}/members`, da confermare).
+- **Staff code esatti IVAO:** admin derivati da `Division.Code` + ruoli (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`), da confermare col sito host. Il codice "CH" non è gate: i permessi passano **solo** dai grant per-ACC; l'auto-elenco CH popola il dropdown via `IDivisionMembersProvider` (path `DivisionMembersPathFormat` = `/v2/divisions/{Code}/members`, da confermare).
 - Identità **P** = callsign connesso del CH (oggi selettore manuale); mapping token-handler trasferimenti (oggi euristica); GeoJSON vs WKT (shape); formato/schedulazione parsing sectorfile (SID + minime).
 
 ## 7. Note operative per la nuova chat
 - **Configurazione:** riferimento completo in `docs/CONFIG.md` (sezioni `Division`/`Ivao`/`Auth`, secrets, env var). Divisione/admin: ADR-0004.
 - **Caveman mode** spesso attivo in queste chat (comunicazione compressa) — non è parte del prodotto.
-- **Divisione pilota:** Italia (`Division:Code=IT`), **FIR pilota:** Roma (LIRR). Validare su una sola FIR prima di estendere.
+- **Divisione pilota:** Italia (`Division:Code=IT`), **ACC pilota:** Roma (LIRR). Validare su una sola ACC prima di estendere.
 - **Brand:** palette §15.1 PIANO (blu `#0D2C99`…), font Nunito Sans + Poppins; tema in `Vipi.Ui/wwwroot/vipi-theme.css` (contiene anche le regole `@media print`).
 - **Parte più rischiosa:** logica AoR/visibilità → già coperta da test S1–S10; mantenerla testata ad ogni modifica.
 - **Pagine interattive** usano `@rendermode InteractiveServer` (editor, topologia, trasferimenti, ricerca, changed, admin permessi).

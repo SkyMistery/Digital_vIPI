@@ -9,7 +9,7 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 
 > 🔀 **Round 5:** posizione e settore sono **un'unica entità `Sector`** (callsign + spazio aereo), con contenimento ad albero (`ParentSectorId`) e scope documenti uno-a-molti (`Sector.DocumentId`/`IsPrimary`). Vedi `SPEC_Modello_Dati.md` (banner Round 5) e `docs/sector-map.md`.
 
-> 🛫 **Round 6:** **`Airport`** è entità di prima classe sotto una FIR (`Icao` univoco, `Name`, `FirId`). I settori d'aeroporto vi puntano via `Sector.AirportId` (`Sector.AirportIcao` resta denormalizzato); **l'aeroporto non ha gerarchia propria** — si ricostruisce dai settori che lo referenziano. Anagrafica reale dalla sorgente (`IAirportDirectory`, oggi adapter IVAO → `/v2/airports?countryId=IT`, `centerId`=FIR di competenza, cache 12h). Gestione interamente in **`AeroportiPage`** (`/sop/admin/aeroporti`, admin): assegna/sposta/rimuovi + ricerca + selezione multipla + **«Auto-assegna noti»** (`AutoAssignKnownAirportsAsync`: crea gli aeroporti il cui `centerId` è una FIR già presente). `StrutturaPage` tiene solo il picker aeroporto nel form settore (`Kind=Airport`).
+> 🛫 **Round 6:** **`Airport`** è entità di prima classe sotto una ACC (`Icao` univoco, `Name`, `AccId`). I settori d'aeroporto vi puntano via `Sector.AirportId` (`Sector.AirportIcao` resta denormalizzato); **l'aeroporto non ha gerarchia propria** — si ricostruisce dai settori che lo referenziano. Anagrafica reale dalla sorgente (`IAirportDirectory`, oggi adapter IVAO → `/v2/airports?countryId=IT`, `centerId`=ACC di competenza, cache 12h). Gestione interamente in **`AeroportiPage`** (`/sop/admin/aeroporti`, admin): assegna/sposta/rimuovi + ricerca + selezione multipla + **«Auto-assegna noti»** (`AutoAssignKnownAirportsAsync`: crea gli aeroporti il cui `centerId` è una ACC già presente). `StrutturaPage` tiene solo il picker aeroporto nel form settore (`Kind=Airport`).
 
 > 🛬 **Round 7:** **«Genera documenti»** (`AeroportiPage`) crea dalla sorgente i settori **DEL/GND/TWR** (`/v2/airports/{ICAO}/ATCPositions`, APP rimandato; ATIS solo come frequenza) e la **vIPI aeroporto Published** con le sezioni del mockup (Quote di transizione · Frequenze · Piste da `/v2/airports/{ICAO}/runways` · SID). METAR/TAF restano **live** sulla pagina. Idempotente.
 
@@ -69,7 +69,7 @@ dotnet ef migrations add <Nome> \
 **Ricerca full-text** (`/sop/search`, `ISearchService`), **Cosa è cambiato** (`/sop/changed`, `IChangesService`, per ciclo AIRAC),
 **Export** (`/sop/{acc}/export`, Estesa → stampa/PDF browser via `@media print`).
 
-**Editing persistente (CH/AOD):** porta `IEditingRepository` + `EditingService` (autorizzazione FIR-scoped, vedi sotto), workflow
+**Editing persistente (CH/AOD):** porta `IEditingRepository` + `EditingService` (autorizzazione ACC-scoped, vedi sotto), workflow
 **bozza→pubblicato** con clonazione versione + audit; UI `EditorPage` (`/sop/{acc}/editor`, anche `?doc={id}` per
 qualunque documento) con CRUD blocchi **e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli) e `VersioniPage`
 (`/sop/versioni`), entrambe `InteractiveServer`.
@@ -82,7 +82,7 @@ reali, preset S1–S6) + **CRUD** regole di unificazione e relazioni gerarchiche
 
 **Trasferimenti:** entità `Transfer` (riga strutturata: relazione·fase·CoP·FL·catena handler JSON·fallback),
 editor `XferEditorPage`, e sezione **Trasferimenti** nella Ridotta con risoluzione **"primo online"**
-(`TransferOnlineResolver` + `ListResolvedByFirAsync`, F3).
+(`TransferOnlineResolver` + `ListResolvedByAccAsync`, F3).
 
 **Live IVAO (F3):** `AtcPollingHostedService` interroga l'API IVAO (`/v2/tracker/now/atc/summary`) ogni 60 s,
 filtra i **prefissi ICAO della divisione** (`Division:IcaoPrefixes`), aggiorna `OnlineAtcCache` (singleton) letta via porta `IOnlineAtcProvider`.
@@ -92,8 +92,8 @@ dominio", "primo online" dei trasferimenti, badge Live. Push al browser via **SS
 Config in sezione `Ivao` di `appsettings.json`; segreti in user-secrets (`Ivao:ClientId/ClientSecret`).
 La sorgente attiva si sceglie con **`DataSource:Provider`** (oggi `"Ivao"`): l'app dipende solo dalle interfacce neutre (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`/`IOnlineAtcProvider`), così cambiare network o usare un DB interno richiede solo un nuovo adapter.
 
-**Sicurezza & permessi:** autorizzazione FIR-scoped (`IEditAuthorizationService`): **admin** = staff `{DIV}-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>` derivati dal **codice divisione** (`Division:Code`, default `IT`); override esplicito opzionale in `Auth:AdminStaffCodes`
-(editano tutto + gestiscono i permessi); gli altri editano una FIR solo con un `EditGrant` (VID→FIR), concesso da
+**Sicurezza & permessi:** autorizzazione ACC-scoped (`IEditAuthorizationService`): **admin** = staff `{DIV}-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>` derivati dal **codice divisione** (`Division:Code`, default `IT`); override esplicito opzionale in `Auth:AdminStaffCodes`
+(editano tutto + gestiscono i permessi); gli altri editano una ACC solo con un `EditGrant` (VID→ACC), concesso da
 `/sop/admin/permessi`. **Lock** esclusivo del documento (30 min sliding, force admin) impedisce editing concorrente.
 **Concorrenza ottimistica** (`RowVersion` su blocchi/sezioni) + **validazione** (regole hard, trasferimenti soft).
 Verifica sempre server-side. In dev `DevCurrentUserProvider` è admin (`IT-AOC`).

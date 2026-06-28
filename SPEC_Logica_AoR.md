@@ -70,7 +70,7 @@ function ResolveView(P, O, Live):
 ```text
 function ApplyUnificationRules(positions, O):
     ownership = default ownership from PositionSector (ogni posizione possiede i suoi settori)
-    for rule in UnificationRules(P.Fir) ordered by Priority:
+    for rule in UnificationRules(P.Acc) ordered by Priority:
         if rule.Condition matches O:
             apply rule.Assignment to ownership   # riassegna sector -> position
     # i settori la cui posizione non è online ricadono top-down sul primo antenato online (o P)
@@ -130,7 +130,7 @@ Ogni scenario è un caso atteso per i test automatici. Notazione: `P` = posizion
 - **Setup:** `P = LIRR_NE_CTR`; `O = {LIRR_NE_CTR, LIBP_TWR}` (TWR online, APP offline).
 - **Atteso:** poiché `LIBP_APP` è offline, l'APP ricade top-down. Ma la TWR è online → i settori/blocchi di competenza TWR `Online`; i blocchi APP restano `Covered` (li copre l'NE finché l'APP è chiuso). Verifica che la risoluzione top-down gestisca il "buco" intermedio.
 
-### S7 — vLOA con neighbour (cross-FIR)
+### S7 — vLOA con neighbour (cross-ACC)
 - **Setup A:** `P = LIRR_SU_CTR`; `O = {LIRR_SU_CTR}` (Tunisi `DTTC` offline).
   - **Atteso:** blocchi di coordinamento della vLOA LIRR↔DTTC (`Handoff`) **compressi** (nessuno dall'altro lato).
 - **Setup B:** `O = {LIRR_SU_CTR, DTTC_CTR}`.
