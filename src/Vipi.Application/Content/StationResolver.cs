@@ -1,11 +1,12 @@
+using Vipi.Application.Abstractions;
+
 namespace Vipi.Application.Content;
 
-/// <summary>Informazioni di un ACC per la navigazione documentale (home a 4 ACC).</summary>
+/// <summary>Informazioni di un ACC per la navigazione documentale (derivato dalle FIR nel DB).</summary>
 public sealed record AccInfo(string Code, string Name);
 
 /// <summary>
-/// Risolve la navigazione per ACC (RF-1 ridotto a F2: i 4 ACC italiani).
-/// La ricerca full per callsign è rimandata alle fasi successive.
+/// Risolve la navigazione per ACC dalle FIR esistenti nel DB (via <see cref="IStationDirectory"/>).
 /// </summary>
 public interface IStationResolver
 {
@@ -16,16 +17,14 @@ public interface IStationResolver
 /// <inheritdoc cref="IStationResolver"/>
 public sealed class StationResolver : IStationResolver
 {
-    private static readonly AccInfo[] All =
-    {
-        new("LIRR", "Roma ACC"),
-        new("LIMM", "Milano ACC"),
-        new("LIPP", "Padova ACC"),
-        new("LIBB", "Brindisi ACC"),
-    };
+    private readonly IStationDirectory _dir;
+    private IReadOnlyList<AccInfo>? _cache;
 
-    public IReadOnlyList<AccInfo> Accs => All;
+    public StationResolver(IStationDirectory dir) => _dir = dir;
+
+    // Scoped: una sola lettura per richiesta, poi cache.
+    public IReadOnlyList<AccInfo> Accs => _cache ??= _dir.ListAccs();
 
     public AccInfo? Resolve(string accCode) =>
-        All.FirstOrDefault(a => a.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase));
+        Accs.FirstOrDefault(a => a.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase));
 }
