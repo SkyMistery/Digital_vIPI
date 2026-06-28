@@ -1,7 +1,7 @@
 namespace Vipi.Application.Abstractions;
 
 /// <summary>Un ATC attualmente online (snapshot normalizzato dal polling IVAO). F3.</summary>
-public sealed record OnlineAtc(string Callsign, int Vid, string Name, int Rating);
+public sealed record OnlineAtc(string Callsign, int UserId, string Name, int Rating);
 
 /// <summary>
 /// Fotografia immutabile dell'ATC online in un istante. <see cref="Callsigns"/> alimenta

@@ -21,7 +21,7 @@ public class IvaoPollingTests
         cache.Set(new OnlineAtcSnapshot
         {
             Callsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRR_NE_CTR" },
-            Details = new[] { new OnlineAtc("LIRR_NE_CTR", 123, "VID 123", 4) },
+            Details = new[] { new OnlineAtc("LIRR_NE_CTR", 123, "UserId 123", 4) },
             AsOf = DateTimeOffset.UtcNow,
         });
 
@@ -48,7 +48,7 @@ public class IvaoPollingTests
         Assert.Equal(2, atcs.Count);
         Assert.All(atcs, a => Assert.StartsWith("LI", a.Callsign));
         var ne = Assert.Single(atcs, a => a.Callsign == "LIRR_NE_CTR");
-        Assert.Equal(111, ne.Vid);
+        Assert.Equal(111, ne.UserId);
         Assert.Equal(4, ne.Rating);
     }
 
@@ -58,7 +58,7 @@ public class IvaoPollingTests
         var div = Options.Create(new Vipi.Application.DivisionOptions { IcaoPrefixes = new() { prefix } });
         var http = new HttpClient(new StubHandler(responseJson));
         var token = new IvaoTokenProvider(new NullHttpClientFactory(), opt);
-        return new IvaoApiClient(http, token, opt, div);
+        return new IvaoApiClient(http, token, opt, div, new IvaoAirportCache());
     }
 
     private sealed class StubHandler : HttpMessageHandler

@@ -84,21 +84,32 @@ public static class IvaoServiceCollectionExtensions
     {
         services.Configure<IvaoOptions>(configuration.GetSection(IvaoOptions.SectionName));
 
-        // Token: singleton (cache token persistente) con HttpClient dalla factory.
-        services.AddHttpClient(IvaoTokenProvider.HttpClientName);
+        services.AddTransient<TransientRetryHandler>();
+
+        // Token: singleton (cache token persistente) con HttpClient dalla factory. Timeout + retry transitori.
+        services.AddHttpClient(IvaoTokenProvider.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(15))
+            .AddHttpMessageHandler<TransientRetryHandler>();
         services.AddSingleton<IvaoTokenProvider>();
 
         // Adapter API: typed client (transient), risolto in scope dal poller / dalle pagine.
-        services.AddHttpClient<IvaoApiClient>();
+        services.AddHttpClient<IvaoApiClient>(c => c.Timeout = TimeSpan.FromSeconds(15))
+            .AddHttpMessageHandler<TransientRetryHandler>();
 
         // Cache condivisa: un singolo stato letto da tutti (anche via IOnlineAtcProvider).
         services.AddSingleton<OnlineAtcCache>();
         services.AddSingleton<IOnlineAtcProvider>(sp => sp.GetRequiredService<OnlineAtcCache>());
 
-        // L'elenco membri divisione è lo stesso adapter HTTP.
+        // L'elenco membri divisione e il profilo del singolo utente sono lo stesso adapter HTTP.
         services.AddScoped<IDivisionMembersProvider>(sp => sp.GetRequiredService<IvaoApiClient>());
+        services.AddScoped<IUserDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
+
+        // Anagrafica aeroporti IVAO: cache di processo (singleton) condivisa dall'adapter HTTP.
+        services.AddSingleton<IvaoAirportCache>();
+        services.AddScoped<IAirportDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
+        services.AddScoped<IAirportDetailProvider>(sp => sp.GetRequiredService<IvaoApiClient>());
 
         services.AddHostedService<AtcPollingHostedService>();
+        services.AddHostedService<StaffRosterVerificationService>();
         return services;
     }
 }

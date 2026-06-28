@@ -16,10 +16,24 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IContentRepository, EfContentRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
         services.AddScoped<Vipi.Application.Abstractions.ITopologyEditingRepository, EfTopologyEditingRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAirportProfileRepository, EfAirportProfileRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();
         services.AddScoped<Vipi.Application.Abstractions.ITransferRepository, EfTransferRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
+
+        // Meteo reale (NOAA aviationweather.gov): HttpClient con UA + provider singleton (cache TTL per ICAO).
+        services.AddHttpClient(Weather.NoaaWeatherClient.HttpClientName, c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(10);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
         return services;
     }
 }
