@@ -2,6 +2,8 @@
 
 > ✅ **Implementata e testata.** Gli scenari **S1–S10** sono coperti da test automatici (`AorServiceTests`, `ContentServiceTests`, `RomaAorIntegrationTests`). Motore: `Vipi.Application/Aor/AorService.cs` + tabella di verità in `ContentService.cs`. Il **collasso live** dipende dal polling IVAO (fase F3, non ancora attivo): oggi la consultazione gira con `live=false`.
 
+> 🔀 **Round 5 — Settore == Posizione.** Con la fusione delle entità, l'identificatore di un settore è il suo **`Callsign`**. La `Topology` non ha più `DefaultSectors`: ogni settore **possiede sé stesso** di default (ownership identità) e l'albero `Parent` (da `Sector.ParentSectorId`) regge il top-down. L'algoritmo §3 è invariato salvo il passo 1 (ownership di default = identità anziché lettura da `PositionSector`). `Sec(X)` coincide ora con `{X}` ∪ discendenti coperti via top-down. Lo split SU/ES (S4) è **puro contenimento** e non richiede una `UnificationRule`; il meccanismo regole resta per riassegnazioni arbitrarie (chiavi = callsign).
+
 **Documento:** Specifica funzionale + scenari di test della logica di visibilità (la parte più critica del sistema)
 **Versione:** 0.1
 **Data:** 13 giugno 2026

@@ -5,7 +5,17 @@ Trasforma i Word statici in contenuto strutturato con due livelli (Estesa/Ridott
 live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD).
 
 > Pianificazione completa: `PIANO_vIPI_Tool.md`, `HANDOFF.md`, `SPEC_*.md`, `docs/adr/`.
-> Configurazione runtime: **`docs/CONFIG.md`**.
+> Configurazione runtime: **`docs/CONFIG.md`**. Integrazione in un sito esistente: **`docs/INTEGRATION.md`**.
+
+> 🔀 **Round 5:** posizione e settore sono **un'unica entità `Sector`** (callsign + spazio aereo), con contenimento ad albero (`ParentSectorId`) e scope documenti uno-a-molti (`Sector.DocumentId`/`IsPrimary`). Vedi `SPEC_Modello_Dati.md` (banner Round 5) e `docs/sector-map.md`.
+
+> 🛫 **Round 6:** **`Airport`** è entità di prima classe sotto una FIR (`Icao` univoco, `Name`, `FirId`). I settori d'aeroporto vi puntano via `Sector.AirportId` (`Sector.AirportIcao` resta denormalizzato); **l'aeroporto non ha gerarchia propria** — si ricostruisce dai settori che lo referenziano. Anagrafica reale dalla sorgente (`IAirportDirectory`, oggi adapter IVAO → `/v2/airports?countryId=IT`, `centerId`=FIR di competenza, cache 12h). Gestione interamente in **`AeroportiPage`** (`/sop/admin/aeroporti`, admin): assegna/sposta/rimuovi + ricerca + selezione multipla + **«Auto-assegna noti»** (`AutoAssignKnownAirportsAsync`: crea gli aeroporti il cui `centerId` è una FIR già presente). `StrutturaPage` tiene solo il picker aeroporto nel form settore (`Kind=Airport`).
+
+> 🛬 **Round 7:** **«Genera documenti»** (`AeroportiPage`) crea dalla sorgente i settori **DEL/GND/TWR** (`/v2/airports/{ICAO}/ATCPositions`, APP rimandato; ATIS solo come frequenza) e la **vIPI aeroporto Published** con le sezioni del mockup (Quote di transizione · Frequenze · Piste da `/v2/airports/{ICAO}/runways` · SID). METAR/TAF restano **live** sulla pagina. Idempotente.
+
+> 🗼 **Round 10:** torre informativa **`SectorType.ITwr`** (AFIS, trattata come torre per frequenza/etichetta); invariante **«ogni aeroporto ha almeno una torre»** (badge ⚠ no TWR + blocco eliminazione unica torre). **Quote di transizione di default** `TL = TA + margine` per fascia QNH (`<977→+2500`…`≥1013→+1000`, arrotondate al FL), garantite a ogni rebuild.
+
+> 🔌 **Round 11 — Indipendenza dalla sorgente + policy di import.** Le porte dati esterne sono **interfacce neutre** (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`, DTO `Source*`); l'adapter IVAO è UNA implementazione scelta via **`DataSource:Provider`**. Tutto ciò che la sorgente fornisce è **importato e in sola lettura** (policy globale **opt-out**, entità `ImportPolicy`, pagina admin **`/sop/admin/sorgenti`**): TA e piste non sono più editabili dagli utenti se importate. `Vid`→`UserId` nel codice e nel DB (migrazione `Rename_Vid_To_UserId`; a video resta "VID"). Vedi `SPEC_Modello_Dati.md` e `HANDOFF.md` (Round 10/11).
 
 ## Architettura (Clean Architecture — ADR-0001 D2, ADR-0002)
 
@@ -14,24 +24,27 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 | `src/Vipi.Domain` | Entità, enum, regole pure (`AiracService`). Nessuna dipendenza. | — |
 | `src/Vipi.Application` | Use case e porte: `IAorService`, `IContentService`, `ICurrentUserProvider`. Logica AoR pura. | Domain |
 | `src/Vipi.Infrastructure` | EF Core + SQLite (`VipiDbContext`), `TopologyBuilder`, migrazioni. | Application, Domain |
-| `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host (rotta `/sop`). | Application, Domain |
-| `src/Vipi.Host` | Host Blazor Server di **sviluppo** (scenario C minimo). | tutti |
+| `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host (rotta `/sop`). Stili confinati in `.vipi-root`. | Application, Domain |
+| `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host (`HostIdentityCurrentUserProvider`), middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
+| `src/Vipi.Host` | Host Blazor Server di **sviluppo/esempio** che aggancia il modulo. | tutti |
 | `tests/Vipi.Domain.Tests` · `tests/Vipi.Application.Tests` | xUnit: AIRAC + scenari AoR S1–S10. | — |
 
 Regola di dipendenza verso l'interno: `Host → Infrastructure → Application → Domain`. La RCL e la logica
 **non dipendono da tipi specifici dell'host** (ADR-0002 D5): l'identità arriva solo da `ICurrentUserProvider`.
 
-### Portabilità identità (ADR-0002 D3)
-- **A** sito attuale `Ivao.It` · **B** sito nuovo (stesso stack) → adapter che legge il `ClaimsPrincipal`.
-- **C** app autonoma → adapter IVAO OIDC proprio.
+### Portabilità identità (ADR-0002 D3, ADR-0005)
+- **A** sito attuale `Ivao.It` · **B** sito nuovo (stesso stack) → `HostIdentityCurrentUserProvider`
+  legge il `ClaimsPrincipal` dell'host (mappa claim config-driven, sezione `HostIdentity`). **Implementato.**
+- **C** app autonoma → adapter IVAO OIDC proprio passato a `AddVipiModule`.
 
-In sviluppo è attivo `DevCurrentUserProvider` (utente CH fittizio, `CanEdit = true`).
+In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (utente CH fittizio, `CanEdit = true`).
+Integrazione passo-passo in **`docs/INTEGRATION.md`**.
 
 ## Build & run
 
 ```bash
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx            # 56 test (AoR S1–S10, editing, lock/authz/concorrenza, ricerca, changed, AIRAC, polling IVAO, primo-online)
+dotnet test  Vipi.slnx            # 106 test (AoR S1–S10, editing, lock/authz/concorrenza, ricerca, changed, AIRAC, polling IVAO, primo-online, profilo aeroporto, policy import)
 dotnet run --project src/Vipi.Host   # poi apri /sop
 ```
 
@@ -77,6 +90,7 @@ La Ridotta gira `live=true`: AoR reale (selettore "la mia posizione" P, collasso
 dominio", "primo online" dei trasferimenti, badge Live. Push al browser via **SSE** (`/sop/live/atc` + `vipi-live.js`,
 **ADR-0003**). Token `client_credentials` (`IvaoTokenProvider`) solo per l'elenco membri divisione; il tracker è pubblico.
 Config in sezione `Ivao` di `appsettings.json`; segreti in user-secrets (`Ivao:ClientId/ClientSecret`).
+La sorgente attiva si sceglie con **`DataSource:Provider`** (oggi `"Ivao"`): l'app dipende solo dalle interfacce neutre (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`/`IOnlineAtcProvider`), così cambiare network o usare un DB interno richiede solo un nuovo adapter.
 
 **Sicurezza & permessi:** autorizzazione FIR-scoped (`IEditAuthorizationService`): **admin** = staff `{DIV}-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>` derivati dal **codice divisione** (`Division:Code`, default `IT`); override esplicito opzionale in `Auth:AdminStaffCodes`
 (editano tutto + gestiscono i permessi); gli altri editano una FIR solo con un `EditGrant` (VID→FIR), concesso da

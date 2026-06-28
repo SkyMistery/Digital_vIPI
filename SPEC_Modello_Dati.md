@@ -2,6 +2,8 @@
 
 > ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-FIR); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `README.md`/`HANDOFF.md`.
 
+> 🔀 **Round 5 — Fusione Settore/Posizione (sostituisce §3.2/§3.3/§3.5/§3.6 e parte del §3.9/§3.10).** `Position` e `Sector` sono ora **un'unica entità `Sector`**: ogni settore è un callsign apribile (campi ex-`Position`: `Callsign` univoco, `Type`/`SectorType`, `Kind`/`SectorKind`, `ApproachKind?`, `DefaultFrequency`, `CoverageOrder`, `IsActive`) **e** un volume di spazio aereo. Il contenimento top-down è un **albero a padre singolo** `Sector.ParentSectorId` (self-FK) che **sostituisce** `HierarchyRelation` e `PositionSector` (eliminate). I settori d'aeroporto portano `AirportIcao`. Lo **scope dei documenti** è ora **uno-a-molti** `Document` 1 ──< N `Sector` (FK `Sector.DocumentId`, un settore con `IsPrimary`): `Document.ScopePositionId` è rimosso. `Frequency.PositionId`→`SectorId`; `DocumentParty.PositionId`→`SectorId`. Le `UnificationRule` restano (riassegnazioni arbitrarie); le loro chiavi JSON sono ora **callsign**. Enum rinominati: `PositionType`→`SectorType`, `PositionKind`→`SectorKind`. La vecchia `Sector.Key` è eliminata: l'identificatore è il `Callsign`.
+
 **Documento:** Specifica tecnica del modello dati (sorgente per lo schema EF Core)
 **Versione:** 0.1
 **Data:** 13 giugno 2026
@@ -257,7 +259,7 @@ Stato live in **cache memoria**, non in DB: lista ATC online normalizzata dal po
 ## 4. Enumerazioni
 
 ```csharp
-enum PositionType   { Del, Gnd, Twr, App, Ctr }
+enum PositionType   { Del, Gnd, Twr, ITwr, App, Ctr }   // ITwr = torre informativa (AFIS); round 6
 enum PositionKind   { Airport, Acc }
 enum GeometryFormat { GeoJson, Wkt }
 enum DocumentType   { Vipi, Vloa }
@@ -390,3 +392,41 @@ enum BlockFormat  { Table, Prose, Image, List, AorMap, Callout }
 ```
 
 > `BlockSection` resta come elenco di valori semantici, ma ora vive su `DocumentSection.SectionKind` invece che su `ContentBlock.Section`. Valutare l'aggiunta di `VectoringMinima` come valore quando si implementeranno le minime.
+
+---
+
+## 8. Aggiornamenti round 10/11 (27 giugno 2026)
+
+### 8.1 `SectorType` — torre informativa (round 10)
+Aggiunto **`ITwr`** (torre informativa / AFIS) dopo `Twr`: `enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }`. Stesso livello operativo della TWR (frequenza primaria, etichetta), ma servizio informazioni. Enum salvati come stringa ⇒ nessuna migrazione. Invariante applicativo: **ogni `Airport` ha almeno un settore `Twr` o `ITwr`** (badge in gestione aeroporti; blocco eliminazione dell'unica torre in `EfStructureEditingRepository.DeleteSectorAsync`).
+
+### 8.2 `Vid` → `UserId` (round 11)
+Rinominati **tutti** i campi VID a `UserId` (codice + colonne DB, migrazione `Rename_Vid_To_UserId` con `RENAME COLUMN` nativo, incl. PK `StaffMembers`):
+
+| Entità | Campo |
+|---|---|
+| `AuditLog` | `Vid` → `UserId` |
+| `Document` | `LockedByVid` → `LockedByUserId` |
+| `DocumentVersion` | `CreatedByVid` → `CreatedByUserId` |
+| `EditGrant` | `Vid` → `UserId`, `GrantedByVid` → `GrantedByUserId` |
+| `StaffMember` | `Vid` (PK) → `UserId` |
+
+Anche `CurrentUser.Vid` → `UserId` e `HostIdentityOptions.VidClaim` → `UserIdClaim` (valore default `"id"`). Le **label a video** restano "VID" (termine d'uso): solo gli identificatori di codice cambiano.
+
+### 8.3 `ImportPolicy` (round 11) — provenienza dei dati
+Nuova entità **riga singola** (`Id = 1`) che governa quali categorie di dati arrivano dalla sorgente esterna (sola lettura) o restano manuali. Semantica **opt-out**: default tutto importato.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | riga singola |
+| `ImportTransitionAltitude` | bool | default true → `Airport.TransitionAltitudeFt` di sorgente |
+| `ImportAtis` | bool | default true → `Airport.AtisFrequency` |
+| `ImportRunways` | bool | default true → `AirportRunway.Ident/LengthM/Bearing` |
+| `ImportSectors` | bool | default true → settori d'aeroporto (callsign/tipo/frequenza) |
+| `UpdatedUtc` | datetime | |
+| `UpdatedByUserId` | int | |
+
+Enum `ImportCategory { TransitionAltitude, Atis, Runways, Sectors }`. Migrazione `AddImportPolicy`. Accesso via `IImportPolicyStore` (snapshot `ImportPolicySnapshot`) + servizio admin `IImportPolicyService`. Enforcement: editor read-only + guard nei service + import che salta le categorie escluse. I campi editoriali (regole pista, SID, livelli TL, link, gerarchia settori) non sono categorie.
+
+### 8.4 Interfacce dati **sorgente-neutre** (round 11)
+L'anagrafica/dettagli/utenti esterni passano per porte neutre in `Application/Abstractions`: `IAirportDirectory` (DTO `SourceAirport`), `IAirportDetailProvider` (`SourceAtcPosition`/`SourceRunway`), `IUserDirectory` (`SourceUserStaff`), più `IOnlineAtcProvider`. L'adapter IVAO concreto vive in `Infrastructure/Ivao/*` ed è selezionato da `DataSource:Provider` (vedi `docs/CONFIG.md` §1b). Non rientra nello schema persistito ma vincola da dove si popolano `Airport`/`Sector`/runway.

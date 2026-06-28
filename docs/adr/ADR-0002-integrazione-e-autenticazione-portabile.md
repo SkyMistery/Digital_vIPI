@@ -38,7 +38,7 @@ La RCL e la logica **non leggono mai** direttamente il cookie, l'OIDC o l'Identi
 ```csharp
 public interface ICurrentUserProvider
 {
-    CurrentUser? Get();   // modello utente neutro: Vid, Name, Fir, StaffPositions[], CanEdit
+    CurrentUser? Get();   // modello utente neutro: UserId, Name, Fir, StaffPositions[], CanEdit
 }
 ```
 
@@ -99,3 +99,10 @@ RCL e progetti logici **non devono dipendere da tipi specifici dell'host** (es. 
 - Adapter forniti: `HostIdentityCurrentUserProvider` (scenari A/B, legge `ClaimsPrincipal`) e `OidcCurrentUserProvider` (scenario C).
 - Mapping staff position → `CanEdit`: riusa la logica già presente nel sito (`userStaffPositions` filtrate per `divisionId == "IT"` e ruolo CH/AOD), ma applicata sul modello neutro.
 - Il `DbContext` SQLite della vIPI è **separato** da quello del sito; convivono nello stesso processo senza condividere schema.
+
+---
+
+## Aggiornamento (27 giugno 2026)
+
+- **`Vid` → `UserId`** nel modello neutro: `CurrentUser.UserId`, `HostIdentityOptions.UserIdClaim` (valore default `"id"`), e tutte le colonne DB correlate (migrazione `Rename_Vid_To_UserId`). Coerente con D5 (il modello utente non porta più un nome legato a una rete specifica). Le **label a video** restano "VID".
+- Il singolo utente esterno si legge ora via la porta neutra **`IUserDirectory.GetUserAsync`** (non più un nome IVAO-specifico). Il decoupling completo dalla sorgente dati è in **`ADR-0006`**.
