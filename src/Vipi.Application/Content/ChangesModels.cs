@@ -11,7 +11,7 @@ public sealed class ChangeRow
     public required string Url { get; init; }
     public required int VersionNumber { get; init; }
     public string? Note { get; init; }
-    public required int PublishedByVid { get; init; }
+    public required int PublishedByUserId { get; init; }
     public required DateTime PublishedUtc { get; init; }
     public required int PrevBlocks { get; init; }
     public required int CurrBlocks { get; init; }

@@ -13,6 +13,7 @@ public interface IVipiViewService
     Task<DocumentView?> BuildAccVipiAsync(string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default);
     Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, CancellationToken ct = default);
     Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default);
+    Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IVipiViewService"/>
@@ -52,6 +53,9 @@ public sealed class VipiViewService : IVipiViewService
     public Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadVloaAsync(accCode, ct), tier, live, null);
 
+    public Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadVloaByIdAsync(docId, ct), tier, live, null);
+
     /// <summary>AoR reale per la vista di <paramref name="viewerPosition"/> (default = radice topologia).</summary>
     private async Task<AorResult?> ResolveLiveAorAsync(string firCode, string? viewerPosition, CancellationToken ct)
     {
@@ -64,13 +68,13 @@ public sealed class VipiViewService : IVipiViewService
         return _aor.Resolve(topo, p, _online.GetCurrent().Callsigns);
     }
 
-    /// <summary>Posizione di default quando non specificata: prima radice (callsign senza genitore).</summary>
+    /// <summary>Settore di default quando non specificato: prima radice (callsign senza genitore).</summary>
     private static string? DefaultViewer(Topology topo) =>
-        topo.DefaultSectors.Keys
+        topo.Sectors
             .Where(cs => !topo.Parent.ContainsKey(cs))
             .OrderBy(cs => cs, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault()
-        ?? topo.DefaultSectors.Keys.FirstOrDefault();
+        ?? topo.Sectors.FirstOrDefault();
 
     private async Task<DocumentView?> BuildAsync(Task<RawDocument?> load, BlockTier tier, bool live, AorResult? liveAor)
     {

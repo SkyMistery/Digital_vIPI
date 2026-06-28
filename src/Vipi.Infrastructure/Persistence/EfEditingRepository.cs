@@ -23,7 +23,7 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default)
     {
         var docs = await _db.Documents
-            .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -106,7 +106,7 @@ public sealed class EfEditingRepository : IEditingRepository
         };
     }
 
-    public async Task<int> CreateDraftAsync(int documentId, int authorVid, CancellationToken ct = default)
+    public async Task<int> CreateDraftAsync(int documentId, int authorUserId, CancellationToken ct = default)
     {
         var doc = await _db.Documents.FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new InvalidOperationException($"Documento {documentId} inesistente.");
@@ -132,7 +132,7 @@ public sealed class EfEditingRepository : IEditingRepository
             DocumentId = documentId,
             VersionNumber = nextNumber,
             Status = DocumentStatus.Draft,
-            CreatedByVid = authorVid,
+            CreatedByUserId = authorUserId,
             CreatedUtc = now,
             AiracCycle = _airac.GetCycle(now),
             Note = srcVersionId is null ? "Bozza iniziale" : $"Bozza da versione {srcVersionId}",
@@ -174,6 +174,75 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
         return draft.Id;
     }
+
+    public async Task<int> CreateDocumentAsync(DocumentType type, string title, Language language,
+        IReadOnlyList<int>? scopeSectorIds, int? primarySectorId,
+        (int homeSectorId, int neighbourSectorId)? parties, int authorUserId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var doc = new Document
+        {
+            Type = type,
+            Title = title,
+            Language = language,
+            Status = DocumentStatus.Draft,
+            LastUpdatedUtc = now,
+            LastUpdatedAiracCycle = _airac.GetCycle(now),
+        };
+        if (parties is { } p)
+        {
+            doc.Parties.Add(new DocumentParty { SectorId = p.homeSectorId, Role = PartyRole.Home });
+            doc.Parties.Add(new DocumentParty { SectorId = p.neighbourSectorId, Role = PartyRole.Neighbour });
+        }
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync(ct); // serve doc.Id
+
+        // vIPI: aggancia i settori di scope al documento (uno primario). Uno-a-molti via Sector.DocumentId.
+        if (scopeSectorIds is { Count: > 0 })
+        {
+            var ids = scopeSectorIds.Distinct().ToList();
+            var sectors = await _db.Sectors.Where(s => ids.Contains(s.Id)).ToListAsync(ct);
+            foreach (var s in sectors)
+            {
+                if (s.DocumentId is int existing && existing != doc.Id)
+                    throw new InvalidOperationException($"Il settore {s.Callsign} è già descritto da un altro documento.");
+                s.DocumentId = doc.Id;
+                s.IsPrimary = s.Id == (primarySectorId ?? ids[0]);
+            }
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var version = new DocumentVersion
+        {
+            DocumentId = doc.Id,
+            VersionNumber = 1,
+            Status = DocumentStatus.Draft,
+            CreatedByUserId = authorUserId,
+            CreatedUtc = now,
+            AiracCycle = _airac.GetCycle(now),
+            Note = "Bozza iniziale",
+        };
+        _db.DocumentVersions.Add(version);
+        await _db.SaveChangesAsync(ct); // serve version.Id
+
+        // Sezione radice vuota di partenza (l'editor ne aggiunge altre).
+        _db.DocumentSections.Add(new DocumentSection
+        {
+            DocumentVersionId = version.Id,
+            ParentSectionId = null,
+            Title = "Scopo e validità",
+            Order = 1,
+            Depth = 0,
+            SectionKind = BlockSection.Purpose,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync(ct);
+
+        return doc.Id;
+    }
+
+    public async Task<string?> GetFirCodeBySectorAsync(int sectorId, CancellationToken ct = default) =>
+        await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Fir!.Code).FirstOrDefaultAsync(ct);
 
     public async Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default)
     {
@@ -349,7 +418,7 @@ public sealed class EfEditingRepository : IEditingRepository
         return true;
     }
 
-    public async Task PublishAsync(int versionId, int actorVid, string? note, CancellationToken ct = default)
+    public async Task PublishAsync(int versionId, int actorUserId, string? note, CancellationToken ct = default)
     {
         var ver = await _db.DocumentVersions.Include(v => v.Document)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct)
@@ -376,7 +445,7 @@ public sealed class EfEditingRepository : IEditingRepository
 
         _db.AuditLogs.Add(new AuditLog
         {
-            Vid = actorVid,
+            UserId = actorUserId,
             Action = AuditAction.Publish,
             EntityType = "DocumentVersion",
             EntityId = ver.Id.ToString(),
@@ -401,7 +470,7 @@ public sealed class EfEditingRepository : IEditingRepository
                 Id = v.Id,
                 VersionNumber = v.VersionNumber,
                 Status = v.Status,
-                CreatedByVid = v.CreatedByVid,
+                CreatedByUserId = v.CreatedByUserId,
                 CreatedUtc = v.CreatedUtc,
                 AiracCycle = v.AiracCycle,
                 Note = v.Note,
@@ -423,7 +492,7 @@ public sealed class EfEditingRepository : IEditingRepository
 
     // --- Lock di editing esclusivo ---
 
-    public async Task<LockInfo> AcquireOrInspectLockAsync(int documentId, int vid, string? name, int ttlMinutes, CancellationToken ct = default)
+    public async Task<LockInfo> AcquireOrInspectLockAsync(int documentId, int UserId, string? name, int ttlMinutes, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(ttlMinutes);
@@ -431,51 +500,51 @@ public sealed class EfEditingRepository : IEditingRepository
         // Acquisizione atomica DB-side: riesce solo se libero, scaduto o già mio.
         var rows = await _db.Documents
             .Where(d => d.Id == documentId &&
-                        (d.LockedByVid == null || d.LockExpiresUtc == null || d.LockExpiresUtc < now || d.LockedByVid == vid))
+                        (d.LockedByUserId == null || d.LockExpiresUtc == null || d.LockExpiresUtc < now || d.LockedByUserId == UserId))
             .ExecuteUpdateAsync(s => s
-                .SetProperty(d => d.LockedByVid, vid)
+                .SetProperty(d => d.LockedByUserId, UserId)
                 .SetProperty(d => d.LockedByName, name)
                 .SetProperty(d => d.LockedAtUtc, now)
                 .SetProperty(d => d.LockExpiresUtc, expires), ct);
 
         if (rows > 0)
-            return new LockInfo { Locked = true, IsMine = true, ByVid = vid, ByName = name, ExpiresUtc = expires };
+            return new LockInfo { Locked = true, IsMine = true, ByUserId = UserId, ByName = name, ExpiresUtc = expires };
 
-        return await InspectLockAsync(documentId, vid, ct);
+        return await InspectLockAsync(documentId, UserId, ct);
     }
 
-    public async Task<LockInfo> InspectLockAsync(int documentId, int vid, CancellationToken ct = default)
+    public async Task<LockInfo> InspectLockAsync(int documentId, int UserId, CancellationToken ct = default)
     {
         var d = await _db.Documents.AsNoTracking()
             .Where(x => x.Id == documentId)
-            .Select(x => new { x.LockedByVid, x.LockedByName, x.LockExpiresUtc }).FirstOrDefaultAsync(ct);
+            .Select(x => new { x.LockedByUserId, x.LockedByName, x.LockExpiresUtc }).FirstOrDefaultAsync(ct);
         if (d is null) return LockInfo.Free();
 
-        var active = d.LockedByVid != null && d.LockExpiresUtc != null && d.LockExpiresUtc > DateTime.UtcNow;
+        var active = d.LockedByUserId != null && d.LockExpiresUtc != null && d.LockExpiresUtc > DateTime.UtcNow;
         if (!active) return LockInfo.Free();
 
         return new LockInfo
         {
             Locked = true,
-            IsMine = d.LockedByVid == vid,
-            ByVid = d.LockedByVid,
+            IsMine = d.LockedByUserId == UserId,
+            ByUserId = d.LockedByUserId,
             ByName = d.LockedByName,
             ExpiresUtc = d.LockExpiresUtc,
         };
     }
 
-    public async Task RenewLockAsync(int documentId, int vid, int ttlMinutes, CancellationToken ct = default)
+    public async Task RenewLockAsync(int documentId, int UserId, int ttlMinutes, CancellationToken ct = default)
     {
         var expires = DateTime.UtcNow.AddMinutes(ttlMinutes);
-        await _db.Documents.Where(d => d.Id == documentId && d.LockedByVid == vid)
+        await _db.Documents.Where(d => d.Id == documentId && d.LockedByUserId == UserId)
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.LockExpiresUtc, expires), ct);
     }
 
-    public async Task ReleaseLockAsync(int documentId, int vid, CancellationToken ct = default)
+    public async Task ReleaseLockAsync(int documentId, int UserId, CancellationToken ct = default)
     {
-        await _db.Documents.Where(d => d.Id == documentId && d.LockedByVid == vid)
+        await _db.Documents.Where(d => d.Id == documentId && d.LockedByUserId == UserId)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(d => d.LockedByVid, (int?)null)
+                .SetProperty(d => d.LockedByUserId, (int?)null)
                 .SetProperty(d => d.LockedByName, (string?)null)
                 .SetProperty(d => d.LockedAtUtc, (DateTime?)null)
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
@@ -485,17 +554,17 @@ public sealed class EfEditingRepository : IEditingRepository
     {
         await _db.Documents.Where(d => d.Id == documentId)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(d => d.LockedByVid, (int?)null)
+                .SetProperty(d => d.LockedByUserId, (int?)null)
                 .SetProperty(d => d.LockedByName, (string?)null)
                 .SetProperty(d => d.LockedAtUtc, (DateTime?)null)
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
     }
 
-    public async Task<bool> IsLockHeldByAsync(int documentId, int vid, CancellationToken ct = default)
+    public async Task<bool> IsLockHeldByAsync(int documentId, int UserId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         return await _db.Documents.AnyAsync(
-            d => d.Id == documentId && d.LockedByVid == vid && d.LockExpiresUtc != null && d.LockExpiresUtc > now, ct);
+            d => d.Id == documentId && d.LockedByUserId == UserId && d.LockExpiresUtc != null && d.LockExpiresUtc > now, ct);
     }
 
     /// <summary>Verifica che la versione sia una bozza editabile; errore altrimenti.</summary>
@@ -509,13 +578,11 @@ public sealed class EfEditingRepository : IEditingRepository
 
     private static string ScopeOf(Document d)
     {
-        var p = d.ScopePosition;
-        if (p is null) return "—";
-        if (p.Kind == PositionKind.Airport)
-        {
-            var us = p.Callsign.IndexOf('_');
-            return us > 0 ? p.Callsign[..us] : p.Callsign;
-        }
-        return p.Fir?.Code ?? p.Callsign;
+        // Settore primario (o primo) del documento; per le vLOA niente scope settore.
+        var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
+        if (s is null) return "—";
+        if (s.Kind == SectorKind.Airport)
+            return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
+        return s.Fir?.Code ?? s.Callsign;
     }
 }

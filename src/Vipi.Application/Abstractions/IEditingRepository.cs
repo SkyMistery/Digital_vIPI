@@ -17,7 +17,19 @@ public interface IEditingRepository
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
 
     /// <summary>Crea una nuova bozza clonando la versione pubblicata corrente. Se esiste già una bozza, ne ritorna l'Id (idempotente). Ritorna l'Id della versione bozza.</summary>
-    Task<int> CreateDraftAsync(int documentId, int authorVid, CancellationToken ct = default);
+    Task<int> CreateDraftAsync(int documentId, int authorUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Crea un nuovo documento da zero (vIPI con scope = N settori, uno primario; oppure vLOA con due parti
+    /// Home/Neighbour) + la prima versione bozza con una sezione radice vuota. Per le vIPI imposta
+    /// <c>Sector.DocumentId</c>/<c>IsPrimary</c> sui settori di scope. Ritorna l'Id del documento.
+    /// </summary>
+    Task<int> CreateDocumentAsync(DocumentType type, string title, Language language,
+        IReadOnlyList<int>? scopeSectorIds, int? primarySectorId,
+        (int homeSectorId, int neighbourSectorId)? parties, int authorUserId, CancellationToken ct = default);
+
+    /// <summary>Codice FIR del settore (per l'autorizzazione FIR-scoped alla creazione). Null se il settore non esiste.</summary>
+    Task<string?> GetFirCodeBySectorAsync(int sectorId, CancellationToken ct = default);
 
     /// <summary>Aggiorna i campi editabili di un blocco. Errore se il blocco non appartiene a una versione bozza.</summary>
     Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
@@ -44,7 +56,7 @@ public interface IEditingRepository
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
 
     /// <summary>Pubblica una versione bozza: la rende corrente, archivia la precedente pubblicata, aggiorna il documento e scrive l'audit.</summary>
-    Task PublishAsync(int versionId, int actorVid, string? note, CancellationToken ct = default);
+    Task PublishAsync(int versionId, int actorUserId, string? note, CancellationToken ct = default);
 
     /// <summary>Storico versioni di un documento (più recente prima).</summary>
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
@@ -56,15 +68,15 @@ public interface IEditingRepository
 
     // --- Lock di editing esclusivo (acquisizione atomica DB-side) ---
     /// <summary>Acquisisce il lock se libero/scaduto/proprio (TTL minuti, sliding); altrimenti ritorna l'info del titolare corrente.</summary>
-    Task<LockInfo> AcquireOrInspectLockAsync(int documentId, int vid, string? name, int ttlMinutes, CancellationToken ct = default);
-    /// <summary>Ispeziona il lock dal punto di vista del VID (IsMine), senza acquisirlo.</summary>
-    Task<LockInfo> InspectLockAsync(int documentId, int vid, CancellationToken ct = default);
-    /// <summary>Estende la scadenza se il VID è il titolare.</summary>
-    Task RenewLockAsync(int documentId, int vid, int ttlMinutes, CancellationToken ct = default);
-    /// <summary>Rilascia il lock se il VID è il titolare.</summary>
-    Task ReleaseLockAsync(int documentId, int vid, CancellationToken ct = default);
+    Task<LockInfo> AcquireOrInspectLockAsync(int documentId, int UserId, string? name, int ttlMinutes, CancellationToken ct = default);
+    /// <summary>Ispeziona il lock dal punto di vista del UserId (IsMine), senza acquisirlo.</summary>
+    Task<LockInfo> InspectLockAsync(int documentId, int UserId, CancellationToken ct = default);
+    /// <summary>Estende la scadenza se il UserId è il titolare.</summary>
+    Task RenewLockAsync(int documentId, int UserId, int ttlMinutes, CancellationToken ct = default);
+    /// <summary>Rilascia il lock se il UserId è il titolare.</summary>
+    Task ReleaseLockAsync(int documentId, int UserId, CancellationToken ct = default);
     /// <summary>Rilascia il lock incondizionatamente (force admin).</summary>
     Task ForceUnlockAsync(int documentId, CancellationToken ct = default);
-    /// <summary>Vero se il VID detiene un lock attivo (non scaduto) sul documento.</summary>
-    Task<bool> IsLockHeldByAsync(int documentId, int vid, CancellationToken ct = default);
+    /// <summary>Vero se il UserId detiene un lock attivo (non scaduto) sul documento.</summary>
+    Task<bool> IsLockHeldByAsync(int documentId, int UserId, CancellationToken ct = default);
 }

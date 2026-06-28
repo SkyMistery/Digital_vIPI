@@ -70,9 +70,9 @@ public class AdminCodeTests
     private sealed class FakeGrants : IEditGrantRepository
     {
         public Task<IReadOnlyList<GrantRow>> ListAsync(CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<int> AddAsync(int vid, string? displayName, string firCode, int grantedByVid, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<int> AddAsync(int UserId, string? displayName, string firCode, int GrantedByUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task RevokeAsync(int grantId, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<bool> HasGrantAsync(int vid, string firCode, CancellationToken ct = default) => Task.FromResult(false);
+        public Task<bool> HasGrantAsync(int UserId, string firCode, CancellationToken ct = default) => Task.FromResult(false);
         public Task<string?> GetDocumentFirCodeAsync(int documentId, CancellationToken ct = default) => throw new NotImplementedException();
     }
 }

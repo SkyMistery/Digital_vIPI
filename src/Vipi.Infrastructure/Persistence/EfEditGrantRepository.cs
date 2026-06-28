@@ -16,62 +16,78 @@ public sealed class EfEditGrantRepository : IEditGrantRepository
     {
         return await _db.EditGrants
             .Include(g => g.Fir)
-            .OrderBy(g => g.Fir!.Code).ThenBy(g => g.Vid)
+            .OrderBy(g => g.Fir!.Code).ThenBy(g => g.UserId)
             .Select(g => new GrantRow
             {
-                Id = g.Id, Vid = g.Vid, DisplayName = g.DisplayName,
-                FirCode = g.Fir!.Code, GrantedByVid = g.GrantedByVid, GrantedAtUtc = g.GrantedAtUtc,
+                Id = g.Id, UserId = g.UserId, DisplayName = g.DisplayName,
+                FirCode = g.Fir!.Code, GrantedByUserId = g.GrantedByUserId, GrantedAtUtc = g.GrantedAtUtc,
             })
             .ToListAsync(ct);
     }
 
-    public async Task<int> AddAsync(int vid, string? displayName, string firCode, int grantedByVid, CancellationToken ct = default)
+    public async Task<int> AddAsync(int UserId, string? displayName, string firCode, int GrantedByUserId, CancellationToken ct = default)
     {
         var firId = await _db.Firs.Where(f => f.Code == firCode).Select(f => (int?)f.Id).FirstOrDefaultAsync(ct)
             ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
 
-        var existing = await _db.EditGrants.FirstOrDefaultAsync(g => g.Vid == vid && g.FirId == firId, ct);
+        var existing = await _db.EditGrants.FirstOrDefaultAsync(g => g.UserId == UserId && g.FirId == firId, ct);
         if (existing is not null)
         {
             existing.DisplayName = displayName;     // aggiorna nome, evita duplicati (indice unico)
+            Audit(GrantedByUserId, AuditAction.Update, existing.Id, UserId, firCode);
             await _db.SaveChangesAsync(ct);
             return existing.Id;
         }
 
         var grant = new EditGrant
         {
-            Vid = vid, DisplayName = displayName, FirId = firId,
-            GrantedByVid = grantedByVid, GrantedAtUtc = DateTime.UtcNow,
+            UserId = UserId, DisplayName = displayName, FirId = firId,
+            GrantedByUserId = GrantedByUserId, GrantedAtUtc = DateTime.UtcNow,
         };
         _db.EditGrants.Add(grant);
+        await _db.SaveChangesAsync(ct);
+        Audit(GrantedByUserId, AuditAction.Create, grant.Id, UserId, firCode);
         await _db.SaveChangesAsync(ct);
         return grant.Id;
     }
 
     public async Task RevokeAsync(int grantId, CancellationToken ct = default)
     {
-        var g = await _db.EditGrants.FirstOrDefaultAsync(x => x.Id == grantId, ct);
+        var g = await _db.EditGrants.Include(x => x.Fir).FirstOrDefaultAsync(x => x.Id == grantId, ct);
         if (g is null) return;
         _db.EditGrants.Remove(g);
+        Audit(g.GrantedByUserId, AuditAction.Archive, g.Id, g.UserId, g.Fir?.Code ?? g.FirId.ToString());
         await _db.SaveChangesAsync(ct);
     }
 
-    public Task<bool> HasGrantAsync(int vid, string firCode, CancellationToken ct = default) =>
-        _db.EditGrants.AnyAsync(g => g.Vid == vid && g.Fir!.Code == firCode, ct);
+    // Traccia un'azione sui permessi nell'audit log (chi, cosa, su quale UserId/FIR).
+    private void Audit(int actorUserId, AuditAction action, int grantId, int targetUserId, string firCode) =>
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = actorUserId,
+            Action = action,
+            EntityType = "EditGrant",
+            EntityId = grantId.ToString(),
+            TimestampUtc = DateTime.UtcNow,
+            DetailsJson = $"{{\"UserId\":{targetUserId},\"fir\":\"{firCode}\"}}",
+        });
+
+    public Task<bool> HasGrantAsync(int UserId, string firCode, CancellationToken ct = default) =>
+        _db.EditGrants.AnyAsync(g => g.UserId == UserId && g.Fir!.Code == firCode, ct);
 
     public async Task<string?> GetDocumentFirCodeAsync(int documentId, CancellationToken ct = default)
     {
-        var doc = await _db.Documents
-            .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
-            .FirstOrDefaultAsync(d => d.Id == documentId, ct);
-        if (doc is null) return null;
+        // vIPI: FIR da un settore di scope.
+        var firFromScope = await _db.Sectors
+            .Where(s => s.DocumentId == documentId)
+            .Select(s => s.Fir!.Code)
+            .FirstOrDefaultAsync(ct);
+        if (firFromScope is not null) return firFromScope;
 
-        if (doc.ScopePosition?.Fir is not null) return doc.ScopePosition.Fir.Code;
-
-        // vLOA: niente ScopePosition → FIR della parte Home.
+        // vLOA: niente settore di scope → FIR della parte Home.
         return await _db.DocumentParties
             .Where(pa => pa.DocumentId == documentId && pa.Role == PartyRole.Home)
-            .Select(pa => pa.Position!.Fir!.Code)
+            .Select(pa => pa.Sector!.Fir!.Code)
             .FirstOrDefaultAsync(ct);
     }
 }

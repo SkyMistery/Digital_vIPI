@@ -12,8 +12,8 @@ public interface ITopologyEditingService
     Task<int> AddRuleAsync(string firCode, string name, int priority, string conditionJson, string assignmentJson, CancellationToken ct = default);
     Task SetRuleActiveAsync(string firCode, int ruleId, bool active, CancellationToken ct = default);
     Task DeleteRuleAsync(string firCode, int ruleId, CancellationToken ct = default);
-    Task<int> AddHierarchyAsync(string firCode, int parentPositionId, int childPositionId, CancellationToken ct = default);
-    Task DeleteHierarchyAsync(string firCode, int relationId, CancellationToken ct = default);
+    /// <summary>Imposta il padre (contenimento) di un settore figlio. parentSectorId null = radice.</summary>
+    Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default);
 }
 
 /// <summary>Errore di validazione semantica (input rifiutato con motivo leggibile).</summary>
@@ -57,19 +57,14 @@ public sealed class TopologyEditingService : ITopologyEditingService
         await _repo.DeleteRuleAsync(firCode, ruleId, ct);
     }
 
-    public async Task<int> AddHierarchyAsync(string firCode, int parentPositionId, int childPositionId, CancellationToken ct = default)
+    public async Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditFirAsync(firCode, ct);
-        return await _repo.AddHierarchyAsync(firCode, parentPositionId, childPositionId, ct);
+        if (parentSectorId == childSectorId) throw new ValidationException("Un settore non può essere padre di sé stesso.");
+        await _repo.SetParentAsync(firCode, childSectorId, parentSectorId, ct);
     }
 
-    public async Task DeleteHierarchyAsync(string firCode, int relationId, CancellationToken ct = default)
-    {
-        await _authz.EnsureCanEditFirAsync(firCode, ct);
-        await _repo.DeleteHierarchyAsync(firCode, relationId, ct);
-    }
-
-    /// <summary>Validazione hard: sectorKey assegnati ∈ settori FIR; callsign (online + owner) ∈ posizioni note.</summary>
+    /// <summary>Validazione hard: settore assegnato e owner (callsign) ∈ settori noti.</summary>
     private async Task ValidateRuleAsync(string firCode, string conditionJson, string assignmentJson, CancellationToken ct)
     {
         var vocab = await _repo.GetVocabularyAsync(firCode, ct)
@@ -85,7 +80,7 @@ public sealed class TopologyEditingService : ITopologyEditingService
                 string.IsNullOrWhiteSpace(assignmentJson) ? "{}" : assignmentJson) ?? new();
             foreach (var (sector, owner) in assign)
             {
-                if (!vocab.SectorKeys.Contains(sector)) unknownSectors.Add(sector);
+                if (!vocab.Callsigns.Contains(sector)) unknownSectors.Add(sector);
                 if (!string.IsNullOrWhiteSpace(owner) && !vocab.Callsigns.Contains(owner)) unknownCallsigns.Add(owner);
             }
         }

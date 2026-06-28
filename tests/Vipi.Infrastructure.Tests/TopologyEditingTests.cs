@@ -48,22 +48,22 @@ public class TopologyEditingTests : IAsyncLifetime
     {
         // Default: P=NE possiede il settore NE → Covered (TS è subordinato ma non possiede NE).
         var before = await Resolve("LIRR_NE_CTR", "LIRR_NE_CTR", "LIRR_TS_CTR");
-        Assert.Equal(SectorState.Covered, before.State["LIRR-NE"]);
+        Assert.Equal(SectorState.Covered, before.State["LIRR_NE_CTR"]);
 
         // Aggiungo una regola: quando TS è online, il settore NE passa a TS.
         await _repo.AddRuleAsync("LIRR", "NE→TS quando TS online", 5,
-            """{"online":["LIRR_TS_CTR"]}""", """{"LIRR-NE":"LIRR_TS_CTR"}""");
+            """{"online":["LIRR_TS_CTR"]}""", """{"LIRR_NE_CTR":"LIRR_TS_CTR"}""");
 
         // Ora il motore (rileggendo il DB) assegna NE a TS online ≠ P → Online.
         var after = await Resolve("LIRR_NE_CTR", "LIRR_NE_CTR", "LIRR_TS_CTR");
-        Assert.Equal(SectorState.Online, after.State["LIRR-NE"]);
-        Assert.Equal("LIRR_TS_CTR", after.Ownership["LIRR-NE"]);
+        Assert.Equal(SectorState.Online, after.State["LIRR_NE_CTR"]);
+        Assert.Equal("LIRR_TS_CTR", after.Ownership["LIRR_NE_CTR"]);
     }
 
     [Fact]
     public async Task Add_And_Toggle_Rule()
     {
-        var id = await _repo.AddRuleAsync("LIRR", "Test", 5, """{"online":["LIRR_TS_CTR"]}""", """{"LIRR-TS":"LIRR_TS_CTR"}""");
+        var id = await _repo.AddRuleAsync("LIRR", "Test", 5, """{"online":["LIRR_TS_CTR"]}""", """{"LIRR_TS_CTR":"LIRR_TS_CTR"}""");
         Assert.True(id > 0);
 
         var data = await _repo.LoadAsync("LIRR");

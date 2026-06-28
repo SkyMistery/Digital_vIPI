@@ -21,4 +21,7 @@ public interface IContentRepository
     /// Carica la vLOA pubblicata la cui parte Home appartiene alla FIR indicata (es. "LIRR"). Null se non esiste.
     /// </summary>
     Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Carica una specifica vLOA pubblicata per id documento (viewer multi-vLOA per FIR). Null se non esiste.</summary>
+    Task<RawDocument?> LoadVloaByIdAsync(int docId, CancellationToken ct = default);
 }

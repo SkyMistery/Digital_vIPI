@@ -37,8 +37,8 @@ public class AuthLockTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private static CurrentUser Admin(int vid) => new(vid, $"Admin{vid}", "LIRR", new[] { "IT-AOC" });
-    private static CurrentUser Plain(int vid) => new(vid, $"User{vid}", "LIRR", System.Array.Empty<string>());
+    private static CurrentUser Admin(int UserId) => new(UserId, $"Admin{UserId}", "LIRR", new[] { "IT-AOC" });
+    private static CurrentUser Plain(int UserId) => new(UserId, $"User{UserId}", "LIRR", System.Array.Empty<string>());
 
     private (EditingService editing, EditAuthorizationService authz, EfEditGrantRepository grants) Build(CurrentUser user)
     {
@@ -97,7 +97,7 @@ public class AuthLockTests : IAsyncLifetime
         var (edB, _, _) = Build(Admin(2));
         var lockB = await edB.AcquireLockAsync(_accDocId);
         Assert.False(lockB.IsMine);
-        Assert.Equal(1, lockB.ByVid);
+        Assert.Equal(1, lockB.ByUserId);
 
         // B non può creare bozza mentre A tiene il lock
         await Assert.ThrowsAsync<EditConflictException>(() => edB.CreateDraftAsync(_accDocId));

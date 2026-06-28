@@ -48,21 +48,63 @@ public class EditingRepositoryTests : IAsyncLifetime
         var srcSections = await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == srcVer);
         var srcBlocks = await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == srcVer);
 
-        var draftId = await _repo.CreateDraftAsync(docId, authorVid: 111);
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
 
         Assert.NotEqual(srcVer, draftId);
         Assert.Equal(srcSections, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == draftId));
         Assert.Equal(srcBlocks, await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == draftId));
 
         // Idempotente: una seconda chiamata riusa la stessa bozza.
-        Assert.Equal(draftId, await _repo.CreateDraftAsync(docId, authorVid: 111));
+        Assert.Equal(draftId, await _repo.CreateDraftAsync(docId, authorUserId: 111));
+    }
+
+    [Fact]
+    public async Task CreateDocument_Vipi_From_Scratch_Has_Draft_And_Root_Section()
+    {
+        // Settore non ancora descritto da nessun documento (gli ACC sono già assegnati dal content seed).
+        var scopeSec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+
+        var newDocId = await _repo.CreateDocumentAsync(
+            DocumentType.Vipi, "vIPI di test", Language.It, new[] { scopeSec }, scopeSec, parties: null, authorUserId: 7);
+
+        var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == newDocId);
+        Assert.Equal(DocumentType.Vipi, doc.Type);
+        Assert.Equal(DocumentStatus.Draft, doc.Status);
+
+        // Il settore di scope è ora agganciato al documento, come primario.
+        var sec = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == scopeSec);
+        Assert.Equal(newDocId, sec.DocumentId);
+        Assert.True(sec.IsPrimary);
+
+        var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == newDocId);
+        Assert.Equal(1, ver.VersionNumber);
+        Assert.Equal(DocumentStatus.Draft, ver.Status);
+        Assert.Equal(1, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id && s.ParentSectionId == null));
+
+        // FIR risolta dal settore di scope.
+        Assert.False(string.IsNullOrEmpty(await _repo.GetFirCodeBySectorAsync(scopeSec)));
+    }
+
+    [Fact]
+    public async Task CreateDocument_Vloa_Adds_Two_Parties()
+    {
+        var sectors = await _db.Sectors.Select(s => s.Id).Take(2).ToListAsync();
+
+        var newDocId = await _repo.CreateDocumentAsync(
+            DocumentType.Vloa, "vLOA di test", Language.En, scopeSectorIds: null, primarySectorId: null,
+            parties: (sectors[0], sectors[1]), authorUserId: 7);
+
+        var roles = await _db.Set<Vipi.Domain.Entities.DocumentParty>()
+            .Where(p => p.DocumentId == newDocId).Select(p => p.Role).ToListAsync();
+        Assert.Contains(PartyRole.Home, roles);
+        Assert.Contains(PartyRole.Neighbour, roles);
     }
 
     [Fact]
     public async Task Edit_Then_Publish_Makes_Draft_Current_With_Audit()
     {
         var docId = await AccDocIdAsync();
-        var draftId = await _repo.CreateDraftAsync(docId, authorVid: 222);
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 222);
 
         var firstBlock = await _db.ContentBlocks
             .Where(b => b.DocumentVersionId == draftId && b.Format == BlockFormat.Prose)
@@ -75,7 +117,7 @@ public class EditingRepositoryTests : IAsyncLifetime
             Body = "TESTO MODIFICATO",
         });
 
-        await _repo.PublishAsync(draftId, actorVid: 222, note: "pubblicazione test");
+        await _repo.PublishAsync(draftId, actorUserId: 222, note: "pubblicazione test");
 
         var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == docId);
         Assert.Equal(draftId, doc.CurrentVersionId);
@@ -84,14 +126,14 @@ public class EditingRepositoryTests : IAsyncLifetime
         var publishedBlock = await _db.ContentBlocks.AsNoTracking().FirstAsync(b => b.Id == firstBlock.Id);
         Assert.Equal("TESTO MODIFICATO", publishedBlock.Body);
 
-        Assert.True(await _db.AuditLogs.AnyAsync(a => a.Action == AuditAction.Publish && a.Vid == 222));
+        Assert.True(await _db.AuditLogs.AnyAsync(a => a.Action == AuditAction.Publish && a.UserId == 222));
     }
 
     [Fact]
     public async Task AddSection_Respects_MaxDepth()
     {
         var docId = await AccDocIdAsync();
-        var draftId = await _repo.CreateDraftAsync(docId, authorVid: 1);
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
 
         var l0 = await _repo.AddSectionAsync(draftId, null, "L0", Vipi.Domain.BlockSection.Other);
         var l1 = await _repo.AddSectionAsync(draftId, l0, "L1", Vipi.Domain.BlockSection.Other);
@@ -108,7 +150,7 @@ public class EditingRepositoryTests : IAsyncLifetime
     public async Task DeleteSection_Removes_Subtree_And_Blocks()
     {
         var docId = await AccDocIdAsync();
-        var draftId = await _repo.CreateDraftAsync(docId, authorVid: 1);
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
 
         var root = await _repo.AddSectionAsync(draftId, null, "Root", Vipi.Domain.BlockSection.Other);
         var child = await _repo.AddSectionAsync(draftId, root, "Child", Vipi.Domain.BlockSection.Other);
@@ -124,7 +166,7 @@ public class EditingRepositoryTests : IAsyncLifetime
     public async Task MoveSection_Swaps_Order_With_Sibling()
     {
         var docId = await AccDocIdAsync();
-        var draftId = await _repo.CreateDraftAsync(docId, authorVid: 1);
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
 
         var a = await _repo.AddSectionAsync(draftId, null, "A", Vipi.Domain.BlockSection.Other);
         var b = await _repo.AddSectionAsync(draftId, null, "B", Vipi.Domain.BlockSection.Other);
@@ -142,13 +184,13 @@ public class EditingRepositoryTests : IAsyncLifetime
     public async Task Vloa_Document_Is_Editable_RoundTrip()
     {
         var vloaId = await _db.Documents.Where(d => d.Type == DocumentType.Vloa).Select(d => d.Id).FirstAsync();
-        var draftId = await _repo.CreateDraftAsync(vloaId, authorVid: 9);
+        var draftId = await _repo.CreateDraftAsync(vloaId, authorUserId: 9);
 
         var block = await _db.ContentBlocks
             .Where(b => b.DocumentVersionId == draftId && b.Format == BlockFormat.Prose)
             .OrderBy(b => b.Id).FirstAsync();
         await _repo.UpdateBlockAsync(block.Id, new BlockEdit { Tier = block.Tier, Visibility = block.Visibility, Body = "EDIT vLOA" });
-        await _repo.PublishAsync(draftId, actorVid: 9, note: "vloa test");
+        await _repo.PublishAsync(draftId, actorUserId: 9, note: "vloa test");
 
         var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == vloaId);
         Assert.Equal(draftId, doc.CurrentVersionId);

@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -14,6 +14,6 @@ public sealed class SearchHit
     public required string Where { get; init; }
     /// <summary>Estratto con il termine evidenziato (testo grezzo; l'evidenziazione la fa la UI in modo sicuro).</summary>
     public required string Snippet { get; init; }
-    /// <summary>Rotta di consultazione + ancora di sezione, es. "/sop/lirr/vipi#s-23".</summary>
+    /// <summary>Rotta di consultazione + ancora di sezione, es. "/vsop/lirr/vipi#s-23".</summary>
     public required string Url { get; init; }
 }

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -20,7 +20,7 @@ public sealed class EfSearchRepository : ISearchRepository
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
-            .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
             .AsNoTracking().ToListAsync(ct);
 
         // Risolve i metadati (FIR + rotta) e applica il filtro di scope.
@@ -32,15 +32,18 @@ public sealed class EfSearchRepository : ISearchRepository
             {
                 fir = await _db.DocumentParties
                     .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Position!.Fir!.Code).FirstOrDefaultAsync(ct);
-                urlBase = "vloa";
+                    .Select(pa => pa.Sector!.Fir!.Code).FirstOrDefaultAsync(ct);
+                urlBase = $"vloa/{d.Id}";
                 if (scope is not (SearchScope.All or SearchScope.Vloa)) continue;
             }
             else
             {
-                fir = d.ScopePosition?.Fir?.Code;
-                var isAirport = d.ScopePosition?.Kind == PositionKind.Airport;
-                urlBase = isAirport ? "aeroporto" : "vipi";
+                var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
+                fir = primary?.Fir?.Code;
+                var isAirport = primary?.Kind == SectorKind.Airport;
+                urlBase = isAirport
+                    ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
+                    : "vipi";
                 if (scope == SearchScope.Vipi && isAirport) continue;
                 if (scope == SearchScope.Airport && !isAirport) continue;
                 if (scope == SearchScope.Vloa) continue;
@@ -63,7 +66,7 @@ public sealed class EfSearchRepository : ISearchRepository
         foreach (var m in metas)
         {
             if (hits.Count >= limit) break;
-            var url = $"/sop/{m.FirCode.ToLowerInvariant()}/{m.UrlBase}";
+            var url = $"/vsop/{m.FirCode.ToLowerInvariant()}/{m.UrlBase}";
 
             // 1) titolo documento
             if (Has(m.Title))

@@ -61,7 +61,7 @@ public sealed class VersionInfo
     public required int Id { get; init; }
     public required int VersionNumber { get; init; }
     public required DocumentStatus Status { get; init; }
-    public required int CreatedByVid { get; init; }
+    public required int CreatedByUserId { get; init; }
     public required DateTime CreatedUtc { get; init; }
     public required string AiracCycle { get; init; }
     public string? Note { get; init; }
@@ -73,10 +73,10 @@ public sealed class LockInfo
 {
     /// <summary>Esiste un lock attivo (non scaduto).</summary>
     public required bool Locked { get; init; }
-    public int? ByVid { get; init; }
+    public int? ByUserId { get; init; }
     public string? ByName { get; init; }
     public DateTime? ExpiresUtc { get; init; }
-    /// <summary>Il lock attivo è del VID corrente (può editare).</summary>
+    /// <summary>Il lock attivo è del UserId corrente (può editare).</summary>
     public required bool IsMine { get; init; }
 
     public static LockInfo Free() => new() { Locked = false, IsMine = false };

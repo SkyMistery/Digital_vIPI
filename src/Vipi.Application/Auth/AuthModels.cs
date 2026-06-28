@@ -4,9 +4,9 @@ namespace Vipi.Application.Auth;
 public sealed class GrantRow
 {
     public required int Id { get; init; }
-    public required int Vid { get; init; }
+    public required int UserId { get; init; }
     public string? DisplayName { get; init; }
     public required string FirCode { get; init; }
-    public required int GrantedByVid { get; init; }
+    public required int GrantedByUserId { get; init; }
     public required DateTime GrantedAtUtc { get; init; }
 }

@@ -6,13 +6,24 @@ namespace Vipi.Application.Content;
 
 /// <summary>
 /// Use-case di editing. Autorizzazione FIR-scoped via <see cref="IEditAuthorizationService"/>
-/// (admin o grant sulla FIR del documento); identità (VID) per audit/CreatedBy. Verifica server-side.
+/// (admin o grant sulla FIR del documento); identità (UserId) per audit/CreatedBy. Verifica server-side.
 /// </summary>
 public interface IEditingService
 {
     Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default);
+
+    /// <summary>Solo i documenti che l'utente corrente può editare (admin = tutti; altri = filtrati per grant sulla FIR).</summary>
+    Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default);
+
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
     Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Crea un nuovo documento da zero: vIPI ACC/aeroporto (scope = uno o più settori, uno primario) o
+    /// vLOA (due settori Home/Neighbour). Ritorna l'Id del nuovo documento; poi si edita con la pipeline normale.
+    /// </summary>
+    Task<int> CreateDocumentAsync(DocumentType type, string title, IReadOnlyList<int>? scopeSectorIds,
+        int? primarySectorId, int? homeSectorId, int? neighbourSectorId, CancellationToken ct = default);
     Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
     Task<int> AddBlockAsync(int sectionId, BlockFormat format, BlockTier tier, BlockVisibility visibility, CancellationToken ct = default);
     Task DeleteBlockAsync(int blockId, CancellationToken ct = default);
@@ -61,6 +72,19 @@ public sealed class EditingService : IEditingService
     public Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default) =>
         _repo.ListDocumentsAsync(ct);
 
+    // Picker editor: filtra i documenti per i permessi del UserId corrente (admin = tutti; altri = grant sulla FIR).
+    public async Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default)
+    {
+        var all = await _repo.ListDocumentsAsync(ct);
+        if (_authz.IsAdmin) return all;
+
+        var editable = new List<DocumentSummary>();
+        foreach (var d in all)
+            if (await _authz.CanEditDocumentAsync(d.Id, ct))
+                editable.Add(d);
+        return editable;
+    }
+
     public Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default) =>
         _repo.ListVersionsAsync(documentId, ct);
 
@@ -70,13 +94,49 @@ public sealed class EditingService : IEditingService
         return await _repo.LoadForEditAsync(documentId, ct);
     }
 
+    public async Task<int> CreateDocumentAsync(DocumentType type, string title, IReadOnlyList<int>? scopeSectorIds,
+        int? primarySectorId, int? homeSectorId, int? neighbourSectorId, CancellationToken ct = default)
+    {
+        title = (title ?? "").Trim();
+        if (title.Length == 0) throw new Aor.ValidationException("Titolo documento obbligatorio.");
+
+        (int, int)? parties = null;
+        IReadOnlyList<int>? scope = null;
+        int? primary = null;
+        string firCode;
+        if (type == DocumentType.Vloa)
+        {
+            if (homeSectorId is not int home || neighbourSectorId is not int neigh)
+                throw new Aor.ValidationException("La vLOA richiede un settore Home e uno Neighbour.");
+            if (home == neigh) throw new Aor.ValidationException("Home e Neighbour non possono coincidere.");
+            parties = (home, neigh);
+            firCode = await _repo.GetFirCodeBySectorAsync(home, ct)
+                ?? throw new Aor.ValidationException("Settore Home inesistente.");
+        }
+        else
+        {
+            if (scopeSectorIds is null || scopeSectorIds.Count == 0)
+                throw new Aor.ValidationException("La vIPI richiede almeno un settore di scope.");
+            scope = scopeSectorIds.Distinct().ToList();
+            primary = primarySectorId ?? scope[0];
+            if (!scope.Contains(primary.Value))
+                throw new Aor.ValidationException("Il settore primario deve far parte dello scope.");
+            firCode = await _repo.GetFirCodeBySectorAsync(primary.Value, ct)
+                ?? throw new Aor.ValidationException("Settore di scope inesistente.");
+        }
+
+        await _authz.EnsureCanEditFirAsync(firCode, ct);
+        var language = type == DocumentType.Vloa ? Language.En : Language.It;
+        return await _repo.CreateDocumentAsync(type, title, language, scope, primary, parties, _authz.CurrentUserId ?? 0, ct);
+    }
+
     public async Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditDocumentAsync(documentId, ct);
         // Creare/aprire una bozza = iniziare a editare → acquisisce (o conferma) il lock.
-        var lk = await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentVid ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
+        var lk = await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentUserId ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
         if (!lk.IsMine) throw LockedByOther(lk);
-        return await _repo.CreateDraftAsync(documentId, _authz.CurrentVid ?? 0, ct);
+        return await _repo.CreateDraftAsync(documentId, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default)
@@ -139,22 +199,22 @@ public sealed class EditingService : IEditingService
     {
         var docId = await AuthorizeVersionAsync(versionId, ct);
         await EnsureLockAsync(docId, ct);
-        await _repo.PublishAsync(versionId, _authz.CurrentVid ?? 0, note, ct);
-        await _repo.ReleaseLockAsync(docId, _authz.CurrentVid ?? 0, ct); // pubblicato → lascia il documento libero
+        await _repo.PublishAsync(versionId, _authz.CurrentUserId ?? 0, note, ct);
+        await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct); // pubblicato → lascia il documento libero
     }
 
     // --- Lock ---
     public async Task<LockInfo> AcquireLockAsync(int documentId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditDocumentAsync(documentId, ct);
-        return await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentVid ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
+        return await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentUserId ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
     }
 
     public Task<LockInfo> InspectLockAsync(int documentId, CancellationToken ct = default) =>
-        _repo.InspectLockAsync(documentId, _authz.CurrentVid ?? 0, ct);
+        _repo.InspectLockAsync(documentId, _authz.CurrentUserId ?? 0, ct);
 
     public async Task ReleaseLockAsync(int documentId, CancellationToken ct = default) =>
-        await _repo.ReleaseLockAsync(documentId, _authz.CurrentVid ?? 0, ct);
+        await _repo.ReleaseLockAsync(documentId, _authz.CurrentUserId ?? 0, ct);
 
     public async Task ForceUnlockAsync(int documentId, CancellationToken ct = default)
     {
@@ -162,16 +222,16 @@ public sealed class EditingService : IEditingService
         await _repo.ForceUnlockAsync(documentId, ct);
     }
 
-    /// <summary>Le mutazioni richiedono che il VID corrente detenga il lock; rinnova la scadenza (sliding).</summary>
+    /// <summary>Le mutazioni richiedono che il UserId corrente detenga il lock; rinnova la scadenza (sliding).</summary>
     private async Task EnsureLockAsync(int documentId, CancellationToken ct)
     {
-        if (!await _repo.IsLockHeldByAsync(documentId, _authz.CurrentVid ?? 0, ct))
+        if (!await _repo.IsLockHeldByAsync(documentId, _authz.CurrentUserId ?? 0, ct))
             throw new EditConflictException("Documento bloccato da un altro editor o lock scaduto: riapri l'editor per riacquisirlo.");
-        await _repo.RenewLockAsync(documentId, _authz.CurrentVid ?? 0, LockTtlMinutes, ct);
+        await _repo.RenewLockAsync(documentId, _authz.CurrentUserId ?? 0, LockTtlMinutes, ct);
     }
 
     private static EditConflictException LockedByOther(LockInfo lk) =>
-        new($"In modifica da VID {lk.ByVid} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC.");
+        new($"In modifica da VID {lk.ByUserId} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC.");
 
     // --- Risoluzione del documento proprietario per l'autorizzazione FIR-scoped (ritorna il documentId) ---
     private async Task<int> AuthorizeVersionAsync(int versionId, CancellationToken ct)

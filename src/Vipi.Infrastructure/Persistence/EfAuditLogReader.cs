@@ -1,0 +1,21 @@
+using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Abstractions;
+
+namespace Vipi.Infrastructure.Persistence;
+
+/// <summary>Implementazione EF di <see cref="IAuditLogReader"/> (lettura audit per il viewer admin).</summary>
+public sealed class EfAuditLogReader : IAuditLogReader
+{
+    private readonly VipiDbContext _db;
+    public EfAuditLogReader(VipiDbContext db) => _db = db;
+
+    public async Task<IReadOnlyList<AuditEntry>> ListRecentAsync(int max = 200, CancellationToken ct = default)
+    {
+        return await _db.AuditLogs
+            .OrderByDescending(a => a.Id)
+            .Take(Math.Clamp(max, 1, 1000))
+            .Select(a => new AuditEntry(a.Id, a.UserId, a.Action, a.EntityType, a.EntityId, a.TimestampUtc, a.DetailsJson))
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
+}

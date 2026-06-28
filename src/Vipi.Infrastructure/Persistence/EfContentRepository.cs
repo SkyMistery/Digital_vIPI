@@ -18,19 +18,16 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && d.Status == DocumentStatus.Published
-                 && d.ScopePosition!.Kind == PositionKind.Acc
-                 && d.ScopePosition!.Fir!.Code == accCode,
+                 && d.Sectors.Any(s => s.Kind == SectorKind.Acc && s.Fir!.Code == accCode),
             ct);
     }
 
     public Task<RawDocument?> LoadAirportVipiAsync(string icao, CancellationToken ct = default)
     {
-        var prefix = icao + "_";
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && d.Status == DocumentStatus.Published
-                 && d.ScopePosition!.Kind == PositionKind.Airport
-                 && d.ScopePosition!.Callsign.StartsWith(prefix),
+                 && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao),
             ct);
     }
 
@@ -39,7 +36,16 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vloa
                  && d.Status == DocumentStatus.Published
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Position!.Fir!.Code == accCode),
+                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Fir!.Code == accCode),
+            ct);
+    }
+
+    public Task<RawDocument?> LoadVloaByIdAsync(int docId, CancellationToken ct = default)
+    {
+        return LoadVipiAsync(
+            d => d.Type == DocumentType.Vloa
+                 && d.Status == DocumentStatus.Published
+                 && d.Id == docId,
             ct);
     }
 
@@ -48,7 +54,6 @@ public sealed class EfContentRepository : IContentRepository
     {
         var doc = await _db.Documents
             .AsNoTracking()
-            .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
             .Where(predicate)
             .FirstOrDefaultAsync(ct);
         if (doc is null) return null;
@@ -112,7 +117,7 @@ public sealed class EfContentRepository : IContentRepository
         Format = b.Format,
         Visibility = b.Visibility,
         Tier = b.Tier,
-        ScopeSectorKey = b.ScopeSector?.Key,
+        ScopeSectorKey = b.ScopeSector?.Callsign,
         Body = b.Body,
         BodyJson = b.BodyJson,
         CalloutKind = b.CalloutKind,

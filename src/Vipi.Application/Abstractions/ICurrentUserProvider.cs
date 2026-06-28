@@ -5,7 +5,7 @@ namespace Vipi.Application.Abstractions;
 /// La logica non conosce ClaimsPrincipal/Identity/OIDC: chiede sempre qui "chi è l'utente?".
 /// </summary>
 public sealed record CurrentUser(
-    int Vid,
+    int UserId,
     string Name,
     string? Fir,
     IReadOnlyCollection<string> StaffPositions)

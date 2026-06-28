@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -15,7 +15,7 @@ public sealed class EfChangesRepository : IChangesRepository
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
-            .Include(d => d.ScopePosition).ThenInclude(p => p!.Fir)
+            .Include(d => d.Sectors).ThenInclude(s => s.Fir)
             .Include(d => d.CurrentVersion)
             .AsNoTracking().ToListAsync(ct);
 
@@ -30,13 +30,16 @@ public sealed class EfChangesRepository : IChangesRepository
             if (d.Type == DocumentType.Vloa)
             {
                 fir = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Position!.Fir!.Code).FirstOrDefaultAsync(ct);
-                urlBase = "vloa";
+                    .Select(pa => pa.Sector!.Fir!.Code).FirstOrDefaultAsync(ct);
+                urlBase = $"vloa/{d.Id}";
             }
             else
             {
-                fir = d.ScopePosition?.Fir?.Code;
-                urlBase = d.ScopePosition?.Kind == PositionKind.Airport ? "aeroporto" : "vipi";
+                var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
+                fir = primary?.Fir?.Code;
+                urlBase = primary?.Kind == SectorKind.Airport
+                    ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
+                    : "vipi";
             }
             if (fir is null) continue;
 
@@ -55,10 +58,10 @@ public sealed class EfChangesRepository : IChangesRepository
                 DocTitle = d.Title,
                 Type = d.Type,
                 FirCode = fir,
-                Url = $"/sop/{fir.ToLowerInvariant()}/{urlBase}",
+                Url = $"/vsop/{fir.ToLowerInvariant()}/{urlBase}",
                 VersionNumber = cur.VersionNumber,
                 Note = cur.Note,
-                PublishedByVid = cur.CreatedByVid,
+                PublishedByUserId = cur.CreatedByUserId,
                 PublishedUtc = cur.CreatedUtc,
                 PrevBlocks = prevBlocks,
                 CurrBlocks = currBlocks,

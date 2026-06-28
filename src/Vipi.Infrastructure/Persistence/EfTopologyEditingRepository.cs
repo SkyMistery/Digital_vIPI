@@ -16,10 +16,11 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
         var firId = await FirIdAsync(firCode, ct);
         if (firId is not int fid) return null;
 
-        var positions = await _db.Positions.Where(p => p.FirId == fid)
-            .OrderBy(p => p.Callsign)
-            .Select(p => new PositionRef(p.Id, p.Callsign)).ToListAsync(ct);
-        var byId = positions.ToDictionary(p => p.Id, p => p.Callsign);
+        var sectors = await _db.Sectors.Where(s => s.FirId == fid)
+            .OrderBy(s => s.Callsign)
+            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
+        var refs = sectors.Select(s => new SectorRef(s.Id, s.Callsign)).ToList();
+        var byId = sectors.ToDictionary(s => s.Id, s => s.Callsign);
 
         var rules = await _db.UnificationRules.Where(r => r.FirId == fid)
             .OrderBy(r => r.Priority)
@@ -29,17 +30,16 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
                 ConditionJson = r.ConditionJson, AssignmentJson = r.AssignmentJson, IsActive = r.IsActive,
             }).ToListAsync(ct);
 
-        var hier = await _db.HierarchyRelations.Where(h => h.FirId == fid).ToListAsync(ct);
-        var hierarchy = hier
-            .Where(h => byId.ContainsKey(h.ParentPositionId) && byId.ContainsKey(h.ChildPositionId))
-            .Select(h => new HierarchyRow
+        // Contenimento derivato da Sector.ParentSectorId (Id riga = id del settore figlio).
+        var hierarchy = sectors
+            .Where(s => s.ParentSectorId is int pid && byId.ContainsKey(pid))
+            .Select(s => new HierarchyRow
             {
-                Id = h.Id,
-                ParentPositionId = h.ParentPositionId, ParentCallsign = byId[h.ParentPositionId],
-                ChildPositionId = h.ChildPositionId, ChildCallsign = byId[h.ChildPositionId],
+                ChildSectorId = s.Id, ChildCallsign = s.Callsign,
+                ParentSectorId = s.ParentSectorId!.Value, ParentCallsign = byId[s.ParentSectorId!.Value],
             }).ToList();
 
-        return new TopologyEditData { FirId = fid, Positions = positions, Rules = rules, Hierarchy = hierarchy };
+        return new TopologyEditData { FirId = fid, Sectors = refs, Rules = rules, Hierarchy = hierarchy };
     }
 
     public async Task<FirVocabulary?> GetVocabularyAsync(string firCode, CancellationToken ct = default)
@@ -47,12 +47,11 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
         var firId = await FirIdAsync(firCode, ct);
         if (firId is not int fid) return null;
 
-        var sectors = await _db.Sectors.Where(s => s.FirId == fid).Select(s => s.Key).ToListAsync(ct);
-        var callsigns = await _db.Positions.Select(p => p.Callsign).ToListAsync(ct); // qualsiasi FIR (ammette neighbour)
+        // Settore == posizione: il vocabolario è l'insieme dei callsign noti (qualsiasi FIR, per ammettere i neighbour).
+        var callsigns = await _db.Sectors.Select(s => s.Callsign).ToListAsync(ct);
 
         return new FirVocabulary
         {
-            SectorKeys = sectors.ToHashSet(StringComparer.OrdinalIgnoreCase),
             Callsigns = callsigns.ToHashSet(StringComparer.OrdinalIgnoreCase),
         };
     }
@@ -88,28 +87,37 @@ public sealed class EfTopologyEditingRepository : ITopologyEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<int> AddHierarchyAsync(string firCode, int parentPositionId, int childPositionId, CancellationToken ct = default)
+    public async Task SetParentAsync(string firCode, int childSectorId, int? parentSectorId, CancellationToken ct = default)
     {
         var fid = await FirIdAsync(firCode, ct) ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
-        if (parentPositionId == childPositionId)
-            throw new InvalidOperationException("Padre e figlio non possono coincidere.");
-        var exists = await _db.HierarchyRelations.AnyAsync(
-            h => h.ParentPositionId == parentPositionId && h.ChildPositionId == childPositionId, ct);
-        if (exists) throw new InvalidOperationException("Relazione già esistente.");
+        if (parentSectorId == childSectorId)
+            throw new InvalidOperationException("Un settore non può essere padre di sé stesso.");
 
-        var rel = new HierarchyRelation { FirId = fid, ParentPositionId = parentPositionId, ChildPositionId = childPositionId };
-        _db.HierarchyRelations.Add(rel);
+        var child = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == childSectorId && s.FirId == fid, ct)
+            ?? throw new InvalidOperationException("Settore figlio non appartiene alla FIR.");
+
+        if (parentSectorId is int pid)
+        {
+            if (!await _db.Sectors.AnyAsync(s => s.Id == pid && s.FirId == fid, ct))
+                throw new InvalidOperationException("Settore padre non appartiene alla FIR.");
+            await EnsureNoCycleAsync(childSectorId, pid, ct);
+        }
+
+        child.ParentSectorId = parentSectorId;
         await _db.SaveChangesAsync(ct);
-        return rel.Id;
     }
 
-    public async Task DeleteHierarchyAsync(string firCode, int relationId, CancellationToken ct = default)
+    /// <summary>Rifiuta il padre se figlio è già (transitivamente) antenato del padre proposto (anti-ciclo).</summary>
+    private async Task EnsureNoCycleAsync(int childSectorId, int proposedParentId, CancellationToken ct)
     {
-        var fid = await FirIdAsync(firCode, ct) ?? throw new InvalidOperationException($"FIR {firCode} inesistente.");
-        var rel = await _db.HierarchyRelations.FirstOrDefaultAsync(h => h.Id == relationId && h.FirId == fid, ct);
-        if (rel is null) return;
-        _db.HierarchyRelations.Remove(rel);
-        await _db.SaveChangesAsync(ct);
+        var current = (int?)proposedParentId;
+        var guard = new HashSet<int>();
+        while (current is int id && guard.Add(id))
+        {
+            if (id == childSectorId)
+                throw new InvalidOperationException("Contenimento non valido: creerebbe un ciclo.");
+            current = await _db.Sectors.Where(s => s.Id == id).Select(s => s.ParentSectorId).FirstOrDefaultAsync(ct);
+        }
     }
 
     private async Task<int?> FirIdAsync(string firCode, CancellationToken ct) =>
