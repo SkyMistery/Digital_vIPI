@@ -29,17 +29,12 @@ public sealed class AorService : IAorService
     {
         var domain = topology.DomainOf(p);
 
-        // Settori del dominio = unione dei settori di default delle posizioni in Dom(P).
-        var sectors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pos in domain)
-            if (topology.DefaultSectors.TryGetValue(pos, out var owned))
-                foreach (var s in owned) sectors.Add(s);
+        // Settore == posizione: i settori del dominio sono i settori stessi di Dom(P).
+        var sectors = new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);
 
-        // 1. Ownership di default: ogni settore appartiene alla posizione che lo possiede.
+        // 1. Ownership di default: ogni settore possiede sé stesso.
         var ownership = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pos in domain)
-            if (topology.DefaultSectors.TryGetValue(pos, out var owned))
-                foreach (var s in owned) ownership[s] = pos;
+        foreach (var s in sectors) ownership[s] = s;
 
         // 2. Applica le regole di unificazione (per Priority) la cui condizione è soddisfatta da O.
         foreach (var rule in topology.Rules.OrderBy(r => r.Priority))

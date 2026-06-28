@@ -1,12 +1,12 @@
 namespace Vipi.Domain;
 
-/// <summary>Tipo di postazione ATC (top-down DEL→GND→TWR→APP→CTR).</summary>
-public enum PositionType { Del, Gnd, Twr, App, Ctr }
+/// <summary>Tipo di settore/postazione ATC (top-down DEL→GND→TWR→APP→CTR). <c>ITwr</c> = torre informativa (AFIS): stesso livello operativo della TWR ma servizio informazioni.</summary>
+public enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }
 
-/// <summary>Natura della posizione: aeroportuale o di area (ACC). Determina l'API IVAO usata per le shape.</summary>
-public enum PositionKind { Airport, Acc }
+/// <summary>Natura del settore: aeroportuale o di area (ACC). Determina l'API IVAO usata per le shape.</summary>
+public enum SectorKind { Airport, Acc }
 
-/// <summary>Per gli APP (<see cref="PositionType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
+/// <summary>Per gli APP (<see cref="SectorType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
 public enum ApproachKind { Remotized, Standalone }
 
 /// <summary>Formato di storage di una shape geografica.</summary>
@@ -58,3 +58,9 @@ public enum SectorState { Covered, Online }
 
 /// <summary>Fase di un trasferimento di traffico rispetto all'aeroporto della relazione.</summary>
 public enum TransferPhase { Arrival, Departure }
+
+/// <summary>Vincolo di parità del giorno del mese per una regola pista (es. alternanza Malpensa). Any = indifferente.</summary>
+public enum DateParity { Any, Even, Odd }
+
+/// <summary>Categoria di dati che la sorgente esterna può fornire (governata dalla ImportPolicy globale).</summary>
+public enum ImportCategory { TransitionAltitude, Atis, Runways, Sectors }

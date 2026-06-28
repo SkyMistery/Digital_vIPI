@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260626192650_AddRunwayRuleSchedule")]
+    partial class AddRunwayRuleSchedule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -25,9 +28,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("AtisFrequency")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("FeaturedRank")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
                         .HasColumnType("INTEGER");
@@ -286,7 +286,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("TimestampUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -399,9 +399,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("CurrentVersionId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("FeaturedRank")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -422,7 +419,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("LockedByName")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("LockedByUserId")
+                    b.Property<int?>("LockedByVid")
                         .HasColumnType("INTEGER");
 
                     b.Property<byte[]>("RowVersion")
@@ -524,7 +521,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CreatedByUserId")
+                    b.Property<int>("CreatedByVid")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
@@ -566,17 +563,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("GrantedAtUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("GrantedByUserId")
+                    b.Property<int>("GrantedByVid")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FirId");
 
-                    b.HasIndex("UserId", "FirId")
+                    b.HasIndex("Vid", "FirId")
                         .IsUnique();
 
                     b.ToTable("EditGrants");
@@ -639,35 +636,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Frequencies");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.ImportPolicy", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportAtis")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportRunways")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportSectors")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportTransitionAltitude")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ImportPolicies");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
                 {
                     b.Property<int>("Id")
@@ -725,9 +693,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("FacilityId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
@@ -841,7 +806,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("AtcRating")
@@ -866,7 +831,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("UserId");
+                    b.HasKey("Vid");
 
                     b.HasIndex("IsActive");
 

@@ -1,25 +1,43 @@
 namespace Vipi.Domain.Entities;
 
 /// <summary>
-/// Concessione di editing: abilita un VID a modificare TUTTI i documenti di una FIR (vIPI/aeroporto/vLOA,
+/// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una FIR (vIPI/aeroporto/vLOA,
 /// topologia, trasferimenti). Gli admin (staff IT-AO*) non hanno bisogno di grant. PIANO sicurezza.
 /// </summary>
 public class EditGrant
 {
     public int Id { get; set; }
-    public int Vid { get; set; }                       // VID IVAO abilitato
+    public int UserId { get; set; }                       // UserId IVAO abilitato
     public string? DisplayName { get; set; }           // nome opzionale per l'elenco admin
     public int FirId { get; set; }
     public Fir? Fir { get; set; }
-    public int GrantedByVid { get; set; }              // admin che ha concesso
+    public int GrantedByUserId { get; set; }              // admin che ha concesso
     public DateTime GrantedAtUtc { get; set; }
+}
+
+/// <summary>
+/// Staffista della divisione noto al sistema. Popolato al login di un membro con posizioni staff IT
+/// e ri-verificato periodicamente via API IVAO (/v2/users/{UserId}). Alimenta il picker degli AOD/DIR
+/// nella pagina permessi, evitando l'enumerazione dell'intera divisione (endpoint non disponibile
+/// con token app). Chi non è più staff IT viene disattivato (IsActive=false).
+/// </summary>
+public class StaffMember
+{
+    public int UserId { get; set; }                       // PK = UserId IVAO (non auto-generato)
+    public string? DisplayName { get; set; }           // nome dal login (claim) o publicNickname API
+    public string? AtcRating { get; set; }             // es. "ACC" (dalla verifica API)
+    public string StaffPositionsCsv { get; set; } = ""; // codici IT, es. "IT-AOA1,IT-T03"
+    public bool IsActive { get; set; } = true;         // false = non più staffista IT
+    public DateTime FirstSeenUtc { get; set; }
+    public DateTime LastLoginUtc { get; set; }
+    public DateTime? LastVerifiedUtc { get; set; }     // ultima verifica via API
 }
 
 /// <summary>Tracciamento delle modifiche (chi, quando, cosa). SPEC_Modello_Dati §3.14.</summary>
 public class AuditLog
 {
     public long Id { get; set; }
-    public int Vid { get; set; }                       // utente IVAO
+    public int UserId { get; set; }                       // utente IVAO
     public AuditAction Action { get; set; }
     public string EntityType { get; set; } = default!; // es. "Document", "UnificationRule"
     public string EntityId { get; set; } = default!;

@@ -109,33 +109,73 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Positions",
+                name: "StaffMembers",
+                columns: table => new
+                {
+                    Vid = table.Column<int>(type: "INTEGER", nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", nullable: true),
+                    AtcRating = table.Column<string>(type: "TEXT", nullable: true),
+                    StaffPositionsCsv = table.Column<string>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    FirstSeenUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastLoginUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastVerifiedUtc = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffMembers", x => x.Vid);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EditGrants",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Callsign = table.Column<string>(type: "TEXT", nullable: false),
+                    Vid = table.Column<int>(type: "INTEGER", nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", nullable: true),
                     FirId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
-                    Kind = table.Column<string>(type: "TEXT", nullable: false),
-                    ApproachKind = table.Column<string>(type: "TEXT", nullable: true),
-                    FacilityId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    DefaultFrequency = table.Column<string>(type: "TEXT", nullable: true),
-                    GeometryRef = table.Column<string>(type: "TEXT", nullable: true),
-                    CoverageOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    ImportedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                    GrantedByVid = table.Column<int>(type: "INTEGER", nullable: false),
+                    GrantedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Positions", x => x.Id);
+                    table.PrimaryKey("PK_EditGrants", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Positions_Firs_FirId",
+                        name: "FK_EditGrants_Firs_FirId",
                         column: x => x.FirId,
                         principalTable: "Firs",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Transfers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    FirId = table.Column<int>(type: "INTEGER", nullable: false),
+                    RelationKey = table.Column<string>(type: "TEXT", nullable: false),
+                    RelationLabel = table.Column<string>(type: "TEXT", nullable: false),
+                    Phase = table.Column<string>(type: "TEXT", nullable: false),
+                    AirportIcao = table.Column<string>(type: "TEXT", nullable: false),
+                    Cop = table.Column<string>(type: "TEXT", nullable: false),
+                    FlRule = table.Column<string>(type: "TEXT", nullable: false),
+                    HandlerChainJson = table.Column<string>(type: "TEXT", nullable: false),
+                    StandardFallback = table.Column<string>(type: "TEXT", nullable: false),
+                    Order = table.Column<int>(type: "INTEGER", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "BLOB", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Transfers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Transfers_Firs_FirId",
+                        column: x => x.FirId,
+                        principalTable: "Firs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -164,20 +204,135 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ContentBlocks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DocumentVersionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    SectionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Order = table.Column<int>(type: "INTEGER", nullable: false),
+                    Tier = table.Column<string>(type: "TEXT", nullable: false),
+                    Format = table.Column<string>(type: "TEXT", nullable: false),
+                    Visibility = table.Column<string>(type: "TEXT", nullable: false),
+                    CollapsedByDefault = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CalloutKind = table.Column<string>(type: "TEXT", nullable: true),
+                    ScopeSectorId = table.Column<int>(type: "INTEGER", nullable: true),
+                    FromSectorId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ToSectorId = table.Column<int>(type: "INTEGER", nullable: true),
+                    SharedBlockId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Body = table.Column<string>(type: "TEXT", nullable: true),
+                    BodyJson = table.Column<string>(type: "TEXT", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "BLOB", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ContentBlocks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ContentBlocks_SharedBlocks_SharedBlockId",
+                        column: x => x.SharedBlockId,
+                        principalTable: "SharedBlocks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DocumentParties",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DocumentId = table.Column<int>(type: "INTEGER", nullable: false),
+                    SectorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Role = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DocumentParties", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Documents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Type = table.Column<string>(type: "TEXT", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", nullable: false),
+                    Language = table.Column<string>(type: "TEXT", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", nullable: false),
+                    CurrentVersionId = table.Column<int>(type: "INTEGER", nullable: true),
+                    LastUpdatedUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastUpdatedAiracCycle = table.Column<string>(type: "TEXT", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "BLOB", nullable: true),
+                    LockedByVid = table.Column<int>(type: "INTEGER", nullable: true),
+                    LockedByName = table.Column<string>(type: "TEXT", nullable: true),
+                    LockedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    LockExpiresUtc = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Documents", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DocumentVersions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DocumentId = table.Column<int>(type: "INTEGER", nullable: false),
+                    VersionNumber = table.Column<int>(type: "INTEGER", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedByVid = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    AiracCycle = table.Column<string>(type: "TEXT", nullable: false),
+                    Note = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DocumentVersions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DocumentVersions_Documents_DocumentId",
+                        column: x => x.DocumentId,
+                        principalTable: "Documents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Sectors",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Key = table.Column<string>(type: "TEXT", nullable: false),
+                    Callsign = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     FirId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Type = table.Column<string>(type: "TEXT", nullable: false),
+                    Kind = table.Column<string>(type: "TEXT", nullable: false),
+                    ApproachKind = table.Column<string>(type: "TEXT", nullable: true),
+                    AirportIcao = table.Column<string>(type: "TEXT", nullable: true),
+                    FacilityId = table.Column<int>(type: "INTEGER", nullable: true),
+                    DefaultFrequency = table.Column<string>(type: "TEXT", nullable: true),
+                    CoverageOrder = table.Column<int>(type: "INTEGER", nullable: false),
+                    ImportedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
+                    ParentSectorId = table.Column<int>(type: "INTEGER", nullable: true),
+                    DocumentId = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsPrimary = table.Column<bool>(type: "INTEGER", nullable: false),
                     GeometryId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Sectors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Sectors_Documents_DocumentId",
+                        column: x => x.DocumentId,
+                        principalTable: "Documents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Sectors_Firs_FirId",
                         column: x => x.FirId,
@@ -190,6 +345,43 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         principalTable: "SectorGeometries",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Sectors_Sectors_ParentSectorId",
+                        column: x => x.ParentSectorId,
+                        principalTable: "Sectors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DocumentSections",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DocumentVersionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ParentSectionId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Title = table.Column<string>(type: "TEXT", nullable: false),
+                    Order = table.Column<int>(type: "INTEGER", nullable: false),
+                    Depth = table.Column<int>(type: "INTEGER", nullable: false),
+                    SectionKind = table.Column<string>(type: "TEXT", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "BLOB", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DocumentSections", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DocumentSections_DocumentSections_ParentSectionId",
+                        column: x => x.ParentSectionId,
+                        principalTable: "DocumentSections",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DocumentSections_DocumentVersions_DocumentVersionId",
+                        column: x => x.DocumentVersionId,
+                        principalTable: "DocumentVersions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -198,7 +390,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    PositionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    SectorId = table.Column<int>(type: "INTEGER", nullable: false),
                     Label = table.Column<string>(type: "TEXT", nullable: false),
                     Callsign = table.Column<string>(type: "TEXT", nullable: false),
                     FrequencyMhz = table.Column<string>(type: "TEXT", nullable: false),
@@ -208,62 +400,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_Frequencies", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Frequencies_Positions_PositionId",
-                        column: x => x.PositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HierarchyRelations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ParentPositionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ChildPositionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    FirId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HierarchyRelations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HierarchyRelations_Positions_ChildPositionId",
-                        column: x => x.ChildPositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_HierarchyRelations_Positions_ParentPositionId",
-                        column: x => x.ParentPositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PositionSectors",
-                columns: table => new
-                {
-                    PositionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    SectorId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PositionSectors", x => new { x.PositionId, x.SectorId });
-                    table.ForeignKey(
-                        name: "FK_PositionSectors_Positions_PositionId",
-                        column: x => x.PositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PositionSectors_Sectors_SectorId",
+                        name: "FK_Frequencies_Sectors_SectorId",
                         column: x => x.SectorId,
                         principalTable: "Sectors",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -311,159 +452,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "ContentBlocks",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DocumentVersionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    SectionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Order = table.Column<int>(type: "INTEGER", nullable: false),
-                    Tier = table.Column<string>(type: "TEXT", nullable: false),
-                    Format = table.Column<string>(type: "TEXT", nullable: false),
-                    Visibility = table.Column<string>(type: "TEXT", nullable: false),
-                    CollapsedByDefault = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CalloutKind = table.Column<string>(type: "TEXT", nullable: true),
-                    ScopeSectorId = table.Column<int>(type: "INTEGER", nullable: true),
-                    FromSectorId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ToSectorId = table.Column<int>(type: "INTEGER", nullable: true),
-                    SharedBlockId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Body = table.Column<string>(type: "TEXT", nullable: true),
-                    BodyJson = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ContentBlocks", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ContentBlocks_Sectors_FromSectorId",
-                        column: x => x.FromSectorId,
-                        principalTable: "Sectors",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ContentBlocks_Sectors_ScopeSectorId",
-                        column: x => x.ScopeSectorId,
-                        principalTable: "Sectors",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ContentBlocks_Sectors_ToSectorId",
-                        column: x => x.ToSectorId,
-                        principalTable: "Sectors",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ContentBlocks_SharedBlocks_SharedBlockId",
-                        column: x => x.SharedBlockId,
-                        principalTable: "SharedBlocks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DocumentParties",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DocumentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PositionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Role = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DocumentParties", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DocumentParties_Positions_PositionId",
-                        column: x => x.PositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Documents",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
-                    ScopePositionId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Title = table.Column<string>(type: "TEXT", nullable: false),
-                    Language = table.Column<string>(type: "TEXT", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", nullable: false),
-                    CurrentVersionId = table.Column<int>(type: "INTEGER", nullable: true),
-                    LastUpdatedUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastUpdatedAiracCycle = table.Column<string>(type: "TEXT", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "BLOB", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Documents", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Documents_Positions_ScopePositionId",
-                        column: x => x.ScopePositionId,
-                        principalTable: "Positions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DocumentVersions",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DocumentId = table.Column<int>(type: "INTEGER", nullable: false),
-                    VersionNumber = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedByVid = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    AiracCycle = table.Column<string>(type: "TEXT", nullable: false),
-                    Note = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DocumentVersions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DocumentVersions_Documents_DocumentId",
-                        column: x => x.DocumentId,
-                        principalTable: "Documents",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DocumentSections",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DocumentVersionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ParentSectionId = table.Column<int>(type: "INTEGER", nullable: true),
-                    Title = table.Column<string>(type: "TEXT", nullable: false),
-                    Order = table.Column<int>(type: "INTEGER", nullable: false),
-                    Depth = table.Column<int>(type: "INTEGER", nullable: false),
-                    SectionKind = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DocumentSections", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DocumentSections_DocumentSections_ParentSectionId",
-                        column: x => x.ParentSectionId,
-                        principalTable: "DocumentSections",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_DocumentSections_DocumentVersions_DocumentVersionId",
-                        column: x => x.DocumentVersionId,
-                        principalTable: "DocumentVersions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_ContentBlocks_DocumentVersionId_SectionId_Order",
                 table: "ContentBlocks",
@@ -505,9 +493,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 column: "DocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DocumentParties_PositionId",
+                name: "IX_DocumentParties_SectorId",
                 table: "DocumentParties",
-                column: "PositionId");
+                column: "SectorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Documents_CurrentVersionId",
@@ -515,14 +503,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 column: "CurrentVersionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Documents_ScopePositionId",
+                name: "IX_Documents_Type_Status",
                 table: "Documents",
-                column: "ScopePositionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Documents_Type_ScopePositionId_Status",
-                table: "Documents",
-                columns: new[] { "Type", "ScopePositionId", "Status" });
+                columns: new[] { "Type", "Status" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_DocumentSections_DocumentVersionId_ParentSectionId_Order",
@@ -541,26 +524,26 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_EditGrants_FirId",
+                table: "EditGrants",
+                column: "FirId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EditGrants_Vid_FirId",
+                table: "EditGrants",
+                columns: new[] { "Vid", "FirId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Firs_Code",
                 table: "Firs",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Frequencies_PositionId",
+                name: "IX_Frequencies_SectorId",
                 table: "Frequencies",
-                column: "PositionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_HierarchyRelations_ChildPositionId",
-                table: "HierarchyRelations",
-                column: "ChildPositionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_HierarchyRelations_ParentPositionId_ChildPositionId",
-                table: "HierarchyRelations",
-                columns: new[] { "ParentPositionId", "ChildPositionId" },
-                unique: true);
+                column: "SectorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_NavReferences_Type_Ident_AiracCycle",
@@ -568,26 +551,20 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 columns: new[] { "Type", "Ident", "AiracCycle" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Positions_Callsign",
-                table: "Positions",
+                name: "IX_Sectors_Callsign",
+                table: "Sectors",
                 column: "Callsign",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Positions_FirId",
-                table: "Positions",
-                column: "FirId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PositionSectors_SectorId",
-                table: "PositionSectors",
-                column: "SectorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Sectors_FirId_Key",
+                name: "IX_Sectors_DocumentId",
                 table: "Sectors",
-                columns: new[] { "FirId", "Key" },
-                unique: true);
+                column: "DocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Sectors_FirId",
+                table: "Sectors",
+                column: "FirId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sectors_GeometryId",
@@ -595,10 +572,25 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 column: "GeometryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Sectors_ParentSectorId",
+                table: "Sectors",
+                column: "ParentSectorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SharedBlocks_Key",
                 table: "SharedBlocks",
                 column: "Key",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffMembers_IsActive",
+                table: "StaffMembers",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transfers_FirId_RelationKey_Phase_Order",
+                table: "Transfers",
+                columns: new[] { "FirId", "RelationKey", "Phase", "Order" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_UnificationRules_FirId_Priority",
@@ -632,12 +624,44 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_ContentBlocks_Sectors_FromSectorId",
+                table: "ContentBlocks",
+                column: "FromSectorId",
+                principalTable: "Sectors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ContentBlocks_Sectors_ScopeSectorId",
+                table: "ContentBlocks",
+                column: "ScopeSectorId",
+                principalTable: "Sectors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ContentBlocks_Sectors_ToSectorId",
+                table: "ContentBlocks",
+                column: "ToSectorId",
+                principalTable: "Sectors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_DocumentParties_Documents_DocumentId",
                 table: "DocumentParties",
                 column: "DocumentId",
                 principalTable: "Documents",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_DocumentParties_Sectors_SectorId",
+                table: "DocumentParties",
+                column: "SectorId",
+                principalTable: "Sectors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Documents_DocumentVersions_CurrentVersionId",
@@ -667,16 +691,19 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 name: "DocumentParties");
 
             migrationBuilder.DropTable(
-                name: "Frequencies");
+                name: "EditGrants");
 
             migrationBuilder.DropTable(
-                name: "HierarchyRelations");
+                name: "Frequencies");
 
             migrationBuilder.DropTable(
                 name: "NavReferences");
 
             migrationBuilder.DropTable(
-                name: "PositionSectors");
+                name: "StaffMembers");
+
+            migrationBuilder.DropTable(
+                name: "Transfers");
 
             migrationBuilder.DropTable(
                 name: "UnificationRules");
@@ -697,6 +724,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 name: "Sectors");
 
             migrationBuilder.DropTable(
+                name: "Firs");
+
+            migrationBuilder.DropTable(
                 name: "SectorGeometries");
 
             migrationBuilder.DropTable(
@@ -704,12 +734,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "Documents");
-
-            migrationBuilder.DropTable(
-                name: "Positions");
-
-            migrationBuilder.DropTable(
-                name: "Firs");
         }
     }
 }

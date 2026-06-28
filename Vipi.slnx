@@ -3,6 +3,7 @@
     <Project Path="src/Vipi.Application/Vipi.Application.csproj" />
     <Project Path="src/Vipi.Domain/Vipi.Domain.csproj" />
     <Project Path="src/Vipi.Host/Vipi.Host.csproj" />
+    <Project Path="src/Vipi.Hosting/Vipi.Hosting.csproj" />
     <Project Path="src/Vipi.Infrastructure/Vipi.Infrastructure.csproj" />
     <Project Path="src/Vipi.Ui/Vipi.Ui.csproj" />
   </Folder>

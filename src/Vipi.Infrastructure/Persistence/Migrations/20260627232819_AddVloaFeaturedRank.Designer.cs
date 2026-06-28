@@ -11,14 +11,259 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    [Migration("20260621112804_Transfers")]
-    partial class Transfers
+    [Migration("20260627232819_AddVloaFeaturedRank")]
+    partial class AddVloaFeaturedRank
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
+
+            modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AtisFrequency")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FeaturedRank")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("FirId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Icao")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TransitionAltitudeFt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirId");
+
+                    b.HasIndex("Icao")
+                        .IsUnique();
+
+                    b.ToTable("Airports");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LabelOverride")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SourceFrequencyId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceFrequencyId");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportFrequencyLinks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AppProcedures")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Bearing")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Circling")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ident")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LdaM")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("LengthM")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Patterns")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToraM")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportRunways");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunwayRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ArrRunways")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DateParity")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DaysOfWeekMask")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DepRunways")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("Rain")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("Snow")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TimeFromUtcMin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TimeToUtcMin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WindDirFrom")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WindDirTo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WindSpeedMax")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WindSpeedMin")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportRunwayRules");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cat")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Condition")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Fix")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InitialClimb")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Runway")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Transition")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Wtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportSids");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportTransitionLevel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("QnhFrom")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("QnhTo")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportTransitionLevels");
+                });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
                 {
@@ -44,7 +289,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("TimestampUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Vid")
+                    b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -82,6 +327,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
 
                     b.Property<int?>("ScopeSectorId")
                         .HasColumnType("INTEGER");
@@ -153,6 +402,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("CurrentVersionId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("FeaturedRank")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -164,12 +416,21 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("LastUpdatedUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("LockExpiresUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LockedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LockedByName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("LockedByUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("BLOB");
-
-                    b.Property<int?>("ScopePositionId")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -187,9 +448,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CurrentVersionId");
 
-                    b.HasIndex("ScopePositionId");
-
-                    b.HasIndex("Type", "ScopePositionId", "Status");
+                    b.HasIndex("Type", "Status");
 
                     b.ToTable("Documents");
                 });
@@ -203,18 +462,18 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("DocumentId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("PositionId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("SectorId");
 
                     b.ToTable("DocumentParties");
                 });
@@ -236,6 +495,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("ParentSectionId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("SectionKind")
                         .IsRequired()
@@ -264,7 +527,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CreatedByVid")
+                    b.Property<int>("CreatedByUserId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
@@ -289,6 +552,37 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("DocumentVersions");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FirId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GrantedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirId");
+
+                    b.HasIndex("UserId", "FirId")
+                        .IsUnique();
+
+                    b.ToTable("EditGrants");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Fir", b =>
@@ -338,39 +632,43 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("PositionId")
+                    b.Property<int>("SectorId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("SectorId");
 
                     b.ToTable("Frequencies");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.HierarchyRelation", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.ImportPolicy", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ChildPositionId")
+                    b.Property<bool>("ImportAtis")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("FirId")
+                    b.Property<bool>("ImportRunways")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ParentPositionId")
+                    b.Property<bool>("ImportSectors")
                         .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ImportTransitionAltitude")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChildPositionId");
-
-                    b.HasIndex("ParentPositionId", "ChildPositionId")
-                        .IsUnique();
-
-                    b.ToTable("HierarchyRelations");
+                    b.ToTable("ImportPolicies");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
@@ -398,10 +696,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("NavReferences");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.Position", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AirportIcao")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("AirportId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ApproachKind")
@@ -417,19 +721,31 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("DefaultFrequency")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("FacilityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("GeometryRef")
-                        .HasColumnType("TEXT");
+                    b.Property<int?>("GeometryId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ImportedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPrimary")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Kind")
@@ -440,64 +756,27 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ParentSectorId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AirportId");
+
                     b.HasIndex("Callsign")
                         .IsUnique();
 
+                    b.HasIndex("DocumentId");
+
                     b.HasIndex("FirId");
-
-                    b.ToTable("Positions");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.PositionSector", b =>
-                {
-                    b.Property<int>("PositionId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("PositionId", "SectorId");
-
-                    b.HasIndex("SectorId");
-
-                    b.ToTable("PositionSectors");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FirId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("GeometryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
 
                     b.HasIndex("GeometryId");
 
-                    b.HasIndex("FirId", "Key")
-                        .IsUnique();
+                    b.HasIndex("ParentSectorId");
 
                     b.ToTable("Sectors");
                 });
@@ -561,6 +840,40 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("SharedBlocks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AtcRating")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FirstSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastLoginUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastVerifiedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StaffPositionsCsv")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("StaffMembers");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
@@ -712,6 +1025,80 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("VectoringMinimaSets");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Fir", "Fir")
+                        .WithMany("Airports")
+                        .HasForeignKey("FirId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Fir");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("FrequencyLinks")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.Frequency", "SourceFrequency")
+                        .WithMany()
+                        .HasForeignKey("SourceFrequencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+
+                    b.Navigation("SourceFrequency");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("Runways")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunwayRule", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("RunwayRules")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("Sids")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportTransitionLevel", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("TransitionLevels")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.DocumentVersion", "DocumentVersion")
@@ -766,14 +1153,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CurrentVersionId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Vipi.Domain.Entities.Position", "ScopePosition")
-                        .WithMany()
-                        .HasForeignKey("ScopePositionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("CurrentVersion");
-
-                    b.Navigation("ScopePosition");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentParty", b =>
@@ -784,15 +1164,15 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Vipi.Domain.Entities.Position", "Position")
+                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
                         .WithMany()
-                        .HasForeignKey("PositionId")
+                        .HasForeignKey("SectorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Document");
 
-                    b.Navigation("Position");
+                    b.Navigation("Sector");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentSection", b =>
@@ -824,68 +1204,40 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Document");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.Frequency", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Position", "Position")
-                        .WithMany("Frequencies")
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Position");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.HierarchyRelation", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Position", "ChildPosition")
-                        .WithMany()
-                        .HasForeignKey("ChildPositionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Vipi.Domain.Entities.Position", "ParentPosition")
-                        .WithMany()
-                        .HasForeignKey("ParentPositionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ChildPosition");
-
-                    b.Navigation("ParentPosition");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.Position", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Fir", "Fir")
-                        .WithMany("Positions")
+                        .WithMany()
                         .HasForeignKey("FirId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Fir");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.PositionSector", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.Frequency", b =>
                 {
-                    b.HasOne("Vipi.Domain.Entities.Position", "Position")
-                        .WithMany("PositionSectors")
-                        .HasForeignKey("PositionId")
+                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
+                        .WithMany("Frequencies")
+                        .HasForeignKey("SectorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
-                        .WithMany()
-                        .HasForeignKey("SectorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Position");
 
                     b.Navigation("Sector");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("Sectors")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany("Sectors")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Vipi.Domain.Entities.Fir", "Fir")
                         .WithMany("Sectors")
                         .HasForeignKey("FirId")
@@ -897,9 +1249,20 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasForeignKey("GeometryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Vipi.Domain.Entities.Sector", "ParentSector")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentSectorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Airport");
+
+                    b.Navigation("Document");
+
                     b.Navigation("Fir");
 
                     b.Navigation("Geometry");
+
+                    b.Navigation("ParentSector");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
@@ -945,9 +1308,26 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("ScopeSector");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
+                {
+                    b.Navigation("FrequencyLinks");
+
+                    b.Navigation("RunwayRules");
+
+                    b.Navigation("Runways");
+
+                    b.Navigation("Sectors");
+
+                    b.Navigation("Sids");
+
+                    b.Navigation("TransitionLevels");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Navigation("Parties");
+
+                    b.Navigation("Sectors");
 
                     b.Navigation("Versions");
                 });
@@ -968,18 +1348,18 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.Fir", b =>
                 {
-                    b.Navigation("Positions");
+                    b.Navigation("Airports");
 
                     b.Navigation("Sectors");
 
                     b.Navigation("UnificationRules");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.Position", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
-                    b.Navigation("Frequencies");
+                    b.Navigation("Children");
 
-                    b.Navigation("PositionSectors");
+                    b.Navigation("Frequencies");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaSet", b =>

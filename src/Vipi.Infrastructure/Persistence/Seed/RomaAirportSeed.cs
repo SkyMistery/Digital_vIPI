@@ -19,10 +19,9 @@ public static class RomaAirportSeed
 
     public static async Task SeedAsync(VipiDbContext db, CancellationToken ct = default)
     {
-        var twr = await db.Positions.FirstOrDefaultAsync(p => p.Callsign == TowerCallsign, ct);
+        var twr = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == TowerCallsign, ct);
         if (twr is null) return;
-        if (await db.Documents.AnyAsync(d => d.ScopePositionId == twr.Id && d.Type == DocumentType.Vipi, ct))
-            return;
+        if (twr.DocumentId is not null) return;
 
         var now = DateTime.UtcNow;
         var cycle = Airac.GetCycle(now);
@@ -30,7 +29,6 @@ public static class RomaAirportSeed
         var doc = new Document
         {
             Type = DocumentType.Vipi,
-            ScopePositionId = twr.Id,
             Title = "vIPI — LIRF Roma Fiumicino",
             Language = Language.It,
             Status = DocumentStatus.Published,
@@ -40,7 +38,7 @@ public static class RomaAirportSeed
         var ver = new DocumentVersion
         {
             Document = doc, VersionNumber = 1, Status = DocumentStatus.Published,
-            CreatedByVid = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo aeroporto F2",
+            CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo aeroporto F2",
         };
         doc.Versions.Add(ver);
         db.Documents.Add(doc);
@@ -107,6 +105,9 @@ public static class RomaAirportSeed
 
         await db.SaveChangesAsync(ct);
         doc.CurrentVersionId = ver.Id;
+        // Aggancia il settore-torre al documento (scope vIPI uno-a-molti, qui un solo settore primario).
+        twr.DocumentId = doc.Id;
+        twr.IsPrimary = true;
         await db.SaveChangesAsync(ct);
     }
 

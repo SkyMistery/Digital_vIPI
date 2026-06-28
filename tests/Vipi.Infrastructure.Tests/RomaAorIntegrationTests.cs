@@ -53,37 +53,37 @@ public class RomaAorIntegrationTests : IAsyncLifetime
     public async Task S2_PisaApp_Online()
     {
         var r = await Resolve("LIRR_NE_CTR", "LIRR_NE_CTR", "LIRP_APP");
-        Assert.Equal(SectorState.Online, r.State["LIRR-PISA"]);
-        Assert.Equal(SectorState.Online, r.State["LIRR-PISA_TWR"]); // TWR offline → coperta da APP online
-        Assert.Equal(SectorState.Covered, r.State["LIRR-NE"]);
+        Assert.Equal(SectorState.Online, r.State["LIRP_APP"]);
+        Assert.Equal(SectorState.Online, r.State["LIRP_TWR"]); // TWR offline → coperta da APP online
+        Assert.Equal(SectorState.Covered, r.State["LIRR_NE_CTR"]);
     }
 
-    [Fact] // S4 — split SU/ES via UnificationRule
+    [Fact] // S4 — split SU/ES: ora puro contenimento (ES figlio di SU)
     public async Task S4_SplitSuEs()
     {
         var alone = await Resolve("LIRR_SU_CTR", "LIRR_SU_CTR");
-        Assert.Equal(SectorState.Covered, alone.State["LIRR-ES"]);
+        Assert.Equal(SectorState.Covered, alone.State["LIRR_ES_CTR"]);
 
         var split = await Resolve("LIRR_SU_CTR", "LIRR_SU_CTR", "LIRR_ES_CTR");
-        Assert.Equal(SectorState.Online, split.State["LIRR-ES"]);
-        Assert.Equal(SectorState.Covered, split.State["LIRR-SU"]);
-        Assert.Equal("LIRR_ES_CTR", split.Ownership["LIRR-ES"]);
+        Assert.Equal(SectorState.Online, split.State["LIRR_ES_CTR"]);
+        Assert.Equal(SectorState.Covered, split.State["LIRR_SU_CTR"]);
+        Assert.Equal("LIRR_ES_CTR", split.Ownership["LIRR_ES_CTR"]);
     }
 
     [Fact] // S5 — TS ruba a NE
     public async Task S5_TsStealsFromNe()
     {
         var r = await Resolve("LIRR_NE_CTR", "LIRR_NE_CTR", "LIRR_TS_CTR");
-        Assert.Equal(SectorState.Online, r.State["LIRR-TS"]);
-        Assert.Equal(SectorState.Covered, r.State["LIRR-NE"]);
+        Assert.Equal(SectorState.Online, r.State["LIRR_TS_CTR"]);
+        Assert.Equal(SectorState.Covered, r.State["LIRR_NE_CTR"]);
     }
 
-    [Fact] // S6 — Pisa TWR online, APP offline → TWR Online, PISA (APP) resta Covered su NE
+    [Fact] // S6 — Pisa TWR online, APP offline → TWR Online, APP resta Covered su NE
     public async Task S6_TwrOnline_AppOffline()
     {
         var r = await Resolve("LIRR_NE_CTR", "LIRR_NE_CTR", "LIRP_TWR");
-        Assert.Equal(SectorState.Online, r.State["LIRR-PISA_TWR"]);
-        Assert.Equal(SectorState.Covered, r.State["LIRR-PISA"]);
-        Assert.Equal("LIRR_NE_CTR", r.Ownership["LIRR-PISA"]);
+        Assert.Equal(SectorState.Online, r.State["LIRP_TWR"]);
+        Assert.Equal(SectorState.Covered, r.State["LIRP_APP"]);
+        Assert.Equal("LIRR_NE_CTR", r.Ownership["LIRP_APP"]);
     }
 }

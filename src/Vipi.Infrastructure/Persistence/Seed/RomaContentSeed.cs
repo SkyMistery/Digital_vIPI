@@ -17,10 +17,9 @@ public static class RomaContentSeed
 
     public static async Task SeedAsync(VipiDbContext db, CancellationToken ct = default)
     {
-        var acc = await db.Positions.FirstOrDefaultAsync(p => p.Callsign == "LIRR_NE_CTR", ct);
+        var acc = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == "LIRR_NE_CTR", ct);
         if (acc is null) return;
-        if (await db.Documents.AnyAsync(d => d.ScopePositionId == acc.Id && d.Type == DocumentType.Vipi, ct))
-            return;
+        if (acc.DocumentId is not null) return;
 
         var now = DateTime.UtcNow;
         var cycle = Airac.GetCycle(now);
@@ -28,7 +27,6 @@ public static class RomaContentSeed
         var doc = new Document
         {
             Type = DocumentType.Vipi,
-            ScopePositionId = acc.Id,
             Title = "vIPI — Roma ACC",
             Language = Language.It,
             Status = DocumentStatus.Published,
@@ -38,7 +36,7 @@ public static class RomaContentSeed
         var ver = new DocumentVersion
         {
             Document = doc, VersionNumber = 1, Status = DocumentStatus.Published,
-            CreatedByVid = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo F2",
+            CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo F2",
         };
         doc.Versions.Add(ver);
         db.Documents.Add(doc);
@@ -193,6 +191,15 @@ public static class RomaContentSeed
 
         await db.SaveChangesAsync(ct);
         doc.CurrentVersionId = ver.Id;
+
+        // Scope multi-settore: la vIPI ACC descrive i settori d'area di Roma (NE primario + EW, SU, ES, TS).
+        var scopeCallsigns = new[] { "LIRR_NE_CTR", "LIRR_EW_CTR", "LIRR_SU_CTR", "LIRR_ES_CTR", "LIRR_TS_CTR" };
+        var scope = await db.Sectors.Where(s => scopeCallsigns.Contains(s.Callsign) && s.DocumentId == null).ToListAsync(ct);
+        foreach (var s in scope)
+        {
+            s.DocumentId = doc.Id;
+            s.IsPrimary = s.Callsign == "LIRR_NE_CTR";
+        }
         await db.SaveChangesAsync(ct);
     }
 

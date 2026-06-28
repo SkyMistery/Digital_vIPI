@@ -17,11 +17,11 @@ public static class RomaVloaSeed
 
     public static async Task SeedAsync(VipiDbContext db, CancellationToken ct = default)
     {
-        var home = await db.Positions.FirstOrDefaultAsync(p => p.Callsign == "LIRR_NE_CTR", ct);
+        var home = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == "LIRR_NE_CTR", ct);
         if (home is null) return;
         if (await db.Documents.AnyAsync(d => d.Type == DocumentType.Vloa, ct)) return;
 
-        // FIR + posizione estera DTTC (minimal, per la parte Neighbour).
+        // FIR + settore estero DTTC (minimal, per la parte Neighbour).
         var dttcFir = await db.Firs.FirstOrDefaultAsync(f => f.Code == "DTTC", ct);
         if (dttcFir is null)
         {
@@ -29,16 +29,16 @@ public static class RomaVloaSeed
             db.Firs.Add(dttcFir);
             await db.SaveChangesAsync(ct);
         }
-        var dttc = await db.Positions.FirstOrDefaultAsync(p => p.Callsign == "DTTC_CTR", ct);
+        var dttc = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == "DTTC_CTR", ct);
         if (dttc is null)
         {
-            dttc = new Position
+            dttc = new Sector
             {
-                FirId = dttcFir.Id, Callsign = "DTTC_CTR", Type = PositionType.Ctr, Kind = PositionKind.Acc,
+                FirId = dttcFir.Id, Callsign = "DTTC_CTR", Type = SectorType.Ctr, Kind = SectorKind.Acc,
                 Name = "Tunis Control", DefaultFrequency = "129.300", CoverageOrder = 10,
                 ImportedAtUtc = DateTime.UtcNow, IsActive = true,
             };
-            db.Positions.Add(dttc);
+            db.Sectors.Add(dttc);
             await db.SaveChangesAsync(ct);
         }
 
@@ -57,11 +57,11 @@ public static class RomaVloaSeed
         var ver = new DocumentVersion
         {
             Document = doc, VersionNumber = 1, Status = DocumentStatus.Published,
-            CreatedByVid = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo vLOA F2",
+            CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Seed demo vLOA F2",
         };
         doc.Versions.Add(ver);
-        doc.Parties.Add(new DocumentParty { Document = doc, PositionId = home.Id, Role = PartyRole.Home });
-        doc.Parties.Add(new DocumentParty { Document = doc, PositionId = dttc.Id, Role = PartyRole.Neighbour });
+        doc.Parties.Add(new DocumentParty { Document = doc, SectorId = home.Id, Role = PartyRole.Home });
+        doc.Parties.Add(new DocumentParty { Document = doc, SectorId = dttc.Id, Role = PartyRole.Neighbour });
         db.Documents.Add(doc);
 
         var b = new Builder(db, ver);

@@ -25,30 +25,16 @@ public sealed class TopologyBuilder : ITopologyProvider
 
     public async Task<Topology> BuildAsync(int firId, CancellationToken ct = default)
     {
-        var positions = await _db.Positions.Where(p => p.FirId == firId)
-            .Select(p => new { p.Id, p.Callsign }).ToListAsync(ct);
-        var byId = positions.ToDictionary(p => p.Id, p => p.Callsign);
+        // Settore == posizione: callsign + padre (contenimento ad albero).
+        var sectors = await _db.Sectors.Where(s => s.FirId == firId)
+            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
+        var callsignById = sectors.ToDictionary(s => s.Id, s => s.Callsign);
 
-        var posSectors = await (
-            from ps in _db.PositionSectors
-            join s in _db.Sectors on ps.SectorId equals s.Id
-            where s.FirId == firId
-            select new { ps.PositionId, s.Key }).ToListAsync(ct);
+        var allCallsigns = sectors.Select(s => s.Callsign).ToList();
 
-        var defaultSectors = posSectors
-            .Where(x => byId.ContainsKey(x.PositionId))
-            .GroupBy(x => byId[x.PositionId])
-            .ToDictionary(
-                g => g.Key,
-                g => (IReadOnlyList<string>)g.Select(x => x.Key).ToList(),
-                StringComparer.OrdinalIgnoreCase);
-
-        var relations = await _db.HierarchyRelations.Where(h => h.FirId == firId)
-            .Select(h => new { h.ParentPositionId, h.ChildPositionId }).ToListAsync(ct);
-
-        var parent = relations
-            .Where(r => byId.ContainsKey(r.ParentPositionId) && byId.ContainsKey(r.ChildPositionId))
-            .ToDictionary(r => byId[r.ChildPositionId], r => byId[r.ParentPositionId],
+        var parent = sectors
+            .Where(s => s.ParentSectorId is int pid && callsignById.ContainsKey(pid))
+            .ToDictionary(s => s.Callsign, s => callsignById[s.ParentSectorId!.Value],
                 StringComparer.OrdinalIgnoreCase);
 
         var rules = await _db.UnificationRules.Where(u => u.FirId == firId && u.IsActive)
@@ -62,7 +48,7 @@ public sealed class TopologyBuilder : ITopologyProvider
 
         return new Topology
         {
-            DefaultSectors = defaultSectors,
+            Sectors = allCallsigns,
             Parent = parent,
             Rules = ruleSpecs,
         };

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627090402_AddImportPolicy")]
+    partial class AddImportPolicy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -25,9 +28,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("AtisFrequency")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("FeaturedRank")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
                         .HasColumnType("INTEGER");
@@ -399,9 +399,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("CurrentVersionId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("FeaturedRank")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -725,9 +722,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("FacilityId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")

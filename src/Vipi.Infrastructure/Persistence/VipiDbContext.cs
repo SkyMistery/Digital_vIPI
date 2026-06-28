@@ -13,11 +13,9 @@ public class VipiDbContext : DbContext
     public VipiDbContext(DbContextOptions<VipiDbContext> options) : base(options) { }
 
     public DbSet<Fir> Firs => Set<Fir>();
-    public DbSet<Position> Positions => Set<Position>();
+    public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<SectorGeometry> SectorGeometries => Set<SectorGeometry>();
-    public DbSet<PositionSector> PositionSectors => Set<PositionSector>();
-    public DbSet<HierarchyRelation> HierarchyRelations => Set<HierarchyRelation>();
     public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
     public DbSet<Frequency> Frequencies => Set<Frequency>();
     public DbSet<Document> Documents => Set<Document>();
@@ -33,6 +31,13 @@ public class VipiDbContext : DbContext
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
     public DbSet<Transfer> Transfers => Set<Transfer>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
+    public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
+    public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
+    public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
+    public DbSet<AirportRunwayRule> AirportRunwayRules => Set<AirportRunwayRule>();
+    public DbSet<AirportSid> AirportSids => Set<AirportSid>();
+    public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
+    public DbSet<ImportPolicy> ImportPolicies => Set<ImportPolicy>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -48,32 +53,25 @@ public class VipiDbContext : DbContext
 
         b.Entity<Fir>().HasIndex(x => x.Code).IsUnique();
 
-        b.Entity<Position>(e =>
+        b.Entity<Airport>(e =>
         {
-            e.HasIndex(x => x.Callsign).IsUnique();
+            e.HasIndex(x => x.Icao).IsUnique();
             e.HasIndex(x => x.FirId);
-            e.HasOne(x => x.Fir).WithMany(f => f.Positions).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Fir).WithMany(f => f.Airports).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<Sector>(e =>
         {
-            e.HasIndex(x => new { x.FirId, x.Key }).IsUnique();
+            e.HasIndex(x => x.Callsign).IsUnique();
+            e.HasIndex(x => x.FirId);
+            e.HasIndex(x => x.DocumentId);
             e.HasOne(x => x.Fir).WithMany(f => f.Sectors).HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Airport).WithMany(a => a.Sectors).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Geometry).WithMany().HasForeignKey(x => x.GeometryId).OnDelete(DeleteBehavior.SetNull);
-        });
-
-        b.Entity<PositionSector>(e =>
-        {
-            e.HasKey(x => new { x.PositionId, x.SectorId });
-            e.HasOne(x => x.Position).WithMany(p => p.PositionSectors).HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        b.Entity<HierarchyRelation>(e =>
-        {
-            e.HasIndex(x => new { x.ParentPositionId, x.ChildPositionId }).IsUnique();
-            e.HasOne(x => x.ParentPosition).WithMany().HasForeignKey(x => x.ParentPositionId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.ChildPosition).WithMany().HasForeignKey(x => x.ChildPositionId).OnDelete(DeleteBehavior.Restrict);
+            // Contenimento ad albero: padre→figli (no cascata per evitare cicli di delete su SQLite).
+            e.HasOne(x => x.ParentSector).WithMany(p => p.Children).HasForeignKey(x => x.ParentSectorId).OnDelete(DeleteBehavior.Restrict);
+            // Documento di riferimento (uno-a-molti): cancellare il documento non cancella i settori.
+            e.HasOne(x => x.Document).WithMany(d => d.Sectors).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<UnificationRule>(e =>
@@ -84,20 +82,19 @@ public class VipiDbContext : DbContext
         });
 
         b.Entity<Frequency>(e =>
-            e.HasOne(x => x.Position).WithMany(p => p.Frequencies).HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.Cascade));
+            e.HasOne(x => x.Sector).WithMany(s => s.Frequencies).HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade));
 
         b.Entity<Document>(e =>
         {
-            e.HasIndex(x => new { x.Type, x.ScopePositionId, x.Status });
+            e.HasIndex(x => new { x.Type, x.Status });
             e.Property(x => x.RowVersion).IsConcurrencyToken();
-            e.HasOne(x => x.ScopePosition).WithMany().HasForeignKey(x => x.ScopePositionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CurrentVersion).WithMany().HasForeignKey(x => x.CurrentVersionId).OnDelete(DeleteBehavior.NoAction);
         });
 
         b.Entity<DocumentParty>(e =>
         {
             e.HasOne(x => x.Document).WithMany(d => d.Parties).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Position).WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         b.Entity<DocumentVersion>(e =>
@@ -150,8 +147,44 @@ public class VipiDbContext : DbContext
 
         b.Entity<EditGrant>(e =>
         {
-            e.HasIndex(x => new { x.Vid, x.FirId }).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.FirId }).IsUnique();
             e.HasOne(x => x.Fir).WithMany().HasForeignKey(x => x.FirId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<StaffMember>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).ValueGeneratedNever();   // il UserId è l'identità IVAO, non un id DB
+            e.HasIndex(x => x.IsActive);
+        });
+
+        // --- Profilo strutturato aeroporto: tutte FK→Airport con cascade + ordinamento (AirportId, Order). ---
+        b.Entity<AirportTransitionLevel>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.TransitionLevels).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportRunway>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.Runways).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportRunwayRule>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.RunwayRules).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportSid>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.Sids).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportFrequencyLink>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.FrequencyLinks).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+            // La sorgente è una Frequency di un altro settore: se sparisce, sparisce il link (cascade).
+            e.HasOne(x => x.SourceFrequency).WithMany().HasForeignKey(x => x.SourceFrequencyId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

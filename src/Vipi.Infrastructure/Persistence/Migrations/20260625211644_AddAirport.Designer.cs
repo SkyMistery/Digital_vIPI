@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260625211644_AddAirport")]
+    partial class AddAirport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -21,12 +24,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AtisFrequency")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
@@ -40,9 +37,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TransitionAltitudeFt")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
 
                     b.HasIndex("FirId");
@@ -51,215 +45,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Airports");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("LabelOverride")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SourceFrequencyId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SourceFrequencyId");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportFrequencyLinks");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AppProcedures")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("Bearing")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Circling")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Ident")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LdaM")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("LengthM")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Patterns")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ToraM")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportRunways");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunwayRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ArrRunways")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DateParity")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("DaysOfWeekMask")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DepRunways")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool?>("Rain")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool?>("Snow")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("TimeFromUtcMin")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("TimeToUtcMin")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("WindDirFrom")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("WindDirTo")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("WindSpeedMax")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("WindSpeedMin")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportRunwayRules");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Cat")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Condition")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Fix")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("InitialClimb")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Runway")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Transition")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Wtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportSids");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportTransitionLevel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("QnhFrom")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("QnhTo")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportTransitionLevels");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
@@ -286,7 +71,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("TimestampUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -399,9 +184,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("CurrentVersionId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("FeaturedRank")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -422,7 +204,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("LockedByName")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("LockedByUserId")
+                    b.Property<int?>("LockedByVid")
                         .HasColumnType("INTEGER");
 
                     b.Property<byte[]>("RowVersion")
@@ -524,7 +306,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CreatedByUserId")
+                    b.Property<int>("CreatedByVid")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
@@ -566,17 +348,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("GrantedAtUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("GrantedByUserId")
+                    b.Property<int>("GrantedByVid")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FirId");
 
-                    b.HasIndex("UserId", "FirId")
+                    b.HasIndex("Vid", "FirId")
                         .IsUnique();
 
                     b.ToTable("EditGrants");
@@ -639,35 +421,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Frequencies");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.ImportPolicy", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportAtis")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportRunways")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportSectors")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("ImportTransitionAltitude")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ImportPolicies");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
                 {
                     b.Property<int>("Id")
@@ -725,9 +478,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("FacilityId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FirId")
@@ -841,7 +591,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("Vid")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("AtcRating")
@@ -866,7 +616,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("UserId");
+                    b.HasKey("Vid");
 
                     b.HasIndex("IsActive");
 
@@ -1031,69 +781,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Fir");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("FrequencyLinks")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Vipi.Domain.Entities.Frequency", "SourceFrequency")
-                        .WithMany()
-                        .HasForeignKey("SourceFrequencyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-
-                    b.Navigation("SourceFrequency");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("Runways")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportRunwayRule", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("RunwayRules")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("Sids")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportTransitionLevel", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("TransitionLevels")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
@@ -1307,17 +994,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
                 {
-                    b.Navigation("FrequencyLinks");
-
-                    b.Navigation("RunwayRules");
-
-                    b.Navigation("Runways");
-
                     b.Navigation("Sectors");
-
-                    b.Navigation("Sids");
-
-                    b.Navigation("TransitionLevels");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>

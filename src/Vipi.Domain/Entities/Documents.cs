@@ -5,8 +5,6 @@ public class Document
 {
     public int Id { get; set; }
     public DocumentType Type { get; set; }
-    public int? ScopePositionId { get; set; }          // per vIPI: posizione/aeroporto di riferimento
-    public Position? ScopePosition { get; set; }
     public string Title { get; set; } = default!;
     public Language Language { get; set; }             // It (vIPI) | En (vLOA) — fisso
     public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
@@ -14,16 +12,20 @@ public class Document
     public DocumentVersion? CurrentVersion { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
     public string LastUpdatedAiracCycle { get; set; } = default!; // calcolato da AiracService, es. "2606"
+    public int? FeaturedRank { get; set; }             // ordine "in evidenza" (1..3) nella card vLOA della landing ACC; null = non in evidenza
     public byte[]? RowVersion { get; set; }
 
     // Lock di editing esclusivo (PIANO sicurezza): impedisce a due editor di lavorare lo stesso documento.
-    public int? LockedByVid { get; set; }
+    public int? LockedByUserId { get; set; }
     public string? LockedByName { get; set; }
     public DateTime? LockedAtUtc { get; set; }
     public DateTime? LockExpiresUtc { get; set; }
 
     public ICollection<DocumentParty> Parties { get; set; } = new List<DocumentParty>();
     public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
+
+    /// <summary>Settori descritti da questo documento (uno-a-molti). Per le vIPI; uno è IsPrimary. SPEC §3.9.</summary>
+    public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
 }
 
 /// <summary>Parti di una vLOA (bilaterale). Non usata per le vIPI. SPEC §3.10.</summary>
@@ -32,8 +34,8 @@ public class DocumentParty
     public int Id { get; set; }
     public int DocumentId { get; set; }
     public Document? Document { get; set; }
-    public int PositionId { get; set; }
-    public Position? Position { get; set; }
+    public int SectorId { get; set; }
+    public Sector? Sector { get; set; }
     public PartyRole Role { get; set; }                // Home (IT, editabile) | Neighbour (sola lettura)
 }
 
@@ -45,7 +47,7 @@ public class DocumentVersion
     public Document? Document { get; set; }
     public int VersionNumber { get; set; }             // progressivo per documento
     public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
-    public int CreatedByVid { get; set; }              // autore (VID IVAO)
+    public int CreatedByUserId { get; set; }              // autore (UserId IVAO)
     public DateTime CreatedUtc { get; set; }
     public string AiracCycle { get; set; } = default!;
     public string? Note { get; set; }                  // changelog
