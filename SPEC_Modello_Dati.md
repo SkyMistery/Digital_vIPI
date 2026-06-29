@@ -430,3 +430,74 @@ Enum `ImportCategory { TransitionAltitude, Atis, Runways, Sectors }`. Migrazione
 
 ### 8.4 Interfacce dati **sorgente-neutre** (round 11)
 L'anagrafica/dettagli/utenti esterni passano per porte neutre in `Application/Abstractions`: `IAirportDirectory` (DTO `SourceAirport`), `IAirportDetailProvider` (`SourceAtcPosition`/`SourceRunway`), `IUserDirectory` (`SourceUserStaff`), più `IOnlineAtcProvider`. L'adapter IVAO concreto vive in `Infrastructure/Ivao/*` ed è selezionato da `DataSource:Provider` (vedi `docs/CONFIG.md` §1b). Non rientra nello schema persistito ma vincola da dove si popolano `Airport`/`Sector`/runway.
+
+---
+
+## 9. Aggiornamenti round 13–17 (28 giugno 2026) — **stato attuale del modello**
+
+> ⭐ Questa sezione **prevale** sulle §3/§4 dove in conflitto. Sorgente autorevole = `Vipi.Domain/Entities/Anagrafica.cs` + `Enums.cs` + `ImportPolicy.cs`.
+
+### 9.1 `Fir` → `Acc` (round 13)
+L'entità FIR è stata rinominata **`Acc`** in tutto il progetto (proprietà `AccId`/`AccCode`, claim `AccClaim`, tabella `Accs`; migrazione **`RenameFirToAcc`** non distruttiva). Campi aggiunti su `Acc`: **`IsMilitary`**, **`IsHidden`** (escluso dalla navigazione pubblica), **`ImportedAtUtc`**. Gli ACC **non si creano a mano**: si **importano dalla sorgente** (`/v2/centers`) in `/vsop/admin/acc`.
+
+### 9.2 Cataloghi importati `AccSector` e `AirportSector` (round 13/14)
+Due cataloghi **separati** dai `Sector` operativi (che restano la base di documenti/AoR). Chiave naturale = `ComposePosition` (callsign) univoco. Campi di origine read-only; **limiti quota** e **`IsHidden`** impostati dall'admin.
+
+**`AccSector`** (subcenter di un ACC, da `/v2/centers/{icao}/subcenters` + `/v2/subcenters/{compose}`):
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `ComposePosition` | string | univoco (es. `LIBB_ES_CTR`) |
+| `CenterId` | string FK→`Acc.Code` | alt key `AK_Accs_Code` |
+| `Position`/`MiddleIdentifier`/`Frequency` | string? | da sorgente |
+| `RegionMapPolygon` | text? | shape JSON grezzo (non ancora su mappa) |
+| `LowerLimit`/`UpperLimit` | int? | admin; default GND→UNL, FSS GND→19000 |
+| `IsHidden` | bool | derivato effettivo = `IsHidden \|\| Acc.IsHidden` |
+| `ImportedAtUtc` | datetime? | |
+
+**`AirportSector`** (postazioni d'aeroporto DEL/GND/TWR/APP, da `/v2/airports/{ICAO}/ATCPositions` + `/v2/ATCPositions/{compose}`):
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `ComposePosition` | string | univoco (es. `LIRN_TWR`) |
+| `AirportIcao` | string FK→`Airport.Icao` | alt key `AK_Airports_Icao` |
+| `AccCode` | string FK→`Acc.Code` | ACC di competenza (ereditato) |
+| `Position`/`MiddleIdentifier`/`Frequency`/`RegionMapPolygon` | — | da sorgente |
+| `LowerLimit`/`UpperLimit` | int? | admin; default inf=GND(0), sup=19500 |
+| `IsHidden` | bool | admin |
+| `IsPrimary` | bool | frequenza principale (★), unica per aeroporto (round 15) |
+| `ImportedAtUtc` | datetime? | |
+
+Import **manuale + automatico giornaliero** (`AccImportHostedService`, `AirportSectorImportHostedService`); upsert idempotente che **preserva** `IsHidden` e i limiti admin. Import **additivo** (non cancella: nasconde).
+
+### 9.3 `Airport` — campi aggiunti (round 8/12/15 + sessione hide)
+Oltre a `Id`/`Icao`/`Name`/`AccId` (round 6): **`TransitionAltitudeFt`** (int?, di sorgente), **`FeaturedRank`** (int?, "3 in evidenza" landing), **`IsHidden`** (bool, migrazione **`AddAirportHidden`**: pagina pubblica inaccessibile + escluso dagli elenchi). Visibilità pubblica effettiva = `!IsHidden && haAlmenoUnSettore` (gli aeroporti **senza settori** sono nascosti di default). Collezioni profilo strutturato: `TransitionLevels`/`Runways`/`RunwayRules`/`Sids`/`FrequencyLinks`/`ExtraSections` (§9.11) + catalogo `AirportSectors`.
+
+### 9.4 Frequenza = **attributo del settore** (round 16/17) — `Frequency` ELIMINATA
+La tabella **`Frequency`** (§3.8) è stata **rimossa** (migrazione **`DropFrequencyTable`**). La frequenza è ora **un solo attributo del settore**: **`Sector.DefaultFrequency`** (una per settore). Conseguenze:
+- **`AirportFrequencyLink`** (link "vivo") ora punta a un **`Sector`** via **`SourceSectorId`** (era `SourceFrequencyId`): risolve `Sector.DefaultFrequency` + callsign. Campo `LabelOverride` opzionale.
+- Le **frequenze del documento aeroporto** si leggono dal catalogo **`AirportSector`** non nascosto (ordine ATIS·DEL·GND·TWR·APP, ★ per il primario).
+- **`Airport.AtisFrequency` ELIMINATA** (round 16): l'ATIS è un `AirportSector` come gli altri.
+
+### 9.5 Geometria — `SectorGeometry` ELIMINATA (round 16)
+Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFormat`: mai usati. La geometria futura vive come `RegionMapPolygon` sui cataloghi `AccSector`/`AirportSector` (oggi JSON grezzo, non ancora su mappa). `VectoringMinima` (§7.5) resta **dormiente**.
+
+### 9.6 `ImportPolicy` — categoria **ATIS rimossa** (round 16)
+`enum ImportCategory { TransitionAltitude, Runways, Sectors }` (niente più `Atis`). L'entità `ImportPolicy` ha quindi `ImportTransitionAltitude`/`ImportRunways`/`ImportSectors` (+ `UpdatedUtc`/`UpdatedByUserId`); rimosso `ImportAtis`. Migrazione `SimplifyDataModel`. Vedi §8.3 (superata su questo punto).
+
+### 9.7 Enumerazioni — stato attuale
+`SectorType { Del, Gnd, Twr, ITwr, App, Ctr }` · `SectorKind { Airport, Acc }` · `ApproachKind { Remotized, Standalone }` · `DateParity { Any, Even, Odd }` (regole pista, round 9) · `ImportCategory { TransitionAltitude, Runways, Sectors }`. Rimosso `GeometryFormat`.
+
+### 9.8 Migrazioni (ordine attuale)
+`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → **`AddAirportExtraSection`**.
+
+### 9.9 `AirportRunwayRule` — regole pista a soglie operative (sessione 28 giu)
+Le condizioni vento-arco/velocità/pioggia-neve sono state sostituite da **soglie operative per-regola**. Su `AirportRunwayRule`: **rimossi** `WindDirFrom/WindDirTo/WindSpeedMin/WindSpeedMax/Rain/Snow`; **aggiunti** `Name` (etichetta), **`MaxTailwindKt`** (int, default 5), **`MaxCrosswindKt`** (int?, null = nessun vincolo), **`Surface`** (enum **`RunwaySurface { Any, Dry, Wet }`**, Wet = pioggia/neve nel METAR). `Order` = priorità (prima regola applicabile vince); `DepRunways/ArrRunways/Note` invariati; i filtri temporali (orario/giorni/parità + finestra stagionale §9.10) restano come **filtro di eleggibilità opzionale** (avanzate, caso Malpensa). Tailwind/crosswind sono **calcolati dal vento** (non più inseriti come direzione). Su `Airport` **nessuna soglia** (sono per-regola). Selezione in `Application/Weather/RunwaySuggestion.EvaluateRules(rules, windDir, windKt, wet, now)`; se nessuna regola si applica → fallback `Suggest()`. Migrazione **`RunwayRuleThresholds`** (drop 6 colonne, add `Name`/`MaxTailwindKt`/`MaxCrosswindKt`/`Surface`, svuota le vecchie righe).
+
+### 9.10 `AirportRunwayRule` — orari in **ora locale (LT)** + finestra di validità **stagionale** (round 18, sessione 29 giu)
+Due rifiniture al filtro di eleggibilità avanzato delle regole pista:
+- **Orari in ora locale (LT), non più UTC/Z.** Gli orari AIP sono in ora locale: i campi `TimeFromUtcMin/TimeToUtcMin` sono stati **rinominati** in **`TimeFromLocalMin/TimeToLocalMin`** (minuti da mezzanotte **locale**, 0..1439). `EvaluateRules` converte l'istante UTC in **ora locale italiana** (CET/CEST con DST, `TimeZoneInfo` `Europe/Rome`→`W. Europe Standard Time`→UTC come fallback) **prima** di valutare orario, giorni, parità e stagione. UI: etichette «da/a (LT)»; documento: «08:00–20:00 LT». Migrazione **`RenameRunwayRuleTimeToLocal`** (`RenameColumn`, preserva i valori).
+- **Finestra di validità stagionale ricorrente.** Nuovi `int?` **`DateFromMonthDay`/`DateToMonthDay`** in codifica **MMDD** (mese×100+giorno, es. `101`=1 gen, `331`=31 mar), estremi inclusi, **anno ignorato** (si ripete ogni anno) e **wrap di fine anno** gestito (es. `1101`→`0228`). Entrambi null = nessun vincolo. Editor: selettori giorno+mese (no anno); un estremo conta solo se **giorno e mese** sono entrambi valorizzati. Logica in `RunwaySuggestion.DateInWindow`. Migrazione **`AddRunwayRuleDateWindow`** (2 colonne INTEGER nullable).
+
+### 9.11 `AirportExtraSection` — sezioni editoriali libere (round 18, sessione 29 giu)
+Nuova entità del **profilo strutturato** aeroporto: sezioni di testo libero indipendenti dalle sezioni standard. Campi: `Id`, `AirportId` (FK→`Airport`, cascade), `Order` (priorità di visualizzazione), **`Title`** (obbligatorio), **`Body`** (testo libero nullable, a capo preservati). Collezione `Airport.ExtraSections`. Editate dal pannello **«Sezioni extra»** dell'editor aeroporto (add/rimuovi/riordina); nel **viewer** sono rese **direttamente dal profilo** (come Piste/Frequenze, non dal documento pubblicato): **colonna libera di destra** (`aside.doc-rail`, desktop ≥1500px) e **copia inline sotto le SID** su schermi stretti (`.extra-inline`, nascosta da CSS ≥1500px). Salvataggio ACC-gated (`SaveExtraSectionsAsync`, titolo obbligatorio). Migrazione **`AddAirportExtraSection`** (nuova tabella + indice `(AirportId, Order)`). **Non** scritte in `RebuildDocumentAsync` (il viewer le compone dal profilo) — eventuale inclusione nel documento pubblicato è un follow-up.

@@ -66,7 +66,9 @@ Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `
 | `Ivao:CentersPath` | string | `/v2/centers` | Anagrafica ACC/center (paginato). Scope `configuration`. |
 | `Ivao:SubcentersPathFormat` | string | `/v2/centers/{0}/subcenters` | Template settori (subcenter) di un ACC; `{0}` = ICAO ACC. |
 | `Ivao:SubcenterDetailPathFormat` | string | `/v2/subcenters/{0}` | Template dettaglio subcenter (freq + regionMapPolygon); `{0}` = composePosition. |
+| `Ivao:AtcPositionDetailPathFormat` | string | `/v2/ATCPositions/{0}` | Template dettaglio postazione ATC d'aeroporto (freq/shape/limiti); `{0}` = composePosition (es. `LIRN_TWR`). |
 | `Ivao:AccImportHours` | int | `24` | Ogni quante ore re-importare automaticamente ACC + settori ACC (job giornaliero). |
+| `Ivao:AirportSectorImportHours` | int | `24` | Ogni quante ore re-importare automaticamente i settori ATC degli aeroporti (`AirportSector`, job giornaliero). |
 | `Ivao:ClientId` | string | `""` | Credenziale app-to-app. **Vuota ⇒ nessun Bearer** (il tracker è pubblico). → §5 secrets. |
 | `Ivao:ClientSecret` | string | `""` | Segreto app-to-app. → §5 secrets. |
 
@@ -196,7 +198,7 @@ In sviluppo (`useDevIdentity:true`) si usa l'utente fittizio e questa sezione è
 ## 9. Endpoint operativi
 - `GET /sop/health` — health del modulo (`Healthy`/`Degraded` se la cache ATC non è fresca/`Unhealthy` se il DB è giù).
 - `GET /sop/admin/audit` — viewer audit (admin): pubblicazioni e modifiche permessi.
-- `GET /sop/admin/sorgenti` — **policy di import** (admin): decide quali categorie (TA, ATIS, Piste, Settori) arrivano dalla sorgente (sola lettura) o restano manuali. Vedi §10.
+- `GET /sop/admin/sorgenti` — **policy di import** (admin): decide quali categorie (TA, Piste, Settori) arrivano dalla sorgente (sola lettura) o restano manuali. Vedi §10.
 
 ## 10. Policy di import (sorgenti dati) — non da appsettings
 
@@ -209,9 +211,10 @@ La provenienza dei dati che la sorgente può fornire è governata da una **polic
 | Categoria | Campi di sorgente |
 |---|---|
 | `TransitionAltitude` | `Airport.TransitionAltitudeFt` |
-| `Atis` | `Airport.AtisFrequency` |
 | `Runways` | `AirportRunway.Ident/LengthM/Bearing` |
 | `Sectors` | settori d'aeroporto (callsign/tipo/frequenza) |
+
+> La categoria **ATIS** è stata **rimossa** (round 16): l'ATIS non è più un campo dell'aeroporto ma un `AirportSector` come gli altri; la sua frequenza segue la categoria `Sectors`.
 
 I campi **editoriali** (regole pista, SID, livelli TL, link frequenze, gerarchia settori) non sono categorie:
 restano sempre dell'utente.

@@ -61,10 +61,10 @@
 | `/vsop/{acc}/topologia` | `TopologiaPage.razor` | Topologia/simulatore | admin/grant ACC |
 | `/vsop/{acc}/editor-trasferimenti` | `XferEditorPage.razor` | Editor trasferimenti | admin/grant ACC |
 | `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
-| `/vsop/{acc}/aeroporto/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto | admin/grant ACC |
+| `/vsop/{acc}/airports/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto (profilo + settori ATC importati: mostra/nascondi + limiti) | admin/grant ACC |
 | `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |
 | `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | Settori/contenimento/frequenze/documenti (ex `/admin/struttura`, redirect 301) | admin |
-| `/vsop/admin/aeroporti` | `AeroportiPage.razor` | Gestione aeroporti | admin |
+| `/vsop/admin/airports` | `AeroportiPage.razor` | Gestione aeroporti (filtro per ACC; colonna **Stato** + mostra/nascondi; alias legacy `/vsop/admin/aeroporti`) | admin |
 | `/vsop/admin/permessi` | `AdminGrantsPage.razor` | Permessi editing | admin |
 | `/vsop/admin/sorgenti` | `SorgentiAdminPage.razor` | Policy import sorgenti | admin |
 | `/vsop/admin/audit` | `AuditPage.razor` | Audit log | admin |
@@ -78,5 +78,8 @@
   Senza selezione, la landing mostra i primi 3 per ICAO/callsign/titolo.
 - **Conteggio ATC online in Home:** one-shot, conta i callsign il cui primo token = codice ACC
   (es. `LIRR_NE_CTR`). Le torri/APP degli aeroporti non sono ancora contate (follow-up).
+- **Aeroporti nascosti:** `Airport.IsHidden` (toggle in `/vsop/admin/airports`) rende la pagina
+  `/vsop/{acc}/airports?icao=` inaccessibile al pubblico e toglie l'aeroporto dagli elenchi/landing.
+  Gli aeroporti **senza alcun settore** sono nascosti di default (`IsPublic = !IsHidden && Sectors>0`).
 - **Editor:** non rivisti in questo round ("poi ragioniamo sugli editor"). Restano raggiungibili
   dalla sezione Admin della landing ACC, invariati.

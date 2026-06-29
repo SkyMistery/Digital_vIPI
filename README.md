@@ -17,6 +17,16 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 
 > 🔌 **Round 11 — Indipendenza dalla sorgente + policy di import.** Le porte dati esterne sono **interfacce neutre** (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`, DTO `Source*`); l'adapter IVAO è UNA implementazione scelta via **`DataSource:Provider`**. Tutto ciò che la sorgente fornisce è **importato e in sola lettura** (policy globale **opt-out**, entità `ImportPolicy`, pagina admin **`/sop/admin/sorgenti`**): TA e piste non sono più editabili dagli utenti se importate. `Vid`→`UserId` nel codice e nel DB (migrazione `Rename_Vid_To_UserId`; a video resta "VID"). Vedi `SPEC_Modello_Dati.md` e `HANDOFF.md` (Round 10/11).
 
+> 🗺️ **Round 12 — Rebuild pagine, prefisso `/sop` → `/vsop`** (redirect 301 dai vecchi URL). Home/landing ACC snellite; aeroporti su `/vsop/{acc}/airports` (elenco/doc con `?icao=`), APP su `/vsop/{acc}/apps`; "3 in evidenza" (`FeaturedRank`) dall'editor ACC. Pagine fuori scope disabilitate (codice intatto). **Fonte rapida: `MAPPA_PAGINE.md` + `PAGINE_DISABILITATE.md`.**
+
+> 🛰️ **Round 13–17 — ACC/settori importati + semplificazione dati.** ACC e settori si **importano dalla sorgente** (`/vsop/admin/acc`: `/v2/centers` + subcenter); nuovi cataloghi **`AccSector`**/**`AirportSector`** (chiave `ComposePosition`, mostra/nascondi + limiti quota admin, `IsPrimary` per la frequenza ★). Documenti aeroporto **rigenerati in automatico** all'import. **Semplificazione modello:** la frequenza è ora un **attributo del settore** (`Sector.DefaultFrequency`) — entità **`Frequency` eliminata** (`DropFrequencyTable`), link freq ri-puntati al `Sector`; rimossi `SectorGeometry`, `Airport.AtisFrequency` e la categoria policy **ATIS** (`SimplifyDataModel`). `Fir`→`Acc` ovunque (`RenameFirToAcc`). Dettagli: `SPEC_Modello_Dati.md` §9 + `HANDOFF.md`.
+
+> 🙈 **Hide aeroporti.** `Airport.IsHidden` (migrazione `AddAirportHidden`): in `/vsop/admin/airports` un aeroporto si può **nascondere** (pagina pubblica inaccessibile + escluso dagli elenchi). Gli aeroporti **senza alcun settore** sono **nascosti di default** (`IsPublic = !IsHidden && Sectors>0`).
+
+> 🛬 **Regole pista a soglie operative.** Le `AirportRunwayRule` non hanno più condizioni vento-arco/velocità: ogni regola dice *quando le piste indicate hanno **coda ≤ X kt**, **traverso ≤ Y kt** (opz.) e **superficie** corrispondente (`RunwaySurface{Any,Dry,Wet}`), sono preferenziali per DEP/ARR*. Coda/traverso sono calcolati dal vento; valutate in ordine (prima regola applicabile vince), fallback al miglior vento di testa. Orario/giorni/parità + finestra stagionale restano in «Avanzate». Logica `RunwaySuggestion.EvaluateRules`; migrazione `RunwayRuleThresholds`. Vedi `SPEC_Modello_Dati.md` §9.9.
+
+> 🗓️ **Round 18 — Regole pista in ora locale + finestra stagionale, sezioni extra.** Gli orari delle «Avanzate» sono ora in **ora locale (LT, come in AIP)**, non più Z: `TimeFrom/ToUtcMin`→`TimeFrom/ToLocalMin`, conversione UTC→ora italiana (CET/CEST) in `EvaluateRules` (migrazione `RenameRunwayRuleTimeToLocal`). Nuova **finestra di validità stagionale ricorrente** per regola (`DateFromMonthDay`/`DateToMonthDay` in MMDD, solo giorno+mese, wrap di fine anno; migrazione `AddRunwayRuleDateWindow`). Nuove **`AirportExtraSection`** (titolo + testo libero, pannello editor «Sezioni extra»): nel viewer vanno nella **colonna libera di destra** (desktop) / **sotto le SID** (schermi stretti); migrazione `AddAirportExtraSection`. Dettagli: `SPEC_Modello_Dati.md` §9.10–9.11.
+
 ## Architettura (Clean Architecture — ADR-0001 D2, ADR-0002)
 
 | Progetto | Ruolo | Dipende da |
@@ -44,8 +54,8 @@ Integrazione passo-passo in **`docs/INTEGRATION.md`**.
 
 ```bash
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx            # 106 test (AoR S1–S10, editing, lock/authz/concorrenza, ricerca, changed, AIRAC, polling IVAO, primo-online, profilo aeroporto, policy import)
-dotnet run --project src/Vipi.Host   # poi apri /sop
+dotnet test  Vipi.slnx            # 122 test (AoR S1–S10, editing, lock/authz/concorrenza, ricerca, changed, AIRAC, polling IVAO, primo-online, profilo aeroporto, regole pista a soglie + finestra stagionale, policy import, import ACC/settori, hide aeroporti)
+dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
 
 Il DB SQLite viene creato/migrato all'avvio dell'host (`Data Source=vipi.db`, override via

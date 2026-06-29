@@ -30,7 +30,9 @@ L'implementazione IVAO resta in `Infrastructure/Ivao/*` (mantiene i nomi `Ivao*`
 Il modello utente e le colonne DB non portano più un nome legato a IVAO: `CurrentUser.UserId`, `HostIdentityOptions.UserIdClaim`, e i campi `*UserId` (migrazione `Rename_Vid_To_UserId`). Le **label a video restano "VID"** — è il termine che i controllori usano — ma il codice è neutro.
 
 ### D4 — Policy di import globale **opt-out**
-Una entità `ImportPolicy` (riga singola, default tutto importato) decide, per categoria (`ImportCategory { TransitionAltitude, Atis, Runways, Sectors }`), se il dato è **di sorgente** (autorevole, sola lettura) o **manuale**. Default opt-out: tutto importato; il gestore esclude singole categorie in **`/sop/admin/sorgenti`**. Granularità **globale** (predisposta per un futuro override per-aeroporto senza cambiare i punti di enforcement).
+Una entità `ImportPolicy` (riga singola, default tutto importato) decide, per categoria (`ImportCategory { TransitionAltitude, Runways, Sectors }`), se il dato è **di sorgente** (autorevole, sola lettura) o **manuale**. Default opt-out: tutto importato; il gestore esclude singole categorie in **`/sop/admin/sorgenti`**. Granularità **globale** (predisposta per un futuro override per-aeroporto senza cambiare i punti di enforcement).
+
+> 📝 **Aggiornamento round 16.** La categoria **`Atis`** è stata **rimossa**. Con la semplificazione del modello la **frequenza è un attributo del settore** (`Sector.DefaultFrequency`, una per settore) e l'ATIS è un `AirportSector` come gli altri (non più `Airport.AtisFrequency`, eliminato): la sua frequenza ricade quindi nella categoria `Sectors`. Migrazione `SimplifyDataModel`. L'enum attuale è `ImportCategory { TransitionAltitude, Runways, Sectors }`.
 
 ### D5 — Enforcement a difesa in profondità
 Per le categorie importate: (a) **editor read-only** con badge 🔒 (`AeroportoEditorPage`), (b) **guard nei service** che rifiutano la scrittura (`ValidationException`), (c) **import policy-aware** — `ReimportFromSourceAsync` non passa al merge le categorie escluse, quindi i dati manuali dell'utente non vengono mai toccati. I campi **editoriali** (regole pista, SID, livelli TL, link frequenze, gerarchia settori) non sono categorie: sempre dell'utente.
@@ -65,4 +67,4 @@ Per le categorie importate: (a) **editor read-only** con badge 🔒 (`AeroportoE
 - Config: `DataSource:Provider` (default `Ivao`); `Ivao` resta la sezione dell'adapter concreto.
 - Storage policy: `ImportPolicy` (migrazione `AddImportPolicy`), `IImportPolicyStore`/`EfImportPolicyStore` (get-or-create riga 1), servizio admin `IImportPolicyService` (gate `EnsureAdmin`).
 - Enforcement: `AirportProfileService.SetTransitionAltitudeAsync`/`SaveRunwaysAsync`, `StructureEditingService.AddSectorAsync`, `ReimportFromSourceAsync`; UI `AeroportoEditorPage` + `SorgentiAdminPage`.
-- Test: `ImportPolicyTests` (store, guard, reimport policy-aware). Suite a 106 test verde.
+- Test: `ImportPolicyTests` (store, guard, reimport policy-aware). Suite a 118 test verde.
