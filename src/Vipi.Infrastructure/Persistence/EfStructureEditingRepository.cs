@@ -50,7 +50,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
         var airports = await _db.Airports.AsNoTracking().Where(a => a.AccId == acc.Id)
             .OrderBy(a => a.Icao)
-            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank))
+            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden))
             .ToListAsync(ct);
 
         var sectors = await _db.Sectors.AsNoTracking().Where(s => s.AccId == acc.Id)
@@ -58,12 +58,6 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             .Select(s => new SectorRow(
                 s.Id, s.Callsign, s.Type, s.Kind, s.Name, s.DefaultFrequency, s.CoverageOrder,
                 s.ApproachKind, s.ParentSectorId, s.AirportId, s.AirportIcao, s.IsActive, s.DocumentId, s.IsPrimary, s.FeaturedRank))
-            .ToListAsync(ct);
-
-        var secIds = sectors.Select(s => s.Id).ToHashSet();
-        var frequencies = await _db.Frequencies.AsNoTracking()
-            .Where(fq => secIds.Contains(fq.SectorId))
-            .Select(fq => new FrequencyRow(fq.Id, fq.SectorId, fq.Label, fq.Callsign, fq.FrequencyMhz, fq.IsPrimary))
             .ToListAsync(ct);
 
         // vLOA pubblicate della ACC (centro confinante = party Neighbour); ordine card = FeaturedRank poi titolo.
@@ -84,7 +78,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         return new StructureData
         {
             AccId = acc.Id, AccCode = acc.Code, AccName = acc.Name,
-            Airports = airports, Sectors = sectors, Frequencies = frequencies, Vloas = vloas,
+            Airports = airports, Sectors = sectors, Vloas = vloas,
         };
     }
 
@@ -167,8 +161,18 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         await _db.Airports.AsNoTracking()
             .OrderBy(a => a.Acc!.Code).ThenBy(a => a.Icao)
             .Select(a => new AirportAdminRow(a.Id, a.Icao, a.Name, a.Acc!.Code, a.Sectors.Count,
-                a.Sectors.Any(s => s.Type == SectorType.Twr || s.Type == SectorType.ITwr)))
+                a.Sectors.Any(s => s.Type == SectorType.Twr || s.Type == SectorType.ITwr), a.IsHidden))
             .ToListAsync(ct);
+
+    public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)
+    {
+        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
+        var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct)
+            ?? throw new InvalidOperationException("Aeroporto inesistente nella ACC indicata.");
+        if (airport.IsHidden == hidden) return;
+        airport.IsHidden = hidden;
+        await _db.SaveChangesAsync(ct);
+    }
 
     public async Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()
@@ -217,7 +221,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var posByType = positions.GroupBy(p => p.Type).ToDictionary(g => g.Key, g => g.First());
         var created = 0;
 
-        Sector? GetOrCreate(SectorType type, int coverage, string label)
+        Sector? GetOrCreate(SectorType type, int coverage, string label, ApproachKind? approachKind = null)
         {
             if (!posByType.TryGetValue(type, out var p)) return null;
             if (byCallsign.TryGetValue(p.Callsign, out var ex)) return ex;
@@ -225,7 +229,8 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             {
                 AccId = accId, Callsign = p.Callsign, Type = type, Kind = SectorKind.Airport,
                 Name = $"{icao} {label}", DefaultFrequency = p.Frequency, CoverageOrder = coverage,
-                AirportId = airport.Id, AirportIcao = icao, ImportedAtUtc = DateTime.UtcNow, IsActive = true,
+                AirportId = airport.Id, AirportIcao = icao, ApproachKind = approachKind,
+                ImportedAtUtc = DateTime.UtcNow, IsActive = true,
             };
             _db.Sectors.Add(s);
             byCallsign[p.Callsign] = s;
@@ -233,15 +238,18 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             return s;
         }
 
+        // APP d'aeroporto trattato come remotizzato (la doc vive nella vIPI di ACC).
+        var app = GetOrCreate(SectorType.App, 5, "Approach", ApproachKind.Remotized);
         var twr = GetOrCreate(SectorType.Twr, 10, "Tower");
         var gnd = GetOrCreate(SectorType.Gnd, 20, "Ground");
         var del = GetOrCreate(SectorType.Del, 30, "Clearance Delivery");
-        // Contenimento top-down DEL→GND→TWR (solo per i settori appena creati e senza padre).
-        if (gnd is not null && twr is not null && gnd.ParentSectorId is null) gnd.ParentSector = twr;
-        if (del is not null && (gnd ?? twr) is Sector delParent && del.ParentSectorId is null) del.ParentSector = delParent;
+        // Contenimento top-down APP→TWR→GND→DEL (solo per i settori appena creati e senza padre).
+        if (twr is not null && app is not null && twr.ParentSectorId is null) twr.ParentSector = app;
+        if (gnd is not null && (twr ?? app) is Sector gndParent && gnd.ParentSectorId is null) gnd.ParentSector = gndParent;
+        if (del is not null && (gnd ?? twr ?? app) is Sector delParent && del.ParentSectorId is null) del.ParentSector = delParent;
 
         // Fallback: nessun settore d'aeroporto (né creato né preesistente) → crea almeno il TWR.
-        var hasAirportSector = twr is not null || gnd is not null || del is not null
+        var hasAirportSector = app is not null || twr is not null || gnd is not null || del is not null
             || accSectors.Any(s => s.AirportId == airport.Id);
         if (!hasAirportSector)
         {
@@ -303,44 +311,17 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             && !await _db.Sectors.AnyAsync(s => s.AirportId == aid && s.Id != sectorId
                 && (s.Type == SectorType.Twr || s.Type == SectorType.ITwr), ct))
             throw new InvalidOperationException("Impossibile eliminare l'unica torre (TWR/I_TWR) dell'aeroporto: ogni aeroporto deve mantenerne almeno una.");
-        var fq = _db.Frequencies.Where(x => x.SectorId == sectorId);
-        _db.Frequencies.RemoveRange(fq);
         _db.Sectors.Remove(sector);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
-        string frequencyMhz, bool isPrimary, CancellationToken ct = default)
+    public async Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default)
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == sectorId && s.AccId == fid, ct)
-            ?? throw new InvalidOperationException("Settore non appartiene alla ACC.");
-
-        if (isPrimary)
-        {
-            // Una sola primaria per settore: declassa le altre.
-            var others = _db.Frequencies.Where(x => x.SectorId == sectorId && x.IsPrimary);
-            await others.ForEachAsync(x => x.IsPrimary = false, ct);
-        }
-
-        var freq = new Frequency
-        {
-            SectorId = sectorId, Label = label,
-            Callsign = string.IsNullOrWhiteSpace(callsign) ? sector.Callsign : callsign,
-            FrequencyMhz = frequencyMhz, IsPrimary = isPrimary,
-        };
-        _db.Frequencies.Add(freq);
-        await _db.SaveChangesAsync(ct);
-        return freq.Id;
-    }
-
-    public async Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default)
-    {
-        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
-        var freq = await _db.Frequencies
-            .FirstOrDefaultAsync(x => x.Id == frequencyId && x.Sector!.AccId == fid, ct);
-        if (freq is null) return;
-        _db.Frequencies.Remove(freq);
+                     ?? throw new InvalidOperationException("Settore inesistente nella ACC.");
+        var f = (frequencyMhz ?? "").Trim();
+        sector.DefaultFrequency = f.Length == 0 ? null : f;
         await _db.SaveChangesAsync(ct);
     }
 

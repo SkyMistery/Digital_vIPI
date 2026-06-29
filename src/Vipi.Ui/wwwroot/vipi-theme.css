@@ -78,6 +78,8 @@
 .screen{display:none}
 .screen.active{display:block}
 .wrap{width:100%;max-width:1640px;margin:0 auto;padding:30px clamp(24px,3.5vw,64px) 70px}
+/* pagine di lavoro (admin struttura/aeroporti/acc): usano tutta la larghezza disponibile */
+.wrap.struct{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 /* su schermi molto larghi il contenuto di sola lettura resta leggibile, non stirato */
 .reading-cap{max-width:1180px}
 .breadcrumb{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
@@ -134,6 +136,8 @@
 @media(min-width:1500px){
   .doc-layout{grid-template-columns:248px minmax(0,1fr) 308px}
   .doc-rail{display:block;position:sticky;top:84px;align-self:start}
+  /* le sezioni extra vivono nel rail di destra: la copia inline (sotto le SID) si nasconde */
+  .extra-inline{display:none}
 }
 .rail-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;margin-bottom:16px}
 .rail-card h5{margin:0 0 11px;font-size:12px;color:var(--ivao-blue);text-transform:uppercase;letter-spacing:.05em;font-family:'Nunito Sans';display:flex;align-items:center;gap:7px}
@@ -177,9 +181,9 @@
 .sep-grid .it{background:#fff;border:1px solid #d8e0fb;border-radius:9px;padding:10px 12px}
 .sep-grid .it b{display:block;font-family:'Nunito Sans';color:var(--ivao-blue);font-size:16px}
 /* frequenza principale evidenziata */
-.freq-table tr.primary td{background:#eef1fb;font-weight:600}
-.freq-table tr.primary td:first-child{box-shadow:inset 3px 0 0 var(--ivao-blue)}
-.freq-key{color:var(--ivao-yellow);font-size:13px}
+.freq-table tr.primary td{background:#e2e8ff;font-weight:700;color:var(--ivao-blue)}
+.freq-table tr.primary td:first-child{box-shadow:inset 4px 0 0 var(--ivao-blue)}
+.freq-key{color:#e8a800;font-size:13px;text-shadow:0 0 1px rgba(0,0,0,.15)}
 .freq-edit{font-size:13px;margin-top:4px}
 .freq-edit tr.primary td{background:#eef1fb;font-weight:600}
 .freq-edit td,.freq-edit th{padding:7px 9px}
@@ -574,6 +578,9 @@
 .se-row:last-child{margin-bottom:0}
 .se-row label{font-size:11.5px;font-weight:600;color:var(--ink-soft);font-family:'Nunito Sans';text-transform:uppercase;letter-spacing:.03em;min-width:92px}
 .se-row input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:'Poppins';font-size:13px;flex:1}
+.se-row select{border:1px solid var(--line);border-radius:7px;padding:6px 28px 6px 10px;font-family:'Poppins';font-size:13px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s}
+.se-row select:hover{border-color:#b9c4ee}
+.se-row select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px #e2e8ff}
 .dual-tabs{display:inline-flex;background:#eef1fb;border-radius:9px;padding:3px;margin-bottom:10px}
 .dual-tab{border:0;background:transparent;color:var(--ivao-lightblue);padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Poppins';font-size:12.5px}
 .dual-tab.on{background:#fff;color:var(--ivao-blue);font-weight:600;box-shadow:0 1px 3px rgba(13,44,153,.12)}
@@ -748,3 +755,14 @@
 .rule-rwys > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rule-days .pill, .rule-rwys .pill { cursor: pointer; user-select: none; }
 .rule-note { margin-top: 10px; }
+
+/* Tabella Piste con evidenza pista consigliata (arrivi=verde, partenze=blu, entrambi=alternanza). */
+.rwy-table{width:100%;border-collapse:collapse}
+.rwy-table th,.rwy-table td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+.rwy-table th{font-family:'Nunito Sans',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--ink-soft);font-size:11.5px}
+.rwy-table tr.rwy-arr td{background:#e6f6ec}
+.rwy-table tr.rwy-dep td{background:#e7ecfc}
+.rwy-table tr.rwy-both td{background:repeating-linear-gradient(45deg,#e6f6ec,#e6f6ec 11px,#e7ecfc 11px,#e7ecfc 22px)}
+.rwy-key{display:inline-block;padding:1px 8px;border-radius:11px;font-weight:700;font-size:11.5px}
+.rwy-key.arr{background:#d6f0df;color:#1a7f37}
+.rwy-key.dep{background:#dbe3fb;color:#0d2c99}

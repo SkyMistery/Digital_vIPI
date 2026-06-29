@@ -49,16 +49,6 @@ public static class RomaStructureSeed
         db.Sectors.AddRange(ptwr, ftwr);
         await db.SaveChangesAsync(ct);
 
-        // --- Frequenze (una primaria per settore) ---
-        db.Frequencies.AddRange(
-            F(ne.Id, "Roma Radar NE", "LIRR_NE_CTR", "128.800", true),
-            F(su.Id, "Roma Radar SU", "LIRR_SU_CTR", "125.100", true),
-            F(ew.Id, "Roma Radar EW", "LIRR_EW_CTR", "133.250", true),
-            F(ts.Id, "Roma Radar TS", "LIRR_TS_CTR", "132.700", true),
-            F(ptwr.Id, "Pisa Torre", "LIRP_TWR", "118.300", true),
-            F(ftwr.Id, "Fiumicino Torre", "LIRF_TWR", "118.700", true));
-
-        await db.SaveChangesAsync(ct);
         return acc.Id;
     }
 
@@ -71,7 +61,4 @@ public static class RomaStructureSeed
             Airport = airport, AirportIcao = airport?.Icao,
             ImportedAtUtc = DateTime.UtcNow, IsActive = true,
         };
-
-    private static Frequency F(int sectorId, string label, string callsign, string mhz, bool primary) =>
-        new() { SectorId = sectorId, Label = label, Callsign = callsign, FrequencyMhz = mhz, IsPrimary = primary };
 }

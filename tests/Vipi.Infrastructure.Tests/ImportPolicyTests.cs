@@ -40,6 +40,8 @@ public class ImportPolicyTests : IAsyncLifetime
         public List<SourceRunway> Runways { get; } = new();
         public Task<IReadOnlyList<SourceAtcPosition>> GetAtcPositionsAsync(string icao, CancellationToken ct = default)
             => Task.FromResult((IReadOnlyList<SourceAtcPosition>)Positions);
+        public Task<SourceAtcPosition?> GetAtcPositionDetailAsync(string composePosition, CancellationToken ct = default)
+            => Task.FromResult(Positions.FirstOrDefault(p => p.Callsign == composePosition));
         public Task<IReadOnlyList<SourceRunway>> GetRunwaysAsync(string icao, CancellationToken ct = default)
             => Task.FromResult((IReadOnlyList<SourceRunway>)Runways);
     }
@@ -72,12 +74,11 @@ public class ImportPolicyTests : IAsyncLifetime
     public async Task Store_Defaults_To_All_Imported_And_RoundTrips()
     {
         var def = await _store.GetAsync();
-        Assert.True(def is { TransitionAltitude: true, Atis: true, Runways: true, Sectors: true });
+        Assert.True(def is { TransitionAltitude: true, Runways: true, Sectors: true });
 
-        await _store.SaveAsync(new ImportPolicySnapshot(false, true, false, true), updatedByUserId: 42);
+        await _store.SaveAsync(new ImportPolicySnapshot(false, false, true), updatedByUserId: 42);
         var saved = await _store.GetAsync();
         Assert.False(saved.TransitionAltitude);
-        Assert.True(saved.Atis);
         Assert.False(saved.Runways);
         Assert.True(saved.Sectors);
     }
@@ -91,7 +92,7 @@ public class ImportPolicyTests : IAsyncLifetime
         await Assert.ThrowsAsync<ValidationException>(() => svc.SetTransitionAltitudeAsync("LIRF", 6000));
 
         // Escludendo TA, la scrittura passa e persiste.
-        await _store.SaveAsync(new ImportPolicySnapshot(false, true, true, true), 1);
+        await _store.SaveAsync(new ImportPolicySnapshot(false, true, true), 1);
         await svc.SetTransitionAltitudeAsync("LIRF", 6000);
         var ta = (await _db.Airports.AsNoTracking().FirstAsync(a => a.Icao == "LIRF")).TransitionAltitudeFt;
         Assert.Equal(6000, ta);
@@ -101,7 +102,7 @@ public class ImportPolicyTests : IAsyncLifetime
     public async Task Runways_Locked_Rejects_Geometry_Change_But_Allows_Editorial()
     {
         var profile = new EfAirportProfileRepository(_db);
-        await profile.MergeFromSourceAsync("LIRF", null, null, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", null, new[] { ("16L", (int?)3902, (int?)160) });
         var svc = BuildService();
         var stored = (await profile.LoadAsync("LIRF"))!.Runways.Single();
 
@@ -121,10 +122,10 @@ public class ImportPolicyTests : IAsyncLifetime
     {
         var profile = new EfAirportProfileRepository(_db);
         // Stato iniziale editoriale dell'utente: TA 4000 + pista 16L lunga 3902.
-        await profile.MergeFromSourceAsync("LIRF", 4000, null, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 4000, new[] { ("16L", (int?)3902, (int?)160) });
 
         // Escludo TA e Piste → reimport non deve toccarle, anche se la sorgente fornisce valori diversi.
-        await _store.SaveAsync(new ImportPolicySnapshot(false, true, false, true), 1);
+        await _store.SaveAsync(new ImportPolicySnapshot(false, false, true), 1);
         var dir = new FakeDirectory();
         dir.Airports.Add(new SourceAirport("LIRF", "Roma Fiumicino", "LIRR", null, 9000));
         var det = new FakeDetails();

@@ -24,6 +24,9 @@ public interface IStructureEditingService
 
     /// <summary>Gestione aeroporti (admin): elenco cross-ACC + settori per i menu.</summary>
     Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default);
+
+    /// <summary>Nasconde/mostra un aeroporto (ACC-gated): la pagina pubblica e gli elenchi non lo mostrano più.</summary>
+    Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
     /// <summary>
@@ -38,6 +41,12 @@ public interface IStructureEditingService
     /// </summary>
     Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default);
 
+    /// <summary>
+    /// Variante di sistema (NESSUNA authz) di <see cref="GenerateAirportDocumentAsync"/>: usata dai job di
+    /// import automatico e dopo l'import dei settori. Da NON esporre a input utente diretto.
+    /// </summary>
+    Task<AirportDocResult> EnsureAirportDocumentSystemAsync(string icao, CancellationToken ct = default);
+
     Task<int> AddSectorAsync(string accCode, string callsign, SectorType type, SectorKind kind, string name,
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default);
@@ -50,9 +59,8 @@ public interface IStructureEditingService
     /// <summary>Imposta le vLOA "in evidenza" della ACC (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
     Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default);
 
-    Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
-        string frequencyMhz, bool isPrimary, CancellationToken ct = default);
-    Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default);
+    /// <summary>Imposta la frequenza (Sector.DefaultFrequency) di un settore della ACC.</summary>
+    Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IStructureEditingService"/>
@@ -64,10 +72,13 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly IAirportDirectory _directory;
     private readonly IAirportDetailProvider _details;
     private readonly IImportPolicyStore _policy;
+    private readonly IAirportSectorRepository _airportSectors;
+    private readonly IAirportSectorImporter _sectorImporter;
 
     public StructureEditingService(
         IStructureEditingRepository repo, IAirportProfileRepository profile, IEditAuthorizationService authz,
-        IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy)
+        IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
+        IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter)
     {
         _repo = repo;
         _profile = profile;
@@ -75,6 +86,8 @@ public sealed class StructureEditingService : IStructureEditingService
         _directory = directory;
         _details = details;
         _policy = policy;
+        _airportSectors = airportSectors;
+        _sectorImporter = sectorImporter;
     }
 
     public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -130,6 +143,12 @@ public sealed class StructureEditingService : IStructureEditingService
         return _repo.ListAllAirportsAsync(ct);
     }
 
+    public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetAirportHiddenAsync(accCode, airportId, hidden, ct);
+    }
+
     public Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
@@ -150,26 +169,40 @@ public sealed class StructureEditingService : IStructureEditingService
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
+        return await GenerateAirportDocumentCoreAsync(icao, ct);
+    }
+
+    public Task<AirportDocResult> EnsureAirportDocumentSystemAsync(string icao, CancellationToken ct = default) =>
+        GenerateAirportDocumentCoreAsync(icao, ct);   // job di sistema: nessuna authz
+
+    private async Task<AirportDocResult> GenerateAirportDocumentCoreAsync(string icao, CancellationToken ct = default)
+    {
         icao = (icao ?? "").Trim().ToUpperInvariant();
         if (icao.Length != 4) throw new ValidationException("ICAO aeroporto non valido.");
 
-        var positions = await _details.GetAtcPositionsAsync(icao, ct);
-        var runways = await _details.GetRunwaysAsync(icao, ct);
+        // Fonte unica: il catalogo AirportSector. Se vuoto, lo importo prima (così funziona anche il bottone admin).
+        var catalog = await _airportSectors.ListByAirportAsync(icao, ct);
+        if (catalog.Count == 0)
+        {
+            await _sectorImporter.ImportAsync(icao, ct);
+            catalog = await _airportSectors.ListByAirportAsync(icao, ct);
+        }
 
-        // Postazioni → settori d'aeroporto: solo DEL/GND/TWR (APP rimandato), niente duplicati di tipo.
-        var sectors = positions
-            .Select(p => (Type: ClassifySectorType(p.Callsign), p.Callsign, p.Frequency))
-            .Where(x => x.Type is SectorType.Del or SectorType.Gnd or SectorType.Twr)
+        // Postazioni d'aeroporto (non nascoste) → settori operativi (DEL/GND/TWR/APP), un settore per tipo.
+        var sectors = catalog
+            .Where(s => !s.IsHidden)
+            .Select(s => (Type: ClassifySectorType(s.Position, s.ComposePosition), s.ComposePosition, s.Frequency))
+            .Where(x => x.Type is SectorType.Del or SectorType.Gnd or SectorType.Twr or SectorType.App)
             .GroupBy(x => x.Type).Select(g => g.First())
+            .Select(x => (x.Type, Callsign: x.ComposePosition, x.Frequency))
             .ToList();
 
-        // 1 — assicura i settori d'aeroporto (DEL/GND/TWR + fallback TWR).
+        // 1 — assicura i settori d'aeroporto (DEL/GND/TWR/APP + fallback TWR).
         var (created, found) = await _repo.EnsureAirportSectorsAsync(icao, sectors, ct);
         if (!found) return new AirportDocResult(icao, false, 0, null, "Aeroporto non assegnato a una ACC.");
 
-        // L'ATIS non è un settore controllabile: ne tengo solo la frequenza per la tabella Frequenze.
-        var atisFreq = positions
-            .FirstOrDefault(p => string.Equals(SuffixOf(p.Callsign), "ATIS", StringComparison.OrdinalIgnoreCase))?.Frequency;
+        // Le piste non sono nel catalogo: restano dalla sorgente dettaglio.
+        var runways = await _details.GetRunwaysAsync(icao, ct);
 
         // Transition Altitude dall'anagrafica (centerId/transitionAltitude già scaricati con cache).
         int? ta = null;
@@ -180,21 +213,20 @@ public sealed class StructureEditingService : IStructureEditingService
         }
         catch { /* anagrafica non disponibile: TA resta null, sezione da completare a mano */ }
 
-        // 2 — merge nel profilo strutturato (preserva l'editoriale) e 3 — rigenera il documento.
-        await _profile.MergeFromSourceAsync(icao, ta, atisFreq,
+        // 2 — merge nel profilo strutturato (preserva l'editoriale) e 3 — rigenera il documento (Frequenze dal catalogo).
+        await _profile.MergeFromSourceAsync(icao, ta,
             runways.Select(r => (r.Ident, r.LengthM, r.Bearing)).ToList(), ct);
         var docId = await _profile.RebuildDocumentAsync(icao, ct);
         return new AirportDocResult(icao, true, created, docId, null);
     }
 
-    /// <summary>Suffisso del callsign dopo l'ultimo '_' (es. LIRN_US0_APP → APP).</summary>
-    private static string SuffixOf(string callsign) =>
-        callsign.Contains('_') ? callsign[(callsign.LastIndexOf('_') + 1)..] : callsign;
-
-    /// <summary>Deriva il tipo di settore dal suffisso del callsign (es. LIRF_TWR → Twr).</summary>
-    private static SectorType ClassifySectorType(string callsign)
+    /// <summary>Deriva il tipo di settore dalla position (fallback dal suffisso del callsign, es. LIRN_US0_APP → APP).</summary>
+    private static SectorType ClassifySectorType(string? position, string callsign)
     {
-        return SuffixOf(callsign).ToUpperInvariant() switch
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        if (p.Length == 0)
+            p = callsign.Contains('_') ? callsign[(callsign.LastIndexOf('_') + 1)..].ToUpperInvariant() : callsign.ToUpperInvariant();
+        return p switch
         {
             "DEL" => SectorType.Del,
             "GND" => SectorType.Gnd,
@@ -249,21 +281,9 @@ public sealed class StructureEditingService : IStructureEditingService
         await _repo.SetFeaturedVloasAsync(accCode, orderedVloaDocIds ?? Array.Empty<int>(), ct);
     }
 
-    public async Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
-        string frequencyMhz, bool isPrimary, CancellationToken ct = default)
+    public async Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
-        label = (label ?? "").Trim();
-        callsign = (callsign ?? "").Trim().ToUpperInvariant();
-        frequencyMhz = (frequencyMhz ?? "").Trim();
-        if (label.Length == 0) throw new ValidationException("Etichetta frequenza obbligatoria.");
-        if (frequencyMhz.Length == 0) throw new ValidationException("Frequenza obbligatoria (es. 118.700).");
-        return await _repo.AddFrequencyAsync(accCode, sectorId, label, callsign, frequencyMhz, isPrimary, ct);
-    }
-
-    public async Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default)
-    {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
-        await _repo.DeleteFrequencyAsync(accCode, frequencyId, ct);
+        await _repo.SetSectorFrequencyAsync(accCode, sectorId, (frequencyMhz ?? "").Trim(), ct);
     }
 }

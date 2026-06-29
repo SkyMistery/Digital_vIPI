@@ -9,9 +9,6 @@ public enum SectorKind { Airport, Acc }
 /// <summary>Per gli APP (<see cref="SectorType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
 public enum ApproachKind { Remotized, Standalone }
 
-/// <summary>Formato di storage di una shape geografica.</summary>
-public enum GeometryFormat { GeoJson, Wkt }
-
 /// <summary>vIPI (istruzioni di posizione) o vLOA (lettera di accordo).</summary>
 public enum DocumentType { Vipi, Vloa }
 
@@ -62,5 +59,8 @@ public enum TransferPhase { Arrival, Departure }
 /// <summary>Vincolo di parità del giorno del mese per una regola pista (es. alternanza Malpensa). Any = indifferente.</summary>
 public enum DateParity { Any, Even, Odd }
 
+/// <summary>Condizione della superficie pista in una regola di scelta pista. Wet = pioggia o neve nel METAR. Any = indifferente.</summary>
+public enum RunwaySurface { Any, Dry, Wet }
+
 /// <summary>Categoria di dati che la sorgente esterna può fornire (governata dalla ImportPolicy globale).</summary>
-public enum ImportCategory { TransitionAltitude, Atis, Runways, Sectors }
+public enum ImportCategory { TransitionAltitude, Runways, Sectors }

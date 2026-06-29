@@ -20,7 +20,7 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    <div class="section-title"><h3>ACC</h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/aeroporti">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+    <div class="section-title"><h3>ACC</h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
     <div class="block">
         @if (_accs.Count == 0)
         {
@@ -69,7 +69,7 @@
                                             }
                                         </select>
                                     </td>
-                                    <td>@s.DefaultFrequency</td>
+                                    <td><input style="width:90px" value="@s.DefaultFrequency" disabled="@(!_canEdit || _busy)" @onchange="e => SetSectorFreq(s.Id, e.Value?.ToString())" title="Frequenza del settore (vuoto = nessuna)" /></td>
                                     <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeleteSector(s.Id)">🗑</button></td>
                                 </tr>
                             }
@@ -98,7 +98,7 @@
                             <div class="field"><label>Aeroporto</label>
                                 @if (_data.Airports.Count == 0)
                                 {
-                                    <span class="help" style="display:block">Crea prima un aeroporto nella <a href="/vsop/admin/aeroporti">pagina Aeroporti</a>.</span>
+                                    <span class="help" style="display:block">Crea prima un aeroporto nella <a href="/vsop/admin/airports">pagina Aeroporti</a>.</span>
                                 }
                                 else
                                 {
@@ -111,41 +111,6 @@
                 </div>
             </div>
 
-            @* --- Frequenze --- *@
-            <div class="panel">
-                <div class="sub-h">Frequenze</div>
-                @if (_data.Frequencies.Count > 0)
-                {
-                    <table class="res-table">
-                        <thead><tr><th>Settore</th><th>Label</th><th>MHz</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var fq in _data.Frequencies)
-                            {
-                                <tr>
-                                    <td>@CallsignOf(fq.SectorId)</td>
-                                    <td>@fq.Label @(fq.IsPrimary ? "★" : "")</td>
-                                    <td>@fq.FrequencyMhz</td>
-                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeleteFrequency(fq.Id)">🗑</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                @if (_data.Sectors.Count > 0)
-                {
-                    <div class="add-form">
-                        <div class="field"><label>Nuova frequenza</label>
-                            <select @bind="_fqSector"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select>
-                        </div>
-                        <div class="row">
-                            <div class="field"><input placeholder="Label es. Milano Radar" @bind="_fqLabel" /></div>
-                            <div class="field"><input placeholder="MHz es. 128.800" @bind="_fqMhz" /></div>
-                        </div>
-                        <label class="check"><input type="checkbox" @bind="_fqPrimary" /> Primaria</label>
-                        <button class="btn ghost" disabled="@_busy" @onclick="AddFrequency">+ Aggiungi frequenza</button>
-                    </div>
-                }
-            </div>
         </div>
 
         <div class="section-title"><h3>📄 Nuovo documento</h3><span class="ln"></span></div>
@@ -208,10 +173,6 @@
     private int _sCoverage = 10;
     private int _sParent;
     private int _sAirportId;
-    // form frequenza
-    private int _fqSector;
-    private string _fqLabel = "", _fqMhz = "";
-    private bool _fqPrimary;
     // form documento
     private DocumentType _docType = DocumentType.Vipi;
     private string _docTitle = "";
@@ -272,13 +233,8 @@
         Guarded(() => Topo.SetParentAsync(_accCode!, childId,
             string.IsNullOrEmpty(parentValue) ? null : int.Parse(parentValue)));
 
-    private Task AddFrequency() => Guarded(async () =>
-    {
-        if (_fqSector == 0) throw new InvalidOperationException("Seleziona il settore.");
-        await Struct.AddFrequencyAsync(_accCode!, _fqSector, _fqLabel, "", _fqMhz, _fqPrimary);
-        _fqLabel = _fqMhz = ""; _fqPrimary = false; _fqSector = 0;
-    });
-    private Task DeleteFrequency(int id) => Guarded(() => Struct.DeleteFrequencyAsync(_accCode!, id));
+    private Task SetSectorFreq(int sectorId, string? mhz) =>
+        Guarded(() => Struct.SetSectorFrequencyAsync(_accCode!, sectorId, mhz));
 
     private static string ChipStyle(bool inScope, bool taken)
     {

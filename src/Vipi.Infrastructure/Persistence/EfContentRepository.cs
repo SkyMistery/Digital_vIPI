@@ -27,7 +27,9 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && d.Status == DocumentStatus.Published
-                 && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao),
+                 && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao)
+                 // Aeroporto nascosto dall'admin ⇒ pagina pubblica inaccessibile.
+                 && !_db.Airports.Any(a => a.Icao == icao && a.IsHidden),
             ct);
     }
 

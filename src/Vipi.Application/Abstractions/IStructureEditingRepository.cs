@@ -28,6 +28,9 @@ public interface IStructureEditingRepository
 
     /// <summary>Tutti gli aeroporti assegnati a una ACC (cross-ACC), per la pagina di gestione.</summary>
     Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default);
+
+    /// <summary>Nasconde/mostra un aeroporto: la sua pagina pubblica e l'elenco non lo mostrano più (resta nel DB).</summary>
+    Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
     /// <summary>Tutti i settori (id+callsign+ACC), per i menu della gestione aeroporti.</summary>
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
@@ -61,7 +64,6 @@ public interface IStructureEditingRepository
         int? airportId, CancellationToken ct = default);
     Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default);
 
-    Task<int> AddFrequencyAsync(string accCode, int sectorId, string label, string callsign,
-        string frequencyMhz, bool isPrimary, CancellationToken ct = default);
-    Task DeleteFrequencyAsync(string accCode, int frequencyId, CancellationToken ct = default);
+    /// <summary>Imposta la frequenza del settore (Sector.DefaultFrequency); vuoto/null = nessuna.</summary>
+    Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default);
 }

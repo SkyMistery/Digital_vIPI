@@ -1,4 +1,5 @@
-﻿@page "/vsop/admin/aeroporti"
+﻿@page "/vsop/admin/airports"
+@page "/vsop/admin/aeroporti"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
@@ -33,14 +34,20 @@
             <div class="panel">
                 <div class="section-title"><h3>Assegnati a una ACC <span class="pill blue">@_assigned.Count</span></h3><span class="ln"></span></div>
                 <div class="block">
-                    <div class="field"><input placeholder="🔎 filtra per ICAO o nome…" @bind="_qAssigned" @bind:event="oninput" /></div>
+                    <div class="se-row">
+                        <input style="flex:1" placeholder="🔎 filtra per ICAO o nome…" @bind="_qAssigned" @bind:event="oninput" />
+                        <select @bind="_filterAcc" title="Filtra per ACC">
+                            <option value="">tutte le ACC</option>
+                            @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
+                        </select>
+                    </div>
                     @if (_assigned.Count == 0)
                     {
                         <p class="help">Nessun aeroporto assegnato. Assegnane dalla tabella a destra.</p>
                     }
-                    else if (!_assigned.Any(a => Match(a.Icao, a.Name, _qAssigned)))
+                    else if (ShownAssigned().Count == 0)
                     {
-                        <p class="help">Nessun risultato per «@_qAssigned».</p>
+                        <p class="help">Nessun risultato@(string.IsNullOrEmpty(_filterAcc) ? "" : $" per ACC {_filterAcc}")@(string.IsNullOrWhiteSpace(_qAssigned) ? "" : $" «{_qAssigned}»").</p>
                     }
                     else
                     {
@@ -61,14 +68,14 @@
                         <table class="res-table">
                             <thead><tr>
                                 <th class="col-chk"><input type="checkbox" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
-                                <th class="col-icao">ICAO</th><th>ACC</th><th>Settori</th><th></th>
+                                <th class="col-icao">ICAO</th><th>ACC</th><th>Settori</th><th>Stato</th><th></th>
                             </tr></thead>
                             <tbody>
                                 @foreach (var a in ShownAssigned())
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
                                         <td class="col-chk"><input type="checkbox" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
-                                        <td class="col-icao sel-cell" @onclick="() => ClickAssigned(a.Id)"><b>@a.Icao</b><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
+                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Apri editor aeroporto @a.Icao"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
                                         <td>
                                             <select disabled="@_busy" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
@@ -85,7 +92,25 @@
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
-                                            <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/aeroporto/editor?icao=@a.Icao" title="Editor profilo aeroporto">✎</a>
+                                            @if (a.Sectors == 0)
+                                            {
+                                                <span class="pill" style="background:#eee;color:#666" title="Nascosto di default: l'aeroporto non ha nemmeno un settore, la pagina pubblica resta inaccessibile finché non genera i documenti.">🚫 nascosto (no settori)</span>
+                                            }
+                                            else if (a.IsHidden)
+                                            {
+                                                <span class="pill" style="background:#ffe0e0;color:#b42318" title="Nascosto dall'admin: pagina pubblica inaccessibile.">🙈 nascosto</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="pill" style="background:#dafbe7;color:#1a7f37" title="Visibile al pubblico.">👁 visibile</span>
+                                            }
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Editor profilo aeroporto">✎</a>
+                                            @if (a.Sectors > 0)
+                                            {
+                                                <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? "Mostra l'aeroporto al pubblico" : "Nascondi l'aeroporto: la sua pagina diventa inaccessibile al pubblico")">@(a.IsHidden ? "👁 Mostra" : "🙈 Nascondi")</button>
+                                            }
                                             <button class="btn ghost" disabled="@_busy" @onclick="() => Remove(a.Id, a.AccCode)" title="Solo se senza settori">🗑</button>
                                         </td>
                                     </tr>
@@ -190,6 +215,7 @@
     private string? _ivaoErr;
     private readonly Dictionary<string, string> _assignAcc = new(StringComparer.OrdinalIgnoreCase);
     private string _qAssigned = "", _qIvao = "";
+    private string _filterAcc = "";   // filtro ACC sulla tabella di sinistra ("" = tutte)
     private bool _busy;
     private string? _msg;
     private string? _ok;
@@ -200,7 +226,9 @@
     private string _bulkMoveAcc = "", _bulkAssignAcc = "";
 
     private List<AirportAdminRow> ShownAssigned() =>
-        _assigned.Where(a => Match(a.Icao, a.Name, _qAssigned)).ToList();
+        _assigned.Where(a => Match(a.Icao, a.Name, _qAssigned)
+            && (string.IsNullOrEmpty(_filterAcc) || string.Equals(a.AccCode, _filterAcc, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
     private List<SourceAirport> ShownIvao() =>
         (_ivao ?? Enumerable.Empty<SourceAirport>()).Where(a => Match(a.Icao, a.Name, _qIvao)).ToList();
     private List<SourceAirport> ShownIvaoUnassigned() =>
@@ -285,6 +313,9 @@
             : Guarded(() => Struct.MoveAirportAsync(id, fromAcc, toAcc));
 
     private Task Remove(int id, string accCode) => Guarded(() => Struct.DeleteAirportAsync(accCode, id));
+
+    private Task ToggleHidden(AirportAdminRow a) =>
+        Guarded(() => Struct.SetAirportHiddenAsync(a.AccCode, a.Id, !a.IsHidden));
 
     // --- Azioni bulk: continuano oltre i fallimenti per-riga e riassumono il risultato. ---
     private async Task RunBulk(Func<Task> body)

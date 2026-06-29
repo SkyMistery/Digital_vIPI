@@ -15,9 +15,7 @@ public class VipiDbContext : DbContext
     public DbSet<Acc> Accs => Set<Acc>();
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
-    public DbSet<SectorGeometry> SectorGeometries => Set<SectorGeometry>();
     public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
-    public DbSet<Frequency> Frequencies => Set<Frequency>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentParty> DocumentParties => Set<DocumentParty>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
@@ -37,8 +35,10 @@ public class VipiDbContext : DbContext
     public DbSet<AirportRunwayRule> AirportRunwayRules => Set<AirportRunwayRule>();
     public DbSet<AirportSid> AirportSids => Set<AirportSid>();
     public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
+    public DbSet<AirportExtraSection> AirportExtraSections => Set<AirportExtraSection>();
     public DbSet<ImportPolicy> ImportPolicies => Set<ImportPolicy>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
+    public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -64,6 +64,21 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        b.Entity<AirportSector>(e =>
+        {
+            e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
+            e.HasIndex(x => x.AirportIcao);
+            e.HasIndex(x => x.AccCode);
+            // FK su Airport.Icao (chiave alternata): cascade alla rimozione dell'aeroporto.
+            e.HasOne(x => x.Airport).WithMany(a => a.AirportSectors)
+                .HasForeignKey(x => x.AirportIcao).HasPrincipalKey(a => a.Icao)
+                .OnDelete(DeleteBehavior.Cascade);
+            // FK su Acc.Code (chiave alternata): l'ACC di competenza, ereditato dall'aeroporto.
+            e.HasOne(x => x.Acc).WithMany()
+                .HasForeignKey(x => x.AccCode).HasPrincipalKey(a => a.Code)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         b.Entity<Airport>(e =>
         {
             e.HasIndex(x => x.Icao).IsUnique();
@@ -78,7 +93,6 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.DocumentId);
             e.HasOne(x => x.Acc).WithMany(f => f.Sectors).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Airport).WithMany(a => a.Sectors).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(x => x.Geometry).WithMany().HasForeignKey(x => x.GeometryId).OnDelete(DeleteBehavior.SetNull);
             // Contenimento ad albero: padre→figli (no cascata per evitare cicli di delete su SQLite).
             e.HasOne(x => x.ParentSector).WithMany(p => p.Children).HasForeignKey(x => x.ParentSectorId).OnDelete(DeleteBehavior.Restrict);
             // Documento di riferimento (uno-a-molti): cancellare il documento non cancella i settori.
@@ -91,9 +105,6 @@ public class VipiDbContext : DbContext
             e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasOne(x => x.Acc).WithMany(f => f.UnificationRules).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
-
-        b.Entity<Frequency>(e =>
-            e.HasOne(x => x.Sector).WithMany(s => s.Frequencies).HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade));
 
         b.Entity<Document>(e =>
         {
@@ -194,8 +205,13 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
             e.HasOne(x => x.Airport).WithMany(a => a.FrequencyLinks).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
-            // La sorgente è una Frequency di un altro settore: se sparisce, sparisce il link (cascade).
-            e.HasOne(x => x.SourceFrequency).WithMany().HasForeignKey(x => x.SourceFrequencyId).OnDelete(DeleteBehavior.Cascade);
+            // La sorgente è un altro settore (Sector.DefaultFrequency): se sparisce, sparisce il link (cascade).
+            e.HasOne(x => x.SourceSector).WithMany().HasForeignKey(x => x.SourceSectorId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportExtraSection>(e =>
+        {
+            e.HasIndex(x => new { x.AirportId, x.Order });
+            e.HasOne(x => x.Airport).WithMany(a => a.ExtraSections).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

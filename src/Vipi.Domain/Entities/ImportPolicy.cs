@@ -10,7 +10,6 @@ public class ImportPolicy
 {
     public int Id { get; set; }                                   // riga singola: Id = 1
     public bool ImportTransitionAltitude { get; set; } = true;    // Airport.TransitionAltitudeFt
-    public bool ImportAtis { get; set; } = true;                  // Airport.AtisFrequency
     public bool ImportRunways { get; set; } = true;               // AirportRunway.Ident/LengthM/Bearing
     public bool ImportSectors { get; set; } = true;               // Sector.Callsign/Type/DefaultFrequency
     public DateTime UpdatedUtc { get; set; }

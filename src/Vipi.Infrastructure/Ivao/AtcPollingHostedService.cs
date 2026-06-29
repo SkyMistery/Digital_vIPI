@@ -114,6 +114,7 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<AtcPollingHostedService>();
         services.AddHostedService<StaffRosterVerificationService>();
         services.AddHostedService<AccImportHostedService>();
+        services.AddHostedService<AirportSectorImportHostedService>();
         return services;
     }
 }

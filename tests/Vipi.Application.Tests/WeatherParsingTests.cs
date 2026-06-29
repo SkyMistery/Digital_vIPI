@@ -119,63 +119,121 @@ public class WeatherParsingTests
         Assert.False(sn.HasRain);
     }
 
-    [Fact] // regola che matcha vento+pioggia prevale e dà DEP/ARR
-    public void Rules_Match_Wind_And_Precip()
+    // --- Regole pista (EvaluateRules): scelta in base a coda/traverso + superficie, prima regola che si applica ---
+
+    private static RunwayRuleEval Rule(string dep, string arr, int maxTail = 5, int? maxCross = null,
+        RunwaySurface surface = RunwaySurface.Any, string? name = null, DateParity parity = DateParity.Any) =>
+        new(dep, arr, name, null, maxTail, maxCross, surface, null, null, null, parity);
+
+    [Fact] // la regola si applica se il vento in coda è entro la soglia; altrimenti null (fallback)
+    public void Rule_Fires_Within_Tailwind_Limit()
+    {
+        var rules = new[] { Rule("16", "16", maxTail: 5) };
+        // vento 160/12 = testa su 16 (coda negativa) → si applica.
+        var hit = RunwaySuggestion.EvaluateRules(rules, 160, 12, wet: false);
+        Assert.NotNull(hit);
+        Assert.Equal("16", hit!.Arr);
+        // vento 340/12 = coda 12 kt > 5 → non si applica.
+        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 340, 12, wet: false));
+    }
+
+    [Fact] // prima regola applicabile per ordine → l'altra pista quando la prima è in coda
+    public void Rule_Picks_First_Applicable_By_Order()
+    {
+        var rules = new[] { Rule("16", "16"), Rule("34", "34") };
+        Assert.Equal(0, RunwaySuggestion.EvaluateRules(rules, 160, 12, false)!.RuleIndex);   // 16 in testa
+        var sw = RunwaySuggestion.EvaluateRules(rules, 340, 12, false);                       // 16 in coda → 34
+        Assert.Equal(1, sw!.RuleIndex);
+        Assert.Equal("34", sw.Arr);
+    }
+
+    [Fact] // limite di traverso: oltre soglia la regola non si applica
+    public void Rule_Crosswind_Limit_Gates()
+    {
+        var rules = new[] { Rule("16", "16", maxTail: 5, maxCross: 10) };
+        // vento 250 perpendicolare a 16: coda 0 ma traverso = velocità piena.
+        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 250, 15, false));     // traverso 15 > 10 → no
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 250, 8, false));   // traverso 8 ≤ 10 → sì
+    }
+
+    [Fact] // condizione superficie: asciutta vs bagnata
+    public void Rule_Surface_Dry_Or_Wet()
     {
         var rules = new[]
         {
-            new RunwayRuleEval(130, 200, null, null, true, null, "16R", "16L", "vento da sud, pioggia"),
-            new RunwayRuleEval(null, null, null, null, null, null, "34L", "34R", "default"),
+            Rule("16", "16", surface: RunwaySurface.Dry, name: "asciutta"),
+            Rule("34", "34", surface: RunwaySurface.Wet, name: "bagnata"),
         };
-        var hit = RunwaySuggestion.EvaluateRules(rules, 160, 12, rain: true, snow: false);
-        Assert.NotNull(hit);
-        Assert.Equal("16R", hit!.Dep);
-        Assert.Equal("16L", hit.Arr);
-
-        // pioggia assente → la prima regola non matcha, vince il default.
-        var dflt = RunwaySuggestion.EvaluateRules(rules, 160, 12, rain: false, snow: false);
-        Assert.Equal("34L", dflt!.Dep);
+        // calmo: coda 0 su entrambe ⇒ decide la superficie.
+        Assert.Equal("16", RunwaySuggestion.EvaluateRules(rules, null, 0, wet: false)!.Arr);
+        Assert.Equal("34", RunwaySuggestion.EvaluateRules(rules, null, 0, wet: true)!.Arr);
     }
 
-    [Fact] // arco vento con wrap-around (350→020)
-    public void Rules_Wind_Arc_Wraps()
+    [Fact] // LIMC: parallele segregate, DEP≠ARR preservati
+    public void Rule_LIMC_Segregated_Parallels()
     {
-        var rules = new[] { new RunwayRuleEval(350, 20, null, null, null, null, "01", "01", null) };
-        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 10, 8, false, false));
-        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 180, 8, false, false));
+        var rules = new[] { Rule("35R", "35L", name: "35"), Rule("17L", "17R", name: "17") };
+        var r = RunwaySuggestion.EvaluateRules(rules, 350, 15, false);   // vento da 350 → 35
+        Assert.Equal(0, r!.RuleIndex);
+        Assert.Equal("35R", r.Dep);
+        Assert.Equal("35L", r.Arr);
+        Assert.NotEqual(r.Dep, r.Arr);
     }
 
-    [Fact] // nessuna regola applicabile → null (il viewer userà il fallback headwind)
-    public void Rules_No_Match_Returns_Null()
+    [Fact] // vento calmo → si applica la prima regola (coda 0)
+    public void Rule_Calm_Applies_First()
     {
-        var rules = new[] { new RunwayRuleEval(130, 200, null, null, null, null, "16", "16", null) };
-        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 10, 8, false, false));
+        var rules = new[] { Rule("16", "16"), Rule("34", "34") };
+        Assert.Equal(0, RunwaySuggestion.EvaluateRules(rules, null, 0, false)!.RuleIndex);
+        Assert.Equal(0, RunwaySuggestion.EvaluateRules(rules, 340, 1, false)!.RuleIndex);   // ≤ 2 kt
     }
 
-    [Fact] // finestra oraria UTC con wrap notturno (22:00→06:00Z)
-    public void Rules_Time_Window_Wraps()
+    [Fact] // nessuna regola si applica → null (il viewer usa il fallback headwind Suggest)
+    public void Rule_No_Match_Returns_Null()
     {
-        var rules = new[] { new RunwayRuleEval(null, null, null, null, null, null, "35", "35", "notte",
-            TimeFromUtcMin: 22 * 60, TimeToUtcMin: 6 * 60) };
-        // dentro finestra (23:00Z) → matcha; fuori (12:00Z) → no.
-        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 350, 10, false, false, new DateTime(2026, 6, 22, 23, 0, 0, DateTimeKind.Utc)));
-        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 350, 10, false, false, new DateTime(2026, 6, 22, 12, 0, 0, DateTimeKind.Utc)));
+        var rules = new[] { Rule("16", "16", maxTail: 5) };
+        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 340, 20, false));   // coda 20 > 5
+        Assert.Null(RunwaySuggestion.EvaluateRules(Array.Empty<RunwayRuleEval>(), 160, 12, false));
     }
 
-    [Fact] // vincolo giorno della settimana (solo lunedì = bit0)
-    public void Rules_Day_Of_Week()
+    [Fact] // filtro avanzato (parità): la prima non eleggibile → si applica la successiva
+    public void Rule_Advanced_Parity_Skips()
     {
-        var rules = new[] { new RunwayRuleEval(null, null, null, null, null, null, "35", "35", null, DaysOfWeekMask: 1) };
-        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 350, 10, false, false, new DateTime(2026, 6, 22, 12, 0, 0, DateTimeKind.Utc))); // lunedì
-        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 350, 10, false, false, new DateTime(2026, 6, 23, 12, 0, 0, DateTimeKind.Utc)));    // martedì
+        var rules = new[]
+        {
+            Rule("16", "16", name: "solo pari", parity: DateParity.Even),
+            Rule("34", "34", name: "default"),
+        };
+        // 23 giugno 2026 = dispari → la #1 (solo pari) è esclusa, si applica la #2.
+        var r = RunwaySuggestion.EvaluateRules(rules, null, 0, false, new DateTime(2026, 6, 23, 12, 0, 0, DateTimeKind.Utc));
+        Assert.Equal(1, r!.RuleIndex);
+        Assert.Equal("34", r.Arr);
     }
 
-    [Fact] // parità giorno del mese (alternanza tipo Malpensa)
-    public void Rules_Date_Parity()
+    [Fact] // finestra stagionale ricorrente (MMDD): dentro al periodo si applica, fuori no
+    public void Rule_Seasonal_Date_Window_Filters_By_Month_Day()
     {
-        var even = new[] { new RunwayRuleEval(null, null, null, null, null, null, "35", "35", null, DateParity: DateParity.Even) };
-        Assert.NotNull(RunwaySuggestion.EvaluateRules(even, 350, 10, false, false, new DateTime(2026, 6, 22, 12, 0, 0, DateTimeKind.Utc))); // 22 pari
-        Assert.Null(RunwaySuggestion.EvaluateRules(even, 350, 10, false, false, new DateTime(2026, 6, 23, 12, 0, 0, DateTimeKind.Utc)));    // 23 dispari
+        // valida solo dal 1 gen (101) al 31 mar (331); l'anno è ignorato.
+        var rules = new[]
+        {
+            new RunwayRuleEval("16", "16", "inverno", null, 5, null, RunwaySurface.Any,
+                DateFromMonthDay: 101, DateToMonthDay: 331),
+        };
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 2, 15, 12, 0, 0, DateTimeKind.Utc)));
+        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc)));
+    }
+
+    [Fact] // finestra stagionale a cavallo di fine anno (es. 1 nov → 28 feb)
+    public void Rule_Seasonal_Date_Window_Wraps_Year_End()
+    {
+        var rules = new[]
+        {
+            new RunwayRuleEval("16", "16", "stagione fredda", null, 5, null, RunwaySurface.Any,
+                DateFromMonthDay: 1101, DateToMonthDay: 228),
+        };
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 12, 20, 12, 0, 0, DateTimeKind.Utc)));
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 1, 10, 12, 0, 0, DateTimeKind.Utc)));
+        Assert.Null(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc)));
     }
 
     [Fact] // fallback headwind: piste parallele → arrivi/partenze su estremità distinte

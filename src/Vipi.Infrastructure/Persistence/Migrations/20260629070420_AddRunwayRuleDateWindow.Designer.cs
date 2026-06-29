@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629070420_AddRunwayRuleDateWindow")]
+    partial class AddRunwayRuleDateWindow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -136,32 +139,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Airports");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Body")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportExtraSections");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
                 {
                     b.Property<int>("Id")
@@ -282,10 +259,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TimeFromLocalMin")
+                    b.Property<int?>("TimeFromUtcMin")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("TimeToLocalMin")
+                    b.Property<int?>("TimeToUtcMin")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -1122,17 +1099,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Acc");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("ExtraSections")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AirportFrequencyLink", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
@@ -1422,8 +1388,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
                 {
                     b.Navigation("AirportSectors");
-
-                    b.Navigation("ExtraSections");
 
                     b.Navigation("FrequencyLinks");
 

@@ -52,6 +52,41 @@ public class AccSector
 }
 
 /// <summary>
+/// Settore ATC di un aeroporto (DEL/GND/TWR/APP…), importato dalla sorgente: identificato dal callsign
+/// <see cref="ComposePosition"/> (chiave naturale univoca, es. "LIRN_TWR" / "LIRN_US0_APP") e legato
+/// all'aeroporto via <see cref="AirportIcao"/> e all'ACC di competenza via <see cref="AccCode"/>
+/// (ereditato dall'aeroporto). Catalogo a parte rispetto a <see cref="Sector"/> (operativi per documenti/AoR).
+/// I campi di origine sono read-only/import; i limiti di quota e IsHidden li imposta l'admin.
+/// </summary>
+public class AirportSector
+{
+    public int Id { get; set; }
+    public string ComposePosition { get; set; } = default!;    // univoco, es. "LIRN_TWR" (chiave naturale)
+    public string AirportIcao { get; set; } = default!;        // FK → Airport.Icao
+    public Airport? Airport { get; set; }
+    public string AccCode { get; set; } = default!;            // ACC di competenza, ereditato da Airport.Acc.Code
+    public Acc? Acc { get; set; }
+
+    public string? Position { get; set; }                      // suffisso: DEL/GND/TWR/APP/DEP…
+    public string? MiddleIdentifier { get; set; }              // es. "US0"
+    public string? Frequency { get; set; }                     // MHz, da /v2/ATCPositions/{compose}
+    public string? RegionMapPolygon { get; set; }              // poligono shape (JSON grezzo), da /v2/ATCPositions/{compose}
+
+    /// <summary>Limite inferiore (ft/FL). Impostato dall'admin; default GND (0).</summary>
+    public int? LowerLimit { get; set; }
+    /// <summary>Limite superiore (ft/FL). Impostato dall'admin; default 19500.</summary>
+    public int? UpperLimit { get; set; }
+
+    /// <summary>Nascosto dall'admin (resta nel DB). Default false = attivo.</summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>Frequenza principale dell'aeroporto (★). Unica per aeroporto; scelta nell'editor (default: TWR→GND→APP).</summary>
+    public bool IsPrimary { get; set; }
+
+    public DateTime? ImportedAtUtc { get; set; }
+}
+
+/// <summary>
 /// Aeroporto appartenente a una ACC. Entità di prima classe (non più solo stringa su <see cref="Sector"/>):
 /// permette creazione/rimozione/spostamento sotto una ACC. I settori d'aeroporto (TWR/GND/DEL/APP)
 /// vi puntano via <see cref="Sector.AirportId"/>; <see cref="Sector.AirportIcao"/> resta come denormalizzazione.
@@ -67,14 +102,18 @@ public class Airport
     /// <summary>Transition Altitude (ft). Sorgente strutturata: da qui si rigenera la sezione del documento.</summary>
     public int? TransitionAltitudeFt { get; set; }
 
-    /// <summary>Frequenza ATIS (da IVAO): non è un settore controllabile, ma compare nella tabella Frequenze.</summary>
-    public string? AtisFrequency { get; set; }
-
     /// <summary>Ordine "in evidenza" (1..3) nella card Aeroporti della landing ACC; null = non in evidenza.</summary>
     public int? FeaturedRank { get; set; }
 
+    /// <summary>Nascosto dall'admin: l'aeroporto resta nel DB ma la sua pagina e l'elenco pubblico non lo mostrano. Default false = visibile.
+    /// La visibilità pubblica effettiva è inoltre negata quando l'aeroporto non ha nemmeno un settore.</summary>
+    public bool IsHidden { get; set; }
+
     /// <summary>Settori che puntano a questo aeroporto (Sector.AirportId). La gerarchia si ricostruisce da qui.</summary>
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
+
+    /// <summary>Settori ATC catalogati dalla sorgente (DEL/GND/TWR/APP…) con mostra/nascondi + limiti admin.</summary>
+    public ICollection<AirportSector> AirportSectors { get; set; } = new List<AirportSector>();
 
     // --- Profilo strutturato editoriale (sorgente da cui si rigenerano le sezioni del documento) ---
     public ICollection<AirportTransitionLevel> TransitionLevels { get; set; } = new List<AirportTransitionLevel>();
@@ -82,6 +121,9 @@ public class Airport
     public ICollection<AirportRunwayRule> RunwayRules { get; set; } = new List<AirportRunwayRule>();
     public ICollection<AirportSid> Sids { get; set; } = new List<AirportSid>();
     public ICollection<AirportFrequencyLink> FrequencyLinks { get; set; } = new List<AirportFrequencyLink>();
+
+    /// <summary>Sezioni editoriali libere (testo) mostrate nella colonna destra del documento (sotto le SID su schermi stretti).</summary>
+    public ICollection<AirportExtraSection> ExtraSections { get; set; } = new List<AirportExtraSection>();
 }
 
 /// <summary>
@@ -121,22 +163,6 @@ public class Sector
     public int? DocumentId { get; set; }
     public Document? Document { get; set; }
     public bool IsPrimary { get; set; }                // settore principale del proprio documento
-
-    // --- Geometria per la mappa AoR ---
-    public int? GeometryId { get; set; }
-    public SectorGeometry? Geometry { get; set; }
-
-    public ICollection<Frequency> Frequencies { get; set; } = new List<Frequency>();
-}
-
-/// <summary>Shape geografica per la vista mappa AoR. Separata dal Sector per non appesantire le query. SPEC §3.4.</summary>
-public class SectorGeometry
-{
-    public int Id { get; set; }
-    public GeometryFormat Format { get; set; }
-    public string Data { get; set; } = default!;       // poligono/i (GeoJSON o WKT)
-    public string? SourceCallsign { get; set; }
-    public DateTime? ImportedAtUtc { get; set; }
 }
 
 /// <summary>Regola dichiarativa editabile che riassegna l'ownership dei settori in base ai callsign online. SPEC §3.7, PIANO §20.5.</summary>
@@ -151,18 +177,6 @@ public class UnificationRule
     public string AssignmentJson { get; set; } = "{}"; // mappa settore→ownerCallsign
     public bool IsActive { get; set; } = true;
     public byte[]? RowVersion { get; set; }
-}
-
-/// <summary>Frequenze associate a un settore. SPEC §3.8.</summary>
-public class Frequency
-{
-    public int Id { get; set; }
-    public int SectorId { get; set; }
-    public Sector? Sector { get; set; }
-    public string Label { get; set; } = default!;      // es. "Roma Tower"
-    public string Callsign { get; set; } = default!;
-    public string FrequencyMhz { get; set; } = default!; // es. "118.450"
-    public bool IsPrimary { get; set; }                // principale (★ / grassetto)
 }
 
 // =========================================================================================
@@ -201,27 +215,42 @@ public class AirportRunway
     public string? Circling { get; set; }
 }
 
-/// <summary>Regola di scelta pista: condizione (vento + pioggia/neve) → piste DEP/ARR. Nel viewer prevale sul calcolo headwind.</summary>
+/// <summary>
+/// Regola di scelta pista, espressa in termini operativi: quando le piste indicate hanno vento in coda
+/// ≤ <see cref="MaxTailwindKt"/> e traverso ≤ <see cref="MaxCrosswindKt"/> e la superficie corrisponde a
+/// <see cref="Surface"/>, diventano preferenziali (DEP/ARR). Tailwind/crosswind sono calcolati dal vento
+/// corrente: l'editor imposta solo le soglie, non la direzione. Valutate in ordine (<see cref="Order"/>):
+/// la prima regola che si applica vince; se nessuna, il viewer usa il fallback headwind.
+/// I campi temporali (orario/giorni/parità) sono un filtro di eleggibilità OPZIONALE (caso Malpensa).
+/// </summary>
 public class AirportRunwayRule
 {
     public int Id { get; set; }
     public int AirportId { get; set; }
     public Airport? Airport { get; set; }
-    public int Order { get; set; }                     // priorità: la prima che matcha vince
-    public int? WindDirFrom { get; set; }              // ° (incluso); con WindDirTo definisce un arco (gestisce wrap)
-    public int? WindDirTo { get; set; }                // ° (incluso)
-    public int? WindSpeedMin { get; set; }             // kt (incluso)
-    public int? WindSpeedMax { get; set; }             // kt (incluso)
-    public bool? Rain { get; set; }                    // null = indifferente
-    public bool? Snow { get; set; }                    // null = indifferente
-    public string DepRunways { get; set; } = "";       // CSV di ident, es. "16R,16L"
-    public string ArrRunways { get; set; } = "";       // CSV di ident
+    public int Order { get; set; }                     // priorità: la prima che si applica vince
+    public string? Name { get; set; }                  // etichetta opzionale, es. "Config 35" / "pista bagnata"
+    public string DepRunways { get; set; } = "";       // CSV di ident preferenziali per le partenze, es. "16R,16L"
+    public string ArrRunways { get; set; } = "";       // CSV di ident preferenziali per gli arrivi
+
+    /// <summary>Vento in coda massimo tollerato (kt) sulle piste della regola perché si applichi. Default 5.</summary>
+    public int MaxTailwindKt { get; set; } = 5;
+    /// <summary>Vento al traverso massimo tollerato (kt); null = nessun vincolo di traverso.</summary>
+    public int? MaxCrosswindKt { get; set; }
+    /// <summary>Condizione della superficie richiesta: Any/Dry/Wet (Wet = pioggia o neve nel METAR).</summary>
+    public RunwaySurface Surface { get; set; } = RunwaySurface.Any;
+
     public string? Note { get; set; }
-    // --- Condizioni temporali (tutte opzionali; null/Any = indifferente). Orario in UTC/Zulu. ---
-    public int? TimeFromUtcMin { get; set; }           // minuti da mezzanotte UTC (0..1439), incluso; con TimeToUtcMin = finestra (gestisce wrap notturno)
-    public int? TimeToUtcMin { get; set; }             // minuti da mezzanotte UTC (0..1439), incluso
+    // --- Condizioni temporali AVANZATE (tutte opzionali; null/Any = indifferente). Orario in ora LOCALE (LT, come in AIP). ---
+    public int? TimeFromLocalMin { get; set; }         // minuti da mezzanotte locale (0..1439), incluso; con TimeToLocalMin = finestra (gestisce wrap notturno)
+    public int? TimeToLocalMin { get; set; }           // minuti da mezzanotte locale (0..1439), incluso
     public int? DaysOfWeekMask { get; set; }           // bitmask: bit0=Lun … bit6=Dom; null/0 = tutti i giorni
     public DateParity DateParity { get; set; } = DateParity.Any;  // parità giorno del mese (alternanza tipo Malpensa)
+
+    // --- Finestra di validità stagionale RICORRENTE (ogni anno), opzionale. Codifica MMDD (mese*100+giorno),
+    // estremi inclusi; gestisce il wrap di fine anno (es. 1101→0228). Entrambi null = nessun vincolo di data. ---
+    public int? DateFromMonthDay { get; set; }         // es. 101 = 1° gennaio
+    public int? DateToMonthDay { get; set; }           // es. 331 = 31 marzo
 }
 
 /// <summary>Riga SID (editabile a mano; import sectorfile = follow-up con merge).</summary>
@@ -242,14 +271,28 @@ public class AirportSid
     public string? Condition { get; set; }
 }
 
-/// <summary>Frequenza "linkata" a un altro settore (riferimento vivo): si risolve dalla Frequency sorgente.</summary>
+/// <summary>
+/// Sezione editoriale libera dell'aeroporto: titolo + corpo testuale. Sorgente strutturata, indipendente dalle
+/// sezioni standard; nel viewer compare nella colonna libera di destra (desktop) o sotto le SID (schermi stretti).
+/// </summary>
+public class AirportExtraSection
+{
+    public int Id { get; set; }
+    public int AirportId { get; set; }
+    public Airport? Airport { get; set; }
+    public int Order { get; set; }
+    public string Title { get; set; } = default!;      // titolo della sezione
+    public string? Body { get; set; }                  // corpo testo libero (a capo preservati)
+}
+
+/// <summary>Frequenza "linkata" a un altro settore (riferimento vivo): si risolve da Sector.DefaultFrequency.</summary>
 public class AirportFrequencyLink
 {
     public int Id { get; set; }
     public int AirportId { get; set; }
     public Airport? Airport { get; set; }
     public int Order { get; set; }
-    public int SourceFrequencyId { get; set; }         // FK → Frequency (la sorgente; cambi riflessi al rebuild/render)
-    public Frequency? SourceFrequency { get; set; }
-    public string? LabelOverride { get; set; }         // etichetta custom (altrimenti usa quella della sorgente)
+    public int SourceSectorId { get; set; }            // FK → Sector (la sorgente; cambi riflessi al rebuild/render)
+    public Sector? SourceSector { get; set; }
+    public string? LabelOverride { get; set; }         // etichetta custom (altrimenti usa il callsign del settore)
 }

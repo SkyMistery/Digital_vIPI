@@ -40,11 +40,6 @@
                         <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.TransitionAltitude" /> importa dalla sorgente</label></td>
                     </tr>
                     <tr>
-                        <td><b>ATIS</b><br /><span class="muted" style="font-size:11px">Frequenza ATIS dell'aeroporto</span></td>
-                        <td>@Provenance(_p.Atis)</td>
-                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Atis" /> importa dalla sorgente</label></td>
-                    </tr>
-                    <tr>
                         <td><b>Piste</b><br /><span class="muted" style="font-size:11px">Ident, lunghezza e bearing delle piste</span></td>
                         <td>@Provenance(_p.Runways)</td>
                         <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Runways" /> importa dalla sorgente</label></td>
@@ -68,7 +63,6 @@
     private sealed class PolicyEdit
     {
         public bool TransitionAltitude { get; set; } = true;
-        public bool Atis { get; set; } = true;
         public bool Runways { get; set; } = true;
         public bool Sectors { get; set; } = true;
     }
@@ -81,7 +75,7 @@
     {
         if (!Authz.IsAdmin) return;
         var s = await Policy.GetAsync();
-        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Atis = s.Atis, Runways = s.Runways, Sectors = s.Sectors };
+        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors };
     }
 
     private static string Provenance(bool imported) => imported ? "🔒 da sorgente (sola lettura)" : "✎ manuale";
@@ -91,7 +85,7 @@
         _busy = true; _msg = _ok = null;
         try
         {
-            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Atis, _p.Runways, _p.Sectors));
+            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors));
             _ok = "Policy delle sorgenti salvata.";
         }
         catch (EditNotAllowedException) { _msg = "Operazione riservata agli amministratori."; }

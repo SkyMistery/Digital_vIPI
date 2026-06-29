@@ -15,7 +15,7 @@ public interface IAirportProfileRepository
     /// <summary>Codice ACC dell'aeroporto (per la guardia di autorizzazione). null = ICAO inesistente.</summary>
     Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default);
 
-    /// <summary>Tutte le frequenze nel DB (per il picker di link), con ICAO/callsign del settore sorgente.</summary>
+    /// <summary>Tutti i settori con frequenza nel DB (per il picker di link), con ICAO/callsign.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
@@ -23,13 +23,15 @@ public interface IAirportProfileRepository
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
-    Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
+    Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
+    Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
     /// <summary>
-    /// Merge da IVAO: imposta TA/ATIS, upsert piste per ident (sovrascrive Length/Bearing, preserva le colonne
+    /// Merge da IVAO: imposta TA, upsert piste per ident (sovrascrive Length/Bearing, preserva le colonne
     /// editoriali), e se non ci sono TL le inizializza con la tabella standard. Non tocca regole/SID/link.
+    /// L'ATIS non è più qui: è una frequenza del catalogo AirportSector.
     /// </summary>
-    Task MergeFromSourceAsync(string icao, int? transitionAltitude, string? atisFrequency,
+    Task MergeFromSourceAsync(string icao, int? transitionAltitude,
         IReadOnlyList<(string Ident, int? LengthM, int? Bearing)> runways, CancellationToken ct = default);
 
     /// <summary>Rigenera in-place le sezioni gestite del documento dell'aeroporto dalle entità, preservando le altre. Ritorna l'id documento.</summary>

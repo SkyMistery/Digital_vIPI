@@ -1,4 +1,5 @@
-﻿@page "/vsop/{Acc}/aeroporto/editor"
+﻿@page "/vsop/{Acc}/airports/editor"
+@page "/vsop/{Acc}/aeroporto/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Content
@@ -7,6 +8,7 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
 @inject IAirportProfileService Profile
+@inject IAirportSectorService Sectors
 @inject IStationResolver Stations
 @inject NavigationManager Nav
 
@@ -57,7 +59,7 @@ else
             {
                 <div class="block">
                     <h3 style="margin-top:0">Regole scelta pista</h3>
-                    <p class="help">La <b>prima</b> regola che soddisfa le condizioni correnti (vento + pioggia/neve + orario/giorno/parità) prevale sul calcolo automatico headwind nel viewer. L'ordine conta: trascina le più specifiche in alto.</p>
+                    <p class="help">Ogni regola: quando le piste indicate hanno <b>vento in coda ≤</b> la soglia, <b>traverso ≤</b> la soglia (opzionale) e la <b>superficie</b> corrisponde, diventano preferenziali per partenze/arrivi. Coda e traverso si calcolano dal vento corrente. Si valutano in <b>ordine</b>: la prima che si applica vince (metti le più specifiche in alto). Se nessuna si applica, vale la pista con miglior vento di testa.</p>
 
                     @{ var issues = RuleIssues(); }
                     @if (issues.Errors.Count > 0)
@@ -80,25 +82,6 @@ else
                                     <button class="btn ghost" @onclick="() => _rules.Remove(r)">✕ Rimuovi</button>
                                 </div>
                             </div>
-                            <div class="rule-grid">
-                                <label>Vento da°<input type="number" min="0" max="360" @bind="r.DirFrom" /></label>
-                                <label>a°<input type="number" min="0" max="360" @bind="r.DirTo" /></label>
-                                <label>kt min<input type="number" min="0" @bind="r.SpdMin" /></label>
-                                <label>kt max<input type="number" min="0" @bind="r.SpdMax" /></label>
-                                <label>Pioggia<select @bind="r.Rain"><option value="">indiff</option><option value="yes">sì</option><option value="no">no</option></select></label>
-                                <label>Neve<select @bind="r.Snow"><option value="">indiff</option><option value="yes">sì</option><option value="no">no</option></select></label>
-                                <label>Orario da (Z)<input type="time" @bind="r.TimeFrom" /></label>
-                                <label>a (Z)<input type="time" @bind="r.TimeTo" /></label>
-                                <label>Parità giorno<select @bind="r.Parity"><option value="">indiff</option><option value="even">pari</option><option value="odd">dispari</option></select></label>
-                            </div>
-                            <div class="rule-days">
-                                <span class="muted">Giorni:</span>
-                                @for (var b = 0; b < 7; b++)
-                                {
-                                    var bit = b;
-                                    <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
-                                }
-                            </div>
                             <div class="rule-rwys">
                                 <div><span class="muted">DEP:</span>
                                     @if (_rwys.Count == 0) { <i class="muted">nessuna pista definita</i> }
@@ -116,7 +99,42 @@ else
                                     }
                                 </div>
                             </div>
-                            <label class="rule-note">Note<input @bind="r.Note" placeholder="testo libero (es. configurazione Malpensa pari)" /></label>
+                            <div class="rule-grid">
+                                <label>Coda max (kt)<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
+                                <label>Traverso max (kt, opz.)<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
+                                <label>Superficie<select @bind="r.Surface"><option value="any">indiff</option><option value="dry">asciutta</option><option value="wet">bagnata</option></select></label>
+                                <label>Nome<input @bind="r.Name" placeholder="es. 35 asciutta" /></label>
+                                <label>Note<input @bind="r.Note" placeholder="testo libero" /></label>
+                            </div>
+                            <details class="rule-adv">
+                                <summary>Avanzate — orario · giorni · parità · validità (opzionali)</summary>
+                                <div class="rule-grid" style="margin-top:8px">
+                                    <label>Orario da (LT)<input type="time" @bind="r.TimeFrom" /></label>
+                                    <label>a (LT)<input type="time" @bind="r.TimeTo" /></label>
+                                    <label>Parità giorno<select @bind="r.Parity"><option value="">indiff</option><option value="even">pari</option><option value="odd">dispari</option></select></label>
+                                    <label>Valida dal (giorno/mese)
+                                        <span style="display:flex;gap:4px">
+                                            <select @bind="r.DateFromDay" style="flex:1">@DayOptions()</select>
+                                            <select @bind="r.DateFromMonth" style="flex:2">@MonthOptions()</select>
+                                        </span>
+                                    </label>
+                                    <label>fino al (giorno/mese)
+                                        <span style="display:flex;gap:4px">
+                                            <select @bind="r.DateToDay" style="flex:1">@DayOptions()</select>
+                                            <select @bind="r.DateToMonth" style="flex:2">@MonthOptions()</select>
+                                        </span>
+                                    </label>
+                                </div>
+                                <p class="help" style="margin:6px 0 0">Finestra di validità <b>stagionale ricorrente</b>: solo giorno e mese (nessun anno, si ripete ogni anno). Es. dal 1 gen al 31 mar. Lasciare vuoto = sempre valida.</p>
+                                <div class="rule-days">
+                                    <span class="muted">Giorni:</span>
+                                    @for (var b = 0; b < 7; b++)
+                                    {
+                                        var bit = b;
+                                        <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
+                                    }
+                                </div>
+                            </details>
                         </div>
                     }
 
@@ -168,23 +186,19 @@ else
             {
                 <div class="block">
                     <h3 style="margin-top:0">Frequenze</h3>
-                    <p class="help">Le frequenze proprie derivano dai settori dell'aeroporto (gestione struttura). Qui puoi aggiungere link a frequenze già nel DB (riferimento vivo).</p>
-                    <table class="res-table">
+                    <p class="help">Le frequenze proprie vengono dal catalogo settori (pannello «Settori»): ATIS · Delivery · Ground · TWR · APP. La principale (★) si sceglie lì. Qui puoi aggiungere link a frequenze già nel DB (riferimento vivo).</p>
+                    <table class="res-table freq-table">
                         <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th><th>Origine</th><th></th></tr></thead>
                         <tbody>
-                            @foreach (var f in _data.OwnFrequencies)
+                            @foreach (var f in FreqRows())
                             {
-                                <tr><td>@f.Name</td><td>@f.Callsign</td><td>@f.FrequencyMhz</td><td class="muted">settore</td><td></td></tr>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(_data.AtisFrequency))
-                            {
-                                <tr><td>ATIS</td><td>@(_icao)_ATIS</td><td>@_data.AtisFrequency</td><td class="muted">IVAO</td><td></td></tr>
+                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqName(f.Position)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">catalogo</td><td></td></tr>
                             }
                             @foreach (var id in _linkIds)
                             {
-                                var lf = _linkable.FirstOrDefault(x => x.FrequencyId == id);
+                                var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
                                 <tr>
-                                    <td>@(lf?.Label ?? "—")</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                                    <td>@(lf?.Callsign ?? "—")</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
                                     <td class="muted">link @(lf?.Icao)</td>
                                     <td><button class="btn ghost" @onclick="() => _linkIds.Remove(id)">✕</button></td>
                                 </tr>
@@ -197,7 +211,7 @@ else
                             <option value="0">— scegli frequenza —</option>
                             @foreach (var lf in FilteredLinkable())
                             {
-                                <option value="@lf.FrequencyId">@lf.Callsign · @lf.FrequencyMhz · @lf.Label @(lf.Icao is null ? "" : $"({lf.Icao})")</option>
+                                <option value="@lf.SectorId">@lf.Callsign · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")</option>
                             }
                         </select>
                         <button class="btn ghost" @onclick="AddLink">+ Link</button>
@@ -278,6 +292,104 @@ else
                     </div>
                 </div>
             }
+
+            @* ===================== SEZIONI EXTRA ===================== *@
+            @if (_panel == "Sezioni extra")
+            {
+                <div class="block">
+                    <h3 style="margin-top:0">Sezioni extra</h3>
+                    <p class="help">Sezioni editoriali libere (titolo + testo). Nel documento compaiono nella <b>colonna libera di destra</b> su schermo desktop e <b>sotto le SID</b> su schermi stretti/cellulare. Si valutano nell'ordine in cui le metti.</p>
+                    @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
+                    {
+                        <div class="rule-card">
+                            <div class="rule-head">
+                                <span class="rule-ord">#@(idx + 1)</span>
+                                <div style="display:flex;gap:6px">
+                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => MoveExtra(idx, -1)" title="Su">↑</button>
+                                    <button class="btn ghost" disabled="@(idx == _extras.Count - 1)" @onclick="() => MoveExtra(idx, 1)" title="Giù">↓</button>
+                                    <button class="btn ghost" @onclick="() => _extras.Remove(s)">✕ Rimuovi</button>
+                                </div>
+                            </div>
+                            <label style="display:block">Titolo<input style="width:100%" @bind="s.Title" placeholder="es. Note operative" /></label>
+                            <label style="display:block;margin-top:8px">Testo<textarea style="width:100%;min-height:120px" @bind="s.Body" placeholder="Testo libero (gli a capo vengono preservati)"></textarea></label>
+                        </div>
+                    }
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        <button class="btn ghost" @onclick="@(() => _extras.Add(new ExtraEdit()))">+ Sezione</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || _extras.Any(s => string.IsNullOrWhiteSpace(s.Title)))" @onclick="SaveExtras">Salva sezioni</button>
+                    </div>
+                </div>
+            }
+
+            @* ===================== SETTORI ===================== *@
+            @if (_panel == "Settori")
+            {
+                <div class="block">
+                    <div class="section-title" style="margin-top:0">
+                        <h3 style="margin:0">Settori ATC <span class="pill blue">@_sectors.Count</span></h3><span class="ln"></span>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="Importa/aggiorna i settori ATC (incl. APP) dalla sorgente">⟳ Importa settori da sorgente</button>
+                    </div>
+                    <p class="muted" style="font-size:11.5px;margin:0 0 8px">Settori ATC importati dalla sorgente (callsign · ACC · position · middle id · freq · shape), inclusi gli APP. I limiti di quota li imposti tu; puoi nascondere i settori che non vuoi mostrare.</p>
+                    @if (_sectors.Count == 0)
+                    {
+                        <p class="help">Nessun settore importato. Premi «Importa settori da sorgente».</p>
+                    }
+                    else
+                    {
+                        <table class="res-table">
+                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Princ.</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var s in _sectors)
+                                {
+                                    var hasLimits = SupportsLimits(s.Position);
+                                    <tr style="@(s.IsHidden ? "opacity:.5" : "")">
+                                        <td><b>@s.ComposePosition</b></td>
+                                        <td><span class="pill blue">@s.AccCode</span></td>
+                                        <td>@(s.Position ?? "—")</td>
+                                        <td>@(s.MiddleIdentifier ?? "—")</td>
+                                        <td>@(s.Frequency ?? "—")</td>
+                                        <td style="text-align:center">
+                                            @if (CanBePrimary(s.Position))
+                                            {
+                                                <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="Frequenza principale per questo tipo" />
+                                            }
+                                            else { <span class="muted">—</span> }
+                                        </td>
+                                        <td>@(hasLimits ? (s.HasPolygon ? "✓" : "—") : "—")</td>
+                                        @if (hasLimits)
+                                        {
+                                            <td><input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" disabled="@(!_canEdit)" /></td>
+                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" disabled="@(!_canEdit)" /></td>
+                                        }
+                                        else
+                                        {
+                                            <td class="muted">—</td>
+                                            <td class="muted">—</td>
+                                        }
+                                        <td>
+                                            @if (s.IsHidden)
+                                            {
+                                                <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                            }
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            @if (hasLimits)
+                                            {
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="Salva limiti">💾</button>
+                                            }
+                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="Mostra/nascondi">@(s.IsHidden ? "👁" : "🚫")</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            }
         }
     </div>
 }
@@ -294,7 +406,7 @@ else
     private bool _busy;
     private string? _error, _status;
 
-    private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID" };
+    private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID", "Sezioni extra", "Settori" };
     private string _panel = "Regole piste";
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
@@ -303,9 +415,15 @@ else
     private List<RwEdit> _rwys = new();
     private List<RuleEdit> _rules = new();
     private List<SidEdit> _sids = new();
+    private List<ExtraEdit> _extras = new();
     private List<int> _linkIds = new();
     private string _freqSearch = "";
     private int _pickFreqId;
+
+    // Settori ATC importati (catalogo): righe + buffer limiti editabili per id.
+    private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
+    private readonly Dictionary<int, int?> _secLower = new();
+    private readonly Dictionary<int, int?> _secUpper = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -341,19 +459,27 @@ else
         }).ToList();
         _rules = _data.Rules.Select(r => new RuleEdit
         {
-            DirFrom = r.WindDirFrom, DirTo = r.WindDirTo, SpdMin = r.WindSpeedMin, SpdMax = r.WindSpeedMax,
-            Rain = Tri(r.Rain), Snow = Tri(r.Snow),
+            Name = r.Name,
             Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
-            TimeFrom = MinToTime(r.TimeFromUtcMin), TimeTo = MinToTime(r.TimeToUtcMin),
+            MaxTail = r.MaxTailwindKt, MaxCross = r.MaxCrosswindKt,
+            Surface = r.Surface switch { RunwaySurface.Dry => "dry", RunwaySurface.Wet => "wet", _ => "any" },
+            TimeFrom = MinToTime(r.TimeFromLocalMin), TimeTo = MinToTime(r.TimeToLocalMin),
             DaysMask = r.DaysOfWeekMask ?? 0,
             Parity = r.DateParity switch { DateParity.Even => "even", DateParity.Odd => "odd", _ => "" },
+            DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
+            DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
         }).ToList();
         _sids = _data.Sids.Select(s => new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
             Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
         }).ToList();
-        _linkIds = _data.Links.Select(l => l.SourceFrequencyId).ToList();
+        _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
+        _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body }).ToList();
+
+        _sectors = await Sectors.ListByAirportAsync(_icao);
+        _secLower.Clear(); _secUpper.Clear();
+        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
     }
 
     private IEnumerable<LinkableFrequencyRow> FilteredLinkable()
@@ -380,27 +506,97 @@ else
         _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()),
         "Piste salvate.");
     private Task SaveRules() => Guarded(() => Profile.SaveRunwayRulesAsync(_icao,
-        _rules.Select(r => new RunwayRuleRow(0, r.DirFrom, r.DirTo, r.SpdMin, r.SpdMax, Tri(r.Rain), Tri(r.Snow),
-            JoinCsv(r.Dep), JoinCsv(r.Arr), r.Note,
+        _rules.Select(r => new RunwayRuleRow(0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name,
+            r.MaxTail, r.MaxCross, r.Surface switch { "dry" => RunwaySurface.Dry, "wet" => RunwaySurface.Wet, _ => RunwaySurface.Any }, r.Note,
             TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
-            r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any })).ToList()),
+            r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
+            CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()),
         "Regole salvate.");
     private Task SaveSids() => Guarded(() => Profile.SaveSidsAsync(_icao,
         _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()),
         "SID salvate.");
     private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()), "Link salvati.");
+    private Task SaveExtras() => Guarded(() => Profile.SaveExtraSectionsAsync(_icao,
+        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", s.Body)).ToList()), "Sezioni extra salvate.");
 
     private Task Reimport() => Guarded(() => Profile.ReimportFromSourceAsync(_icao), "Re-import completato (campi IVAO aggiornati).");
     private Task Rebuild() => Guarded(() => Profile.RebuildDocumentAsync(_icao), "Documento rigenerato e pubblicato.");
 
-    private async Task Guarded(Func<Task> action, string ok)
+    // --- Settori ATC importati (catalogo): import + limiti + mostra/nascondi ---
+    private Task ImportSectors() => Guarded(async () =>
+    {
+        var r = await Sectors.ImportFromSourceAsync(_icao);
+        _status = $"Import settori completato: {r.Created} creati, {r.Updated} aggiornati.";
+    }, null);
+    private Task SaveSectorLimits(int id) => Guarded(() =>
+        Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id)), "Limiti settore salvati.");
+    private Task ToggleSectorHidden(int id, bool hidden) => Guarded(() =>
+        Sectors.SetHiddenAsync(id, hidden), hidden ? "Settore nascosto." : "Settore mostrato.");
+    private Task SetSectorPrimary(int id) => Guarded(() => Sectors.SetPrimaryAsync(id), "Frequenza principale aggiornata.");
+
+    // Frequenze dal catalogo settori, ordine ATIS·DEL·GND·TWR·APP/DEP (solo con frequenza, non nascosti).
+    private IEnumerable<AirportSectorRow> FreqRows()
+    {
+        string[] order = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+        return _sectors
+            .Where(s => !s.IsHidden && !string.IsNullOrWhiteSpace(s.Frequency))
+            .OrderBy(s => { var i = Array.IndexOf(order, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
+            .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
+            .ThenBy(s => s.ComposePosition);
+    }
+
+    private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
+    {
+        "ATIS" => "ATIS",
+        "DEL" => "Delivery",
+        "GND" => "Ground",
+        "TWR" => "Tower",
+        "APP" => "Approach",
+        "DEP" => "Departure",
+        "CTR" => "Control",
+        "FSS" => "Information",
+        _ => position ?? "—",
+    };
+
+    // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
+    private static bool CanBePrimary(string? position)
+    {
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        return p is "DEL" or "GND" or "TWR" or "APP" or "DEP";
+    }
+
+    // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
+    private static int ParseLower(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("GND", StringComparison.OrdinalIgnoreCase)) return 0;
+        return int.TryParse(s, out var n) ? Math.Max(0, n) : 0;
+    }
+    // Limite superiore: "UNL"/vuoto = null (illimitato); altrimenti la quota in ft.
+    private static int? ParseUpper(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("UNL", StringComparison.OrdinalIgnoreCase)) return null;
+        return int.TryParse(s, out var n) ? n : (int?)null;
+    }
+    private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
+    private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
+
+    // Solo TWR/APP/DEP/CTR/FSS hanno un volume (limiti + shape); GND/DEL/ATIS no.
+    private static bool SupportsLimits(string? position)
+    {
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        return p is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
+    }
+
+    private async Task Guarded(Func<Task> action, string? ok)
     {
         _busy = true; _error = _status = null;
         try
         {
             await action();
             await LoadAsync();
-            _status = ok;
+            if (ok is not null) _status = ok;
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (ValidationException ex) { _error = ex.Message; }
@@ -408,10 +604,7 @@ else
         finally { _busy = false; }
     }
 
-    private static string Tri(bool? v) => v is true ? "yes" : v is false ? "no" : "";
-    private static bool? Tri(string? v) => v == "yes" ? true : v == "no" ? false : null;
-
-    // --- Regole: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
+    // --- Configurazioni: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
     private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
 
     private IReadOnlyList<string> RwIdents() =>
@@ -432,6 +625,13 @@ else
         (_rules[idx], _rules[j]) = (_rules[j], _rules[idx]);
     }
 
+    private void MoveExtra(int idx, int dir)
+    {
+        var j = idx + dir;
+        if (j < 0 || j >= _extras.Count) return;
+        (_extras[idx], _extras[j]) = (_extras[j], _extras[idx]);
+    }
+
     private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -440,9 +640,32 @@ else
     private static TimeOnly? MinToTime(int? min) => min is int m ? new TimeOnly(m / 60, m % 60) : null;
     private static int? TimeToMin(TimeOnly? t) => t is TimeOnly v ? v.Hour * 60 + v.Minute : null;
 
+    // Finestra stagionale ricorrente: in DB è MMDD (mese*100+giorno); nell'editor giorno e mese separati (nessun anno).
+    private static int? MdDay(int? mmdd) => mmdd is int md and >= 101 ? md % 100 : null;
+    private static int? MdMonth(int? mmdd) => mmdd is int md and >= 101 ? md / 100 : null;
+    // Valida solo se ENTRAMBI valorizzati; altrimenti null (nessun estremo per quel lato).
+    private static int? CombineMd(int? month, int? day) =>
+        month is int m && day is int d ? m * 100 + d : null;
+
+    private static readonly string[] MonthNames =
+        { "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre" };
+
+    private static RenderFragment DayOptions() => builder =>
+    {
+        builder.AddMarkupContent(0, "<option value=\"\">—</option>");
+        for (var d = 1; d <= 31; d++)
+            builder.AddMarkupContent(d, $"<option value=\"{d}\">{d}</option>");
+    };
+    private static RenderFragment MonthOptions() => builder =>
+    {
+        builder.AddMarkupContent(0, "<option value=\"\">— mese —</option>");
+        for (var m = 1; m <= 12; m++)
+            builder.AddMarkupContent(m, $"<option value=\"{m}\">{MonthNames[m - 1]}</option>");
+    };
+
     private sealed record RuleValidation(List<string> Errors, List<string> Warnings);
 
-    /// <summary>Errori (bloccano il salvataggio) + avvisi (regole irraggiungibili o piste inesistenti) sulle regole correnti.</summary>
+    /// <summary>Errori (bloccano il salvataggio) + avvisi (piste inesistenti / finestra orario incompleta) sulle regole correnti.</summary>
     private RuleValidation RuleIssues()
     {
         var errors = new List<string>();
@@ -458,30 +681,27 @@ else
                 warnings.Add($"Regola #{n}: pista «{id}» non è tra le piste dell'aeroporto.");
             if (r.TimeFrom is not null ^ r.TimeTo is not null)
                 warnings.Add($"Regola #{n}: finestra orario incompleta (manca inizio o fine).");
-            // Catch-all (nessun vincolo) che non è l'ultima → le successive non vengono mai raggiunte.
-            if (i < _rules.Count - 1 && IsCatchAll(r))
-                warnings.Add($"Regola #{n} non ha condizioni: cattura sempre, le regole successive sono irraggiungibili.");
         }
         return new RuleValidation(errors, warnings);
     }
-
-    private static bool IsCatchAll(RuleEdit r) =>
-        r.DirFrom is null && r.DirTo is null && r.SpdMin is null && r.SpdMax is null
-        && r.Rain == "" && r.Snow == "" && r.TimeFrom is null && r.TimeTo is null
-        && r.DaysMask == 0 && r.Parity == "";
 
     private sealed class TlEdit { public int Id; public int? From; public int? To; public string? Level; }
     private sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling; }
     private sealed class RuleEdit
     {
-        public int? DirFrom; public int? DirTo; public int? SpdMin; public int? SpdMax;
-        public string Rain = ""; public string Snow = "";
+        public string? Name;
         public HashSet<string> Dep = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> Arr = new(StringComparer.OrdinalIgnoreCase);
+        public int MaxTail = 5;                                    // vento in coda massimo (kt)
+        public int? MaxCross;                                      // vento al traverso massimo (kt); null = nessun vincolo
+        public string Surface = "any";                             // "any"|"dry"|"wet"
         public string? Note;
-        public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC
-        public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti
-        public string Parity = "";                                 // ""|"even"|"odd"
+        public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC (avanzate)
+        public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti (avanzate)
+        public string Parity = "";                                 // ""|"even"|"odd" (avanzate)
+        public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)
+        public int? DateToDay; public int? DateToMonth;
     }
     private sealed class SidEdit { public string? Runway; public string? Fix; public string? Name; public string? Transition; public string? InitialClimb; public string? Type; public string? Cat; public string? Wtc; public string? Condition; }
+    private sealed class ExtraEdit { public string? Title; public string? Body; }
 }

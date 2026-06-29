@@ -301,9 +301,38 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         return raw
             .Select(p => new SourceAtcPosition(
                 Callsign: (p.ComposePosition ?? "").Trim().ToUpperInvariant(),   // es. "LIRN_GND" (NON atcCallsign, che è il nome)
-                Frequency: FormatFrequency(p.Frequency)))
+                Frequency: FormatFrequency(p.Frequency),
+                Position: p.Position,
+                MiddleIdentifier: p.MiddleIdentifier))
             .Where(p => p.Callsign.Length > 0)
             .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<SourceAtcPosition?> GetAtcPositionDetailAsync(string composePosition, CancellationToken ct = default)
+    {
+        var compose = (composePosition ?? "").Trim().ToUpperInvariant();
+        if (compose.Length == 0) return null;
+
+        // Dettaglio per posizione: frequency + regionMapPolygon (+ position/middleIdentifier/limiti se esposti).
+        var body = await GetStringAsync(string.Format(_opt.AtcPositionDetailPathFormat, Uri.EscapeDataString(compose)), ct);
+        if (body is null) return null;
+
+        using var doc = System.Text.Json.JsonDocument.Parse(body);
+        var d = doc.RootElement;
+        string? polygon = null;
+        if (d.TryGetProperty("regionMapPolygon", out var poly) && poly.ValueKind != System.Text.Json.JsonValueKind.Null
+            && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+            polygon = poly.GetRawText();
+
+        return new SourceAtcPosition(
+            Callsign: compose,
+            Frequency: FormatFrequency(JsonNum(d, "frequency")),
+            Position: JsonStr(d, "position"),
+            MiddleIdentifier: JsonStr(d, "middleIdentifier"),
+            RegionMapPolygon: polygon,
+            LowerLimit: JsonNum(d, "lowerLimit") is double lo ? (int)Math.Round(lo) : null,
+            UpperLimit: JsonNum(d, "upperLimit") is double up ? (int)Math.Round(up) : null);
     }
 
     /// <inheritdoc />
@@ -413,6 +442,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
     private sealed record AtcPositionDto(
         [property: JsonPropertyName("composePosition")] string? ComposePosition,
         [property: JsonPropertyName("position")] string? Position,
+        [property: JsonPropertyName("middleIdentifier")] string? MiddleIdentifier,
         [property: JsonPropertyName("frequency")] double? Frequency);
 
     // /v2/airports/{icao}/runways — es. { runway:"RW06", length:8622 (piedi), width:45, bearing:56 }.

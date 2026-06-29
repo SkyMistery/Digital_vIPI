@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
@@ -42,13 +43,13 @@ public class StructureEditingTests : IAsyncLifetime
             "Milano Radar NW", "128.800", 10, null, null, null);
         var childId = await _repo.AddSectorAsync("LIMM", "LIMM_N_CTR", SectorType.Ctr, SectorKind.Acc,
             "Milano Radar N", "133.250", 11, null, secId, null);
-        var freqId = await _repo.AddFrequencyAsync("LIMM", secId, "Milano Radar", "LIMM_NW_CTR", "128.800", isPrimary: true);
+        await _repo.SetSectorFrequencyAsync("LIMM", secId, "128.805");   // frequenza = attributo del settore
 
         var data = await _repo.LoadAsync("LIMM");
         Assert.NotNull(data);
         Assert.Equal(2, data!.Sectors.Count);
         Assert.Contains(data.Sectors, s => s.Id == childId && s.ParentSectorId == secId);
-        Assert.Contains(data.Frequencies, f => f.Id == freqId && f.IsPrimary);
+        Assert.Equal("128.805", data.Sectors.Single(s => s.Id == secId).DefaultFrequency);
 
         // La directory di navigazione vede la ACC creata.
         var accs = new EfStationDirectory(_db).ListAccs();
@@ -101,9 +102,16 @@ public class StructureEditingTests : IAsyncLifetime
 
         var (created, found) = await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         Assert.True(found);
-        Assert.Equal(3, created);   // ATIS non crea settore
+        Assert.Equal(3, created);   // ATIS non crea settore operativo
 
-        await profile.MergeFromSourceAsync("LIRF", 6000, "135.975",
+        // Catalogo settori (fonte delle frequenze del documento): ATIS + TWR.
+        await new EfAirportSectorRepository(_db).ImportForAirportAsync("LIRF", new[]
+        {
+            new SourceAtcPosition("LIRF_ATIS", "135.975", "ATIS", null, null, null, null),
+            new SourceAtcPosition("LIRF_TWR", "118.700", "TWR", null, null, null, null),
+        });
+
+        await profile.MergeFromSourceAsync("LIRF", 6000,
             new[] { ("16L", (int?)3902, (int?)160), ("16R", (int?)3900, (int?)160) });
         var docId = await profile.RebuildDocumentAsync("LIRF");
         Assert.True(docId > 0);
@@ -124,7 +132,7 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Contains("Piste", sectionTitles);
         Assert.Contains("SID", sectionTitles);
 
-        // ATIS nella tabella Frequenze; TA nella prose; piste con lunghezza.
+        // ATIS (dal catalogo) nella tabella Frequenze; TA nella prose; piste con lunghezza.
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.BodyJson != null && b.BodyJson.Contains("135.975"));
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.Body != null && b.Body.Contains("6000 ft"));
         var prof = await profile.LoadAsync("LIRF");
@@ -146,7 +154,7 @@ public class StructureEditingTests : IAsyncLifetime
         var profile = new EfAirportProfileRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
 
-        await profile.MergeFromSourceAsync("LIRF", 6000, "135.975", new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
 
         // Lo staff compila le colonne editoriali della pista.
         await profile.SaveRunwaysAsync("LIRF", new[]
@@ -155,7 +163,7 @@ public class StructureEditingTests : IAsyncLifetime
         });
 
         // Re-import con lunghezza cambiata: sovrascrive Length, preserva APP/Patterns/Circling.
-        await profile.MergeFromSourceAsync("LIRF", 6000, "135.975", new[] { ("16L", (int?)3950, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3950, (int?)160) });
 
         var data = await profile.LoadAsync("LIRF");
         var rw = Assert.Single(data!.Runways);
@@ -172,17 +180,16 @@ public class StructureEditingTests : IAsyncLifetime
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportProfileRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-        await profile.MergeFromSourceAsync("LIRF", 6000, null, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
 
         // Una regola pista + un link a una frequenza esistente nel DB (entità Frequency di un settore APP).
         await profile.SaveRunwayRulesAsync("LIRF", new[]
         {
-            new Vipi.Application.Content.RunwayRuleRow(0, 130, 200, null, null, null, null, "16R", "16L", "vento da sud"),
+            new Vipi.Application.Content.RunwayRuleRow(0, "16R", "16L", "Sud", 5, null, RunwaySurface.Any, "vento da sud"),
         });
         var appSec = await _repo.AddSectorAsync("LIRR", "LIRF_APP", SectorType.App, SectorKind.Acc, "Roma APP", "119.200", 5, null, null, null);
-        var appFreqId = await _repo.AddFrequencyAsync("LIRR", appSec, "Approach", "LIRF_APP", "119.200", isPrimary: true);
-        await profile.SaveFrequencyLinksAsync("LIRF", new[] { appFreqId });
+        await profile.SaveFrequencyLinksAsync("LIRF", new[] { appSec });   // link al SETTORE (DefaultFrequency)
 
         // Aggiungo a mano una sezione extra al documento: il rebuild deve preservarla.
         var ver = await _db.DocumentVersions.Include(v => v.Sections).FirstAsync();
@@ -211,7 +218,7 @@ public class StructureEditingTests : IAsyncLifetime
         var profile = new EfAirportProfileRepository(_db);
 
         // TA ignota: la tabella di default mostra la formula TA + offset.
-        await profile.MergeFromSourceAsync("LIRF", null, null, Array.Empty<(string, int?, int?)>());
+        await profile.MergeFromSourceAsync("LIRF", null, Array.Empty<(string, int?, int?)>());
         var noTa = await profile.LoadAsync("LIRF");
         Assert.Equal(4, noTa!.TransitionLevels.Count);
         Assert.Equal("TA + 2500 ft", noTa.TransitionLevels.Single(t => t.QnhTo == 976).Level);
@@ -262,16 +269,63 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Deleting_Sector_Cleans_Dependencies()
+    public async Task Airport_Without_Sectors_Is_Hidden_By_Default_And_Admin_Can_Hide_With_Sectors()
+    {
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        var apId = await _repo.CreateAirportAsync("LIRR", "LIRN", "Napoli");
+
+        // Senza settori → non pubblico di default (anche se non nascosto a mano).
+        var adminNoSec = Assert.Single(await _repo.ListAllAirportsAsync(), a => a.Icao == "LIRN");
+        Assert.False(adminNoSec.IsHidden);
+        Assert.False(adminNoSec.IsPublic);
+        Assert.False(Assert.Single((await _repo.LoadAsync("LIRR"))!.Airports).IsPublic);
+
+        // Con un settore → diventa pubblico.
+        await _repo.AddSectorAsync("LIRR", "LIRN_TWR", SectorType.Twr, SectorKind.Airport,
+            "Napoli Torre", "118.700", 10, null, null, apId);
+        Assert.True(Assert.Single(await _repo.ListAllAirportsAsync(), a => a.Icao == "LIRN").IsPublic);
+        Assert.True(Assert.Single((await _repo.LoadAsync("LIRR"))!.Airports).IsPublic);
+
+        // L'admin lo nasconde → non più pubblico; mostrandolo torna pubblico.
+        await _repo.SetAirportHiddenAsync("LIRR", apId, true);
+        var hidden = Assert.Single(await _repo.ListAllAirportsAsync(), a => a.Icao == "LIRN");
+        Assert.True(hidden.IsHidden);
+        Assert.False(hidden.IsPublic);
+        Assert.False(Assert.Single((await _repo.LoadAsync("LIRR"))!.Airports).IsPublic);
+
+        await _repo.SetAirportHiddenAsync("LIRR", apId, false);
+        Assert.True(Assert.Single(await _repo.ListAllAirportsAsync(), a => a.Icao == "LIRN").IsPublic);
+    }
+
+    [Fact]
+    public async Task Hidden_Airport_Document_Is_Not_Served_Publicly()
+    {
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        var apId = await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        var profile = new EfAirportProfileRepository(_db);
+        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.RebuildDocumentAsync("LIRF");
+
+        var content = new EfContentRepository(_db);
+        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: documento servito
+
+        await _repo.SetAirportHiddenAsync("LIRR", apId, true);
+        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));      // nascosto: pagina pubblica inaccessibile
+
+        await _repo.SetAirportHiddenAsync("LIRR", apId, false);
+        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // di nuovo visibile
+    }
+
+    [Fact]
+    public async Task Deleting_Sector_Removes_It()
     {
         await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
-        var secId = await _repo.AddSectorAsync("LIMM", "LIMM_NW_CTR", SectorType.Ctr, SectorKind.Acc, "NW", null, 10, null, null, null);
-        await _repo.AddFrequencyAsync("LIMM", secId, "Radar", "LIMM_NW_CTR", "128.800", true);
+        var secId = await _repo.AddSectorAsync("LIMM", "LIMM_NW_CTR", SectorType.Ctr, SectorKind.Acc, "NW", "128.800", 10, null, null, null);
 
         await _repo.DeleteSectorAsync("LIMM", secId);
 
         var data = await _repo.LoadAsync("LIMM");
         Assert.Empty(data!.Sectors);
-        Assert.Empty(data.Frequencies);
     }
 }

@@ -91,26 +91,32 @@
         });
     }
 
+    var anchorsWired = false;
     function wireAnchors() {
         // Con <base href="/"> i link "#id" verrebbero risolti come "/#id" (→ home).
-        // Intercettiamo: scroll diretto all'elemento, senza navigazione.
-        document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-            a.onclick = function (e) {
-                var id = a.getAttribute('href').slice(1);
-                if (!id) return;
-                var el = document.getElementById(id);
-                if (!el) return;
-                e.preventDefault();
-                // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
-                var bar = document.querySelector('.topbar');
-                var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
-                var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-                var toc = a.closest('.toc');
-                if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
-                history.replaceState(null, '', location.pathname + location.search + '#' + id);
-            };
-        });
+        // Delegazione su document: cattura anche gli ancoraggi resi DOPO il load da Blazor (InteractiveServer).
+        if (anchorsWired) return;
+        anchorsWired = true;
+        // Fase di CATTURA + stopImmediatePropagation: gira PRIMA dell'intercettore di navigazione di Blazor
+        // (che altrimenti, vista la <base href="/">, risolverebbe "#id" come "/#id" e andrebbe in home).
+        document.addEventListener('click', function (e) {
+            var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+            if (!a) return;
+            var id = a.getAttribute('href').slice(1);
+            if (!id) return;
+            var el = document.getElementById(id);
+            if (!el) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
+            var bar = document.querySelector('.topbar');
+            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
+            var y = el.getBoundingClientRect().top + window.pageYOffset - off;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            var toc = a.closest('.toc');
+            if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
+            history.replaceState(null, '', location.pathname + location.search + '#' + id);
+        }, true);
     }
 
     window.vipiWireUi = function () {

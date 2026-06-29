@@ -27,6 +27,7 @@ public interface IAirportProfileService
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
+    Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
     /// <summary>Re-importa da IVAO (merge mirato): aggiorna TA/ATIS/piste, preserva il lavoro editoriale.</summary>
     Task ReimportFromSourceAsync(string icao, CancellationToken ct = default);
@@ -113,12 +114,10 @@ public sealed class AirportProfileService : IAirportProfileService
         await EnsureCanEditAsync(icao, ct);
         foreach (var r in rows)
         {
-            if (r.WindDirFrom is < 0 or > 360 || r.WindDirTo is < 0 or > 360)
-                throw new ValidationException("Direzione vento fuori range (0–360).");
-            if ((r.WindSpeedMin ?? 0) < 0 || (r.WindSpeedMax ?? 0) < 0)
-                throw new ValidationException("Velocità vento negativa.");
             if (string.IsNullOrWhiteSpace(r.DepRunways) && string.IsNullOrWhiteSpace(r.ArrRunways))
                 throw new ValidationException("Specifica almeno una pista DEP o ARR per la regola.");
+            if (r.MaxTailwindKt is < 0 or > 40) throw new ValidationException("Vento in coda massimo fuori range (0–40 kt).");
+            if (r.MaxCrosswindKt is < 0 or > 60) throw new ValidationException("Vento al traverso massimo fuori range (0–60 kt).");
         }
         await _repo.SaveRunwayRulesAsync(Norm(icao), rows, ct);
     }
@@ -140,23 +139,25 @@ public sealed class AirportProfileService : IAirportProfileService
         await _repo.SaveFrequencyLinksAsync(Norm(icao), sourceFrequencyIds, ct);
     }
 
+    public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
+    {
+        await EnsureCanEditAsync(icao, ct);
+        foreach (var r in rows)
+            if (string.IsNullOrWhiteSpace(r.Title)) throw new ValidationException("Titolo obbligatorio per ogni sezione extra.");
+        await _repo.SaveExtraSectionsAsync(Norm(icao), rows, ct);
+    }
+
     public async Task ReimportFromSourceAsync(string icao, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
         icao = Norm(icao);
         var policy = await _policy.GetAsync(ct);
 
-        var positions = await _details.GetAtcPositionsAsync(icao, ct);
-
         // Solo le categorie importate vengono passate al merge: per quelle escluse il merge non tocca i dati
-        // editoriali dell'utente (null TA / null ATIS / lista piste vuota = "nessun cambio").
+        // editoriali dell'utente (null TA / lista piste vuota = "nessun cambio"). L'ATIS è nel catalogo settori.
         var runways = policy.Runways
             ? (await _details.GetRunwaysAsync(icao, ct)).Select(r => (r.Ident, r.LengthM, r.Bearing)).ToList()
             : new List<(string, int?, int?)>();
-
-        var atisFreq = policy.Atis
-            ? positions.FirstOrDefault(p => string.Equals(SuffixOf(p.Callsign), "ATIS", StringComparison.OrdinalIgnoreCase))?.Frequency
-            : null;
 
         int? ta = null;
         if (policy.TransitionAltitude)
@@ -167,7 +168,7 @@ public sealed class AirportProfileService : IAirportProfileService
             }
             catch { /* anagrafica non disponibile: TA resta invariata */ }
 
-        await _repo.MergeFromSourceAsync(icao, ta, atisFreq, runways, ct);
+        await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
     }
 
     public async Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default)
@@ -184,8 +185,4 @@ public sealed class AirportProfileService : IAirportProfileService
     }
 
     private static string Norm(string icao) => (icao ?? "").Trim().ToUpperInvariant();
-
-    /// <summary>Suffisso del callsign dopo l'ultimo '_' (es. LIRF_ATIS → ATIS).</summary>
-    private static string SuffixOf(string callsign) =>
-        callsign.Contains('_') ? callsign[(callsign.LastIndexOf('_') + 1)..] : callsign;
 }

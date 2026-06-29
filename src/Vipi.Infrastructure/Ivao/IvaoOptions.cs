@@ -32,6 +32,9 @@ public sealed class IvaoOptions
     /// <summary>Template dettaglio subcenter: <c>{0}</c> = composePosition. Es. <c>/v2/subcenters/LIBB_ES_CTR</c>.</summary>
     public string SubcenterDetailPathFormat { get; set; } = "/v2/subcenters/{0}";
 
+    /// <summary>Template dettaglio postazione ATC d'aeroporto: <c>{0}</c> = composePosition. Es. <c>/v2/ATCPositions/LIRN_TWR</c>.</summary>
+    public string AtcPositionDetailPathFormat { get; set; } = "/v2/ATCPositions/{0}";
+
     /// <summary>Paese (countryId IVAO, es. "IT" per l'Italia) per cui scaricare gli aeroporti.</summary>
     public string AirportsCountryId { get; set; } = "IT";
 
@@ -53,4 +56,7 @@ public sealed class IvaoOptions
 
     /// <summary>Ogni quante ore re-importare automaticamente ACC + settori ATC dalla sorgente (default giornaliero).</summary>
     public int AccImportHours { get; set; } = 24;
+
+    /// <summary>Ogni quante ore re-importare automaticamente i settori ATC degli aeroporti dalla sorgente (default giornaliero).</summary>
+    public int AirportSectorImportHours { get; set; } = 24;
 }

@@ -19,7 +19,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
 
     /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate.</summary>
     private static readonly string[] ManagedSectionTitles =
-        { "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
+        { "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
 
     public async Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
@@ -38,43 +38,40 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             .ToListAsync(ct);
         var rules = await _db.AirportRunwayRules.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
-            .Select(x => new RunwayRuleRow(x.Id, x.WindDirFrom, x.WindDirTo, x.WindSpeedMin, x.WindSpeedMax,
-                x.Rain, x.Snow, x.DepRunways, x.ArrRunways, x.Note,
-                x.TimeFromUtcMin, x.TimeToUtcMin, x.DaysOfWeekMask, x.DateParity))
+            .Select(x => new RunwayRuleRow(x.Id, x.DepRunways, x.ArrRunways, x.Name,
+                x.MaxTailwindKt, x.MaxCrosswindKt, x.Surface, x.Note,
+                x.TimeFromLocalMin, x.TimeToLocalMin, x.DaysOfWeekMask, x.DateParity,
+                x.DateFromMonthDay, x.DateToMonthDay))
             .ToListAsync(ct);
         var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
             .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition))
             .ToListAsync(ct);
 
-        // Frequenze proprie: dai settori d'aeroporto (DEL/GND/TWR/APP), in ordine di tipo.
-        var sectors = await _db.Sectors.AsNoTracking()
-            .Where(s => s.AirportId == airport.Id && s.DefaultFrequency != null)
-            .OrderBy(s => (int)s.Type).ToListAsync(ct);
-        var own = sectors.Select(s => new OwnFrequencyRow(s.Type, FreqName(s.Type, s.Callsign), s.Callsign,
-            s.DefaultFrequency!, IsTower(s.Type))).ToList();
-
-        // Link (riferimento vivo): valore risolto ora dalla Frequency sorgente.
+        // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
         var links = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
-            .OrderBy(x => x.Order).Include(x => x.SourceFrequency)
-            .Where(x => x.SourceFrequency != null)
-            .Select(x => new FrequencyLinkRow(x.Id, x.SourceFrequencyId,
-                x.LabelOverride ?? x.SourceFrequency!.Label, x.SourceFrequency!.Callsign, x.SourceFrequency!.FrequencyMhz))
+            .OrderBy(x => x.Order).Include(x => x.SourceSector)
+            .Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null)
+            .Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
+                x.LabelOverride ?? x.SourceSector!.Callsign, x.SourceSector!.Callsign, x.SourceSector!.DefaultFrequency!))
             .ToListAsync(ct);
+
+        var extras = await _db.AirportExtraSections.AsNoTracking().Where(x => x.AirportId == airport.Id)
+            .OrderBy(x => x.Order).Select(x => new ExtraSectionRow(x.Id, x.Title, x.Body)).ToListAsync(ct);
 
         return new AirportProfileData
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
-            TransitionAltitudeFt = airport.TransitionAltitudeFt, AtisFrequency = airport.AtisFrequency,
-            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, OwnFrequencies = own, Links = links,
+            TransitionAltitudeFt = airport.TransitionAltitudeFt,
+            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, ExtraSections = extras,
         };
     }
 
     public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
-        await _db.Frequencies.AsNoTracking().Include(f => f.Sector!)
-            .OrderBy(f => f.Sector!.AirportIcao).ThenBy(f => f.Callsign)
-            .Select(f => new LinkableFrequencyRow(f.Id, f.Sector!.AirportIcao, f.Sector!.Callsign,
-                f.Label, f.Callsign, f.FrequencyMhz))
+        await _db.Sectors.AsNoTracking()
+            .Where(s => s.DefaultFrequency != null)
+            .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
+            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
             .ToListAsync(ct);
 
     public async Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default)
@@ -127,11 +124,12 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             var r = rows[i];
             _db.AirportRunwayRules.Add(new AirportRunwayRule
             {
-                AirportId = id, Order = i, WindDirFrom = r.WindDirFrom, WindDirTo = r.WindDirTo,
-                WindSpeedMin = r.WindSpeedMin, WindSpeedMax = r.WindSpeedMax, Rain = r.Rain, Snow = r.Snow,
-                DepRunways = (r.DepRunways ?? "").Trim(), ArrRunways = (r.ArrRunways ?? "").Trim(), Note = r.Note,
-                TimeFromUtcMin = r.TimeFromUtcMin, TimeToUtcMin = r.TimeToUtcMin,
+                AirportId = id, Order = i, Name = string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim(),
+                DepRunways = (r.DepRunways ?? "").Trim(), ArrRunways = (r.ArrRunways ?? "").Trim(),
+                MaxTailwindKt = r.MaxTailwindKt, MaxCrosswindKt = r.MaxCrosswindKt, Surface = r.Surface, Note = r.Note,
+                TimeFromLocalMin = r.TimeFromLocalMin, TimeToLocalMin = r.TimeToLocalMin,
                 DaysOfWeekMask = r.DaysOfWeekMask, DateParity = r.DateParity,
+                DateFromMonthDay = r.DateFromMonthDay, DateToMonthDay = r.DateToMonthDay,
             });
         }
         await _db.SaveChangesAsync(ct);
@@ -153,25 +151,38 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)
+    public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        _db.AirportFrequencyLinks.RemoveRange(_db.AirportFrequencyLinks.Where(x => x.AirportId == id));
-        var valid = await _db.Frequencies.Where(f => sourceFrequencyIds.Contains(f.Id)).Select(f => f.Id).ToListAsync(ct);
+        _db.AirportExtraSections.RemoveRange(_db.AirportExtraSections.Where(x => x.AirportId == id));
         var order = 0;
-        foreach (var fid in sourceFrequencyIds.Where(valid.Contains))
-            _db.AirportFrequencyLinks.Add(new AirportFrequencyLink { AirportId = id, Order = order++, SourceFrequencyId = fid });
+        foreach (var r in rows.Where(r => !string.IsNullOrWhiteSpace(r.Title)))
+            _db.AirportExtraSections.Add(new AirportExtraSection
+            {
+                AirportId = id, Order = order++, Title = r.Title.Trim(),
+                Body = string.IsNullOrWhiteSpace(r.Body) ? null : r.Body!.Trim(),
+            });
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task MergeFromSourceAsync(string icao, int? transitionAltitude, string? atisFrequency,
+    public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
+    {
+        var id = await AirportIdAsync(icao, ct);
+        _db.AirportFrequencyLinks.RemoveRange(_db.AirportFrequencyLinks.Where(x => x.AirportId == id));
+        var valid = await _db.Sectors.Where(s => sourceSectorIds.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct);
+        var order = 0;
+        foreach (var sid in sourceSectorIds.Where(valid.Contains))
+            _db.AirportFrequencyLinks.Add(new AirportFrequencyLink { AirportId = id, Order = order++, SourceSectorId = sid });
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task MergeFromSourceAsync(string icao, int? transitionAltitude,
         IReadOnlyList<(string Ident, int? LengthM, int? Bearing)> runways, CancellationToken ct = default)
     {
         var airport = await _db.Airports.Include(a => a.Runways).Include(a => a.TransitionLevels)
             .FirstOrDefaultAsync(a => a.Icao == icao, ct) ?? throw NotFound(icao);
 
         if (transitionAltitude is int ta) airport.TransitionAltitudeFt = ta;
-        if (!string.IsNullOrWhiteSpace(atisFrequency)) airport.AtisFrequency = atisFrequency;
 
         var nextOrder = airport.Runways.Count == 0 ? 0 : airport.Runways.Max(r => r.Order) + 1;
         foreach (var rw in runways)
@@ -210,7 +221,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
 
         var sectors = await _db.Sectors.Where(s => s.AirportId == airport.Id).OrderBy(s => (int)s.Type).ToListAsync(ct);
         var links = await _db.AirportFrequencyLinks.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order)
-            .Include(x => x.SourceFrequency).Where(x => x.SourceFrequency != null).ToListAsync(ct);
+            .Include(x => x.SourceSector).Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null).ToListAsync(ct);
 
         var now = DateTime.UtcNow;
         var cycle = new AiracService().GetCycle(now);
@@ -252,10 +263,13 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         var b = new DocBuilder(_db, ver);
         var order = 0;
 
-        // 1 — Regole piste (solo se presenti).
+        // 1 — Regole piste (solo se presenti). Scelta in base a vento in coda/traverso + superficie.
         if (airport.RunwayRules.Count > 0)
         {
             var sec = b.Section("Regole piste", BlockSection.Airport, ++order);
+            b.Prose(sec, BlockTier.Reduced,
+                "Si applica la **prima** regola le cui condizioni sono soddisfatte (vento in coda/traverso entro le soglie " +
+                "indicate e superficie corrispondente); se nessuna si applica, vale la pista con miglior vento di testa.");
             b.Table(sec, BlockTier.Reduced, new
             {
                 columns = new[] { "Condizione", "DEP", "ARR", "Note" },
@@ -279,18 +293,18 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
                     .Select(t => (object)new { cells = new[] { QnhRange(t.QnhFrom, t.QnhTo), t.Level } }).ToList(),
             });
 
-        // 3 — Frequenze (settori propri + ATIS + link risolti).
+        // 3 — Frequenze (dal catalogo AirportSector: ATIS·DEL·GND·TWR·APP/DEP, ★ = principale per tipo) + link risolti.
+        var catalog = await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.AirportIcao == icao && !s.IsHidden && s.Frequency != null)
+            .ToListAsync(ct);
         var freqRows = new List<object>();
-        foreach (var s in sectors.Where(s => !string.IsNullOrWhiteSpace(s.DefaultFrequency)))
+        foreach (var s in catalog.OrderBy(FreqOrder).ThenByDescending(s => s.IsPrimary).ThenBy(s => s.ComposePosition))
         {
-            var cells = new[] { FreqName(s.Type, s.Callsign), s.Callsign, s.DefaultFrequency! };
-            freqRows.Add(IsTower(s.Type)
-                ? new { primary = true, star = true, cells } : (object)new { cells });
+            var cells = new[] { FreqNameForPosition(s.Position), s.ComposePosition, s.Frequency! };
+            freqRows.Add(s.IsPrimary ? new { primary = true, star = true, cells } : (object)new { cells });
         }
-        if (!string.IsNullOrWhiteSpace(airport.AtisFrequency))
-            freqRows.Add(new { cells = new[] { "ATIS", $"{icao}_ATIS", airport.AtisFrequency! } });
         foreach (var l in links)
-            freqRows.Add(new { cells = new[] { l.LabelOverride ?? l.SourceFrequency!.Label, l.SourceFrequency!.Callsign, l.SourceFrequency!.FrequencyMhz } });
+            freqRows.Add(new { cells = new[] { l.LabelOverride ?? l.SourceSector!.Callsign, l.SourceSector!.Callsign, l.SourceSector!.DefaultFrequency! } });
         var freq = b.Section("Frequenze", BlockSection.Frequencies, ++order);
         b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Nome", "Callsign", "Frequenza" }, unified = false, rows = freqRows });
 
@@ -348,14 +362,24 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
     /// <summary>TWR e I_TWR (AFIS) sono entrambe "torri" ai fini di frequenza primaria/etichetta.</summary>
     private static bool IsTower(SectorType type) => type is SectorType.Twr or SectorType.ITwr;
 
-    private static string FreqName(SectorType type, string callsign) => type switch
+    private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+    private static int FreqOrder(AirportSector s)
     {
-        SectorType.Del => "Clearance Delivery (se attivo)",
-        SectorType.Gnd => "Ground (se attivo)",
-        SectorType.Twr => "Tower",
-        SectorType.ITwr => "Tower (informazioni)",
-        SectorType.App => "Approach",
-        _ => callsign,
+        var i = Array.IndexOf(FreqTypeOrder, (s.Position ?? "").Trim().ToUpperInvariant());
+        return i < 0 ? 99 : i;
+    }
+
+    private static string FreqNameForPosition(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
+    {
+        "ATIS" => "ATIS",
+        "DEL" => "Delivery",
+        "GND" => "Ground",
+        "TWR" => "Tower",
+        "APP" => "Approach",
+        "DEP" => "Departure",
+        "CTR" => "Control",
+        "FSS" => "Information",
+        _ => position ?? "—",
     };
 
     private static int? BearingFromIdent(string ident)
@@ -420,27 +444,39 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             _ => "—",
         };
 
+    /// <summary>Condizione della regola in testo: soglie coda/traverso + superficie + nome + eventuali condizioni temporali avanzate.</summary>
     private static string RuleCondition(AirportRunwayRule r)
     {
-        var parts = new List<string>();
-        if (r.WindDirFrom is int df && r.WindDirTo is int dt) parts.Add($"vento {df:000}–{dt:000}°");
-        else if (r.WindDirFrom is int df2) parts.Add($"vento ≥ {df2:000}°");
-        else if (r.WindDirTo is int dt2) parts.Add($"vento ≤ {dt2:000}°");
-        if (r.WindSpeedMin is int sm && r.WindSpeedMax is int sx) parts.Add($"{sm}–{sx} kt");
-        else if (r.WindSpeedMin is int sm2) parts.Add($"≥ {sm2} kt");
-        else if (r.WindSpeedMax is int sx2) parts.Add($"≤ {sx2} kt");
-        if (r.Rain == true) parts.Add("pioggia");
-        if (r.Snow == true) parts.Add("neve");
-        if (r.TimeFromUtcMin is int tf && r.TimeToUtcMin is int tt) parts.Add($"{Hhmm(tf)}–{Hhmm(tt)}Z");
-        else if (r.TimeFromUtcMin is int tf2) parts.Add($"da {Hhmm(tf2)}Z");
-        else if (r.TimeToUtcMin is int tt2) parts.Add($"fino {Hhmm(tt2)}Z");
+        var parts = new List<string> { $"coda ≤ {r.MaxTailwindKt} kt" };
+        if (r.MaxCrosswindKt is int xw) parts.Add($"traverso ≤ {xw} kt");
+        if (r.Surface == RunwaySurface.Dry) parts.Add("pista asciutta");
+        else if (r.Surface == RunwaySurface.Wet) parts.Add("pista bagnata");
+        if (r.TimeFromLocalMin is int tf && r.TimeToLocalMin is int tt) parts.Add($"{Hhmm(tf)}–{Hhmm(tt)} LT");
+        else if (r.TimeFromLocalMin is int tf2) parts.Add($"da {Hhmm(tf2)} LT");
+        else if (r.TimeToLocalMin is int tt2) parts.Add($"fino {Hhmm(tt2)} LT");
         if (DaysLabel(r.DaysOfWeekMask) is string dl) parts.Add(dl);
         if (r.DateParity == DateParity.Even) parts.Add("giorni pari");
         else if (r.DateParity == DateParity.Odd) parts.Add("giorni dispari");
-        return parts.Count == 0 ? "Qualsiasi" : string.Join(", ", parts);
+        if (DateWindowLabel(r.DateFromMonthDay, r.DateToMonthDay) is string dw) parts.Add(dw);
+        var cond = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(r.Name) ? cond : $"{r.Name!.Trim()}: {cond}";
     }
 
     private static string Hhmm(int min) => $"{min / 60:00}:{min % 60:00}";
+
+    private static readonly string[] MonthAbbr =
+        { "gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic" };
+
+    /// <summary>Etichetta della finestra stagionale ricorrente (MMDD): "dal 1 gen al 31 mar". null = nessun vincolo.</summary>
+    private static string? DateWindowLabel(int? from, int? to)
+    {
+        if (from is null && to is null) return null;
+        if (from is int f && to is int t) return $"dal {Md(f)} al {Md(t)}";
+        if (from is int f2) return $"dal {Md(f2)}";
+        return $"fino al {Md(to!.Value)}";
+
+        static string Md(int mmdd) => $"{mmdd % 100} {MonthAbbr[Math.Clamp(mmdd / 100, 1, 12) - 1]}";
+    }
 
     private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
 

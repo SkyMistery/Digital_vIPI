@@ -9,6 +9,7 @@
 @inject IStructureEditingService Structure
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject IAirportProfileService Profile
+@inject IAirportSectorService AirportSectors
 
 @if (_acc is null)
 {
@@ -58,10 +59,9 @@ else
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
                 <ul>
-                    <li><a href="#a-meteo">METAR &amp; TAF</a></li>
-                    @foreach (var s in _view.Sections)
+                    @foreach (var (id, title) in TocEntries())
                     {
-                        <li><a href="#@s.Id">@s.Title</a></li>
+                        <li><a href="#@id">@title</a></li>
                     }
                 </ul>
             </aside>
@@ -70,7 +70,7 @@ else
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Aeroporto · @_acc.Name</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <a class="pill" href="/vsop/@Acc.ToLowerInvariant()/aeroporto/editor?icao=@_icao">✎ Editor</a>
+                        <a class="pill" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">✎ Editor</a>
                         <span class="airac">📅 AIRAC @_view.AiracCycle</span>
                     </div>
                 </div>
@@ -166,45 +166,6 @@ else
                     }
                 </div>
 
-                @* ---------- Pista suggerita: regole pista (prevalgono) o calcolo headwind ---------- *@
-                @if (_runways.Count > 0 || _ruleResult is not null)
-                {
-                    <div class="block">
-                        <h3 style="margin-top:0">🛫 Pista suggerita @(_ruleResult is not null ? "(regola)" : "dal vento")</h3>
-                        <div class="rwy-sugg">
-                            <div class="rs-head">🧭 Vento
-                                <input type="number" min="0" max="360" style="width:64px" value="@_windDir" @oninput="OnWindDir" /> °
-                                /
-                                <input type="number" min="0" max="99" style="width:54px" value="@_windKt" @oninput="OnWindKt" /> kt
-                                @if (_metar?.HasRain == true) { <span class="pill">🌧️ pioggia</span> }
-                                @if (_metar?.HasSnow == true) { <span class="pill">❄️ neve</span> }
-                                @if (_metar?.Wind is { Calm: false, DirectionDeg: not null })
-                                {
-                                    <button class="pill" style="font-size:12px" @onclick="UseMetarWind">↻ usa METAR</button>
-                                }
-                            </div>
-                            <div class="rs-out">
-                                @if (_ruleResult is not null)
-                                {
-                                    <div class="rs-card dep"><span class="muted">Partenze</span><b>@_ruleResult.Dep</b></div>
-                                    <div class="rs-card arr"><span class="muted">Arrivi</span><b>@_ruleResult.Arr</b></div>
-                                    <div class="rs-note muted">@(_ruleResult.Note ?? "Regola pista applicata.")</div>
-                                }
-                                else if (_sugg.Best is not null)
-                                {
-                                    <div class="rs-card dep"><span class="muted">Partenze</span><b>@(_sugg.DepIdent ?? _sugg.Best.Ident)</b></div>
-                                    <div class="rs-card arr"><span class="muted">Arrivi</span><b>@(_sugg.ArrIdent ?? _sugg.Best.Ident)</b></div>
-                                    <div class="rs-note muted">@_sugg.Note</div>
-                                }
-                                else
-                                {
-                                    <div class="rs-note muted">@_sugg.Note</div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-
                 @* ---------- Transizione + Frequenze affiancate ---------- *@
                 @if (_taSection is not null || _freqSection is not null || _profile is not null)
                 {
@@ -213,7 +174,7 @@ else
                         {
                             <div class="block" id="@_taSection.Id">
                                 <h3 style="margin-top:0">@_taSection.Title</h3>
-                                <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "da inserire")</b></div>
+                                <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
                                 @if (_tlRows.Count > 0)
                                 {
                                     <p class="muted" style="font-size:13.5px;margin:14px 0 6px">Transition Level in base al QNH@(_metar?.QnhHpa is int ? $" (attuale {_metar!.QnhHpa} hPa)" : ""):</p>
@@ -225,7 +186,7 @@ else
                                                 var now = _metar?.QnhHpa is int q && QnhRowMatches(r.Range, q);
                                                 <tr class="@(now ? "tl-now" : "")">
                                                     <td>@r.Range</td>
-                                                    <td>@r.Level @if (now) { <span class="pref-tag">QNH attuale</span> }</td>
+                                                    <td>@(_ta is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">QNH attuale</span> }</td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -233,25 +194,21 @@ else
                                 }
                             </div>
                         }
-                        @if (_profile is not null)
+                        @if (FreqRows().Any() || _profile is not null)
                         {
                             <div class="block" id="a-freq">
                                 <h3 style="margin-top:0">Frequenze</h3>
-                                <table>
+                                <table class="freq-table">
                                     <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
                                     <tbody>
-                                        @foreach (var f in _profile.OwnFrequencies)
+                                        @foreach (var f in FreqRows())
                                         {
-                                            <tr class="@(f.IsPrimary ? "freq-table primary" : null)">
-                                                <td>@f.Name</td><td>@f.Callsign</td>
-                                                <td>@f.FrequencyMhz @if (f.IsPrimary) { <span class="freq-key">★</span> }</td>
+                                            <tr class="@(f.IsPrimary ? "primary" : null)">
+                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {FreqName(f.Position)}" : (MarkupString)FreqName(f.Position))</td><td>@f.ComposePosition</td>
+                                                <td>@(f.Frequency ?? "—")</td>
                                             </tr>
                                         }
-                                        @if (!string.IsNullOrWhiteSpace(_profile.AtisFrequency))
-                                        {
-                                            <tr><td>ATIS</td><td>@(_icao)_ATIS</td><td>@_profile.AtisFrequency</td></tr>
-                                        }
-                                        @foreach (var l in _profile.Links)
+                                        @foreach (var l in _profile?.Links ?? Array.Empty<FrequencyLinkRow>())
                                         {
                                             <tr><td>@l.Label</td><td>@l.Callsign</td><td>@l.FrequencyMhz</td></tr>
                                         }
@@ -266,11 +223,79 @@ else
                     </div>
                 }
 
+                @* ---------- Piste: tabella con evidenza pista consigliata dal vento/regole ---------- *@
+                @if (_profile is { Runways.Count: > 0 })
+                {
+                    <div class="block" id="a-piste">
+                        <h3 style="margin-top:0">Piste</h3>
+                        <p class="muted" style="font-size:12.5px;margin:0 0 8px">
+                            In <span class="rwy-key arr">verde gli arrivi</span> e <span class="rwy-key dep">blu le partenze</span> consigliati
+                            @if (_ruleResult is not null) { <text>dalla regola attiva «@(_ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")»</text> } else { <text>dal vento METAR</text> }.
+                            @if (_windDir is int wd) { <text> Vento @wd° / @_windKt kt.</text> }
+                            @if (_metar?.HasRain == true) { <span class="pill">🌧️ pioggia</span> }
+                            @if (_metar?.HasSnow == true) { <span class="pill">❄️ neve</span> }
+                            @if (_ruleResult?.Note is string rn) { <span class="pill" style="background:#fff4e5;color:#9a6700">@rn</span> }
+                        </p>
+                        <table class="rwy-table">
+                            <thead><tr><th>Pista</th><th>Uso</th><th>Lung. (m)</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th></tr></thead>
+                            <tbody>
+                                @foreach (var r in _profile.Runways)
+                                {
+                                    var dep = _depIdents.Contains(r.Ident.Trim());
+                                    var arr = _arrIdents.Contains(r.Ident.Trim());
+                                    <tr class="@RwyRowClass(dep, arr)">
+                                        <td><b>@r.Ident</b></td>
+                                        <td style="white-space:nowrap;font-size:15px">
+                                            @if (dep) { <span title="Consigliata per le partenze">🛫</span> }
+                                            @if (arr) { <span title="Consigliata per gli arrivi">🛬</span> }
+                                            @if (!dep && !arr) { <span class="muted" style="font-size:12px">—</span> }
+                                        </td>
+                                        <td>@(r.LengthM?.ToString() ?? "—")</td>
+                                        <td>@(string.IsNullOrWhiteSpace(r.ToraM) ? "—" : r.ToraM)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(r.LdaM) ? "—" : r.LdaM)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(r.AppProcedures) ? "—" : r.AppProcedures)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(r.Patterns) ? "—" : r.Patterns)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(r.Circling) ? "—" : r.Circling)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
                 @foreach (var s in _otherSections)
                 {
                     <SectionNode Section="s" />
                 }
+
+                @* Sezioni extra — copia inline sotto le SID, visibile solo su schermi stretti (su desktop usa il rail di destra). *@
+                @if (ExtraSections().Any())
+                {
+                    <div class="extra-inline">
+                        @foreach (var s in ExtraSections())
+                        {
+                            <div class="block" id="extra-@s.Id">
+                                <h3 style="margin-top:0">@s.Title</h3>
+                                @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap">@s.Body</div> }
+                            </div>
+                        }
+                    </div>
+                }
             </div>
+
+            @* Sezioni extra — colonna libera di destra (desktop ≥1500px). *@
+            @if (ExtraSections().Any())
+            {
+                <aside class="doc-rail">
+                    @foreach (var s in ExtraSections())
+                    {
+                        <div class="rail-card" id="extra-rail-@s.Id">
+                            <h5>@s.Title</h5>
+                            @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap;font-size:13px">@s.Body</div> }
+                        </div>
+                    }
+                </aside>
+            }
         </div>
     </div>
 }
@@ -296,6 +321,9 @@ else
     private RunwaySuggestionResult _sugg = new(null, Array.Empty<RunwayPick>(), "");
     private AirportProfileData? _profile;
     private RunwayRuleResult? _ruleResult;
+    private IReadOnlyList<AirportSectorRow> _airportSectors = Array.Empty<AirportSectorRow>();
+    private HashSet<string> _depIdents = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _arrIdents = new(StringComparer.OrdinalIgnoreCase);
 
     private SectionView? _taSection;
     private SectionView? _freqSection;
@@ -314,7 +342,7 @@ else
         if (_listMode)
         {
             var data = await Structure.LoadAsync(_acc.Code);
-            _allAirports = data?.Airports.OrderBy(x => x.Icao).ToList() ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+            _allAirports = data?.Airports.Where(x => x.IsPublic).OrderBy(x => x.Icao).ToList() ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
             return;
         }
 
@@ -327,6 +355,7 @@ else
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
 
         _profile = await Profile.LoadForViewAsync(_icao);
+        _airportSectors = (await AirportSectors.ListByAirportAsync(_icao)).Where(s => !s.IsHidden).ToList();
         _runways = _profile is { Runways.Count: > 0 }
             ? _profile.Runways.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);
@@ -337,37 +366,79 @@ else
         Recompute();
     }
 
-    private void OnWindDir(ChangeEventArgs e)
+    /// <summary>Voci del sommario, nello stesso ordine e con gli stessi ancoraggi (id) dei blocchi realmente renderizzati.</summary>
+    private IEnumerable<(string Id, string Title)> TocEntries()
     {
-        _windDir = int.TryParse(e.Value?.ToString(), out var v) ? v : null;
-        Recompute();
+        yield return ("a-meteo", "METAR & TAF");
+        if (_taSection is not null) yield return (_taSection.Id, _taSection.Title);
+        if (FreqRows().Any() || _profile is not null) yield return ("a-freq", "Frequenze");
+        else if (_freqSection is not null) yield return (_freqSection.Id, _freqSection.Title);
+        if (_profile is { Runways.Count: > 0 }) yield return ("a-piste", "Piste");
+        foreach (var s in _otherSections) yield return (s.Id, s.Title);
+        foreach (var s in ExtraSections()) yield return ($"extra-{s.Id}", s.Title);
     }
 
-    private void OnWindKt(ChangeEventArgs e)
-    {
-        _windKt = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(0, v) : 0;
-        Recompute();
-    }
-
-    private void UseMetarWind()
-    {
-        if (_metar?.Wind is { Calm: false, DirectionDeg: int d } w) { _windDir = d; _windKt = w.SpeedKt; }
-        Recompute();
-    }
+    /// <summary>Sezioni editoriali libere del profilo (colonna destra desktop / sotto le SID su schermi stretti).</summary>
+    private IReadOnlyList<ExtraSectionRow> ExtraSections() => _profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>();
 
     private void Recompute()
     {
-        // Le regole pista (se presenti e applicabili alle condizioni correnti) prevalgono sul calcolo headwind.
+        // Le regole pista (se presenti) scelgono DEP/ARR dal vento in coda/traverso + superficie; altrimenti fallback headwind.
+        var wet = (_metar?.HasRain ?? false) || (_metar?.HasSnow ?? false);
         _ruleResult = _profile is { Rules.Count: > 0 }
-            ? RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule), _windDir, _windKt,
-                _metar?.HasRain ?? false, _metar?.HasSnow ?? false, DateTime.UtcNow)
+            ? RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule).ToList(), _windDir, _windKt, wet, DateTime.UtcNow)
             : null;
         _sugg = RunwaySuggestion.Suggest(_runways, _windDir, _windKt);
+
+        // Pista consigliata DEP/ARR (la selezione NON cambia: cambia solo come la mostriamo nella tabella Piste).
+        _depIdents = new(StringComparer.OrdinalIgnoreCase);
+        _arrIdents = new(StringComparer.OrdinalIgnoreCase);
+        if (_ruleResult is not null)
+        {
+            foreach (var id in SplitIdents(_ruleResult.Dep)) _depIdents.Add(id);
+            foreach (var id in SplitIdents(_ruleResult.Arr)) _arrIdents.Add(id);
+        }
+        else if (_sugg.Best is not null)
+        {
+            _depIdents.Add((_sugg.DepIdent ?? _sugg.Best.Ident).Trim());
+            _arrIdents.Add((_sugg.ArrIdent ?? _sugg.Best.Ident).Trim());
+        }
     }
 
+    private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
+        .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static string RwyRowClass(bool dep, bool arr) =>
+        dep && arr ? "rwy-both" : arr ? "rwy-arr" : dep ? "rwy-dep" : "";
+
+    /// <summary>Frequenze d'aeroporto dal catalogo settori, ordinate ATIS · DEL · GND · TWR · APP/DEP (solo con frequenza).</summary>
+    private IEnumerable<AirportSectorRow> FreqRows()
+    {
+        string[] order = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+        return _airportSectors
+            .Where(s => !string.IsNullOrWhiteSpace(s.Frequency))
+            .OrderBy(s => { var i = Array.IndexOf(order, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
+            .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
+            .ThenBy(s => s.ComposePosition);
+    }
+
+    private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
+    {
+        "ATIS" => "ATIS",
+        "DEL" => "Delivery",
+        "GND" => "Ground",
+        "TWR" => "Tower",
+        "APP" => "Approach",
+        "DEP" => "Departure",
+        "CTR" => "Control",
+        "FSS" => "Information",
+        _ => position ?? "—",
+    };
+
     private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
-        new(r.WindDirFrom, r.WindDirTo, r.WindSpeedMin, r.WindSpeedMax, r.Rain, r.Snow, r.DepRunways, r.ArrRunways, r.Note,
-            r.TimeFromUtcMin, r.TimeToUtcMin, r.DaysOfWeekMask, r.DateParity);
+        new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
+            r.TimeFromLocalMin, r.TimeToLocalMin, r.DaysOfWeekMask, r.DateParity,
+            r.DateFromMonthDay, r.DateToMonthDay);
 
     private static string TafCss(TafChangeKind k) => k switch
     {
@@ -401,6 +472,9 @@ else
             else if (_freqSection is null &&
                      (s.Kind == BlockSection.Frequencies || s.Title.Contains("Frequenz", StringComparison.OrdinalIgnoreCase)))
                 _freqSection = s;
+            // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
+            else if (_profile is { Runways.Count: > 0 } && s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase))
+                continue;
             else
                 _otherSections.Add(s);
         }

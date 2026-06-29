@@ -14,13 +14,17 @@ public sealed record RunwayPick(string Ident, int Heading, int Headwind, int Cro
 public sealed record RunwaySuggestionResult(RunwayPick? Best, IReadOnlyList<RunwayPick> Ranked, string Note,
     string? DepIdent = null, string? ArrIdent = null);
 
-/// <summary>Regola di scelta pista (DTO disaccoppiato dalle entità): condizione vento/precip/tempo → piste DEP/ARR.</summary>
-public sealed record RunwayRuleEval(int? WindDirFrom, int? WindDirTo, int? WindSpeedMin, int? WindSpeedMax,
-    bool? Rain, bool? Snow, string DepRunways, string ArrRunways, string? Note,
-    int? TimeFromUtcMin = null, int? TimeToUtcMin = null, int? DaysOfWeekMask = null, DateParity DateParity = DateParity.Any);
+/// <summary>
+/// Regola di scelta pista (DTO disaccoppiato dalle entità): piste DEP/ARR preferenziali + soglie operative
+/// (coda/traverso massimi, superficie) + filtro temporale opzionale. Tailwind/crosswind sono calcolati dal vento.
+/// </summary>
+public sealed record RunwayRuleEval(string DepRunways, string ArrRunways, string? Name, string? Note,
+    int MaxTailwindKt, int? MaxCrosswindKt, RunwaySurface Surface,
+    int? TimeFromLocalMin = null, int? TimeToLocalMin = null, int? DaysOfWeekMask = null, DateParity DateParity = DateParity.Any,
+    int? DateFromMonthDay = null, int? DateToMonthDay = null);
 
-/// <summary>Esito di una regola applicata: piste DEP/ARR + nota.</summary>
-public sealed record RunwayRuleResult(string Dep, string Arr, string? Note);
+/// <summary>Esito: piste DEP/ARR della regola che si applica + nota + indice/nome della regola.</summary>
+public sealed record RunwayRuleResult(string Dep, string Arr, string? Note, int RuleIndex = 0, string? RuleName = null);
 
 /// <summary>
 /// Sceglie la pista col massimo componente di testa-vento. Le estremità arrivano come ident ("16L","07","34R").
@@ -30,6 +34,20 @@ public static partial class RunwaySuggestion
 {
     [GeneratedRegex(@"^(\d{1,2})([LRC]?)$")]
     private static partial Regex IdentRe();
+
+    /// <summary>Fuso orario italiano (CET/CEST con DST) per interpretare gli orari AIP in ora locale. Risolto cross-platform.</summary>
+    private static readonly TimeZoneInfo ItalyTimeZone = ResolveItalyTimeZone();
+
+    private static TimeZoneInfo ResolveItalyTimeZone()
+    {
+        foreach (var id in new[] { "Europe/Rome", "W. Europe Standard Time" })
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+            catch (TimeZoneNotFoundException) { }
+            catch (InvalidTimeZoneException) { }
+        }
+        return TimeZoneInfo.Utc;   // fallback estremo: nessun fuso disponibile
+    }
 
     public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt)
     {
@@ -76,43 +94,74 @@ public static partial class RunwaySuggestion
     }
 
     /// <summary>
-    /// Prima regola applicabile alle condizioni correnti → piste DEP/ARR (prevale sul calcolo headwind).
-    /// null = nessuna regola matcha (il chiamante usa <see cref="Suggest"/> come fallback).
+    /// Prima regola applicabile alle condizioni correnti → piste DEP/ARR preferenziali. Una regola si applica se,
+    /// sulle sue piste, il vento in coda è ≤ <c>MaxTailwindKt</c> e il traverso ≤ <c>MaxCrosswindKt</c> (se valorizzato)
+    /// e la superficie corrisponde (<paramref name="wet"/> = pioggia/neve) e l'eventuale filtro temporale è soddisfatto.
+    /// null = nessuna regola si applica (il chiamante usa <see cref="Suggest"/> come fallback — "altrimenti l'altra").
     /// </summary>
-    public static RunwayRuleResult? EvaluateRules(IEnumerable<RunwayRuleEval> rules, int? windDir, int windKt, bool rain, bool snow,
+    public static RunwayRuleResult? EvaluateRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir, int windKt, bool wet,
         DateTime? nowUtc = null)
     {
-        var now = nowUtc ?? DateTime.UtcNow;
+        // Orari/giorni/stagione AIP sono in ora LOCALE: porto l'istante UTC all'ora locale italiana prima dei confronti.
+        var utc = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
+        var now = TimeZoneInfo.ConvertTimeFromUtc(utc, ItalyTimeZone);
         var minOfDay = now.Hour * 60 + now.Minute;
-        foreach (var r in rules)
+        for (var i = 0; i < rules.Count; i++)
         {
-            if (!WindDirInArc(r.WindDirFrom, r.WindDirTo, windDir)) continue;
-            if (r.WindSpeedMin is int mn && windKt < mn) continue;
-            if (r.WindSpeedMax is int mx && windKt > mx) continue;
-            if (r.Rain is bool rr && rr != rain) continue;
-            if (r.Snow is bool ss && ss != snow) continue;
-            if (!TimeInWindow(r.TimeFromUtcMin, r.TimeToUtcMin, minOfDay)) continue;
+            var r = rules[i];
+            if (!SurfaceMatches(r.Surface, wet)) continue;
+            if (!TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay)) continue;
             if (!DayOfWeekMatches(r.DaysOfWeekMask, now)) continue;
             if (!ParityMatches(r.DateParity, now)) continue;
+            if (!DateInWindow(r.DateFromMonthDay, r.DateToMonthDay, now)) continue;
+
+            var (tail, cross) = WorstComponents(r, windDir, windKt);
+            if (tail > r.MaxTailwindKt) continue;
+            if (r.MaxCrosswindKt is int mc && cross > mc) continue;
 
             var dep = string.IsNullOrWhiteSpace(r.DepRunways) ? r.ArrRunways : r.DepRunways;
             var arr = string.IsNullOrWhiteSpace(r.ArrRunways) ? r.DepRunways : r.ArrRunways;
-            return new RunwayRuleResult(dep.Trim(), arr.Trim(), string.IsNullOrWhiteSpace(r.Note) ? null : r.Note!.Trim());
+            return new RunwayRuleResult(dep.Trim(), arr.Trim(),
+                string.IsNullOrWhiteSpace(r.Note) ? null : r.Note!.Trim(), i,
+                string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim());
         }
         return null;
     }
 
-    /// <summary>Vero se la direzione vento ricade nell'arco [from,to] (gestisce il wrap, es. 350→010). Estremi null = nessun vincolo.</summary>
-    private static bool WindDirInArc(int? from, int? to, int? windDir)
+    private static bool SurfaceMatches(RunwaySurface s, bool wet) => s switch
     {
-        if (from is null && to is null) return true;       // regola senza vincolo di direzione
-        if (windDir is not int d) return false;            // vincolo presente ma direzione non nota
-        var f = from ?? 0;
-        var t = to ?? 360;
-        return f <= t ? d >= f && d <= t : d >= f || d <= t;
+        RunwaySurface.Dry => !wet,
+        RunwaySurface.Wet => wet,
+        _ => true,
+    };
+
+    /// <summary>Vento in coda e al traverso PEGGIORI (massimi) sulle piste della regola (DEP∪ARR). Vento calmo/ignoto/nessuna pista → (0,0).</summary>
+    private static (int Tail, int Cross) WorstComponents(RunwayRuleEval r, int? windDir, int windKt)
+    {
+        if (windDir is not int wd || windKt <= 2) return (0, 0);
+        var headings = Idents(r.ArrRunways).Concat(Idents(r.DepRunways)).ToList();
+        if (headings.Count == 0) return (0, 0);
+        int tail = int.MinValue, cross = 0;
+        foreach (var heading in headings)
+        {
+            var rad = AngleDiff(wd, heading) * Math.PI / 180.0;
+            var head = (int)Math.Round(windKt * Math.Cos(rad));
+            var c = (int)Math.Round(Math.Abs(windKt * Math.Sin(rad)));
+            if (-head > tail) tail = -head;       // tailwind = -headwind; tieni il peggiore
+            if (c > cross) cross = c;
+        }
+        return (tail, cross);
     }
 
-    /// <summary>Vero se l'orario (minuti UTC) ricade nella finestra [from,to] (gestisce il wrap notturno, es. 22:00→06:00). Estremi null = nessun vincolo.</summary>
+    /// <summary>Heading (gradi) delle estremità in un CSV di ident (es. "16L,16R" → [160,160]).</summary>
+    private static List<int> Idents(string? csv) => (csv ?? "")
+        .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(i => IdentRe().Match(i))
+        .Where(m => m.Success)
+        .Select(m => int.Parse(m.Groups[1].Value) * 10)
+        .ToList();
+
+    /// <summary>Vero se l'orario (minuti locali) ricade nella finestra [from,to] (gestisce il wrap notturno, es. 22:00→06:00). Estremi null = nessun vincolo.</summary>
     private static bool TimeInWindow(int? from, int? to, int minOfDay)
     {
         if (from is null && to is null) return true;
@@ -127,6 +176,17 @@ public static partial class RunwaySuggestion
         if (mask is not int m || m == 0) return true;
         var bit = ((int)now.DayOfWeek + 6) % 7;            // .NET: Dom=0 → rimappa a Lun=0..Dom=6
         return (m & (1 << bit)) != 0;
+    }
+
+    /// <summary>Vero se la data corrente (mese/giorno) ricade nella finestra stagionale ricorrente [from,to] in MMDD
+    /// (estremi inclusi, gestisce il wrap di fine anno, es. 1101→0228). Entrambi null = nessun vincolo.</summary>
+    private static bool DateInWindow(int? from, int? to, DateTime now)
+    {
+        if (from is null && to is null) return true;
+        var md = now.Month * 100 + now.Day;
+        var f = from ?? 101;        // default: inizio anno
+        var t = to ?? 1231;         // default: fine anno
+        return f <= t ? md >= f && md <= t : md >= f || md <= t;
     }
 
     /// <summary>Vero se la parità del giorno del mese soddisfa il vincolo. Any = sempre vero.</summary>
