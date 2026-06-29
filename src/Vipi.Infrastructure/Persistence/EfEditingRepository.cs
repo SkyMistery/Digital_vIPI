@@ -43,6 +43,7 @@ public sealed class EfEditingRepository : IEditingRepository
             HasDraft = draftDocIds.Contains(d.Id),
             CurrentVersionId = d.CurrentVersionId,
             IsAirport = IsAirportDoc(d),
+            IsStandaloneApp = IsStandaloneAppDoc(d),
             AccCode = AccCodeOf(d),
         }).ToList();
     }
@@ -583,14 +584,26 @@ public sealed class EfEditingRepository : IEditingRepository
         // Settore primario (o primo) del documento; per le vLOA niente scope settore.
         var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
         if (s is null) return "—";
+        // APP standalone: lo scope è il callsign APP (chiave dell'editor dedicato), non l'ICAO dell'aeroporto.
+        if (IsStandaloneApp(s)) return s.Callsign;
         if (s.Kind == SectorKind.Airport)
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
         return s.Acc?.Code ?? s.Callsign;
     }
 
-    // Documento di aeroporto = settore primario (o primo) di tipo Airport.
-    private static bool IsAirportDoc(Document d) =>
-        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Kind == SectorKind.Airport;
+    // Documento di aeroporto = settore primario (o primo) Kind=Airport, ESCLUSI gli APP standalone (editor dedicato).
+    private static bool IsAirportDoc(Document d)
+    {
+        var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
+        return s?.Kind == SectorKind.Airport && !IsStandaloneApp(s);
+    }
+
+    // Documento APP non remotizzato = settore primario (o primo) Type=App con ApproachKind=Standalone.
+    private static bool IsStandaloneAppDoc(Document d) =>
+        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault()) is { } s && IsStandaloneApp(s);
+
+    private static bool IsStandaloneApp(Domain.Entities.Sector s) =>
+        s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone;
 
     // ACC del settore primario (o primo): serve a costruire i link editor.
     private static string? AccCodeOf(Document d) =>

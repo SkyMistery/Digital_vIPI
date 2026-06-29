@@ -49,34 +49,48 @@ public sealed class AirportSectorImportHostedService : BackgroundService
             var importer = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IAirportSectorImporter>();
             var structure = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IStructureEditingService>();
 
-            var icaos = await repo.ListAirportIcaosAsync(ct);
+            // Import + proiezione dalla sorgente: se la sorgente non è configurata fallisce, ma NON deve impedire
+            // il fallback shape (che lavora sul catalogo già in DB). Perciò è isolato in un proprio try.
             int created = 0, updated = 0, airports = 0, docs = 0;
-            foreach (var icao in icaos)
+            try
             {
-                var (c, u) = await importer.ImportAsync(icao, ct);
-                if (c == 0 && u == 0) continue;
-                created += c; updated += u; airports++;
+                var icaos = await repo.ListAirportIcaosAsync(ct);
+                foreach (var icao in icaos)
+                {
+                    var (c, u) = await importer.ImportAsync(icao, ct);
+                    if (c == 0 && u == 0) continue;
+                    created += c; updated += u; airports++;
 
-                // Documento aeroporto: creato/aggiornato in automatico per ogni aeroporto con ACC (idempotente).
-                try { if ((await structure.EnsureAirportDocumentSystemAsync(icao, ct)).Created) docs++; }
-                catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
+                    // Documento aeroporto: creato/aggiornato in automatico per ogni aeroporto con ACC (idempotente).
+                    try { if ((await structure.EnsureAirportDocumentSystemAsync(icao, ct)).Created) docs++; }
+                    catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
+                }
+
+                // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+                var projection = scope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
+                await projection.SyncFromCatalogsAsync(ct);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // tipicamente credenziali sorgente assenti: salta l'import, ma prosegui col fallback shape.
+                _log.LogInformation("Import settori aeroporto da sorgente saltato: {Reason}", ex.Message);
             }
 
-            // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
-            var projection = scope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
-            await projection.SyncFromCatalogsAsync(ct);
+            // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
+            int circles = 0;
+            try
+            {
+                var fallback = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ITowerShapeFallbackService>();
+                circles = await fallback.ApplyAsync(ct: ct);
+            }
+            catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
 
-            _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}.",
-                airports, created, updated, docs);
+            _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}, shape TWR sintetiche {Circles}.",
+                airports, created, updated, docs, circles);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             // shutdown: ignora
-        }
-        catch (InvalidOperationException ex)
-        {
-            // tipicamente credenziali sorgente assenti: salta senza rumore.
-            _log.LogInformation("Import settori aeroporto automatico saltato: {Reason}", ex.Message);
         }
         catch (Exception ex)
         {

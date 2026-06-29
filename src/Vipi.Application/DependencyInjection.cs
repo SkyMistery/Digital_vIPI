@@ -21,7 +21,9 @@ public static class DependencyInjection
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccAdminService, AccAdminService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();
+        services.AddScoped<IAppProfileService, AppProfileService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
+        services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
         services.AddScoped<ITransferService, TransferService>();
         services.AddScoped<ISearchService, SearchService>();

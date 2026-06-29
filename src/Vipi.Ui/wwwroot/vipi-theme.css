@@ -804,3 +804,36 @@
 .rwy-key{display:inline-block;padding:1px 8px;border-radius:11px;font-weight:700;font-size:11.5px}
 .rwy-key.arr{background:#d6f0df;color:#1a7f37}
 .rwy-key.dep{background:#dbe3fb;color:#0d2c99}
+
+/* ---- Editor/viewer APP non remotizzato (sezioni condivise) ---- */
+.app-sec{margin:0 0 18px}
+.app-sec-drag{opacity:.6;outline:2px dashed var(--brand,#3C55AC);border-radius:11px}
+.app-sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.app-sec-titlewrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app-sec-titlewrap h3{margin:0}
+.app-sec-tools{display:flex;gap:4px}
+.app-drag{cursor:grab;color:var(--ink-soft,#667);font-size:18px;user-select:none}
+.app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical}
+.app-lbl{display:block;font-size:13px;color:var(--ink-soft,#556);margin:8px 0}
+.app-sep-edit{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
+.app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
+.app-block-edit .app-ta{flex:1}
+.app-linkpick{position:relative;margin-top:10px;max-width:420px}
+.app-linkpick .sector-pick{position:absolute;z-index:20;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.12);overflow:hidden;margin-top:4px}
+.app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}
+.app-linkpick .sp-item:last-child{border-bottom:0}
+.app-linkpick .sp-item:hover{background:#f2f5ff}
+.app-col-edit{display:flex;gap:4px;align-items:center;min-width:120px}
+.app-col-edit .app-in{min-width:80px}
+a.btn{text-decoration:none;display:inline-block;line-height:1.1}
+.app-sep-item{margin-bottom:14px}
+.app-sep-appl{width:100%;margin-bottom:6px;font-weight:600}
+.app-sep-appl-ro{margin:0 0 6px;font-weight:600;color:var(--ivao-blue)}
+.app-sep-deflbl{margin-bottom:6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+.app-sep-vals{display:flex;gap:10px;align-items:flex-end}
+.app-sep-vals label{display:flex;flex-direction:column;font-size:12.5px;color:var(--ink-soft,#556);gap:3px}
+.app-sep-vals .app-in{min-width:120px}
+.app-sec-hidden .block{opacity:.55;background:repeating-linear-gradient(45deg,#fafafa,#fafafa 10px,#f2f2f2 10px,#f2f2f2 20px)}
+/* Stacking context isolato: confina gli z-index interni di Leaflet (pane/control ~200-1000) sotto la topbar (z-index:45). */
+.aor-leaflet{position:relative;z-index:0;isolation:isolate}

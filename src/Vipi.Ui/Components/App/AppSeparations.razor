@@ -1,0 +1,71 @@
+@* Sezione Separazioni (editoriale): ogni separazione = (Verticale, Laterale). Dalla 2ª in poi un free-text «Applicabilità»
+   è mostrato SOPRA i valori (si legge prima la condizione, poi la separazione). La 1ª è la predefinita. *@
+@if (Editing)
+{
+    @foreach (var (row, i) in Rows.Select((r, i) => (r, i)))
+    {
+        var idx = i;
+        <div class="app-sep-item">
+            @if (idx > 0)
+            {
+                <input class="app-in app-sep-appl" placeholder="Applicabilità: es. tra IFR e VFR speciale, in TMA…"
+                       value="@row.Applicability" @onchange="e => Set(idx, row.Vertical, row.Lateral, AsString(e.Value))" />
+            }
+            else
+            {
+                <div class="app-sep-deflbl muted">Separazione predefinita</div>
+            }
+            <div class="app-sep-vals">
+                <label>Verticale<input class="app-in" placeholder="es. 1000 ft" value="@row.Vertical"
+                                       @onchange="e => Set(idx, AsString(e.Value), row.Lateral, row.Applicability)" /></label>
+                <label>Laterale<input class="app-in" placeholder="es. 3 NM" value="@row.Lateral"
+                                      @onchange="e => Set(idx, row.Vertical, AsString(e.Value), row.Applicability)" /></label>
+                <button class="btn ghost" title="Rimuovi separazione" @onclick="() => Remove(idx)">✕</button>
+            </div>
+        </div>
+    }
+    <button class="btn ghost" @onclick="Add">+ Aggiungi separazione</button>
+}
+else
+{
+    @if (Rows.Count == 0)
+    {
+        <p class="muted" style="margin:0">Nessuna separazione indicata.</p>
+    }
+    @foreach (var (row, i) in Rows.Select((r, i) => (r, i)))
+    {
+        <div class="app-sep-item">
+            @if (i > 0 && !string.IsNullOrWhiteSpace(row.Applicability))
+            {
+                <p class="app-sep-appl-ro">@row.Applicability</p>
+            }
+            <div class="sep-box">
+                <div class="sep-grid">
+                    <div class="it"><span class="muted">Verticale</span><b>@Dash(row.Vertical)</b></div>
+                    <div class="it"><span class="muted">Laterale</span><b>@Dash(row.Lateral)</b></div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AppSeparationRow> Rows { get; set; } = Array.Empty<AppSeparationRow>();
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<AppSeparationRow>> RowsChanged { get; set; }
+
+    private static string AsString(object? v) => v as string ?? "";
+    private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s!;
+
+    private async Task Emit(List<AppSeparationRow> next) => await RowsChanged.InvokeAsync(next);
+
+    private Task Add() => Emit(Rows.Append(new AppSeparationRow("", "")).ToList());
+    private Task Remove(int i) { var l = Rows.ToList(); l.RemoveAt(i); return Emit(l); }
+
+    private Task Set(int i, string vertical, string lateral, string? applicability)
+    {
+        var l = Rows.ToList();
+        l[i] = new AppSeparationRow(vertical, lateral, string.IsNullOrWhiteSpace(applicability) ? null : applicability);
+        return Emit(l);
+    }
+}

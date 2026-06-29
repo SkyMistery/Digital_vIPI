@@ -350,6 +350,13 @@
                     d.Scope.Equals(_acc!.Code, StringComparison.OrdinalIgnoreCase));
             if (summary is null) { _doc = null; return; }
 
+            // Gli APP non remotizzati si editano SOLO dall'editor APP dedicato: reindirizza.
+            if (summary.IsStandaloneApp)
+            {
+                Nav.NavigateTo($"/vsop/{(summary.AccCode ?? _acc!.Code).ToLowerInvariant()}/apps/editor?app={summary.Scope}", forceLoad: false);
+                return;
+            }
+
             // I documenti di aeroporto si editano SOLO dall'editor aeroporto: reindirizza (l'editor generico non li tratta).
             if (summary.IsAirport)
             {

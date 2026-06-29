@@ -49,8 +49,9 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 ## Storia — `history/` ⚪
 | File | Scopo |
 |---|---|
-| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R20). |
+| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R22). |
 | [history/handoff-round5.md](history/handoff-round5.md) | Handoff di chiusura del Round 5 (fusione Settore/Posizione). |
+| [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |
 | [history/review-flusso-gap.md](history/review-flusso-gap.md) | Analisi flusso vs documenti (decisioni round 4). |
 

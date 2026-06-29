@@ -340,7 +340,9 @@
                 ? _homeAcc
                 : (primary is int p && _byId.TryGetValue(p, out var ps) ? ps.AccCode : null);
             if (string.IsNullOrEmpty(acc)) { _msg = "Impossibile risolvere l'ACC del documento."; return; }
-            Nav.NavigateTo($"/vsop/{acc.ToLowerInvariant()}/editor?doc={id}");
+            // forceLoad: il documento è appena stato creato → ricarica completa così l'editor ne legge la versione fresca
+            // (evita lo stale read della lista documenti nello stesso circuito, che dava "documento non esiste").
+            Nav.NavigateTo($"/vsop/{acc.ToLowerInvariant()}/editor?doc={id}", forceLoad: true);
         }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }

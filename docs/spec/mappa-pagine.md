@@ -21,7 +21,7 @@
 │  │     voce   → /vsop/{acc}/airports?icao=XXXX  (documento)
 │  ├─ Card APP non remot. (3 in evidenza)
 │  │     titolo → /vsop/{acc}/apps                (elenco)
-│  │     voce   → /vsop/{acc}/apps/vipi?icao=XXXX (documento)
+│  │     voce   → /vsop/{acc}/apps/vipi?app=XXX_APP (documento · editor: /apps/editor?app=)
 │  └─ Card vLOA (3 in evidenza)
 │        titolo → /vsop/{acc}/vloa                (elenco)
 │        voce   → /vsop/{acc}/vloa/{docId}        (documento)
@@ -31,7 +31,8 @@
 /vsop/{acc}/airports      Elenco aeroporti (no ?icao)  ............. AeroportoPage.razor
 /vsop/{acc}/airports?icao=XXXX   vIPI aeroporto (con ?icao)  ....... AeroportoPage.razor
 /vsop/{acc}/apps          Elenco APP non remotizzati  ............. AppsListPage.razor
-/vsop/{acc}/apps/vipi?icao=XXXX  Documento APP non remot.  ........ AppnPage.razor
+/vsop/{acc}/apps/vipi?app=XXX_APP  Documento APP non remot. (data-driven)  AppnPage.razor
+/vsop/{acc}/apps/editor?app=XXX_APP  Editor dedicato APP non remot.  AppEditorPage.razor
 /vsop/{acc}/vloa          Elenco vLOA  ............................ VloaListPage.razor
 /vsop/{acc}/vloa/{docId}  Documento vLOA (per id)  ................ VloaPage.razor
 ```
@@ -49,7 +50,8 @@
 | `/vsop/{acc}/vipi` | `VipiDocument.razor` | vIPI ACC Estesa | tutti (edit: AOD/DIR) |
 | `/vsop/{acc}/airports` | `AeroportoPage.razor` | Elenco + doc aeroporto | tutti |
 | `/vsop/{acc}/apps` | `AppsListPage.razor` | Elenco APP non remot. | tutti |
-| `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. | tutti (edit: AOD/DIR) |
+| `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. (`?app=CALLSIGN`, **data-driven** dal profilo; tasto **✎ Editor** se autorizzato) | tutti (edit: AOD/DIR) |
+| `/vsop/{acc}/apps/editor` | `AppEditorPage.razor` | **Editor dedicato APP non remotizzato** (`?app=CALLSIGN`): WYSIWYG, 6 sezioni fisse (Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti) + sezioni custom, riordino drag-and-drop + tasti, nascondi sezioni. Freq/coord/AOR **derivate live**. I doc APPn instradano qui (non all'editor generico/aeroporto) via `DocumentSummary.IsStandaloneApp` | admin/grant ACC |
 | `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della ACC | tutti |
 | `/vsop/{acc}/vloa/{docId}` | `VloaPage.razor` | Documento vLOA (per id) | tutti (edit: AOD/DIR) |
 | `/vsop/changed` | `ChangedPage.razor` | Cosa è cambiato | tutti |

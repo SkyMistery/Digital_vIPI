@@ -97,6 +97,11 @@ public class AirportSector
     /// Guida <see cref="Sector.ApproachKind"/> nella proiezione (Round 20).</summary>
     public bool IsAccApp { get; set; }
 
+    /// <summary>Vero se <see cref="RegionMapPolygon"/> è una shape SINTETICA generata da vIPI (cerchio di fallback
+    /// per le TWR prive di poligono dalla sorgente), non una shape reale. Permette al futuro fallback GitHub di
+    /// rimpiazzarla senza mai sovrascrivere una shape reale. Default false.</summary>
+    public bool IsShapeSynthetic { get; set; }
+
     public DateTime? ImportedAtUtc { get; set; }
 }
 
@@ -115,6 +120,11 @@ public class Airport
 
     /// <summary>Transition Altitude (ft). Sorgente strutturata: da qui si rigenera la sezione del documento.</summary>
     public int? TransitionAltitudeFt { get; set; }
+
+    /// <summary>Coordinate del riferimento aeroporto (gradi decimali), dalla sorgente. Usate per generare la shape
+    /// tonda di fallback dei settori TWR privi di poligono. null = non ancora note.</summary>
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 
     /// <summary>Ordine "in evidenza" (1..3) nella card Aeroporti della landing ACC; null = non in evidenza.</summary>
     public int? FeaturedRank { get; set; }
@@ -320,4 +330,56 @@ public class AirportFrequencyLink
     public int SourceSectorId { get; set; }            // FK → Sector (la sorgente; cambi riflessi al rebuild/render)
     public Sector? SourceSector { get; set; }
     public string? LabelOverride { get; set; }         // etichetta custom (altrimenti usa il callsign del settore)
+}
+
+// =========================================================================================
+//  Profilo dell'APP non remotizzato (standalone): vIPI propria del settore di avvicinamento.
+//  1:1 col Sector APP (Type=App, ApproachKind=Standalone). Solo le parti EDITORIALI sono qui;
+//  frequenze (sottoalbero), coordinamenti (trasferimenti) e poligono AoR si derivano LIVE.
+// =========================================================================================
+
+/// <summary>
+/// Profilo editoriale di un APP standalone, ancorato 1:1 al <see cref="Sector"/> APP via <see cref="SectorId"/>.
+/// Le sezioni derivate (Frequenze/Coordinamenti/AoR) non si salvano: si ricalcolano dall'albero/transfer/poligono.
+/// </summary>
+public class AppProfile
+{
+    public int Id { get; set; }
+
+    /// <summary>FK 1:1 → Sector APP (indice univoco). Identità del profilo.</summary>
+    public int SectorId { get; set; }
+    public Sector? Sector { get; set; }
+
+    /// <summary>Righe separazioni (label/valore) serializzate JSON: [{"label":"Radar","value":"3 NM"}, …].</summary>
+    public string SeparationsJson { get; set; } = "[]";
+
+    /// <summary>Blocchi VFR (prosa + tabella) serializzati JSON; null = sezione vuota.</summary>
+    public string? VfrJson { get; set; }
+
+    /// <summary>Ordine delle sezioni (chiavi fisse del registry + chiavi custom) serializzato JSON: ["sep","aor",…].</summary>
+    public string SectionOrderJson { get; set; } = "[]";
+
+    /// <summary>Chiavi delle sezioni nascoste dal documento pubblico (visibili solo in editor) serializzate JSON.</summary>
+    public string HiddenSectionsJson { get; set; } = "[]";
+
+    /// <summary>Override d'ordine per singola frequenza, per callsign: {"LIRP_TWR":1, …}. Le altre seguono l'ordine di default.</summary>
+    public string FreqOrderJson { get; set; } = "{}";
+
+    /// <summary>Sezioni custom (titolo + blocchi prosa/tabella) serializzate JSON; riordinate insieme alle fisse via SectionOrderJson (chiave "custom:{key}").</summary>
+    public string CustomSectionsJson { get; set; } = "[]";
+
+    /// <summary>Frequenze extra linkate (riferimento vivo a un altro settore).</summary>
+    public ICollection<AppFrequencyLink> FrequencyLinks { get; set; } = new List<AppFrequencyLink>();
+}
+
+/// <summary>Frequenza extra linkata di un APP standalone (riferimento vivo): si risolve da Sector.DefaultFrequency. Mirror di <see cref="AirportFrequencyLink"/>.</summary>
+public class AppFrequencyLink
+{
+    public int Id { get; set; }
+    public int AppProfileId { get; set; }
+    public AppProfile? AppProfile { get; set; }
+    public int Order { get; set; }
+    public int SourceSectorId { get; set; }            // FK → Sector (la sorgente)
+    public Sector? SourceSector { get; set; }
+    public string? LabelOverride { get; set; }         // etichetta custom (altrimenti il callsign del settore)
 }

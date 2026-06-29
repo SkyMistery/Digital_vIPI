@@ -46,6 +46,10 @@
 
     private string EditorLink(DocumentSummary d)
     {
+        // Gli APP non remotizzati si editano SOLO dall'editor APP dedicato (per callsign).
+        if (d.IsStandaloneApp)
+            return $"/vsop/{(d.AccCode ?? Stations.Accs.FirstOrDefault()?.Code ?? "lirr").ToLowerInvariant()}/apps/editor?app={d.Scope}";
+
         // I documenti di aeroporto si editano SOLO dall'editor aeroporto (per ICAO), mai dal generico.
         if (d.IsAirport)
             return $"/vsop/{(d.AccCode ?? Stations.Accs.FirstOrDefault()?.Code ?? "lirr").ToLowerInvariant()}/airports/editor?icao={d.Scope}";

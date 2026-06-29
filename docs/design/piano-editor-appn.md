@@ -78,3 +78,15 @@ Procedere **una fase alla volta**: a fine di ogni fase build+test verdi e fermar
 4. Registry: aggiungendo un descrittore in `AppSections.All`, la nuova sezione compare in tutti i profili esistenti senza migrazione (riconciliazione al load).
 5. Da `/vsop/versioni` «Apri editor» su un doc APPn → apre il nuovo editor, non il generico.
 6. Viewer `/vsop/{acc}/apps/vipi` riflette i dati reali.
+
+## Stato implementazione — COMPLETATO (sessione 29 giu 2026)
+Tutte le **5 fasi** implementate, **151 test verdi**. Entità `AppProfile`/`AppFrequencyLink` + migrazioni `AddAppProfile`, `AddAppCustomSections`, `AddAppHiddenSections` (additive). Editor `AppEditorPage` (`/vsop/{acc}/apps/editor?app=`), viewer `AppnPage` data-driven, componenti condivisi in `Components/App/`.
+
+**Scostamenti dal piano (deliberati) e dettagli emersi:**
+- **Frequenze**: NON derivate da `DomainOf` dei `Sector` — nella proiezione Round 20 le posizioni DEL/GND/TWR hanno `ParentCallsign=null` → proiettate come **radici**, non figlie del Sector APP. Derivazione reale: aeroporti con `Airport.ParentCallsign ∈ DomainOf(appCallsign)` → tutte le posizioni dal **catalogo `AirportSector`** (ATIS·DEL·GND·TWR·APP★). In **coda** i **genitori** di copertura (`Topology.Ancestors`, es. `LIRR_NE_CTR` e CTR superiori). Riordino per riga (override) + link extra restano.
+- **AoR**: il campo IVAO `regionMapPolygon` (salvato grezzo in `AirportSector.RegionMapPolygon`, da `/v2/ATCPositions/{compose}`) è in ordine **`[lng, lat]`** (GeoJSON-style). La sezione si chiama **«AOR»** e mostra il poligono **sovrapposto a una mappa minimal** (Leaflet + CartoDB Positron, `vipi-aor.js`), con SVG di fallback no-JS.
+- **Sezioni custom**: storage self-contained in `AppProfile.CustomSectionsJson` (titolo + blocchi prosa/tabella con colonne/righe editabili), **non** il modello generico `Document`/`IEditingService`.
+- **Separazioni**: due colonne fisse **Verticale | Laterale**; dalla 2ª riga un free-text **Applicabilità** mostrato **sopra** i valori (la 1ª è la predefinita).
+- **Nascondi sezioni**: `AppProfile.HiddenSectionsJson` — escluse dal viewer pubblico, visibili/ripristinabili in editor (toggle 👁).
+- **Instradamento**: `DocumentSummary.IsStandaloneApp` (settore primario `App`+`Standalone`) ha **precedenza** su `IsAirport`; `EditorHub`/`Versioni`/`EditorPage` reindirizzano a `/apps/editor?app=`. Tasto **✎ Editor** (gated da `CanEditAccAsync`) nel viewer.
+- **Componenti**: `SectionShell` (toolbar + drag-and-drop solo sulla maniglia, per non bloccare gli input) + `AppSeparations`/`AppAor`/`AppFrequencies`/`AppVfr`/`AppMinima`/`AppCoordinationView` (nome ≠ DTO `AppCoordination`).

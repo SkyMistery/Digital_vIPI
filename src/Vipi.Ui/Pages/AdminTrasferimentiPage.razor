@@ -71,7 +71,7 @@
                                 @foreach (var s in OwnSectors().Where(s => Match(s, _fSectorText)).Take(50))
                                 {
                                     <button type="button" class="sp-item @(s.Id == _fSector ? "on" : "")"
-                                            @onmousedown:preventDefault="true" @onclick="() => PickFSector(s)">@s.Callsign</button>
+                                            @onmousedown:preventDefault="true" @onmousedown="() => PickFSector(s)">@s.Callsign</button>
                                 }
                                 @if (!OwnSectors().Any(s => Match(s, _fSectorText))) { <span class="sp-empty">nessun settore</span> }
                             </div>
@@ -86,7 +86,7 @@
                                 @foreach (var ap in _airports.Where(a => MatchApt(a, _fApt)).Take(50))
                                 {
                                     <button type="button" class="sp-item @(string.Equals(ap.Icao, _fApt, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                            @onmousedown:preventDefault="true" @onclick="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted" style="font-size:11px">@ap.Name · @ap.AccCode</span></button>
+                                            @onmousedown:preventDefault="true" @onmousedown="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted" style="font-size:11px">@ap.Name · @ap.AccCode</span></button>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(_fApt) && !_airports.Any(a => string.Equals(a.Icao, _fApt.Trim(), StringComparison.OrdinalIgnoreCase)))
                                 {
@@ -147,22 +147,91 @@
                                     <span class="muted" style="font-size:12px;font-weight:400">@f.Points.Count righe</span>
                                 </h4>
                                 <span class="ln"></span>
+                                <button class="btn ghost" disabled="@_busy" @onclick="() => EditFlow(f)">✎ Gruppo</button>
                                 <button class="btn ghost" disabled="@_busy" @onclick="() => DeleteFlow(f.Id)">✕ Gruppo</button>
                             </div>
                             @if (!flowOpen) { continue; }
-                            @if (!string.IsNullOrWhiteSpace(f.Description)) { <p class="muted" style="margin:0 0 8px;font-size:13.5px">@f.Description</p> }
+                            @if (_editFlowId == f.Id)
+                            {
+                                <div class="inline-form" style="margin:0 0 8px">
+                                    <div class="field narrow"><label>Tipo</label>
+                                        <select @bind="_efKind">
+                                            <option value="@TransferFlowKind.Arrival">Arrivi</option>
+                                            <option value="@TransferFlowKind.Departure">Partenze</option>
+                                            <option value="@TransferFlowKind.Overflight">Sorvoli</option>
+                                            <option value="@TransferFlowKind.Vfr">VFR</option>
+                                            <option value="@TransferFlowKind.Other">Altro</option>
+                                        </select>
+                                    </div>
+                                    <div class="field narrow"><label>Aeroporto</label><input placeholder="LIRF / —" @bind="_efApt" /></div>
+                                    <div class="field"><label>Descrizione (opz.)</label><input placeholder="Roma NE trasferisce…" @bind="_efDesc" /></div>
+                                    <button class="btn primary" disabled="@_busy" @onclick="() => SaveFlow(f.Id)">💾 Salva</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _editFlowId = null">Annulla</button>
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(f.Description)) { <p class="muted" style="margin:0 0 8px;font-size:13.5px">@f.Description</p> }
 
                             <table class="res-table">
                                 <thead><tr><th>CoP (punto)</th><th>Quota</th><th>Settore ricevente</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var p in f.Points)
                                     {
-                                        <tr>
-                                            <td><b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b></td>
-                                            <td>@p.LevelText</td>
-                                            <td>@(p.NextSectorCallsign ?? "—")</td>
-                                            <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeletePoint(p.Id)">✕</button></td>
-                                        </tr>
+                                        @if (_editPointId == p.Id)
+                                        {
+                                            <tr>
+                                                <td><input style="width:90px" placeholder="VALMA / —" @bind="_epCop" /></td>
+                                                <td>
+                                                    <select @bind="_epConstraint" style="width:78px">
+                                                        <option value="@LevelConstraint.AtOrBelow">≤ (↓)</option>
+                                                        <option value="@LevelConstraint.AtOrAbove">≥ (↑)</option>
+                                                        <option value="@LevelConstraint.Exact">esatto</option>
+                                                        <option value="@LevelConstraint.Special">speciale</option>
+                                                    </select>
+                                                    @if (_epConstraint == LevelConstraint.Special)
+                                                    {
+                                                        <input style="width:120px" placeholder="per aerovia" @bind="_epSpecial" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <input type="number" style="width:70px" @bind="_epValue" />
+                                                        <select @bind="_epUnit" style="width:56px"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="sector-pick-wrap">
+                                                        <input style="width:150px" placeholder="UNICOM" @bind="_epNextText" @bind:event="oninput" @bind:after="ResolveEpNext"
+                                                               @onfocus="() => _epOpen = true" @onblur="() => _epOpen = false" />
+                                                        @if (_epOpen)
+                                                        {
+                                                            <div class="sector-pick">
+                                                                @foreach (var s in _all.Where(s => Match(s, _epNextText)).Take(50))
+                                                                {
+                                                                    <button type="button" class="sp-item @(s.Id == _epNext ? "on" : "")"
+                                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEpNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
+                                                                }
+                                                                @if (!_all.Any(s => Match(s, _epNextText))) { <span class="sp-empty">nessun settore</span> }
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td style="white-space:nowrap">
+                                                    <button class="btn primary" disabled="@_busy" @onclick="() => SavePoint(p.Id)">💾</button>
+                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _editPointId = null">✕</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td><b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b></td>
+                                                <td>@p.LevelText</td>
+                                                <td>@(p.NextSectorCallsign ?? "—")</td>
+                                                <td style="white-space:nowrap">
+                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => EditPoint(p)">✎</button>
+                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => DeletePoint(p.Id)">✕</button>
+                                                </td>
+                                            </tr>
+                                        }
                                     }
                                 </tbody>
                             </table>
@@ -199,7 +268,7 @@
                                                 @foreach (var s in _all.Where(s => Match(s, _pNextText)).Take(50))
                                                 {
                                                     <button type="button" class="sp-item @(s.Id == _pNext ? "on" : "")"
-                                                            @onmousedown:preventDefault="true" @onclick="() => PickPNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
+                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickPNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
                                                 }
                                                 @if (!_all.Any(s => Match(s, _pNextText))) { <span class="sp-empty">nessun settore</span> }
                                             </div>
@@ -252,8 +321,28 @@
     private int _pNext;
     private string _pNextText = "";
 
+    // form edit gruppo (flusso) in-place.
+    private int? _editFlowId;
+    private TransferFlowKind _efKind = TransferFlowKind.Arrival;
+    private string _efApt = "", _efDesc = "";
+
+    // form edit riga (punto) in-place. _epNext = id risolto (0 = UNICOM).
+    private int? _editPointId;
+    private string _epCop = "";
+    private LevelConstraint _epConstraint = LevelConstraint.AtOrBelow;
+    private int? _epValue;
+    private LevelUnit _epUnit = LevelUnit.Fl;
+    private string _epSpecial = "";
+    private int _epNext;
+    private string _epNextText = "";
+
     // Dropdown ricerca aperto?
-    private bool _fOpen, _pOpen, _aOpen;
+    private bool _fOpen, _pOpen, _aOpen, _epOpen;
+
+    private void ResolveEpNext() =>
+        _epNext = _all.FirstOrDefault(s => string.Equals(s.Callsign, _epNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    private void PickEpNext(GlobalSectorRow s) { _epNext = s.Id; _epNextText = s.Callsign; _epOpen = false; }
 
     private void ResolveFSector() =>
         _fSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _fSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
@@ -318,6 +407,7 @@
 
     private void OpenAddPoint(int flowId)
     {
+        _editPointId = null; _editFlowId = null;
         _addPointFlowId = flowId;
         _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
         _pSpecial = ""; _pNext = 0; _pNextText = "";
@@ -338,6 +428,48 @@
     }
 
     private Task DeleteFlow(int id) => Guarded(() => Transfers.DeleteFlowAsync(_acc!.Code, id), "Gruppo eliminato.");
+
+    private void EditFlow(TransferFlowRow f)
+    {
+        _editPointId = null; _addPointFlowId = null;
+        _editFlowId = f.Id; _efKind = f.Kind; _efApt = f.AirportIcao ?? ""; _efDesc = f.Description ?? "";
+    }
+
+    private async Task SaveFlow(int flowId)
+    {
+        var owningSectorId = _flows.FirstOrDefault(x => x.Id == flowId)?.OwningSectorId ?? 0;
+        await Guarded(async () =>
+        {
+            await Transfers.UpdateFlowAsync(_acc!.Code, flowId, new TransferFlowInput
+            {
+                OwningSectorId = owningSectorId, Kind = _efKind,
+                AirportIcao = string.IsNullOrWhiteSpace(_efApt) ? null : _efApt,
+                Description = string.IsNullOrWhiteSpace(_efDesc) ? null : _efDesc,
+            });
+            _editFlowId = null;
+        }, "Gruppo aggiornato.");
+    }
+
+    private void EditPoint(TransferPointRow p)
+    {
+        _editFlowId = null; _addPointFlowId = null;
+        _editPointId = p.Id;
+        _epCop = p.Cop; _epConstraint = p.LevelConstraint; _epValue = p.LevelValue; _epUnit = p.LevelUnit;
+        _epSpecial = p.LevelSpecial ?? ""; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
+    }
+
+    private async Task SavePoint(int pointId)
+    {
+        await Guarded(async () =>
+        {
+            await Transfers.UpdatePointAsync(_acc!.Code, pointId, new TransferPointInput
+            {
+                Cop = _epCop, LevelValue = _epValue, LevelUnit = _epUnit, LevelConstraint = _epConstraint,
+                LevelSpecial = _epSpecial, NextSectorId = _epNext == 0 ? null : _epNext,
+            });
+            _editPointId = null;
+        }, "Riga aggiornata.");
+    }
 
     private async Task AddPoint(int flowId)
     {

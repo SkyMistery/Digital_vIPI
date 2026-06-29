@@ -1,0 +1,63 @@
+@* Wrapper di sezione (viewer/editor condiviso): in editor mostra toolbar (modifica/↑/↓/drag/elimina) e abilita il drag-and-drop.
+   IMPORTANTE: draggable va SOLO sulla maniglia, non sul container: un box draggable bloccherebbe l'editing degli input figli. *@
+<div class="app-sec @(Dragging ? "app-sec-drag" : "") @(Hidden ? "app-sec-hidden" : "")"
+     @ondragover:preventDefault="true" @ondragenter="OnDragEnter" @ondrop="OnDrop" @ondragend="OnDragEnd">
+    <div class="block" id="@AnchorId">
+        <div class="app-sec-head">
+            <div class="app-sec-titlewrap">
+                @if (Editing)
+                {
+                    <span class="app-drag" title="Trascina per riordinare" draggable="true" @ondragstart="OnDragStart">⠿</span>
+                }
+                <h3>@Title</h3>
+                @if (Kind == AppSectionKind.Derived)
+                {
+                    <span class="pill" title="Sezione derivata: si aggiorna da sola">derivata</span>
+                }
+                @if (Custom)
+                {
+                    <span class="pill future">custom</span>
+                }
+                @if (Hidden)
+                {
+                    <span class="pill future" title="Nascosta dal documento pubblico">🚫 nascosta</span>
+                }
+            </div>
+            @if (Editing)
+            {
+                <div class="app-sec-tools">
+                    <button class="btn ghost" title="@(Hidden ? "Mostra nel documento pubblico" : "Nascondi dal documento pubblico")" @onclick="ToggleHidden">@(Hidden ? "🙈" : "👁")</button>
+                    <button class="btn ghost" disabled="@IsFirst" title="Su" @onclick="MoveUp">↑</button>
+                    <button class="btn ghost" disabled="@IsLast" title="Giù" @onclick="MoveDown">↓</button>
+                    @if (Custom)
+                    {
+                        <button class="btn ghost" title="Elimina sezione" @onclick="Delete">✕</button>
+                    }
+                </div>
+            }
+        </div>
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? AnchorId { get; set; }
+    [Parameter] public AppSectionKind Kind { get; set; } = AppSectionKind.Editorial;
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public bool Custom { get; set; }
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool IsFirst { get; set; }
+    [Parameter] public bool IsLast { get; set; }
+    [Parameter] public bool Dragging { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public EventCallback MoveUp { get; set; }
+    [Parameter] public EventCallback MoveDown { get; set; }
+    [Parameter] public EventCallback Delete { get; set; }
+    [Parameter] public EventCallback ToggleHidden { get; set; }
+    [Parameter] public EventCallback OnDragStart { get; set; }
+    [Parameter] public EventCallback OnDragEnter { get; set; }
+    [Parameter] public EventCallback OnDrop { get; set; }
+    [Parameter] public EventCallback OnDragEnd { get; set; }
+}

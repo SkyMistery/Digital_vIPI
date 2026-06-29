@@ -1,7 +1,8 @@
 namespace Vipi.Application.Abstractions;
 
 /// <summary>Aeroporto dall'anagrafica della sorgente esterna. <see cref="AccCode"/> = centerId (ACC di competenza).</summary>
-public sealed record SourceAirport(string Icao, string Name, string? AccCode, string? City, int? TransitionAltitude = null);
+public sealed record SourceAirport(string Icao, string Name, string? AccCode, string? City, int? TransitionAltitude = null,
+    double? Latitude = null, double? Longitude = null);
 
 /// <summary>
 /// Porta verso l'anagrafica aeroporti della sorgente esterna, usata dall'editor struttura per scegliere

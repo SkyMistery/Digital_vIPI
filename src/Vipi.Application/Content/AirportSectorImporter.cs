@@ -47,6 +47,8 @@ public sealed class AirportSectorImporter : IAirportSectorImporter
                 RegionMapPolygon = detail.RegionMapPolygon,
                 LowerLimit = detail.LowerLimit,
                 UpperLimit = detail.UpperLimit,
+                AirportLatitude = detail.AirportLatitude,
+                AirportLongitude = detail.AirportLongitude,
             });
         }
 

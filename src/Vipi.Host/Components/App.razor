@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css" />
     <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css" />
     <link rel="stylesheet" href="Vipi.Host.styles.css" />
+    <!-- Leaflet (mappa AOR minimal). -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:#f4f5f9}</style>
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -38,9 +41,12 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="_content/Vipi.Ui/vipi-ui.js"></script>
     <script src="_content/Vipi.Ui/vipi-screens.js"></script>
     <script src="_content/Vipi.Ui/vipi-live.js"></script>
+    <script src="_content/Vipi.Ui/vipi-aor.js"></script>
     <script>
         // Ri-applica zoom e ricollega l'interattività dopo ogni navigazione "enhanced" di Blazor
         // (che rimpiazza il DOM e perderebbe lo stile zoom inline e gli handler).
@@ -48,6 +54,7 @@
             window.vipiApplyZoom && window.vipiApplyZoom();
             window.vipiWireUi && window.vipiWireUi();
             window.vipiInitScreens && window.vipiInitScreens();
+            window.vipiInitAor && window.vipiInitAor();
         });
     </script>
 </body>

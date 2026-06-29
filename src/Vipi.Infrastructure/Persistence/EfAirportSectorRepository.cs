@@ -95,6 +95,38 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task<IReadOnlyList<string>> ListAirportIcaosAsync(CancellationToken ct = default) =>
         await _db.Airports.AsNoTracking().OrderBy(a => a.Icao).Select(a => a.Icao).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<TwrShapeRow>> ListTwrShapesAsync(CancellationToken ct = default) =>
+        await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.Position == "TWR" && !s.IsHidden)
+            .Join(_db.Airports.AsNoTracking(), s => s.AirportIcao, a => a.Icao,
+                (s, a) => new TwrShapeRow(s.Id, s.AirportIcao, a.Latitude, a.Longitude, s.RegionMapPolygon))
+            .ToListAsync(ct);
+
+    public async Task SetAirportCoordsAsync(string icao, double latitude, double longitude, CancellationToken ct = default)
+    {
+        icao = Norm(icao);
+        var a = await _db.Airports.FirstOrDefaultAsync(x => x.Icao == icao, ct);
+        if (a is null) return;
+        a.Latitude = latitude;
+        a.Longitude = longitude;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
+    {
+        var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)
+                ?? throw new InvalidOperationException($"Settore d'aeroporto id {sectorId} inesistente.");
+        s.RegionMapPolygon = polygonJson;
+        s.IsShapeSynthetic = true;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default) =>
+        await _db.AirportSectors.AsNoTracking()
+            .Where(s => !s.IsShapeSynthetic && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
+            .Select(s => new AirportPolygonRow(s.AirportIcao, s.RegionMapPolygon!))
+            .ToListAsync(ct);
+
     public async Task<(int Created, int Updated)> ImportForAirportAsync(
         string icao, IReadOnlyList<SourceAtcPosition> positions, CancellationToken ct = default)
     {
@@ -103,9 +135,14 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         int created = 0, updated = 0;
 
         // L'ACC di competenza è quello dell'aeroporto. Senza aeroporto/ACC non si importa (FK).
-        var accCode = await _db.Airports.AsNoTracking()
-            .Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
+        var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Icao == icao, ct);
+        if (airport is null) return (0, 0);
+        var accCode = await _db.Accs.AsNoTracking().Where(a => a.Id == airport.AccId).Select(a => a.Code).FirstOrDefaultAsync(ct);
         if (accCode is null) return (0, 0);
+
+        // Coordinate del riferimento aeroporto dal dettaglio postazione (uguali per tutte): centro della shape TWR.
+        var coord = positions.FirstOrDefault(p => p.AirportLatitude is not null && p.AirportLongitude is not null);
+        if (coord is not null) { airport.Latitude = coord.AirportLatitude; airport.Longitude = coord.AirportLongitude; }
 
         var existing = await _db.AirportSectors
             .Where(s => s.AirportIcao == icao)
@@ -129,6 +166,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                 if (hasLimits)
                 {
                     row.RegionMapPolygon = p.RegionMapPolygon;
+                    row.IsShapeSynthetic = false;   // shape (reale o assente) dalla sorgente: non è più sintetica
                     // Limiti: l'admin comanda; aggiorna solo se la sorgente li espone (oggi null → preserva).
                     if (p.LowerLimit is not null) row.LowerLimit = p.LowerLimit;
                     else row.LowerLimit ??= DefaultLowerFt;

@@ -1,0 +1,87 @@
+@* Sezione Coordinamenti (derivata dai trasferimenti del settore APP): verso ACC (partenze+arrivi) · verso torri (solo arrivi). *@
+@* Nome del componente diverso dal DTO AppCoordination per evitare il mascheramento del tipo. *@
+<p class="muted" style="margin-top:0;font-size:13.5px">Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</p>
+
+@if (Coord.TowardAcc.Count == 0 && Coord.TowardTowers.Count == 0)
+{
+    <p class="muted" style="margin:0">Nessun coordinamento configurato per questo APP.</p>
+}
+
+@if (Coord.TowardAcc.Count > 0)
+{
+    var accRows = Coord.TowardAcc.SelectMany(g => g.Rows).ToList();
+    var partenze = accRows.Where(r => r.Kind == TransferFlowKind.Departure).ToList();
+    var arrivi = accRows.Where(r => r.Kind == TransferFlowKind.Arrival).ToList();
+
+    <details class="coord-sub" open>
+        <summary><span>Trasferimenti verso ACC</span><span class="chev">▸</span></summary>
+        <div class="body">
+            @if (partenze.Count > 0)
+            {
+                <details class="coord-sub2" open>
+                    <summary><span>Partenze</span><span class="chev">▸</span></summary>
+                    <div class="body">@RenderTable(partenze, showKind: false)</div>
+                </details>
+            }
+            @if (arrivi.Count > 0)
+            {
+                <details class="coord-sub2" open>
+                    <summary><span>Arrivi</span><span class="chev">▸</span></summary>
+                    <div class="body">@RenderTable(arrivi, showKind: false)</div>
+                </details>
+            }
+        </div>
+    </details>
+}
+
+@if (Coord.TowardTowers.Count > 0)
+{
+    <details class="coord-sub" open>
+        <summary><span>Trasferimenti verso le torri</span><span class="chev">▸</span></summary>
+        <div class="body">
+            @foreach (var g in Coord.TowardTowers)
+            {
+                <details class="coord-sub2" open>
+                    <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
+                    <div class="body">@RenderTable(g.Rows, showKind: false)</div>
+                </details>
+            }
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public AppCoordination Coord { get; set; } = AppCoordination.Empty;
+
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind) => __builder =>
+    {
+        <table>
+            <thead>
+                <tr>
+                    @if (showKind) { <th>Flusso</th> }
+                    <th>CoP</th><th>Livello</th><th>Next</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr>
+                        @if (showKind) { <td>@KindLabel(r.Kind)</td> }
+                        <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
+                        <td>@r.Level</td>
+                        <td>@r.Next</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    };
+
+    private static string KindLabel(TransferFlowKind k) => k switch
+    {
+        TransferFlowKind.Departure => "Partenze",
+        TransferFlowKind.Arrival => "Arrivi",
+        TransferFlowKind.Overflight => "Sorvoli",
+        TransferFlowKind.Vfr => "VFR",
+        _ => "Altro",
+    };
+}

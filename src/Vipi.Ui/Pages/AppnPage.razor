@@ -1,114 +1,65 @@
-﻿@page "/vsop/{Acc}/apps/vipi"
+@page "/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
+@inject IAppProfileService Profile
+@inject IEditAuthorizationService Authz
 
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
+else if (_data is null)
+{
+    <div class="wrap"><div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">APP non trovato</p>Nessun avvicinamento non remotizzato per <code>@_app</code>.</div></div></div>
+}
 else
 {
-    <PageTitle>LIRP_APP — Pisa · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@_app — @_name · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>LIRP_APP · Pisa (non remotizzato)</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_app · @_name (non remotizzato)</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
                 <ul>
-                    <li><a class="active" href="#p-sep">Separazioni</a></li>
-                    <li><a href="#p-aor">AoR avvicinamento</a></li>
-                    <li><a href="#p-freq">Frequenze</a></li>
-                    <li><a href="#p-vfr">VFR</a></li>
-                    <li><a href="#p-min">Minime di vettoramento</a></li>
-                    <li><a href="#p-coord">Coordinamenti</a></li>
+                    @foreach (var key in _order)
+                    {
+                        <li><a href="#p-@key">@TitleOf(key)</a></li>
+                    }
                 </ul>
             </aside>
             <div>
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">LIRP_APP — Pisa</h2><span class="muted">Avvicinamento non remotizzato · doc proprio</span></div>
-                    <span class="airac">📅 AIRAC 2606</span>
+                    <div><h2 style="margin-bottom:2px">@_app — @_name</h2><span class="muted">Avvicinamento non remotizzato · doc proprio</span></div>
+                    @if (_canEdit)
+                    {
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">✎ Editor</a>
+                        </div>
+                    }
                 </div>
                 <div class="callout info"><span class="cic">📡</span><div><p class="ct">APP con documentazione propria</p>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</div></div>
 
-                <div class="block" id="p-sep">
-                    <h3>Separazioni</h3>
-                    <div class="sep-box"><div class="sep-grid">
-                        <div class="it"><span class="muted">Radar</span><b>3 NM</b></div>
-                        <div class="it"><span class="muted">Verticale</span><b>1000 ft</b></div>
-                    </div></div>
-                </div>
-
-                <div class="block" id="p-aor">
-                    <h3>AoR avvicinamento</h3>
-                    <svg viewBox="0 0 420 200" width="100%" style="background:#f7f9ff;border:1px solid var(--line);border-radius:11px">
-                        <circle cx="210" cy="100" r="80" fill="#3C55AC" fill-opacity="0.12" stroke="#3C55AC" stroke-width="2" />
-                    </svg>
-                    <p class="muted" style="font-size:13px;margin:8px 0 0">Cerchio di competenza ~40 NM dal campo, fino a FL145.</p>
-                </div>
-
-                <div class="block" id="p-freq">
-                    <h3>Frequenze</h3>
-                    <table>
-                        <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
-                        <tbody>
-                            <tr class="freq-table primary"><td>Approach</td><td>LIRP_APP</td><td>124.250 <span class="freq-key">★</span></td></tr>
-                            <tr><td>Tower</td><td>LIRP_TWR</td><td>118.600</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="block" id="p-vfr">
-                    <h3>VFR</h3>
-                    <p style="font-size:14px;margin:0">L'APP fornisce servizio informazioni e traffico noto ai VFR; la separazione VFR/IFR non è fornita salvo SVFR. Il traffico VFR in arrivo viene consegnato alla TWR per l'inserimento nel circuito. Punti di riporto, quota di circuito e codici sono nella vIPI dell'aeroporto.</p>
-                </div>
-
-                <div class="block" id="p-min">
-                    <h3>Minime di vettoramento <span class="pill future">In sviluppo</span></h3>
-                    <div class="callout warning"><span class="cic">🛠️</span><div><p class="ct">Mappe da GitHub</p>Carte MVA importate dal sectorfile della divisione.</div></div>
-                    <div class="mva-grid">
-                        <figure class="mva-card"><svg viewBox="0 0 220 150"><rect width="220" height="150" fill="#f7f9ff" /><circle cx="110" cy="75" r="55" fill="#3C55AC" fill-opacity="0.12" stroke="#3C55AC" stroke-width="1.5" /></svg><figcaption>TMA Pisa — carta MVA</figcaption></figure>
+                @foreach (var key in _order)
+                {
+                    var desc = AppSections.Find(key);
+                    var custom = desc is null ? _custom.FirstOrDefault(c => c.Key == key) : null;
+                    <div class="block" id="p-@key">
+                        <h3>@TitleOf(key)</h3>
+                        @switch (key)
+                        {
+                            case "separations": <AppSeparations Rows="_data.Separations" />; break;
+                            case "aor": <AppAor Polygon="_aor" Towers="_towers" />; break;
+                            case "frequencies": <AppFrequencies Rows="_freqs" />; break;
+                            case "vfr": <AppVfr Content="_vfr" />; break;
+                            case "minima": <AppMinima />; break;
+                            case "coordination": <AppCoordinationView Coord="_coord" />; break;
+                            default:
+                                @if (custom is not null) { @CustomBody(custom) }
+                                break;
+                        }
                     </div>
-                </div>
-
-                <div class="block" id="p-coord">
-                    <div class="blk-head"><h3 style="margin:0">Coordinamenti</h3><div class="exp-ctrl"><button data-exp="open">⊕ Espandi tutto</button><button data-exp="close">⊖ Comprimi tutto</button></div></div>
-                    <p class="muted" style="margin-top:0;font-size:13.5px">Come il settore TW1: trasferimenti verso gli ACC e verso la/e torre/i, ciascuno con una sotto-sezione per ente.</p>
-
-                    <details class="coord-sub" open>
-                        <summary><span>Trasferimenti verso ACC</span><span class="sum-right"><span class="grp-exp sub-exp"><a data-exp="open">espandi</a> · <a data-exp="close">comprimi</a></span><span class="chev">▸</span></span></summary>
-                        <div class="body">
-                            <details class="coord-sub2" open>
-                                <summary><span>Settore Roma EW</span><span class="chev">▸</span></summary>
-                                <div class="body">
-                                    <p style="font-size:14px;margin:4px 0 10px"><b>LIRP_APP trasferisce</b> le partenze in salita all'EW al CoP; <b>riceve</b> gli arrivi in discesa.</p>
-                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>VALMA</td><td>FL150↑</td><td>LIRR_EW</td></tr></tbody></table>
-                                </div>
-                            </details>
-                            <details class="coord-sub2">
-                                <summary><span>Settore Roma SU</span><span class="chev">▸</span></summary>
-                                <div class="body">
-                                    <p style="font-size:14px;margin:4px 0 10px"><b>LIRP_APP riceve</b> dal SU gli arrivi meridionali; restituisce i sorvoli al livello concordato.</p>
-                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>ELKAP</td><td>FL150↓</td><td>LIRR_SU</td></tr></tbody></table>
-                                </div>
-                            </details>
-                        </div>
-                    </details>
-
-                    <details class="coord-sub" open>
-                        <summary><span>Trasferimenti verso le torri</span><span class="sum-right"><span class="grp-exp sub-exp"><a data-exp="open">espandi</a> · <a data-exp="close">comprimi</a></span><span class="chev">▸</span></span></summary>
-                        <div class="body">
-                            <details class="coord-sub2" open>
-                                <summary><span>LIRP_TWR · Pisa</span><span class="chev">▸</span></summary>
-                                <div class="body">
-                                    <p style="font-size:14px;margin:4px 0 10px"><b>Trasferimento in finale</b>: consegna a 2000 ft o stabilizzato sul localizer; <b>riceve</b> le partenze al decollo.</p>
-                                    <table><thead><tr><th>CoP</th><th>FL</th><th>Next</th></tr></thead><tbody><tr><td>—</td><td>2000 ft</td><td>LIRP_TWR</td></tr></tbody></table>
-                                </div>
-                            </details>
-                            <div class="callout info" style="margin-top:8px"><span class="cic">ℹ️</span><div><p class="ct">APP che copre più aeroporti</p>Se l'avvicinamento serve più scali (es. <b>Catania APP</b>), questa sezione contiene <b>una sotto-sezione per ogni torre</b>.</div></div>
-                        </div>
-                    </details>
-                </div>
+                }
             </div>
         </div>
     </div>
@@ -116,7 +67,74 @@ else
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
-    [SupplyParameterFromQuery] public string? Icao { get; set; }
+    [SupplyParameterFromQuery] public string? App { get; set; }
+
     private AccInfo? _acc;
-    protected override void OnParametersSet() => _acc = Stations.Resolve(Acc);
+    private string _app = "";
+    private string _name = "";
+    private bool _canEdit;
+    private AppProfileData? _data;
+    private List<string> _order = new();
+    private List<AppCustomSection> _custom = new();
+    private AppVfrContent _vfr = AppVfrContent.Empty;
+    private List<AppFreqRow> _freqs = new();
+    private AppCoordination _coord = AppCoordination.Empty;
+    private AppAorPolygon? _aor;
+    private IReadOnlyList<AppAorPolygon> _towers = Array.Empty<AppAorPolygon>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _app = (App ?? "").Trim().ToUpperInvariant();
+        _data = await Profile.LoadForViewAsync(_app);
+        if (_data is null) return;
+
+        _name = _data.Name;
+        _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
+        _custom = _data.CustomSections.ToList();
+        _vfr = ParseVfr(_data.VfrJson);
+        var customKeys = _custom.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hidden = _data.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _order = AppSections.Reconcile(_data.SectionOrder, customKeys)
+            .Where(k => !hidden.Contains(k)).ToList();   // le sezioni nascoste non compaiono nel documento pubblico
+
+        _freqs = (await Profile.DeriveFrequenciesAsync(_app)).ToList();
+        _coord = await Profile.DeriveCoordinationAsync(_app);
+        _aor = await Profile.GetAorPolygonAsync(_app);
+        _towers = await Profile.GetTowerPolygonsAsync(_app);
+    }
+
+    private string TitleOf(string key) =>
+        AppSections.Find(key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+
+    private static AppVfrContent ParseVfr(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
+        try { return System.Text.Json.JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
+        catch (System.Text.Json.JsonException) { return AppVfrContent.Empty; }
+    }
+
+    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
+    {
+        @foreach (var block in sec.Blocks)
+        {
+            if (block.Type == AppCustomBlockType.Prose)
+            {
+                @if (!string.IsNullOrWhiteSpace(block.Text)) { @MarkdownLite.Render(block.Text!) }
+            }
+            else
+            {
+                <table>
+                    <thead><tr>@foreach (var c in block.Columns ?? Array.Empty<string>()) { <th>@c</th> }</tr></thead>
+                    <tbody>
+                        @foreach (var r in block.Rows ?? Array.Empty<IReadOnlyList<string>>())
+                        {
+                            <tr>@foreach (var cell in r) { <td>@cell</td> }</tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+    };
 }

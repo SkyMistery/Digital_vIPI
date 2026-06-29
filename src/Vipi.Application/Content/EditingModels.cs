@@ -18,6 +18,11 @@ public sealed class DocumentSummary
     /// <summary>Vero se il documento descrive un aeroporto (settore primario Kind=Airport): si edita SOLO
     /// dall'editor aeroporto (`/vsop/{acc}/airports/editor?icao=`), non dall'editor generico.</summary>
     public bool IsAirport { get; init; }
+
+    /// <summary>Vero se il documento è un APP non remotizzato (settore primario Type=App, ApproachKind=Standalone):
+    /// si edita SOLO dall'editor APP dedicato (`/vsop/{acc}/apps/editor?app=`); <see cref="Scope"/> è il callsign APP.</summary>
+    public bool IsStandaloneApp { get; init; }
+
     /// <summary>Codice ACC del settore primario (per costruire i link editor).</summary>
     public string? AccCode { get; init; }
 }

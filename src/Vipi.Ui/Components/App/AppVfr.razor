@@ -1,0 +1,67 @@
+@* Sezione VFR (editoriale): prosa introduttiva (markdown) + tabella opzionale (situazione→procedura). *@
+@if (Editing)
+{
+    <label class="app-lbl">Introduzione (markdown)
+        <textarea class="app-ta" rows="4" value="@Content.Intro"
+                  @onchange="e => SetIntro(AsString(e.Value))"></textarea>
+    </label>
+    <table>
+        <thead><tr><th>Situazione</th><th>Procedura</th><th style="width:48px"></th></tr></thead>
+        <tbody>
+            @foreach (var (row, i) in Content.Rows.Select((r, i) => (r, i)))
+            {
+                var idx = i;
+                <tr>
+                    <td><input class="app-in" value="@row.Situation" @onchange="e => UpdateRow(idx, AsString(e.Value), row.Procedure)" /></td>
+                    <td><input class="app-in" value="@row.Procedure" @onchange="e => UpdateRow(idx, row.Situation, AsString(e.Value))" /></td>
+                    <td><button class="btn ghost" title="Rimuovi" @onclick="() => RemoveRow(idx)">✕</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn ghost" @onclick="AddRow">+ Aggiungi riga</button>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(Content.Intro))
+    {
+        @MarkdownLite.Render(Content.Intro!)
+    }
+    @if (Content.Rows.Count > 0)
+    {
+        <table>
+            <thead><tr><th>Situazione</th><th>Procedura</th></tr></thead>
+            <tbody>
+                @foreach (var row in Content.Rows)
+                {
+                    <tr><td>@row.Situation</td><td>@row.Procedure</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+    @if (string.IsNullOrWhiteSpace(Content.Intro) && Content.Rows.Count == 0)
+    {
+        <p class="muted" style="margin:0">Nessun contenuto VFR.</p>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public AppVfrContent Content { get; set; } = AppVfrContent.Empty;
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public EventCallback<AppVfrContent> ContentChanged { get; set; }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    private Task Emit(string? intro, List<AppVfrRow> rows) =>
+        ContentChanged.InvokeAsync(new AppVfrContent(string.IsNullOrWhiteSpace(intro) ? null : intro, rows));
+
+    private Task SetIntro(string intro) => Emit(intro, Content.Rows.ToList());
+    private Task AddRow() { var l = Content.Rows.ToList(); l.Add(new AppVfrRow("", "")); return Emit(Content.Intro, l); }
+    private Task RemoveRow(int i) { var l = Content.Rows.ToList(); l.RemoveAt(i); return Emit(Content.Intro, l); }
+    private Task UpdateRow(int i, string sit, string proc)
+    {
+        var l = Content.Rows.ToList();
+        l[i] = new AppVfrRow(sit, proc);
+        return Emit(Content.Intro, l);
+    }
+}

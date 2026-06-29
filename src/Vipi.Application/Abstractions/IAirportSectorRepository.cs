@@ -39,4 +39,26 @@ public interface IAirportSectorRepository
 
     /// <summary>ICAO di tutti gli aeroporti nel DB (per l'import automatico).</summary>
     Task<IReadOnlyList<string>> ListAirportIcaosAsync(CancellationToken ct = default);
+
+    // --- Fallback shape tonda per le TWR senza poligono (Round 22) ---
+
+    /// <summary>Tutti i settori TWR visibili con ICAO, coordinate aeroporto (se note) e poligono grezzo attuale.
+    /// Il chiamante decide quali sono "vuoti/degeneri" (es. null, "[]") provando a proiettarli.</summary>
+    Task<IReadOnlyList<TwrShapeRow>> ListTwrShapesAsync(CancellationToken ct = default);
+
+    /// <summary>Salva le coordinate del riferimento aeroporto (backfill dalla sorgente). No-op se l'aeroporto non esiste.</summary>
+    Task SetAirportCoordsAsync(string icao, double latitude, double longitude, CancellationToken ct = default);
+
+    /// <summary>Scrive una shape SINTETICA (IsShapeSynthetic=true) su un settore. Mai chiamare su shape reali.</summary>
+    Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
+
+    /// <summary>Poligoni grezzi NON sintetici di tutti i settori d'aeroporto (per ICAO), per derivare un centro di
+    /// ripiego dal poligono di un settore fratello (es. APP) quando le coordinate aeroporto non sono note.</summary>
+    Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default);
 }
+
+/// <summary>Riga di lavoro per il fallback shape TWR: settore + coord aeroporto (null = ignote) + poligono grezzo attuale.</summary>
+public sealed record TwrShapeRow(int SectorId, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon);
+
+/// <summary>Poligono grezzo di un settore d'aeroporto (per derivare un centro di ripiego).</summary>
+public sealed record AirportPolygonRow(string AirportIcao, string RawPolygon);

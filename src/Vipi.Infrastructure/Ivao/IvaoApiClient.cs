@@ -140,7 +140,8 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
                 var pageDto = await res.Content.ReadFromJsonAsync<AirportsPageDto>(cancellationToken: ct);
                 foreach (var a in pageDto?.Items ?? new List<AirportDto>())
                     if (!string.IsNullOrWhiteSpace(a.Icao))
-                        all.Add(new SourceAirport(a.Icao!, a.Name ?? a.Icao!, a.CenterId, a.City, a.TransitionAltitude));
+                        all.Add(new SourceAirport(a.Icao!, a.Name ?? a.Icao!, a.CenterId, a.City, a.TransitionAltitude,
+                            a.Latitude, a.Longitude));
 
                 if (pageDto is null || page >= pageDto.Pages) break;
             }
@@ -325,6 +326,14 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
             && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
             polygon = poly.GetRawText();
 
+        // Coordinate del riferimento aeroporto dal blocco "airport" (presente su ogni postazione dell'aeroporto).
+        double? airLat = null, airLon = null;
+        if (d.TryGetProperty("airport", out var ap) && ap.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            airLat = JsonNum(ap, "latitude");
+            airLon = JsonNum(ap, "longitude");
+        }
+
         return new SourceAtcPosition(
             Callsign: compose,
             Frequency: FormatFrequency(JsonNum(d, "frequency")),
@@ -332,7 +341,9 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
             MiddleIdentifier: JsonStr(d, "middleIdentifier"),
             RegionMapPolygon: polygon,
             LowerLimit: JsonNum(d, "lowerLimit") is double lo ? (int)Math.Round(lo) : null,
-            UpperLimit: JsonNum(d, "upperLimit") is double up ? (int)Math.Round(up) : null);
+            UpperLimit: JsonNum(d, "upperLimit") is double up ? (int)Math.Round(up) : null,
+            AirportLatitude: airLat,
+            AirportLongitude: airLon);
     }
 
     /// <inheritdoc />
@@ -436,7 +447,9 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         [property: JsonPropertyName("name")] string? Name,
         [property: JsonPropertyName("centerId")] string? CenterId,
         [property: JsonPropertyName("city")] string? City,
-        [property: JsonPropertyName("transitionAltitude")] int? TransitionAltitude);
+        [property: JsonPropertyName("transitionAltitude")] int? TransitionAltitude,
+        [property: JsonPropertyName("latitude")] double? Latitude,
+        [property: JsonPropertyName("longitude")] double? Longitude);
 
     // /v2/airports/{icao}/ATCPositions — es. { composePosition:"LIRN_GND", position:"GND", frequency:121.9 }.
     private sealed record AtcPositionDto(

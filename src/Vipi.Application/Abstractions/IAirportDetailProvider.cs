@@ -15,7 +15,11 @@ public sealed record SourceAtcPosition(
     string? MiddleIdentifier = null,
     string? RegionMapPolygon = null,
     int? LowerLimit = null,
-    int? UpperLimit = null);
+    int? UpperLimit = null,
+    // Coordinate del riferimento aeroporto (gradi decimali), dal blocco "airport" del dettaglio postazione.
+    // Presenti su OGNI postazione dell'aeroporto → usate per centrare la shape tonda di fallback delle TWR.
+    double? AirportLatitude = null,
+    double? AirportLongitude = null);
 
 /// <summary>
 /// Porta verso i dettagli per-aeroporto della sorgente esterna (postazioni ATC + piste), usata per generare

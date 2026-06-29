@@ -1,0 +1,486 @@
+@page "/vsop/{Acc}/apps/editor"
+@layout SopLayout
+@rendermode InteractiveServer
+@using System.Text.Json
+@inject IAppProfileService Profile
+@inject IStationResolver Stations
+@inject NavigationManager Nav
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>Editor APP @_app · vIPI</PageTitle>
+    <div class="wrap struct">
+        <div class="breadcrumb">
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>Editor</b>
+        </div>
+
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">✎ Editor APP @_app</h2><span class="muted">@_name · @_acc.Name</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn @(_editing ? "primary" : "ghost")" disabled="@(!_canEdit)" @onclick="() => _editing = !_editing">
+                    @(_editing ? "✓ Fine modifica" : "✎ Modifica")
+                </button>
+            </div>
+        </div>
+
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✅</span><div>@_status</div></div> }
+
+        @if (_data is null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>APP non trovato. Verifica che il callsign sia un avvicinamento non remotizzato (es. <code>LIRP_APP</code>).</div></div>
+        }
+        else
+        {
+            @if (!_canEdit)
+            {
+                <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per editare la ACC @_data.AccCode.</div></div>
+            }
+
+            @foreach (var (key, i) in _order.Select((k, i) => (k, i)))
+            {
+                var idx = i;
+                var desc = AppSections.Find(key);
+                var custom = desc is null ? _custom.FirstOrDefault(c => c.Key == key) : null;
+                var title = desc?.Title ?? custom?.Title ?? key;
+                var kind = desc?.Kind ?? AppSectionKind.Editorial;
+                var hidden = _hidden.Contains(key, StringComparer.OrdinalIgnoreCase);
+
+                <SectionShell @key="key" Title="@title" AnchorId="@($"p-{key}")" Kind="kind"
+                              Editing="@_editing" Custom="@(desc is null)" Hidden="@hidden"
+                              IsFirst="@(idx == 0)" IsLast="@(idx == _order.Count - 1)"
+                              Dragging="@(_dragIndex == idx)"
+                              MoveUp="() => MoveSection(idx, -1)" MoveDown="() => MoveSection(idx, 1)"
+                              Delete="() => RemoveCustom(key)" ToggleHidden="() => ToggleHidden(key)"
+                              OnDragStart="() => _dragIndex = idx" OnDragEnter="() => DragOver(idx)" OnDrop="DragDrop" OnDragEnd="DragDrop">
+                    @switch (key)
+                    {
+                        case "separations":
+                            <AppSeparations Rows="_separations" Editing="_editing" RowsChanged="SaveSeparations" />
+                            break;
+                        case "aor":
+                            <AppAor Polygon="_aor" Towers="_towers" />
+                            break;
+                        case "frequencies":
+                            <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink" />
+                            @if (_editing) { @FreqLinkPicker() }
+                            break;
+                        case "vfr":
+                            <AppVfr Content="_vfr" Editing="_editing" ContentChanged="SaveVfr" />
+                            break;
+                        case "minima":
+                            <AppMinima />
+                            break;
+                        case "coordination":
+                            <AppCoordinationView Coord="_coord" />
+                            break;
+                        default:
+                            @if (custom is not null) { @CustomBody(custom) }
+                            break;
+                    }
+                </SectionShell>
+            }
+
+            @if (_editing)
+            {
+                <div class="block" style="border-style:dashed">
+                    <button class="btn ghost" @onclick="AddCustom">+ Aggiungi sezione custom</button>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? App { get; set; }
+
+    private AccInfo? _acc;
+    private string _app = "";
+    private string _name = "";
+    private AppProfileData? _data;
+    private bool _canEdit, _editing;
+    private string? _error, _status;
+
+    private List<string> _order = new();
+    private List<string> _hidden = new();
+    private List<AppSeparationRow> _separations = new();
+    private AppVfrContent _vfr = AppVfrContent.Empty;
+    private List<AppCustomSection> _custom = new();
+    private List<AppFreqRow> _freqs = new();
+    private List<int> _linkIds = new();
+    private AppCoordination _coord = AppCoordination.Empty;
+    private AppAorPolygon? _aor;
+    private IReadOnlyList<AppAorPolygon> _towers = Array.Empty<AppAorPolygon>();
+
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+    private string _freqSearch = "";
+    private int? _dragIndex;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _app = (App ?? "").Trim().ToUpperInvariant();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = _status = null;
+        _data = null;
+        _canEdit = false;
+        if (string.IsNullOrWhiteSpace(_app)) return;   // nessun ?app= → "APP non trovato"
+        try
+        {
+            _data = await Profile.LoadForEditAsync(_app);
+            _canEdit = _data is not null;
+        }
+        catch (EditNotAllowedException)
+        {
+            _data = await Profile.LoadForViewAsync(_app);
+            _canEdit = false;
+        }
+        catch (ValidationException)
+        {
+            return;   // APP inesistente → schermata "non trovato"
+        }
+        if (_data is null) return;
+
+        _name = _data.Name;
+        _separations = _data.Separations.ToList();
+        _vfr = ParseVfr(_data.VfrJson);
+        _custom = _data.CustomSections.ToList();
+        _hidden = _data.HiddenSections.ToList();
+        _linkIds = _data.FrequencyLinks.Where(f => f.SourceSectorId is int).Select(f => f.SourceSectorId!.Value).ToList();
+
+        var customKeys = _custom.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _order = AppSections.Reconcile(_data.SectionOrder, customKeys).ToList();
+
+        _linkable = await Profile.ListLinkableFrequenciesAsync();
+        await RefreshDerivedAsync();
+    }
+
+    private async Task RefreshDerivedAsync()
+    {
+        _freqs = (await Profile.DeriveFrequenciesAsync(_app)).ToList();
+        _coord = await Profile.DeriveCoordinationAsync(_app);
+        _aor = await Profile.GetAorPolygonAsync(_app);
+        _towers = await Profile.GetTowerPolygonsAsync(_app);
+    }
+
+    // ---- ordine sezioni (tasti + drag) ----
+    private async Task MoveSection(int idx, int dir)
+    {
+        var j = idx + dir;
+        if (j < 0 || j >= _order.Count) return;
+        (_order[idx], _order[j]) = (_order[j], _order[idx]);
+        await PersistOrder();
+    }
+
+    private void DragOver(int idx)
+    {
+        if (_dragIndex is not int from || from == idx) return;
+        var item = _order[from];
+        _order.RemoveAt(from);
+        _order.Insert(idx, item);
+        _dragIndex = idx;
+    }
+
+    private async Task DragDrop()
+    {
+        if (_dragIndex is not null) { _dragIndex = null; await PersistOrder(); }
+    }
+
+    private async Task PersistOrder()
+    {
+        if (!_canEdit) return;
+        await Guard(() => Profile.SaveSectionOrderAsync(_app, _order));
+    }
+
+    private async Task ToggleHidden(string key)
+    {
+        if (_hidden.Contains(key, StringComparer.OrdinalIgnoreCase))
+            _hidden.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+        else
+            _hidden.Add(key);
+        await Guard(() => Profile.SaveHiddenSectionsAsync(_app, _hidden));
+    }
+
+    // ---- editoriali (persist immediato) ----
+    private async Task SaveSeparations(IReadOnlyList<AppSeparationRow> rows)
+    {
+        _separations = rows.ToList();
+        await Guard(() => Profile.SaveSeparationsAsync(_app, _separations));
+    }
+
+    private async Task SaveVfr(AppVfrContent content)
+    {
+        _vfr = content;
+        await Guard(() => Profile.SaveVfrAsync(_app, JsonSerializer.Serialize(content)));
+    }
+
+    // ---- frequenze (derivate + override/link) ----
+    private async Task MoveFreq((int Index, int Dir) m)
+    {
+        var j = m.Index + m.Dir;
+        if (j < 0 || j >= _freqs.Count) return;
+        (_freqs[m.Index], _freqs[j]) = (_freqs[j], _freqs[m.Index]);
+        var overrides = _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
+        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides));
+    }
+
+    private async Task RemoveLink(int sourceSectorId)
+    {
+        _linkIds.Remove(sourceSectorId);
+        await Guard(async () =>
+        {
+            await Profile.SaveFrequencyLinksAsync(_app, _linkIds);
+            await RefreshDerivedAsync();
+        });
+    }
+
+    private async Task AddLink(int sourceSectorId)
+    {
+        if (sourceSectorId <= 0 || _linkIds.Contains(sourceSectorId)) return;
+        _linkIds.Add(sourceSectorId);
+        _freqSearch = "";
+        await Guard(async () =>
+        {
+            await Profile.SaveFrequencyLinksAsync(_app, _linkIds);
+            await RefreshDerivedAsync();
+        });
+    }
+
+    // ---- sezioni custom ----
+    private async Task AddCustom()
+    {
+        var key = "custom:" + Guid.NewGuid().ToString("N")[..8];
+        _custom.Add(new AppCustomSection(key, "Nuova sezione", Array.Empty<AppCustomBlock>()));
+        _order.Add(key);
+        await Guard(async () =>
+        {
+            await Profile.SaveCustomSectionsAsync(_app, _custom);
+            await Profile.SaveSectionOrderAsync(_app, _order);
+        });
+    }
+
+    private async Task RemoveCustom(string key)
+    {
+        _custom.RemoveAll(c => c.Key == key);
+        _order.Remove(key);
+        await Guard(async () =>
+        {
+            await Profile.SaveCustomSectionsAsync(_app, _custom);
+            await Profile.SaveSectionOrderAsync(_app, _order);
+        });
+    }
+
+    private async Task UpdateCustom(string key, Func<AppCustomSection, AppCustomSection> mut)
+    {
+        var i = _custom.FindIndex(c => c.Key == key);
+        if (i < 0) return;
+        _custom[i] = mut(_custom[i]);
+        await Guard(() => Profile.SaveCustomSectionsAsync(_app, _custom));
+    }
+
+    private Task SetCustomTitle(string key, string title) => UpdateCustom(key, s => s with { Title = title });
+
+    private Task AddCustomProse(string key) =>
+        UpdateCustom(key, s => s with { Blocks = s.Blocks.Append(new AppCustomBlock(AppCustomBlockType.Prose, "", null, null)).ToList() });
+
+    private Task AddCustomTable(string key) =>
+        UpdateCustom(key, s => s with { Blocks = s.Blocks.Append(
+            new AppCustomBlock(AppCustomBlockType.Table, null, new[] { "Colonna 1", "Colonna 2" }, new List<IReadOnlyList<string>>())).ToList() });
+
+    private Task RemoveCustomBlock(string key, int bi) =>
+        UpdateCustom(key, s => { var l = s.Blocks.ToList(); l.RemoveAt(bi); return s with { Blocks = l }; });
+
+    private Task SetCustomProse(string key, int bi, string text) =>
+        UpdateCustom(key, s => { var l = s.Blocks.ToList(); l[bi] = l[bi] with { Text = text }; return s with { Blocks = l }; });
+
+    // ---- editing tabella di una sezione custom (colonne + righe + celle) ----
+    private Task UpdateBlock(string key, int bi, Func<AppCustomBlock, AppCustomBlock> mut) =>
+        UpdateCustom(key, s => { var l = s.Blocks.ToList(); if (bi < l.Count) l[bi] = mut(l[bi]); return s with { Blocks = l }; });
+
+    private static List<string> ColsOf(AppCustomBlock b) => (b.Columns ?? Array.Empty<string>()).ToList();
+    private static List<List<string>> RowsOf(AppCustomBlock b) =>
+        (b.Rows ?? Array.Empty<IReadOnlyList<string>>()).Select(r => r.ToList()).ToList();
+    private static AppCustomBlock WithTable(AppCustomBlock b, List<string> cols, List<List<string>> rows) =>
+        b with { Columns = cols, Rows = rows.Select(r => (IReadOnlyList<string>)r).ToList() };
+
+    private Task SetCustomColumn(string key, int bi, int ci, string name) => UpdateBlock(key, bi, b =>
+    {
+        var cols = ColsOf(b); if (ci < cols.Count) cols[ci] = name;
+        return WithTable(b, cols, RowsOf(b));
+    });
+
+    private Task AddCustomColumn(string key, int bi) => UpdateBlock(key, bi, b =>
+    {
+        var cols = ColsOf(b); cols.Add($"Colonna {cols.Count + 1}");
+        var rows = RowsOf(b); foreach (var r in rows) r.Add("");
+        return WithTable(b, cols, rows);
+    });
+
+    private Task RemoveCustomColumn(string key, int bi, int ci) => UpdateBlock(key, bi, b =>
+    {
+        var cols = ColsOf(b); if (ci < cols.Count) cols.RemoveAt(ci);
+        var rows = RowsOf(b); foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+        return WithTable(b, cols, rows);
+    });
+
+    private Task AddCustomRow(string key, int bi) => UpdateBlock(key, bi, b =>
+    {
+        var cols = ColsOf(b); var rows = RowsOf(b);
+        rows.Add(Enumerable.Repeat("", Math.Max(1, cols.Count)).ToList());
+        return WithTable(b, cols, rows);
+    });
+
+    private Task RemoveCustomRow(string key, int bi, int ri) => UpdateBlock(key, bi, b =>
+    {
+        var rows = RowsOf(b); if (ri < rows.Count) rows.RemoveAt(ri);
+        return WithTable(b, ColsOf(b), rows);
+    });
+
+    private Task SetCustomCell(string key, int bi, int ri, int ci, string val) => UpdateBlock(key, bi, b =>
+    {
+        var rows = RowsOf(b);
+        if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
+        return WithTable(b, ColsOf(b), rows);
+    });
+
+    // ---- helper ----
+    private static string AsString(object? v) => v as string ?? "";
+
+    private async Task Guard(Func<Task> action)
+    {
+        _error = _status = null;
+        try { await action(); _status = "Salvato."; }
+        catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questo APP."; }
+        catch (ValidationException ex) { _error = ex.Message; }
+    }
+
+    private static AppVfrContent ParseVfr(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
+        try { return JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
+        catch (JsonException) { return AppVfrContent.Empty; }
+    }
+
+    private RenderFragment FreqLinkPicker() => __builder =>
+    {
+        <div class="app-linkpick">
+            <input class="app-in" placeholder="Collega frequenza (cerca callsign/ICAO)…" value="@_freqSearch"
+                   @oninput="e => _freqSearch = AsString(e.Value)" />
+            @if (!string.IsNullOrWhiteSpace(_freqSearch))
+            {
+                <div class="sector-pick">
+                    @foreach (var l in _linkable
+                        .Where(l => !_linkIds.Contains(l.SectorId))
+                        .Where(l => l.Callsign.Contains(_freqSearch, StringComparison.OrdinalIgnoreCase)
+                                 || (l.Icao ?? "").Contains(_freqSearch, StringComparison.OrdinalIgnoreCase))
+                        .Take(8))
+                    {
+                        var row = l;
+                        <button type="button" class="sp-item" @onclick="() => AddLink(row.SectorId)">
+                            <b>@row.Callsign</b> <span class="muted">@row.FrequencyMhz</span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    };
+
+    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
+    {
+        if (_editing)
+        {
+            <label class="app-lbl">Titolo
+                <input class="app-in" value="@sec.Title" @onchange="e => SetCustomTitle(sec.Key, AsString(e.Value))" />
+            </label>
+        }
+        @foreach (var (block, bi) in sec.Blocks.Select((b, i) => (b, i)))
+        {
+            var idx = bi;
+            if (block.Type == AppCustomBlockType.Prose)
+            {
+                if (_editing)
+                {
+                    <div class="app-block-edit">
+                        <textarea class="app-ta" rows="3" value="@block.Text"
+                                  @onchange="e => SetCustomProse(sec.Key, idx, AsString(e.Value))"></textarea>
+                        <button class="btn ghost" title="Rimuovi blocco" @onclick="() => RemoveCustomBlock(sec.Key, idx)">✕</button>
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(block.Text))
+                {
+                    @MarkdownLite.Render(block.Text!)
+                }
+            }
+            else // Table
+            {
+                var cols = block.Columns ?? Array.Empty<string>();
+                var rows = block.Rows ?? Array.Empty<IReadOnlyList<string>>();
+                if (_editing)
+                {
+                    <table>
+                        <thead>
+                            <tr>
+                                @foreach (var (col, ci) in cols.Select((c, i) => (c, i)))
+                                {
+                                    var cidx = ci;
+                                    <th>
+                                        <div class="app-col-edit">
+                                            <input class="app-in" value="@col" @onchange="e => SetCustomColumn(sec.Key, idx, cidx, AsString(e.Value))" />
+                                            <button class="btn ghost" title="Rimuovi colonna" @onclick="() => RemoveCustomColumn(sec.Key, idx, cidx)">✕</button>
+                                        </div>
+                                    </th>
+                                }
+                                <th style="width:42px"><button class="btn ghost" title="Aggiungi colonna" @onclick="() => AddCustomColumn(sec.Key, idx)">＋</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var (row, ri) in rows.Select((r, i) => (r, i)))
+                            {
+                                var ridx = ri;
+                                <tr>
+                                    @foreach (var (cell, ci) in row.Select((c, i) => (c, i)))
+                                    {
+                                        var cidx = ci;
+                                        <td><input class="app-in" value="@cell" @onchange="e => SetCustomCell(sec.Key, idx, ridx, cidx, AsString(e.Value))" /></td>
+                                    }
+                                    <td><button class="btn ghost" title="Rimuovi riga" @onclick="() => RemoveCustomRow(sec.Key, idx, ridx)">✕</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div style="display:flex;gap:6px;margin-top:6px">
+                        <button class="btn ghost" @onclick="() => AddCustomRow(sec.Key, idx)">+ Riga</button>
+                        <button class="btn ghost" title="Rimuovi tabella" @onclick="() => RemoveCustomBlock(sec.Key, idx)">✕ Rimuovi tabella</button>
+                    </div>
+                }
+                else
+                {
+                    <table>
+                        <thead><tr>@foreach (var c in cols) { <th>@c</th> }</tr></thead>
+                        <tbody>
+                            @foreach (var r in rows) { <tr>@foreach (var cell in r) { <td>@cell</td> }</tr> }
+                        </tbody>
+                    </table>
+                }
+            }
+        }
+        @if (_editing)
+        {
+            <div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn ghost" @onclick="() => AddCustomProse(sec.Key)">+ Paragrafo</button>
+                <button class="btn ghost" @onclick="() => AddCustomTable(sec.Key)">+ Tabella</button>
+            </div>
+        }
+    };
+}
