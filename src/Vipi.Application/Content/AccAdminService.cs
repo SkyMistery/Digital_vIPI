@@ -39,12 +39,15 @@ public sealed class AccAdminService : IAccAdminService
     private readonly IAccAdminRepository _repo;
     private readonly IAccDirectory _directory;
     private readonly IEditAuthorizationService _authz;
+    private readonly ISectorProjectionService _projection;
 
-    public AccAdminService(IAccAdminRepository repo, IAccDirectory directory, IEditAuthorizationService authz)
+    public AccAdminService(IAccAdminRepository repo, IAccDirectory directory, IEditAuthorizationService authz,
+        ISectorProjectionService projection)
     {
         _repo = repo;
         _directory = directory;
         _authz = authz;
+        _projection = projection;
     }
 
     public Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -66,6 +69,9 @@ public sealed class AccAdminService : IAccAdminService
             subs.AddRange(await _directory.GetSubcentersAsync(a.Code, ct));
 
         var (subCreated, subUpdated) = await _repo.ImportSubcentersAsync(subs, ct);
+
+        // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+        await _projection.SyncFromCatalogsAsync(ct);
         return new AccImportResult(accsCreated, accsUpdated, subCreated, subUpdated);
     }
 
@@ -73,12 +79,14 @@ public sealed class AccAdminService : IAccAdminService
     {
         _authz.EnsureAdmin();
         await _repo.SetHiddenAsync(accId, hidden, ct);
+        await _projection.SyncFromCatalogsAsync(ct);   // nascondere un ACC disattiva i suoi settori proiettati
     }
 
     public async Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
         await _repo.SetSubcenterHiddenAsync(id, hidden, ct);
+        await _projection.SyncFromCatalogsAsync(ct);   // nascondere un settore lo disattiva nella proiezione
     }
 
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)

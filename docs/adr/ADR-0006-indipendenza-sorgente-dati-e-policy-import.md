@@ -34,6 +34,8 @@ Una entità `ImportPolicy` (riga singola, default tutto importato) decide, per c
 
 > 📝 **Aggiornamento round 16.** La categoria **`Atis`** è stata **rimossa**. Con la semplificazione del modello la **frequenza è un attributo del settore** (`Sector.DefaultFrequency`, una per settore) e l'ATIS è un `AirportSector` come gli altri (non più `Airport.AtisFrequency`, eliminato): la sua frequenza ricade quindi nella categoria `Sectors`. Migrazione `SimplifyDataModel`. L'enum attuale è `ImportCategory { TransitionAltitude, Runways, Sectors }`.
 
+> 🪵 **Aggiornamento round 20 — fonte unica.** Coerente con D2: i **cataloghi importati** (`AccSector`/`AirportSector`) sono la **fonte autoritativa unica** dei settori. I `Sector` operativi sono una **proiezione** rigenerata dai cataloghi (`ISectorProjectionService.SyncFromCatalogsAsync`, idempotente, invocata dopo ogni import e modifica gerarchia): upsert per callsign che preserva i legami documento, deriva tipo/kind/frequenza/`ParentSectorId` (dal `ParentCallsign` del catalogo) e disattiva i settori spariti/nascosti (`Sector.IsProjected`). I settori non si creano più a mano; resta una sola fonte (i cataloghi) da cui tutto deriva. SPEC §9.12.
+
 ### D5 — Enforcement a difesa in profondità
 Per le categorie importate: (a) **editor read-only** con badge 🔒 (`AeroportoEditorPage`), (b) **guard nei service** che rifiutano la scrittura (`ValidationException`), (c) **import policy-aware** — `ReimportFromSourceAsync` non passa al merge le categorie escluse, quindi i dati manuali dell'utente non vengono mai toccati. I campi **editoriali** (regole pista, SID, livelli TL, link frequenze, gerarchia settori) non sono categorie: sempre dell'utente.
 

@@ -57,6 +57,10 @@ public sealed class AccImportHostedService : BackgroundService
                 subs.AddRange(await dir.GetSubcentersAsync(a.Code, ct));
             var (sc, su) = await repo.ImportSubcentersAsync(subs, ct);
 
+            // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+            var projection = scope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
+            await projection.SyncFromCatalogsAsync(ct);
+
             _log.LogInformation("Import ACC automatico: ACC {AccCreated}/{AccUpdated}, settori ATC {SubCreated}/{SubUpdated}.",
                 ac, au, sc, su);
         }

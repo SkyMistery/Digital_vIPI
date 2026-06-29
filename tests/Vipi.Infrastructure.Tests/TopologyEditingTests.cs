@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Aor;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
 using Vipi.Infrastructure.Persistence.Seed;

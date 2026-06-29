@@ -637,6 +637,44 @@
 .htree li.live-covered{background:#eef1fb;box-shadow:inset 3px 0 0 var(--ivao-lightblue)}
 .htree li.live-out{opacity:.35}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-top:12px}
+
+/* editor gerarchia settori (albero + dettaglio) */
+.gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr}}
+/* il pannello dettaglio segue lo scroll (sticky), sotto la topbar (62px) così il titolo resta visibile */
+.detail-sticky{position:sticky;top:78px;align-self:start;max-height:calc(100vh - 94px);overflow:auto}
+@media(max-width:900px){.detail-sticky{position:static;max-height:none}}
+/* campo di ricerca dell'albero, stile brand */
+.htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:'Poppins';font-size:13px;background:#fff url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
+.htree-search:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px #e2e8ff}
+.htree-search::placeholder{color:var(--ink-soft)}
+/* card raggruppate per ACC (alberi) */
+.acc-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px;background:#fff}
+.acc-grp-h{display:flex;align-items:center;gap:7px;background:#f3f6ff;padding:8px 12px;font-family:'Nunito Sans';font-weight:800;color:var(--ivao-blue);font-size:13px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.acc-grp-h:hover{background:#eaeffc}
+.grp-chev{flex:none;width:14px;text-align:center;font-size:11px;color:var(--ivao-blue)}
+.acc-grp-code{background:var(--ivao-blue);color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;letter-spacing:.04em}
+.acc-row{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #f0f2f8}
+.htree-toggle{flex:none;width:15px;text-align:center;color:var(--ink-soft);font-size:11px;cursor:pointer;user-select:none;border-radius:4px}
+.htree-toggle:hover{background:#dbe2ff;color:var(--ivao-blue)}
+.htree-toggle.empty,.htree-toggle.empty:hover{cursor:default;background:transparent}
+.lnk-mini{border:1px solid var(--line);background:#fff;color:var(--ivao-blue);border-radius:6px;padding:2px 8px;font-family:'Nunito Sans';font-weight:700;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:6px}
+.lnk-mini:hover{background:#eef1fb}
+.lnk-mini:disabled{opacity:.4;cursor:default}
+.acc-row:last-child{border-bottom:0}
+.acc-row:hover{background:#f1f4ff}
+.acc-row.sel{background:#e2e8ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.acc-row.match{background:#fff6e0;box-shadow:inset 3px 0 0 #e6a700}
+.acc-row.match.sel{background:#e2e8ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.acc-row-label{font-weight:600;color:var(--ink)}
+.acc-row-parent{margin-left:auto;font-size:11.5px;color:var(--ink-soft);font-family:'Nunito Sans';white-space:nowrap}
+.node-badge{font-size:10px;background:#eceef5;color:#666;border-radius:5px;padding:1px 6px;font-family:'Nunito Sans';font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.node-badge.app{background:#eaf3ff;color:#2c5d99}
+.node-badge.acc{background:#e2e8ff;color:var(--ivao-blue)}
+.node-badge.apt{background:#dafbe7;color:#1a7f37}
+.acc-tag{font-size:10px;color:#888;font-family:'Nunito Sans';font-weight:700;letter-spacing:.03em;margin-right:2px}
+.fallback-chain{background:#f7f9ff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px}
+.fallback-chain>div{padding:1px 0}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
 .legend i.on{background:var(--ivao-green)}.legend i.cov{background:var(--ivao-lightblue)}.legend i.out{background:#cdd6e4}

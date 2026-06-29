@@ -7,7 +7,8 @@ public sealed record AccRow(int Id, string Code, string Name, string CountryPref
 
 /// <summary>Aeroporto di una ACC per l'editor struttura.
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).</summary>
-public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null, bool IsHidden = false)
+public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null, bool IsHidden = false,
+    string? ParentCallsign = null)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;

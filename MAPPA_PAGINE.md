@@ -63,7 +63,7 @@
 | `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
 | `/vsop/{acc}/airports/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto (profilo + settori ATC importati: mostra/nascondi + limiti) | admin/grant ACC |
 | `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |
-| `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | Settori/contenimento/frequenze/documenti (ex `/admin/struttura`, redirect 301) | admin |
+| `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | **Gerarchia di copertura GLOBALE (cross-ACC)** per callsign sui settori importati (§9.12 round 20): UI a **card per ACC** (ogni card = gli alberi con radice in quell'ACC, comprimi/espandi card e rami + ricerca) + pannello dettaglio sticky con catena di fallback, picker padre e **Applica**. Indipendente dal selettore ACC (solo per «Nuovo documento»). Creazione/eliminazione/frequenza settori NON qui (solo pagina ACC). Ex `/admin/struttura`, redirect 301 | admin |
 | `/vsop/admin/airports` | `AeroportiPage.razor` | Gestione aeroporti (filtro per ACC; colonna **Stato** + mostra/nascondi; alias legacy `/vsop/admin/aeroporti`) | admin |
 | `/vsop/admin/permessi` | `AdminGrantsPage.razor` | Permessi editing | admin |
 | `/vsop/admin/sorgenti` | `SorgentiAdminPage.razor` | Policy import sorgenti | admin |

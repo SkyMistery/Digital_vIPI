@@ -62,6 +62,10 @@ public sealed class AirportSectorImportHostedService : BackgroundService
                 catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
             }
 
+            // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+            var projection = scope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
+            await projection.SyncFromCatalogsAsync(ct);
+
             _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}.",
                 airports, created, updated, docs);
         }

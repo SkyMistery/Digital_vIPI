@@ -58,6 +58,7 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
             e.HasIndex(x => x.CenterId);
+            e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
             // FK su Acc.Code (chiave alternata): il centerId della sorgente è il codice ACC.
             e.HasOne(x => x.Acc).WithMany(a => a.AccSectors)
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
@@ -69,6 +70,7 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
             e.HasIndex(x => x.AirportIcao);
             e.HasIndex(x => x.AccCode);
+            e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
             // FK su Airport.Icao (chiave alternata): cascade alla rimozione dell'aeroporto.
             e.HasOne(x => x.Airport).WithMany(a => a.AirportSectors)
                 .HasForeignKey(x => x.AirportIcao).HasPrincipalKey(a => a.Icao)
@@ -83,6 +85,9 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.Icao).IsUnique();
             e.HasIndex(x => x.AccId);
+            // Gerarchia di copertura per callsign (Round 20): l'aeroporto è foglia, il padre è un callsign APP/CTR
+            // (cross-ACC ammesso). Nessuna FK: ParentCallsign attraversa i cataloghi (AccSector/AirportSector).
+            e.HasIndex(x => x.ParentCallsign);
             e.HasOne(x => x.Acc).WithMany(f => f.Airports).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
         });
 

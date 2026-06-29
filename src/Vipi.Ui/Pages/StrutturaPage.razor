@@ -1,8 +1,8 @@
-﻿@page "/vsop/admin/sectorstructure"
+@page "/vsop/admin/sectorstructure"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
-@inject ITopologyEditingService Topo
+@inject IHierarchyEditingService Hierarchy
 @inject IEditingService Editing
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
@@ -12,7 +12,7 @@
 <div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <b>Struttura</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">ACC, settori, contenimento, frequenze e documenti</span></div>
+        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">Gerarchia di copertura globale + documenti</span></div>
     </div>
 
     @if (_msg is not null)
@@ -20,7 +20,120 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    <div class="section-title"><h3>ACC</h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+    <p class="help" style="margin-top:0">Albero di fallback unico per tutta la divisione (<b>cross-ACC</b>): <b>Aeroporto → APP → settore ACC</b>. L'aeroporto è la foglia (DEL/GND/TWR condividono la sua vista rapida). I settori si importano/editano dalla <a href="/vsop/admin/acc">pagina ACC</a>; qui imposti solo i <b>padri</b> (il fallback immediato), anche tra ACC diversi.</p>
+
+    <div class="gerarchia-2col">
+        @* --- Settori per ACC (card con alberi) --- *@
+        <div class="panel">
+            <div class="sub-h">Alberi per ACC<span class="ln" style="flex:1"></span>
+                <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="Espandi tutto">⊞ espandi</button>
+                <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="Comprimi tutte le card">⊟ comprimi</button>
+            </div>
+            <input class="htree-search" placeholder="cerca callsign / ACC…" @bind="_treeFilter" @bind:event="oninput" />
+            @{ var groups = RootGroups(); }
+            @if (groups.Count == 0)
+            {
+                @if (_searching)
+                {
+                    <p class="help">Nessun settore corrisponde a «@_treeFilter».</p>
+                }
+                else
+                {
+                    <p class="help">Nessun settore nel catalogo. Importali dalla <a href="/vsop/admin/acc">pagina ACC</a>.</p>
+                }
+            }
+            else
+            {
+                @foreach (var g in groups)
+                {
+                    var rows = FlattenForest(g.Roots);
+                    if (_searching && rows.Count == 0) { continue; }
+                    var cardOpen = _searching || !_collapsedCards.Contains(g.Code);
+                    <div class="acc-grp">
+                        <div class="acc-grp-h" @onclick="() => ToggleCard(g.Code)">
+                            <span class="grp-chev">@(cardOpen ? "▾" : "▸")</span>
+                            <span class="acc-grp-code">@g.Code</span> @g.Name
+                            <span class="muted" style="font-weight:500">· @ForestCount(g.Roots) settori</span>
+                        </div>
+                        @if (cardOpen)
+                        {
+                            @foreach (var node in rows)
+                            {
+                                var n = node;
+                                <div class="acc-row @(IsSelected(n.Kind, n.Id) ? "sel" : "") @(IsHit(n) ? "match" : "")"
+                                     style="padding-left:@(12 + n.Depth * 20)px" @onclick="() => Select(n.Kind, n.Id)">
+                                    @if (n.HasChildren && !_searching)
+                                    {
+                                        <span class="htree-toggle" @onclick="() => Toggle(n.Callsign!)" @onclick:stopPropagation="true">@(_collapsed.Contains(n.Callsign!) ? "▸" : "▾")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="htree-toggle empty"></span>
+                                    }
+                                    <span class="node-badge @BadgeOf(n.Kind).ToLowerInvariant()">@BadgeOf(n.Kind)</span>
+                                    <span class="acc-row-label">@n.Label</span>
+                                    @if (n.AccCode != g.Code) { <span class="acc-tag" title="cross-ACC">@n.AccCode</span> }
+                                    @if (n.IsHidden) { <span class="muted" style="font-size:11px">(nascosto)</span> }
+                                    @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_searching)
+                                    {
+                                        <span class="acc-row-parent">@(ChildrenOf(n.Callsign!).Count()) ⋯</span>
+                                    }
+                                    else if (string.IsNullOrWhiteSpace(n.ParentCallsign))
+                                    {
+                                        <span class="acc-row-parent">@(n.Kind == HierarchyNodeKind.Airport ? "⚠ da assegnare" : "radice")</span>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        @* --- Dettaglio nodo --- *@
+        <div class="panel detail-sticky">
+            <div class="sub-h">Dettaglio</div>
+            @if (Selected() is not HierarchyNode sel)
+            {
+                <p class="help">Seleziona un settore per vederne la catena di fallback e impostarne il padre.</p>
+            }
+            else
+            {
+                <p style="margin:0 0 4px"><b>@sel.Label</b> <span class="node-badge @BadgeOf(sel.Kind).ToLowerInvariant()">@BadgeOf(sel.Kind)</span> <span class="acc-tag">@sel.AccCode</span></p>
+                @if (sel.Kind == HierarchyNodeKind.Airport)
+                {
+                    <p class="muted" style="font-size:12px;margin:0 0 10px">DEL · GND · TWR condividono la stessa vista rapida (l'aeroporto è la foglia).</p>
+                }
+                @RenderChain(sel)
+                <div class="field" style="margin-top:10px">
+                    <label>Padre (fallback immediato)</label>
+                    <input placeholder="filtra callsign…" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || _busy)" style="margin-bottom:6px" />
+                    <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
+                        <option value="">@(sel.Kind == HierarchyNodeKind.Acc ? "— radice —" : "— da assegnare —")</option>
+                        @foreach (var p in EligibleParents(sel))
+                        {
+                            <option value="@p.Callsign">@p.Callsign (@BadgeOf(p.Kind)) · @p.AccCode</option>
+                        }
+                    </select>
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+                        <button class="btn primary" disabled="@(!Authz.IsAdmin || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">Applica</button>
+                        @if (IsDirty(sel))
+                        {
+                            <button class="btn ghost" disabled="@_busy" @onclick="() => _pendingParent = sel.ParentCallsign">Annulla</button>
+                            <span class="muted" style="font-size:12px">modifica non salvata</span>
+                        }
+                        else
+                        {
+                            <span class="muted" style="font-size:12px">nessuna modifica</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
     <div class="block">
         @if (_accs.Count == 0)
         {
@@ -41,79 +154,7 @@
 
     @if (_data is not null)
     {
-        <div class="section-title"><h3>Settori <span class="pill blue">@_data.AccCode</span></h3><span class="ln"></span></div>
-        <div class="topo-layout">
-            @* --- Settori (entità unificata) + contenimento --- *@
-            <div class="panel">
-                <div class="sub-h">Settori (callsign apribili)</div>
-                @if (_data.Sectors.Count == 0)
-                {
-                    <p class="help">Nessun settore.</p>
-                }
-                else
-                {
-                    <table class="res-table">
-                        <thead><tr><th>Callsign</th><th>Tipo</th><th>Padre</th><th>Freq</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var s in _data.Sectors)
-                            {
-                                <tr>
-                                    <td><b>@s.Callsign</b>@(s.IsPrimary ? " ★" : "")<br /><span class="muted" style="font-size:11px">@s.Name@(s.AirportIcao is not null ? $" · {s.AirportIcao}" : "")</span></td>
-                                    <td>@s.Type / @s.Kind</td>
-                                    <td>
-                                        <select disabled="@(!_canEdit || _busy)" @onchange="e => SetParent(s.Id, e.Value?.ToString())">
-                                            <option value="">— radice —</option>
-                                            @foreach (var p in _data.Sectors.Where(x => x.Id != s.Id))
-                                            {
-                                                <option value="@p.Id" selected="@(s.ParentSectorId == p.Id)">@p.Callsign</option>
-                                            }
-                                        </select>
-                                    </td>
-                                    <td><input style="width:90px" value="@s.DefaultFrequency" disabled="@(!_canEdit || _busy)" @onchange="e => SetSectorFreq(s.Id, e.Value?.ToString())" title="Frequenza del settore (vuoto = nessuna)" /></td>
-                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeleteSector(s.Id)">🗑</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                <div class="add-form">
-                    <div class="field"><label>Nuovo settore</label>
-                        <input placeholder="Callsign es. LIMM_NW_CTR" @bind="_sCallsign" />
-                    </div>
-                    <div class="field"><input placeholder="Nome es. Milano Radar NW" @bind="_sName" /></div>
-                    <div class="row">
-                        <div class="field"><label>Tipo</label><select @bind="_sType">@foreach (var t in Enum.GetValues<SectorType>()) { <option value="@t">@(t == SectorType.ITwr ? "I_TWR" : t.ToString())</option> }</select></div>
-                        <div class="field"><label>Natura</label><select @bind="_sKind">@foreach (var k in Enum.GetValues<SectorKind>()) { <option value="@k">@k</option> }</select></div>
-                    </div>
-                    <div class="row">
-                        <div class="field"><label>Frequenza</label><input placeholder="es. 128.800" @bind="_sFreq" /></div>
-                        <div class="field"><label>CoverageOrder</label><input type="number" placeholder="10" @bind="_sCoverage" title="più basso = più in alto" /></div>
-                    </div>
-                    <div class="row">
-                        <div class="field"><label>Padre (contenimento)</label>
-                            <select @bind="_sParent"><option value="0">— radice —</option>@foreach (var p in _data.Sectors) { <option value="@p.Id">@p.Callsign</option> }</select>
-                        </div>
-                        @if (_sKind == SectorKind.Airport)
-                        {
-                            <div class="field"><label>Aeroporto</label>
-                                @if (_data.Airports.Count == 0)
-                                {
-                                    <span class="help" style="display:block">Crea prima un aeroporto nella <a href="/vsop/admin/airports">pagina Aeroporti</a>.</span>
-                                }
-                                else
-                                {
-                                    <select @bind="_sAirportId"><option value="0">aeroporto…</option>@foreach (var a in _data.Airports) { <option value="@a.Id">@a.Icao — @a.Name</option> }</select>
-                                }
-                            </div>
-                        }
-                    </div>
-                    <button class="btn ghost" disabled="@_busy" @onclick="AddSector">+ Aggiungi settore</button>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="section-title"><h3>📄 Nuovo documento</h3><span class="ln"></span></div>
+        <div class="section-title"><h3>📄 Nuovo documento <span class="pill blue">@_data.AccCode</span></h3><span class="ln"></span></div>
         <div class="block">
             <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
                 <div class="field narrow"><label>Tipo</label>
@@ -163,17 +204,17 @@
     private string? _accCode;
     private StructureData? _data;
     private bool _busy;
-    private bool _canEdit;
     private string? _msg;
 
-    // form settore
-    private string _sCallsign = "", _sName = "", _sFreq = "";
-    private SectorType _sType = SectorType.Ctr;
-    private SectorKind _sKind = SectorKind.Acc;
-    private int _sCoverage = 10;
-    private int _sParent;
-    private int _sAirportId;
-    // form documento
+    // Albero di copertura globale (cross-ACC) dai cataloghi.
+    private IReadOnlyList<HierarchyNode> _tree = Array.Empty<HierarchyNode>();
+    private HierarchyNodeKind? _selKind;
+    private int _selId;
+    private string _parentFilter = "";     // filtro del picker padre (dettaglio)
+    private string _treeFilter = "";       // ricerca nell'albero
+    private string? _pendingParent;        // padre selezionato ma non ancora applicato (Applica)
+
+    // form documento (per-ACC)
     private DocumentType _docType = DocumentType.Vipi;
     private string _docTitle = "";
     private int _docHome, _docNeighbour;
@@ -182,8 +223,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _canEdit = Authz.IsAdmin;
         await ReloadAccsAsync();
+        await ReloadTreeAsync();
     }
 
     private async Task ReloadAccsAsync()
@@ -196,8 +237,9 @@
     private async Task ReloadDataAsync()
     {
         _data = _accCode is null ? null : await Struct.LoadAsync(_accCode);
-        if (_accCode is not null) _canEdit = await Authz.CanEditAccAsync(_accCode);
     }
+
+    private async Task ReloadTreeAsync() => _tree = await Hierarchy.LoadTreeAsync();
 
     private async Task SelectAcc(string code)
     {
@@ -206,35 +248,224 @@
         await ReloadDataAsync();
     }
 
-    private string CallsignOf(int sectorId) =>
-        _data?.Sectors.FirstOrDefault(s => s.Id == sectorId)?.Callsign ?? "—";
-
     private async Task Guarded(Func<Task> action)
     {
         _busy = true; _msg = null;
-        try { await action(); await ReloadAccsAsync(); }
+        try { await action(); await ReloadTreeAsync(); await ReloadDataAsync(); }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }
 
-    private Task AddSector() => Guarded(async () =>
+    /// <summary>Vero se il padre selezionato (pending) differisce da quello salvato sul nodo.</summary>
+    private bool IsDirty(HierarchyNode sel) =>
+        !string.Equals(_pendingParent ?? "", sel.ParentCallsign ?? "", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Applica il padre pending al nodo (lo aggancia all'albero) e riproietta.</summary>
+    private Task Apply(HierarchyNode sel) =>
+        Guarded(() => Hierarchy.SetParentAsync(sel.Kind, sel.Id,
+            string.IsNullOrWhiteSpace(_pendingParent) ? null : _pendingParent));
+
+    /// <summary>Vero se il nodo soddisfa il filtro di ricerca (callsign/label/ACC).</summary>
+    private bool Matches(HierarchyNode n)
     {
-        await Struct.AddSectorAsync(_accCode!, _sCallsign, _sType, _sKind, _sName, _sFreq, _sCoverage,
-            _sType == SectorType.App ? ApproachKind.Standalone : null,
-            _sParent == 0 ? null : _sParent,
-            _sKind == SectorKind.Airport && _sAirportId != 0 ? _sAirportId : null);
-        _sCallsign = _sName = _sFreq = ""; _sParent = 0; _sAirportId = 0;
-    });
-    private Task DeleteSector(int id) => Guarded(() => Struct.DeleteSectorAsync(_accCode!, id));
+        var q = _treeFilter.Trim();
+        return (n.Callsign?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+               || n.Label.Contains(q, StringComparison.OrdinalIgnoreCase)
+               || n.AccCode.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
 
-    private Task SetParent(int childId, string? parentValue) =>
-        Guarded(() => Topo.SetParentAsync(_accCode!, childId,
-            string.IsNullOrEmpty(parentValue) ? null : int.Parse(parentValue)));
+    /// <summary>Vero se la riga è un risultato diretto della ricerca (da evidenziare).</summary>
+    private bool IsHit(FlatNode n)
+    {
+        if (string.IsNullOrWhiteSpace(_treeFilter)) return false;
+        var q = _treeFilter.Trim();
+        return n.Label.Contains(q, StringComparison.OrdinalIgnoreCase)
+               || n.AccCode.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
 
-    private Task SetSectorFreq(int sectorId, string? mhz) =>
-        Guarded(() => Struct.SetSectorFrequencyAsync(_accCode!, sectorId, mhz));
+    private static string NodeKey(HierarchyNodeKind kind, int id) => $"{kind}:{id}";
+
+    private bool _searching => !string.IsNullOrWhiteSpace(_treeFilter);
+
+    // --- Compressione card (per ACC) e rami (per callsign) ---
+    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);       // rami compressi (callsign)
+    private readonly HashSet<string> _collapsedCards = new(StringComparer.OrdinalIgnoreCase);   // card compresse (codice ACC)
+    private void Toggle(string callsign) { if (!_collapsed.Add(callsign)) _collapsed.Remove(callsign); }
+    private void ToggleCard(string code) { if (!_collapsedCards.Add(code)) _collapsedCards.Remove(code); }
+    private void ExpandAll() { _collapsed.Clear(); _collapsedCards.Clear(); }
+    private void CollapseAll()
+    {
+        _collapsedCards.Clear();
+        foreach (var g in RootGroups()) _collapsedCards.Add(g.Code);
+    }
+
+    // --- Alberi raggruppati per ACC della radice ---
+    private sealed record RootGroup(string Code, string Name, List<HierarchyNode> Roots);
+    private sealed record FlatNode(HierarchyNodeKind Kind, int Id, string Label, string AccCode, bool IsHidden, string? ParentCallsign, int Depth, string? Callsign, bool HasChildren);
+
+    /// <summary>Radici (nodi senza padre risolvibile), raggruppate per ACC della radice. Con la ricerca attiva tiene solo le radici che hanno almeno un nodo visibile nel proprio albero.</summary>
+    private List<RootGroup> RootGroups()
+    {
+        var byCs = NodesByCallsign();
+        var vis = VisibleKeys();
+        var nameByCode = _accs.GroupBy(a => a.Code, StringComparer.OrdinalIgnoreCase)
+                              .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
+
+        bool RootVisible(HierarchyNode r)
+        {
+            if (vis is null) return true;
+            if (vis.Contains(NodeKey(r.Kind, r.Id))) return true;
+            return r.Callsign is not null && DescendantNodes(r.Callsign).Any(d => vis.Contains(NodeKey(d.Kind, d.Id)));
+        }
+
+        return _tree
+            .Where(n => n.ParentCallsign is null || !byCs.ContainsKey(n.ParentCallsign))   // radici
+            .Where(RootVisible)
+            .GroupBy(r => r.AccCode, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key)
+            .Select(g => new RootGroup(g.Key,
+                nameByCode.TryGetValue(g.Key, out var nm) ? nm : "",
+                g.OrderBy(r => r.Kind).ThenBy(r => r.Label).ToList()))
+            .ToList();
+    }
+
+    /// <summary>Numero totale di nodi negli alberi di una card (radici + discendenti).</summary>
+    private int ForestCount(IEnumerable<HierarchyNode> roots) =>
+        roots.Sum(r => 1 + (r.Callsign is null ? 0 : DescendantNodes(r.Callsign).Count));
+
+    /// <summary>Appiattisce gli alberi delle radici date in pre-ordine con profondità, rispettando compressione rami e ricerca.</summary>
+    private List<FlatNode> FlattenForest(IEnumerable<HierarchyNode> roots)
+    {
+        var list = new List<FlatNode>();
+        var vis = VisibleKeys();
+        var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void Walk(HierarchyNode n, int depth)
+        {
+            var hasChildren = n.Callsign is not null && ChildrenOf(n.Callsign).Any();
+            if (vis is null || vis.Contains(NodeKey(n.Kind, n.Id)))
+                list.Add(new FlatNode(n.Kind, n.Id, n.Label, n.AccCode, n.IsHidden, n.ParentCallsign, depth, n.Callsign, hasChildren));
+            if (n.Callsign is null || !guard.Add(n.Callsign)) return;
+            if (vis is null && _collapsed.Contains(n.Callsign)) return;   // ramo compresso (ignorato in ricerca)
+            foreach (var c in ChildrenOf(n.Callsign)) Walk(c, depth + 1);
+        }
+
+        foreach (var r in roots.OrderBy(r => r.Kind).ThenBy(r => r.Label)) Walk(r, 0);
+        return list;
+    }
+
+    /// <summary>Quando il filtro è attivo: chiavi dei nodi da mostrare = ogni match + tutti i suoi ANTENATI + tutti i suoi DISCENDENTI (gerarchia completa del CS cercato).</summary>
+    private HashSet<string>? VisibleKeys()
+    {
+        if (string.IsNullOrWhiteSpace(_treeFilter)) return null;   // null = nessun filtro
+        var byCs = NodesByCallsign();
+        var vis = new HashSet<string>();
+        foreach (var m in _tree.Where(Matches))
+        {
+            vis.Add(NodeKey(m.Kind, m.Id));
+            // antenati (catena ParentCallsign fino alla radice)
+            var pcs = m.ParentCallsign;
+            var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
+            {
+                vis.Add(NodeKey(p.Kind, p.Id));
+                pcs = p.ParentCallsign;
+            }
+            // discendenti (sottoalbero)
+            if (m.Callsign is not null)
+                foreach (var d in DescendantNodes(m.Callsign)) vis.Add(NodeKey(d.Kind, d.Id));
+        }
+        return vis;
+    }
+
+    private List<HierarchyNode> DescendantNodes(string callsign)
+    {
+        var res = new List<HierarchyNode>();
+        var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Walk(string cs)
+        {
+            if (!guard.Add(cs)) return;
+            foreach (var c in ChildrenOf(cs)) { res.Add(c); if (c.Callsign is not null) Walk(c.Callsign); }
+        }
+        Walk(callsign);
+        return res;
+    }
+
+    // --- Helpers albero ---
+    private static string BadgeOf(HierarchyNodeKind k) => k switch
+    {
+        HierarchyNodeKind.Acc => "ACC",
+        HierarchyNodeKind.App => "APP",
+        _ => "APT",
+    };
+
+    private Dictionary<string, HierarchyNode> NodesByCallsign() =>
+        _tree.Where(n => n.Callsign is not null)
+             .GroupBy(n => n.Callsign!, StringComparer.OrdinalIgnoreCase)
+             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+    private IEnumerable<HierarchyNode> ChildrenOf(string callsign) =>
+        _tree.Where(n => string.Equals(n.ParentCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+             .OrderBy(n => n.Kind).ThenBy(n => n.Label);
+
+    private void Select(HierarchyNodeKind kind, int id)
+    {
+        _selKind = kind; _selId = id; _parentFilter = "";
+        _pendingParent = _tree.FirstOrDefault(n => n.Kind == kind && n.Id == id)?.ParentCallsign;
+    }
+    private bool IsSelected(HierarchyNodeKind kind, int id) => _selKind == kind && _selId == id;
+    private HierarchyNode? Selected() => _selKind is HierarchyNodeKind k
+        ? _tree.FirstOrDefault(n => n.Kind == k && n.Id == _selId) : null;
+
+    /// <summary>Padri ammessi: nodi interni (ACC/APP) esclusi sé stesso e i propri discendenti (anti-ciclo). Filtrabili per testo.</summary>
+    private IEnumerable<HierarchyNode> EligibleParents(HierarchyNode sel)
+    {
+        var blocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (sel.Callsign is not null)
+        {
+            blocked.Add(sel.Callsign);
+            foreach (var d in Descendants(sel.Callsign)) blocked.Add(d);
+        }
+        return _tree
+            .Where(n => n.Callsign is not null && !blocked.Contains(n.Callsign))
+            .Where(n => string.IsNullOrWhiteSpace(_parentFilter)
+                        || n.Callsign!.Contains(_parentFilter, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => n.AccCode).ThenBy(n => n.Callsign);
+    }
+
+    private HashSet<string> Descendants(string callsign)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Walk(string cs) { foreach (var c in ChildrenOf(cs)) if (c.Callsign is not null && result.Add(c.Callsign)) Walk(c.Callsign); }
+        Walk(callsign);
+        return result;
+    }
+
+    /// <summary>Catena di fallback del nodo selezionato (antenati per callsign fino alla radice).</summary>
+    private RenderFragment RenderChain(HierarchyNode sel) => builder =>
+    {
+        var byCs = NodesByCallsign();
+        var chain = new List<HierarchyNode>();
+        var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pcs = sel.ParentCallsign;
+        while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
+        {
+            chain.Add(p);
+            pcs = p.ParentCallsign;
+        }
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "fallback-chain");
+        builder.AddContent(seq++, (MarkupString)"<div class=\"muted\" style=\"font-size:12px;margin-bottom:4px\">Catena di fallback:</div>");
+        if (chain.Count == 0)
+            builder.AddContent(seq++, (MarkupString)"<div class=\"help\">Radice (nessun padre): copre sé stesso top-down.</div>");
+        else
+            foreach (var s in chain)
+                builder.AddContent(seq++, (MarkupString)$"<div>→ <b>{s.Callsign}</b> <span class=\"node-badge {BadgeOf(s.Kind).ToLowerInvariant()}\">{BadgeOf(s.Kind)}</span> <span class=\"acc-tag\">{s.AccCode}</span></div>");
+        builder.CloseElement();
+    };
 
     private static string ChipStyle(bool inScope, bool taken)
     {

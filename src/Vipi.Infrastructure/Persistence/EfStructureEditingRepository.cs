@@ -50,7 +50,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
         var airports = await _db.Airports.AsNoTracking().Where(a => a.AccId == acc.Id)
             .OrderBy(a => a.Icao)
-            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden))
+            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden, a.ParentCallsign))
             .ToListAsync(ct);
 
         var sectors = await _db.Sectors.AsNoTracking().Where(s => s.AccId == acc.Id)

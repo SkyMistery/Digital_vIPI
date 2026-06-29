@@ -3,12 +3,17 @@
 Sorgente di verità leggibile della mappa **settori ↔ contenimento ↔ regole** della ACC pilota Roma
 (PIANO §11/§17.1). Dal round 5 **posizione e settore sono la stessa entità** (`Sector`): ogni settore
 è un callsign apribile su IVAO e, al tempo stesso, un volume di spazio aereo. Il contenimento top-down è
-un **albero a padre singolo** (`Sector.ParentSectorId`) — questo dato è **manuale** (le API IVAO non
-espongono la gerarchia operativa) ed è la base della logica di nascondimento per AoR. Implementato nel
-seed `RomaStructureSeed`.
+un **albero a padre singolo** (`Sector.ParentSectorId`) ed è la base della logica di nascondimento per AoR.
+
+> 🪵 **Round 20 — questa mappa descrive il seed `RomaStructureSeed`**, usato come **fixture di test** (settori
+> `IsProjected=false`, mai toccati dalla sync). **In produzione** i `Sector` sono una **proiezione** dei cataloghi
+> importati (`AccSector`/`AirportSector`): `Type`/`Kind`/frequenza/`AirportId` e il **`ParentSectorId`** sono
+> derivati automaticamente da `SyncFromCatalogsAsync`, e il padre arriva dal **`ParentCallsign`** del catalogo
+> (gerarchia per callsign, cross-ACC, editabile in `/vsop/admin/sectorstructure`). Vedi `SPEC_Modello_Dati.md` §9.12.
+> Non si editano più i settori a mano. La struttura logica qui sotto (contenimento → AoR top-down) resta valida.
 
 > ⚠️ Dato **strutturale di esempio** per F1b/F2 (validazione modello + logica). I valori reali (frequenze,
-> settori, split) vanno rivisti dagli editor in fase di data-entry.
+> settori, split) arrivano dai cataloghi importati.
 
 ## Settori (entità unificata)
 

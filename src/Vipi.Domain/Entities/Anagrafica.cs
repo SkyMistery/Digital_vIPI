@@ -41,6 +41,10 @@ public class AccSector
     public string? Frequency { get; set; }                    // MHz, da /v2/subcenters/{compose}
     public string? RegionMapPolygon { get; set; }             // poligono shape (JSON grezzo), da /v2/subcenters/{compose}
 
+    /// <summary>Padre nella gerarchia di copertura, per callsign (= ComposePosition del padre). Cross-ACC ammesso.
+    /// null = radice / da assegnare. SPEC §9.12 (Round 20).</summary>
+    public string? ParentCallsign { get; set; }
+
     /// <summary>Limite inferiore (ft/FL). Impostato dall'admin nella webapp. Predisposto anche per la sorgente.</summary>
     public int? LowerLimit { get; set; }
     /// <summary>Limite superiore (ft/FL). Impostato dall'admin nella webapp. Predisposto anche per la sorgente.</summary>
@@ -71,6 +75,10 @@ public class AirportSector
     public string? MiddleIdentifier { get; set; }              // es. "US0"
     public string? Frequency { get; set; }                     // MHz, da /v2/ATCPositions/{compose}
     public string? RegionMapPolygon { get; set; }              // poligono shape (JSON grezzo), da /v2/ATCPositions/{compose}
+
+    /// <summary>Padre nella gerarchia di copertura, per callsign (solo per le posizioni APP, che sono nodi interni
+    /// dell'albero). DEL/GND/TWR non sono nodi → resta null. Cross-ACC ammesso. SPEC §9.12 (Round 20).</summary>
+    public string? ParentCallsign { get; set; }
 
     /// <summary>Limite inferiore (ft/FL). Impostato dall'admin; default GND (0).</summary>
     public int? LowerLimit { get; set; }
@@ -108,6 +116,11 @@ public class Airport
     /// <summary>Nascosto dall'admin: l'aeroporto resta nel DB ma la sua pagina e l'elenco pubblico non lo mostrano. Default false = visibile.
     /// La visibilità pubblica effettiva è inoltre negata quando l'aeroporto non ha nemmeno un settore.</summary>
     public bool IsHidden { get; set; }
+
+    /// <summary>Padre nella gerarchia di copertura, per callsign (= ComposePosition del settore APP/CTR di fallback immediato).
+    /// L'aeroporto è la FOGLIA dell'albero (DEL/GND/TWR condividono la sua vista rapida). Cross-ACC ammesso.
+    /// null = aeroporto non ancora collocato nell'albero. SPEC §9.12 (Round 20, sostituisce ParentSectorId di Round 19).</summary>
+    public string? ParentCallsign { get; set; }
 
     /// <summary>Settori che puntano a questo aeroporto (Sector.AirportId). La gerarchia si ricostruisce da qui.</summary>
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
@@ -152,6 +165,12 @@ public class Sector
     public DateTime? ImportedAtUtc { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Description { get; set; }
+
+    /// <summary>Vero se questo settore è una PROIEZIONE rigenerata dai cataloghi importati (AccSector/AirportSector),
+    /// fonte autoritativa unica (Round 20). I settori proiettati non si editano a mano; la sync li disattiva
+    /// (IsActive=false) se il callsign sparisce/viene nascosto nel catalogo. I settori seed/manuali restano IsProjected=false
+    /// e la sync non li tocca mai. SPEC §9.12.</summary>
+    public bool IsProjected { get; set; }
 
     // --- Contenimento (albero top-down): un settore può essere diviso in sotto-settori. ---
     public int? ParentSectorId { get; set; }           // null = settore radice

@@ -46,14 +46,16 @@ public sealed class AirportSectorService : IAirportSectorService
     private readonly IAirportSectorImporter _importer;
     private readonly IEditAuthorizationService _authz;
     private readonly IStructureEditingService _structure;
+    private readonly ISectorProjectionService _projection;
 
     public AirportSectorService(IAirportSectorRepository repo, IAirportSectorImporter importer,
-        IEditAuthorizationService authz, IStructureEditingService structure)
+        IEditAuthorizationService authz, IStructureEditingService structure, ISectorProjectionService projection)
     {
         _repo = repo;
         _importer = importer;
         _authz = authz;
         _structure = structure;
+        _projection = projection;
     }
 
     public Task<IReadOnlyList<AirportSectorRow>> ListByAirportAsync(string icao, CancellationToken ct = default) =>
@@ -66,6 +68,9 @@ public sealed class AirportSectorService : IAirportSectorService
 
         var (created, updated) = await _importer.ImportAsync(icao, ct);
 
+        // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+        await _projection.SyncFromCatalogsAsync(ct);
+
         // Documento aeroporto creato/aggiornato in automatico (l'utente ha già passato la guardia ACC sopra).
         try { await _structure.EnsureAirportDocumentSystemAsync(icao, ct); } catch { /* best-effort */ }
 
@@ -76,6 +81,7 @@ public sealed class AirportSectorService : IAirportSectorService
     {
         await EnsureCanEditSectorAsync(id, ct);
         await _repo.SetHiddenAsync(id, hidden, ct);
+        await _projection.SyncFromCatalogsAsync(ct);   // nascondere un settore lo disattiva nella proiezione
     }
 
     public async Task SetLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
