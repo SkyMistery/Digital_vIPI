@@ -18,7 +18,6 @@ public static class DependencyInjection
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
         services.AddScoped<Auth.IStaffRosterService, Auth.StaffRosterService>();
         services.AddScoped<IEditingService, EditingService>();
-        services.AddScoped<Aor.ITopologyEditingService, Aor.TopologyEditingService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccAdminService, AccAdminService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();

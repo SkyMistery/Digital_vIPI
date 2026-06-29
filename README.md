@@ -4,32 +4,12 @@ Portale web interattivo per la documentazione operativa ATC (vIPI e vLOA) della 
 Trasforma i Word statici in contenuto strutturato con due livelli (Estesa/Ridotta), logica di visibilità
 live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD).
 
-> Pianificazione completa: `PIANO_vIPI_Tool.md`, `HANDOFF.md`, `SPEC_*.md`, `docs/adr/`.
-> Configurazione runtime: **`docs/CONFIG.md`**. Integrazione in un sito esistente: **`docs/INTEGRATION.md`**.
-
-> 🔀 **Round 5:** posizione e settore sono **un'unica entità `Sector`** (callsign + spazio aereo), con contenimento ad albero (`ParentSectorId`) e scope documenti uno-a-molti (`Sector.DocumentId`/`IsPrimary`). Vedi `SPEC_Modello_Dati.md` (banner Round 5) e `docs/sector-map.md`.
-
-> 🛫 **Round 6:** **`Airport`** è entità di prima classe sotto una ACC (`Icao` univoco, `Name`, `AccId`). I settori d'aeroporto vi puntano via `Sector.AirportId` (`Sector.AirportIcao` resta denormalizzato); **l'aeroporto non ha gerarchia propria** — si ricostruisce dai settori che lo referenziano. Anagrafica reale dalla sorgente (`IAirportDirectory`, oggi adapter IVAO → `/v2/airports?countryId=IT`, `centerId`=ACC di competenza, cache 12h). Gestione interamente in **`AeroportiPage`** (`/sop/admin/aeroporti`, admin): assegna/sposta/rimuovi + ricerca + selezione multipla + **«Auto-assegna noti»** (`AutoAssignKnownAirportsAsync`: crea gli aeroporti il cui `centerId` è una ACC già presente). `StrutturaPage` tiene solo il picker aeroporto nel form settore (`Kind=Airport`).
-
-> 🛬 **Round 7:** **«Genera documenti»** (`AeroportiPage`) crea dalla sorgente i settori **DEL/GND/TWR** (`/v2/airports/{ICAO}/ATCPositions`, APP rimandato; ATIS solo come frequenza) e la **vIPI aeroporto Published** con le sezioni del mockup (Quote di transizione · Frequenze · Piste da `/v2/airports/{ICAO}/runways` · SID). METAR/TAF restano **live** sulla pagina. Idempotente.
-
-> 🗼 **Round 10:** torre informativa **`SectorType.ITwr`** (AFIS, trattata come torre per frequenza/etichetta); invariante **«ogni aeroporto ha almeno una torre»** (badge ⚠ no TWR + blocco eliminazione unica torre). **Quote di transizione di default** `TL = TA + margine` per fascia QNH (`<977→+2500`…`≥1013→+1000`, arrotondate al FL), garantite a ogni rebuild.
-
-> 🔌 **Round 11 — Indipendenza dalla sorgente + policy di import.** Le porte dati esterne sono **interfacce neutre** (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`, DTO `Source*`); l'adapter IVAO è UNA implementazione scelta via **`DataSource:Provider`**. Tutto ciò che la sorgente fornisce è **importato e in sola lettura** (policy globale **opt-out**, entità `ImportPolicy`, pagina admin **`/sop/admin/sorgenti`**): TA e piste non sono più editabili dagli utenti se importate. `Vid`→`UserId` nel codice e nel DB (migrazione `Rename_Vid_To_UserId`; a video resta "VID"). Vedi `SPEC_Modello_Dati.md` e `HANDOFF.md` (Round 10/11).
-
-> 🗺️ **Round 12 — Rebuild pagine, prefisso `/sop` → `/vsop`** (redirect 301 dai vecchi URL). Home/landing ACC snellite; aeroporti su `/vsop/{acc}/airports` (elenco/doc con `?icao=`), APP su `/vsop/{acc}/apps`; "3 in evidenza" (`FeaturedRank`) dall'editor ACC. Pagine fuori scope disabilitate (codice intatto). **Fonte rapida: `MAPPA_PAGINE.md` + `PAGINE_DISABILITATE.md`.**
-
-> 🛰️ **Round 13–17 — ACC/settori importati + semplificazione dati.** ACC e settori si **importano dalla sorgente** (`/vsop/admin/acc`: `/v2/centers` + subcenter); nuovi cataloghi **`AccSector`**/**`AirportSector`** (chiave `ComposePosition`, mostra/nascondi + limiti quota admin, `IsPrimary` per la frequenza ★). Documenti aeroporto **rigenerati in automatico** all'import. **Semplificazione modello:** la frequenza è ora un **attributo del settore** (`Sector.DefaultFrequency`) — entità **`Frequency` eliminata** (`DropFrequencyTable`), link freq ri-puntati al `Sector`; rimossi `SectorGeometry`, `Airport.AtisFrequency` e la categoria policy **ATIS** (`SimplifyDataModel`). `Fir`→`Acc` ovunque (`RenameFirToAcc`). Dettagli: `SPEC_Modello_Dati.md` §9 + `HANDOFF.md`.
-
-> 🙈 **Hide aeroporti.** `Airport.IsHidden` (migrazione `AddAirportHidden`): in `/vsop/admin/airports` un aeroporto si può **nascondere** (pagina pubblica inaccessibile + escluso dagli elenchi). Gli aeroporti **senza alcun settore** sono **nascosti di default** (`IsPublic = !IsHidden && Sectors>0`).
-
-> 🛬 **Regole pista a soglie operative.** Le `AirportRunwayRule` non hanno più condizioni vento-arco/velocità: ogni regola dice *quando le piste indicate hanno **coda ≤ X kt**, **traverso ≤ Y kt** (opz.) e **superficie** corrispondente (`RunwaySurface{Any,Dry,Wet}`), sono preferenziali per DEP/ARR*. Coda/traverso sono calcolati dal vento; valutate in ordine (prima regola applicabile vince), fallback al miglior vento di testa. Orario/giorni/parità + finestra stagionale restano in «Avanzate». Logica `RunwaySuggestion.EvaluateRules`; migrazione `RunwayRuleThresholds`. Vedi `SPEC_Modello_Dati.md` §9.9.
-
-> 🪵 **Round 20 — Fonte unica dei settori + gerarchia per callsign.** I **cataloghi importati** (`AccSector`/`AirportSector`) sono la **fonte autoritativa unica**; i `Sector` operativi sono una **proiezione** rigenerata dai cataloghi (`ISectorProjectionService`, upsert per callsign che preserva i legami documento). Gerarchia di copertura **per callsign** (`ParentCallsign` su `AccSector`/`AirportSector`/`Airport`), **cross-ACC** e **globale** in `/vsop/admin/sectorstructure` (`IHierarchyEditingService`); sostituisce `Airport.ParentSectorId` del Round 19. `Sector.IsProjected` + sync che disattiva i settori spariti/nascosti senza toccare i seed/manuali → **test AoR S1–S10 intatti**. Migrazione `AddHierarchyParentCallsign`. **128 test.** Vedi `PIANO_Round20_FonteUnica.md` + `SPEC_Modello_Dati.md` §9.12.
-
-> 🌳 **Round 19 — Gerarchia di copertura (aeroporto‑foglia) + editor grafico.** *(superato dal Round 20)* L'albero di fallback è **Aeroporto → APP → settore ACC** a **padre unico** (un nodo = un albero), profondità/ramificazione libere; risoluzione = primo antenato online (`AorService.NearestOnlineAncestor`). Nuovo **`Airport.ParentSectorId`** (FK→`Sector`, `OnDelete SetNull`; migrazione `AddAirportHierarchy`): l'**aeroporto è la foglia**, DEL/GND/TWR non sono nodi (condividono la sua vista rapida); padre = settore `APP/CTR` stesso ACC. La sezione "Settori" di `/vsop/admin/sectorstructure` è ora un **editor grafico albero + dettaglio** (catena di fallback + selettore padre); da lì rimosse creazione/eliminazione settori e modifica frequenza (solo dalla pagina ACC). Scrittura via `SetAirportParentAsync`. Risoluzione **live** del controllore = follow‑up. Dettagli: `SPEC_Modello_Dati.md` §9.12.
-
-> 🗓️ **Round 18 — Regole pista in ora locale + finestra stagionale, sezioni extra.** Gli orari delle «Avanzate» sono ora in **ora locale (LT, come in AIP)**, non più Z: `TimeFrom/ToUtcMin`→`TimeFrom/ToLocalMin`, conversione UTC→ora italiana (CET/CEST) in `EvaluateRules` (migrazione `RenameRunwayRuleTimeToLocal`). Nuova **finestra di validità stagionale ricorrente** per regola (`DateFromMonthDay`/`DateToMonthDay` in MMDD, solo giorno+mese, wrap di fine anno; migrazione `AddRunwayRuleDateWindow`). Nuove **`AirportExtraSection`** (titolo + testo libero, pannello editor «Sezioni extra»): nel viewer vanno nella **colonna libera di destra** (desktop) / **sotto le SID** (schermi stretti); migrazione `AddAirportExtraSection`. Dettagli: `SPEC_Modello_Dati.md` §9.10–9.11.
+## Documentazione
+- **`HANDOFF.md`** — stato corrente e come riprendere il lavoro (leggere per primo).
+- **`docs/index.md`** — indice di tutta la documentazione (specifiche, guide, ADR, storia).
+- **`docs/history/rounds.md`** — changelog cronologico dei round.
+- Specifiche: `docs/spec/modello-dati.md`, `docs/spec/logica-aor.md`, `docs/spec/mappa-pagine.md`.
+- Config & integrazione: `docs/guide/config.md`, `docs/guide/integration.md`. Decisioni: `docs/adr/`.
 
 ## Architettura (Clean Architecture — ADR-0001 D2, ADR-0002)
 
@@ -38,32 +18,24 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 | `src/Vipi.Domain` | Entità, enum, regole pure (`AiracService`). Nessuna dipendenza. | — |
 | `src/Vipi.Application` | Use case e porte: `IAorService`, `IContentService`, `ICurrentUserProvider`. Logica AoR pura. | Domain |
 | `src/Vipi.Infrastructure` | EF Core + SQLite (`VipiDbContext`), `TopologyBuilder`, migrazioni. | Application, Domain |
-| `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host (rotta `/sop`). Stili confinati in `.vipi-root`. | Application, Domain |
-| `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host (`HostIdentityCurrentUserProvider`), middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
+| `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host. Stili confinati in `.vipi-root`. | Application, Domain |
+| `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host, middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
 | `src/Vipi.Host` | Host Blazor Server di **sviluppo/esempio** che aggancia il modulo. | tutti |
-| `tests/Vipi.Domain.Tests` · `tests/Vipi.Application.Tests` | xUnit: AIRAC + scenari AoR S1–S10. | — |
+| `tests/*` | xUnit: AIRAC, scenari AoR S1–S10, editing, proiezione settori, import. | — |
 
 Regola di dipendenza verso l'interno: `Host → Infrastructure → Application → Domain`. La RCL e la logica
 **non dipendono da tipi specifici dell'host** (ADR-0002 D5): l'identità arriva solo da `ICurrentUserProvider`.
-
-### Portabilità identità (ADR-0002 D3, ADR-0005)
-- **A** sito attuale `Ivao.It` · **B** sito nuovo (stesso stack) → `HostIdentityCurrentUserProvider`
-  legge il `ClaimsPrincipal` dell'host (mappa claim config-driven, sezione `HostIdentity`). **Implementato.**
-- **C** app autonoma → adapter IVAO OIDC proprio passato a `AddVipiModule`.
-
-In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (utente CH fittizio, `CanEdit = true`).
-Integrazione passo-passo in **`docs/INTEGRATION.md`**.
+In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `IT-AOC`). Integrazione in `docs/guide/integration.md`.
 
 ## Build & run
 
 ```bash
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx            # 128 test (AoR S1–S10, editing, proiezione settori + gerarchia per callsign, lock/authz/concorrenza, ricerca, changed, AIRAC, polling IVAO, primo-online, profilo aeroporto, regole pista a soglie + finestra stagionale, policy import, import ACC/settori, hide aeroporti)
+dotnet test  Vipi.slnx            # 128 test (AoR S1–S10, editing, proiezione settori + gerarchia per callsign, ...)
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
 
-Il DB SQLite viene creato/migrato all'avvio dell'host (`Data Source=vipi.db`, override via
-`ConnectionStrings:Vipi`).
+Il DB SQLite viene creato/migrato all'avvio dell'host (`Data Source=vipi.db`, override via `ConnectionStrings:Vipi`).
 
 ### Migrazioni EF Core
 ```bash
@@ -73,56 +45,8 @@ dotnet ef migrations add <Nome> \
 ```
 (usa `DesignTimeDbContextFactory`; a runtime la connection string la fornisce l'host)
 
-## Stato
-✅ Solution 4 layer + Host + test · ✅ modello di dominio (SPEC §3–4, §7) · ✅ schema EF Core + prima migration
-· ✅ logica AoR/visibilità con test **S1–S10** · ✅ `AiracService` · ✅ tema brand (`Vipi.Ui/wwwroot/vipi-theme.css`)
-· ✅ home `/sop` a 4 ACC · ✅ seed Roma **ACC + aeroporto LIRF**.
-
-**Consultazione dal DB:** vIPI ACC Estesa (`/sop/{acc}/vipi`), **Ridotta** proiezione tier Reduced (`/sop/{acc}/ridotta`),
-**vIPI Aeroporto** (`/sop/{acc}/aeroporto`), **vLOA** (`/sop/{acc}/vloa`) — tutte tramite `IVipiViewService` + `BlockRenderer`.
-**Ricerca full-text** (`/sop/search`, `ISearchService`), **Cosa è cambiato** (`/sop/changed`, `IChangesService`, per ciclo AIRAC),
-**Export** (`/sop/{acc}/export`, Estesa → stampa/PDF browser via `@media print`).
-
-**Editing persistente (CH/AOD):** porta `IEditingRepository` + `EditingService` (autorizzazione ACC-scoped, vedi sotto), workflow
-**bozza→pubblicato** con clonazione versione + audit; UI `EditorPage` (`/sop/{acc}/editor`, anche `?doc={id}` per
-qualunque documento) con CRUD blocchi **e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli) e `VersioniPage`
-(`/sop/versioni`), entrambe `InteractiveServer`.
-
-**vLOA:** seed bilaterale LIRR↔DTTC (`DocumentParty` Home/Neighbour); consultazione `/sop/{acc}/vloa` dal DB,
-editing con l'editor generico (`VloaEditorPage` reindirizza).
-
-**Topologia (`/sop/{acc}/topologia`):** **simulatore** che riusa `ITopologyProvider`+`IAorService` (ownership/stato
-reali, preset S1–S6) + **CRUD** regole di unificazione e relazioni gerarchiche (`ITopologyEditingService`).
-
-**Trasferimenti:** entità `Transfer` (riga strutturata: relazione·fase·CoP·FL·catena handler JSON·fallback),
-editor `XferEditorPage`, e sezione **Trasferimenti** nella Ridotta con risoluzione **"primo online"**
-(`TransferOnlineResolver` + `ListResolvedByAccAsync`, F3).
-
-**Live IVAO (F3):** `AtcPollingHostedService` interroga l'API IVAO (`/v2/tracker/now/atc/summary`) ogni 60 s,
-filtra i **prefissi ICAO della divisione** (`Division:IcaoPrefixes`), aggiorna `OnlineAtcCache` (singleton) letta via porta `IOnlineAtcProvider`.
-La Ridotta gira `live=true`: AoR reale (selettore "la mia posizione" P, collasso AoR), lista "online nel mio
-dominio", "primo online" dei trasferimenti, badge Live. Push al browser via **SSE** (`/sop/live/atc` + `vipi-live.js`,
-**ADR-0003**). Token `client_credentials` (`IvaoTokenProvider`) solo per l'elenco membri divisione; il tracker è pubblico.
-Config in sezione `Ivao` di `appsettings.json`; segreti in user-secrets (`Ivao:ClientId/ClientSecret`).
-La sorgente attiva si sceglie con **`DataSource:Provider`** (oggi `"Ivao"`): l'app dipende solo dalle interfacce neutre (`IAirportDirectory`/`IAirportDetailProvider`/`IUserDirectory`/`IOnlineAtcProvider`), così cambiare network o usare un DB interno richiede solo un nuovo adapter.
-
-**Sicurezza & permessi:** autorizzazione ACC-scoped (`IEditAuthorizationService`): **admin** = staff `{DIV}-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>` derivati dal **codice divisione** (`Division:Code`, default `IT`); override esplicito opzionale in `Auth:AdminStaffCodes`
-(editano tutto + gestiscono i permessi); gli altri editano una ACC solo con un `EditGrant` (VID→ACC), concesso da
-`/sop/admin/permessi`. **Lock** esclusivo del documento (30 min sliding, force admin) impedisce editing concorrente.
-**Concorrenza ottimistica** (`RowVersion` su blocchi/sezioni) + **validazione** (regole hard, trasferimenti soft).
-Verifica sempre server-side. In dev `DevCurrentUserProvider` è admin (`IT-AOC`).
-
-### Cambiare divisione (es. IT → DE)
-Sezione `Division` di `appsettings.json` (o env var):
-```json
-"Division": { "Code": "DE", "Name": "Germania", "IcaoPrefixes": [ "ED", "ET" ] }
-```
-`Code` sposta i codici staff admin (`DE-DIR`…) e l'id nell'API membri; `IcaoPrefixes` filtra gli ATC online.
-Centralizzato in `DivisionOptions`. **Nota:** il contenuto seed (Roma/LIRR) è dato, non config — va riseedato a parte.
-
-### Prossimi passi
-- ✅ **Polling IVAO + live (F3)** — fatto: cache+SSE, Ridotta live, primo-online, auto-elenco CH. Da rifinire:
-  conferma endpoint membri divisione, mapping esplicito token-handler trasferimenti, estensione live a vIPI
-  aeroporto/vLOA (oggi solo ACC Ridotta), identità "P" dal callsign connesso del CH loggato.
-- Auth di produzione: adapter reali `ICurrentUserProvider` (HostIdentity A/B, OIDC C).
-- Placeholder dati reali (§5.1 HANDOFF): shape AoR (GeoJSON), METAR/TAF, SID/MVA da sectorfile GitHub, AoR 3D.
+## Stato in breve
+Solution .NET 8 a 4 layer + Host Blazor Server, **128 test verdi**. Consultazione + editing + sicurezza dal DB;
+live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/vsop`; **fonte unica = cataloghi**
+(i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). Dettaglio completo
+e prossimi passi in **`HANDOFF.md`**; storia in **`docs/history/rounds.md`**.

@@ -91,6 +91,12 @@ public class AirportSector
     /// <summary>Frequenza principale dell'aeroporto (★). Unica per aeroporto; scelta nell'editor (default: TWR→GND→APP).</summary>
     public bool IsPrimary { get; set; }
 
+    /// <summary>Solo per le posizioni APP: vero se l'avvicinamento appartiene a un ACC (callsign a 3 pezzi, es. LIRN_UN0_APP →
+    /// remotizzato, vive nella vIPI di ACC); falso se è l'APP proprio dell'aeroporto (callsign a 2 pezzi, es. LIRP_APP →
+    /// non remotizzato, documento proprio). Editabile dall'editor aeroporto; default derivato dal callsign all'import.
+    /// Guida <see cref="Sector.ApproachKind"/> nella proiezione (Round 20).</summary>
+    public bool IsAccApp { get; set; }
+
     public DateTime? ImportedAtUtc { get; set; }
 }
 

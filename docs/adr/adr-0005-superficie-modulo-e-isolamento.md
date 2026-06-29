@@ -24,7 +24,7 @@ host (scenari A/B) era documentato ma non implementato.
 - **D5 — JS namespacing.** Le funzioni del modulo restano sotto il prefisso `vipi*` (namespace di
   fatto, collision-safe); non si toccano `window`/DOM globali oltre a quello.
 - **D6 — Prefisso di rotta.** `/sop` resta fisso nelle `@page` (Blazor richiede letterali a compile-time);
-  per path diversi si usa un reverse proxy. Documentato in `docs/INTEGRATION.md`.
+  per path diversi si usa un reverse proxy. Documentato in `../guide/integration.md`.
 
 ## Conseguenze
 - Integrazione su un host dello stesso stack a costo quasi nullo; identità reale dall'host.

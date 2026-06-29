@@ -7,7 +7,7 @@
 **Documento:** Specifica funzionale + scenari di test della logica di visibilità (la parte più critica del sistema)
 **Versione:** 0.1
 **Data:** 13 giugno 2026
-**Riferimento:** `PIANO_vIPI_Tool.md` (§6, §20), `SPEC_Modello_Dati.md`
+**Riferimento:** `../design/piano-vipi-tool.md` (§6, §20), `modello-dati.md`
 
 ---
 
@@ -173,7 +173,7 @@ Per qualunque `P`, `O`, configurazione:
 
 ---
 
-*Documenti collegati:* `PIANO_vIPI_Tool.md` (§20, §22), `SPEC_Modello_Dati.md` (entità coinvolte).
+*Documenti collegati:* `../design/piano-vipi-tool.md` (§20, §22), `modello-dati.md` (entità coinvolte).
 
 ---
 

@@ -48,8 +48,7 @@ In futuro un nuovo provider (altro network, **DB interno**, dataset statico) si 
 
 ## 2. `Ivao` — API IVAO e polling (F3)
 
-Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `docs/adr/ADR-0001` (D6) e
-`ADR-0003` (trasporto SSE).
+Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `../adr/adr-0001-scelte-architetturali-fondanti.md` (D6) e `../adr/adr-0003-trasporto-live-sse.md` (trasporto SSE).
 
 | Chiave | Tipo | Default | Significato |
 |---|---|---|---|
@@ -178,7 +177,7 @@ Ivao__ClientSecret=…
 
 Mappata su `HostIdentityOptions` (`src/Vipi.Hosting/HostIdentityOptions.cs`). Usata da
 `HostIdentityCurrentUserProvider` per leggere il login del sito ospitante (scenari A/B). Vedi
-**`docs/INTEGRATION.md`** e `ADR-0005`.
+**`integration.md`** e `../adr/adr-0005-superficie-modulo-e-isolamento.md`.
 
 | Chiave | Tipo | Default | Significato |
 |---|---|---|---|

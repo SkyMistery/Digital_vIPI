@@ -5,6 +5,7 @@
 @inject IEditingService Editing
 @inject IEditAuthorizationService Authz
 @inject IStructureEditingService Structure
+@inject NavigationManager Nav
 
 <PageTitle>Editor — vIPI @(_acc?.Name) · IVAO Italia</PageTitle>
 
@@ -348,6 +349,13 @@
                     d.Type == DocumentType.Vipi &&
                     d.Scope.Equals(_acc!.Code, StringComparison.OrdinalIgnoreCase));
             if (summary is null) { _doc = null; return; }
+
+            // I documenti di aeroporto si editano SOLO dall'editor aeroporto: reindirizza (l'editor generico non li tratta).
+            if (summary.IsAirport)
+            {
+                Nav.NavigateTo($"/vsop/{(summary.AccCode ?? _acc!.Code).ToLowerInvariant()}/airports/editor?icao={summary.Scope}", forceLoad: false);
+                return;
+            }
 
             _docId = summary.Id;
             _doc = await Editing.LoadForEditAsync(_docId);

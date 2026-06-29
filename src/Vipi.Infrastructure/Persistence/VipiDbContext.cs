@@ -27,7 +27,8 @@ public class VipiDbContext : DbContext
     public DbSet<CoordinationPoint> CoordinationPoints => Set<CoordinationPoint>();
     public DbSet<VectoringMinimaSet> VectoringMinimaSets => Set<VectoringMinimaSet>();
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
-    public DbSet<Transfer> Transfers => Set<Transfer>();
+    public DbSet<TransferFlow> TransferFlows => Set<TransferFlow>();
+    public DbSet<TransferPoint> TransferPoints => Set<TransferPoint>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
@@ -165,11 +166,20 @@ public class VipiDbContext : DbContext
         b.Entity<VectoringMinimaRow>(e =>
             e.HasOne(x => x.Set).WithMany(s => s.Rows).HasForeignKey(x => x.SetId).OnDelete(DeleteBehavior.Cascade));
 
-        b.Entity<Transfer>(e =>
+        b.Entity<TransferFlow>(e =>
         {
-            e.HasIndex(x => new { x.AccId, x.RelationKey, x.Phase, x.Order });
+            e.HasIndex(x => new { x.AccId, x.OwningSectorId, x.Order });
             e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
+            // Il flusso segue il proprio settore: se il settore sparisce, sparisce il flusso.
+            e.HasOne(x => x.OwningSector).WithMany().HasForeignKey(x => x.OwningSectorId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<TransferPoint>(e =>
+        {
+            e.HasIndex(x => new { x.FlowId, x.Order });
+            e.HasOne(x => x.Flow).WithMany(f => f.Points).HasForeignKey(x => x.FlowId).OnDelete(DeleteBehavior.Cascade);
+            // Il ricevente nominale è un riferimento debole: se il settore sparisce, il punto resta (solo fallback).
+            e.HasOne(x => x.NextSector).WithMany().HasForeignKey(x => x.NextSectorId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<EditGrant>(e =>

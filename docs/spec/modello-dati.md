@@ -1,13 +1,19 @@
 # Specifica del Modello Dati — vIPI/vLOA Interactive
 
-> ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-ACC); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `README.md`/`HANDOFF.md`.
+> 🧭 **Come leggere questo documento (stato delle sezioni).** Il modello è cresciuto per round; le sezioni **non** hanno tutte lo stesso peso:
+> - **§1–§2** principi e diagramma — di contesto.
+> - **§3–§5** entità/enum/indici della **versione originale (pre-Round 5/13)** — **storiche**: alcune sono dichiarate superate (vedi banner Round 5 qui sotto e §9).
+> - **§9 (round 13–20) è la parte AUTOREVOLE corrente** e **prevale** dove in conflitto con §3–§5: cataloghi `AccSector`/`AirportSector`, frequenza = attributo del settore, `Fir`→`Acc`, e (§9.12) fonte unica + gerarchia per callsign. **§9.8** è la lista migrazioni autoritativa.
+> Per lo stato del codice vedi `../../HANDOFF.md`; per la storia `../history/rounds.md`.
+
+> ℹ️ **Documento di design.** Schema EF Core implementato (vedi `Vipi.Domain/Entities` + migrazioni). **Aggiunte rispetto a questa spec:** entità `Transfer` (+enum `TransferPhase`, catena handler = array JSON) e `EditGrant` (permessi per-ACC); campi **lock** su `Document` (`LockedByVid/At/Expires`); `RowVersion` su `ContentBlock`/`DocumentSection` (concorrenza ottimistica). Stato codice in `../../README.md`/`../../HANDOFF.md`.
 
 > 🔀 **Round 5 — Fusione Settore/Posizione (sostituisce §3.2/§3.3/§3.5/§3.6 e parte del §3.9/§3.10).** `Position` e `Sector` sono ora **un'unica entità `Sector`**: ogni settore è un callsign apribile (campi ex-`Position`: `Callsign` univoco, `Type`/`SectorType`, `Kind`/`SectorKind`, `ApproachKind?`, `DefaultFrequency`, `CoverageOrder`, `IsActive`) **e** un volume di spazio aereo. Il contenimento top-down è un **albero a padre singolo** `Sector.ParentSectorId` (self-FK) che **sostituisce** `HierarchyRelation` e `PositionSector` (eliminate). I settori d'aeroporto portano `AirportIcao`. Lo **scope dei documenti** è ora **uno-a-molti** `Document` 1 ──< N `Sector` (FK `Sector.DocumentId`, un settore con `IsPrimary`): `Document.ScopePositionId` è rimosso. `Frequency.PositionId`→`SectorId`; `DocumentParty.PositionId`→`SectorId`. Le `UnificationRule` restano (riassegnazioni arbitrarie); le loro chiavi JSON sono ora **callsign**. Enum rinominati: `PositionType`→`SectorType`, `PositionKind`→`SectorKind`. La vecchia `Sector.Key` è eliminata: l'identificatore è il `Callsign`.
 
 **Documento:** Specifica tecnica del modello dati (sorgente per lo schema EF Core)
 **Versione:** 0.1
 **Data:** 13 giugno 2026
-**Riferimento:** `PIANO_vIPI_Tool.md` (§4, §17, §20)
+**Riferimento:** `../design/piano-vipi-tool.md` (§4, §17, §20)
 
 ---
 
@@ -307,13 +313,13 @@ enum SectorState { Covered, Online }
 
 ---
 
-*Documento collegato:* `SPEC_Logica_AoR.md` — usa `Position`, `Sector`, `PositionSector`, `HierarchyRelation`, `UnificationRule`, `ContentBlock.Visibility/ScopeSectorId`.
+*Documento collegato:* `logica-aor.md` — usa `Position`, `Sector`, `PositionSector`, `HierarchyRelation`, `UnificationRule`, `ContentBlock.Visibility/ScopeSectorId`.
 
 ---
 
 ## 7. Aggiornamenti round 4 (16 giugno 2026)
 
-Queste modifiche recepiscono il flusso e le decisioni in `REVIEW_Flusso_e_Gap.md`. Dove indicato, **sostituiscono** quanto sopra.
+Queste modifiche recepiscono il flusso e le decisioni in `../history/review-flusso-gap.md`. Dove indicato, **sostituiscono** quanto sopra.
 
 ### 7.1 `DocumentSection` (nuova entità ad albero) — sezioni annidate fino a 3 livelli
 
@@ -429,7 +435,7 @@ Nuova entità **riga singola** (`Id = 1`) che governa quali categorie di dati ar
 Enum `ImportCategory { TransitionAltitude, Atis, Runways, Sectors }`. Migrazione `AddImportPolicy`. Accesso via `IImportPolicyStore` (snapshot `ImportPolicySnapshot`) + servizio admin `IImportPolicyService`. Enforcement: editor read-only + guard nei service + import che salta le categorie escluse. I campi editoriali (regole pista, SID, livelli TL, link, gerarchia settori) non sono categorie.
 
 ### 8.4 Interfacce dati **sorgente-neutre** (round 11)
-L'anagrafica/dettagli/utenti esterni passano per porte neutre in `Application/Abstractions`: `IAirportDirectory` (DTO `SourceAirport`), `IAirportDetailProvider` (`SourceAtcPosition`/`SourceRunway`), `IUserDirectory` (`SourceUserStaff`), più `IOnlineAtcProvider`. L'adapter IVAO concreto vive in `Infrastructure/Ivao/*` ed è selezionato da `DataSource:Provider` (vedi `docs/CONFIG.md` §1b). Non rientra nello schema persistito ma vincola da dove si popolano `Airport`/`Sector`/runway.
+L'anagrafica/dettagli/utenti esterni passano per porte neutre in `Application/Abstractions`: `IAirportDirectory` (DTO `SourceAirport`), `IAirportDetailProvider` (`SourceAtcPosition`/`SourceRunway`), `IUserDirectory` (`SourceUserStaff`), più `IOnlineAtcProvider`. L'adapter IVAO concreto vive in `Infrastructure/Ivao/*` ed è selezionato da `DataSource:Provider` (vedi `../guide/config.md` §1b). Non rientra nello schema persistito ma vincola da dove si popolano `Airport`/`Sector`/runway.
 
 ---
 
@@ -466,9 +472,10 @@ Due cataloghi **separati** dai `Sector` operativi (che restano la base di docume
 | `LowerLimit`/`UpperLimit` | int? | admin; default inf=GND(0), sup=19500 |
 | `IsHidden` | bool | admin |
 | `IsPrimary` | bool | frequenza principale (★), unica per aeroporto (round 15) |
+| `IsAccApp` | bool | **solo APP**: «di ACC» (remotizzato) sì/no. Editabile dall'editor aeroporto (colonna «ACC?»). Default all'import dal n° di pezzi del callsign (`LIRN_UN0_APP` 3 pezzi → true; `LIRP_APP` 2 pezzi → false), **eccetto** lettera di mezzo `G` (`LIRN_G_APP` = precision/PAR militare → false). Guida `Sector.ApproachKind` nella proiezione. Migrazione `AddAirportSectorIsAccApp` (backfill dei 3-pezzi esistenti) |
 | `ImportedAtUtc` | datetime? | |
 
-Import **manuale + automatico giornaliero** (`AccImportHostedService`, `AirportSectorImportHostedService`); upsert idempotente che **preserva** `IsHidden` e i limiti admin. Import **additivo** (non cancella: nasconde).
+Import **manuale + automatico giornaliero** (`AccImportHostedService`, `AirportSectorImportHostedService`); upsert idempotente che **preserva** `IsHidden`, i limiti admin e `IsAccApp` (default solo alla creazione). Import **additivo** (non cancella: nasconde).
 
 ### 9.3 `Airport` — campi aggiunti (round 8/12/15 + sessione hide)
 Oltre a `Id`/`Icao`/`Name`/`AccId` (round 6): **`TransitionAltitudeFt`** (int?, di sorgente), **`FeaturedRank`** (int?, "3 in evidenza" landing), **`IsHidden`** (bool, migrazione **`AddAirportHidden`**: pagina pubblica inaccessibile + escluso dagli elenchi). Visibilità pubblica effettiva = `!IsHidden && haAlmenoUnSettore` (gli aeroporti **senza settori** sono nascosti di default). Collezioni profilo strutturato: `TransitionLevels`/`Runways`/`RunwayRules`/`Sids`/`FrequencyLinks`/`ExtraSections` (§9.11) + catalogo `AirportSectors`. **`ParentCallsign`** (§9.12, round 20; sostituisce `ParentSectorId` di round 19): padre per callsign nella gerarchia di copertura (aeroporto‑foglia, cross-ACC).
@@ -489,7 +496,7 @@ Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFo
 `SectorType { Del, Gnd, Twr, ITwr, App, Ctr }` · `SectorKind { Airport, Acc }` · `ApproachKind { Remotized, Standalone }` · `DateParity { Any, Even, Odd }` (regole pista, round 9) · `ImportCategory { TransitionAltitude, Runways, Sectors }`. Rimosso `GeometryFormat`.
 
 ### 9.8 Migrazioni (ordine attuale)
-`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione).
+`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione) → **`AddAirportSectorIsAccApp`** (flag «APP di ACC» + backfill dei callsign a 3 pezzi) → **`ReworkTransfers`** (sostituisce `Transfer` ACC↔ACC con `TransferFlow` settore-proprio + `TransferPoint` CoP/livello strutturato/Next) → **`SimplifyTransferResolution`** (drop `TransferPoint.Fallback` + `ManualChainJson`: la risoluzione live del ricevente/mittente risale la **gerarchia di copertura globale** `ParentCallsign`/`ParentSectorId`, terminale fisso **UNICOM**; rimosso l'enum `TransferFallback`).
 
 ### 9.9 `AirportRunwayRule` — regole pista a soglie operative (sessione 28 giu)
 Le condizioni vento-arco/velocità/pioggia-neve sono state sostituite da **soglie operative per-regola**. Su `AirportRunwayRule`: **rimossi** `WindDirFrom/WindDirTo/WindSpeedMin/WindSpeedMax/Rain/Snow`; **aggiunti** `Name` (etichetta), **`MaxTailwindKt`** (int, default 5), **`MaxCrosswindKt`** (int?, null = nessun vincolo), **`Surface`** (enum **`RunwaySurface { Any, Dry, Wet }`**, Wet = pioggia/neve nel METAR). `Order` = priorità (prima regola applicabile vince); `DepRunways/ArrRunways/Note` invariati; i filtri temporali (orario/giorni/parità + finestra stagionale §9.10) restano come **filtro di eleggibilità opzionale** (avanzate, caso Malpensa). Tailwind/crosswind sono **calcolati dal vento** (non più inseriti come direzione). Su `Airport` **nessuna soglia** (sono per-regola). Selezione in `Application/Weather/RunwaySuggestion.EvaluateRules(rules, windDir, windKt, wet, now)`; se nessuna regola si applica → fallback `Suggest()`. Migrazione **`RunwayRuleThresholds`** (drop 6 colonne, add `Name`/`MaxTailwindKt`/`MaxCrosswindKt`/`Surface`, svuota le vecchie righe).
@@ -510,11 +517,11 @@ Nuova entità del **profilo strutturato** aeroporto: sezioni di testo libero ind
 
 **`Sector` = proiezione** (`ISectorProjectionService.SyncFromCatalogsAsync`, `EfSectorProjectionService`). Idempotente, di sistema (no authz), invocata al termine degli import (ACC/settori aeroporto) e dopo ogni modifica alla gerarchia:
 - **Upsert per `Callsign`** (= `ComposePosition`): preserva `Sector.Id` e i **legami editoriali** (`DocumentId`/`IsPrimary`/`FeaturedRank`) → le FK documento (`ContentBlock.ScopeSector`, `DocumentParty.Sector`, `AirportFrequencyLink.SourceSectorId`) restano intatte.
-- Deriva `Type` (da `Position`: DEL/GND/TWR/APP/CTR…), `Kind` (Acc dal subcenter, Airport dalla posizione aeroporto), `AccId`, `DefaultFrequency`, `AirportId`, e **`ParentSectorId` dal `ParentCallsign`** del catalogo.
+- Deriva `Type` (da `Position`: DEL/GND/TWR/APP/CTR…), `Kind` (Acc dal subcenter, Airport dalla posizione aeroporto), `AccId`, `DefaultFrequency`, `AirportId`, e **`ParentSectorId` dal `ParentCallsign`** del catalogo. Per gli **APP** deriva `ApproachKind` da `AirportSector.IsAccApp` (true → `Remotized`, false → `Standalone`; gli APP da subcenter ACC sono sempre `Remotized`).
 - Nuovo flag **`Sector.IsProjected`**: i settori proiettati spariti o **nascosti** nel catalogo vengono **disattivati** (`IsActive=false`), non cancellati; i settori **non** proiettati (seed/manuali, `IsProjected=false`) **non vengono mai toccati** → i test AoR S1–S10 (Topology in-memory) restano intatti.
 - `TopologyBuilder` **invariato**: legge ancora `Sector` per `AccId`; ora il `ParentSectorId` arriva dalla proiezione. AoR ACC e test S1–S10 inalterati.
 
-**Editor** `IHierarchyEditingService` (`EfHierarchyEditingService`): la sezione "Alberi per ACC" di `/vsop/admin/sectorstructure` (`StrutturaPage`) è **globale** (cross-ACC, indipendente dal selettore ACC, che resta solo per "Nuovo documento"). `LoadTreeAsync()` → nodi `Acc` (AccSector) + `App` (AirportSector con Position=APP) + `Airport` (foglie); DEL/GND/TWR esclusi. `SetParentAsync(kind, nodeId, parentCallsign?)` valida padre = nodo interno ACC/APP, **anti-ciclo** per i nodi interni, cross-ACC ammesso, ACC-gated sul figlio; poi riproietta.
+**Editor** `IHierarchyEditingService` (`EfHierarchyEditingService`): `/vsop/admin/sectorstructure` (`StrutturaPage`) è **solo** l'editor della gerarchia di copertura **globale** (cross-ACC, senza alcun selettore ACC). La creazione documenti è stata spostata nella pagina dedicata `/vsop/editor/newdoc` (`NewDocumentPage`, vedi MAPPA_PAGINE). `LoadTreeAsync()` → nodi `Acc` (AccSector) + `App` (AirportSector con Position=APP) + `Airport` (foglie); DEL/GND/TWR esclusi. `SetParentAsync(kind, nodeId, parentCallsign?)` valida padre = nodo interno ACC/APP, **anti-ciclo** per i nodi interni, cross-ACC ammesso, ACC-gated sul figlio; poi riproietta.
 - **UI a card per ACC** (non più albero unico indentato): una card per ogni ACC che contiene **tutti gli alberi la cui radice è un suo settore** (i discendenti cross-ACC restano nell'albero, con tag ACC). Comprimi/espandi a due livelli (card e singolo ramo) + `⊞ espandi`/`⊟ comprimi`. **Ricerca** che mostra l'intera gerarchia del CS (match + antenati + discendenti, anche cross-ACC). Pannello **Dettaglio sticky** con catena di fallback, picker padre ricercabile e bottone **Applica** (la modifica del padre si conferma esplicitamente, poi riproietta).
 
 **Doppia rappresentazione residua / fuori ambito (follow-up):** documenti e AoR girano ancora sui `Sector` (ora proiezione), non direttamente sui cataloghi. L'eliminazione totale di `Sector` (doc+AoR sui cataloghi) e la **risoluzione live** "chi controlla l'aeroporto adesso" restano alla fase live.

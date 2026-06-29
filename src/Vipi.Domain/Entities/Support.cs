@@ -46,25 +46,52 @@ public class AuditLog
 }
 
 /// <summary>
-/// Trasferimento di traffico come riga strutturata (SPEC §7.4, PIANO §22.4): una relazione ACC↔ACC,
-/// fase, aeroporto, CoP, regola di FL, catena ordinata di handler (JSON) e fallback standard.
-/// Alimenta sia la vista Estesa (catena completa) sia la Ridotta (risoluzione "primo online" = F3).
+/// Flusso di traffico di un settore proprio nei coordinamenti (SPEC §7.4): es. «Roma NE · Traffico Dest LIRF».
+/// Raggruppa una serie di punti di trasferimento (CoP/livello/ricevente). Reso nella sezione Coordinamenti
+/// del documento (settore proprio → flusso → tabella) e nella vista Ridotta (risoluzione live del ricevente).
 /// </summary>
-public class Transfer
+public class TransferFlow
 {
     public int Id { get; set; }
     public int AccId { get; set; }
     public Acc? Acc { get; set; }
-    public string RelationKey { get; set; } = default!;     // es. "LIRR-LIMM" (ACC↔ACC)
-    public string RelationLabel { get; set; } = default!;   // es. "Roma ↔ Milano"
-    public TransferPhase Phase { get; set; }
-    public string AirportIcao { get; set; } = default!;     // aeroporto (dest per arrivi, origine per partenze)
-    public string Cop { get; set; } = default!;             // Coordination Point
-    public string FlRule { get; set; } = default!;          // es. "FL280↑"
-    public string HandlerChainJson { get; set; } = "[]";    // array ordinato di handler (sector/callsign): ["ES2","WS2"]
-    public string StandardFallback { get; set; } = "UNICOM"; // se nessun handler online
+
+    /// <summary>Settore proprio del documento a cui il flusso appartiene (es. LIRR_NE_CTR, un APP…).</summary>
+    public int OwningSectorId { get; set; }
+    public Sector? OwningSector { get; set; }
+
+    public TransferFlowKind Kind { get; set; }              // Arrival/Departure/Overflight/Vfr/Other
+    public string? AirportIcao { get; set; }                // dest (arrivi) / origine (partenze); null per OVF/VFR generici
+    public string? Description { get; set; }                // prosa "… trasferisce … riceve …"
     public int Order { get; set; }
     public byte[]? RowVersion { get; set; }
+
+    public ICollection<TransferPoint> Points { get; set; } = new List<TransferPoint>();
+}
+
+/// <summary>
+/// Riga della tabella di un <see cref="TransferFlow"/>: un Coordination Point con il suo vincolo di livello
+/// e il settore ricevente (Next). Il livello è strutturato (valore + unità + vincolo) con escape «speciale»
+/// (testo libero tipo «per aerovia»). Il ricevente live si risolve dal Next nominale risalendo la gerarchia
+/// di copertura (ParentCallsign); se nessuno è online fino in cima → UNICOM.
+/// </summary>
+public class TransferPoint
+{
+    public int Id { get; set; }
+    public int FlowId { get; set; }
+    public TransferFlow? Flow { get; set; }
+
+    public string Cop { get; set; } = default!;             // es. "VALMA", "—", "J1" (validazione soft)
+
+    public int? LevelValue { get; set; }                    // 130 / 2500 (null = nessun livello / speciale)
+    public LevelUnit LevelUnit { get; set; }                // Fl | Feet
+    public LevelConstraint LevelConstraint { get; set; }    // AtOrAbove(↑) | AtOrBelow(↓) | Exact | Special
+    public string? LevelSpecial { get; set; }               // testo se Constraint=Special (es. "per aerovia")
+
+    public int? NextSectorId { get; set; }                  // ricevente nominale (settore reale); null = nessun ricevente → UNICOM
+    public Sector? NextSector { get; set; }
+
+    public int Order { get; set; }
 }
 
 /// <summary>Dataset di riferimento per la validazione semantica dei riferimenti nav, legato all'AIRAC. SPEC §3.15.</summary>

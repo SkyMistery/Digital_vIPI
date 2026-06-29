@@ -1,35 +1,63 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence.Seed;
 
-/// <summary>Seed demo di trasferimenti strutturati per Roma (relazioni Roma↔Milano e Roma↔Tunisi). Idempotente.</summary>
+/// <summary>Seed demo dei coordinamenti di Roma: flussi del settore NE/EW coi loro punti (CoP/livello/Next). Idempotente.</summary>
 public static class RomaTransferSeed
 {
     public static async Task SeedAsync(VipiDbContext db, CancellationToken ct = default)
     {
         var acc = await db.Accs.FirstOrDefaultAsync(f => f.Code == "LIRR", ct);
         if (acc is null) return;
-        if (await db.Transfers.AnyAsync(t => t.AccId == acc.Id, ct)) return;
+        if (await db.TransferFlows.AnyAsync(f => f.AccId == acc.Id, ct)) return;
 
-        var rows = new[]
+        var byCs = await db.Sectors.Where(s => s.AccId == acc.Id)
+            .ToDictionaryAsync(s => s.Callsign, s => s.Id, StringComparer.OrdinalIgnoreCase, ct);
+        int? Id(string cs) => byCs.TryGetValue(cs, out var v) ? v : null;
+        var ne = Id("LIRR_NE_CTR"); var ew = Id("LIRR_EW_CTR");
+        if (ne is null || ew is null) return;
+
+        // NE · Traffico Dest LIRF — arrivi in discesa agli avvicinamenti/torre.
+        var f1 = new TransferFlow
         {
-            T(acc.Id, "LIRR-LIMM", "Roma ↔ Milano", TransferPhase.Arrival, "LIMC", "VALMA", "FL280↑", new[] { "WS2" }, "UNICOM", 1),
-            T(acc.Id, "LIRR-LIMM", "Roma ↔ Milano", TransferPhase.Arrival, "LIMC", "DEVOX", "FL250↑", new[] { "ES2", "WS2" }, "UNICOM", 2),
-            T(acc.Id, "LIRR-LIMM", "Roma ↔ Milano", TransferPhase.Departure, "LIRF", "TARQ", "FL250↑", new[] { "WS2" }, "UNICOM", 1),
-            T(acc.Id, "LIRR-DTTC", "Roma ↔ Tunisi", TransferPhase.Departure, "DTTA", "ESEBA", "FL350↑", new[] { "DTTC" }, "Confine", 1),
+            AccId = acc.Id, OwningSectorId = ne.Value, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRF", Order = 1,
+            Description = "Roma NE trasferisce il traffico in arrivo su LIRF in discesa per i CoP pubblicati.",
+            Points =
+            {
+                P("VALMA", 130, LevelConstraint.AtOrBelow, Id("LIRF_TWR"), 1),
+                P("ELKAP", 150, LevelConstraint.AtOrBelow, Id("LIRF_TWR"), 2),
+            },
         };
-        db.Transfers.AddRange(rows);
+        // NE · Traffico DEP LIRF — partenze in salita verso i confinanti.
+        var f2 = new TransferFlow
+        {
+            AccId = acc.Id, OwningSectorId = ne.Value, Kind = TransferFlowKind.Departure, AirportIcao = "LIRF", Order = 2,
+            Description = "Roma NE riceve le partenze da LIRF in salita e le instrada ai settori confinanti.",
+            Points = { P("TARQ", 280, LevelConstraint.AtOrAbove, Id("LIRR_TS_CTR"), 1) },
+        };
+        // EW · Sorvoli — mantenuti al livello di aerovia.
+        var f3 = new TransferFlow
+        {
+            AccId = acc.Id, OwningSectorId = ew.Value, Kind = TransferFlowKind.Overflight, Order = 1,
+            Description = "Sorvoli mantenuti al livello di aerovia salvo coordinamento.",
+            Points = { Special("ELB", "per aerovia", null, 1) },
+        };
+
+        db.TransferFlows.AddRange(f1, f2, f3);
         await db.SaveChangesAsync(ct);
     }
 
-    private static Transfer T(int accId, string key, string label, TransferPhase phase, string apt,
-        string cop, string fl, string[] chain, string fallback, int order) => new()
+    private static TransferPoint P(string cop, int level, LevelConstraint constraint, int? nextSectorId, int order) => new()
     {
-        AccId = accId, RelationKey = key, RelationLabel = label, Phase = phase, AirportIcao = apt,
-        Cop = cop, FlRule = fl, HandlerChainJson = JsonSerializer.Serialize(chain),
-        StandardFallback = fallback, Order = order,
+        Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = constraint,
+        NextSectorId = nextSectorId, Order = order,
+    };
+
+    private static TransferPoint Special(string cop, string special, int? nextSectorId, int order) => new()
+    {
+        Cop = cop, LevelConstraint = LevelConstraint.Special, LevelSpecial = special,
+        NextSectorId = nextSectorId, Order = order,
     };
 }

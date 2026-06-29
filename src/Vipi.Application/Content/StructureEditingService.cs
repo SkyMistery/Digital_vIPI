@@ -29,6 +29,9 @@ public interface IStructureEditingService
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
+    /// <summary>Vista globale (cross-ACC) dei settori attivi col prefisso nazione e l'albero, per il picker di «Nuovo documento».</summary>
+    Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default);
+
     /// <summary>
     /// Assegna automaticamente (admin) gli aeroporti dell'anagrafica IVAO la cui ACC di competenza
     /// (centerId) esiste già nel DB e che non sono ancora assegnati. Ritorna il numero di aeroporti creati.
@@ -153,6 +156,12 @@ public sealed class StructureEditingService : IStructureEditingService
     {
         _authz.EnsureAdmin();
         return _repo.ListAllSectorsAsync(ct);
+    }
+
+    public Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default)
+    {
+        _authz.EnsureAdmin();
+        return _repo.ListSectorNodesAsync(ct);
     }
 
     public async Task<int> AutoAssignKnownAirportsAsync(CancellationToken ct = default)

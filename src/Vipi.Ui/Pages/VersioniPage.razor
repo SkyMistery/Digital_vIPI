@@ -116,8 +116,11 @@
 
     private string EditorLink(DocumentSummary d)
     {
-        var acc = (Acc ?? "lirr").ToLowerInvariant();
-        // L'editor generico edita qualunque documento per id (vIPI ACC, aeroporto, vLOA).
+        // I documenti di aeroporto si editano SOLO dall'editor aeroporto (per ICAO), mai dal generico.
+        if (d.IsAirport)
+            return $"/vsop/{(d.AccCode ?? Acc ?? "lirr").ToLowerInvariant()}/airports/editor?icao={d.Scope}";
+
+        var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
         return $"/vsop/{acc}/editor?doc={d.Id}";
     }
 }

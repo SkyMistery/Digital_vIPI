@@ -1,42 +1,43 @@
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Risolve il "primo online" di una catena handler di trasferimento (F3). Puro/testabile.
+/// Risolve il ricevente "primo online" di un punto di trasferimento (vista operativa/Ridotta). Puro/testabile.
 ///
-/// I token della catena (es. "WS2", "ES2", "DTTC") sono codici settore di ACC confinanti, non
-/// necessariamente uguali al callsign IVAO. Euristica per stabilire se un token è online:
-///  1. match esatto col callsign;
-///  2. token uguale a un segmento del callsign (split su '_'): es. "WS2" ↔ "LIMM_WS2_CTR";
-///  3. solo per token "lunghi" (≥4 char, es. compositi "LIMM_WS2"): sottostringa del callsign.
-/// Il vincolo di lunghezza al punto 3 evita falsi positivi su token cortissimi.
+/// I <paramref name="candidates"/> sono callsign in ordine di priorità: [ricevente nominale, suoi antenati
+/// di copertura] (risalita gerarchia <c>ParentCallsign</c>, cross-ACC, costruita dal chiamante).
+/// Euristica callsign↔candidato: 1) match esatto; 2) candidato = segmento del callsign (split '_');
+/// 3) solo candidati lunghi (≥4) per sottostringa. Se nessuno è online → <see cref="Unicom"/>.
 /// </summary>
 public static class TransferOnlineResolver
 {
-    public static ResolvedTransferRow Resolve(TransferRow row, IReadOnlySet<string> online)
-    {
-        foreach (var token in row.HandlerChain)
-        {
-            if (IsTokenOnline(token, online))
-                return new ResolvedTransferRow { Row = row, ResolvedHandler = token, IsOnline = true };
-        }
+    /// <summary>Etichetta terminale: nessun settore della catena è online → il traffico va su UNICOM.</summary>
+    public const string Unicom = "UNICOM";
 
-        // Nessun handler della catena online: ricade sul fallback standard (UNICOM/Confine/...).
-        return new ResolvedTransferRow { Row = row, ResolvedHandler = row.StandardFallback, IsOnline = false };
+    public static (string Handler, bool IsOnline) Resolve(
+        IReadOnlyList<string> candidates, IReadOnlySet<string> online)
+    {
+        var hit = FirstOnline(candidates, online);
+        return hit is null ? (Unicom, false) : (hit, true);
     }
 
-    private static bool IsTokenOnline(string token, IReadOnlySet<string> online)
+    /// <summary>Primo candidato online (in ordine di priorità), o null se nessuno è online.</summary>
+    public static string? FirstOnline(IReadOnlyList<string> candidates, IReadOnlySet<string> online)
     {
-        if (string.IsNullOrWhiteSpace(token)) return false;
+        foreach (var c in candidates)
+            if (IsOnline(c, online))
+                return c;
+        return null;
+    }
 
+    private static bool IsOnline(string candidate, IReadOnlySet<string> online)
+    {
+        if (string.IsNullOrWhiteSpace(candidate)) return false;
         foreach (var callsign in online)
         {
-            // 1. match esatto.
-            if (callsign.Equals(token, StringComparison.OrdinalIgnoreCase)) return true;
-            // 2. token = segmento del callsign (LIMM_WS2_CTR → {LIMM, WS2, CTR}).
+            if (callsign.Equals(candidate, StringComparison.OrdinalIgnoreCase)) return true;
             foreach (var seg in callsign.Split('_', StringSplitOptions.RemoveEmptyEntries))
-                if (seg.Equals(token, StringComparison.OrdinalIgnoreCase)) return true;
-            // 3. solo token lunghi (compositi): sottostringa. Evita falsi positivi su token corti.
-            if (token.Length >= 4 && callsign.Contains(token, StringComparison.OrdinalIgnoreCase)) return true;
+                if (seg.Equals(candidate, StringComparison.OrdinalIgnoreCase)) return true;
+            if (candidate.Length >= 4 && callsign.Contains(candidate, StringComparison.OrdinalIgnoreCase)) return true;
         }
         return false;
     }

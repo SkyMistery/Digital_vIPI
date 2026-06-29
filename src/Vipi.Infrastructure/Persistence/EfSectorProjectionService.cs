@@ -34,7 +34,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             desired[s.ComposePosition] = new Desired(
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Acc, Frequency: s.Frequency, AirportId: null, AirportIcao: null,
-                ParentCallsign: s.ParentCallsign);
+                ParentCallsign: s.ParentCallsign, IsAccApp: true);   // APP da un subcenter ACC è per natura "di ACC"
         }
 
         var airportSectors = await _db.AirportSectors.AsNoTracking().ToListAsync(ct);
@@ -48,7 +48,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Airport, Frequency: s.Frequency,
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
-                ParentCallsign: s.ParentCallsign);
+                ParentCallsign: s.ParentCallsign, IsAccApp: s.IsAccApp);
         }
 
         // 2. Settori già presenti che ci interessano: tutti i proiettati + quelli col callsign desiderato (per adottarli).
@@ -72,7 +72,9 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             sector.AccId = d.AccId;
             sector.Type = d.Type;
             sector.Kind = d.Kind;
-            sector.ApproachKind = d.Type == SectorType.App ? ApproachKind.Remotized : null;
+            sector.ApproachKind = d.Type == SectorType.App
+                ? (d.IsAccApp ? ApproachKind.Remotized : ApproachKind.Standalone)
+                : null;
             sector.DefaultFrequency = d.Frequency;
             sector.AirportId = d.AirportId;
             sector.AirportIcao = d.AirportIcao;
@@ -117,7 +119,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
 
     private sealed record Desired(
         string Callsign, int AccId, SectorType Type, SectorKind Kind,
-        string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign);
+        string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp);
 
     private static bool IsAtis(string? position) =>
         string.Equals(position, "ATIS", StringComparison.OrdinalIgnoreCase);

@@ -1,0 +1,366 @@
+@page "/vsop/admin/trasferimenti"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStationResolver Stations
+@inject ITransferService Transfers
+@inject IStructureEditingService Struct
+@inject IEditAuthorizationService Authz
+
+<PageTitle>Trasferimenti · vIPI IVAO Italia</PageTitle>
+
+<style>
+    .sector-pick-wrap { position: relative; }
+    .sector-pick { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; margin-top: 2px; max-height: 200px; overflow-y: auto; border: 1px solid #c4cadb; border-radius: 6px; background: #fff; box-shadow: 0 6px 18px rgba(13,44,153,.14); }
+    .sector-pick .sp-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #eef1f7; background: transparent; padding: 5px 9px; font-size: 13px; cursor: pointer; }
+    .sector-pick .sp-item:last-child { border-bottom: 0; }
+    .sector-pick .sp-item:hover { background: #f2f5ff; }
+    .sector-pick .sp-item.on { background: #0D2C99; color: #fff; font-weight: 600; }
+    .sector-pick .sp-empty { display: block; padding: 6px 9px; color: #8a90a2; font-size: 12px; }
+</style>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Trasferimenti</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">Trasferimenti tra settori</h2><span class="muted">Per ogni <b>settore</b> i trasferimenti sono raggruppati per <b>aeroporto</b> e per <b>tipo</b> (arrivi/partenze); ogni riga indica il <b>punto</b>, la <b>quota</b> e il <b>settore ricevente</b>. Nella vista operativa, se un settore è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+    }
+    else
+    {
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+
+        @* ---- Scelta ACC ---- *@
+        <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
+        <div class="block">
+            @if (Stations.Accs.Count == 0)
+            {
+                <p class="help">Nessun ACC. Importa dalla <a href="/vsop/admin/acc">pagina ACC</a>.</p>
+            }
+            else
+            {
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                    @foreach (var a in Stations.Accs)
+                    {
+                        var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
+                        <button class="btn @(active ? "primary" : "ghost")" disabled="@_busy" title="@a.Name" @onclick="() => SelectAcc(a.Code)">@a.Code</button>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (_acc is null)
+        {
+            <p class="help">Scegli un ACC per gestirne i trasferimenti.</p>
+        }
+        else
+        {
+            @* ---- Nuovo gruppo (settore · aeroporto · tipo) ---- *@
+            <div class="block">
+                <h5 style="margin-top:0">Nuovo gruppo di trasferimenti</h5>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field sector-pick-wrap"><label>Settore mittente</label>
+                        <input placeholder="cerca callsign…" @bind="_fSectorText" @bind:event="oninput" @bind:after="ResolveFSector"
+                               @onfocus="() => _fOpen = true" @onblur="() => _fOpen = false" />
+                        @if (_fOpen)
+                        {
+                            <div class="sector-pick">
+                                @foreach (var s in OwnSectors().Where(s => Match(s, _fSectorText)).Take(50))
+                                {
+                                    <button type="button" class="sp-item @(s.Id == _fSector ? "on" : "")"
+                                            @onmousedown:preventDefault="true" @onclick="() => PickFSector(s)">@s.Callsign</button>
+                                }
+                                @if (!OwnSectors().Any(s => Match(s, _fSectorText))) { <span class="sp-empty">nessun settore</span> }
+                            </div>
+                        }
+                    </div>
+                    <div class="field sector-pick-wrap"><label>Aeroporto <span class="muted" style="font-weight:400">(anche nuovo/estero)</span></label>
+                        <input placeholder="LIRF / LFPG" @bind="_fApt" @bind:event="oninput" title="ICAO, anche estero" autocomplete="off"
+                               @onfocus="() => _aOpen = true" @onblur="() => _aOpen = false" />
+                        @if (_aOpen)
+                        {
+                            <div class="sector-pick">
+                                @foreach (var ap in _airports.Where(a => MatchApt(a, _fApt)).Take(50))
+                                {
+                                    <button type="button" class="sp-item @(string.Equals(ap.Icao, _fApt, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                                            @onmousedown:preventDefault="true" @onclick="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted" style="font-size:11px">@ap.Name · @ap.AccCode</span></button>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(_fApt) && !_airports.Any(a => string.Equals(a.Icao, _fApt.Trim(), StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <span class="sp-empty">↵ usa «@_fApt.Trim().ToUpperInvariant()» (nuovo aeroporto)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="field narrow"><label>Tipo</label>
+                        <select @bind="_fKind">
+                            <option value="@TransferFlowKind.Arrival">Arrivi</option>
+                            <option value="@TransferFlowKind.Departure">Partenze</option>
+                            <option value="@TransferFlowKind.Overflight">Sorvoli</option>
+                            <option value="@TransferFlowKind.Vfr">VFR</option>
+                            <option value="@TransferFlowKind.Other">Altro</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Descrizione (opz.)</label><input placeholder="Roma NE trasferisce…" @bind="_fDesc" /></div>
+                    <button class="btn primary" disabled="@(_busy || _fSector == 0)" @onclick="AddFlow">+ Gruppo</button>
+                </div>
+                <p class="help" style="margin:6px 0 0">L'aeroporto può essere di uno stato estero (ICAO libero). Sorvoli/VFR possono restare senza aeroporto.</p>
+            </div>
+
+            @if (_flows.Count == 0)
+            {
+                <p class="help">Nessun trasferimento per questo ACC. Aggiungi un gruppo qui sopra.</p>
+            }
+
+            @* ---- Settore ▸ Aeroporto ▸ Tipo ▸ righe ---- *@
+            @foreach (var secGroup in _flows.GroupBy(f => f.OwningSectorCallsign).OrderBy(g => g.Key))
+            {
+                var secKey = secGroup.Key;
+                var secOpen = !_collapsedSec.Contains(secKey);
+                <div class="section-title" style="margin-bottom:4px;cursor:pointer" @onclick="() => ToggleSec(secKey)">
+                    <h3 style="margin:0"><span style="display:inline-block;width:1em">@(secOpen ? "▾" : "▸")</span> @secKey</h3>
+                    <span class="ln"></span>
+                    <span class="muted" style="font-size:12px">@secGroup.Count() gruppi</span>
+                </div>
+                @if (!secOpen) { continue; }
+                @foreach (var aptGroup in secGroup.GroupBy(f => f.AirportIcao).OrderBy(g => g.Key ?? "~"))
+                {
+                    var aptKey = $"{secKey}|{aptGroup.Key}";
+                    var aptOpen = !_collapsedApt.Contains(aptKey);
+                    <div class="block">
+                        <h5 style="margin:0;cursor:pointer" @onclick="() => ToggleApt(aptKey)">
+                            <span style="display:inline-block;width:1em">@(aptOpen ? "▾" : "▸")</span>
+                            @(string.IsNullOrWhiteSpace(aptGroup.Key) ? "Senza aeroporto" : $"✈ {aptGroup.Key}")
+                        </h5>
+                        @if (aptOpen)
+                        {
+                        @foreach (var f in aptGroup.OrderBy(x => x.Kind))
+                        {
+                            var flowOpen = !_collapsedFlow.Contains(f.Id);
+                            <div class="section-title" style="margin:6px 0">
+                                <h4 style="margin:0;cursor:pointer" @onclick="() => ToggleFlow(f.Id)">
+                                    <span style="display:inline-block;width:1em">@(flowOpen ? "▾" : "▸")</span>
+                                    <span class="pill blue">@KindLabel(f.Kind)</span>
+                                    <span class="muted" style="font-size:12px;font-weight:400">@f.Points.Count righe</span>
+                                </h4>
+                                <span class="ln"></span>
+                                <button class="btn ghost" disabled="@_busy" @onclick="() => DeleteFlow(f.Id)">✕ Gruppo</button>
+                            </div>
+                            @if (!flowOpen) { continue; }
+                            @if (!string.IsNullOrWhiteSpace(f.Description)) { <p class="muted" style="margin:0 0 8px;font-size:13.5px">@f.Description</p> }
+
+                            <table class="res-table">
+                                <thead><tr><th>CoP (punto)</th><th>Quota</th><th>Settore ricevente</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var p in f.Points)
+                                    {
+                                        <tr>
+                                            <td><b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b></td>
+                                            <td>@p.LevelText</td>
+                                            <td>@(p.NextSectorCallsign ?? "—")</td>
+                                            <td><button class="btn ghost" disabled="@_busy" @onclick="() => DeletePoint(p.Id)">✕</button></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+
+                            @if (_addPointFlowId == f.Id)
+                            {
+                                <div class="inline-form" style="margin-top:8px">
+                                    <div class="field narrow"><label>CoP</label><input placeholder="VALMA / —" @bind="_pCop" /></div>
+                                    <div class="field narrow"><label>Vincolo</label>
+                                        <select @bind="_pConstraint">
+                                            <option value="@LevelConstraint.AtOrBelow">≤ (↓)</option>
+                                            <option value="@LevelConstraint.AtOrAbove">≥ (↑)</option>
+                                            <option value="@LevelConstraint.Exact">esatto</option>
+                                            <option value="@LevelConstraint.Special">speciale</option>
+                                        </select>
+                                    </div>
+                                    @if (_pConstraint == LevelConstraint.Special)
+                                    {
+                                        <div class="field"><label>Testo quota</label><input placeholder="per aerovia" @bind="_pSpecial" /></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="field narrow"><label>Valore</label><input type="number" @bind="_pValue" /></div>
+                                        <div class="field narrow"><label>Unità</label>
+                                            <select @bind="_pUnit"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+                                        </div>
+                                    }
+                                    <div class="field sector-pick-wrap"><label>Settore ricevente <span class="muted" style="font-weight:400">(vuoto = UNICOM)</span></label>
+                                        <input placeholder="cerca callsign…" @bind="_pNextText" @bind:event="oninput" @bind:after="ResolvePNext"
+                                               @onfocus="() => _pOpen = true" @onblur="() => _pOpen = false" />
+                                        @if (_pOpen)
+                                        {
+                                            <div class="sector-pick">
+                                                @foreach (var s in _all.Where(s => Match(s, _pNextText)).Take(50))
+                                                {
+                                                    <button type="button" class="sp-item @(s.Id == _pNext ? "on" : "")"
+                                                            @onmousedown:preventDefault="true" @onclick="() => PickPNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
+                                                }
+                                                @if (!_all.Any(s => Match(s, _pNextText))) { <span class="sp-empty">nessun settore</span> }
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn primary" disabled="@_busy" @onclick="() => AddPoint(f.Id)">Aggiungi riga</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _addPointFlowId = null">Annulla</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button class="btn ghost" style="margin-top:8px" disabled="@_busy" @onclick="() => OpenAddPoint(f.Id)">+ Riga (CoP/quota/ricevente)</button>
+                            }
+                        }
+                        }
+                    </div>
+                }
+            }
+        }
+    }
+</div>
+
+@code {
+    private string _accCode = "";
+    private AccInfo? _acc;
+    private IReadOnlyList<TransferFlowRow> _flows = Array.Empty<TransferFlowRow>();
+    private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
+    private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
+    private bool _busy;
+    private string? _status, _error;
+
+    // Stato collasso (chiavi presenti = collassate): settore, aeroporto (settore|icao), gruppo arrivi/partenze (flowId).
+    private readonly HashSet<string> _collapsedSec = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _collapsedApt = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<int> _collapsedFlow = new();
+
+    // form nuovo gruppo (flusso). _fSectorText = ricerca callsign; _fSector = id risolto.
+    private int _fSector;
+    private string _fSectorText = "";
+    private TransferFlowKind _fKind = TransferFlowKind.Arrival;
+    private string _fApt = "", _fDesc = "";
+
+    // form nuova riga (punto) del gruppo _addPointFlowId. _pNextText = ricerca callsign; _pNext = id risolto (0 = UNICOM).
+    private int? _addPointFlowId;
+    private string _pCop = "";
+    private LevelConstraint _pConstraint = LevelConstraint.AtOrBelow;
+    private int? _pValue;
+    private LevelUnit _pUnit = LevelUnit.Fl;
+    private string _pSpecial = "";
+    private int _pNext;
+    private string _pNextText = "";
+
+    // Dropdown ricerca aperto?
+    private bool _fOpen, _pOpen, _aOpen;
+
+    private void ResolveFSector() =>
+        _fSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _fSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    private void ResolvePNext() =>
+        _pNext = _all.FirstOrDefault(s => string.Equals(s.Callsign, _pNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    private static bool Match(GlobalSectorRow s, string text) =>
+        string.IsNullOrWhiteSpace(text) || s.Callsign.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private void PickFSector(GlobalSectorRow s) { _fSector = s.Id; _fSectorText = s.Callsign; _fOpen = false; }
+    private void PickPNext(GlobalSectorRow s) { _pNext = s.Id; _pNextText = s.Callsign; _pOpen = false; }
+
+    private static bool MatchApt(AirportAdminRow a, string text) =>
+        string.IsNullOrWhiteSpace(text)
+        || a.Icao.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)
+        || a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private void PickApt(AirportAdminRow a) { _fApt = a.Icao; _aOpen = false; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _all = await Struct.ListSectorNodesAsync();
+        _airports = await Struct.ListAllAirportsAsync();
+    }
+
+    private Task SelectAcc(string code)
+    {
+        _accCode = code;
+        return OnAccChanged();
+    }
+
+    private async Task OnAccChanged()
+    {
+        _status = _error = null;
+        _addPointFlowId = null;
+        _fSector = 0; _fSectorText = ""; _fApt = ""; _fDesc = "";
+        _acc = string.IsNullOrWhiteSpace(_accCode) ? null : Stations.Resolve(_accCode);
+        if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _flows = await Transfers.ListFlowsByAccAsync(_acc!.Code);
+
+    /// <summary>Settori mittenti candidati: i settori di questo ACC.</summary>
+    private IEnumerable<GlobalSectorRow> OwnSectors() =>
+        _all.Where(s => string.Equals(s.AccCode, _acc!.Code, StringComparison.OrdinalIgnoreCase)).OrderBy(s => s.Callsign);
+
+    private static string KindLabel(TransferFlowKind k) => k switch
+    {
+        TransferFlowKind.Arrival => "Arrivi",
+        TransferFlowKind.Departure => "Partenze",
+        TransferFlowKind.Overflight => "Sorvoli",
+        TransferFlowKind.Vfr => "VFR",
+        _ => "Altro",
+    };
+
+    private void ToggleSec(string key) { if (!_collapsedSec.Add(key)) _collapsedSec.Remove(key); }
+    private void ToggleApt(string key) { if (!_collapsedApt.Add(key)) _collapsedApt.Remove(key); }
+    private void ToggleFlow(int id) { if (!_collapsedFlow.Add(id)) _collapsedFlow.Remove(id); }
+
+    private void OpenAddPoint(int flowId)
+    {
+        _addPointFlowId = flowId;
+        _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
+        _pSpecial = ""; _pNext = 0; _pNextText = "";
+    }
+
+    private async Task AddFlow()
+    {
+        await Guarded(async () =>
+        {
+            await Transfers.AddFlowAsync(_acc!.Code, new TransferFlowInput
+            {
+                OwningSectorId = _fSector, Kind = _fKind,
+                AirportIcao = string.IsNullOrWhiteSpace(_fApt) ? null : _fApt,
+                Description = string.IsNullOrWhiteSpace(_fDesc) ? null : _fDesc,
+            });
+            _fSector = 0; _fSectorText = ""; _fApt = ""; _fDesc = "";
+        }, "Gruppo aggiunto.");
+    }
+
+    private Task DeleteFlow(int id) => Guarded(() => Transfers.DeleteFlowAsync(_acc!.Code, id), "Gruppo eliminato.");
+
+    private async Task AddPoint(int flowId)
+    {
+        await Guarded(async () =>
+        {
+            await Transfers.AddPointAsync(_acc!.Code, flowId, new TransferPointInput
+            {
+                Cop = _pCop, LevelValue = _pValue, LevelUnit = _pUnit, LevelConstraint = _pConstraint,
+                LevelSpecial = _pSpecial, NextSectorId = _pNext == 0 ? null : _pNext,
+            });
+            _addPointFlowId = null;
+        }, "Riga aggiunta.");
+    }
+
+    private Task DeletePoint(int id) => Guarded(() => Transfers.DeletePointAsync(_acc!.Code, id), "Riga eliminata.");
+
+    private async Task Guarded(Func<Task> action, string ok)
+    {
+        _busy = true; _status = _error = null;
+        try { await action(); await LoadAsync(); _status = ok; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (ValidationException ex) { _error = ex.Message; }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+}

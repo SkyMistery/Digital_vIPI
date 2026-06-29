@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629123156_AddAirportSectorIsAccApp")]
+    partial class AddAirportSectorIsAccApp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -971,7 +974,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("StaffMembers");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -981,74 +984,49 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("AirportIcao")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Kind")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("OwningSectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwningSectorId");
-
-                    b.HasIndex("AccId", "OwningSectorId", "Order");
-
-                    b.ToTable("TransferFlows");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.TransferPoint", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Cop")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("FlowId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("LevelConstraint")
+                    b.Property<string>("FlRule")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LevelSpecial")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LevelUnit")
+                    b.Property<string>("HandlerChainJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("LevelValue")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("NextSectorId")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelationKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelationLabel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("StandardFallback")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NextSectorId");
+                    b.HasIndex("AccId", "RelationKey", "Phase", "Order");
 
-                    b.HasIndex("FlowId", "Order");
-
-                    b.ToTable("TransferPoints");
+                    b.ToTable("Transfers");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
@@ -1411,7 +1389,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("ParentSector");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.Transfer", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
                         .WithMany()
@@ -1419,33 +1397,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Vipi.Domain.Entities.Sector", "OwningSector")
-                        .WithMany()
-                        .HasForeignKey("OwningSectorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Acc");
-
-                    b.Navigation("OwningSector");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.TransferPoint", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.TransferFlow", "Flow")
-                        .WithMany("Points")
-                        .HasForeignKey("FlowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Vipi.Domain.Entities.Sector", "NextSector")
-                        .WithMany()
-                        .HasForeignKey("NextSectorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Flow");
-
-                    b.Navigation("NextSector");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
@@ -1536,11 +1488,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.Navigation("Children");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>
-                {
-                    b.Navigation("Points");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaSet", b =>

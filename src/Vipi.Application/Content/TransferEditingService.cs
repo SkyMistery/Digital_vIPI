@@ -4,17 +4,24 @@ using Vipi.Application.Auth;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Use-case trasferimenti: lettura aperta, scrittura ACC-gated + validazione base (soft).</summary>
+/// <summary>Use-case coordinamenti/trasferimenti: lettura aperta, scrittura ACC-gated + validazione base (soft).</summary>
 public interface ITransferService
 {
-    Task<IReadOnlyList<TransferRow>> ListByAccAsync(string accCode, CancellationToken ct = default);
+    /// <summary>Flussi (coi punti) di una ACC.</summary>
+    Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Trasferimenti con il "primo online" risolto sull'ATC online corrente (F3).</summary>
-    Task<IReadOnlyList<ResolvedTransferRow>> ListResolvedByAccAsync(string accCode, CancellationToken ct = default);
+    /// <summary>Flussi della ACC risolti live (vista operativa): mittente e ricevente risalgono la gerarchia
+    /// di copertura globale in base a chi è <paramref name="online"/>; terminale = UNICOM.</summary>
+    Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
+        string accCode, IReadOnlySet<string> online, CancellationToken ct = default);
 
-    Task<int> AddAsync(string accCode, TransferInput input, CancellationToken ct = default);
-    Task UpdateAsync(string accCode, int id, TransferInput input, CancellationToken ct = default);
-    Task DeleteAsync(string accCode, int id, CancellationToken ct = default);
+    Task<int> AddFlowAsync(string accCode, TransferFlowInput input, CancellationToken ct = default);
+    Task UpdateFlowAsync(string accCode, int flowId, TransferFlowInput input, CancellationToken ct = default);
+    Task DeleteFlowAsync(string accCode, int flowId, CancellationToken ct = default);
+
+    Task<int> AddPointAsync(string accCode, int flowId, TransferPointInput input, CancellationToken ct = default);
+    Task UpdatePointAsync(string accCode, int pointId, TransferPointInput input, CancellationToken ct = default);
+    Task DeletePointAsync(string accCode, int pointId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="ITransferService"/>
@@ -22,55 +29,98 @@ public sealed class TransferService : ITransferService
 {
     private readonly ITransferRepository _repo;
     private readonly IEditAuthorizationService _authz;
-    private readonly IOnlineAtcProvider _online;
+    private readonly ITopologyProvider _topology;
 
-    public TransferService(ITransferRepository repo, IEditAuthorizationService authz, IOnlineAtcProvider online)
+    public TransferService(ITransferRepository repo, IEditAuthorizationService authz, ITopologyProvider topology)
     {
         _repo = repo;
         _authz = authz;
-        _online = online;
+        _topology = topology;
     }
 
-    public Task<IReadOnlyList<TransferRow>> ListByAccAsync(string accCode, CancellationToken ct = default) =>
-        _repo.ListByAccAsync(accCode, ct);
+    public Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string accCode, CancellationToken ct = default) =>
+        _repo.ListFlowsByAccAsync(accCode, ct);
 
-    public async Task<IReadOnlyList<ResolvedTransferRow>> ListResolvedByAccAsync(string accCode, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
+        string accCode, IReadOnlySet<string> online, CancellationToken ct = default)
     {
-        var rows = await _repo.ListByAccAsync(accCode, ct);
-        var online = _online.GetCurrent().Callsigns;
-        return rows.Select(r => TransferOnlineResolver.Resolve(r, online)).ToList();
+        var flows = await _repo.ListFlowsByAccAsync(accCode, ct);
+        var topo = await _topology.BuildGlobalAsync(ct);
+
+        // Catena di candidati di un settore: sé stesso + antenati di copertura (cross-ACC), in ordine di priorità.
+        IReadOnlyList<string> Chain(string? callsign) =>
+            string.IsNullOrWhiteSpace(callsign)
+                ? Array.Empty<string>()
+                : new[] { callsign }.Concat(topo.Ancestors(callsign)).ToList();
+
+        return flows.Select(f =>
+        {
+            var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign), online);
+            var points = f.Points.Select(p =>
+            {
+                var (handler, isOnline) = TransferOnlineResolver.Resolve(Chain(p.NextSectorCallsign), online);
+                return new ResolvedTransferPoint { Point = p, ResolvedHandler = handler, IsOnline = isOnline };
+            }).ToList();
+
+            return new ResolvedTransferFlow
+            {
+                Flow = f,
+                ResolvedOwnerCallsign = ownerHit ?? f.OwningSectorCallsign,
+                OwnerOnline = ownerHit is not null,
+                Points = points,
+            };
+        }).ToList();
     }
 
-    public async Task<int> AddAsync(string accCode, TransferInput input, CancellationToken ct = default)
+    public async Task<int> AddFlowAsync(string accCode, TransferFlowInput input, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
-        Validate(input);
-        return await _repo.AddAsync(accCode, input, ct);
+        ValidateFlow(input);
+        return await _repo.AddFlowAsync(accCode, input, ct);
     }
 
-    public async Task UpdateAsync(string accCode, int id, TransferInput input, CancellationToken ct = default)
+    public async Task UpdateFlowAsync(string accCode, int flowId, TransferFlowInput input, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
-        Validate(input);
-        await _repo.UpdateAsync(accCode, id, input, ct);
+        ValidateFlow(input);
+        await _repo.UpdateFlowAsync(accCode, flowId, input, ct);
     }
 
-    public async Task DeleteAsync(string accCode, int id, CancellationToken ct = default)
+    public async Task DeleteFlowAsync(string accCode, int flowId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
-        await _repo.DeleteAsync(accCode, id, ct);
+        await _repo.DeleteFlowAsync(accCode, flowId, ct);
     }
 
-    // Validazione SOFT: campi chiave presenti, catena non vuota e senza duplicati consecutivi.
-    // Nessun controllo di esistenza degli handler (spesso di ACC confinanti).
-    private static void Validate(TransferInput i)
+    public async Task<int> AddPointAsync(string accCode, int flowId, TransferPointInput input, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(i.RelationKey)) throw new ValidationException("Chiave relazione obbligatoria.");
-        if (string.IsNullOrWhiteSpace(i.Cop)) throw new ValidationException("CoP obbligatorio.");
-        if (string.IsNullOrWhiteSpace(i.AirportIcao)) throw new ValidationException("Aeroporto obbligatorio.");
-        if (i.HandlerChain.Count == 0) throw new ValidationException("La catena handler non può essere vuota.");
-        for (var k = 1; k < i.HandlerChain.Count; k++)
-            if (string.Equals(i.HandlerChain[k], i.HandlerChain[k - 1], StringComparison.OrdinalIgnoreCase))
-                throw new ValidationException($"Handler duplicato consecutivo: {i.HandlerChain[k]}.");
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        ValidatePoint(input);
+        return await _repo.AddPointAsync(accCode, flowId, input, ct);
+    }
+
+    public async Task UpdatePointAsync(string accCode, int pointId, TransferPointInput input, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        ValidatePoint(input);
+        await _repo.UpdatePointAsync(accCode, pointId, input, ct);
+    }
+
+    public async Task DeletePointAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeletePointAsync(accCode, pointId, ct);
+    }
+
+    // Validazione SOFT: solo i campi strutturali indispensabili. Il CoP fuori whitelist è un warning di UI, non un blocco.
+    private static void ValidateFlow(TransferFlowInput i)
+    {
+        if (i.OwningSectorId <= 0) throw new ValidationException("Il flusso deve riferirsi a un settore proprio.");
+    }
+
+    private static void ValidatePoint(TransferPointInput i)
+    {
+        if (i.LevelConstraint != Domain.LevelConstraint.Special && i.LevelValue is null && string.IsNullOrWhiteSpace(i.Cop))
+            throw new ValidationException("Indica almeno il CoP o un livello.");
     }
 }

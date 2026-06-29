@@ -53,8 +53,16 @@ public enum CopKind { Fix, Conventional }
 /// <summary>Stato runtime di un settore (NON persistito, calcolato da AorService).</summary>
 public enum SectorState { Covered, Online }
 
-/// <summary>Fase di un trasferimento di traffico rispetto all'aeroporto della relazione.</summary>
-public enum TransferPhase { Arrival, Departure }
+/// <summary>Tipo di flusso di traffico di un settore nei coordinamenti: arrivi/partenze a un aeroporto,
+/// sorvoli, VFR o generico. Rispetto all'aeroporto del flusso (per Arrival/Departure).</summary>
+public enum TransferFlowKind { Arrival, Departure, Overflight, Vfr, Other }
+
+/// <summary>Unità del livello di un punto di trasferimento: Flight Level o piedi.</summary>
+public enum LevelUnit { Fl, Feet }
+
+/// <summary>Vincolo del livello di trasferimento: a/o sopra (↑), a/o sotto (↓), esatto, oppure speciale
+/// (testo libero tipo «per aerovia»; il valore numerico è ignorato).</summary>
+public enum LevelConstraint { AtOrAbove, AtOrBelow, Exact, Special }
 
 /// <summary>Vincolo di parità del giorno del mese per una regola pista (es. alternanza Malpensa). Any = indifferente.</summary>
 public enum DateParity { Any, Even, Odd }

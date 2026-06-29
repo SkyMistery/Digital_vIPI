@@ -8,12 +8,13 @@ using Xunit;
 
 namespace Vipi.Infrastructure.Tests;
 
-/// <summary>CRUD trasferimenti + round-trip della catena handler (array JSON ordinato).</summary>
+/// <summary>CRUD coordinamenti: flussi (settore proprio) + punti (CoP/livello strutturato/Next).</summary>
 public class TransferRepositoryTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
     private EfTransferRepository _repo = default!;
+    private int _neId, _ftwrId, _tsId;
 
     public async Task InitializeAsync()
     {
@@ -23,6 +24,11 @@ public class TransferRepositoryTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         await RomaStructureSeed.SeedAsync(_db);
         _repo = new EfTransferRepository(_db);
+
+        var sectors = await _db.Sectors.ToListAsync();
+        _neId = sectors.First(s => s.Callsign == "LIRR_NE_CTR").Id;
+        _ftwrId = sectors.First(s => s.Callsign == "LIRF_TWR").Id;
+        _tsId = sectors.First(s => s.Callsign == "LIRR_TS_CTR").Id;
     }
 
     public async Task DisposeAsync()
@@ -31,42 +37,92 @@ public class TransferRepositoryTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    private static TransferInput Input(string[] chain) => new()
+    private TransferFlowInput Flow() => new()
     {
-        RelationKey = "LIRR-LIMM", RelationLabel = "Roma ↔ Milano", Phase = TransferPhase.Arrival,
-        AirportIcao = "LIMC", Cop = "DEVOX", FlRule = "FL250↑", HandlerChain = chain, StandardFallback = "UNICOM",
+        OwningSectorId = _neId, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRF", Description = "test",
+    };
+
+    private TransferPointInput Point(string cop, int level, int? next) => new()
+    {
+        Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+        NextSectorId = next,
     };
 
     [Fact]
-    public async Task Add_Preserves_Ordered_Chain()
+    public async Task Add_Flow_With_Points_Roundtrips()
     {
-        await _repo.AddAsync("LIRR", Input(new[] { "ES2", "WS2" }));
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, Point("VALMA", 130, _ftwrId));
+        await _repo.AddPointAsync("LIRR", flowId, Point("ELKAP", 150, _ftwrId));
 
-        var rows = await _repo.ListByAccAsync("LIRR");
-        var row = Assert.Single(rows);
-        Assert.Equal(new[] { "ES2", "WS2" }, row.HandlerChain); // ordine preservato
-        Assert.Equal("UNICOM", row.StandardFallback);
+        var flows = await _repo.ListFlowsByAccAsync("LIRR");
+        var f = Assert.Single(flows);
+        Assert.Equal("LIRR_NE_CTR", f.OwningSectorCallsign);
+        Assert.Equal(2, f.Points.Count);
+        Assert.Equal("FL130↓", f.Points[0].LevelText);
+        Assert.Equal("LIRF_TWR", f.Points[0].NextSectorCallsign);
     }
 
     [Fact]
-    public async Task Update_And_Delete()
+    public async Task Special_Level_Renders_Text()
     {
-        var id = await _repo.AddAsync("LIRR", Input(new[] { "WS2" }));
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
+        {
+            Cop = "ELB", LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia",
+            LevelUnit = LevelUnit.Fl, NextSectorId = null,
+        });
 
-        await _repo.UpdateAsync("LIRR", id, Input(new[] { "ES2", "WS2", "CE1" }));
-        var updated = (await _repo.ListByAccAsync("LIRR")).Single();
-        Assert.Equal(3, updated.HandlerChain.Count);
-
-        await _repo.DeleteAsync("LIRR", id);
-        Assert.Empty(await _repo.ListByAccAsync("LIRR"));
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal("per aerovia", p.LevelText);
+        Assert.Null(p.LevelValue);
+        Assert.Null(p.NextSectorCallsign);
     }
 
     [Fact]
-    public async Task Seed_Populates_Demo_Transfers()
+    public async Task Update_And_Delete_Point_And_Flow()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var pid = await _repo.AddPointAsync("LIRR", flowId, Point("VALMA", 130, _ftwrId));
+
+        await _repo.UpdatePointAsync("LIRR", pid, Point("VALMA", 90, _tsId));
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal("FL90↓", p.LevelText);
+        Assert.Equal("LIRR_TS_CTR", p.NextSectorCallsign);
+
+        await _repo.DeletePointAsync("LIRR", pid);
+        Assert.Empty((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+
+        await _repo.DeleteFlowAsync("LIRR", flowId);
+        Assert.Empty(await _repo.ListFlowsByAccAsync("LIRR"));
+    }
+
+    [Fact]
+    public async Task Global_Topology_Resolves_Receiver_Up_Hierarchy()
+    {
+        // LIRF_TWR è figlio di LIRR_NE_CTR (seed). TWR offline, NE online → il ricevente risolto risale al padre.
+        var topo = await new Vipi.Infrastructure.Aor.TopologyBuilder(_db).BuildGlobalAsync();
+        var chain = new[] { "LIRF_TWR" }.Concat(topo.Ancestors("LIRF_TWR")).ToList();
+        Assert.Contains("LIRR_NE_CTR", chain);
+
+        var online = new HashSet<string>(new[] { "LIRR_NE_CTR" }, StringComparer.OrdinalIgnoreCase);
+        var (handler, isOnline) = TransferOnlineResolver.Resolve(chain, online);
+        Assert.True(isOnline);
+        Assert.Equal("LIRR_NE_CTR", handler);
+
+        // Nessuno online lungo la catena → UNICOM.
+        var (h2, on2) = TransferOnlineResolver.Resolve(chain, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        Assert.False(on2);
+        Assert.Equal("UNICOM", h2);
+    }
+
+    [Fact]
+    public async Task Seed_Populates_Demo_Flows()
     {
         await RomaTransferSeed.SeedAsync(_db);
-        var rows = await _repo.ListByAccAsync("LIRR");
-        Assert.NotEmpty(rows);
-        Assert.Contains(rows, r => r.Cop == "DEVOX" && r.HandlerChain.SequenceEqual(new[] { "ES2", "WS2" }));
+        var flows = await _repo.ListFlowsByAccAsync("LIRR");
+        Assert.NotEmpty(flows);
+        Assert.Contains(flows, f => f.OwningSectorCallsign == "LIRR_NE_CTR" && f.Kind == TransferFlowKind.Arrival
+            && f.Points.Any(p => p.Cop == "VALMA" && p.LevelText == "FL130↓"));
     }
 }

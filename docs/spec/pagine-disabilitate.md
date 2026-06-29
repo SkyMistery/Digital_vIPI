@@ -15,12 +15,14 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 | `ExportPage.razor` | `/vsop/{acc}/export` | Export PDF della vista Estesa (stampa browser). | Strumenti rimossi. |
 | `StatiPage.razor` | `/vsop/stati` | Pagina "Stati & messaggi" (demo/diagnostica). | Non prevista nella nuova struttura. |
 
-> ✅ **`VloaPage.razor` RIATTIVATA** (giro vLOA, 28 giu): ora è il **viewer per-documento** su `/vsop/{acc}/vloa/{docId}` (carica per id, non più per ACC). L'elenco vive in `VloaListPage.razor` su `/vsop/{acc}/vloa`. Vedi MAPPA_PAGINE.md.
+> ✅ **`VloaPage.razor` RIATTIVATA** (giro vLOA, 28 giu): ora è il **viewer per-documento** su `/vsop/{acc}/vloa/{docId}` (carica per id, non più per ACC). L'elenco vive in `VloaListPage.razor` su `/vsop/{acc}/vloa`. Vedi `mappa-pagine.md`.
 
 ## Note / link residui da sapere
 - **Ricerca e "Cosa è cambiato":** i documenti **vLOA** ora linkano `/vsop/{acc}/vloa/{docId}`
   (in `EfSearchRepository`/`EfChangesRepository`) → viewer per-documento. Risolto il 404.
-- Gli **editor** (vIPI, topologia, trasferimenti, vLOA, profilo aeroporto) **restano attivi**: gli
-  editor non sono stati toccati in questo round.
+- Gli **editor** (vIPI, trasferimenti, vLOA, profilo aeroporto) **restano attivi**.
+- **Rimossa** `/vsop/{acc}/topologia` (`TopologiaPage`): la gerarchia si gestisce da `/vsop/admin/sectorstructure`
+  (per callsign, round 20); regole di unificazione + simulatore AoR erano legacy e non hanno più UI (il motore
+  `IAorService` + `UnificationRule` e i test S1–S10 restano).
 - La rotta APP è passata da `/vsop/{acc}/app` a **`/vsop/{acc}/apps/vipi`** (più la nuova `/apps` elenco).
 - La rotta viewer aeroporto è passata da `/vsop/{acc}/aeroporto` a **`/vsop/{acc}/airports?icao=`**.

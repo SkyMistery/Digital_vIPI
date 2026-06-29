@@ -3,7 +3,7 @@
 **Stato:** Accettato
 **Data:** 16 giugno 2026
 **Decisori:** Carmine + assistente
-**Riferimenti:** `PIANO_vIPI_Tool.md`, `SPEC_Modello_Dati.md`, `SPEC_Logica_AoR.md`, `REVIEW_Flusso_e_Gap.md`
+**Riferimenti:** `../design/piano-vipi-tool.md`, `../spec/modello-dati.md`, `../spec/logica-aor.md`, `../history/review-flusso-gap.md`
 
 ---
 
@@ -47,7 +47,7 @@ I documenti non sono blob: sono alberi di `DocumentSection` (annidamento fino a 
 
 `IAorService.Resolve(P, O)` è puro (nessun I/O) e restituisce stato dei settori + ownership; `IContentService.BuildView` applica la tabella di verità della visibilità. Due collassi distinti: **live/AoR** (dominio) e **accordion UI** (presentazione), senza che il secondo sovrascriva il primo.
 
-**Perché:** è la parte più delicata del sistema; va coperta da test (preferibilmente property-based) sugli scenari di `SPEC_Logica_AoR.md`. Tenerla pura la rende deterministica e cacheable.
+**Perché:** è la parte più delicata del sistema; va coperta da test (preferibilmente property-based) sugli scenari di `../spec/logica-aor.md`. Tenerla pura la rende deterministica e cacheable.
 
 ### D6 — Integrazione IVAO: polling lato server con cache condivisa
 

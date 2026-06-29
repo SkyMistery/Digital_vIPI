@@ -3,7 +3,7 @@
 Questa guida spiega come agganciare il modulo vIPI a un sito **ASP.NET Core + Blazor Server**
 riusando il **login già presente sull'host** (nessun secondo login). Il modulo è una Razor Class
 Library (`Vipi.Ui`) + libreria di composizione (`Vipi.Hosting`) che espone una superficie a poche
-chiamate. Vedi anche `docs/adr/ADR-0002-*` (portabilità identità) e `ADR-0005` (superficie/isolamento).
+chiamate. Vedi anche `../adr/adr-0002-integrazione-e-autenticazione-portabile.md` (portabilità identità) e `../adr/adr-0005-superficie-modulo-e-isolamento.md` (superficie/isolamento).
 
 ## Prerequisiti dell'host
 - ASP.NET Core 8 + **Blazor Server** (Interactive Server) abilitato.
@@ -48,7 +48,7 @@ L'app non dipende da IVAO direttamente: i dati esterni passano per **interfacce 
 (`IAirportDirectory`, `IAirportDetailProvider`, `IUserDirectory`, `IOnlineAtcProvider`). L'adapter attivo
 si sceglie con **`DataSource:Provider`** (oggi `"Ivao"` → `AddVipiIvao`). Per agganciare un'altra rete o un
 DB interno si registra un nuovo adapter e si cambia quel valore, senza toccare Application/UI. Vedi
-`docs/CONFIG.md` §1b.
+`config.md` §1b.
 
 ## Mappa dei claim (sezione `HostIdentity`)
 `HostIdentityCurrentUserProvider` proietta il `ClaimsPrincipal` dell'host sul modello neutro

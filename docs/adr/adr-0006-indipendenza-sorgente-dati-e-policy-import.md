@@ -3,7 +3,7 @@
 **Stato:** Accettato
 **Data:** 27 giugno 2026
 **Decisori:** Carmine + assistente
-**Riferimenti:** `ADR-0002` (D2/D5, astrazione identità), `SPEC_Modello_Dati.md` (§8), `docs/CONFIG.md` (§1b, §10), piano `atomic-stirring-nygaard.md`, memoria `source-decoupling-and-import-policy`.
+**Riferimenti:** `adr-0002-integrazione-e-autenticazione-portabile.md` (D2/D5, astrazione identità), `../spec/modello-dati.md` (§8), `../guide/config.md` (§1b, §10), memoria `source-decoupling-and-import-policy`.
 
 ---
 

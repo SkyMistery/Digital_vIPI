@@ -2,7 +2,7 @@
 
 **Data:** 2026-06-23
 **Stato:** Accettata
-**Contesto:** estende ADR-0002 (identità portabile). Riferimento operativo: `docs/CONFIG.md`.
+**Contesto:** estende ADR-0002 (identità portabile). Riferimento operativo: `../guide/config.md`.
 
 ## Contesto
 L'identità della divisione era cablata nel codice in più punti: il prefisso degli staff code admin

@@ -10,4 +10,7 @@ namespace Vipi.Application.Abstractions;
 public interface IStationDirectory
 {
     IReadOnlyList<AccInfo> ListAccs();
+
+    /// <summary>Aeroporti col loro ACC di competenza, per mappare i callsign d'aeroporto (TWR/APP…) al loro ACC.</summary>
+    IReadOnlyList<AirportStation> ListAirports();
 }

@@ -23,6 +23,26 @@ public sealed class TopologyBuilder : ITopologyProvider
         return accId is int id ? await BuildAsync(id, ct) : null;
     }
 
+    public async Task<Topology> BuildGlobalAsync(CancellationToken ct = default)
+    {
+        // Tutti i settori attivi, padre = ParentSectorId (può puntare cross-ACC, Round 20). Niente regole.
+        var sectors = await _db.Sectors.Where(s => s.IsActive)
+            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
+        var callsignById = sectors.ToDictionary(s => s.Id, s => s.Callsign);
+
+        var parent = sectors
+            .Where(s => s.ParentSectorId is int pid && callsignById.ContainsKey(pid))
+            .ToDictionary(s => s.Callsign, s => callsignById[s.ParentSectorId!.Value],
+                StringComparer.OrdinalIgnoreCase);
+
+        return new Topology
+        {
+            Sectors = sectors.Select(s => s.Callsign).ToList(),
+            Parent = parent,
+            Rules = Array.Empty<UnificationRuleSpec>(),
+        };
+    }
+
     public async Task<Topology> BuildAsync(int accId, CancellationToken ct = default)
     {
         // Settore == posizione: callsign + padre (contenimento ad albero).

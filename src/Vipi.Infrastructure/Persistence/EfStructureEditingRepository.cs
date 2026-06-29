@@ -180,6 +180,14 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             .Select(s => new SectorBriefRow(s.Id, s.Callsign, s.Acc!.Code))
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default) =>
+        await _db.Sectors.AsNoTracking()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.Callsign)
+            .Select(s => new GlobalSectorRow(s.Id, s.Callsign, s.Acc!.Code, s.Acc!.CountryPrefix,
+                s.Type, s.Kind, s.ApproachKind, s.ParentSectorId, s.DocumentId))
+            .ToListAsync(ct);
+
     public async Task<int> AutoAssignAirportsAsync(
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default)
     {

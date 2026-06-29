@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629142931_ReworkTransfers")]
+    partial class ReworkTransfers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -1019,6 +1022,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Fallback")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("FlowId")
                         .HasColumnType("INTEGER");
 
@@ -1035,6 +1042,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("LevelValue")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ManualChainJson")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("NextSectorId")
                         .HasColumnType("INTEGER");

@@ -14,6 +14,12 @@ public sealed class DocumentSummary
     public required string Scope { get; init; }        // es. "LIRR" o "LIRF"
     public required bool HasDraft { get; init; }
     public int? CurrentVersionId { get; init; }
+
+    /// <summary>Vero se il documento descrive un aeroporto (settore primario Kind=Airport): si edita SOLO
+    /// dall'editor aeroporto (`/vsop/{acc}/airports/editor?icao=`), non dall'editor generico.</summary>
+    public bool IsAirport { get; init; }
+    /// <summary>Codice ACC del settore primario (per costruire i link editor).</summary>
+    public string? AccCode { get; init; }
 }
 
 /// <summary>Documento aperto in editing: la versione di lavoro (bozza se esiste, sennò la pubblicata) con tutti i campi modificabili.</summary>

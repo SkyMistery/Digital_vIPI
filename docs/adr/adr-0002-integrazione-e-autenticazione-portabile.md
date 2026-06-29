@@ -3,7 +3,7 @@
 **Stato:** Accettato
 **Data:** 16 giugno 2026
 **Decisori:** Carmine + assistente
-**Riferimenti:** `ADR-0001` (D1, D7, D9), `PIANO_vIPI_Tool.md` (§8, §23), `REVIEW_Flusso_e_Gap.md`
+**Riferimenti:** `adr-0001-scelte-architetturali-fondanti.md` (D1, D7, D9), `../design/piano-vipi-tool.md` (§8, §23), `../history/review-flusso-gap.md`
 **Sostituisce/raffina:** ADR-0001 D1 (tecnologia UI) e D9 (modello di deploy); chiarisce D7 (autenticazione).
 
 ---

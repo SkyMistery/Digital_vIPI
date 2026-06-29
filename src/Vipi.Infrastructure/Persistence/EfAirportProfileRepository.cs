@@ -219,7 +219,10 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         // Garantisce la tabella TL di default anche per aeroporti generati senza import IVAO (es. TA/TL mai popolate).
         EnsureDefaultTransitionLevels(airport);
 
-        var sectors = await _db.Sectors.Where(s => s.AirportId == airport.Id).OrderBy(s => (int)s.Type).ToListAsync(ct);
+        // Solo i settori-FOGLIA dell'aeroporto (DEL/GND/TWR/ITwr) appartengono alla vIPI d'aeroporto.
+        // Gli APP NON ci vanno mai: se sono "di ACC" stanno nella vIPI di ACC, se standalone hanno doc proprio.
+        var sectors = await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
+            .OrderBy(s => (int)s.Type).ToListAsync(ct);
         var links = await _db.AirportFrequencyLinks.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order)
             .Include(x => x.SourceSector).Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null).ToListAsync(ct);
 
@@ -259,6 +262,13 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             var primary = sectors.FirstOrDefault(s => IsTower(s.Type)) ?? sectors.FirstOrDefault();
             foreach (var s in sectors) { s.DocumentId = doc.Id; s.IsPrimary = s == primary; }
         }
+
+        // Correzione/idempotenza: sgancia eventuali APP di questo aeroporto erroneamente legati a questa vIPI
+        // d'aeroporto (binding storico). Da qui in poi torneranno selezionabili in «Nuovo documento».
+        var strayApps = await _db.Sectors
+            .Where(s => s.AirportId == airport.Id && s.Type == SectorType.App && s.DocumentId == doc.Id)
+            .ToListAsync(ct);
+        foreach (var s in strayApps) { s.DocumentId = null; s.IsPrimary = false; }
 
         var b = new DocBuilder(_db, ver);
         var order = 0;

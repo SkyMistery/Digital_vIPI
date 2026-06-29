@@ -10,4 +10,8 @@ public interface ITopologyProvider
 {
     /// <summary>Costruisce la topologia di una ACC dato il suo codice (es. "LIRR"). Null se la ACC non esiste.</summary>
     Task<Topology?> BuildByAccCodeAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Topologia GLOBALE (tutti i settori attivi, cross-ACC): serve a risalire la gerarchia di
+    /// copertura oltre i confini di una singola ACC (es. risoluzione live dei trasferimenti). Senza regole.</summary>
+    Task<Topology> BuildGlobalAsync(CancellationToken ct = default);
 }

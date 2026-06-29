@@ -10,6 +10,7 @@
     <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Editor</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Editor</h2><span class="muted">Scegli quale documento modificare (solo quelli a cui hai accesso)</span></div>
+        <a class="btn primary" href="/vsop/editor/newdoc">➕ Nuovo documento</a>
     </div>
 
     @if (_docs is null)
@@ -45,11 +46,12 @@
 
     private string EditorLink(DocumentSummary d)
     {
-        // L'editor apre il documento per id; la route richiede però un ACC valido (altrimenti torna vuota).
-        // Uso lo scope se è un ACC, sennò il primo ACC disponibile come contesto.
-        var acc = Stations.Resolve(d.Scope) is not null
-            ? d.Scope
-            : (Stations.Accs.FirstOrDefault()?.Code ?? d.Scope);
+        // I documenti di aeroporto si editano SOLO dall'editor aeroporto (per ICAO), mai dal generico.
+        if (d.IsAirport)
+            return $"/vsop/{(d.AccCode ?? Stations.Accs.FirstOrDefault()?.Code ?? "lirr").ToLowerInvariant()}/airports/editor?icao={d.Scope}";
+
+        // L'editor generico apre il documento per id; la route richiede un ACC valido come contesto.
+        var acc = d.AccCode ?? (Stations.Resolve(d.Scope) is not null ? d.Scope : Stations.Accs.FirstOrDefault()?.Code) ?? d.Scope;
         return $"/vsop/{acc.ToLowerInvariant()}/editor?doc={d.Id}";
     }
 }

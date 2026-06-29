@@ -42,6 +42,8 @@ public sealed class EfEditingRepository : IEditingRepository
             Scope = ScopeOf(d),
             HasDraft = draftDocIds.Contains(d.Id),
             CurrentVersionId = d.CurrentVersionId,
+            IsAirport = IsAirportDoc(d),
+            AccCode = AccCodeOf(d),
         }).ToList();
     }
 
@@ -585,4 +587,12 @@ public sealed class EfEditingRepository : IEditingRepository
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
         return s.Acc?.Code ?? s.Callsign;
     }
+
+    // Documento di aeroporto = settore primario (o primo) di tipo Airport.
+    private static bool IsAirportDoc(Document d) =>
+        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Kind == SectorKind.Airport;
+
+    // ACC del settore primario (o primo): serve a costruire i link editor.
+    private static string? AccCodeOf(Document d) =>
+        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
 }

@@ -58,22 +58,19 @@
             <a class="choice" href="/vsop/screens" style="text-decoration:none;color:inherit"><h4><span class="ic">🧩</span> Tutte le schermate</h4><p class="muted">Indice di navigazione di tutte le pagine accessibili.</p></a>
             <a class="choice" href="/vsop/admin/acc" style="text-decoration:none;color:inherit"><h4><span class="ic">🛰️</span> ACC</h4><p class="muted">Importa gli ACC dalla sorgente e nascondi quelli non operativi.</p></a>
             <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura settori</h4><p class="muted">Gestisci settori, contenimento, frequenze e documenti.</p></a>
+            <a class="choice" href="/vsop/admin/trasferimenti" style="text-decoration:none;color:inherit"><h4><span class="ic">🔄</span> Trasferimenti</h4><p class="muted">Flussi e punti di coordinamento tra settori, per ACC.</p></a>
             <a class="choice" href="/vsop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</p></a>
         </div>
     }
 </div>
 
 @code {
-    // Conteggio one-shot al render: ATC online la cui prima parte del callsign coincide col codice ACC
-    // (es. LIRR_NE_CTR → "LIRR"). Le posizioni torre/avvicinamento degli aeroporti non sono incluse: follow-up.
+    // Conteggio one-shot al render: ATC online del dato ACC. Include sia i settori d'area (es. LIRR_NE_CTR)
+    // sia le postazioni d'aeroporto sotto quell'ACC (es. LIRP_TWR / LIEO_EW0_APP → l'ACC dell'aeroporto).
     private int OnlineCount(string accCode)
     {
         var snap = Online.GetCurrent();
         return snap.Callsigns.Count(cs =>
-        {
-            var i = cs.IndexOf('_');
-            var head = i > 0 ? cs[..i] : cs;
-            return head.Equals(accCode, StringComparison.OrdinalIgnoreCase);
-        });
+            Stations.ResolveByCallsign(cs)?.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase) == true);
     }
 }

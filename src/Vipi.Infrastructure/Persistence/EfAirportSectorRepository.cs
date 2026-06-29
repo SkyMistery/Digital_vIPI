@@ -35,7 +35,8 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             .Where(s => s.AirportIcao == icao)
             .OrderBy(s => s.ComposePosition)
             .Select(s => new AirportSectorRow(s.Id, s.ComposePosition, s.AirportIcao, s.AccCode, s.Position,
-                s.MiddleIdentifier, s.Frequency, s.LowerLimit, s.UpperLimit, s.IsHidden, s.RegionMapPolygon != null, s.IsPrimary))
+                s.MiddleIdentifier, s.Frequency, s.LowerLimit, s.UpperLimit, s.IsHidden, s.RegionMapPolygon != null, s.IsPrimary,
+                s.IsAccApp))
             .ToListAsync(ct);
     }
 
@@ -65,6 +66,14 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         var siblings = await _db.AirportSectors
             .Where(x => x.AirportIcao == s.AirportIcao && (x.Position ?? "").ToUpper() == pos).ToListAsync(ct);
         foreach (var x in siblings) x.IsPrimary = x.Id == id;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetIsAccAppAsync(int id, bool isAccApp, CancellationToken ct = default)
+    {
+        var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
+                ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+        s.IsAccApp = isAccApp;
         await _db.SaveChangesAsync(ct);
     }
 
@@ -150,6 +159,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     LowerLimit = hasLimits ? (p.LowerLimit ?? DefaultLowerFt) : null,
                     UpperLimit = hasLimits ? (p.UpperLimit ?? DefaultUpperFt) : null,
                     IsHidden = false,
+                    IsAccApp = DefaultIsAccApp(compose, position),   // 3 pezzi (LIRN_UN0_APP) = di ACC; 2 pezzi (LIRP_APP) = no
                     ImportedAtUtc = now,
                 });
                 created++;
@@ -181,4 +191,17 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     /// <summary>Suffisso del callsign dopo l'ultimo '_' (es. LIRN_US0_APP → APP).</summary>
     private static string SuffixOf(string callsign) =>
         callsign.Contains('_') ? callsign[(callsign.LastIndexOf('_') + 1)..] : callsign;
+
+    /// <summary>Default "di ACC" di una posizione APP/DEP: vero se il callsign ha 3+ pezzi (es. LIRN_UN0_APP),
+    /// falso se a 2 pezzi (es. LIRP_APP = APP proprio dell'aeroporto). Eccezione: lettera di mezzo <c>G</c>
+    /// (es. LIRN_G_APP = precision/PAR di aeroporto militare) = NON di ACC. Per le altre posizioni resta falso (irrilevante).</summary>
+    private static bool DefaultIsAccApp(string compose, string? position)
+    {
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        if (p is not ("APP" or "DEP")) return false;
+        var parts = compose.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3) return false;                                          // 2 pezzi = APP proprio dell'aeroporto
+        if (string.Equals(parts[1], "G", StringComparison.OrdinalIgnoreCase)) return false;   // _G_ = precision militare, non remotizzato
+        return true;
+    }
 }

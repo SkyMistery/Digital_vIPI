@@ -6,7 +6,7 @@ namespace Vipi.Application.Abstractions;
 /// <summary>
 /// Porta di scrittura dell'anagrafica/struttura di una ACC: ACC, settori (entità unificata ex Position+Sector),
 /// contenimento (padre), frequenze. Impl. EF in Infrastructure. I metodi prendono il <c>accCode</c> per
-/// l'autorizzazione e verificano l'appartenenza alla ACC. Regole di unificazione e padre in <see cref="ITopologyEditingRepository"/>.
+/// l'autorizzazione e verificano l'appartenenza alla ACC.
 /// </summary>
 public interface IStructureEditingRepository
 {
@@ -33,6 +33,9 @@ public interface IStructureEditingRepository
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
     /// <summary>Tutti i settori (id+callsign+ACC), per i menu della gestione aeroporti.</summary>
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
+
+    /// <summary>Tutti i settori attivi in vista globale (cross-ACC) col prefisso nazione, l'albero e il documento, per il picker di «Nuovo documento».</summary>
+    Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Crea in blocco gli aeroporti candidati la cui <c>AccCode</c> corrisponde a una ACC esistente e il cui

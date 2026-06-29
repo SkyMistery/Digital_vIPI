@@ -337,7 +337,7 @@ else
                     else
                     {
                         <table class="res-table">
-                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Princ.</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
+                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="Solo APP: di ACC (remotizzato) o avvicinamento proprio (doc dedicato)">ACC?</th><th>Freq</th><th>Princ.</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var s in _sectors)
                                 {
@@ -347,6 +347,13 @@ else
                                         <td><span class="pill blue">@s.AccCode</span></td>
                                         <td>@(s.Position ?? "—")</td>
                                         <td>@(s.MiddleIdentifier ?? "—")</td>
+                                        <td style="text-align:center">
+                                            @if (IsApp(s.Position))
+                                            {
+                                                <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="Avvicinamento di ACC (remotizzato). Deseleziona se è l'APP proprio dell'aeroporto (documento dedicato)." />
+                                            }
+                                            else { <span class="muted">—</span> }
+                                        </td>
                                         <td>@(s.Frequency ?? "—")</td>
                                         <td style="text-align:center">
                                             @if (CanBePrimary(s.Position))
@@ -533,6 +540,11 @@ else
     private Task ToggleSectorHidden(int id, bool hidden) => Guarded(() =>
         Sectors.SetHiddenAsync(id, hidden), hidden ? "Settore nascosto." : "Settore mostrato.");
     private Task SetSectorPrimary(int id) => Guarded(() => Sectors.SetPrimaryAsync(id), "Frequenza principale aggiornata.");
+    private Task SetSectorAccApp(int id, bool v) => Guarded(() => Sectors.SetAccAppAsync(id, v),
+        v ? "APP segnato come «di ACC» (remotizzato)." : "APP segnato come avvicinamento proprio (documento dedicato).");
+
+    // Solo le posizioni APP/DEP hanno il flag "di ACC".
+    private static bool IsApp(string? position) => (position ?? "").Trim().ToUpperInvariant() is "APP" or "DEP";
 
     // Frequenze dal catalogo settori, ordine ATIS·DEL·GND·TWR·APP/DEP (solo con frequenza, non nascosti).
     private IEnumerable<AirportSectorRow> FreqRows()

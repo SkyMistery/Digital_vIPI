@@ -28,6 +28,9 @@ public interface IAirportSectorRepository
     /// <summary>Imposta il settore come frequenza principale dell'aeroporto (azzera gli altri dello stesso aeroporto).</summary>
     Task SetPrimaryAsync(int id, CancellationToken ct = default);
 
+    /// <summary>Segnala se una posizione APP è "di ACC" (remotizzata) o no (doc proprio).</summary>
+    Task SetIsAccAppAsync(int id, bool isAccApp, CancellationToken ct = default);
+
     /// <summary>Codice ACC di competenza di un aeroporto (per la guardia di autorizzazione); null se inesistente.</summary>
     Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default);
 

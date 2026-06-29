@@ -85,43 +85,50 @@ else
                 <h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3>
                 @if (_resolved.Count == 0)
                 {
-                    <p class="help">Nessun trasferimento per questa ACC.</p>
+                    <p class="help">Nessun coordinamento per questa ACC.</p>
                 }
                 else
                 {
-                    <p class="muted" style="font-size:13px;margin-top:0">Primo handler online evidenziato; se nessuno è online si applica lo standard/fallback.</p>
-                    @foreach (var rel in _resolved.GroupBy(t => t.Row.RelationLabel))
+                    @* Raggruppa per mittente EFFETTIVO: se un settore è chiuso, i suoi trasferimenti
+                       compaiono sotto il primo antenato online che lo assorbe. *@
+                    @foreach (var owner in _resolved.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
                     {
                         <details class="acc-item" open>
-                            <summary><span>@rel.Key</span><span class="tag-state tag-covered">@rel.Count() righe</span></summary>
+                            <summary>
+                                <span>@owner.Key</span>
+                                @if (!owner.First().OwnerOnline) { <span class="tag-state">offline</span> }
+                                else { <span class="tag-state tag-covered">online</span> }
+                            </summary>
                             <div class="body">
-                                @foreach (var phase in rel.GroupBy(t => t.Row.Phase))
+                                @foreach (var apt in owner.GroupBy(r => r.Flow.AirportIcao).OrderBy(g => g.Key ?? "~"))
                                 {
-                                    <p class="muted" style="font-weight:600;margin:8px 0 4px">@(phase.Key == TransferPhase.Arrival ? "Arrivi" : "Partenze")</p>
-                                    <table>
-                                        <thead><tr><th>Aeroporto</th><th>CoP</th><th>FL</th><th>Catena handler</th><th>Primo online</th></tr></thead>
-                                        <tbody>
-                                            @foreach (var t in phase.OrderBy(x => x.Row.AirportIcao).ThenBy(x => x.Row.Order))
-                                            {
-                                                <tr>
-                                                    <td><b>@t.Row.AirportIcao</b></td>
-                                                    <td>@t.Row.Cop</td>
-                                                    <td>@t.Row.FlRule</td>
-                                                    <td>@string.Join(" → ", t.Row.HandlerChain)</td>
-                                                    <td>
-                                                        @if (t.IsOnline)
-                                                        {
-                                                            <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:2px 9px;border-radius:999px;font-weight:700">@t.ResolvedHandler</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="muted">@t.ResolvedHandler <small>(nessuno online)</small></span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                    <p class="muted" style="font-weight:700;margin:10px 0 2px">@(string.IsNullOrWhiteSpace(apt.Key) ? "Senza aeroporto" : $"✈ {apt.Key}")</p>
+                                    @foreach (var r in apt.OrderBy(x => x.Flow.Kind))
+                                    {
+                                        <p class="muted" style="margin:6px 0 4px">@KindLabel(r.Flow.Kind)</p>
+                                        <table>
+                                            <thead><tr><th>CoP</th><th>Quota</th><th>Ricevente</th></tr></thead>
+                                            <tbody>
+                                                @foreach (var p in r.Points)
+                                                {
+                                                    <tr>
+                                                        <td><b>@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</b></td>
+                                                        <td>@p.Point.LevelText</td>
+                                                        <td>
+                                                            @if (p.IsOnline)
+                                                            {
+                                                                <span class="tag-state tag-covered">@p.ResolvedHandler</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="muted">@p.ResolvedHandler</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
                                 }
                             </div>
                         </details>
@@ -141,7 +148,7 @@ else
     private string _p = "";
     private DocumentView? _view;
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
-    private IReadOnlyList<ResolvedTransferRow> _resolved = Array.Empty<ResolvedTransferRow>();
+    private IReadOnlyList<ResolvedTransferFlow> _resolved = Array.Empty<ResolvedTransferFlow>();
     private IReadOnlyList<string> _domainOnline = Array.Empty<string>();
     private string? _myCallsign;
 
@@ -178,13 +185,23 @@ else
         await LoadAsync();
     }
 
+    private static string KindLabel(TransferFlowKind k) => k switch
+    {
+        TransferFlowKind.Arrival => "Arrivi",
+        TransferFlowKind.Departure => "Partenze",
+        TransferFlowKind.Overflight => "Sorvoli",
+        TransferFlowKind.Vfr => "VFR",
+        _ => "Altro",
+    };
+
     private async Task LoadAsync()
     {
         if (_acc is null) return;
 
         _snapshot = Online.GetCurrent();
         _view = await ViewService.BuildAccVipiAsync(_acc.Code, BlockTier.Reduced, live: true, _p);
-        _resolved = await Transfers.ListResolvedByAccAsync(_acc.Code);
+        var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
+        _resolved = await Transfers.ResolveForAccAsync(_acc.Code, online);
 
         _domainOnline = _topo is null || string.IsNullOrEmpty(_p)
             ? Array.Empty<string>()

@@ -2,7 +2,7 @@
 
 > Documento di **rapida lettura**: la gerarchia delle pagine del sito e dove vive ciascuna.
 > Aggiornato al **rebuild Round 12** (rename `/sop` → `/vsop` + nuova struttura ACC).
-> Per le pagine spente vedi **`PAGINE_DISABILITATE.md`**.
+> Per le pagine spente vedi **`pagine-disabilitate.md`**.
 
 ## Gerarchia (cosa vede l'utente)
 
@@ -25,7 +25,7 @@
 │  └─ Card vLOA (3 in evidenza)
 │        titolo → /vsop/{acc}/vloa                (elenco)
 │        voce   → /vsop/{acc}/vloa/{docId}        (documento)
-└─ [Admin CH/AOD] Editor vIPI · Topologia · Editor trasferimenti · Editor vLOA
+└─ [Admin CH/AOD] Editor vIPI · Editor vLOA  (Trasferimenti → /vsop/admin/trasferimenti · Gerarchia → /vsop/admin/sectorstructure)
 
 /vsop/{acc}/vipi          vIPI ACC Estesa  ......................... VipiDocument.razor
 /vsop/{acc}/airports      Elenco aeroporti (no ?icao)  ............. AeroportoPage.razor
@@ -56,16 +56,16 @@
 | `/vsop/search` | `SearchPage.razor` | Ricerca full-text | tutti |
 | `/vsop/screens` | `ScreensIndex.razor` | Indice schermate | staff |
 | `/vsop/versioni`, `/vsop/{acc}/versioni` | `VersioniPage.razor` | Bozze & versioni | staff |
-| `/vsop/editor` | `EditorHubPage.razor` | Hub editor | staff |
+| `/vsop/editor` | `EditorHubPage.razor` | Hub editor (+ bottone «Nuovo documento») | staff |
+| `/vsop/editor/newdoc` | `NewDocumentPage.razor` | Creazione documenti. **vIPI ACC**: si scelgono i **root** degli alberi (ogni root porta lo scope dell'intero sottoalbero d'area = CTR + APP di ACC, **cross-ACC**; più alberi per doc). **vIPI APP**: solo APP non remotizzati (`App`+`Standalone`). **vLOA**: solo tra ACC **italiano** (Home) e **estero** (Neighbour), es. Roma↔Marsiglia. Lavora su una vista globale dei settori (`IStructureEditingService.ListSectorNodesAsync`) | admin |
 | `/vsop/{acc}/editor` | `EditorPage.razor` | Editor vIPI ACC **+ picker "in evidenza"** | admin/grant ACC |
-| `/vsop/{acc}/topologia` | `TopologiaPage.razor` | Topologia/simulatore | admin/grant ACC |
-| `/vsop/{acc}/editor-trasferimenti` | `XferEditorPage.razor` | Editor trasferimenti | admin/grant ACC |
 | `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
 | `/vsop/{acc}/airports/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto (profilo + settori ATC importati: mostra/nascondi + limiti) | admin/grant ACC |
 | `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |
-| `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | **Gerarchia di copertura GLOBALE (cross-ACC)** per callsign sui settori importati (§9.12 round 20): UI a **card per ACC** (ogni card = gli alberi con radice in quell'ACC, comprimi/espandi card e rami + ricerca) + pannello dettaglio sticky con catena di fallback, picker padre e **Applica**. Indipendente dal selettore ACC (solo per «Nuovo documento»). Creazione/eliminazione/frequenza settori NON qui (solo pagina ACC). Ex `/admin/struttura`, redirect 301 | admin |
+| `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | **Gerarchia di copertura GLOBALE (cross-ACC)** per callsign sui settori importati (§9.12 round 20): UI a **card per ACC** (ogni card = gli alberi con radice in quell'ACC, comprimi/espandi card e rami + ricerca) + pannello dettaglio sticky con catena di fallback, picker padre e **Applica**. **Solo gerarchia**: niente selettore ACC; la creazione documenti è su `/vsop/editor/newdoc`. Creazione/eliminazione/frequenza settori NON qui (solo pagina ACC). Ex `/admin/struttura`, redirect 301 | admin |
 | `/vsop/admin/airports` | `AeroportiPage.razor` | Gestione aeroporti (filtro per ACC; colonna **Stato** + mostra/nascondi; alias legacy `/vsop/admin/aeroporti`) | admin |
-| `/vsop/admin/permessi` | `AdminGrantsPage.razor` | Permessi editing | admin |
+| `/vsop/admin/permessi` | `AdminGrantsPage.razor` | Permessi editing (+ card «Trasferimenti» in Dashboard) | admin |
+| `/vsop/admin/trasferimenti` | `AdminTrasferimentiPage.razor` | Trasferimenti tra settori: selettore ACC + edit nidificato **Settore ▸ Aeroporto ▸ Arrivi/Partenze ▸ righe** (CoP/quota/settore ricevente, cross-ACC; ICAO esteri ammessi). Risoluzione live in Ridotta risale la gerarchia (terminale UNICOM). Ex `/vsop/{acc}/editor-trasferimenti`. Link da Struttura e card in Dashboard permessi | admin |
 | `/vsop/admin/sorgenti` | `SorgentiAdminPage.razor` | Policy import sorgenti | admin |
 | `/vsop/admin/audit` | `AuditPage.razor` | Audit log | admin |
 

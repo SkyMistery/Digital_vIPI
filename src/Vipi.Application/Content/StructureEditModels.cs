@@ -28,6 +28,12 @@ public sealed record AirportAdminRow(int Id, string Icao, string Name, string Ac
 /// <summary>Settore sintetico (id+callsign+ACC) per popolare i menu padre nella gestione aeroporti.</summary>
 public sealed record SectorBriefRow(int Id, string Callsign, string AccCode);
 
+/// <summary>Settore proiettato in vista GLOBALE (cross-ACC) per il picker di «Nuovo documento»:
+/// porta l'ACC + il prefisso nazione (IT/estero), l'albero (<paramref name="ParentSectorId"/>),
+/// la natura APP (<paramref name="ApproachKind"/>) e il documento di riferimento (per i già descritti).</summary>
+public sealed record GlobalSectorRow(int Id, string Callsign, string AccCode, string CountryPrefix,
+    SectorType Type, SectorKind Kind, ApproachKind? ApproachKind, int? ParentSectorId, int? DocumentId);
+
 /// <summary>Esito della generazione automatica del documento di aeroporto.</summary>
 public sealed record AirportDocResult(string Icao, bool Created, int SectorsCreated, int? DocumentId, string? Skipped);
 

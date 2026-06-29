@@ -294,7 +294,7 @@ Da produrre come parte integrante:
 4. **/docs/content-authoring-guide.md** — guida per CH/AOD su come scrivere e taggare i contenuti.
 5. **/docs/data-model.md** — schema DB + diagramma ER.
 6. **XML doc comments** sul codice pubblico → documentazione API generabile.
-7. **/docs/sector-map.md** — la mappa posizioni↔settori (il data-entry che faremo insieme).
+7. **/docs/reference/sector-map.md** — la mappa posizioni↔settori (il data-entry che faremo insieme).
 
 ---
 
@@ -388,7 +388,7 @@ Strategia di popolamento (modellazione granulare confermata):
 
 1. **Import automatico delle posizioni italiane** — l'app importa dal DB/API tutte le posizioni italiane (callsign, ACC di appartenenza, frequenza, shape da `GET /v2/ATCPositions/{callsign}` e `GET /v2/subcenters/{callsign}`). Questo popola l'**anagrafica piatta** di posizioni e settori, **senza** relazioni gerarchiche.
 2. **Definizione manuale delle relazioni** — gli editor, dall'interno del sistema, specificano le relazioni tra le postazioni: `ParentId`/catene di copertura, `CoverageOrder`, regole di split/unificazione e assegnazione dei `ContentBlock` agli `OwnerSector`. È un'apposita sezione dell'editor (un "costruttore di gerarchia").
-3. **Documentazione** della mappa risultante in `docs/sector-map.md`, sorgente di verità leggibile dagli autori.
+3. **Documentazione** della mappa risultante in `docs/reference/sector-map.md`, sorgente di verità leggibile dagli autori.
 
 Conseguenza progettuale: serve una **UI dedicata di gestione gerarchia** (drag&drop o form padre→figli + assegnazione settori), perché questo dato non arriva da nessuna fonte esterna.
 
@@ -502,7 +502,7 @@ Sul portale italiano, una vLOA è modificabile **solo** da CH o membro AOD itali
 
 ## 22. Decisioni round 4 (16 giugno 2026)
 
-Recepiscono il flusso utente e le risposte in `REVIEW_Flusso_e_Gap.md`. Dettaglio modello dati in `SPEC_Modello_Dati.md` §7.
+Recepiscono il flusso utente e le risposte in `../history/review-flusso-gap.md`. Dettaglio modello dati in `../spec/modello-dati.md` §7.
 
 ### 22.1 Navigazione: 4 ACC + ricerca/live **convivono**
 
@@ -522,7 +522,7 @@ Ordine canonico (aggiornato mockup 20 giu): (1) sommario dinamico, (2) riquadro 
 
 ### 22.4 Vista ridotta — accordion UI
 
-La ridotta mostra: tabella frequenze, tabelle trasferimenti, e un **selettore rapido degli aeroporti** sotto il proprio ACC. Comportamento **accordion**: aprendone uno, gli altri si comprimono (riespandibili a mano). Questo collasso è **puramente di presentazione** e **non sovrascrive** lo stato live/AoR (vedi `SPEC_Logica_AoR.md`).
+La ridotta mostra: tabella frequenze, tabelle trasferimenti, e un **selettore rapido degli aeroporti** sotto il proprio ACC. Comportamento **accordion**: aprendone uno, gli altri si comprimono (riespandibili a mano). Questo collasso è **puramente di presentazione** e **non sovrascrive** lo stato live/AoR (vedi `../spec/logica-aor.md`).
 
 ### 22.5 Blocchi callout colorati (nuovo)
 
@@ -538,7 +538,7 @@ Modifica della proposta §13: è esportabile in PDF **solo la versione Estesa** 
 
 ### 22.8 Minime di vettoramento — **implementazione FUTURE**
 
-Documentate ora, fuori dalla prima release. Fonte: **sectorfile della divisione su GitHub** (non API, non a mano), via `SectorfileImportService`, ri-validate a ogni cambio AIRAC. Possibili più sezioni minime per documento. Dettaglio in `SPEC_Modello_Dati.md` §7.5.
+Documentate ora, fuori dalla prima release. Fonte: **sectorfile della divisione su GitHub** (non API, non a mano), via `SectorfileImportService`, ri-validate a ogni cambio AIRAC. Possibili più sezioni minime per documento. Dettaglio in `../spec/modello-dati.md` §7.5.
 
 ### 22.9 Settore SCCAM (nuovo — 20 giugno)
 

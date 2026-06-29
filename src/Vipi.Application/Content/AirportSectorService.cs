@@ -10,7 +10,8 @@ namespace Vipi.Application.Content;
 /// </summary>
 public sealed record AirportSectorRow(
     int Id, string ComposePosition, string AirportIcao, string AccCode, string? Position,
-    string? MiddleIdentifier, string? Frequency, int? LowerLimit, int? UpperLimit, bool IsHidden, bool HasPolygon, bool IsPrimary);
+    string? MiddleIdentifier, string? Frequency, int? LowerLimit, int? UpperLimit, bool IsHidden, bool HasPolygon, bool IsPrimary,
+    bool IsAccApp);
 
 /// <summary>Esito dell'import dei settori ATC di un aeroporto dalla sorgente.</summary>
 public sealed record AirportSectorImportResult(int Created, int Updated);
@@ -37,6 +38,9 @@ public interface IAirportSectorService
 
     /// <summary>Imposta il settore come frequenza principale dell'aeroporto (esclusiva). ACC-gated.</summary>
     Task SetPrimaryAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Segnala se una posizione APP è "di ACC" (remotizzata) o no (doc proprio). ACC-gated; riproietta. </summary>
+    Task SetAccAppAsync(int id, bool isAccApp, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAirportSectorService"/>
@@ -94,6 +98,13 @@ public sealed class AirportSectorService : IAirportSectorService
     {
         await EnsureCanEditSectorAsync(id, ct);
         await _repo.SetPrimaryAsync(id, ct);
+    }
+
+    public async Task SetAccAppAsync(int id, bool isAccApp, CancellationToken ct = default)
+    {
+        await EnsureCanEditSectorAsync(id, ct);
+        await _repo.SetIsAccAppAsync(id, isAccApp, ct);
+        await _projection.SyncFromCatalogsAsync(ct);   // cambia l'ApproachKind del Sector proiettato
     }
 
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)

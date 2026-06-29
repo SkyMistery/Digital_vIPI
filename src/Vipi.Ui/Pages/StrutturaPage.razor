@@ -3,9 +3,7 @@
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
 @inject IHierarchyEditingService Hierarchy
-@inject IEditingService Editing
 @inject IEditAuthorizationService Authz
-@inject NavigationManager Nav
 
 <PageTitle>Struttura (ACC, settori) · vIPI IVAO Italia</PageTitle>
 
@@ -20,7 +18,7 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/editor/newdoc">Nuovo documento →</a> <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/trasferimenti">Trasferimenti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
     <p class="help" style="margin-top:0">Albero di fallback unico per tutta la divisione (<b>cross-ACC</b>): <b>Aeroporto → APP → settore ACC</b>. L'aeroporto è la foglia (DEL/GND/TWR condividono la sua vista rapida). I settori si importano/editano dalla <a href="/vsop/admin/acc">pagina ACC</a>; qui imposti solo i <b>padri</b> (il fallback immediato), anche tra ACC diversi.</p>
 
     <div class="gerarchia-2col">
@@ -132,77 +130,10 @@
             }
         </div>
     </div>
-
-    <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
-    <div class="block">
-        @if (_accs.Count == 0)
-        {
-            <p class="help">Nessun ACC disponibile. Importali dalla <a href="/vsop/admin/acc">pagina ACC</a>.</p>
-        }
-        else
-        {
-            <div class="acc-pills">
-                @foreach (var f in _accs)
-                {
-                    <button class="btn @(f.Code == _accCode ? "primary" : "ghost")" disabled="@_busy" @onclick="() => SelectAcc(f.Code)">
-                        @f.Code · @f.Name <span class="muted" style="font-size:11px">(@f.Sectors set)</span>
-                    </button>
-                }
-            </div>
-        }
-    </div>
-
-    @if (_data is not null)
-    {
-        <div class="section-title"><h3>📄 Nuovo documento <span class="pill blue">@_data.AccCode</span></h3><span class="ln"></span></div>
-        <div class="block">
-            <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                <div class="field narrow"><label>Tipo</label>
-                    <select @bind="_docType">
-                        <option value="@DocumentType.Vipi">vIPI</option>
-                        <option value="@DocumentType.Vloa">vLOA</option>
-                    </select>
-                </div>
-                <div class="field"><label>Titolo</label><input placeholder="es. vIPI Milano ACC" @bind="_docTitle" /></div>
-                @if (_docType == DocumentType.Vloa)
-                {
-                    <div class="field"><label>Home</label><select @bind="_docHome"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select></div>
-                    <div class="field"><label>Neighbour</label><select @bind="_docNeighbour"><option value="0">settore…</option>@foreach (var s in _data.Sectors) { <option value="@s.Id">@s.Callsign</option> }</select></div>
-                }
-                <button class="btn primary" disabled="@_busy" @onclick="CreateDocument">Crea e apri editor</button>
-            </div>
-            @if (_docType == DocumentType.Vipi)
-            {
-                <div style="margin-top:10px">
-                    <label class="muted" style="font-size:12px">Settori descritti (★ = primario):</label>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-                        @foreach (var s in _data.Sectors)
-                        {
-                            var inScope = _docScopeIds.Contains(s.Id);
-                            var taken = s.DocumentId is not null;
-                            <span class="@(inScope ? "xo-chip on" : "xo-chip")" style="@ChipStyle(inScope, taken)">
-                                <label style="@(taken ? "cursor:not-allowed" : "cursor:pointer")">
-                                    <input type="checkbox" checked="@inScope" disabled="@taken" @onchange="() => ToggleScope(s.Id)" style="margin-right:4px" />@s.Callsign
-                                </label>
-                                @if (inScope)
-                                {
-                                    <input type="radio" name="primary" checked="@(_docPrimary == s.Id)" @onchange="() => _docPrimary = s.Id" title="primario" style="margin-left:6px" />
-                                }
-                            </span>
-                        }
-                    </div>
-                    <p class="muted" style="font-size:11px;margin-top:4px">Un settore già descritto da un altro documento non è selezionabile.</p>
-                </div>
-            }
-            <p class="muted" style="font-size:12px;margin:10px 0 0">Il documento nasce vuoto (una sezione iniziale); poi lo riempi nell'editor.</p>
-        </div>
-    }
 </div>
 
 @code {
-    private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();
-    private string? _accCode;
-    private StructureData? _data;
+    private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();   // solo per i nomi ACC delle card (RootGroups)
     private bool _busy;
     private string? _msg;
 
@@ -214,44 +145,18 @@
     private string _treeFilter = "";       // ricerca nell'albero
     private string? _pendingParent;        // padre selezionato ma non ancora applicato (Applica)
 
-    // form documento (per-ACC)
-    private DocumentType _docType = DocumentType.Vipi;
-    private string _docTitle = "";
-    private int _docHome, _docNeighbour;
-    private readonly HashSet<int> _docScopeIds = new();
-    private int _docPrimary;
-
     protected override async Task OnInitializedAsync()
     {
-        await ReloadAccsAsync();
-        await ReloadTreeAsync();
-    }
-
-    private async Task ReloadAccsAsync()
-    {
         _accs = await Struct.ListAccsAsync();
-        if (_accCode is null && _accs.Count > 0) _accCode = _accs[0].Code;
-        await ReloadDataAsync();
-    }
-
-    private async Task ReloadDataAsync()
-    {
-        _data = _accCode is null ? null : await Struct.LoadAsync(_accCode);
+        await ReloadTreeAsync();
     }
 
     private async Task ReloadTreeAsync() => _tree = await Hierarchy.LoadTreeAsync();
 
-    private async Task SelectAcc(string code)
-    {
-        _accCode = code;
-        _docScopeIds.Clear(); _docPrimary = 0;
-        await ReloadDataAsync();
-    }
-
     private async Task Guarded(Func<Task> action)
     {
         _busy = true; _msg = null;
-        try { await action(); await ReloadTreeAsync(); await ReloadDataAsync(); }
+        try { await action(); await ReloadTreeAsync(); }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
@@ -466,36 +371,4 @@
                 builder.AddContent(seq++, (MarkupString)$"<div>→ <b>{s.Callsign}</b> <span class=\"node-badge {BadgeOf(s.Kind).ToLowerInvariant()}\">{BadgeOf(s.Kind)}</span> <span class=\"acc-tag\">{s.AccCode}</span></div>");
         builder.CloseElement();
     };
-
-    private static string ChipStyle(bool inScope, bool taken)
-    {
-        var bg = inScope ? "background:#dafbe7;color:#1a7f37;font-weight:700" : "background:#eef1f7";
-        var dim = taken ? ";opacity:.45" : "";
-        return $"padding:3px 9px;border-radius:999px;font-size:12px;{bg}{dim}";
-    }
-
-    private void ToggleScope(int sectorId)
-    {
-        if (!_docScopeIds.Add(sectorId)) _docScopeIds.Remove(sectorId);
-        if (_docPrimary == sectorId && !_docScopeIds.Contains(sectorId)) _docPrimary = 0;
-        if (_docPrimary == 0 && _docScopeIds.Count > 0) _docPrimary = _docScopeIds.First();
-    }
-
-    private async Task CreateDocument()
-    {
-        _busy = true; _msg = null;
-        try
-        {
-            IReadOnlyList<int>? scope = _docType == DocumentType.Vloa ? null : _docScopeIds.ToList();
-            int? primary = _docType == DocumentType.Vloa ? null : (_docPrimary == 0 ? null : _docPrimary);
-            int? home = _docType == DocumentType.Vloa ? (_docHome == 0 ? null : _docHome) : null;
-            int? neigh = _docType == DocumentType.Vloa ? (_docNeighbour == 0 ? null : _docNeighbour) : null;
-            var id = await Editing.CreateDocumentAsync(_docType, _docTitle, scope, primary, home, neigh);
-            Nav.NavigateTo($"/vsop/{_accCode!.ToLowerInvariant()}/editor?doc={id}");
-        }
-        catch (ValidationException ex) { _msg = ex.Message; }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
-        finally { _busy = false; }
-    }
 }
