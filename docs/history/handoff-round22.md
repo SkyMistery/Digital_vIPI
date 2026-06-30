@@ -41,12 +41,16 @@
 - **Credenziali IVAO** reali in **user secrets** (UserSecretsId `79756a9b-0ff7-4ec7-89d3-88a116771871`, chiavi `Ivao:ClientId`/`Ivao:ClientSecret`); in `appsettings.json` sono **vuote**.
 - Codice rimasto ma ora **non usato** dal fallback: `SourceAirport.Latitude/Longitude` + mapping in `GetAirportsAsync`, `IAirportSectorRepository.SetAirportCoordsAsync` — innocui, eliminabili in un cleanup.
 
-## 4. ⚠️ Verifica pendente (da fare alla prossima sessione)
-Il Host gira con i DLL bloccati: la verifica a runtime non è stata possibile in sessione.
-1. **Fermare e riavviare** `dotnet run --project src/Vipi.Host`.
-2. Attendere ~30s (job all'avvio): popola `Airport.Latitude/Longitude` e genera i cerchi 5 NM per le TWR vuote.
-3. Aprire `/vsop/lirr/apps/vipi?app=LIRP_APP` → l'AOR deve mostrare il cerchio della torre (Pisa ≈ 43.683, 10.396) col toggle «Shape torre».
-4. (Facoltativo) ispezione DB `src/Vipi.Host/vipi.db`: `Airports.Latitude` valorizzata, `AirportSectors` TWR con `IsShapeSynthetic=1` e `RegionMapPolygon` ≫ `"[]"`.
+## 4. ✅ Verifica runtime ESEGUITA (30 giu 2026)
+Host riavviato (`dotnet run --project src/Vipi.Host`), job di avvio girati. Esito DB (`src/Vipi.Host/vipi.db`):
+- **Coord aeroporti**: 84/92 popolate; LIRP = 43.6828 / 10.3956 (atteso ≈ 43.683/10.396) ✓.
+- **Shape sintetiche TWR**: 82 generate, **0 TWR vuote** residue (`'[]'`/null) ✓.
+- **`LIRP_TWR`**: `IsShapeSynthetic=1`, poligono cerchio 37 punti `[lng,lat]`, anello chiuso, centro 10.3956/43.6828 = coord LIRP ✓.
+- Log import/fallback senza errori; summary: «84 aeroporti, settori 0/192, shape TWR sintetiche 82».
+
+**Trappola osservata:** il fallback gira per-aeroporto (~70s, 06:57:36→06:58:44); una query DB a metà run vede un conteggio parziale (race, non bug). Attendere fine job prima di contare.
+
+**Resta solo (facoltativo):** conferma visiva in browser su `/vsop/lirr/apps/vipi?app=LIRP_APP` — cerchio torre + toggle «Shape torre». Dati lato server già verificati a DB.
 
 ## 5. Follow-up suggeriti
 - **Shape reali TWR dal sectorfile GitHub** via `DataSource:Provider`: rimpiazzano solo le sintetiche (`IsShapeSynthetic=true`), mai le reali. È la naturale evoluzione di questo round.

@@ -27,7 +27,7 @@
             {
                 <details class="coord-sub2" open>
                     <summary><span>Arrivi</span><span class="chev">▸</span></summary>
-                    <div class="body">@RenderTable(arrivi, showKind: false)</div>
+                    <div class="body">@RenderTable(arrivi, showKind: false, lastCol: "From")</div>
                 </details>
             }
         </div>
@@ -53,13 +53,13 @@
 @code {
     [Parameter, EditorRequired] public AppCoordination Coord { get; set; } = AppCoordination.Empty;
 
-    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind) => __builder =>
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string lastCol = "Next") => __builder =>
     {
         <table>
             <thead>
                 <tr>
                     @if (showKind) { <th>Flusso</th> }
-                    <th>CoP</th><th>Livello</th><th>Next</th>
+                    <th>CoP</th><th>Livello</th><th>@lastCol</th>
                 </tr>
             </thead>
             <tbody>

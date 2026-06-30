@@ -141,6 +141,26 @@ public class AppProfileTests : IAsyncLifetime
         Assert.Equal(TransferFlowKind.Arrival, row.Kind);   // la partenza-verso-torre è esclusa
     }
 
+    [Fact]
+    public async Task Derive_Coordination_Includes_Inbound_Arrival_From_Acc()
+    {
+        var tr = new EfTransferRepository(_db);
+        // Arrivo che l'ACC (NE) consegna all'APP: flusso di PROPRIETÀ del CTR, Next = APP.
+        // Non è di proprietà dell'APP, ma deve comparire fra le "Arrivi verso ACC" dell'APP.
+        var fIn = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _neId, Kind = TransferFlowKind.Arrival });
+        await tr.AddPointAsync("LIRR", fIn, Point("MAREL", 150, _appId));
+
+        var coord = await _service.DeriveCoordinationAsync(App);
+
+        var acc = Assert.Single(coord.TowardAcc);
+        Assert.Equal("LIRR_NE_CTR", acc.TargetCallsign);     // referente = l'ACC che possiede il flusso
+        var row = Assert.Single(acc.Rows);
+        Assert.Equal(TransferFlowKind.Arrival, row.Kind);
+        Assert.Equal("MAREL", row.Cop);
+        Assert.Equal("LIRR_NE_CTR", row.Next);
+        Assert.Empty(coord.TowardTowers);
+    }
+
     private static AirportSector Pos(string compose, string position, string freq) => new()
     {
         ComposePosition = compose, AirportIcao = "LIRP", AccCode = "LIRR", Position = position, Frequency = freq,

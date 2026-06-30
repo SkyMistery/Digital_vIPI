@@ -97,15 +97,13 @@ public sealed class AppProfileService : IAppProfileService
         if (accCode is null) return AppCoordination.Empty;
 
         var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
-        var appFlows = flows.Where(f => string.Equals(f.OwningSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (appFlows.Count == 0) return AppCoordination.Empty;
-
         var types = await _repo.GetSectorTypeMapAsync(ct);
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var flow in appFlows)
+        // Flussi di PROPRIETÀ dell'APP: partenze/arrivi verso ACC, arrivi verso le torri.
+        foreach (var flow in flows.Where(f => string.Equals(f.OwningSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)))
             foreach (var p in flow.Points)
             {
                 var next = p.NextSectorCallsign;
@@ -118,6 +116,22 @@ public sealed class AppProfileService : IAppProfileService
                 else if (nextType is SectorType.Twr or SectorType.ITwr && flow.Kind == TransferFlowKind.Arrival)
                     Bucket(towardTwr, next).Add(row);                             // verso torri: solo arrivi
             }
+
+        // Flussi ENTRANTI nell'APP: arrivi che un ACC consegna a questo APP (flusso di proprietà dell'ACC, Next = APP).
+        // Per l'APP sono coordinamenti "verso ACC" in arrivo; il referente è l'ACC che possiede il flusso.
+        foreach (var flow in flows)
+        {
+            if (flow.Kind != TransferFlowKind.Arrival) continue;
+            var owner = flow.OwningSectorCallsign;
+            if (string.Equals(owner, appCallsign, StringComparison.OrdinalIgnoreCase)) continue;   // già trattato sopra
+            if (!types.TryGetValue(owner, out var ownerType) || ownerType != SectorType.Ctr) continue;
+
+            foreach (var p in flow.Points)
+            {
+                if (!string.Equals(p.NextSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)) continue;
+                Bucket(towardAcc, owner).Add(new AppCoordRow(p.Cop, p.LevelText, owner, TransferFlowKind.Arrival));
+            }
+        }
 
         return new AppCoordination
         {
