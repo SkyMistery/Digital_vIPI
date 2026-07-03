@@ -34,7 +34,8 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             desired[s.ComposePosition] = new Desired(
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Acc, Frequency: s.Frequency, AirportId: null, AirportIcao: null,
-                ParentCallsign: s.ParentCallsign, IsAccApp: true);   // APP da un subcenter ACC è per natura "di ACC"
+                ParentCallsign: s.ParentCallsign, IsAccApp: true,   // APP da un subcenter ACC è per natura "di ACC"
+                AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
         var airportSectors = await _db.AirportSectors.AsNoTracking().ToListAsync(ct);
@@ -48,7 +49,8 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Airport, Frequency: s.Frequency,
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
-                ParentCallsign: s.ParentCallsign, IsAccApp: s.IsAccApp);
+                ParentCallsign: s.ParentCallsign, IsAccApp: s.IsAccApp,
+                AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
         // 2. Settori già presenti che ci interessano: tutti i proiettati + quelli col callsign desiderato (per adottarli).
@@ -63,9 +65,10 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         // 3. Upsert per callsign (preserva Id e i legami editoriali DocumentId/IsPrimary/FeaturedRank).
         foreach (var d in desired.Values)
         {
+            var friendly = FriendlyName(d);
             if (!byCallsign.TryGetValue(d.Callsign, out var sector))
             {
-                sector = new Sector { Callsign = d.Callsign, Name = d.Callsign };
+                sector = new Sector { Callsign = d.Callsign, Name = friendly };
                 _db.Sectors.Add(sector);
                 byCallsign[d.Callsign] = sector;
             }
@@ -79,7 +82,12 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             sector.AirportId = d.AirportId;
             sector.AirportIcao = d.AirportIcao;
             sector.CoverageOrder = CoverageFor(d.Type);
-            if (string.IsNullOrWhiteSpace(sector.Name)) sector.Name = d.Callsign;
+            // Nome amichevole dalla sorgente (AtcCallsign IVAO, fallback "{ICAO} {Tipo}"). Assegnato quando il Name
+            // è vuoto o un SEGNAPOSTO (== callsign grezzo, residuo di proiezioni vecchie): riarmonizza senza clobberare
+            // un nome realmente personalizzato dall'admin.
+            if (string.IsNullOrWhiteSpace(sector.Name)
+                || string.Equals(sector.Name, sector.Callsign, StringComparison.OrdinalIgnoreCase))
+                sector.Name = friendly;
             sector.IsProjected = true;
             sector.IsActive = true;
             sector.ImportedAtUtc = DateTime.UtcNow;
@@ -119,7 +127,8 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
 
     private sealed record Desired(
         string Callsign, int AccId, SectorType Type, SectorKind Kind,
-        string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp);
+        string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp,
+        string? AtcCallsign, string? Position);
 
     private static bool IsAtis(string? position) =>
         string.Equals(position, "ATIS", StringComparison.OrdinalIgnoreCase);
@@ -134,6 +143,46 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         "CTR" or "FSS" => SectorType.Ctr,
         _ => SectorType.Ctr,
     };
+
+    /// <summary>Nome amichevole del settore: nome display IVAO (<c>AtcCallsign</c>) se presente, altrimenti
+    /// composto <c>"{ICAO} {Tipo}"</c> (es. "LIRF Approach"), infine il callsign grezzo come ultima spiaggia.</summary>
+    private static string FriendlyName(Desired d)
+    {
+        if (!string.IsNullOrWhiteSpace(d.AtcCallsign)) return d.AtcCallsign!.Trim();
+        var icao = IcaoPrefix(d.Callsign) ?? d.Callsign;
+        var label = LabelOf(d.Position, d.Type);
+        return string.IsNullOrEmpty(label) ? d.Callsign : $"{icao} {label}";
+    }
+
+    /// <summary>Etichetta leggibile del ruolo (allineata ai nomi già in DB). Fallback sul <see cref="SectorType"/> se
+    /// la position del catalogo è assente.</summary>
+    private static string LabelOf(string? position, SectorType type) => (position?.Trim().ToUpperInvariant()) switch
+    {
+        "DEL" => "Delivery",
+        "GND" => "Ground",
+        "TWR" => "Tower",
+        "APP" => "Approach",
+        "DEP" => "Departure",
+        "CTR" => "Control",
+        "FSS" => "Information",
+        "ATIS" => "ATIS",
+        _ => type switch
+        {
+            SectorType.Del => "Delivery",
+            SectorType.Gnd => "Ground",
+            SectorType.Twr or SectorType.ITwr => "Tower",
+            SectorType.App => "Approach",
+            SectorType.Ctr => "Control",
+            _ => "",
+        },
+    };
+
+    /// <summary>ICAO = i 4 caratteri prima del primo '_' del callsign (LIRF_TW1_APP → LIRF); null se non conforme.</summary>
+    private static string? IcaoPrefix(string callsign)
+    {
+        var i = callsign.IndexOf('_');
+        return i == 4 ? callsign[..4].ToUpperInvariant() : null;
+    }
 
     private static int CoverageFor(SectorType type) => type switch
     {

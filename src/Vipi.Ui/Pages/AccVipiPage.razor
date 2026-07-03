@@ -1,0 +1,236 @@
+@page "/vsop/{Acc}/vipi"
+@layout SopLayout
+@inject IStationResolver Stations
+@inject IAccProfileService Profile
+@inject IEditAuthorizationService Authz
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>vIPI @_data.AccName · IVAO Italia</PageTitle>
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccName</a> › <b>vIPI</b></div>
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">Istruzioni di posizione · settori di aerovia e avvicinamenti</span></div>
+            @if (_canEdit)
+            {
+                <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">✎ Editor</a>
+            }
+        </div>
+
+        @if (_roots.Count > 1)
+        {
+            <div class="tree-sel" style="margin:0 0 12px">
+                <span class="cfg-sel-lab">Albero:</span>
+                @foreach (var r in _roots)
+                {
+                    var on = string.Equals(r.Callsign, _root, StringComparison.OrdinalIgnoreCase);
+                    <a class="tree-chip @(on ? "on" : "")" href="/vsop/@Acc.ToLowerInvariant()/vipi?tree=@r.Callsign">@r.Name</a>
+                }
+            </div>
+        }
+
+        @foreach (var block in _data.Blocks)
+        {
+            <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : block.Title)</h2>
+            @foreach (var key in OrderOf(block))
+            {
+                var reg = AccSections.For(block.Kind);
+                <div class="block" id="p-@(block.Key)-@key">
+                    <h3>@TitleOf(reg, block, key)</h3>
+                    @SectionBody(block, key)
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? Tree { get; set; }
+
+    private AccInfo? _acc;
+    private AccProfileData _data = new() { AccCode = "", AccName = "", Blocks = new() };
+    private bool _canEdit;
+    private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
+    private string? _root;
+
+    private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
+    private readonly Dictionary<string, AccCoordination> _coord = new();
+    private readonly Dictionary<string, AccAorView> _aors = new();
+    private readonly Dictionary<string, IReadOnlyList<AccSpecialAreaView>> _areas = new();
+    private readonly Dictionary<string, IReadOnlyList<AccConfigTableView>> _configTables = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+
+        _roots = await Profile.ListTreeRootsAsync(Acc);
+        _root = ResolveTree(Tree, _roots);
+
+        _data = await Profile.LoadForViewAsync(Acc, _root);
+        _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
+
+        _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
+        foreach (var b in _data.Blocks)
+        {
+            _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
+            _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
+            _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
+            _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
+            _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
+        }
+    }
+
+    // Albero effettivo: quello in ?tree (se valido) o la radice primaria.
+    private string TreeQuery() => string.IsNullOrEmpty(_root) ? "" : $"?tree={_root}";
+
+    private static string? ResolveTree(string? tree, IReadOnlyList<AccTreeRoot> roots)
+    {
+        if (!string.IsNullOrWhiteSpace(tree))
+        {
+            var match = roots.FirstOrDefault(r => string.Equals(r.Callsign, tree, StringComparison.OrdinalIgnoreCase));
+            if (match is not null) return match.Callsign;
+        }
+        return roots.Count > 0 ? roots[0].Callsign : null;
+    }
+
+    private IReadOnlyList<string> OrderOf(AccBlock b)
+    {
+        var reg = AccSections.For(b.Kind);
+        var customKeys = b.CustomSections.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hidden = b.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return AccSections.Reconcile(reg, b.SectionOrder, customKeys).Where(k => !hidden.Contains(k)).ToList();
+    }
+
+    private static string TitleOf(IReadOnlyList<AppSectionDescriptor> reg, AccBlock b, string key) =>
+        AccSections.Find(reg, key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+
+    private RenderFragment SectionBody(AccBlock block, string key) => __builder =>
+    {
+        switch (key)
+        {
+            case "separations": <AppSeparations Rows="block.Separations" /> break;
+            case "configurations": @ConfigTableBody(block) break;
+            case "aor":
+                @* @key include l'albero: al cambio ?tree l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
+                <AccAor @key="@(block.Key + ":" + _root)" View="_aors.GetValueOrDefault(block.Key) ?? AccAorView.Empty" Id="@block.Key" />
+                break;
+            case "frequencies": <AppFrequencies Rows="_freqs.GetValueOrDefault(block.Key) ?? new()" /> break;
+            case "minima": <AppMinima /> break;
+            case "vfr": <AppVfr Content="ParseVfr(block.VfrJson)" /> break;
+            case "coordination": <AccCoordinationView Coord="_coord.GetValueOrDefault(block.Key) ?? AccCoordination.Empty" /> break;
+            case "regulated": @RegulatedBody(block) break;
+            default:
+                @if (block.CustomSections.FirstOrDefault(c => c.Key == key) is { } sec) { @CustomBody(sec) }
+                break;
+        }
+    };
+
+    private RenderFragment ConfigTableBody(AccBlock block) => __builder =>
+    {
+        var tables = _configTables.GetValueOrDefault(block.Key) ?? Array.Empty<AccConfigTableView>();
+        @if (tables.Count == 0) { <p class="muted">Nessuna configurazione operativa.</p> }
+        else { <p class="muted" style="margin-top:0;font-size:13.5px">Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</p> }
+        @foreach (var cfg in tables)
+        {
+            <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@block.Key">
+                <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
+                <div class="body">
+                    <table class="cfg-table">
+                        <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in cfg.Rows)
+                            {
+                                <tr class="grp-start">
+                                    <td class="uni">@row.UnifiedName</td>
+                                    <td>@string.Join(", ", row.Absorbed)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
+                                </tr>
+                            }
+                            @if (cfg.Rows.Count == 0) { <tr><td colspan="4" class="muted">Nessun settore aperto.</td></tr> }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
+    };
+
+    private RenderFragment RegulatedBody(AccBlock block) => __builder =>
+    {
+        var areas = _areas.GetValueOrDefault(block.Key) ?? Array.Empty<AccSpecialAreaView>();
+        @if (areas.Count == 0) { <p class="muted">Nessuna area regolamentata selezionata.</p> }
+        else
+        {
+            <p class="muted" style="margin-top:0;font-size:13.5px">Apri un'area per vederne shape e dettagli.</p>
+            @foreach (var a in areas)
+            {
+                <details class="coord-sub">
+                    <summary><span>@(string.IsNullOrWhiteSpace(a.Type) ? a.Name : $"{a.Type} · {a.Name}")</span><span class="chev">▸</span></summary>
+                    <div class="body">
+                        <div class="area-wrap">
+                            @if (a.Shape is not null)
+                            {
+                                <div class="aor-leaflet area-map" data-poly="@PointsJson(a.Shape)" data-color="#E93434">
+                                    @* Fallback SVG finché Leaflet non carica; sostituito dalla mappa reale. *@
+                                    <svg viewBox="@a.Shape.ViewBox" width="100%" height="100%" style="background:#fff7f7">
+                                        <path d="@a.Shape.Path" fill="#E93434" fill-opacity="0.16" stroke="#E93434" stroke-width="2" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            }
+                            else { <div class="area-svg area-noshape muted">Shape non disponibile</div> }
+                            <div class="area-meta">
+                                <div class="area-alt">
+                                    @if (a.MinimumAlt == a.MaximumAlt)
+                                    {
+                                        <b>@AltText(a.MaximumAlt)</b>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">Da</span><b>@AltText(a.MinimumAlt)</b><span class="muted">a</span><b>@AltText(a.MaximumAlt)</b>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(a.ActivationDetails)) { <p style="margin:.3em 0 0"><b>@a.ActivationDetails</b></p> }
+                                @if (!string.IsNullOrWhiteSpace(a.Description)) { <p style="margin:.3em 0 0">@a.Description</p> }
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            }
+        }
+    };
+
+    private static string AltText(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
+
+    private static string PointsJson(AppAorPolygon p) => System.Text.Json.JsonSerializer.Serialize(p.Points);
+
+    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
+    {
+        @foreach (var block in sec.Blocks)
+        {
+            if (block.Type == AppCustomBlockType.Prose)
+            {
+                @if (!string.IsNullOrWhiteSpace(block.Text)) { @MarkdownLite.Render(block.Text!) }
+            }
+            else
+            {
+                <table>
+                    <thead><tr>@foreach (var c in block.Columns ?? Array.Empty<string>()) { <th>@c</th> }</tr></thead>
+                    <tbody>@foreach (var r in block.Rows ?? Array.Empty<IReadOnlyList<string>>()) { <tr>@foreach (var cell in r) { <td>@cell</td> }</tr> }</tbody>
+                </table>
+            }
+        }
+    };
+
+    private static AppVfrContent ParseVfr(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
+        try { return System.Text.Json.JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
+        catch (System.Text.Json.JsonException) { return AppVfrContent.Empty; }
+    }
+}

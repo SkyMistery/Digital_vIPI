@@ -15,6 +15,12 @@ public interface IAccAdminRepository
     /// <summary>Upsert settori ATC (subcenter). Preserva IsHidden e i limiti admin (salvo valori dalla sorgente). Ritorna (creati, aggiornati).</summary>
     Task<(int Created, int Updated)> ImportSubcentersAsync(IReadOnlyList<SourceSubcenter> subs, CancellationToken ct = default);
 
+    /// <summary>Upsert aree speciali/regolamentate per IvaoId (chiave naturale). Ritorna (creati, aggiornati).</summary>
+    Task<(int Created, int Updated)> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default);
+
+    /// <summary>Cancella le aree speciali di un ACC il cui IvaoId non è più presente sulla sorgente. Ritorna il numero rimosse.</summary>
+    Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default);
+
     /// <summary>Tutti gli ACC (anche nascosti).</summary>
     Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default);
 

@@ -1,0 +1,67 @@
+@* Coordinamenti ACC: un'unica gerarchia Settore(NE) → ACC → Aeroporto → Arrivi/Partenze. *@
+<p class="muted" style="margin-top:0;font-size:13.5px">Trasferimenti dei settori del blocco, per settore → ACC dell'aeroporto → aeroporto → arrivi/partenze. Derivati dai flussi configurati.</p>
+
+@if (Coord.Sectors.Count == 0)
+{
+    <p class="muted" style="margin:0">Nessun coordinamento configurato per questo blocco.</p>
+}
+
+@foreach (var s in Coord.Sectors)
+{
+    <details class="coord-sub" open>
+        <summary><span>@s.SectorLabel</span><span class="chev">▸</span></summary>
+        <div class="body">
+            @foreach (var acc in s.Accs)
+            {
+                <details class="coord-sub2" open>
+                    <summary><span>@acc.AccLabel</span><span class="chev">▸</span></summary>
+                    <div class="body">
+                        @foreach (var ap in acc.Airports)
+                        {
+                            <details class="coord-sub2" open>
+                                <summary><span>@ap.AirportLabel</span><span class="chev">▸</span></summary>
+                                <div class="body">
+                                    @if (ap.Arrivals.Count > 0)
+                                    {
+                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">Arrivi</p>
+                                        @RenderTable(ap.Arrivals)
+                                    }
+                                    @if (ap.Departures.Count > 0)
+                                    {
+                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">Partenze</p>
+                                        @RenderTable(ap.Departures)
+                                    }
+                                </div>
+                            </details>
+                        }
+                    </div>
+                </details>
+            }
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public AccCoordination Coord { get; set; } = AccCoordination.Empty;
+
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows) => __builder =>
+    {
+        @foreach (var r in rows.Where(x => !string.IsNullOrWhiteSpace(x.Sentence)))
+        {
+            <p class="coord-sentence">@r.Sentence</p>
+        }
+        <table>
+            <thead><tr><th>CoP</th><th>Livello</th><th>Prossimo</th></tr></thead>
+            <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr>
+                        <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
+                        <td>@r.Level</td>
+                        <td>@r.Next</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    };
+}

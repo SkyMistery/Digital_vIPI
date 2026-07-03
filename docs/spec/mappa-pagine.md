@@ -27,7 +27,7 @@
 │        voce   → /vsop/{acc}/vloa/{docId}        (documento)
 └─ [Admin CH/AOD] Editor vIPI · Editor vLOA  (Trasferimenti → /vsop/admin/trasferimenti · Gerarchia → /vsop/admin/sectorstructure)
 
-/vsop/{acc}/vipi          vIPI ACC Estesa  ......................... VipiDocument.razor
+/vsop/{acc}/vipi          vIPI ACC (data-driven, multi-albero)  .... AccVipiPage.razor
 /vsop/{acc}/airports      Elenco aeroporti (no ?icao)  ............. AeroportoPage.razor
 /vsop/{acc}/airports?icao=XXXX   vIPI aeroporto (con ?icao)  ....... AeroportoPage.razor
 /vsop/{acc}/apps          Elenco APP non remotizzati  ............. AppsListPage.razor
@@ -47,7 +47,7 @@
 |---|---|---|---|
 | `/vsop` | `SopHome.razor` | Home | tutti |
 | `/vsop/{acc}` | `AccLanding.razor` | Landing ACC | tutti |
-| `/vsop/{acc}/vipi` | `VipiDocument.razor` | vIPI ACC Estesa | tutti (edit: AOD/DIR) |
+| `/vsop/{acc}/vipi` | `AccVipiPage.razor` | vIPI ACC (data-driven, multi-albero `?tree=`) | tutti (edit: AOD/DIR) |
 | `/vsop/{acc}/airports` | `AeroportoPage.razor` | Elenco + doc aeroporto | tutti |
 | `/vsop/{acc}/apps` | `AppsListPage.razor` | Elenco APP non remot. | tutti |
 | `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. (`?app=CALLSIGN`, **data-driven** dal profilo; tasto **✎ Editor** se autorizzato) | tutti (edit: AOD/DIR) |
@@ -60,7 +60,7 @@
 | `/vsop/versioni`, `/vsop/{acc}/versioni` | `VersioniPage.razor` | Bozze & versioni | staff |
 | `/vsop/editor` | `EditorHubPage.razor` | Hub editor (+ bottone «Nuovo documento») | staff |
 | `/vsop/editor/newdoc` | `NewDocumentPage.razor` | Creazione documenti. **vIPI ACC**: si scelgono i **root** degli alberi (ogni root porta lo scope dell'intero sottoalbero d'area = CTR + APP di ACC, **cross-ACC**; più alberi per doc). **vIPI APP**: solo APP non remotizzati (`App`+`Standalone`). **vLOA**: solo tra ACC **italiano** (Home) e **estero** (Neighbour), es. Roma↔Marsiglia. Lavora su una vista globale dei settori (`IStructureEditingService.ListSectorNodesAsync`) | admin |
-| `/vsop/{acc}/editor` | `EditorPage.razor` | Editor vIPI ACC **+ picker "in evidenza"** | admin/grant ACC |
+| `/vsop/{acc}/editor` | `AccEditorPage.razor` | Editor vIPI ACC (data-driven, multi-albero `?tree=`) | admin/grant ACC |
 | `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
 | `/vsop/{acc}/airports/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto (profilo + settori ATC importati: mostra/nascondi + limiti) | admin/grant ACC |
 | `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |

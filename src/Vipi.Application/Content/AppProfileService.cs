@@ -36,6 +36,9 @@ public interface IAppProfileService
     Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
     Task SaveCustomSectionsAsync(string appCallsign, IReadOnlyList<AppCustomSection> sections, CancellationToken ct = default);
+
+    /// <summary>Override per-documento del template della frase di coordinamento (null/vuoto = default globale).</summary>
+    Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAppProfileService"/>
@@ -45,14 +48,16 @@ public sealed class AppProfileService : IAppProfileService
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
     private readonly ITransferService _transfers;
+    private readonly ICoordinationSentenceTemplate _sentence;
 
     public AppProfileService(IAppProfileRepository repo, IEditAuthorizationService authz,
-        ITopologyProvider topology, ITransferService transfers)
+        ITopologyProvider topology, ITransferService transfers, ICoordinationSentenceTemplate sentence)
     {
         _repo = repo;
         _authz = authz;
         _topology = topology;
         _transfers = transfers;
+        _sentence = sentence;
     }
 
     public Task<AppProfileData?> LoadForViewAsync(string appCallsign, CancellationToken ct = default) =>
@@ -98,6 +103,15 @@ public sealed class AppProfileService : IAppProfileService
 
         var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
         var types = await _repo.GetSectorTypeMapAsync(ct);
+        var nameMap = await _repo.GetSectorNameMapAsync(ct);
+        var codeMap = await _repo.GetSectorCodeMapAsync(ct);
+        var airportMap = await _repo.GetAirportNameMapAsync(ct);
+        var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
+        var overrideTpl = await _repo.GetCoordinationTemplateAsync(appCallsign, ct);
+        var tpl = string.IsNullOrWhiteSpace(overrideTpl) ? _sentence.Current : _sentence.Current.WithTemplate(overrideTpl!);
+
+        string? Compose(string ownerCs, string targetCs, string? airportIcao, LevelConstraint constraint, string levelText, string cop)
+            => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, ownerCs, targetCs, airportIcao, constraint, levelText, cop);
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
@@ -110,7 +124,13 @@ public sealed class AppProfileService : IAppProfileService
                 if (string.IsNullOrWhiteSpace(next)) continue;
                 if (!types.TryGetValue(next, out var nextType)) continue;          // Next non risolvibile → salta
 
-                var row = new AppCoordRow(p.Cop, p.LevelText, next, flow.Kind);
+                var row = new AppCoordRow(p.Cop, p.LevelText, next, flow.Kind)
+                {
+                    OwnerCallsign = flow.OwningSectorCallsign,
+                    AirportIcao = flow.AirportIcao,
+                    Constraint = p.LevelConstraint,
+                    Sentence = Compose(flow.OwningSectorCallsign, next, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
+                };
                 if (nextType == SectorType.Ctr)
                     Bucket(towardAcc, next).Add(row);                              // verso ACC: partenze + arrivi
                 else if (nextType is SectorType.Twr or SectorType.ITwr && flow.Kind == TransferFlowKind.Arrival)
@@ -129,7 +149,14 @@ public sealed class AppProfileService : IAppProfileService
             foreach (var p in flow.Points)
             {
                 if (!string.Equals(p.NextSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)) continue;
-                Bucket(towardAcc, owner).Add(new AppCoordRow(p.Cop, p.LevelText, owner, TransferFlowKind.Arrival));
+                Bucket(towardAcc, owner).Add(new AppCoordRow(p.Cop, p.LevelText, owner, TransferFlowKind.Arrival)
+                {
+                    OwnerCallsign = owner,
+                    AirportIcao = flow.AirportIcao,
+                    Constraint = p.LevelConstraint,
+                    // Mittente = ACC (owner), destinatario = questo APP.
+                    Sentence = Compose(owner, appCallsign, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
+                });
             }
         }
 
@@ -201,6 +228,12 @@ public sealed class AppProfileService : IAppProfileService
         foreach (var s in sections)
             if (string.IsNullOrWhiteSpace(s.Title)) throw new ValidationException("Titolo obbligatorio per ogni sezione custom.");
         await _repo.SaveCustomSectionsAsync(Norm(appCallsign), sections, ct);
+    }
+
+    public async Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default)
+    {
+        await EnsureCanEditAsync(appCallsign, ct);
+        await _repo.SaveCoordinationTemplateAsync(Norm(appCallsign), template, ct);
     }
 
     private async Task EnsureCanEditAsync(string appCallsign, CancellationToken ct)

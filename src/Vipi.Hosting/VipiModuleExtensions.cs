@@ -58,6 +58,10 @@ public static class VipiModuleExtensions
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
         services.Configure<HostIdentityOptions>(configuration.GetSection(HostIdentityOptions.SectionName));
 
+        // Template (default globale) della frase di coordinamento: file editabile «content/coordination-sentence.json».
+        services.Configure<CoordinationSentenceOptions>(configuration.GetSection(CoordinationSentenceOptions.SectionName));
+        services.AddSingleton<Vipi.Application.Content.ICoordinationSentenceTemplate, CoordinationSentenceTemplateProvider>();
+
         // Identità: dal login dell'host (default) o utente fittizio in sviluppo.
         if (useDevIdentity)
         {

@@ -67,7 +67,9 @@ else
                             <AppAor Polygon="_aor" Towers="_towers" />
                             break;
                         case "frequencies":
-                            <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink" />
+                            <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink"
+                                            DragIndex="_freqDragIndex" OnDragStart="i => _freqDragIndex = i"
+                                            OnDragEnter="FreqDragOver" OnDrop="FreqDragDrop" OnDragEnd="FreqDragDrop" />
                             @if (_editing) { @FreqLinkPicker() }
                             break;
                         case "vfr":
@@ -77,6 +79,17 @@ else
                             <AppMinima />
                             break;
                         case "coordination":
+                            @if (_editing)
+                            {
+                                <div class="field" style="margin:0 0 12px">
+                                    <label>Frase di coordinamento — template (vuoto = default globale)</label>
+                                    <textarea class="app-in" rows="2"
+                                              placeholder="{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}."
+                                              value="@_coordTemplate"
+                                              @onchange="e => SaveCoordTemplate(AsString(e.Value))"></textarea>
+                                    <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>.</p>
+                                </div>
+                            }
                             <AppCoordinationView Coord="_coord" />
                             break;
                         default:
@@ -115,12 +128,14 @@ else
     private List<AppFreqRow> _freqs = new();
     private List<int> _linkIds = new();
     private AppCoordination _coord = AppCoordination.Empty;
+    private string? _coordTemplate;
     private AppAorPolygon? _aor;
     private IReadOnlyList<AppAorPolygon> _towers = Array.Empty<AppAorPolygon>();
 
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private string _freqSearch = "";
     private int? _dragIndex;
+    private int? _freqDragIndex;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -156,6 +171,7 @@ else
         _separations = _data.Separations.ToList();
         _vfr = ParseVfr(_data.VfrJson);
         _custom = _data.CustomSections.ToList();
+        _coordTemplate = _data.CoordinationSentenceTemplate;
         _hidden = _data.HiddenSections.ToList();
         _linkIds = _data.FrequencyLinks.Where(f => f.SourceSectorId is int).Select(f => f.SourceSectorId!.Value).ToList();
 
@@ -225,12 +241,39 @@ else
         await Guard(() => Profile.SaveVfrAsync(_app, JsonSerializer.Serialize(content)));
     }
 
+    private async Task SaveCoordTemplate(string text)
+    {
+        _coordTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        await Guard(async () =>
+        {
+            await Profile.SaveCoordinationTemplateAsync(_app, _coordTemplate);
+            await RefreshDerivedAsync();
+        });
+    }
+
     // ---- frequenze (derivate + override/link) ----
     private async Task MoveFreq((int Index, int Dir) m)
     {
         var j = m.Index + m.Dir;
         if (j < 0 || j >= _freqs.Count) return;
         (_freqs[m.Index], _freqs[j]) = (_freqs[j], _freqs[m.Index]);
+        var overrides = _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
+        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides));
+    }
+
+    private void FreqDragOver(int idx)
+    {
+        if (_freqDragIndex is not int from || from == idx) return;
+        var item = _freqs[from];
+        _freqs.RemoveAt(from);
+        _freqs.Insert(idx, item);
+        _freqDragIndex = idx;
+    }
+
+    private async Task FreqDragDrop()
+    {
+        if (_freqDragIndex is null) return;
+        _freqDragIndex = null;
         var overrides = _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
         await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides));
     }

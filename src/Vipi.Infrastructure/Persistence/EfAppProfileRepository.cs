@@ -72,6 +72,7 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
             FreqOrder = ParseFreqOrder(profile?.FreqOrderJson),
             FrequencyLinks = links,
             CustomSections = ParseList<AppCustomSection>(profile?.CustomSectionsJson),
+            CoordinationSentenceTemplate = profile?.CoordinationSentenceTemplate,
         };
     }
 
@@ -88,6 +89,51 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         var map = new Dictionary<string, SectorType>(StringComparer.OrdinalIgnoreCase);
         foreach (var r in rows) map[r.Callsign] = r.Type;
         return map;
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetSectorCodeMapAsync(CancellationToken ct = default)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in await _db.AccSectors.AsNoTracking()
+                     .Where(s => s.MiddleIdentifier != null && s.MiddleIdentifier != "")
+                     .Select(s => new { s.ComposePosition, s.MiddleIdentifier }).ToListAsync(ct))
+            map[r.ComposePosition] = r.MiddleIdentifier!;
+        foreach (var r in await _db.AirportSectors.AsNoTracking()
+                     .Where(s => s.MiddleIdentifier != null && s.MiddleIdentifier != "")
+                     .Select(s => new { s.ComposePosition, s.MiddleIdentifier }).ToListAsync(ct))
+            map.TryAdd(r.ComposePosition, r.MiddleIdentifier!);
+        return map;
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetAirportNameMapAsync(CancellationToken ct = default)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in await _db.Airports.AsNoTracking().Select(a => new { a.Icao, a.Name }).ToListAsync(ct))
+            map[a.Icao] = a.Name;
+        return map;
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetSectorNameMapAsync(CancellationToken ct = default)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in await _db.Sectors.AsNoTracking().Select(s => new { s.Callsign, s.Name }).ToListAsync(ct))
+            map[s.Callsign] = s.Name;
+        return map;
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default) =>
+        await EfAccProfileRepository.BuildAtcNameMapAsync(_db, ct);
+
+    public async Task<string?> GetCoordinationTemplateAsync(string appCallsign, CancellationToken ct = default) =>
+        await _db.AppProfiles.AsNoTracking()
+            .Where(p => p.Sector!.Callsign == appCallsign && p.Sector!.Type == SectorType.App)
+            .Select(p => p.CoordinationSentenceTemplate).FirstOrDefaultAsync(ct);
+
+    public async Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default)
+    {
+        var p = await GetOrCreateAsync(appCallsign, ct);
+        p.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(template) ? null : template;
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(

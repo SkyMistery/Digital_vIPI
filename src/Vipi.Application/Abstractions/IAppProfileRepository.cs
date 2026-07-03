@@ -37,6 +37,23 @@ public interface IAppProfileRepository
     /// <summary>Mappa callsign→tipo di tutti i settori (per classificare i Next dei coordinamenti: ACC vs torre).</summary>
     Task<IReadOnlyDictionary<string, SectorType>> GetSectorTypeMapAsync(CancellationToken ct = default);
 
+    /// <summary>Mappa callsign → codice settore (MiddleIdentifier, es. «WS2»/«ES»). Per la frase di coordinamento.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetSectorCodeMapAsync(CancellationToken ct = default);
+
+    /// <summary>Mappa ICAO → nome aeroporto. Per la frase di coordinamento.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetAirportNameMapAsync(CancellationToken ct = default);
+
+    /// <summary>Nome display del settore per callsign (Sector.Name), per il mittente della frase. Case-insensitive.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetSectorNameMapAsync(CancellationToken ct = default);
+
+    /// <summary>Mappa callsign → nome IVAO del settore (AtcCallsign, es. «Roma Radar»), senza il codice. Per il mittente.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default);
+
+    /// <summary>Override per-documento del template frase (null = default globale). Lettura leggera per la derivazione.</summary>
+    Task<string?> GetCoordinationTemplateAsync(string appCallsign, CancellationToken ct = default);
+
+    Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
+
     Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
     Task SaveVfrAsync(string appCallsign, string? vfrJson, CancellationToken ct = default);
     Task SaveSectionOrderAsync(string appCallsign, IReadOnlyList<string> order, CancellationToken ct = default);

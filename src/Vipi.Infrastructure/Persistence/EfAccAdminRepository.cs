@@ -59,6 +59,77 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<(int Created, int Updated)> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        int created = 0, updated = 0;
+
+        var accCodes = (await _db.Accs.Select(a => a.Code).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existing = await _db.SpecialAreas
+            .ToDictionaryAsync(s => s.IvaoId, StringComparer.OrdinalIgnoreCase, ct);
+        var handled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // dedup batch (stessa area su più ACC)
+
+        foreach (var a in areas)
+        {
+            var ivaoId = (a.IvaoId ?? "").Trim();
+            if (ivaoId.Length == 0) continue;
+            if (!handled.Add(ivaoId)) continue;         // già trattata in questo batch → salta
+            var center = a.CenterId.Trim().ToUpperInvariant();
+            if (!accCodes.Contains(center)) continue;   // niente ACC corrispondente → salta (FK)
+
+            if (existing.TryGetValue(ivaoId, out var row))
+            {
+                row.CenterId = center;
+                row.Type = a.Type;
+                row.Name = a.Name;
+                row.Description = a.Description;
+                row.ActivationDetails = a.ActivationDetails;
+                row.MinimumAlt = a.MinimumAlt;
+                row.MaximumAlt = a.MaximumAlt;
+                row.Range = a.Range;
+                if (a.RegionMapPolygon is not null) row.RegionMapPolygon = a.RegionMapPolygon;   // preserva shape se il dettaglio manca
+                row.ImportedAtUtc = now;
+                updated++;
+            }
+            else
+            {
+                _db.SpecialAreas.Add(new SpecialArea
+                {
+                    IvaoId = ivaoId,
+                    CenterId = center,
+                    Type = a.Type,
+                    Name = a.Name,
+                    Description = a.Description,
+                    ActivationDetails = a.ActivationDetails,
+                    MinimumAlt = a.MinimumAlt,
+                    MaximumAlt = a.MaximumAlt,
+                    Range = a.Range,
+                    RegionMapPolygon = a.RegionMapPolygon,
+                    ImportedAtUtc = now,
+                });
+                created++;
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return (created, updated);
+    }
+
+    public async Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
+    {
+        accCode = accCode.Trim().ToUpperInvariant();
+        var keep = keepIvaoIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var stale = await _db.SpecialAreas
+            .Where(s => s.CenterId == accCode)
+            .ToListAsync(ct);
+        var remove = stale.Where(s => !keep.Contains(s.IvaoId)).ToList();
+        if (remove.Count == 0) return 0;
+        _db.SpecialAreas.RemoveRange(remove);
+        await _db.SaveChangesAsync(ct);
+        return remove.Count;
+    }
+
     public async Task<(int Created, int Updated)> ImportSubcentersAsync(IReadOnlyList<SourceSubcenter> subs, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
@@ -81,6 +152,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 row.CenterId = center;
                 row.Position = s.Position;
                 row.MiddleIdentifier = s.MiddleIdentifier;
+                row.AtcCallsign = s.AtcCallsign;
                 row.Frequency = s.Frequency;
                 row.RegionMapPolygon = s.RegionMapPolygon;
                 // Limiti: l'admin comanda; aggiorna solo se la sorgente li espone (oggi null → preserva).
@@ -100,6 +172,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                     CenterId = center,
                     Position = s.Position,
                     MiddleIdentifier = s.MiddleIdentifier,
+                    AtcCallsign = s.AtcCallsign,
                     Frequency = s.Frequency,
                     RegionMapPolygon = s.RegionMapPolygon,
                     LowerLimit = s.LowerLimit ?? 0,        // default GND (0)

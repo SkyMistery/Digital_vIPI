@@ -42,6 +42,8 @@ public class VipiDbContext : DbContext
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
     public DbSet<AppProfile> AppProfiles => Set<AppProfile>();
     public DbSet<AppFrequencyLink> AppFrequencyLinks => Set<AppFrequencyLink>();
+    public DbSet<AccProfile> AccProfiles => Set<AccProfile>();
+    public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -244,6 +246,23 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.AppProfile).WithMany(p => p.FrequencyLinks).HasForeignKey(x => x.AppProfileId).OnDelete(DeleteBehavior.Cascade);
             // La sorgente è un altro settore (Sector.DefaultFrequency): se sparisce, sparisce il link (cascade).
             e.HasOne(x => x.SourceSector).WithMany().HasForeignKey(x => x.SourceSectorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Profilo vIPI ACC: una per (Acc, albero radice). Tutta la struttura a blocchi in BlocksJson. ---
+        b.Entity<AccProfile>(e =>
+        {
+            e.HasIndex(x => new { x.AccId, x.RootCallsign }).IsUnique();
+            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Aree speciali/regolamentate importate dalla sorgente, legate all'ACC via Acc.Code. ---
+        b.Entity<SpecialArea>(e =>
+        {
+            e.HasIndex(x => x.IvaoId).IsUnique();             // chiave naturale (reference update)
+            e.HasIndex(x => x.CenterId);
+            e.HasOne(x => x.Acc).WithMany()
+                .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

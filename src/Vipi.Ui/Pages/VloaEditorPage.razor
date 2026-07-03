@@ -20,7 +20,7 @@
     [Parameter] public string Acc { get; set; } = default!;
     private string? _error;
 
-    // L'editor è generico: la vLOA si edita con lo stesso EditorPage via ?doc={id}. Qui troviamo l'id e reindirizziamo.
+    // La vLOA si aprirà nel suo editor dedicato (ancora da realizzare) via /editor?doc={id}. Qui troviamo l'id e reindirizziamo.
     protected override async Task OnInitializedAsync()
     {
         try

@@ -365,8 +365,11 @@ else
                                         <td>@(hasLimits ? (s.HasPolygon ? "✓" : "—") : "—")</td>
                                         @if (hasLimits)
                                         {
-                                            <td><input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" disabled="@(!_canEdit)" /></td>
-                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" disabled="@(!_canEdit)" /></td>
+                                            <td>
+                                                <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" disabled="@(!_canEdit || s.LimitsFromSource)" />
+                                                @if (s.LimitsFromSource) { <span class="pill" style="background:#eef1f6;color:#5b6470;margin-left:4px" title="Limiti importati dalla sorgente (IVAO): sola lettura.">🔒</span> }
+                                            </td>
+                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
                                         }
                                         else
                                         {
@@ -384,7 +387,7 @@ else
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
-                                            @if (hasLimits)
+                                            @if (hasLimits && !s.LimitsFromSource)
                                             {
                                                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="Salva limiti">💾</button>
                                             }

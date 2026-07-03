@@ -250,6 +250,9 @@
 .coord-sub2>summary .chev{transition:.2s}
 .coord-sub2[open]>summary .chev{transform:rotate(90deg)}
 .coord-sub2 .body{padding:12px 14px}
+/* frase di coordinamento (una per riga CoP), sopra la tabella */
+.coord-sentence{font-size:14px;line-height:1.45;margin:0 0 8px;color:var(--ink)}
+.coord-sentence+table{margin-top:4px}
 /* tip operativo (stile riquadro centrato) */
 .tip{background:#0a1f6b;color:#cdd6ff;border-radius:12px;padding:18px 22px;margin:16px 0;text-align:center;font-style:italic;font-size:13.5px;line-height:1.5}
 .tip p{margin:8px 0}
@@ -476,19 +479,6 @@
 .doc-rowi{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
 .doc-rowi .di{font-size:18px}
 .doc-rowi .dmeta{margin-left:auto;font-size:12px;color:var(--ink-soft)}
-/* AoR 3D */
-.aor3d-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-#aor3d-stage{height:540px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#e9eeff,#f7f9ff);position:relative;cursor:grab;touch-action:none}
-#aor3d-stage.grabbing{cursor:grabbing}
-#aor3d-stage canvas{display:block}
-.aor3d-legend{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;box-shadow:var(--shadow)}
-.aor3d-legend .lgt{font-family:'Nunito Sans';font-weight:700;color:var(--ivao-blue);font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
-.aor3d-legend .lg-row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;user-select:none}
-.aor3d-legend .lg-row.off{opacity:.38}
-.aor3d-legend .lg-row .sw{width:14px;height:14px;border-radius:4px;flex:none}
-.aor3d-legend .lg-row .fl{margin-left:auto;color:var(--ink-soft);font-size:11px;font-family:ui-monospace,Consolas,monospace}
-.aor3d-hint{position:absolute;bottom:12px;right:14px;background:rgba(13,44,153,.82);color:#fff;border-radius:8px;padding:6px 11px;font-size:12px}
-.aor3d-fallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--ink-soft);font-size:14px}
 .k-info{background:#eef4fc;color:#2c5d99}.k-info.on{border-color:var(--ivao-info)}
 .k-success{background:#e7fbef;color:#0f7a37}.k-success.on{border-color:var(--ivao-green)}
 .k-warning{background:#fff7df;color:#8a6a00}.k-warning.on{border-color:var(--ivao-yellow)}
@@ -837,3 +827,66 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .app-sec-hidden .block{opacity:.55;background:repeating-linear-gradient(45deg,#fafafa,#fafafa 10px,#f2f2f2 10px,#f2f2f2 20px)}
 /* Stacking context isolato: confina gli z-index interni di Leaflet (pane/control ~200-1000) sotto la topbar (z-index:45). */
 .aor-leaflet{position:relative;z-index:0;isolation:isolate}
+
+/* Picker a chip (settori aperti, membri, aree): pill coerenti col resto della UI. */
+.sector-pick{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0}
+.sp-item{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font-size:13px;font-family:inherit;color:#222;line-height:1.2}
+.sp-item:hover{background:#f2f5ff;border-color:var(--ivao-lightblue)}
+.sp-item.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
+.sp-item.on b,.sp-item b{font-weight:700}
+
+/* Selettore albero (tab) — classi separate dall'AoR per evitare collisioni JS. */
+.tree-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tree-chip{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;background:#fff;text-decoration:none;color:#222}
+.tree-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
+
+/* Editor ACC: barra sticky (header + albero + indice sezioni) */
+.editor-bar{position:sticky;top:0;z-index:20;background:var(--bg,#fff);padding:10px 0 8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.editor-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.save-badge{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.save-badge.saving{background:#fff3cf;color:#8a6d00}
+.save-badge.saved{background:#e7fbef;color:#0f7a37}
+.editor-toc{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.editor-toc .toc-jump{font-family:inherit;font-size:12px;line-height:1.4;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink-soft,#556);text-decoration:none;cursor:pointer}
+.editor-toc .toc-jump:hover{border-color:var(--ivao-lightblue);color:var(--ivao-blue)}
+.editor-toc .toc-sep{width:1px;height:18px;background:var(--line);margin:0 2px}
+.editor-toc .toc-lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ivao-blue);padding:0 2px}
+.app-collapse{background:none;border:none;cursor:pointer;font-size:14px;color:var(--ivao-blue);padding:0 4px;line-height:1}
+/* salto d'ancora: lascia spazio sotto la barra sticky così il titolo sezione non finisce coperto */
+.struct .app-sec .block[id]{scroll-margin-top:180px}
+
+/* AoR ACC: chip settori (sopra la mappa) + selettore configurazione (sotto). */
+.aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.aor-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;user-select:none;opacity:.45;transition:.18s;background:#fff}
+.aor-chip.on{opacity:1;border-color:var(--ivao-lightblue);background:#f7f9ff}
+.aor-chip .sw{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--ivao-lightblue);display:inline-block}
+.aor-chip-actions{font-size:12.5px;color:var(--ink-soft,#556)}
+.aor-chip-actions .aor-all{cursor:pointer;text-decoration:underline}
+.cfg-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
+.cfg-sel-lab{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft,#556)}
+.cfg-btn{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;user-select:none;background:#fff}
+.cfg-btn.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
+.cfg-clear{cursor:pointer;text-decoration:underline;font-size:12.5px;color:var(--ink-soft,#556)}
+/* Tabella Configurazioni operative: cella "settore unificato" (rowspan) + separatore di gruppo. */
+.cfg-table td.uni{background:#eef1fb;color:var(--ivao-blue);font-family:'Nunito Sans',system-ui,sans-serif;font-weight:800;text-align:center;vertical-align:middle;border-right:2px solid #cdd6ff}
+.cfg-table tr.grp-start td{border-top:2px solid var(--ivao-lightblue)}
+.cfg-table tbody tr:hover td:not(.uni){background:#fafbff}
+/* Riga tabella Configurazioni operative evidenziata dalla config scelta. */
+.cfg-table tr.cfg-hl td{background:#fff3cf!important}
+.cfg-table tr.cfg-hl td:nth-child(2){box-shadow:inset 4px 0 0 var(--ivao-yellow)}
+/* Colonne uguali fra tutte le config: layout fisso, stesse larghezze ovunque. */
+.cfg-table{table-layout:fixed;width:100%}
+.cfg-table th:nth-child(1),.cfg-table td:nth-child(1){width:26%}
+.cfg-table th:nth-child(2),.cfg-table td:nth-child(2){width:38%}
+.cfg-table th:nth-child(3),.cfg-table td:nth-child(3){width:18%}
+.cfg-table th:nth-child(4),.cfg-table td:nth-child(4){width:18%}
+.cfg-table td{overflow-wrap:anywhere}
+
+/* Aree regolamentate (special areas): shape rossa + banda quota + note. */
+.area-wrap{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center}
+@media(max-width:600px){.area-wrap{grid-template-columns:1fr}}
+.area-svg{background:#fff7f7;border:1px solid #f4d5d5;border-radius:10px;width:100%;height:170px}
+.area-map{height:190px;width:100%;border:1px solid #f4d5d5;border-radius:10px;overflow:hidden}
+.area-noshape{display:grid;place-items:center;font-size:13px}
+.area-alt{display:flex;gap:8px;align-items:baseline}
+.area-alt b{color:var(--ivao-blue);font-size:20px}

@@ -52,11 +52,38 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Accs");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BlocksJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RootCallsign")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccId", "RootCallsign")
+                        .IsUnique();
+
+                    b.ToTable("AccProfiles");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("AtcCallsign")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CenterId")
                         .IsRequired()
@@ -325,6 +352,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AtcCallsign")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ComposePosition")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -345,6 +375,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsShapeSynthetic")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("LimitsFromSource")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("LowerLimit")
@@ -488,6 +521,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CoordinationSentenceTemplate")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CustomSectionsJson")
                         .IsRequired()
@@ -1013,6 +1049,58 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("SharedBlocks");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActivationDetails")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CenterId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ImportedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IvaoId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaximumAlt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MinimumAlt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Range")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RegionMapPolygon")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CenterId");
+
+                    b.HasIndex("IvaoId")
+                        .IsUnique();
+
+                    b.ToTable("SpecialAreas");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
                 {
                     b.Property<int>("UserId")
@@ -1219,6 +1307,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("ScopeSectorId");
 
                     b.ToTable("VectoringMinimaSets");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AccProfile", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
+                        .WithMany()
+                        .HasForeignKey("AccId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Acc");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
@@ -1515,6 +1614,18 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Document");
 
                     b.Navigation("ParentSector");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
+                        .WithMany()
+                        .HasForeignKey("CenterId")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Acc");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>

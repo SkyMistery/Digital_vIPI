@@ -15,4 +15,9 @@
     <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- File editabile della frase di coordinamento: copiato in output, ricaricato a caldo. -->
+    <Content Update="content\coordination-sentence.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

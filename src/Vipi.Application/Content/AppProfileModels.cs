@@ -20,8 +20,19 @@ public sealed record AppFreqRow(
     int? SourceSectorId, string Name, string Callsign, string FrequencyMhz,
     string Position, bool IsPrimary, bool IsLink);
 
-/// <summary>Riga di un gruppo di coordinamento (DERIVATA dai trasferimenti del settore APP).</summary>
-public sealed record AppCoordRow(string Cop, string Level, string Next, TransferFlowKind Kind);
+/// <summary>Riga di un gruppo di coordinamento (DERIVATA dai trasferimenti del settore APP).
+/// I membri init opzionali portano il contesto per comporre la frase di coordinamento (una per riga CoP).</summary>
+public sealed record AppCoordRow(string Cop, string Level, string Next, TransferFlowKind Kind)
+{
+    /// <summary>Callsign del settore che cede il traffico (mittente).</summary>
+    public string? OwnerCallsign { get; init; }
+    /// <summary>ICAO dell'aeroporto destinazione del flusso (null = nessuna frase).</summary>
+    public string? AirportIcao { get; init; }
+    /// <summary>Vincolo di livello: guida lo stato «in discesa/stabile/in salita».</summary>
+    public LevelConstraint? Constraint { get; init; }
+    /// <summary>Frase di coordinamento già composta (null/vuota = non mostrata).</summary>
+    public string? Sentence { get; init; }
+}
 
 /// <summary>Gruppo di coordinamenti verso un ente (un settore ACC o una torre): sotto-sezione del mockup.</summary>
 public sealed record AppCoordGroup(string TargetCallsign, IReadOnlyList<AppCoordRow> Rows);
@@ -86,4 +97,7 @@ public sealed class AppProfileData
 
     /// <summary>Sezioni custom (libere) del profilo.</summary>
     public required IReadOnlyList<AppCustomSection> CustomSections { get; init; }
+
+    /// <summary>Override per-documento del template della frase di coordinamento; null = default globale (file).</summary>
+    public string? CoordinationSentenceTemplate { get; init; }
 }

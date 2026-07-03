@@ -38,6 +38,7 @@ public class AccSector
 
     public string? Position { get; set; }                     // es. "CTR"
     public string? MiddleIdentifier { get; set; }             // es. "ES"
+    public string? AtcCallsign { get; set; }                  // nome visualizzato IVAO, es. "Roma Radar"
     public string? Frequency { get; set; }                    // MHz, da /v2/subcenters/{compose}
     public string? RegionMapPolygon { get; set; }             // poligono shape (JSON grezzo), da /v2/subcenters/{compose}
 
@@ -73,6 +74,7 @@ public class AirportSector
 
     public string? Position { get; set; }                      // suffisso: DEL/GND/TWR/APP/DEP…
     public string? MiddleIdentifier { get; set; }              // es. "US0"
+    public string? AtcCallsign { get; set; }                   // nome visualizzato IVAO, es. "Pisa Approach"
     public string? Frequency { get; set; }                     // MHz, da /v2/ATCPositions/{compose}
     public string? RegionMapPolygon { get; set; }              // poligono shape (JSON grezzo), da /v2/ATCPositions/{compose}
 
@@ -84,6 +86,11 @@ public class AirportSector
     public int? LowerLimit { get; set; }
     /// <summary>Limite superiore (ft/FL). Impostato dall'admin; default 19500.</summary>
     public int? UpperLimit { get; set; }
+
+    /// <summary>Vero se i limiti (Lower/Upper) provengono dalla SORGENTE (IVAO li ha esposti all'ultimo import):
+    /// in tal caso sono verità primaria e read-only nell'editor. Falso = limiti admin/default, editabili.
+    /// Ricalcolato a ogni import. Default false (oggi la sorgente non espone limiti → editabili).</summary>
+    public bool LimitsFromSource { get; set; }
 
     /// <summary>Nascosto dall'admin (resta nel DB). Default false = attivo.</summary>
     public bool IsHidden { get; set; }
@@ -370,6 +377,9 @@ public class AppProfile
 
     /// <summary>Frequenze extra linkate (riferimento vivo a un altro settore).</summary>
     public ICollection<AppFrequencyLink> FrequencyLinks { get; set; } = new List<AppFrequencyLink>();
+
+    /// <summary>Override per-documento del template della frase di coordinamento; null = usa il default globale (file).</summary>
+    public string? CoordinationSentenceTemplate { get; set; }
 }
 
 /// <summary>Frequenza extra linkata di un APP standalone (riferimento vivo): si risolve da Sector.DefaultFrequency. Mirror di <see cref="AirportFrequencyLink"/>.</summary>
@@ -382,4 +392,57 @@ public class AppFrequencyLink
     public int SourceSectorId { get; set; }            // FK → Sector (la sorgente)
     public Sector? SourceSector { get; set; }
     public string? LabelOverride { get; set; }         // etichetta custom (altrimenti il callsign del settore)
+}
+
+// =========================================================================================
+//  Profilo della vIPI di ACC: documento a BLOCCHI (Aerovia/CTR + gruppi APP). 1:1 con l'Acc.
+//  Tutta la struttura (blocchi, sezioni, ordine, hidden, custom, configurazioni, editoriale)
+//  è serializzata in BlocksJson; le sezioni derivate (AoR/Frequenze/Coordinamenti) si calcolano
+//  LIVE dai cataloghi/trasferimenti. Mirror, in chiave ACC multi-settore, di AppProfile.
+// =========================================================================================
+
+/// <summary>
+/// Profilo editoriale della vIPI ACC, ancorato 1:1 all'<see cref="Acc"/> via <see cref="AccId"/>.
+/// Il documento è una lista ordinata di blocchi (un blocco Aerovia + N blocchi gruppo-APP), ciascuno
+/// con le sue sezioni piatte (ordine/hidden/custom), configurazioni (settori aperti) e dati editoriali.
+/// Serializzato tutto in <see cref="BlocksJson"/>; le parti derivate non si salvano.
+/// </summary>
+public class AccProfile
+{
+    public int Id { get; set; }
+
+    /// <summary>FK → Acc. Con <see cref="RootCallsign"/> forma l'identità del profilo (unique composito).</summary>
+    public int AccId { get; set; }
+    public Acc? Acc { get; set; }
+
+    /// <summary>Callsign del CTR radice dell'albero a cui appartiene questa vIPI (una vIPI per albero).
+    /// Es. "LIRR_NE_CTR". Backfill al radice primario per i profili legacy.</summary>
+    public string? RootCallsign { get; set; }
+
+    /// <summary>Lista dei blocchi (Aerovia + gruppi APP) con tutto il loro stato, serializzata JSON.</summary>
+    public string BlocksJson { get; set; } = "[]";
+}
+
+/// <summary>
+/// Area speciale/regolamentata importata dalla sorgente (IVAO), legata a un ACC via <see cref="CenterId"/>.
+/// <see cref="IvaoId"/> è la chiave naturale (reference per gli update). La shape (<see cref="RegionMapPolygon"/>)
+/// è il JSON grezzo dal dettaglio: proiettabile con AorPolygonProjector.
+/// </summary>
+public class SpecialArea
+{
+    public int Id { get; set; }
+    public string IvaoId { get; set; } = default!;           // univoco, id IVAO (reference update)
+    public string CenterId { get; set; } = default!;         // FK → Acc.Code
+    public Acc? Acc { get; set; }
+
+    public string? Type { get; set; }                        // es. "R"
+    public string Name { get; set; } = default!;             // es. "LI R14A - S.Severa"
+    public string? Description { get; set; }
+    public string? ActivationDetails { get; set; }           // es. "Permanently active"
+    public int? MinimumAlt { get; set; }
+    public int? MaximumAlt { get; set; }
+    public bool Range { get; set; }
+
+    public string? RegionMapPolygon { get; set; }            // shape (JSON grezzo), da /v2/specialAreas/{id}
+    public DateTime? ImportedAtUtc { get; set; }
 }

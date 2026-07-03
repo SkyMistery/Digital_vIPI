@@ -23,8 +23,26 @@ public sealed record SourceSubcenter(
     string? MiddleIdentifier,
     string? Frequency,
     string? RegionMapPolygon,
+    string? AtcCallsign = null,
     int? LowerLimit = null,
     int? UpperLimit = null);
+
+/// <summary>
+/// Area speciale/regolamentata di un ACC dalla sorgente (es. IVAO <c>/v2/centers/{ACC}/specialAreas</c> + dettaglio
+/// <c>/v2/specialAreas/{id}</c>). <see cref="IvaoId"/> è la chiave naturale (reference per gli update); la shape
+/// (<see cref="RegionMapPolygon"/>) è risolta dal dettaglio.
+/// </summary>
+public sealed record SourceSpecialArea(
+    string IvaoId,
+    string? Type,
+    string Name,
+    string? Description,
+    string? ActivationDetails,
+    int? MinimumAlt,
+    int? MaximumAlt,
+    bool Range,
+    string CenterId,
+    string? RegionMapPolygon);
 
 /// <summary>
 /// Porta verso l'anagrafica ACC/center della sorgente esterna. Gli ACC e i loro settori ATC del sito
@@ -38,4 +56,7 @@ public interface IAccDirectory
 
     /// <summary>Settori ATC (subcenter) di un ACC, con frequenza e shape risolte dal dettaglio.</summary>
     Task<IReadOnlyList<SourceSubcenter>> GetSubcentersAsync(string accIcao, CancellationToken ct = default);
+
+    /// <summary>Aree speciali/regolamentate di un ACC (paginato), con shape risolta dal dettaglio.</summary>
+    Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default);
 }

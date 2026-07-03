@@ -36,7 +36,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             .OrderBy(s => s.ComposePosition)
             .Select(s => new AirportSectorRow(s.Id, s.ComposePosition, s.AirportIcao, s.AccCode, s.Position,
                 s.MiddleIdentifier, s.Frequency, s.LowerLimit, s.UpperLimit, s.IsHidden, s.RegionMapPolygon != null, s.IsPrimary,
-                s.IsAccApp))
+                s.IsAccApp, s.LimitsFromSource))
             .ToListAsync(ct);
     }
 
@@ -52,6 +52,9 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+        // Limiti da sorgente = verità primaria: read-only (la UI li disabilita; qui la difesa server).
+        if (s.LimitsFromSource)
+            throw new InvalidOperationException("I limiti di questo settore provengono dalla sorgente (IVAO): non modificabili.");
         s.LowerLimit = lower ?? DefaultLowerFt;   // inferiore: vuoto → 0 (GND)
         s.UpperLimit = upper;                      // superiore: vuoto → null = UNL
         await _db.SaveChangesAsync(ct);
@@ -162,16 +165,19 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                 row.AccCode = accCode;
                 row.Position = position;
                 row.MiddleIdentifier = p.MiddleIdentifier;
+                row.AtcCallsign = p.AtcCallsign;
                 row.Frequency = p.Frequency;
                 if (hasLimits)
                 {
                     row.RegionMapPolygon = p.RegionMapPolygon;
                     row.IsShapeSynthetic = false;   // shape (reale o assente) dalla sorgente: non è più sintetica
-                    // Limiti: l'admin comanda; aggiorna solo se la sorgente li espone (oggi null → preserva).
+                    // Limiti: la SORGENTE è verità primaria. Se li espone → sovrascrive e li blocca (LimitsFromSource);
+                    // se null → l'admin comanda (preserva il suo valore, o default) e restano editabili.
                     if (p.LowerLimit is not null) row.LowerLimit = p.LowerLimit;
                     else row.LowerLimit ??= DefaultLowerFt;
                     if (p.UpperLimit is not null) row.UpperLimit = p.UpperLimit;
                     else row.UpperLimit ??= DefaultUpperFt;
+                    row.LimitsFromSource = p.LowerLimit is not null || p.UpperLimit is not null;
                 }
                 else
                 {
@@ -179,6 +185,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     row.RegionMapPolygon = null;
                     row.LowerLimit = null;
                     row.UpperLimit = null;
+                    row.LimitsFromSource = false;
                 }
                 row.ImportedAtUtc = now;
                 updated++;
@@ -192,10 +199,12 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     AccCode = accCode,
                     Position = position,
                     MiddleIdentifier = p.MiddleIdentifier,
+                    AtcCallsign = p.AtcCallsign,
                     Frequency = p.Frequency,
                     RegionMapPolygon = hasLimits ? p.RegionMapPolygon : null,
                     LowerLimit = hasLimits ? (p.LowerLimit ?? DefaultLowerFt) : null,
                     UpperLimit = hasLimits ? (p.UpperLimit ?? DefaultUpperFt) : null,
+                    LimitsFromSource = hasLimits && (p.LowerLimit is not null || p.UpperLimit is not null),
                     IsHidden = false,
                     IsAccApp = DefaultIsAccApp(compose, position),   // 3 pezzi (LIRN_UN0_APP) = di ACC; 2 pezzi (LIRP_APP) = no
                     ImportedAtUtc = now,

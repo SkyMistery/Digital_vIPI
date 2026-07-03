@@ -1,0 +1,226 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
+using Vipi.Application.Content;
+using Vipi.Domain;
+using Vipi.Domain.Entities;
+using Vipi.Infrastructure.Aor;
+using Vipi.Infrastructure.Persistence;
+using Vipi.Infrastructure.Persistence.Seed;
+using Xunit;
+
+namespace Vipi.Infrastructure.Tests;
+
+/// <summary>vIPI ACC a blocchi (Aerovia + gruppi APP): roundtrip blocchi + derivazioni (frequenze, coordinamenti, AoR per config).</summary>
+public class AccProfileTests : IAsyncLifetime
+{
+    private readonly SqliteConnection _conn = new("Data Source=:memory:");
+    private VipiDbContext _db = default!;
+    private EfAccProfileRepository _repo = default!;
+    private AccProfileService _service = default!;
+
+    private const string Acc = "LIRR";
+
+    public async Task InitializeAsync()
+    {
+        await _conn.OpenAsync();
+        var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
+        _db = new VipiDbContext(options);
+        await _db.Database.EnsureCreatedAsync();
+        await RomaStructureSeed.SeedAsync(_db);
+
+        // Catalogo APP dell'aeroporto LIRP (frequenze) + poligoni AoR per i CTR e l'APP.
+        _db.AirportSectors.AddRange(
+            ApSec("LIRP_ATIS", "ATIS", "125.000", null),
+            ApSec("LIRP_TWR", "TWR", "118.300", null),
+            ApSec("LIRP_APP", "APP", "124.500", "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]"));
+        _db.AccSectors.AddRange(
+            AcSec("LIRR_NE_CTR", "[[12.0,42.0],[13.0,42.0],[13.0,43.0],[12.0,43.0]]"),
+            AcSec("LIRR_EW_CTR", "[[11.0,41.0],[12.0,41.0],[12.0,42.0],[11.0,42.0]]"));
+        await _db.SaveChangesAsync();
+
+        _repo = new EfAccProfileRepository(_db);
+        var authz = new AllowAuthz();
+        var topo = new TopologyBuilder(_db);
+        var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
+        _service = new AccProfileService(_repo, authz, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _db.DisposeAsync();
+        await _conn.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Loads_Default_With_Aerovia_Block()
+    {
+        var data = await _service.LoadForViewAsync(Acc);
+        Assert.Equal("Roma ACC", data.AccName);
+        var block = Assert.Single(data.Blocks);
+        Assert.Equal(AccBlockKind.Aerovia, block.Kind);
+    }
+
+    [Fact]
+    public async Task Blocks_Roundtrip()
+    {
+        var blocks = new List<AccBlock>
+        {
+            new() { Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "Aerovia",
+                SectionOrder = { "aor", "separations" }, HiddenSections = { "minima" },
+                Separations = { new AppSeparationRow("1000 ft", "5 NM") },
+                Configurations = { new AccConfiguration { Key = "c1", Name = "2 settori", Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } } } },
+            new() { Key = "grp:1", Kind = AccBlockKind.AppGroup, Title = "APP Pisa",
+                MemberCallsigns = { "LIRP_APP" },
+                CustomSections = { new AppCustomSection("custom:x", "Note", new List<AppCustomBlock>()) } },
+        };
+        await _service.SaveBlocksAsync(Acc, blocks);
+
+        Assert.Equal(1, await _db.AccProfiles.CountAsync());
+
+        var data = await _service.LoadForEditAsync(Acc);
+        Assert.Equal(2, data.Blocks.Count);
+        var aer = data.Blocks[0];
+        Assert.Equal(AccBlockKind.Aerovia, aer.Kind);            // Aerovia sempre primo
+        Assert.Equal(new[] { "aor", "separations" }, aer.SectionOrder);
+        Assert.Contains("minima", aer.HiddenSections);
+        Assert.Equal("2 settori", Assert.Single(aer.Configurations).Name);
+        var grp = data.Blocks[1];
+        Assert.Equal("APP Pisa", grp.Title);
+        Assert.Equal(new[] { "LIRP_APP" }, grp.MemberCallsigns);
+    }
+
+    [Fact]
+    public async Task Derive_Frequencies_Aerovia_Scopes_To_Tree()
+    {
+        // Membri vuoti = CTR del sottoalbero della radice indicata (una vIPI per albero).
+        var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var ne = await _service.DeriveFrequenciesAsync(Acc, block, "LIRR_NE_CTR");
+        Assert.Contains(ne, f => f.Callsign == "LIRR_NE_CTR" && f.FrequencyMhz == "128.800");
+        Assert.DoesNotContain(ne, f => f.Callsign == "LIRR_EW_CTR");   // EW è un altro albero
+
+        var ew = await _service.DeriveFrequenciesAsync(Acc, block, "LIRR_EW_CTR");
+        Assert.Contains(ew, f => f.Callsign == "LIRR_EW_CTR");
+        Assert.DoesNotContain(ew, f => f.Callsign == "LIRR_NE_CTR");
+    }
+
+    [Fact]
+    public async Task Profiles_Are_Independent_Per_Tree()
+    {
+        var neBlocks = new List<AccBlock> { new() { Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "NE" } };
+        await _service.SaveBlocksAsync(Acc, neBlocks, "LIRR_NE_CTR");
+
+        // L'albero EW non ha ancora un profilo salvato: carica il default (Aerovia vuoto), non quello di NE.
+        var ew = await _service.LoadForViewAsync(Acc, "LIRR_EW_CTR");
+        Assert.Single(ew.Blocks);
+        Assert.Equal("Settori di aerovia", ew.Blocks[0].Title);  // default, non "NE"
+        Assert.Equal(1, await _db.AccProfiles.CountAsync());    // LoadForView non crea: salvato solo NE
+    }
+
+    [Fact]
+    public async Task Derive_Frequencies_AppGroup_Expands_Airport_Catalog()
+    {
+        var block = new AccBlock { Key = "grp:1", Kind = AccBlockKind.AppGroup, MemberCallsigns = { "LIRP_APP" } };
+        var freqs = await _service.DeriveFrequenciesAsync(Acc, block);
+        Assert.Contains(freqs, f => f.Callsign == "LIRP_APP" && f.FrequencyMhz == "124.500");
+        Assert.Contains(freqs, f => f.Callsign == "LIRP_TWR");     // catalogo aeroporto espanso
+        Assert.Contains(freqs, f => f.Callsign == "LIRP_ATIS");
+    }
+
+    [Fact]
+    public async Task Derive_Coordination_Classifies_Acc_App_Towers()
+    {
+        var tr = new EfTransferRepository(_db);
+        var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
+        var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
+        var app = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRP_APP")).Id;
+
+        var fAcc = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ne, Kind = TransferFlowKind.Departure });
+        await tr.AddPointAsync(Acc, fAcc, Point("VALMA", 250, ew));         // NE → EW (CTR) = verso ACC
+        var fApp = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ne, Kind = TransferFlowKind.Arrival });
+        await tr.AddPointAsync(Acc, fApp, Point("MAREL", 110, app));        // NE → LIRP_APP = verso APP
+
+        var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var coord = await _service.DeriveCoordinationAsync(Acc, block, "LIRR_NE_CTR");   // albero NE (owner NE)
+
+        // Gerarchia unica Settore → ACC → Aeroporto → Arrivi/Partenze: NE con 1 partenza (→EW) e 1 arrivo (→LIRP_APP).
+        var sector = Assert.Single(coord.Sectors);
+        var accGroup = Assert.Single(sector.Accs);
+        var airport = Assert.Single(accGroup.Airports);
+        Assert.Single(airport.Arrivals);
+        Assert.Single(airport.Departures);
+    }
+
+    [Fact]
+    public async Task Config_Aor_Unions_Open_Sectors()
+    {
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations = { new AccConfiguration { Key = "c1", Name = "NE+EW", Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } } },
+        };
+        var aors = await _service.DeriveConfigAorsAsync(Acc, block);
+        var cfg = Assert.Single(aors);
+        Assert.Equal("NE+EW", cfg.ConfigName);
+        Assert.Equal(2, cfg.Polygons.Count);                    // due poligoni CTR proiettati
+    }
+
+    [Fact]
+    public async Task Config_Table_Derives_Accorpamento()
+    {
+        // Albero NE = {NE, TS} (TS figlio di NE). Config apre solo NE → NE assorbe NE + TS.
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "NE unificato",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR", CenterPoint = "GINEL", Range = "140" } } },
+            },
+        };
+
+        var tables = await _service.DeriveConfigTableAsync(Acc, block, "LIRR_NE_CTR");
+        var t = Assert.Single(tables);
+        var row = Assert.Single(t.Rows);                      // un solo settore unificato (NE)
+        Assert.Equal("LIRR_NE_CTR", row.UnifiedCallsign);
+        Assert.Equal("GINEL", row.CenterPoint);
+        Assert.Equal("140", row.Range);
+        Assert.Equal(2, row.Absorbed.Count);                 // accorpa NE + TS
+    }
+
+    // ---- helper ----
+
+    private static AirportSector ApSec(string compose, string position, string freq, string? poly) => new()
+    {
+        ComposePosition = compose, AirportIcao = "LIRP", AccCode = "LIRR", Position = position,
+        Frequency = freq, RegionMapPolygon = poly,
+    };
+
+    private static AccSector AcSec(string compose, string poly) => new()
+    {
+        ComposePosition = compose, CenterId = "LIRR", RegionMapPolygon = poly,
+    };
+
+    private static TransferPointInput Point(string cop, int level, int next) => new()
+    {
+        Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl,
+        LevelConstraint = LevelConstraint.AtOrAbove, NextSectorId = next,
+    };
+
+    private sealed class AllowAuthz : IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public int? CurrentUserId => 1;
+        public string? CurrentName => "test";
+        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
+        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
+        public void EnsureAdmin() { }
+    }
+}

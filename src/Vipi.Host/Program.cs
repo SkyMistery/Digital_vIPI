@@ -4,6 +4,9 @@ using Vipi.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// File editabile (default globale) della frase di coordinamento. reloadOnChange: l'autore edita senza restart.
+builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

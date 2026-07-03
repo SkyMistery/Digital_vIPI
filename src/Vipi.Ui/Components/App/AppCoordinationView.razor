@@ -55,6 +55,10 @@
 
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string lastCol = "Next") => __builder =>
     {
+        @foreach (var r in rows.Where(x => !string.IsNullOrWhiteSpace(x.Sentence)))
+        {
+            <p class="coord-sentence">@r.Sentence</p>
+        }
         <table>
             <thead>
                 <tr>

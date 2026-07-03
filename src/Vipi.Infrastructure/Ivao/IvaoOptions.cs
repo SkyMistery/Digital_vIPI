@@ -35,6 +35,12 @@ public sealed class IvaoOptions
     /// <summary>Template dettaglio postazione ATC d'aeroporto: <c>{0}</c> = composePosition. Es. <c>/v2/ATCPositions/LIRN_TWR</c>.</summary>
     public string AtcPositionDetailPathFormat { get; set; } = "/v2/ATCPositions/{0}";
 
+    /// <summary>Template elenco aree speciali di un ACC (paginato): <c>{0}</c> = ICAO ACC. Es. <c>/v2/centers/LIRR/specialAreas</c>.</summary>
+    public string SpecialAreasPathFormat { get; set; } = "/v2/centers/{0}/specialAreas";
+
+    /// <summary>Template dettaglio area speciale (con shape): <c>{0}</c> = id. Es. <c>/v2/specialAreas/8963</c>.</summary>
+    public string SpecialAreaDetailPathFormat { get; set; } = "/v2/specialAreas/{0}";
+
     /// <summary>Paese (countryId IVAO, es. "IT" per l'Italia) per cui scaricare gli aeroporti.</summary>
     public string AirportsCountryId { get; set; } = "IT";
 

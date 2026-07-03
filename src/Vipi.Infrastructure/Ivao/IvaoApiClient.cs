@@ -237,7 +237,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         var listBody = await GetStringAsync(listPath, ct);
         if (listBody is null) return Array.Empty<SourceSubcenter>();
 
-        var basics = new List<(string Compose, string Center, string? Pos, string? Mid)>();
+        var basics = new List<(string Compose, string Center, string? Pos, string? Mid, string? Name)>();
         using (var doc = System.Text.Json.JsonDocument.Parse(listBody))
         {
             var root = doc.RootElement;
@@ -251,7 +251,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
                     var compose = (JsonStr(s, "composePosition") ?? JsonStr(s, "id") ?? "").Trim().ToUpperInvariant();
                     if (compose.Length == 0) continue;
                     var center = (JsonStr(s, "centerId") ?? accIcao).Trim().ToUpperInvariant();
-                    basics.Add((compose, center, JsonStr(s, "position"), JsonStr(s, "middleIdentifier")));
+                    basics.Add((compose, center, JsonStr(s, "position"), JsonStr(s, "middleIdentifier"), JsonStr(s, "atcCallsign")));
                 }
         }
 
@@ -270,10 +270,99 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
                     && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
                     polygon = poly.GetRawText();
             }
-            result.Add(new SourceSubcenter(b.Compose, b.Center, b.Pos, b.Mid, freq, polygon));
+            result.Add(new SourceSubcenter(b.Compose, b.Center, b.Pos, b.Mid, freq, polygon, b.Name));
         }
 
         return result;
+    }
+
+    public async Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default)
+    {
+        if (!_token.IsConfigured)
+            throw new InvalidOperationException(
+                "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere le aree speciali.");
+
+        accIcao = (accIcao ?? "").Trim().ToUpperInvariant();
+        if (accIcao.Length == 0) return Array.Empty<SourceSpecialArea>();
+
+        // 1) Elenco paginato: id + campi anagrafici (best-effort, schema tollerante come i centers).
+        var basics = new List<(string Id, string? Type, string Name, string? Desc, string? Act, int? Min, int? Max, bool Range)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var listBase = string.Format(_opt.SpecialAreasPathFormat, Uri.EscapeDataString(accIcao));
+        var page = 1;
+        var maxPages = 1;
+        do
+        {
+            var body = await GetStringAsync($"{listBase}?page={page}", ct);
+            if (body is null)
+            {
+                // Prima pagina non risponde = fetch fallita (non "nessuna area"): segnala, così il prune non cancella per errore.
+                if (page == 1) throw new HttpRequestException($"specialAreas: nessuna risposta per {accIcao} (pagina 1).");
+                break;   // pagine successive: usa quanto raccolto
+            }
+
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("pages", out var pg) && pg.ValueKind == System.Text.Json.JsonValueKind.Number)
+                maxPages = Math.Max(maxPages, pg.GetInt32());
+            else if (root.TryGetProperty("totalPages", out var tp) && tp.ValueKind == System.Text.Json.JsonValueKind.Number)
+                maxPages = Math.Max(maxPages, tp.GetInt32());
+
+            var items = root.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? root
+                : (root.TryGetProperty("items", out var it) ? it
+                    : (root.TryGetProperty("data", out var dt) ? dt : default));
+            if (items.ValueKind != System.Text.Json.JsonValueKind.Array) break;
+
+            var any = false;
+            foreach (var s in items.EnumerateArray())
+            {
+                any = true;
+                var id = JsonId(s, "id");
+                if (id.Length == 0 || !seen.Add(id)) continue;
+                var name = JsonStr(s, "name") ?? id;
+                basics.Add((id, JsonStr(s, "type"), name, JsonStr(s, "description"), JsonStr(s, "activationDetails"),
+                    JsonNum(s, "minimumAlt") is double mn ? (int)Math.Round(mn) : null,
+                    JsonNum(s, "maximumAlt") is double mx ? (int)Math.Round(mx) : null,
+                    JsonBool(s, "range")));
+            }
+            if (!any) break;
+            page++;
+        } while (page <= maxPages && page <= 50);
+
+        // 2) Dettaglio per id: shape (regionMapPolygon grezzo, best-effort).
+        var result = new List<SourceSpecialArea>(basics.Count);
+        foreach (var b in basics)
+        {
+            string? polygon = null;
+            var detailBody = await GetStringAsync(string.Format(_opt.SpecialAreaDetailPathFormat, Uri.EscapeDataString(b.Id)), ct);
+            if (detailBody is not null)
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(detailBody);
+                var d = doc.RootElement;
+                if (d.TryGetProperty("regionMapPolygon", out var poly) && poly.ValueKind != System.Text.Json.JsonValueKind.Null
+                    && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    polygon = poly.GetRawText();
+                else if (d.TryGetProperty("regionMap", out var rm) && rm.ValueKind != System.Text.Json.JsonValueKind.Null
+                    && rm.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    polygon = rm.GetRawText();
+            }
+            result.Add(new SourceSpecialArea(b.Id, b.Type, b.Name, b.Desc, b.Act, b.Min, b.Max, b.Range, accIcao, polygon));
+        }
+
+        return result;
+    }
+
+    // Legge un id come stringa (numero o stringa).
+    private static string JsonId(System.Text.Json.JsonElement e, string name)
+    {
+        if (!e.TryGetProperty(name, out var v)) return "";
+        return v.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.String => v.GetString() ?? "",
+            System.Text.Json.JsonValueKind.Number => v.TryGetInt64(out var l) ? l.ToString() : v.GetRawText(),
+            _ => "",
+        };
     }
 
     // GET autorizzato che ritorna il body come stringa (null su 4xx/5xx). Best-effort per i dati di riferimento.
@@ -304,7 +393,8 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
                 Callsign: (p.ComposePosition ?? "").Trim().ToUpperInvariant(),   // es. "LIRN_GND" (NON atcCallsign, che è il nome)
                 Frequency: FormatFrequency(p.Frequency),
                 Position: p.Position,
-                MiddleIdentifier: p.MiddleIdentifier))
+                MiddleIdentifier: p.MiddleIdentifier,
+                AtcCallsign: p.AtcCallsign))
             .Where(p => p.Callsign.Length > 0)
             .ToList();
     }
@@ -456,6 +546,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         [property: JsonPropertyName("composePosition")] string? ComposePosition,
         [property: JsonPropertyName("position")] string? Position,
         [property: JsonPropertyName("middleIdentifier")] string? MiddleIdentifier,
+        [property: JsonPropertyName("atcCallsign")] string? AtcCallsign,
         [property: JsonPropertyName("frequency")] double? Frequency);
 
     // /v2/airports/{icao}/runways — es. { runway:"RW06", length:8622 (piedi), width:45, bearing:56 }.

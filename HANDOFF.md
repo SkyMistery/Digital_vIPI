@@ -1,10 +1,10 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 giugno 2026 (Round 22 — shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR)
+**Ultimo aggiornamento:** 2 luglio 2026 (Round 23 — vIPI ACC data-driven a blocchi)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
-**Stato:** progetto **in sviluppo attivo**. Solution .NET 8 a 4 layer + Host Blazor Server, **157 test verdi**, consultazione+editing+sicurezza dal DB. **Editor+viewer dedicati per gli APP non remotizzati** (round 21, vedi `docs/design/piano-editor-appn.md` + modello §9.13). **Shape tonda 5 NM di fallback per le TWR senza poligono** + overlay torre sulla mappa AOR (round 22, modello §9.14). **Live IVAO** (polling + cache + SSE, Ridotta live). **Sorgente dati disaccoppiata** (interfacce neutre + `DataSource:Provider`) + **policy di import opt-out**. Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC (Round 20).
+**Stato:** progetto **in sviluppo attivo**. Solution .NET 8 a 4 layer + Host Blazor Server, **164 test verdi**, consultazione+editing+sicurezza dal DB. **vIPI ACC data-driven a blocchi** (Aerovia CTR + gruppi-APP, specchio dell'editor APP; round 23, modello §9.15). **Editor+viewer dedicati per gli APP non remotizzati** (round 21, `docs/design/piano-editor-appn.md` + modello §9.13). **Shape tonda 5 NM di fallback per le TWR senza poligono** + overlay torre sulla mappa AOR (round 22, modello §9.14). **Live IVAO** (polling + cache + SSE, Ridotta live). **Sorgente dati disaccoppiata** (interfacce neutre + `DataSource:Provider`) + **policy di import opt-out**. Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC (Round 20).
 
-> **Storia dei round:** `docs/history/rounds.md` (changelog R5→R22). **Indice doc:** `docs/index.md`. Ultimo round: **22** — shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR; handoff di sessione in `docs/history/handoff-round22.md`, modello in `docs/spec/modello-dati.md` §9.14. (Round 21: editor APP non remotizzati, §9.13.)
+> **Storia dei round:** `docs/history/rounds.md` (changelog R5→R23). **Indice doc:** `docs/index.md`. Ultimo round: **23** — vIPI ACC data-driven a blocchi; modello in `docs/spec/modello-dati.md` §9.15. (Round 22: shape tonda TWR + coord aeroporto, §9.14; round 21: editor APP non remotizzati, §9.13.)
 
 ---
 

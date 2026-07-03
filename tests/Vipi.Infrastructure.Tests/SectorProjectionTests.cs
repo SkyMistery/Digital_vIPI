@@ -97,6 +97,30 @@ public class SectorProjectionTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Sync_Names_Sectors_From_AtcCallsign_Then_Composed_And_Harmonizes_Placeholders()
+    {
+        // Un AtcCallsign IVAO su un settore; gli altri senza → nome composto "{ICAO} {Tipo}".
+        var ts = await _db.AccSectors.FirstAsync(s => s.ComposePosition == "LIRR_TS_CTR");
+        ts.AtcCallsign = "Roma Radar";
+        // Segnaposto pre-esistente: un Sector già proiettato col Name = callsign grezzo (residuo vecchia proiezione).
+        var lirr = await _db.Accs.FirstAsync(a => a.Code == "LIRR");
+        _db.Sectors.Add(new Sector { AccId = lirr.Id, Callsign = "LIRP_TWR", Name = "LIRP_TWR",
+            Type = SectorType.Twr, Kind = SectorKind.Airport, IsProjected = true, IsActive = true });
+        // Nome personalizzato dall'admin (≠ callsign) → NON deve essere toccato.
+        _db.Sectors.Add(new Sector { AccId = lirr.Id, Callsign = "LIRP_GND", Name = "Pisa Ground custom",
+            Type = SectorType.Gnd, Kind = SectorKind.Airport, IsProjected = true, IsActive = true });
+        await _db.SaveChangesAsync();
+
+        await _proj.SyncFromCatalogsAsync();
+
+        Assert.Equal("Roma Radar", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRR_TS_CTR")).Name); // AtcCallsign vince
+        Assert.Equal("LIRR Control", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Name); // composto
+        Assert.Equal("LIRP Approach", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_APP")).Name);   // composto
+        Assert.Equal("LIRP Tower", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_TWR")).Name);      // segnaposto riarmonizzato
+        Assert.Equal("Pisa Ground custom", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_GND")).Name); // custom preservato
+    }
+
+    [Fact]
     public async Task Sync_Preserves_Id_And_Editorial_Flags_On_Existing_Sector()
     {
         // Un Sector già presente (es. seed/manuale) con lo stesso callsign e un flag editoriale.

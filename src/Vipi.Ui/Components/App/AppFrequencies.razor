@@ -1,24 +1,61 @@
-@* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link. *@
-<table>
+@* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link.
+   Con GroupOf (Aerovia ACC): colonna "Settore unico" con rowspan che accorpa le CTR per ramo dell'albero (#5). *@
+@{
+    var rowsList = Rows as IReadOnlyList<AppFreqRow> ?? Rows.ToList();
+    var grouped = GroupOf is not null;
+    // Per ogni riga: etichetta ramo + se è la prima del gruppo + span (0 se non prima). I gruppi sono già consecutivi (righe pre-ordinate).
+    var gLabel = new string?[rowsList.Count];
+    var gFirst = new bool[rowsList.Count];
+    var gSpan = new int[rowsList.Count];
+    if (grouped)
+    {
+        var i = 0;
+        while (i < rowsList.Count)
+        {
+            var lbl = GroupOf!(rowsList[i]);
+            var j = i;
+            while (j < rowsList.Count && string.Equals(GroupOf!(rowsList[j]), lbl, StringComparison.Ordinal)) j++;
+            gLabel[i] = lbl; gFirst[i] = true; gSpan[i] = j - i;
+            for (var k = i + 1; k < j; k++) { gLabel[k] = lbl; gFirst[k] = false; }
+            i = j;
+        }
+    }
+    var cols = (grouped ? 1 : 0) + 3 + (Editing ? 1 : 0);
+}
+<table class="@(grouped ? "cfg-table" : null)">
     <thead>
         <tr>
+            @if (grouped) { <th>Settore unico</th> }
             <th>Nome</th><th>Callsign</th><th>Frequenza</th>
             @if (Editing) { <th style="width:120px">Ordine</th> }
         </tr>
     </thead>
     <tbody>
-        @foreach (var (row, i) in Rows.Select((r, i) => (r, i)))
+        @for (var i = 0; i < rowsList.Count; i++)
         {
             var idx = i;
-            <tr class="@(row.IsPrimary ? "freq-table primary" : null)">
-                <td>@row.Name @(row.IsLink ? "🔗" : null)</td>
+            var row = rowsList[idx];
+            <tr class="@(row.IsPrimary ? "freq-table primary" : null) @(Editing && DragIndex == idx ? "app-sec-drag" : null) @(grouped && gFirst[idx] ? "grp-start" : null)"
+                @ondragover:preventDefault="Editing" @ondragenter="() => OnDragEnter.InvokeAsync(idx)"
+                @ondrop="OnDrop" @ondragend="OnDragEnd">
+                @if (grouped && gFirst[idx])
+                {
+                    <td class="uni" rowspan="@gSpan[idx]">@(string.IsNullOrWhiteSpace(gLabel[idx]) ? "—" : gLabel[idx])</td>
+                }
+                <td>
+                    @if (Editing)
+                    {
+                        <span class="app-drag" title="Trascina per riordinare" draggable="true" @ondragstart="() => OnDragStart.InvokeAsync(idx)">⠿</span>
+                    }
+                    @row.Name @(row.IsLink ? "🔗" : null)
+                </td>
                 <td>@row.Callsign</td>
                 <td>@row.FrequencyMhz @(row.IsPrimary ? (MarkupString)"<span class=\"freq-key\">★</span>" : (MarkupString)"")</td>
                 @if (Editing)
                 {
                     <td>
                         <button class="btn ghost" disabled="@(idx == 0)" title="Su" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
-                        <button class="btn ghost" disabled="@(idx == Rows.Count - 1)" title="Giù" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
+                        <button class="btn ghost" disabled="@(idx == rowsList.Count - 1)" title="Giù" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
                         @if (row.IsLink && row.SourceSectorId is int sid)
                         {
                             <button class="btn ghost" title="Rimuovi link" @onclick="() => OnRemoveLink.InvokeAsync(sid)">✕</button>
@@ -27,15 +64,15 @@
                 }
             </tr>
         }
-        @if (Rows.Count == 0)
+        @if (rowsList.Count == 0)
         {
-            <tr><td colspan="@(Editing ? 4 : 3)" class="muted">Nessuna frequenza nel sottoalbero dell'APP.</td></tr>
+            <tr><td colspan="@cols" class="muted">Nessuna frequenza nel sottoalbero.</td></tr>
         }
     </tbody>
 </table>
 @if (Editing)
 {
-    <p class="help" style="margin:8px 0 0">Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</p>
+    <p class="help" style="margin:8px 0 0">Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina trascinando ⠿ o con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</p>
 }
 
 @code {
@@ -43,4 +80,14 @@
     [Parameter] public bool Editing { get; set; }
     [Parameter] public EventCallback<(int Index, int Dir)> OnMove { get; set; }
     [Parameter] public EventCallback<int> OnRemoveLink { get; set; }
+
+    // Accorpamento per ramo (Aerovia ACC): callsign → nome ramo. null = nessun raggruppamento.
+    [Parameter] public Func<AppFreqRow, string?>? GroupOf { get; set; }
+
+    // Drag-and-drop riordino (maniglia ⠿): il container/pagina possiede lo stato _freqDragIndex.
+    [Parameter] public int? DragIndex { get; set; }
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+    [Parameter] public EventCallback<int> OnDragEnter { get; set; }
+    [Parameter] public EventCallback OnDrop { get; set; }
+    [Parameter] public EventCallback OnDragEnd { get; set; }
 }

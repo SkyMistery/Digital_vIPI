@@ -1,0 +1,66 @@
+@* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
+   data-sectors = [{sec,name,color,rings:[[[lat,lng],…]]}]; l'interattività è client-side (vipi-aor.js). SVG di fallback. *@
+@using System.Text.Json
+@if (View.Sectors is { Count: > 0 })
+{
+    <div class="aor-block" data-aor="@Id">
+        <div class="aor-toggles">
+            @foreach (var s in View.Sectors)
+            {
+                <span class="aor-chip on" data-sec="@s.Callsign">
+                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Name
+                </span>
+            }
+            <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+        </div>
+
+        <div class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
+            <svg viewBox="@View.Sectors[0].Polygons[0].ViewBox" width="100%" height="100%" style="background:#f7f9ff">
+                @foreach (var s in View.Sectors)
+                {
+                    @foreach (var p in s.Polygons)
+                    {
+                        <path data-sec="@s.Callsign" d="@p.Path" fill="@s.Color" fill-opacity="0.16" stroke="@s.Color" stroke-width="2" stroke-linejoin="round" />
+                    }
+                }
+            </svg>
+        </div>
+
+        @if (View.Configs is { Count: > 0 })
+        {
+            <div class="cfg-sel">
+                <span class="cfg-sel-lab">Configurazione:</span>
+                @foreach (var c in View.Configs)
+                {
+                    <span class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key">@c.Name</span>
+                }
+                <a class="cfg-clear" data-rows="">azzera</a>
+            </div>
+        }
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</p>
+    </div>
+}
+else
+{
+    <div class="callout warning" style="margin:0">
+        <span class="cic">🗺️</span>
+        <div>
+            <p class="ct">Shape AOR non disponibile</p>
+            Nessun poligono per i settori del blocco (non ancora importati o non leggibili).
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public AccAorView View { get; set; } = AccAorView.Empty;
+    [Parameter] public string? Id { get; set; }
+
+    private string SectorsJson() => JsonSerializer.Serialize(
+        View.Sectors.Select(s => new
+        {
+            sec = s.Callsign,
+            name = s.Name,
+            color = s.Color,
+            rings = s.Polygons.Select(p => p.Points)
+        }));
+}
