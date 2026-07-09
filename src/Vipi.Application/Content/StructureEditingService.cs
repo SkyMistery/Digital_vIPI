@@ -45,12 +45,6 @@ public interface IStructureEditingService
     /// </summary>
     Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default);
 
-    /// <summary>
-    /// Variante di sistema (NESSUNA authz) di <see cref="GenerateAirportDocumentAsync"/>: usata dai job di
-    /// import automatico e dopo l'import dei settori. Da NON esporre a input utente diretto.
-    /// </summary>
-    Task<AirportDocResult> EnsureAirportDocumentSystemAsync(string icao, CancellationToken ct = default);
-
     Task<int> AddSectorAsync(string accCode, string callsign, SectorType type, SectorKind kind, string name,
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default);
@@ -182,9 +176,6 @@ public sealed class StructureEditingService : IStructureEditingService
         _authz.EnsureAdmin();
         return await GenerateAirportDocumentCoreAsync(icao, ct);
     }
-
-    public Task<AirportDocResult> EnsureAirportDocumentSystemAsync(string icao, CancellationToken ct = default) =>
-        GenerateAirportDocumentCoreAsync(icao, ct);   // job di sistema: nessuna authz
 
     private async Task<AirportDocResult> GenerateAirportDocumentCoreAsync(string icao, CancellationToken ct = default)
     {

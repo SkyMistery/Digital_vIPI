@@ -10,16 +10,14 @@ public sealed class AirportSectorService : IAirportSectorService
     private readonly IAirportSectorRepository _repo;
     private readonly IAirportSectorImporter _importer;
     private readonly IEditAuthorizationService _authz;
-    private readonly IStructureEditingService _structure;
     private readonly ISectorProjectionService _projection;
 
     public AirportSectorService(IAirportSectorRepository repo, IAirportSectorImporter importer,
-        IEditAuthorizationService authz, IStructureEditingService structure, ISectorProjectionService projection)
+        IEditAuthorizationService authz, ISectorProjectionService projection)
     {
         _repo = repo;
         _importer = importer;
         _authz = authz;
-        _structure = structure;
         _projection = projection;
     }
 
@@ -36,9 +34,8 @@ public sealed class AirportSectorService : IAirportSectorService
         // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
         await _projection.SyncFromCatalogsAsync(ct);
 
-        // Documento aeroporto creato/aggiornato in automatico (l'utente ha già passato la guardia ACC sopra).
-        try { await _structure.EnsureAirportDocumentSystemAsync(icao, ct); } catch { /* best-effort */ }
-
+        // NB: l'import popola SOLO il catalogo. La generazione del documento è scollegata (doc 03 §4.3):
+        // avviene a parte via «Genera documenti» (GenerateAirportDocumentAsync).
         return new AirportSectorImportResult(created, updated);
     }
 
