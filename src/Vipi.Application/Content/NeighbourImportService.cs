@@ -8,37 +8,6 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Riga candidato confinante per la pagina admin.</summary>
-public sealed record NeighbourCandidateRow(
-    int Id, string HomeAccCode, string ForeignAccCode, string ForeignAccName, string CountryId,
-    string ForeignRootCallsign, bool HasPolygon, double? MinDistanceNm, int AdjacentSectorCount,
-    NeighbourCandidateStatus Status, int? VloaDocumentId);
-
-/// <summary>Esito dell'import+calcolo adiacenza degli ACC confinanti.</summary>
-public sealed record NeighbourImportResult(
-    int CountriesQueried, int ForeignAccsFetched, int CandidatesCreated, int CandidatesUpdated,
-    IReadOnlyList<string> Warnings);
-
-/// <summary>Coppia di settori adiacenti (domestico ↔ estero) con la distanza minima tra i bordi.</summary>
-public sealed record NeighbourAdjacency(string HomeSector, string ForeignSector, double DistanceNm);
-
-/// <summary>Forma per la mappa di verifica: callsign del settore, path SVG (viewBox condiviso) e i punti
-/// geografici [lat,lng] dell'anello (per la mappa Leaflet reale).</summary>
-public sealed record NeighbourMapShape(string Sector, string Path, IReadOnlyList<double[]> Points);
-
-/// <summary>
-/// Dettaglio di verifica di una coppia ACC confinante: elenco delle adiacenze settore↔settore (con distanza) e le
-/// forme proiettate in un viewBox condiviso (settori domestici + esteri) per il disegno della mappa. Calcolato
-/// on-demand (ri-scarica i subcenter esteri da IVAO), non persistito.
-/// </summary>
-public sealed record NeighbourPairDetail(
-    string HomeAccCode, string ForeignAccCode,
-    IReadOnlyList<NeighbourAdjacency> Adjacencies,
-    string? MapViewBox,
-    IReadOnlyList<NeighbourMapShape> HomeShapes,
-    IReadOnlyList<NeighbourMapShape> ForeignShapes,
-    IReadOnlyList<string> Warnings);
-
 /// <summary>
 /// Use-case (admin-only) per generare le vLOA con gli ACC confinanti. Scarica da IVAO gli ACC/settori dei paesi
 /// vicini (<c>Neighbours:CountryIds</c>), calcola quali settori confinano geometricamente con i settori domestici
@@ -191,12 +160,12 @@ public sealed class NeighbourImportService : INeighbourImportService
         }
 
         // 2c) Aggregazione per coppia (Home, Foreign): min distanza + conteggio settori adiacenti.
-        var agg = new Dictionary<(string Home, string Foreign), Aggregate>();
+        var agg = new Dictionary<(string Home, string Foreign), NeighbourPairAggregate>();
         foreach (var h in hits)
         {
             var key = (h.Home, h.Foreign);
             if (!agg.TryGetValue(key, out var a))
-                agg[key] = a = new Aggregate { ForeignName = h.Name, CountryId = h.Country };
+                agg[key] = a = new NeighbourPairAggregate { ForeignName = h.Name, CountryId = h.Country };
             a.Count++;
             a.HomeSectors.Add(h.HomeSect);
             a.ForeignSectors.Add(h.ForeignSect);
@@ -388,16 +357,5 @@ public sealed class NeighbourImportService : INeighbourImportService
             finally { gate.Release(); }
         });
         await Task.WhenAll(tasks);
-    }
-
-    private sealed class Aggregate
-    {
-        public string ForeignName = "";
-        public string CountryId = "";
-        public int Count;
-        public double MinDist = double.MaxValue;
-        public string? BestForeignPolygon;
-        public readonly HashSet<string> HomeSectors = new(StringComparer.OrdinalIgnoreCase);
-        public readonly HashSet<string> ForeignSectors = new(StringComparer.OrdinalIgnoreCase);
     }
 }
