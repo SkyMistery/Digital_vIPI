@@ -112,10 +112,17 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
   → 8 entità in file singoli; `EditingService.cs` → `IEditingService` + `EditNotAllowedException`
   + `EditConflictException`. **Saltati** `AccProfileModels`/`AppProfileModels`/`VloaSections`:
   vengono rimossi in 08d, estrarli ora = churn buttato.
-- **08c — `Document` generalizzato** con sezioni guidate dal catalogo (test-first), affiancato
-  al modello attuale (nessuna rottura ancora).
-- **08d — migrazione editing** ACC/APP/Airport → `Document`; **drop** del modello profile e dei
-  dati vecchi (migrazione EF di rimozione). Greenfield.
+- **08c ✅ — ponte** `SectionCatalogBridge` (fatto 2026-07-09, +11 test): `BlockSection` legacy →
+  chiavi catalogo, usato dalle migrazioni per-tipo.
+- **08d — migrazione editing per tipo** (67 file profile → un tipo alla volta; **no** migrazione
+  dati, solo reset schema greenfield; il rewire è codice, non DB):
+  - **08d-vloa ✅** (fatto 2026-07-09, 246 test): `DocumentSection.SectionKind` (enum) →
+    `SectionKey` (chiave catalogo) su tutto il modello classic; DTO/viewer/editor vLOA su chiavi;
+    seed/builder convertono via bridge; migrazione EF `SectionKeyCatalog`. vLOA completamente
+    migrata; il documento GENERATO di ACC/Airport usa già le chiavi.
+  - **08d-acc / 08d-app / 08d-airport ⏳** — migrare l'EDITING (oggi profile JSON) su `Document`;
+    per l'aeroporto i dati strutturati (piste/SID/TA-TL) restano come **sorgente**, il `Document`
+    ne deriva. Poi drop del modello profile.
 - **08e — creazione uniforme** `CreateDocumentUseCase` + fix routing `?doc`
   ([[vloa-editor-routing-todo]]).
 - **08f — cleanup**: rimozione codice morto profile, repo/tabelle obsolete.
