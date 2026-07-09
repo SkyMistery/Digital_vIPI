@@ -36,11 +36,11 @@ public sealed class AirportSectorImportHostedService : BackgroundService
     {
         var repo = sp.GetRequiredService<IAirportSectorRepository>();
         var importer = sp.GetRequiredService<Vipi.Application.Content.IAirportSectorImporter>();
-        var structure = sp.GetRequiredService<Vipi.Application.Content.IStructureEditingService>();
 
         // Import + proiezione dalla sorgente: se la sorgente non è configurata fallisce, ma NON deve impedire
         // il fallback shape (che lavora sul catalogo già in DB). Perciò è isolato in un proprio try.
-        int created = 0, updated = 0, airports = 0, docs = 0;
+        // NB: l'import popola SOLO il catalogo; la generazione documento è scollegata (doc 03 §4.3).
+        int created = 0, updated = 0, airports = 0;
         try
         {
             var icaos = await repo.ListAirportIcaosAsync(ct);
@@ -49,10 +49,6 @@ public sealed class AirportSectorImportHostedService : BackgroundService
                 var (c, u) = await importer.ImportAsync(icao, ct);
                 if (c == 0 && u == 0) continue;
                 created += c; updated += u; airports++;
-
-                // Documento aeroporto: creato/aggiornato in automatico per ogni aeroporto con ACC (idempotente).
-                try { if ((await structure.EnsureAirportDocumentSystemAsync(icao, ct)).Created) docs++; }
-                catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
             }
 
             // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
@@ -74,8 +70,8 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         }
         catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
 
-        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}, shape TWR sintetiche {Circles}.",
-            airports, created, updated, docs, circles);
+        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR sintetiche {Circles}. Documento non generato (scollegato, doc 03).",
+            airports, created, updated, circles);
         return true;
     }
 }

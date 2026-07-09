@@ -1,7 +1,19 @@
-# 03 — Import aeroporti + settori di aeroporto (punti 3+4) 🟢🟡
+# 03 — Import aeroporti + settori di aeroporto (punti 3+4) 🟢✅
 
 > Aeroporti (anagrafica/assegnazione) e posizioni ATC di aeroporto (incl. APP).
 > Il punto 3 **riusa** il punto 4. Dipende da: doc 01.
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/03-import-airport`, 199 test).
+> Record/interfacce estratti (§4.1); `AirportImportUseCase` per il punto 3 fuori da
+> `StructureEditingService` con fallimenti loggati dalla UI (§4.2); **generazione documento
+> scollegata dall'import** (§4.3, scelta B — cambio comportamento approvato: import popola
+> solo il catalogo, doc generato solo via «Genera documenti»). Vedi `../history/rounds.md`
+> «Refactor 03».
+>
+> **NB** i ref a `IvaoApiClient.cs` in sez.1 sono storici: dal refactor 01 le porte
+> aeroporto sono `IvaoAirportClient` (anagrafica) e `IvaoAirportDetailClient` (posizioni).
+> `AirportSectorImporter` è già l'orchestratore unico delle posizioni (P2 in gran parte
+> già risolto); i call-site non duplicano il loop.
 
 ## 1. Stato attuale
 
@@ -52,27 +64,53 @@ Nessun job automatico per l'anagrafica aeroporti (solo "auto-assign" manuale).
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09.
 
-- **`AirportImportUseCase`** dedicato per il punto 3, fuori da `StructureEditingService`.
-- **`AirportSectorImporter`** resta l'unico orchestratore delle posizioni; i 3 call-site
-  lo invocano senza duplicare l'iterazione.
-- **Scollegare ensure-documento dall'import**: l'import popola i cataloghi; la creazione
-  del documento è un passo separato (coordinato con doc 08).
-- Estrarre i record dai file multi-classe.
+- **`AirportImportUseCase`** (+ `IAirportImportUseCase`) dedicato per il punto 3, fuori da
+  `StructureEditingService` (P1). Corpo: `GetAirportsAsync → AutoAssignAirportsAsync →
+  foreach import`. Ritorna `AirportImportResult { Assigned, Failures }`; i fallimenti import
+  per-aeroporto (oggi scartati in silenzio a `StructureEditingService:185`) sono **raccolti
+  e ritornati** → il chiamante li logga (*direttiva logging*). `StructureEditingService.
+  AutoAssignKnownAirportsAsync` = `EnsureAdmin` + delega + `Sync`; la UI (`AeroportiPage`)
+  logga/mostra i `Failures`.
+- **`AirportSectorImporter`** resta l'orchestratore unico delle posizioni (già così);
+  spostare la sua interfaccia in file proprio.
+- **Scollegare ensure-documento dall'import — *decisione D-03: separazione reale (B)*.**
+  L'import popola **solo** il catalogo; NON genera più il documento. Si rimuovono le
+  chiamate `EnsureAirportDocumentSystemAsync` da `AirportSectorService.ImportFromSourceAsync`
+  e dal loop di `AirportSectorImportHostedService`; il metodo *System* (no-authz) diventa
+  morto → rimosso. La generazione documento resta **solo** manuale via
+  `GenerateAirportDocumentAsync` (bottone admin «📄 Genera documenti», `AeroportiPage:63`).
+  ⚠ **Cambio di comportamento intenzionale e approvato**: importare i settori non aggiorna
+  più il documento (prima lo faceva). Il §5 originale già lo anticipava.
+- Estrarre i record da `AirportSectorService.cs` (`AirportSectorRow`,
+  `AirportSectorImportResult`, `IAirportSectorService`).
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Meccanico prima, logica dopo.
 
-1. Estrarre record da `AirportSectorService.cs` e interfaccia da `AirportSectorImporter.cs`.
-2. Creare `AirportImportUseCase`, spostarvi la parte di anagrafica da `StructureEditingService`.
-3. Convergere i 3 call-site su `AirportSectorImporter`.
-4. Separare `EnsureAirportDocument*` dall'import (dipende da decisioni doc 08).
+**Meccanico (commit separato):**
+1. Estrarre da `AirportSectorService.cs` i record `AirportSectorRow`,
+   `AirportSectorImportResult` e l'interfaccia `IAirportSectorService`; estrarre
+   `IAirportSectorImporter` da `AirportSectorImporter.cs`. File singoli.
+
+**Con logica (1 commit per passo, build verde):**
+2. Creare `AirportImportUseCase` (+ `IAirportImportUseCase`, `AirportImportResult`,
+   `AirportImportFailure`). Spostarvi il corpo anagrafica da
+   `StructureEditingService.AutoAssignKnownAirportsAsync`; il metodo diventa
+   `EnsureAdmin` + delega + `Sync` e ritorna i `Failures`; `AeroportiPage` li logga.
+3. **Scollegamento (B)**: rimuovere `EnsureAirportDocumentSystemAsync` da
+   `AirportSectorService.ImportFromSourceAsync` e dal loop di
+   `AirportSectorImportHostedService`; rimuovere il metodo *System* (morto). Import =
+   solo catalogo + `Sync` (+ fallback shape nel job auto).
 
 ## 5. Impatto
 
-- **Dipende da** doc 01. **Accoppiato con** doc 08 (ensure-documento). **A valle**:
-  doc 06 (gerarchia usa `AirportSector` APP come nodi, `Airport` come leaf).
-- **Verifica**: import posizioni manuale e auto → stesso stato; aeroporti assegnati
-  correttamente; documento aeroporto ancora generabile dopo lo scollegamento.
+- **Dipende da** doc 01. **A valle**: doc 06 (gerarchia usa `AirportSector` APP come nodi,
+  `Airport` come leaf); doc 08 riprende la generazione documento (ora completamente separata).
+- **Verifica** (Fase 3): import (manuale editor + job auto) popola il catalogo settori
+  **senza** generare documenti; il bottone «📄 Genera documenti» genera ancora; aeroporti
+  assegnati correttamente da `AutoAssign`; fallimenti import per-aeroporto ora **loggati**;
+  conteggio test = baseline (199). *Nota: questo giro contiene un cambio di comportamento
+  approvato (import non genera doc) — la verifica controlla il comportamento nuovo, non l'invarianza.*
