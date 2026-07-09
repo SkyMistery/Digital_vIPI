@@ -26,10 +26,8 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         _division = division.Value;
     }
 
-    /// <summary>Un ACC è ESTERO se il suo codice non inizia con un prefisso ICAO della divisione (es. "LI"). Basato
-    /// sui prefissi, non sul flag <c>Acc.IsForeign</c> (che può essere stale per gli ACC creati da seed demo).</summary>
-    private bool IsForeignCode(string code) =>
-        !_division.IcaoPrefixes.Any(p => code.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    /// <summary>Un ACC è ESTERO se il codice non inizia con un prefisso divisione. Regola pura in <see cref="HierarchyRules"/>.</summary>
+    private bool IsForeignCode(string code) => HierarchyRules.IsForeignCode(code, _division.IcaoPrefixes);
 
     public async Task<IReadOnlyList<HierarchyNode>> LoadTreeAsync(CancellationToken ct = default)
     {
@@ -102,21 +100,12 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         var all = await _db.AccSectors.AsNoTracking()
             .Where(s => !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
             .Select(s => new { s.ComposePosition, s.CenterId, s.RegionMapPolygon }).ToListAsync(ct);
-        var domesticRaw = all.Where(s => !IsForeignCode(s.CenterId)).Select(s => s.RegionMapPolygon!).ToList();
-        var foreignRaw = all.Where(s => IsForeignCode(s.CenterId))
-            .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToList();
+        var domesticPolygons = all.Where(s => !IsForeignCode(s.CenterId)).Select(s => s.RegionMapPolygon!).ToList();
+        var foreignSectors = all.Where(s => IsForeignCode(s.CenterId))
+            .Select(s => (s.ComposePosition, (string?)s.RegionMapPolygon)).ToList();
 
-        var domesticRings = domesticRaw.Select(PolygonGeometry.ToRing).Where(r => r is not null).ToList();
-        var threshold = _opt.AdjacencyThresholdNm;
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var f in foreignRaw)
-        {
-            var fRing = PolygonGeometry.ToRing(f.RegionMapPolygon);
-            if (fRing is null) continue;
-            if (domesticRings.Any(d => PolygonGeometry.AreAdjacent(d, fRing, threshold)))
-                result.Add(f.ComposePosition);
-        }
-        return result;
+        // Adiacenza estero↔domestico: regola pura testata.
+        return HierarchyRules.ComputeConfiningForeignCallsigns(domesticPolygons, foreignSectors, _opt.AdjacencyThresholdNm);
     }
 
     public async Task SetParentAsync(HierarchyNodeKind kind, int nodeId, string? parentCallsign, CancellationToken ct = default)
@@ -171,7 +160,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             {
                 if (string.Equals(parentCallsign, childCallsign, StringComparison.OrdinalIgnoreCase))
                     throw new ValidationException("Un nodo non può essere padre di sé stesso.");
-                EnsureNoCycle(childCallsign, parentCallsign, internalParents);
+                HierarchyRules.EnsureNoCycle(childCallsign, parentCallsign, internalParents);
             }
         }
 
@@ -207,18 +196,5 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                      .Select(s => new { s.ComposePosition, s.ParentCallsign }).ToListAsync(ct))
             map[s.ComposePosition] = s.ParentCallsign;
         return map;
-    }
-
-    /// <summary>Rifiuta se il figlio è già (transitivamente) antenato del padre proposto (anti-ciclo).</summary>
-    private static void EnsureNoCycle(string childCallsign, string proposedParent, Dictionary<string, string?> parents)
-    {
-        var current = (string?)proposedParent;
-        var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (current is not null && guard.Add(current))
-        {
-            if (string.Equals(current, childCallsign, StringComparison.OrdinalIgnoreCase))
-                throw new ValidationException("Gerarchia non valida: creerebbe un ciclo.");
-            parents.TryGetValue(current, out current);
-        }
     }
 }
