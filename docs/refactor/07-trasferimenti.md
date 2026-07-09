@@ -1,4 +1,10 @@
-# 07 — Trasferimenti (punto 8) 🟢🟡
+# 07 — Trasferimenti (punto 8) 🟢✅
+
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/07-transfers`, 222 test).
+> `ITransferService` + 6 DTO estratti in file singoli (§4.1); porta di lettura
+> `INeighbourReader` (ISP) — `AdminTrasferimentiPage` non dipende più dal service import
+> completo (§4.2). Validazione già conforme (`Aor.ValidationException`); `TransferOnlineResolver`
+> già testato. Vedi `../history/rounds.md` «Refactor 07».
 
 > Flussi di trasferimento (CoP + livelli + settore successivo). Risoluzione live che
 > cammina l'albero: un settore chiuso è assorbito dal primo antenato online.

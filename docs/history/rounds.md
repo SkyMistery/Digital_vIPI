@@ -151,3 +151,8 @@ Sesto giro (`../refactor/06-gerarchia.md`). Gerarchia senza test diretti → est
 - **Enum/record estratti**: `HierarchyNodeKind`, `HierarchyNode` da `IHierarchyEditingService.cs` in file singoli.
 - **`HierarchyRules` (Vipi.Application.Aor, puro, statico come `PolygonGeometry`)**: `IsForeignCode` (estero da prefissi divisione), `EnsureNoCycle` (anti-ciclo), `ComputeConfiningForeignCallsigns` (adiacenza estero↔domestico). +8 test di caratterizzazione (`HierarchyRulesTests`).
 - **`EfHierarchyEditingService`** ora delega a `HierarchyRules` (rimossa la logica di business inline) e tiene solo il data-access EF (`LoadTree`, parent-map, save, cache confinanti). Comportamento invariato.
+
+## Refactor 07 — Trasferimenti: DTO + ISP (9 lug 2026, 222 test)
+Settimo giro (`../refactor/07-trasferimenti.md`). Giro piccolo; `TransferOnlineResolver` (risoluzione live) era già testato.
+- **Estrazione**: `ITransferService` da `TransferEditingService.cs`; i 6 DTO (`TransferFlowRow`/`TransferPointRow`/`TransferFlowInput`/`TransferPointInput`/`ResolvedTransferPoint`/`ResolvedTransferFlow`) da `TransferModels.cs` (rimosso), in file singoli.
+- **Porta di lettura `INeighbourReader { ListAsync }`** (ISP): `NeighbourImportService` la implementa (`INeighbourImportService : INeighbourReader`); `AdminTrasferimentiPage` inietta la sola porta di lettura invece del service import completo (la usava solo per leggere gli ACC esteri confinanti = mittenti estero→home). `ConfinantiAdminPage` resta sul service completo. Il problema originale del doc («la pagina triggera l'import») era mal descritto: era una lettura. Validazione già conforme a `Aor.ValidationException`.
