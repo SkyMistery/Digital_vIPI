@@ -35,7 +35,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 04 | [04-import-github.md](04-import-github.md) | Import SID da GitHub (11) | ✅ (parte → doc 08) |
 | 05 | [05-import-confinanti.md](05-import-confinanti.md) | Import ACC/settori confinanti (5+6) | ✅ (gen vLOA → doc 08) |
 | 06 | [06-gerarchia.md](06-gerarchia.md) | Gerarchia albero copertura (7) | ✅ |
-| 07 | [07-trasferimenti.md](07-trasferimenti.md) | Trasferimenti (8) | 🟢🟡 |
+| 07 | [07-trasferimenti.md](07-trasferimenti.md) | Trasferimenti (8) | ✅ |
 | 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | 🟢🟡 |
 | 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | 🟢🟡 |
 
