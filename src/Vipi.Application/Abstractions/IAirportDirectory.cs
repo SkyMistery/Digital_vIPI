@@ -7,7 +7,7 @@ public sealed record SourceAirport(string Icao, string Name, string? AccCode, st
 /// <summary>
 /// Porta verso l'anagrafica aeroporti della sorgente esterna, usata dall'editor struttura per scegliere
 /// un aeroporto reale invece di digitarne ICAO/nome a mano. L'implementazione attiva è scelta via DataSource:Provider
-/// (oggi IVAO: IvaoApiClient con cache di processo — dati di riferimento, cambiano di rado).
+/// (oggi IVAO: IvaoAirportClient con cache di processo — dati di riferimento, cambiano di rado).
 /// </summary>
 public interface IAirportDirectory
 {
