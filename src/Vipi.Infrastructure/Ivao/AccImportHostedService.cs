@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 
 namespace Vipi.Infrastructure.Ivao;
 
@@ -34,26 +35,14 @@ public sealed class AccImportHostedService : BackgroundService
 
     private async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
-        var dir = sp.GetRequiredService<IAccDirectory>();
-        var repo = sp.GetRequiredService<IAccAdminRepository>();
+        // Auto: nessun authz utente, delega al core condiviso col manual (doc refactor 01 §4.4).
+        var import = sp.GetRequiredService<IAccImportUseCase>();
 
         try
         {
-            var centers = await dir.GetCentersAsync(ct);
-            var (ac, au) = await repo.ImportAsync(centers, ct);
-
-            var accs = await repo.ListAccsAsync(ct);
-            var subs = new List<SourceSubcenter>();
-            foreach (var a in accs)
-                subs.AddRange(await dir.GetSubcentersAsync(a.Code, ct));
-            var (sc, su) = await repo.ImportSubcentersAsync(subs, ct);
-
-            // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
-            var projection = sp.GetRequiredService<ISectorProjectionService>();
-            await projection.SyncFromCatalogsAsync(ct);
-
+            var r = await import.RunAsync(ct);
             _log.LogInformation("Import ACC automatico: ACC {AccCreated}/{AccUpdated}, settori ATC {SubCreated}/{SubUpdated}.",
-                ac, au, sc, su);
+                r.AccsCreated, r.AccsUpdated, r.SubcentersCreated, r.SubcentersUpdated);
             return true;
         }
         catch (InvalidOperationException ex)

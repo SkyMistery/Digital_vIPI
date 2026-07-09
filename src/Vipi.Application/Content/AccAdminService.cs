@@ -37,15 +37,15 @@ public interface IAccAdminService
 public sealed class AccAdminService : IAccAdminService
 {
     private readonly IAccAdminRepository _repo;
-    private readonly IAccDirectory _directory;
+    private readonly IAccImportUseCase _import;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
 
-    public AccAdminService(IAccAdminRepository repo, IAccDirectory directory, IEditAuthorizationService authz,
+    public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import, IEditAuthorizationService authz,
         ISectorProjectionService projection)
     {
         _repo = repo;
-        _directory = directory;
+        _import = import;
         _authz = authz;
         _projection = projection;
     }
@@ -54,25 +54,10 @@ public sealed class AccAdminService : IAccAdminService
 
     public Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) => _repo.ListSubcentersAsync(ct);
 
-    public async Task<AccImportResult> ImportFromSourceAsync(CancellationToken ct = default)
+    public Task<AccImportResult> ImportFromSourceAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
-
-        // 1) ACC (center area).
-        var centers = await _directory.GetCentersAsync(ct);
-        var (accsCreated, accsUpdated) = await _repo.ImportAsync(centers, ct);
-
-        // 2) Settori ATC (subcenter) per ogni ACC importato.
-        var accs = await _repo.ListAccsAsync(ct);
-        var subs = new List<SourceSubcenter>();
-        foreach (var a in accs)
-            subs.AddRange(await _directory.GetSubcentersAsync(a.Code, ct));
-
-        var (subCreated, subUpdated) = await _repo.ImportSubcentersAsync(subs, ct);
-
-        // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
-        await _projection.SyncFromCatalogsAsync(ct);
-        return new AccImportResult(accsCreated, accsUpdated, subCreated, subUpdated);
+        _authz.EnsureAdmin();               // solo il manual applica il guard
+        return _import.RunAsync(ct);        // core condiviso con l'auto (hosted service)
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)
