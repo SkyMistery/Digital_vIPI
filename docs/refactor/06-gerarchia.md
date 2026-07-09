@@ -1,4 +1,11 @@
-# 06 — Gerarchia (albero di copertura) (punto 7) 🟢🟡
+# 06 — Gerarchia (albero di copertura) (punto 7) 🟢✅
+
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/06-hierarchy`, 222 test: 214+8).
+> `HierarchyNodeKind`/`HierarchyNode` estratti (§4.1); **`HierarchyRules` puro** (anti-ciclo,
+> detection estero, adiacenza confinanti) con test di caratterizzazione (§4.2, +8);
+> `EfHierarchyEditingService` ora delega le regole e tiene solo il data-access (§4.3).
+> Migrazione completa del service a Application NON fatta (over-migration su poche regole).
+> Vedi `../history/rounds.md` «Refactor 06».
 
 > Albero globale cross-ACC ("Round 20") che lega settori/ACC/aeroporti via
 > `ParentCallsign`. Consuma tutti i cataloghi 1-6. Dipende da: doc 02, 03, 05.

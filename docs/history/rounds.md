@@ -145,3 +145,9 @@ Quinto giro (`../refactor/05-import-confinanti.md`). `NeighbourImportService` er
 - **`NeighbourAdjacencyComputer` (puro, nessun IO)**: cuore deterministico — filtro confine CTR/FSS, adiacenza domestici×esteri, aggregazione per coppia, catalogo estero confinante, e calcolo pair-detail (adiacenze+shape mappa). Isolato → **unit-testabile**: +14 test di caratterizzazione (`NeighbourAdjacencyComputerTests`).
 - **`ForeignAccFetcher`**: fetch ACC+subcenter esteri via `IAccDirectory` (parallelismo throttled), esclude domestici, dedup, warning su fetch fallita. +1 test con fake directory.
 - **`NeighbourImportService`** ridotto a orchestratore sottile: authz + scope DI + fetcher + computer + persist + upsert; `List/SetStatus/SetPolygon/AddManual/GenerateVloa` invariati. Logging `NeighbourDebugLog` conservato (HIT/PAIR/summary). **Rimandato a doc 08**: `MaterializeAndCreateVloaAsync` (generazione vLOA dentro l'import, accoppiamento dati↔documenti).
+
+## Refactor 06 — Regole gerarchia in Application (9 lug 2026, 222 test: 214+8)
+Sesto giro (`../refactor/06-gerarchia.md`). Gerarchia senza test diretti → estrazione regole **test-first** (#8). Scelta: estrarre le regole pure, NON migrare l'intero service (la maggior parte di `EfHierarchyEditingService` è data-access EF legittimo).
+- **Enum/record estratti**: `HierarchyNodeKind`, `HierarchyNode` da `IHierarchyEditingService.cs` in file singoli.
+- **`HierarchyRules` (Vipi.Application.Aor, puro, statico come `PolygonGeometry`)**: `IsForeignCode` (estero da prefissi divisione), `EnsureNoCycle` (anti-ciclo), `ComputeConfiningForeignCallsigns` (adiacenza estero↔domestico). +8 test di caratterizzazione (`HierarchyRulesTests`).
+- **`EfHierarchyEditingService`** ora delega a `HierarchyRules` (rimossa la logica di business inline) e tiene solo il data-access EF (`LoadTree`, parent-map, save, cache confinanti). Comportamento invariato.
