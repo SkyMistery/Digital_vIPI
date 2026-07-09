@@ -52,13 +52,14 @@ public class IvaoPollingTests
         Assert.Equal(4, ne.Rating);
     }
 
-    private static IvaoApiClient BuildClient(string responseJson, string prefix)
+    private static IvaoOnlineAtcClient BuildClient(string responseJson, string prefix)
     {
         var opt = Options.Create(new IvaoOptions { ClientId = "" /* pubblico, no token */ });
         var div = Options.Create(new Vipi.Application.DivisionOptions { IcaoPrefixes = new() { prefix } });
         var http = new HttpClient(new StubHandler(responseJson));
         var token = new IvaoTokenProvider(new NullHttpClientFactory(), opt);
-        return new IvaoApiClient(http, token, opt, div, new IvaoAirportCache());
+        var ivaoHttp = new IvaoHttp(http, token, opt);
+        return new IvaoOnlineAtcClient(ivaoHttp, opt, div);
     }
 
     private sealed class StubHandler : HttpMessageHandler

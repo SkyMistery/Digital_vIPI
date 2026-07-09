@@ -47,10 +47,10 @@ public sealed class AtcPollingHostedService : BackgroundService
     {
         try
         {
-            // Scope per-poll: il typed HttpClient (IvaoApiClient) viene risolto fresco => handler ruotato
+            // Scope per-poll: il client (via IvaoHttp, typed HttpClient) viene risolto fresco => handler ruotato
             // dalla factory, niente captive dependency nel singleton.
             using var scope = _scopes.CreateScope();
-            var client = scope.ServiceProvider.GetRequiredService<IvaoApiClient>();
+            var client = scope.ServiceProvider.GetRequiredService<IvaoOnlineAtcClient>();
             var atcs = await client.GetOnlineAtcAsync(ct);
             var callsigns = new HashSet<string>(
                 atcs.Select(a => a.Callsign), StringComparer.OrdinalIgnoreCase);
@@ -91,25 +91,34 @@ public static class IvaoServiceCollectionExtensions
             .AddHttpMessageHandler<TransientRetryHandler>();
         services.AddSingleton<IvaoTokenProvider>();
 
-        // Adapter API: typed client (transient), risolto in scope dal poller / dalle pagine.
-        services.AddHttpClient<IvaoApiClient>(c => c.Timeout = TimeSpan.FromSeconds(15))
+        // Plumbing HTTP condiviso: typed client (transient), iniettato nei client per porta.
+        services.AddHttpClient<IvaoHttp>(c => c.Timeout = TimeSpan.FromSeconds(15))
             .AddHttpMessageHandler<TransientRetryHandler>();
 
         // Cache condivisa: un singolo stato letto da tutti (anche via IOnlineAtcProvider).
         services.AddSingleton<OnlineAtcCache>();
         services.AddSingleton<IOnlineAtcProvider>(sp => sp.GetRequiredService<OnlineAtcCache>());
 
-        // L'elenco membri divisione e il profilo del singolo utente sono lo stesso adapter HTTP.
-        services.AddScoped<IDivisionMembersProvider>(sp => sp.GetRequiredService<IvaoApiClient>());
-        services.AddScoped<IUserDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
+        // Un client per porta (doc refactor 01 §4.2): ognuno inietta IvaoHttp.
+        // Riepilogo ATC online (fetch grezzo per il poller, nessuna porta).
+        services.AddScoped<IvaoOnlineAtcClient>();
 
-        // Anagrafica aeroporti IVAO: cache di processo (singleton) condivisa dall'adapter HTTP.
+        // Elenco membri divisione + profilo del singolo utente.
+        services.AddScoped<IvaoDivisionClient>();
+        services.AddScoped<IDivisionMembersProvider>(sp => sp.GetRequiredService<IvaoDivisionClient>());
+        services.AddScoped<IvaoUserClient>();
+        services.AddScoped<IUserDirectory>(sp => sp.GetRequiredService<IvaoUserClient>());
+
+        // Anagrafica aeroporti IVAO: cache di processo (singleton) condivisa dal client aeroporti.
         services.AddSingleton<IvaoAirportCache>();
-        services.AddScoped<IAirportDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
-        services.AddScoped<IAirportDetailProvider>(sp => sp.GetRequiredService<IvaoApiClient>());
+        services.AddScoped<IvaoAirportClient>();
+        services.AddScoped<IAirportDirectory>(sp => sp.GetRequiredService<IvaoAirportClient>());
+        services.AddScoped<IvaoAirportDetailClient>();
+        services.AddScoped<IAirportDetailProvider>(sp => sp.GetRequiredService<IvaoAirportDetailClient>());
 
-        // Anagrafica ACC/center IVAO (stesso adapter HTTP).
-        services.AddScoped<IAccDirectory>(sp => sp.GetRequiredService<IvaoApiClient>());
+        // Anagrafica ACC/center IVAO.
+        services.AddScoped<IvaoAccClient>();
+        services.AddScoped<IAccDirectory>(sp => sp.GetRequiredService<IvaoAccClient>());
 
         services.AddHostedService<AtcPollingHostedService>();
         services.AddHostedService<StaffRosterVerificationService>();
