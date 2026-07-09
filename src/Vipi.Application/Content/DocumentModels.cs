@@ -17,7 +17,7 @@ public sealed class RawSection
     public required int Id { get; init; }
     public required string Title { get; init; }
     public required int Depth { get; init; }
-    public required BlockSection Kind { get; init; }
+    public required string SectionKey { get; init; }
     public required int Order { get; init; }
     public List<RawBlock> Blocks { get; init; } = new();
     public List<RawSection> Children { get; init; } = new();
@@ -51,7 +51,7 @@ public sealed class SectionView
     public required string Id { get; init; }            // ancora per deep-link (es. "s-6")
     public required string Title { get; init; }
     public required int Depth { get; init; }
-    public required BlockSection Kind { get; init; }
+    public required string SectionKey { get; init; }
     public required IReadOnlyList<BlockView> Blocks { get; init; }
     public required IReadOnlyList<SectionView> Children { get; init; }
 }

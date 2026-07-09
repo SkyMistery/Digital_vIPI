@@ -39,7 +39,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         _db.Documents.Add(doc);
         await _db.SaveChangesAsync();
 
-        var sec = new DocumentSection { DocumentVersion = ver, Title = "Purpose", Order = 1, Depth = 0, SectionKind = BlockSection.Purpose, RowVersion = Guid.NewGuid().ToByteArray() };
+        var sec = new DocumentSection { DocumentVersion = ver, Title = "Purpose", Order = 1, Depth = 0, SectionKey = "custom", RowVersion = Guid.NewGuid().ToByteArray() };
         _db.DocumentSections.Add(sec);
         await _db.SaveChangesAsync();
         _db.ContentBlocks.Add(new ContentBlock { DocumentVersion = ver, Section = sec, Order = 1, Format = BlockFormat.Prose, Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "Testo di prova", RowVersion = Guid.NewGuid().ToByteArray() });

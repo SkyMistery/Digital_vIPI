@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
@@ -128,7 +129,7 @@ public static class RomaAirportSeed
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = null, Title = title, Order = order,
-                Depth = 0, SectionKind = kind,
+                Depth = 0, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

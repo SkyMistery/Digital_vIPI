@@ -35,15 +35,15 @@
             {
                 <text></text>
             }
-            else if (_derive && s.Kind == BlockSection.Aor)
+            else if (_derive && s.SectionKey == "aor")
             {
                 <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadAor()</div>
             }
-            else if (_derive && s.Kind == BlockSection.Frequencies)
+            else if (_derive && s.SectionKey == "frequencies")
             {
                 <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadFreq()</div>
             }
-            else if (_derive && s.Kind == BlockSection.Coordination)
+            else if (_derive && s.SectionKey == "coordination")
             {
                 <div class="block" id="@s.Id">
                     <h3 style="margin-top:0">@s.Title</h3>

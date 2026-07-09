@@ -155,7 +155,7 @@ public sealed class VipiViewService : IVipiViewService
             Id = $"s-{s.Id}",
             Title = s.Title,
             Depth = s.Depth,
-            Kind = s.Kind,
+            SectionKey = s.SectionKey,
             Blocks = blocks,
             Children = children,
         };

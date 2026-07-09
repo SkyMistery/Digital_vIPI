@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
@@ -121,7 +122,7 @@ public static class RomaVloaSeed
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = parent, Title = title, Order = order,
-                Depth = parent is null ? 0 : parent.Depth + 1, SectionKind = kind,
+                Depth = parent is null ? 0 : parent.Depth + 1, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

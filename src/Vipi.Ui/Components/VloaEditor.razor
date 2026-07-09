@@ -160,9 +160,9 @@ else
 
     // Sezione derivata (data-driven) da renderizzare come vista, non come blocchi statici.
     private static bool IsDerived(EditableSection s) =>
-        (s.SectionKind == BlockSection.Aor && s.Depth == 0)
-        || (s.SectionKind == BlockSection.Frequencies && s.Depth == 0)
-        || (s.SectionKind == BlockSection.Coordination && s.Depth > 0);
+        (s.SectionKey == "aor" && s.Depth == 0)
+        || (s.SectionKey == "frequencies" && s.Depth == 0)
+        || (s.SectionKey == "coordination" && s.Depth > 0);
 
     // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
     private async Task StartEditing()
@@ -350,15 +350,15 @@ else
     // ---- sezioni DERIVATE (data-driven): AoR / frequenze / coordinamenti ----
     private RenderFragment DerivedSection(EditableSection s) => __builder =>
     {
-        switch (s.SectionKind)
+        switch (s.SectionKey)
         {
-            case BlockSection.Aor:
+            case "aor":
                 @AorView()
                 break;
-            case BlockSection.Frequencies:
+            case "frequencies":
                 @FreqView()
                 break;
-            case BlockSection.Coordination:
+            case "coordination":
                 var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
                 @CoordView(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)
                 break;

@@ -134,7 +134,7 @@ public sealed class EfContentRepository : IContentRepository
             Id = s.Id,
             Title = s.Title,
             Depth = s.Depth,
-            Kind = s.SectionKind,
+            SectionKey = s.SectionKey,
             Order = s.Order,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(MapBlock).ToList(),
@@ -201,7 +201,7 @@ public sealed class EfContentRepository : IContentRepository
 
         RawSection Build(DocumentSection s) => new()
         {
-            Id = s.Id, Title = s.Title, Depth = s.Depth, Kind = s.SectionKind, Order = s.Order,
+            Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, Order = s.Order,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new()).Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new()).Select(Build).ToList(),
         };

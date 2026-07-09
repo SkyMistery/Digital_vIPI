@@ -644,7 +644,7 @@ else
             if (_taSection is null && s.Title.Contains("transizione", StringComparison.OrdinalIgnoreCase))
                 _taSection = s;
             else if (_freqSection is null &&
-                     (s.Kind == BlockSection.Frequencies || s.Title.Contains("Frequenz", StringComparison.OrdinalIgnoreCase)))
+                     (s.SectionKey == "frequencies" || s.Title.Contains("Frequenz", StringComparison.OrdinalIgnoreCase)))
                 _freqSection = s;
             // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
             else if (_profile is { Runways.Count: > 0 } && s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase))

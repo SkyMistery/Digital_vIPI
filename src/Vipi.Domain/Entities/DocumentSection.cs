@@ -11,7 +11,7 @@ public class DocumentSection
     public string Title { get; set; } = default!;
     public int Order { get; set; }                     // ordine tra fratelli
     public int Depth { get; set; }                     // 0 = radice … max 3 (vincolo applicativo)
-    public BlockSection SectionKind { get; set; }
+    public string SectionKey { get; set; } = "custom"; // chiave SectionCatalog (ex enum BlockSection); "custom" = editoriale generica
 
     public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
 
