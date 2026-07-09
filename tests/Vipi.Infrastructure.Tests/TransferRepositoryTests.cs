@@ -80,6 +80,34 @@ public class TransferRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MovePoint_Swaps_Order_And_Noop_At_Ends()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var p1 = await _repo.AddPointAsync("LIRR", flowId, Point("VALMA", 130, _ftwrId));
+        var p2 = await _repo.AddPointAsync("LIRR", flowId, Point("ELKAP", 150, _ftwrId));
+        var p3 = await _repo.AddPointAsync("LIRR", flowId, Point("OSTIA", 170, _ftwrId));
+
+        // Ordine iniziale: VALMA, ELKAP, OSTIA
+        var order0 = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToList();
+        Assert.Equal(new[] { "VALMA", "ELKAP", "OSTIA" }, order0);
+
+        // Sposta ELKAP su → VALMA, ELKAP scambiati
+        await _repo.MovePointAsync("LIRR", p2, up: true);
+        var order1 = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToList();
+        Assert.Equal(new[] { "ELKAP", "VALMA", "OSTIA" }, order1);
+
+        // Sposta OSTIA giù = estremo → no-op
+        await _repo.MovePointAsync("LIRR", p3, up: false);
+        var order2 = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToList();
+        Assert.Equal(new[] { "ELKAP", "VALMA", "OSTIA" }, order2);
+
+        // Primo su = estremo → no-op (p1 ora è VALMA in mezzo; usa ELKAP=p2 ora in testa)
+        await _repo.MovePointAsync("LIRR", p2, up: true);
+        var order3 = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToList();
+        Assert.Equal(new[] { "ELKAP", "VALMA", "OSTIA" }, order3);
+    }
+
+    [Fact]
     public async Task Update_And_Delete_Point_And_Flow()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());

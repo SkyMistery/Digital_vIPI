@@ -20,10 +20,16 @@ public static class DependencyInjection
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccAdminService, AccAdminService>();
+        services.AddScoped<INeighbourImportService, NeighbourImportService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();
         services.AddScoped<IAppProfileService, AppProfileService>();
         services.AddScoped<IAccProfileService, AccProfileService>();
+        services.AddScoped<IVloaProfileService, VloaProfileService>();
+        services.AddScoped<IReleaseService, ReleaseService>();
+        services.AddScoped<IEditorTaskService, EditorTaskService>();
+        services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
+        services.AddScoped<ISidImporter, SidImporter>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
         services.AddScoped<ITransferService, TransferService>();

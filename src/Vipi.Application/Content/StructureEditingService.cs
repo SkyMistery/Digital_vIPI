@@ -77,11 +77,13 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly IImportPolicyStore _policy;
     private readonly IAirportSectorRepository _airportSectors;
     private readonly IAirportSectorImporter _sectorImporter;
+    private readonly ISectorProjectionService _projection;
 
     public StructureEditingService(
         IStructureEditingRepository repo, IAirportProfileRepository profile, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
-        IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter)
+        IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
+        ISectorProjectionService projection)
     {
         _repo = repo;
         _profile = profile;
@@ -91,6 +93,7 @@ public sealed class StructureEditingService : IStructureEditingService
         _policy = policy;
         _airportSectors = airportSectors;
         _sectorImporter = sectorImporter;
+        _projection = projection;
     }
 
     public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -172,7 +175,19 @@ public sealed class StructureEditingService : IStructureEditingService
             .Where(a => !string.IsNullOrWhiteSpace(a.AccCode))
             .Select(a => (AccCode: a.AccCode!, a.Icao, a.Name))
             .ToList();
-        return await _repo.AutoAssignAirportsAsync(candidates, ct);
+        var assigned = await _repo.AutoAssignAirportsAsync(candidates, ct);
+
+        // Per ogni aeroporto appena assegnato: importa il catalogo settori (DEL/GND/TWR/APP) dalla sorgente, così
+        // compaiono subito i settori. La documentazione vIPI resta un passo a parte ("Genera documenti").
+        foreach (var icao in assigned)
+        {
+            try { await _sectorImporter.ImportAsync(icao, ct); }
+            catch (Exception) { /* aeroporto senza settori nella sorgente o sorgente non disponibile: salta */ }
+        }
+        // Proietta i cataloghi aggiornati nei Sector operativi (fonte autoritativa unica, Round 20).
+        if (assigned.Count > 0) await _projection.SyncFromCatalogsAsync(ct);
+
+        return assigned.Count;
     }
 
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)

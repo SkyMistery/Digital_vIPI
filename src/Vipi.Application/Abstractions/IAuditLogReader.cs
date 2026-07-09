@@ -16,4 +16,8 @@ public sealed record AuditEntry(
 public interface IAuditLogReader
 {
     Task<IReadOnlyList<AuditEntry>> ListRecentAsync(int max = 200, CancellationToken ct = default);
+
+    /// <summary>Audit di uno specifico bersaglio (EntityType+EntityId), più recente prima. Per la storia modifiche
+    /// contestuale nel dettaglio del profilo.</summary>
+    Task<IReadOnlyList<AuditEntry>> ListForEntityAsync(string entityType, string entityId, int max = 50, CancellationToken ct = default);
 }

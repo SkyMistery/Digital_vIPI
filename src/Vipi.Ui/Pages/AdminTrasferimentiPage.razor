@@ -5,6 +5,7 @@
 @inject ITransferService Transfers
 @inject IStructureEditingService Struct
 @inject IEditAuthorizationService Authz
+@inject INeighbourImportService Neighbours
 
 <PageTitle>Trasferimenti · vIPI IVAO Italia</PageTitle>
 
@@ -71,7 +72,7 @@
                                 @foreach (var s in OwnSectors().Where(s => Match(s, _fSectorText)).Take(50))
                                 {
                                     <button type="button" class="sp-item @(s.Id == _fSector ? "on" : "")"
-                                            @onmousedown:preventDefault="true" @onmousedown="() => PickFSector(s)">@s.Callsign</button>
+                                            @onmousedown:preventDefault="true" @onmousedown="() => PickFSector(s)">@s.Callsign@(IsForeignSender(s) ? $" · {s.AccCode} (estero)" : "")</button>
                                 }
                                 @if (!OwnSectors().Any(s => Match(s, _fSectorText))) { <span class="sp-empty">nessun settore</span> }
                             </div>
@@ -114,12 +115,33 @@
             {
                 <p class="help">Nessun trasferimento per questo ACC. Aggiungi un gruppo qui sopra.</p>
             }
+            else
+            {
+                var shown = FilteredFlows();
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px">
+                    <input class="htree-search" style="flex:1;min-width:180px" placeholder="filtra: settore / aeroporto / CoP / ricevente…"
+                           @bind="_flowFilter" @bind:event="oninput" />
+                    <select @bind="_kindFilter" style="width:130px">
+                        <option value="">Tutti i tipi</option>
+                        <option value="@TransferFlowKind.Arrival">Arrivi</option>
+                        <option value="@TransferFlowKind.Departure">Partenze</option>
+                        <option value="@TransferFlowKind.Overflight">Sorvoli</option>
+                        <option value="@TransferFlowKind.Vfr">VFR</option>
+                        <option value="@TransferFlowKind.Other">Altro</option>
+                    </select>
+                    <span class="muted" style="font-size:12px;white-space:nowrap">@shown.Count grupp@(shown.Count == 1 ? "o" : "i") · @shown.Sum(f => f.Points.Count) righe</span>
+                    @if (_filtering) { <button class="btn ghost" @onclick="() => { _flowFilter = string.Empty; _kindFilter = null; }">↺ azzera</button> }
+                </div>
+                @if (shown.Count == 0)
+                {
+                    <p class="help">Nessun trasferimento corrisponde al filtro.</p>
+                }
 
             @* ---- Settore ▸ Aeroporto ▸ Tipo ▸ righe ---- *@
-            @foreach (var secGroup in _flows.GroupBy(f => f.OwningSectorCallsign).OrderBy(g => g.Key))
+            @foreach (var secGroup in shown.GroupBy(f => f.OwningSectorCallsign).OrderBy(g => g.Key))
             {
                 var secKey = secGroup.Key;
-                var secOpen = !_collapsedSec.Contains(secKey);
+                var secOpen = _filtering || !_collapsedSec.Contains(secKey);
                 <div class="section-title" style="margin-bottom:4px;cursor:pointer" @onclick="() => ToggleSec(secKey)">
                     <h3 style="margin:0"><span style="display:inline-block;width:1em">@(secOpen ? "▾" : "▸")</span> @secKey</h3>
                     <span class="ln"></span>
@@ -129,7 +151,7 @@
                 @foreach (var aptGroup in secGroup.GroupBy(f => f.AirportIcao).OrderBy(g => g.Key ?? "~"))
                 {
                     var aptKey = $"{secKey}|{aptGroup.Key}";
-                    var aptOpen = !_collapsedApt.Contains(aptKey);
+                    var aptOpen = _filtering || !_collapsedApt.Contains(aptKey);
                     <div class="block">
                         <h5 style="margin:0;cursor:pointer" @onclick="() => ToggleApt(aptKey)">
                             <span style="display:inline-block;width:1em">@(aptOpen ? "▾" : "▸")</span>
@@ -139,7 +161,7 @@
                         {
                         @foreach (var f in aptGroup.OrderBy(x => x.Kind))
                         {
-                            var flowOpen = !_collapsedFlow.Contains(f.Id);
+                            var flowOpen = _filtering || !_collapsedFlow.Contains(f.Id);
                             <div class="section-title" style="margin:6px 0">
                                 <h4 style="margin:0;cursor:pointer" @onclick="() => ToggleFlow(f.Id)">
                                     <span style="display:inline-block;width:1em">@(flowOpen ? "▾" : "▸")</span>
@@ -147,13 +169,37 @@
                                     <span class="muted" style="font-size:12px;font-weight:400">@f.Points.Count righe</span>
                                 </h4>
                                 <span class="ln"></span>
-                                <button class="btn ghost" disabled="@_busy" @onclick="() => EditFlow(f)">✎ Gruppo</button>
-                                <button class="btn ghost" disabled="@_busy" @onclick="() => DeleteFlow(f.Id)">✕ Gruppo</button>
+                                @if (_confirmDeleteFlowId == f.Id)
+                                {
+                                    <span class="muted" style="font-size:12.5px">Eliminare? <b>@f.Points.Count righe</b></span>
+                                    <button class="btn danger" disabled="@_busy" @onclick="() => DeleteFlow(f.Id)">Sì, elimina</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _confirmDeleteFlowId = null">Annulla</button>
+                                }
+                                else
+                                {
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => EditFlow(f)">✎ Gruppo</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _confirmDeleteFlowId = f.Id">✕ Gruppo</button>
+                                }
                             </div>
                             @if (!flowOpen) { continue; }
                             @if (_editFlowId == f.Id)
                             {
                                 <div class="inline-form" style="margin:0 0 8px">
+                                    <div class="field sector-pick-wrap"><label>Settore mittente</label>
+                                        <input placeholder="cerca callsign…" @bind="_efSectorText" @bind:event="oninput" @bind:after="ResolveEfSector"
+                                               @onfocus="() => _efOpen = true" @onblur="() => _efOpen = false" />
+                                        @if (_efOpen)
+                                        {
+                                            <div class="sector-pick">
+                                                @foreach (var s in OwnSectors().Where(s => Match(s, _efSectorText)).Take(50))
+                                                {
+                                                    <button type="button" class="sp-item @(s.Id == _efSector ? "on" : "")"
+                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEfSector(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode@(IsForeignSender(s) ? " (estero)" : "")</span></button>
+                                                }
+                                                @if (!OwnSectors().Any(s => Match(s, _efSectorText))) { <span class="sp-empty">nessun settore</span> }
+                                            </div>
+                                        }
+                                    </div>
                                     <div class="field narrow"><label>Tipo</label>
                                         <select @bind="_efKind">
                                             <option value="@TransferFlowKind.Arrival">Arrivi</option>
@@ -227,6 +273,8 @@
                                                 <td>@p.LevelText</td>
                                                 <td>@(p.NextSectorCallsign ?? "—")</td>
                                                 <td style="white-space:nowrap">
+                                                    <button class="btn ghost" disabled="@(_busy || p.Id == f.Points[0].Id)" title="Sposta su" @onclick="() => Move(p.Id, true)">▲</button>
+                                                    <button class="btn ghost" disabled="@(_busy || p.Id == f.Points[^1].Id)" title="Sposta giù" @onclick="() => Move(p.Id, false)">▼</button>
                                                     <button class="btn ghost" disabled="@_busy" @onclick="() => EditPoint(p)">✎</button>
                                                     <button class="btn ghost" disabled="@_busy" @onclick="() => DeletePoint(p.Id)">✕</button>
                                                 </td>
@@ -287,6 +335,7 @@
                     </div>
                 }
             }
+            }
         }
     }
 </div>
@@ -297,6 +346,7 @@
     private IReadOnlyList<TransferFlowRow> _flows = Array.Empty<TransferFlowRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
     private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
+    private IReadOnlyList<NeighbourCandidateRow> _candidates = Array.Empty<NeighbourCandidateRow>();
     private bool _busy;
     private string? _status, _error;
 
@@ -321,10 +371,40 @@
     private int _pNext;
     private string _pNextText = "";
 
-    // form edit gruppo (flusso) in-place.
+    // form edit gruppo (flusso) in-place. _efSector = id mittente risolto (editabile).
     private int? _editFlowId;
     private TransferFlowKind _efKind = TransferFlowKind.Arrival;
     private string _efApt = "", _efDesc = "";
+    private int _efSector;
+    private string _efSectorText = "";
+    private bool _efOpen;
+
+    // Filtro elenco esistente + conferma elimina gruppo.
+    private string _flowFilter = "";
+    private TransferFlowKind? _kindFilter;
+    private int? _confirmDeleteFlowId;
+
+    private bool _filtering => !string.IsNullOrWhiteSpace(_flowFilter) || _kindFilter is not null;
+
+    /// <summary>Flussi filtrati per testo (settore/aeroporto/descrizione/CoP/ricevente) e per tipo.</summary>
+    private IReadOnlyList<TransferFlowRow> FilteredFlows()
+    {
+        var q = _flowFilter.Trim();
+        return _flows.Where(f =>
+            (_kindFilter is null || f.Kind == _kindFilter)
+            && (q.Length == 0
+                || (f.OwningSectorCallsign?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (f.AirportIcao?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (f.Description?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                || f.Points.Any(p =>
+                    (p.Cop?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (p.NextSectorCallsign?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))))
+            .ToList();
+    }
+
+    private void ResolveEfSector() =>
+        _efSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _efSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+    private void PickEfSector(GlobalSectorRow s) { _efSector = s.Id; _efSectorText = s.Callsign; _efOpen = false; }
 
     // form edit riga (punto) in-place. _epNext = id risolto (0 = UNICOM).
     private int? _editPointId;
@@ -368,6 +448,8 @@
         if (!Authz.IsAdmin) return;
         _all = await Struct.ListSectorNodesAsync();
         _airports = await Struct.ListAllAirportsAsync();
+        // Coppie confinanti: abilitano i settori esteri come MITTENTI (direzione estero→home nelle vLOA).
+        _candidates = await Neighbours.ListAsync();
     }
 
     private Task SelectAcc(string code)
@@ -388,9 +470,23 @@
 
     private async Task LoadAsync() => _flows = await Transfers.ListFlowsByAccAsync(_acc!.Code);
 
-    /// <summary>Settori mittenti candidati: i settori di questo ACC.</summary>
-    private IEnumerable<GlobalSectorRow> OwnSectors() =>
-        _all.Where(s => string.Equals(s.AccCode, _acc!.Code, StringComparison.OrdinalIgnoreCase)).OrderBy(s => s.Callsign);
+    /// <summary>Settori mittenti candidati: i settori di questo ACC + quelli degli ACC esteri confinanti (per la
+    /// direzione estero→home nelle vLOA). Il flusso resta salvato sotto l'ACC italiano (lo gestisce lo staff IT).</summary>
+    private IEnumerable<GlobalSectorRow> OwnSectors()
+    {
+        var home = _acc!.Code;
+        var confining = _candidates
+            .Where(c => string.Equals(c.HomeAccCode, home, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.ForeignAccCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return _all
+            .Where(s => string.Equals(s.AccCode, home, StringComparison.OrdinalIgnoreCase) || confining.Contains(s.AccCode))
+            .OrderByDescending(s => string.Equals(s.AccCode, home, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(s => s.AccCode).ThenBy(s => s.Callsign);
+    }
+
+    private bool IsForeignSender(GlobalSectorRow s) =>
+        _acc is not null && !string.Equals(s.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase);
 
     private static string KindLabel(TransferFlowKind k) => k switch
     {
@@ -427,22 +523,28 @@
         }, "Gruppo aggiunto.");
     }
 
-    private Task DeleteFlow(int id) => Guarded(() => Transfers.DeleteFlowAsync(_acc!.Code, id), "Gruppo eliminato.");
+    private Task DeleteFlow(int id) => Guarded(() =>
+    {
+        _confirmDeleteFlowId = null;
+        return Transfers.DeleteFlowAsync(_acc!.Code, id);
+    }, "Gruppo eliminato.");
+
+    private Task Move(int pointId, bool up) => Guarded(() => Transfers.MovePointAsync(_acc!.Code, pointId, up), null);
 
     private void EditFlow(TransferFlowRow f)
     {
         _editPointId = null; _addPointFlowId = null;
         _editFlowId = f.Id; _efKind = f.Kind; _efApt = f.AirportIcao ?? ""; _efDesc = f.Description ?? "";
+        _efSector = f.OwningSectorId; _efSectorText = f.OwningSectorCallsign; _efOpen = false;
     }
 
     private async Task SaveFlow(int flowId)
     {
-        var owningSectorId = _flows.FirstOrDefault(x => x.Id == flowId)?.OwningSectorId ?? 0;
         await Guarded(async () =>
         {
             await Transfers.UpdateFlowAsync(_acc!.Code, flowId, new TransferFlowInput
             {
-                OwningSectorId = owningSectorId, Kind = _efKind,
+                OwningSectorId = _efSector, Kind = _efKind,
                 AirportIcao = string.IsNullOrWhiteSpace(_efApt) ? null : _efApt,
                 Description = string.IsNullOrWhiteSpace(_efDesc) ? null : _efDesc,
             });
@@ -486,10 +588,10 @@
 
     private Task DeletePoint(int id) => Guarded(() => Transfers.DeletePointAsync(_acc!.Code, id), "Riga eliminata.");
 
-    private async Task Guarded(Func<Task> action, string ok)
+    private async Task Guarded(Func<Task> action, string? ok)
     {
         _busy = true; _status = _error = null;
-        try { await action(); await LoadAsync(); _status = ok; }
+        try { await action(); await LoadAsync(); if (ok is not null) _status = ok; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (ValidationException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }

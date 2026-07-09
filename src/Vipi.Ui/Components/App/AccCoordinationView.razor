@@ -6,16 +6,23 @@
     <p class="muted" style="margin:0">Nessun coordinamento configurato per questo blocco.</p>
 }
 
+<div class="coord-wrap">
+@if (Coord.Sectors.Count > 0)
+{
+    @CoordTools
+}
 @foreach (var s in Coord.Sectors)
 {
     <details class="coord-sub" open>
         <summary><span>@s.SectorLabel</span><span class="chev">▸</span></summary>
         <div class="body">
+            @CoordTools
             @foreach (var acc in s.Accs)
             {
                 <details class="coord-sub2" open>
                     <summary><span>@acc.AccLabel</span><span class="chev">▸</span></summary>
                     <div class="body">
+                        @CoordTools
                         @foreach (var ap in acc.Airports)
                         {
                             <details class="coord-sub2" open>
@@ -40,9 +47,20 @@
         </div>
     </details>
 }
+</div>
 
 @code {
     [Parameter, EditorRequired] public AccCoordination Coord { get; set; } = AccCoordination.Empty;
+
+    // Controlli espandi/comprimi tutto (sezione + sottosezioni). Dentro un <details> agiscono sul suo sottoalbero;
+    // in testa al blocco (fuori dai details) su tutti i coordinamenti. Vedi vipiDetails in vipi-ui.js.
+    private readonly RenderFragment CoordTools = __builder =>
+    {
+        <div class="coord-tools">
+            <button type="button" onclick="vipiDetails(this,true)">⊕ Espandi tutto</button>
+            <button type="button" onclick="vipiDetails(this,false)">⊖ Comprimi tutto</button>
+        </div>
+    };
 
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows) => __builder =>
     {

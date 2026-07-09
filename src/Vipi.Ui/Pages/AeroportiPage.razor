@@ -60,7 +60,7 @@
                                     @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                 </select>
                                 <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">Sposta</button>
-                                <button class="btn primary" disabled="@_busy" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">📄 Genera documenti</button>
+                                <button class="btn primary" disabled="@_busy" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">@if (_busy) { <span class="spin"></span> }📄 Genera documenti</button>
                                 <button class="btn ghost danger" disabled="@_busy" @onclick="BulkDeleteAssigned">🗑 Elimina selezionati</button>
                                 <button class="btn ghost" disabled="@_busy" @onclick="() => _selAssigned.Clear()">deseleziona</button>
                             </div>
@@ -126,7 +126,7 @@
                 <div class="section-title"><h3>Anagrafica IVAO <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
                     @if (_ivao is not null)
                     {
-                        <button class="btn primary" disabled="@_busy" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla ACC di competenza già esistente">⟳ Auto-assegna noti</button>
+                        <button class="btn primary" disabled="@_busy" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla ACC di competenza già esistente e importa i loro settori dalla sorgente">@if (_busy) { <span class="spin"></span> }⟳ Auto-assegna noti</button>
                     }
                 </div>
                 <div class="block">
@@ -305,7 +305,7 @@
     {
         var n = await Struct.AutoAssignKnownAirportsAsync();
         _ok = n == 0 ? "Nessun aeroporto da assegnare (già tutti presenti o ACC non create)."
-                     : $"Assegnati {n} aeroporti alla ACC di competenza.";
+                     : $"Assegnati {n} aeroporti alla ACC di competenza (settori importati dalla sorgente).";
     });
 
     private Task ChangeAcc(int id, string fromAcc, string? toAcc) =>

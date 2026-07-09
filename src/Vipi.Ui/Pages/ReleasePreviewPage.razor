@@ -1,0 +1,67 @@
+@page "/vsop/release/{Id:int}"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IReleaseService Releases
+@inject IDocumentAdminService DocAdmin
+@inject NavigationManager Nav
+
+@* Compat: la vecchia pagina di anteprima release è ora un redirect al viewer tipizzato con ?as=rel:{id},
+   così l'anteprima è resa dentro il documento reale (ACC/APP inclusi), non più solo Aeroporto/vLOA. *@
+
+<PageTitle>Anteprima release · IVAO Italia</PageTitle>
+<div class="wrap">
+    <div class="breadcrumb"><a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Anteprima release</b></div>
+    @if (_denied)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Non hai i permessi per vedere questa anteprima.</div></div>
+    }
+    else if (_notFound)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Release inesistente</p>Nessuna release con questo id.</div></div>
+    }
+    else
+    {
+        <p class="help">Reindirizzamento all'anteprima…</p>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool _notFound;
+    private bool _denied;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _notFound = _denied = false;
+        ReleaseLocation? loc;
+        try
+        {
+            loc = await Releases.GetLocationAsync(Id);
+        }
+        catch (EditNotAllowedException) { _denied = true; return; }
+        catch (Vipi.Application.Aor.ValidationException) { _notFound = true; return; }
+        if (loc is null) { _notFound = true; return; }
+
+        var acc = loc.AccCode.ToLowerInvariant();
+        var url = loc.Type switch
+        {
+            ReleaseTargetType.AccVipi => $"/vsop/{acc}/vipi?as=rel:{Id}",
+            ReleaseTargetType.Airport => $"/vsop/{acc}/airports?icao={loc.TargetKey}&as=rel:{Id}",
+            ReleaseTargetType.App => $"/vsop/{acc}/apps/vipi?app={loc.TargetKey}&as=rel:{Id}",
+            ReleaseTargetType.Vloa => await VloaUrlAsync(acc, loc.TargetKey),
+            _ => "/vsop/versioni",
+        };
+        Nav.NavigateTo(url, replace: true);
+    }
+
+    // vLOA: la chiave release è il docId numerico → risolvo il vicino (foreign) dal catalogo documenti.
+    private async Task<string> VloaUrlAsync(string acc, string targetKey)
+    {
+        if (!int.TryParse(targetKey, out var docId)) return "/vsop/versioni";
+        var m = (await DocAdmin.ListAsync())
+            .FirstOrDefault(x => x.Kind == ManagedDocKind.Vloa && x.DocumentId == docId);
+        if (m?.NeighbourCode is not { Length: > 0 } foreign) return "/vsop/versioni";
+        return $"/vsop/{acc}/vloa?acc={foreign.ToUpperInvariant()}&as=rel:{Id}";
+    }
+}

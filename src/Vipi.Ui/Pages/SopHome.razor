@@ -12,11 +12,10 @@
     <div class="hero">
         <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         <h1>Documentazione operativa</h1>
-        <p>Seleziona un ACC per consultare le vIPI, gli aeroporti e gli avvicinamenti. Oppure cerca direttamente una postazione.</p>
-        <form class="searchbar" action="/vsop/search" method="get"><span class="ico">🔍</span><input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze… es. VALMA, LIRR_NE_CTR" /></form>
+        <p>Seleziona un ACC per consultare le vIPI, gli aeroporti e gli avvicinamenti. Oppure cerca direttamente una postazione dalla barra in alto.</p>
     </div>
 
-    <div class="section-title"><h3>Area Control Centre</h3><span class="ln"></span></div>
+    <div class="section-title"><h3>Virtual Area Control Center</h3><span class="ln"></span></div>
     @if (Stations.Accs.Count == 0)
     {
         <div class="callout info"><span class="cic">📭</span><div>
@@ -45,22 +44,23 @@
         </div>
     }
 
-    <div class="section-title"><h3>Navigazione rapida</h3><span class="ln"></span></div>
-    <div class="choice-grid">
-        <a class="choice" href="/vsop/changed" style="text-decoration:none;color:inherit"><h4><span class="ic">🆕</span> Cosa è cambiato dall'ultimo AIRAC</h4><p class="muted">Documenti modificati nel ciclo corrente.</p></a>
+    <div class="choice-grid" style="margin-top:22px">
+        <a class="choice" href="/vsop/changed" style="text-decoration:none;color:inherit"><h4><span class="ic">🆕</span> Cosa è cambiato dall'ultimo ciclo AIRAC</h4><p class="muted">Documenti modificati nel ciclo corrente.</p></a>
     </div>
 
     @if (Authz.IsAdmin)
     {
-        <div class="section-title"><h3>Staff <span class="pill blue" style="font-size:11px">CH/AOD/DIR</span></h3><span class="ln"></span></div>
+        <details class="staff-sec" data-persist="vsop-staff" open>
+        <summary class="section-title"><h3>Staff <span class="chev">▸</span></h3><span class="ln"></span></summary>
         <div class="choice-grid">
-            <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Bozze &amp; versioni</h4><p class="muted">Stato documenti, storico e pubblicazioni programmate.</p></a>
+            <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Documenti · Bozze &amp; versioni</h4><p class="muted">Crea/modifica documenti, stato, storico e pubblicazioni programmate.</p></a>
             <a class="choice" href="/vsop/screens" style="text-decoration:none;color:inherit"><h4><span class="ic">🧩</span> Tutte le schermate</h4><p class="muted">Indice di navigazione di tutte le pagine accessibili.</p></a>
             <a class="choice" href="/vsop/admin/acc" style="text-decoration:none;color:inherit"><h4><span class="ic">🛰️</span> ACC</h4><p class="muted">Importa gli ACC dalla sorgente e nascondi quelli non operativi.</p></a>
             <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura settori</h4><p class="muted">Gestisci settori, contenimento, frequenze e documenti.</p></a>
             <a class="choice" href="/vsop/admin/trasferimenti" style="text-decoration:none;color:inherit"><h4><span class="ic">🔄</span> Trasferimenti</h4><p class="muted">Flussi e punti di coordinamento tra settori, per ACC.</p></a>
             <a class="choice" href="/vsop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</p></a>
         </div>
+        </details>
     }
 </div>
 

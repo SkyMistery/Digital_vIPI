@@ -78,6 +78,29 @@ staffisti** (verifica via `/v2/users/{vid}`, che col token app funziona).
 > col token app (404/500); il roster staffisti è quindi costruito dai **login** + verifica per-VID. Vedi
 > il design in `MEMORY`/`staff-roster-design`. Le chiavi restano per compatibilità ma non alimentano la UI.
 
+> **Gating import periodici (round 34):** i job 24h (ACC, settori aeroporto, aree speciali, SID) sono *gated* via
+> `ImportState` persistente: all'avvio **saltano il fetch** se l'ultima esecuzione riuscita è ancora entro il
+> periodo (`*ImportHours`) — così un riavvio non richiama le sorgenti. Stamp solo su successo; retry 1h su errore.
+> I trigger **manuali** (pagine admin/editor) bypassano sempre il gate; il polling live 60s non è gated.
+
+---
+
+## 2c. `Sectorfile` — SID dal sectorfile Aurora (GitHub)
+
+Mappata su `SectorfileOptions` (`src/Vipi.Infrastructure/Sectorfile/SectorfileOptions.cs`). Repo **pubblico raw**
+(nessuna auth). Import SID per-aeroporto + completion fix/VOR. Registrato **sempre** (ortogonale a `DataSource:Provider`),
+attivo solo se `RawBaseUrl` è valorizzata. Round 34.
+
+| Chiave | Tipo | Default | Descrizione |
+|---|---|---|---|
+| `Sectorfile:RawBaseUrl` | string | `""` | Base raw dei file (deve finire con `/`). Prod: `https://raw.githubusercontent.com/ivao-italy/it-aurora-sector/master/SectorFiles/Include/IT/`. **Vuota ⇒ import SID disattivato.** |
+| `Sectorfile:FixPath` | string | `NAVAIDS/itfix.fix` | Path del file fix relativo a `RawBaseUrl`. |
+| `Sectorfile:VorPath` | string | `NAVAIDS/itvor.vor` | Path del file VOR (fallback completion quando il prefisso non è un fix). |
+| `Sectorfile:ImportHours` | int | `24` | Ogni quante ore re-importare le SID (job gated). |
+
+Le SID importate sono **pubbliche dal ciclo AIRAC successivo** al prelievo (o se forzate a mano nell'editor);
+i prefissi troncati irregolari si risolvono via tabella **alias** editabile. Vedi `MEMORY`/`round34-sid-import-github`.
+
 ---
 
 ## 2b. `Weather` — METAR/TAF reali (NOAA)

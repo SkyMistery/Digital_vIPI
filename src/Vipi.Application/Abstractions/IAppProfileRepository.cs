@@ -14,6 +14,13 @@ public interface IAppProfileRepository
     /// <summary>Carica il profilo (editoriale + link risolti). null = callsign APP inesistente.</summary>
     Task<AppProfileData?> LoadAsync(string appCallsign, CancellationToken ct = default);
 
+    /// <summary>Vero se la vIPI APP standalone del callsign è nascosta dal pubblico.</summary>
+    Task<bool> IsHiddenAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Costruisce l'<see cref="AppProfileData"/> dai blob CONGELATI di una release (i link-frequenza sono
+    /// ri-risolti per callsign col catalogo corrente). Per la vista pubblica quando esiste una release effettiva.</summary>
+    Task<AppProfileData?> BuildFromSnapshotAsync(string appCallsign, AppReleaseSnapshot snap, CancellationToken ct = default);
+
     /// <summary>Codice ACC del settore APP (per la guardia di autorizzazione). null = inesistente.</summary>
     Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default);
 
@@ -22,6 +29,9 @@ public interface IAppProfileRepository
 
     /// <summary>Poligoni grezzi (JSON) delle TWR dello stesso aeroporto dell'APP (visibili, con shape). Per l'overlay AoR.</summary>
     Task<IReadOnlyList<string>> GetTowerPolygonsRawAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Come <see cref="GetTowerPolygonsRawAsync"/> ma con il callsign della torre (per le chip on/off della mappa AoR).</summary>
+    Task<IReadOnlyList<(string Callsign, string Poly)>> GetTowerPolygonsWithCallsignRawAsync(string appCallsign, CancellationToken ct = default);
 
     /// <summary>Tutti i settori con frequenza (per il picker di link), con ICAO/callsign.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);

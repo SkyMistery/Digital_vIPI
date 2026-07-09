@@ -16,11 +16,11 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 > `VipiDocument.razor` (sostituita da `AccVipiPage` su `/vipi`) e `EditorPage.razor` (dispatcher generico orfano;
 > l'editor vLOA dedicato sarà realizzato con le vLOA). Rimosso anche il CSS `.aor3d-*`.
 
-> ✅ **`VloaPage.razor` RIATTIVATA** (giro vLOA, 28 giu): ora è il **viewer per-documento** su `/vsop/{acc}/vloa/{docId}` (carica per id, non più per ACC). L'elenco vive in `VloaListPage.razor` su `/vsop/{acc}/vloa`. Vedi `mappa-pagine.md`.
+> 🗑️ **`VloaPage.razor` ELIMINATA** (ridisegno route vLOA): la view per-documento è stata **assorbita in `VloaListPage.razor`**. Ora `/vsop/{acc}/vloa` senza `?acc` è l'elenco, con `?acc=YYYY` è il documento della coppia acc↔YYYY (chiave = codice ACC vicino, non più docId). Rimosse anche le route `/vsop/{acc}/editor-vloa` (stub) e l'host `apps/editor?vloa=`: l'editor vLOA vive ora su `/vsop/{acc}/vloa/editor?acc=YYYY` (`VloaEditorPage.razor`). Vedi `mappa-pagine.md`.
 
 ## Note / link residui da sapere
-- **Ricerca e "Cosa è cambiato":** i documenti **vLOA** ora linkano `/vsop/{acc}/vloa/{docId}`
-  (in `EfSearchRepository`/`EfChangesRepository`) → viewer per-documento. Risolto il 404.
+- **Ricerca e "Cosa è cambiato":** i documenti **vLOA** ora linkano `/vsop/{acc}/vloa?acc=YYYY`
+  (in `EfSearchRepository`/`EfChangesRepository`, con `YYYY` = codice ACC vicino) → view per-documento.
 - Gli **editor** (vIPI, trasferimenti, vLOA, profilo aeroporto) **restano attivi**.
 - **Rimossa** `/vsop/{acc}/topologia` (`TopologiaPage`): la gerarchia si gestisce da `/vsop/admin/sectorstructure`
   (per callsign, round 20); regole di unificazione + simulatore AoR erano legacy e non hanno più UI (il motore

@@ -25,6 +25,12 @@ public sealed class DocumentSummary
 
     /// <summary>Codice ACC del settore primario (per costruire i link editor).</summary>
     public string? AccCode { get; init; }
+
+    /// <summary>Solo vLOA: codice ACC lato Home (italiano). Per il link all'editor vLOA.</summary>
+    public string? HomeAccCode { get; init; }
+
+    /// <summary>Solo vLOA: codice ACC lato Neighbour (estero). Per il link all'editor vLOA (una per coppia).</summary>
+    public string? NeighbourAccCode { get; init; }
 }
 
 /// <summary>Documento aperto in editing: la versione di lavoro (bozza se esiste, sennò la pubblicata) con tutti i campi modificabili.</summary>
@@ -45,6 +51,7 @@ public sealed class EditableSection
 {
     public required int Id { get; init; }
     public required string Title { get; init; }
+    public required BlockSection SectionKind { get; init; }
     public required int Depth { get; init; }
     public required int Order { get; init; }
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }

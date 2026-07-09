@@ -40,7 +40,7 @@ public static class VipiModuleExtensions
         var connectionString = configuration.GetConnectionString("Vipi") ?? "Data Source=vipi.db";
 
         services.AddVipiApplication();
-        services.AddVipiInfrastructure(connectionString);
+        services.AddVipiInfrastructure(connectionString, configuration);
 
         // Sorgente dati esterna selezionabile (DataSource:Provider). L'app dipende solo dalle interfacce neutre;
         // qui si sceglie l'adapter che le implementa. Oggi solo "Ivao"; future: "Static"/"Db"/altro network.
@@ -53,6 +53,7 @@ public static class VipiModuleExtensions
                 $"DataSource:Provider '{dataSource}' non supportato. Valori validi: Ivao.");
 
         services.Configure<DivisionOptions>(configuration.GetSection(DivisionOptions.SectionName));
+        services.Configure<NeighboursOptions>(configuration.GetSection(NeighboursOptions.SectionName));
         services.Configure<VipiChromeOptions>(configuration.GetSection(VipiChromeOptions.SectionName));
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));

@@ -11,9 +11,13 @@ namespace Vipi.Application.Content;
 public interface IVipiViewService
 {
     Task<DocumentView?> BuildAccVipiAsync(string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default);
-    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, CancellationToken ct = default);
+    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default);
     Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default);
-    Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, CancellationToken ct = default);
+    Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
+    Task<DocumentView?> BuildVloaByPairAsync(string homeAccCode, string foreignAccCode, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
+
+    /// <summary>Compone la vista da un <see cref="RawDocument"/> già in mano (es. snapshot di una release), senza I/O.</summary>
+    Task<DocumentView?> BuildFromRawAsync(RawDocument raw, BlockTier tier, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IVipiViewService"/>
@@ -47,14 +51,20 @@ public sealed class VipiViewService : IVipiViewService
         return await BuildAsync(_repo.LoadAccVipiAsync(accCode, ct), tier, live, aor);
     }
 
-    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadAirportVipiAsync(icao, ct), tier, live, null);
+    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadAirportVipiAsync(icao, ignoreRelease, ct), tier, live, null);
 
     public Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadVloaAsync(accCode, ct), tier, live, null);
 
-    public Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadVloaByIdAsync(docId, ct), tier, live, null);
+    public Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadVloaByIdAsync(docId, ignoreRelease, preferWorking, ct), tier, live, null);
+
+    public Task<DocumentView?> BuildVloaByPairAsync(string homeAccCode, string foreignAccCode, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadVloaByPairAsync(homeAccCode, foreignAccCode, ignoreRelease, preferWorking, ct), tier, live, null);
+
+    public Task<DocumentView?> BuildFromRawAsync(RawDocument raw, BlockTier tier, CancellationToken ct = default) =>
+        BuildAsync(Task.FromResult<RawDocument?>(raw), tier, live: false, null);
 
     /// <summary>AoR reale per la vista di <paramref name="viewerPosition"/> (default = radice topologia).</summary>
     private async Task<AorResult?> ResolveLiveAorAsync(string accCode, string? viewerPosition, CancellationToken ct)

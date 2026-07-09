@@ -31,7 +31,9 @@ public sealed class EfChangesRepository : IChangesRepository
             {
                 acc = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
                     .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                urlBase = $"vloa/{d.Id}";
+                var neigh = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Neighbour)
+                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
+                urlBase = neigh is not null ? $"vloa?acc={neigh}" : "vloa";
             }
             else
             {

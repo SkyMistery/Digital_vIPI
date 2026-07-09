@@ -45,7 +45,7 @@ public sealed record SectorRow(
     int? DocumentId, bool IsPrimary, int? FeaturedRank = null);
 
 /// <summary>vLOA pubblicata di una ACC (per elenco/card landing): documento + centro confinante + ordine "in evidenza".</summary>
-public sealed record VloaRow(int DocId, string Title, string? Neighbour, int? FeaturedRank = null);
+public sealed record VloaRow(int DocId, string Title, string? Neighbour, int? FeaturedRank = null, string? NeighbourCode = null);
 
 /// <summary>Dati struttura completi di una ACC per la pagina di authoring.</summary>
 public sealed class StructureData

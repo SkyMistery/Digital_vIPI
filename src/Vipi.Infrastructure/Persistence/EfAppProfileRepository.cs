@@ -41,6 +41,22 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         return polys;
     }
 
+    public async Task<IReadOnlyList<(string Callsign, string Poly)>> GetTowerPolygonsWithCallsignRawAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var icao = await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.ComposePosition == appCallsign)
+            .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
+        if (icao is null) return Array.Empty<(string, string)>();
+
+        var rows = await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.AirportIcao == icao && s.Position == "TWR" && !s.IsHidden
+                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
+            .OrderBy(s => s.ComposePosition)
+            .Select(s => new { s.ComposePosition, Poly = s.RegionMapPolygon! })
+            .ToListAsync(ct);
+        return rows.Select(r => (r.ComposePosition, r.Poly)).ToList();
+    }
+
     public async Task<AppProfileData?> LoadAsync(string appCallsign, CancellationToken ct = default)
     {
         var sector = await _db.Sectors.AsNoTracking().Include(s => s.Acc)
@@ -48,6 +64,11 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         if (sector is null) return null;
 
         var profile = await _db.AppProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.SectorId == sector.Id, ct);
+
+        // Nome visualizzato IVAO ("Palermo Approach") dal catalogo AirportSector, per callsign.
+        var displayName = await _db.AirportSectors.AsNoTracking()
+            .Where(a => a.ComposePosition == appCallsign)
+            .Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
 
         var links = profile is null
             ? new List<AppFreqRow>()
@@ -64,6 +85,7 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
             SectorId = sector.Id,
             AppCallsign = sector.Callsign,
             Name = sector.Name,
+            DisplayName = displayName,
             AccCode = sector.Acc!.Code,
             Separations = ParseList<AppSeparationRow>(profile?.SeparationsJson),
             VfrJson = profile?.VfrJson,
@@ -73,6 +95,52 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
             FrequencyLinks = links,
             CustomSections = ParseList<AppCustomSection>(profile?.CustomSectionsJson),
             CoordinationSentenceTemplate = profile?.CoordinationSentenceTemplate,
+        };
+    }
+
+    public async Task<bool> IsHiddenAsync(string appCallsign, CancellationToken ct = default) =>
+        await _db.AppProfiles.AsNoTracking()
+            .Where(p => p.Sector!.Callsign == appCallsign)
+            .Select(p => p.IsHidden).FirstOrDefaultAsync(ct);
+
+    public async Task<AppProfileData?> BuildFromSnapshotAsync(string appCallsign, AppReleaseSnapshot snap, CancellationToken ct = default)
+    {
+        var sector = await _db.Sectors.AsNoTracking().Include(s => s.Acc)
+            .FirstOrDefaultAsync(s => s.Callsign == appCallsign && s.Type == SectorType.App, ct);
+        if (sector is null) return null;
+
+        var displayName = await _db.AirportSectors.AsNoTracking()
+            .Where(a => a.ComposePosition == appCallsign)
+            .Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
+
+        // Link-frequenza congelati per callsign → valore ri-risolto dal catalogo corrente (frequenze sempre live).
+        var linkCallsigns = snap.FreqLinks.Select(l => l.Callsign).ToList();
+        var bySign = await _db.Sectors.AsNoTracking()
+            .Where(s => linkCallsigns.Contains(s.Callsign) && s.DefaultFrequency != null)
+            .ToDictionaryAsync(s => s.Callsign, s => s, StringComparer.OrdinalIgnoreCase, ct);
+        var links = snap.FreqLinks
+            .Where(l => bySign.ContainsKey(l.Callsign))
+            .OrderBy(l => l.Order)
+            .Select(l => { var s = bySign[l.Callsign];
+                return new AppFreqRow(s.Id, l.Label ?? s.Callsign, s.Callsign, s.DefaultFrequency!,
+                    s.Type.ToString().ToUpperInvariant(), false, true); })
+            .ToList();
+
+        return new AppProfileData
+        {
+            SectorId = sector.Id,
+            AppCallsign = sector.Callsign,
+            Name = sector.Name,
+            DisplayName = displayName,
+            AccCode = sector.Acc!.Code,
+            Separations = ParseList<AppSeparationRow>(snap.SeparationsJson),
+            VfrJson = snap.VfrJson,
+            SectionOrder = ParseList<string>(snap.SectionOrderJson),
+            HiddenSections = ParseList<string>(snap.HiddenSectionsJson),
+            FreqOrder = ParseFreqOrder(snap.FreqOrderJson),
+            FrequencyLinks = links,
+            CustomSections = ParseList<AppCustomSection>(snap.CustomSectionsJson),
+            CoordinationSentenceTemplate = snap.CoordinationSentenceTemplate,
         };
     }
 

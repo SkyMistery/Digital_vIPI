@@ -15,6 +15,18 @@ public enum DocumentType { Vipi, Vloa }
 /// <summary>Stato di un documento o di una sua versione.</summary>
 public enum DocumentStatus { Draft, Published, Archived }
 
+/// <summary>Tipo di bersaglio di una release AIRAC (documento versionato per snapshot editoriale).</summary>
+public enum ReleaseTargetType { Vloa, AccVipi, App, Airport }
+
+/// <summary>Stato di una <c>DocRelease</c>: schedulata (ciclo futuro), in vigore (effettiva ora), superata da una successiva dello stesso ciclo.</summary>
+public enum ReleaseStatus { Scheduled, Effective, Superseded }
+
+/// <summary>Stato di avanzamento di un incarico editoriale (<c>EditorTask</c>).</summary>
+public enum EditorTaskStatus { Todo, InProgress, InReview, Done, Blocked }
+
+/// <summary>Priorità di un incarico editoriale.</summary>
+public enum EditorTaskPriority { Low, Normal, High }
+
 /// <summary>Lingua fissa per documento: IT per le vIPI, EN per le vLOA.</summary>
 public enum Language { It, En }
 
@@ -71,4 +83,8 @@ public enum DateParity { Any, Even, Odd }
 public enum RunwaySurface { Any, Dry, Wet }
 
 /// <summary>Categoria di dati che la sorgente esterna può fornire (governata dalla ImportPolicy globale).</summary>
-public enum ImportCategory { TransitionAltitude, Runways, Sectors }
+public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids }
+
+/// <summary>Stato di una coppia ACC confinante candidata a diventare una vLOA: proposta dal calcolo di
+/// adiacenza, confermata dall'admin (→ vLOA generabile), o rifiutata (falso positivo, non riproporre).</summary>
+public enum NeighbourCandidateStatus { Pending, Confirmed, Rejected }

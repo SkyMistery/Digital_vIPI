@@ -11,6 +11,10 @@ public class Acc
     /// <summary>ACC militare (da sorgente). Solo informativo/filtro.</summary>
     public bool IsMilitary { get; set; }
 
+    /// <summary>ACC estero confinante (materializzato dall'import confinanti), non della divisione italiana.
+    /// Escluso dalle basi "domestiche" (adiacenza, navigazione) e gated admin per l'editing gerarchia.</summary>
+    public bool IsForeign { get; set; }
+
     /// <summary>Nascosto dall'admin: resta nel DB ma non compare nella navigazione pubblica (home/landing). Default false = attivo.</summary>
     public bool IsHidden { get; set; }
 
@@ -295,7 +299,7 @@ public class AirportRunwayRule
     public int? DateToMonthDay { get; set; }           // es. 331 = 31 marzo
 }
 
-/// <summary>Riga SID (editabile a mano; import sectorfile = follow-up con merge).</summary>
+/// <summary>Riga SID (editabile a mano oppure importata dal sectorfile Aurora, con merge che preserva le manuali).</summary>
 public class AirportSid
 {
     public int Id { get; set; }
@@ -311,6 +315,28 @@ public class AirportSid
     public string? Cat { get; set; }
     public string? Wtc { get; set; }
     public string? Condition { get; set; }
+
+    // --- Import da sectorfile ---
+    /// <summary>Vera se la riga proviene dall'import sectorfile (false = inserita a mano dallo staff).</summary>
+    public bool IsImported { get; set; }
+    /// <summary>Ordine di preferenza tra le SID dello stesso punto (fix). Impostato a mano, persiste tra import per StableKey.</summary>
+    public int? Priority { get; set; }
+    /// <summary>Identità stabile della SID (ICAO|fix|lettera|transition|pista), esclusa la cifra della revisione. Per ri-applicare priorità/pubblicazione tra import.</summary>
+    public string? StableKey { get; set; }
+    /// <summary>Ciclo AIRAC in cui la riga è stata prelevata dalla sorgente (YYNN). Governa la pubblicazione differita.</summary>
+    public string? SourceAiracCycle { get; set; }
+    /// <summary>Forzatura manuale della pubblicazione di una riga importata: scavalca il differimento al ciclo successivo.</summary>
+    public bool ForcePublished { get; set; }
+    /// <summary>Fix non risolto automaticamente dal parser (prefisso troncato irregolare): da completare a mano.</summary>
+    public bool NeedsFixReview { get; set; }
+}
+
+/// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"). Globale.</summary>
+public class SidFixAlias
+{
+    public int Id { get; set; }
+    public string Prefix { get; set; } = default!;     // prefisso troncato come appare nel codice SID
+    public string FixName { get; set; } = default!;    // fix reale completo
 }
 
 /// <summary>
@@ -380,6 +406,9 @@ public class AppProfile
 
     /// <summary>Override per-documento del template della frase di coordinamento; null = usa il default globale (file).</summary>
     public string? CoordinationSentenceTemplate { get; set; }
+
+    /// <summary>vIPI APP standalone nascosta dal pubblico (reversibile): il viewer non la serve, l'editor resta accessibile.</summary>
+    public bool IsHidden { get; set; }
 }
 
 /// <summary>Frequenza extra linkata di un APP standalone (riferimento vivo): si risolve da Sector.DefaultFrequency. Mirror di <see cref="AirportFrequencyLink"/>.</summary>
@@ -421,6 +450,9 @@ public class AccProfile
 
     /// <summary>Lista dei blocchi (Aerovia + gruppi APP) con tutto il loro stato, serializzata JSON.</summary>
     public string BlocksJson { get; set; } = "[]";
+
+    /// <summary>vIPI ACC nascosta dal pubblico (reversibile): il viewer non la serve, l'editor resta accessibile.</summary>
+    public bool IsHidden { get; set; }
 }
 
 /// <summary>

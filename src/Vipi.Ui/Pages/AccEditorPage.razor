@@ -27,24 +27,17 @@ else
                 <div class="editor-actions">
                     @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
                     else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
-                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi@(TreeQuery())" target="_blank" rel="noopener" title="Apri la vIPI in una nuova scheda">👁 Anteprima</a>
+                    @if (_editing)
+                    {
+                        <button class="btn ghost" disabled="@(!_history.CanUndo)" title="Annulla (Ctrl+Z)" @onclick="Undo">↶ Annulla</button>
+                        <button class="btn ghost" disabled="@(!_history.CanRedo)" title="Ripeti (Ctrl+Y)" @onclick="Redo">↷ Ripeti</button>
+                    }
+                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
                     <button class="btn @(_editing ? "primary" : "ghost")" disabled="@(!_canEdit)" @onclick="() => _editing = !_editing" title="Ctrl+E">
                         @(_editing ? "✓ Fine modifica" : "✎ Modifica")
                     </button>
                 </div>
             </div>
-
-            @if (_roots.Count > 1)
-            {
-                <div class="tree-sel" style="margin:8px 0 0">
-                    <span class="cfg-sel-lab">Albero:</span>
-                    @foreach (var r in _roots)
-                    {
-                        var on = string.Equals(r.Callsign, _root, StringComparison.OrdinalIgnoreCase);
-                        <a class="tree-chip @(on ? "on" : "")" href="/vsop/@Acc.ToLowerInvariant()/editor?tree=@r.Callsign">@r.Name</a>
-                    }
-                </div>
-            }
 
             <div class="editor-toc">
                 <button type="button" class="toc-jump" @onclick="CollapseAll">⊖ Comprimi tutto</button>
@@ -141,6 +134,11 @@ else
                 <button class="btn primary" @onclick="AddGroup">+ Aggiungi gruppo APP</button>
             </div>
         }
+
+        @if (_canEdit)
+        {
+            <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")" />
+        }
     </div>
 }
 
@@ -157,6 +155,7 @@ else
     private SaveState _save = SaveState.Idle;
     private int _saveTick;                                   // guardia auto-dismiss per save concorrenti
     private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+    private readonly UndoHistory<List<AccBlock>> _history = new();   // undo/redo locale: snapshot dei blocchi
     private DotNetObjectReference<AccEditorPage>? _dotRef;
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
@@ -182,8 +181,10 @@ else
         if (_acc is null) return;
         _error = null;
 
+        // vIPI ACC = una sola per ACC: si usa sempre il CTR radice primario. Il parametro ?tree è ignorato
+        // (nessun selettore d'albero) così non è possibile creare/editare più profili per lo stesso ACC.
         _roots = await Profile.ListTreeRootsAsync(Acc);
-        _root = ResolveTree(Tree, _roots);
+        _root = ResolveTree(null, _roots);
 
         try
         {
@@ -198,9 +199,11 @@ else
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _specialAreaPicks = await Profile.ListSpecialAreasByAccAsync(Acc);
         foreach (var b in _data.Blocks) await RefreshBlock(b);
+        _history.Reset(UndoHistory<List<AccBlock>>.Clone(_data.Blocks));
     }
 
-    private string TreeQuery() => string.IsNullOrEmpty(_root) ? "" : $"?tree={_root}";
+    // vIPI ACC unica per ACC: nessun ?tree nei link (il root primario è implicito).
+    private string TreeQuery() => "";
 
 
     private static string? ResolveTree(string? tree, IReadOnlyList<AccTreeRoot> roots)
@@ -234,7 +237,8 @@ else
             : _appSectors.Where(a => b.MemberCallsigns.Contains(a.Callsign, StringComparer.OrdinalIgnoreCase)).ToList();
 
     // ---- persistenza (colonna unica: salva tutta la struttura) ----
-    private async Task Persist()
+    // record=true: mutazione utente → registra lo stato nella cronologia undo. Undo/redo salvano con record=false.
+    private async Task Persist(bool record = true)
     {
         _error = null;
         _save = SaveState.Saving;
@@ -242,6 +246,7 @@ else
         try
         {
             await Profile.SaveBlocksAsync(Acc, _data.Blocks, _root);
+            if (record) _history.Push(UndoHistory<List<AccBlock>>.Clone(_data.Blocks));
             _save = SaveState.Saved;
             var tick = ++_saveTick;
             _ = DismissSavedAsync(tick);
@@ -249,6 +254,22 @@ else
         catch (EditNotAllowedException) { _error = "Non hai i permessi."; _save = SaveState.Idle; }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
     }
+
+    // ---- undo/redo locale (ripristina lo snapshot dei blocchi e ri-salva) ----
+    private Task Undo() => _history.Undo(out var s) ? ApplyHistory(s) : Task.CompletedTask;
+    private Task Redo() => _history.Redo(out var s) ? ApplyHistory(s) : Task.CompletedTask;
+
+    private async Task ApplyHistory(List<AccBlock> blocks)
+    {
+        _data.Blocks.Clear();
+        _data.Blocks.AddRange(UndoHistory<List<AccBlock>>.Clone(blocks));
+        await Persist(record: false);
+        foreach (var b in _data.Blocks) await RefreshBlock(b);
+        StateHasChanged();
+    }
+
+    [JSInvokable] public Task UndoAction() => _editing && _canEdit ? Undo() : Task.CompletedTask;
+    [JSInvokable] public Task RedoAction() => _editing && _canEdit ? Redo() : Task.CompletedTask;
 
     // Nasconde «✓ Salvato» dopo 2s, se nel frattempo non è partito un nuovo salvataggio.
     private async Task DismissSavedAsync(int tick)

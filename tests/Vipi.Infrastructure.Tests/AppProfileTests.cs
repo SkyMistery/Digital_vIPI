@@ -52,7 +52,7 @@ public class AppProfileTests : IAsyncLifetime
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AppProfileService(_repo, authz, topo, transfers, new StubCoordinationSentenceTemplate());
+        _service = new AppProfileService(_repo, authz, topo, transfers, new StubCoordinationSentenceTemplate(), new EfReleaseRepository(_db), new EfEditAuditWriter(_db));
     }
 
     public async Task DisposeAsync()

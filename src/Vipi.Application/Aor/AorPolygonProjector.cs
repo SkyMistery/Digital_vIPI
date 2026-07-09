@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Vipi.Application.Content;
 
 namespace Vipi.Application.Aor;
@@ -20,15 +19,8 @@ public static class AorPolygonProjector
     {
         if (string.IsNullOrWhiteSpace(rawJson)) return null;
 
-        List<(double Lat, double Lon)> pts;
-        try
-        {
-            using var doc = JsonDocument.Parse(rawJson);
-            pts = ExtractPoints(doc.RootElement);
-        }
-        catch (JsonException) { return null; }   // JSON malformato → placeholder
-
-        if (pts.Count < 3) return null;          // poligono degenere
+        var pts = PolygonGeometry.ParsePoints(rawJson);   // parsing condiviso (JSON malformato → lista vuota)
+        if (pts.Count < 3) return null;                   // poligono degenere
 
         // Proiezione equirettangolare: x = lon·cos(latMedio), y = -lat (nord in alto). Aspetto corretto alle medie latitudini.
         var latMean = pts.Average(p => p.Lat);
@@ -66,55 +58,51 @@ public static class AorPolygonProjector
             minLat, minLon, maxLat, maxLon, (minLat + maxLat) / 2.0, (minLon + maxLon) / 2.0);
     }
 
-    private static List<(double Lat, double Lon)> ExtractPoints(JsonElement root)
-    {
-        // Oggetto wrapper: cerca una proprietà array nota (points/coordinates/polygon) e ricorre.
-        if (root.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var name in new[] { "points", "coordinates", "polygon", "coords" })
-                if (root.TryGetProperty(name, out var arr) && arr.ValueKind == JsonValueKind.Array)
-                    return ExtractPoints(arr);
-            return new();
-        }
-
-        if (root.ValueKind != JsonValueKind.Array) return new();
-
-        var items = root.EnumerateArray().ToList();
-        if (items.Count == 0) return new();
-
-        // Annidamento di un livello (es. [[[lat,lon],…]]): scendi al primo anello.
-        if (items[0].ValueKind == JsonValueKind.Array &&
-            items[0].EnumerateArray().FirstOrDefault().ValueKind == JsonValueKind.Array)
-            return ExtractPoints(items[0]);
-
-        var result = new List<(double, double)>();
-        foreach (var item in items)
-        {
-            if (item.ValueKind == JsonValueKind.Array)
-            {
-                var nums = item.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Number)
-                    .Select(e => e.GetDouble()).ToList();
-                // Formato IVAO `regionMapPolygon`: coppie [lng, lat] (longitudine prima, stile GeoJSON).
-                if (nums.Count >= 2) result.Add((nums[1], nums[0]));
-            }
-            else if (item.ValueKind == JsonValueKind.Object)
-            {
-                // Formato IVAO `regionMap`: oggetti {lat, lng}.
-                var lat = Num(item, "lat", "latitude", "y");
-                var lon = Num(item, "lon", "lng", "longitude", "x");
-                if (lat is double la && lon is double lo) result.Add((la, lo));
-            }
-        }
-        return result;
-    }
-
-    private static double? Num(JsonElement obj, params string[] names)
-    {
-        foreach (var n in names)
-            if (obj.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number)
-                return v.GetDouble();
-        return null;
-    }
-
     private static string R(double v) => Math.Round(v, 1).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Proietta PIÙ poligoni in UN unico viewBox condiviso (stessa scala/origine), così che le forme mantengano la
+    /// posizione relativa reale — necessario per giudicare visivamente un confine tra due settori. Ogni elemento di
+    /// output è allineato per indice all'input (null se il grezzo è non parsabile/degenere). Ritorna null se nessun
+    /// poligono è valido.
+    /// </summary>
+    public static SharedProjection? ProjectShared(IReadOnlyList<string?> rawPolygons)
+    {
+        var parsed = rawPolygons.Select(PolygonGeometry.ParsePoints).ToList();
+        var all = parsed.Where(p => p.Count >= 3).SelectMany(p => p).ToList();
+        if (all.Count < 3) return null;
+
+        var latMean = all.Average(p => p.Lat);
+        var k = Math.Cos(latMean * Math.PI / 180.0);
+        double minX = all.Min(p => p.Lon * k), maxX = all.Max(p => p.Lon * k);
+        double minY = all.Min(p => -p.Lat), maxY = all.Max(p => -p.Lat);
+        double spanX = maxX - minX, spanY = maxY - minY;
+        var span = Math.Max(spanX, spanY);
+        if (span <= 0) return null;
+        var scale = (Canvas - 2 * Pad) / span;
+        var w = spanX * scale + 2 * Pad;
+        var h = spanY * scale + 2 * Pad;
+
+        var shapes = new List<SharedPolygon?>(parsed.Count);
+        foreach (var pts in parsed)
+        {
+            if (pts.Count < 3) { shapes.Add(null); continue; }
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < pts.Count; i++)
+            {
+                var x = (pts[i].Lon * k - minX) * scale + Pad;
+                var y = (-pts[i].Lat - minY) * scale + Pad;
+                sb.Append(i == 0 ? 'M' : 'L').Append(R(x)).Append(' ').Append(R(y)).Append(' ');
+            }
+            sb.Append('Z');
+            shapes.Add(new SharedPolygon(sb.ToString()));
+        }
+        return new SharedProjection($"0 0 {R(w)} {R(h)}", shapes);
+    }
 }
+
+/// <summary>Poligono proiettato in un viewBox condiviso (solo il path SVG; le coordinate sono già relative).</summary>
+public sealed record SharedPolygon(string Path);
+
+/// <summary>Risultato di <see cref="AorPolygonProjector.ProjectShared"/>: viewBox comune + un path per input (per indice).</summary>
+public sealed record SharedProjection(string ViewBox, IReadOnlyList<SharedPolygon?> Polygons);

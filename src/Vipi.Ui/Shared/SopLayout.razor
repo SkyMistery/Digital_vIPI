@@ -23,7 +23,15 @@
                 <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
             }
         </nav>
+        <form class="top-search" action="/vsop/search" method="get" role="search">
+            <span class="ico">🔍</span>
+            <input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze…" aria-label="Cerca" />
+        </form>
         <div class="right">
+            @if (_staff is { Length: > 0 })
+            {
+                <div class="staff-badge" title="Posizione staff">🎖️ @_staff</div>
+            }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
                 <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
                 <span id="vipiZoomPct" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
@@ -44,7 +52,8 @@
             }
             @if (_canEdit)
             {
-                <a class="editor-btn" href="/vsop/editor" title="@L["Chrome_OpenEditor"]">✏️ @L["Chrome_Editor"]</a>
+                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]">✏️ @L["Chrome_Editor"]</a>
+                <a class="editor-btn" href="/vsop/tasks" title="I miei incarichi">📋 Incarichi</a>
             }
             @if (_isAdmin)
             {
@@ -67,10 +76,12 @@
     private bool _isAdmin;
     private bool _canEdit;
     private string? _myCallsign;
+    private string? _staff;
 
     protected override async Task OnParametersSetAsync()
     {
         _user = Users.Get();
+        _staff = _user is { StaffPositions.Count: > 0 } su ? string.Join(" · ", su.StaffPositions) : null;
 
         // Se l'utente loggato è online come ATC (stesso UserId), mostra il suo callsign nel badge live.
         _myCallsign = _user is { } cu

@@ -64,7 +64,8 @@ public class SectorProjectionTests : IAsyncLifetime
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
             Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
         _proj = new EfSectorProjectionService(_db);
-        _hier = new EfHierarchyEditingService(_db, authz, _proj);
+        _hier = new EfHierarchyEditingService(_db, authz, _proj,
+            Options.Create(new Vipi.Application.NeighboursOptions()), Options.Create(new DivisionOptions()));
     }
 
     public async Task DisposeAsync()

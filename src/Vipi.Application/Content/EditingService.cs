@@ -18,6 +18,9 @@ public interface IEditingService
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
     Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Id della vLOA della coppia (Home, Neighbour), o null. Una vLOA per coppia ACC↔ACC.</summary>
+    Task<int?> ResolveVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default);
+
     /// <summary>
     /// Crea un nuovo documento da zero: vIPI ACC/aeroporto (scope = uno o più settori, uno primario) o
     /// vLOA (due settori Home/Neighbour). Ritorna l'Id del nuovo documento; poi si edita con la pipeline normale.
@@ -93,6 +96,9 @@ public sealed class EditingService : IEditingService
         await _authz.EnsureCanEditDocumentAsync(documentId, ct);
         return await _repo.LoadForEditAsync(documentId, ct);
     }
+
+    public Task<int?> ResolveVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default) =>
+        _repo.FindVloaIdByPairAsync((homeAccCode ?? "").Trim().ToUpperInvariant(), (foreignAccCode ?? "").Trim().ToUpperInvariant(), ct);
 
     public async Task<int> CreateDocumentAsync(DocumentType type, string title, IReadOnlyList<int>? scopeSectorIds,
         int? primarySectorId, int? homeSectorId, int? neighbourSectorId, CancellationToken ct = default)

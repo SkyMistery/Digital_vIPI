@@ -4,7 +4,11 @@
 @using System.Text.Json
 @inject IAppProfileService Profile
 @inject IStationResolver Stations
+@inject IReleaseService Releases
+@inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
 
 @if (_acc is null)
 {
@@ -15,28 +19,53 @@ else
     <PageTitle>Editor APP @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a> ›
             <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>Editor</b>
         </div>
 
-        <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">✎ Editor APP @_app</h2><span class="muted">@_name · @_acc.Name</span></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn @(_editing ? "primary" : "ghost")" disabled="@(!_canEdit)" @onclick="() => _editing = !_editing">
-                    @(_editing ? "✓ Fine modifica" : "✎ Modifica")
-                </button>
-            </div>
-        </div>
-
-        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
-        @if (_status is not null) { <div class="callout success"><span class="cic">✅</span><div>@_status</div></div> }
-
         @if (_data is null)
         {
+            <div class="doc-head">
+                <div><h2 style="margin-bottom:2px">✎ Editor APP @_app</h2><span class="muted">@_acc.Name</span></div>
+            </div>
             <div class="callout warning"><span class="cic">⚠️</span><div>APP non trovato. Verifica che il callsign sia un avvicinamento non remotizzato (es. <code>LIRP_APP</code>).</div></div>
         }
         else
         {
+            <div class="editor-bar">
+                <div class="doc-head" style="margin:0">
+                    <div><h2 style="margin-bottom:2px">✎ Editor APP @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
+                    <div class="editor-actions">
+                        @if (_saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
+                        else if (_savedMsg is not null) { <span class="save-badge saved">✓ @_savedMsg</span> }
+                        <span class="muted" style="font-size:11.5px">salvataggio automatico</span>
+                        @if (_editing)
+                        {
+                            <button class="btn ghost" disabled="@(!_history.CanUndo)" title="Annulla (Ctrl+Z)" @onclick="Undo">↶ Annulla</button>
+                            <button class="btn ghost" disabled="@(!_history.CanRedo)" title="Ripeti (Ctrl+Y)" @onclick="Redo">↷ Ripeti</button>
+                        }
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
+                        <button class="btn @(_editing ? "primary" : "ghost")" disabled="@(!_canEdit)" @onclick="() => _editing = !_editing" title="Ctrl+E">
+                            @(_editing ? "✓ Fine modifica" : "✎ Modifica")
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editor-toc">
+                    <button type="button" class="toc-jump" @onclick="CollapseAll">⊖ Comprimi tutto</button>
+                    <button type="button" class="toc-jump" @onclick="ExpandAll">⊕ Espandi tutto</button>
+                    <span class="toc-sep"></span>
+                    @foreach (var key in _order)
+                    {
+                        var anchor = $"p-{key}";
+                        <button type="button" class="toc-jump" @onclick="() => JumpTo(anchor)">@TitleOf(key)</button>
+                    }
+                    <span class="toc-sep"></span>
+                    <button type="button" class="toc-jump" @onclick="() => JumpTo(_releaseAnchor)">📅 Release</button>
+                </div>
+            </div>
+
             @if (!_canEdit)
             {
                 <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per editare la ACC @_data.AccCode.</div></div>
@@ -54,6 +83,8 @@ else
                 <SectionShell @key="key" Title="@title" AnchorId="@($"p-{key}")" Kind="kind"
                               Editing="@_editing" Custom="@(desc is null)" Hidden="@hidden"
                               IsFirst="@(idx == 0)" IsLast="@(idx == _order.Count - 1)"
+                              Collapsible="true" Collapsed="@_collapsed.Contains(key)"
+                              ToggleCollapsed="() => ToggleCollapsed(key)"
                               Dragging="@(_dragIndex == idx)"
                               MoveUp="() => MoveSection(idx, -1)" MoveDown="() => MoveSection(idx, 1)"
                               Delete="() => RemoveCustom(key)" ToggleHidden="() => ToggleHidden(key)"
@@ -86,11 +117,12 @@ else
                                     <textarea class="app-in" rows="2"
                                               placeholder="{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}."
                                               value="@_coordTemplate"
+                                              @oninput="e => PreviewCoordTemplate(AsString(e.Value))"
                                               @onchange="e => SaveCoordTemplate(AsString(e.Value))"></textarea>
-                                    <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>.</p>
+                                    <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. L'anteprima sotto si aggiorna mentre digiti; al termine (uscendo dal campo) il template viene salvato.</p>
                                 </div>
                             }
-                            <AppCoordinationView Coord="_coord" />
+                            <AppCoordinationView Coord="@(_coordPreview ?? _coord)" />
                             break;
                         default:
                             @if (custom is not null) { @CustomBody(custom) }
@@ -105,6 +137,69 @@ else
                     <button class="btn ghost" @onclick="AddCustom">+ Aggiungi sezione custom</button>
                 </div>
             }
+
+            <div class="block" id="p-release">
+                <h3 style="margin-top:0">📅 Versioni &amp; release AIRAC</h3>
+                <p class="help">Pubblica lo stato editoriale corrente <b>subito</b> (review sul ciclo in corso) oppure <b>pianificalo</b> a un ciclo AIRAC futuro: entra in vigore automaticamente a quella data. Il pubblico vede la release in vigore al ciclo corrente (@_currentCycle); qui lavori sempre sulla bozza live.</p>
+
+                @if (!_canEdit)
+                {
+                    <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per pubblicare release per @_app.</div></div>
+                }
+
+                @if (_rels.Count == 0)
+                {
+                    <p class="help" style="margin:0 0 6px">Nessuna release: il pubblico vede lo stato pubblicato/live corrente (fallback).</p>
+                }
+                else
+                {
+                    @foreach (var r in _rels)
+                    {
+                        <div class="ver-row @(r.IsEffectiveNow ? "current" : "")">
+                            <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
+                            <div style="flex:1">
+                                <b>@RelLabel(r)</b>
+                                <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            </div>
+                            <span class="vact">
+                                <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{r.Id}")" target="_blank" rel="noopener" title="Anteprima del documento come sarà a questo ciclo">👁 Anteprima</a>
+                                <button class="btn ghost" @onclick="() => ToggleDiff(r.Id)" title="Cosa cambia rispetto a quella in vigore">🔍 Differenze</button>
+                                @if (Authz.IsAdmin)
+                                {
+                                    <button class="btn ghost" disabled="@(!_canEdit)" @onclick="() => CancelRelease(r.Id)" title="Annulla questa release">✕ Annulla</button>
+                                }
+                            </span>
+                        </div>
+                        @if (_diffOpen.Contains(r.Id))
+                        {
+                            <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
+                        }
+                    }
+                }
+
+                @if (_canEdit)
+                {
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px">
+                        <select class="app-in" style="min-width:270px;max-width:340px" @bind="_relCycle">
+                            @foreach (var c in _upcoming)
+                            {
+                                <option value="@c.Cycle">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
+                            }
+                        </select>
+                        <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
+                        <button class="btn primary" @onclick="PublishRelease">Pubblica al ciclo</button>
+                        <button class="btn ghost" @onclick="PublishReleaseNow" title="Entra in vigore subito (review sul ciclo corrente)">Pubblica ora (review)</button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Toast fissi: sempre visibili anche in fondo alla pagina. Il successo è nel badge in barra; qui restano gli errori. *@
+    <div class="editor-toast">
+        @if (_error is not null)
+        {
+            <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null" title="Chiudi">✕</button></div>
         }
     </div>
 }
@@ -115,12 +210,35 @@ else
 
     private AccInfo? _acc;
     private string _app = "";
-    private string _name = "";
+    private string _displayName = "";
     private AppProfileData? _data;
     private bool _canEdit, _editing;
-    private string? _error, _status;
+    private string? _error;
+
+    // Feedback salvataggio: badge in barra (Salvataggio…/✓ msg) + errori nel toast fisso.
+    private bool _saving;
+    private string? _savedMsg;
+    private int _saveSeq;
+    private const string _releaseAnchor = "p-release";
+
+    // Anteprima live frase coordinamento (template non salvato) + debounce.
+    private AppCoordination? _coordPreview;
+    private CancellationTokenSource? _coordDebounce;
+
+    // Release AIRAC (target App): timeline + selettore + diff.
+    private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
+    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    private string _currentCycle = "";
+    private string? _relCycle;
+    private string? _relNote;
+    private readonly HashSet<int> _diffOpen = new();
+    private readonly Dictionary<int, ReleaseDiff> _diffs = new();
 
     private List<string> _order = new();
+    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+    private readonly UndoHistory<AppSnap> _history = new();   // undo/redo locale: snapshot dello stato editabile
+    private DotNetObjectReference<AppEditorPage>? _dotRef;
+    private string? _collapseLoadedApp;   // app per cui lo stato collasso è già stato letto da localStorage
     private List<string> _hidden = new();
     private List<AppSeparationRow> _separations = new();
     private AppVfrContent _vfr = AppVfrContent.Empty;
@@ -137,17 +255,80 @@ else
     private int? _dragIndex;
     private int? _freqDragIndex;
 
+    protected override void OnInitialized()
+    {
+        _currentCycle = Releases.CurrentCycle();
+        _upcoming = Releases.UpcomingCycles(14);
+        _relCycle ??= _upcoming.FirstOrDefault()?.Cycle;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+
         _app = (App ?? "").Trim().ToUpperInvariant();
         await LoadAsync();
     }
 
+    private async Task JumpTo(string anchorId) => await JS.InvokeVoidAsync("vipiScrollTo", anchorId);
+
+    // ---- collapse sezioni (persistito per-APP su localStorage) ----
+    private string CollapseKey => $"vipi:app-collapsed:{_app}";
+
+    private async Task ToggleCollapsed(string key) { if (!_collapsed.Add(key)) _collapsed.Remove(key); await PersistCollapsed(); }
+    private async Task CollapseAll() { foreach (var k in _order) _collapsed.Add(k); await PersistCollapsed(); }
+    private async Task ExpandAll() { _collapsed.Clear(); await PersistCollapsed(); }
+
+    private async Task PersistCollapsed() =>
+        await JS.InvokeVoidAsync("vipiStoreSet", CollapseKey, string.Join(",", _collapsed));
+
+    // Ripristina lo stato collasso salvato; se mai salvato (null), default = collassa le sezioni derivate.
+    private async Task LoadCollapsedAsync()
+    {
+        var stored = await JS.InvokeAsync<string?>("vipiStoreGet", CollapseKey);
+        _collapsed.Clear();
+        if (stored is null)
+        {
+            foreach (var k in _order)
+                if (AppSections.Find(k)?.Kind == AppSectionKind.Derived) _collapsed.Add(k);
+        }
+        else
+        {
+            foreach (var k in stored.Split(',', StringSplitOptions.RemoveEmptyEntries)) _collapsed.Add(k);
+        }
+        _collapseLoadedApp = _app;
+        StateHasChanged();
+    }
+
+    // ---- scorciatoia Ctrl+E + caricamento collasso (via vipi-editor.js) ----
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("vipiEditorInit", _dotRef);
+        }
+        if (_data is not null && _collapseLoadedApp != _app) await LoadCollapsedAsync();
+    }
+
+    [JSInvokable]
+    public Task ToggleEdit()
+    {
+        if (_canEdit) { _editing = !_editing; StateHasChanged(); }
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _dotRef?.Dispose();
+
+    private string TitleOf(string key) =>
+        AppSections.Find(key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+
+    private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
+
     private async Task LoadAsync()
     {
-        _error = _status = null;
+        _error = null; _savedMsg = null;
         _data = null;
         _canEdit = false;
         if (string.IsNullOrWhiteSpace(_app)) return;   // nessun ?app= → "APP non trovato"
@@ -167,7 +348,8 @@ else
         }
         if (_data is null) return;
 
-        _name = _data.Name;
+        _displayName = string.IsNullOrWhiteSpace(_data.DisplayName) ? _data.Name : _data.DisplayName!;
+        _coordPreview = null;
         _separations = _data.Separations.ToList();
         _vfr = ParseVfr(_data.VfrJson);
         _custom = _data.CustomSections.ToList();
@@ -180,6 +362,10 @@ else
 
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         await RefreshDerivedAsync();
+
+        _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
+        _diffOpen.Clear(); _diffs.Clear();
+        _history.Reset(Snapshot());
     }
 
     private async Task RefreshDerivedAsync()
@@ -216,39 +402,58 @@ else
     private async Task PersistOrder()
     {
         if (!_canEdit) return;
-        await Guard(() => Profile.SaveSectionOrderAsync(_app, _order));
+        await Guard(() => Profile.SaveSectionOrderAsync(_app, _order), "Ordine salvato");
     }
 
     private async Task ToggleHidden(string key)
     {
+        bool nowHidden;
         if (_hidden.Contains(key, StringComparer.OrdinalIgnoreCase))
-            _hidden.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+        { _hidden.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase)); nowHidden = false; }
         else
-            _hidden.Add(key);
-        await Guard(() => Profile.SaveHiddenSectionsAsync(_app, _hidden));
+        { _hidden.Add(key); nowHidden = true; }
+        await Guard(() => Profile.SaveHiddenSectionsAsync(_app, _hidden), nowHidden ? "Sezione nascosta" : "Sezione mostrata");
     }
 
     // ---- editoriali (persist immediato) ----
     private async Task SaveSeparations(IReadOnlyList<AppSeparationRow> rows)
     {
         _separations = rows.ToList();
-        await Guard(() => Profile.SaveSeparationsAsync(_app, _separations));
+        await Guard(() => Profile.SaveSeparationsAsync(_app, _separations), "Separazioni salvate");
     }
 
     private async Task SaveVfr(AppVfrContent content)
     {
         _vfr = content;
-        await Guard(() => Profile.SaveVfrAsync(_app, JsonSerializer.Serialize(content)));
+        await Guard(() => Profile.SaveVfrAsync(_app, JsonSerializer.Serialize(content)), "VFR salvato");
+    }
+
+    // Anteprima live (debounce): ricompone la frase col template digitato SENZA salvarlo.
+    private async Task PreviewCoordTemplate(string text)
+    {
+        _coordDebounce?.Cancel();
+        await SetDirty(true);   // template digitato ma non ancora salvato (salva al blur)
+        var cts = _coordDebounce = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            var preview = await Profile.DeriveCoordinationAsync(_app, string.IsNullOrWhiteSpace(text) ? null : text);
+            if (!cts.Token.IsCancellationRequested) { _coordPreview = preview; await InvokeAsync(StateHasChanged); }
+        }
+        catch (OperationCanceledException) { /* digitazione successiva: ignora */ }
     }
 
     private async Task SaveCoordTemplate(string text)
     {
+        _coordDebounce?.Cancel();
         _coordTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         await Guard(async () =>
         {
             await Profile.SaveCoordinationTemplateAsync(_app, _coordTemplate);
             await RefreshDerivedAsync();
-        });
+            _coordPreview = null;   // ora _coord riflette il salvato
+        }, "Template salvato");
+        await SetDirty(false);   // salvato: nessuna edit pendente
     }
 
     // ---- frequenze (derivate + override/link) ----
@@ -258,7 +463,7 @@ else
         if (j < 0 || j >= _freqs.Count) return;
         (_freqs[m.Index], _freqs[j]) = (_freqs[j], _freqs[m.Index]);
         var overrides = _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
-        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides));
+        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides), "Ordine frequenze salvato");
     }
 
     private void FreqDragOver(int idx)
@@ -275,7 +480,7 @@ else
         if (_freqDragIndex is null) return;
         _freqDragIndex = null;
         var overrides = _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
-        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides));
+        await Guard(() => Profile.SaveFrequencyOrderAsync(_app, overrides), "Ordine frequenze salvato");
     }
 
     private async Task RemoveLink(int sourceSectorId)
@@ -285,7 +490,7 @@ else
         {
             await Profile.SaveFrequencyLinksAsync(_app, _linkIds);
             await RefreshDerivedAsync();
-        });
+        }, "Link rimosso");
     }
 
     private async Task AddLink(int sourceSectorId)
@@ -297,7 +502,7 @@ else
         {
             await Profile.SaveFrequencyLinksAsync(_app, _linkIds);
             await RefreshDerivedAsync();
-        });
+        }, "Link aggiunto");
     }
 
     // ---- sezioni custom ----
@@ -310,18 +515,20 @@ else
         {
             await Profile.SaveCustomSectionsAsync(_app, _custom);
             await Profile.SaveSectionOrderAsync(_app, _order);
-        });
+        }, "Sezione aggiunta");
     }
 
     private async Task RemoveCustom(string key)
     {
+        var title = _custom.FirstOrDefault(c => c.Key == key)?.Title ?? "questa sezione";
+        if (!await Confirm($"Rimuovere la sezione «{title}» e tutti i suoi blocchi?")) return;
         _custom.RemoveAll(c => c.Key == key);
         _order.Remove(key);
         await Guard(async () =>
         {
             await Profile.SaveCustomSectionsAsync(_app, _custom);
             await Profile.SaveSectionOrderAsync(_app, _order);
-        });
+        }, "Sezione rimossa");
     }
 
     private async Task UpdateCustom(string key, Func<AppCustomSection, AppCustomSection> mut)
@@ -341,8 +548,11 @@ else
         UpdateCustom(key, s => s with { Blocks = s.Blocks.Append(
             new AppCustomBlock(AppCustomBlockType.Table, null, new[] { "Colonna 1", "Colonna 2" }, new List<IReadOnlyList<string>>())).ToList() });
 
-    private Task RemoveCustomBlock(string key, int bi) =>
-        UpdateCustom(key, s => { var l = s.Blocks.ToList(); l.RemoveAt(bi); return s with { Blocks = l }; });
+    private async Task RemoveCustomBlock(string key, int bi)
+    {
+        if (!await Confirm("Rimuovere questo blocco? I suoi contenuti andranno persi.")) return;
+        await UpdateCustom(key, s => { var l = s.Blocks.ToList(); l.RemoveAt(bi); return s with { Blocks = l }; });
+    }
 
     private Task SetCustomProse(string key, int bi, string text) =>
         UpdateCustom(key, s => { var l = s.Blocks.ToList(); l[bi] = l[bi] with { Text = text }; return s with { Blocks = l }; });
@@ -370,12 +580,16 @@ else
         return WithTable(b, cols, rows);
     });
 
-    private Task RemoveCustomColumn(string key, int bi, int ci) => UpdateBlock(key, bi, b =>
+    private async Task RemoveCustomColumn(string key, int bi, int ci)
     {
-        var cols = ColsOf(b); if (ci < cols.Count) cols.RemoveAt(ci);
-        var rows = RowsOf(b); foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
-        return WithTable(b, cols, rows);
-    });
+        if (!await Confirm("Rimuovere questa colonna e i suoi valori?")) return;
+        await UpdateBlock(key, bi, b =>
+        {
+            var cols = ColsOf(b); if (ci < cols.Count) cols.RemoveAt(ci);
+            var rows = RowsOf(b); foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+            return WithTable(b, cols, rows);
+        });
+    }
 
     private Task AddCustomRow(string key, int bi) => UpdateBlock(key, bi, b =>
     {
@@ -400,13 +614,167 @@ else
     // ---- helper ----
     private static string AsString(object? v) => v as string ?? "";
 
-    private async Task Guard(Func<Task> action)
+    // Segnala al browser (beforeunload) che c'è un'edit in volo non ancora salvata.
+    private ValueTask SetDirty(bool v) => JS.InvokeVoidAsync("vipiSetDirty", v);
+
+    // snapshot=true: mutazione utente → registra lo stato nella cronologia undo dopo il salvataggio riuscito.
+    // Undo/redo e le operazioni di release passano snapshot:false (non sono edit del documento).
+    private async Task Guard(Func<Task> action, string ok = "Salvato", bool snapshot = true)
     {
-        _error = _status = null;
-        try { await action(); _status = "Salvato."; }
+        _error = null; _savedMsg = null; _saving = true;
+        StateHasChanged();   // mostra "Salvataggio…" durante l'attesa
+        try
+        {
+            await action();
+            if (snapshot && _canEdit) _history.Push(Snapshot());
+            _savedMsg = ok;
+            _ = FlashSaved();
+        }
         catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questo APP."; }
         catch (ValidationException ex) { _error = ex.Message; }
+        finally { _saving = false; }
     }
+
+    // ---- undo/redo locale ----
+    private sealed record AppSnap(
+        List<AppSeparationRow> Separations,
+        AppVfrContent Vfr,
+        List<AppCustomSection> Custom,
+        string? CoordTemplate,
+        List<string> Hidden,
+        List<string> Order,
+        List<int> LinkIds,
+        List<AppFreqOrderOverride> FreqOrder);
+
+    // Cattura lo stato editabile corrente (deep-clone). L'ordine frequenze è derivato dall'ordine attuale di _freqs.
+    private AppSnap Snapshot() => UndoHistory<AppSnap>.Clone(new AppSnap(
+        _separations, _vfr, _custom, _coordTemplate, _hidden, _order, _linkIds,
+        _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList()));
+
+    private Task Undo() => _history.Undo(out var s) ? ApplySnapshot(s) : Task.CompletedTask;
+    private Task Redo() => _history.Redo(out var s) ? ApplySnapshot(s) : Task.CompletedTask;
+
+    [JSInvokable] public Task UndoAction() => _editing && _canEdit ? Undo() : Task.CompletedTask;
+    [JSInvokable] public Task RedoAction() => _editing && _canEdit ? Redo() : Task.CompletedTask;
+
+    // Ripristina lo snapshot in-memory e ri-salva ogni parte del profilo (i save granulari sono l'unica via).
+    private async Task ApplySnapshot(AppSnap s)
+    {
+        _separations = s.Separations.ToList();
+        _vfr = s.Vfr;
+        _custom = s.Custom.ToList();
+        _coordTemplate = s.CoordTemplate;
+        _hidden = s.Hidden.ToList();
+        _order = s.Order.ToList();
+        _linkIds = s.LinkIds.ToList();
+        _coordPreview = null;
+        await Guard(async () =>
+        {
+            await Profile.SaveSeparationsAsync(_app, _separations);
+            await Profile.SaveVfrAsync(_app, JsonSerializer.Serialize(_vfr));
+            await Profile.SaveCustomSectionsAsync(_app, _custom);
+            await Profile.SaveCoordinationTemplateAsync(_app, _coordTemplate);
+            await Profile.SaveHiddenSectionsAsync(_app, _hidden);
+            await Profile.SaveFrequencyLinksAsync(_app, _linkIds);
+            await Profile.SaveSectionOrderAsync(_app, _order);
+            await Profile.SaveFrequencyOrderAsync(_app, s.FreqOrder);
+            await RefreshDerivedAsync();
+        }, "Ripristinato", snapshot: false);
+        StateHasChanged();
+    }
+
+    // Il badge "✓ salvato" sparisce da solo dopo qualche secondo.
+    private async Task FlashSaved()
+    {
+        var t = ++_saveSeq;
+        await Task.Delay(2500);
+        if (t == _saveSeq && !_saving) { _savedMsg = null; await InvokeAsync(StateHasChanged); }
+    }
+
+    // ---- release AIRAC (target App). Lo snapshot congela i blob del profilo: nessun rebuild necessario. ----
+    private async Task ReloadReleases()
+    {
+        _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
+        _diffOpen.Clear(); _diffs.Clear();
+    }
+
+    private async Task PublishRelease()
+    {
+        var cycle = _relCycle ?? _upcoming.FirstOrDefault()?.Cycle;
+        if (cycle is null) return;
+        if (!await Confirm($"Pianificare la release al ciclo AIRAC {cycle}?")) return;
+        await Guard(async () =>
+        {
+            await Releases.PublishAsync(ReleaseTargetType.App, _app, cycle, _relNote);
+            await ReloadReleases();
+        }, $"Release pianificata al ciclo {cycle}", snapshot: false);
+    }
+
+    private async Task PublishReleaseNow()
+    {
+        if (!await Confirm("Pubblicare ORA (review sul ciclo corrente)? Sarà visibile pubblicamente.")) return;
+        await Guard(async () =>
+        {
+            await Releases.PublishNowAsync(ReleaseTargetType.App, _app, _relNote);
+            await ReloadReleases();
+        }, "Release pubblicata subito");
+    }
+
+    private async Task CancelRelease(int releaseId)
+    {
+        if (!await Confirm("Annullare questa release? Il pubblico tornerà alla precedente in vigore.")) return;
+        await Guard(async () =>
+        {
+            await Releases.CancelReleaseAsync(releaseId);
+            await ReloadReleases();
+        }, "Release annullata");
+    }
+
+    private async Task ToggleDiff(int releaseId)
+    {
+        if (!_diffOpen.Remove(releaseId))
+        {
+            _diffOpen.Add(releaseId);
+            if (!_diffs.ContainsKey(releaseId))
+            {
+                try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
+                catch (EditNotAllowedException ex) { _error = ex.Message; }
+            }
+        }
+    }
+
+    private static string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
+        ? "🟢 In vigore" : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
+    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
+
+    private RenderFragment DiffBlock(int releaseId) => __builder =>
+    {
+        @if (_diffs.TryGetValue(releaseId, out var diff))
+        {
+            <div class="muted" style="font-size:12px;margin-bottom:4px">Confronto con: @diff.BaselineLabel</div>
+            @if (diff.Rows.Count == 0)
+            {
+                <p class="help" style="margin:0">Nessuna differenza strutturale rilevata.</p>
+            }
+            else
+            {
+                <table class="cfg-table">
+                    <thead><tr><th>Voce</th><th>Modifica</th><th>Dettaglio</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in diff.Rows)
+                        {
+                            <tr>
+                                <td>@r.Label</td>
+                                <td><span class="pill @DiffPill(r.Change)">@r.Change</span></td>
+                                <td class="muted" style="font-size:12px">@r.Detail</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+        else { <p class="help" style="margin:0">Caricamento differenze…</p> }
+    };
 
     private static AppVfrContent ParseVfr(string? json)
     {

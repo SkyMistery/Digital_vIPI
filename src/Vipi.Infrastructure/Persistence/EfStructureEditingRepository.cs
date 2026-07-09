@@ -65,13 +65,14 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             .Where(d => d.Type == DocumentType.Vloa
                         && d.Status == DocumentStatus.Published
                         && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.AccId == acc.Id))
-            .Include(d => d.Parties).ThenInclude(pa => pa.Sector)
+            .Include(d => d.Parties).ThenInclude(pa => pa.Sector).ThenInclude(s => s!.Acc)
             .ToListAsync(ct);
         var vloas = vloaDocs
-            .Select(d => new VloaRow(
-                d.Id, d.Title,
-                d.Parties.FirstOrDefault(pa => pa.Role == PartyRole.Neighbour)?.Sector?.Name,
-                d.FeaturedRank))
+            .Select(d =>
+            {
+                var neigh = d.Parties.FirstOrDefault(pa => pa.Role == PartyRole.Neighbour)?.Sector;
+                return new VloaRow(d.Id, d.Title, neigh?.Name, d.FeaturedRank, neigh?.Acc?.Code);
+            })
             .OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title)
             .ToList();
 
@@ -188,17 +189,17 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
                 s.Type, s.Kind, s.ApproachKind, s.ParentSectorId, s.DocumentId))
             .ToListAsync(ct);
 
-    public async Task<int> AutoAssignAirportsAsync(
+    public async Task<IReadOnlyList<string>> AutoAssignAirportsAsync(
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default)
     {
-        if (candidates.Count == 0) return 0;
+        if (candidates.Count == 0) return Array.Empty<string>();
 
         var accByCode = await _db.Accs.AsNoTracking()
             .ToDictionaryAsync(f => f.Code, f => f.Id, StringComparer.OrdinalIgnoreCase, ct);
         var takenIcaos = (await _db.Airports.AsNoTracking().Select(a => a.Icao).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var created = 0;
+        var created = new List<string>();
         foreach (var c in candidates)
         {
             var icao = c.Icao.Trim().ToUpperInvariant();
@@ -208,10 +209,10 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
             _db.Airports.Add(new Airport { AccId = fid, Icao = icao, Name = c.Name.Trim() });
             takenIcaos.Add(icao);   // evita duplicati se la sorgente ha doppioni
-            created++;
+            created.Add(icao);
         }
 
-        if (created > 0) await _db.SaveChangesAsync(ct);
+        if (created.Count > 0) await _db.SaveChangesAsync(ct);
         return created;
     }
 

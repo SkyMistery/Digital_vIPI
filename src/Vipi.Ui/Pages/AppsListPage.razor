@@ -2,6 +2,8 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
+@inject IDocumentAdminService Docs
+@inject IOnlineAtcProvider Online
 
 @if (_acc is null)
 {
@@ -11,9 +13,9 @@ else
 {
     <PageTitle>Avvicinamenti non remotizzati @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Avvicinamenti non remotizzati</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Avvicinamenti non remotizzati</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name</h2><p class="muted" style="margin:0">APP con documentazione propria sotto la ACC di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_apps.Count == 0)
         {
@@ -24,9 +26,14 @@ else
             <div class="choice-grid" style="margin-top:14px">
                 @foreach (var ap in _apps)
                 {
-                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?icao=@(ap.AirportIcao ?? ap.Callsign)" style="text-decoration:none;color:inherit">
-                        <h4><span class="ic">📡</span> @ap.Callsign</h4>
+                    var n = OnlineAt(ap);
+                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@ap.Callsign" style="text-decoration:none;color:inherit">
+                        <div class="apt-top">
+                            <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
+                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
+                        </div>
                         <p class="muted">@ap.Name</p>
+                        <span class="apt-tag">@ap.Callsign</span>
                     </a>
                 }
             </div>
@@ -44,7 +51,51 @@ else
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
         var data = await Structure.LoadAsync(_acc.Code);
-        _apps = data?.Sectors.Where(s => s.Type == SectorType.App).OrderBy(s => s.Callsign).ToList()
-            ?? (IReadOnlyList<SectorRow>)Array.Empty<SectorRow>();
+        var all = data?.Sectors ?? (IReadOnlyList<SectorRow>)Array.Empty<SectorRow>();
+
+        // "Pubblicati": gli APP standalone (AppProfile) non hanno stato bozza/pubblicato, solo il flag nascosto ⇒
+        // pubblicato = non nascosto. (IsPublished del ManagedDoc APP è sempre true; conta IsHidden.)
+        var published = (await Docs.ListAsync())
+            .Where(m => m.Kind == ManagedDocKind.AppVipi && !m.IsHidden
+                        && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Scope)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Solo APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC) e pubblicati.
+        var standalone = all
+            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && published.Contains(s.Callsign))
+            .ToList();
+        var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
+        var byId = all.ToDictionary(s => s.Id);
+
+        // Collasso d'albero: se un APP standalone ha un antenato che è a sua volta un APP standalone (mostrato),
+        // si mostra solo l'antenato (es. LIBN_G_APP sotto LIBN_APP ⇒ solo LIBN_APP).
+        bool HasStandaloneAncestor(SectorRow s)
+        {
+            var pid = s.ParentSectorId;
+            while (pid is int id && byId.TryGetValue(id, out var p))
+            {
+                if (standaloneIds.Contains(p.Id)) return true;
+                pid = p.ParentSectorId;
+            }
+            return false;
+        }
+
+        _apps = standalone.Where(s => !HasStandaloneAncestor(s)).OrderBy(s => s.Callsign).ToList();
+    }
+
+    // ATC online per l'APP: callsign APP/DEP il cui primo token è l'ICAO d'aeroporto collegato (o la testa del callsign).
+    // Il nodo mostrato ingloba i figli collassati (es. LIBN_APP conta anche LIBN_G_APP).
+    private int OnlineAt(SectorRow ap)
+    {
+        var head = ap.AirportIcao ?? ap.Callsign.Split('_', 2)[0];
+        var snap = Online.GetCurrent();
+        return snap.Callsigns.Count(cs =>
+        {
+            var t = cs.Split('_');
+            if (t.Length < 2) return false;
+            var last = t[^1].ToUpperInvariant();
+            return (last == "APP" || last == "DEP") && t[0].Equals(head, StringComparison.OrdinalIgnoreCase);
+        });
     }
 }

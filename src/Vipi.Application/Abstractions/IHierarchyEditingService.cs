@@ -22,7 +22,9 @@ public sealed record HierarchyNode(
     string Label,
     string AccCode,
     string? ParentCallsign,
-    bool IsHidden);
+    bool IsHidden,
+    bool IsForeign = false,
+    string CountryPrefix = "");
 
 /// <summary>
 /// Editing della gerarchia di copertura GLOBALE (cross-ACC) sui cataloghi importati (Round 20, SPEC §9.12).
@@ -33,6 +35,10 @@ public interface IHierarchyEditingService
 {
     /// <summary>Carica tutti i nodi dell'albero (settori ACC + APP + aeroporti). DEL/GND/TWR esclusi.</summary>
     Task<IReadOnlyList<HierarchyNode>> LoadTreeAsync(CancellationToken ct = default);
+
+    /// <summary>Callsign (ComposePosition) dei settori ESTERI che confinano geometricamente con almeno un settore
+    /// domestico. Per mostrare, nell'editor struttura, solo i settori esteri realmente al confine con l'Italia.</summary>
+    Task<IReadOnlySet<string>> ListConfiningForeignCallsignsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Imposta il padre (per callsign) del nodo indicato. <paramref name="parentCallsign"/> null = stacca (radice).

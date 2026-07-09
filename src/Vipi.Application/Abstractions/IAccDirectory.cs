@@ -54,6 +54,10 @@ public interface IAccDirectory
     /// <summary>Tutte le posizioni center del paese configurato (default IT), normalizzate e ordinate per callsign.</summary>
     Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default);
 
+    /// <summary>Come <see cref="GetCentersAsync"/> ma per un countryId arbitrario (paesi confinanti). Usato dalla
+    /// generazione vLOA per scaricare gli ACC esteri e valutarne l'adiacenza; non persiste il catalogo estero.</summary>
+    Task<IReadOnlyList<SourceCenter>> GetCentersByCountryAsync(string countryId, CancellationToken ct = default);
+
     /// <summary>Settori ATC (subcenter) di un ACC, con frequenza e shape risolte dal dettaglio.</summary>
     Task<IReadOnlyList<SourceSubcenter>> GetSubcentersAsync(string accIcao, CancellationToken ct = default);
 

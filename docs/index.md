@@ -46,10 +46,15 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [adr/adr-0005-superficie-modulo-e-isolamento.md](adr/adr-0005-superficie-modulo-e-isolamento.md) | Superficie del modulo + isolamento CSS/JS. |
 | [adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md](adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) | Indipendenza dalla sorgente + policy di import (+ nota Round 20: fonte unica). |
 
+## Refactor — `refactor/` 🟣
+| File | Scopo |
+|---|---|
+| [refactor/00-overview.md](refactor/00-overview.md) | Piano di revisione strutturale post round ~23-34: DAG dipendenze, principi, indice dei 9 doc di area, ordine di studio bottom-up. |
+
 ## Storia — `history/` ⚪
 | File | Scopo |
 |---|---|
-| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R22). |
+| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R30). |
 | [history/handoff-round5.md](history/handoff-round5.md) | Handoff di chiusura del Round 5 (fusione Settore/Posizione). |
 | [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |

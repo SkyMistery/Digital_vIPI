@@ -239,16 +239,16 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     private static string SuffixOf(string callsign) =>
         callsign.Contains('_') ? callsign[(callsign.LastIndexOf('_') + 1)..] : callsign;
 
-    /// <summary>Default "di ACC" di una posizione APP/DEP: vero se il callsign ha 3+ pezzi (es. LIRN_UN0_APP),
-    /// falso se a 2 pezzi (es. LIRP_APP = APP proprio dell'aeroporto). Eccezione: lettera di mezzo <c>G</c>
-    /// (es. LIRN_G_APP = precision/PAR di aeroporto militare) = NON di ACC. Per le altre posizioni resta falso (irrilevante).</summary>
+    /// <summary>Default "di ACC" di una posizione APP/DEP: vero solo se il pezzo di MEZZO ha più di un carattere
+    /// (es. LIRN_UN0_APP → mezzo "UN0" = remotizzato). Falso se a 2 pezzi (es. LIRP_APP = APP proprio dell'aeroporto)
+    /// o se il mezzo è un solo carattere (es. LIPE_W_APP / LIPE_E_APP = APP proprio; LIRN_G_APP = precision militare):
+    /// NON remotizzato. Per le altre posizioni resta falso (irrilevante).</summary>
     private static bool DefaultIsAccApp(string compose, string? position)
     {
         var p = (position ?? "").Trim().ToUpperInvariant();
         if (p is not ("APP" or "DEP")) return false;
         var parts = compose.Split('_', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 3) return false;                                          // 2 pezzi = APP proprio dell'aeroporto
-        if (string.Equals(parts[1], "G", StringComparison.OrdinalIgnoreCase)) return false;   // _G_ = precision militare, non remotizzato
-        return true;
+        return parts[1].Trim().Length > 1;                                           // mezzo mono-carattere (W/E/G…) = non remotizzato
     }
 }

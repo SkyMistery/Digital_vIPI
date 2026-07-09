@@ -3,10 +3,37 @@
 @inject IStationResolver Stations
 @inject IAppProfileService Profile
 @inject IEditAuthorizationService Authz
+@inject IVipiViewService ViewService
+@inject IEditingService Editing
+@inject IReleaseService Releases
+@inject IOnlineAtcProvider Online
+@inject IAiracService Airac
+@using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_vloaMode)
+{
+    <PageTitle>@PreviewTitlePrefix()vLOA @Acc.ToUpperInvariant() ↔ @_vloaForeign · IVAO Italia</PageTitle>
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_vloaForeign</b></div>
+        @if (_mode.IsPreview)
+        {
+            <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                           PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?vloa={_vloaForeign}")"
+                           DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?vloa={_vloaForeign}&as=draft")" />
+        }
+        @if (_vloaView is null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vLOA non disponibile</p>Nessuna vLOA pubblicata per la coppia <b>@Acc.ToUpperInvariant() ↔ @_vloaForeign</b>. Generala dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+        }
+        else
+        {
+            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
+        }
+    </div>
 }
 else if (_data is null)
 {
@@ -14,10 +41,10 @@ else if (_data is null)
 }
 else
 {
-    <PageTitle>@_app — @_name · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_app · @_name (non remotizzato)</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a> › <b>@_app</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
@@ -30,26 +57,34 @@ else
             </aside>
             <div>
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">@_app — @_name</h2><span class="muted">Avvicinamento non remotizzato · doc proprio</span></div>
-                    @if (_canEdit)
-                    {
-                        <div style="display:flex;align-items:center;gap:10px">
+                    <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · Avvicinamento non remotizzato · doc proprio</span></div>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa-app?app=@_app">⚡ Operativa</a>
+                        @if (_canEdit)
+                        {
                             <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">✎ Editor</a>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
+                @if (_mode.IsPreview)
+                {
+                    <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                                   PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
+                                   DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
+                }
                 <div class="callout info"><span class="cic">📡</span><div><p class="ct">APP con documentazione propria</p>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</div></div>
 
                 @foreach (var key in _order)
                 {
                     var desc = AppSections.Find(key);
                     var custom = desc is null ? _custom.FirstOrDefault(c => c.Key == key) : null;
-                    <div class="block" id="p-@key">
-                        <h3>@TitleOf(key)</h3>
+                    var isHidden = _mode.Kind == PreviewKind.Draft && _data.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
+                    <div class="block" id="p-@key" style="@(isHidden ? "opacity:.65" : "")">
+                        <h3>@TitleOf(key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
                         @switch (key)
                         {
                             case "separations": <AppSeparations Rows="_data.Separations" />; break;
-                            case "aor": <AppAor Polygon="_aor" Towers="_towers" />; break;
+                            case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
                             case "frequencies": <AppFrequencies Rows="_freqs" />; break;
                             case "vfr": <AppVfr Content="_vfr" />; break;
                             case "minima": <AppMinima />; break;
@@ -61,6 +96,25 @@ else
                     </div>
                 }
             </div>
+
+            <aside class="doc-rail">
+                <div class="rail-card">
+                    <h5>📋 Riepilogo</h5>
+                    <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
+                    <div class="rail-line"><span class="muted">ATC online</span>
+                        @{ var n = OnlineApp(); }
+                        <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
+                    </div>
+                </div>
+                <div class="rail-card">
+                    <h5>🔗 Collegamenti</h5>
+                    <ul class="rail-links">
+                        <li><a href="/vsop">Home</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a></li>
+                    </ul>
+                </div>
+            </aside>
         </div>
     </div>
 }
@@ -68,10 +122,22 @@ else
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? App { get; set; }
+    [SupplyParameterFromQuery] public string? Vloa { get; set; }
+    [SupplyParameterFromQuery] public string? Live { get; set; }   // legacy: live=1 → alias di as=draft
+    [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
+
+    private PreviewMode _mode;   // pubblica | bozza | release
+    private string? _relCycle;   // ciclo AIRAC della release (banner)
+
+    private bool _vloaMode;
+    private string _vloaForeign = "";
+    private DocumentView? _vloaView;
+    private int? _vloaDocId;
 
     private AccInfo? _acc;
     private string _app = "";
     private string _name = "";
+    private string _displayName = "";
     private bool _canEdit;
     private AppProfileData? _data;
     private List<string> _order = new();
@@ -79,30 +145,116 @@ else
     private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
     private AppCoordination _coord = AppCoordination.Empty;
-    private AppAorPolygon? _aor;
-    private IReadOnlyList<AppAorPolygon> _towers = Array.Empty<AppAorPolygon>();
+    private AccAorView _aorView = AccAorView.Empty;
+
+    private string PreviewTitlePrefix() => _mode.Kind switch
+    {
+        PreviewKind.Draft => "[Bozza] ",
+        PreviewKind.Release => "[Anteprima] ",
+        _ => "",
+    };
+
+    // Anteprima release gated (authz nel servizio) + verifica identità: null se inesistente/altro bersaglio/non autorizzato.
+    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
+    {
+        try
+        {
+            var pv = await Releases.GetPreviewAsync(releaseId);
+            if (pv is null || pv.Type != expectedType
+                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
+                return null;
+            return pv;
+        }
+        catch (EditNotAllowedException) { return null; }
+        catch (Vipi.Application.Aor.ValidationException) { return null; }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+
+        _mode = PreviewMode.Parse(As, Live);
+        _relCycle = null;
+        var home = Acc.Trim().ToUpperInvariant();
+
+        // Modalità vLOA: ?vloa=<ACC estero> mostra la Letter of Agreement della coppia (una per coppia ACC↔ACC).
+        _vloaForeign = (Vloa ?? "").Trim().ToUpperInvariant();
+        _vloaMode = _vloaForeign.Length > 0;
+        if (_vloaMode)
+        {
+            _vloaDocId = await Editing.ResolveVloaIdByPairAsync(home, _vloaForeign);
+            switch (_mode.Kind)
+            {
+                case PreviewKind.Draft:
+                    if (await Authz.CanEditAccAsync(home))
+                        _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
+                    else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
+                    break;
+                case PreviewKind.Release:
+                    // Serve il docId della coppia per verificare l'identità della release: senza, niente anteprima (→ pubblica).
+                    var pv = _vloaDocId is int vid ? await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, vid.ToString()) : null;
+                    if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _vloaView = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                    else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
+                    break;
+                default:
+                    _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false);
+                    break;
+            }
+            return;
+        }
+
         _app = (App ?? "").Trim().ToUpperInvariant();
-        _data = await Profile.LoadForViewAsync(_app);
+
+        // Anteprima (bozza/release) gated can-edit ACC; su non autorizzato/mismatch → vista pubblica (nessun banner).
+        switch (_mode.Kind)
+        {
+            case PreviewKind.Draft:
+                try { _data = await Profile.LoadForEditAsync(_app); }
+                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
+                break;
+            case PreviewKind.Release:
+                try
+                {
+                    var rv = await Profile.LoadForReleaseAsync(_app, _mode.ReleaseId);
+                    if (rv is null) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
+                    else { _data = rv.Data; _relCycle = rv.AiracCycle; }
+                }
+                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
+                break;
+            default:
+                _data = await Profile.LoadForViewAsync(_app);
+                break;
+        }
         if (_data is null) return;
 
         _name = _data.Name;
+        _displayName = string.IsNullOrWhiteSpace(_data.DisplayName) ? _data.Name : _data.DisplayName!;
         _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
         _custom = _data.CustomSections.ToList();
         _vfr = ParseVfr(_data.VfrJson);
         var customKeys = _custom.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var hidden = _data.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Le sezioni nascoste non compaiono nel documento pubblico né nell'anteprima release; in anteprima BOZZA sì
+        // (l'editor le vede), per mostrare esattamente lo stato editoriale in lavorazione.
         _order = AppSections.Reconcile(_data.SectionOrder, customKeys)
-            .Where(k => !hidden.Contains(k)).ToList();   // le sezioni nascoste non compaiono nel documento pubblico
+            .Where(k => _mode.Kind == PreviewKind.Draft || !hidden.Contains(k)).ToList();
 
         _freqs = (await Profile.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await Profile.DeriveCoordinationAsync(_app);
-        _aor = await Profile.GetAorPolygonAsync(_app);
-        _towers = await Profile.GetTowerPolygonsAsync(_app);
+        _aorView = await Profile.GetAorViewAsync(_app);
+    }
+
+    // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).
+    private int OnlineApp()
+    {
+        var head = _app.Split('_', 2)[0];
+        return Online.GetCurrent().Callsigns.Count(cs =>
+        {
+            var t = cs.Split('_');
+            return t.Length >= 2 && (t[^1].ToUpperInvariant() is "APP" or "DEP")
+                && t[0].Equals(head, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     private string TitleOf(string key) =>

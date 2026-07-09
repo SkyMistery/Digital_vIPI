@@ -28,6 +28,14 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
         return ParseList<AccBlock>(json);
     }
 
+    public async Task<bool> IsHiddenAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default)
+    {
+        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
+        return await _db.AccProfiles.AsNoTracking()
+            .Where(p => p.Acc!.Code == accCode && p.RootCallsign == root)
+            .Select(p => p.IsHidden).FirstOrDefaultAsync(ct);
+    }
+
     public async Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()
             .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)

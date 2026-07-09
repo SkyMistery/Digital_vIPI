@@ -1,0 +1,170 @@
+@page "/vsop/tasks"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditorTaskService Tasks
+@inject ICurrentUserProvider User
+
+<PageTitle>I miei incarichi · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1200px">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>I miei incarichi</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">📋 I miei incarichi</h2><span class="muted">Ciclo AIRAC corrente @_currentCycle · trascina lo stato per aggiornare l'avanzamento</span></div>
+    </div>
+
+    @if (User.Get() is null)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Non autenticato</p>Accedi per vedere i tuoi incarichi.</div></div>
+    }
+    else
+    {
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+
+        <div class="section-title"><h3>Nuovo incarico personale</h3><span class="ln"></span></div>
+        <div class="block">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <input class="app-in" style="flex:1;min-width:220px" placeholder="Titolo dell'incarico…" @bind="_newTitle" />
+                <select class="app-in" style="max-width:130px" @bind="_newPriority">
+                    @foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }
+                </select>
+                <select class="app-in" style="max-width:170px" @bind="_newDue">
+                    <option value="">Senza scadenza</option>
+                    @foreach (var c in _upcoming) { <option value="@c.Cycle">Entro AIRAC @c.Cycle</option> }
+                </select>
+                <button class="btn primary" disabled="@_busy" @onclick="CreateMine">+ Aggiungi a me</button>
+            </div>
+            <p class="help" style="margin:6px 0 0">Incarico libero (non legato a un documento). Gli incarichi su documenti li assegna un admin dalla dashboard.</p>
+        </div>
+
+        @if (_tasks is null) { <p class="help">Caricamento…</p> }
+        else if (_tasks.Count == 0) { <p class="help">Nessun incarico assegnato.</p> }
+        else
+        {
+            <div class="apt-2col" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px">
+                @foreach (var col in Columns)
+                {
+                    <div>
+                        <div class="section-title"><h3 style="font-size:14px">@ColLabel(col) <span class="muted">(@Count(col))</span></h3><span class="ln"></span></div>
+                        @foreach (var t in _tasks.Where(t => t.Status == col))
+                        {
+                            @TaskCard(t)
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<EditorTask>? _tasks;
+    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    private string _currentCycle = "";
+    private bool _busy;
+    private string? _status, _error;
+
+    private string _newTitle = "";
+    private EditorTaskPriority _newPriority = EditorTaskPriority.Normal;
+    private string _newDue = "";
+
+    private static readonly EditorTaskStatus[] Columns =
+        { EditorTaskStatus.Todo, EditorTaskStatus.InProgress, EditorTaskStatus.InReview, EditorTaskStatus.Done, EditorTaskStatus.Blocked };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentCycle = Tasks.CurrentCycle();
+        _upcoming = Tasks.UpcomingCycles(14);
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try { _tasks = await Tasks.ListMineAsync(); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task CreateMine()
+    {
+        _busy = true; _status = _error = null;
+        try
+        {
+            var me = User.Get()!;
+            var input = new EditorTaskInput(_newTitle, null, me.UserId, me.Name,
+                _newPriority, string.IsNullOrWhiteSpace(_newDue) ? null : _newDue, null, null, null);
+            await Tasks.CreateAsync(input);
+            _newTitle = ""; _newDue = "";
+            await Load();
+            _status = "Incarico aggiunto.";
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SetStatus(int id, EditorTaskStatus status)
+    {
+        _busy = true; _status = _error = null;
+        try { await Tasks.UpdateStatusAsync(id, status); await Load(); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Delete(int id)
+    {
+        _busy = true; _status = _error = null;
+        try { await Tasks.DeleteAsync(id); await Load(); _status = "Incarico eliminato."; }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private int Count(EditorTaskStatus s) => _tasks?.Count(t => t.Status == s) ?? 0;
+
+    private RenderFragment TaskCard(EditorTask t) => __builder =>
+    {
+        var overdue = Tasks.IsOverdue(t);
+        <div class="block" style="margin-bottom:8px;@(overdue ? "border-color:var(--ivao-red)" : "")">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span>
+                @if (t.DueAiracCycle is not null) { <span class="pill @(overdue ? "future" : "grey")" title="Scadenza AIRAC">@(overdue ? "⚠ in ritardo " : "")AIRAC @t.DueAiracCycle</span> }
+            </div>
+            <b>@t.Title</b>
+            @if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:12px;margin-top:2px">@t.Description</div> }
+            @if (t.TargetKey is not null)
+            {
+                <div style="margin-top:4px"><a class="btn ghost" href="@Vipi.Ui.Shared.TaskDocLink.LinkFor(t.TargetType, t.TargetKey)">Apri documento →</a></div>
+                @if (!string.IsNullOrWhiteSpace(t.TargetLabel)) { <div class="muted" style="font-size:11px;margin-top:2px">@t.TargetLabel</div> }
+            }
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+                @foreach (var s in Columns.Where(s => s != t.Status))
+                {
+                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => SetStatus(t.Id, s)">→ @ColLabel(s)</button>
+                }
+                @if (t.CreatedByUserId == (User.Get()?.UserId ?? -1))
+                {
+                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => Delete(t.Id)" title="Elimina">🗑</button>
+                }
+            </div>
+        </div>
+    };
+
+    private static string ColLabel(EditorTaskStatus s) => s switch
+    {
+        EditorTaskStatus.Todo => "Da fare",
+        EditorTaskStatus.InProgress => "In corso",
+        EditorTaskStatus.InReview => "In revisione",
+        EditorTaskStatus.Done => "Fatto",
+        EditorTaskStatus.Blocked => "Bloccato",
+        _ => s.ToString(),
+    };
+
+    private static string PrioLabel(EditorTaskPriority p) => p switch
+    {
+        EditorTaskPriority.Low => "Bassa", EditorTaskPriority.Normal => "Normale", EditorTaskPriority.High => "Alta", _ => p.ToString(),
+    };
+
+    private static string PrioPill(EditorTaskPriority p) => p switch
+    {
+        EditorTaskPriority.High => "future", EditorTaskPriority.Normal => "blue", _ => "grey",
+    };
+}

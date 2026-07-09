@@ -27,6 +27,10 @@ public interface IStaffRosterRepository
 
     /// <summary>Disattiva uno staffista che non è più staff IT (IsActive=false, LastVerifiedUtc aggiornato).</summary>
     Task DeactivateAsync(int UserId, CancellationToken ct = default);
+
+    /// <summary>Risolve VID → DisplayName per un insieme di UserId (batch). Include anche gli ex-staff disattivati;
+    /// i VID senza nome noto (o non nel roster) non compaiono nel dizionario.</summary>
+    Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default);
 }
 
 /// <summary>Dati staff di un utente dalla sorgente esterna (oggi IVAO <c>/v2/users/{UserId}</c>, leggibili col token app).</summary>

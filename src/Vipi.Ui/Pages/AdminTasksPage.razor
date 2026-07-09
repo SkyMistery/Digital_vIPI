@@ -1,0 +1,207 @@
+@page "/vsop/admin/tasks"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IEditorTaskService Tasks
+@inject IEditAuthorizationService Authz
+@inject IStaffRosterService Roster
+@inject IEditingService Editing
+
+<PageTitle>Incarichi editor · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1200px">
+    <div class="breadcrumb"><a href="/vsop/admin/permessi">Admin</a> › <b>Incarichi editor</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">📋 Incarichi editor</h2><span class="muted">Assegna e monitora il lavoro editoriale · ciclo AIRAC @_currentCycle</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può gestire gli incarichi.</div></div>
+    }
+    else
+    {
+        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+
+        <div class="section-title"><h3>Nuovo incarico</h3><span class="ln"></span></div>
+        <div class="xfe-form" style="max-width:none">
+            <div style="display:flex;flex-wrap:wrap;gap:10px">
+                <div class="field" style="flex:2;min-width:240px"><label>Titolo</label><input placeholder="es. Aggiornare procedure LIRF" @bind="_title" /></div>
+                <div class="field" style="flex:1;min-width:180px"><label>Assegna a (staffista)</label>
+                    <select @bind="_assignee">
+                        <option value="0">— seleziona —</option>
+                        @if (_members is not null)
+                        {
+                            @foreach (var m in _members)
+                            {
+                                <option value="@m.UserId">@m.UserId@(string.IsNullOrWhiteSpace(m.DisplayName) ? "" : $" — {m.DisplayName}")</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="field" style="flex:1;min-width:130px"><label>Priorità</label>
+                    <select @bind="_priority">@foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }</select>
+                </div>
+                <div class="field" style="flex:1;min-width:150px"><label>Scadenza AIRAC</label>
+                    <select @bind="_due"><option value="">Senza</option>@foreach (var c in _upcoming) { <option value="@c.Cycle">@c.Cycle</option> }</select>
+                </div>
+                <div class="field" style="flex:2;min-width:240px"><label>Documento (facoltativo)</label>
+                    <select @bind="_docKey">
+                        <option value="">— incarico libero —</option>
+                        @foreach (var d in _docs)
+                        {
+                            <option value="@DocKey(d)">@d.Type · @d.Title (@d.Scope)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="field"><label>Descrizione (facoltativa)</label><textarea rows="2" @bind="_desc" placeholder="Dettagli dell'incarico…"></textarea></div>
+            <button class="btn primary" disabled="@_busy" @onclick="Create">+ Crea incarico</button>
+        </div>
+
+        <div class="section-title"><h3>Tutti gli incarichi</h3><span class="ln"></span></div>
+        @if (_tasks is null) { <p class="help">Caricamento…</p> }
+        else if (_tasks.Count == 0) { <p class="help">Nessun incarico creato.</p> }
+        else
+        {
+            <table>
+                <thead><tr><th>Titolo</th><th>Assegnatario</th><th>Stato</th><th>Priorità</th><th>Scadenza</th><th>Documento</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var t in _tasks)
+                    {
+                        var overdue = Tasks.IsOverdue(t);
+                        <tr style="@(overdue ? "background:rgba(209,36,47,.06)" : "")">
+                            <td><b>@t.Title</b>@if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:11px">@t.Description</div> }</td>
+                            <td>@t.AssigneeUserId@(string.IsNullOrWhiteSpace(t.AssigneeName) ? "" : $" — {t.AssigneeName}")</td>
+                            <td>
+                                <select class="app-in" style="max-width:150px" @onchange="e => SetStatus(t.Id, e.Value?.ToString())">
+                                    @foreach (var s in Enum.GetValues<EditorTaskStatus>()) { <option value="@s" selected="@(s == t.Status)">@ColLabel(s)</option> }
+                                </select>
+                            </td>
+                            <td><span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span></td>
+                            <td>@(t.DueAiracCycle is null ? "—" : $"AIRAC {t.DueAiracCycle}")@(overdue ? " ⚠" : "")</td>
+                            <td class="muted" style="font-size:11px">@(t.TargetLabel ?? (t.TargetKey is null ? "—" : t.TargetKey))</td>
+                            <td><button class="btn ghost" disabled="@_busy" @onclick="() => Delete(t.Id)">🗑</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="section-title" style="margin-top:18px"><h3>Avanzamento per editor</h3><span class="ln"></span></div>
+            <div class="choice-grid">
+                @foreach (var grp in _tasks.GroupBy(t => (t.AssigneeUserId, t.AssigneeName)).OrderBy(g => g.Key.AssigneeUserId))
+                {
+                    var done = grp.Count(t => t.Status == EditorTaskStatus.Done);
+                    var late = grp.Count(Tasks.IsOverdue);
+                    <div class="choice">
+                        <h4>@grp.Key.AssigneeUserId@(string.IsNullOrWhiteSpace(grp.Key.AssigneeName) ? "" : $" — {grp.Key.AssigneeName}")</h4>
+                        <p class="muted">@done/@grp.Count() completati@(late > 0 ? $" · {late} in ritardo ⚠" : "")</p>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<EditorTask>? _tasks;
+    private IReadOnlyList<StaffRosterEntry>? _members;
+    private IReadOnlyList<DocumentSummary> _docs = Array.Empty<DocumentSummary>();
+    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    private string _currentCycle = "";
+    private bool _busy;
+    private string? _status, _error;
+
+    private string _title = "", _desc = "", _due = "", _docKey = "";
+    private int _assignee;
+    private EditorTaskPriority _priority = EditorTaskPriority.Normal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _currentCycle = Tasks.CurrentCycle();
+        _upcoming = Tasks.UpcomingCycles(14);
+        _members = await Roster.ListActiveAsync();
+        _docs = await Editing.ListDocumentsAsync();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try { _tasks = await Tasks.ListAllAsync(); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Create()
+    {
+        _busy = true; _status = _error = null;
+        try
+        {
+            var (type, key, label) = ParseDocKey(_docKey);
+            var name = _members?.FirstOrDefault(m => m.UserId == _assignee)?.DisplayName;
+            var input = new EditorTaskInput(_title, string.IsNullOrWhiteSpace(_desc) ? null : _desc,
+                _assignee, name, _priority, string.IsNullOrWhiteSpace(_due) ? null : _due, type, key, label);
+            await Tasks.CreateAsync(input);
+            _title = ""; _desc = ""; _due = ""; _docKey = ""; _assignee = 0;
+            await Load();
+            _status = "Incarico creato.";
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SetStatus(int id, string? s)
+    {
+        if (s is null || !Enum.TryParse<EditorTaskStatus>(s, out var status)) return;
+        _busy = true; _status = _error = null;
+        try { await Tasks.UpdateStatusAsync(id, status); await Load(); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Delete(int id)
+    {
+        _busy = true; _status = _error = null;
+        try { await Tasks.DeleteAsync(id); await Load(); _status = "Incarico eliminato."; }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // Chiave documento per il picker: "{type}:{key}" con etichetta ricavata dal DocumentSummary.
+    private static string DocKey(DocumentSummary d)
+    {
+        if (d.Type == DocumentType.Vloa) return $"Vloa:{d.Id}";
+        if (d.IsAirport) return $"Airport:{d.Scope}";
+        if (d.IsStandaloneApp) return $"App:{d.Scope}";
+        return $"AccVipi:{(d.AccCode ?? d.Scope)}|";   // ACC vIPI: root primario (vuoto)
+    }
+
+    private (ReleaseTargetType?, string?, string?) ParseDocKey(string dk)
+    {
+        if (string.IsNullOrWhiteSpace(dk)) return (null, null, null);
+        var idx = dk.IndexOf(':');
+        if (idx < 0) return (null, null, null);
+        var type = Enum.Parse<ReleaseTargetType>(dk[..idx]);
+        var key = dk[(idx + 1)..];
+        var label = _docs.FirstOrDefault(d => DocKey(d) == dk) is { } d ? $"{d.Type} · {d.Title}" : key;
+        return (type, key, label);
+    }
+
+    private static string ColLabel(EditorTaskStatus s) => s switch
+    {
+        EditorTaskStatus.Todo => "Da fare", EditorTaskStatus.InProgress => "In corso",
+        EditorTaskStatus.InReview => "In revisione", EditorTaskStatus.Done => "Fatto",
+        EditorTaskStatus.Blocked => "Bloccato", _ => s.ToString(),
+    };
+
+    private static string PrioLabel(EditorTaskPriority p) => p switch
+    {
+        EditorTaskPriority.Low => "Bassa", EditorTaskPriority.Normal => "Normale", EditorTaskPriority.High => "Alta", _ => p.ToString(),
+    };
+
+    private static string PrioPill(EditorTaskPriority p) => p switch
+    {
+        EditorTaskPriority.High => "future", EditorTaskPriority.Normal => "blue", _ => "grey",
+    };
+}

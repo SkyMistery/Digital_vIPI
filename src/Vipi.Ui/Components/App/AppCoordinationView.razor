@@ -7,6 +7,11 @@
     <p class="muted" style="margin:0">Nessun coordinamento configurato per questo APP.</p>
 }
 
+<div class="coord-wrap">
+@if (Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0)
+{
+    @CoordTools
+}
 @if (Coord.TowardAcc.Count > 0)
 {
     var accRows = Coord.TowardAcc.SelectMany(g => g.Rows).ToList();
@@ -16,6 +21,7 @@
     <details class="coord-sub" open>
         <summary><span>Trasferimenti verso ACC</span><span class="chev">▸</span></summary>
         <div class="body">
+            @CoordTools
             @if (partenze.Count > 0)
             {
                 <details class="coord-sub2" open>
@@ -39,6 +45,7 @@
     <details class="coord-sub" open>
         <summary><span>Trasferimenti verso le torri</span><span class="chev">▸</span></summary>
         <div class="body">
+            @CoordTools
             @foreach (var g in Coord.TowardTowers)
             {
                 <details class="coord-sub2" open>
@@ -49,9 +56,19 @@
         </div>
     </details>
 }
+</div>
 
 @code {
     [Parameter, EditorRequired] public AppCoordination Coord { get; set; } = AppCoordination.Empty;
+
+    // Controlli espandi/comprimi tutto (sezione + sottosezioni). Vedi vipiDetails in vipi-ui.js.
+    private readonly RenderFragment CoordTools = __builder =>
+    {
+        <div class="coord-tools">
+            <button type="button" onclick="vipiDetails(this,true)">⊕ Espandi tutto</button>
+            <button type="button" onclick="vipiDetails(this,false)">⊖ Comprimi tutto</button>
+        </div>
+    };
 
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string lastCol = "Next") => __builder =>
     {

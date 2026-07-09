@@ -72,6 +72,17 @@ public sealed class EfStaffRosterRepository : IStaffRosterRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default)
+    {
+        if (userIds.Count == 0) return new Dictionary<int, string>();
+        var ids = userIds.Distinct().ToList();
+        var rows = await _db.StaffMembers.AsNoTracking()
+            .Where(x => ids.Contains(x.UserId) && x.DisplayName != null && x.DisplayName != "")
+            .Select(x => new { x.UserId, x.DisplayName })
+            .ToListAsync(ct);
+        return rows.ToDictionary(x => x.UserId, x => x.DisplayName!);
+    }
+
     private static StaffRosterEntry Map(StaffMember x) => new(
         UserId: x.UserId,
         DisplayName: x.DisplayName,

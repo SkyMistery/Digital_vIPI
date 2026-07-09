@@ -22,6 +22,9 @@ public interface ITransferService
     Task<int> AddPointAsync(string accCode, int flowId, TransferPointInput input, CancellationToken ct = default);
     Task UpdatePointAsync(string accCode, int pointId, TransferPointInput input, CancellationToken ct = default);
     Task DeletePointAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Sposta un punto su/giù nel suo flusso (scambio Order col vicino). No-op agli estremi.</summary>
+    Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="ITransferService"/>
@@ -110,6 +113,12 @@ public sealed class TransferService : ITransferService
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         await _repo.DeletePointAsync(accCode, pointId, ct);
+    }
+
+    public async Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.MovePointAsync(accCode, pointId, up, ct);
     }
 
     // Validazione SOFT: solo i campi strutturali indispensabili. Il CoP fuori whitelist è un warning di UI, non un blocco.

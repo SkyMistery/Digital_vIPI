@@ -35,15 +35,21 @@ public class VipiDbContext : DbContext
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
     public DbSet<AirportRunwayRule> AirportRunwayRules => Set<AirportRunwayRule>();
     public DbSet<AirportSid> AirportSids => Set<AirportSid>();
+    public DbSet<SidFixAlias> SidFixAliases => Set<SidFixAlias>();
     public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
     public DbSet<AirportExtraSection> AirportExtraSections => Set<AirportExtraSection>();
     public DbSet<ImportPolicy> ImportPolicies => Set<ImportPolicy>();
+    public DbSet<ImportState> ImportStates => Set<ImportState>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
     public DbSet<AppProfile> AppProfiles => Set<AppProfile>();
     public DbSet<AppFrequencyLink> AppFrequencyLinks => Set<AppFrequencyLink>();
     public DbSet<AccProfile> AccProfiles => Set<AccProfile>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
+    public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
+    public DbSet<VloaProfile> VloaProfiles => Set<VloaProfile>();
+    public DbSet<DocRelease> DocReleases => Set<DocRelease>();
+    public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -58,6 +64,9 @@ public class VipiDbContext : DbContext
             }
 
         b.Entity<Acc>().HasIndex(x => x.Code).IsUnique();
+
+        b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
+        b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import
 
         b.Entity<AccSector>(e =>
         {
@@ -253,6 +262,34 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => new { x.AccId, x.RootCallsign }).IsUnique();
             e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Coppie ACC confinanti candidate a vLOA (staging del calcolo di adiacenza). ---
+        b.Entity<NeighbourCandidate>(e =>
+        {
+            e.HasIndex(x => new { x.HomeAccCode, x.ForeignAccCode }).IsUnique();   // chiave naturale della coppia
+        });
+
+        // --- Release AIRAC (snapshot editoriale per ciclo di rilascio), modello unico per tutti i tipi. ---
+        b.Entity<DocRelease>(e =>
+        {
+            e.HasIndex(x => new { x.TargetType, x.TargetKey, x.ReleaseEffectiveUtc });   // selezione della release effettiva
+            e.HasIndex(x => new { x.TargetType, x.TargetKey, x.VersionNumber });
+        });
+
+        // --- Incarichi editoriali (task management). ---
+        b.Entity<EditorTask>(e =>
+        {
+            e.HasIndex(x => x.AssigneeUserId);
+            e.HasIndex(x => x.Status);
+        });
+
+        // --- Stato editoriale data-driven della vLOA (1:1 col Document). ---
+        b.Entity<VloaProfile>(e =>
+        {
+            e.HasIndex(x => x.DocumentId).IsUnique();
+            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente, legate all'ACC via Acc.Code. ---

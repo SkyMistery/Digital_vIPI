@@ -34,6 +34,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ImportedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsForeign")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsHidden")
                         .HasColumnType("INTEGER");
 
@@ -64,6 +67,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("BlocksJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RootCallsign")
                         .HasColumnType("TEXT");
@@ -431,17 +437,35 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("InitialClimb")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("NeedsFixReview")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("Priority")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Runway")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceAiracCycle")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StableKey")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Transition")
@@ -536,6 +560,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("HiddenSectionsJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SectionOrderJson")
                         .IsRequired()
@@ -687,6 +714,56 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("CoordinationPoints");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.DocRelease", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReleaseAiracCycle")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ReleaseEffectiveUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetType", "TargetKey", "ReleaseEffectiveUtc");
+
+                    b.HasIndex("TargetType", "TargetKey", "VersionNumber");
+
+                    b.ToTable("DocReleases");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Property<int>("Id")
@@ -697,6 +774,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("FeaturedRank")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsHidden")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Language")
@@ -879,6 +959,66 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("EditGrants");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EditorTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AssigneeName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AssigneeUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DueAiracCycle")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetLabel")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("EditorTasks");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ImportPolicy", b =>
                 {
                     b.Property<int>("Id")
@@ -889,6 +1029,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportSectors")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ImportSids")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportTransitionAltitude")
@@ -903,6 +1046,19 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ImportPolicies");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.ImportState", b =>
+                {
+                    b.Property<string>("Category")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastSuccessUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Category");
+
+                    b.ToTable("ImportStates");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
@@ -928,6 +1084,68 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("Type", "Ident", "AiracCycle");
 
                     b.ToTable("NavReferences");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.NeighbourCandidate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdjacentForeignCallsigns")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AdjacentHomeCallsigns")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AdjacentSectorCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CountryId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ForeignAccCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ForeignAccName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ForeignRootCallsign")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HomeAccCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("MinDistanceNm")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("RegionMapPolygon")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("VloaDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HomeAccCode", "ForeignAccCode")
+                        .IsUnique();
+
+                    b.ToTable("NeighbourCandidates");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
@@ -1047,6 +1265,28 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("SharedBlocks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SidFixAlias", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FixName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Prefix")
+                        .IsUnique();
+
+                    b.ToTable("SidFixAliases");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
@@ -1307,6 +1547,39 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("ScopeSectorId");
 
                     b.ToTable("VectoringMinimaSets");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.VloaProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FreqOrderJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HiddenAorSectorsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HiddenFrequenciesJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HiddenSectionsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.ToTable("VloaProfiles");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AccProfile", b =>
@@ -1695,6 +1968,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ScopeSector");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.VloaProfile", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>

@@ -13,6 +13,10 @@ public class Document
     public DateTime LastUpdatedUtc { get; set; }
     public string LastUpdatedAiracCycle { get; set; } = default!; // calcolato da AiracService, es. "2606"
     public int? FeaturedRank { get; set; }             // ordine "in evidenza" (1..3) nella card vLOA della landing ACC; null = non in evidenza
+
+    /// <summary>Nascosto dal pubblico (reversibile): il documento resta con la sua storia ma i loader pubblici lo escludono.</summary>
+    public bool IsHidden { get; set; }
+
     public byte[]? RowVersion { get; set; }
 
     // Lock di editing esclusivo (PIANO sicurezza): impedisce a due editor di lavorare lo stesso documento.
@@ -37,6 +41,60 @@ public class DocumentParty
     public int SectorId { get; set; }
     public Sector? Sector { get; set; }
     public PartyRole Role { get; set; }                // Home (IT, editabile) | Neighbour (sola lettura)
+}
+
+/// <summary>
+/// Stato editoriale (data-driven) di una vLOA, 1:1 col <see cref="Document"/>. Analogo di <c>AppProfile</c> per l'APP:
+/// le sezioni AoR/Frequenze/Coordinamenti della vLOA sono DERIVATE dai dati (settori confinanti dei due ACC), qui si
+/// conservano solo le scelte dello staff: quali settori nascondere dall'AoR, quali frequenze nascondere, l'ordine freq.
+/// </summary>
+public class VloaProfile
+{
+    public int Id { get; set; }
+    public int DocumentId { get; set; }
+    public Document? Document { get; set; }
+
+    /// <summary>Callsign dei settori (home o estero) nascosti dalla mappa AoR (JSON array).</summary>
+    public string? HiddenAorSectorsJson { get; set; }
+
+    /// <summary>Callsign dei settori le cui frequenze sono nascoste dalla tabella (JSON array).</summary>
+    public string? HiddenFrequenciesJson { get; set; }
+
+    /// <summary>Titoli delle sezioni nascoste dal documento pubblicato (JSON array).</summary>
+    public string? HiddenSectionsJson { get; set; }
+
+    /// <summary>Override d'ordine delle frequenze per callsign (JSON di AppFreqOrderOverride).</summary>
+    public string? FreqOrderJson { get; set; }
+
+    public byte[]? RowVersion { get; set; }
+}
+
+/// <summary>
+/// Release AIRAC di un documento: snapshot delle SOLE scelte editoriali (<see cref="PayloadJson"/>) pubblicato con
+/// un ciclo AIRAC di rilascio. Modello unico per tutti i tipi (vLOA/vIPI ACC/APP/Aeroporto): lo stato live resta la
+/// bozza sempre aperta, la release ne congela una fotografia. Il pubblico vede la release con
+/// <see cref="ReleaseEffectiveUtc"/> &lt;= adesso più recente; le future sono schedulate. I dati derivati
+/// (poligoni/frequenze/gerarchia/trasferimenti) NON sono nello snapshot: si renderizzano sempre coi cataloghi correnti.
+/// </summary>
+public class DocRelease
+{
+    public int Id { get; set; }
+    public ReleaseTargetType TargetType { get; set; }
+
+    /// <summary>Chiave del bersaglio: vLOA = documentId; AccVipi = "{accCode}|{rootCallsign}"; App = callsign settore; Airport = ICAO.</summary>
+    public string TargetKey { get; set; } = default!;
+
+    public int VersionNumber { get; set; }                 // progressivo per (TargetType, TargetKey)
+    public string ReleaseAiracCycle { get; set; } = default!;   // "YYNN"
+    public DateTime ReleaseEffectiveUtc { get; set; }      // chiave di selezione ordinabile (data efficace del ciclo)
+    public ReleaseStatus Status { get; set; } = ReleaseStatus.Scheduled;
+
+    /// <summary>Snapshot serializzato delle scelte editoriali (shape dipende dal <see cref="TargetType"/>).</summary>
+    public string PayloadJson { get; set; } = default!;
+
+    public int CreatedByUserId { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public string? Note { get; set; }
 }
 
 /// <summary>Versione immutabile di un documento (audit + diff). SPEC §3.11.</summary>

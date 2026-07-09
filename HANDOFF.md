@@ -1,10 +1,10 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 luglio 2026 (Round 23 — vIPI ACC data-driven a blocchi)
+**Ultimo aggiornamento:** 8 luglio 2026 (Round 34 — vista operativa + QoL admin + import SID GitHub + import gated)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
-**Stato:** progetto **in sviluppo attivo**. Solution .NET 8 a 4 layer + Host Blazor Server, **164 test verdi**, consultazione+editing+sicurezza dal DB. **vIPI ACC data-driven a blocchi** (Aerovia CTR + gruppi-APP, specchio dell'editor APP; round 23, modello §9.15). **Editor+viewer dedicati per gli APP non remotizzati** (round 21, `docs/design/piano-editor-appn.md` + modello §9.13). **Shape tonda 5 NM di fallback per le TWR senza poligono** + overlay torre sulla mappa AOR (round 22, modello §9.14). **Live IVAO** (polling + cache + SSE, Ridotta live). **Sorgente dati disaccoppiata** (interfacce neutre + `DataSource:Provider`) + **policy di import opt-out**. Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC (Round 20).
+**Stato:** progetto **in sviluppo attivo**. Solution .NET 8 a 4 layer + Host Blazor Server, consultazione+editing+sicurezza dal DB. **Import SID da GitHub** (sectorfile Aurora `ivao-italy/it-aurora-sector`): parser + completion fix/VOR + alias, merge preserva-manuali, priorità per punto persistente (StableKey), pubblicazione differita al ciclo AIRAC N+1 (round 34, `AddSidImport`). **Import periodici gated** (`ImportState`, `AddImportState`): niente più fetch-all a ogni riavvio (round 34). **Vista operativa ACC** rifatta sul mockup `#reduced` + vista rapida aeroporto inline (`AirportQuickPanel`); QoL admin `sectorstructure`/`trasferimenti` (round 34). **Versioning AIRAC**: release schedulate per ciclo su TUTTI i tipi (`DocRelease`; round 29, §9.17) + **task management editor**. **Anteprime unificate `?as=`** nei viewer tipizzati (round 33). **vLOA data-driven** + **ACC esteri confinanti** (round 27-28, §9.16). **vIPI ACC/APP data-driven a blocchi** (round 21/23). **Live IVAO** (polling + cache + SSE). **Sorgente dati disaccoppiata** + **policy di import opt-out** (categorie: TA/Runways/Sectors/**Sids**). Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia per callsign cross-ACC (Round 20).
 
-> **Storia dei round:** `docs/history/rounds.md` (changelog R5→R23). **Indice doc:** `docs/index.md`. Ultimo round: **23** — vIPI ACC data-driven a blocchi; modello in `docs/spec/modello-dati.md` §9.15. (Round 22: shape tonda TWR + coord aeroporto, §9.14; round 21: editor APP non remotizzati, §9.13.)
+> **Storia dei round:** `docs/history/rounds.md` (changelog R5→R34). **Indice doc:** `docs/index.md`. Ultimo round: **34** — vista operativa + QoL admin + import SID GitHub + gating import; modello in `docs/spec/modello-dati.md` §9.8 (migrazioni). (R33: anteprime `?as=`; R30: QoL Bozze & versioni §9.18; R29: versioning AIRAC + task §9.17.)
 
 ---
 
@@ -15,9 +15,10 @@ Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e l
 ```bash
 cd "vIPI Ivao Italy"            # cartella interna con la solution
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx          # 157 test
+dotnet test  Vipi.slnx          # ~199 test (Domain 12 · App 91 · Infra 96)
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
+- ⚠️ **NOTA (Round 34):** il **`vipi.db` dev è stato resettato** a fine sessione (testando il gating import). Al primo avvio ripopola da zero (ACC → settori → aree → SID) e stampa lo stato in `ImportStates`; i riavvii successivi **saltano** i fetch finché non scadono i 24h (o via bottoni manuali). Le SID importate sono pubbliche solo dal ciclo AIRAC successivo.
 - ⚠️ **AZIONE PENDENTE (Round 22):** **fermare e RIAVVIARE il Host** per applicare la migrazione **`AddAirportCoordsAndTwrSyntheticShape`** (additiva) e far girare il job che (a) popola `Airport.Latitude/Longitude` dal dettaglio ATCPositions e (b) genera le **shape tonde 5 NM** per le TWR vuote (`/v2/ATCPositions/{compose}.regionMapPolygon = "[]"`). Il job parte ~30s dopo l'avvio. Poi su `/vsop/{acc}/apps/vipi?app={APP}` l'AOR mostra il cerchio della torre col toggle «Shape torre». ⚠️ Credenziali IVAO in **user secrets** (`Ivao:ClientId/ClientSecret`), scope `tracker` basta per il dettaglio postazione. Il Host viene **fermato** a fine sessione (blocca le DLL in build).
 - ⚠️ **AZIONE PENDENTE (Round 20):** se il DB è ancora pre-round-20: **reset `src/Vipi.Host/vipi.db`** in dev (o applica `AddHierarchyParentCallsign`) → riavvia. Poi `/vsop/admin/acc` → «Importa da sorgente»: la **sync** popola i `Sector` dai cataloghi; in `/vsop/admin/sectorstructure` compare l'**albero di copertura globale** (cross-ACC).
 - DB **SQLite** creato/migrato all'avvio (`src/Vipi.Host/vipi.db`). **Nessun seed**: si parte da DB **vuoto**. Flusso dati reale: `/vsop/admin/acc` importa ACC+settori dalla sorgente → la sync proietta i `Sector` → la **gerarchia** (padri per callsign) si imposta in `/vsop/admin/sectorstructure` → «Crea nuovo documento» (vIPI = N settori di scope, uno primario) → editor. **I settori NON si creano più a mano** (sono proiezione dei cataloghi, Round 20). Cancella `vipi.db*` per ripartire da zero. I `*Seed.cs` di Roma restano solo come fixture nei test.
@@ -40,7 +41,7 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 **Consultazione dal DB (✅):** pipeline `IContentRepository` → `IVipiViewService` → `SectionNode`/`BlockRenderer`. Rotte sotto `/vsop`:
 - `/{acc}/vipi` (Estesa ACC) · `/{acc}/ridotta` (proiezione tier Reduced + sezione Trasferimenti) · `/{acc}/airports?icao=` (vIPI aeroporto) · `/{acc}/vloa`.
 - `/search` (ricerca full-text reale), `/changed` (cosa è cambiato nel ciclo AIRAC), `/{acc}/export` (Estesa → stampa/PDF browser).
-- Stub dichiarati: SID, mappe AoR (SVG statico), `/{acc}/aor3d` (SVG statico). METAR/TAF = reale (NOAA).
+- **SID ✅ reali** (round 34): importate dal sectorfile Aurora GitHub, editor aeroporto + `AirportQuickPanel`. Stub residui: mappe AoR (SVG statico), `/{acc}/aor3d` (SVG statico). METAR/TAF = reale (NOAA).
 
 **Editing persistente (✅):** `Application/Content/EditingService.cs` + `Infrastructure/Persistence/EfEditingRepository.cs`:
 - Workflow **bozza→pubblicato** (clona versione, audit, archivia precedente). CRUD **blocchi e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli). `EditorPage` (`/{acc}/editor`, anche `?doc={id}`), `VersioniPage`.
@@ -75,7 +76,7 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
    - **Mapping token-handler → callsign** trasferimenti (oggi euristica match-segmento). Valutare tabella esplicita.
    - **Endpoint membri divisione** (`/v2/divisions/IT/members`) da confermare.
    - Estendere `live=true` a **vIPI aeroporto / vLOA** (oggi solo ACC Ridotta).
-2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO `[lng,lat]` su mappa Leaflet, APP + overlay TWR; le TWR senza poligono hanno il **cerchio 5 NM** sintetico, round 22). Restano: **shape reali TWR dal sectorfile GitHub** (provider `DataSource:Provider`, rimpiazza le sintetiche `IsShapeSynthetic`), SID + minime MVA (parsing sectorfile GitHub), AoR 3D (Three.js).
+2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO). **SID ✅** (sectorfile Aurora GitHub, round 34, sez. config `Sectorfile`). Restano: **shape reali TWR dal sectorfile GitHub** (rimpiazza le sintetiche `IsShapeSynthetic`), **minime MVA** (`<icao>.mva` stesso repo — riusa il pattern SID: parser + import gated + pubblicazione differita), AoR 3D (Three.js).
 3. **Fonte unica (Round 20) — follow-up:** doc+AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi. Eliminazione totale di `Sector` + **risoluzione live** "chi controlla l'aeroporto adesso" (presidiato se DEL/GND/TWR online, altrimenti primo antenato online risalendo `ParentCallsign`) = fase live. ✅ **Fatto per i trasferimenti:** `ITransferService.ResolveForAccAsync` + `ITopologyProvider.BuildGlobalAsync` risolvono mittente e ricevente risalendo la gerarchia globale (terminale UNICOM); Ridotta li mostra nidificati Settore ▸ Aeroporto ▸ Tipo. Resta da estendere la stessa risalita alla "presidenza aeroporto" generale.
 4. **Auth di produzione:** adapter reali `ICurrentUserProvider` — `HostIdentity` (A/B, claim `Ivao.It`) e OIDC (C); mappare gli **staff code reali** (§6). Montare la RCL nel sito host.
 5. **Copertura/rifiniture:** viewer **audit log**, "scarta bozza", editor visuale mappe AoR, test property-based AoR, rifinitura UI.

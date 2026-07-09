@@ -39,9 +39,9 @@ public interface IStructureEditingRepository
 
     /// <summary>
     /// Crea in blocco gli aeroporti candidati la cui <c>AccCode</c> corrisponde a una ACC esistente e il cui
-    /// ICAO non è ancora assegnato. Esistenza ACC/ICAO verificata server-side (autorità DB). Ritorna i creati.
+    /// ICAO non è ancora assegnato. Esistenza ACC/ICAO verificata server-side (autorità DB). Ritorna gli ICAO creati.
     /// </summary>
-    Task<int> AutoAssignAirportsAsync(
+    Task<IReadOnlyList<string>> AutoAssignAirportsAsync(
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default);
 
     /// <summary>

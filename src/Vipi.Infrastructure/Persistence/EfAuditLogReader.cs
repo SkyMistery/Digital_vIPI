@@ -18,4 +18,15 @@ public sealed class EfAuditLogReader : IAuditLogReader
             .AsNoTracking()
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<AuditEntry>> ListForEntityAsync(string entityType, string entityId, int max = 50, CancellationToken ct = default)
+    {
+        return await _db.AuditLogs
+            .Where(a => a.EntityType == entityType && a.EntityId == entityId)
+            .OrderByDescending(a => a.Id)
+            .Take(Math.Clamp(max, 1, 500))
+            .Select(a => new AuditEntry(a.Id, a.UserId, a.Action, a.EntityType, a.EntityId, a.TimestampUtc, a.DetailsJson))
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
 }

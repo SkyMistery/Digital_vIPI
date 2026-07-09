@@ -26,6 +26,8 @@ public interface IAirportProfileService
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
+    /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto di UNA riga SID importata (ACC-gated).</summary>
+    Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
@@ -131,6 +133,12 @@ public sealed class AirportProfileService : IAirportProfileService
             if (string.IsNullOrWhiteSpace(r.Fix)) throw new ValidationException("FIX obbligatorio per ogni SID.");
         }
         await _repo.SaveSidsAsync(Norm(icao), rows, ct);
+    }
+
+    public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
+    {
+        await EnsureCanEditAsync(icao, ct);
+        await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, ct);
     }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)

@@ -15,6 +15,9 @@ public interface IAccProfileRepository
     /// <summary>Carica i blocchi salvati dell'albero indicato (null = radice primaria). Lista vuota se nessun profilo.</summary>
     Task<IReadOnlyList<AccBlock>> LoadBlocksAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
 
+    /// <summary>Vero se la vIPI ACC dell'albero indicato è nascosta dal pubblico.</summary>
+    Task<bool> IsHiddenAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
+
     /// <summary>Radici degli alberi CTR dell'ACC (settori CTR senza genitore, attivi). Una vIPI per radice.</summary>
     Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default);
 

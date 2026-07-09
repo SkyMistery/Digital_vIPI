@@ -22,7 +22,15 @@ public interface IAirportProfileRepository
     Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default);
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
+    /// <summary>Salva le sole SID MANUALI dell'aeroporto (IsImported=false): sostituisce l'intera lista manuale, non tocca le importate.</summary>
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
+
+    /// <summary>Merge SID importate: rimuove le sole righe importate precedenti e inserisce le nuove, riapplicando
+    /// Priority e ForcePublished per StableKey. Le righe manuali restano intatte.</summary>
+    Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default);
+
+    /// <summary>Aggiorna i campi editabili di UNA riga SID importata (priorità, forzatura pubblicazione, fix risolto a mano).</summary>
+    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 

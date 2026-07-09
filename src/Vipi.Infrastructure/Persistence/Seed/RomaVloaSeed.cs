@@ -25,10 +25,11 @@ public static class RomaVloaSeed
         var dttcAcc = await db.Accs.FirstOrDefaultAsync(f => f.Code == "DTTC", ct);
         if (dttcAcc is null)
         {
-            dttcAcc = new Acc { Code = "DTTC", Name = "Tunis ACC", CountryPrefix = "DT" };
+            dttcAcc = new Acc { Code = "DTTC", Name = "Tunis ACC", CountryPrefix = "DT", IsForeign = true };
             db.Accs.Add(dttcAcc);
             await db.SaveChangesAsync(ct);
         }
+        else if (!dttcAcc.IsForeign) { dttcAcc.IsForeign = true; await db.SaveChangesAsync(ct); }
         var dttc = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == "DTTC_CTR", ct);
         if (dttc is null)
         {

@@ -119,10 +119,65 @@
         }, true);
     }
 
+    function wireCollapse() {
+        // <details data-persist="key">: ricorda aperto/chiuso in localStorage tra le navigazioni.
+        document.querySelectorAll('details[data-persist]').forEach(function (d) {
+            if (d.dataset.persistWired) return;
+            d.dataset.persistWired = '1';
+            var key = 'vipi-collapse:' + d.getAttribute('data-persist');
+            var saved = null;
+            try { saved = localStorage.getItem(key); } catch (e) { }
+            if (saved !== null) d.open = saved === '1';
+            d.addEventListener('toggle', function () {
+                try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { }
+            });
+        });
+    }
+
+    // Espandi/comprimi tutti i <details> di uno scope. Bottone dentro un <details> → agisce sui discendenti di
+    // quel nodo (il nodo resta aperto); bottone di sezione (fuori dai details) → l'intero blocco `.coord-wrap`.
+    // onclick inline: funziona anche su pagine InteractiveServer, senza dipendere dal wiring a enhancedload.
+    window.vipiDetails = function (btn, open) {
+        var scope = btn.closest('details') || btn.closest('.coord-wrap');
+        if (!scope) return;
+        // Mantieni il bottone (quindi la sezione) alla stessa posizione a schermo: comprimendo, il contenuto
+        // sopra si accorcia e la pagina scorrerebbe; compensa con uno scrollBy della differenza.
+        var before = btn.getBoundingClientRect().top;
+        scope.querySelectorAll('details').forEach(function (d) { d.open = open; });
+        var after = btn.getBoundingClientRect().top;
+        window.scrollBy(0, after - before);
+    };
+
+    // Porta in vista un elemento per id (usato dall'editor struttura: scroll al primo match di ricerca).
+    window.vipiScrollToId = function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    var searchKeyWired = false;
+    function wireSearchKey() {
+        // "/" mette a fuoco la barra di ricerca in header (se non stai già digitando).
+        if (searchKeyWired) return;
+        searchKeyWired = true;
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+            var t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+            var input = document.querySelector('.top-search input');
+            if (!input) return;
+            e.preventDefault();
+            input.focus();
+            input.select();
+        });
+    }
+
     window.vipiWireUi = function () {
         document.querySelectorAll('.aor-block').forEach(wireAor);
         wireExpand();
         wireAnchors();
+        wireCollapse();
+        wireSearchKey();
     };
 
     document.addEventListener('DOMContentLoaded', function () {

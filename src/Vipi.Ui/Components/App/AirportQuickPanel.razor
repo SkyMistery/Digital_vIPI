@@ -1,0 +1,215 @@
+@* Vista rapida aeroporto (inline nella pagina operativa ACC/APP). Mostra ESATTAMENTE ciò che è nel
+   documento pubblico dell'aeroporto (release-aware), coerente con /vsop/{acc}/airports?icao=:
+   - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
+   - Piste suggerite + SID → dal profilo strutturato (come /airports)
+   METAR live solo per la pista consigliata e l'evidenza della riga TL col QNH corrente. *@
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using Vipi.Application.Content
+@using Vipi.Application.Weather
+@inject IVipiViewService ViewService
+@inject IAirportProfileService AirportProfile
+@inject Vipi.Application.Abstractions.IWeatherProvider Weather
+@inject Vipi.Domain.Services.IAiracService Airac
+
+@if (_view is null)
+{
+    <div class="block">
+        <div class="rap-h" style="justify-content:space-between">
+            <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
+            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+        </div>
+        <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
+    </div>
+}
+else
+{
+    <div class="block">
+        <div class="rap-h" style="justify-content:space-between">
+            <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
+            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+        </div>
+
+        <div class="rap-quick">
+            <div class="rap-box"><span class="muted">TA</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
+            <div class="rap-box"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@TlNow()</b></div>
+            <div class="rap-box"><span class="muted">Piste suggerite</span><b>@SuggText()</b></div>
+        </div>
+
+        @if (_runways.Count > 0)
+        {
+            <p class="muted" style="font-size:12.5px;margin:14px 0 6px">Pista selezionata</p>
+            <div class="rap-quick" style="margin-bottom:12px">
+                <span class="sid-pill @(_selRwy == "all" ? "on" : "")" @onclick='() => _selRwy = "all"'>Tutte</span>
+                @foreach (var r in _runways)
+                {
+                    var rwy = r;
+                    <span class="sid-pill @(_selRwy == rwy ? "on" : "")" @onclick="() => _selRwy = rwy">@rwy</span>
+                }
+            </div>
+        }
+
+        @{ var sids = FilteredSids().ToList(); }
+        @if (sids.Count > 0)
+        {
+            <table class="sid-table cfg-table">
+                <thead><tr><th>Punto</th><th>SID</th><th>Transition</th><th>Salita iniz.</th><th>Cat.</th><th>WTC</th></tr></thead>
+                <tbody>
+                    @foreach (var s in sids)
+                    {
+                        <tr>
+                            <td><b>@s.Fix</b></td>
+                            <td>@s.Name</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.Transition) ? "—" : s.Transition)</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.InitialClimb) ? "—" : s.InitialClimb)</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.Cat) ? "—" : s.Cat)</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.Wtc) ? "—" : s.Wtc)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else if (_runways.Count > 0)
+        {
+            <p class="muted" style="font-size:13px;margin:0">Nessuna SID@(_selRwy == "all" ? "" : $" per la pista {_selRwy}").</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Icao { get; set; } = default!;
+    [Parameter, EditorRequired] public string Acc { get; set; } = default!;
+
+    private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
+    private AirportProfileData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
+    private int? _ta;
+    private List<(string Range, string Level)> _tlRows = new();
+    private int? _qnh;
+    private (string? Dep, string? Arr) _sugg;
+    private List<string> _runways = new();
+    private string _selRwy = "all";
+    private string? _loadedIcao;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.Equals(_loadedIcao, Icao, StringComparison.OrdinalIgnoreCase)) return;
+        _loadedIcao = Icao;
+
+        _view = null; _profile = null; _ta = null; _tlRows = new();
+        _qnh = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
+
+        // Documento pubblico dell'aeroporto (rispetta la release effettiva del ciclo, come /airports).
+        _view = await ViewService.BuildAirportVipiAsync(Icao, BlockTier.Extended, live: false);
+        if (_view is null) return;
+
+        ParseTransition(_view);                     // TA + tabella TL dal documento
+
+        _profile = await AirportProfile.LoadForViewAsync(Icao);
+        _runways = _profile?.Runways.Select(r => r.Ident.Trim()).Where(s => s.Length > 0).Distinct().ToList() ?? new();
+
+        var wx = await Weather.GetAsync(Icao);
+        var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
+        _qnh = metar?.QnhHpa;
+        _sugg = SuggestRwy(metar);
+        _selRwy = _sugg.Dep is string dep && _runways.Contains(dep) ? dep : "all";
+    }
+
+    // ---- TA/TL dal documento pubblico (stessa logica di AeroportoPage.SplitSections/ParseTlTable) ----
+    private void ParseTransition(DocumentView view)
+    {
+        var sec = view.Sections.FirstOrDefault(s => s.Title.Contains("transizione", StringComparison.OrdinalIgnoreCase));
+        if (sec is null) return;
+        foreach (var b in sec.Blocks)
+        {
+            if (b.Format == BlockFormat.Prose && b.Body is not null && _ta is null)
+            {
+                var m = Regex.Match(b.Body, @"Altitude[^0-9]*(\d{3,5})");
+                if (m.Success) _ta = int.Parse(m.Groups[1].Value);
+            }
+            else if (b.Format == BlockFormat.Table && b.BodyJson is not null && _tlRows.Count == 0)
+            {
+                ParseTlTable(b.BodyJson);
+            }
+        }
+    }
+
+    private void ParseTlTable(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("rows", out var rows))
+                foreach (var row in rows.EnumerateArray())
+                    if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() >= 2)
+                        _tlRows.Add((cells[0].GetString() ?? "", cells[1].GetString() ?? ""));
+        }
+        catch (JsonException) { _tlRows = new(); }
+    }
+
+    private string TlNow()
+    {
+        if (_tlRows.Count == 0) return "—";
+        if (_qnh is int q)
+        {
+            var hit = _tlRows.FirstOrDefault(r => QnhRowMatches(r.Range, q));
+            if (hit.Level is not null) return _ta is null ? "N/A" : hit.Level;
+        }
+        return _ta is null ? "N/A" : _tlRows[0].Level;
+    }
+
+    // ---- Piste suggerite dal profilo (come AeroportoPage): regole se presenti, altrimenti vento di testa ----
+    private (string? Dep, string? Arr) SuggestRwy(ParsedMetar? m)
+    {
+        if (_profile is null) return (null, null);
+        int? windDir = m?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
+        int windKt = m?.Wind?.SpeedKt ?? 0;
+        if (_profile.Rules.Count > 0)
+        {
+            var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
+            var rr = RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
+            if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
+        }
+        if (_runways.Count > 0)
+        {
+            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt);
+            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
+        }
+        return (null, null);
+    }
+
+    private string SuggText()
+    {
+        if (_sugg.Dep is null && _sugg.Arr is null) return "—";
+        if (string.Equals(_sugg.Dep, _sugg.Arr, StringComparison.OrdinalIgnoreCase)) return _sugg.Dep!;
+        return $"{_sugg.Dep ?? "—"} dep · {_sugg.Arr ?? "—"} arr";
+    }
+
+    private IEnumerable<SidRow> FilteredSids()
+    {
+        if (_profile is null) return Array.Empty<SidRow>();
+        var cycle = Airac.GetCycle(DateTime.UtcNow);
+        return _profile.Sids
+            .Where(s => s.IsPublicAt(cycle, Airac))   // importate solo se pubbliche (ciclo N+1 o forzate)
+            .Where(s => _selRwy == "all" || string.IsNullOrWhiteSpace(s.Runway)
+                        || s.Runway!.Trim().Equals(_selRwy, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name);
+    }
+
+    private static string? Norm(string? r) => string.IsNullOrWhiteSpace(r) ? null : r.Trim();
+
+    private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
+        new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
+            r.TimeFromLocalMin, r.TimeToLocalMin, r.DaysOfWeekMask, r.DateParity,
+            r.DateFromMonthDay, r.DateToMonthDay);
+
+    private static bool QnhRowMatches(string range, int qnh)
+    {
+        var nums = Regex.Matches(range, @"\d+").Select(m => int.Parse(m.Value)).ToList();
+        if (nums.Count == 0) return false;
+        if (range.Contains('≥') || range.Contains(">=")) return qnh >= nums[0];
+        if (range.Contains('≤') || range.Contains("<=")) return qnh <= nums[0];
+        if (range.Contains('>')) return qnh > nums[0];
+        if (range.Contains('<')) return qnh < nums[0];
+        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
+    }
+}

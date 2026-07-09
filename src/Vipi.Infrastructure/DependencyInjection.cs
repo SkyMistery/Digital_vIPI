@@ -9,6 +9,10 @@ namespace Vipi.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString)
+        => services.AddVipiInfrastructure(connectionString, null);
+
+    public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString,
+        Microsoft.Extensions.Configuration.IConfiguration? configuration)
     {
         services.AddDbContext<VipiDbContext>(o => o.UseSqlite(connectionString));
         services.AddScoped<TopologyBuilder>();
@@ -24,10 +28,17 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
+        services.AddScoped<Vipi.Application.Abstractions.IEditAuditWriter, EfEditAuditWriter>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IVloaProfileRepository, EfVloaProfileRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseRepository, EfReleaseRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // Proiezione settori operativi dai cataloghi (fonte autoritativa unica, Round 20).
         services.AddScoped<Vipi.Application.Abstractions.ISectorProjectionService, EfSectorProjectionService>();
@@ -40,6 +51,17 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
         services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
+
+        // Import SID dal sectorfile Aurora su GitHub (repo pubblico raw, no auth). Ortogonale a DataSource:Provider.
+        services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
+        if (configuration is not null)
+            services.Configure<Sectorfile.SectorfileOptions>(configuration.GetSection("Sectorfile"));
+        services.AddHttpClient<Vipi.Application.Abstractions.ISidProvider, Sectorfile.AuroraSidProvider>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        services.AddHostedService<Sectorfile.SidImportHostedService>();
         return services;
     }
 }

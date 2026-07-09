@@ -1,35 +1,71 @@
-﻿@page "/vsop/{Acc}/editor-vloa"
+@page "/vsop/{Acc}/vloa/editor"
 @layout SopLayout
-@inject IEditingService Editing
-@inject NavigationManager Nav
+@rendermode InteractiveServer
+@inject IStationResolver Stations
+@inject IStructureEditingService Structure
 
-<PageTitle>Editor vLOA · IVAO Italia</PageTitle>
-
-<div class="wrap">
-    @if (_error is not null)
-    {
-        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Non disponibile</p>@_error</div></div>
-    }
-    else
-    {
-        <p class="help">Apertura editor vLOA…</p>
-    }
-</div>
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_foreign.Length > 0)
+{
+    <PageTitle>Editor vLOA @Acc.ToUpperInvariant() ↔ @_foreign · vIPI</PageTitle>
+    <div class="wrap struct">
+        <div class="breadcrumb">
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · Editor</b>
+        </div>
+        <VloaEditor Home="@Acc.ToUpperInvariant()" Foreign="@_foreign" />
+    </div>
+}
+else
+{
+    <PageTitle>Editor vLOA @_acc.Code · vIPI</PageTitle>
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Editor vLOA</b></div>
+        <div class="doc-head">
+            <div><h2 style="margin-bottom:2px">Editor vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Scegli la lettera di accordo da modificare (coppia @_acc.Code ↔ vicino).</p></div>
+        </div>
+        @if (_vloas.Count == 0)
+        {
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono lettere di accordo per questa ACC. Generane una dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+        }
+        else
+        {
+            <div class="choice-grid" style="margin-top:14px">
+                @foreach (var v in _vloas)
+                {
+                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode" style="text-decoration:none;color:inherit">
+                        <h4><span class="ic">🤝</span> @v.Title</h4>
+                        <p class="muted">@(v.Neighbour ?? v.NeighbourCode ?? "Lettera di accordo bilaterale")</p>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
-    private string? _error;
+    [SupplyParameterFromQuery(Name = "acc")] public string? Neighbour { get; set; }
 
-    // La vLOA si aprirà nel suo editor dedicato (ancora da realizzare) via /editor?doc={id}. Qui troviamo l'id e reindirizziamo.
-    protected override async Task OnInitializedAsync()
+    private AccInfo? _acc;
+    private string _foreign = "";
+    private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
+
+    protected override async Task OnParametersSetAsync()
     {
-        try
-        {
-            var docs = await Editing.ListDocumentsAsync();
-            var vloa = docs.FirstOrDefault(d => d.Type == DocumentType.Vloa);
-            if (vloa is null) { _error = "Nessuna vLOA presente."; return; }
-            Nav.NavigateTo($"/vsop/{Acc.ToLowerInvariant()}/editor?doc={vloa.Id}", forceLoad: false);
-        }
-        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+
+        _foreign = (Neighbour ?? "").Trim().ToUpperInvariant();
+        if (_foreign.Length > 0) return;
+
+        // Nessun ?acc= → chooser: elenca le vLOA della ACC.
+        var data = await Structure.LoadAsync(_acc.Code);
+        _vloas = data?.Vloas.Where(v => v.NeighbourCode is { Length: > 0 })
+            .OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title).ToList()
+            ?? (IReadOnlyList<VloaRow>)Array.Empty<VloaRow>();
     }
 }

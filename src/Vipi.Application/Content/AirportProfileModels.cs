@@ -18,9 +18,25 @@ public sealed record RunwayRuleRow(int Id, string DepRunways, string ArrRunways,
     int? TimeFromLocalMin = null, int? TimeToLocalMin = null, int? DaysOfWeekMask = null, DateParity DateParity = DateParity.Any,
     int? DateFromMonthDay = null, int? DateToMonthDay = null);
 
-/// <summary>Riga SID.</summary>
+/// <summary>Riga SID. I campi da <paramref name="IsImported"/> in poi riguardano l'import da sectorfile.</summary>
 public sealed record SidRow(int Id, string? Runway, string Fix, string Name, string? Transition,
-    string? InitialClimb, string? Type, string? Cat, string? Wtc, string? Condition);
+    string? InitialClimb, string? Type, string? Cat, string? Wtc, string? Condition,
+    bool IsImported = false, int? Priority = null, string? StableKey = null,
+    string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false)
+{
+    /// <summary>La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate solo se forzate o dal ciclo successivo al prelievo.</summary>
+    public bool IsPublicAt(string currentCycle, Vipi.Domain.Services.IAiracService airac)
+    {
+        if (!IsImported || ForcePublished) return true;
+        if (string.IsNullOrWhiteSpace(SourceAiracCycle)) return true;   // sicurezza: senza ciclo sorgente non nascondere
+        try { return airac.EffectiveUtcForCycle(currentCycle) > airac.EffectiveUtcForCycle(SourceAiracCycle); }
+        catch (ArgumentException) { return true; }
+    }
+}
+
+/// <summary>Riga SID importata dal sectorfile (input del merge). Priority/ForcePublished sono riapplicati dal repo per StableKey.</summary>
+public sealed record ImportedSid(string? Runway, string Fix, string Name, string? Transition,
+    string? Type, string StableKey, bool NeedsFixReview);
 
 /// <summary>Frequenza linkata (riferimento vivo): valore risolto da Sector.DefaultFrequency al momento del load/rebuild.</summary>
 public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, string Callsign, string FrequencyMhz);

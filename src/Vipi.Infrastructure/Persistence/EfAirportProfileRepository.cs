@@ -45,7 +45,8 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             .ToListAsync(ct);
         var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
-            .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition))
+            .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
+                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview))
             .ToListAsync(ct);
 
         // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
@@ -138,7 +139,8 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
     public async Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id));
+        // Origin-aware: sostituisce SOLO le righe manuali; le importate (IsImported=true) restano intatte.
+        _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && !x.IsImported));
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
@@ -146,7 +148,49 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             {
                 AirportId = id, Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
                 Transition = r.Transition, InitialClimb = r.InitialClimb, Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
+                IsImported = false,
             });
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default)
+    {
+        var id = await AirportIdAsync(icao, ct);
+        // Snapshot priorità + forzatura pubblicazione da TUTTE le righe (manuali + importate), per riapplicarle a StableKey coincidente.
+        var prior = await _db.AirportSids.AsNoTracking()
+            .Where(x => x.AirportId == id && x.StableKey != null)
+            .ToDictionaryAsync(x => x.StableKey!, x => (x.Priority, x.ForcePublished), ct);
+
+        _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
+
+        var baseOrder = 1000;   // le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i];
+            prior.TryGetValue(r.StableKey, out var carried);
+            _db.AirportSids.Add(new AirportSid
+            {
+                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
+                Transition = r.Transition, Type = r.Type,
+                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = airacCycle,
+                NeedsFixReview = r.NeedsFixReview,
+                Priority = carried.Priority, ForcePublished = carried.ForcePublished,
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
+    {
+        var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
+        if (s is null) return;
+        s.Priority = priority;
+        s.ForcePublished = forcePublished;
+        if (!string.IsNullOrWhiteSpace(resolvedFix))
+        {
+            s.Fix = resolvedFix.Trim();
+            s.NeedsFixReview = false;
         }
         await _db.SaveChangesAsync(ct);
     }
@@ -245,14 +289,17 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         }
         else
         {
+            // Alla prima generazione il documento resta in BOZZA: l'aeroporto appena importato non è ancora
+            // pubblico. Sarà lo staff a pubblicarlo a mano da /vsop/versioni. (I rebuild successivi — ramo
+            // "documento esistente" sopra — preservano lo stato: un doc già pubblicato resta pubblicato.)
             doc = new Document
             {
                 Type = DocumentType.Vipi, Title = $"vIPI — {icao} {airport.Name}", Language = Language.It,
-                Status = DocumentStatus.Published, LastUpdatedUtc = now, LastUpdatedAiracCycle = cycle,
+                Status = DocumentStatus.Draft, LastUpdatedUtc = now, LastUpdatedAiracCycle = cycle,
             };
             ver = new DocumentVersion
             {
-                Document = doc, VersionNumber = 1, Status = DocumentStatus.Published,
+                Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft,
                 CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Generato dal profilo aeroporto",
             };
             doc.Versions.Add(ver);
@@ -336,14 +383,24 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             }).ToList(),
         });
 
-        // 5 — SID (tabella se presenti, altrimenti callout placeholder).
+        // 5 — SID (tabella se presenti, altrimenti callout placeholder). Le importate compaiono nel documento solo
+        // dal ciclo AIRAC successivo al prelievo (o se forzate); ordinate per punto (FIX) e priorità manuale.
+        var airac = new AiracService();
+        bool SidPublic(AirportSid s)
+        {
+            if (!s.IsImported || s.ForcePublished || string.IsNullOrWhiteSpace(s.SourceAiracCycle)) return true;
+            try { return airac.EffectiveUtcForCycle(cycle) > airac.EffectiveUtcForCycle(s.SourceAiracCycle); }
+            catch (ArgumentException) { return true; }
+        }
+        var publicSids = airport.Sids.Where(SidPublic)
+            .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Order).ToList();
         var sid = b.Section("SID", BlockSection.Airport, ++order);
-        if (airport.Sids.Count > 0)
+        if (publicSids.Count > 0)
             b.Table(sid, BlockTier.Extended, new
             {
                 columns = new[] { "Pista", "FIX", "SID", "Transition", "Initial climb", "Type", "Cat.", "WTC", "Condition" },
                 unified = false,
-                rows = airport.Sids.OrderBy(s => s.Order).Select(s => (object)new
+                rows = publicSids.Select(s => (object)new
                 {
                     cells = new[] { Dash(s.Runway), s.Fix, s.Name, Dash(s.Transition), Dash(s.InitialClimb),
                         Dash(s.Type), Dash(s.Cat), Dash(s.Wtc), Dash(s.Condition) }

@@ -49,6 +49,11 @@
                         <td>@Provenance(_p.Sectors)</td>
                         <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sectors" /> importa dalla sorgente</label></td>
                     </tr>
+                    <tr>
+                        <td><b>SID</b><br /><span class="muted" style="font-size:11px">SID dal sectorfile Aurora (GitHub)</span></td>
+                        <td>@Provenance(_p.Sids)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sids" /> importa dalla sorgente</label></td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -65,6 +70,7 @@
         public bool TransitionAltitude { get; set; } = true;
         public bool Runways { get; set; } = true;
         public bool Sectors { get; set; } = true;
+        public bool Sids { get; set; } = true;
     }
 
     private PolicyEdit _p = new();
@@ -75,7 +81,7 @@
     {
         if (!Authz.IsAdmin) return;
         var s = await Policy.GetAsync();
-        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors };
+        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors, Sids = s.Sids };
     }
 
     private static string Provenance(bool imported) => imported ? "🔒 da sorgente (sola lettura)" : "✎ manuale";
@@ -85,7 +91,7 @@
         _busy = true; _msg = _ok = null;
         try
         {
-            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors));
+            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors, _p.Sids));
             _ok = "Policy delle sorgenti salvata.";
         }
         catch (EditNotAllowedException) { _msg = "Operazione riservata agli amministratori."; }

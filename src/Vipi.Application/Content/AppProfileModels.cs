@@ -78,6 +78,8 @@ public sealed class AppProfileData
     public required int SectorId { get; init; }
     public required string AppCallsign { get; init; }
     public required string Name { get; init; }
+    /// <summary>Nome visualizzato IVAO (es. "Palermo Approach"), da AirportSector.AtcCallsign. Fallback a Name.</summary>
+    public string? DisplayName { get; init; }
     public required string AccCode { get; init; }
 
     public required IReadOnlyList<AppSeparationRow> Separations { get; init; }

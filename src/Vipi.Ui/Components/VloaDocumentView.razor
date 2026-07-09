@@ -1,0 +1,213 @@
+@* Resa condivisa di una vLOA (Letter of Agreement) nello stile del mockup 3d: TOC + doc-head + callout bilaterale
+   + sezioni (stessa struttura documentale della vIPI, via SectionNode). Le sezioni AoR/Frequenze/Coordinamenti sono
+   DERIVATE (data-driven) quando è fornito DocId. La pagina ospitante fornisce wrap/breadcrumb. *@
+@inject IVloaProfileService Vloa
+@inject IOnlineAtcProvider Online
+@inject IEditAuthorizationService Authz
+
+<div class="doc-layout">
+    <aside class="toc">
+        <p class="toc-h">Contents</p>
+        <ul>
+            @foreach (var s in View.Sections)
+            {
+                @if (!IsHidden(s)) { <li><a href="#@s.Id">@s.Title</a></li> }
+            }
+        </ul>
+    </aside>
+
+    <div>
+        <div class="doc-head">
+            <div>
+                <h2 style="margin-bottom:2px">@View.Title</h2>
+                <span class="muted">@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)</span>
+            </div>
+            @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
+            {
+                <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">✎ Editor</a>
+            }
+        </div>
+        <div class="callout info"><span class="cic">🌍</span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (CH/AOD). The neighbour side is read-only.</div></div>
+
+        @foreach (var s in View.Sections)
+        {
+            @if (IsHidden(s))
+            {
+                <text></text>
+            }
+            else if (_derive && s.Kind == BlockSection.Aor)
+            {
+                <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadAor()</div>
+            }
+            else if (_derive && s.Kind == BlockSection.Frequencies)
+            {
+                <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadFreq()</div>
+            }
+            else if (_derive && s.Kind == BlockSection.Coordination)
+            {
+                <div class="block" id="@s.Id">
+                    <h3 style="margin-top:0">@s.Title</h3>
+                    @if (!_hidden.Contains($"{_coord.HomeAcc} → {_coord.ForeignAcc}"))
+                    {
+                        <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
+                        @ReadCoord(_coord.HomeToForeign)
+                    }
+                    @if (!_hidden.Contains($"{_coord.ForeignAcc} → {_coord.HomeAcc}"))
+                    {
+                        <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
+                        @ReadCoord(_coord.ForeignToHome)
+                    }
+                </div>
+            }
+            else
+            {
+                <SectionNode Section="s" />
+            }
+        }
+    </div>
+
+    <aside class="doc-rail">
+        <div class="rail-card">
+            <h5>📋 Riepilogo</h5>
+            <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@View.AiracCycle</b></div>
+            @if (!string.IsNullOrWhiteSpace(HomeAcc))
+            {
+                <div class="rail-line"><span class="muted">@HomeAcc online</span>@OnlineBadge(HomeAcc)</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(ForeignAcc))
+            {
+                <div class="rail-line"><span class="muted">@ForeignAcc online</span>@OnlineBadge(ForeignAcc)</div>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(HomeAcc))
+        {
+            <div class="rail-card">
+                <h5>🔗 Collegamenti</h5>
+                <ul class="rail-links">
+                    <li><a href="/vsop">Home</a></li>
+                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vloa">Elenco vLoA</a></li>
+                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vipi">vIPI @HomeAcc</a></li>
+                </ul>
+            </div>
+        }
+    </aside>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DocumentView View { get; set; } = default!;
+
+    /// <summary>Sottotitolo sotto il titolo (es. "Roma ACC ↔ Tunis ACC"). Default: "Letter of Agreement (EN)".</summary>
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Id del Document vLOA: se fornito, AoR/Frequenze/Coordinamenti sono derivati dai dati (data-driven).</summary>
+    [Parameter] public int? DocId { get; set; }
+
+    /// <summary>Codici ACC della coppia (per il riepilogo online + i link della colonna destra). Opzionali.</summary>
+    [Parameter] public string? HomeAcc { get; set; }
+    [Parameter] public string? ForeignAcc { get; set; }
+
+    private bool _derive;
+    private bool _canEdit;
+    private VloaAorData _aor = VloaAorData.Empty;
+    private VloaFreqData _freq = VloaFreqData.Empty;
+    private VloaCoordination _coord = VloaCoordination.Empty;
+    private HashSet<string> _hidden = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool IsHidden(SectionView s) => _hidden.Contains(s.Title);
+
+    // ATC online di un ACC (testa callsign = codice ACC, es. LIMM_CTR / LFMM_N_CTR).
+    private int OnlineOf(string code) =>
+        Online.GetCurrent().Callsigns.Count(cs => cs.Split('_', 2)[0].Equals(code, StringComparison.OrdinalIgnoreCase));
+
+    private RenderFragment OnlineBadge(string code) => __builder =>
+    {
+        var n = OnlineOf(code);
+        <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _derive = DocId is int;
+        if (DocId is int docId)
+        {
+            _aor = await Vloa.DeriveAorAsync(docId);
+            _freq = await Vloa.DeriveFrequenciesAsync(docId);
+            _coord = await Vloa.DeriveCoordinationAsync(docId);
+            _hidden = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(docId), StringComparer.OrdinalIgnoreCase);
+        }
+        // vLOA editabile solo lato italiano (CH/AOD dell'ACC home).
+        _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && await Authz.CanEditAccAsync(HomeAcc!);
+    }
+
+    private RenderFragment ReadAor() => __builder =>
+    {
+        <AccAor View="_aor.Map" Id="@($"vloa-aor-view-{DocId}")" />
+    };
+
+    private RenderFragment ReadFreq() => __builder =>
+    {
+        var visible = _freq.Rows.Where(r => !r.Hidden).ToList();
+        @if (visible.Count == 0)
+        {
+            <p class="muted">Nessuna frequenza disponibile.</p>
+        }
+        else
+        {
+            <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
+            @FreqTable(visible.Where(r => !r.IsForeign).ToList())
+            <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
+            @FreqTable(visible.Where(r => r.IsForeign).ToList())
+        }
+    };
+
+    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
+    {
+        @if (rows.Count == 0)
+        {
+            <p class="muted" style="margin:0">Nessuna frequenza.</p>
+        }
+        else
+        {
+            <table class="cfg-table" style="table-layout:fixed;width:100%">
+                <colgroup>
+                    <col style="width:32px" />
+                    <col style="width:auto" />
+                    <col style="width:26%" />
+                    <col style="width:120px" />
+                </colgroup>
+                <thead><tr><th></th><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>
+                            <td>@(r.Row.IsPrimary ? "★" : "")</td>
+                            <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
+                            <td>@r.Row.Callsign</td>
+                            <td>@r.Row.FrequencyMhz</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+
+    private RenderFragment ReadCoord(IReadOnlyList<VloaCoordRow> rows) => __builder =>
+    {
+        @if (rows.Count == 0)
+        {
+            <p class="muted">Nessun trasferimento registrato per questa direzione.</p>
+        }
+        else
+        {
+            <table class="cfg-table">
+                <thead><tr><th>CoP</th><th>Flusso</th><th>FL</th><th>Da → A</th><th>Frase</th></tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr><td>@r.Cop</td><td>@r.Flow</td><td>@r.Fl</td><td>@r.Owner → @r.Next</td><td>@r.Sentence</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+}

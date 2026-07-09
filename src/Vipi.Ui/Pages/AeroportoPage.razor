@@ -10,6 +10,11 @@
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject IAirportProfileService Profile
 @inject IAirportSectorService AirportSectors
+@inject IDocumentAdminService Docs
+@inject IOnlineAtcProvider Online
+@inject IEditAuthorizationService Authz
+@inject IReleaseService Releases
+@using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
@@ -19,22 +24,42 @@ else if (_listMode)
 {
     <PageTitle>Aeroporti @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Aeroporti</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Aeroporti</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name</h2><p class="muted" style="margin:0">Tutti gli aeroporti sotto la ACC di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_allAirports.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Non ci sono ancora aeroporti assegnati a questa ACC.</div></div>
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Nessun aeroporto con documento pubblicato sotto questa ACC.</div></div>
         }
         else
         {
             <div class="choice-grid" style="margin-top:14px">
                 @foreach (var ap in _allAirports)
                 {
-                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao" style="text-decoration:none;color:inherit">
-                        <h4><span class="ic">🛫</span> @ap.Icao</h4>
+                    var n = OnlineAt(ap.Icao);
+                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao" style="text-decoration:none;color:inherit">
+                        <div class="apt-top">
+                            <h4>@ap.Icao</h4>
+                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
+                        </div>
                         <p class="muted">@ap.Name</p>
+                        @if (_wxMini.TryGetValue(ap.Icao, out var wx))
+                        {
+                            <div class="apt-wx">
+                                <span><span class="wx-k">Vento</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
+                                <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
+                                @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
+                                {
+                                    <span><span class="wx-k">Decolli</span><b>@(wx.Dep ?? "—")</b></span>
+                                    <span><span class="wx-k">Atterraggi</span><b>@(wx.Arr ?? "—")</b></span>
+                                }
+                            </div>
+                        }
+                        else if (_wxLoading)
+                        {
+                            <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">Meteo in caricamento…</span></div>
+                        }
                     </a>
                 }
             </div>
@@ -44,16 +69,16 @@ else if (_listMode)
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_icao</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
         <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI aeroporto pubblicata per @_icao.</div></div>
     </div>
 }
 else
 {
-    <PageTitle>@_view.Title · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/airports">Aeroporti</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc">
@@ -69,11 +94,18 @@ else
             <div>
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Aeroporto · @_acc.Name</span></div>
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <a class="pill" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">✎ Editor</a>
-                        <span class="airac">📅 AIRAC @_view.AiracCycle</span>
-                    </div>
+                    @if (_canEdit)
+                    {
+                        <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">✎ Editor</a>
+                    }
                 </div>
+
+                @if (_mode.IsPreview)
+                {
+                    <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                                   PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")"
+                                   DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
+                }
 
                 @* ---------- METAR / TAF live + parse ---------- *@
                 <div class="block" id="a-meteo">
@@ -283,19 +315,32 @@ else
                 }
             </div>
 
-            @* Sezioni extra — colonna libera di destra (desktop ≥1500px). *@
-            @if (ExtraSections().Any())
-            {
-                <aside class="doc-rail">
-                    @foreach (var s in ExtraSections())
-                    {
-                        <div class="rail-card" id="extra-rail-@s.Id">
-                            <h5>@s.Title</h5>
-                            @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap;font-size:13px">@s.Body</div> }
-                        </div>
-                    }
-                </aside>
-            }
+            @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
+            <aside class="doc-rail">
+                <div class="rail-card">
+                    <h5>📋 Riepilogo</h5>
+                    <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@_view.AiracCycle</b></div>
+                    <div class="rail-line"><span class="muted">ATC online</span>
+                        @{ var n = OnlineAt(_icao); }
+                        <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
+                    </div>
+                </div>
+                <div class="rail-card">
+                    <h5>🔗 Collegamenti</h5>
+                    <ul class="rail-links">
+                        <li><a href="/vsop">Home</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">Aeroporti</a></li>
+                    </ul>
+                </div>
+                @foreach (var s in ExtraSections())
+                {
+                    <div class="rail-card" id="extra-rail-@s.Id">
+                        <h5>@s.Title</h5>
+                        @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap;font-size:13px">@s.Body</div> }
+                    </div>
+                }
+            </aside>
         </div>
     </div>
 }
@@ -303,11 +348,20 @@ else
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? Icao { get; set; }
+    [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
+    private PreviewMode _mode;
+    private string? _relCycle;
 
     private AccInfo? _acc;
     private DocumentView? _view;
     private bool _listMode;
+    private bool _canEdit;
     private IReadOnlyList<AirportRow> _allAirports = Array.Empty<AirportRow>();
+    // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _wxMini = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, AirportProfileData?> _profiles = new(StringComparer.OrdinalIgnoreCase);
+    private int _wxGen;          // token anti-corsa: scarta i caricamenti meteo di ACC ormai cambiate
+    private bool _wxLoading;     // true finché il meteo di questo elenco non è arrivato
     private string _icao = "";
     private Vipi.Application.Abstractions.WeatherReport? _wx;
 
@@ -342,28 +396,148 @@ else
         if (_listMode)
         {
             var data = await Structure.LoadAsync(_acc.Code);
-            _allAirports = data?.Airports.Where(x => x.IsPublic).OrderBy(x => x.Icao).ToList() ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+            // Solo aeroporti con documento vIPI PUBBLICATO (non basta l'import: lo staff deve pubblicare a mano).
+            var published = (await Docs.ListAsync())
+                .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.IsPublished
+                            && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
+                .Select(m => m.Scope)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            _allAirports = data?.Airports
+                .Where(x => x.IsPublic && published.Contains(x.Icao))
+                .OrderBy(x => x.Icao).ToList()
+                ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+
+            // Profili piste (DB, veloci) — servono per la pista consigliata. Il METAR (HTTP, lento) NON viene
+            // atteso qui: la lista si renderizza subito e il meteo arriva in background (LoadMeteoAsync).
+            _profiles.Clear();
+            foreach (var ap in _allAirports) _profiles[ap.Icao] = await Profile.LoadForViewAsync(ap.Icao);
+            _wxMini.Clear();
+            _wxLoading = _allAirports.Count > 0;
+            var gen = ++_wxGen;
+            _ = LoadMeteoAsync(gen);
             return;
         }
 
         _icao = Icao!.ToUpperInvariant();
-        _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false);
+        _mode = PreviewMode.Parse(As);
+        _relCycle = null;
+        switch (_mode.Kind)
+        {
+            case PreviewKind.Draft:
+                if (await Authz.CanEditAccAsync(_acc.Code))
+                    _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false, ignoreRelease: true);
+                else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
+                break;
+            case PreviewKind.Release:
+                var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Airport, _icao);
+                if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
+                break;
+            default:
+                _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false);
+                break;
+        }
         if (_view is null) return;
+        _canEdit = await Authz.CanEditAccAsync(_acc.Code);   // tasto Editor solo a chi può editare l'ACC
 
         _wx = await Weather.GetAsync(_icao);
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
 
         _profile = await Profile.LoadForViewAsync(_icao);
+        // Anteprima RELEASE: il profilo strutturato è sempre live (non congelato nello snapshot) → in release lo
+        // ignoriamo e mostriamo piste/TA/TL dal DocumentView CONGELATO del ciclo, coerente col resto del documento.
+        if (_mode.Kind == PreviewKind.Release) _profile = null;
         _airportSectors = (await AirportSectors.ListByAirportAsync(_icao)).Where(s => !s.IsHidden).ToList();
         _runways = _profile is { Runways.Count: > 0 }
             ? _profile.Runways.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);
         SplitSections(_view);
+        // Anteprima BOZZA: TA/TL derivati dal profilo strutturato LIVE (working), non dall'ultimo rebuild pubblicato
+        // nel DocumentView — così la bozza riflette le modifiche editoriali non ancora rigenerate/pubblicate.
+        if (_mode.Kind == PreviewKind.Draft && _profile is not null) ApplyProfileTransition(_profile);
         // Vento iniziale dal METAR, se noto.
         _windDir = _metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         _windKt = _metar?.Wind?.SpeedKt ?? 0;
         Recompute();
+    }
+
+    private string PreviewTitlePrefix() => _mode.Kind switch
+    {
+        PreviewKind.Draft => "[Bozza] ",
+        PreviewKind.Release => "[Anteprima] ",
+        _ => "",
+    };
+
+    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
+    {
+        try
+        {
+            var pv = await Releases.GetPreviewAsync(releaseId);
+            if (pv is null || pv.Type != expectedType
+                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
+                return null;
+            return pv;
+        }
+        catch (EditNotAllowedException) { return null; }
+        catch (Vipi.Application.Aor.ValidationException) { return null; }
+    }
+
+    // Carica il METAR (HTTP, in parallelo) di tutti gli aeroporti dell'elenco e ne deriva vento/QNH/pista.
+    // Fuori dal percorso di render: la lista è già visibile, il meteo compare appena pronto.
+    private async Task LoadMeteoAsync(int gen)
+    {
+        var results = await Task.WhenAll(_allAirports.Select(async ap =>
+        {
+            try
+            {
+                var wx = await Weather.GetAsync(ap.Icao);
+                var m = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
+                return (ap.Icao, Metar: m);
+            }
+            catch { return (ap.Icao, Metar: (ParsedMetar?)null); }
+        }));
+
+        if (gen != _wxGen) return;   // l'utente ha cambiato ACC: questo risultato è obsoleto
+        foreach (var (icao, m) in results)
+            if (m is not null)
+            {
+                var (dep, arr) = SuggestRwy(icao, m);
+                _wxMini[icao] = (m.Wind?.Label, m.QnhHpa, dep, arr);
+            }
+        _wxLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // Piste suggerite dal profilo (decolli, atterraggi): regole piste se presenti, altrimenti miglior vento di testa.
+    private (string? Dep, string? Arr) SuggestRwy(string icao, ParsedMetar m)
+    {
+        var profile = _profiles.GetValueOrDefault(icao);
+        int? windDir = m.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
+        int windKt = m.Wind?.SpeedKt ?? 0;
+        if (profile is { Rules.Count: > 0 })
+        {
+            var wet = m.HasRain || m.HasSnow;
+            var rr = RunwaySuggestion.EvaluateRules(profile.Rules.Select(MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
+            if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
+        }
+        var runways = profile?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
+        if (runways.Count > 0)
+        {
+            var s = RunwaySuggestion.Suggest(runways, windDir, windKt);
+            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
+        }
+        return (null, null);
+    }
+
+    private static string? Norm(string? rwy) => string.IsNullOrWhiteSpace(rwy) ? null : rwy.Trim();
+
+    // ATC online per l'aeroporto: callsign il cui primo token (prima del "_") è l'ICAO (es. LIRF_TWR, LIRF_S_APP).
+    private int OnlineAt(string icao)
+    {
+        var snap = Online.GetCurrent();
+        return snap.Callsigns.Count(cs =>
+            cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Voci del sommario, nello stesso ordine e con gli stessi ancoraggi (id) dei blocchi realmente renderizzati.</summary>
@@ -511,6 +685,24 @@ else
     }
 
     /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "&lt; 984").</summary>
+    // Sovrascrive TA e tabella TL con i valori del profilo strutturato LIVE (anteprima bozza). Il formato range QNH
+    // usa i simboli riconosciuti da QnhRowMatches (≤/≥/–) per l'evidenziazione della riga col QNH corrente.
+    private void ApplyProfileTransition(AirportProfileData p)
+    {
+        _ta = p.TransitionAltitudeFt;
+        if (p.TransitionLevels.Count == 0) return;
+        _tlCols = new[] { "QNH (hPa)", "Transition Level" };
+        _tlRows = p.TransitionLevels.Select(t => (Range: QnhRangeLabel(t.QnhFrom, t.QnhTo), t.Level)).ToList();
+    }
+
+    private static string QnhRangeLabel(int? from, int? to) => (from, to) switch
+    {
+        (null, null) => "Tutti",
+        (null, int t) => $"≤ {t}",
+        (int f, null) => $"≥ {f}",
+        (int f, int t) => $"{f}–{t}",
+    };
+
     private static bool QnhRowMatches(string range, int qnh)
     {
         var nums = System.Text.RegularExpressions.Regex.Matches(range, @"\d+")

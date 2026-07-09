@@ -1,0 +1,60 @@
+@* Resa live dei trasferimenti risolti (vista operativa/Ridotta) — masonry come mockup #reduced.
+   Un riquadro (.xpair) per mittente EFFETTIVO: se un settore è chiuso, i suoi trasferimenti compaiono
+   sotto il primo antenato online che lo assorbe (già risolto in ResolvedOwnerCallsign). Dentro: per tipo
+   di flusso (Arrivi/Partenze/…) → una card per aeroporto coi suoi CoP, livello e ricevente risolto. *@
+
+@if (Flows.Count == 0)
+{
+    <p class="help">@EmptyText</p>
+}
+else
+{
+    <div id="xfer-pairs">
+        @foreach (var owner in Flows.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
+        {
+            <div class="xpair">
+                <div class="xpair-h">@owner.Key @(owner.First().OwnerOnline ? "" : "· offline")</div>
+                <div class="xpair-body">
+                    @foreach (var kind in owner.GroupBy(r => r.Flow.Kind).OrderBy(g => g.Key))
+                    {
+                        <div class="xt-sub-h">@KindLabel(kind.Key)</div>
+                        <div class="xt-cards">
+                            @foreach (var apt in kind.GroupBy(r => r.Flow.AirportIcao).OrderBy(g => g.Key ?? "~"))
+                            {
+                                var points = apt.SelectMany(r => r.Points).ToList();
+                                <div class="xt-card">
+                                    <div class="xt-card-h">
+                                        <b class="xt-dest">@(string.IsNullOrWhiteSpace(apt.Key) ? "—" : apt.Key)</b>
+                                        <span class="muted" style="font-size:11px">@points.Count pt</span>
+                                    </div>
+                                    @foreach (var p in points)
+                                    {
+                                        <div class="xt-pt">
+                                            <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
+                                            <b class="fl">@p.Point.LevelText</b>
+                                            <span class="xt-next @(p.IsOnline ? "" : "tieni")">→ <b>@p.ResolvedHandler</b></span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
+    [Parameter] public string EmptyText { get; set; } = "Nessun coordinamento.";
+
+    private static string KindLabel(TransferFlowKind k) => k switch
+    {
+        TransferFlowKind.Arrival => "Arrivi",
+        TransferFlowKind.Departure => "Partenze",
+        TransferFlowKind.Overflight => "Sorvoli",
+        TransferFlowKind.Vfr => "VFR",
+        _ => "Altro",
+    };
+}

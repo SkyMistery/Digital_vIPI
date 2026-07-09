@@ -1,0 +1,658 @@
+@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
+   bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
+   Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
+@using System.Text.Json
+@inject IEditingService Editing
+@inject IVloaProfileService Vloa
+@inject NavigationManager Nav
+
+@if (_notFound)
+{
+    <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vLOA inesistente</p>
+        Nessuna vLOA per la coppia <b>@Home ↔ @Foreign</b>. Generala dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+}
+else if (_denied)
+{
+    <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>
+        Non hai i permessi per editare la vLOA di @Home. Serve un grant sulla ACC o il ruolo admin.</div></div>
+}
+else if (_doc is null)
+{
+    <p class="help">Caricamento editor vLOA…</p>
+}
+else
+{
+    <div class="editor-bar">
+        <div class="doc-head" style="margin:0">
+            <div>
+                <h2 style="margin-bottom:2px">✎ Editor vLOA — @Home ↔ @Foreign</h2>
+                <span class="muted">Letter of Agreement · lato Home (@Home) editabile · Neighbour (@Foreign) sola lettura</span>
+            </div>
+            <div class="editor-actions">
+                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
+                <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                    @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
+                </span>
+                <a class="btn ghost" href="/vsop/@Home.ToLowerInvariant()/apps/vipi?vloa=@Foreign&as=draft" target="_blank" rel="noopener" title="Anteprima bozza in nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
+                @if (_editing)
+                {
+                    <button class="btn primary" @onclick="Publish" title="Pubblica la bozza corrente">📢 Pubblica</button>
+                    <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
+                }
+                else
+                {
+                    <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="callout warning"><span class="cic">🤝</span><div><p class="ct">Documento bilaterale — lato italiano editabile</p>
+        Solo <b>CH/AOD italiano</b> modifica la parte <b>Home (@Home)</b>. La parte <b>Neighbour (@Foreign)</b> è concordata fuori dal tool.</div></div>
+
+    @if (_lock is { Locked: true, IsMine: false })
+    {
+        <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
+            Bloccata da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : ""). Non puoi salvare finché il lock è attivo.</div></div>
+    }
+    @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+
+    @if (_doc.Sections.Count == 0)
+    {
+        <div class="callout info"><span class="cic">📄</span><div><p class="ct">vLOA vuota</p>
+            @if (_editing) { <text>Aggiungi la prima sezione qui sotto.</text> } else { <text>Premi «✎ Modifica» per iniziare a comporre la lettera di accordo.</text> }</div></div>
+    }
+
+    @foreach (var s in _doc.Sections)
+    {
+        @SectionEditor(s)
+    }
+
+    @if (_editing)
+    {
+        <div class="block" style="border-style:dashed">
+            <button class="btn primary" @onclick="() => AddSection(null)">+ Aggiungi sezione</button>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public string Home { get; set; } = default!;
+    [Parameter, EditorRequired] public string Foreign { get; set; } = default!;
+
+    private int? _docId;
+    private EditableDocument? _doc;
+    // Sezioni DERIVATE (data-driven) unendo i due ACC: AoR, frequenze, coordinamenti.
+    private VloaAorData _aor = VloaAorData.Empty;
+    private VloaFreqData _freq = VloaFreqData.Empty;
+    private VloaCoordination _coord = VloaCoordination.Empty;
+    private HashSet<string> _hiddenSections = new(StringComparer.OrdinalIgnoreCase);
+    private LockInfo _lock = LockInfo.Free();
+    private bool _notFound, _denied, _editing;
+    private string? _error;
+
+    // Titoli delle sezioni OBBLIGATORIE (mockup 3d): bloccate (no rinomina/sposta/elimina).
+    private IReadOnlySet<string> _mandatory = new HashSet<string>();
+    private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
+
+    private enum SaveState { Idle, Saving, Saved }
+    private SaveState _save = SaveState.Idle;
+    private int _saveTick;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _notFound = _denied = false;
+        _error = null;
+        _doc = null;
+
+        var home = (Home ?? "").Trim().ToUpperInvariant();
+        var foreign = (Foreign ?? "").Trim().ToUpperInvariant();
+        _mandatory = VloaSections.MandatoryTitles(home, foreign);
+        _docId = await Editing.ResolveVloaIdByPairAsync(home, foreign);
+        if (_docId is null) { _notFound = true; return; }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_docId is not int id) return;
+        try
+        {
+            _doc = await Editing.LoadForEditAsync(id);
+            _lock = await Editing.InspectLockAsync(id);
+            if (_doc is null) { _notFound = true; return; }
+            _editing = _editing && _doc.IsEditable;   // resta in modifica solo se la working è bozza
+            await LoadDerivedAsync(id);
+        }
+        catch (EditNotAllowedException) { _denied = true; }
+    }
+
+    // Carica le sezioni derivate (AoR/frequenze/coordinamenti) unendo i due ACC della coppia.
+    private async Task LoadDerivedAsync(int id)
+    {
+        _aor = await Vloa.DeriveAorAsync(id);
+        _freq = await Vloa.DeriveFrequenciesAsync(id);
+        _coord = await Vloa.DeriveCoordinationAsync(id);
+        _hiddenSections = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(id), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private bool IsHidden(EditableSection s) => _hiddenSections.Contains(s.Title);
+
+    private Task ToggleSection(string title) => Guard(async () =>
+    {
+        await Vloa.ToggleSectionAsync(_docId!.Value, title);
+        _hiddenSections = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(_docId!.Value), StringComparer.OrdinalIgnoreCase);
+    });
+
+    private Task ToggleAor(string cs) => Guard(async () =>
+    {
+        await Vloa.ToggleAorSectorAsync(_docId!.Value, cs);
+        _aor = await Vloa.DeriveAorAsync(_docId!.Value);
+    });
+
+    private Task ToggleFreq(string cs) => Guard(async () =>
+    {
+        await Vloa.ToggleFrequencyAsync(_docId!.Value, cs);
+        _freq = await Vloa.DeriveFrequenciesAsync(_docId!.Value);
+    });
+
+    // Sezione derivata (data-driven) da renderizzare come vista, non come blocchi statici.
+    private static bool IsDerived(EditableSection s) =>
+        (s.SectionKind == BlockSection.Aor && s.Depth == 0)
+        || (s.SectionKind == BlockSection.Frequencies && s.Depth == 0)
+        || (s.SectionKind == BlockSection.Coordination && s.Depth > 0);
+
+    // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
+    private async Task StartEditing()
+    {
+        if (_docId is not int id) return;
+        await Guard(async () =>
+        {
+            if (_doc is { IsEditable: false })
+            {
+                await Editing.CreateDraftAsync(id);   // copia Published→Draft (idempotente) e acquisisce il lock
+                await LoadAsync();
+            }
+            else
+            {
+                await Editing.AcquireLockAsync(id);
+                await LoadAsync();
+            }
+            _editing = _doc?.IsEditable == true;
+        });
+    }
+
+    private async Task Publish()
+    {
+        if (_doc is null) return;
+        await Guard(async () =>
+        {
+            await Editing.PublishAsync(_doc.VersionId, null);
+            _editing = false;
+            await LoadAsync();
+        });
+    }
+
+    // ---- sezioni ----
+    private Task AddSection(int? parentId) => Guard(async () =>
+    {
+        await Editing.AddSectionAsync(_doc!.VersionId, parentId, "Nuova sezione", BlockSection.Other);
+        await LoadAsync();
+    });
+
+    private Task RenameSection(int sectionId, string title) => Guard(async () =>
+    {
+        await Editing.RenameSectionAsync(sectionId, title);
+        await LoadAsync();
+    });
+
+    private Task DeleteSection(int sectionId) => Guard(async () =>
+    {
+        await Editing.DeleteSectionAsync(sectionId);
+        await LoadAsync();
+    });
+
+    private Task MoveSection(int sectionId, int dir) => Guard(async () =>
+    {
+        await Editing.MoveSectionAsync(sectionId, dir);
+        await LoadAsync();
+    });
+
+    // ---- blocchi ----
+    private Task AddBlock(int sectionId, BlockFormat format) => Guard(async () =>
+    {
+        var id = await Editing.AddBlockAsync(sectionId, format, BlockTier.Extended, BlockVisibility.Always);
+        if (format == BlockFormat.Table)
+            await Editing.UpdateBlockAsync(id, new BlockEdit
+            {
+                Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+                BodyJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""",
+            });
+        await LoadAsync();
+    });
+
+    private Task DeleteBlock(int blockId) => Guard(async () =>
+    {
+        await Editing.DeleteBlockAsync(blockId);
+        await LoadAsync();
+    });
+
+    private Task MoveBlock(int blockId, int dir) => Guard(async () =>
+    {
+        await Editing.MoveBlockAsync(blockId, dir);
+        await LoadAsync();
+    });
+
+    private Task SaveBlock(EditableBlock b, string? body = null, string? bodyJson = null, CalloutKind? kind = null) => Guard(async () =>
+    {
+        await Editing.UpdateBlockAsync(b.Id, new BlockEdit
+        {
+            Tier = b.Tier,
+            Visibility = b.Visibility,
+            CalloutKind = kind ?? b.CalloutKind,
+            Body = body ?? b.Body,
+            BodyJson = bodyJson ?? b.BodyJson,
+            RowVersion = b.RowVersion,
+        });
+        await LoadAsync();
+    });
+
+    // ---- infra ----
+    private async Task Guard(Func<Task> action)
+    {
+        _error = null;
+        _save = SaveState.Saving;
+        StateHasChanged();
+        try
+        {
+            await action();
+            _save = SaveState.Saved;
+            var tick = ++_saveTick;
+            _ = DismissSavedAsync(tick);
+        }
+        catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questa vLOA."; _save = SaveState.Idle; }
+        catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
+        catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+    }
+
+    private async Task DismissSavedAsync(int tick)
+    {
+        await Task.Delay(2000);
+        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
+    }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    // ---- render sezione (ricorsivo) ----
+    private RenderFragment SectionEditor(EditableSection s) => __builder =>
+    {
+        var depth0 = s.Depth == 0;
+        var mand = IsMandatory(s);
+        var hid = IsHidden(s);
+        var baseStyle = depth0 ? "" : "padding:10px;margin:8px 0";
+        <div class="@(depth0 ? "block" : "coord-sub")" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                @if (_editing && !mand)
+                {
+                    <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
+                           @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
+                    <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                    <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
+                    <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
+                }
+                else
+                {
+                    @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
+                    @if (mand) { <span class="pill grey" title="Sezione obbligatoria della vLOA">obbligatoria</span> }
+                    @if (_editing && mand)
+                    {
+                        <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    }
+                }
+                @if (_editing)
+                {
+                    <button class="btn ghost" style="margin-left:auto" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
+                            @onclick="() => ToggleSection(s.Title)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
+                }
+            </div>
+
+            @if (IsDerived(s))
+            {
+                @DerivedSection(s)
+            }
+            else
+            {
+                @foreach (var b in s.Blocks)
+                {
+                    @BlockEditor(s, b)
+                }
+
+                @if (_editing)
+                {
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
+                    </div>
+                }
+            }
+
+            @foreach (var c in s.Children)
+            {
+                @SectionEditor(c)
+            }
+        </div>
+    };
+
+    // ---- sezioni DERIVATE (data-driven): AoR / frequenze / coordinamenti ----
+    private RenderFragment DerivedSection(EditableSection s) => __builder =>
+    {
+        switch (s.SectionKind)
+        {
+            case BlockSection.Aor:
+                @AorView()
+                break;
+            case BlockSection.Frequencies:
+                @FreqView()
+                break;
+            case BlockSection.Coordination:
+                var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
+                @CoordView(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)
+                break;
+        }
+    };
+
+    private RenderFragment AorView() => __builder =>
+    {
+        @if (_editing && _aor.Toggles.Count > 0)
+        {
+            <p class="muted" style="font-size:12.5px;margin:0 0 6px">Nascondi/mostra i settori nella mappa (persistito nel documento):</p>
+            <div class="aor-toggles" style="margin-bottom:8px">
+                @foreach (var t in _aor.Toggles)
+                {
+                    <button type="button" class="aor-chip @(t.Hidden ? "" : "on")" @onclick="() => ToggleAor(t.Callsign)"
+                            title="@(t.Hidden ? "Mostra" : "Nascondi")">
+                        <span class="sw" style="background:@(t.Color)33;border-color:@t.Color"></span>
+                        @t.Name @(t.IsForeign ? "· estero" : "")
+                    </button>
+                }
+            </div>
+        }
+        <AccAor View="_aor.Map" Id="@($"vloa-aor-{_docId}")" />
+    };
+
+    private RenderFragment FreqView() => __builder =>
+    {
+        @if (_freq.Rows.Count == 0)
+        {
+            <p class="muted">Nessuna frequenza derivata (proietta i settori dei due ACC).</p>
+        }
+        else
+        {
+            <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
+            @FreqTable(_freq.Rows.Where(r => !r.IsForeign).ToList())
+            <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
+            @FreqTable(_freq.Rows.Where(r => r.IsForeign).ToList())
+        }
+    };
+
+    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
+    {
+        @if (rows.Count == 0)
+        {
+            <p class="muted" style="margin:0">Nessuna frequenza.</p>
+        }
+        else
+        {
+            <table class="cfg-table" style="table-layout:fixed;width:100%">
+                <colgroup>
+                    <col style="width:32px" />
+                    <col style="width:auto" />
+                    <col style="width:26%" />
+                    <col style="width:120px" />
+                    @if (_editing) { <col style="width:104px" /> }
+                </colgroup>
+                <thead>
+                    <tr><th></th><th>Nome</th><th>Callsign</th><th>Frequenza</th>@if (_editing) { <th></th> }</tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        @if (_editing || !r.Hidden)
+                        {
+                            <tr style="@(r.Hidden ? "opacity:.45" : "")">
+                                <td>@(r.Row.IsPrimary ? "★" : "")</td>
+                                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
+                                <td>@r.Row.Callsign</td>
+                                <td>@r.Row.FrequencyMhz</td>
+                                @if (_editing)
+                                {
+                                    <td><button class="btn ghost" @onclick="() => ToggleFreq(r.Row.Callsign)">@(r.Hidden ? "Mostra" : "Nascondi")</button></td>
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+    };
+
+    private RenderFragment CoordView(IReadOnlyList<VloaCoordRow> rows) => __builder =>
+    {
+        @if (rows.Count == 0)
+        {
+            <p class="muted">Nessun trasferimento registrato per questa direzione. Aggiungili in «Trasferimenti».</p>
+        }
+        else
+        {
+            <table class="cfg-table">
+                <thead><tr><th>CoP</th><th>Flusso</th><th>FL</th><th>Da → A</th><th>Frase</th></tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>
+                            <td>@r.Cop</td>
+                            <td>@r.Flow</td>
+                            <td>@r.Fl</td>
+                            <td>@r.Owner → @r.Next</td>
+                            <td>@r.Sentence</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+
+    // ---- render blocco per formato ----
+    private RenderFragment BlockEditor(EditableSection s, EditableBlock b) => __builder =>
+    {
+        @if (!_editing)
+        {
+            @ReadOnlyBlock(b)
+        }
+        else
+        {
+        <div class="app-block-edit" style="align-items:flex-start;gap:8px;margin:6px 0">
+            <div style="flex:1">
+                @switch (b.Format)
+                {
+                    case BlockFormat.Prose:
+                    case BlockFormat.List:
+                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="Testo (markdown leggero)…"
+                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Callout:
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+                            <span class="muted" style="font-size:12px">Tipo:</span>
+                            <select class="app-in" style="max-width:150px" value="@b.CalloutKind"
+                                    @onchange="e => SaveBlock(b, kind: Enum.Parse<CalloutKind>(AsString(e.Value)))">
+                                @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
+                            </select>
+                        </div>
+                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="Testo callout…"
+                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Table:
+                        @TableEditor(b)
+                        break;
+                    default:
+                        <p class="muted">Blocco @b.Format (non editabile qui).</p>
+                        break;
+                }
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+                <button class="btn ghost" title="Su" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
+                <button class="btn ghost" title="Giù" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
+                <button class="btn ghost" title="Elimina blocco" @onclick="() => DeleteBlock(b.Id)">✕</button>
+            </div>
+        </div>
+        }
+    };
+
+    private RenderFragment ReadOnlyBlock(EditableBlock b) => __builder =>
+    {
+        switch (b.Format)
+        {
+            case BlockFormat.Callout:
+                <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
+                    <span class="cic">@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)</span>
+                    <div>@MarkdownLite.Render(b.Body)</div>
+                </div>
+                break;
+            case BlockFormat.Table:
+                @RenderTablePreview(b)
+                break;
+            default:
+                @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(b.Body)</div> }
+                break;
+        }
+    };
+
+    private static string CalloutIcon(CalloutKind k) => k switch
+    {
+        CalloutKind.Success => "✅", CalloutKind.Warning => "⚠️", CalloutKind.Danger => "⛔", _ => "ℹ️",
+    };
+
+    // ---- editor tabella (columns + rows di celle) ----
+    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
+    {
+        var cols = new List<string>();
+        var rows = new List<List<string>>();
+        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
+                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
+                foreach (var row in rr.EnumerateArray())
+                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
+                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
+                        : new List<string>());
+        }
+        catch (JsonException) { }
+        return (cols, rows);
+    }
+
+    private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
+        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+
+    // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
+    private Task SetTableCol(EditableBlock b, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ci < cols.Count) cols[ci] = val;
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task RemoveTableCol(EditableBlock b, int ci)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ci < cols.Count) cols.RemoveAt(ci);
+        foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task AddTableCol(EditableBlock b)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        cols.Add($"Colonna {cols.Count + 1}");
+        foreach (var r in rows) r.Add("");
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task SetTableCell(EditableBlock b, int ri, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task AddTableRow(EditableBlock b)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task RemoveTableRow(EditableBlock b, int ri)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ri < rows.Count) rows.RemoveAt(ri);
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+
+    private RenderFragment TableEditor(EditableBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        <table class="cfg-table">
+            <thead>
+                <tr>
+                    @for (var ci = 0; ci < cols.Count; ci++)
+                    {
+                        var cidx = ci;
+                        <th>
+                            <div style="display:flex;gap:4px;align-items:center">
+                                <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
+                                <button class="btn ghost" title="Rimuovi colonna" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
+                            </div>
+                        </th>
+                    }
+                    <th style="width:42px"><button class="btn ghost" title="Aggiungi colonna" @onclick="() => AddTableCol(b)">＋</button></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var ri = 0; ri < rows.Count; ri++)
+                {
+                    var ridx = ri;
+                    <tr>
+                        @for (var ci = 0; ci < cols.Count; ci++)
+                        {
+                            var cidx = ci;
+                            var cell = cidx < rows[ridx].Count ? rows[ridx][cidx] : "";
+                            <td><input class="app-in" value="@cell" @onchange="e => SetTableCell(b, ridx, cidx, AsString(e.Value))" /></td>
+                        }
+                        <td><button class="btn ghost" title="Rimuovi riga" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ Riga</button>
+    };
+
+    private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        @if (cols.Count > 0 || rows.Count > 0)
+        {
+            <table class="cfg-table">
+                <thead><tr>@foreach (var c in cols) { <th>@c</th> }</tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? r[i] : "")</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+}

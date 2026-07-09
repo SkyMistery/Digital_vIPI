@@ -29,7 +29,7 @@
 
         <div class="section-title">
             <h3>ACC <span class="pill blue">@_accs.Count</span></h3><span class="ln"></span>
-            <button class="btn primary" disabled="@_busy" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">⟳ Importa da sorgente</button>
+            <button class="btn primary" disabled="@_busy" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">@if (_busy) { <span class="spin"></span> }⟳ Importa da sorgente</button>
             <a class="btn ghost" href="/vsop/admin/sectorstructure">Struttura settori →</a>
         </div>
         <div class="block">

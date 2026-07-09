@@ -79,7 +79,7 @@ public class StructureEditingTests : IAsyncLifetime
 
         var created = await _repo.AutoAssignAirportsAsync(candidates);
 
-        Assert.Equal(1, created);
+        Assert.Equal(new[] { "LIRA" }, created);
         var data = await _repo.LoadAsync("LIRR");
         Assert.Equal(2, data!.Airports.Count);
         Assert.Contains(data.Airports, a => a.Icao == "LIRA");
@@ -94,7 +94,7 @@ public class StructureEditingTests : IAsyncLifetime
     };
 
     [Fact]
-    public async Task EnsureSectors_Merge_Rebuild_Creates_Published_Doc_With_Managed_Sections()
+    public async Task EnsureSectors_Merge_Rebuild_Creates_Draft_Doc_With_Managed_Sections()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
@@ -123,9 +123,9 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Equal(docId, twr.DocumentId);
         Assert.DoesNotContain(data.Sectors, s => s.Callsign == "LIRF_ATIS");
 
-        // Documento pubblicato con le sezioni gestite.
+        // Documento generato in BOZZA (lo staff pubblica a mano) con le sezioni gestite.
         var doc = await _db.Documents.FirstAsync();
-        Assert.Equal(DocumentStatus.Published, doc.Status);
+        Assert.Equal(DocumentStatus.Draft, doc.Status);
         var sectionTitles = await _db.DocumentSections.Select(s => s.Title).ToListAsync();
         Assert.Contains("Quote di transizione", sectionTitles);
         Assert.Contains("Frequenze", sectionTitles);
@@ -307,7 +307,10 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
 
-        var content = new EfContentRepository(_db);
+        var content = new EfContentRepository(_db, new EfReleaseRepository(_db));
+        // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché lo staff non pubblica.
+        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));
+        await PublishAirportDocAsync("LIRF");
         Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: documento servito
 
         await _repo.SetAirportHiddenAsync("LIRR", apId, true);
@@ -327,5 +330,15 @@ public class StructureEditingTests : IAsyncLifetime
 
         var data = await _repo.LoadAsync("LIMM");
         Assert.Empty(data!.Sectors);
+    }
+
+    // Simula la pubblicazione manuale dello staff: porta doc + versione corrente a Published.
+    private async Task PublishAirportDocAsync(string icao)
+    {
+        var doc = await _db.Documents.Include(d => d.Versions)
+            .FirstAsync(d => d.Type == DocumentType.Vipi && d.Title.Contains(icao));
+        doc.Status = DocumentStatus.Published;
+        foreach (var v in doc.Versions) v.Status = DocumentStatus.Published;
+        await _db.SaveChangesAsync();
     }
 }

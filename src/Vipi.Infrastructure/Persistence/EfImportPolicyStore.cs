@@ -15,7 +15,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         var row = await _db.ImportPolicies.AsNoTracking().FirstOrDefaultAsync(ct);
         return row is null
             ? ImportPolicySnapshot.AllImported
-            : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors);
+            : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors, row.ImportSids);
     }
 
     public async Task SaveAsync(ImportPolicySnapshot policy, int updatedByUserId, CancellationToken ct = default)
@@ -29,6 +29,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         row.ImportTransitionAltitude = policy.TransitionAltitude;
         row.ImportRunways = policy.Runways;
         row.ImportSectors = policy.Sectors;
+        row.ImportSids = policy.Sids;
         row.UpdatedUtc = DateTime.UtcNow;
         row.UpdatedByUserId = updatedByUserId;
         await _db.SaveChangesAsync(ct);

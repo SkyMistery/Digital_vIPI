@@ -1,4 +1,38 @@
+using Vipi.Domain;
+
 namespace Vipi.Domain.Entities;
+
+/// <summary>
+/// Incarico editoriale assegnato a un editor: lavoro su un documento (vLOA/vIPI ACC/APP/Aeroporto via
+/// <see cref="TargetType"/>+<see cref="TargetKey"/>, come le release) oppure LIBERO (target null). Traccia lo
+/// stato di avanzamento e l'eventuale scadenza per ciclo AIRAC. Assegnato dagli admin o auto-assegnato dagli editor.
+/// </summary>
+public class EditorTask
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = default!;
+    public string? Description { get; set; }
+
+    public int AssigneeUserId { get; set; }                 // editor incaricato (UserId IVAO)
+    public string? AssigneeName { get; set; }
+    public int CreatedByUserId { get; set; }                // chi ha creato/assegnato
+
+    public EditorTaskStatus Status { get; set; } = EditorTaskStatus.Todo;
+    public EditorTaskPriority Priority { get; set; } = EditorTaskPriority.Normal;
+
+    /// <summary>Ciclo AIRAC di scadenza ("YYNN"); null = senza scadenza. In ritardo se &lt; ciclo corrente e non Done.</summary>
+    public string? DueAiracCycle { get; set; }
+
+    /// <summary>Documento collegato (stesse chiavi delle release). null = incarico libero (non legato a un documento).</summary>
+    public ReleaseTargetType? TargetType { get; set; }
+    public string? TargetKey { get; set; }
+    /// <summary>Etichetta leggibile del documento collegato (per l'elenco), es. "vLOA LIRR ↔ DAAA".</summary>
+    public string? TargetLabel { get; set; }
+
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+    public DateTime? CompletedUtc { get; set; }
+}
 
 /// <summary>
 /// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una ACC (vIPI/aeroporto/vLOA,

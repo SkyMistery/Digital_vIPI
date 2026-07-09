@@ -2,49 +2,176 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
+@inject IVipiViewService ViewService
+@inject IReleaseService Releases
+@inject IEditAuthorizationService Authz
+@inject IOnlineAtcProvider Online
+@using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
+else if (_foreign.Length > 0)
+{
+    @* ---- documento singolo: /vsop/{acc}/vloa?acc=<vicino> ---- *@
+    @if (_view is null)
+    {
+        <div class="wrap">
+            <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>—</b></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLoA pubblicata tra @_acc.Code e @_foreign.</div></div>
+        </div>
+    }
+    else
+    {
+        <PageTitle>@(_mode.Kind == PreviewKind.Draft ? "[Bozza] " : _mode.Kind == PreviewKind.Release ? "[Anteprima] " : "")@_view.Title · IVAO Italia</PageTitle>
+        <div class="wrap">
+            <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>@_view.Title</b></div>
+            @if (_mode.IsPreview)
+            {
+                <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                               PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
+                               DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
+            }
+            <VloaDocumentView View="_view" DocId="_viewDocId" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+        </div>
+    }
+}
 else
 {
+    @* ---- elenco vLOA della ACC ---- *@
     <PageTitle>vLOA @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>vLOA</b></div>
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vLoA</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Lettere di accordo con i centri confinanti sotto la ACC di @_acc.Code.</p></div>
+            <div><h2 style="margin-bottom:2px">vLoA — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_vloas.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</div></div>
+            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLoA</p>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</div></div>
         }
         else
         {
-            <div class="choice-grid" style="margin-top:14px">
-                @foreach (var v in _vloas)
-                {
-                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/@v.DocId" style="text-decoration:none;color:inherit">
-                        <h4><span class="ic">🤝</span> @v.Title</h4>
-                        <p class="muted">@(v.Neighbour ?? "Lettera di accordo bilaterale")</p>
-                    </a>
-                }
-            </div>
+            var homeOnline = HomeOnline();
+            @foreach (var g in _vloas.GroupBy(v => Prefix(v.NeighbourCode)).OrderBy(g => Country(g.Key)))
+            {
+                <div class="section-title" style="margin-top:22px"><h3>@Country(g.Key)</h3><span class="ln"></span></div>
+                <div class="choice-grid">
+                    @foreach (var v in g)
+                    {
+                        var neigh = v.NeighbourCode ?? v.Title;
+                        var neighOnline = NeighOnline(v.NeighbourCode);
+                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode" style="text-decoration:none;color:inherit">
+                            <div class="apt-top">
+                                <h4>@neigh</h4>
+                                <span class="country-tag">@g.Key</span>
+                            </div>
+                            <p class="muted">@(v.Neighbour ?? "Lettera di accordo bilaterale")</p>
+                            <div class="vloa-online">
+                                <span class="onl-badge @(homeOnline > 0 ? "on" : "off")"><span class="dot"></span> @_acc.Code@(homeOnline > 0 ? $" · {homeOnline}" : "")</span>
+                                <span class="onl-badge @(neighOnline > 0 ? "on" : "off")"><span class="dot"></span> @neigh@(neighOnline > 0 ? $" · {neighOnline}" : "")</span>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
         }
     </div>
 }
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery(Name = "acc")] public string? Neighbour { get; set; }
+    [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
+
     private AccInfo? _acc;
+    private string _foreign = "";
+    private DocumentView? _view;
+    private int? _viewDocId;
+    private string? _viewSubtitle;
+    private PreviewMode _mode;
+    private string? _relCycle;
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+
         var data = await Structure.LoadAsync(_acc.Code);
         _vloas = data?.Vloas.OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title).ToList()
             ?? (IReadOnlyList<VloaRow>)Array.Empty<VloaRow>();
+
+        _foreign = (Neighbour ?? "").Trim().ToUpperInvariant();
+        _view = null; _viewDocId = null; _viewSubtitle = null;
+        if (_foreign.Length == 0) return;
+
+        // Risolve il documento per coppia (Home ACC dalla route + vicino dal ?acc=).
+        var row = _vloas.FirstOrDefault(v => string.Equals(v.NeighbourCode, _foreign, StringComparison.OrdinalIgnoreCase));
+        if (row is not null)
+        {
+            _mode = PreviewMode.Parse(As);
+            _relCycle = null;
+            switch (_mode.Kind)
+            {
+                case PreviewKind.Draft:
+                    if (await Authz.CanEditAccAsync(_acc.Code))
+                        _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
+                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    break;
+                case PreviewKind.Release:
+                    var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
+                    if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    break;
+                default:
+                    // DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven), come sulla pagina /apps/vipi?vloa=…
+                    // Senza, si vedrebbero i blocchi statici salvati: stesso documento, resa diversa.
+                    _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false);
+                    break;
+            }
+            _viewDocId = row.DocId;
+            _viewSubtitle = $"{_acc.Name} ↔ {row.Neighbour ?? _foreign}";
+        }
     }
+
+    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
+    {
+        try
+        {
+            var pv = await Releases.GetPreviewAsync(releaseId);
+            if (pv is null || pv.Type != expectedType
+                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
+                return null;
+            return pv;
+        }
+        catch (EditNotAllowedException) { return null; }
+        catch (Vipi.Application.Aor.ValidationException) { return null; }
+    }
+
+    // ATC online dell'ACC nazionale (home): stessa regola della home /vsop (include gli aeroporti sotto l'ACC).
+    private int HomeOnline()
+    {
+        var snap = Online.GetCurrent();
+        return snap.Callsigns.Count(cs => Stations.ResolveByCallsign(cs)?.Code.Equals(_acc!.Code, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    // ATC online dell'ACC confinante (estero): callsign la cui testa (prima del "_") è il codice ICAO dell'ACC vicino.
+    private int NeighOnline(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return 0;
+        var snap = Online.GetCurrent();
+        return snap.Callsigns.Count(cs => cs.Split('_', 2)[0].Equals(code, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Prefix(string? code) => code is { Length: >= 2 } ? code[..2].ToUpperInvariant() : "??";
+
+    // Paese dal prefisso ICAO dell'ACC confinante (per raggruppamento + tag). Fallback: il prefisso stesso.
+    private static string Country(string prefix) => prefix switch
+    {
+        "LF" => "Francia", "LS" => "Svizzera", "LO" => "Austria", "LD" => "Croazia", "LJ" => "Slovenia",
+        "LG" => "Grecia", "LM" => "Malta", "LA" => "Albania", "LW" => "Macedonia del Nord", "LQ" => "Bosnia ed Erzegovina",
+        "LY" => "Serbia/Montenegro", "LU" => "Moldavia", "DA" => "Algeria", "DT" => "Tunisia", "LI" => "Italia",
+        _ => prefix,
+    };
 }

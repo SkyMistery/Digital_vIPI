@@ -11,7 +11,7 @@
 ├─ Ricerca: titolo + AIRAC + barra
 ├─ Card ACC (codice, nome, n° ATC online)        → /vsop/{acc}
 ├─ Navigazione rapida: "Cosa è cambiato"         → /vsop/changed
-└─ [solo CH/AOD/DIR] Bozze&Versioni · Tutte le schermate · Struttura · Permessi
+└─ [staff/editori] Documenti · Bozze&Versioni (= hub editor unificato, tasto «Nuovo documento») · Tutte le schermate · Struttura · Permessi
 
 /vsop/{acc}                             Landing ACC  ................. AccLanding.razor
 ├─ Documenti:
@@ -24,7 +24,7 @@
 │  │     voce   → /vsop/{acc}/apps/vipi?app=XXX_APP (documento · editor: /apps/editor?app=)
 │  └─ Card vLOA (3 in evidenza)
 │        titolo → /vsop/{acc}/vloa                (elenco)
-│        voce   → /vsop/{acc}/vloa/{docId}        (documento)
+│        voce   → /vsop/{acc}/vloa?acc=YYYY        (documento · vicino YYYY · editor: /vloa/editor?acc=)
 └─ [Admin CH/AOD] Editor vIPI · Editor vLOA  (Trasferimenti → /vsop/admin/trasferimenti · Gerarchia → /vsop/admin/sectorstructure)
 
 /vsop/{acc}/vipi          vIPI ACC (data-driven, multi-albero)  .... AccVipiPage.razor
@@ -33,8 +33,9 @@
 /vsop/{acc}/apps          Elenco APP non remotizzati  ............. AppsListPage.razor
 /vsop/{acc}/apps/vipi?app=XXX_APP  Documento APP non remot. (data-driven)  AppnPage.razor
 /vsop/{acc}/apps/editor?app=XXX_APP  Editor dedicato APP non remot.  AppEditorPage.razor
-/vsop/{acc}/vloa          Elenco vLOA  ............................ VloaListPage.razor
-/vsop/{acc}/vloa/{docId}  Documento vLOA (per id)  ................ VloaPage.razor
+/vsop/{acc}/vloa          Elenco vLOA (no ?acc)  ................. VloaListPage.razor
+/vsop/{acc}/vloa?acc=YYYY Documento vLOA (vicino YYYY)  .......... VloaListPage.razor
+/vsop/{acc}/vloa/editor?acc=YYYY  Editor vLOA (coppia acc↔YYYY)  . VloaEditorPage.razor
 ```
 
 > ⚠️ **Aeroporti = una sola rotta** `/vsop/{acc}/airports`: senza `?icao=` mostra l'elenco,
@@ -52,16 +53,15 @@
 | `/vsop/{acc}/apps` | `AppsListPage.razor` | Elenco APP non remot. | tutti |
 | `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. (`?app=CALLSIGN`, **data-driven** dal profilo; tasto **✎ Editor** se autorizzato) | tutti (edit: AOD/DIR) |
 | `/vsop/{acc}/apps/editor` | `AppEditorPage.razor` | **Editor dedicato APP non remotizzato** (`?app=CALLSIGN`): WYSIWYG, 6 sezioni fisse (Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti) + sezioni custom, riordino drag-and-drop + tasti, nascondi sezioni. Freq/coord/AOR **derivate live**. I doc APPn instradano qui (non all'editor generico/aeroporto) via `DocumentSummary.IsStandaloneApp` | admin/grant ACC |
-| `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della ACC | tutti |
-| `/vsop/{acc}/vloa/{docId}` | `VloaPage.razor` | Documento vLOA (per id) | tutti (edit: AOD/DIR) |
+| `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della ACC (no `?acc`); con `?acc=YYYY` mostra il **documento** della coppia acc↔YYYY (una rotta che ramifica per query, come aeroporti). Chiave = **codice ACC vicino** (`VloaRow.NeighbourCode`), non più docId | tutti (edit: AOD/DIR) |
 | `/vsop/changed` | `ChangedPage.razor` | Cosa è cambiato | tutti |
 | `/vsop/search` | `SearchPage.razor` | Ricerca full-text | tutti |
 | `/vsop/screens` | `ScreensIndex.razor` | Indice schermate | staff |
-| `/vsop/versioni`, `/vsop/{acc}/versioni` | `VersioniPage.razor` | Bozze & versioni | staff |
-| `/vsop/editor` | `EditorHubPage.razor` | Hub editor (+ bottone «Nuovo documento») | staff |
+| `/vsop/release/{id}` | `ReleasePreviewPage.razor` | **Redirect** (compat): risolve la release e reindirizza al viewer tipizzato con `?as=rel:{id}`. Le anteprime sono rese dentro i viewer, non più qui | staff/editori |
+| `/vsop/versioni`, `/vsop/{acc}/versioni` | `VersioniPage.razor` | **Hub documenti unificato** (ex `/vsop/editor` assorbito): elenco completo doc (vIPI ACC/APP/aeroporto/vLOA) + ricerca/filtri, «Apri editor» per riga, tasto «Nuovo documento», storico versioni + release AIRAC. Azioni hide/elimina/annulla-release solo admin. `Apri editor` gated server-side | staff/editori (admin o grant) |
 | `/vsop/editor/newdoc` | `NewDocumentPage.razor` | Creazione documenti. **vIPI ACC**: si scelgono i **root** degli alberi (ogni root porta lo scope dell'intero sottoalbero d'area = CTR + APP di ACC, **cross-ACC**; più alberi per doc). **vIPI APP**: solo APP non remotizzati (`App`+`Standalone`). **vLOA**: solo tra ACC **italiano** (Home) e **estero** (Neighbour), es. Roma↔Marsiglia. Lavora su una vista globale dei settori (`IStructureEditingService.ListSectorNodesAsync`) | admin |
 | `/vsop/{acc}/editor` | `AccEditorPage.razor` | Editor vIPI ACC (data-driven, multi-albero `?tree=`) | admin/grant ACC |
-| `/vsop/{acc}/editor-vloa` | `VloaEditorPage.razor` | Editor vLOA | admin/grant ACC |
+| `/vsop/{acc}/vloa/editor` | `VloaEditorPage.razor` | Editor vLOA. Con `?acc=YYYY` apre la coppia acc↔YYYY (host del componente `VloaEditor`); senza `?acc` mostra un **chooser** delle vLOA della ACC. Ex `/vsop/{acc}/editor-vloa` (stub) ed ex host `apps/editor?vloa=` (rimossi) | admin/grant ACC |
 | `/vsop/{acc}/airports/editor` | `AeroportoEditorPage.razor` | Editor profilo aeroporto (profilo + settori ATC importati: mostra/nascondi + limiti) | admin/grant ACC |
 | `/vsop/admin/acc` | `AccAdminPage.razor` | ACC + settori ATC: import da sorgente (`/v2/centers` + `/subcenters`, auto giornaliero), militare, mostra/nascondi, limiti quota admin | admin |
 | `/vsop/admin/sectorstructure` | `StrutturaPage.razor` | **Gerarchia di copertura GLOBALE (cross-ACC)** per callsign sui settori importati (§9.12 round 20): UI a **card per ACC** (ogni card = gli alberi con radice in quell'ACC, comprimi/espandi card e rami + ricerca) + pannello dettaglio sticky con catena di fallback, picker padre e **Applica**. **Solo gerarchia**: niente selettore ACC; la creazione documenti è su `/vsop/editor/newdoc`. Creazione/eliminazione/frequenza settori NON qui (solo pagina ACC). Ex `/admin/struttura`, redirect 301 | admin |
@@ -85,3 +85,11 @@
   Gli aeroporti **senza alcun settore** sono nascosti di default (`IsPublic = !IsHidden && Sectors>0`).
 - **Editor:** non rivisti in questo round ("poi ragioniamo sugli editor"). Restano raggiungibili
   dalla sezione Admin della landing ACC, invariati.
+- **Anteprime (`?as=`, round 33):** i 4 viewer documentali (`AccVipiPage`, `AeroportoPage`, `AppnPage`,
+  `VloaListPage`) accettano un parametro uniforme `as`: assente → **pubblica** (release effettiva al ciclo
+  corrente, altrimenti live); `?as=draft` → **bozza live**; `?as=rel:{releaseId}` → **snapshot congelato**
+  di una release. Bozza/release sono **gated** al permesso di modifica dell'ACC; per un utente non autorizzato,
+  identità release non corrispondente o URL forgiato la vista **degrada a pubblica** (nessun banner, nessuna
+  fuga di bozza). Banner condiviso `Components/PreviewBanner.razor`; parsing `Shared/PreviewMode.cs` (alias
+  legacy `?live=1` → `draft`). I tasti «Anteprima» degli editor puntano a `?as=draft`; «👁 Anteprima» per-release
+  a `?as=rel:{id}`. La vecchia pagina `/vsop/release/{id}` è ora un redirect.

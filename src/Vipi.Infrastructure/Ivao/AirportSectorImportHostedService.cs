@@ -26,75 +26,56 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         _log = log;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    // Gated: dopo gli ACC, poi a cadenza giornaliera; salta il fetch all'avvio se ancora fresco (retry 1h su errore).
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        GatedImportLoop.RunAsync(_scopes, Vipi.Application.Abstractions.ImportCategories.AirportSector,
+            TimeSpan.FromHours(Math.Max(1, _opt.AirportSectorImportHours)), ImportOnceAsync, _log, stoppingToken,
+            bootDelay: TimeSpan.FromSeconds(40));
+
+    private async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
-        // Primo import poco dopo l'avvio (dopo quello degli ACC), poi a cadenza giornaliera.
-        try { await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken); }
-        catch (OperationCanceledException) { return; }
+        var repo = sp.GetRequiredService<IAirportSectorRepository>();
+        var importer = sp.GetRequiredService<Vipi.Application.Content.IAirportSectorImporter>();
+        var structure = sp.GetRequiredService<Vipi.Application.Content.IStructureEditingService>();
 
-        await ImportOnceAsync(stoppingToken);
-
-        var period = TimeSpan.FromHours(Math.Max(1, _opt.AirportSectorImportHours));
-        using var timer = new PeriodicTimer(period);
-        while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
-            await ImportOnceAsync(stoppingToken);
-    }
-
-    private async Task ImportOnceAsync(CancellationToken ct)
-    {
+        // Import + proiezione dalla sorgente: se la sorgente non è configurata fallisce, ma NON deve impedire
+        // il fallback shape (che lavora sul catalogo già in DB). Perciò è isolato in un proprio try.
+        int created = 0, updated = 0, airports = 0, docs = 0;
         try
         {
-            using var scope = _scopes.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IAirportSectorRepository>();
-            var importer = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IAirportSectorImporter>();
-            var structure = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IStructureEditingService>();
-
-            // Import + proiezione dalla sorgente: se la sorgente non è configurata fallisce, ma NON deve impedire
-            // il fallback shape (che lavora sul catalogo già in DB). Perciò è isolato in un proprio try.
-            int created = 0, updated = 0, airports = 0, docs = 0;
-            try
+            var icaos = await repo.ListAirportIcaosAsync(ct);
+            foreach (var icao in icaos)
             {
-                var icaos = await repo.ListAirportIcaosAsync(ct);
-                foreach (var icao in icaos)
-                {
-                    var (c, u) = await importer.ImportAsync(icao, ct);
-                    if (c == 0 && u == 0) continue;
-                    created += c; updated += u; airports++;
+                var (c, u) = await importer.ImportAsync(icao, ct);
+                if (c == 0 && u == 0) continue;
+                created += c; updated += u; airports++;
 
-                    // Documento aeroporto: creato/aggiornato in automatico per ogni aeroporto con ACC (idempotente).
-                    try { if ((await structure.EnsureAirportDocumentSystemAsync(icao, ct)).Created) docs++; }
-                    catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
-                }
-
-                // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
-                var projection = scope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
-                await projection.SyncFromCatalogsAsync(ct);
-            }
-            catch (InvalidOperationException ex)
-            {
-                // tipicamente credenziali sorgente assenti: salta l'import, ma prosegui col fallback shape.
-                _log.LogInformation("Import settori aeroporto da sorgente saltato: {Reason}", ex.Message);
+                // Documento aeroporto: creato/aggiornato in automatico per ogni aeroporto con ACC (idempotente).
+                try { if ((await structure.EnsureAirportDocumentSystemAsync(icao, ct)).Created) docs++; }
+                catch (Exception ex) { _log.LogDebug(ex, "Generazione documento {Icao} saltata.", icao); }
             }
 
-            // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
-            int circles = 0;
-            try
-            {
-                var fallback = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ITowerShapeFallbackService>();
-                circles = await fallback.ApplyAsync(ct: ct);
-            }
-            catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
-
-            _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}, shape TWR sintetiche {Circles}.",
-                airports, created, updated, docs, circles);
+            // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
+            var projection = sp.GetRequiredService<ISectorProjectionService>();
+            await projection.SyncFromCatalogsAsync(ct);
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (InvalidOperationException ex)
         {
-            // shutdown: ignora
+            // tipicamente credenziali sorgente assenti: salta l'import, ma prosegui col fallback shape.
+            _log.LogInformation("Import settori aeroporto da sorgente saltato: {Reason}", ex.Message);
         }
-        catch (Exception ex)
+
+        // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
+        int circles = 0;
+        try
         {
-            _log.LogWarning(ex, "Import settori aeroporto automatico fallito; riprovo al prossimo ciclo.");
+            var fallback = sp.GetRequiredService<Vipi.Application.Content.ITowerShapeFallbackService>();
+            circles = await fallback.ApplyAsync(ct: ct);
         }
+        catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
+
+        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, documenti nuovi {Docs}, shape TWR sintetiche {Circles}.",
+            airports, created, updated, docs, circles);
+        return true;
     }
 }

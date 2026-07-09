@@ -82,6 +82,20 @@ public sealed class EfTransferRepository : ITransferRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default)
+    {
+        var p = await PointInAccAsync(accCode, pointId, ct);
+        // Vicino nello stesso flusso: Order massimo < corrente (su) o minimo > corrente (giù).
+        var neighbour = up
+            ? await _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.Order < p.Order)
+                .OrderByDescending(x => x.Order).FirstOrDefaultAsync(ct)
+            : await _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.Order > p.Order)
+                .OrderBy(x => x.Order).FirstOrDefaultAsync(ct);
+        if (neighbour is null) return;   // estremo: no-op
+        (p.Order, neighbour.Order) = (neighbour.Order, p.Order);
+        await _db.SaveChangesAsync(ct);
+    }
+
     // ---- helper ----
 
     private async Task<int> AccIdAsync(string accCode, CancellationToken ct) =>

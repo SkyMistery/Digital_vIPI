@@ -33,7 +33,10 @@ public sealed class EfSearchRepository : ISearchRepository
                 acc = await _db.DocumentParties
                     .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
                     .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                urlBase = $"vloa/{d.Id}";
+                var neigh = await _db.DocumentParties
+                    .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Neighbour)
+                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
+                urlBase = neigh is not null ? $"vloa?acc={neigh}" : "vloa";
                 if (scope is not (SearchScope.All or SearchScope.Vloa)) continue;
             }
             else

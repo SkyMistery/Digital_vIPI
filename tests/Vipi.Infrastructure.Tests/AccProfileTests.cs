@@ -44,7 +44,7 @@ public class AccProfileTests : IAsyncLifetime
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AccProfileService(_repo, authz, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
+        _service = new AccProfileService(_repo, authz, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate(), new EfReleaseRepository(_db), new EfEditAuditWriter(_db));
     }
 
     public async Task DisposeAsync()
@@ -92,17 +92,14 @@ public class AccProfileTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Derive_Frequencies_Aerovia_Scopes_To_Tree()
+    public async Task Derive_Frequencies_Aerovia_Covers_Whole_Acc()
     {
-        // Membri vuoti = CTR del sottoalbero della radice indicata (una vIPI per albero).
+        // Una sola vIPI per ACC: membri vuoti = TUTTI i CTR dell'ACC (tutti gli alberi insieme), a prescindere
+        // dal rootCallsign passato (parametro non più scopante).
         var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
-        var ne = await _service.DeriveFrequenciesAsync(Acc, block, "LIRR_NE_CTR");
-        Assert.Contains(ne, f => f.Callsign == "LIRR_NE_CTR" && f.FrequencyMhz == "128.800");
-        Assert.DoesNotContain(ne, f => f.Callsign == "LIRR_EW_CTR");   // EW è un altro albero
-
-        var ew = await _service.DeriveFrequenciesAsync(Acc, block, "LIRR_EW_CTR");
-        Assert.Contains(ew, f => f.Callsign == "LIRR_EW_CTR");
-        Assert.DoesNotContain(ew, f => f.Callsign == "LIRR_NE_CTR");
+        var all = await _service.DeriveFrequenciesAsync(Acc, block);
+        Assert.Contains(all, f => f.Callsign == "LIRR_NE_CTR" && f.FrequencyMhz == "128.800");
+        Assert.Contains(all, f => f.Callsign == "LIRR_EW_CTR");   // altro albero, ma stessa vIPI di ACC
     }
 
     [Fact]

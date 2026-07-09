@@ -1,0 +1,370 @@
+@page "/vsop/admin/confinanti"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject INeighbourImportService Neighbours
+@inject IEditAuthorizationService Authz
+@inject NavigationManager Nav
+
+<PageTitle>ACC confinanti · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap struct">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>ACC confinanti</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">ACC confinanti → vLOA</h2><span class="muted">Import ACC esteri dai paesi vicini, calcolo adiacenza geometrica, generazione vLOA per coppia.</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+    }
+    else
+    {
+        @if (_msg is not null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
+        }
+        @if (_ok is not null)
+        {
+            <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
+        }
+        @if (_warnings.Count > 0)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>
+                <b>Avvisi import:</b>
+                <ul style="margin:4px 0 0">@foreach (var w in _warnings) { <li>@w</li> }</ul>
+            </div></div>
+        }
+
+        <div class="section-title">
+            <h3>Coppie confinanti <span class="pill blue">@(IsFiltering ? $"{Filtered().Count}/{_rows.Count}" : _rows.Count.ToString())</span></h3><span class="ln"></span>
+            <button class="btn primary" disabled="@_busy" @onclick="Import" title="Scarica gli ACC dei paesi vicini e calcola l'adiacenza dei settori">@if (_busy) { <span class="spin"></span> }⟳ Import & calcola</button>
+            <a class="btn ghost" href="/vsop/admin/sectorstructure">← Struttura</a>
+        </div>
+        <div class="block">
+            <p class="muted" style="font-size:11.5px;margin:0 0 8px">
+                Paesi vicini da <code>Neighbours:CountryIds</code>. Confinano i settori con distanza minima dei bordi sotto soglia (<code>AdjacencyThresholdNm</code>).
+                I non confinanti non vengono salvati. Conferma una coppia e genera la vLOA (Home = ACC italiano editabile, Neighbour = estero read-only).
+            </p>
+            @if (_rows.Count == 0)
+            {
+                <p class="help">Nessuna coppia. Premi «Import & calcola» (o aggiungi a mano una coppia sotto).</p>
+            }
+            else
+            {
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">
+                    <input class="htree-search" style="flex:1;min-width:220px;max-width:340px;margin:0"
+                           value="@_q" @oninput="OnSearchInput" placeholder="Cerca ACC (Home/Foreign), nome estero o paese…" />
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                        <span class="pill @(_statusFilter is null ? "blue" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(null)">Tutte</span>
+                        <span class="pill @(_statusFilter == NeighbourCandidateStatus.Pending ? "blue" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Pending)">Da valutare</span>
+                        <span class="pill @(_statusFilter == NeighbourCandidateStatus.Confirmed ? "green" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Confirmed)">Confermate</span>
+                        <span class="pill" style="cursor:pointer;user-select:none;@(_statusFilter == NeighbourCandidateStatus.Rejected ? "background:#ffe3e3;color:#b42318" : "background:#eceef5;color:#555")" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Rejected)">Rifiutate</span>
+                    </div>
+                    @if (IsFiltering)
+                    {
+                        <a class="btn ghost" style="padding:4px 10px" @onclick="ClearFilters" title="Azzera ricerca e filtri">✕ Azzera</a>
+                    }
+                </div>
+
+                @if (Filtered().Count == 0)
+                {
+                    <p class="help">Nessuna coppia corrisponde al filtro. <a role="button" style="cursor:pointer;color:var(--ivao-blue)" @onclick="ClearFilters">Azzera i filtri</a>.</p>
+                }
+                else
+                {
+                <table class="res-table">
+                    <thead><tr><th>Home (IT)</th><th>Foreign</th><th>Nome</th><th>Paese</th><th>Dist. min</th><th>Settori adj</th><th>Shape</th><th>Stato</th><th>vLOA</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Filtered())
+                        {
+                            <tr style="@(r.Status == NeighbourCandidateStatus.Rejected ? "opacity:.5" : "")">
+                                <td><b>@r.HomeAccCode</b></td>
+                                <td><span class="pill blue">@r.ForeignAccCode</span></td>
+                                <td>@r.ForeignAccName</td>
+                                <td>@r.CountryId</td>
+                                <td>@(r.MinDistanceNm is double d ? $"{d:0.0} NM" : "—")</td>
+                                <td>@(r.AdjacentSectorCount > 0 ? r.AdjacentSectorCount.ToString() : "—")</td>
+                                <td>@(r.HasPolygon ? "✓" : "—")</td>
+                                <td>
+                                    @switch (r.Status)
+                                    {
+                                        case NeighbourCandidateStatus.Confirmed:
+                                            <span class="pill" style="background:#dafbe7;color:#1a7f37">confermata</span>
+                                            break;
+                                        case NeighbourCandidateStatus.Rejected:
+                                            <span class="pill" style="background:#ffe3e3;color:#b42318">rifiutata</span>
+                                            break;
+                                        default:
+                                            <span class="pill" style="background:#eef1f7;color:#57606a">da valutare</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (r.VloaDocumentId is int docId)
+                                    {
+                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/apps/vipi?vloa=@r.ForeignAccCode" title="Apri la vLOA (lettura)">👁 vLOA</a>
+                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@r.ForeignAccCode" title="Apri la vLOA nell'editor">✎ Editor</a>
+                                    }
+                                    else { <span class="muted">—</span> }
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDetail(r.Id)" title="Vedi i settori adiacenti e la mappa per verificare il confine">🔍 @(_detailId == r.Id ? "Chiudi" : "Verifica")</button>
+                                    @if (r.Status != NeighbourCandidateStatus.Confirmed)
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => SetStatus(r.Id, NeighbourCandidateStatus.Confirmed)" title="Conferma la coppia">✓ Conferma</button>
+                                    }
+                                    @if (r.Status != NeighbourCandidateStatus.Rejected)
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => SetStatus(r.Id, NeighbourCandidateStatus.Rejected)" title="Falso positivo">✕ Rifiuta</button>
+                                    }
+                                    @if (r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null)
+                                    {
+                                        <button class="btn primary" disabled="@_busy" @onclick="() => Generate(r.Id)" title="Materializza l'ACC estero e crea la vLOA">🌍 Genera vLOA</button>
+                                    }
+                                    @if (!r.HasPolygon)
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => OpenPolygon(r.Id)" title="Incolla il poligono estero (IVAO non lo espone)">📐 Poligono</button>
+                                    }
+                                </td>
+                            </tr>
+                            @if (_polyEditId == r.Id)
+                            {
+                                <tr>
+                                    <td colspan="10">
+                                        <div class="field">
+                                            <label>Poligono shape estero (JSON: <code>[[lng,lat],…]</code> o <code>[{ "lat":.., "lng":.. },…]</code>)</label>
+                                            <textarea rows="4" style="width:100%;font-family:monospace;font-size:11px" @bind="_polyText" placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
+                                            <div style="display:flex;gap:8px;margin-top:6px">
+                                                <button class="btn primary" disabled="@_busy" @onclick="() => SavePolygon(r.Id)">💾 Salva poligono</button>
+                                                <button class="btn ghost" disabled="@_busy" @onclick="() => _polyEditId = null">Annulla</button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            @if (_detailId == r.Id)
+                            {
+                                <tr>
+                                    <td colspan="10">
+                                        @if (_detailBusy)
+                                        {
+                                            <p class="help">Calcolo adiacenza in corso (ri-scarico i settori esteri da IVAO)…</p>
+                                        }
+                                        else if (_detail is { } det)
+                                        {
+                                            <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start">
+                                                <div>
+                                                    <h4 style="margin:0 0 6px">Settori adiacenti <span class="pill blue">@det.Adjacencies.Count</span></h4>
+                                                    @if (det.Warnings.Count > 0)
+                                                    {
+                                                        <div class="callout warning" style="margin:0 0 8px"><span class="cic">⚠️</span><div>
+                                                            <ul style="margin:0">@foreach (var w in det.Warnings) { <li>@w</li> }</ul>
+                                                        </div></div>
+                                                    }
+                                                    @if (det.Adjacencies.Count == 0)
+                                                    {
+                                                        <p class="help">Nessuna coppia di settori sotto soglia: il confine potrebbe essere un falso positivo.</p>
+                                                    }
+                                                    else
+                                                    {
+                                                        <table class="res-table">
+                                                            <thead><tr><th>Settore @det.HomeAccCode (IT)</th><th>Settore @det.ForeignAccCode</th><th>Dist. bordi</th></tr></thead>
+                                                            <tbody>
+                                                                @foreach (var a in det.Adjacencies)
+                                                                {
+                                                                    <tr>
+                                                                        <td><span class="sw" style="background:#1f6feb33;border:1px solid #1f6feb;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.HomeSector</td>
+                                                                        <td><span class="sw" style="background:#d1242f33;border:1px solid #d1242f;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.ForeignSector</td>
+                                                                        <td>@a.DistanceNm.ToString("0.0") NM</td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    }
+                                                </div>
+                                                <div>
+                                                    <div style="display:flex;gap:12px;font-size:11.5px;margin:0 0 4px">
+                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#1f6feb33;border:1px solid #1f6feb;border-radius:2px"></span> @det.HomeAccCode (casa)</span>
+                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#d1242f33;border:1px solid #d1242f;border-radius:2px"></span> @det.ForeignAccCode (estero)</span>
+                                                    </div>
+                                                    @if (det.MapViewBox is { } vb)
+                                                    {
+                                                        <svg viewBox="@vb" width="100%" height="320" style="background:#f7f9ff;border:1px solid var(--line);border-radius:11px">
+                                                            @foreach (var s in det.HomeShapes)
+                                                            {
+                                                                <path d="@s.Path" fill="#1f6feb" fill-opacity="0.16" stroke="#1f6feb" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
+                                                            }
+                                                            @foreach (var s in det.ForeignShapes)
+                                                            {
+                                                                <path d="@s.Path" fill="#d1242f" fill-opacity="0.16" stroke="#d1242f" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
+                                                            }
+                                                        </svg>
+                                                        <p class="muted" style="font-size:11px;margin:4px 0 0">Passa sopra una forma per il callsign. Proiezione equirettangolare (scala uniforme).</p>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p class="help">Nessuna shape disponibile per la mappa (poligoni esteri mancanti).</p>
+                                                    }
+
+                                                    @if (det.HomeShapes.Count > 0 || det.ForeignShapes.Count > 0)
+                                                    {
+                                                        <div class="aor-block" data-aor="nb-@r.Id" style="margin-top:12px">
+                                                            <div class="aor-toggles">
+                                                                @foreach (var s in det.HomeShapes)
+                                                                {
+                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#1f6feb33;border-color:#1f6feb"></span> @s.Sector</span>
+                                                                }
+                                                                @foreach (var s in det.ForeignShapes)
+                                                                {
+                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#d1242f33;border-color:#d1242f"></span> @s.Sector</span>
+                                                                }
+                                                                <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+                                                            </div>
+                                                            <div class="aor-leaflet" data-sectors="@GeoSectorsJson(det)" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden"></div>
+                                                            <p class="muted" style="font-size:11px;margin:4px 0 0">Mappa geografica reale (CartoDB). Accendi/spegni i settori con i chip sopra.</p>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+                }
+            }
+        </div>
+
+        <div class="section-title"><h3>Aggiungi coppia a mano</h3><span class="ln"></span></div>
+        <div class="block">
+            <p class="muted" style="font-size:11.5px;margin:0 0 8px">Fallback quando IVAO non fornisce i dati/il poligono dell'ACC estero. Il poligono è opzionale.</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                <div class="field"><label>ACC Home (IT)</label><input @bind="_mHome" placeholder="es. LIMM" /></div>
+                <div class="field"><label>ACC Foreign</label><input @bind="_mForeign" placeholder="es. LFMM" /></div>
+                <div class="field"><label>Nome estero</label><input @bind="_mName" placeholder="es. Marseille ACC" /></div>
+                <div class="field"><label>Paese (countryId)</label><input @bind="_mCountry" placeholder="es. FR" /></div>
+                <div class="field"><label>Callsign radice estero</label><input @bind="_mCallsign" placeholder="default {ACC}_CTR" /></div>
+            </div>
+            <div class="field" style="margin-top:8px"><label>Poligono (opzionale)</label><textarea rows="3" style="width:100%;font-family:monospace;font-size:11px" @bind="_mPoly"></textarea></div>
+            <button class="btn primary" disabled="@_busy" @onclick="AddManual" style="margin-top:8px">+ Aggiungi coppia</button>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<NeighbourCandidateRow> _rows = Array.Empty<NeighbourCandidateRow>();
+    private readonly List<string> _warnings = new();
+    private bool _busy;
+    private string? _msg;
+    private string? _ok;
+
+    private int? _polyEditId;
+    private string _polyText = "";
+
+    private int? _detailId;
+    private NeighbourPairDetail? _detail;
+    private bool _detailBusy;
+
+    // Ricerca + filtro stato (client-side sulle righe già caricate).
+    private string _q = "";
+    private NeighbourCandidateStatus? _statusFilter;
+
+    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _statusFilter is not null;
+
+    private IReadOnlyList<NeighbourCandidateRow> Filtered()
+    {
+        IEnumerable<NeighbourCandidateRow> q = _rows;
+        if (_statusFilter is { } st) q = q.Where(r => r.Status == st);
+        var term = _q?.Trim();
+        if (!string.IsNullOrEmpty(term))
+            q = q.Where(r =>
+                r.HomeAccCode.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || r.ForeignAccCode.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || r.ForeignAccName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || (r.CountryId ?? "").Contains(term, StringComparison.OrdinalIgnoreCase));
+        return q.ToList();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e) => _q = e.Value?.ToString() ?? "";
+    private void SetStatusFilter(NeighbourCandidateStatus? s) => _statusFilter = s;
+    private void ClearFilters() { _q = ""; _statusFilter = null; }
+
+    // form manuale
+    private string _mHome = "", _mForeign = "", _mName = "", _mCountry = "", _mCallsign = "", _mPoly = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        try { await ReloadAsync(); }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE INIT EX: {ex}"); _msg = "Errore caricamento: " + ex.Message; }
+    }
+
+    private async Task ReloadAsync() => _rows = await Neighbours.ListAsync();
+
+    private async Task Guarded(Func<Task> action, string? okMsg = null)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try { await action(); await ReloadAsync(); _ok = okMsg; }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE ACTION EX: {ex}"); _msg = "Errore: " + ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Import()
+    {
+        _busy = true; _msg = null; _ok = null; _warnings.Clear();
+        try
+        {
+            var r = await Neighbours.ImportAndComputeAsync();
+            _warnings.AddRange(r.Warnings);
+            await ReloadAsync();
+            _ok = $"Import completato. Paesi: {r.CountriesQueried} · ACC esteri letti: {r.ForeignAccsFetched} · " +
+                  $"coppie: {r.CandidatesCreated} nuove, {r.CandidatesUpdated} aggiornate.";
+        }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE IMPORT EX: {ex}"); _msg = "Errore import: " + ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private Task SetStatus(int id, NeighbourCandidateStatus status) =>
+        Guarded(() => Neighbours.SetStatusAsync(id, status));
+
+    private Task Generate(int id) =>
+        Guarded(() => Neighbours.GenerateVloaAsync(id), "vLOA generata.");
+
+    private void OpenPolygon(int id) { _polyEditId = id; _polyText = ""; }
+
+    // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero rosso.
+    private static string GeoSectorsJson(NeighbourPairDetail det)
+    {
+        var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#1f6feb", rings = new[] { s.Points } })
+            .Concat(det.ForeignShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#d1242f", rings = new[] { s.Points } }))
+            .ToList();
+        return System.Text.Json.JsonSerializer.Serialize(list);
+    }
+
+    private async Task ToggleDetail(int id)
+    {
+        if (_detailId == id) { _detailId = null; _detail = null; return; }
+        _detailId = id; _detail = null; _detailBusy = true; _msg = null;
+        try { _detail = await Neighbours.GetPairDetailAsync(id); }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE DETAIL EX: {ex}"); _msg = "Errore verifica: " + ex.Message; _detailId = null; }
+        finally { _detailBusy = false; }
+    }
+
+    private Task SavePolygon(int id) =>
+        Guarded(async () => { await Neighbours.SetPolygonAsync(id, _polyText); _polyEditId = null; }, "Poligono salvato.");
+
+    private Task AddManual() =>
+        Guarded(async () =>
+        {
+            await Neighbours.AddManualAsync(_mHome, _mForeign, _mName, _mCountry, _mCallsign,
+                string.IsNullOrWhiteSpace(_mPoly) ? null : _mPoly);
+            _mHome = _mForeign = _mName = _mCountry = _mCallsign = _mPoly = "";
+        }, "Coppia aggiunta.");
+}

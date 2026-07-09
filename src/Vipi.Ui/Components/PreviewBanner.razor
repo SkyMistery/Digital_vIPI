@@ -1,0 +1,27 @@
+@* Banner condiviso delle anteprime documentali (bozza / release). Mostrato dai viewer tipizzati quando la
+   modalità non è pubblica. Solo display: il gating avviene al caricamento nel viewer. *@
+@using Vipi.Ui.Shared
+
+@if (Kind == PreviewKind.Draft)
+{
+    <div class="callout warning"><span class="cic">👁</span><div>
+        <p class="ct">Anteprima bozza live</p>
+        Stai vedendo lo stato editoriale <b>corrente</b> (non la versione pubblica). I dati derivati (frequenze/coordinamenti/AoR) usano i cataloghi correnti.
+        <a href="@PublicHref">Apri la versione pubblica →</a>
+    </div></div>
+}
+else if (Kind == PreviewKind.Release)
+{
+    <div class="callout info"><span class="cic">👁</span><div>
+        <p class="ct">Anteprima release AIRAC @Cycle</p>
+        Come apparirà il documento quando questa release entrerà in vigore. I dati derivati usano i cataloghi correnti.
+        <a href="@PublicHref">[Pubblica]</a> · <a href="@DraftHref">[Bozza]</a>
+    </div></div>
+}
+
+@code {
+    [Parameter, EditorRequired] public PreviewKind Kind { get; set; }
+    [Parameter] public string? Cycle { get; set; }
+    [Parameter, EditorRequired] public string PublicHref { get; set; } = "";
+    [Parameter, EditorRequired] public string DraftHref { get; set; } = "";
+}

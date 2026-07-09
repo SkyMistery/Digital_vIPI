@@ -1,9 +1,12 @@
-using System.ComponentModel.DataAnnotations;
+using Vipi.Application.Aor;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
+
+/// <summary>Anteprima release di una vIPI ACC: dati con blocchi congelati + ciclo AIRAC della release.</summary>
+public sealed record AccReleaseView(AccProfileData Data, string AiracCycle);
 
 /// <summary>
 /// Use-case di authoring della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Le parti editoriali
@@ -14,6 +17,10 @@ public interface IAccProfileService
 {
     Task<AccProfileData> LoadForViewAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
     Task<AccProfileData> LoadForEditAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
+
+    /// <summary>Anteprima di una specifica release: usa i blocchi CONGELATI dello snapshot + ciclo AIRAC. Gated can-edit ACC;
+    /// verifica che la release sia dell'albero indicato. Le sezioni derivate restano live. null se non corrisponde.</summary>
+    Task<AccReleaseView?> LoadForReleaseAsync(string accCode, string? rootCallsign, int releaseId, CancellationToken ct = default);
 
     /// <summary>Radici degli alberi CTR dell'ACC (una vIPI per albero).</summary>
     Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default);
@@ -63,9 +70,12 @@ public sealed class AccProfileService : IAccProfileService
     private readonly ITopologyProvider _topology;
     private readonly Aor.IAorService _aor;
     private readonly ICoordinationSentenceTemplate _sentence;
+    private readonly IReleaseRepository _releases;
+    private readonly IEditAuditWriter _audit;
 
     public AccProfileService(IAccProfileRepository repo, IEditAuthorizationService authz, ITransferService transfers,
-        ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence)
+        ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence, IReleaseRepository releases,
+        IEditAuditWriter audit)
     {
         _repo = repo;
         _authz = authz;
@@ -73,25 +83,74 @@ public sealed class AccProfileService : IAccProfileService
         _topology = topology;
         _aor = aor;
         _sentence = sentence;
+        _releases = releases;
+        _audit = audit;
     }
 
     public Task<AccProfileData> LoadForViewAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default) =>
-        LoadAsync(Norm(accCode), rootCallsign, ct);
+        LoadAsync(Norm(accCode), rootCallsign, forPublic: true, ct);
 
     public async Task<AccProfileData> LoadForEditAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
-        return await LoadAsync(Norm(accCode), rootCallsign, ct);
+        return await LoadAsync(Norm(accCode), rootCallsign, forPublic: false, ct);
+    }
+
+    public async Task<AccReleaseView?> LoadForReleaseAsync(string accCode, string? rootCallsign, int releaseId, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        var rel = await _releases.GetByIdAsync(releaseId, ct);
+        if (rel is null || rel.TargetType != ReleaseTargetType.AccVipi) return null;
+        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
+        if (!string.Equals(rel.TargetKey, $"{accCode}|{root}", StringComparison.OrdinalIgnoreCase)) return null;
+        var snap = System.Text.Json.JsonSerializer.Deserialize<List<AccBlock>>(rel.PayloadJson);
+        if (snap is null) return null;
+        var data = await LoadAsync(accCode, rootCallsign, forPublic: false, ct, overrideBlocks: snap);
+        return new AccReleaseView(data, rel.ReleaseAiracCycle);
     }
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListTreeRootsAsync(Norm(accCode), ct);
 
-    private async Task<AccProfileData> LoadAsync(string accCode, string? rootCallsign, CancellationToken ct)
+    // overrideBlocks != null: usa quei blocchi (es. snapshot di release esplicita), saltando load-live e swap effettivo.
+    private async Task<AccProfileData> LoadAsync(string accCode, string? rootCallsign, bool forPublic, CancellationToken ct,
+        IReadOnlyList<AccBlock>? overrideBlocks = null)
     {
         var name = await _repo.GetAccNameByCodeAsync(accCode, ct)
             ?? throw new ValidationException($"ACC {accCode} inesistente.");
-        var blocks = (await _repo.LoadBlocksAsync(accCode, rootCallsign, ct)).ToList();
+
+        // Vista pubblica: se la vIPI ACC è nascosta, il pubblico non la vede (l'editor sì).
+        if (forPublic)
+        {
+            var root = await ResolveRootAsync(accCode, rootCallsign, ct);
+            if (await _repo.IsHiddenAsync(accCode, root, ct))
+                throw new ValidationException($"vIPI ACC {accCode} non disponibile.");
+        }
+
+        List<AccBlock> blocks;
+        if (overrideBlocks is not null)
+        {
+            blocks = overrideBlocks.ToList();
+        }
+        else
+        {
+            blocks = (await _repo.LoadBlocksAsync(accCode, rootCallsign, ct)).ToList();
+
+            // Vista pubblica: se esiste una release AIRAC effettiva per questo albero, usa i blocchi CONGELATI dello
+            // snapshot (le sezioni derivate — AoR/freq/coordinamenti — restano live coi cataloghi correnti). L'editor
+            // (forPublic=false) vede sempre lo stato live (= bozza).
+            if (forPublic)
+            {
+                var root = await ResolveRootAsync(accCode, rootCallsign, ct);
+                var rel = await _releases.GetEffectiveAsync(ReleaseTargetType.AccVipi, $"{accCode}|{root}", DateTime.UtcNow, ct);
+                if (rel is not null)
+                {
+                    var snap = System.Text.Json.JsonSerializer.Deserialize<List<AccBlock>>(rel.PayloadJson);
+                    if (snap is not null) blocks = snap;
+                }
+            }
+        }
 
         // Garantisci sempre il blocco Aerovia in testa (default per i profili nuovi/vuoti).
         if (!blocks.Any(b => b.Kind == AccBlockKind.Aerovia))
@@ -105,14 +164,9 @@ public sealed class AccProfileService : IAccProfileService
     public async Task<IReadOnlyList<AccSectorPick>> GetBlockPoolAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
     {
         accCode = Norm(accCode);
+        // ACC-wide: il pool Aerovia è l'intero insieme dei CTR dell'ACC (tutti gli alberi). Una vIPI per ACC.
         if (block.Kind == AccBlockKind.Aerovia)
-        {
-            var ctr = await _repo.ListCtrSectorsAsync(accCode, ct);
-            var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-            if (root is null) return ctr;
-            var subtree = new HashSet<string>(await _repo.ListSubtreeCtrCallsignsAsync(accCode, root, ct), StringComparer.OrdinalIgnoreCase);
-            return subtree.Count == 0 ? ctr : ctr.Where(s => subtree.Contains(s.Callsign)).ToList();
-        }
+            return await _repo.ListCtrSectorsAsync(accCode, ct);
 
         // Gruppo-APP: i membri scelti (con nome dal catalogo APP dell'ACC).
         var apps = await _repo.ListAppSectorsAsync(accCode, ct);
@@ -299,21 +353,28 @@ public sealed class AccProfileService : IAccProfileService
         if (block.Kind != AccBlockKind.Aerovia || block.Configurations.Count == 0) return Array.Empty<AccConfigTableView>();
 
         var topo = await _topology.BuildByAccCodeAsync(accCode, ct);
-        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-        if (topo is null || root is null) return Array.Empty<AccConfigTableView>();
+        // ACC-wide: risolve l'ownership per OGNI albero CTR dell'ACC e ne fa l'unione (i domini dei root sono
+        // disgiunti). Una sola vIPI per ACC che copre tutti gli alberi.
+        var roots = (await _repo.ListTreeRootsAsync(accCode, ct)).Select(r => r.Callsign).ToList();
+        if (topo is null || roots.Count == 0) return Array.Empty<AccConfigTableView>();
 
         var names = await NameMapAsync(accCode, ct);
-        var subtree = new HashSet<string>(await _repo.ListSubtreeCtrCallsignsAsync(accCode, root, ct), StringComparer.OrdinalIgnoreCase);
+        var allCtrs = new HashSet<string>((await _repo.ListCtrSectorsAsync(accCode, ct)).Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
 
         var result = new List<AccConfigTableView>();
         foreach (var cfg in block.Configurations)
         {
             var open = new HashSet<string>(cfg.OpenCallsigns, StringComparer.OrdinalIgnoreCase);
-            var res = _aor.Resolve(topo, root, open);   // ownership: settore → chi lo copre (antenato aperto più vicino / root)
+            var ownership = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in roots)
+                foreach (var kv in _aor.Resolve(topo, root, open).Ownership)   // ownership: settore → chi lo copre
+                    ownership[kv.Key] = kv.Value;
 
             var openOrder = cfg.OpenCallsigns.ToList();
-            var rows = res.Ownership
-                .Where(kv => subtree.Contains(kv.Key))
+            // Il "settore unificato" è per definizione un settore APERTO: si tengono solo i CTR il cui proprietario
+            // è nell'insieme aperto (ACC-wide: i settori dei rami senza aperti non compaiono come unificati).
+            var rows = ownership
+                .Where(kv => allCtrs.Contains(kv.Key) && open.Contains(kv.Value))
                 .GroupBy(kv => kv.Value, StringComparer.OrdinalIgnoreCase)
                 .Select(g =>
                 {
@@ -335,10 +396,13 @@ public sealed class AccProfileService : IAccProfileService
     {
         accCode = Norm(accCode);
         if (block.Kind != AccBlockKind.Aerovia) return new Dictionary<string, string>();
-        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-        if (root is null) return new Dictionary<string, string>();
-        var map = await _repo.GetCtrBranchMapAsync(accCode, root, ct);
-        return map.ToDictionary(kv => kv.Key, kv => kv.Value.Name, StringComparer.OrdinalIgnoreCase);
+        // ACC-wide: unione delle mappe di ramo di tutti gli alberi CTR dell'ACC.
+        var roots = (await _repo.ListTreeRootsAsync(accCode, ct)).Select(r => r.Callsign).ToList();
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in roots)
+            foreach (var kv in await _repo.GetCtrBranchMapAsync(accCode, root, ct))
+                result[kv.Key] = kv.Value.Name;
+        return result;
     }
 
     private async Task<IReadOnlyDictionary<string, string>> NameMapAsync(string accCode, CancellationToken ct)
@@ -391,6 +455,7 @@ public sealed class AccProfileService : IAccProfileService
         // Aerovia sempre primo.
         var ordered = blocks.OrderByDescending(b => b.Kind == AccBlockKind.Aerovia).ToList();
         await _repo.SaveBlocksAsync(accCode, ordered, rootCallsign, ct);
+        await _audit.RecordEditAsync("AccProfile", accCode, _authz.CurrentUserId ?? 0, "struttura", ct);
     }
 
     /// <summary>Radice effettiva: quella indicata (normalizzata) o la primaria dell'ACC. null se l'ACC non ha radici.</summary>
@@ -401,20 +466,14 @@ public sealed class AccProfileService : IAccProfileService
         return roots.Count > 0 ? roots[0].Callsign : null;
     }
 
-    /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = CTR del sottoalbero (root primaria se non indicata); altrimenti i callsign indicati.</summary>
+    /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = TUTTI i CTR dell'ACC (una vIPI per ACC, tutti
+    /// gli alberi CTR insieme); altrimenti i callsign indicati. Il parametro <paramref name="rootCallsign"/> non
+    /// restringe più a un sottoalbero: la vIPI ACC è unica e copre l'intero ACC.</summary>
     private async Task<IReadOnlyList<string>> MembersOfAsync(string accCode, AccBlock block, string? rootCallsign, CancellationToken ct)
     {
         if (block.MemberCallsigns.Count > 0) return block.MemberCallsigns;
         if (block.Kind == AccBlockKind.Aerovia)
-        {
-            var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-            if (root is not null)
-            {
-                var subtree = await _repo.ListSubtreeCtrCallsignsAsync(accCode, root, ct);
-                if (subtree.Count > 0) return subtree;
-            }
             return (await _repo.ListCtrSectorsAsync(accCode, ct)).Select(s => s.Callsign).ToList();
-        }
         return Array.Empty<string>();
     }
 

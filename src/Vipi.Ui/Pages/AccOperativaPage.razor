@@ -1,0 +1,253 @@
+@page "/vsop/{Acc}/operativa"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IStationResolver Stations
+@inject IStructureEditingService Structure
+@inject IDocumentAdminService Docs
+@inject IAccProfileService Profile
+@inject ITopologyProvider Topology
+@inject IAorService Aor
+@inject IOnlineAtcProvider Online
+@inject ITransferService Transfers
+@inject ICurrentUserProvider Users
+@inject IAiracService Airac
+@inject Microsoft.JSInterop.IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>@_data.AccName — Operativa · vIPI IVAO Italia</PageTitle>
+    <div class="wrap">
+        <div class="breadcrumb">
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>Operativa</b>
+        </div>
+
+        <div class="reduced-top">
+            <h2 style="margin:0">@_data.AccName — Operativa</h2>
+            <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_p</span>
+            <label class="muted" style="font-size:13px;margin-left:auto">Postazione
+                <select @bind="_p" @bind:after="LoadAsync" style="margin-left:6px;padding:4px 8px">
+                    @foreach (var pos in _positions) { <option value="@pos">@pos</option> }
+                </select>
+            </label>
+            @if (_myCallsign is not null)
+            {
+                <span class="xo-chip on" title="Rilevato dalla tua connessione IVAO">@_myCallsign</span>
+            }
+            <span class="muted" style="font-size:13px">@_snapshot.Callsigns.Count ATC online · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
+            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">← Documento esteso</a>
+        </div>
+
+        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">Modalità ridotta + live</p>Vedi solo l'essenziale per la postazione <b>@_p</b>. Le sezioni sono indipendenti: puoi tenerne aperte più di una (es. Frequenze e Trasferimenti insieme). Per tutto il resto apri il documento esteso.</div></div>
+
+        <p class="muted" style="font-size:13.5px;margin-bottom:7px">Vista rapida — il mio settore o un aeroporto sotto controllo diretto</p>
+        <div class="apt-quick" style="margin-bottom:22px">
+            <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 Il mio settore</span>
+            @foreach (var (ap, direct, deleg) in OrderedApts())
+            {
+                var icao = ap.Icao;
+                <span class="ch sw @(direct && !deleg ? "" : "ch-deleg") @(_selectedApt == icao ? "on" : "")"
+                      title="@(deleg ? "controllato da un'altra posizione online" : direct ? "vista rapida aeroporto" : "gestito da un altro settore")"
+                      @onclick="() => _selectedApt = icao">@icao@(deleg ? " ·delegato" : "")</span>
+            }
+        </div>
+
+        @if (_selectedApt is not null)
+        {
+            <AirportQuickPanel Icao="@_selectedApt" Acc="@Acc" />
+        }
+        else
+        {
+            var freqRows = _freqs.Values.SelectMany(x => x)
+                .GroupBy(r => r.Callsign, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First()).ToList();
+            var appGroups = _data.Blocks.Where(b => b.Kind == AccBlockKind.AppGroup).ToList();
+            var onlineAround = _resolved
+                .SelectMany(r => r.Points.Where(p => p.IsOnline).Select(p => p.ResolvedHandler)
+                    .Append(r.OwnerOnline ? r.ResolvedOwnerCallsign : null))
+                .Where(cs => !string.IsNullOrWhiteSpace(cs)).Select(cs => cs!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
+
+        <div class="red-top-grid">
+            <details class="acc-item" open>
+                <summary><span>📻 Frequenze</span><span class="tag-state tag-covered">aperto</span></summary>
+                <div class="body">
+                    @if (freqRows.Count > 0) { <AppFrequencies Rows="freqRows" /> }
+                    else { <p class="muted" style="font-size:13px;margin:0">Nessuna frequenza derivata.</p> }
+                </div>
+            </details>
+
+            @foreach (var block in appGroups.Where(b => IsDelegated(b)))
+            {
+                <details class="acc-item collapsed-strip">
+                    <summary><span>🔇 @block.Title — delegati</span><span class="tag-state tag-online">online</span></summary>
+                    <div class="body">
+                        <p class="muted" style="font-size:13px;margin-top:0">Compresso perché un settore di <b>@block.Title</b> è online (collasso morbido). Sotto restano le frequenze per l'handoff.</p>
+                        <AccSectionBody Block="block" Key="frequencies" Root="_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
+                    </div>
+                </details>
+            }
+
+            @foreach (var block in appGroups.Where(b => !IsDelegated(b)))
+            {
+                <details class="acc-item" open>
+                    <summary><span>📡 @block.Title</span><span class="tag-state tag-covered">coperto</span></summary>
+                    <div class="body">
+                        <AccSectionBody Block="block" Key="frequencies" Root="_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
+                    </div>
+                </details>
+            }
+        </div>
+
+        <details class="acc-item" open>
+            <summary><span>🔄 Trasferimenti · dove passo il traffico</span><span class="tag-state tag-covered">aperto</span></summary>
+            <div class="body">
+                <div class="xfer-online">
+                    <span class="xo-label">Online nel tuo intorno:</span>
+                    @if (onlineAround.Count > 0)
+                    {
+                        @foreach (var cs in onlineAround) { <span class="xo-chip on">@cs</span> }
+                    }
+                    else { <span class="muted xo-hint">nessun ente adiacente online</span> }
+                    <span class="muted xo-hint">— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</span>
+                </div>
+                <TransfersLive Flows="_resolved" EmptyText="Nessun coordinamento per questa ACC." />
+            </div>
+        </details>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+
+    private AccInfo? _acc;
+    private AccProfileData _data = new() { AccCode = "", AccName = "", Blocks = new() };
+    private Topology? _topo;
+    private string? _root;
+    private IReadOnlyList<string> _positions = Array.Empty<string>();
+    private string _p = "";
+    private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
+    private AorResult? _aor;
+    private IReadOnlyList<ResolvedTransferFlow> _resolved = Array.Empty<ResolvedTransferFlow>();
+    private string? _myCallsign;
+    private IReadOnlyList<AirportRow> _apts = Array.Empty<AirportRow>();
+    private string? _selectedApt;
+
+    private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
+
+    private DotNetObjectReference<AccOperativaPage>? _ref;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+
+        var roots = await Profile.ListTreeRootsAsync(Acc);
+        _root = roots.Count > 0 ? roots[0].Callsign : null;
+
+        _topo = await Topology.BuildByAccCodeAsync(_acc.Code);
+
+        // Struttura ACC: posizioni operative = solo i settori CTR; aeroporti pubblicati per i chip vista rapida.
+        var structure = await Structure.LoadAsync(_acc.Code);
+        var ctr = (structure?.Sectors ?? Array.Empty<SectorRow>())
+            .Where(s => s.Type == SectorType.Ctr)
+            .OrderBy(s => s.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
+        _positions = ctr.Select(s => s.Callsign).ToList();
+        var primary = ctr.FirstOrDefault(s => s.IsPrimary)?.Callsign;
+
+        var published = (await Docs.ListAsync())
+            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.IsPublished
+                        && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _apts = structure?.Airports
+            .Where(x => x.IsPublic && published.Contains(x.Icao))
+            .OrderBy(x => x.Icao).ToList()
+            ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+
+        _snapshot = Online.GetCurrent();
+        _myCallsign = Users.Get() is { } u
+            ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign
+            : null;
+
+        // Default P = posizione connessa (se CTR di questa ACC), altrimenti il CTR primario, altrimenti un CTR radice.
+        if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
+            _p = (_myCallsign is not null && _positions.Contains(_myCallsign))
+                ? _myCallsign
+                : primary
+                  ?? _positions.FirstOrDefault(c => _topo is not null && !_topo.Parent.ContainsKey(c))
+                  ?? _positions.FirstOrDefault() ?? "";
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_acc is null) return;
+
+        _data = await Profile.LoadForViewAsync(_acc.Code, _root);
+        _snapshot = Online.GetCurrent();
+        var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
+        _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;
+        _resolved = await Transfers.ResolveForAccAsync(_acc.Code, online);
+
+        _freqs.Clear();
+        foreach (var b in _data.Blocks)
+            _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(_acc.Code, b, _root)).ToList();
+    }
+
+    // Un gruppo-APP è "delegato" (collassato) quando un suo settore membro è gestito da un subordinato online (≠ P).
+    private bool IsDelegated(AccBlock block) =>
+        _aor is not null && block.MemberCallsigns.Any(cs =>
+            _aor.State.TryGetValue(cs, out var st) && st == SectorState.Online);
+
+    // Aeroporto "delegato" (controllato online): un callsign col primo token = ICAO (es. LIRF_TWR, LIRF_S_APP).
+    private bool IsAptDelegated(string icao) =>
+        _snapshot.Callsigns.Any(cs => cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
+
+    // Chip aeroporto: SOLO i discendenti del settore aperto P nell'albero (figli o figli-dei-figli = ParentCallsign
+    // nel dominio di P). Dentro: prima quelli sotto controllo diretto, in fondo i delegati (APP/TWR online). Alfabetico.
+    private IEnumerable<(AirportRow Ap, bool Direct, bool Deleg)> OrderedApts()
+    {
+        var domain = _topo is not null && !string.IsNullOrEmpty(_p)
+            ? _topo.DomainOf(_p)
+            : (IReadOnlySet<string>)new HashSet<string>();
+        return _apts
+            .Where(ap => ap.ParentCallsign is { } pc && domain.Contains(pc))
+            .Select(ap =>
+            {
+                var deleg = IsAptDelegated(ap.Icao);
+                return (Ap: ap, Direct: !deleg, Deleg: deleg);
+            })
+            .OrderByDescending(x => x.Direct)
+            .ThenBy(x => x.Ap.Icao, StringComparer.OrdinalIgnoreCase);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ref = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("vipiLive.subscribe", _ref);
+        }
+    }
+
+    /// <summary>Chiamato dal browser (SSE) a ogni cambio della cache ATC.</summary>
+    [JSInvokable]
+    public async Task OnLiveUpdate()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe"); } catch { /* circuito chiuso */ }
+        _ref?.Dispose();
+    }
+}

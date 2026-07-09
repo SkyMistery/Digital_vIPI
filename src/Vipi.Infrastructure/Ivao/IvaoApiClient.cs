@@ -155,11 +155,18 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default) =>
+        GetCentersByCountryAsync(_opt.AirportsCountryId, ct);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SourceCenter>> GetCentersByCountryAsync(string countryId, CancellationToken ct = default)
     {
         if (!_token.IsConfigured)
             throw new InvalidOperationException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere l'anagrafica ACC/center.");
+
+        countryId = (countryId ?? "").Trim();
+        if (countryId.Length == 0) return Array.Empty<SourceCenter>();
 
         // Parsing tollerante: la risposta può essere paginata ({items,pages}) o un array nudo, e i nomi dei
         // campi variano tra endpoint. Estraiamo via JsonDocument senza vincolarci a un DTO rigido.
@@ -168,7 +175,7 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         string lastSnippet = "";
         for (int page = 1; ; page++)
         {
-            var path = $"{_opt.CentersPath}?page={page}&countryId={Uri.EscapeDataString(_opt.AirportsCountryId)}";
+            var path = $"{_opt.CentersPath}?page={page}&countryId={Uri.EscapeDataString(countryId)}";
             using var req = new HttpRequestMessage(HttpMethod.Get, Combine(path));
             await AuthorizeAsync(req, ct);
 

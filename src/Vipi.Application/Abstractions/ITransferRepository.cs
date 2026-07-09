@@ -15,4 +15,7 @@ public interface ITransferRepository
     Task<int> AddPointAsync(string accCode, int flowId, TransferPointInput input, CancellationToken ct = default);
     Task UpdatePointAsync(string accCode, int pointId, TransferPointInput input, CancellationToken ct = default);
     Task DeletePointAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Sposta un punto su/giù scambiando l'<c>Order</c> col punto adiacente nello stesso flusso. No-op agli estremi.</summary>
+    Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default);
 }

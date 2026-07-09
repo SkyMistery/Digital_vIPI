@@ -4,6 +4,8 @@
 @inject IStructureEditingService Struct
 @inject IHierarchyEditingService Hierarchy
 @inject IEditAuthorizationService Authz
+@inject IOnlineAtcProvider Online
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <PageTitle>Struttura (ACC, settori) · vIPI IVAO Italia</PageTitle>
 
@@ -11,6 +13,17 @@
     <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <b>Struttura</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">Gerarchia di copertura globale + documenti</span></div>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                <a class="btn ghost" href="/vsop/editor/newdoc">📄 Nuovo documento</a>
+                <a class="btn ghost" href="/vsop/admin/acc">🗺 Gestione ACC</a>
+                <a class="btn ghost" href="/vsop/admin/airports">🛫 Gestione aeroporti</a>
+                <a class="btn ghost" href="/vsop/admin/confinanti">🌍 ACC confinanti (vLOA)</a>
+                <a class="btn ghost" href="/vsop/admin/trasferimenti">↔ Trasferimenti</a>
+                <a class="btn ghost" href="/vsop/admin/sorgenti">🔌 Sorgenti dati</a>
+            </nav>
+        }
     </div>
 
     @if (_msg is not null)
@@ -18,7 +31,7 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span>@if (Authz.IsAdmin) { <a class="btn ghost" href="/vsop/editor/newdoc">Nuovo documento →</a> <a class="btn ghost" href="/vsop/admin/acc">Gestione ACC →</a> <a class="btn ghost" href="/vsop/admin/airports">Gestione aeroporti →</a> <a class="btn ghost" href="/vsop/admin/trasferimenti">Trasferimenti →</a> <a class="btn ghost" href="/vsop/admin/sorgenti">Sorgenti dati →</a> }</div>
+    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span></div>
     <p class="help" style="margin-top:0">Albero di fallback unico per tutta la divisione (<b>cross-ACC</b>): <b>Aeroporto → APP → settore ACC</b>. L'aeroporto è la foglia (DEL/GND/TWR condividono la sua vista rapida). I settori si importano/editano dalla <a href="/vsop/admin/acc">pagina ACC</a>; qui imposti solo i <b>padri</b> (il fallback immediato), anche tra ACC diversi.</p>
 
     <div class="gerarchia-2col">
@@ -28,7 +41,35 @@
                 <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="Espandi tutto">⊞ espandi</button>
                 <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="Comprimi tutte le card">⊟ comprimi</button>
             </div>
-            <input class="htree-search" placeholder="cerca callsign / ACC…" @bind="_treeFilter" @bind:event="oninput" />
+            @{ var aptOrphans = OrphanAirports().Count; var appOrphans = OrphanApps().Count; var accRoots = AccRoots().Count; }
+            <div class="struct-health @(aptOrphans == 0 && appOrphans == 0 ? "ok" : "")">
+                @if (aptOrphans == 0 && appOrphans == 0)
+                {
+                    <span class="sh-ok">✓ struttura completa: ogni aeroporto e APP ha un padre</span>
+                }
+                else
+                {
+                    <button class="sh-chip warn @(_orphansOnly ? "on" : "")" @onclick="ToggleOrphans" title="Mostra solo i nodi da agganciare">
+                        ⚠ @aptOrphans aeroport@(aptOrphans == 1 ? "o" : "i") da assegnare@(appOrphans > 0 ? $" · {appOrphans} APP orfan{(appOrphans == 1 ? "o" : "i")}" : "")
+                    </button>
+                }
+                <span class="sh-chip" title="Radici ACC (nessun padre — copertura top-down)">@accRoots radici ACC</span>
+                @if (_orphansOnly)
+                {
+                    <button class="lnk-mini" @onclick="() => _orphansOnly = false">↺ mostra tutti</button>
+                }
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <input class="htree-search" placeholder="cerca callsign / ACC…" value="@_treeFilter" @oninput="OnSearchInput" style="flex:1" />
+                <select @bind="_countryFilter" title="Filtra per nazione">
+                    <option value="">tutte le nazioni</option>
+                    @foreach (var c in CountryOptions())
+                    {
+                        <option value="@c.Prefix">@c.Name</option>
+                    }
+                </select>
+                @if (_searching) { <span class="muted" style="font-size:12px;white-space:nowrap">@_tree.Count(Matches) risultati</span> }
+            </div>
             @{ var groups = RootGroups(); }
             @if (groups.Count == 0)
             {
@@ -46,8 +87,8 @@
                 @foreach (var g in groups)
                 {
                     var rows = FlattenForest(g.Roots);
-                    if (_searching && rows.Count == 0) { continue; }
-                    var cardOpen = _searching || !_collapsedCards.Contains(g.Code);
+                    if (_filtering && rows.Count == 0) { continue; }
+                    var cardOpen = _filtering || !_collapsedCards.Contains(g.Code);
                     <div class="acc-grp">
                         <div class="acc-grp-h" @onclick="() => ToggleCard(g.Code)">
                             <span class="grp-chev">@(cardOpen ? "▾" : "▸")</span>
@@ -59,9 +100,18 @@
                             @foreach (var node in rows)
                             {
                                 var n = node;
-                                <div class="acc-row @(IsSelected(n.Kind, n.Id) ? "sel" : "") @(IsHit(n) ? "match" : "")"
-                                     style="padding-left:@(12 + n.Depth * 20)px" @onclick="() => Select(n.Kind, n.Id)">
-                                    @if (n.HasChildren && !_searching)
+                                var isTarget = n.Callsign is not null;   // solo i nodi interni (ACC/APP) sono drop-target
+                                <div id="@RowId(n.Kind, n.Id)"
+                                     class="acc-row @(IsSelected(n.Kind, n.Id) ? "sel" : "") @(IsHit(n) ? "match" : "") @DropClass(n)"
+                                     style="padding-left:@(12 + n.Depth * 20)px"
+                                     draggable="@(Authz.IsAdmin ? "true" : "false")"
+                                     @ondragstart="() => OnDragStart(n)"
+                                     @ondragend="OnDragEnd"
+                                     ondragover="event.preventDefault()"
+                                     @ondragenter="() => OnDragEnter(n)"
+                                     @ondrop="() => OnDrop(n)"
+                                     @onclick="() => Select(n.Kind, n.Id)">
+                                    @if (n.HasChildren && !_filtering)
                                     {
                                         <span class="htree-toggle" @onclick="() => Toggle(n.Callsign!)" @onclick:stopPropagation="true">@(_collapsed.Contains(n.Callsign!) ? "▸" : "▾")</span>
                                     }
@@ -69,11 +119,12 @@
                                     {
                                         <span class="htree-toggle empty"></span>
                                     }
-                                    <span class="node-badge @BadgeOf(n.Kind).ToLowerInvariant()">@BadgeOf(n.Kind)</span>
+                                    @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="online adesso"></span> }
+                                    <span class="node-badge @FacilityClass(n.Kind, n.Callsign)">@FacilityBadge(n.Kind, n.Callsign)</span>
                                     <span class="acc-row-label">@n.Label</span>
                                     @if (n.AccCode != g.Code) { <span class="acc-tag" title="cross-ACC">@n.AccCode</span> }
                                     @if (n.IsHidden) { <span class="muted" style="font-size:11px">(nascosto)</span> }
-                                    @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_searching)
+                                    @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_filtering)
                                     {
                                         <span class="acc-row-parent">@(ChildrenOf(n.Callsign!).Count()) ⋯</span>
                                     }
@@ -98,12 +149,16 @@
             }
             else
             {
-                <p style="margin:0 0 4px"><b>@sel.Label</b> <span class="node-badge @BadgeOf(sel.Kind).ToLowerInvariant()">@BadgeOf(sel.Kind)</span> <span class="acc-tag">@sel.AccCode</span></p>
+                <p style="margin:0 0 4px">
+                    @if (sel.Callsign is not null && _online.Contains(sel.Callsign)) { <span class="onl-dot" title="online adesso"></span> }
+                    <b>@sel.Label</b> <span class="node-badge @FacilityClass(sel.Kind, sel.Callsign)">@FacilityBadge(sel.Kind, sel.Callsign)</span> <span class="acc-tag">@sel.AccCode</span>
+                </p>
                 @if (sel.Kind == HierarchyNodeKind.Airport)
                 {
                     <p class="muted" style="font-size:12px;margin:0 0 10px">DEL · GND · TWR condividono la stessa vista rapida (l'aeroporto è la foglia).</p>
                 }
                 @RenderChain(sel)
+                @RenderCoverage(sel)
                 <div class="field" style="margin-top:10px">
                     <label>Padre (fallback immediato)</label>
                     <input placeholder="filtra callsign…" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || _busy)" style="margin-bottom:6px" />
@@ -143,15 +198,47 @@
     private int _selId;
     private string _parentFilter = "";     // filtro del picker padre (dettaglio)
     private string _treeFilter = "";       // ricerca nell'albero
+    private string _countryFilter = "";    // filtro per nazione (prefisso ICAO, "" = tutte)
     private string? _pendingParent;        // padre selezionato ma non ancora applicato (Applica)
+
+    // Settori esteri che confinano davvero con l'IT: solo questi si mostrano/usano per gli ACC esteri.
+    private IReadOnlySet<string> _confining = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    private HashSet<string> _online = new(StringComparer.OrdinalIgnoreCase);   // callsign ATC online adesso
+    private bool _orphansOnly;                                                  // filtro "solo nodi da agganciare"
+
+    // Drag&drop re-parent: nodo trascinato + target correntemente sotto il cursore.
+    private HierarchyNodeKind? _dragKind;
+    private int _dragId;
+    private string? _dropTargetCs;
+
+    private bool _scrollPending;   // dopo una ricerca: porta in vista il primo match
 
     protected override async Task OnInitializedAsync()
     {
         _accs = await Struct.ListAccsAsync();
+        _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
+        _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
         await ReloadTreeAsync();
     }
 
-    private async Task ReloadTreeAsync() => _tree = await Hierarchy.LoadTreeAsync();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scrollPending)
+        {
+            _scrollPending = false;
+            var first = _tree.Where(Matches).OrderBy(n => n.AccCode).ThenBy(n => n.Label).FirstOrDefault();
+            if (first is not null)
+                await JS.InvokeVoidAsync("vipiScrollToId", RowId(first.Kind, first.Id));
+        }
+    }
+
+    private async Task ReloadTreeAsync()
+    {
+        var full = await Hierarchy.LoadTreeAsync();
+        // ACC esteri: tieni solo i settori che confinano con l'Italia (non tutti quelli dell'ACC).
+        _tree = full.Where(n => !n.IsForeign || (n.Callsign != null && _confining.Contains(n.Callsign))).ToList();
+    }
 
     private async Task Guarded(Func<Task> action)
     {
@@ -193,6 +280,7 @@
     private static string NodeKey(HierarchyNodeKind kind, int id) => $"{kind}:{id}";
 
     private bool _searching => !string.IsNullOrWhiteSpace(_treeFilter);
+    private bool _filtering => _searching || _orphansOnly;   // albero appiattito/filtrato (ricerca o solo-orfani)
 
     // --- Compressione card (per ACC) e rami (per callsign) ---
     private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);       // rami compressi (callsign)
@@ -227,6 +315,7 @@
 
         return _tree
             .Where(n => n.ParentCallsign is null || !byCs.ContainsKey(n.ParentCallsign))   // radici
+            .Where(n => string.IsNullOrEmpty(_countryFilter) || string.Equals(n.CountryPrefix, _countryFilter, StringComparison.OrdinalIgnoreCase))
             .Where(RootVisible)
             .GroupBy(r => r.AccCode, StringComparer.OrdinalIgnoreCase)
             .OrderBy(g => g.Key)
@@ -264,6 +353,7 @@
     /// <summary>Quando il filtro è attivo: chiavi dei nodi da mostrare = ogni match + tutti i suoi ANTENATI + tutti i suoi DISCENDENTI (gerarchia completa del CS cercato).</summary>
     private HashSet<string>? VisibleKeys()
     {
+        if (_orphansOnly) return OrphanVisibleKeys();
         if (string.IsNullOrWhiteSpace(_treeFilter)) return null;   // null = nessun filtro
         var byCs = NodesByCallsign();
         var vis = new HashSet<string>();
@@ -306,6 +396,173 @@
         _ => "APT",
     };
 
+    // --- Nazioni presenti nell'albero (prefisso ICAO → nome), per il filtro ---
+    private sealed record CountryOption(string Prefix, string Name);
+    private List<CountryOption> CountryOptions() =>
+        _tree.Select(n => n.CountryPrefix)
+             .Where(p => !string.IsNullOrWhiteSpace(p))
+             .Distinct(StringComparer.OrdinalIgnoreCase)
+             .Select(p => new CountryOption(p, CountryName(p)))
+             .OrderBy(c => c.Prefix.Equals("LI", StringComparison.OrdinalIgnoreCase) ? "" : c.Name)   // Italia prima
+             .ToList();
+
+    private static string CountryName(string prefix) => prefix.ToUpperInvariant() switch
+    {
+        "LI" => "🇮🇹 Italia",
+        "LF" => "🇫🇷 Francia",
+        "LS" => "🇨🇭 Svizzera",
+        "LO" => "🇦🇹 Austria",
+        "LD" => "🇭🇷 Croazia",
+        "LJ" => "🇸🇮 Slovenia",
+        "LG" => "🇬🇷 Grecia",
+        "LM" => "🇲🇹 Malta",
+        "LA" => "🇦🇱 Albania",
+        "LQ" => "🇧🇦 Bosnia",
+        "LY" => "🇷🇸 Serbia/Montenegro",
+        "LW" => "🇲🇰 Macedonia del Nord",
+        "DT" => "🇹🇳 Tunisia",
+        "DA" => "🇩🇿 Algeria",
+        _ => prefix.ToUpperInvariant(),
+    };
+
+    // --- Ricerca: aggiorna filtro e programma lo scroll al primo match ---
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _treeFilter = e.Value?.ToString() ?? "";
+        if (_searching) { _orphansOnly = false; _scrollPending = true; }
+    }
+
+    // --- Completezza / orfani ---
+    private bool IsRooted(HierarchyNode n)   // ha un padre effettivamente risolvibile nell'albero
+    {
+        if (string.IsNullOrWhiteSpace(n.ParentCallsign)) return false;
+        return NodesByCallsign().ContainsKey(n.ParentCallsign);
+    }
+    private List<HierarchyNode> OrphanAirports() =>
+        _tree.Where(n => n.Kind == HierarchyNodeKind.Airport && !IsRooted(n)).ToList();
+    private List<HierarchyNode> OrphanApps() =>
+        _tree.Where(n => n.Kind == HierarchyNodeKind.App && !IsRooted(n)).ToList();
+    private List<HierarchyNode> AccRoots() =>
+        _tree.Where(n => n.Kind == HierarchyNodeKind.Acc && !IsRooted(n)).ToList();
+
+    private void ToggleOrphans()
+    {
+        _orphansOnly = !_orphansOnly;
+        if (_orphansOnly) _treeFilter = "";
+    }
+
+    // Filtro "solo orfani": mostra i nodi Airport/APP senza padre + i loro antenati (di norma nessuno).
+    private HashSet<string> OrphanVisibleKeys()
+    {
+        var byCs = NodesByCallsign();
+        var vis = new HashSet<string>();
+        foreach (var m in OrphanAirports().Concat(OrphanApps()))
+        {
+            vis.Add(NodeKey(m.Kind, m.Id));
+            var pcs = m.ParentCallsign;
+            var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
+            {
+                vis.Add(NodeKey(p.Kind, p.Id));
+                pcs = p.ParentCallsign;
+            }
+        }
+        return vis;
+    }
+
+    // --- Badge facility (CTR/FSS/APP/APT) dal suffisso callsign ---
+    private static string FacilityBadge(HierarchyNodeKind kind, string? callsign)
+    {
+        if (kind == HierarchyNodeKind.Airport) return "APT";
+        if (kind == HierarchyNodeKind.App) return "APP";
+        var last = callsign?.Split('_').LastOrDefault()?.ToUpperInvariant();
+        return last switch { "CTR" => "CTR", "FSS" => "FSS", _ => "ACC" };
+    }
+    private static string FacilityClass(HierarchyNodeKind kind, string? callsign) => FacilityBadge(kind, callsign).ToLowerInvariant();
+
+    private static string RowId(HierarchyNodeKind kind, int id) => $"hn-{kind}-{id}";
+
+    // --- Drag & drop re-parent (le righe albero sono FlatNode: risolvo l'HierarchyNode dai campi) ---
+    private void OnDragStart(FlatNode n) { _dragKind = n.Kind; _dragId = n.Id; }
+    private void OnDragEnd() { _dragKind = null; _dropTargetCs = null; }
+    private void OnDragEnter(FlatNode target) { _dropTargetCs = target.Callsign; }
+
+    private HierarchyNode? Dragged() => _dragKind is HierarchyNodeKind k
+        ? _tree.FirstOrDefault(n => n.Kind == k && n.Id == _dragId) : null;
+    private HierarchyNode? NodeOf(FlatNode f) => _tree.FirstOrDefault(n => n.Kind == f.Kind && n.Id == f.Id);
+
+    // Padre ammesso per il nodo trascinato: non sé stesso/discendente + stessa nazione (come EligibleParents).
+    private bool IsEligibleParent(HierarchyNode child, HierarchyNode parent)
+    {
+        if (parent.Callsign is null) return false;
+        if (string.Equals(parent.Callsign, child.Callsign, StringComparison.OrdinalIgnoreCase)) return false;
+        if (child.Callsign is not null && Descendants(child.Callsign).Contains(parent.Callsign)) return false;
+        return child.IsForeign
+            ? parent.IsForeign && string.Equals(parent.CountryPrefix, child.CountryPrefix, StringComparison.OrdinalIgnoreCase)
+            : !parent.IsForeign;
+    }
+
+    private string DropClass(FlatNode targetRow)
+    {
+        if (_dragKind is null || targetRow.Callsign is null || !string.Equals(_dropTargetCs, targetRow.Callsign, StringComparison.OrdinalIgnoreCase))
+            return "";
+        var child = Dragged();
+        var target = NodeOf(targetRow);
+        if (child is null || target is null) return "";
+        return IsEligibleParent(child, target) ? "drop-ok" : "drop-no";
+    }
+
+    private async Task OnDrop(FlatNode targetRow)
+    {
+        var child = Dragged();
+        var target = NodeOf(targetRow);
+        _dropTargetCs = null;
+        if (child is null || target?.Callsign is null) { _dragKind = null; return; }
+        if (!Authz.IsAdmin) { _dragKind = null; return; }
+        if (!IsEligibleParent(child, target))
+        {
+            _msg = $"Non puoi agganciare {child.Callsign ?? child.Label} sotto {target.Callsign} (sé stesso/discendente o nazione diversa).";
+            _dragKind = null;
+            return;
+        }
+        var kind = child.Kind; var id = child.Id; var parentCs = target.Callsign;
+        _dragKind = null;
+        await Guarded(() => Hierarchy.SetParentAsync(kind, id, parentCs));
+    }
+
+    // --- Anteprima copertura (dominio GIÙ) del nodo selezionato ---
+    private RenderFragment RenderCoverage(HierarchyNode sel) => builder =>
+    {
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "fallback-chain");
+        builder.AddContent(seq++, (MarkupString)"<div class=\"muted\" style=\"font-size:12px;margin:8px 0 4px\">Copre (dominio):</div>");
+        if (sel.Callsign is null)
+        {
+            builder.AddContent(seq++, (MarkupString)"<div class=\"help\">L'aeroporto è una foglia: nessun sottoalbero.</div>");
+        }
+        else
+        {
+            var children = ChildrenOf(sel.Callsign).ToList();
+            if (children.Count == 0)
+            {
+                builder.AddContent(seq++, (MarkupString)"<div class=\"help\">Nessun sottoalbero (copre solo sé stesso).</div>");
+            }
+            else
+            {
+                foreach (var c in children)
+                {
+                    var descCount = c.Callsign is null ? 0 : DescendantNodes(c.Callsign).Count;
+                    var extra = descCount > 0 ? $" <span class=\"muted\" style=\"font-size:11px\">+{descCount}</span>" : "";
+                    builder.AddContent(seq++, (MarkupString)$"<div>↳ <b>{(c.Callsign ?? c.Label)}</b> <span class=\"node-badge {FacilityClass(c.Kind, c.Callsign)}\">{FacilityBadge(c.Kind, c.Callsign)}</span>{extra}</div>");
+                }
+                var apts = DescendantNodes(sel.Callsign).Count(d => d.Kind == HierarchyNodeKind.Airport);
+                builder.AddContent(seq++, (MarkupString)$"<div style=\"margin-top:6px;font-family:'Nunito Sans';font-weight:700;color:var(--ivao-blue)\">{apts} aeroport{(apts == 1 ? "o" : "i")} copert{(apts == 1 ? "o" : "i")}</div>");
+            }
+        }
+        builder.CloseElement();
+    };
+
     private Dictionary<string, HierarchyNode> NodesByCallsign() =>
         _tree.Where(n => n.Callsign is not null)
              .GroupBy(n => n.Callsign!, StringComparer.OrdinalIgnoreCase)
@@ -335,6 +592,10 @@
         }
         return _tree
             .Where(n => n.Callsign is not null && !blocked.Contains(n.Callsign))
+            // Nodo estero: padri solo della STESSA nazione (stesso prefisso ICAO). Nodo domestico: solo padri domestici.
+            .Where(n => sel.IsForeign
+                        ? n.IsForeign && string.Equals(n.CountryPrefix, sel.CountryPrefix, StringComparison.OrdinalIgnoreCase)
+                        : !n.IsForeign)
             .Where(n => string.IsNullOrWhiteSpace(_parentFilter)
                         || n.Callsign!.Contains(_parentFilter, StringComparison.OrdinalIgnoreCase))
             .OrderBy(n => n.AccCode).ThenBy(n => n.Callsign);

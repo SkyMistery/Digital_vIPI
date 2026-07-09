@@ -16,6 +16,10 @@ public interface IEditingRepository
     /// <summary>Carica la versione di lavoro (bozza se esiste, sennò la pubblicata corrente) come modello editabile. Null se il documento non esiste.</summary>
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Id della vLOA della coppia (Home=<paramref name="homeAccCode"/>, Neighbour=<paramref name="foreignAccCode"/>).
+    /// Una sola vLOA per coppia ACC↔ACC. Null se non esiste.</summary>
+    Task<int?> FindVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default);
+
     /// <summary>Crea una nuova bozza clonando la versione pubblicata corrente. Se esiste già una bozza, ne ritorna l'Id (idempotente). Ritorna l'Id della versione bozza.</summary>
     Task<int> CreateDraftAsync(int documentId, int authorUserId, CancellationToken ct = default);
 

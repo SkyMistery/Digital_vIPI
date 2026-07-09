@@ -25,28 +25,19 @@ public sealed class SpecialAreaImportHostedService : BackgroundService
         _log = log;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    // Gated: dopo gli ACC (FK); salta il fetch all'avvio se ancora fresco (retry 1h su errore).
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        GatedImportLoop.RunAsync(_scopes, ImportCategories.SpecialArea,
+            TimeSpan.FromHours(Math.Max(1, _opt.AccImportHours)), ImportOnceAsync, _log, stoppingToken,
+            bootDelay: TimeSpan.FromSeconds(45));
+
+    private async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
-        // Ritardo iniziale un po' più lungo dell'import ACC: le aree hanno bisogno degli ACC già presenti (FK).
-        try { await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken); }
-        catch (OperationCanceledException) { return; }
+        var dir = sp.GetRequiredService<IAccDirectory>();
+        var repo = sp.GetRequiredService<IAccAdminRepository>();
 
-        await ImportOnceAsync(stoppingToken);
-
-        var period = TimeSpan.FromHours(Math.Max(1, _opt.AccImportHours));
-        using var timer = new PeriodicTimer(period);
-        while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
-            await ImportOnceAsync(stoppingToken);
-    }
-
-    private async Task ImportOnceAsync(CancellationToken ct)
-    {
         try
         {
-            using var scope = _scopes.CreateScope();
-            var dir = scope.ServiceProvider.GetRequiredService<IAccDirectory>();
-            var repo = scope.ServiceProvider.GetRequiredService<IAccAdminRepository>();
-
             var accs = await repo.ListAccsAsync(ct);
             int created = 0, updated = 0, removed = 0;
             foreach (var a in accs)
@@ -59,27 +50,20 @@ public sealed class SpecialAreaImportHostedService : BackgroundService
                     var r = await repo.PruneSpecialAreasNotInAsync(a.Code, areas.Select(x => x.IvaoId).ToList(), ct);
                     created += c; updated += u; removed += r;
                 }
-                catch (InvalidOperationException) { throw; }   // credenziali assenti: gestito a monte, abortisce tutto
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                catch (InvalidOperationException) { throw; }   // credenziali assenti: gestito a monte
                 catch (Exception ex)
                 {
                     _log.LogWarning(ex, "Import aree speciali per {Acc} fallito; salto (nessun prune).", a.Code);
                 }
             }
             _log.LogInformation("Import aree speciali automatico: {Created} create, {Updated} aggiornate, {Removed} rimosse.", created, updated, removed);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // shutdown: ignora
+            return true;
         }
         catch (InvalidOperationException ex)
         {
             // tipicamente credenziali sorgente assenti: salta senza rumore.
             _log.LogInformation("Import aree speciali saltato: {Reason}", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "Import aree speciali fallito; riprovo al prossimo ciclo.");
+            return true;
         }
     }
 }

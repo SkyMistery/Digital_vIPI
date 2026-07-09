@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Vipi.Application;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
@@ -11,44 +13,110 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
     private readonly VipiDbContext _db;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
+    private readonly NeighboursOptions _opt;
+    private readonly DivisionOptions _division;
 
-    public EfHierarchyEditingService(VipiDbContext db, IEditAuthorizationService authz, ISectorProjectionService projection)
+    public EfHierarchyEditingService(VipiDbContext db, IEditAuthorizationService authz,
+        ISectorProjectionService projection, IOptions<NeighboursOptions> opt, IOptions<DivisionOptions> division)
     {
         _db = db;
         _authz = authz;
         _projection = projection;
+        _opt = opt.Value;
+        _division = division.Value;
     }
+
+    /// <summary>Un ACC è ESTERO se il suo codice non inizia con un prefisso ICAO della divisione (es. "LI"). Basato
+    /// sui prefissi, non sul flag <c>Acc.IsForeign</c> (che può essere stale per gli ACC creati da seed demo).</summary>
+    private bool IsForeignCode(string code) =>
+        !_division.IcaoPrefixes.Any(p => code.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
     public async Task<IReadOnlyList<HierarchyNode>> LoadTreeAsync(CancellationToken ct = default)
     {
         var nodes = new List<HierarchyNode>();
 
+        // Mappa ACC → prefisso nazione (per i padri per-nazione). Estero deciso dai prefissi divisione (non dal flag).
+        var prefixByCode = await _db.Accs.AsNoTracking()
+            .ToDictionaryAsync(a => a.Code, a => a.CountryPrefix, StringComparer.OrdinalIgnoreCase, ct);
+        (bool F, string P) Meta(string code) =>
+            (IsForeignCode(code), prefixByCode.TryGetValue(code, out var p) ? p : (code.Length >= 2 ? code[..2] : code));
+
         var accSectors = await _db.AccSectors.AsNoTracking()
             .OrderBy(s => s.CenterId).ThenBy(s => s.ComposePosition).ToListAsync(ct);
         foreach (var s in accSectors)
+        {
+            var (f, p) = Meta(s.CenterId);
             nodes.Add(new HierarchyNode(
                 HierarchyNodeKind.Acc, s.Id, s.ComposePosition,
                 Label: s.ComposePosition, AccCode: s.CenterId,
-                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden));
+                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden, IsForeign: f, CountryPrefix: p));
+        }
 
         var apps = await _db.AirportSectors.AsNoTracking()
             .Where(s => s.Position != null && s.Position.ToUpper() == "APP")
             .OrderBy(s => s.AccCode).ThenBy(s => s.ComposePosition).ToListAsync(ct);
         foreach (var s in apps)
+        {
+            var (f, p) = Meta(s.AccCode);
             nodes.Add(new HierarchyNode(
                 HierarchyNodeKind.App, s.Id, s.ComposePosition,
                 Label: s.ComposePosition, AccCode: s.AccCode,
-                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden));
+                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden, IsForeign: f, CountryPrefix: p));
+        }
 
         var airports = await _db.Airports.AsNoTracking().Include(a => a.Acc)
             .OrderBy(a => a.Icao).ToListAsync(ct);
         foreach (var a in airports)
+        {
+            var (f, p) = Meta(a.Acc?.Code ?? "");
             nodes.Add(new HierarchyNode(
                 HierarchyNodeKind.Airport, a.Id, Callsign: null,
                 Label: string.IsNullOrWhiteSpace(a.Name) ? a.Icao : $"{a.Icao} — {a.Name}",
-                AccCode: a.Acc?.Code ?? "", ParentCallsign: a.ParentCallsign, IsHidden: a.IsHidden));
+                AccCode: a.Acc?.Code ?? "", ParentCallsign: a.ParentCallsign, IsHidden: a.IsHidden, IsForeign: f, CountryPrefix: p));
+        }
 
         return nodes;
+    }
+
+    // Cache del set confinanti (calcolo geometrico O(N²) su poligoni densi: costoso, cambia solo dopo import/edit
+    // gerarchia). Static: condiviso tra richieste/utenti (il set è globale). TTL + invalidazione esplicita su SetParent.
+    private static readonly object _confiningLock = new();
+    private static IReadOnlySet<string>? _confiningCache;
+    private static DateTime _confiningCachedAt;
+    private static readonly TimeSpan _confiningTtl = TimeSpan.FromMinutes(5);
+    private static void InvalidateConfiningCache() { lock (_confiningLock) _confiningCache = null; }
+
+    public async Task<IReadOnlySet<string>> ListConfiningForeignCallsignsAsync(CancellationToken ct = default)
+    {
+        lock (_confiningLock)
+            if (_confiningCache is not null && DateTime.UtcNow - _confiningCachedAt < _confiningTtl)
+                return _confiningCache;
+
+        var set = await ComputeConfiningForeignCallsignsAsync(ct);
+        lock (_confiningLock) { _confiningCache = set; _confiningCachedAt = DateTime.UtcNow; }
+        return set;
+    }
+
+    private async Task<IReadOnlySet<string>> ComputeConfiningForeignCallsignsAsync(CancellationToken ct = default)
+    {
+        var all = await _db.AccSectors.AsNoTracking()
+            .Where(s => !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
+            .Select(s => new { s.ComposePosition, s.CenterId, s.RegionMapPolygon }).ToListAsync(ct);
+        var domesticRaw = all.Where(s => !IsForeignCode(s.CenterId)).Select(s => s.RegionMapPolygon!).ToList();
+        var foreignRaw = all.Where(s => IsForeignCode(s.CenterId))
+            .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToList();
+
+        var domesticRings = domesticRaw.Select(PolygonGeometry.ToRing).Where(r => r is not null).ToList();
+        var threshold = _opt.AdjacencyThresholdNm;
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in foreignRaw)
+        {
+            var fRing = PolygonGeometry.ToRing(f.RegionMapPolygon);
+            if (fRing is null) continue;
+            if (domesticRings.Any(d => PolygonGeometry.AreAdjacent(d, fRing, threshold)))
+                result.Add(f.ComposePosition);
+        }
+        return result;
     }
 
     public async Task SetParentAsync(HierarchyNodeKind kind, int nodeId, string? parentCallsign, CancellationToken ct = default)
@@ -86,7 +154,11 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 throw new ValidationException("Tipo di nodo non valido.");
         }
 
-        await _authz.EnsureCanEditAccAsync(childAccCode, ct);
+        // Gli ACC esteri (confinanti) non hanno grant per-ACC: l'editing della loro gerarchia è riservato agli admin.
+        var isForeign = await _db.Accs.AsNoTracking()
+            .Where(a => a.Code == childAccCode).Select(a => a.IsForeign).FirstOrDefaultAsync(ct);
+        if (isForeign) _authz.EnsureAdmin();
+        else await _authz.EnsureCanEditAccAsync(childAccCode, ct);
 
         // 2. Valida il padre: dev'essere un nodo interno (ACC o APP) esistente; anti-ciclo per i nodi interni.
         if (parentCallsign is not null)
@@ -117,6 +189,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 break;
         }
         await _db.SaveChangesAsync(ct);
+        InvalidateConfiningCache();
 
         // 4. Riproietta i Sector operativi (l'albero AoR deriva da qui).
         await _projection.SyncFromCatalogsAsync(ct);

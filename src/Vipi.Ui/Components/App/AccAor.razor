@@ -7,8 +7,8 @@
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
             {
-                <span class="aor-chip on" data-sec="@s.Callsign">
-                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Name
+                <span class="aor-chip on" data-sec="@s.Callsign" title="@s.Name">
+                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
                 </span>
             }
             <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>

@@ -20,10 +20,19 @@ public sealed class EfEditingRepository : IEditingRepository
         _airac = airac;
     }
 
+    public Task<int?> FindVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default) =>
+        _db.Documents
+            .Where(d => d.Type == DocumentType.Vloa
+                && d.Parties.Any(p => p.Role == PartyRole.Home && p.Sector!.Acc!.Code == homeAccCode)
+                && d.Parties.Any(p => p.Role == PartyRole.Neighbour && p.Sector!.Acc!.Code == foreignAccCode))
+            .Select(d => (int?)d.Id)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default)
     {
         var docs = await _db.Documents
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -45,6 +54,8 @@ public sealed class EfEditingRepository : IEditingRepository
             IsAirport = IsAirportDoc(d),
             IsStandaloneApp = IsStandaloneAppDoc(d),
             AccCode = AccCodeOf(d),
+            HomeAccCode = d.Parties.FirstOrDefault(p => p.Role == PartyRole.Home)?.Sector?.Acc?.Code,
+            NeighbourAccCode = d.Parties.FirstOrDefault(p => p.Role == PartyRole.Neighbour)?.Sector?.Acc?.Code,
         }).ToList();
     }
 
@@ -83,6 +94,7 @@ public sealed class EfEditingRepository : IEditingRepository
         {
             Id = s.Id,
             Title = s.Title,
+            SectionKind = s.SectionKind,
             Depth = s.Depth,
             Order = s.Order,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
