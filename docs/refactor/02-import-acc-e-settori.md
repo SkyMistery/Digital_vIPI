@@ -1,7 +1,18 @@
-# 02 — Import ACC + settori di ACC (punti 1+2) 🟢🟡
+# 02 — Import ACC + settori di ACC (punti 1+2) 🟢✅
 
 > ACC e i loro subcenter si importano in **una sola pipeline**. I due punti 1 e 2
 > dell'utente sono lo stesso flusso. Dipende da: doc 01 (infra condivisa).
+>
+> **NB doc 01 ha già fatto i passi 2-4** (creato `AccImportUseCase`, hosted wrapper,
+> admin che delega). Residuo doc 02: estrarre i record da `AccAdminService` (§4.1) e
+> rifattorizzare le **aree speciali** in un use-case + entry manuale (§4.2-4.4).
+> I riferimenti a `IvaoApiClient.cs` in sez.1 sono storici: dal refactor 01 le porte ACC
+> sono implementate da `IvaoAccClient`.
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/02-import-acc`, 199 test verdi).
+> Record estratti (§4.1); `SpecialAreaImportUseCase`/`ISpecialAreaImportUseCase` separato
+> (§4.2), hosted delega (§4.3), manual «Importa da sorgente» ora esegue anche le aree
+> speciali → manual = auto stesso stato DB (§4.4). Vedi `../history/rounds.md` «Refactor 02».
 
 ## 1. Stato attuale
 
@@ -32,27 +43,41 @@
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09.
 
-- Un solo **`AccImportUseCase`** (doc 01) che importa ACC + subcenter + aree speciali
-  in un'unica operazione idempotente, con `SyncFromCatalogsAsync` finale.
-- Manual = `AccImportUseCase` preceduto da authz-guard; auto = hosted wrapper.
-- Estrarre `AccAdminRow`/`AccSectorRow`/`AccImportResult`/`IAccAdminService` in file singoli.
-- Unificare le aree speciali nello stesso use-case (aggiungere entry manuale coerente).
+- **`AccImportUseCase`** (già fatto in doc 01) resta ACC + subcenter con
+  `SyncFromCatalogsAsync` finale. Manual = authz-guard + use-case; auto = hosted wrapper.
+- **`SpecialAreaImportUseCase` separato** (+ `ISpecialAreaImportUseCase`) per le aree
+  speciali — *decisione D1 doc 02*: NON assorbite in `AccImportUseCase`. Motivo: semantica
+  propria (prune per-ACC `PruneSpecialAreasNotInAsync`, isolamento errori per-ACC,
+  scheduling separato). Coerente con la scelta per-categoria di doc 01 (D1). Corpo:
+  `foreach ACC → GetSpecialAreasAsync → ImportSpecialAreasAsync → Prune` (try/catch per-ACC).
+  Nessuna `Sync` (le aree non producono `Sector` proiettati — comportamento attuale invariato).
+- **`SpecialAreaImportHostedService`** → thin wrapper che delega al use-case.
+- **Import manuale aree speciali** — *decisione D2 doc 02*: il bottone «Importa da sorgente»
+  (`AccAdminService.ImportFromSourceAsync`) esegue anche `SpecialAreaImportUseCase` (gated
+  authz) → manual e auto producono lo **stesso stato DB**. Nessuna UI nuova.
+- **Estrarre `AccAdminRow`/`AccSectorRow`/`AccImportResult`/`IAccAdminService`** in file singoli.
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Meccanico prima, logica dopo.
 
-1. Estrarre i record da `AccAdminService.cs`.
-2. Creare `AccImportUseCase`, spostarvi il corpo (da manual).
-3. `AccImportHostedService` → wrapper sul use-case.
-4. `AccAdminService.ImportFromSourceAsync` → authz + use-case.
-5. Assorbire le aree speciali nel use-case + entry manuale.
+**Meccanico (commit separato):**
+1. Estrarre `AccAdminRow`, `AccSectorRow`, `AccImportResult`, `IAccAdminService` da
+   `AccAdminService.cs` in file singoli (`Vipi.Application/Content/`).
+
+**Con logica (1 commit per passo, build verde):**
+2. Creare `SpecialAreaImportUseCase` (+ `ISpecialAreaImportUseCase`), spostarvi il corpo di
+   `SpecialAreaImportHostedService.ImportOnceAsync` (loop ACC + import + prune per-ACC).
+   Registrare in DI (`Vipi.Application/DependencyInjection.cs`).
+3. `SpecialAreaImportHostedService` → wrapper che delega al use-case.
+4. `AccAdminService.ImportFromSourceAsync` → dopo `AccImportUseCase`, invoca anche
+   `SpecialAreaImportUseCase` (inietta `ISpecialAreaImportUseCase`); resta gated `EnsureAdmin`.
 
 ## 5. Impatto
 
 - **Dipende da** doc 01. **A valle**: doc 05 (confinanti) riusa `GetCentersByCountryAsync`
   e `GetSubcentersAsync`; doc 06 (gerarchia) consuma `AccSector.ParentCallsign`.
-- **Verifica**: import manuale e auto → stesso stato DB; `IsHidden` preservato;
-  subcenter e aree speciali presenti dopo un singolo run.
+- **Verifica** (Fase 3): import manuale e auto → stesso stato DB (ACC + subcenter + aree
+  speciali); `IsHidden` preservato; prune aree speciali invariato; conteggio test = baseline (199).

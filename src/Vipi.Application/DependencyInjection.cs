@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccImportUseCase, AccImportUseCase>();
+        services.AddScoped<ISpecialAreaImportUseCase, SpecialAreaImportUseCase>();
         services.AddScoped<IAccAdminService, AccAdminService>();
         services.AddScoped<INeighbourImportService, NeighbourImportService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();

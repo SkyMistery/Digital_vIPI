@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 
 namespace Vipi.Infrastructure.Ivao;
 
@@ -33,30 +34,15 @@ public sealed class SpecialAreaImportHostedService : BackgroundService
 
     private async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
-        var dir = sp.GetRequiredService<IAccDirectory>();
-        var repo = sp.GetRequiredService<IAccAdminRepository>();
+        // Auto: nessun authz utente, delega al core condiviso col manual (doc refactor 02 §4.2-4.3).
+        var import = sp.GetRequiredService<ISpecialAreaImportUseCase>();
 
         try
         {
-            var accs = await repo.ListAccsAsync(ct);
-            int created = 0, updated = 0, removed = 0;
-            foreach (var a in accs)
-            {
-                // Per-ACC: se la fetch fallisce non facciamo il prune di quell'ACC (evita cancellazioni su errori transitori).
-                try
-                {
-                    var areas = await dir.GetSpecialAreasAsync(a.Code, ct);
-                    var (c, u) = await repo.ImportSpecialAreasAsync(areas, ct);
-                    var r = await repo.PruneSpecialAreasNotInAsync(a.Code, areas.Select(x => x.IvaoId).ToList(), ct);
-                    created += c; updated += u; removed += r;
-                }
-                catch (InvalidOperationException) { throw; }   // credenziali assenti: gestito a monte
-                catch (Exception ex)
-                {
-                    _log.LogWarning(ex, "Import aree speciali per {Acc} fallito; salto (nessun prune).", a.Code);
-                }
-            }
-            _log.LogInformation("Import aree speciali automatico: {Created} create, {Updated} aggiornate, {Removed} rimosse.", created, updated, removed);
+            var r = await import.RunAsync(ct);
+            foreach (var f in r.Failures)
+                _log.LogWarning(f.Error, "Import aree speciali per {Acc} fallito; salto (nessun prune).", f.AccCode);
+            _log.LogInformation("Import aree speciali automatico: {Created} create, {Updated} aggiornate, {Removed} rimosse.", r.Created, r.Updated, r.Removed);
             return true;
         }
         catch (InvalidOperationException ex)
