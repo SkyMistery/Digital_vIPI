@@ -102,12 +102,16 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
 
 > ✅ APPROVATA — Fase 0, 2026-07-09. Rischio crescente; ogni sotto-giro è un branch/PR a sé.
 
-- **08a — `SectionCatalog` condiviso** (test-first). Inventario delle sezioni dei 3 registry
-  (`AppSections`/`AccSections.Aerovia`/`AccSections.AppBlock`) + `BlockSection` → un catalogo
-  unico; dedup di `Reconcile` (oggi duplicato). *Comune anche a un'eventuale astrazione: nessun
-  lavoro sprecato.* APP/ACC leggono dal catalogo.
-- **08b — estrazioni multi-classe** (meccanico): `Documents.cs` (8 tipi), `AccProfileModels.cs`,
-  `AppProfileModels.cs`, `EditingService.cs`, `VloaSections.cs`.
+- **08a ✅ — `SectionCatalog` condiviso** (fatto 2026-07-09, +13 test). `SectionCatalog` (natura
+  per key, membership per profilo App/AccAerovia/AccAppBlock/Vloa, `Reconcile` unificato) +
+  modello sezione ricorsivo `DocSection`/`DocBlock`. Membership rivista con l'utente: 6 sezioni
+  universali (aor/frequencies/coordination/regulated/operationaltechnique/validity); `purpose`
+  e Military-areas rimosse (fuse in `regulated`); sezione editoriale generica ricorsiva
+  (titolo + blocchi Testo/Tabella/Callout + sotto-sezioni). Non ancora wired (08c/08d).
+- **08b ✅ — estrazioni multi-classe** (fatto 2026-07-09). Solo file **superstiti**: `Documents.cs`
+  → 8 entità in file singoli; `EditingService.cs` → `IEditingService` + `EditNotAllowedException`
+  + `EditConflictException`. **Saltati** `AccProfileModels`/`AppProfileModels`/`VloaSections`:
+  vengono rimossi in 08d, estrarli ora = churn buttato.
 - **08c — `Document` generalizzato** con sezioni guidate dal catalogo (test-first), affiancato
   al modello attuale (nessuna rottura ancora).
 - **08d — migrazione editing** ACC/APP/Airport → `Document`; **drop** del modello profile e dei
