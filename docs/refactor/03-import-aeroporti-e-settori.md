@@ -1,7 +1,14 @@
-# 03 — Import aeroporti + settori di aeroporto (punti 3+4) 🟢🟡
+# 03 — Import aeroporti + settori di aeroporto (punti 3+4) 🟢✅
 
 > Aeroporti (anagrafica/assegnazione) e posizioni ATC di aeroporto (incl. APP).
 > Il punto 3 **riusa** il punto 4. Dipende da: doc 01.
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/03-import-airport`, 199 test).
+> Record/interfacce estratti (§4.1); `AirportImportUseCase` per il punto 3 fuori da
+> `StructureEditingService` con fallimenti loggati dalla UI (§4.2); **generazione documento
+> scollegata dall'import** (§4.3, scelta B — cambio comportamento approvato: import popola
+> solo il catalogo, doc generato solo via «Genera documenti»). Vedi `../history/rounds.md`
+> «Refactor 03».
 >
 > **NB** i ref a `IvaoApiClient.cs` in sez.1 sono storici: dal refactor 01 le porte
 > aeroporto sono `IvaoAirportClient` (anagrafica) e `IvaoAirportDetailClient` (posizioni).
