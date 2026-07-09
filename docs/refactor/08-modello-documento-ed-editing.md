@@ -1,8 +1,12 @@
 # 08 — Modello documento + editing (punti 9+12) 🟢🟡 (programma: 08a–08f)
 
 > **DECISIONE Fase 0 (2026-07-09)**: unificazione greenfield su `Document` + `SectionCatalog`,
-> profile eliminato, dati vecchi cancellati (no migrazione conversione), test-first.
-> Decomposto in 6 sotto-giri 08a–08f (§4), ognuno branch/PR con la sua Fase 0–4.
+> test-first. Decomposto in sotto-giri 08a–08f (§4).
+>
+> **AGGIORNAMENTO (dopo 08d-vloa)**: per **ACC/APP/Airport** si passa a **strategia B — adozione
+> incrementale del catalogo** (lo storage profile RESTA, non si migra). Motivo: il punto 12 è già
+> risolto (catalogo + vLOA migrata); il drop dello storage è pulizia interna sproporzionata come
+> rischio/valore. Stato: **08a·08b·08c·08d-vloa fatti e mergiati (246 test)**; ACC/APP/Airport = §4.
 
 > **Il cuore del casino.** Convivono due modelli di documento incompatibili, e le
 > definizioni di sezione (AoR/Freq/Coord…) sono legate al singolo tipo invece di
@@ -120,9 +124,25 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
     `SectionKey` (chiave catalogo) su tutto il modello classic; DTO/viewer/editor vLOA su chiavi;
     seed/builder convertono via bridge; migrazione EF `SectionKeyCatalog`. vLOA completamente
     migrata; il documento GENERATO di ACC/Airport usa già le chiavi.
-  - **08d-acc / 08d-app / 08d-airport ⏳** — migrare l'EDITING (oggi profile JSON) su `Document`;
-    per l'aeroporto i dati strutturati (piste/SID/TA-TL) restano come **sorgente**, il `Document`
-    ne deriva. Poi drop del modello profile.
+  - **08d-acc / 08d-app / 08d-airport ⏳ — strategia B (adozione incrementale del catalogo)**,
+    rivista dopo 08d-vloa. Lo storage **profile RESTA**; gli editor ACC/APP **adottano
+    `SectionCatalog`** e abilitano le sezioni nuove quando servono. Motivo: il punto 12 (dolore
+    reale) è già risolto dal catalogo + vLOA; il drop dello storage profile è pulizia interna ad
+    alto costo/rischio, sproporzionata. NON si migra lo storage.
+    - **Finding (investigato)**: gli editor (`AppEditorPage`/`AccEditorPage`) rendono le sezioni
+      via `switch(key)` con handler specifici + `default:` che rende SOLO le custom
+      (`if (custom is not null)`). Le sezioni fisse NUOVE del catalogo (`regulated`/
+      `operationaltechnique`/`validity`/`configurations`) NON sono custom → renderebbero vuote.
+      Quindi lo switch della membership NON è safe da solo.
+    - **Passi B (per tipo, APP prima)**: (1) `default:` → editor editoriale generico per QUALSIASI
+      sezione editoriale senza handler (storage = custom-section per-key nel profile; `Reconcile`
+      già fonde le custom keys); (2) switch `AppEditorPage`/`AppnPage` (poi ACC) da `AppSections`/
+      `AccSections` a `SectionCatalog` (mappa `AccBlockKind`→`SectionProfile`; descriptor `.Kind`
+      `AppSectionKind`→`SectionKind`, `.DefaultOrder`→`.Order`); (3) elimina `AppSections.cs`/`AccSections.cs`.
+      Aeroporto: fuori dal registry (documento generato) — adotta `frequencies` + sezioni derivate proprie.
+    - ⚠ **Vincolo di verifica**: è modifica a editor/viewer **Blazor** → NON verificabile coi soli
+      test (nessuna copertura UI, nessun browser qui). Va fatta potendo **guidare l'app** a vista
+      (avviare `Vipi.Host` + verifica visiva), altrimenti si spedirebbe UI verificata solo «compila».
 - **08e — creazione uniforme** `CreateDocumentUseCase` + fix routing `?doc`
   ([[vloa-editor-routing-todo]]).
 - **08f — cleanup**: rimozione codice morto profile, repo/tabelle obsolete.
