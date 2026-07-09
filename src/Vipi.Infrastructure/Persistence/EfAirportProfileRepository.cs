@@ -566,7 +566,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = null, Title = title, Order = order,
-                Depth = 0, SectionKind = kind, RowVersion = Guid.NewGuid().ToByteArray(),
+                Depth = 0, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom", RowVersion = Guid.NewGuid().ToByteArray(),
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

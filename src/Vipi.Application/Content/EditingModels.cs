@@ -51,7 +51,7 @@ public sealed class EditableSection
 {
     public required int Id { get; init; }
     public required string Title { get; init; }
-    public required BlockSection SectionKind { get; init; }
+    public required string SectionKey { get; init; }
     public required int Depth { get; init; }
     public required int Order { get; init; }
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }

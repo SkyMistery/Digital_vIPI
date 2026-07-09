@@ -94,7 +94,7 @@ public sealed class EfEditingRepository : IEditingRepository
         {
             Id = s.Id,
             Title = s.Title,
-            SectionKind = s.SectionKind,
+            SectionKey = s.SectionKey,
             Depth = s.Depth,
             Order = s.Order,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
@@ -166,7 +166,7 @@ public sealed class EfEditingRepository : IEditingRepository
                 {
                     DocumentVersion = draft,
                     ParentSection = s.ParentSectionId is int pid ? map[pid] : null,
-                    Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKind = s.SectionKind,
+                    Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
                     RowVersion = Guid.NewGuid().ToByteArray(),
                 };
                 map[s.Id] = ns;
@@ -248,7 +248,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = "Scopo e validità",
             Order = 1,
             Depth = 0,
-            SectionKind = BlockSection.Purpose,
+            SectionKey = "custom",
             RowVersion = Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync(ct);
@@ -354,7 +354,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = string.IsNullOrWhiteSpace(title) ? "Nuova sezione" : title.Trim(),
             Order = nextOrder,
             Depth = depth,
-            SectionKind = kind,
+            SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         _db.DocumentSections.Add(section);

@@ -196,7 +196,7 @@ public class StructureEditingTests : IAsyncLifetime
         _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
         {
             DocumentVersionId = ver.Id, Title = "Note locali", Order = 99, Depth = 0,
-            SectionKind = Vipi.Domain.BlockSection.Other, RowVersion = System.Guid.NewGuid().ToByteArray(),
+            SectionKey = "custom", RowVersion = System.Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync();
 
