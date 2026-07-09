@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
+using Vipi.Infrastructure.Ivao.Dtos;
 
 namespace Vipi.Infrastructure.Ivao;
 
@@ -501,65 +501,4 @@ public sealed class IvaoApiClient : IDivisionMembersProvider, IUserDirectory, IA
         if (token is not null)
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
-
-    // DTO permissivi: i campi non noti vengono ignorati.
-    private sealed record AtcSummaryDto(
-        [property: JsonPropertyName("callsign")] string? Callsign,
-        [property: JsonPropertyName("userId")] int UserId,
-        [property: JsonPropertyName("rating")] int Rating);
-
-    private sealed record DivisionMembersDto(
-        [property: JsonPropertyName("items")] List<DivisionMemberDto>? Items);
-
-    private sealed record DivisionMemberDto(
-        [property: JsonPropertyName("userId")] int UserId,
-        [property: JsonPropertyName("firstName")] string? Name,
-        [property: JsonPropertyName("atcRating")] string? AtcRating);
-
-    // /v2/users/{UserId}: solo i campi utili al roster staff. Gli altri vengono ignorati.
-    private sealed record UserDto(
-        [property: JsonPropertyName("id")] int Id,
-        [property: JsonPropertyName("divisionId")] string? DivisionId,
-        [property: JsonPropertyName("isStaff")] bool IsStaff,
-        [property: JsonPropertyName("publicNickname")] string? PublicNickname,
-        [property: JsonPropertyName("rating")] RatingDto? Rating,
-        [property: JsonPropertyName("userStaffPositions")] List<StaffPosDto>? UserStaffPositions);
-
-    private sealed record RatingDto(
-        [property: JsonPropertyName("atcRating")] AtcRatingDto? AtcRating);
-
-    private sealed record AtcRatingDto(
-        [property: JsonPropertyName("shortName")] string? ShortName);
-
-    private sealed record StaffPosDto(
-        [property: JsonPropertyName("id")] string? Id);
-
-    // /v2/airports?countryId=…: pagina + solo i campi utili all'editor. centerId = ACC di competenza.
-    private sealed record AirportsPageDto(
-        [property: JsonPropertyName("items")] List<AirportDto>? Items,
-        [property: JsonPropertyName("pages")] int Pages);
-
-    private sealed record AirportDto(
-        [property: JsonPropertyName("icao")] string? Icao,
-        [property: JsonPropertyName("name")] string? Name,
-        [property: JsonPropertyName("centerId")] string? CenterId,
-        [property: JsonPropertyName("city")] string? City,
-        [property: JsonPropertyName("transitionAltitude")] int? TransitionAltitude,
-        [property: JsonPropertyName("latitude")] double? Latitude,
-        [property: JsonPropertyName("longitude")] double? Longitude);
-
-    // /v2/airports/{icao}/ATCPositions — es. { composePosition:"LIRN_GND", position:"GND", frequency:121.9 }.
-    private sealed record AtcPositionDto(
-        [property: JsonPropertyName("composePosition")] string? ComposePosition,
-        [property: JsonPropertyName("position")] string? Position,
-        [property: JsonPropertyName("middleIdentifier")] string? MiddleIdentifier,
-        [property: JsonPropertyName("atcCallsign")] string? AtcCallsign,
-        [property: JsonPropertyName("frequency")] double? Frequency);
-
-    // /v2/airports/{icao}/runways — es. { runway:"RW06", length:8622 (piedi), width:45, bearing:56 }.
-    private sealed record RunwayDto(
-        [property: JsonPropertyName("runway")] string? Runway,
-        [property: JsonPropertyName("length")] double? Length,
-        [property: JsonPropertyName("width")] double? Width,
-        [property: JsonPropertyName("bearing")] double? Bearing);
 }
