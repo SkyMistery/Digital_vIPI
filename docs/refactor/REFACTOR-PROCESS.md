@@ -33,6 +33,17 @@
    accoppiare un consumatore a un provider concreto né esporre tipi dell'adapter oltre la
    porta. Vale anche per i servizi interni Application: interfaccia nello stesso file (per
    coerenza + mockabilità), come da convenzione repo.
+7. **Logging per debug.** Il programma deve **loggare ciò che fa** (import, job, azioni
+   rilevanti) ed esiti/fallimenti utili a diagnosticare. Un refactor **non deve** far sparire
+   logging esistente né introdurre swallow silenzioso (`catch { }` che ingoia senza tracciare).
+   - **Infrastructure / hosted service / adapter**: usare `ILogger<T>` (già presente lì) —
+     info sul lavoro svolto, warning sui fallimenti non fatali.
+   - **Application**: non usa `ILogger` (convenzione repo, nessun package logging). Un use-case
+     che raccoglie fallimenti non fatali (es. per-item) li **ritorna** al chiamante nel result
+     (pattern `*ImportResult.Failures`); il chiamante Infra/UI li logga. Non scartarli in
+     silenzio: se il metodo del service ignora i `Failures` ritornati, il criterio è violato.
+   - **UI (Blazor)**: può iniettare `ILogger<TPage>` e loggare i `Failures` ricevuti da un
+     use-case invocato dalla pagina (es. `AeroportiPage` in doc 03).
 
 ---
 
@@ -99,6 +110,9 @@ Scopo: provare che il comportamento è invariato.
 - [ ] **Check specifici del doc N** (sez. 5). Esempi:
       - doc 01: import manuale e auto producono lo stesso stato DB; `SyncFromCatalogsAsync`
         gira una sola volta per import.
+- [ ] **Logging preservato/coperto** (invariante #7): nessun `catch { }` silenzioso
+      introdotto; i `Failures` ritornati dai use-case sono loggati dal chiamante (Infra/UI)
+      sia nel path auto sia nel manual. Nessun logging esistente perso nel refactor.
 
 **Output:** prova che forma cambiata, comportamento no.
 

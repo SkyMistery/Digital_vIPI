@@ -26,12 +26,13 @@ public sealed class AccAdminService : IAccAdminService
 
     public Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) => _repo.ListSubcentersAsync(ct);
 
-    public async Task<AccImportResult> ImportFromSourceAsync(CancellationToken ct = default)
+    public async Task<AccImportOutcome> ImportFromSourceAsync(CancellationToken ct = default)
     {
         _authz.EnsureAdmin();                        // solo il manual applica il guard
         var result = await _import.RunAsync(ct);     // core ACC + subcenter (condiviso con l'auto)
-        await _specialAreas.RunAsync(ct);            // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
-        return result;
+        var special = await _specialAreas.RunAsync(ct);   // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
+        // I fallimenti aree speciali per-ACC risalgono alla UI, che li logga (direttiva logging, invariante #7).
+        return new AccImportOutcome(result, special.Failures);
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)

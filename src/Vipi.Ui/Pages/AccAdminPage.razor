@@ -1,8 +1,10 @@
 @page "/vsop/admin/acc"
 @layout SopLayout
 @rendermode InteractiveServer
+@using Microsoft.Extensions.Logging
 @inject IAccAdminService Acc
 @inject IEditAuthorizationService Authz
+@inject ILogger<AccAdminPage> Logger
 
 <PageTitle>ACC · vIPI IVAO Italia</PageTitle>
 
@@ -196,9 +198,12 @@
         try
         {
             var r = await Acc.ImportFromSourceAsync();
+            foreach (var f in r.SpecialAreaFailures)
+                Logger.LogWarning(f.Error, "Import aree speciali {Acc} saltato (import manuale).", f.AccCode);
             await ReloadAsync();
-            _ok = $"Import completato. ACC: {r.AccsCreated} creati, {r.AccsUpdated} aggiornati · " +
-                  $"Settori ACC: {r.SubcentersCreated} creati, {r.SubcentersUpdated} aggiornati.";
+            _ok = $"Import completato. ACC: {r.Acc.AccsCreated} creati, {r.Acc.AccsUpdated} aggiornati · " +
+                  $"Settori ACC: {r.Acc.SubcentersCreated} creati, {r.Acc.SubcentersUpdated} aggiornati."
+                  + (r.SpecialAreaFailures.Count > 0 ? $" · {r.SpecialAreaFailures.Count} ACC con aree speciali saltate (dettaglio nei log)." : "");
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
