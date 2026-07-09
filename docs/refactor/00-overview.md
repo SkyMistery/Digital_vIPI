@@ -29,7 +29,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 |---|------|-------|-------|
 | 00 | questo | Overview, DAG, principi, glossario | 🟢 |
 | — | [REFACTOR-PROCESS.md](REFACTOR-PROCESS.md) | Runbook: come eseguire 1 refactor (Fase 0→4) | 🟢 |
-| 01 | [01-import-infra-condivisa.md](01-import-infra-condivisa.md) | Infra import condivisa (L0) | 🟢🟡 |
+| 01 | [01-import-infra-condivisa.md](01-import-infra-condivisa.md) | Infra import condivisa (L0) | ✅ |
 | 02 | [02-import-acc-e-settori.md](02-import-acc-e-settori.md) | Import ACC + subcenter (1+2) | 🟢🟡 |
 | 03 | [03-import-aeroporti-e-settori.md](03-import-aeroporti-e-settori.md) | Import aeroporti + posizioni (3+4) | 🟢🟡 |
 | 04 | [04-import-github.md](04-import-github.md) | Import SID da GitHub (11) | 🟢🟡 |

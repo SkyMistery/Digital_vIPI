@@ -1,8 +1,14 @@
-# 01 — Infra import condivisa (L0) 🟢🟡
+# 01 — Infra import condivisa (L0) 🟢✅
 
 > Base di tutti i pipeline di import (punti 1-6, 11). Copre le porte neutre, il loop
 > periodico comune e la proiezione post-import. Da rifattorizzare **per prima**:
 > gli strati 02-05 vi si appoggiano.
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/01-import-infra`, 199 test verdi).
+> DTO estratti (§4.1), `IvaoApiClient` spezzato in 6 client per porta + `IvaoHttp` (§4.2),
+> `AccImportUseCase` core condiviso manual/auto (§4.4-4.5). ACC = pilota; aeroporti/SID/
+> confinanti applicano lo stesso pattern nei doc 03/04/05. Vedi `../history/rounds.md`
+> «Refactor 01».
 
 ## 1. Stato attuale
 
