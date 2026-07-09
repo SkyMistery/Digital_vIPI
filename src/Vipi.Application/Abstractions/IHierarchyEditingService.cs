@@ -1,31 +1,5 @@
 namespace Vipi.Application.Abstractions;
 
-/// <summary>Tipo di nodo nell'albero di copertura globale (Round 20).</summary>
-public enum HierarchyNodeKind
-{
-    /// <summary>Settore ACC (subcenter), nodo interno. Da <c>AccSector</c>.</summary>
-    Acc,
-    /// <summary>Posizione APP d'aeroporto, nodo interno. Da <c>AirportSector</c> con Position=APP.</summary>
-    App,
-    /// <summary>Aeroporto: FOGLIA dell'albero (DEL/GND/TWR condividono la sua vista rapida). Da <c>Airport</c>.</summary>
-    Airport,
-}
-
-/// <summary>
-/// Nodo dell'albero di copertura. Il legame col padre è per <c>ParentCallsign</c> (cross-ACC).
-/// <c>Callsign</c> è null per i nodi <see cref="HierarchyNodeKind.Airport"/> (foglie, non referenziabili come padre).
-/// </summary>
-public sealed record HierarchyNode(
-    HierarchyNodeKind Kind,
-    int Id,
-    string? Callsign,
-    string Label,
-    string AccCode,
-    string? ParentCallsign,
-    bool IsHidden,
-    bool IsForeign = false,
-    string CountryPrefix = "");
-
 /// <summary>
 /// Editing della gerarchia di copertura GLOBALE (cross-ACC) sui cataloghi importati (Round 20, SPEC §9.12).
 /// Albero a padre unico per callsign: nodi interni = settori ACC (<c>AccSector</c>) + APP (<c>AirportSector</c>);
