@@ -34,9 +34,10 @@ public interface IStructureEditingService
 
     /// <summary>
     /// Assegna automaticamente (admin) gli aeroporti dell'anagrafica IVAO la cui ACC di competenza
-    /// (centerId) esiste già nel DB e che non sono ancora assegnati. Ritorna il numero di aeroporti creati.
+    /// (centerId) esiste già nel DB e che non sono ancora assegnati. Ritorna gli assegnati + gli
+    /// aeroporti il cui import settori è fallito (da loggare).
     /// </summary>
-    Task<int> AutoAssignKnownAirportsAsync(CancellationToken ct = default);
+    Task<AirportImportResult> AutoAssignKnownAirportsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Genera (admin) il documento di aeroporto per un ICAO già assegnato: scarica postazioni ATC + piste da IVAO,
@@ -79,11 +80,13 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly IAirportSectorImporter _sectorImporter;
     private readonly ISectorProjectionService _projection;
 
+    private readonly IAirportImportUseCase _airportImport;
+
     public StructureEditingService(
         IStructureEditingRepository repo, IAirportProfileRepository profile, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
         IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
-        ISectorProjectionService projection)
+        ISectorProjectionService projection, IAirportImportUseCase airportImport)
     {
         _repo = repo;
         _profile = profile;
@@ -94,6 +97,7 @@ public sealed class StructureEditingService : IStructureEditingService
         _airportSectors = airportSectors;
         _sectorImporter = sectorImporter;
         _projection = projection;
+        _airportImport = airportImport;
     }
 
     public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -167,27 +171,10 @@ public sealed class StructureEditingService : IStructureEditingService
         return _repo.ListSectorNodesAsync(ct);
     }
 
-    public async Task<int> AutoAssignKnownAirportsAsync(CancellationToken ct = default)
+    public async Task<AirportImportResult> AutoAssignKnownAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
-        var ivao = await _directory.GetAirportsAsync(ct);
-        var candidates = ivao
-            .Where(a => !string.IsNullOrWhiteSpace(a.AccCode))
-            .Select(a => (AccCode: a.AccCode!, a.Icao, a.Name))
-            .ToList();
-        var assigned = await _repo.AutoAssignAirportsAsync(candidates, ct);
-
-        // Per ogni aeroporto appena assegnato: importa il catalogo settori (DEL/GND/TWR/APP) dalla sorgente, così
-        // compaiono subito i settori. La documentazione vIPI resta un passo a parte ("Genera documenti").
-        foreach (var icao in assigned)
-        {
-            try { await _sectorImporter.ImportAsync(icao, ct); }
-            catch (Exception) { /* aeroporto senza settori nella sorgente o sorgente non disponibile: salta */ }
-        }
-        // Proietta i cataloghi aggiornati nei Sector operativi (fonte autoritativa unica, Round 20).
-        if (assigned.Count > 0) await _projection.SyncFromCatalogsAsync(ct);
-
-        return assigned.Count;
+        _authz.EnsureAdmin();                       // solo il chiamante manual applica il guard
+        return await _airportImport.RunAsync(ct);   // core anagrafica (doc 03 §4.2); i Failures li logga la UI
     }
 
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)

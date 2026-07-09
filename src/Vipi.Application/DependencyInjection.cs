@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
+        services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();
         services.AddScoped<ISidImporter, SidImporter>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();

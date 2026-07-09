@@ -2,9 +2,11 @@
 @page "/vsop/admin/aeroporti"
 @layout SopLayout
 @rendermode InteractiveServer
+@using Microsoft.Extensions.Logging
 @inject IStructureEditingService Struct
 @inject IAirportDirectory AirportDir
 @inject IEditAuthorizationService Authz
+@inject ILogger<AeroportiPage> Logger
 
 <PageTitle>Aeroporti · vIPI IVAO Italia</PageTitle>
 
@@ -303,9 +305,13 @@
 
     private Task AutoAssign() => Guarded(async () =>
     {
-        var n = await Struct.AutoAssignKnownAirportsAsync();
-        _ok = n == 0 ? "Nessun aeroporto da assegnare (già tutti presenti o ACC non create)."
-                     : $"Assegnati {n} aeroporti alla ACC di competenza (settori importati dalla sorgente).";
+        var r = await Struct.AutoAssignKnownAirportsAsync();
+        foreach (var f in r.Failures)
+            Logger.LogWarning(f.Error, "Import settori aeroporto {Icao} saltato in auto-assegnazione.", f.Icao);
+        _ok = r.Assigned == 0
+            ? "Nessun aeroporto da assegnare (già tutti presenti o ACC non create)."
+            : $"Assegnati {r.Assigned} aeroporti alla ACC di competenza (settori importati dalla sorgente)."
+              + (r.Failures.Count > 0 ? $" {r.Failures.Count} aeroporti saltati (dettaglio nei log)." : "");
     });
 
     private Task ChangeAcc(int id, string fromAcc, string? toAcc) =>
