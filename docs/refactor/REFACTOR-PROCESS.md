@@ -44,6 +44,12 @@
      silenzio: se il metodo del service ignora i `Failures` ritornati, il criterio è violato.
    - **UI (Blazor)**: può iniettare `ILogger<TPage>` e loggare i `Failures` ricevuti da un
      use-case invocato dalla pagina (es. `AeroportiPage` in doc 03).
+8. **Irrobustire, non solo riordinare.** Il refactor deve anche rendere il codice più
+   robusto. Se il componente da spezzare è complesso e **privo di test diretti**, NON
+   splittarlo alla cieca: prima estrai il **cuore deterministico** (logica senza IO) in una
+   classe con I/O espliciti e scrivici **test di caratterizzazione**; poi usa quei test come
+   rete per le estrazioni successive. Build + suite verdi non bastano se non coprono il
+   flusso toccato (una regressione resterebbe silenziosa).
 
 ---
 

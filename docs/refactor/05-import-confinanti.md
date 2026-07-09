@@ -1,8 +1,18 @@
-# 05 — Import ACC + settori confinanti (punti 5+6) 🟢🟡
+# 05 — Import ACC + settori confinanti (punti 5+6) 🟢✅
+
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/05-neighbours`, 214 test: 199+15).
+> 5 record + `Aggregate` estratti (§4.1); **`NeighbourAdjacencyComputer` puro** con test di
+> caratterizzazione (§4.2, +14); **`ForeignAccFetcher`** con test fake-directory (§4.3, +1);
+> `NeighbourImportService` ridotto a orchestratore sottile (§4.4). Logging `NeighbourDebugLog`
+> conservato. **Rimandato a doc 08**: spostamento `MaterializeAndCreateVloaAsync` (gen vLOA).
+> Vedi `../history/rounds.md` «Refactor 05».
 
 > ACC esteri geometricamente adiacenti + i loro settori di confine, e generazione
 > vLOA per coppia. Punti 5 e 6 sono **una sola run**. Dipende da: doc 01, doc 02
 > (settori domestici per l'adiacenza).
+>
+> **NB** ref `IvaoApiClient.cs:162` storico → ora `IvaoAccClient`. **Nessun test diretto**
+> sul flusso confinanti (solo `PolygonGeometry` coperto) → split **test-first** (invariante #8).
 
 ## 1. Stato attuale
 
@@ -35,29 +45,47 @@ marca gli ACC esteri persistiti.
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. **Split completo, test-first** (invariante #8).
 
-- **Spezzare `NeighbourImportService`** in responsabilità separate:
-  - `ForeignAccFetcher` (fetch ACC + settori esteri, riusa porte doc 01/02);
-  - `AdjacencyComputer` (geometria, già isolabile via `PolygonGeometry`);
-  - `NeighbourStagingService` (candidati);
-  - generazione vLOA spostata verso il pipeline documenti (doc 08/09), non dentro l'import.
-- Estrarre i 7 record in file singoli.
-- Rendere esplicita la dipendenza da doc 02 (i settori domestici devono essere importati prima).
+- **Spezzare `NeighbourImportService`** isolando prima il cuore deterministico:
+  - **`NeighbourAdjacencyComputer` (PURO, nessun IO)** — filtro confine (`IsAccBoundaryPosition`),
+    adiacenza domestici×esteri → hit, aggregazione per coppia → `NeighbourCandidateUpsert`; e il
+    calcolo adiacenze+shape della coppia (`GetPairDetail`). Input/output espliciti →
+    **unit-testabile**: qui vanno i test di caratterizzazione (robustezza vera del giro).
+  - **`ForeignAccFetcher`** (dep `IAccDirectory`) — scarica ACC esteri per paese + subcenter
+    (parallelismo throttled `RunBoundedAsync`). Testabile con fake directory.
+  - **`NeighbourImportService`** resta orchestratore **sottile**: authz + scope DI dedicato +
+    fetcher + computer + persist (`PersistForeignCatalogAsync` + `Sync`) + upsert candidati;
+    conserva `List/SetStatus/SetPolygon/AddManual/GenerateVloa`.
+- **Estrarre i 5 record** (`NeighbourCandidateRow`, `NeighbourImportResult`, `NeighbourAdjacency`,
+  `NeighbourMapShape`, `NeighbourPairDetail`) + la classe `Aggregate` in file singoli.
+- **`NeighbourDebugLog`**: logging conservato (invariante #7); `Warnings` continua a risalire alla UI.
+- **Rimandato a doc 08/09**: spostare `MaterializeAndCreateVloaAsync`/`GenerateVloaAsync` verso il
+  pipeline documenti (P4, accoppiamento dati↔documenti). Per ora resta invariato.
+- Prerequisito **import domestico prima** documentato (già segnalato via `Warnings`).
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Meccanico → test-first → logica.
 
-1. Estrarre i record da `NeighbourImportService.cs`.
-2. Separare fetch / adiacenza / staging / persistenza.
-3. Spostare `MaterializeAndCreateVloaAsync` verso il pipeline documenti (dopo doc 08).
-4. Documentare il pre-requisito "import domestico prima".
+**Meccanico (commit separato):**
+1. Estrarre i 5 record + `Aggregate` da `NeighbourImportService.cs` in file singoli.
+
+**Test-first + logica (1 commit per passo, build verde):**
+2. Estrarre **`NeighbourAdjacencyComputer`** (puro): filtro confine, adiacenza+aggregazione
+   import, calcolo pair-detail. Scrivere **test di caratterizzazione**
+   (`NeighbourAdjacencyComputerTests`): confine CTR/FSS incluso e TWR/APP escluso; solo settori
+   adiacenti diventano hit; aggregazione min-distanza/conteggio settori distinti per coppia.
+3. Estrarre **`ForeignAccFetcher`** (fetch ACC + subcenter esteri via `IAccDirectory`); test con
+   fake directory (esteri filtrati dai domestici; warning su fetch fallita).
+4. Riscrivere `NeighbourImportService` come orchestratore sottile su fetcher + computer.
+
+**Rimandato:** `MaterializeAndCreateVloaAsync` → doc 08/09.
 
 ## 5. Impatto
 
 - **Dipende da** doc 01, doc 02. **A valle**: doc 06 (gerarchia consuma i confinanti),
   doc 08/09 (generazione vLOA).
-- **Verifica**: run confinanti → solo settori realmente adiacenti persistiti; vLOA per
-  coppia generata; mappa di verifica funzionante; `ListConfiningForeignCallsignsAsync`
-  coerente con l'output.
+- **Verifica** (Fase 3): nuovi test caratterizzazione verdi; conteggio ≥ baseline (199 + nuovi);
+  comportamento invariato (solo settori adiacenti persistiti; vLOA per coppia ancora generabile;
+  mappa di verifica ok); `ListConfiningForeignCallsignsAsync` coerente con l'output.

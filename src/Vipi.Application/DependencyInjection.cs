@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddScoped<IAccImportUseCase, AccImportUseCase>();
         services.AddScoped<ISpecialAreaImportUseCase, SpecialAreaImportUseCase>();
         services.AddScoped<IAccAdminService, AccAdminService>();
+        services.AddScoped<ForeignAccFetcher>();
+        services.AddSingleton<NeighbourAdjacencyComputer>();   // puro, senza stato
         services.AddScoped<INeighbourImportService, NeighbourImportService>();
         services.AddScoped<IAirportProfileService, AirportProfileService>();
         services.AddScoped<IAppProfileService, AppProfileService>();
