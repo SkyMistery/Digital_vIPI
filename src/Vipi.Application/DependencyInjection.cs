@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ForeignAccFetcher>();
         services.AddSingleton<NeighbourAdjacencyComputer>();   // puro, senza stato
         services.AddScoped<INeighbourImportService, NeighbourImportService>();
+        services.AddScoped<INeighbourReader>(sp => sp.GetRequiredService<INeighbourImportService>());   // stessa istanza, porta di sola lettura (ISP)
         services.AddScoped<IAirportProfileService, AirportProfileService>();
         services.AddScoped<IAppProfileService, AppProfileService>();
         services.AddScoped<IAccProfileService, AccProfileService>();

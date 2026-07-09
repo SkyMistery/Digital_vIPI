@@ -15,10 +15,9 @@ namespace Vipi.Application.Content;
 /// conferma/rifiuta le coppie; alla conferma si materializzano ACC/settore esteri e si genera la vLOA. I dati
 /// esteri NON confinanti non vengono persistiti.
 /// </summary>
-public interface INeighbourImportService
+public interface INeighbourImportService : INeighbourReader
 {
     Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<NeighbourCandidateRow>> ListAsync(CancellationToken ct = default);
 
     /// <summary>Ricalcola on-demand il dettaglio di adiacenza di una coppia (settori adiacenti + shapes per mappa),
     /// per far verificare all'admin se il confine è reale. Non persiste nulla.</summary>
