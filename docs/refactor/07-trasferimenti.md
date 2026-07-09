@@ -37,24 +37,39 @@ derivati live, non salvati nel payload editoriale.
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Verifica sez.2 vs codice:
+> - **P3 mal descritto**: la pagina NON triggera l'import — fa `Neighbours.ListAsync()`
+>   (lettura dei confinanti per i mittenti estero→home). È un problema di **ISP/decoupling
+>   d'area**, non di trigger.
+> - **P5 già conforme**: la validazione usa `Vipi.Application.Aor.ValidationException` — nessun cambio.
+> - `TransferOnlineResolver` (risoluzione live) è **già testato** → nulla da irrobustire (#8).
 
-- Estrarre interfaccia e DTO in file singoli.
-- **Separare editing dal trigger import** nella UII: la pagina trasferimenti non deve
-  invocare l'import confinanti direttamente.
-- Confermare `ITopologyProvider` come unico contratto verso la gerarchia (doc 06).
-- Uniformare la validazione alla convenzione `Vipi.Application.*.ValidationException`.
+- **Estrarre `ITransferService`** (da `TransferEditingService.cs`) e i **6 DTO** (da
+  `TransferModels.cs`) in file singoli.
+- **Porta di lettura dedicata `INeighbourReader`** (`{ ListAsync }`): `NeighbourImportService`
+  la implementa (oltre a `INeighbourImportService`); `AdminTrasferimentiPage` inietta
+  `INeighbourReader` invece del service import completo. `ConfinantiAdminPage` (usa
+  import/generate/pair-detail) resta su `INeighbourImportService`. Decoupling d'area 05↔07.
+- `ITopologyProvider` confermato come unico contratto verso la gerarchia (doc 06) — invariato.
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Meccanico → logica.
 
-1. Estrarre `ITransferService` e i 6 DTO.
-2. Rimuovere la dipendenza `INeighbourImportService` dalla pagina trasferimenti.
-3. Verificare/uniformare la validazione.
+**Meccanico (commit separato):**
+1. Estrarre `ITransferService` da `TransferEditingService.cs`; i 6 DTO
+   (`TransferFlowRow`/`TransferPointRow`/`TransferFlowInput`/`TransferPointInput`/
+   `ResolvedTransferPoint`/`ResolvedTransferFlow`) da `TransferModels.cs`. File singoli.
+
+**Con logica:**
+2. Introdurre `INeighbourReader { ListAsync }`; far estendere `INeighbourImportService : INeighbourReader`;
+   registrare la porta in DI; `AdminTrasferimentiPage` inietta `INeighbourReader`.
+
+*(§4.3 validazione: già conforme, nessuna azione.)*
 
 ## 5. Impatto
 
 - **Dipende da** doc 06. **A valle**: doc 08 (sezione Coordinamenti derivata dai flussi).
-- **Verifica**: risoluzione live corretta (settore chiuso → antenato online → UNICOM
-  terminale); CRUD flussi/punti ACC-gated; sezione Coordinamenti coerente nei documenti.
+- **Verifica** (Fase 3): risoluzione live invariata (test `TransferOnlineResolver` verdi);
+  CRUD flussi/punti ACC-gated; la pagina trasferimenti mostra ancora i mittenti esteri
+  confinanti; conteggio test = baseline (222).
