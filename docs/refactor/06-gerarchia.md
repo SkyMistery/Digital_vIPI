@@ -42,26 +42,38 @@ Foreign detection via `DivisionOptions.IcaoPrefixes` (`EfHierarchyEditingService
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. **Estrai regole pure + test** (decisione A, invariante #8).
+> Nessun test diretto sulla gerarchia. La maggior parte di `EfHierarchyEditingService` è
+> data-access EF **legittimo** in Infra: NON si migra il service intero (over-migration).
 
-- **Regole di business della gerarchia in Application** (anti-ciclo, vincoli parent,
-  detection estero); Infrastructure solo persistenza.
-- **Un service di proiezione** come unico punto che traduce albero-catalogo →
-  albero-operativo, chiamato solo dai core import (doc 01).
-- Estrarre enum/record da `IHierarchyEditingService.cs`.
-- Dipendenza da confinanti esplicita (porta dedicata, non conoscenza implicita).
+- **Regole pure in Application** (`HierarchyRules`, statico come `PolygonGeometry`):
+  `EnsureNoCycle` (anti-ciclo), `IsForeignCode` (detection estero da prefissi divisione),
+  `ComputeConfiningForeignCallsigns` (adiacenza estero↔domestico). Input/output espliciti →
+  **unit-testabili** (robustezza vera del giro). `EfHierarchyEditingService` tiene il
+  data-access (`LoadTree`, parent-map, save, cache confinanti) e **delega** le regole.
+- **Estrarre `HierarchyNodeKind`/`HierarchyNode`** da `IHierarchyEditingService.cs` in file singoli.
+- **Proiezione**: `ISectorProjectionService` è già l'unico punto; la `Sync` in `SetParent` è
+  una riproiezione legittima (non un import). Nessun cambio (P5 già coperto da doc 01).
+- **Migrazione completa del service a Application** (porta `IHierarchyRepository`): NON in
+  questo giro — poco valore (poche regole) vs alto churn su codice non testato.
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Meccanico → test-first → logica.
 
-1. Estrarre `HierarchyNodeKind`/`HierarchyNode`.
-2. Spostare anti-ciclo e vincoli parent in Application.
-3. Centralizzare la proiezione (coordinato con doc 01).
+**Meccanico (commit separato):**
+1. Estrarre `HierarchyNodeKind` + `HierarchyNode` da `IHierarchyEditingService.cs` in file singoli.
+
+**Test-first + logica:**
+2. Creare `HierarchyRules` (Application, puro): `EnsureNoCycle`, `IsForeignCode`,
+   `ComputeConfiningForeignCallsigns`. Scrivere test di caratterizzazione (`HierarchyRulesTests`):
+   ciclo rifiutato / catena valida ok; estero riconosciuto da prefisso; solo settori esteri
+   adiacenti a un domestico entrano nel set confinante.
+3. Far delegare `EfHierarchyEditingService` a `HierarchyRules` (rimuove la logica inline).
 
 ## 5. Impatto
 
 - **Dipende da** doc 02, 03, 05 (cataloghi). **A valle**: doc 07 (trasferimenti usano
   `ITopologyProvider`).
-- **Verifica**: `LoadTreeAsync` coerente; `SetParentAsync` rifiuta cicli; proiezione
-  `Sector` invariata; edit esteri restano admin-only.
+- **Verifica** (Fase 3): nuovi test regole verdi; `LoadTreeAsync` coerente; `SetParentAsync`
+  rifiuta cicli; proiezione `Sector` invariata; edit esteri restano admin-only; conteggio ≥ baseline (214).
