@@ -1,4 +1,11 @@
-# 05 — Import ACC + settori confinanti (punti 5+6) 🟢🟡
+# 05 — Import ACC + settori confinanti (punti 5+6) 🟢✅
+
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/05-neighbours`, 214 test: 199+15).
+> 5 record + `Aggregate` estratti (§4.1); **`NeighbourAdjacencyComputer` puro** con test di
+> caratterizzazione (§4.2, +14); **`ForeignAccFetcher`** con test fake-directory (§4.3, +1);
+> `NeighbourImportService` ridotto a orchestratore sottile (§4.4). Logging `NeighbourDebugLog`
+> conservato. **Rimandato a doc 08**: spostamento `MaterializeAndCreateVloaAsync` (gen vLOA).
+> Vedi `../history/rounds.md` «Refactor 05».
 
 > ACC esteri geometricamente adiacenti + i loro settori di confine, e generazione
 > vLOA per coppia. Punti 5 e 6 sono **una sola run**. Dipende da: doc 01, doc 02
