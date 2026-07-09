@@ -1,7 +1,12 @@
-# 04 — Import SID da GitHub (punto 11) 🟢🟡
+# 04 — Import SID da GitHub (punto 11) 🟢✅
 
 > Import delle SID dal sectorfile Aurora IT (`ivao-italy/it-aurora-sector`, raw GitHub).
 > Sorgente propria, indipendente dalle altre. Dipende da: doc 01 (policy/loop).
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/04-import-sid`, 199 test).
+> Estratta `ISidImporter` (§4.1). §4.2 (loop `GatedImportLoop`) era già a posto; logging
+> auto+manuale già conforme (invariante #7). **Parte rimandata a doc 08**: punto di scrittura
+> del merge SID (accoppiamento `AirportProfile`). Vedi `../history/rounds.md` «Refactor 04».
 
 ## 1. Stato attuale
 
