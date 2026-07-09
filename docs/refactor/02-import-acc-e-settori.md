@@ -8,6 +8,11 @@
 > rifattorizzare le **aree speciali** in un use-case + entry manuale (§4.2-4.4).
 > I riferimenti a `IvaoApiClient.cs` in sez.1 sono storici: dal refactor 01 le porte ACC
 > sono implementate da `IvaoAccClient`.
+>
+> **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/02-import-acc`, 199 test verdi).
+> Record estratti (§4.1); `SpecialAreaImportUseCase`/`ISpecialAreaImportUseCase` separato
+> (§4.2), hosted delega (§4.3), manual «Importa da sorgente» ora esegue anche le aree
+> speciali → manual = auto stesso stato DB (§4.4). Vedi `../history/rounds.md` «Refactor 02».
 
 ## 1. Stato attuale
 
