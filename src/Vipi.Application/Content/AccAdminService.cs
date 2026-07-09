@@ -8,14 +8,16 @@ public sealed class AccAdminService : IAccAdminService
 {
     private readonly IAccAdminRepository _repo;
     private readonly IAccImportUseCase _import;
+    private readonly ISpecialAreaImportUseCase _specialAreas;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
 
-    public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import, IEditAuthorizationService authz,
-        ISectorProjectionService projection)
+    public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import,
+        ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection)
     {
         _repo = repo;
         _import = import;
+        _specialAreas = specialAreas;
         _authz = authz;
         _projection = projection;
     }
@@ -24,10 +26,12 @@ public sealed class AccAdminService : IAccAdminService
 
     public Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) => _repo.ListSubcentersAsync(ct);
 
-    public Task<AccImportResult> ImportFromSourceAsync(CancellationToken ct = default)
+    public async Task<AccImportResult> ImportFromSourceAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();               // solo il manual applica il guard
-        return _import.RunAsync(ct);        // core condiviso con l'auto (hosted service)
+        _authz.EnsureAdmin();                        // solo il manual applica il guard
+        var result = await _import.RunAsync(ct);     // core ACC + subcenter (condiviso con l'auto)
+        await _specialAreas.RunAsync(ct);            // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
+        return result;
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)
