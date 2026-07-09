@@ -33,24 +33,30 @@ punto (`StableKey`); la pubblicazione è differita al ciclo AIRAC N+1 (round 34)
 
 ## 3. Architettura target
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09. Verifica sez.1+2 vs codice: pipeline già pulito;
+> `SidImportHostedService` **usa già** `GatedImportLoop` (§4.2 già fatto); logging OK
+> (auto: debug per-ICAO + summary; manuale via `Guarded` nell'editor) → invariante #7 ok.
 
 - Mantenere la buona separazione porta/adapter/parser esistente (è il pipeline più pulito).
-- Estrarre l'interfaccia da `SidImporter.cs`.
-- Valutare se il merge SID debba passare per un service di dominio "profilo aeroporto"
-  invece che scrivere il repo direttamente (coordinare con doc 08).
-- Uniformare il loop ICAO con il pattern `GatedImportLoop` del doc 01.
+- **Estrarre l'interfaccia da `SidImporter.cs`** (§4.1) — unico residuo meccanico.
+- **Rimandato a doc 08**: valutare se il merge SID debba passare per un service di dominio
+  «profilo aeroporto» invece di scrivere il repo direttamente (`ReplaceImportedSidsAsync`).
+  È l'accoppiamento con `AirportProfile`, decisione del modello documento (doc 08).
+- Loop ICAO: **già** allineato a `GatedImportLoop` — nulla da fare.
+- Navaid cache nel provider: lasciata (minore, non giustifica churn).
 
 ## 4. Passi di migrazione
 
-> 🟡 BOZZA.
+> ✅ APPROVATA — Fase 0, 2026-07-09.
 
-1. Estrarre `ISidImporter` in file dedicato.
-2. Allineare `SidImportHostedService` al pattern loop condiviso (doc 01).
-3. (Dopo doc 08) rivedere il punto di scrittura del merge SID.
+**Meccanico:**
+1. Estrarre `ISidImporter` da `SidImporter.cs` in file dedicato.
+
+*(§4.2 loop condiviso: già fatto. §4.3 punto di scrittura merge SID: rimandato a doc 08.)*
 
 ## 5. Impatto
 
-- **Dipende da** doc 01. **Accoppiato con** doc 08 (`AirportProfile`).
-- **Verifica**: import SID manuale e auto → stesse SID importate; SID manuali e
-  priorità preservate; base URL vuoto disattiva l'import senza errori.
+- **Dipende da** doc 01. **Accoppiato con** doc 08 (`AirportProfile`) — parte rimandata.
+- **Verifica** (Fase 3): import SID manuale e auto → stesse SID importate; SID manuali e
+  priorità preservate; base URL vuoto disattiva l'import senza errori; logging preservato;
+  conteggio test = baseline (199).
