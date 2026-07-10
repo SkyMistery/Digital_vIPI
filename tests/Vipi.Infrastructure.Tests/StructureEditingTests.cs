@@ -211,6 +211,42 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Rebuild_Emits_Extra_Sections_Into_Document_And_Regenerates_Them()
+    {
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        var profile = new EfAirportProfileRepository(_db);
+        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.RebuildDocumentAsync("LIRF");
+
+        // Salvo due sezioni editoriali libere + rebuild: entrano nel documento come sezioni keyed "airportextra".
+        await profile.SaveExtraSectionsAsync("LIRF", new[]
+        {
+            new Vipi.Application.Content.ExtraSectionRow(0, "Hot spot", "Attenzione al **raccordo B**."),
+            new Vipi.Application.Content.ExtraSectionRow(0, "Rumore", "Procedure antirumore notturne."),
+        });
+        await profile.RebuildDocumentAsync("LIRF");
+
+        var extras = await _db.DocumentSections.Where(s => s.SectionKey == "airportextra").OrderBy(s => s.Order).ToListAsync();
+        Assert.Equal(new[] { "Hot spot", "Rumore" }, extras.Select(s => s.Title));
+        var body = await _db.ContentBlocks.FirstAsync(b => b.SectionId == extras[0].Id);
+        Assert.Contains("raccordo B", body.Body!);
+
+        // Rinomino/riduco a una sola sezione + rebuild: le sezioni extra sono rigenerate (nessun duplicato/orfano).
+        await profile.SaveExtraSectionsAsync("LIRF", new[]
+        {
+            new Vipi.Application.Content.ExtraSectionRow(0, "Solo questa", "Testo unico."),
+        });
+        await profile.RebuildDocumentAsync("LIRF");
+
+        var after = await _db.DocumentSections.Where(s => s.SectionKey == "airportextra").ToListAsync();
+        Assert.Equal("Solo questa", Assert.Single(after).Title);
+        // Le sezioni gestite restano singole (rebuild idempotente).
+        Assert.Single(await _db.DocumentSections.Where(s => s.Title == "Frequenze").ToListAsync());
+    }
+
+    [Fact]
     public async Task Default_Transition_Levels_Follow_Ta()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");

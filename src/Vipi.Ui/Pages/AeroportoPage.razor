@@ -382,6 +382,7 @@ else
     private SectionView? _taSection;
     private SectionView? _freqSection;
     private List<SectionView> _otherSections = new();
+    private List<SectionView> _extraSections = new();
     private int? _ta;
     private IReadOnlyList<string> _tlCols = Array.Empty<string>();
     private List<(string Range, string Level)> _tlRows = new();
@@ -553,7 +554,15 @@ else
     }
 
     /// <summary>Sezioni editoriali libere del profilo (colonna destra desktop / sotto le SID su schermi stretti).</summary>
-    private IReadOnlyList<ExtraSectionRow> ExtraSections() => _profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>();
+    // Sezioni editoriali libere. In anteprima RELEASE si leggono dal documento congelato (_view, dove _profile è null);
+    // in live/bozza dal profilo (entità fresca, il documento si rigenera solo alla pubblicazione). Doc 08e-airport.
+    private IReadOnlyList<(string Id, string Title, string? Body)> ExtraSections() =>
+        _mode.Kind == PreviewKind.Release
+            ? _extraSections.Select(s => (
+                Id: s.Id, s.Title,
+                Body: s.Blocks.FirstOrDefault(b => b.Format == BlockFormat.Prose)?.Body)).ToList()
+            : (_profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>())
+                .Select(r => ($"extra-doc-{r.Id}", r.Title, r.Body)).ToList();
 
     private void Recompute()
     {
@@ -637,6 +646,7 @@ else
     {
         _taSection = _freqSection = null;
         _otherSections = new();
+        _extraSections = new();
         _ta = null; _tlRows = new(); _tlCols = Array.Empty<string>();
 
         foreach (var s in view.Sections)
@@ -649,6 +659,9 @@ else
             // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
             else if (_profile is { Runways.Count: > 0 } && s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase))
                 continue;
+            // Sezioni editoriali libere: rese con layout dedicato (inline + rail) da _extraSections, non tra le "altre".
+            else if (s.SectionKey == "airportextra")
+                _extraSections.Add(s);
             else
                 _otherSections.Add(s);
         }

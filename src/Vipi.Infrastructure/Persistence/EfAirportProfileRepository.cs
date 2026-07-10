@@ -21,6 +21,10 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
     private static readonly string[] ManagedSectionTitles =
         { "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
 
+    /// <summary>Chiave delle sezioni editoriali libere dell'aeroporto emesse nel documento dal profilo (doc 08e-airport):
+    /// hanno titolo arbitrario, quindi si riconoscono/rimuovono per chiave (non per titolo come le managed).</summary>
+    private const string ExtraSectionKey = "airportextra";
+
     public async Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
 
@@ -282,8 +286,10 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
             doc = await _db.Documents.Include(d => d.Versions).FirstAsync(d => d.Id == existing, ct);
             ver = await _db.DocumentVersions.Include(v => v.Sections).ThenInclude(s => s.Blocks)
                 .FirstAsync(v => v.Id == doc.CurrentVersionId, ct);
-            // Rimuove le sole sezioni gestite (preserva eventuali sezioni aggiunte a mano).
-            var managed = ver.Sections.Where(s => ManagedSectionTitles.Contains(s.Title)).ToList();
+            // Rimuove le sezioni gestite (per titolo) + le sezioni editoriali libere dal profilo (per chiave); preserva
+            // eventuali sezioni aggiunte a mano di altra natura.
+            var managed = ver.Sections
+                .Where(s => ManagedSectionTitles.Contains(s.Title) || s.SectionKey == ExtraSectionKey).ToList();
             foreach (var s in managed) _db.ContentBlocks.RemoveRange(s.Blocks);
             _db.DocumentSections.RemoveRange(managed);
         }
@@ -409,6 +415,15 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         else
             b.Callout(sid, CalloutKind.Info, "SID non ancora inserite", BlockTier.Extended,
                 "🔄 Nessuna SID inserita. Aggiungile dall'editor aeroporto (l'import dal sectorfile GitHub è un follow-up).");
+
+        // 6 — Sezioni editoriali libere del profilo (titolo + prosa markdown), keyed così da entrare nel documento
+        // (e quindi nello snapshot di release) invece di restare in uno store parallelo. Doc 08e-airport.
+        var extras = await _db.AirportExtraSections.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order).ToListAsync(ct);
+        foreach (var x in extras)
+        {
+            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Sezione" : x.Title, ExtraSectionKey, ++order);
+            if (!string.IsNullOrWhiteSpace(x.Body)) b.Prose(sec, BlockTier.Extended, x.Body!);
+        }
 
         doc.LastUpdatedUtc = now;
         doc.LastUpdatedAiracCycle = cycle;
@@ -561,12 +576,15 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         private readonly DocumentVersion _ver;
         public DocBuilder(VipiDbContext db, DocumentVersion ver) { _db = db; _ver = ver; }
 
-        public DocumentSection Section(string title, BlockSection kind, int order)
+        public DocumentSection Section(string title, BlockSection kind, int order) =>
+            Section(title, SectionCatalogBridge.KeyFor(kind) ?? "custom", order);
+
+        public DocumentSection Section(string title, string sectionKey, int order)
         {
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = null, Title = title, Order = order,
-                Depth = 0, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom", RowVersion = Guid.NewGuid().ToByteArray(),
+                Depth = 0, SectionKey = sectionKey, RowVersion = Guid.NewGuid().ToByteArray(),
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);
