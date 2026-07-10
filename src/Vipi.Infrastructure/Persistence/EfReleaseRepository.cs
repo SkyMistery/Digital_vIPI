@@ -37,19 +37,9 @@ public sealed class EfReleaseRepository : IReleaseRepository
                 if (raw is null) return null;
 
                 var payload = new DocReleasePayload { Doc = raw };
-                // vLOA e APP hanno overlay per-doc (sezioni/settori/frequenze nascosti) nella side-entity DocumentProfile
-                // (vLOA ancora su VloaProfile fino a 08i; APP su DocumentProfile dal doc 08e).
-                if (type == ReleaseTargetType.Vloa)
-                {
-                    var p = await _db.VloaProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
-                    payload.Vloa = new VloaOverlaySnapshot
-                    {
-                        HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
-                        HiddenFrequencies = Deser(p?.HiddenFrequenciesJson),
-                        HiddenSections = Deser(p?.HiddenSectionsJson),
-                    };
-                }
-                else if (type == ReleaseTargetType.App)
+                // vLOA e APP hanno overlay per-doc (sezioni/settori/frequenze nascosti) nella side-entity unificata
+                // DocumentProfile (doc 08i: VloaProfile confluito in DocumentProfile).
+                if (type is ReleaseTargetType.Vloa or ReleaseTargetType.App)
                 {
                     var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
                     payload.Vloa = new VloaOverlaySnapshot

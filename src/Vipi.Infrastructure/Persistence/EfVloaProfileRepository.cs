@@ -49,20 +49,22 @@ public sealed class EfVloaProfileRepository : IVloaProfileRepository
             .Select(s => new VloaSectorPoly(s.ComposePosition, s.RegionMapPolygon!))
             .ToListAsync(ct);
 
+    // vLOA usa la side-entity unificata DocumentProfile (doc 08i): stessi campi Hidden AoR/Freq/Sezioni; i campi extra
+    // (FreqLinks/CoordTemplate) restano null per le vLOA. La tabella VloaProfiles è stata eliminata.
     public async Task<VloaProfileState> LoadProfileAsync(int docId, CancellationToken ct = default)
     {
-        var p = await _db.VloaProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
+        var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
         return new VloaProfileState(Deserialize(p?.HiddenAorSectorsJson), Deserialize(p?.HiddenFrequenciesJson),
             Deserialize(p?.HiddenSectionsJson));
     }
 
     public async Task SaveProfileAsync(int docId, VloaProfileState state, CancellationToken ct = default)
     {
-        var p = await _db.VloaProfiles.FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
+        var p = await _db.DocumentProfiles.FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
         if (p is null)
         {
-            p = new VloaProfile { DocumentId = docId };
-            _db.VloaProfiles.Add(p);
+            p = new DocumentProfile { DocumentId = docId };
+            _db.DocumentProfiles.Add(p);
         }
         p.HiddenAorSectorsJson = JsonSerializer.Serialize(state.HiddenAorSectors);
         p.HiddenFrequenciesJson = JsonSerializer.Serialize(state.HiddenFrequencies);

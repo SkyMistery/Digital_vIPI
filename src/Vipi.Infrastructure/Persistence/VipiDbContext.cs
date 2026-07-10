@@ -44,7 +44,6 @@ public class VipiDbContext : DbContext
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
-    public DbSet<VloaProfile> VloaProfiles => Set<VloaProfile>();
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
@@ -260,14 +259,6 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.AssigneeUserId);
             e.HasIndex(x => x.Status);
-        });
-
-        // --- Stato editoriale data-driven della vLOA (1:1 col Document). ---
-        b.Entity<VloaProfile>(e =>
-        {
-            e.HasIndex(x => x.DocumentId).IsUnique();
-            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
         });
 
         // --- Stato editoriale data-driven generico di un documento vIPI (1:1 col Document). Doc refactor 08e. ---
