@@ -6,18 +6,25 @@
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 
-<PageTitle>Nuovo documento · vIPI IVAO Italia</PageTitle>
+<PageTitle>Nuova vLOA · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Nuovo documento</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Nuova vLOA</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Nuovo documento</h2><span class="muted">Crea una vIPI di ACC, una vIPI di APP non remotizzato o una vLOA</span></div>
+        <div><h2 style="margin-bottom:2px">Nuova vLOA</h2><span class="muted">Lettera di accordo tra un ACC italiano (Home) e uno estero (Neighbour)</span></div>
     </div>
 
     @if (_msg is not null)
     {
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
+
+    @* Le vIPI di ACC/APP/Aeroporto non si creano da qui: nascono aprendo il rispettivo editor (che le genera keyed
+       sull'ente) o dalla generazione da sorgente. Qui resta solo la vLOA, che è authoring bilaterale esplicito. *@
+    <div class="callout info"><span class="cic">ℹ️</span><div>
+        Le <b>vIPI</b> di ACC, APP e aeroporto si creano aprendo il loro editor (<a href="/vsop/versioni">Bozze &amp; versioni</a> →
+        apri l'ente, oppure il bottone «Editor» dalla pagina della vIPI). Anche le vLOA con ACC confinanti si generano
+        in blocco da <a href="/vsop/admin/confinanti">Confinanti</a>. Qui crei una <b>singola vLOA</b> a mano.</div></div>
 
     @if (!Authz.IsAdmin)
     {
@@ -27,160 +34,59 @@
     {
         <div class="block">
             <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                <div class="field narrow"><label>Tipo</label>
-                    <select value="@_kind" @onchange="OnKindChanged">
-                        <option value="@DocKind.AccVipi">vIPI ACC</option>
-                        <option value="@DocKind.AppVipi">vIPI APP (non remot.)</option>
-                        <option value="@DocKind.Vloa">vLOA</option>
-                    </select>
-                </div>
-                <div class="field"><label>Titolo</label><input placeholder="@TitlePlaceholder()" @bind="_docTitle" /></div>
-                <button class="btn primary" disabled="@_busy" @onclick="CreateDocument">Crea e apri editor</button>
+                <div class="field"><label>Titolo</label><input placeholder="es. vLOA Roma–Marsiglia" @bind="_docTitle" /></div>
+                <button class="btn primary" disabled="@_busy" @onclick="CreateVloa">Crea e apri editor</button>
             </div>
 
-            @* ===================== vIPI ACC: root degli alberi ===================== *@
-            @if (_kind == DocKind.AccVipi)
-            {
-                <div style="margin-top:12px">
-                    <label class="muted" style="font-size:12px">Seleziona i <b>root</b> degli alberi di copertura: ogni root porta nel documento tutti i settori d'area (CTR + APP di ACC) del suo sottoalbero, anche cross-ACC. Più alberi per documento. ★ = primario.</label>
-                    @{ var rootGroups = ItalianRootsByAcc(); }
-                    @if (rootGroups.Count == 0)
-                    {
-                        <p class="muted" style="font-size:11px;margin-top:6px">Nessun albero disponibile. Importa i settori dalla <a href="/vsop/admin/acc">pagina ACC</a> e collega la gerarchia in <a href="/vsop/admin/sectorstructure">Struttura</a>.</p>
-                    }
-                    @foreach (var g in rootGroups)
-                    {
-                        <div style="margin-top:8px">
-                            <div class="muted" style="font-size:11px;font-weight:700">@g.Key</div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-                                @foreach (var r in g)
-                                {
-                                    var picked = _rootIds.Contains(r.Id);
-                                    var taken = r.DocumentId is not null;
-                                    var cnt = SubtreeAreaIds(r.Id).Count;
-                                    <span class="@(picked ? "xo-chip on" : "xo-chip")" style="@ChipStyle(picked, taken)" title="@(taken ? "Il settore radice è già descritto da un altro documento" : $"{cnt} settori d'area nel sottoalbero")">
-                                        <label style="@(taken ? "cursor:not-allowed" : "cursor:pointer")">
-                                            <input type="checkbox" checked="@picked" disabled="@taken" @onchange="() => ToggleRoot(r.Id)" style="margin-right:4px" />@r.Callsign <span class="muted">(@cnt)</span>
-                                        </label>
-                                        @if (picked)
-                                        {
-                                            <input type="radio" name="primary" checked="@(_docPrimary == r.Id)" @onchange="() => _docPrimary = r.Id" title="primario" style="margin-left:6px" />
-                                        }
-                                    </span>
-                                }
-                            </div>
-                        </div>
-                    }
-                    @if (_rootIds.Count > 0)
-                    {
-                        var info = AccScopeInfo();
-                        <p class="muted" style="font-size:11.5px;margin-top:10px">
-                            <b>@info.Ids.Count settori</b> nel documento@(info.Excluded > 0 ? $" ({info.Excluded} già descritti esclusi)" : ""): @string.Join(" · ", info.Callsigns)
-                        </p>
-                    }
-                </div>
-            }
-
-            @* ===================== vIPI APP non remotizzato ===================== *@
-            else if (_kind == DocKind.AppVipi)
-            {
-                <div style="margin-top:12px">
-                    <label class="muted" style="font-size:12px">Seleziona gli <b>APP non remotizzati</b> coinvolti (★ = primario):</label>
-                    @{ var appGroups = StandaloneAppsByAcc(); }
-                    @if (appGroups.Count == 0)
-                    {
-                        <p class="muted" style="font-size:11px;margin-top:6px">Nessun APP non remotizzato. Marca un APP come «non di ACC» dall'<a href="/vsop/admin/airports">editor aeroporto</a>.</p>
-                    }
-                    @foreach (var g in appGroups)
-                    {
-                        <div style="margin-top:8px">
-                            <div class="muted" style="font-size:11px;font-weight:700">@g.Key</div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-                                @foreach (var s in g)
-                                {
-                                    var picked = _appIds.Contains(s.Id);
-                                    var taken = s.DocumentId is not null;
-                                    <span class="@(picked ? "xo-chip on" : "xo-chip")" style="@ChipStyle(picked, taken)">
-                                        <label style="@(taken ? "cursor:not-allowed" : "cursor:pointer")">
-                                            <input type="checkbox" checked="@picked" disabled="@taken" @onchange="() => ToggleApp(s.Id)" style="margin-right:4px" />@s.Callsign
-                                        </label>
-                                        @if (picked)
-                                        {
-                                            <input type="radio" name="primary" checked="@(_docPrimary == s.Id)" @onchange="() => _docPrimary = s.Id" title="primario" style="margin-left:6px" />
-                                        }
-                                    </span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-
-            @* ===================== vLOA: IT (Home) ↔ estero (Neighbour) ===================== *@
-            else
-            {
-                <div style="margin-top:12px">
-                    <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia.</p>
-                    <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                        <div class="field"><label>ACC italiano (Home)</label>
-                            <select value="@_homeAcc" @onchange="OnHomeAccChanged">
-                                <option value="">ACC…</option>
-                                @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
-                            </select>
-                        </div>
-                        <div class="field"><label>Settore Home</label>
-                            <select @bind="_docHome" disabled="@(string.IsNullOrEmpty(_homeAcc))">
-                                <option value="0">settore…</option>
-                                @foreach (var s in AreaSectorsOf(_homeAcc)) { <option value="@s.Id">@s.Callsign</option> }
-                            </select>
-                        </div>
+            <div style="margin-top:12px">
+                <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia.</p>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field"><label>ACC italiano (Home)</label>
+                        <select value="@_homeAcc" @onchange="OnHomeAccChanged">
+                            <option value="">ACC…</option>
+                            @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
+                        </select>
                     </div>
-                    <div class="inline-form" style="border-top:0;padding-top:0;margin-top:6px">
-                        <div class="field"><label>ACC estero (Neighbour)</label>
-                            <select value="@_neighAcc" @onchange="OnNeighAccChanged">
-                                <option value="">ACC…</option>
-                                @foreach (var a in ForeignAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
-                            </select>
-                        </div>
-                        <div class="field"><label>Settore Neighbour</label>
-                            <select @bind="_docNeighbour" disabled="@(string.IsNullOrEmpty(_neighAcc))">
-                                <option value="0">settore…</option>
-                                @foreach (var s in AreaSectorsOf(_neighAcc)) { <option value="@s.Id">@s.Callsign</option> }
-                            </select>
-                        </div>
+                    <div class="field"><label>Settore Home</label>
+                        <select @bind="_docHome" disabled="@(string.IsNullOrEmpty(_homeAcc))">
+                            <option value="0">settore…</option>
+                            @foreach (var s in AreaSectorsOf(_homeAcc)) { <option value="@s.Id">@s.Callsign</option> }
+                        </select>
                     </div>
-                    @if (ForeignAccs().Count == 0)
-                    {
-                        <p class="muted" style="font-size:11px;margin-top:6px">Nessun ACC estero nel DB. Vengono importati automaticamente dalla sorgente IVAO insieme agli altri centri.</p>
-                    }
                 </div>
-            }
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:6px">
+                    <div class="field"><label>ACC estero (Neighbour)</label>
+                        <select value="@_neighAcc" @onchange="OnNeighAccChanged">
+                            <option value="">ACC…</option>
+                            @foreach (var a in ForeignAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
+                        </select>
+                    </div>
+                    <div class="field"><label>Settore Neighbour</label>
+                        <select @bind="_docNeighbour" disabled="@(string.IsNullOrEmpty(_neighAcc))">
+                            <option value="0">settore…</option>
+                            @foreach (var s in AreaSectorsOf(_neighAcc)) { <option value="@s.Id">@s.Callsign</option> }
+                        </select>
+                    </div>
+                </div>
+                @if (ForeignAccs().Count == 0)
+                {
+                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun ACC estero nel DB. Vengono importati automaticamente dalla sorgente IVAO insieme agli altri centri.</p>
+                }
+            </div>
 
-            <p class="muted" style="font-size:12px;margin:12px 0 0">Il documento nasce vuoto (una sezione iniziale); poi lo riempi nell'editor.</p>
+            <p class="muted" style="font-size:12px;margin:12px 0 0">La vLOA nasce vuota (una sezione iniziale); poi la riempi nell'editor.</p>
         </div>
     }
 </div>
 
 @code {
-    private enum DocKind { AccVipi, AppVipi, Vloa }
-
     private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
-    private Dictionary<int, GlobalSectorRow> _byId = new();
-    private ILookup<int, GlobalSectorRow> _byParent = Enumerable.Empty<GlobalSectorRow>().ToLookup(s => 0);
 
     private bool _busy;
     private string? _msg;
-
-    private DocKind _kind = DocKind.AccVipi;
     private string _docTitle = "";
 
-    // vIPI ACC / APP
-    private readonly HashSet<int> _rootIds = new();   // root degli alberi selezionati (vIPI ACC)
-    private readonly HashSet<int> _appIds = new();     // APP standalone selezionati (vIPI APP)
-    private int _docPrimary;                            // settore primario
-
-    // vLOA
     private string? _homeAcc, _neighAcc;
     private int _docHome, _docNeighbour;
 
@@ -189,97 +95,12 @@
         if (!Authz.IsAdmin) return;
         _accs = await Struct.ListAccsAsync();
         _all = await Struct.ListSectorNodesAsync();
-        _byId = _all.ToDictionary(s => s.Id);
-        _byParent = _all.Where(s => s.ParentSectorId is not null).ToLookup(s => s.ParentSectorId!.Value);
     }
 
-    private void ResetForm()
-    {
-        _rootIds.Clear(); _appIds.Clear(); _docPrimary = 0;
-        _homeAcc = _neighAcc = null; _docHome = _docNeighbour = 0;
-        _msg = null;
-    }
-
-    private void OnKindChanged(ChangeEventArgs e)
-    {
-        if (Enum.TryParse<DocKind>(e.Value?.ToString(), out var k)) _kind = k;
-        ResetForm();
-    }
-
-    // --- Classificazione settori ---
+    // Settore d'area = CTR o APP remotizzato (candidati Home/Neighbour di una vLOA).
     private static bool IsArea(GlobalSectorRow s) =>
         s.Type == SectorType.Ctr || (s.Type == SectorType.App && s.ApproachKind == ApproachKind.Remotized);
-    private static bool IsStandaloneApp(GlobalSectorRow s) =>
-        s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone;
-    private static bool IsItalian(GlobalSectorRow s) =>
-        string.Equals(s.CountryPrefix, "LI", StringComparison.OrdinalIgnoreCase);
 
-    private IEnumerable<GlobalSectorRow> ChildrenOf(int id) => _byParent[id];
-
-    /// <summary>Tutti i settori d'area del sottoalbero di un root (root incluso). Attraversa anche nodi non d'area per raggiungere area più in basso. Guard anti-ciclo.</summary>
-    private List<int> SubtreeAreaIds(int rootId)
-    {
-        var area = new List<int> { rootId };
-        var guard = new HashSet<int> { rootId };
-        void Walk(int id)
-        {
-            foreach (var c in ChildrenOf(id))
-            {
-                if (!guard.Add(c.Id)) continue;
-                if (IsArea(c)) area.Add(c.Id);
-                Walk(c.Id);
-            }
-        }
-        Walk(rootId);
-        return area;
-    }
-
-    // --- vIPI ACC: root italiani raggruppati per ACC ---
-    private List<IGrouping<string, GlobalSectorRow>> ItalianRootsByAcc() =>
-        _all.Where(s => IsArea(s) && IsItalian(s) && IsRoot(s))
-            .OrderBy(s => s.AccCode).ThenBy(s => s.Callsign)
-            .GroupBy(s => s.AccCode)
-            .ToList();
-
-    /// <summary>Root = settore d'area senza padre d'area (la cima del proprio albero).</summary>
-    private bool IsRoot(GlobalSectorRow s) =>
-        s.ParentSectorId is not int pid || !_byId.TryGetValue(pid, out var p) || !IsArea(p);
-
-    private void ToggleRoot(int id)
-    {
-        if (!_rootIds.Add(id)) _rootIds.Remove(id);
-        if (_docPrimary == id && !_rootIds.Contains(id)) _docPrimary = 0;
-        if (_docPrimary == 0 && _rootIds.Count > 0) _docPrimary = _rootIds.First();
-    }
-
-    private sealed record ScopeInfo(List<int> Ids, int Excluded, List<string> Callsigns);
-
-    /// <summary>Scope vIPI ACC: unione dei sottoalberi d'area dei root selezionati, esclusi i già descritti.</summary>
-    private ScopeInfo AccScopeInfo()
-    {
-        var all = new HashSet<int>();
-        foreach (var rid in _rootIds) foreach (var id in SubtreeAreaIds(rid)) all.Add(id);
-        var excluded = all.Count(id => _byId.TryGetValue(id, out var s) && s.DocumentId is not null);
-        var ids = all.Where(id => _byId.TryGetValue(id, out var s) && s.DocumentId is null).ToList();
-        var names = ids.Select(id => _byId[id].Callsign).OrderBy(c => c).ToList();
-        return new ScopeInfo(ids, excluded, names);
-    }
-
-    // --- vIPI APP: standalone italiani per ACC ---
-    private List<IGrouping<string, GlobalSectorRow>> StandaloneAppsByAcc() =>
-        _all.Where(s => IsStandaloneApp(s) && IsItalian(s))
-            .OrderBy(s => s.AccCode).ThenBy(s => s.Callsign)
-            .GroupBy(s => s.AccCode)
-            .ToList();
-
-    private void ToggleApp(int id)
-    {
-        if (!_appIds.Add(id)) _appIds.Remove(id);
-        if (_docPrimary == id && !_appIds.Contains(id)) _docPrimary = 0;
-        if (_docPrimary == 0 && _appIds.Count > 0) _docPrimary = _appIds.First();
-    }
-
-    // --- vLOA ---
     private IReadOnlyList<AccRow> ItalianAccs() =>
         _accs.Where(a => string.Equals(a.CountryPrefix, "LI", StringComparison.OrdinalIgnoreCase) && a.Sectors > 0).ToList();
     private IReadOnlyList<AccRow> ForeignAccs() =>
@@ -303,46 +124,20 @@
         _docNeighbour = 0;
     }
 
-    // --- UI helpers ---
-    private string TitlePlaceholder() => _kind switch
-    {
-        DocKind.Vloa => "es. vLOA Roma–Marsiglia",
-        DocKind.AppVipi => "es. vIPI Pisa APP",
-        _ => "es. vIPI Roma ACC",
-    };
-
-    private static string ChipStyle(bool picked, bool taken)
-    {
-        var bg = picked ? "background:#dafbe7;color:#1a7f37;font-weight:700" : "background:#eef1f7";
-        var dim = taken ? ";opacity:.45" : "";
-        return $"padding:3px 9px;border-radius:999px;font-size:12px;{bg}{dim}";
-    }
-
-    private async Task CreateDocument()
+    private async Task CreateVloa()
     {
         _busy = true; _msg = null;
         try
         {
-            var type = _kind == DocKind.Vloa ? DocumentType.Vloa : DocumentType.Vipi;
-            IReadOnlyList<int>? scope = _kind switch
-            {
-                DocKind.AccVipi => AccScopeInfo().Ids,
-                DocKind.AppVipi => _appIds.ToList(),
-                _ => null,
-            };
-            int? primary = _kind == DocKind.Vloa ? null : (_docPrimary == 0 ? null : _docPrimary);
-            int? home = _kind == DocKind.Vloa ? (_docHome == 0 ? null : _docHome) : null;
-            int? neigh = _kind == DocKind.Vloa ? (_docNeighbour == 0 ? null : _docNeighbour) : null;
+            if (_docHome == 0 || _docNeighbour == 0) { _msg = "Seleziona il settore Home e il settore Neighbour."; return; }
 
-            var id = await Editing.CreateDocumentAsync(type, _docTitle, scope, primary, home, neigh);
+            await Editing.CreateDocumentAsync(DocumentType.Vloa, _docTitle,
+                scopeSectorIds: null, primarySectorId: null, homeSectorId: _docHome, neighbourSectorId: _docNeighbour);
 
-            var acc = _kind == DocKind.Vloa
-                ? _homeAcc
-                : (primary is int p && _byId.TryGetValue(p, out var ps) ? ps.AccCode : null);
-            if (string.IsNullOrEmpty(acc)) { _msg = "Impossibile risolvere l'ACC del documento."; return; }
-            // forceLoad: il documento è appena stato creato → ricarica completa così l'editor ne legge la versione fresca
-            // (evita lo stale read della lista documenti nello stesso circuito, che dava "documento non esiste").
-            Nav.NavigateTo($"/vsop/{acc.ToLowerInvariant()}/editor?doc={id}", forceLoad: true);
+            if (string.IsNullOrEmpty(_homeAcc)) { _msg = "Impossibile risolvere l'ACC Home della vLOA."; return; }
+            // La vLOA si edita dall'editor per coppia (keyed sull'ACC estero). forceLoad: versione appena creata.
+            var neigh = _neighAcc?.ToUpperInvariant();
+            Nav.NavigateTo($"/vsop/{_homeAcc.ToLowerInvariant()}/vloa/editor?acc={neigh}", forceLoad: true);
         }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
