@@ -1,12 +1,29 @@
-# 08 — Modello documento + editing (punti 9+12) 🟢🟡 (programma: 08a–08f)
+# 08 — Modello documento + editing (punti 9+12) 🟢🟡 (programma: 08a–08i)
 
 > **DECISIONE Fase 0 (2026-07-09)**: unificazione greenfield su `Document` + `SectionCatalog`,
-> test-first. Decomposto in sotto-giri 08a–08f (§4).
+> test-first. Decomposto in sotto-giri (§4).
 >
-> **AGGIORNAMENTO (dopo 08d-vloa)**: per **ACC/APP/Airport** si passa a **strategia B — adozione
-> incrementale del catalogo** (lo storage profile RESTA, non si migra). Motivo: il punto 12 è già
-> risolto (catalogo + vLOA migrata); il drop dello storage è pulizia interna sproporzionata come
-> rischio/valore. Stato: **08a·08b·08c·08d-vloa fatti e mergiati (246 test)**; ACC/APP/Airport = §4.
+> **STRATEGIA B ABBANDONATA — ritorno a strategia A greenfield completo (2026-07-10, owner).**
+> La strategia B (adozione incrementale del catalogo, storage profile invariato) è stata provata su
+> ACC/APP con `08d-app+acc` e **bocciata in verifica**: lascia divergenze inaccettabili tra i tipi —
+> config in APP degradata a editoriale generico (l'editor ricco è ACC-only), corpo custom divergente
+> (ACC solo prosa, APP prosa+tabella) e **niente Callout né sotto-sezioni** (il modello `DocSection`/
+> `DocBlock` restava scollegato). Si torna alla **strategia A** (§3 originale): migrare lo storage di
+> ACC/APP/Airport sul modello `Document` classic — lo stesso su cui vLOA gira già da 08d-vloa.
+>
+> **Design locks (2026-07-10):**
+> 1. **Editor editoriale unico** su `DocumentSection`+`ContentBlock`: blocchi `Prose`/`Table`/`Callout`
+>    + **sotto-sezioni** (albero `DocumentSection`, `MaxDepth`=3). Un solo componente editor + un solo
+>    viewer, condivisi da tutti i tipi. Il modello `Document` regge già tutto questo (verificato).
+> 2. **Config ricca anche in APP**, pool = **settori dell'aeroporto dell'APP** (es. `LIRP_APP` →
+>    settori di `LIRP`); accorpamento calcolato come per l'ACC. `configurations` resta nella membership APP.
+>
+> **Cosa si tiene di `08d-app+acc` (branch `refactor/08d-app`)**: l'adozione di `SectionCatalog` e la
+> rimozione di `AppSections`/`AccSections` sono **fondamenta valide anche per A** → restano. Il default
+> editoriale generico (storage `AppCustomBlock`) è un **ponte temporaneo**: sostituito in 08f/08g.
+>
+> Stato: **08a·08b·08c·08d-vloa mergiati** + **08d-app+acc** (catalogo adottato, ponte editoriale);
+> ACC/APP/Airport storage ancora profile → §4 (08e→08i).
 
 > **Il cuore del casino.** Convivono due modelli di documento incompatibili, e le
 > definizioni di sezione (AoR/Freq/Coord…) sono legate al singolo tipo invece di
@@ -124,28 +141,37 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
     `SectionKey` (chiave catalogo) su tutto il modello classic; DTO/viewer/editor vLOA su chiavi;
     seed/builder convertono via bridge; migrazione EF `SectionKeyCatalog`. vLOA completamente
     migrata; il documento GENERATO di ACC/Airport usa già le chiavi.
-  - **08d-acc / 08d-app / 08d-airport ⏳ — strategia B (adozione incrementale del catalogo)**,
-    rivista dopo 08d-vloa. Lo storage **profile RESTA**; gli editor ACC/APP **adottano
-    `SectionCatalog`** e abilitano le sezioni nuove quando servono. Motivo: il punto 12 (dolore
-    reale) è già risolto dal catalogo + vLOA; il drop dello storage profile è pulizia interna ad
-    alto costo/rischio, sproporzionata. NON si migra lo storage.
-    - **Finding (investigato)**: gli editor (`AppEditorPage`/`AccEditorPage`) rendono le sezioni
-      via `switch(key)` con handler specifici + `default:` che rende SOLO le custom
-      (`if (custom is not null)`). Le sezioni fisse NUOVE del catalogo (`regulated`/
-      `operationaltechnique`/`validity`/`configurations`) NON sono custom → renderebbero vuote.
-      Quindi lo switch della membership NON è safe da solo.
-    - **Passi B (per tipo, APP prima)**: (1) `default:` → editor editoriale generico per QUALSIASI
-      sezione editoriale senza handler (storage = custom-section per-key nel profile; `Reconcile`
-      già fonde le custom keys); (2) switch `AppEditorPage`/`AppnPage` (poi ACC) da `AppSections`/
-      `AccSections` a `SectionCatalog` (mappa `AccBlockKind`→`SectionProfile`; descriptor `.Kind`
-      `AppSectionKind`→`SectionKind`, `.DefaultOrder`→`.Order`); (3) elimina `AppSections.cs`/`AccSections.cs`.
-      Aeroporto: fuori dal registry (documento generato) — adotta `frequencies` + sezioni derivate proprie.
-    - ⚠ **Vincolo di verifica**: è modifica a editor/viewer **Blazor** → NON verificabile coi soli
-      test (nessuna copertura UI, nessun browser qui). Va fatta potendo **guidare l'app** a vista
-      (avviare `Vipi.Host` + verifica visiva), altrimenti si spedirebbe UI verificata solo «compila».
-- **08e — creazione uniforme** `CreateDocumentUseCase` + fix routing `?doc`
-  ([[vloa-editor-routing-todo]]).
-- **08f — cleanup**: rimozione codice morto profile, repo/tabelle obsolete.
+  - **08d-app+acc 🟠 SUPERATO (ponte)** (fatto 2026-07-10, 242 test): tentativo strategia B su
+    ACC+APP. Migrati editor/viewer APP+ACC da `AppSections`/`AccSections` a `SectionCatalog`,
+    `SectionShell.Kind`→`SectionKind`, default editoriale generico, registry eliminati. **Bocciato
+    in verifica** (vedi header): config APP degradata, corpo custom divergente, no Callout/sotto-sezioni.
+    Si tiene l'adozione catalogo; il ponte editoriale (`AppCustomBlock`) è rimpiazzato in 08f/08g.
+
+> **STRATEGIA A — sotto-giri (2026-07-10).** Migrazione storage ACC/APP/Airport → `Document`.
+> Rischio crescente; ogni sotto-giro branch/PR a sé, verificato **guidando l'app** (editor/viewer
+> Blazor non coperti da test — vincolo confermato in 08d-app+acc). vLOA è il **template** (già su `Document`).
+
+- **08e — storage ACC/APP/Airport su `Document`** (il cuore): mappare `AccProfile`/`AppProfile`/
+  `AirportProfile` → `Document`(Type vIPI) + `DocumentVersion` + `DocumentSection`(tree, `SectionKey`
+  da catalogo) + `ContentBlock`. Le sezioni **derivate** (aor/frequencies/coordination/minima/
+  config/regulated) NON si persistono come blocchi: restano calcolate live per key. Le sezioni
+  **editoriali** e le custom → `DocumentSection`+`ContentBlock`. Servizi: `IAccProfileService`/
+  `IAppProfileService` editing → assorbiti nel servizio di editing unico su `Document` (estende
+  quello vLOA). **Greenfield**: migrazione EF che DROPpa le tabelle profile; derivato rigenerato
+  dagli import; editoriale a mano perso (pre-prod). Test-first sul mapping + reconcile albero.
+- **08f — editor+viewer editoriale unico** (design lock #1): un solo componente editor che edita un
+  sottoalbero `DocumentSection` con blocchi `Prose`/`Table`/`Callout` + **sotto-sezioni** (depth ≤3),
+  reorder/hide; + un solo viewer. Sostituisce `VloaEditor` inline, `CustomEditor`/`CustomBody` (ACC/APP)
+  e il ponte generico di 08d. Elimina `AppCustomBlock`/`AppCustomSection` e `AppProfileModels` editoriali.
+- **08g — sezioni derivate keyed condivise + config ricca**: renderer per key (aor/frequencies/
+  coordination/minima/regulated) unici per tutti i tipi; **editor config ricco condiviso** portato
+  anche in APP (design lock #2, pool = settori dell'aeroporto dell'APP; accorpamento come ACC).
+- **08h — Airport su `Document`**: il documento aeroporto (già generato con chiavi catalogo) finisce
+  la migrazione; creazione via use-case unico, non più speciale in `StructureEditingService` (doc 03).
+- **08e-bis — creazione uniforme** `CreateDocumentUseCase` su `ReleaseTargetType` + fix routing `?doc`
+  ([[vloa-editor-routing-todo]]). (Può accorparsi a 08e/08h secondo convenienza.)
+- **08i — cleanup**: rimozione entità/tabelle/servizi profile (`AccProfile`/`AppProfile`/`AirportProfile`,
+  `AppProfileModels`, `AccProfileModels`), codice morto ponte, `SectionCatalogBridge` se non più usato.
 
 ## 5. Impatto
 
