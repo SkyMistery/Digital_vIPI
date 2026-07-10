@@ -113,6 +113,39 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SectionBlockJson_RoundTrips_And_Clears_On_Keyed_Section()
+    {
+        // Documento vIPI APP seedato a mano (bozza v1) con la sezione radice keyed "separations".
+        var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var docId = await _repo.EnsureVipiDocumentAsync(
+            sec, "vIPI APP di test", Language.It,
+            new (string, string)[] { ("separations", "Separazioni"), ("vfr", "VFR") }, authorUserId: 5);
+
+        // Prima del salvataggio: nessun blocco → null.
+        Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+
+        // Upsert (crea il blocco).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "[{\"Vertical\":\"1000 ft\"}]", authorUserId: 5);
+        Assert.Equal("[{\"Vertical\":\"1000 ft\"}]", await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.Section!.SectionKey == "separations"
+            && b.DocumentVersion!.DocumentId == docId));
+
+        // Secondo upsert: aggiorna lo stesso blocco (niente duplicati).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "[{\"Vertical\":\"2000 ft\"}]", authorUserId: 5);
+        Assert.Equal("[{\"Vertical\":\"2000 ft\"}]", await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.Section!.SectionKey == "separations"
+            && b.DocumentVersion!.DocumentId == docId));
+
+        // json vuoto → azzera (blocco resta ma BodyJson null).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "  ", authorUserId: 5);
+        Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+
+        // Sezione inesistente → errore.
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _repo.SaveSectionBlockJsonAsync(docId, "nope", "x", authorUserId: 5));
+    }
+
+    [Fact]
     public async Task CreateDocument_Vloa_Adds_Two_Parties()
     {
         var sectors = await _db.Sectors.Select(s => s.Id).Take(2).ToListAsync();

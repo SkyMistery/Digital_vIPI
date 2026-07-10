@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -30,6 +31,18 @@ public interface IAppDocumentService
     Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default);
     Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string appCallsign, CancellationToken ct = default);
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
+
+    /// <summary>Righe della sezione Separazioni (editoriale-strutturata), lette dal blocco keyed del Document. Vuoto se non migrato/assente.</summary>
+    Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva le righe Separazioni nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
+
+    /// <summary>Contenuto della sezione VFR (prosa + tabella), letto dal blocco keyed del Document. Vuoto se non migrato/assente.</summary>
+    Task<AppVfrContent> GetVfrAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva il contenuto VFR nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAppDocumentService"/>
@@ -204,4 +217,49 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _apps.ListLinkableFrequenciesAsync(ct);
+
+    // --- Sezioni editoriali-strutturate su Document (doc 08e f3b-iii): separations/vfr in ContentBlock.BodyJson. ---
+
+    private async Task<int?> ResolveDocIdAsync(string appCallsign, CancellationToken ct) =>
+        (await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct))?.DocumentId;
+
+    public async Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return Array.Empty<AppSeparationRow>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "separations", ct);
+        return Deserialize<List<AppSeparationRow>>(json) ?? new List<AppSeparationRow>();
+    }
+
+    public async Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var clean = (rows ?? Array.Empty<AppSeparationRow>())
+            .Select(r => new AppSeparationRow((r.Vertical ?? "").Trim(), (r.Lateral ?? "").Trim(),
+                string.IsNullOrWhiteSpace(r.Applicability) ? null : r.Applicability!.Trim()))
+            .ToList();
+        var json = clean.Count == 0 ? null : JsonSerializer.Serialize(clean);
+        await _editing.SaveSectionBlockJsonAsync(docId, "separations", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    public async Task<AppVfrContent> GetVfrAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return AppVfrContent.Empty;
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "vfr", ct);
+        return Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty;
+    }
+
+    public async Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
+        var json = empty ? null : JsonSerializer.Serialize(content);
+        await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    private static T? Deserialize<T>(string? json) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<T>(json); }
+        catch (JsonException) { return null; }
+    }
 }
