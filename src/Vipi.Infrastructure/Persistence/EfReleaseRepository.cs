@@ -22,6 +22,7 @@ public sealed class EfReleaseRepository : IReleaseRepository
         {
             case ReleaseTargetType.Vloa:
             case ReleaseTargetType.Airport:
+            case ReleaseTargetType.App:
             {
                 var docId = await ResolveDocumentIdAsync(type, key, ct);
                 if (docId is null) return null;
@@ -35,9 +36,21 @@ public sealed class EfReleaseRepository : IReleaseRepository
                 if (raw is null) return null;
 
                 var payload = new DocReleasePayload { Doc = raw };
+                // vLOA e APP hanno overlay per-doc (sezioni/settori/frequenze nascosti) nella side-entity DocumentProfile
+                // (vLOA ancora su VloaProfile fino a 08i; APP su DocumentProfile dal doc 08e).
                 if (type == ReleaseTargetType.Vloa)
                 {
                     var p = await _db.VloaProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
+                    payload.Vloa = new VloaOverlaySnapshot
+                    {
+                        HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
+                        HiddenFrequencies = Deser(p?.HiddenFrequenciesJson),
+                        HiddenSections = Deser(p?.HiddenSectionsJson),
+                    };
+                }
+                else if (type == ReleaseTargetType.App)
+                {
+                    var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
                     payload.Vloa = new VloaOverlaySnapshot
                     {
                         HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
@@ -59,32 +72,6 @@ public sealed class EfReleaseRepository : IReleaseRepository
                     .Where(p => p.AccId == accId && p.RootCallsign == root)
                     .Select(p => p.BlocksJson).FirstOrDefaultAsync(ct);
                 return blocksJson ?? "[]";
-            }
-            case ReleaseTargetType.App:
-            {
-                // Chiave = callsign APP. Snapshot dei blob editoriali + link per callsign.
-                var sector = await _db.Sectors.AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.Callsign == key && s.Type == SectorType.App, ct);
-                if (sector is null) return null;
-                var profile = await _db.AppProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.SectorId == sector.Id, ct);
-                var links = profile is null ? new List<AppReleaseFreqLink>()
-                    : await _db.AppFrequencyLinks.AsNoTracking().Where(x => x.AppProfileId == profile.Id)
-                        .OrderBy(x => x.Order).Include(x => x.SourceSector)
-                        .Where(x => x.SourceSector != null)
-                        .Select(x => new AppReleaseFreqLink(x.SourceSector!.Callsign, x.LabelOverride, x.Order))
-                        .ToListAsync(ct);
-                var snap = new AppReleaseSnapshot
-                {
-                    SeparationsJson = profile?.SeparationsJson ?? "[]",
-                    VfrJson = profile?.VfrJson,
-                    SectionOrderJson = profile?.SectionOrderJson ?? "[]",
-                    HiddenSectionsJson = profile?.HiddenSectionsJson ?? "[]",
-                    FreqOrderJson = profile?.FreqOrderJson ?? "{}",
-                    CustomSectionsJson = profile?.CustomSectionsJson ?? "[]",
-                    CoordinationSentenceTemplate = profile?.CoordinationSentenceTemplate,
-                    FreqLinks = links.ToList(),
-                };
-                return JsonSerializer.Serialize(snap);
             }
             default:
                 return null;
@@ -219,6 +206,12 @@ public sealed class EfReleaseRepository : IReleaseRepository
     {
         if (type == ReleaseTargetType.Vloa)
             return int.TryParse(key, out var id) ? id : null;
+        // APP: il Document è quello del settore primario APP standalone (key = callsign).
+        if (type == ReleaseTargetType.App)
+            return await _db.Sectors.AsNoTracking()
+                .Where(s => s.Callsign == key && s.Type == SectorType.App
+                            && s.ApproachKind == ApproachKind.Standalone && s.DocumentId != null)
+                .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
         // Airport: il Document è quello dei settori foglia dell'aeroporto (Sector.DocumentId).
         return await _db.Sectors.AsNoTracking()
             .Where(s => s.AirportIcao == key && s.Kind == SectorKind.Airport && s.DocumentId != null)

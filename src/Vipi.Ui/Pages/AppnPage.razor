@@ -1,13 +1,14 @@
 @page "/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
-@inject IAppProfileService Profile
+@inject IAppDocumentService AppDoc
 @inject IEditAuthorizationService Authz
 @inject IVipiViewService ViewService
 @inject IEditingService Editing
 @inject IReleaseService Releases
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
+@using System.Text.Json
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -35,9 +36,9 @@ else if (_vloaMode)
         }
     </div>
 }
-else if (_data is null)
+else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">APP non trovato</p>Nessun avvicinamento non remotizzato per <code>@_app</code>.</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">APP non trovato</p>Nessun avvicinamento non remotizzato pubblicato per <code>@_app</code>. Se lo stai preparando, aprilo dall'<a href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">editor</a> e pubblicalo.</div></div></div>
 }
 else
 {
@@ -49,9 +50,9 @@ else
             <aside class="toc">
                 <p class="toc-h">Sommario</p>
                 <ul>
-                    @foreach (var key in _order)
+                    @foreach (var s in VisibleSections())
                     {
-                        <li><a href="#p-@key">@TitleOf(key)</a></li>
+                        <li><a href="#@AnchorOf(s)">@s.Title</a></li>
                     }
                 </ul>
             </aside>
@@ -74,25 +75,32 @@ else
                 }
                 <div class="callout info"><span class="cic">📡</span><div><p class="ct">APP con documentazione propria</p>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</div></div>
 
-                @foreach (var key in _order)
+                @foreach (var s in _view.Sections)
                 {
-                    var stored = _custom.FirstOrDefault(c => c.Key == key);
-                    var isHidden = _mode.Kind == PreviewKind.Draft && _data.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
-                    <div class="block" id="p-@key" style="@(isHidden ? "opacity:.65" : "")">
-                        <h3>@TitleOf(key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                        @switch (key)
-                        {
-                            case "separations": <AppSeparations Rows="_data.Separations" />; break;
-                            case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
-                            case "frequencies": <AppFrequencies Rows="_freqs" />; break;
-                            case "vfr": <AppVfr Content="_vfr" />; break;
-                            case "minima": <AppMinima />; break;
-                            case "coordination": <AppCoordinationView Coord="_coord" />; break;
-                            default:
-                                @if (stored is not null) { @CustomBody(stored) }
-                                break;
-                        }
-                    </div>
+                    var hidden = _hiddenKeys.Contains(s.SectionKey);
+                    @if (hidden && _mode.Kind != PreviewKind.Draft)
+                    {
+                        <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
+                    }
+                    else if (IsSpecial(s.SectionKey))
+                    {
+                        <div class="block" id="@AnchorOf(s)" style="@(hidden ? "opacity:.65" : "")">
+                            <h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
+                            @switch (s.SectionKey)
+                            {
+                                case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
+                                case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
+                                case "frequencies": <AppFrequencies Rows="_freqs" />; break;
+                                case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
+                                case "minima": <AppMinima />; break;
+                                case "coordination": <AppCoordinationView Coord="_coord" />; break;
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <SectionNode Section="s" />   @* editoriale/custom: prosa/tabella/callout + sotto-sezioni *@
+                    }
                 }
             </div>
 
@@ -135,16 +143,25 @@ else
 
     private AccInfo? _acc;
     private string _app = "";
-    private string _name = "";
     private string _displayName = "";
     private bool _canEdit;
-    private AppProfileData? _data;
-    private List<string> _order = new();
-    private List<AppCustomSection> _custom = new();
+
+    // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate live da AppDocumentService.
+    private DocumentView? _view;
+    private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
     private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
     private AppCoordination _coord = AppCoordination.Empty;
     private AccAorView _aorView = AccAorView.Empty;
+
+    // Sezioni "speciali" rese da componenti dedicati (derivate live + editoriali-strutturate); le altre via SectionNode.
+    private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
+        { "separations", "aor", "frequencies", "vfr", "minima", "coordination" };
+    private static bool IsSpecial(string key) => Special.Contains(key);
+
+    private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
+    private IEnumerable<SectionView> VisibleSections() =>
+        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !_hiddenKeys.Contains(s.SectionKey));
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
@@ -191,7 +208,6 @@ else
                     else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
                     break;
                 case PreviewKind.Release:
-                    // Serve il docId della coppia per verificare l'identità della release: senza, niente anteprima (→ pubblica).
                     var pv = _vloaDocId is int vid ? await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, vid.ToString()) : null;
                     if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _vloaView = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                     else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
@@ -204,44 +220,39 @@ else
         }
 
         _app = (App ?? "").Trim().ToUpperInvariant();
+        _view = null;
+        if (string.IsNullOrWhiteSpace(_app)) return;
 
-        // Anteprima (bozza/release) gated can-edit ACC; su non autorizzato/mismatch → vista pubblica (nessun banner).
+        var identity = await AppDoc.GetIdentityAsync(_app);
+        if (identity is null) return;   // callsign non è un APP standalone
+        _displayName = string.IsNullOrWhiteSpace(identity.Title) ? _app : identity.Title;
+        _canEdit = await Authz.CanEditAccAsync(identity.AccCode);
+
+        // Vista documentale (struttura + editoriale). Le derivate restano vuote nel view → rese live sotto.
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                try { _data = await Profile.LoadForEditAsync(_app); }
-                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
+                if (_canEdit) _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
+                else { _mode = default; _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false); }
                 break;
             case PreviewKind.Release:
-                try
-                {
-                    var rv = await Profile.LoadForReleaseAsync(_app, _mode.ReleaseId);
-                    if (rv is null) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
-                    else { _data = rv.Data; _relCycle = rv.AiracCycle; }
-                }
-                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(_app); }
+                var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
+                if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                else { _mode = default; _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false); }
                 break;
             default:
-                _data = await Profile.LoadForViewAsync(_app);
+                _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false);
                 break;
         }
-        if (_data is null) return;
+        if (_view is null) return;
 
-        _name = _data.Name;
-        _displayName = string.IsNullOrWhiteSpace(_data.DisplayName) ? _data.Name : _data.DisplayName!;
-        _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
-        _custom = _data.CustomSections.ToList();
-        _vfr = ParseVfr(_data.VfrJson);
-        var customKeys = _custom.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var hidden = _data.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // Le sezioni nascoste non compaiono nel documento pubblico né nell'anteprima release; in anteprima BOZZA sì
-        // (l'editor le vede), per mostrare esattamente lo stato editoriale in lavorazione.
-        _order = SectionCatalog.Reconcile(SectionProfile.App, _data.SectionOrder, customKeys)
-            .Where(k => _mode.Kind == PreviewKind.Draft || !hidden.Contains(k)).ToList();
+        var overrides = await AppDoc.GetOverridesAsync(_app);
+        _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        _freqs = (await Profile.DeriveFrequenciesAsync(_app)).ToList();
-        _coord = await Profile.DeriveCoordinationAsync(_app);
-        _aorView = await Profile.GetAorViewAsync(_app);
+        // Derivate live (sempre attuali, anche in anteprima release: "i dati derivati restano live").
+        _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
+        _coord = await AppDoc.DeriveCoordinationAsync(_app);
+        _aorView = await AppDoc.GetAorViewAsync(_app);
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).
@@ -256,36 +267,17 @@ else
         });
     }
 
-    private string TitleOf(string key) =>
-        SectionCatalog.Find(SectionProfile.App, key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+    // Editoriali-strutturate: il dato vive nel BodyJson del primo blocco Table della sezione keyed del Document.
+    private static IReadOnlyList<AppSeparationRow> ReadSeparations(SectionView s) =>
+        Deser<List<AppSeparationRow>>(s.Blocks.FirstOrDefault()?.BodyJson) ?? new List<AppSeparationRow>();
 
-    private static AppVfrContent ParseVfr(string? json)
+    private static AppVfrContent ReadVfr(SectionView s) =>
+        Deser<AppVfrContent>(s.Blocks.FirstOrDefault()?.BodyJson) ?? AppVfrContent.Empty;
+
+    private static T? Deser<T>(string? json) where T : class
     {
-        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
-        try { return System.Text.Json.JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
-        catch (System.Text.Json.JsonException) { return AppVfrContent.Empty; }
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<T>(json); }
+        catch (JsonException) { return null; }
     }
-
-    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
-    {
-        @foreach (var block in sec.Blocks)
-        {
-            if (block.Type == AppCustomBlockType.Prose)
-            {
-                @if (!string.IsNullOrWhiteSpace(block.Text)) { @MarkdownLite.Render(block.Text!) }
-            }
-            else
-            {
-                <table>
-                    <thead><tr>@foreach (var c in block.Columns ?? Array.Empty<string>()) { <th>@c</th> }</tr></thead>
-                    <tbody>
-                        @foreach (var r in block.Rows ?? Array.Empty<IReadOnlyList<string>>())
-                        {
-                            <tr>@foreach (var cell in r) { <td>@cell</td> }</tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-    };
 }
