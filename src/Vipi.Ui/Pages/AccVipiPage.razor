@@ -59,7 +59,12 @@ else
                         var isHidden = IsHiddenSection(block, key);
                         <div class="block" id="p-@(block.Key)-@key" style="@(isHidden ? "opacity:.65" : "")">
                             <h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                            @SectionBody(block, key)
+                            <AccSectionBody Block="block" Key="key" Root="_root"
+                                            Freqs="_freqs.GetValueOrDefault(block.Key)"
+                                            Coord="_coord.GetValueOrDefault(block.Key)"
+                                            Aor="_aors.GetValueOrDefault(block.Key)"
+                                            Areas="_areas.GetValueOrDefault(block.Key)"
+                                            ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
                         </div>
                     }
                 }
@@ -193,13 +198,4 @@ else
     private static string TitleOf(AccBlock b, string key) =>
         SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
 
-    private RenderFragment SectionBody(AccBlock block, string key) => __builder =>
-    {
-        <AccSectionBody Block="block" Key="key" Root="_root"
-                        Freqs="_freqs.GetValueOrDefault(block.Key)"
-                        Coord="_coord.GetValueOrDefault(block.Key)"
-                        Aor="_aors.GetValueOrDefault(block.Key)"
-                        Areas="_areas.GetValueOrDefault(block.Key)"
-                        ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
-    };
 }
