@@ -51,10 +51,12 @@ public class AccDocumentAssemblerTests
             // Blocco Aerovia: nessun blockmeta (default), con figlie keyed.
             Sec(10, "aerovia", "Settori di aerovia", 1, ownJson: null, children: new[]
             {
-                Sec(11, "separations", "Separazioni radar", 1),
+                Sec(11, "separations", "Separazioni radar", 1,
+                    ownJson: JsonSerializer.Serialize(new[] { new AppSeparationRow("1000 ft", "5 NM") })),
                 Sec(12, "configurations", "Configurazioni", 2, ownJson: JsonSerializer.Serialize(configs)),
                 Sec(13, "aor", "AOR", 3),
                 Sec(14, "regulated", "Aree", 4, ownJson: JsonSerializer.Serialize(attached)),
+                Sec(15, "vfr", "VFR", 5, ownJson: JsonSerializer.Serialize(new AppVfrContent("intro", new List<AppVfrRow>()))),
             }),
             // Blocco gruppo APP: blockmeta valorizzato.
             Sec(20, "appgroup", "Gruppo APP", 2, ownJson: JsonSerializer.Serialize(meta), children: new[]
@@ -73,9 +75,11 @@ public class AccDocumentAssemblerTests
         Assert.Single(aerovia.Block.Configurations);
         Assert.Equal("Conf 1", aerovia.Block.Configurations[0].Name);
         Assert.Equal(new[] { "area-42" }, aerovia.Block.AttachedSpecialAreaIds);
-        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated" }, aerovia.Block.SectionOrder);
+        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr" }, aerovia.Block.SectionOrder);
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
+        Assert.Equal("1000 ft", Assert.Single(aerovia.Block.Separations).Vertical);
+        Assert.Contains("intro", aerovia.Block.VfrJson);
 
         // Gruppo APP: tutti i campi dal blockmeta.
         var grp = blocks[1];

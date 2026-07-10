@@ -35,6 +35,8 @@ public static class AccDocumentAssembler
 
             var configs = Deserialize<List<AccConfiguration>>(ChildBodyJson(blockSection, "configurations")) ?? new();
             var attached = Deserialize<List<string>>(ChildBodyJson(blockSection, "regulated")) ?? new();
+            var separations = Deserialize<List<AppSeparationRow>>(ChildBodyJson(blockSection, "separations")) ?? new();
+            var vfrJson = ChildBodyJson(blockSection, "vfr");   // AppVfrContent grezzo (AccBlock.VfrJson è stringa)
 
             var block = new AccBlock
             {
@@ -48,6 +50,8 @@ public static class AccDocumentAssembler
                 CoordinationSentenceTemplate = meta?.CoordinationSentenceTemplate,
                 Configurations = configs,
                 AttachedSpecialAreaIds = attached,
+                Separations = separations,
+                VfrJson = vfrJson,
                 SectionOrder = blockSection.Children.OrderBy(c => c.Order).Select(c => c.SectionKey).ToList(),
             };
             result.Add(new AccAssembledBlock(blockSection.Id, block, childIds));

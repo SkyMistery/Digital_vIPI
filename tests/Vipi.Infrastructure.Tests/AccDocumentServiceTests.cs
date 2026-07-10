@@ -84,6 +84,29 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.True(block.ChildSectionIdsByKey.ContainsKey("frequencies"));
     }
 
+    [Fact]
+    public async Task Save_Configurations_And_Separations_RoundTrip_Through_Document()
+    {
+        var model = await _service.LoadForEditAsync(Acc);
+        var block = Assert.Single(model.Blocks);
+        var configId = block.ChildSectionIdsByKey["configurations"];
+        var sepId = block.ChildSectionIdsByKey["separations"];
+
+        await _service.SaveConfigurationsAsync(Acc, configId, new[]
+        {
+            new AccConfiguration { Key = "cfg:1", Name = "Conf 1", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
+        });
+        await _service.SaveSeparationsAsync(Acc, sepId, new[] { new AppSeparationRow("1000 ft", "5 NM") });
+
+        var reloaded = Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks).Block;
+        Assert.Equal("Conf 1", Assert.Single(reloaded.Configurations).Name);
+        Assert.Equal("1000 ft", Assert.Single(reloaded.Separations).Vertical);
+
+        // Azzeramento: lista vuota → sparisce.
+        await _service.SaveSeparationsAsync(Acc, sepId, Array.Empty<AppSeparationRow>());
+        Assert.Empty(Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks).Block.Separations);
+    }
+
     /// <summary>Authz permissiva per i ctor dei service in test.</summary>
     private sealed class AllowAuthz : IEditAuthorizationService
     {

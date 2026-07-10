@@ -23,6 +23,21 @@ public interface IAccDocumentService
 
     /// <summary>Carica la vIPI ACC dalla versione di lavoro (bozza se esiste, sennò la pubblicata) assemblando i blocchi. ACC-gated; garantisce il Document.</summary>
     Task<AccDocumentModel> LoadForEditAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Salva il metadata del blocco (natura/membri/override) nel <c>BodyJson</c> del blocco proprio della sezione-blocco. ACC-gated.</summary>
+    Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default);
+
+    /// <summary>Salva le configurazioni di un blocco nel <c>BodyJson</c> della sua sezione figlia <c>configurations</c>. ACC-gated.</summary>
+    Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
+
+    /// <summary>Salva le aree regolamentate attaccate (id IVAO) nel <c>BodyJson</c> della sezione figlia <c>regulated</c>. ACC-gated.</summary>
+    Task SaveRegulatedAsync(string accCode, int regulatedSectionId, IReadOnlyList<string> attachedIds, CancellationToken ct = default);
+
+    /// <summary>Salva le righe Separazioni nel <c>BodyJson</c> della sezione figlia <c>separations</c>. ACC-gated.</summary>
+    Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
+
+    /// <summary>Salva il contenuto VFR nel <c>BodyJson</c> della sezione figlia <c>vfr</c>. ACC-gated.</summary>
+    Task SaveVfrAsync(string accCode, int vfrSectionId, AppVfrContent content, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAccDocumentService"/>
@@ -79,5 +94,39 @@ public sealed class AccDocumentService : IAccDocumentService
 
         var blocks = AccDocumentAssembler.Assemble(doc);
         return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks);
+    }
+
+    // --- Salvataggi editoriali by-section (ACC-gated). Il BodyJson vive nel blocco della sezione indicata. ---
+
+    public Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default) =>
+        SaveJsonAsync(accCode, blockSectionId, meta, ct);
+
+    public Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default) =>
+        SaveJsonAsync(accCode, configSectionId, (configs?.Count ?? 0) == 0 ? null : configs, ct);
+
+    public Task SaveRegulatedAsync(string accCode, int regulatedSectionId, IReadOnlyList<string> attachedIds, CancellationToken ct = default) =>
+        SaveJsonAsync(accCode, regulatedSectionId, (attachedIds?.Count ?? 0) == 0 ? null : attachedIds, ct);
+
+    public Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)
+    {
+        var clean = (rows ?? Array.Empty<AppSeparationRow>())
+            .Select(r => new AppSeparationRow((r.Vertical ?? "").Trim(), (r.Lateral ?? "").Trim(),
+                string.IsNullOrWhiteSpace(r.Applicability) ? null : r.Applicability!.Trim()))
+            .ToList();
+        return SaveJsonAsync(accCode, separationsSectionId, clean.Count == 0 ? null : clean, ct);
+    }
+
+    public Task SaveVfrAsync(string accCode, int vfrSectionId, AppVfrContent content, CancellationToken ct = default)
+    {
+        var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
+        return SaveJsonAsync(accCode, vfrSectionId, empty ? null : content, ct);
+    }
+
+    // Serializza (null/vuoto azzera) e scrive il BodyJson della sezione, previa autorizzazione ACC.
+    private async Task SaveJsonAsync(string accCode, int sectionId, object? value, CancellationToken ct)
+    {
+        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        var json = value is null ? null : System.Text.Json.JsonSerializer.Serialize(value);
+        await _editing.SaveSectionBlockJsonBySectionAsync(sectionId, json, _authz.CurrentUserId ?? 0, ct);
     }
 }
