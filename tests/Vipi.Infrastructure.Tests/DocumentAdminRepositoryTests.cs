@@ -25,7 +25,7 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
         _db = new VipiDbContext(options);
         await _db.Database.EnsureCreatedAsync();
-        _repo = new EfDocumentAdminRepository(_db);
+        _repo = TestReleaseTargets.AdminRepo(_db);
 
         var lirr = new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI" };
         var lfff = new Acc { Code = "LFFF", Name = "France", CountryPrefix = "LF" };

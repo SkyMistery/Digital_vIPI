@@ -14,46 +14,41 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfReleaseRepository : IReleaseRepository
 {
     private readonly VipiDbContext _db;
-    public EfReleaseRepository(VipiDbContext db) => _db = db;
+    private readonly IReleaseTargetRegistry _targets;
+    public EfReleaseRepository(VipiDbContext db, IReleaseTargetRegistry targets)
+    {
+        _db = db;
+        _targets = targets;
+    }
 
     public async Task<string?> SnapshotWorkingAsync(ReleaseTargetType type, string key, string airacCycle, CancellationToken ct = default)
     {
-        switch (type)
+        // Ramo unico post-08: tutti i tipi sono su Document. Il descrittore per-tipo risolve solo l'identità (chiave→doc)
+        // e dichiara se serve congelare l'overlay di visibilità da DocumentProfile (doc 09 §3a).
+        var target = _targets.For(type);
+        var docId = await target.ResolveDocumentIdAsync(key, ct);
+        if (docId is null) return null;
+        var doc = await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == docId, ct);
+        if (doc is null) return null;
+
+        var versionId = await WorkingVersionIdAsync(doc, ct);
+        if (versionId is null) return null;
+
+        var raw = await EfContentRepository.BuildRawFromVersionAsync(_db, versionId.Value, doc.Title, airacCycle, ct);
+        if (raw is null) return null;
+
+        var payload = new DocReleasePayload { Doc = raw };
+        if (target.IncludesVisibilityOverlay)
         {
-            case ReleaseTargetType.Vloa:
-            case ReleaseTargetType.Airport:
-            case ReleaseTargetType.App:
-            case ReleaseTargetType.AccVipi:
+            var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
+            payload.Vloa = new VloaOverlaySnapshot
             {
-                var docId = await ResolveDocumentIdAsync(type, key, ct);
-                if (docId is null) return null;
-                var doc = await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == docId, ct);
-                if (doc is null) return null;
-
-                var versionId = await WorkingVersionIdAsync(doc, ct);
-                if (versionId is null) return null;
-
-                var raw = await EfContentRepository.BuildRawFromVersionAsync(_db, versionId.Value, doc.Title, airacCycle, ct);
-                if (raw is null) return null;
-
-                var payload = new DocReleasePayload { Doc = raw };
-                // vLOA e APP hanno overlay per-doc (sezioni/settori/frequenze nascosti) nella side-entity unificata
-                // DocumentProfile (doc 08i: VloaProfile confluito in DocumentProfile).
-                if (type is ReleaseTargetType.Vloa or ReleaseTargetType.App)
-                {
-                    var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
-                    payload.Vloa = new VloaOverlaySnapshot
-                    {
-                        HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
-                        HiddenFrequencies = Deser(p?.HiddenFrequenciesJson),
-                        HiddenSections = Deser(p?.HiddenSectionsJson),
-                    };
-                }
-                return JsonSerializer.Serialize(payload);
-            }
-            default:
-                return null;
+                HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
+                HiddenFrequencies = Deser(p?.HiddenFrequenciesJson),
+                HiddenSections = Deser(p?.HiddenSectionsJson),
+            };
         }
+        return JsonSerializer.Serialize(payload);
     }
 
     public async Task<int> SaveReleaseAsync(ReleaseTargetType type, string key, string releaseCycle, DateTime effectiveUtc,
@@ -126,27 +121,8 @@ public sealed class EfReleaseRepository : IReleaseRepository
         return (type, key);
     }
 
-    public async Task<string?> GetAuthAccCodeAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
-    {
-        switch (type)
-        {
-            case ReleaseTargetType.AccVipi:
-                return key.Split('|', 2)[0];   // "{accCode}|{root}"
-            case ReleaseTargetType.App:
-                return await _db.Sectors.AsNoTracking()
-                    .Where(s => s.Callsign == key).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
-            case ReleaseTargetType.Airport:
-                return await _db.Airports.AsNoTracking()
-                    .Where(a => a.Icao == key).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
-            case ReleaseTargetType.Vloa:
-                return int.TryParse(key, out var id)
-                    ? await _db.Documents.AsNoTracking().Where(d => d.Id == id)
-                        .SelectMany(d => d.Parties).Where(p => p.Role == PartyRole.Home)
-                        .Select(p => p.Sector!.Acc!.Code).FirstOrDefaultAsync(ct)
-                    : null;
-            default: return null;
-        }
-    }
+    public Task<string?> GetAuthAccCodeAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
+        _targets.For(type).AuthAccCodeAsync(key, ct);
 
     public async Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
         IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default)
@@ -180,32 +156,6 @@ public sealed class EfReleaseRepository : IReleaseRepository
     }
 
     // ---- helper ----
-    private async Task<int?> ResolveDocumentIdAsync(ReleaseTargetType type, string key, CancellationToken ct)
-    {
-        if (type == ReleaseTargetType.Vloa)
-            return int.TryParse(key, out var id) ? id : null;
-        // ACC: key "{accCode}|{root}". Il Document è quello del settore CTR radice primario dell'ACC (doc 08e-acc).
-        if (type == ReleaseTargetType.AccVipi)
-        {
-            var accCode = key.Split('|', 2)[0];
-            return await _db.Sectors.AsNoTracking()
-                .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr
-                            && s.ParentSectorId == null && s.IsActive && s.DocumentId != null)
-                .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
-                .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
-        }
-        // APP: il Document è quello del settore primario APP standalone (key = callsign).
-        if (type == ReleaseTargetType.App)
-            return await _db.Sectors.AsNoTracking()
-                .Where(s => s.Callsign == key && s.Type == SectorType.App
-                            && s.ApproachKind == ApproachKind.Standalone && s.DocumentId != null)
-                .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
-        // Airport: il Document è quello dei settori foglia dell'aeroporto (Sector.DocumentId).
-        return await _db.Sectors.AsNoTracking()
-            .Where(s => s.AirportIcao == key && s.Kind == SectorKind.Airport && s.DocumentId != null)
-            .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
-    }
-
     private async Task<int?> WorkingVersionIdAsync(Document doc, CancellationToken ct)
     {
         var draft = await _db.DocumentVersions.AsNoTracking()

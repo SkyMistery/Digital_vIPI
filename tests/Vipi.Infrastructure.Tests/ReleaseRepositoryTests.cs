@@ -25,7 +25,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
         _db = new VipiDbContext(options);
         await _db.Database.EnsureCreatedAsync();
-        _repo = new EfReleaseRepository(_db);
+        _repo = TestReleaseTargets.ReleaseRepo(_db);
 
         // vLOA minimale: Acc+Sector Home, Document(Vloa) Published con 1 versione, 1 sezione, 1 blocco, party Home.
         var acc = new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI" };

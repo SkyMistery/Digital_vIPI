@@ -32,7 +32,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         var repo = new EfAccProfileRepository(_db);
         var editing = new EfEditingRepository(_db, new AiracService());
-        _service = new AccDocumentService(repo, editing, new AllowAuthz(), new EfReleaseRepository(_db));
+        _service = new AccDocumentService(repo, editing, new AllowAuthz(), TestReleaseTargets.ReleaseRepo(_db));
     }
 
     public async Task DisposeAsync()
@@ -154,7 +154,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
     [Fact]
     public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
     {
-        var releases = new EfReleaseRepository(_db);
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
         var editing = new EfEditingRepository(_db, new AiracService());
 
         // Migra + edita (config "Conf A") + pubblica.
