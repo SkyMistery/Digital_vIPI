@@ -24,6 +24,13 @@ public interface IReleaseRepository
     Task<int> SaveReleaseAsync(ReleaseTargetType type, string key, string releaseCycle, DateTime effectiveUtc,
         string payloadJson, int createdByUserId, string? note, CancellationToken ct = default);
 
+    /// <summary>Promuove a Published la bozza di lavorazione del Document bersaglio (stessa semantica del publish-versione
+    /// dell'editor): archivia la pubblicata precedente, versione→Published, imposta CurrentVersionId e Document.Status.
+    /// Usato dalla pubblicazione immediata (review) perché il documento sia visibile anche nelle liste (gate su
+    /// Status==Published), non solo via snapshot di release. No-op se non c'è una bozza da promuovere. Vedi
+    /// <c>EfEditingRepository.PublishAsync</c> (publish-versione canonico dall'editor).</summary>
+    Task PublishWorkingVersionAsync(ReleaseTargetType type, string key, int actorUserId, string airacCycle, CancellationToken ct = default);
+
     /// <summary>Release del bersaglio, più recenti prima (per la timeline).</summary>
     Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 

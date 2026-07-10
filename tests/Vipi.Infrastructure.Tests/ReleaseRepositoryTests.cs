@@ -171,6 +171,36 @@ public class ReleaseRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PublishWorkingVersion_PromotesDraftDocToPublished()
+    {
+        // Doc APP in BOZZA (mai pubblicato come versione): un settore APP standalone col Document Draft + 1 versione Draft.
+        var acc = await _db.Accs.FirstAsync();
+        var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI LIPZ_APP", Language = Language.It, Status = DocumentStatus.Draft, LastUpdatedAiracCycle = "2606" };
+        var ver = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        doc.Versions.Add(ver);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIPZ_APP", Name = "Pisa APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
+        await _db.SaveChangesAsync();
+
+        await _repo.PublishWorkingVersionAsync(ReleaseTargetType.App, "LIPZ_APP", 1, "2607");
+
+        var reloaded = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == doc.Id);
+        Assert.Equal(DocumentStatus.Published, reloaded.Status);
+        Assert.Equal(ver.Id, reloaded.CurrentVersionId);
+        Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.Id == ver.Id)).Status);
+    }
+
+    [Fact]
+    public async Task PublishWorkingVersion_NoDraft_IsNoOp()
+    {
+        // Il doc vLOA seed è già Published con la sua versione; nessuna bozza → no-op, nessuna eccezione.
+        await _repo.PublishWorkingVersionAsync(ReleaseTargetType.Vloa, _docId.ToString(), 1, "2607");
+        var reloaded = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == _docId);
+        Assert.Equal(DocumentStatus.Published, reloaded.Status);
+    }
+
+    [Fact]
     public async Task PublishNow_IsImmediatelyEffective_AndSupersedesSameCycle()
     {
         var key = _docId.ToString();

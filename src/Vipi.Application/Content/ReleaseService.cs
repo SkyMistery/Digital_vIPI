@@ -85,7 +85,12 @@ public sealed class ReleaseService : IReleaseService
     {
         await EnsureCanEditAsync(type, key, ct);
         var now = DateTime.UtcNow;
-        await SnapshotAndSaveAsync(type, key, _airac.GetCycle(now), now, note, ct);
+        var cycle = _airac.GetCycle(now);
+        await SnapshotAndSaveAsync(type, key, cycle, now, note, ct);
+        // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così il documento è visibile
+        // nelle liste pubbliche (gate su Status==Published) e nel fallback del viewer, non solo via snapshot di release.
+        // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
+        await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, ct);
     }
 
     public async Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)

@@ -80,6 +80,46 @@ public sealed class EfReleaseRepository : IReleaseRepository
         return row.Id;
     }
 
+    public async Task PublishWorkingVersionAsync(ReleaseTargetType type, string key, int actorUserId, string airacCycle, CancellationToken ct = default)
+    {
+        var docId = await _targets.For(type).ResolveDocumentIdAsync(key, ct);
+        if (docId is null) return;
+
+        // Promuove la bozza più recente (se c'è); no-op se il documento non ha bozze in lavorazione.
+        var draft = await _db.DocumentVersions.Include(v => v.Document)
+            .Where(v => v.DocumentId == docId && v.Status == DocumentStatus.Draft)
+            .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
+        if (draft is null) return;
+
+        var doc = draft.Document!;
+        var now = DateTime.UtcNow;
+
+        // Archivia la pubblicata precedente (se diversa) — stessa semantica di EfEditingRepository.PublishAsync.
+        if (doc.CurrentVersionId is int prevId && prevId != draft.Id)
+        {
+            var prev = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == prevId, ct);
+            if (prev is not null) prev.Status = DocumentStatus.Archived;
+        }
+
+        draft.Status = DocumentStatus.Published;
+        doc.CurrentVersionId = draft.Id;
+        doc.Status = DocumentStatus.Published;
+        doc.LastUpdatedUtc = now;
+        doc.LastUpdatedAiracCycle = airacCycle;
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = actorUserId,
+            Action = AuditAction.Publish,
+            EntityType = "DocumentVersion",
+            EntityId = draft.Id.ToString(),
+            TimestampUtc = now,
+            DetailsJson = JsonSerializer.Serialize(new { doc.Id, draft.VersionNumber, Reason = "publish-now-release" }),
+        });
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
