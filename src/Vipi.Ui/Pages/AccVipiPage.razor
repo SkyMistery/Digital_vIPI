@@ -59,7 +59,7 @@ else
                         var isHidden = IsHiddenSection(block, key);
                         <div class="block" id="p-@(block.Key)-@key" style="@(isHidden ? "opacity:.65" : "")">
                             <h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                            <AccSectionBody Block="block" Key="key" Root="_root"
+                            <AccSectionBody Block="block" Key="@key" Root="@_root"
                                             Freqs="_freqs.GetValueOrDefault(block.Key)"
                                             Coord="_coord.GetValueOrDefault(block.Key)"
                                             Aor="_aors.GetValueOrDefault(block.Key)"
