@@ -1,4 +1,9 @@
-# 08 — Modello documento + editing (punti 9+12) 🟢🟡 (programma: 08a–08i)
+# 08 — Modello documento + editing (punti 9+12) ✅ COMPLETO (08a–08i mergiati, 2026-07-10)
+
+> **CHIUSO (2026-07-10).** Tutti e 4 i tipi (vLOA, APP, ACC, Airport) su modello unificato `Document`+
+> `SectionCatalog`; overlay editoriale unico `DocumentProfile`; storage profile (`AccProfile`/`AppProfile`/
+> `VloaProfile`) eliminato con migrazioni di drop. Il dolore del punto 12 (due modelli documento) è risolto.
+> Baseline test = 252. Opzionale residuo: creazione airport via use-case unico (ex-08h). Prossimo: doc 09.
 
 > **DECISIONE Fase 0 (2026-07-09)**: unificazione greenfield su `Document` + `SectionCatalog`,
 > test-first. Decomposto in sotto-giri (§4).
