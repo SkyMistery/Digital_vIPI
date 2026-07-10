@@ -33,6 +33,20 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         return new AppDocumentIdentity(s.Id, s.Callsign, title, s.Acc.Code, s.DocumentId);
     }
 
+    public async Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
+    {
+        if (sourceSectorIds.Count == 0) return Array.Empty<AppFreqRow>();
+        var byId = await _db.Sectors.AsNoTracking()
+            .Where(s => sourceSectorIds.Contains(s.Id) && s.DefaultFrequency != null)
+            .ToDictionaryAsync(s => s.Id, ct);
+        var rows = new List<AppFreqRow>();
+        foreach (var id in sourceSectorIds)   // preserva l'ordine dei link salvati
+            if (byId.TryGetValue(id, out var s))
+                rows.Add(new AppFreqRow(id, s.Callsign, s.Callsign, s.DefaultFrequency!,
+                    s.Type.ToString().ToUpperInvariant(), false, true));
+        return rows;
+    }
+
     public async Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.AirportSectors.AsNoTracking().Where(s => s.ComposePosition == appCallsign)
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);

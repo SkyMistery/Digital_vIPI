@@ -43,6 +43,10 @@ public interface IAppProfileRepository
     /// <summary>Tutti i settori con frequenza (per il picker di link), con ICAO/callsign.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
+    /// <summary>Risolve gli id dei settori-sorgente dei link frequenza (da <c>DocumentProfile</c>) in righe frequenza
+    /// (IsLink=true), preservando l'ordine degli id. Salta gli id senza frequenza/inesistenti. Doc 08e.</summary>
+    Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
+
     /// <summary>
     /// Catalogo frequenze: posizioni (ATIS·DEL·GND·TWR·APP) degli aeroporti del sottoalbero (APP del callsign = ★),
     /// seguite dai GENITORI di copertura (<paramref name="ancestorCallsigns"/>, in ordine di vicinanza) coi loro CTR.
