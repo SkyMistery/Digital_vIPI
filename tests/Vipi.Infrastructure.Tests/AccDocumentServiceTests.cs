@@ -126,6 +126,31 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks);
     }
 
+    [Fact]
+    public async Task LoadForView_Synthetic_Before_Publish_Then_Published_Tree()
+    {
+        // Non ancora migrato: blocco Aerovia sintetico (docId 0), sezioni derivate rese live dai cataloghi.
+        var pre = await _service.LoadForViewAsync(Acc);
+        Assert.NotNull(pre);
+        Assert.Equal(0, pre!.DocumentId);
+        var synth = Assert.Single(pre.Blocks);
+        Assert.Equal(AccBlockKind.Aerovia, synth.Block.Kind);
+        Assert.NotEmpty(synth.Block.SectionOrder);
+
+        // Crea + pubblica la bozza.
+        var docId = await _service.EnsureAsync(Acc);
+        var editing = new EfEditingRepository(_db, new AiracService());
+        var draftVer = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(draftVer, actorUserId: 1, note: "pub");
+
+        // Ora la vista pubblica legge l'albero pubblicato.
+        var post = await _service.LoadForViewAsync(Acc);
+        Assert.NotNull(post);
+        Assert.Equal(docId, post!.DocumentId);
+        Assert.False(post.IsDraft);
+        Assert.Equal(AccBlockKind.Aerovia, Assert.Single(post.Blocks).Block.Kind);
+    }
+
     /// <summary>Authz permissiva per i ctor dei service in test.</summary>
     private sealed class AllowAuthz : IEditAuthorizationService
     {

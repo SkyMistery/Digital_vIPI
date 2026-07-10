@@ -78,11 +78,24 @@ public sealed class EfEditingRepository : IEditingRepository
                 .FirstOrDefaultAsync(ct);
 
         if (working is null) return null;
+        return await BuildEditableAsync(doc, working, ct);
+    }
 
+    public async Task<EditableDocument?> LoadForViewAsync(int documentId, CancellationToken ct = default)
+    {
+        var doc = await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentId, ct);
+        if (doc?.CurrentVersionId is not int cur) return null;   // solo la versione pubblicata corrente
+        var version = await _db.DocumentVersions.AsNoTracking().FirstOrDefaultAsync(v => v.Id == cur, ct);
+        return version is null ? null : await BuildEditableAsync(doc, version, ct);
+    }
+
+    // Costruisce il modello editabile (albero sezioni + blocchi) di una specifica versione.
+    private async Task<EditableDocument> BuildEditableAsync(Document doc, DocumentVersion version, CancellationToken ct)
+    {
         var sections = await _db.DocumentSections
-            .Where(s => s.DocumentVersionId == working.Id).AsNoTracking().ToListAsync(ct);
+            .Where(s => s.DocumentVersionId == version.Id).AsNoTracking().ToListAsync(ct);
         var blocks = await _db.ContentBlocks
-            .Where(b => b.DocumentVersionId == working.Id).AsNoTracking().ToListAsync(ct);
+            .Where(b => b.DocumentVersionId == version.Id).AsNoTracking().ToListAsync(ct);
 
         var blocksBySection = blocks.GroupBy(b => b.SectionId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
@@ -113,9 +126,9 @@ public sealed class EfEditingRepository : IEditingRepository
         return new EditableDocument
         {
             DocumentId = doc.Id,
-            VersionId = working.Id,
-            VersionNumber = working.VersionNumber,
-            VersionStatus = working.Status,
+            VersionId = version.Id,
+            VersionNumber = version.VersionNumber,
+            VersionStatus = version.Status,
             Title = doc.Title,
             Sections = roots,
         };

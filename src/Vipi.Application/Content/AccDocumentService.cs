@@ -24,6 +24,11 @@ public interface IAccDocumentService
     /// <summary>Carica la vIPI ACC dalla versione di lavoro (bozza se esiste, sennò la pubblicata) assemblando i blocchi. ACC-gated; garantisce il Document.</summary>
     Task<AccDocumentModel> LoadForEditAsync(string accCode, CancellationToken ct = default);
 
+    /// <summary>Vista PUBBLICA: assembla i blocchi dalla versione pubblicata del Document. Se l'ACC non ha ancora un
+    /// Document (o versione pubblicata), ritorna un blocco Aerovia vuoto di default così le sezioni derivate (freq/AoR/
+    /// coord) restano visibili dai cataloghi. Non gated, non crea il Document. Null solo se l'ACC non esiste.</summary>
+    Task<AccDocumentModel?> LoadForViewAsync(string accCode, CancellationToken ct = default);
+
     /// <summary>Salva il metadata del blocco (natura/membri/override) nel <c>BodyJson</c> del blocco proprio della sezione-blocco. ACC-gated.</summary>
     Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default);
 
@@ -100,6 +105,28 @@ public sealed class AccDocumentService : IAccDocumentService
 
         var blocks = AccDocumentAssembler.Assemble(doc);
         return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks);
+    }
+
+    public async Task<AccDocumentModel?> LoadForViewAsync(string accCode, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+        var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
+        if (id is null) return null;   // ACC inesistente
+
+        if (id.DocumentId is int docId && await _editing.LoadForViewAsync(docId, ct) is { } doc)
+        {
+            var blocks = AccDocumentAssembler.Assemble(doc);
+            return new AccDocumentModel(doc.DocumentId, doc.VersionId, IsDraft: false, accCode, id.AccName, blocks);
+        }
+
+        // Non ancora migrato/pubblicato: blocco Aerovia vuoto di default (le derivate restano live dai cataloghi).
+        var aerovia = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "Settori di aerovia",
+            SectionOrder = SectionCatalog.For(SectionProfile.AccAerovia).Select(d => d.Key).ToList(),
+        };
+        var synthetic = new AccAssembledBlock(0, aerovia, new Dictionary<string, int>());
+        return new AccDocumentModel(0, 0, IsDraft: false, accCode, id.AccName, new[] { synthetic });
     }
 
     // --- Salvataggi editoriali by-section (ACC-gated). Il BodyJson vive nel blocco della sezione indicata. ---

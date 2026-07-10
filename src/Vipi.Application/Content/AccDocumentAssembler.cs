@@ -37,6 +37,7 @@ public static class AccDocumentAssembler
             var attached = Deserialize<List<string>>(ChildBodyJson(blockSection, "regulated")) ?? new();
             var separations = Deserialize<List<AppSeparationRow>>(ChildBodyJson(blockSection, "separations")) ?? new();
             var vfrJson = ChildBodyJson(blockSection, "vfr");   // AppVfrContent grezzo (AccBlock.VfrJson è stringa)
+            var customs = CustomSectionsOf(blockSection);
 
             var block = new AccBlock
             {
@@ -52,12 +53,29 @@ public static class AccDocumentAssembler
                 AttachedSpecialAreaIds = attached,
                 Separations = separations,
                 VfrJson = vfrJson,
+                CustomSections = customs,
                 SectionOrder = blockSection.Children.OrderBy(c => c.Order).Select(c => c.SectionKey).ToList(),
             };
             result.Add(new AccAssembledBlock(blockSection.Id, block, childIds));
         }
         return result;
     }
+
+    // Chiavi rese in modo speciale (derivate o editoriali-strutturate): NON sono sezioni custom editoriali generiche.
+    private static readonly HashSet<string> StructuredKeys = new(StringComparer.OrdinalIgnoreCase)
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+
+    // Sezioni editoriali generiche del blocco (operationaltechnique/validity/custom:*): figli con chiave non-strutturata,
+    // rese come AppCustomSection (prosa dai blocchi). Preserva l'ordine; la chiave = SectionKey del figlio.
+    private static List<AppCustomSection> CustomSectionsOf(EditableSection blockSection) =>
+        blockSection.Children.OrderBy(c => c.Order)
+            .Where(c => !StructuredKeys.Contains(c.SectionKey))
+            .Select(c => new AppCustomSection(c.SectionKey, c.Title,
+                c.Blocks.OrderBy(b => b.Order)
+                    .Where(b => !string.IsNullOrWhiteSpace(b.Body))
+                    .Select(b => new AppCustomBlock(AppCustomBlockType.Prose, b.Body, null, null))
+                    .ToList()))
+            .ToList();
 
     // BodyJson del blocco proprio della sezione (blockmeta): primo blocco della sezione-blocco stessa.
     private static string? OwnBodyJson(EditableSection s) => s.Blocks.OrderBy(b => b.Order).FirstOrDefault()?.BodyJson;

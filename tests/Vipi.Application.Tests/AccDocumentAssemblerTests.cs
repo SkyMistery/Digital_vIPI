@@ -15,6 +15,17 @@ public class AccDocumentAssemblerTests
         Visibility = BlockVisibility.Always, BodyJson = json,
     };
 
+    private static EditableSection Prose(int id, string key, string title, int order, string body) => new()
+    {
+        Id = id, Title = title, SectionKey = key, Depth = 1, Order = order,
+        Blocks = new List<EditableBlock>
+        {
+            new() { Id = 0, Order = 1, Format = BlockFormat.Prose, Tier = BlockTier.Extended,
+                    Visibility = BlockVisibility.Always, Body = body },
+        },
+        Children = new List<EditableSection>(),
+    };
+
     private static EditableSection Sec(int id, string key, string title, int order,
         string? ownJson = null, IReadOnlyList<EditableSection>? children = null) => new()
     {
@@ -57,6 +68,7 @@ public class AccDocumentAssemblerTests
                 Sec(13, "aor", "AOR", 3),
                 Sec(14, "regulated", "Aree", 4, ownJson: JsonSerializer.Serialize(attached)),
                 Sec(15, "vfr", "VFR", 5, ownJson: JsonSerializer.Serialize(new AppVfrContent("intro", new List<AppVfrRow>()))),
+                Prose(16, "operationaltechnique", "Procedure generali", 6, "testo procedura"),
             }),
             // Blocco gruppo APP: blockmeta valorizzato.
             Sec(20, "appgroup", "Gruppo APP", 2, ownJson: JsonSerializer.Serialize(meta), children: new[]
@@ -75,11 +87,16 @@ public class AccDocumentAssemblerTests
         Assert.Single(aerovia.Block.Configurations);
         Assert.Equal("Conf 1", aerovia.Block.Configurations[0].Name);
         Assert.Equal(new[] { "area-42" }, aerovia.Block.AttachedSpecialAreaIds);
-        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr" }, aerovia.Block.SectionOrder);
+        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique" }, aerovia.Block.SectionOrder);
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
         Assert.Equal("1000 ft", Assert.Single(aerovia.Block.Separations).Vertical);
         Assert.Contains("intro", aerovia.Block.VfrJson);
+
+        // Editoriale generico: la figlia non-strutturata diventa una CustomSection con prosa.
+        var custom = Assert.Single(aerovia.Block.CustomSections);
+        Assert.Equal("operationaltechnique", custom.Key);
+        Assert.Equal("testo procedura", Assert.Single(custom.Blocks).Text);
 
         // Gruppo APP: tutti i campi dal blockmeta.
         var grp = blocks[1];

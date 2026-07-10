@@ -16,6 +16,11 @@ public interface IEditingRepository
     /// <summary>Carica la versione di lavoro (bozza se esiste, sennò la pubblicata corrente) come modello editabile. Null se il documento non esiste.</summary>
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Carica la versione PUBBLICATA corrente (<c>CurrentVersionId</c>) come modello (stessa forma di
+    /// <see cref="LoadForEditAsync"/>), ignorando le bozze: vista pubblica della vIPI ACC su Document (doc 08e-acc).
+    /// Null se il documento non esiste o non ha una versione pubblicata.</summary>
+    Task<EditableDocument?> LoadForViewAsync(int documentId, CancellationToken ct = default);
+
     /// <summary>Id della vLOA della coppia (Home=<paramref name="homeAccCode"/>, Neighbour=<paramref name="foreignAccCode"/>).
     /// Una sola vLOA per coppia ACC↔ACC. Null se non esiste.</summary>
     Task<int?> FindVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default);
