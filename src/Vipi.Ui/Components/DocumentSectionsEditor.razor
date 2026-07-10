@@ -6,7 +6,7 @@
 @inject IEditingService Editing
 @using System.Text.Json
 
-@foreach (var s in Doc.Sections)
+@foreach (var s in (RootSections ?? Doc.Sections))
 {
     @SectionEditor(s)
 }
@@ -14,13 +14,21 @@
 @if (IsEditing)
 {
     <div class="block" style="border-style:dashed">
-        <button class="btn primary" @onclick="() => AddSection(null)">+ Aggiungi sezione</button>
+        <button class="btn primary" @onclick="() => AddSection(AddParentId)">@AddLabel</button>
     </div>
 }
 
 @code {
     [Parameter, EditorRequired] public EditableDocument Doc { get; set; } = default!;
     [Parameter] public bool IsEditing { get; set; }
+
+    /// <summary>Sezioni radice da editare (default: <see cref="EditableDocument.Sections"/>). La vIPI ACC passa i figli
+    /// di un blocco (sotto-editor per blocco). Doc refactor 08e-acc.</summary>
+    [Parameter] public IReadOnlyList<EditableSection>? RootSections { get; set; }
+    /// <summary>Sezione padre per "+ Aggiungi sezione" (default null = radice). ACC: l'Id della sezione-blocco.</summary>
+    [Parameter] public int? AddParentId { get; set; }
+    /// <summary>Etichetta del pulsante di aggiunta sezione.</summary>
+    [Parameter] public string AddLabel { get; set; } = "+ Aggiungi sezione";
 
     /// <summary>Guard dell'host: esegue la mutazione mostrando stato salvataggio / gestendo lock ed errori.</summary>
     [Parameter, EditorRequired] public Func<Func<Task>, Task> Run { get; set; } = default!;

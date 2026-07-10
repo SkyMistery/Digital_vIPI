@@ -3,6 +3,11 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
+/// <summary>Identità del Document della vIPI ACC (doc refactor 08e-acc): il settore CTR radice primario che lo chiavizza
+/// (<see cref="SectorId"/>/<see cref="RootCallsign"/>), il codice/nome ACC e l'eventuale <see cref="DocumentId"/> se già
+/// migrato. Analogo ACC di <see cref="AppDocumentIdentity"/>.</summary>
+public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, string AccCode, string AccName, int? DocumentId);
+
 /// <summary>
 /// Persistenza della vIPI ACC (documento a blocchi, 1:1 con l'Acc) + primitive di derivazione live
 /// (poligoni AoR, frequenze dei membri, mappa tipi settore). Mirror in chiave ACC di <see cref="IAppProfileRepository"/>.
@@ -11,6 +16,10 @@ public interface IAccProfileRepository
 {
     /// <summary>Nome dell'ACC dal codice; null se l'ACC non esiste.</summary>
     Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Risolve l'identità del Document vIPI ACC: settore CTR radice primario (che lo chiavizza) + eventuale
+    /// DocumentId. Null se l'ACC non esiste o non ha radici CTR. Doc refactor 08e-acc.</summary>
+    Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>Carica i blocchi salvati dell'albero indicato (null = radice primaria). Lista vuota se nessun profilo.</summary>
     Task<IReadOnlyList<AccBlock>> LoadBlocksAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);

@@ -2,6 +2,7 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccProfileService Profile
+@inject IAccDocumentService AccDoc
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
@@ -58,7 +59,12 @@ else
                         var isHidden = IsHiddenSection(block, key);
                         <div class="block" id="p-@(block.Key)-@key" style="@(isHidden ? "opacity:.65" : "")">
                             <h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                            @SectionBody(block, key)
+                            <AccSectionBody Block="block" Key="@key" Root="@_root"
+                                            Freqs="_freqs.GetValueOrDefault(block.Key)"
+                                            Coord="_coord.GetValueOrDefault(block.Key)"
+                                            Aor="_aors.GetValueOrDefault(block.Key)"
+                                            Areas="_areas.GetValueOrDefault(block.Key)"
+                                            ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
                         </div>
                     }
                 }
@@ -121,18 +127,19 @@ else
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                try { _data = await Profile.LoadForEditAsync(Acc, _root); }
-                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(Acc, _root); }
+                try { _data = (await AccDoc.LoadForEditAsync(Acc)).Data; }
+                catch (EditNotAllowedException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
+                catch (ValidationException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
                 break;
             case PreviewKind.Release:
                 AccReleaseView? rv = null;
-                try { rv = await Profile.LoadForReleaseAsync(Acc, _root, _mode.ReleaseId); }
+                try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
                 if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }
-                else { _mode = default; _data = await Profile.LoadForViewAsync(Acc, _root); }
+                else { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
                 break;
             default:
-                _data = await Profile.LoadForViewAsync(Acc, _root);
+                _data = (await AccDoc.LoadForViewAsync(Acc))!.Data;
                 break;
         }
         _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
@@ -195,13 +202,4 @@ else
     private static string TitleOf(AccBlock b, string key) =>
         SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
 
-    private RenderFragment SectionBody(AccBlock block, string key) => __builder =>
-    {
-        <AccSectionBody Block="block" Key="key" Root="_root"
-                        Freqs="_freqs.GetValueOrDefault(block.Key)"
-                        Coord="_coord.GetValueOrDefault(block.Key)"
-                        Aor="_aors.GetValueOrDefault(block.Key)"
-                        Areas="_areas.GetValueOrDefault(block.Key)"
-                        ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
-    };
 }

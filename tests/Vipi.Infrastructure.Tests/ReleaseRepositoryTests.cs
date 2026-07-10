@@ -73,16 +73,24 @@ public class ReleaseRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Snapshot_AccVipi_Captures_BlocksJson()
+    public async Task Snapshot_AccVipi_Captures_Document_Tree()
     {
-        var acc = await _db.Accs.FirstAsync(a => a.Code == "LIRR");
-        _db.AccProfiles.Add(new AccProfile { AccId = acc.Id, RootCallsign = "LIRR_CTR", BlocksJson = "[{\"Key\":\"aerovia\",\"Title\":\"Aerovie\"}]" });
+        // ACC ora su Document (doc 08e-acc): il settore CTR radice porta un Document vIPI con un blocco Aerovia.
+        var home = await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_CTR");
+        var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI Roma", Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        var ver = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Published, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        doc.Versions.Add(ver);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        home.DocumentId = doc.Id; home.IsPrimary = true;
+        _db.DocumentSections.Add(new DocumentSection { DocumentVersion = ver, Title = "Settori di aerovia", Order = 1, Depth = 0, SectionKey = "aerovia", RowVersion = Guid.NewGuid().ToByteArray() });
+        doc.CurrentVersionId = ver.Id;
         await _db.SaveChangesAsync();
 
         var json = await _repo.SnapshotWorkingAsync(ReleaseTargetType.AccVipi, "LIRR|LIRR_CTR", "2606");
         Assert.NotNull(json);
         Assert.Contains("aerovia", json);
-        Assert.Contains("Aerovie", json);
+        Assert.Contains("Settori di aerovia", json);
     }
 
     [Fact]

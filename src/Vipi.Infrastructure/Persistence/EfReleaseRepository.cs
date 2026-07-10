@@ -23,6 +23,7 @@ public sealed class EfReleaseRepository : IReleaseRepository
             case ReleaseTargetType.Vloa:
             case ReleaseTargetType.Airport:
             case ReleaseTargetType.App:
+            case ReleaseTargetType.AccVipi:
             {
                 var docId = await ResolveDocumentIdAsync(type, key, ct);
                 if (docId is null) return null;
@@ -59,19 +60,6 @@ public sealed class EfReleaseRepository : IReleaseRepository
                     };
                 }
                 return JsonSerializer.Serialize(payload);
-            }
-            case ReleaseTargetType.AccVipi:
-            {
-                // Chiave "{accCode}|{rootCallsign}". Il payload ACC È il BlocksJson (intero stato editoriale ACC).
-                var parts = key.Split('|', 2);
-                var accCode = parts[0];
-                var root = parts.Length > 1 && parts[1].Length > 0 ? parts[1] : null;
-                var accId = await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct);
-                if (accId is null) return null;
-                var blocksJson = await _db.AccProfiles.AsNoTracking()
-                    .Where(p => p.AccId == accId && p.RootCallsign == root)
-                    .Select(p => p.BlocksJson).FirstOrDefaultAsync(ct);
-                return blocksJson ?? "[]";
             }
             default:
                 return null;
@@ -206,6 +194,16 @@ public sealed class EfReleaseRepository : IReleaseRepository
     {
         if (type == ReleaseTargetType.Vloa)
             return int.TryParse(key, out var id) ? id : null;
+        // ACC: key "{accCode}|{root}". Il Document è quello del settore CTR radice primario dell'ACC (doc 08e-acc).
+        if (type == ReleaseTargetType.AccVipi)
+        {
+            var accCode = key.Split('|', 2)[0];
+            return await _db.Sectors.AsNoTracking()
+                .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr
+                            && s.ParentSectorId == null && s.IsActive && s.DocumentId != null)
+                .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
+                .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
+        }
         // APP: il Document è quello del settore primario APP standalone (key = callsign).
         if (type == ReleaseTargetType.App)
             return await _db.Sectors.AsNoTracking()

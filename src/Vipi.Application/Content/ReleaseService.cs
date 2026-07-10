@@ -147,7 +147,7 @@ public sealed class ReleaseService : IReleaseService
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
         RawDocument? doc = null;
-        if (rel.TargetType is ReleaseTargetType.Vloa or ReleaseTargetType.Airport or ReleaseTargetType.App)
+        if (rel.TargetType is ReleaseTargetType.Vloa or ReleaseTargetType.Airport or ReleaseTargetType.App or ReleaseTargetType.AccVipi)
         {
             try { doc = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson)?.Doc; }
             catch (JsonException) { }
@@ -176,21 +176,10 @@ public sealed class ReleaseService : IReleaseService
                 case ReleaseTargetType.Vloa:
                 case ReleaseTargetType.Airport:
                 case ReleaseTargetType.App:
+                case ReleaseTargetType.AccVipi:   // doc 08e-acc: ACC ora su Document (albero blocchi→sezioni)
                 {
                     var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
                     if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
-                    break;
-                }
-                case ReleaseTargetType.AccVipi:
-                {
-                    var blocks = JsonSerializer.Deserialize<List<AccBlock>>(payloadJson);
-                    if (blocks is not null)
-                        foreach (var b in blocks)
-                        {
-                            var visible = b.SectionOrder.Where(s => !b.HiddenSections.Contains(s, StringComparer.OrdinalIgnoreCase)).ToList();
-                            sig[$"{b.Title}"] = visible.Count + b.CustomSections.Count;
-                            foreach (var cfg in b.Configurations) sig[$"{b.Title} · config «{cfg.Name}»"] = cfg.Open.Count;
-                        }
                     break;
                 }
             }

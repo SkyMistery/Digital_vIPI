@@ -113,6 +113,86 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EnsureVipiDocumentTree_Creates_Block_Sections_With_Keyed_Children_And_Live_Placeholders()
+    {
+        var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var blocks = new[]
+        {
+            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia",
+                new (string, string)[] { ("separations", "Separazioni"), ("aor", "AOR"), ("validity", "Validità") }),
+            new Vipi.Application.Abstractions.VipiBlockSpec("appgroup", "Gruppo APP",
+                new (string, string)[] { ("aor", "AOR"), ("frequencies", "Frequenze") }),
+        };
+
+        var docId = await _repo.EnsureVipiDocumentTreeAsync(sec, "vIPI ACC di test", Language.It, blocks,
+            authorUserId: 3, liveKeys: new[] { "aor", "frequencies" });
+
+        var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
+
+        // Due sezioni-blocco a depth 0, nell'ordine dato.
+        var rootKeys = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.DocumentVersionId == ver.Id && s.ParentSectionId == null)
+            .OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync();
+        Assert.Equal(new[] { "aerovia", "appgroup" }, rootKeys);
+
+        // Figli del blocco Aerovia a depth 1, nell'ordine dato.
+        var aeroviaId = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == ver.Id && s.ParentSectionId == null && s.SectionKey == "aerovia")
+            .Select(s => s.Id).FirstAsync();
+        var childKeys = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.ParentSectionId == aeroviaId).OrderBy(s => s.Order).Select(s => new { s.SectionKey, s.Depth }).ToListAsync();
+        Assert.Equal(new[] { "separations", "aor", "validity" }, childKeys.Select(c => c.SectionKey));
+        Assert.All(childKeys, c => Assert.Equal(1, c.Depth));
+
+        // Placeholder solo sulle sezioni live (aor sotto aerovia; aor+frequencies sotto appgroup) → 3 blocchi totali.
+        Assert.Equal(3, await _db.ContentBlocks.CountAsync(b => b.DocumentVersion!.DocumentId == docId));
+
+        var linked = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == sec);
+        Assert.Equal(docId, linked.DocumentId);
+        Assert.True(linked.IsPrimary);
+
+        // Idempotente: seconda chiamata ritorna lo stesso documento senza duplicare sezioni.
+        Assert.Equal(docId, await _repo.EnsureVipiDocumentTreeAsync(sec, "altro", Language.It, blocks, authorUserId: 3));
+        Assert.Equal(7, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));   // 2 blocchi + 5 figli
+    }
+
+    [Fact]
+    public async Task SectionBlockJsonBySection_RoundTrips_And_Guards_Draft()
+    {
+        var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var blocks = new[]
+        {
+            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia",
+                new (string, string)[] { ("separations", "Separazioni") }),
+        };
+        var docId = await _repo.EnsureVipiDocumentTreeAsync(sec, "vIPI ACC di test", Language.It, blocks, authorUserId: 4);
+        var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
+        var sepId = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == ver.Id && s.SectionKey == "separations").Select(s => s.Id).FirstAsync();
+
+        // Nessun contenuto → null.
+        Assert.Null(await _repo.GetSectionBlockJsonBySectionAsync(sepId));
+
+        // Upsert crea il blocco.
+        await _repo.SaveSectionBlockJsonBySectionAsync(sepId, "[{\"Vertical\":\"1000 ft\"}]", authorUserId: 4);
+        Assert.Equal("[{\"Vertical\":\"1000 ft\"}]", await _repo.GetSectionBlockJsonBySectionAsync(sepId));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.SectionId == sepId));
+
+        // Secondo upsert aggiorna lo stesso blocco (niente duplicati).
+        await _repo.SaveSectionBlockJsonBySectionAsync(sepId, "[{\"Vertical\":\"2000 ft\"}]", authorUserId: 4);
+        Assert.Equal("[{\"Vertical\":\"2000 ft\"}]", await _repo.GetSectionBlockJsonBySectionAsync(sepId));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.SectionId == sepId));
+
+        // json vuoto → azzera.
+        await _repo.SaveSectionBlockJsonBySectionAsync(sepId, "  ", authorUserId: 4);
+        Assert.Null(await _repo.GetSectionBlockJsonBySectionAsync(sepId));
+
+        // Sezione inesistente → errore.
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _repo.SaveSectionBlockJsonBySectionAsync(999999, "x", authorUserId: 4));
+    }
+
+    [Fact]
     public async Task SectionBlockJson_RoundTrips_And_Clears_On_Keyed_Section()
     {
         // Documento vIPI APP seedato a mano (bozza v1) con la sezione radice keyed "separations".

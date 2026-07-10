@@ -5,6 +5,7 @@
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
 @inject IAccProfileService Profile
+@inject IAccDocumentService AccDoc
 @inject ITopologyProvider Topology
 @inject IAorService Aor
 @inject IOnlineAtcProvider Online
@@ -88,7 +89,7 @@ else
                     <summary><span>🔇 @block.Title — delegati</span><span class="tag-state tag-online">online</span></summary>
                     <div class="body">
                         <p class="muted" style="font-size:13px;margin-top:0">Compresso perché un settore di <b>@block.Title</b> è online (collasso morbido). Sotto restano le frequenze per l'handoff.</p>
-                        <AccSectionBody Block="block" Key="frequencies" Root="_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
+                        <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
                     </div>
                 </details>
             }
@@ -98,7 +99,7 @@ else
                 <details class="acc-item" open>
                     <summary><span>📡 @block.Title</span><span class="tag-state tag-covered">coperto</span></summary>
                     <div class="body">
-                        <AccSectionBody Block="block" Key="frequencies" Root="_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
+                        <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
                     </div>
                 </details>
             }
@@ -190,7 +191,7 @@ else
     {
         if (_acc is null) return;
 
-        _data = await Profile.LoadForViewAsync(_acc.Code, _root);
+        _data = (await AccDoc.LoadForViewAsync(_acc.Code))!.Data;
         _snapshot = Online.GetCurrent();
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;

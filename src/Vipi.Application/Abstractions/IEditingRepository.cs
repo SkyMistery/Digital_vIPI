@@ -16,6 +16,11 @@ public interface IEditingRepository
     /// <summary>Carica la versione di lavoro (bozza se esiste, sennò la pubblicata corrente) come modello editabile. Null se il documento non esiste.</summary>
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Carica la versione PUBBLICATA corrente (<c>CurrentVersionId</c>) come modello (stessa forma di
+    /// <see cref="LoadForEditAsync"/>), ignorando le bozze: vista pubblica della vIPI ACC su Document (doc 08e-acc).
+    /// Null se il documento non esiste o non ha una versione pubblicata.</summary>
+    Task<EditableDocument?> LoadForViewAsync(int documentId, CancellationToken ct = default);
+
     /// <summary>Id della vLOA della coppia (Home=<paramref name="homeAccCode"/>, Neighbour=<paramref name="foreignAccCode"/>).
     /// Una sola vLOA per coppia ACC↔ACC. Null se non esiste.</summary>
     Task<int?> FindVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default);
@@ -46,6 +51,38 @@ public interface IEditingRepository
     Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
         IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
         IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Idempotente, variante <b>annidata</b> per la vIPI ACC (doc refactor 08e-acc): garantisce il documento vIPI del
+    /// settore primario con una versione bozza e un albero a <b>blocchi</b> — ogni blocco è una sezione radice (depth 0,
+    /// chiave = <c>Block.Key</c>) con le sue sezioni-catalogo come figli (depth 1). Se il settore ha già un documento
+    /// ne ritorna l'Id senza toccarlo. Le sezioni figlie in <paramref name="liveKeys"/> ricevono il blocco placeholder
+    /// (come <see cref="EnsureVipiDocumentAsync"/>). Ritorna l'Id del documento.
+    /// </summary>
+    Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Aggiunge un blocco (sezione radice depth 0 + sue sezioni-catalogo figlie depth 1, con placeholder sulle live)
+    /// in coda ai blocchi esistenti di una versione bozza. Per l'aggiunta di un gruppo APP dall'editor vIPI ACC (doc
+    /// refactor 08e-acc). Errore se la versione non è una bozza. Ritorna l'Id della sezione-blocco creata.
+    /// </summary>
+    Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Legge il <c>BodyJson</c> del primo blocco di UNA sezione identificata dall'Id (non per chiave radice): serve alla
+    /// vIPI ACC dove le sezioni editoriali-strutturate vivono a depth 1 sotto il blocco, e il metadata del blocco
+    /// (kind/membri/override) vive sulla sezione-blocco stessa. Null se sezione/blocco assenti. Doc refactor 08e-acc.
+    /// </summary>
+    Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Upsert del <c>BodyJson</c> in un unico blocco <c>Table</c> della sezione identificata dall'Id (crea il blocco se
+    /// manca; <paramref name="json"/> null/vuoto lo azzera). Errore se la versione della sezione non è una bozza. Doc
+    /// refactor 08e-acc. Il ciclo bozza→pubblicazione resta del chiamante.
+    /// </summary>
+    Task SaveSectionBlockJsonBySectionAsync(int sectionId, string? json, int authorUserId, CancellationToken ct = default);
 
     /// <summary>
     /// Legge il JSON strutturato di una sezione editoriale-strutturata (separations/vfr/config…): il <c>BodyJson</c>

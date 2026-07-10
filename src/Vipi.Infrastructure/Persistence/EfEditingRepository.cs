@@ -78,11 +78,24 @@ public sealed class EfEditingRepository : IEditingRepository
                 .FirstOrDefaultAsync(ct);
 
         if (working is null) return null;
+        return await BuildEditableAsync(doc, working, ct);
+    }
 
+    public async Task<EditableDocument?> LoadForViewAsync(int documentId, CancellationToken ct = default)
+    {
+        var doc = await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentId, ct);
+        if (doc?.CurrentVersionId is not int cur) return null;   // solo la versione pubblicata corrente
+        var version = await _db.DocumentVersions.AsNoTracking().FirstOrDefaultAsync(v => v.Id == cur, ct);
+        return version is null ? null : await BuildEditableAsync(doc, version, ct);
+    }
+
+    // Costruisce il modello editabile (albero sezioni + blocchi) di una specifica versione.
+    private async Task<EditableDocument> BuildEditableAsync(Document doc, DocumentVersion version, CancellationToken ct)
+    {
         var sections = await _db.DocumentSections
-            .Where(s => s.DocumentVersionId == working.Id).AsNoTracking().ToListAsync(ct);
+            .Where(s => s.DocumentVersionId == version.Id).AsNoTracking().ToListAsync(ct);
         var blocks = await _db.ContentBlocks
-            .Where(b => b.DocumentVersionId == working.Id).AsNoTracking().ToListAsync(ct);
+            .Where(b => b.DocumentVersionId == version.Id).AsNoTracking().ToListAsync(ct);
 
         var blocksBySection = blocks.GroupBy(b => b.SectionId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
@@ -113,9 +126,9 @@ public sealed class EfEditingRepository : IEditingRepository
         return new EditableDocument
         {
             DocumentId = doc.Id,
-            VersionId = working.Id,
-            VersionNumber = working.VersionNumber,
-            VersionStatus = working.Status,
+            VersionId = version.Id,
+            VersionNumber = version.VersionNumber,
+            VersionStatus = version.Status,
             Title = doc.Title,
             Sections = roots,
         };
@@ -330,6 +343,179 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;
+    }
+
+    public async Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+    {
+        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
+        var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
+            ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
+        if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
+
+        var now = DateTime.UtcNow;
+        var doc = new Document
+        {
+            Type = DocumentType.Vipi,
+            Title = title,
+            Language = language,
+            Status = DocumentStatus.Draft,
+            LastUpdatedUtc = now,
+            LastUpdatedAiracCycle = _airac.GetCycle(now),
+        };
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync(ct); // serve doc.Id
+
+        sector.DocumentId = doc.Id;
+        sector.IsPrimary = true;
+        await _db.SaveChangesAsync(ct);
+
+        var version = new DocumentVersion
+        {
+            DocumentId = doc.Id,
+            VersionNumber = 1,
+            Status = DocumentStatus.Draft,
+            CreatedByUserId = authorUserId,
+            CreatedUtc = now,
+            AiracCycle = _airac.GetCycle(now),
+            Note = "Bozza iniziale",
+        };
+        _db.DocumentVersions.Add(version);
+        await _db.SaveChangesAsync(ct); // serve version.Id
+
+        var blockOrder = 1;
+        foreach (var block in blocks)
+        {
+            var blockSection = new DocumentSection
+            {
+                DocumentVersionId = version.Id,
+                ParentSectionId = null,
+                Title = block.Title,
+                Order = blockOrder++,
+                Depth = 0,
+                SectionKey = block.Key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            _db.DocumentSections.Add(blockSection);
+
+            var childOrder = 1;
+            foreach (var (key, secTitle) in block.Sections)
+            {
+                var child = new DocumentSection
+                {
+                    DocumentVersion = version,
+                    ParentSection = blockSection,
+                    Title = secTitle,
+                    Order = childOrder++,
+                    Depth = 1,
+                    SectionKey = key,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
+                };
+                _db.DocumentSections.Add(child);
+
+                // Sezioni "live" (derivate/editoriali-strutturate): blocco placeholder così non vengono potate quando
+                // sono senza contenuto memorizzato (rese live dal renderer). Doc refactor 08e-acc.
+                if (live is not null && live.Contains(key))
+                    _db.ContentBlocks.Add(NewPlaceholderBlock(version, child));
+            }
+        }
+        await _db.SaveChangesAsync(ct);
+
+        return doc.Id;
+    }
+
+    // Blocco placeholder vuoto (Table) per una sezione live: la mantiene visibile nel viewer anche senza contenuto.
+    private static ContentBlock NewPlaceholderBlock(DocumentVersion version, DocumentSection section) => new()
+    {
+        DocumentVersion = version,
+        Section = section,
+        Order = 1,
+        Format = BlockFormat.Table,
+        Tier = BlockTier.Extended,
+        Visibility = BlockVisibility.Always,
+        RowVersion = Guid.NewGuid().ToByteArray(),
+    };
+
+    public async Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+    {
+        await RequireDraftAsync(versionId, ct);
+        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
+
+        var nextOrder = (await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == null)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+
+        var blockSection = new DocumentSection
+        {
+            DocumentVersionId = versionId,
+            ParentSectionId = null,
+            Title = block.Title,
+            Order = nextOrder,
+            Depth = 0,
+            SectionKey = block.Key,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(blockSection);
+
+        var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
+        var childOrder = 1;
+        foreach (var (key, secTitle) in block.Sections)
+        {
+            var child = new DocumentSection
+            {
+                DocumentVersion = version,
+                ParentSection = blockSection,
+                Title = secTitle,
+                Order = childOrder++,
+                Depth = 1,
+                SectionKey = key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            _db.DocumentSections.Add(child);
+            if (live is not null && live.Contains(key))
+                _db.ContentBlocks.Add(NewPlaceholderBlock(version, child));
+        }
+        await _db.SaveChangesAsync(ct);
+        return blockSection.Id;
+    }
+
+    public async Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default) =>
+        await _db.ContentBlocks
+            .Where(b => b.SectionId == sectionId)
+            .OrderBy(b => b.Order).Select(b => b.BodyJson).FirstOrDefaultAsync(ct);
+
+    public async Task SaveSectionBlockJsonBySectionAsync(int sectionId, string? json, int authorUserId, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+
+        var normalized = string.IsNullOrWhiteSpace(json) ? null : json;
+        var block = await _db.ContentBlocks
+            .Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).FirstOrDefaultAsync(ct);
+
+        if (block is null)
+        {
+            _db.ContentBlocks.Add(new ContentBlock
+            {
+                DocumentVersionId = section.DocumentVersionId,
+                SectionId = section.Id,
+                Order = 1,
+                Format = BlockFormat.Table,
+                Tier = BlockTier.Extended,
+                Visibility = BlockVisibility.Always,
+                BodyJson = normalized,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
+        else
+        {
+            block.BodyJson = normalized;
+            block.RowVersion = Guid.NewGuid().ToByteArray();
+        }
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<string?> GetSectionBlockJsonAsync(int documentId, string sectionKey, CancellationToken ct = default)
