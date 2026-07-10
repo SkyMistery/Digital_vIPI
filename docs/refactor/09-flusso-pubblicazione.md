@@ -136,6 +136,21 @@ Ordine: meccanico → registry DB-side → registry UI-side → verifica tipo fi
    `refactor(09): rimuovi switch vestigiali release — doc 09 §3c`.
 5. **Verifica obiettivo utente** (§5): tipo fittizio pubblicabile registrando solo 2 descrittori.
 
+## 4bis. Esito implementazione (Fase 2, branch `refactor/09-flusso-pubblicazione`)
+
+- **passo 1 ✅** (`1acc4ae`) split file multi-classe (§3d).
+- **rete test-first ✅** (`052443c`) caratterizzazione identità release/admin (+9, 252→261).
+- **passo 2 ✅** (`d497278`) `IReleaseTarget`+`ReleaseTargetRegistry`+4 impl; `EfReleaseRepository`
+  (snapshot/auth) e `EfDocumentAdminRepository` (list/getacc) delegano; rimosso `ResolveDocumentIdAsync`
+  privato e i duplicati key→acc (§3a).
+- **passo 3 ✅** (`10b1b2a`) `IDocKindRoutes`+`DocRoutesRegistry`+4 impl (Vipi.Ui); `VersioniPage`
+  `PreviewLink`/`EditorLink` e `ReleasePreviewPage` fanno lookup; rimossi 3 switch URL (§3b).
+- **passo 4 ✅** pulizia switch vestigiali `Signature`/`GetPreviewAsync`/`SetHidden`/`Delete` (§3c).
+- **passo 5 ✅** `ReleaseGenericFlowTests` (+3): tipo fittizio (enum 99) pubblica/preview/diff/list/authz
+  registrando SOLO un descrittore, zero modifiche ai motori (§5). Baseline test = **264**.
+- ⏳ **Fase 3 live** (guidare l'app reale su /vsop/versioni: anteprima+editor per i 4 tipi, hide/delete)
+  e **Fase 4 chiusura** (spec/rounds/overview + merge) DA FARE.
+
 ## 5. Impatto
 
 - **Dipende da** doc 08 (fatto). Ultimo della sequenza. Cima dell'asse B, nessuno a valle.

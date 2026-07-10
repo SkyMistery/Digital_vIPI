@@ -105,9 +105,9 @@ public sealed class ReleaseService : IReleaseService
         var eff = await _repo.GetEffectiveAsync(rel.TargetType, rel.TargetKey, DateTime.UtcNow, ct);
         var baseline = (eff is not null && eff.Id != rel.Id) ? eff : null;
 
-        var cur = Signature(rel.TargetType, rel.PayloadJson);
+        var cur = Signature(rel.PayloadJson);
         var prev = baseline is null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-                                    : Signature(baseline.TargetType, baseline.PayloadJson);
+                                    : Signature(baseline.PayloadJson);
 
         var rows = new List<ReleaseDiffRow>();
         foreach (var kv in cur.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
@@ -131,12 +131,10 @@ public sealed class ReleaseService : IReleaseService
         if (rel is null) return null;
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
+        // Post-08 tutti i tipi condividono DocReleasePayload → deserializzazione unica, nessuno switch per-tipo.
         RawDocument? doc = null;
-        if (rel.TargetType is ReleaseTargetType.Vloa or ReleaseTargetType.Airport or ReleaseTargetType.App or ReleaseTargetType.AccVipi)
-        {
-            try { doc = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson)?.Doc; }
-            catch (JsonException) { }
-        }
+        try { doc = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson)?.Doc; }
+        catch (JsonException) { }
         return new ReleasePreview(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, doc);
     }
 
@@ -150,24 +148,15 @@ public sealed class ReleaseService : IReleaseService
         return new ReleaseLocation(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, acc);
     }
 
-    /// <summary>Firma editoriale di un payload: voce (sezione/blocco) → conteggio elementi. Base del diff.</summary>
-    private static Dictionary<string, int> Signature(ReleaseTargetType type, string payloadJson)
+    /// <summary>Firma editoriale di un payload: voce (sezione/blocco) → conteggio elementi. Base del diff.
+    /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.</summary>
+    private static Dictionary<string, int> Signature(string payloadJson)
     {
         var sig = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            switch (type)
-            {
-                case ReleaseTargetType.Vloa:
-                case ReleaseTargetType.Airport:
-                case ReleaseTargetType.App:
-                case ReleaseTargetType.AccVipi:   // doc 08e-acc: ACC ora su Document (albero blocchi→sezioni)
-                {
-                    var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
-                    if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
-                    break;
-                }
-            }
+            var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
+            if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
         }
         catch (JsonException) { }
         return sig;

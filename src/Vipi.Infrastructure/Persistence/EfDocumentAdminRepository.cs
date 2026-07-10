@@ -50,51 +50,31 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
 
     public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default)
     {
-        switch (doc.Kind)
+        // Post-08 tutti i tipi sono su Document → un solo ramo: il flag vive sul Document.
+        if (doc.DocumentId is int id)
         {
-            case ManagedDocKind.Vloa:
-            case ManagedDocKind.AirportVipi:
-            case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
-            case ManagedDocKind.AccVipi:   // ACC su Document (doc 08e-acc)
-                if (doc.DocumentId is int id)
-                {
-                    var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
-                    if (d is not null) { d.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
-                }
-                break;
+            var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (d is not null) { d.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
         }
     }
 
     public async Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default)
     {
-        // Rimuovi sempre le release del bersaglio (DocRelease non ha FK → non cascada).
-        var relType = doc.Kind switch
-        {
-            ManagedDocKind.Vloa => ReleaseTargetType.Vloa,
-            ManagedDocKind.AirportVipi => ReleaseTargetType.Airport,
-            ManagedDocKind.AccVipi => ReleaseTargetType.AccVipi,
-            _ => ReleaseTargetType.App,
-        };
+        // Rimuovi sempre le release del bersaglio (DocRelease non ha FK → non cascada). Tipo di release dal descrittore.
+        var relType = _targets.For(doc.Kind).Type;
         var rels = await _db.DocReleases.Where(r => r.TargetType == relType && r.TargetKey == doc.ReleaseKey).ToListAsync(ct);
         if (rels.Count > 0) _db.DocReleases.RemoveRange(rels);
 
-        switch (doc.Kind)
+        // Post-08 tutti i tipi sono su Document → un solo ramo di cancellazione (cascade EF).
+        if (doc.DocumentId is int id)
         {
-            case ManagedDocKind.Vloa:
-            case ManagedDocKind.AirportVipi:
-            case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
-            case ManagedDocKind.AccVipi:   // ACC su Document (doc 08e-acc)
-                if (doc.DocumentId is int id)
-                {
-                    var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
-                    if (d is not null)
-                    {
-                        d.CurrentVersionId = null;   // rompi il ciclo CurrentVersion (NoAction) prima del cascade
-                        await _db.SaveChangesAsync(ct);
-                        _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/DocumentProfile; Sector.DocumentId→SetNull
-                    }
-                }
-                break;
+            var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (d is not null)
+            {
+                d.CurrentVersionId = null;   // rompi il ciclo CurrentVersion (NoAction) prima del cascade
+                await _db.SaveChangesAsync(ct);
+                _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/DocumentProfile; Sector.DocumentId→SetNull
+            }
         }
         await _db.SaveChangesAsync(ct);
     }
