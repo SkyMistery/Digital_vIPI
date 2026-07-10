@@ -19,6 +19,20 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
     public async Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => a.Name).FirstOrDefaultAsync(ct);
 
+    public async Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default)
+    {
+        var accName = await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => a.Name).FirstOrDefaultAsync(ct);
+        if (accName is null) return null;
+        // Settore CTR radice primario (stesso criterio di ResolveRootAsync): chiavizza il Document ACC-wide.
+        var root = await _db.Sectors.AsNoTracking()
+            .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
+            .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
+            .Select(s => new { s.Id, s.Callsign, s.DocumentId })
+            .FirstOrDefaultAsync(ct);
+        if (root is null) return null;
+        return new AccDocumentIdentity(root.Id, root.Callsign, accCode, accName, root.DocumentId);
+    }
+
     public async Task<IReadOnlyList<AccBlock>> LoadBlocksAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default)
     {
         var root = await ResolveRootAsync(accCode, rootCallsign, ct);
