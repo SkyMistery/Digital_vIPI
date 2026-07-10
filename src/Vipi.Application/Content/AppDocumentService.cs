@@ -43,6 +43,21 @@ public interface IAppDocumentService
 
     /// <summary>Salva il contenuto VFR nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
     Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default);
+
+    /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
+    Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva le chiavi delle sezioni nascoste dal pubblico (ACC-gated).</summary>
+    Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default);
+
+    /// <summary>Salva l'override d'ordine delle frequenze per callsign (ACC-gated).</summary>
+    Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
+
+    /// <summary>Salva i settori sorgente dei link frequenza extra (ACC-gated).</summary>
+    Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
+
+    /// <summary>Salva l'override per-documento del template della frase di coordinamento (null/vuoto = default; ACC-gated).</summary>
+    Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAppDocumentService"/>
@@ -254,6 +269,30 @@ public sealed class AppDocumentService : IAppDocumentService
         var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
         var json = empty ? null : JsonSerializer.Serialize(content);
         await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    // --- Override editoriali su DocumentProfile (doc 08e f4-a): sezioni nascoste, ordine/link freq, template coord. ---
+
+    public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
+        LoadOverridesAsync(appCallsign, ct);
+
+    public Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default) =>
+        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveHiddenSectionsAsync(docId, sectionKeys ?? Array.Empty<string>(), c), ct);
+
+    public Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
+        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), c), ct);
+
+    public Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default) =>
+        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqLinksAsync(docId, sourceSectorIds ?? Array.Empty<int>(), c), ct);
+
+    public Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default) =>
+        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveCoordinationTemplateAsync(docId, template, c), ct);
+
+    // Garantisce il Document (ACC-gated via EnsureAsync) poi esegue l'azione sull'override, per documentId.
+    private async Task WithDocumentAsync(string appCallsign, Func<int, CancellationToken, Task> action, CancellationToken ct)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);
+        await action(docId, ct);
     }
 
     private static T? Deserialize<T>(string? json) where T : class
