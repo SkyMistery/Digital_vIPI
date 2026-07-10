@@ -4,6 +4,7 @@
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
+@inject IEditAuthorizationService Authz
 
 @if (_acc is null)
 {
@@ -17,6 +18,10 @@ else
         <div class="doc-head">
             <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name - @_acc.Code</h2></div>
         </div>
+        @if (_canEdit)
+        {
+            <p class="help" style="margin-top:2px">Staff: vedi <b>tutti</b> gli APP non remotizzati. Quelli senza documento (o in bozza) sono cliccabili per crearlo/editarlo; il pubblico vede solo i pubblicati.</p>
+        }
         @if (_apps.Count == 0)
         {
             <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun APP non remotizzato</p>Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</div></div>
@@ -27,13 +32,30 @@ else
                 @foreach (var ap in _apps)
                 {
                     var n = OnlineAt(ap);
-                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@ap.Callsign" style="text-decoration:none;color:inherit">
+                    var st = StateOf(ap.Callsign);
+                    // Pubblicato → viewer pubblico. Non pubblicato (bozza/senza doc) → editor (solo staff arriva qui: crea/edita).
+                    var href = st == AppState.Published
+                        ? $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={ap.Callsign}"
+                        : $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={ap.Callsign}";
+                    <a class="choice apt-card" href="@href" style="text-decoration:none;color:inherit">
                         <div class="apt-top">
                             <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
                         </div>
                         <p class="muted">@ap.Name</p>
                         <span class="apt-tag">@ap.Callsign</span>
+                        @if (st == AppState.None)
+                        {
+                            <span class="apt-tag" style="background:var(--ivao-blue);color:#fff;margin-left:6px">＋ crea documento</span>
+                        }
+                        else if (st == AppState.Draft)
+                        {
+                            <span class="apt-tag" style="background:#b8860b;color:#fff;margin-left:6px">bozza</span>
+                        }
+                        else if (st == AppState.Hidden)
+                        {
+                            <span class="apt-tag" style="margin-left:6px">nascosto</span>
+                        }
                     </a>
                 }
             </div>
@@ -42,28 +64,40 @@ else
 }
 
 @code {
+    private enum AppState { None, Draft, Published, Hidden }
+
     [Parameter] public string Acc { get; set; } = default!;
     private AccInfo? _acc;
     private IReadOnlyList<SectorRow> _apps = Array.Empty<SectorRow>();
+    private bool _canEdit;
+    private Dictionary<string, AppState> _state = new(StringComparer.OrdinalIgnoreCase);   // callsign → stato documento
+
+    private AppState StateOf(string callsign) => _state.TryGetValue(callsign, out var s) ? s : AppState.None;
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+        _canEdit = await Authz.CanEditAccAsync(_acc.Code);
         var data = await Structure.LoadAsync(_acc.Code);
         var all = data?.Sectors ?? (IReadOnlyList<SectorRow>)Array.Empty<SectorRow>();
 
-        // "Pubblicati": gli APP standalone (AppProfile) non hanno stato bozza/pubblicato, solo il flag nascosto ⇒
-        // pubblicato = non nascosto. (IsPublished del ManagedDoc APP è sempre true; conta IsHidden.)
-        var published = (await Docs.ListAsync())
-            .Where(m => m.Kind == ManagedDocKind.AppVipi && !m.IsHidden
+        // Stato del documento per callsign APP di questa ACC. Assente dalla lista ⇒ nessun documento ancora (AppState.None).
+        _state = (await Docs.ListAsync())
+            .Where(m => m.Kind == ManagedDocKind.AppVipi
                         && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .GroupBy(m => m.Scope, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g =>
+            {
+                var m = g.First();
+                return m.IsHidden ? AppState.Hidden : m.IsPublished ? AppState.Published : AppState.Draft;
+            }, StringComparer.OrdinalIgnoreCase);
 
-        // Solo APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC) e pubblicati.
+        // APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC).
+        // Pubblico: solo i pubblicati. Staff che può editare l'ACC: TUTTI (per creare/editare il primo documento).
         var standalone = all
-            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && published.Contains(s.Callsign))
+            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone
+                        && (_canEdit || StateOf(s.Callsign) == AppState.Published))
             .ToList();
         var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
         var byId = all.ToDictionary(s => s.Id);
