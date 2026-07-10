@@ -44,7 +44,7 @@ public class AccProfileTests : IAsyncLifetime
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AccProfileService(_repo, authz, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate(), new EfReleaseRepository(_db), new EfEditAuditWriter(_db));
+        _service = new AccProfileService(_repo, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
     }
 
     public async Task DisposeAsync()
@@ -53,43 +53,8 @@ public class AccProfileTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    [Fact]
-    public async Task Loads_Default_With_Aerovia_Block()
-    {
-        var data = await _service.LoadForViewAsync(Acc);
-        Assert.Equal("Roma ACC", data.AccName);
-        var block = Assert.Single(data.Blocks);
-        Assert.Equal(AccBlockKind.Aerovia, block.Kind);
-    }
-
-    [Fact]
-    public async Task Blocks_Roundtrip()
-    {
-        var blocks = new List<AccBlock>
-        {
-            new() { Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "Aerovia",
-                SectionOrder = { "aor", "separations" }, HiddenSections = { "minima" },
-                Separations = { new AppSeparationRow("1000 ft", "5 NM") },
-                Configurations = { new AccConfiguration { Key = "c1", Name = "2 settori", Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } } } },
-            new() { Key = "grp:1", Kind = AccBlockKind.AppGroup, Title = "APP Pisa",
-                MemberCallsigns = { "LIRP_APP" },
-                CustomSections = { new AppCustomSection("custom:x", "Note", new List<AppCustomBlock>()) } },
-        };
-        await _service.SaveBlocksAsync(Acc, blocks);
-
-        Assert.Equal(1, await _db.AccProfiles.CountAsync());
-
-        var data = await _service.LoadForEditAsync(Acc);
-        Assert.Equal(2, data.Blocks.Count);
-        var aer = data.Blocks[0];
-        Assert.Equal(AccBlockKind.Aerovia, aer.Kind);            // Aerovia sempre primo
-        Assert.Equal(new[] { "aor", "separations" }, aer.SectionOrder);
-        Assert.Contains("minima", aer.HiddenSections);
-        Assert.Equal("2 settori", Assert.Single(aer.Configurations).Name);
-        var grp = data.Blocks[1];
-        Assert.Equal("APP Pisa", grp.Title);
-        Assert.Equal(new[] { "LIRP_APP" }, grp.MemberCallsigns);
-    }
+    // Nota: storage/load/save della vIPI ACC è ora su Document (AccDocumentService/AccDocumentServiceTests, doc 08e-acc).
+    // Qui restano solo le DERIVAZIONI live di AccProfileService (freq/coord/config-table), che i viewer/editor riusano.
 
     [Fact]
     public async Task Derive_Frequencies_Aerovia_Covers_Whole_Acc()
@@ -100,19 +65,6 @@ public class AccProfileTests : IAsyncLifetime
         var all = await _service.DeriveFrequenciesAsync(Acc, block);
         Assert.Contains(all, f => f.Callsign == "LIRR_NE_CTR" && f.FrequencyMhz == "128.800");
         Assert.Contains(all, f => f.Callsign == "LIRR_EW_CTR");   // altro albero, ma stessa vIPI di ACC
-    }
-
-    [Fact]
-    public async Task Profiles_Are_Independent_Per_Tree()
-    {
-        var neBlocks = new List<AccBlock> { new() { Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "NE" } };
-        await _service.SaveBlocksAsync(Acc, neBlocks, "LIRR_NE_CTR");
-
-        // L'albero EW non ha ancora un profilo salvato: carica il default (Aerovia vuoto), non quello di NE.
-        var ew = await _service.LoadForViewAsync(Acc, "LIRR_EW_CTR");
-        Assert.Single(ew.Blocks);
-        Assert.Equal("Settori di aerovia", ew.Blocks[0].Title);  // default, non "NE"
-        Assert.Equal(1, await _db.AccProfiles.CountAsync());    // LoadForView non crea: salvato solo NE
     }
 
     [Fact]
@@ -147,20 +99,6 @@ public class AccProfileTests : IAsyncLifetime
         var airport = Assert.Single(accGroup.Airports);
         Assert.Single(airport.Arrivals);
         Assert.Single(airport.Departures);
-    }
-
-    [Fact]
-    public async Task Config_Aor_Unions_Open_Sectors()
-    {
-        var block = new AccBlock
-        {
-            Key = "aerovia", Kind = AccBlockKind.Aerovia,
-            Configurations = { new AccConfiguration { Key = "c1", Name = "NE+EW", Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } } },
-        };
-        var aors = await _service.DeriveConfigAorsAsync(Acc, block);
-        var cfg = Assert.Single(aors);
-        Assert.Equal("NE+EW", cfg.ConfigName);
-        Assert.Equal(2, cfg.Polygons.Count);                    // due poligoni CTR proiettati
     }
 
     [Fact]

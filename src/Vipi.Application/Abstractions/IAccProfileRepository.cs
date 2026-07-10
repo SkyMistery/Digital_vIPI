@@ -21,12 +21,6 @@ public interface IAccProfileRepository
     /// DocumentId. Null se l'ACC non esiste o non ha radici CTR. Doc refactor 08e-acc.</summary>
     Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Carica i blocchi salvati dell'albero indicato (null = radice primaria). Lista vuota se nessun profilo.</summary>
-    Task<IReadOnlyList<AccBlock>> LoadBlocksAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
-
-    /// <summary>Vero se la vIPI ACC dell'albero indicato è nascosta dal pubblico.</summary>
-    Task<bool> IsHiddenAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default);
-
     /// <summary>Radici degli alberi CTR dell'ACC (settori CTR senza genitore, attivi). Una vIPI per radice.</summary>
     Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default);
 
@@ -78,7 +72,4 @@ public interface IAccProfileRepository
 
     /// <summary>Aree speciali per IvaoId (per il viewer), con shape grezza.</summary>
     Task<IReadOnlyList<SpecialAreaDetail>> GetSpecialAreasByIdsAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default);
-
-    /// <summary>Sostituisce l'intera struttura a blocchi del profilo dell'albero indicato (get-or-create per Acc+radice).</summary>
-    Task SaveBlocksAsync(string accCode, IReadOnlyList<AccBlock> blocks, string? rootCallsign = null, CancellationToken ct = default);
 }

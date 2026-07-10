@@ -42,7 +42,6 @@ public class VipiDbContext : DbContext
     public DbSet<ImportState> ImportStates => Set<ImportState>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
-    public DbSet<AccProfile> AccProfiles => Set<AccProfile>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
     public DbSet<VloaProfile> VloaProfiles => Set<VloaProfile>();
@@ -242,13 +241,6 @@ public class VipiDbContext : DbContext
         });
 
         // (APP standalone: storage migrato su Document + DocumentProfile, doc 08e; entità AppProfile rimosse.)
-
-        // --- Profilo vIPI ACC: una per (Acc, albero radice). Tutta la struttura a blocchi in BlocksJson. ---
-        b.Entity<AccProfile>(e =>
-        {
-            e.HasIndex(x => new { x.AccId, x.RootCallsign }).IsUnique();
-            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
-        });
 
         // --- Coppie ACC confinanti candidate a vLOA (staging del calcolo di adiacenza). ---
         b.Entity<NeighbourCandidate>(e =>
