@@ -48,6 +48,31 @@ public interface IEditingRepository
         IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
 
     /// <summary>
+    /// Idempotente, variante <b>annidata</b> per la vIPI ACC (doc refactor 08e-acc): garantisce il documento vIPI del
+    /// settore primario con una versione bozza e un albero a <b>blocchi</b> — ogni blocco è una sezione radice (depth 0,
+    /// chiave = <c>Block.Key</c>) con le sue sezioni-catalogo come figli (depth 1). Se il settore ha già un documento
+    /// ne ritorna l'Id senza toccarlo. Le sezioni figlie in <paramref name="liveKeys"/> ricevono il blocco placeholder
+    /// (come <see cref="EnsureVipiDocumentAsync"/>). Ritorna l'Id del documento.
+    /// </summary>
+    Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Legge il <c>BodyJson</c> del primo blocco di UNA sezione identificata dall'Id (non per chiave radice): serve alla
+    /// vIPI ACC dove le sezioni editoriali-strutturate vivono a depth 1 sotto il blocco, e il metadata del blocco
+    /// (kind/membri/override) vive sulla sezione-blocco stessa. Null se sezione/blocco assenti. Doc refactor 08e-acc.
+    /// </summary>
+    Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Upsert del <c>BodyJson</c> in un unico blocco <c>Table</c> della sezione identificata dall'Id (crea il blocco se
+    /// manca; <paramref name="json"/> null/vuoto lo azzera). Errore se la versione della sezione non è una bozza. Doc
+    /// refactor 08e-acc. Il ciclo bozza→pubblicazione resta del chiamante.
+    /// </summary>
+    Task SaveSectionBlockJsonBySectionAsync(int sectionId, string? json, int authorUserId, CancellationToken ct = default);
+
+    /// <summary>
     /// Legge il JSON strutturato di una sezione editoriale-strutturata (separations/vfr/config…): il <c>BodyJson</c>
     /// del primo blocco della sezione radice con quella chiave, dalla versione di lavoro (bozza se esiste, sennò la
     /// pubblicata). Null se documento/sezione/blocco assenti. Per lo storage APP/ACC/Airport su Document (doc refactor 08e).
