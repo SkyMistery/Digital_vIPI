@@ -27,7 +27,6 @@ public static class DependencyInjection
         services.AddScoped<INeighbourImportService, NeighbourImportService>();
         services.AddScoped<INeighbourReader>(sp => sp.GetRequiredService<INeighbourImportService>());   // stessa istanza, porta di sola lettura (ISP)
         services.AddScoped<IAirportProfileService, AirportProfileService>();
-        services.AddScoped<IAppProfileService, AppProfileService>();
         services.AddScoped<IAppDocumentService, AppDocumentService>();
         services.AddScoped<IAccProfileService, AccProfileService>();
         services.AddScoped<IVloaProfileService, VloaProfileService>();

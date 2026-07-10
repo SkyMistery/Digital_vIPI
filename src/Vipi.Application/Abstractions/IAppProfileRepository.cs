@@ -7,23 +7,12 @@ namespace Vipi.Application.Abstractions;
 public sealed record AppDocumentIdentity(int SectorId, string Callsign, string Title, string AccCode, int? DocumentId);
 
 /// <summary>
-/// Persistenza del profilo editoriale dell'APP standalone (separazioni, VFR, ordine sezioni, ordine/link frequenze),
-/// ancorato 1:1 al Sector APP. Le sezioni derivate (frequenze sottoalbero, coordinamenti, AoR) non si persistono:
-/// qui ci sono solo i dati grezzi per ricalcolarle (catalogo frequenze, mappa tipi, poligono).
-/// Le scritture per-area sostituiscono l'intero valore (l'editor invia tutto). Get-or-create del profilo implicito.
+/// Sorgente dati per la DERIVAZIONE delle sezioni live dell'APP standalone su Document (doc 08e): catalogo frequenze
+/// del sottoalbero, poligoni AoR, mappe callsign→tipo/nome/codice per i coordinamenti, risoluzione link frequenza.
+/// NON persiste editoriale (quello vive nel Document + <c>DocumentProfile</c>): sola lettura dai cataloghi/settori.
 /// </summary>
 public interface IAppProfileRepository
 {
-    /// <summary>Carica il profilo (editoriale + link risolti). null = callsign APP inesistente.</summary>
-    Task<AppProfileData?> LoadAsync(string appCallsign, CancellationToken ct = default);
-
-    /// <summary>Vero se la vIPI APP standalone del callsign è nascosta dal pubblico.</summary>
-    Task<bool> IsHiddenAsync(string appCallsign, CancellationToken ct = default);
-
-    /// <summary>Costruisce l'<see cref="AppProfileData"/> dai blob CONGELATI di una release (i link-frequenza sono
-    /// ri-risolti per callsign col catalogo corrente). Per la vista pubblica quando esiste una release effettiva.</summary>
-    Task<AppProfileData?> BuildFromSnapshotAsync(string appCallsign, AppReleaseSnapshot snap, CancellationToken ct = default);
-
     /// <summary>Codice ACC del settore APP (per la guardia di autorizzazione). null = inesistente.</summary>
     Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default);
 
@@ -69,17 +58,4 @@ public interface IAppProfileRepository
 
     /// <summary>Mappa callsign → nome IVAO del settore (AtcCallsign, es. «Roma Radar»), senza il codice. Per il mittente.</summary>
     Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default);
-
-    /// <summary>Override per-documento del template frase (null = default globale). Lettura leggera per la derivazione.</summary>
-    Task<string?> GetCoordinationTemplateAsync(string appCallsign, CancellationToken ct = default);
-
-    Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
-
-    Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
-    Task SaveVfrAsync(string appCallsign, string? vfrJson, CancellationToken ct = default);
-    Task SaveSectionOrderAsync(string appCallsign, IReadOnlyList<string> order, CancellationToken ct = default);
-    Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> hiddenKeys, CancellationToken ct = default);
-    Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
-    Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
-    Task SaveCustomSectionsAsync(string appCallsign, IReadOnlyList<AppCustomSection> sections, CancellationToken ct = default);
 }

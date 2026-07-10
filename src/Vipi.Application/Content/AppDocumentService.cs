@@ -6,8 +6,8 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Authoring dell'APP standalone sul modello unificato <c>Document</c> (doc refactor 08e, strategia A). Sostituisce
-/// progressivamente <c>IAppProfileService</c>/<c>AppProfile</c>: le sezioni vivono in <c>DocumentSection</c>+
+/// Authoring dell'APP standalone sul modello unificato <c>Document</c> (doc refactor 08e, strategia A). Ha sostituito
+/// il vecchio <c>AppProfileService</c>/<c>AppProfile</c> (rimossi): le sezioni vivono in <c>DocumentSection</c>+
 /// <c>ContentBlock</c>, gli override derivati in <c>DocumentProfile</c>. Le sezioni derivate (freq/coord/AoR) restano
 /// calcolate live dai cataloghi; qui la logica di derivazione è identica a quella profile, con gli override presi
 /// dal <c>DocumentProfile</c> del documento dell'APP.

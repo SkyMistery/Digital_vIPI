@@ -42,8 +42,6 @@ public class VipiDbContext : DbContext
     public DbSet<ImportState> ImportStates => Set<ImportState>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
-    public DbSet<AppProfile> AppProfiles => Set<AppProfile>();
-    public DbSet<AppFrequencyLink> AppFrequencyLinks => Set<AppFrequencyLink>();
     public DbSet<AccProfile> AccProfiles => Set<AccProfile>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
@@ -243,20 +241,7 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Airport).WithMany(a => a.ExtraSections).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // --- Profilo APP standalone: 1:1 col Sector APP (unique). I link extra cascadano col profilo. ---
-        b.Entity<AppProfile>(e =>
-        {
-            e.HasIndex(x => x.SectorId).IsUnique();
-            // 1:1 col Sector APP; cancellare il settore (proiezione disattivata) non cancella il profilo (SetNull non possibile su FK non-null → Restrict).
-            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade);
-        });
-        b.Entity<AppFrequencyLink>(e =>
-        {
-            e.HasIndex(x => new { x.AppProfileId, x.Order });
-            e.HasOne(x => x.AppProfile).WithMany(p => p.FrequencyLinks).HasForeignKey(x => x.AppProfileId).OnDelete(DeleteBehavior.Cascade);
-            // La sorgente è un altro settore (Sector.DefaultFrequency): se sparisce, sparisce il link (cascade).
-            e.HasOne(x => x.SourceSector).WithMany().HasForeignKey(x => x.SourceSectorId).OnDelete(DeleteBehavior.Cascade);
-        });
+        // (APP standalone: storage migrato su Document + DocumentProfile, doc 08e; entità AppProfile rimosse.)
 
         // --- Profilo vIPI ACC: una per (Acc, albero radice). Tutta la struttura a blocchi in BlocksJson. ---
         b.Entity<AccProfile>(e =>
