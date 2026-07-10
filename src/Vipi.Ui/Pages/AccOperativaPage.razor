@@ -5,6 +5,7 @@
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
 @inject IAccProfileService Profile
+@inject IAccDocumentService AccDoc
 @inject ITopologyProvider Topology
 @inject IAorService Aor
 @inject IOnlineAtcProvider Online
@@ -190,7 +191,7 @@ else
     {
         if (_acc is null) return;
 
-        _data = await Profile.LoadForViewAsync(_acc.Code, _root);
+        _data = (await AccDoc.LoadForViewAsync(_acc.Code))!.Data;
         _snapshot = Online.GetCurrent();
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;

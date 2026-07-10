@@ -2,6 +2,7 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccProfileService Profile
+@inject IAccDocumentService AccDoc
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
@@ -121,18 +122,15 @@ else
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                try { _data = await Profile.LoadForEditAsync(Acc, _root); }
-                catch (EditNotAllowedException) { _mode = default; _data = await Profile.LoadForViewAsync(Acc, _root); }
+                try { _data = (await AccDoc.LoadForEditAsync(Acc)).Data; }
+                catch (EditNotAllowedException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
+                catch (ValidationException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
                 break;
+            // TODO 08e-acc/acc4: anteprima release ACC dal ramo Document (DocReleasePayload). Per ora ripiega sulla pubblica.
             case PreviewKind.Release:
-                AccReleaseView? rv = null;
-                try { rv = await Profile.LoadForReleaseAsync(Acc, _root, _mode.ReleaseId); }
-                catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }
-                else { _mode = default; _data = await Profile.LoadForViewAsync(Acc, _root); }
-                break;
             default:
-                _data = await Profile.LoadForViewAsync(Acc, _root);
+                _mode = _mode.Kind == PreviewKind.Release ? default : _mode;
+                _data = (await AccDoc.LoadForViewAsync(Acc))!.Data;
                 break;
         }
         _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
