@@ -107,6 +107,25 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.Empty(Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks).Block.Separations);
     }
 
+    [Fact]
+    public async Task AddGroup_Then_RemoveGroup_On_Draft()
+    {
+        var model = await _service.LoadForEditAsync(Acc);   // bozza v1 col solo blocco Aerovia
+        var groupId = await _service.AddGroupAsync(Acc, model.VersionId, "Gruppo Pisa");
+
+        var afterAdd = await _service.LoadForEditAsync(Acc);
+        Assert.Equal(2, afterAdd.Blocks.Count);
+        var grp = afterAdd.Blocks[1];
+        Assert.Equal(AccBlockKind.AppGroup, grp.Block.Kind);
+        Assert.Equal("Gruppo Pisa", grp.Block.Title);
+        // Sezioni-catalogo del profilo AccAppBlock (include vfr, assente in Aerovia).
+        var expected = SectionCatalog.For(SectionProfile.AccAppBlock).Select(d => d.Key).ToArray();
+        Assert.Equal(expected, grp.Block.SectionOrder.ToArray());
+
+        await _service.RemoveGroupAsync(Acc, groupId);
+        Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks);
+    }
+
     /// <summary>Authz permissiva per i ctor dei service in test.</summary>
     private sealed class AllowAuthz : IEditAuthorizationService
     {

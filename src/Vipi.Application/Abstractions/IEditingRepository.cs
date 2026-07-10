@@ -59,6 +59,13 @@ public interface IEditingRepository
         IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
 
     /// <summary>
+    /// Aggiunge un blocco (sezione radice depth 0 + sue sezioni-catalogo figlie depth 1, con placeholder sulle live)
+    /// in coda ai blocchi esistenti di una versione bozza. Per l'aggiunta di un gruppo APP dall'editor vIPI ACC (doc
+    /// refactor 08e-acc). Errore se la versione non è una bozza. Ritorna l'Id della sezione-blocco creata.
+    /// </summary>
+    Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Legge il <c>BodyJson</c> del primo blocco di UNA sezione identificata dall'Id (non per chiave radice): serve alla
     /// vIPI ACC dove le sezioni editoriali-strutturate vivono a depth 1 sotto il blocco, e il metadata del blocco
     /// (kind/membri/override) vive sulla sezione-blocco stessa. Null se sezione/blocco assenti. Doc refactor 08e-acc.

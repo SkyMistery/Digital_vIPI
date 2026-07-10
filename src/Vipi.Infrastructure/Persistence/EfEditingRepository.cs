@@ -424,6 +424,50 @@ public sealed class EfEditingRepository : IEditingRepository
         RowVersion = Guid.NewGuid().ToByteArray(),
     };
 
+    public async Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+    {
+        await RequireDraftAsync(versionId, ct);
+        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
+
+        var nextOrder = (await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == null)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+
+        var blockSection = new DocumentSection
+        {
+            DocumentVersionId = versionId,
+            ParentSectionId = null,
+            Title = block.Title,
+            Order = nextOrder,
+            Depth = 0,
+            SectionKey = block.Key,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(blockSection);
+
+        var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
+        var childOrder = 1;
+        foreach (var (key, secTitle) in block.Sections)
+        {
+            var child = new DocumentSection
+            {
+                DocumentVersion = version,
+                ParentSection = blockSection,
+                Title = secTitle,
+                Order = childOrder++,
+                Depth = 1,
+                SectionKey = key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            _db.DocumentSections.Add(child);
+            if (live is not null && live.Contains(key))
+                _db.ContentBlocks.Add(NewPlaceholderBlock(version, child));
+        }
+        await _db.SaveChangesAsync(ct);
+        return blockSection.Id;
+    }
+
     public async Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default) =>
         await _db.ContentBlocks
             .Where(b => b.SectionId == sectionId)

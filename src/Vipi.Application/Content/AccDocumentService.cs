@@ -38,6 +38,12 @@ public interface IAccDocumentService
 
     /// <summary>Salva il contenuto VFR nel <c>BodyJson</c> della sezione figlia <c>vfr</c>. ACC-gated.</summary>
     Task SaveVfrAsync(string accCode, int vfrSectionId, AppVfrContent content, CancellationToken ct = default);
+
+    /// <summary>Aggiunge un blocco gruppo APP (sezione radice + sezioni-catalogo AccAppBlock) alla versione bozza. ACC-gated. Ritorna l'Id della sezione-blocco.</summary>
+    Task<int> AddGroupAsync(string accCode, int versionId, string title, CancellationToken ct = default);
+
+    /// <summary>Elimina un blocco (sezione radice + sottoalbero) dalla versione bozza. ACC-gated.</summary>
+    Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAccDocumentService"/>
@@ -128,5 +134,21 @@ public sealed class AccDocumentService : IAccDocumentService
         await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
         var json = value is null ? null : System.Text.Json.JsonSerializer.Serialize(value);
         await _editing.SaveSectionBlockJsonBySectionAsync(sectionId, json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    // --- Ops strutturali sui blocchi (ACC-gated). Operano sulla versione bozza gestita dall'editor. ---
+
+    public async Task<int> AddGroupAsync(string accCode, int versionId, string title, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        var block = new VipiBlockSpec("appgroup", string.IsNullOrWhiteSpace(title) ? "Nuovo gruppo APP" : title.Trim(),
+            SectionCatalog.For(SectionProfile.AccAppBlock).Select(d => (d.Key, d.Title)).ToList());
+        return await _editing.AddBlockToVersionAsync(versionId, block, LiveKeys, ct);
+    }
+
+    public async Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        await _editing.DeleteSectionAsync(blockSectionId, ct);
     }
 }
