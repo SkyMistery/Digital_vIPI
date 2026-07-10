@@ -35,6 +35,14 @@ public interface IEditingRepository
     /// <summary>Codice ACC del settore (per l'autorizzazione ACC-scoped alla creazione). Null se il settore non esiste.</summary>
     Task<string?> GetAccCodeBySectorAsync(int sectorId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Idempotente: garantisce che il settore primario abbia un documento vIPI (<see cref="DocumentType.Vipi"/>) con
+    /// la versione bozza e le sezioni radice indicate (chiave catalogo + titolo, nell'ordine dato). Se il settore ha
+    /// già un documento ne ritorna l'Id senza toccarlo. Per la migrazione ACC/APP/Airport su Document (doc refactor 08e).
+    /// </summary>
+    Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<(string Key, string Title)> sections, int authorUserId, CancellationToken ct = default);
+
     /// <summary>Aggiorna i campi editabili di un blocco. Errore se il blocco non appartiene a una versione bozza.</summary>
     Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
 

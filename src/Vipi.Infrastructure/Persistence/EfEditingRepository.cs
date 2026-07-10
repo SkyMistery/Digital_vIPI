@@ -259,6 +259,60 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task<string?> GetAccCodeBySectorAsync(int sectorId, CancellationToken ct = default) =>
         await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
+    public async Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<(string Key, string Title)> sections, int authorUserId, CancellationToken ct = default)
+    {
+        var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
+            ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
+        if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
+
+        var now = DateTime.UtcNow;
+        var doc = new Document
+        {
+            Type = DocumentType.Vipi,
+            Title = title,
+            Language = language,
+            Status = DocumentStatus.Draft,
+            LastUpdatedUtc = now,
+            LastUpdatedAiracCycle = _airac.GetCycle(now),
+        };
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync(ct); // serve doc.Id
+
+        sector.DocumentId = doc.Id;
+        sector.IsPrimary = true;
+        await _db.SaveChangesAsync(ct);
+
+        var version = new DocumentVersion
+        {
+            DocumentId = doc.Id,
+            VersionNumber = 1,
+            Status = DocumentStatus.Draft,
+            CreatedByUserId = authorUserId,
+            CreatedUtc = now,
+            AiracCycle = _airac.GetCycle(now),
+            Note = "Bozza iniziale",
+        };
+        _db.DocumentVersions.Add(version);
+        await _db.SaveChangesAsync(ct); // serve version.Id
+
+        var order = 1;
+        foreach (var (key, secTitle) in sections)
+            _db.DocumentSections.Add(new DocumentSection
+            {
+                DocumentVersionId = version.Id,
+                ParentSectionId = null,
+                Title = secTitle,
+                Order = order++,
+                Depth = 0,
+                SectionKey = key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        await _db.SaveChangesAsync(ct);
+
+        return doc.Id;
+    }
+
     public async Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default)
     {
         var block = await _db.ContentBlocks.FirstOrDefaultAsync(b => b.Id == blockId, ct)
