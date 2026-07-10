@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710100541_AddDocumentProfile")]
+    partial class AddDocumentProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -511,6 +514,79 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("AirportId", "Order");
 
                     b.ToTable("AirportTransitionLevels");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AppFrequencyLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AppProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LabelOverride")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SourceSectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceSectorId");
+
+                    b.HasIndex("AppProfileId", "Order");
+
+                    b.ToTable("AppFrequencyLinks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AppProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CoordinationSentenceTemplate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomSectionsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FreqOrderJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HiddenSectionsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectionOrderJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SeparationsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VfrJson")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectorId")
+                        .IsUnique();
+
+                    b.ToTable("AppProfiles");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
@@ -1677,6 +1753,36 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AppFrequencyLink", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AppProfile", "AppProfile")
+                        .WithMany("FrequencyLinks")
+                        .HasForeignKey("AppProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.Sector", "SourceSector")
+                        .WithMany()
+                        .HasForeignKey("SourceSectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppProfile");
+
+                    b.Navigation("SourceSector");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AppProfile", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
+                        .WithMany()
+                        .HasForeignKey("SectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sector");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.DocumentVersion", "DocumentVersion")
@@ -1956,6 +2062,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Sids");
 
                     b.Navigation("TransitionLevels");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AppProfile", b =>
+                {
+                    b.Navigation("FrequencyLinks");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>

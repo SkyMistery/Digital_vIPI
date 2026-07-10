@@ -86,6 +86,66 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EnsureVipiDocument_Creates_Keyed_Sections_And_Is_Idempotent()
+    {
+        var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var sections = new (string Key, string Title)[]
+        {
+            ("separations", "Separazioni"), ("aor", "AOR"), ("validity", "Validità e revisione"),
+        };
+
+        var docId = await _repo.EnsureVipiDocumentAsync(sec, "vIPI APP di test", Language.It, sections, authorUserId: 9);
+
+        var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == docId);
+        Assert.Equal(DocumentType.Vipi, doc.Type);
+        var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
+        var keys = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.DocumentVersionId == ver.Id).OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync();
+        Assert.Equal(new[] { "separations", "aor", "validity" }, keys);
+
+        var linked = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == sec);
+        Assert.Equal(docId, linked.DocumentId);
+        Assert.True(linked.IsPrimary);
+
+        // Idempotente: seconda chiamata ritorna lo stesso documento, senza duplicare sezioni.
+        Assert.Equal(docId, await _repo.EnsureVipiDocumentAsync(sec, "altro titolo", Language.It, sections, authorUserId: 9));
+        Assert.Equal(3, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
+    }
+
+    [Fact]
+    public async Task SectionBlockJson_RoundTrips_And_Clears_On_Keyed_Section()
+    {
+        // Documento vIPI APP seedato a mano (bozza v1) con la sezione radice keyed "separations".
+        var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var docId = await _repo.EnsureVipiDocumentAsync(
+            sec, "vIPI APP di test", Language.It,
+            new (string, string)[] { ("separations", "Separazioni"), ("vfr", "VFR") }, authorUserId: 5);
+
+        // Prima del salvataggio: nessun blocco → null.
+        Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+
+        // Upsert (crea il blocco).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "[{\"Vertical\":\"1000 ft\"}]", authorUserId: 5);
+        Assert.Equal("[{\"Vertical\":\"1000 ft\"}]", await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.Section!.SectionKey == "separations"
+            && b.DocumentVersion!.DocumentId == docId));
+
+        // Secondo upsert: aggiorna lo stesso blocco (niente duplicati).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "[{\"Vertical\":\"2000 ft\"}]", authorUserId: 5);
+        Assert.Equal("[{\"Vertical\":\"2000 ft\"}]", await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+        Assert.Equal(1, await _db.ContentBlocks.CountAsync(b => b.Section!.SectionKey == "separations"
+            && b.DocumentVersion!.DocumentId == docId));
+
+        // json vuoto → azzera (blocco resta ma BodyJson null).
+        await _repo.SaveSectionBlockJsonAsync(docId, "separations", "  ", authorUserId: 5);
+        Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "separations"));
+
+        // Sezione inesistente → errore.
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _repo.SaveSectionBlockJsonAsync(docId, "nope", "x", authorUserId: 5));
+    }
+
+    [Fact]
     public async Task CreateDocument_Vloa_Adds_Two_Parties()
     {
         var sectors = await _db.Sectors.Select(s => s.Id).Take(2).ToListAsync();

@@ -72,34 +72,3 @@ public sealed record AppCustomBlock(
 /// <summary>Sezione custom (libera): chiave stabile + titolo + blocchi prosa/tabella. Riordinata insieme alle fisse.</summary>
 public sealed record AppCustomSection(string Key, string Title, IReadOnlyList<AppCustomBlock> Blocks);
 
-/// <summary>Profilo dell'APP standalone per editor e viewer: identità + parti editoriali + link risolti.</summary>
-public sealed class AppProfileData
-{
-    public required int SectorId { get; init; }
-    public required string AppCallsign { get; init; }
-    public required string Name { get; init; }
-    /// <summary>Nome visualizzato IVAO (es. "Palermo Approach"), da AirportSector.AtcCallsign. Fallback a Name.</summary>
-    public string? DisplayName { get; init; }
-    public required string AccCode { get; init; }
-
-    public required IReadOnlyList<AppSeparationRow> Separations { get; init; }
-    public string? VfrJson { get; init; }
-
-    /// <summary>Ordine delle sezioni salvato (grezzo): la riconciliazione col registry avviene a valle (Fase 3).</summary>
-    public required IReadOnlyList<string> SectionOrder { get; init; }
-
-    /// <summary>Chiavi delle sezioni nascoste dal documento pubblico (mostrate solo in editor).</summary>
-    public required IReadOnlyList<string> HiddenSections { get; init; }
-
-    /// <summary>Override d'ordine frequenze, per callsign.</summary>
-    public required IReadOnlyList<AppFreqOrderOverride> FreqOrder { get; init; }
-
-    /// <summary>Frequenze extra linkate (già risolte dal settore sorgente).</summary>
-    public required IReadOnlyList<AppFreqRow> FrequencyLinks { get; init; }
-
-    /// <summary>Sezioni custom (libere) del profilo.</summary>
-    public required IReadOnlyList<AppCustomSection> CustomSections { get; init; }
-
-    /// <summary>Override per-documento del template della frase di coordinamento; null = default globale (file).</summary>
-    public string? CoordinationSentenceTemplate { get; init; }
-}

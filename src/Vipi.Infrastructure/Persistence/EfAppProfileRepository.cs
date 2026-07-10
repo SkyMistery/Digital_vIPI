@@ -20,6 +20,33 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
             .Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
+    public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var s = await _db.Sectors.AsNoTracking().Include(x => x.Acc)
+            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App, ct);
+        if (s is null || s.Acc is null) return null;
+
+        // Titolo = nome IVAO (AtcCallsign, es. "Palermo Approach") dal catalogo, fallback al nome settore, poi callsign.
+        var display = await _db.AirportSectors.AsNoTracking()
+            .Where(a => a.ComposePosition == appCallsign).Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
+        var title = string.IsNullOrWhiteSpace(display) ? (string.IsNullOrWhiteSpace(s.Name) ? s.Callsign : s.Name) : display!;
+        return new AppDocumentIdentity(s.Id, s.Callsign, title, s.Acc.Code, s.DocumentId);
+    }
+
+    public async Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
+    {
+        if (sourceSectorIds.Count == 0) return Array.Empty<AppFreqRow>();
+        var byId = await _db.Sectors.AsNoTracking()
+            .Where(s => sourceSectorIds.Contains(s.Id) && s.DefaultFrequency != null)
+            .ToDictionaryAsync(s => s.Id, ct);
+        var rows = new List<AppFreqRow>();
+        foreach (var id in sourceSectorIds)   // preserva l'ordine dei link salvati
+            if (byId.TryGetValue(id, out var s))
+                rows.Add(new AppFreqRow(id, s.Callsign, s.Callsign, s.DefaultFrequency!,
+                    s.Type.ToString().ToUpperInvariant(), false, true));
+        return rows;
+    }
+
     public async Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.AirportSectors.AsNoTracking().Where(s => s.ComposePosition == appCallsign)
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);
@@ -55,93 +82,6 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
             .Select(s => new { s.ComposePosition, Poly = s.RegionMapPolygon! })
             .ToListAsync(ct);
         return rows.Select(r => (r.ComposePosition, r.Poly)).ToList();
-    }
-
-    public async Task<AppProfileData?> LoadAsync(string appCallsign, CancellationToken ct = default)
-    {
-        var sector = await _db.Sectors.AsNoTracking().Include(s => s.Acc)
-            .FirstOrDefaultAsync(s => s.Callsign == appCallsign && s.Type == SectorType.App, ct);
-        if (sector is null) return null;
-
-        var profile = await _db.AppProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.SectorId == sector.Id, ct);
-
-        // Nome visualizzato IVAO ("Palermo Approach") dal catalogo AirportSector, per callsign.
-        var displayName = await _db.AirportSectors.AsNoTracking()
-            .Where(a => a.ComposePosition == appCallsign)
-            .Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
-
-        var links = profile is null
-            ? new List<AppFreqRow>()
-            : await _db.AppFrequencyLinks.AsNoTracking().Where(x => x.AppProfileId == profile.Id)
-                .OrderBy(x => x.Order).Include(x => x.SourceSector)
-                .Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null)
-                .Select(x => new AppFreqRow(x.SourceSectorId,
-                    x.LabelOverride ?? x.SourceSector!.Callsign, x.SourceSector!.Callsign,
-                    x.SourceSector!.DefaultFrequency!, x.SourceSector!.Type.ToString().ToUpperInvariant(), false, true))
-                .ToListAsync(ct);
-
-        return new AppProfileData
-        {
-            SectorId = sector.Id,
-            AppCallsign = sector.Callsign,
-            Name = sector.Name,
-            DisplayName = displayName,
-            AccCode = sector.Acc!.Code,
-            Separations = ParseList<AppSeparationRow>(profile?.SeparationsJson),
-            VfrJson = profile?.VfrJson,
-            SectionOrder = ParseList<string>(profile?.SectionOrderJson),
-            HiddenSections = ParseList<string>(profile?.HiddenSectionsJson),
-            FreqOrder = ParseFreqOrder(profile?.FreqOrderJson),
-            FrequencyLinks = links,
-            CustomSections = ParseList<AppCustomSection>(profile?.CustomSectionsJson),
-            CoordinationSentenceTemplate = profile?.CoordinationSentenceTemplate,
-        };
-    }
-
-    public async Task<bool> IsHiddenAsync(string appCallsign, CancellationToken ct = default) =>
-        await _db.AppProfiles.AsNoTracking()
-            .Where(p => p.Sector!.Callsign == appCallsign)
-            .Select(p => p.IsHidden).FirstOrDefaultAsync(ct);
-
-    public async Task<AppProfileData?> BuildFromSnapshotAsync(string appCallsign, AppReleaseSnapshot snap, CancellationToken ct = default)
-    {
-        var sector = await _db.Sectors.AsNoTracking().Include(s => s.Acc)
-            .FirstOrDefaultAsync(s => s.Callsign == appCallsign && s.Type == SectorType.App, ct);
-        if (sector is null) return null;
-
-        var displayName = await _db.AirportSectors.AsNoTracking()
-            .Where(a => a.ComposePosition == appCallsign)
-            .Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
-
-        // Link-frequenza congelati per callsign → valore ri-risolto dal catalogo corrente (frequenze sempre live).
-        var linkCallsigns = snap.FreqLinks.Select(l => l.Callsign).ToList();
-        var bySign = await _db.Sectors.AsNoTracking()
-            .Where(s => linkCallsigns.Contains(s.Callsign) && s.DefaultFrequency != null)
-            .ToDictionaryAsync(s => s.Callsign, s => s, StringComparer.OrdinalIgnoreCase, ct);
-        var links = snap.FreqLinks
-            .Where(l => bySign.ContainsKey(l.Callsign))
-            .OrderBy(l => l.Order)
-            .Select(l => { var s = bySign[l.Callsign];
-                return new AppFreqRow(s.Id, l.Label ?? s.Callsign, s.Callsign, s.DefaultFrequency!,
-                    s.Type.ToString().ToUpperInvariant(), false, true); })
-            .ToList();
-
-        return new AppProfileData
-        {
-            SectorId = sector.Id,
-            AppCallsign = sector.Callsign,
-            Name = sector.Name,
-            DisplayName = displayName,
-            AccCode = sector.Acc!.Code,
-            Separations = ParseList<AppSeparationRow>(snap.SeparationsJson),
-            VfrJson = snap.VfrJson,
-            SectionOrder = ParseList<string>(snap.SectionOrderJson),
-            HiddenSections = ParseList<string>(snap.HiddenSectionsJson),
-            FreqOrder = ParseFreqOrder(snap.FreqOrderJson),
-            FrequencyLinks = links,
-            CustomSections = ParseList<AppCustomSection>(snap.CustomSectionsJson),
-            CoordinationSentenceTemplate = snap.CoordinationSentenceTemplate,
-        };
     }
 
     public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
@@ -191,18 +131,6 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
 
     public async Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default) =>
         await EfAccProfileRepository.BuildAtcNameMapAsync(_db, ct);
-
-    public async Task<string?> GetCoordinationTemplateAsync(string appCallsign, CancellationToken ct = default) =>
-        await _db.AppProfiles.AsNoTracking()
-            .Where(p => p.Sector!.Callsign == appCallsign && p.Sector!.Type == SectorType.App)
-            .Select(p => p.CoordinationSentenceTemplate).FirstOrDefaultAsync(ct);
-
-    public async Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(template) ? null : template;
-        await _db.SaveChangesAsync(ct);
-    }
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
         string appCallsign, IReadOnlySet<string> domainCallsigns,
@@ -261,102 +189,7 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         return ordered;
     }
 
-    // ---- scritture (get-or-create del profilo) ----
-
-    public async Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.SeparationsJson = JsonSerializer.Serialize(rows
-            .Select(r => new AppSeparationRow((r.Vertical ?? "").Trim(), (r.Lateral ?? "").Trim(),
-                string.IsNullOrWhiteSpace(r.Applicability) ? null : r.Applicability!.Trim()))
-            .Where(r => !(string.IsNullOrWhiteSpace(r.Vertical) && string.IsNullOrWhiteSpace(r.Lateral) && r.Applicability is null))
-            .ToList());
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveVfrAsync(string appCallsign, string? vfrJson, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.VfrJson = string.IsNullOrWhiteSpace(vfrJson) ? null : vfrJson;
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveSectionOrderAsync(string appCallsign, IReadOnlyList<string> order, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.SectionOrderJson = JsonSerializer.Serialize(order);
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        var map = overrides.GroupBy(o => o.Callsign, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Last().Order, StringComparer.OrdinalIgnoreCase);
-        p.FreqOrderJson = JsonSerializer.Serialize(map);
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> hiddenKeys, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.HiddenSectionsJson = JsonSerializer.Serialize(hiddenKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveCustomSectionsAsync(string appCallsign, IReadOnlyList<AppCustomSection> sections, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        p.CustomSectionsJson = JsonSerializer.Serialize(sections);
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(appCallsign, ct);
-        _db.AppFrequencyLinks.RemoveRange(_db.AppFrequencyLinks.Where(x => x.AppProfileId == p.Id));
-        var valid = await _db.Sectors.Where(s => sourceSectorIds.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct);
-        var order = 0;
-        foreach (var sid in sourceSectorIds.Where(valid.Contains))
-            _db.AppFrequencyLinks.Add(new AppFrequencyLink { AppProfileId = p.Id, Order = order++, SourceSectorId = sid });
-        await _db.SaveChangesAsync(ct);
-    }
-
     // ---- helper ----
-
-    private async Task<AppProfile> GetOrCreateAsync(string appCallsign, CancellationToken ct)
-    {
-        var sectorId = await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
-            .Select(s => (int?)s.Id).FirstOrDefaultAsync(ct)
-            ?? throw new InvalidOperationException($"APP {appCallsign} inesistente.");
-        var profile = await _db.AppProfiles.FirstOrDefaultAsync(p => p.SectorId == sectorId, ct);
-        if (profile is null)
-        {
-            profile = new AppProfile { SectorId = sectorId };
-            _db.AppProfiles.Add(profile);
-            await _db.SaveChangesAsync(ct);
-        }
-        return profile;
-    }
-
-    private static List<T> ParseList<T>(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return new();
-        try { return JsonSerializer.Deserialize<List<T>>(json) ?? new(); }
-        catch (JsonException) { return new(); }
-    }
-
-    private static IReadOnlyList<AppFreqOrderOverride> ParseFreqOrder(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return Array.Empty<AppFreqOrderOverride>();
-        try
-        {
-            var map = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
-            return map is null ? Array.Empty<AppFreqOrderOverride>()
-                : map.Select(kv => new AppFreqOrderOverride(kv.Key, kv.Value)).ToList();
-        }
-        catch (JsonException) { return Array.Empty<AppFreqOrderOverride>(); }
-    }
 
     private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
     private static int PositionOrder(string position)

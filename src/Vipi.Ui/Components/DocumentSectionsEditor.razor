@@ -1,0 +1,358 @@
+@* Editor editoriale documentale CONDIVISO (doc refactor 08f). Estratto da VloaEditor: sezioni ad albero
+   (annidamento fino a DocumentSection.MaxDepth) + blocchi Prose/Callout/Table, su IEditingService — che è
+   type-agnostico (opera su versionId/section/block). Riusato da vLOA, ACC, APP, Airport. Le sezioni DERIVATE
+   (aor/frequencies/coordination/config/…) sono renderizzate dall'host via DerivedContent; l'host possiede
+   caricamento, lock, guard di salvataggio (Run), obbligatorietà e nascondi (per-tipo). *@
+@inject IEditingService Editing
+@using System.Text.Json
+
+@foreach (var s in Doc.Sections)
+{
+    @SectionEditor(s)
+}
+
+@if (IsEditing)
+{
+    <div class="block" style="border-style:dashed">
+        <button class="btn primary" @onclick="() => AddSection(null)">+ Aggiungi sezione</button>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public EditableDocument Doc { get; set; } = default!;
+    [Parameter] public bool IsEditing { get; set; }
+
+    /// <summary>Guard dell'host: esegue la mutazione mostrando stato salvataggio / gestendo lock ed errori.</summary>
+    [Parameter, EditorRequired] public Func<Func<Task>, Task> Run { get; set; } = default!;
+    /// <summary>Notifica l'host dopo ogni mutazione: ricarica il documento e ri-renderizza.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>Sezione data-driven (contenuto calcolato live): l'host la renderizza via <see cref="DerivedContent"/>.</summary>
+    [Parameter] public Func<EditableSection, bool>? IsDerivedSection { get; set; }
+    [Parameter] public RenderFragment<EditableSection>? DerivedContent { get; set; }
+
+    /// <summary>Sezione obbligatoria: titolo bloccato (no rinomina/sposta/elimina), ma sotto-sezioni extra permesse.</summary>
+    [Parameter] public Func<EditableSection, bool>? IsMandatory { get; set; }
+    /// <summary>Sezione nascosta dal documento pubblicato.</summary>
+    [Parameter] public Func<EditableSection, bool>? IsHiddenSection { get; set; }
+    /// <summary>Toggle nascondi/mostra (l'host decide la chiave: titolo per vLOA, SectionKey per ACC/APP).</summary>
+    [Parameter] public EventCallback<EditableSection> OnToggleHidden { get; set; }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    // ---- sezioni ----
+    private Task AddSection(int? parentId) => Run(async () =>
+    {
+        await Editing.AddSectionAsync(Doc.VersionId, parentId, "Nuova sezione", BlockSection.Other);
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task RenameSection(int sectionId, string title) => Run(async () =>
+    {
+        await Editing.RenameSectionAsync(sectionId, title);
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task DeleteSection(int sectionId) => Run(async () =>
+    {
+        await Editing.DeleteSectionAsync(sectionId);
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task MoveSection(int sectionId, int dir) => Run(async () =>
+    {
+        await Editing.MoveSectionAsync(sectionId, dir);
+        await OnChanged.InvokeAsync();
+    });
+
+    // ---- blocchi ----
+    private Task AddBlock(int sectionId, BlockFormat format) => Run(async () =>
+    {
+        var id = await Editing.AddBlockAsync(sectionId, format, BlockTier.Extended, BlockVisibility.Always);
+        if (format == BlockFormat.Table)
+            await Editing.UpdateBlockAsync(id, new BlockEdit
+            {
+                Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+                BodyJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""",
+            });
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task DeleteBlock(int blockId) => Run(async () =>
+    {
+        await Editing.DeleteBlockAsync(blockId);
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task MoveBlock(int blockId, int dir) => Run(async () =>
+    {
+        await Editing.MoveBlockAsync(blockId, dir);
+        await OnChanged.InvokeAsync();
+    });
+
+    private Task SaveBlock(EditableBlock b, string? body = null, string? bodyJson = null, CalloutKind? kind = null) => Run(async () =>
+    {
+        await Editing.UpdateBlockAsync(b.Id, new BlockEdit
+        {
+            Tier = b.Tier,
+            Visibility = b.Visibility,
+            CalloutKind = kind ?? b.CalloutKind,
+            Body = body ?? b.Body,
+            BodyJson = bodyJson ?? b.BodyJson,
+            RowVersion = b.RowVersion,
+        });
+        await OnChanged.InvokeAsync();
+    });
+
+    // ---- render sezione (ricorsivo) ----
+    private RenderFragment SectionEditor(EditableSection s) => __builder =>
+    {
+        var depth0 = s.Depth == 0;
+        var mand = IsMandatory?.Invoke(s) == true;
+        var hid = IsHiddenSection?.Invoke(s) == true;
+        var baseStyle = depth0 ? "" : "padding:10px;margin:8px 0";
+        <div class="@(depth0 ? "block" : "coord-sub")" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                @if (IsEditing && !mand)
+                {
+                    <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
+                           @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
+                    <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                    <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
+                    <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
+                }
+                else
+                {
+                    @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
+                    @if (mand) { <span class="pill grey" title="Sezione obbligatoria">obbligatoria</span> }
+                    @if (IsEditing && mand)
+                    {
+                        <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    }
+                }
+                @if (IsEditing && OnToggleHidden.HasDelegate)
+                {
+                    <button class="btn ghost" style="margin-left:auto" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
+                            @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
+                }
+            </div>
+
+            @if (IsDerivedSection?.Invoke(s) == true)
+            {
+                @DerivedContent?.Invoke(s)
+            }
+            else
+            {
+                @foreach (var b in s.Blocks)
+                {
+                    @BlockEditor(s, b)
+                }
+
+                @if (IsEditing)
+                {
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
+                    </div>
+                }
+            }
+
+            @foreach (var c in s.Children)
+            {
+                @SectionEditor(c)
+            }
+        </div>
+    };
+
+    // ---- render blocco per formato ----
+    private RenderFragment BlockEditor(EditableSection s, EditableBlock b) => __builder =>
+    {
+        @if (!IsEditing)
+        {
+            @ReadOnlyBlock(b)
+        }
+        else
+        {
+        <div class="app-block-edit" style="align-items:flex-start;gap:8px;margin:6px 0">
+            <div style="flex:1">
+                @switch (b.Format)
+                {
+                    case BlockFormat.Prose:
+                    case BlockFormat.List:
+                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="Testo (markdown leggero)…"
+                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Callout:
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+                            <span class="muted" style="font-size:12px">Tipo:</span>
+                            <select class="app-in" style="max-width:150px" value="@b.CalloutKind"
+                                    @onchange="e => SaveBlock(b, kind: Enum.Parse<CalloutKind>(AsString(e.Value)))">
+                                @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
+                            </select>
+                        </div>
+                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="Testo callout…"
+                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Table:
+                        @TableEditor(b)
+                        break;
+                    default:
+                        <p class="muted">Blocco @b.Format (non editabile qui).</p>
+                        break;
+                }
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+                <button class="btn ghost" title="Su" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
+                <button class="btn ghost" title="Giù" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
+                <button class="btn ghost" title="Elimina blocco" @onclick="() => DeleteBlock(b.Id)">✕</button>
+            </div>
+        </div>
+        }
+    };
+
+    private RenderFragment ReadOnlyBlock(EditableBlock b) => __builder =>
+    {
+        switch (b.Format)
+        {
+            case BlockFormat.Callout:
+                <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
+                    <span class="cic">@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)</span>
+                    <div>@MarkdownLite.Render(b.Body)</div>
+                </div>
+                break;
+            case BlockFormat.Table:
+                @RenderTablePreview(b)
+                break;
+            default:
+                @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(b.Body)</div> }
+                break;
+        }
+    };
+
+    private static string CalloutIcon(CalloutKind k) => k switch
+    {
+        CalloutKind.Success => "✅", CalloutKind.Warning => "⚠️", CalloutKind.Danger => "⛔", _ => "ℹ️",
+    };
+
+    // ---- editor tabella (columns + rows di celle) ----
+    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
+    {
+        var cols = new List<string>();
+        var rows = new List<List<string>>();
+        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
+                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
+                foreach (var row in rr.EnumerateArray())
+                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
+                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
+                        : new List<string>());
+        }
+        catch (JsonException) { }
+        return (cols, rows);
+    }
+
+    private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
+        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+
+    // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
+    private Task SetTableCol(EditableBlock b, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ci < cols.Count) cols[ci] = val;
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task RemoveTableCol(EditableBlock b, int ci)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ci < cols.Count) cols.RemoveAt(ci);
+        foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task AddTableCol(EditableBlock b)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        cols.Add($"Colonna {cols.Count + 1}");
+        foreach (var r in rows) r.Add("");
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task SetTableCell(EditableBlock b, int ri, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task AddTableRow(EditableBlock b)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+    private Task RemoveTableRow(EditableBlock b, int ri)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        if (ri < rows.Count) rows.RemoveAt(ri);
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+    }
+
+    private RenderFragment TableEditor(EditableBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        <table class="cfg-table">
+            <thead>
+                <tr>
+                    @for (var ci = 0; ci < cols.Count; ci++)
+                    {
+                        var cidx = ci;
+                        <th>
+                            <div style="display:flex;gap:4px;align-items:center">
+                                <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
+                                <button class="btn ghost" title="Rimuovi colonna" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
+                            </div>
+                        </th>
+                    }
+                    <th style="width:42px"><button class="btn ghost" title="Aggiungi colonna" @onclick="() => AddTableCol(b)">＋</button></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var ri = 0; ri < rows.Count; ri++)
+                {
+                    var ridx = ri;
+                    <tr>
+                        @for (var ci = 0; ci < cols.Count; ci++)
+                        {
+                            var cidx = ci;
+                            var cell = cidx < rows[ridx].Count ? rows[ridx][cidx] : "";
+                            <td><input class="app-in" value="@cell" @onchange="e => SetTableCell(b, ridx, cidx, AsString(e.Value))" /></td>
+                        }
+                        <td><button class="btn ghost" title="Rimuovi riga" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ Riga</button>
+    };
+
+    private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+        @if (cols.Count > 0 || rows.Count > 0)
+        {
+            <table class="cfg-table">
+                <thead><tr>@foreach (var c in cols) { <th>@c</th> }</tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? r[i] : "")</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+}

@@ -1,10 +1,10 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
 using Vipi.Infrastructure.Persistence.Seed;
@@ -12,13 +12,15 @@ using Xunit;
 
 namespace Vipi.Infrastructure.Tests;
 
-/// <summary>Profilo APP standalone: round-trip editoriale + derivazione frequenze (sottoalbero+ATIS) e coordinamenti.</summary>
-public class AppProfileTests : IAsyncLifetime
+/// <summary>
+/// Derivazione delle sezioni live dell'APP standalone su Document (doc 08e): frequenze (sottoalbero+ATIS+genitore) e
+/// coordinamenti (ACC vs torre). Sostituisce i vecchi test su AppProfileService (storage editoriale ora su Document).
+/// </summary>
+public class AppDocumentServiceTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
-    private EfAppProfileRepository _repo = default!;
-    private AppProfileService _service = default!;
+    private AppDocumentService _service = default!;
     private int _appId, _neId, _ptwrId;
 
     private const string App = "LIRP_APP";
@@ -48,46 +50,20 @@ public class AppProfileTests : IAsyncLifetime
             Pos("LIRP_APP", "APP", "126.080"));
         await _db.SaveChangesAsync();
 
-        _repo = new EfAppProfileRepository(_db);
+        var repo = new EfAppProfileRepository(_db);
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AppProfileService(_repo, authz, topo, transfers, new StubCoordinationSentenceTemplate(), new EfReleaseRepository(_db), new EfEditAuditWriter(_db));
+        var editing = new EfEditingRepository(_db, new AiracService());
+        var docProfiles = new EfDocumentProfileRepository(_db);
+        _service = new AppDocumentService(repo, editing, authz, topo, transfers,
+            new StubCoordinationSentenceTemplate(), docProfiles);
     }
 
     public async Task DisposeAsync()
     {
         await _db.DisposeAsync();
         await _conn.DisposeAsync();
-    }
-
-    [Fact]
-    public async Task Editorial_Roundtrips()
-    {
-        await _repo.SaveSeparationsAsync(App, new[] { new AppSeparationRow("1000 ft", "3 NM"), new AppSeparationRow("2000 ft", "5 NM") });
-        await _repo.SaveSectionOrderAsync(App, new[] { "sep", "aor", "freq" });
-        await _repo.SaveFrequencyOrderAsync(App, new[] { new AppFreqOrderOverride("LIRP_TWR", 1) });
-        await _repo.SaveFrequencyLinksAsync(App, new[] { _neId });
-
-        var data = await _repo.LoadAsync(App);
-        Assert.NotNull(data);
-        Assert.Equal(_appId, data!.SectorId);
-        Assert.Equal(2, data.Separations.Count);
-        Assert.Equal("1000 ft", data.Separations[0].Vertical);
-        Assert.Equal("3 NM", data.Separations[0].Lateral);
-        Assert.Equal(new[] { "sep", "aor", "freq" }, data.SectionOrder);
-        Assert.Equal(1, Assert.Single(data.FreqOrder).Order);
-        var link = Assert.Single(data.FrequencyLinks);
-        Assert.Equal("LIRR_NE_CTR", link.Callsign);
-        Assert.True(link.IsLink);
-    }
-
-    [Fact]
-    public async Task Profile_Is_Created_On_First_Save_Only()
-    {
-        await _repo.SaveSeparationsAsync(App, Array.Empty<AppSeparationRow>());
-        await _repo.SaveSectionOrderAsync(App, new[] { "sep" });
-        Assert.Equal(1, await _db.AppProfiles.CountAsync(p => p.SectorId == _appId));
     }
 
     [Fact]
@@ -103,14 +79,16 @@ public class AppProfileTests : IAsyncLifetime
         var app = freqs.Single(f => f.Position == "APP");
         Assert.True(app.IsPrimary);
         Assert.Equal(App, app.Callsign);
-        // Genitore: LIRR_NE_CTR (parent dell'APP nell'albero) presente in fondo.
         Assert.Equal("LIRR_NE_CTR", freqs[^1].Callsign);
     }
 
     [Fact]
     public async Task Freq_Order_Override_Moves_Row_To_Front()
     {
-        await _repo.SaveFrequencyOrderAsync(App, new[] { new AppFreqOrderOverride("LIRP_TWR", 0) });
+        // L'override d'ordine vive nel DocumentProfile: serve prima il Document dell'APP.
+        await _service.EnsureAsync(App);
+        await _service.SaveFrequencyOrderAsync(App, new[] { new AppFreqOrderOverride("LIRP_TWR", 0) });
+
         var freqs = await _service.DeriveFrequenciesAsync(App);
         Assert.Equal("LIRP_TWR", freqs[0].Callsign);   // override 0 vince su tutti i default
     }
@@ -146,7 +124,6 @@ public class AppProfileTests : IAsyncLifetime
     {
         var tr = new EfTransferRepository(_db);
         // Arrivo che l'ACC (NE) consegna all'APP: flusso di PROPRIETÀ del CTR, Next = APP.
-        // Non è di proprietà dell'APP, ma deve comparire fra le "Arrivi verso ACC" dell'APP.
         var fIn = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _neId, Kind = TransferFlowKind.Arrival });
         await tr.AddPointAsync("LIRR", fIn, Point("MAREL", 150, _appId));
 

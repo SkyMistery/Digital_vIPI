@@ -40,6 +40,17 @@ public sealed class EfContentRepository : IContentRepository
             ignoreRelease, preferWorking: false, ct);
     }
 
+    public Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
+    {
+        var app = (appCallsign ?? "").Trim().ToUpperInvariant();
+        return LoadVipiAsync(
+            d => d.Type == DocumentType.Vipi
+                 && (preferWorking || (d.Status == DocumentStatus.Published && (ignoreRelease || !d.IsHidden)))
+                 && d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
+                        && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app),
+            ignoreRelease, preferWorking, ct);
+    }
+
     public Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default)
     {
         return LoadVipiAsync(
@@ -174,6 +185,14 @@ public sealed class EfContentRepository : IContentRepository
     {
         if (doc.Type == DocumentType.Vloa)
             return (ReleaseTargetType.Vloa, doc.Id.ToString());
+
+        // APP non remotizzato su Document (doc 08e): target release = callsign APP.
+        var appCallsign = await _db.Sectors.AsNoTracking()
+            .Where(s => s.DocumentId == doc.Id && s.IsPrimary && s.Type == SectorType.App
+                        && s.ApproachKind == ApproachKind.Standalone)
+            .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
+        if (appCallsign is not null) return (ReleaseTargetType.App, appCallsign);
+
         var icao = await _db.Sectors.AsNoTracking()
             .Where(s => s.DocumentId == doc.Id && s.Kind == SectorKind.Airport && s.AirportIcao != null)
             .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);

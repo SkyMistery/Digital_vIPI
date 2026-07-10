@@ -21,12 +21,11 @@ else
                 <p class="toc-h">Navigazione</p>
                 @foreach (var block in _data.Blocks)
                 {
-                    var reg = AccSections.For(block.Kind);
                     <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : block.Title)</p>
                     <ul>
                         @foreach (var key in OrderOf(block))
                         {
-                            <li><a class="lvl2" href="#p-@(block.Key)-@key">@TitleOf(reg, block, key)</a></li>
+                            <li><a class="lvl2" href="#p-@(block.Key)-@key">@TitleOf(block, key)</a></li>
                         }
                     </ul>
                 }
@@ -56,10 +55,9 @@ else
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : block.Title)</h2>
                     @foreach (var key in OrderOf(block))
                     {
-                        var reg = AccSections.For(block.Kind);
                         var isHidden = IsHiddenSection(block, key);
                         <div class="block" id="p-@(block.Key)-@key" style="@(isHidden ? "opacity:.65" : "")">
-                            <h3>@TitleOf(reg, block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
+                            <h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
                             @SectionBody(block, key)
                         </div>
                     }
@@ -178,21 +176,24 @@ else
         return roots.Count > 0 ? roots[0].Callsign : null;
     }
 
+    // Blocco ACC → profilo del catalogo: Aerovia = settori CTR, AppGroup = gruppo APP. Doc 08d-acc §4(2).
+    private static SectionProfile ProfileOf(AccBlockKind kind) =>
+        kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
+
     private IReadOnlyList<string> OrderOf(AccBlock b)
     {
-        var reg = AccSections.For(b.Kind);
         var customKeys = b.CustomSections.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var hidden = b.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
         // Anteprima BOZZA: mostra anche le sezioni nascoste (stato editoriale in lavorazione). Pubblica/release: filtrate.
-        return AccSections.Reconcile(reg, b.SectionOrder, customKeys)
+        return SectionCatalog.Reconcile(ProfileOf(b.Kind), b.SectionOrder, customKeys)
             .Where(k => _mode.Kind == PreviewKind.Draft || !hidden.Contains(k)).ToList();
     }
 
     private bool IsHiddenSection(AccBlock b, string key) =>
         _mode.Kind == PreviewKind.Draft && b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
 
-    private static string TitleOf(IReadOnlyList<AppSectionDescriptor> reg, AccBlock b, string key) =>
-        AccSections.Find(reg, key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+    private static string TitleOf(AccBlock b, string key) =>
+        SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
 
     private RenderFragment SectionBody(AccBlock block, string key) => __builder =>
     {

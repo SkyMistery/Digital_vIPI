@@ -36,13 +36,24 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             }
             else
             {
-                // vIPI aeroporto: settore aeroporto → ICAO + ACC.
-                var airSec = d.Sectors.FirstOrDefault(s => s.Kind == SectorKind.Airport && s.AirportIcao != null);
-                var icao = airSec?.AirportIcao ?? "";
-                var acc = airSec?.Acc?.Code;
-                result.Add(new ManagedDoc(ManagedDocKind.AirportVipi, d.Title, icao, acc,
-                    d.Status == DocumentStatus.Published, draftDocIds.Contains(d.Id), d.IsHidden,
-                    ReleaseTargetType.Airport, icao, d.Id));
+                var primary = d.Sectors.FirstOrDefault(s => s.IsPrimary) ?? d.Sectors.FirstOrDefault();
+                if (primary is { Type: SectorType.App, ApproachKind: ApproachKind.Standalone })
+                {
+                    // vIPI APP non remotizzato (storage su Document, doc 08e): chiave release = callsign.
+                    result.Add(new ManagedDoc(ManagedDocKind.AppVipi, d.Title, primary.Callsign, primary.Acc?.Code,
+                        d.Status == DocumentStatus.Published, draftDocIds.Contains(d.Id), d.IsHidden,
+                        ReleaseTargetType.App, primary.Callsign, d.Id));
+                }
+                else
+                {
+                    // vIPI aeroporto: settore aeroporto → ICAO + ACC.
+                    var airSec = d.Sectors.FirstOrDefault(s => s.Kind == SectorKind.Airport && s.AirportIcao != null);
+                    var icao = airSec?.AirportIcao ?? "";
+                    var acc = airSec?.Acc?.Code;
+                    result.Add(new ManagedDoc(ManagedDocKind.AirportVipi, d.Title, icao, acc,
+                        d.Status == DocumentStatus.Published, draftDocIds.Contains(d.Id), d.IsHidden,
+                        ReleaseTargetType.Airport, icao, d.Id));
+                }
             }
         }
 
@@ -57,15 +68,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                 true, false, p.IsHidden, ReleaseTargetType.AccVipi, $"{acc}|{root}", null));
         }
 
-        // 3) APP standalone (AppProfile → Sector). Una query.
-        var appProfiles = await _db.AppProfiles.AsNoTracking()
-            .Join(_db.Sectors.AsNoTracking().Include(s => s.Acc), p => p.SectorId, s => s.Id, (p, s) => new { p, s })
-            .ToListAsync(ct);
-        foreach (var x in appProfiles)
-        {
-            result.Add(new ManagedDoc(ManagedDocKind.AppVipi, $"vIPI APP {x.s.Callsign}", x.s.Callsign, x.s.Acc?.Code,
-                true, false, x.p.IsHidden, ReleaseTargetType.App, x.s.Callsign, null));
-        }
+        // (Gli APP non remotizzati sono ora Document, elencati nel ramo 1.)
 
         return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
     }
@@ -98,6 +101,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         {
             case ManagedDocKind.Vloa:
             case ManagedDocKind.AirportVipi:
+            case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
                 if (doc.DocumentId is int id)
                 {
                     var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -110,13 +114,6 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                 var acc = parts[0]; var root = parts.Length > 1 && parts[1].Length > 0 ? parts[1] : null;
                 var accId = await _db.Accs.Where(a => a.Code == acc).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct);
                 var p = await _db.AccProfiles.FirstOrDefaultAsync(x => x.AccId == accId && x.RootCallsign == root, ct);
-                if (p is not null) { p.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
-                break;
-            }
-            case ManagedDocKind.AppVipi:
-            {
-                var sectorId = await _db.Sectors.Where(s => s.Callsign == doc.ReleaseKey).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
-                var p = await _db.AppProfiles.FirstOrDefaultAsync(x => x.SectorId == sectorId, ct);
                 if (p is not null) { p.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
                 break;
             }
@@ -140,6 +137,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         {
             case ManagedDocKind.Vloa:
             case ManagedDocKind.AirportVipi:
+            case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
                 if (doc.DocumentId is int id)
                 {
                     var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -147,7 +145,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                     {
                         d.CurrentVersionId = null;   // rompi il ciclo CurrentVersion (NoAction) prima del cascade
                         await _db.SaveChangesAsync(ct);
-                        _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/VloaProfile; Sector.DocumentId→SetNull
+                        _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/DocumentProfile; Sector.DocumentId→SetNull
                     }
                 }
                 break;
@@ -158,13 +156,6 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                 var accId = await _db.Accs.Where(a => a.Code == acc).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct);
                 var p = await _db.AccProfiles.FirstOrDefaultAsync(x => x.AccId == accId && x.RootCallsign == root, ct);
                 if (p is not null) _db.AccProfiles.Remove(p);
-                break;
-            }
-            case ManagedDocKind.AppVipi:
-            {
-                var sectorId = await _db.Sectors.Where(s => s.Callsign == doc.ReleaseKey).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
-                var p = await _db.AppProfiles.Include(x => x.FrequencyLinks).FirstOrDefaultAsync(x => x.SectorId == sectorId, ct);
-                if (p is not null) _db.AppProfiles.Remove(p);   // FrequencyLinks cascade su AppProfile
                 break;
             }
         }

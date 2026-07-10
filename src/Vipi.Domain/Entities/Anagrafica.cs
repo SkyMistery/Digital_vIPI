@@ -371,57 +371,8 @@ public class AirportFrequencyLink
 //  frequenze (sottoalbero), coordinamenti (trasferimenti) e poligono AoR si derivano LIVE.
 // =========================================================================================
 
-/// <summary>
-/// Profilo editoriale di un APP standalone, ancorato 1:1 al <see cref="Sector"/> APP via <see cref="SectorId"/>.
-/// Le sezioni derivate (Frequenze/Coordinamenti/AoR) non si salvano: si ricalcolano dall'albero/transfer/poligono.
-/// </summary>
-public class AppProfile
-{
-    public int Id { get; set; }
-
-    /// <summary>FK 1:1 → Sector APP (indice univoco). Identità del profilo.</summary>
-    public int SectorId { get; set; }
-    public Sector? Sector { get; set; }
-
-    /// <summary>Righe separazioni (label/valore) serializzate JSON: [{"label":"Radar","value":"3 NM"}, …].</summary>
-    public string SeparationsJson { get; set; } = "[]";
-
-    /// <summary>Blocchi VFR (prosa + tabella) serializzati JSON; null = sezione vuota.</summary>
-    public string? VfrJson { get; set; }
-
-    /// <summary>Ordine delle sezioni (chiavi fisse del registry + chiavi custom) serializzato JSON: ["sep","aor",…].</summary>
-    public string SectionOrderJson { get; set; } = "[]";
-
-    /// <summary>Chiavi delle sezioni nascoste dal documento pubblico (visibili solo in editor) serializzate JSON.</summary>
-    public string HiddenSectionsJson { get; set; } = "[]";
-
-    /// <summary>Override d'ordine per singola frequenza, per callsign: {"LIRP_TWR":1, …}. Le altre seguono l'ordine di default.</summary>
-    public string FreqOrderJson { get; set; } = "{}";
-
-    /// <summary>Sezioni custom (titolo + blocchi prosa/tabella) serializzate JSON; riordinate insieme alle fisse via SectionOrderJson (chiave "custom:{key}").</summary>
-    public string CustomSectionsJson { get; set; } = "[]";
-
-    /// <summary>Frequenze extra linkate (riferimento vivo a un altro settore).</summary>
-    public ICollection<AppFrequencyLink> FrequencyLinks { get; set; } = new List<AppFrequencyLink>();
-
-    /// <summary>Override per-documento del template della frase di coordinamento; null = usa il default globale (file).</summary>
-    public string? CoordinationSentenceTemplate { get; set; }
-
-    /// <summary>vIPI APP standalone nascosta dal pubblico (reversibile): il viewer non la serve, l'editor resta accessibile.</summary>
-    public bool IsHidden { get; set; }
-}
-
-/// <summary>Frequenza extra linkata di un APP standalone (riferimento vivo): si risolve da Sector.DefaultFrequency. Mirror di <see cref="AirportFrequencyLink"/>.</summary>
-public class AppFrequencyLink
-{
-    public int Id { get; set; }
-    public int AppProfileId { get; set; }
-    public AppProfile? AppProfile { get; set; }
-    public int Order { get; set; }
-    public int SourceSectorId { get; set; }            // FK → Sector (la sorgente)
-    public Sector? SourceSector { get; set; }
-    public string? LabelOverride { get; set; }         // etichetta custom (altrimenti il callsign del settore)
-}
+// APP standalone: lo storage editoriale è migrato su Document + DocumentProfile (doc refactor 08e); le entità
+// profile-based AppProfile/AppFrequencyLink sono state rimosse (08e-app cleanup).
 
 // =========================================================================================
 //  Profilo della vIPI di ACC: documento a BLOCCHI (Aerovia/CTR + gruppi APP). 1:1 con l'Acc.

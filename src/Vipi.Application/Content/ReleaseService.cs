@@ -147,7 +147,7 @@ public sealed class ReleaseService : IReleaseService
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
         RawDocument? doc = null;
-        if (rel.TargetType is ReleaseTargetType.Vloa or ReleaseTargetType.Airport)
+        if (rel.TargetType is ReleaseTargetType.Vloa or ReleaseTargetType.Airport or ReleaseTargetType.App)
         {
             try { doc = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson)?.Doc; }
             catch (JsonException) { }
@@ -175,6 +175,7 @@ public sealed class ReleaseService : IReleaseService
             {
                 case ReleaseTargetType.Vloa:
                 case ReleaseTargetType.Airport:
+                case ReleaseTargetType.App:
                 {
                     var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
                     if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
@@ -190,21 +191,6 @@ public sealed class ReleaseService : IReleaseService
                             sig[$"{b.Title}"] = visible.Count + b.CustomSections.Count;
                             foreach (var cfg in b.Configurations) sig[$"{b.Title} · config «{cfg.Name}»"] = cfg.Open.Count;
                         }
-                    break;
-                }
-                case ReleaseTargetType.App:
-                {
-                    var s = JsonSerializer.Deserialize<AppReleaseSnapshot>(payloadJson);
-                    if (s is not null)
-                    {
-                        var order = JsonSerializer.Deserialize<List<string>>(s.SectionOrderJson) ?? new();
-                        var hidden = JsonSerializer.Deserialize<List<string>>(s.HiddenSectionsJson) ?? new();
-                        sig["Sezioni visibili"] = order.Count(x => !hidden.Contains(x, StringComparer.OrdinalIgnoreCase));
-                        sig["Sezioni nascoste"] = hidden.Count;
-                        sig["Frequenze linkate"] = s.FreqLinks.Count;
-                        var seps = JsonSerializer.Deserialize<List<AppSeparationRow>>(s.SeparationsJson) ?? new();
-                        sig["Separazioni"] = seps.Count;
-                    }
                     break;
                 }
             }

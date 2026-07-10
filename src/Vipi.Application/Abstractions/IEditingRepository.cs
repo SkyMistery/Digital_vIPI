@@ -35,6 +35,33 @@ public interface IEditingRepository
     /// <summary>Codice ACC del settore (per l'autorizzazione ACC-scoped alla creazione). Null se il settore non esiste.</summary>
     Task<string?> GetAccCodeBySectorAsync(int sectorId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Idempotente: garantisce che il settore primario abbia un documento vIPI (<see cref="DocumentType.Vipi"/>) con
+    /// la versione bozza e le sezioni radice indicate (chiave catalogo + titolo, nell'ordine dato). Se il settore ha
+    /// già un documento ne ritorna l'Id senza toccarlo. Per la migrazione ACC/APP/Airport su Document (doc refactor 08e).
+    /// </summary>
+    /// <param name="liveKeys">Chiavi delle sezioni "live" (derivate o editoriali-strutturate: aor/frequencies/…): ricevono
+    /// un blocco placeholder alla creazione così NON vengono potate dalla vista quando sono senza contenuto memorizzato
+    /// (rese live dal renderer). Le altre sezioni restano senza blocchi (potate se vuote). Null = nessuna.</param>
+    Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Legge il JSON strutturato di una sezione editoriale-strutturata (separations/vfr/config…): il <c>BodyJson</c>
+    /// del primo blocco della sezione radice con quella chiave, dalla versione di lavoro (bozza se esiste, sennò la
+    /// pubblicata). Null se documento/sezione/blocco assenti. Per lo storage APP/ACC/Airport su Document (doc refactor 08e).
+    /// </summary>
+    Task<string?> GetSectionBlockJsonAsync(int documentId, string sectionKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Upsert del JSON strutturato di una sezione editoriale-strutturata: scrive il <c>BodyJson</c> in un unico blocco
+    /// <c>Table</c> della sezione radice keyed della bozza (crea il blocco se manca; <paramref name="json"/> null/vuoto lo
+    /// azzera). Errore se la versione di lavoro non è una bozza o la sezione manca. Per lo storage APP/ACC/Airport su
+    /// Document (doc refactor 08e). Il ciclo bozza→pubblicazione resta del chiamante.
+    /// </summary>
+    Task SaveSectionBlockJsonAsync(int documentId, string sectionKey, string? json, int authorUserId, CancellationToken ct = default);
+
     /// <summary>Aggiorna i campi editabili di un blocco. Errore se il blocco non appartiene a una versione bozza.</summary>
     Task UpdateBlockAsync(int blockId, BlockEdit edit, CancellationToken ct = default);
 
