@@ -138,6 +138,59 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.Empty(coord.TowardTowers);
     }
 
+    // ---- Copertura del dominio di gerarchia: il doc del padre (LIRP_APP) copre i figli APP (LIRP_E_APP) ----
+
+    /// <summary>Aggiunge un APP figlio (ParentSectorId = primario) + il suo catalogo con poligono AoR; ritorna l'Id settore.</summary>
+    private async Task<int> AddChildAppAsync(string callsign, string poly)
+    {
+        var primary = await _db.Sectors.FirstAsync(s => s.Id == _appId);
+        var child = new Sector
+        {
+            Callsign = callsign, Name = callsign, AccId = primary.AccId, Type = SectorType.App, Kind = SectorKind.Airport,
+            ApproachKind = ApproachKind.Standalone, ParentSectorId = _appId, AirportIcao = "LIRP", IsActive = true,
+        };
+        _db.Sectors.Add(child);
+        _db.AirportSectors.Add(new AirportSector
+        {
+            ComposePosition = callsign, AirportIcao = "LIRP", AccCode = "LIRR", Position = "APP", Frequency = "127.000",
+            RegionMapPolygon = poly,
+        });
+        await _db.SaveChangesAsync();
+        return child.Id;
+    }
+
+    [Fact]
+    public async Task GetAorView_Includes_Child_App_Polygons()
+    {
+        // Il primario ha un poligono; aggiungo un APP figlio (E) con poligono proprio.
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        await _db.SaveChangesAsync();
+        await AddChildAppAsync("LIRP_E_APP", "[[10.5,43.6],[10.6,43.6],[10.6,43.7],[10.5,43.7]]");
+
+        var view = await _service.GetAorViewAsync(App);
+
+        Assert.Contains(view.Sectors, s => s.Callsign == App);           // primario
+        Assert.Contains(view.Sectors, s => s.Callsign == "LIRP_E_APP");  // figlio nel dominio
+    }
+
+    [Fact]
+    public async Task Derive_Coordination_Includes_Child_App_Flows()
+    {
+        var childId = await AddChildAppAsync("LIRP_E_APP", "[[10.5,43.6],[10.6,43.6],[10.6,43.7],[10.5,43.7]]");
+
+        // Flusso di PROPRIETÀ del figlio (E) verso l'ACC NE: deve comparire nel doc del padre.
+        var tr = new EfTransferRepository(_db);
+        var fDep = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = childId, Kind = TransferFlowKind.Departure });
+        await tr.AddPointAsync("LIRR", fDep, Point("VALMA", 150, _neId));
+
+        var coord = await _service.DeriveCoordinationAsync(App);
+
+        var acc = Assert.Single(coord.TowardAcc);
+        Assert.Equal("LIRR_NE_CTR", acc.TargetCallsign);
+        Assert.Contains(acc.Rows, r => r.OwnerCallsign == "LIRP_E_APP");   // riga del figlio, non solo del primario
+    }
+
     private static AirportSector Pos(string compose, string position, string freq) => new()
     {
         ComposePosition = compose, AirportIcao = "LIRP", AccCode = "LIRR", Position = position, Frequency = freq,

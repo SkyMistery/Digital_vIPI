@@ -139,6 +139,10 @@ public sealed class AppDocumentService : IAppDocumentService
         var accCode = await _apps.GetAccCodeByAppAsync(appCallsign, ct);
         if (accCode is null) return AppCoordination.Empty;
 
+        // Il doc copre l'intero dominio di gerarchia (primario + figli APP), come le frequenze: i coordinamenti
+        // sono l'union dei flussi di tutti i settori del dominio (semantica del derive ACC su MemberCallsigns).
+        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(appCallsign);
+
         var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
         var types = await _apps.GetSectorTypeMapAsync(ct);
         var nameMap = await _apps.GetSectorNameMapAsync(ct);
@@ -156,7 +160,7 @@ public sealed class AppDocumentService : IAppDocumentService
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var flow in flows.Where(f => string.Equals(f.OwningSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)))
+        foreach (var flow in flows.Where(f => domain.Contains(f.OwningSectorCallsign)))
             foreach (var p in flow.Points)
             {
                 var next = p.NextSectorCallsign;
@@ -180,18 +184,18 @@ public sealed class AppDocumentService : IAppDocumentService
         {
             if (flow.Kind != TransferFlowKind.Arrival) continue;
             var owner = flow.OwningSectorCallsign;
-            if (string.Equals(owner, appCallsign, StringComparison.OrdinalIgnoreCase)) continue;
+            if (domain.Contains(owner)) continue;   // flussi dei nostri settori: già gestiti sopra
             if (!types.TryGetValue(owner, out var ownerType) || ownerType != SectorType.Ctr) continue;
 
             foreach (var p in flow.Points)
             {
-                if (!string.Equals(p.NextSectorCallsign, appCallsign, StringComparison.OrdinalIgnoreCase)) continue;
+                if (p.NextSectorCallsign is not string next || !domain.Contains(next)) continue;   // arrivo verso un settore del dominio
                 Bucket(towardAcc, owner).Add(new AppCoordRow(p.Cop, p.LevelText, owner, TransferFlowKind.Arrival)
                 {
                     OwnerCallsign = owner,
                     AirportIcao = flow.AirportIcao,
                     Constraint = p.LevelConstraint,
-                    Sentence = Compose(owner, appCallsign, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
+                    Sentence = Compose(owner, next, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
                 });
             }
         }
@@ -213,13 +217,26 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         var app = Norm(appCallsign);
         var sectors = new List<AccSectorAor>();
+        var i = 0;
 
-        var appPoly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(app, ct));
-        if (appPoly is not null)
-            sectors.Add(new AccSectorAor(app, app, AorPalette[0], new[] { appPoly }));
+        // Settori APP del dominio di copertura (primario + figli standalone), coerente con le frequenze che usano DomainOf.
+        var topo = await _topology.BuildGlobalAsync(ct);
+        var domain = topo.DomainOf(app);
+        var types = await _apps.GetSectorTypeMapAsync(ct);
+        var appCallsigns = domain
+            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
+            .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
+            .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var cs in appCallsigns)
+        {
+            var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
+            if (poly is null) continue;
+            sectors.Add(new AccSectorAor(cs, cs, AorPalette[i % AorPalette.Length], new[] { poly }));
+            i++;
+        }
 
         var towers = await _apps.GetTowerPolygonsWithCallsignRawAsync(app, ct);
-        var i = 1;
         foreach (var (callsign, raw) in towers)
         {
             var poly = Aor.AorPolygonProjector.Project(raw);
