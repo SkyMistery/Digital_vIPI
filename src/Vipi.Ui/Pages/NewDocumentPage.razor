@@ -4,14 +4,15 @@
 @inject IStructureEditingService Struct
 @inject IEditingService Editing
 @inject IEditAuthorizationService Authz
+@inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
 
-<PageTitle>Nuova vLOA · vIPI IVAO Italia</PageTitle>
+<PageTitle>Nuovo documento · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Nuova vLOA</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Nuovo documento</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Nuova vLOA</h2><span class="muted">Lettera di accordo tra un ACC italiano (Home) e uno estero (Neighbour)</span></div>
+        <div><h2 style="margin-bottom:2px">Nuovo documento</h2><span class="muted">Scegli il tipo, poi il bersaglio: si apre l'editor che crea il documento.</span></div>
     </div>
 
     @if (_msg is not null)
@@ -19,28 +20,28 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    @* Le vIPI di ACC/APP/Aeroporto non si creano da qui: nascono aprendo il rispettivo editor (che le genera keyed
-       sull'ente) o dalla generazione da sorgente. Qui resta solo la vLOA, che è authoring bilaterale esplicito. *@
-    <div class="callout info"><span class="cic">ℹ️</span><div>
-        Le <b>vIPI</b> di ACC, APP e aeroporto si creano aprendo il loro editor (<a href="/vsop/versioni">Bozze &amp; versioni</a> →
-        apri l'ente, oppure il bottone «Editor» dalla pagina della vIPI). Anche le vLOA con ACC confinanti si generano
-        in blocco da <a href="/vsop/admin/confinanti">Confinanti</a>. Qui crei una <b>singola vLOA</b> a mano.</div></div>
-
     @if (!Authz.IsAdmin)
     {
         <div class="callout warning"><span class="cic">⚠️</span><div>La creazione di documenti richiede i permessi di staff/admin.</div></div>
     }
     else
     {
-        <div class="block">
-            <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                <div class="field"><label>Titolo</label><input placeholder="es. vLOA Roma–Marsiglia" @bind="_docTitle" /></div>
-                <button class="btn primary" disabled="@_busy" @onclick="CreateVloa">Crea e apri editor</button>
-            </div>
+        <div class="seg" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px">
+            <button class="btn @(_kind == Kind.Vloa ? "primary" : "ghost")" @onclick="() => _kind = Kind.Vloa">📄 vLOA</button>
+            <button class="btn @(_kind == Kind.Acc ? "primary" : "ghost")" @onclick="() => _kind = Kind.Acc">🗺 vIPI ACC</button>
+            <button class="btn @(_kind == Kind.App ? "primary" : "ghost")" @onclick="() => _kind = Kind.App">🛬 vIPI APP (non remotizzato)</button>
+            <button class="btn @(_kind == Kind.Airport ? "primary" : "ghost")" @onclick="() => _kind = Kind.Airport">🛫 vIPI Aeroporto</button>
+        </div>
 
-            <div style="margin-top:12px">
-                <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia.</p>
+        @if (_kind == Kind.Vloa)
+        {
+            <div class="block">
+                <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia. Le vLOA con ACC confinanti si generano anche in blocco da <a href="/vsop/admin/confinanti">Confinanti</a>.</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field"><label>Titolo</label><input placeholder="es. vLOA Roma–Marsiglia" @bind="_docTitle" /></div>
+                    <button class="btn primary" disabled="@_busy" @onclick="CreateVloa">Crea e apri editor</button>
+                </div>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:12px">
                     <div class="field"><label>ACC italiano (Home)</label>
                         <select value="@_homeAcc" @onchange="OnHomeAccChanged">
                             <option value="">ACC…</option>
@@ -72,29 +73,104 @@
                 {
                     <p class="muted" style="font-size:11px;margin-top:6px">Nessun ACC estero nel DB. Vengono importati automaticamente dalla sorgente IVAO insieme agli altri centri.</p>
                 }
+                <p class="muted" style="font-size:12px;margin:12px 0 0">La vLOA nasce vuota (una sezione iniziale); poi la riempi nell'editor.</p>
             </div>
-
-            <p class="muted" style="font-size:12px;margin:12px 0 0">La vLOA nasce vuota (una sezione iniziale); poi la riempi nell'editor.</p>
-        </div>
+        }
+        else if (_kind == Kind.Acc)
+        {
+            <div class="block">
+                <p class="muted" style="font-size:12px;margin:0 0 8px">La vIPI di ACC è <b>una per ACC</b> (ACC-wide). L'editor la crea alla prima apertura, keyed sul settore CTR radice.</p>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field"><label>ACC italiano</label>
+                        <select @bind="_selAcc">
+                            <option value="">ACC…</option>
+                            @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
+                        </select>
+                    </div>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selAcc))" @onclick="OpenAcc">Apri editor →</button>
+                </div>
+            </div>
+        }
+        else if (_kind == Kind.App)
+        {
+            <div class="block">
+                <p class="muted" style="font-size:12px;margin:0 0 8px">Solo APP <b>non remotizzati</b> (standalone). L'editor crea il documento alla prima apertura.</p>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field"><label>ACC</label>
+                        <select value="@_selAcc" @onchange="OnAppAccChanged">
+                            <option value="">ACC…</option>
+                            @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
+                        </select>
+                    </div>
+                    <div class="field"><label>APP non remotizzato</label>
+                        <select @bind="_selCallsign" disabled="@(string.IsNullOrEmpty(_selAcc))">
+                            <option value="">APP…</option>
+                            @foreach (var s in StandaloneAppsOf(_selAcc)) { <option value="@s.Callsign">@s.Callsign</option> }
+                        </select>
+                    </div>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selCallsign))" @onclick="OpenApp">Apri editor →</button>
+                </div>
+                @if (!string.IsNullOrEmpty(_selAcc) && StandaloneAppsOf(_selAcc).Count == 0)
+                {
+                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun APP standalone in @_selAcc. Gli APP «non remotizzati» derivano dalla gerarchia dei settori (pagina <a href="/vsop/admin/sectorstructure">Struttura</a>).</p>
+                }
+            </div>
+        }
+        else if (_kind == Kind.Airport)
+        {
+            <div class="block">
+                <p class="muted" style="font-size:12px;margin:0 0 8px">La vIPI di aeroporto si genera dalle entità strutturate (piste/SID/regole). L'editor la crea/rigenera all'apertura.</p>
+                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                    <div class="field"><label>ACC</label>
+                        <select value="@_selAcc" @onchange="OnAirportAccChanged">
+                            <option value="">ACC…</option>
+                            @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
+                        </select>
+                    </div>
+                    <div class="field"><label>Aeroporto</label>
+                        <select @bind="_selIcao" disabled="@(string.IsNullOrEmpty(_selAcc))">
+                            <option value="">ICAO…</option>
+                            @foreach (var a in AirportsOf(_selAcc)) { <option value="@a.Icao">@a.Icao · @a.Name</option> }
+                        </select>
+                    </div>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selIcao))" @onclick="OpenAirport">Apri editor →</button>
+                </div>
+                @if (!string.IsNullOrEmpty(_selAcc) && AirportsOf(_selAcc).Count == 0)
+                {
+                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun aeroporto assegnato a @_selAcc. Assegnali dalla <a href="/vsop/admin/airports">Gestione aeroporti</a>.</p>
+                }
+            </div>
+        }
     }
 </div>
 
 @code {
+    private enum Kind { Vloa, Acc, App, Airport }
+    private Kind _kind = Kind.Vloa;
+
     private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
+    private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
 
     private bool _busy;
     private string? _msg;
     private string _docTitle = "";
 
+    // vLOA
     private string? _homeAcc, _neighAcc;
     private int _docHome, _docNeighbour;
+
+    // ACC / APP / Aeroporto: bersaglio scelto
+    private string _selAcc = "";
+    private string _selCallsign = "";
+    private string _selIcao = "";
 
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
         _accs = await Struct.ListAccsAsync();
         _all = await Struct.ListSectorNodesAsync();
+        _airports = await Struct.ListAllAirportsAsync();
     }
 
     // Settore d'area = CTR o APP remotizzato (candidati Home/Neighbour di una vLOA).
@@ -113,6 +189,20 @@
             : _all.Where(s => string.Equals(s.AccCode, accCode, StringComparison.OrdinalIgnoreCase) && IsArea(s))
                   .OrderBy(s => s.Callsign).ToList();
 
+    /// <summary>APP non remotizzati (standalone) di un ACC: hanno documento proprio.</summary>
+    private IReadOnlyList<GlobalSectorRow> StandaloneAppsOf(string? accCode) =>
+        string.IsNullOrEmpty(accCode)
+            ? Array.Empty<GlobalSectorRow>()
+            : _all.Where(s => string.Equals(s.AccCode, accCode, StringComparison.OrdinalIgnoreCase)
+                             && s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone)
+                  .OrderBy(s => s.Callsign).ToList();
+
+    private IReadOnlyList<AirportAdminRow> AirportsOf(string? accCode) =>
+        string.IsNullOrEmpty(accCode)
+            ? Array.Empty<AirportAdminRow>()
+            : _airports.Where(a => string.Equals(a.AccCode, accCode, StringComparison.OrdinalIgnoreCase))
+                       .OrderBy(a => a.Icao).ToList();
+
     private void OnHomeAccChanged(ChangeEventArgs e)
     {
         _homeAcc = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
@@ -122,6 +212,34 @@
     {
         _neighAcc = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
         _docNeighbour = 0;
+    }
+
+    private void OnAppAccChanged(ChangeEventArgs e)
+    {
+        _selAcc = e.Value?.ToString() ?? "";
+        _selCallsign = "";
+    }
+    private void OnAirportAccChanged(ChangeEventArgs e)
+    {
+        _selAcc = e.Value?.ToString() ?? "";
+        _selIcao = "";
+    }
+
+    // ACC/APP/Aeroporto: l'editor crea il documento all'apertura (EnsureAsync). Le rotte vengono dal registry doc 09.
+    private void OpenAcc()
+    {
+        var url = DocRoutes.For(ManagedDocKind.AccVipi).EditorUrl(_selAcc.ToLowerInvariant(), "", null, null);
+        if (url is not null) Nav.NavigateTo(url, forceLoad: true);
+    }
+    private void OpenApp()
+    {
+        var url = DocRoutes.For(ManagedDocKind.AppVipi).EditorUrl(_selAcc.ToLowerInvariant(), _selCallsign, null, null);
+        if (url is not null) Nav.NavigateTo(url, forceLoad: true);
+    }
+    private void OpenAirport()
+    {
+        var url = DocRoutes.For(ManagedDocKind.AirportVipi).EditorUrl(_selAcc.ToLowerInvariant(), _selIcao, null, null);
+        if (url is not null) Nav.NavigateTo(url, forceLoad: true);
     }
 
     private async Task CreateVloa()
