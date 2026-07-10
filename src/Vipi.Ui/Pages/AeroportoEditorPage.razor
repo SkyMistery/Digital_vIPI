@@ -514,8 +514,8 @@ else
                                 }
                             </select>
                             <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
-                            <button class="btn primary" disabled="@_busy" @onclick="PublishRelease">Pubblica al ciclo</button>
-                            <button class="btn ghost" disabled="@_busy" @onclick="PublishReleaseNow" title="Entra in vigore subito (review sul ciclo corrente)">Pubblica ora (review)</button>
+                            <button class="btn primary" disabled="@_busy" @onclick="PublishReleaseNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
+                            <button class="btn ghost" disabled="@_busy" @onclick="PublishRelease" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
                         </div>
                     }
                 </div>

@@ -50,7 +50,6 @@ else
                         <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
                         @if (_editing)
                         {
-                            <button class="btn primary" @onclick="Publish" title="Pubblica la bozza corrente">📢 Pubblica</button>
                             <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
                         }
                         else
@@ -202,17 +201,6 @@ else
             else await Editing.AcquireLockAsync(id);
             await LoadAsync();
             _editing = _doc?.IsEditable == true;
-        });
-    }
-
-    private async Task Publish()
-    {
-        if (_doc is null) return;
-        await Guard(async () =>
-        {
-            await Editing.PublishAsync(_doc.VersionId, null);
-            _editing = false;
-            await LoadAsync();
         });
     }
 
@@ -444,8 +432,8 @@ else
                     }
                 </select>
                 <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
-                <button class="btn primary" @onclick="PublishRelease">Pubblica al ciclo</button>
-                <button class="btn ghost" @onclick="PublishReleaseNow" title="Entra in vigore subito (review sul ciclo corrente)">Pubblica ora (review)</button>
+                <button class="btn primary" @onclick="PublishReleaseNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
+                <button class="btn ghost" @onclick="PublishRelease" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
             </div>
         </div>
     };

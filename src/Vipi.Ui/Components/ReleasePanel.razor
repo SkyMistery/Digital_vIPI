@@ -42,8 +42,8 @@
             }
         </select>
         <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_note" />
-        <button class="btn primary" disabled="@_busy" @onclick="PublishAtCycle">Pubblica al ciclo</button>
-        <button class="btn ghost" disabled="@_busy" @onclick="PublishNow" title="Entra in vigore subito (review sul ciclo corrente)">Pubblica ora (review)</button>
+        <button class="btn primary" disabled="@_busy" @onclick="PublishNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
+        <button class="btn ghost" disabled="@_busy" @onclick="PublishAtCycle" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
     </div>
 </div>
 
