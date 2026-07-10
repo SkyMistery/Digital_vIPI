@@ -114,6 +114,62 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Equal("vecchia", effAfter!.Note);
     }
 
+    // ---- Caratterizzazione identità per-tipo (rete pre-refactor doc 09 §3a: key→docId via Snapshot, key→accCode) ----
+
+    private async Task<int> SeedVipiDocAsync(string title, string sectionKey)
+    {
+        var doc = new Document { Type = DocumentType.Vipi, Title = title, Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        var ver = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Published, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        doc.Versions.Add(ver);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        _db.DocumentSections.Add(new DocumentSection { DocumentVersion = ver, Title = title, Order = 1, Depth = 0, SectionKey = sectionKey, RowVersion = Guid.NewGuid().ToByteArray() });
+        doc.CurrentVersionId = ver.Id;
+        await _db.SaveChangesAsync();
+        return doc.Id;
+    }
+
+    [Fact]
+    public async Task AuthAccCode_Vloa_FromHomeParty()
+    {
+        Assert.Equal("LIRR", await _repo.GetAuthAccCodeAsync(ReleaseTargetType.Vloa, _docId.ToString()));
+    }
+
+    [Fact]
+    public async Task AuthAccCode_AccVipi_FromKeyPrefix()
+    {
+        Assert.Equal("LIRR", await _repo.GetAuthAccCodeAsync(ReleaseTargetType.AccVipi, "LIRR|LIRR_CTR"));
+    }
+
+    [Fact]
+    public async Task AuthAccCode_And_Snapshot_App_Standalone()
+    {
+        var acc = await _db.Accs.FirstAsync();
+        var docId = await SeedVipiDocAsync("vIPI LIRR_APP", "separations");
+        _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIRR_APP", Name = "Roma APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = docId, IsPrimary = true });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal("LIRR", await _repo.GetAuthAccCodeAsync(ReleaseTargetType.App, "LIRR_APP"));
+        var json = await _repo.SnapshotWorkingAsync(ReleaseTargetType.App, "LIRR_APP", "2606");
+        Assert.NotNull(json);
+        Assert.Contains("separations", json);
+    }
+
+    [Fact]
+    public async Task AuthAccCode_And_Snapshot_Airport()
+    {
+        var acc = await _db.Accs.FirstAsync();
+        var docId = await SeedVipiDocAsync("vIPI LIRA", "airportextra");
+        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
+        _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIRA_TWR", Name = "Ciampino TWR", Type = SectorType.Twr, Kind = SectorKind.Airport, AirportIcao = "LIRA", IsActive = true, DocumentId = docId });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal("LIRR", await _repo.GetAuthAccCodeAsync(ReleaseTargetType.Airport, "LIRA"));
+        var json = await _repo.SnapshotWorkingAsync(ReleaseTargetType.Airport, "LIRA", "2606");
+        Assert.NotNull(json);
+        Assert.Contains("airportextra", json);
+    }
+
     [Fact]
     public async Task PublishNow_IsImmediatelyEffective_AndSupersedesSameCycle()
     {
