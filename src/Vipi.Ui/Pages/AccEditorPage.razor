@@ -49,8 +49,7 @@ else
                     <span class="toc-lab">@blockLabel</span>
                     foreach (var key in OrderOf(block))
                     {
-                        var reg = AccSections.For(block.Kind);
-                        var t = AccSections.Find(reg, key)?.Title ?? block.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+                        var t = SectionCatalog.Find(ProfileOf(block.Kind), key)?.Title ?? block.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
                         var anchor = $"p-{block.Key}-{key}";
                         <button type="button" class="toc-jump" @onclick="() => JumpTo(anchor)">@t</button>
                     }
@@ -98,24 +97,24 @@ else
 
                 @foreach (var (key, i) in OrderOf(b).Select((k, i) => (k, i)))
                 {
-                    var reg = AccSections.For(b.Kind);
                     var order = OrderOf(b);
                     var idx = i;
-                    var desc = AccSections.Find(reg, key);
-                    var custom = desc is null ? b.CustomSections.FirstOrDefault(c => c.Key == key) : null;
-                    var title = desc?.Title ?? custom?.Title ?? key;
-                    var kind = desc?.Kind ?? AppSectionKind.Editorial;
+                    var desc = SectionCatalog.Find(ProfileOf(b.Kind), key);
+                    var stored = b.CustomSections.FirstOrDefault(c => c.Key == key);
+                    var isCustom = desc is null;
+                    var title = desc?.Title ?? stored?.Title ?? key;
+                    var kind = desc?.Kind ?? SectionKind.Editorial;
                     var hidden = b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
                     var sk = b.Key + ":" + key;
 
                     <SectionShell @key="@sk" Title="@title" AnchorId="@($"p-{b.Key}-{key}")" Kind="kind"
-                                  Editing="@_editing" Custom="@(desc is null)" Hidden="@hidden"
+                                  Editing="@_editing" Custom="@isCustom" Hidden="@hidden"
                                   IsFirst="@(idx == 0)" IsLast="@(idx == order.Count - 1)"
                                   Collapsible="true" Collapsed="@_collapsed.Contains(sk)"
                                   ToggleCollapsed="() => ToggleCollapsed(sk)"
                                   MoveUp="() => MoveSection(b, idx, -1)" MoveDown="() => MoveSection(b, idx, 1)"
                                   Delete="() => RemoveCustom(b, key)" ToggleHidden="() => ToggleHidden(b, key)">
-                        @SectionBody(b, key, custom)
+                        @SectionBody(b, key, stored, isCustom)
                     </SectionShell>
                 }
 
@@ -225,11 +224,14 @@ else
         _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
     }
 
+    // Blocco ACC → profilo del catalogo: Aerovia = settori CTR, AppGroup = gruppo APP. Doc 08d-acc §4(2).
+    private static SectionProfile ProfileOf(AccBlockKind kind) =>
+        kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
+
     private IReadOnlyList<string> OrderOf(AccBlock b)
     {
-        var reg = AccSections.For(b.Kind);
         var customKeys = b.CustomSections.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return AccSections.Reconcile(reg, b.SectionOrder, customKeys).ToList();   // puro: nessuna mutazione del modello
+        return SectionCatalog.Reconcile(ProfileOf(b.Kind), b.SectionOrder, customKeys).ToList();   // puro: nessuna mutazione del modello
     }
 
     private IReadOnlyList<AccSectorPick> PoolOf(AccBlock b) =>
@@ -522,7 +524,7 @@ else
     }
 
     // ---- render sezione ----
-    private RenderFragment SectionBody(AccBlock b, string key, AppCustomSection? custom) => __builder =>
+    private RenderFragment SectionBody(AccBlock b, string key, AppCustomSection? stored, bool isCustom) => __builder =>
     {
         switch (key)
         {
@@ -546,9 +548,32 @@ else
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty" />
                 break;
             case "regulated": @RegulatedEditor(b) break;
-            default: @if (custom is not null) { @CustomEditor(b, custom) } break;
+            default: @EditorialBody(b, key, stored, isCustom) break;
         }
     };
+
+    // Sezione fissa editoriale del catalogo (operationaltechnique/validity) senza handler dedicato: contenuto (prosa)
+    // come custom-section keyed sulla chiave fissa, creata al primo blocco. Titolo editabile solo per le custom vere.
+    private RenderFragment EditorialBody(AccBlock b, string key, AppCustomSection? sec, bool editableTitle) => __builder =>
+    {
+        if (sec is not null) { @CustomEditor(b, sec, editableTitle) }
+        else if (_editing)
+        {
+            <button class="btn ghost" @onclick="() => AddEditorialProse(b, key)">+ Paragrafo</button>
+        }
+    };
+
+    private void EnsureSection(AccBlock b, string key)
+    {
+        if (b.CustomSections.Any(c => c.Key == key)) return;
+        var title = SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? "Sezione";
+        b.CustomSections.Add(new AppCustomSection(key, title, new List<AppCustomBlock>()));
+    }
+    private async Task AddEditorialProse(AccBlock b, string key)
+    {
+        EnsureSection(b, key);
+        await AddCustomProse(b, b.CustomSections.First(c => c.Key == key));
+    }
 
     private RenderFragment ConfigEditor(AccBlock b) => __builder =>
     {
@@ -717,9 +742,9 @@ else
         }
     };
 
-    private RenderFragment CustomEditor(AccBlock b, AppCustomSection sec) => __builder =>
+    private RenderFragment CustomEditor(AccBlock b, AppCustomSection sec, bool editableTitle = true) => __builder =>
     {
-        if (_editing)
+        if (_editing && editableTitle)
         {
             <label class="app-lbl">Titolo<input class="app-in" value="@sec.Title" @onchange="e => SetCustomTitle(b, sec, AsString(e.Value))" /></label>
         }

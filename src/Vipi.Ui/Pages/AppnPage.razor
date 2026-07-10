@@ -76,8 +76,7 @@ else
 
                 @foreach (var key in _order)
                 {
-                    var desc = AppSections.Find(key);
-                    var custom = desc is null ? _custom.FirstOrDefault(c => c.Key == key) : null;
+                    var stored = _custom.FirstOrDefault(c => c.Key == key);
                     var isHidden = _mode.Kind == PreviewKind.Draft && _data.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
                     <div class="block" id="p-@key" style="@(isHidden ? "opacity:.65" : "")">
                         <h3>@TitleOf(key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
@@ -90,7 +89,7 @@ else
                             case "minima": <AppMinima />; break;
                             case "coordination": <AppCoordinationView Coord="_coord" />; break;
                             default:
-                                @if (custom is not null) { @CustomBody(custom) }
+                                @if (stored is not null) { @CustomBody(stored) }
                                 break;
                         }
                     </div>
@@ -237,7 +236,7 @@ else
         var hidden = _data.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
         // Le sezioni nascoste non compaiono nel documento pubblico né nell'anteprima release; in anteprima BOZZA sì
         // (l'editor le vede), per mostrare esattamente lo stato editoriale in lavorazione.
-        _order = AppSections.Reconcile(_data.SectionOrder, customKeys)
+        _order = SectionCatalog.Reconcile(SectionProfile.App, _data.SectionOrder, customKeys)
             .Where(k => _mode.Kind == PreviewKind.Draft || !hidden.Contains(k)).ToList();
 
         _freqs = (await Profile.DeriveFrequenciesAsync(_app)).ToList();
@@ -258,7 +257,7 @@ else
     }
 
     private string TitleOf(string key) =>
-        AppSections.Find(key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+        SectionCatalog.Find(SectionProfile.App, key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
 
     private static AppVfrContent ParseVfr(string? json)
     {

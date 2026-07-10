@@ -14,7 +14,7 @@
                     <button class="app-collapse" title="@(Collapsed ? "Espandi" : "Comprimi")" @onclick="ToggleCollapsed">@(Collapsed ? "▸" : "▾")</button>
                 }
                 <h3>@Title</h3>
-                @if (Kind == AppSectionKind.Derived)
+                @if (Kind == SectionKind.Derived)
                 {
                     <span class="pill" title="Sezione derivata: si aggiorna da sola">derivata</span>
                 }
@@ -50,7 +50,7 @@
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = "";
     [Parameter] public string? AnchorId { get; set; }
-    [Parameter] public AppSectionKind Kind { get; set; } = AppSectionKind.Editorial;
+    [Parameter] public SectionKind Kind { get; set; } = SectionKind.Editorial;
     [Parameter] public bool Editing { get; set; }
     [Parameter] public bool Custom { get; set; }
     [Parameter] public bool Hidden { get; set; }

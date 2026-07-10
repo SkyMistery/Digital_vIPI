@@ -74,14 +74,15 @@ else
             @foreach (var (key, i) in _order.Select((k, i) => (k, i)))
             {
                 var idx = i;
-                var desc = AppSections.Find(key);
-                var custom = desc is null ? _custom.FirstOrDefault(c => c.Key == key) : null;
-                var title = desc?.Title ?? custom?.Title ?? key;
-                var kind = desc?.Kind ?? AppSectionKind.Editorial;
+                var desc = SectionCatalog.Find(SectionProfile.App, key);
+                var stored = _custom.FirstOrDefault(c => c.Key == key);
+                var isCustom = desc is null;
+                var title = desc?.Title ?? stored?.Title ?? key;
+                var kind = desc?.Kind ?? SectionKind.Editorial;
                 var hidden = _hidden.Contains(key, StringComparer.OrdinalIgnoreCase);
 
                 <SectionShell @key="key" Title="@title" AnchorId="@($"p-{key}")" Kind="kind"
-                              Editing="@_editing" Custom="@(desc is null)" Hidden="@hidden"
+                              Editing="@_editing" Custom="@isCustom" Hidden="@hidden"
                               IsFirst="@(idx == 0)" IsLast="@(idx == _order.Count - 1)"
                               Collapsible="true" Collapsed="@_collapsed.Contains(key)"
                               ToggleCollapsed="() => ToggleCollapsed(key)"
@@ -125,7 +126,7 @@ else
                             <AppCoordinationView Coord="@(_coordPreview ?? _coord)" />
                             break;
                         default:
-                            @if (custom is not null) { @CustomBody(custom) }
+                            @EditorialBody(key, stored, isCustom)
                             break;
                     }
                 </SectionShell>
@@ -291,7 +292,7 @@ else
         if (stored is null)
         {
             foreach (var k in _order)
-                if (AppSections.Find(k)?.Kind == AppSectionKind.Derived) _collapsed.Add(k);
+                if (SectionCatalog.KindOf(k) == SectionKind.Derived) _collapsed.Add(k);
         }
         else
         {
@@ -322,7 +323,7 @@ else
     public void Dispose() => _dotRef?.Dispose();
 
     private string TitleOf(string key) =>
-        AppSections.Find(key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
+        SectionCatalog.Find(SectionProfile.App, key)?.Title ?? _custom.FirstOrDefault(c => c.Key == key)?.Title ?? key;
 
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 
@@ -358,7 +359,7 @@ else
         _linkIds = _data.FrequencyLinks.Where(f => f.SourceSectorId is int).Select(f => f.SourceSectorId!.Value).ToList();
 
         var customKeys = _custom.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _order = AppSections.Reconcile(_data.SectionOrder, customKeys).ToList();
+        _order = SectionCatalog.Reconcile(SectionProfile.App, _data.SectionOrder, customKeys).ToList();
 
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         await RefreshDerivedAsync();
@@ -540,6 +541,17 @@ else
     }
 
     private Task SetCustomTitle(string key, string title) => UpdateCustom(key, s => s with { Title = title });
+
+    // Sezione fissa editoriale del catalogo (regulated/operationaltechnique/validity/configurations) senza handler
+    // dedicato: il contenuto vive come custom-section keyed sulla chiave fissa (creata al primo blocco). Doc 08d-app §4(1).
+    private void EnsureSection(string key)
+    {
+        if (_custom.Any(c => c.Key == key)) return;
+        var title = SectionCatalog.Find(SectionProfile.App, key)?.Title ?? "Sezione";
+        _custom.Add(new AppCustomSection(key, title, Array.Empty<AppCustomBlock>()));
+    }
+    private Task AddEditorialProse(string key) { EnsureSection(key); return AddCustomProse(key); }
+    private Task AddEditorialTable(string key) { EnsureSection(key); return AddCustomTable(key); }
 
     private Task AddCustomProse(string key) =>
         UpdateCustom(key, s => s with { Blocks = s.Blocks.Append(new AppCustomBlock(AppCustomBlockType.Prose, "", null, null)).ToList() });
@@ -807,9 +819,23 @@ else
         </div>
     };
 
-    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
+    // Corpo editoriale per una sezione fissa senza handler dedicato: se vuota (non ancora creata) offre i pulsanti
+    // di aggiunta che la materializzano; altrimenti riusa CustomBody. Il titolo è editabile solo per le custom vere.
+    private RenderFragment EditorialBody(string key, AppCustomSection? sec, bool editableTitle) => __builder =>
     {
-        if (_editing)
+        if (sec is not null) { @CustomBody(sec, editableTitle) }
+        else if (_editing)
+        {
+            <div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn ghost" @onclick="() => AddEditorialProse(key)">+ Paragrafo</button>
+                <button class="btn ghost" @onclick="() => AddEditorialTable(key)">+ Tabella</button>
+            </div>
+        }
+    };
+
+    private RenderFragment CustomBody(AppCustomSection sec, bool editableTitle = true) => __builder =>
+    {
+        if (_editing && editableTitle)
         {
             <label class="app-lbl">Titolo
                 <input class="app-in" value="@sec.Title" @onchange="e => SetCustomTitle(sec.Key, AsString(e.Value))" />
