@@ -382,31 +382,6 @@ public class AirportFrequencyLink
 // =========================================================================================
 
 /// <summary>
-/// Profilo editoriale della vIPI ACC, ancorato 1:1 all'<see cref="Acc"/> via <see cref="AccId"/>.
-/// Il documento è una lista ordinata di blocchi (un blocco Aerovia + N blocchi gruppo-APP), ciascuno
-/// con le sue sezioni piatte (ordine/hidden/custom), configurazioni (settori aperti) e dati editoriali.
-/// Serializzato tutto in <see cref="BlocksJson"/>; le parti derivate non si salvano.
-/// </summary>
-public class AccProfile
-{
-    public int Id { get; set; }
-
-    /// <summary>FK → Acc. Con <see cref="RootCallsign"/> forma l'identità del profilo (unique composito).</summary>
-    public int AccId { get; set; }
-    public Acc? Acc { get; set; }
-
-    /// <summary>Callsign del CTR radice dell'albero a cui appartiene questa vIPI (una vIPI per albero).
-    /// Es. "LIRR_NE_CTR". Backfill al radice primario per i profili legacy.</summary>
-    public string? RootCallsign { get; set; }
-
-    /// <summary>Lista dei blocchi (Aerovia + gruppi APP) con tutto il loro stato, serializzata JSON.</summary>
-    public string BlocksJson { get; set; } = "[]";
-
-    /// <summary>vIPI ACC nascosta dal pubblico (reversibile): il viewer non la serve, l'editor resta accessibile.</summary>
-    public bool IsHidden { get; set; }
-}
-
-/// <summary>
 /// Area speciale/regolamentata importata dalla sorgente (IVAO), legata a un ACC via <see cref="CenterId"/>.
 /// <see cref="IvaoId"/> è la chiave naturale (reference per gli update). La shape (<see cref="RegionMapPolygon"/>)
 /// è il JSON grezzo dal dettaglio: proiettabile con AorPolygonProjector.

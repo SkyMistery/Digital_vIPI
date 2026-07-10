@@ -4,8 +4,8 @@ namespace Vipi.Domain.Entities;
 /// Stato editoriale data-driven di un documento vIPI (1:1 col <see cref="Document"/>), per le sezioni DERIVATE.
 /// Le sezioni AoR/Frequenze/Coordinamenti sono calcolate live dagli import; qui vivono solo le scelte dello staff che
 /// non appartengono al testo: settori/frequenze nascosti, ordine frequenze, link frequenza extra, template coord.
-/// Generalizza <c>VloaProfile</c> a tutti i tipi (APP prima, poi ACC/Airport); <c>VloaProfile</c> vi confluisce in 08i.
-/// Doc refactor 08e.
+/// Side-entity unificata per tutti i tipi (vLOA, APP, …): ha assorbito il vecchio <c>VloaProfile</c> in 08i.
+/// Doc refactor 08e/08i.
 /// </summary>
 public class DocumentProfile
 {

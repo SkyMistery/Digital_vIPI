@@ -5,6 +5,7 @@
 @inject IStructureEditingService Structure
 @inject IAppDocumentService AppDoc
 @inject IAccProfileService AccProfile
+@inject IAccDocumentService AccDoc
 @inject ITopologyProvider Topology
 @inject IOnlineAtcProvider Online
 @inject ITransferService Transfers
@@ -166,9 +167,9 @@ else
         }
         else
         {
-            // Remotizzato: cerca il blocco gruppo-APP che contiene questo callsign nella vIPI di ACC.
-            var acc = await AccProfile.LoadForViewAsync(_acc.Code, _root);
-            _remBlock = acc.Blocks.FirstOrDefault(b => b.Kind == AccBlockKind.AppGroup
+            // Remotizzato: cerca il blocco gruppo-APP che contiene questo callsign nella vIPI di ACC (storage su Document).
+            var acc = await AccDoc.LoadForViewAsync(_acc.Code);
+            _remBlock = acc?.Blocks.Select(b => b.Block).FirstOrDefault(b => b.Kind == AccBlockKind.AppGroup
                 && b.MemberCallsigns.Contains(_app, StringComparer.OrdinalIgnoreCase));
             _displayName = _remBlock?.Title ?? _app;
             _extendedHref = $"/vsop/{Acc.ToLowerInvariant()}/vipi";

@@ -33,23 +33,6 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
         return new AccDocumentIdentity(root.Id, root.Callsign, accCode, accName, root.DocumentId);
     }
 
-    public async Task<IReadOnlyList<AccBlock>> LoadBlocksAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default)
-    {
-        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-        var json = await _db.AccProfiles.AsNoTracking()
-            .Where(p => p.Acc!.Code == accCode && p.RootCallsign == root)
-            .Select(p => p.BlocksJson).FirstOrDefaultAsync(ct);
-        return ParseList<AccBlock>(json);
-    }
-
-    public async Task<bool> IsHiddenAsync(string accCode, string? rootCallsign = null, CancellationToken ct = default)
-    {
-        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-        return await _db.AccProfiles.AsNoTracking()
-            .Where(p => p.Acc!.Code == accCode && p.RootCallsign == root)
-            .Select(p => p.IsHidden).FirstOrDefaultAsync(ct);
-    }
-
     public async Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()
             .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
@@ -122,16 +105,6 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
             res[node.Callsign] = (branchName.GetValueOrDefault(branch, branch), branchOrder.GetValueOrDefault(branch, 99));
         }
         return res;
-    }
-
-    /// <summary>Radice effettiva: quella indicata (normalizzata) o la primaria dell'ACC (CoverageOrder/alfabetico). null se l'ACC non ha radici.</summary>
-    private async Task<string?> ResolveRootAsync(string accCode, string? rootCallsign, CancellationToken ct)
-    {
-        if (!string.IsNullOrWhiteSpace(rootCallsign)) return rootCallsign.Trim().ToUpperInvariant();
-        return await _db.Sectors.AsNoTracking()
-            .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
-            .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
-            .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
     }
 
     public async Task<IReadOnlyList<AccSectorPick>> ListCtrSectorsAsync(string accCode, CancellationToken ct = default) =>
@@ -357,36 +330,7 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
             .ToListAsync(ct);
     }
 
-    public async Task SaveBlocksAsync(string accCode, IReadOnlyList<AccBlock> blocks, string? rootCallsign = null, CancellationToken ct = default)
-    {
-        var p = await GetOrCreateAsync(accCode, rootCallsign, ct);
-        p.BlocksJson = JsonSerializer.Serialize(blocks);
-        await _db.SaveChangesAsync(ct);
-    }
-
     // ---- helper ----
-
-    private async Task<AccProfile> GetOrCreateAsync(string accCode, string? rootCallsign, CancellationToken ct)
-    {
-        var accId = await _db.Accs.Where(a => a.Code == accCode).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct)
-            ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
-        var root = await ResolveRootAsync(accCode, rootCallsign, ct);
-        var profile = await _db.AccProfiles.FirstOrDefaultAsync(p => p.AccId == accId && p.RootCallsign == root, ct);
-        if (profile is null)
-        {
-            profile = new AccProfile { AccId = accId, RootCallsign = root };
-            _db.AccProfiles.Add(profile);
-            await _db.SaveChangesAsync(ct);
-        }
-        return profile;
-    }
-
-    private static List<T> ParseList<T>(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return new();
-        try { return JsonSerializer.Deserialize<List<T>>(json) ?? new(); }
-        catch (JsonException) { return new(); }
-    }
 
     private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP", "CTR" };
     private static int PositionOrder(string position)

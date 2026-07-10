@@ -42,10 +42,8 @@ public class VipiDbContext : DbContext
     public DbSet<ImportState> ImportStates => Set<ImportState>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
-    public DbSet<AccProfile> AccProfiles => Set<AccProfile>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
-    public DbSet<VloaProfile> VloaProfiles => Set<VloaProfile>();
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
@@ -243,13 +241,6 @@ public class VipiDbContext : DbContext
 
         // (APP standalone: storage migrato su Document + DocumentProfile, doc 08e; entità AppProfile rimosse.)
 
-        // --- Profilo vIPI ACC: una per (Acc, albero radice). Tutta la struttura a blocchi in BlocksJson. ---
-        b.Entity<AccProfile>(e =>
-        {
-            e.HasIndex(x => new { x.AccId, x.RootCallsign }).IsUnique();
-            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
-        });
-
         // --- Coppie ACC confinanti candidate a vLOA (staging del calcolo di adiacenza). ---
         b.Entity<NeighbourCandidate>(e =>
         {
@@ -268,14 +259,6 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.AssigneeUserId);
             e.HasIndex(x => x.Status);
-        });
-
-        // --- Stato editoriale data-driven della vLOA (1:1 col Document). ---
-        b.Entity<VloaProfile>(e =>
-        {
-            e.HasIndex(x => x.DocumentId).IsUnique();
-            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
         });
 
         // --- Stato editoriale data-driven generico di un documento vIPI (1:1 col Document). Doc refactor 08e. ---

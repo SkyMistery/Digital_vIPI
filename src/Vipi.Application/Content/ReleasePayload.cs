@@ -11,11 +11,11 @@ public sealed class DocReleasePayload
     public RawDocument Doc { get; set; } = default!;
 
     /// <summary>Overlay di visibilità (sezioni/settori/frequenze nascosti) congelato; null per i tipi senza overlay.
-    /// Usato da vLOA (da <c>VloaProfile</c>) e APP (da <c>DocumentProfile</c>, doc 08e).</summary>
+    /// Usato da vLOA e APP, entrambi dalla side-entity unificata <c>DocumentProfile</c> (doc 08e/08i).</summary>
     public VloaOverlaySnapshot? Vloa { get; set; }
 }
 
-/// <summary>Overlay di visibilità congelato nella release (fotografia di <c>VloaProfile</c>/<c>DocumentProfile</c>).</summary>
+/// <summary>Overlay di visibilità congelato nella release (fotografia di <c>DocumentProfile</c>).</summary>
 public sealed class VloaOverlaySnapshot
 {
     public List<string> HiddenAorSectors { get; set; } = new();
