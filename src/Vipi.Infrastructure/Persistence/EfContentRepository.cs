@@ -21,9 +21,12 @@ public sealed class EfContentRepository : IContentRepository
 
     public Task<RawDocument?> LoadAccVipiAsync(string accCode, CancellationToken ct = default)
     {
+        // Gate su !IsHidden (non su Status==Published): così una release AIRAC effettiva è servita anche se il Document
+        // è ancora Draft (release e pubblicazione-versione sono due layer). Senza release, il fallback interno serve solo
+        // una versione pubblicata → i doc mai pubblicati e senza release restano vuoti (nessun leak).
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
-                 && d.Status == DocumentStatus.Published
+                 && !d.IsHidden
                  && d.Sectors.Any(s => s.Kind == SectorKind.Acc && s.Acc!.Code == accCode),
             ignoreRelease: false, preferWorking: false, ct);
     }
@@ -33,7 +36,7 @@ public sealed class EfContentRepository : IContentRepository
         // ignoreRelease (anteprima bozza, gated all'editor): mostra anche i documenti/aeroporti nascosti dall'admin.
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
-                 && d.Status == DocumentStatus.Published && (ignoreRelease || !d.IsHidden)
+                 && (ignoreRelease || !d.IsHidden)
                  && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao)
                  // Aeroporto nascosto dall'admin ⇒ pagina pubblica inaccessibile (ma visibile in anteprima bozza).
                  && (ignoreRelease || !_db.Airports.Any(a => a.Icao == icao && a.IsHidden)),
@@ -45,7 +48,7 @@ public sealed class EfContentRepository : IContentRepository
         var app = (appCallsign ?? "").Trim().ToUpperInvariant();
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
-                 && (preferWorking || (d.Status == DocumentStatus.Published && (ignoreRelease || !d.IsHidden)))
+                 && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
                         && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app),
             ignoreRelease, preferWorking, ct);
@@ -55,7 +58,7 @@ public sealed class EfContentRepository : IContentRepository
     {
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vloa
-                 && d.Status == DocumentStatus.Published && !d.IsHidden
+                 && !d.IsHidden
                  && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == accCode),
             ignoreRelease: false, preferWorking: false, ct);
     }
@@ -66,7 +69,7 @@ public sealed class EfContentRepository : IContentRepository
         // usando la versione di lavorazione più recente.
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vloa
-                 && (preferWorking || (d.Status == DocumentStatus.Published && (ignoreRelease || !d.IsHidden)))
+                 && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Id == docId,
             ignoreRelease, preferWorking, ct);
     }
@@ -75,7 +78,7 @@ public sealed class EfContentRepository : IContentRepository
     {
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vloa
-                 && (preferWorking || (d.Status == DocumentStatus.Published && (ignoreRelease || !d.IsHidden)))
+                 && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == homeAccCode)
                  && d.Parties.Any(pa => pa.Role == PartyRole.Neighbour && pa.Sector!.Acc!.Code == foreignAccCode),
             ignoreRelease, preferWorking, ct);
@@ -104,6 +107,11 @@ public sealed class EfContentRepository : IContentRepository
                 if (payload?.Doc is not null) return payload.Doc;   // AiracCycle già = ciclo di rilascio (fissato allo snapshot)
             }
         }
+
+        // Fallback (nessuna release effettiva): il pubblico vede il documento solo se è editorialmente pubblicato
+        // (Document.Status == Published). Un doc ancora in bozza (es. aeroporto appena generato) resta invisibile finché
+        // lo staff non lo pubblica o non pubblica una release. preferWorking (anteprima bozza gated all'editor) bypassa.
+        if (!preferWorking && doc.Status != DocumentStatus.Published) return null;
 
         // preferWorking (anteprima bozza): la versione di lavorazione più recente (bozza inclusa), non la pubblicata.
         int? versionId;
