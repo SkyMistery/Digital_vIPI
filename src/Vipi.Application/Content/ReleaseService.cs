@@ -6,21 +6,6 @@ using Vipi.Domain.Services;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Una voce del riepilogo differenze di una release: cosa cambia rispetto alla versione in vigore.</summary>
-public sealed record ReleaseDiffRow(string Label, string Change, string? Detail);   // Change: Aggiunta|Rimossa|Modificata
-
-/// <summary>Riepilogo differenze di una release rispetto a quella in vigore (o allo stato live se nessuna effettiva).</summary>
-public sealed record ReleaseDiff(bool HasBaseline, string BaselineLabel, IReadOnlyList<ReleaseDiffRow> Rows)
-{
-    public static ReleaseDiff Empty { get; } = new(false, "", Array.Empty<ReleaseDiffRow>());
-}
-
-/// <summary>Anteprima di una release: identità + il <see cref="RawDocument"/> del payload (solo tipi doc-based).</summary>
-public sealed record ReleasePreview(ReleaseTargetType Type, string TargetKey, string AiracCycle, RawDocument? Doc);
-
-/// <summary>Identità di una release per la risoluzione della route del viewer (redirect da /vsop/release/{id}).</summary>
-public sealed record ReleaseLocation(ReleaseTargetType Type, string TargetKey, string AiracCycle, string AccCode);
-
 /// <summary>
 /// Use-case delle release AIRAC: pubblica lo snapshot editoriale del documento a un ciclo di rilascio (schedulato o
 /// immediato), elenca la timeline. Lo stato live resta la bozza; la release ne congela una fotografia visibile al
