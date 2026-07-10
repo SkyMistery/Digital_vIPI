@@ -104,8 +104,7 @@ else
     private AppCoordination _coord = AppCoordination.Empty;
     private AppCoordination? _coordPreview;
     private string? _coordTemplate;
-    private AppAorPolygon? _aor;
-    private IReadOnlyList<AppAorPolygon> _towers = Array.Empty<AppAorPolygon>();
+    private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
     private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
@@ -187,8 +186,7 @@ else
     {
         _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await AppDoc.DeriveCoordinationAsync(_app);
-        _aor = await AppDoc.GetAorPolygonAsync(_app);
-        _towers = await AppDoc.GetTowerPolygonsAsync(_app);
+        _aorView = await AppDoc.GetAorViewAsync(_app);
     }
 
     // ---- workflow bozza/lock/pubblicazione (come VloaEditor) ----
@@ -331,7 +329,7 @@ else
                 <AppSeparations Rows="_separations" Editing="_editing" RowsChanged="SaveSeparations" />
                 break;
             case "aor":
-                <AppAor Polygon="_aor" Towers="_towers" />
+                <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
                 break;
             case "frequencies":
                 <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink"
