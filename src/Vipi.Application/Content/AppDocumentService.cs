@@ -44,6 +44,9 @@ public interface IAppDocumentService
     /// <summary>Salva il contenuto VFR nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
     Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default);
 
+    /// <summary>Identità dell'APP (settore, callsign, titolo IVAO, ACC, DocumentId se migrato). Null se il callsign non è un APP standalone.</summary>
+    Task<AppDocumentIdentity?> GetIdentityAsync(string appCallsign, CancellationToken ct = default);
+
     /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
     Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
 
@@ -272,6 +275,9 @@ public sealed class AppDocumentService : IAppDocumentService
     }
 
     // --- Override editoriali su DocumentProfile (doc 08e f4-a): sezioni nascoste, ordine/link freq, template coord. ---
+
+    public Task<AppDocumentIdentity?> GetIdentityAsync(string appCallsign, CancellationToken ct = default) =>
+        _apps.ResolveForDocumentAsync(Norm(appCallsign), ct);
 
     public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
         LoadOverridesAsync(appCallsign, ct);

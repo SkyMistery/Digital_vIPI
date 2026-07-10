@@ -19,6 +19,14 @@ public interface IContentRepository
     Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, CancellationToken ct = default);
 
     /// <summary>
+    /// Carica la vIPI di un APP non remotizzato (per callsign, es. "LIRP_APP"): documento con settore primario
+    /// APP standalone. Null se non esiste. Migrazione storage APP→Document (doc refactor 08e f4-b).
+    /// </summary>
+    /// <param name="ignoreRelease">true = ignora la release AIRAC effettiva e torna lo stato pubblicato/live (anteprima bozza).</param>
+    /// <param name="preferWorking">true = usa la versione di lavorazione più recente (bozza inclusa, anche se non pubblicato). Solo anteprima bozza gated.</param>
+    Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
+
+    /// <summary>
     /// Carica la vLOA pubblicata la cui parte Home appartiene alla ACC indicata (es. "LIRR"). Null se non esiste.
     /// </summary>
     Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default);
