@@ -343,7 +343,7 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
 
-        var content = new EfContentRepository(_db, new EfReleaseRepository(_db));
+        var content = new EfContentRepository(_db, TestReleaseTargets.ReleaseRepo(_db));
         // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché lo staff non pubblica.
         Assert.Null(await content.LoadAirportVipiAsync("LIRF"));
         await PublishAirportDocAsync("LIRF");

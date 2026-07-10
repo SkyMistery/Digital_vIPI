@@ -37,6 +37,12 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IVloaProfileRepository, EfVloaProfileRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentProfileRepository, EfDocumentProfileRepository>();
+        // Descrittori per-tipo del flusso di pubblicazione (doc 09 §3a): i motori generici consultano il registry.
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.VloaReleaseTarget>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AppReleaseTarget>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AccVipiReleaseTarget>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AirportReleaseTarget>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTargetRegistry, Vipi.Application.Content.ReleaseTargetRegistry>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseRepository, EfReleaseRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();

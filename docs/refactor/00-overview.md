@@ -37,7 +37,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 06 | [06-gerarchia.md](06-gerarchia.md) | Gerarchia albero copertura (7) | ✅ |
 | 07 | [07-trasferimenti.md](07-trasferimenti.md) | Trasferimenti (8) | ✅ |
 | 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | 🟡 08a·b·c·d-vloa ✅ · ACC/APP/Airport = strategia B (⏳) |
-| 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | 🟢🟡 |
+| 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | ✅ |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)
 
