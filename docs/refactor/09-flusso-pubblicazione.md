@@ -148,8 +148,13 @@ Ordine: meccanico → registry DB-side → registry UI-side → verifica tipo fi
 - **passo 4 ✅** pulizia switch vestigiali `Signature`/`GetPreviewAsync`/`SetHidden`/`Delete` (§3c).
 - **passo 5 ✅** `ReleaseGenericFlowTests` (+3): tipo fittizio (enum 99) pubblica/preview/diff/list/authz
   registrando SOLO un descrittore, zero modifiche ai motori (§5). Baseline test = **264**.
-- ⏳ **Fase 3 live** (guidare l'app reale su /vsop/versioni: anteprima+editor per i 4 tipi, hide/delete)
-  e **Fase 4 chiusura** (spec/rounds/overview + merge) DA FARE.
+- **Fase 3 live ✅** (2026-07-10, CDP su DB reale ACC+APP): EditorLink ACC/APP aprono la pagina giusta;
+  publish-now ACC → release 2607; `ViewerUrl(?as=rel:1)` rende lo snapshot congelato (banner AIRAC 2607);
+  redirect `/vsop/release/1`→`/vsop/libb/vipi?as=rel:1` (ReleasePreviewPage via registry); SetHidden
+  hide+unhide (Document.IsHidden, verificato in DB). Airport/vLOA non in DB ma coperti dai char test
+  (DocumentAdminRepositoryTests semina tutti e 4); delete non guidato (distruttivo) ma ramo unico coperto
+  dal fake-type test. Release di test rimossa a fine verifica.
+- **Fase 4 ✅** chiusura: overview/rounds aggiornati, merge su main.
 
 ## 5. Impatto
 
