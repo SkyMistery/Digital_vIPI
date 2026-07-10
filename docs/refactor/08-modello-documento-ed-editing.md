@@ -153,12 +153,21 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
 
 - **08e — storage ACC/APP/Airport su `Document`** (il cuore): mappare `AccProfile`/`AppProfile`/
   `AirportProfile` → `Document`(Type vIPI) + `DocumentVersion` + `DocumentSection`(tree, `SectionKey`
-  da catalogo) + `ContentBlock`. Le sezioni **derivate** (aor/frequencies/coordination/minima/
-  config/regulated) NON si persistono come blocchi: restano calcolate live per key. Le sezioni
-  **editoriali** e le custom → `DocumentSection`+`ContentBlock`. Servizi: `IAccProfileService`/
-  `IAppProfileService` editing → assorbiti nel servizio di editing unico su `Document` (estende
-  quello vLOA). **Greenfield**: migrazione EF che DROPpa le tabelle profile; derivato rigenerato
-  dagli import; editoriale a mano perso (pre-prod). Test-first sul mapping + reconcile albero.
+  da catalogo) + `ContentBlock`. **Architettura di storage (lock 2026-07-10, dal pattern vLOA provato):**
+  - **Import-derivate** (aor/frequencies/coordination/minima): `DocumentSection` keyed, **Blocks vuoti**,
+    rese live dal renderer per key (come vLOA oggi). Gli **override per-doc** (ordine freq, link freq,
+    settori/freq nascosti, hidden-sezioni, template coord) vivono in una **side-entity 1:1 col Document**
+    — generalizzazione di `VloaProfile` (candidata: `DocumentProfile` unica per tutti i tipi).
+  - **Strutturate-editoriali** (separations, vfr, config, regulated): `DocumentSection` keyed + dato
+    strutturato in `ContentBlock.BodyJson` (schema per key), editate da un **editor keyed specializzato**
+    (riusa gli editor esistenti AppSeparations/AppVfr/ConfigEditor/RegulatedEditor, ora leggono/scrivono
+    il blocco). Config: pool = settori dell'aeroporto (APP) o CTR (ACC); accorpamento calcolato.
+  - **Editoriali generiche** (custom/operationaltechnique/validity/free): `DocumentSection`+`ContentBlock`
+    Prose/Table/Callout + sotto-sezioni, via `DocumentSectionsEditor` (08f).
+  - Servizi: `IAccProfileService`/`IAppProfileService` editing → assorbiti nell'editing unico su `Document`
+    (estende quello vLOA/`IEditingService`). **Greenfield**: migrazione EF che DROPpa le tabelle profile;
+    derivato rigenerato dagli import; editoriale a mano perso (pre-prod). Test-first sul mapping.
+  - Decomposto: **08e-app** (template, più semplice) → **08e-acc** → **08e-airport**.
 - **08f — editor+viewer editoriale unico** (design lock #1): un solo componente editor che edita un
   sottoalbero `DocumentSection` con blocchi `Prose`/`Table`/`Callout` + **sotto-sezioni** (depth ≤3),
   reorder/hide; + un solo viewer. Sostituisce `VloaEditor` inline, `CustomEditor`/`CustomBody` (ACC/APP)
