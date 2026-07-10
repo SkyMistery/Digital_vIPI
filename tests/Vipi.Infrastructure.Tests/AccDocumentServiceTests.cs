@@ -32,7 +32,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         var repo = new EfAccProfileRepository(_db);
         var editing = new EfEditingRepository(_db, new AiracService());
-        _service = new AccDocumentService(repo, editing, new AllowAuthz());
+        _service = new AccDocumentService(repo, editing, new AllowAuthz(), new EfReleaseRepository(_db));
     }
 
     public async Task DisposeAsync()
@@ -149,6 +149,52 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.Equal(docId, post!.DocumentId);
         Assert.False(post.IsDraft);
         Assert.Equal(AccBlockKind.Aerovia, Assert.Single(post.Blocks).Block.Kind);
+    }
+
+    [Fact]
+    public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
+    {
+        var releases = new EfReleaseRepository(_db);
+        var editing = new EfEditingRepository(_db, new AiracService());
+
+        // Migra + edita (config "Conf A") + pubblica.
+        var model = await _service.LoadForEditAsync(Acc);
+        var block = Assert.Single(model.Blocks);
+        await _service.SaveConfigurationsAsync(Acc, block.ChildSectionIdsByKey["configurations"], new[]
+        {
+            new AccConfiguration { Key = "cfg:a", Name = "Conf A", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
+        });
+        var draftVer = await _db.DocumentVersions.Where(v => v.DocumentId == model.DocumentId).Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(draftVer, actorUserId: 1, note: null);
+
+        var key = $"{Acc}|{(await _service.GetIdentityAsync(Acc))!.RootCallsign}";
+
+        // Release AIRAC in vigore ORA: snapshot dello stato pubblicato.
+        var snap = await releases.SnapshotWorkingAsync(ReleaseTargetType.AccVipi, key, "2607");
+        Assert.NotNull(snap);
+        await releases.SaveReleaseAsync(ReleaseTargetType.AccVipi, key, "2607", DateTime.UtcNow.AddMinutes(-1), snap!, createdByUserId: 1, note: null);
+
+        // Ora modifico e RIpubblico "Conf B" (stato live cambia dopo la release). Serve una nuova bozza (come StartEditing).
+        await editing.CreateDraftAsync(model.DocumentId, authorUserId: 1);
+        var m2 = await _service.LoadForEditAsync(Acc);
+        var b2 = Assert.Single(m2.Blocks);
+        await _service.SaveConfigurationsAsync(Acc, b2.ChildSectionIdsByKey["configurations"], new[]
+        {
+            new AccConfiguration { Key = "cfg:b", Name = "Conf B", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
+        });
+        var draft2 = await _db.DocumentVersions.Where(v => v.DocumentId == m2.DocumentId && v.Status == DocumentStatus.Draft).Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(draft2, actorUserId: 1, note: null);
+
+        // La vista pubblica serve lo snapshot CONGELATO (Conf A), non il live (Conf B).
+        var view = await _service.LoadForViewAsync(Acc);
+        var configs = Assert.Single(view!.Blocks).Block.Configurations;
+        Assert.Equal("Conf A", Assert.Single(configs).Name);
+
+        // LoadForRelease per Id ritorna lo stesso snapshot col ciclo.
+        var relId = await _db.DocReleases.Where(r => r.TargetKey == key).Select(r => r.Id).FirstAsync();
+        var rv = await _service.LoadForReleaseAsync(Acc, relId);
+        Assert.Equal("2607", rv!.AiracCycle);
+        Assert.Equal("Conf A", Assert.Single(Assert.Single(rv.Data.Blocks).Configurations).Name);
     }
 
     /// <summary>Authz permissiva per i ctor dei service in test.</summary>

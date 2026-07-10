@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -24,10 +25,15 @@ public interface IAccDocumentService
     /// <summary>Carica la vIPI ACC dalla versione di lavoro (bozza se esiste, sennò la pubblicata) assemblando i blocchi. ACC-gated; garantisce il Document.</summary>
     Task<AccDocumentModel> LoadForEditAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Vista PUBBLICA: assembla i blocchi dalla versione pubblicata del Document. Se l'ACC non ha ancora un
-    /// Document (o versione pubblicata), ritorna un blocco Aerovia vuoto di default così le sezioni derivate (freq/AoR/
-    /// coord) restano visibili dai cataloghi. Non gated, non crea il Document. Null solo se l'ACC non esiste.</summary>
+    /// <summary>Vista PUBBLICA: assembla i blocchi dallo snapshot della release AIRAC in vigore (se esiste), altrimenti
+    /// dalla versione pubblicata del Document. Se l'ACC non ha ancora un Document (o versione pubblicata), ritorna un
+    /// blocco Aerovia vuoto di default così le sezioni derivate (freq/AoR/coord) restano visibili dai cataloghi. Non
+    /// gated, non crea il Document. Null solo se l'ACC non esiste.</summary>
     Task<AccDocumentModel?> LoadForViewAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Anteprima di una specifica release ACC: assembla i blocchi CONGELATI dallo snapshot (DocReleasePayload) +
+    /// ciclo AIRAC. Gated can-edit ACC; verifica che la release sia dell'ACC indicato. Null se non corrisponde. Doc 08e-acc.</summary>
+    Task<AccReleaseView?> LoadForReleaseAsync(string accCode, int releaseId, CancellationToken ct = default);
 
     /// <summary>Salva il metadata del blocco (natura/membri/override) nel <c>BodyJson</c> del blocco proprio della sezione-blocco. ACC-gated.</summary>
     Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default);
@@ -57,12 +63,15 @@ public sealed class AccDocumentService : IAccDocumentService
     private readonly IAccProfileRepository _repo;
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
+    private readonly IReleaseRepository _releases;
 
-    public AccDocumentService(IAccProfileRepository repo, IEditingRepository editing, IEditAuthorizationService authz)
+    public AccDocumentService(IAccProfileRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
+        IReleaseRepository releases)
     {
         _repo = repo;
         _editing = editing;
         _authz = authz;
+        _releases = releases;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
@@ -113,10 +122,19 @@ public sealed class AccDocumentService : IAccDocumentService
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
         if (id is null) return null;   // ACC inesistente
 
+        // Se esiste una release AIRAC in vigore per questo ACC, il pubblico vede i blocchi CONGELATI dello snapshot
+        // (le sezioni derivate — freq/AoR/coord — restano live coi cataloghi correnti). Doc 08e-acc.
+        var rel = await _releases.GetEffectiveAsync(ReleaseTargetType.AccVipi, $"{accCode}|{id.RootCallsign}", DateTime.UtcNow, ct);
+        if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
+        {
+            var blocks = AccDocumentAssembler.Assemble(snapRaw);
+            return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks);
+        }
+
         if (id.DocumentId is int docId && await _editing.LoadForViewAsync(docId, ct) is { } doc)
         {
-            var blocks = AccDocumentAssembler.Assemble(doc);
-            return new AccDocumentModel(doc.DocumentId, doc.VersionId, IsDraft: false, accCode, id.AccName, blocks);
+            var docBlocks = AccDocumentAssembler.Assemble(doc);
+            return new AccDocumentModel(doc.DocumentId, doc.VersionId, IsDraft: false, accCode, id.AccName, docBlocks);
         }
 
         // Non ancora migrato/pubblicato: blocco Aerovia vuoto di default (le derivate restano live dai cataloghi).
@@ -127,6 +145,28 @@ public sealed class AccDocumentService : IAccDocumentService
         };
         var synthetic = new AccAssembledBlock(0, aerovia, new Dictionary<string, int>());
         return new AccDocumentModel(0, 0, IsDraft: false, accCode, id.AccName, new[] { synthetic });
+    }
+
+    public async Task<AccReleaseView?> LoadForReleaseAsync(string accCode, int releaseId, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        var rel = await _releases.GetByIdAsync(releaseId, ct);
+        if (rel is null || rel.TargetType != ReleaseTargetType.AccVipi) return null;
+        if (!rel.TargetKey.StartsWith(accCode + "|", StringComparison.OrdinalIgnoreCase)) return null;
+        if (DeserializeSnapshot(rel.PayloadJson) is not { } raw) return null;
+
+        var name = (await _repo.ResolveAccDocumentIdentityAsync(accCode, ct))?.AccName ?? accCode;
+        var blocks = AccDocumentAssembler.Assemble(raw);
+        var data = new AccProfileData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
+        return new AccReleaseView(data, rel.ReleaseAiracCycle);
+    }
+
+    // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): estrae il RawDocument congelato.
+    private static RawDocument? DeserializeSnapshot(string payloadJson)
+    {
+        try { return JsonSerializer.Deserialize<DocReleasePayload>(payloadJson)?.Doc; }
+        catch (JsonException) { return null; }
     }
 
     // --- Salvataggi editoriali by-section (ACC-gated). Il BodyJson vive nel blocco della sezione indicata. ---

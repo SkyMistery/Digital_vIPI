@@ -44,6 +44,14 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                         d.Status == DocumentStatus.Published, draftDocIds.Contains(d.Id), d.IsHidden,
                         ReleaseTargetType.App, primary.Callsign, d.Id));
                 }
+                else if (primary is { Type: SectorType.Ctr, ParentSectorId: null })
+                {
+                    // vIPI ACC (storage su Document, doc 08e-acc): primario = CTR radice; chiave release = "{acc}|{root}".
+                    var acc = primary.Acc?.Code ?? "";
+                    result.Add(new ManagedDoc(ManagedDocKind.AccVipi, d.Title, primary.Callsign, acc,
+                        d.Status == DocumentStatus.Published, draftDocIds.Contains(d.Id), d.IsHidden,
+                        ReleaseTargetType.AccVipi, $"{acc}|{primary.Callsign}", d.Id));
+                }
                 else
                 {
                     // vIPI aeroporto: settore aeroporto → ICAO + ACC.
@@ -56,19 +64,6 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                 }
             }
         }
-
-        // 2) vIPI ACC (AccProfile, per albero). Una query.
-        var accProfiles = await _db.AccProfiles.AsNoTracking().Include(p => p.Acc).ToListAsync(ct);
-        foreach (var p in accProfiles)
-        {
-            var acc = p.Acc?.Code ?? "";
-            var root = p.RootCallsign ?? "";
-            result.Add(new ManagedDoc(ManagedDocKind.AccVipi, $"vIPI ACC {acc}{(root.Length > 0 ? $" · {root}" : "")}",
-                root.Length > 0 ? root : acc, acc,
-                true, false, p.IsHidden, ReleaseTargetType.AccVipi, $"{acc}|{root}", null));
-        }
-
-        // (Gli APP non remotizzati sono ora Document, elencati nel ramo 1.)
 
         return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
     }
@@ -102,21 +97,13 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             case ManagedDocKind.Vloa:
             case ManagedDocKind.AirportVipi:
             case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
+            case ManagedDocKind.AccVipi:   // ACC su Document (doc 08e-acc)
                 if (doc.DocumentId is int id)
                 {
                     var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
                     if (d is not null) { d.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
                 }
                 break;
-            case ManagedDocKind.AccVipi:
-            {
-                var parts = doc.ReleaseKey.Split('|', 2);
-                var acc = parts[0]; var root = parts.Length > 1 && parts[1].Length > 0 ? parts[1] : null;
-                var accId = await _db.Accs.Where(a => a.Code == acc).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct);
-                var p = await _db.AccProfiles.FirstOrDefaultAsync(x => x.AccId == accId && x.RootCallsign == root, ct);
-                if (p is not null) { p.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
-                break;
-            }
         }
     }
 
@@ -138,6 +125,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             case ManagedDocKind.Vloa:
             case ManagedDocKind.AirportVipi:
             case ManagedDocKind.AppVipi:   // APP su Document (doc 08e)
+            case ManagedDocKind.AccVipi:   // ACC su Document (doc 08e-acc)
                 if (doc.DocumentId is int id)
                 {
                     var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -149,15 +137,6 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                     }
                 }
                 break;
-            case ManagedDocKind.AccVipi:
-            {
-                var parts = doc.ReleaseKey.Split('|', 2);
-                var acc = parts[0]; var root = parts.Length > 1 && parts[1].Length > 0 ? parts[1] : null;
-                var accId = await _db.Accs.Where(a => a.Code == acc).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct);
-                var p = await _db.AccProfiles.FirstOrDefaultAsync(x => x.AccId == accId && x.RootCallsign == root, ct);
-                if (p is not null) _db.AccProfiles.Remove(p);
-                break;
-            }
         }
         await _db.SaveChangesAsync(ct);
     }

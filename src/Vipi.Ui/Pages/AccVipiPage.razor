@@ -131,10 +131,14 @@ else
                 catch (EditNotAllowedException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
                 catch (ValidationException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
                 break;
-            // TODO 08e-acc/acc4: anteprima release ACC dal ramo Document (DocReleasePayload). Per ora ripiega sulla pubblica.
             case PreviewKind.Release:
+                AccReleaseView? rv = null;
+                try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
+                catch (EditNotAllowedException) { }
+                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }
+                else { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
+                break;
             default:
-                _mode = _mode.Kind == PreviewKind.Release ? default : _mode;
                 _data = (await AccDoc.LoadForViewAsync(Acc))!.Data;
                 break;
         }

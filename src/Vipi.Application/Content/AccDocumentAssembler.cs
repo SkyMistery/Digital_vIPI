@@ -19,6 +19,21 @@ public static class AccDocumentAssembler
 {
     public static IReadOnlyList<AccAssembledBlock> Assemble(EditableDocument doc) => Assemble(doc.Sections);
 
+    /// <summary>Assembla i blocchi da uno snapshot di release (RawDocument): mappa l'albero grezzo a EditableSection e
+    /// riusa l'assemblaggio. Gli Id sezione dello snapshot non servono ai salvataggi (vista sola-lettura). Doc 08e-acc.</summary>
+    public static IReadOnlyList<AccAssembledBlock> Assemble(RawDocument raw) => Assemble(raw.Roots.Select(ToEditable).ToList());
+
+    private static EditableSection ToEditable(RawSection s) => new()
+    {
+        Id = s.Id, Title = s.Title, SectionKey = s.SectionKey, Depth = s.Depth, Order = s.Order,
+        Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new EditableBlock
+        {
+            Id = b.Id, Order = b.Order, Format = b.Format, Tier = b.Tier, Visibility = b.Visibility,
+            CalloutKind = b.CalloutKind, Body = b.Body, BodyJson = b.BodyJson,
+        }).ToList(),
+        Children = s.Children.OrderBy(c => c.Order).Select(ToEditable).ToList(),
+    };
+
     public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots)
     {
         var result = new List<AccAssembledBlock>();
