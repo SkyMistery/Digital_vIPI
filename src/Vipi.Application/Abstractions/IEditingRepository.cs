@@ -40,8 +40,12 @@ public interface IEditingRepository
     /// la versione bozza e le sezioni radice indicate (chiave catalogo + titolo, nell'ordine dato). Se il settore ha
     /// già un documento ne ritorna l'Id senza toccarlo. Per la migrazione ACC/APP/Airport su Document (doc refactor 08e).
     /// </summary>
+    /// <param name="liveKeys">Chiavi delle sezioni "live" (derivate o editoriali-strutturate: aor/frequencies/…): ricevono
+    /// un blocco placeholder alla creazione così NON vengono potate dalla vista quando sono senza contenuto memorizzato
+    /// (rese live dal renderer). Le altre sezioni restano senza blocchi (potate se vuote). Null = nessuna.</param>
     Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<(string Key, string Title)> sections, int authorUserId, CancellationToken ct = default);
+        IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
 
     /// <summary>
     /// Legge il JSON strutturato di una sezione editoriale-strutturata (separations/vfr/config…): il <c>BodyJson</c>

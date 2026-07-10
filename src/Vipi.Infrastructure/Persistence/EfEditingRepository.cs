@@ -260,8 +260,10 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<(string Key, string Title)> sections, int authorUserId, CancellationToken ct = default)
+        IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
+        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
     {
+        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
             ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
@@ -298,7 +300,8 @@ public sealed class EfEditingRepository : IEditingRepository
 
         var order = 1;
         foreach (var (key, secTitle) in sections)
-            _db.DocumentSections.Add(new DocumentSection
+        {
+            var section = new DocumentSection
             {
                 DocumentVersionId = version.Id,
                 ParentSectionId = null,
@@ -307,7 +310,23 @@ public sealed class EfEditingRepository : IEditingRepository
                 Depth = 0,
                 SectionKey = key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
-            });
+            };
+            _db.DocumentSections.Add(section);
+
+            // Sezioni "live" (derivate/editoriali-strutturate): blocco placeholder così non vengono potate dalla vista
+            // quando sono senza contenuto memorizzato (il renderer le riempie live). Doc refactor 08e.
+            if (live is not null && live.Contains(key))
+                _db.ContentBlocks.Add(new ContentBlock
+                {
+                    DocumentVersion = version,
+                    Section = section,
+                    Order = 1,
+                    Format = BlockFormat.Table,
+                    Tier = BlockTier.Extended,
+                    Visibility = BlockVisibility.Always,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
+                });
+        }
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;

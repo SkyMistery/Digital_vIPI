@@ -89,6 +89,11 @@ public sealed class AppDocumentService : IAppDocumentService
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
+    // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
+    // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
+    private static readonly string[] LiveKeys =
+        { "separations", "aor", "frequencies", "minima", "vfr", "coordination" };
+
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
         var id = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct)
@@ -97,7 +102,8 @@ public sealed class AppDocumentService : IAppDocumentService
 
         await _authz.EnsureCanEditAccAsync(id.AccCode, ct);
         var sections = SectionCatalog.For(SectionProfile.App).Select(d => (d.Key, d.Title)).ToList();
-        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, sections, _authz.CurrentUserId ?? 0, ct);
+        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, sections,
+            _authz.CurrentUserId ?? 0, LiveKeys, ct);
     }
 
     // Override derivati (link/ordine freq, template coord) dal DocumentProfile del documento dell'APP; vuoti se non migrato.
