@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IReleaseService Releases
 @inject IDocumentAdminService DocAdmin
+@inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
 
 @* Compat: la vecchia pagina di anteprima release è ora un redirect al viewer tipizzato con ?as=rel:{id},
@@ -44,24 +45,17 @@
         if (loc is null) { _notFound = true; return; }
 
         var acc = loc.AccCode.ToLowerInvariant();
-        var url = loc.Type switch
-        {
-            ReleaseTargetType.AccVipi => $"/vsop/{acc}/vipi?as=rel:{Id}",
-            ReleaseTargetType.Airport => $"/vsop/{acc}/airports?icao={loc.TargetKey}&as=rel:{Id}",
-            ReleaseTargetType.App => $"/vsop/{acc}/apps/vipi?app={loc.TargetKey}&as=rel:{Id}",
-            ReleaseTargetType.Vloa => await VloaUrlAsync(acc, loc.TargetKey),
-            _ => "/vsop/versioni",
-        };
+        // vLOA: la chiave release è il docId → risolvo il vicino (foreign) dal catalogo; gli altri tipi non usano il vicino.
+        var neighbour = loc.Type == ReleaseTargetType.Vloa ? await VloaNeighbourAsync(loc.TargetKey) : null;
+        var url = DocRoutes.For(loc.Type).ViewerUrl(acc, loc.TargetKey, neighbour, Id) ?? "/vsop/versioni";
         Nav.NavigateTo(url, replace: true);
     }
 
-    // vLOA: la chiave release è il docId numerico → risolvo il vicino (foreign) dal catalogo documenti.
-    private async Task<string> VloaUrlAsync(string acc, string targetKey)
+    // vLOA: la chiave release è il docId numerico → risolvo il codice del vicino (foreign) dal catalogo documenti.
+    private async Task<string?> VloaNeighbourAsync(string targetKey)
     {
-        if (!int.TryParse(targetKey, out var docId)) return "/vsop/versioni";
-        var m = (await DocAdmin.ListAsync())
-            .FirstOrDefault(x => x.Kind == ManagedDocKind.Vloa && x.DocumentId == docId);
-        if (m?.NeighbourCode is not { Length: > 0 } foreign) return "/vsop/versioni";
-        return $"/vsop/{acc}/vloa?acc={foreign.ToUpperInvariant()}&as=rel:{Id}";
+        if (!int.TryParse(targetKey, out var docId)) return null;
+        return (await DocAdmin.ListAsync())
+            .FirstOrDefault(x => x.Kind == ManagedDocKind.Vloa && x.DocumentId == docId)?.NeighbourCode;
     }
 }

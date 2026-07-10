@@ -10,6 +10,7 @@
 @inject Vipi.Application.Abstractions.IAuditLogReader Audit
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
 
 <PageTitle>Bozze &amp; versioni · IVAO Italia</PageTitle>
 
@@ -588,14 +589,8 @@
     private string PreviewLink(ManagedDoc d, int releaseId)
     {
         var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
-        return d.Kind switch
-        {
-            ManagedDocKind.AccVipi => $"/vsop/{acc}/vipi?as=rel:{releaseId}",
-            ManagedDocKind.AirportVipi => $"/vsop/{acc}/airports?icao={d.ReleaseKey}&as=rel:{releaseId}",
-            ManagedDocKind.AppVipi => $"/vsop/{acc}/apps/vipi?app={d.ReleaseKey}&as=rel:{releaseId}",
-            ManagedDocKind.Vloa when d.NeighbourCode is { Length: > 0 } n => $"/vsop/{acc}/vloa?acc={n.ToUpperInvariant()}&as=rel:{releaseId}",
-            _ => $"/vsop/release/{releaseId}",
-        };
+        return DocRoutes.For(d.Kind).ViewerUrl(acc, d.ReleaseKey, d.NeighbourCode, releaseId)
+            ?? $"/vsop/release/{releaseId}";
     }
 
     private async Task ToggleHidden(ManagedDoc d)
@@ -653,18 +648,7 @@
     private string EditorLink(ManagedDoc d)
     {
         var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
-        return d.Kind switch
-        {
-            ManagedDocKind.AppVipi => $"/vsop/{acc}/apps/editor?app={d.ReleaseKey}",
-            ManagedDocKind.AirportVipi => $"/vsop/{acc}/airports/editor?icao={d.ReleaseKey}",
-            ManagedDocKind.AccVipi => AccEditorLink(acc, d.ReleaseKey),
-            // Le vLOA si editano dall'editor vLOA dedicato (per coppia Home↔Neighbour), ospitato da AppEditorPage.
-            ManagedDocKind.Vloa => d.NeighbourCode is { Length: > 0 } n
-                ? $"/vsop/{acc}/vloa/editor?acc={n.ToUpperInvariant()}"
-                : $"/vsop/{acc}/editor?doc={d.DocumentId}",
-            _ => "/vsop/versioni",
-        };
+        return DocRoutes.For(d.Kind).EditorUrl(acc, d.ReleaseKey, d.NeighbourCode, d.DocumentId)
+            ?? "/vsop/versioni";
     }
-    // vIPI ACC unica per ACC: l'editor usa sempre il root primario, nessun ?tree.
-    private static string AccEditorLink(string acc, string key) => $"/vsop/{acc}/editor";
 }
