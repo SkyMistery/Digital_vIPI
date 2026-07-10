@@ -3,6 +3,9 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
+/// <summary>Identità di un APP per la migrazione su Document: id settore, titolo del documento, DocumentId se già creato.</summary>
+public sealed record AppDocumentIdentity(int SectorId, string Callsign, string Title, string AccCode, int? DocumentId);
+
 /// <summary>
 /// Persistenza del profilo editoriale dell'APP standalone (separazioni, VFR, ordine sezioni, ordine/link frequenze),
 /// ancorato 1:1 al Sector APP. Le sezioni derivate (frequenze sottoalbero, coordinamenti, AoR) non si persistono:
@@ -23,6 +26,10 @@ public interface IAppProfileRepository
 
     /// <summary>Codice ACC del settore APP (per la guardia di autorizzazione). null = inesistente.</summary>
     Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Identità del settore APP per creare/risolvere il suo Document vIPI: id settore + titolo (nome IVAO/
+    /// AtcCallsign, fallback al nome settore) + DocumentId se già migrato. null = callsign APP inesistente. Doc 08e.</summary>
+    Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default);
 
     /// <summary>Poligono AoR grezzo (JSON IVAO) dal catalogo AirportSector del callsign APP. null = assente.</summary>
     Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default);

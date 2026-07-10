@@ -20,6 +20,19 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
         await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
             .Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
+    public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var s = await _db.Sectors.AsNoTracking().Include(x => x.Acc)
+            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App, ct);
+        if (s is null || s.Acc is null) return null;
+
+        // Titolo = nome IVAO (AtcCallsign, es. "Palermo Approach") dal catalogo, fallback al nome settore, poi callsign.
+        var display = await _db.AirportSectors.AsNoTracking()
+            .Where(a => a.ComposePosition == appCallsign).Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
+        var title = string.IsNullOrWhiteSpace(display) ? (string.IsNullOrWhiteSpace(s.Name) ? s.Callsign : s.Name) : display!;
+        return new AppDocumentIdentity(s.Id, s.Callsign, title, s.Acc.Code, s.DocumentId);
+    }
+
     public async Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.AirportSectors.AsNoTracking().Where(s => s.ComposePosition == appCallsign)
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);
