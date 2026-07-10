@@ -1,0 +1,103 @@
+using System.Text.Json;
+using Vipi.Application.Content;
+using Vipi.Domain;
+using Xunit;
+
+namespace Vipi.Application.Tests;
+
+/// <summary>Caratterizzazione dell'assembler ACC (doc refactor 08e-acc): dall'albero DocumentSection ricostruisce i
+/// blocchi con i campi che guidano le derivazioni (kind/membri/config/override/aree).</summary>
+public class AccDocumentAssemblerTests
+{
+    private static EditableBlock Table(string? json) => new()
+    {
+        Id = 0, Order = 1, Format = BlockFormat.Table, Tier = BlockTier.Extended,
+        Visibility = BlockVisibility.Always, BodyJson = json,
+    };
+
+    private static EditableSection Sec(int id, string key, string title, int order,
+        string? ownJson = null, IReadOnlyList<EditableSection>? children = null) => new()
+    {
+        Id = id, Title = title, SectionKey = key, Depth = children is null ? 1 : 0, Order = order,
+        Blocks = ownJson is null ? new List<EditableBlock>() : new List<EditableBlock> { Table(ownJson) },
+        Children = children ?? new List<EditableSection>(),
+    };
+
+    private static EditableDocument Doc(params EditableSection[] roots) => new()
+    {
+        DocumentId = 1, VersionId = 1, VersionNumber = 1, VersionStatus = DocumentStatus.Draft,
+        Title = "vIPI ACC", Sections = roots,
+    };
+
+    [Fact]
+    public void Assembles_Aerovia_And_AppGroup_With_Meta_Config_And_Regulated()
+    {
+        var meta = new AccBlockMeta
+        {
+            Key = "grp:abc", Kind = AccBlockKind.AppGroup,
+            MemberCallsigns = new() { "LIRP_APP" },
+            HiddenSections = new() { "vfr" },
+            FreqOrder = new() { new AppFreqOrderOverride("LIRP_APP", 0) },
+            FreqLinkCallsigns = new() { "LIRR_CTR" },
+            CoordinationSentenceTemplate = "tpl",
+        };
+        var configs = new List<AccConfiguration>
+        {
+            new() { Key = "cfg:1", Name = "Conf 1", Open = new() { new AccConfigOpen { Callsign = "LIRR_NE_CTR" } } },
+        };
+        var attached = new List<string> { "area-42" };
+
+        var doc = Doc(
+            // Blocco Aerovia: nessun blockmeta (default), con figlie keyed.
+            Sec(10, "aerovia", "Settori di aerovia", 1, ownJson: null, children: new[]
+            {
+                Sec(11, "separations", "Separazioni radar", 1),
+                Sec(12, "configurations", "Configurazioni", 2, ownJson: JsonSerializer.Serialize(configs)),
+                Sec(13, "aor", "AOR", 3),
+                Sec(14, "regulated", "Aree", 4, ownJson: JsonSerializer.Serialize(attached)),
+            }),
+            // Blocco gruppo APP: blockmeta valorizzato.
+            Sec(20, "appgroup", "Gruppo APP", 2, ownJson: JsonSerializer.Serialize(meta), children: new[]
+            {
+                Sec(21, "frequencies", "Frequenze", 1),
+            }));
+
+        var blocks = AccDocumentAssembler.Assemble(doc);
+        Assert.Equal(2, blocks.Count);
+
+        // Aerovia: kind da chiave sezione (no meta); config e aree dai BodyJson figli.
+        var aerovia = blocks[0];
+        Assert.Equal(10, aerovia.BlockSectionId);
+        Assert.Equal(AccBlockKind.Aerovia, aerovia.Block.Kind);
+        Assert.Equal("aerovia", aerovia.Block.Key);
+        Assert.Single(aerovia.Block.Configurations);
+        Assert.Equal("Conf 1", aerovia.Block.Configurations[0].Name);
+        Assert.Equal(new[] { "area-42" }, aerovia.Block.AttachedSpecialAreaIds);
+        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated" }, aerovia.Block.SectionOrder);
+        Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
+        Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
+
+        // Gruppo APP: tutti i campi dal blockmeta.
+        var grp = blocks[1];
+        Assert.Equal(AccBlockKind.AppGroup, grp.Block.Kind);
+        Assert.Equal("grp:abc", grp.Block.Key);
+        Assert.Equal(new[] { "LIRP_APP" }, grp.Block.MemberCallsigns);
+        Assert.Equal(new[] { "vfr" }, grp.Block.HiddenSections);
+        Assert.Equal("LIRR_CTR", Assert.Single(grp.Block.FreqLinkCallsigns));
+        Assert.Equal("tpl", grp.Block.CoordinationSentenceTemplate);
+        Assert.Equal(0, Assert.Single(grp.Block.FreqOrder).Order);
+    }
+
+    [Fact]
+    public void Empty_Block_Defaults_To_Empty_Collections()
+    {
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new EditableSection[0]));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.Equal(AccBlockKind.Aerovia, block.Kind);
+        Assert.Empty(block.MemberCallsigns);
+        Assert.Empty(block.Configurations);
+        Assert.Empty(block.AttachedSpecialAreaIds);
+        Assert.Empty(block.SectionOrder);
+    }
+}
