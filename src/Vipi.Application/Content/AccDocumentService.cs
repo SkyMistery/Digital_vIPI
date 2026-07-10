@@ -170,7 +170,13 @@ public sealed class AccDocumentService : IAccDocumentService
         await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
         var block = new VipiBlockSpec("appgroup", string.IsNullOrWhiteSpace(title) ? "Nuovo gruppo APP" : title.Trim(),
             SectionCatalog.For(SectionProfile.AccAppBlock).Select(d => (d.Key, d.Title)).ToList());
-        return await _editing.AddBlockToVersionAsync(versionId, block, LiveKeys, ct);
+        var blockSectionId = await _editing.AddBlockToVersionAsync(versionId, block, LiveKeys, ct);
+
+        // Semina un blockmeta con chiave unica (grp:{guid}) così i blocchi non collidono (anchor/dizionari).
+        var meta = new AccBlockMeta { Key = "grp:" + Guid.NewGuid().ToString("N")[..8], Kind = AccBlockKind.AppGroup };
+        await _editing.SaveSectionBlockJsonBySectionAsync(blockSectionId, System.Text.Json.JsonSerializer.Serialize(meta),
+            _authz.CurrentUserId ?? 0, ct);
+        return blockSectionId;
     }
 
     public async Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default)

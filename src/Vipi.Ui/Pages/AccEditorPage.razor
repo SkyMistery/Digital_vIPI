@@ -2,10 +2,11 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Text.Json
-@using Microsoft.JSInterop
-@implements IDisposable
+@inject IAccDocumentService AccDoc
 @inject IAccProfileService Profile
+@inject IEditingService Editing
 @inject IStationResolver Stations
+@inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
 
 @if (_acc is null)
@@ -14,128 +15,106 @@
 }
 else
 {
-    <PageTitle>Editor vIPI @_data.AccName</PageTitle>
+    <PageTitle>Editor vIPI @_accName</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccName</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/vipi@(TreeQuery())">vIPI</a> › <b>Editor</b>
+            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>Editor</b>
         </div>
 
-        <div class="editor-bar">
-            <div class="doc-head" style="margin:0">
-                <div><h2 style="margin-bottom:2px">✎ Editor vIPI @_data.AccName</h2><span class="muted">Settori di aerovia + gruppi APP</span></div>
-                <div class="editor-actions">
-                    @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
-                    else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
-                    @if (_editing)
-                    {
-                        <button class="btn ghost" disabled="@(!_history.CanUndo)" title="Annulla (Ctrl+Z)" @onclick="Undo">↶ Annulla</button>
-                        <button class="btn ghost" disabled="@(!_history.CanRedo)" title="Ripeti (Ctrl+Y)" @onclick="Redo">↷ Ripeti</button>
-                    }
-                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
-                    <button class="btn @(_editing ? "primary" : "ghost")" disabled="@(!_canEdit)" @onclick="() => _editing = !_editing" title="Ctrl+E">
-                        @(_editing ? "✓ Fine modifica" : "✎ Modifica")
-                    </button>
-                </div>
-            </div>
-
-            <div class="editor-toc">
-                <button type="button" class="toc-jump" @onclick="CollapseAll">⊖ Comprimi tutto</button>
-                <button type="button" class="toc-jump" @onclick="ExpandAll">⊕ Espandi tutto</button>
-                @foreach (var (block, bi) in _data.Blocks.Select((b, i) => (b, i)))
-                {
-                    <span class="toc-sep"></span>
-                    var blockLabel = block.Kind == AccBlockKind.Aerovia ? "ACC" : block.Title;
-                    <span class="toc-lab">@blockLabel</span>
-                    foreach (var key in OrderOf(block))
-                    {
-                        var t = SectionCatalog.Find(ProfileOf(block.Kind), key)?.Title ?? block.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
-                        var anchor = $"p-{block.Key}-{key}";
-                        <button type="button" class="toc-jump" @onclick="() => JumpTo(anchor)">@t</button>
-                    }
-                }
-            </div>
-        </div>
-
-        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
-        @if (!_canEdit) { <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per la ACC @_data.AccCode.</div></div> }
-
-        @foreach (var block in _data.Blocks)
+        @if (_denied)
         {
-            var b = block;
-            <div class="acc-block">
-                <div class="acc-block-head">
-                    @if (_editing && b.Kind == AccBlockKind.AppGroup)
-                    {
-                        <input class="app-in" style="font-weight:700;max-width:320px" value="@b.Title"
-                               @onchange="e => SetGroupTitle(b, AsString(e.Value))" />
-                        <button class="btn ghost" title="Duplica gruppo" @onclick="() => DuplicateGroup(b)">⧉ Duplica</button>
-                        <button class="btn ghost" title="Rimuovi gruppo" @onclick="() => RemoveGroup(b)">✕ Gruppo</button>
-                    }
-                    else
-                    {
-                        <h2 class="acc-block-h">@(b.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : b.Title)</h2>
-                    }
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>Non hai i permessi per la ACC @_accName.</div></div>
+        }
+        else if (_doc is null || _model is null)
+        {
+            <p class="help">Caricamento editor vIPI…</p>
+        }
+        else
+        {
+            <div class="editor-bar">
+                <div class="doc-head" style="margin:0">
+                    <div><h2 style="margin-bottom:2px">✎ Editor vIPI @_accName</h2><span class="muted">Settori di aerovia + gruppi APP</span></div>
+                    <div class="editor-actions">
+                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
+                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
+                        <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                            @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
+                        </span>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda">👁 Anteprima bozza</a>
+                        @if (_editing)
+                        {
+                            <button class="btn primary" @onclick="Publish" title="Pubblica la bozza corrente">📢 Pubblica</button>
+                            <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
+                        }
+                        else
+                        {
+                            <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
+                        }
+                    </div>
                 </div>
+            </div>
 
-                @if (_editing && b.Kind == AccBlockKind.AppGroup)
-                {
-                    <div class="block" style="border-style:dashed">
-                        <p class="app-lbl" style="margin:0 0 4px">Settori APP del gruppo</p>
-                        <div class="sector-pick">
-                            @foreach (var s in _appSectors)
-                            {
-                                var sec = s;
-                                var on = b.MemberCallsigns.Contains(sec.Callsign, StringComparer.OrdinalIgnoreCase);
-                                <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleMember(b, sec.Callsign)">
-                                    @(on ? "✓ " : "")<b>@sec.Callsign</b> <span class="muted">@sec.Name</span>
-                                </button>
-                            }
+            @if (_lock is { Locked: true, IsMine: false })
+            {
+                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
+                    Bloccato da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : "").</div></div>
+            }
+            @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
+
+            @foreach (var bs in _doc.Sections)
+            {
+                var blockSection = bs;
+                var blk = _model.Blocks.FirstOrDefault(b => b.BlockSectionId == blockSection.Id);
+                if (blk is null) { continue; }
+                var isGroup = blk.Block.Kind == AccBlockKind.AppGroup;
+
+                <div class="acc-block">
+                    <div class="acc-block-head">
+                        @if (_editing && isGroup)
+                        {
+                            <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
+                                   @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
+                            <button class="btn ghost" title="Rimuovi gruppo" @onclick="() => RemoveGroup(blockSection.Id)">✕ Gruppo</button>
+                        }
+                        else
+                        {
+                            <h2 class="acc-block-h">@(isGroup ? blockSection.Title : "Settori di aerovia")</h2>
+                        }
+                    </div>
+
+                    @if (_editing && isGroup)
+                    {
+                        <div class="block" style="border-style:dashed">
+                            <p class="app-lbl" style="margin:0 0 4px">Settori APP del gruppo</p>
+                            <div class="sector-pick">
+                                @foreach (var s in _appSectors)
+                                {
+                                    var sec = s;
+                                    var on = blk.Block.MemberCallsigns.Contains(sec.Callsign, StringComparer.OrdinalIgnoreCase);
+                                    <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleMember(blk, sec.Callsign)">
+                                        @(on ? "✓ " : "")<b>@sec.Callsign</b> <span class="muted">@sec.Name</span>
+                                    </button>
+                                }
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
 
-                @foreach (var (key, i) in OrderOf(b).Select((k, i) => (k, i)))
-                {
-                    var order = OrderOf(b);
-                    var idx = i;
-                    var desc = SectionCatalog.Find(ProfileOf(b.Kind), key);
-                    var stored = b.CustomSections.FirstOrDefault(c => c.Key == key);
-                    var isCustom = desc is null;
-                    var title = desc?.Title ?? stored?.Title ?? key;
-                    var kind = desc?.Kind ?? SectionKind.Editorial;
-                    var hidden = b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
-                    var sk = b.Key + ":" + key;
+                    <DocumentSectionsEditor Doc="_doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
+                                            AddLabel="+ Aggiungi sezione custom" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
+                                            IsDerivedSection="IsStructured" DerivedContent="DerivedFor(blk)"
+                                            IsMandatory="IsMandatory" IsHiddenSection="s => IsHidden(blk, s)"
+                                            OnToggleHidden="s => ToggleHidden(blk, s)" />
+                </div>
+            }
 
-                    <SectionShell @key="@sk" Title="@title" AnchorId="@($"p-{b.Key}-{key}")" Kind="kind"
-                                  Editing="@_editing" Custom="@isCustom" Hidden="@hidden"
-                                  IsFirst="@(idx == 0)" IsLast="@(idx == order.Count - 1)"
-                                  Collapsible="true" Collapsed="@_collapsed.Contains(sk)"
-                                  ToggleCollapsed="() => ToggleCollapsed(sk)"
-                                  MoveUp="() => MoveSection(b, idx, -1)" MoveDown="() => MoveSection(b, idx, 1)"
-                                  Delete="() => RemoveCustom(b, key)" ToggleHidden="() => ToggleHidden(b, key)">
-                        @SectionBody(b, key, stored, isCustom)
-                    </SectionShell>
-                }
+            @if (_editing)
+            {
+                <div class="block" style="border-style:dashed">
+                    <button class="btn primary" @onclick="AddGroup">+ Aggiungi gruppo APP</button>
+                </div>
+            }
 
-                @if (_editing)
-                {
-                    <div class="block" style="border-style:dashed">
-                        <button class="btn ghost" @onclick="() => AddCustom(b)">+ Aggiungi sezione custom</button>
-                    </div>
-                }
-            </div>
-        }
-
-        @if (_editing)
-        {
-            <div class="block" style="border-style:dashed">
-                <button class="btn primary" @onclick="AddGroup">+ Aggiungi gruppo APP</button>
-            </div>
-        }
-
-        @if (_canEdit)
-        {
             <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")" />
         }
     </div>
@@ -143,460 +122,363 @@ else
 
 @code {
     [Parameter] public string Acc { get; set; } = default!;
-    [SupplyParameterFromQuery] public string? Tree { get; set; }
 
     private AccInfo? _acc;
-    private AccProfileData _data = new() { AccCode = "", AccName = "", Blocks = new() };
-    private bool _canEdit, _editing;
+    private string _accName = "";
+    private string _accCode = "";
+    private string? _root;
+
+    private int? _docId;
+    private EditableDocument? _doc;
+    private AccDocumentModel? _model;
+    private LockInfo _lock = LockInfo.Free();
+    private bool _denied, _editing;
     private string? _error;
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
-    private int _saveTick;                                   // guardia auto-dismiss per save concorrenti
-    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
-    private readonly UndoHistory<List<AccBlock>> _history = new();   // undo/redo locale: snapshot dei blocchi
-    private DotNetObjectReference<AccEditorPage>? _dotRef;
-    private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
-    private string? _root;
+    private int _saveTick;
+
+    // Derivate per blocco (chiave = BlockSectionId).
+    private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();
+    private readonly Dictionary<int, AccCoordination> _coord = new();
+    private readonly Dictionary<int, AccAorView> _aors = new();
+    private readonly Dictionary<int, IReadOnlyList<AccConfigTableView>> _configTables = new();
 
     private IReadOnlyList<AccSectorPick> _ctrSectors = Array.Empty<AccSectorPick>();
     private IReadOnlyList<AccSectorPick> _appSectors = Array.Empty<AccSectorPick>();
-
-    private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
-    private readonly Dictionary<string, AccCoordination> _coord = new();
-    private readonly Dictionary<string, AccAorView> _aors = new();
-    private readonly Dictionary<string, IReadOnlyList<AccConfigTableView>> _configTables = new();
-
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<SpecialAreaPick> _specialAreaPicks = Array.Empty<SpecialAreaPick>();
-    private readonly Dictionary<string, string> _freqSearch = new();   // testo ricerca picker, per blocco
-    private readonly Dictionary<string, string> _areaSearch = new();    // testo ricerca picker aree, per blocco
-    private (string Key, int Index)? _freqDrag;   // drag frequenze: blocco + indice riga trascinata
-    private (string Key, int Index)? _cfgDrag;    // drag configurazioni: blocco + indice config trascinata
+    private readonly Dictionary<int, string> _freqSearch = new();   // per blocco (BlockSectionId)
+    private readonly Dictionary<int, string> _areaSearch = new();
+    private (int Block, int Index)? _freqDrag;
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
-        _error = null;
+        _denied = false; _error = null; _doc = null; _model = null; _docId = null;
 
-        // vIPI ACC = una sola per ACC: si usa sempre il CTR radice primario. Il parametro ?tree è ignorato
-        // (nessun selettore d'albero) così non è possibile creare/editare più profili per lo stesso ACC.
-        _roots = await Profile.ListTreeRootsAsync(Acc);
-        _root = ResolveTree(null, _roots);
+        var id = await AccDoc.GetIdentityAsync(Acc);
+        if (id is null) { _denied = true; return; }
+        _accName = id.AccName; _accCode = id.AccCode; _root = id.RootCallsign;
 
-        try
-        {
-            _data = await Profile.LoadForEditAsync(Acc, _root);
-            _canEdit = true;
-        }
-        catch (EditNotAllowedException) { _data = await Profile.LoadForViewAsync(Acc, _root); _canEdit = false; }
-        catch (ValidationException ex) { _error = ex.Message; return; }
+        try { _docId = await AccDoc.EnsureAsync(Acc); }
+        catch (EditNotAllowedException) { _denied = true; return; }
+        catch (ValidationException) { _denied = true; return; }
 
-        _ctrSectors = await Profile.GetBlockPoolAsync(Acc, new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia }, _root);
         _appSectors = await Profile.ListAppSectorsAsync(Acc);
+        _ctrSectors = await Profile.GetBlockPoolAsync(Acc, new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia }, _root);
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _specialAreaPicks = await Profile.ListSpecialAreasByAccAsync(Acc);
-        foreach (var b in _data.Blocks) await RefreshBlock(b);
-        _history.Reset(UndoHistory<List<AccBlock>>.Clone(_data.Blocks));
+        await LoadAsync();
     }
 
-    // vIPI ACC unica per ACC: nessun ?tree nei link (il root primario è implicito).
-    private string TreeQuery() => "";
-
-
-    private static string? ResolveTree(string? tree, IReadOnlyList<AccTreeRoot> roots)
+    private async Task LoadAsync()
     {
-        if (!string.IsNullOrWhiteSpace(tree))
-        {
-            var match = roots.FirstOrDefault(r => string.Equals(r.Callsign, tree, StringComparison.OrdinalIgnoreCase));
-            if (match is not null) return match.Callsign;
-        }
-        return roots.Count > 0 ? roots[0].Callsign : null;
-    }
-
-    private async Task RefreshBlock(AccBlock b)
-    {
-        if (b.SectionOrder.Count == 0) b.SectionOrder = OrderOf(b).ToList();   // seed una volta, fuori dal render
-        _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
-        _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
-        _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
-        _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
-    }
-
-    // Blocco ACC → profilo del catalogo: Aerovia = settori CTR, AppGroup = gruppo APP. Doc 08d-acc §4(2).
-    private static SectionProfile ProfileOf(AccBlockKind kind) =>
-        kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
-
-    private IReadOnlyList<string> OrderOf(AccBlock b)
-    {
-        var customKeys = b.CustomSections.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return SectionCatalog.Reconcile(ProfileOf(b.Kind), b.SectionOrder, customKeys).ToList();   // puro: nessuna mutazione del modello
-    }
-
-    private IReadOnlyList<AccSectorPick> PoolOf(AccBlock b) =>
-        b.Kind == AccBlockKind.Aerovia ? _ctrSectors
-            : _appSectors.Where(a => b.MemberCallsigns.Contains(a.Callsign, StringComparer.OrdinalIgnoreCase)).ToList();
-
-    // ---- persistenza (colonna unica: salva tutta la struttura) ----
-    // record=true: mutazione utente → registra lo stato nella cronologia undo. Undo/redo salvano con record=false.
-    private async Task Persist(bool record = true)
-    {
-        _error = null;
-        _save = SaveState.Saving;
-        StateHasChanged();
+        if (_docId is not int id) return;
         try
         {
-            await Profile.SaveBlocksAsync(Acc, _data.Blocks, _root);
-            if (record) _history.Push(UndoHistory<List<AccBlock>>.Clone(_data.Blocks));
+            _doc = await Editing.LoadForEditAsync(id);
+            _model = await AccDoc.LoadForEditAsync(Acc);
+            _lock = await Editing.InspectLockAsync(id);
+            if (_doc is null || _model is null) { _denied = true; return; }
+            _editing = _editing && _doc.IsEditable;
+
+            _freqs.Clear(); _coord.Clear(); _aors.Clear(); _configTables.Clear();
+            foreach (var b in _model.Blocks) await RefreshBlockDerived(b);
+        }
+        catch (EditNotAllowedException) { _denied = true; }
+    }
+
+    private async Task RefreshBlockDerived(AccAssembledBlock b)
+    {
+        _freqs[b.BlockSectionId] = (await Profile.DeriveFrequenciesAsync(Acc, b.Block, _root)).ToList();
+        _coord[b.BlockSectionId] = await Profile.DeriveCoordinationAsync(Acc, b.Block, _root);
+        _aors[b.BlockSectionId] = await Profile.DeriveAorViewAsync(Acc, b.Block, _root);
+        _configTables[b.BlockSectionId] = await Profile.DeriveConfigTableAsync(Acc, b.Block, _root);
+    }
+
+    // ---- workflow bozza/lock/pubblicazione (come AppEditorPage) ----
+    private async Task StartEditing()
+    {
+        if (_docId is not int id) return;
+        await Guard(async () =>
+        {
+            if (_doc is { IsEditable: false }) await Editing.CreateDraftAsync(id);
+            else await Editing.AcquireLockAsync(id);
+            await LoadAsync();
+            _editing = _doc?.IsEditable == true;
+        });
+    }
+
+    private async Task Publish()
+    {
+        if (_doc is null) return;
+        await Guard(async () =>
+        {
+            await Editing.PublishAsync(_doc.VersionId, null);
+            _editing = false;
+            await LoadAsync();
+        });
+    }
+
+    // ---- gruppi (blocchi appgroup) ----
+    private Task AddGroup() => Guard(async () =>
+    {
+        if (_doc is null) return;
+        await AccDoc.AddGroupAsync(Acc, _doc.VersionId, "Nuovo gruppo APP");
+        await LoadAsync();
+    });
+
+    private Task RenameGroup(int blockSectionId, string title) => Guard(async () =>
+    {
+        await Editing.RenameSectionAsync(blockSectionId, title);
+        await LoadAsync();
+    });
+
+    private async Task RemoveGroup(int blockSectionId)
+    {
+        if (!await Confirm("Rimuovere il gruppo? L'azione non è annullabile.")) return;
+        await Guard(async () =>
+        {
+            await AccDoc.RemoveGroupAsync(Acc, blockSectionId);
+            await LoadAsync();
+        });
+    }
+
+    private Task ToggleMember(AccAssembledBlock blk, string cs) => Guard(async () =>
+    {
+        var members = blk.Block.MemberCallsigns;
+        if (members.Contains(cs, StringComparer.OrdinalIgnoreCase))
+            members.RemoveAll(x => string.Equals(x, cs, StringComparison.OrdinalIgnoreCase));
+        else members.Add(cs);
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+
+    // ---- meta blocco (override + membri) ----
+    private static AccBlockMeta MetaOf(AccBlock b) => new()
+    {
+        Key = b.Key, Kind = b.Kind, MemberCallsigns = b.MemberCallsigns, HiddenSections = b.HiddenSections,
+        FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns, CoordinationSentenceTemplate = b.CoordinationSentenceTemplate,
+    };
+    private Task SaveMeta(AccAssembledBlock blk) => AccDoc.SaveBlockMetaAsync(Acc, blk.BlockSectionId, MetaOf(blk.Block));
+
+    private int ChildId(AccAssembledBlock blk, string key) => blk.ChildSectionIdsByKey.GetValueOrDefault(key);
+
+    // ---- struttura sezioni: strutturate (host) vs editoriali generiche (DocumentSectionsEditor) ----
+    private static readonly HashSet<string> Structured = new(StringComparer.OrdinalIgnoreCase)
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+
+    private static bool IsStructured(EditableSection s) => Structured.Contains(s.SectionKey);
+    // Le sezioni-catalogo (chiavi note) sono obbligatorie: titolo bloccato, no elimina. Le custom (chiavi ignote) no.
+    private static bool IsMandatory(EditableSection s) =>
+        Structured.Contains(s.SectionKey) || s.SectionKey is "operationaltechnique" or "validity";
+    private static bool IsHidden(AccAssembledBlock blk, EditableSection s) =>
+        blk.Block.HiddenSections.Contains(s.SectionKey, StringComparer.OrdinalIgnoreCase);
+    private Task ToggleHidden(AccAssembledBlock blk, EditableSection s) => Guard(async () =>
+    {
+        var hidden = blk.Block.HiddenSections;
+        if (hidden.Contains(s.SectionKey, StringComparer.OrdinalIgnoreCase))
+            hidden.RemoveAll(k => string.Equals(k, s.SectionKey, StringComparison.OrdinalIgnoreCase));
+        else hidden.Add(s.SectionKey);
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+
+    // ---- editoriali-strutturate ----
+    private Task SaveSeparations(AccAssembledBlock blk, IReadOnlyList<AppSeparationRow> rows) => Guard(async () =>
+    {
+        await AccDoc.SaveSeparationsAsync(Acc, ChildId(blk, "separations"), rows);
+        await LoadAsync();
+    });
+
+    private Task SaveVfr(AccAssembledBlock blk, AppVfrContent content) => Guard(async () =>
+    {
+        await AccDoc.SaveVfrAsync(Acc, ChildId(blk, "vfr"), content);
+        await LoadAsync();
+    });
+
+    // ---- frequenze (override ordine + link, nel blockmeta) ----
+    private Task MoveFreq(AccAssembledBlock blk, (int Index, int Dir) m) => Guard(async () =>
+    {
+        var rows = _freqs.GetValueOrDefault(blk.BlockSectionId) ?? new();
+        var j = m.Index + m.Dir;
+        if (j < 0 || j >= rows.Count) return;
+        (rows[m.Index], rows[j]) = (rows[j], rows[m.Index]);
+        blk.Block.FreqOrder = rows.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+    private void FreqDragOver(AccAssembledBlock blk, int idx)
+    {
+        if (_freqDrag is not (int b, int from) || b != blk.BlockSectionId || from == idx) return;
+        var rows = _freqs.GetValueOrDefault(blk.BlockSectionId);
+        if (rows is null || idx >= rows.Count) return;
+        var item = rows[from];
+        rows.RemoveAt(from); rows.Insert(idx, item);
+        _freqDrag = (blk.BlockSectionId, idx);
+    }
+    private Task FreqDragDrop(AccAssembledBlock blk) => _freqDrag?.Block != blk.BlockSectionId ? Task.CompletedTask : Guard(async () =>
+    {
+        _freqDrag = null;
+        var rows = _freqs.GetValueOrDefault(blk.BlockSectionId) ?? new();
+        blk.Block.FreqOrder = rows.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+    private Task AddLink(AccAssembledBlock blk, string callsign) => Guard(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(callsign) || blk.Block.FreqLinkCallsigns.Contains(callsign, StringComparer.OrdinalIgnoreCase)) return;
+        blk.Block.FreqLinkCallsigns.Add(callsign);
+        _freqSearch[blk.BlockSectionId] = "";
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+    private Task RemoveLink(AccAssembledBlock blk, string callsign) => Guard(async () =>
+    {
+        blk.Block.FreqLinkCallsigns.RemoveAll(c => string.Equals(c, callsign, StringComparison.OrdinalIgnoreCase));
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+
+    // ---- coordinamenti (template nel blockmeta) ----
+    private Task SaveCoordTemplate(AccAssembledBlock blk, string text) => Guard(async () =>
+    {
+        blk.Block.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        await SaveMeta(blk);
+        await LoadAsync();
+    });
+
+    // ---- configurazioni ----
+    private Task PersistConfigs(AccAssembledBlock blk) => Guard(async () =>
+    {
+        await AccDoc.SaveConfigurationsAsync(Acc, ChildId(blk, "configurations"), blk.Block.Configurations);
+        await LoadAsync();
+    });
+    private Task AddConfig(AccAssembledBlock blk)
+    {
+        blk.Block.Configurations.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = "Nuova configurazione" });
+        return PersistConfigs(blk);
+    }
+    private async Task RemoveConfig(AccAssembledBlock blk, AccConfiguration c)
+    {
+        if (!await Confirm($"Rimuovere la configurazione «{c.Name}»?")) return;
+        blk.Block.Configurations.Remove(c);
+        await PersistConfigs(blk);
+    }
+    private Task SetConfigName(AccAssembledBlock blk, AccConfiguration c, string name) { c.Name = name; return PersistConfigs(blk); }
+    private Task ToggleConfigSector(AccAssembledBlock blk, AccConfiguration c, string cs)
+    {
+        var existing = c.Open.FirstOrDefault(o => string.Equals(o.Callsign, cs, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) c.Open.Remove(existing);
+        else c.Open.Add(new AccConfigOpen { Callsign = cs });
+        return PersistConfigs(blk);
+    }
+    private Task SetOpenCp(AccAssembledBlock blk, AccConfigOpen o, string v) { o.CenterPoint = v; return PersistConfigs(blk); }
+    private Task SetOpenRange(AccAssembledBlock blk, AccConfigOpen o, string v) { o.Range = v; return PersistConfigs(blk); }
+
+    // ---- aree regolamentate ----
+    private Task ToggleSpecialArea(AccAssembledBlock blk, string areaId) => Guard(async () =>
+    {
+        var ids = blk.Block.AttachedSpecialAreaIds;
+        if (ids.Contains(areaId, StringComparer.OrdinalIgnoreCase))
+            ids.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
+        else ids.Add(areaId);
+        await AccDoc.SaveRegulatedAsync(Acc, ChildId(blk, "regulated"), ids);
+        await LoadAsync();
+    });
+
+    private IReadOnlyList<AccSectorPick> PoolOf(AccAssembledBlock blk) =>
+        blk.Block.Kind == AccBlockKind.Aerovia ? _ctrSectors
+            : _appSectors.Where(a => blk.Block.MemberCallsigns.Contains(a.Callsign, StringComparer.OrdinalIgnoreCase)).ToList();
+
+    // ---- infra ----
+    private async Task Guard(Func<Task> action)
+    {
+        _error = null; _save = SaveState.Saving; StateHasChanged();
+        try
+        {
+            await action();
             _save = SaveState.Saved;
             var tick = ++_saveTick;
             _ = DismissSavedAsync(tick);
         }
         catch (EditNotAllowedException) { _error = "Non hai i permessi."; _save = SaveState.Idle; }
+        catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
     }
-
-    // ---- undo/redo locale (ripristina lo snapshot dei blocchi e ri-salva) ----
-    private Task Undo() => _history.Undo(out var s) ? ApplyHistory(s) : Task.CompletedTask;
-    private Task Redo() => _history.Redo(out var s) ? ApplyHistory(s) : Task.CompletedTask;
-
-    private async Task ApplyHistory(List<AccBlock> blocks)
-    {
-        _data.Blocks.Clear();
-        _data.Blocks.AddRange(UndoHistory<List<AccBlock>>.Clone(blocks));
-        await Persist(record: false);
-        foreach (var b in _data.Blocks) await RefreshBlock(b);
-        StateHasChanged();
-    }
-
-    [JSInvokable] public Task UndoAction() => _editing && _canEdit ? Undo() : Task.CompletedTask;
-    [JSInvokable] public Task RedoAction() => _editing && _canEdit ? Redo() : Task.CompletedTask;
-
-    // Nasconde «✓ Salvato» dopo 2s, se nel frattempo non è partito un nuovo salvataggio.
     private async Task DismissSavedAsync(int tick)
     {
         await Task.Delay(2000);
-        if (tick == _saveTick && _save == SaveState.Saved)
+        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
+    }
+    private static string AsString(object? v) => v as string ?? "";
+    private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
+
+    // ---- render sezioni strutturate (per blocco) ----
+    private RenderFragment<EditableSection> DerivedFor(AccAssembledBlock blk) => section => __builder =>
+    {
+        var bsId = blk.BlockSectionId;
+        switch (section.SectionKey)
         {
-            _save = SaveState.Idle;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async Task PersistAndRefresh(AccBlock b) { await Persist(); await RefreshBlock(b); }
-
-    // ---- blocchi / gruppi ----
-    private async Task AddGroup()
-    {
-        _data.Blocks.Add(new AccBlock { Key = "grp:" + Guid.NewGuid().ToString("N")[..8], Kind = AccBlockKind.AppGroup, Title = "Nuovo gruppo APP" });
-        await Persist();
-    }
-    private async Task RemoveGroup(AccBlock b)
-    {
-        if (!await Confirm($"Rimuovere il gruppo «{b.Title}»? L'azione non è annullabile.")) return;
-        _data.Blocks.Remove(b);
-        await Persist();
-    }
-    private async Task DuplicateGroup(AccBlock b)
-    {
-        var copy = new AccBlock
-        {
-            Key = "grp:" + Guid.NewGuid().ToString("N")[..8],
-            Kind = b.Kind,
-            Title = b.Title + " (copia)",
-            MemberCallsigns = b.MemberCallsigns.ToList(),
-            SectionOrder = b.SectionOrder.ToList(),
-            HiddenSections = b.HiddenSections.ToList(),
-            CustomSections = b.CustomSections.Select(c => c with { Blocks = c.Blocks.ToList() }).ToList(),
-            Configurations = b.Configurations.Select(CloneConfig).ToList(),
-            Separations = b.Separations.ToList(),
-            VfrJson = b.VfrJson,
-            AttachedSpecialAreaIds = b.AttachedSpecialAreaIds.ToList(),
-            FreqOrder = b.FreqOrder.ToList(),
-            FreqLinkCallsigns = b.FreqLinkCallsigns.ToList(),
-            CoordinationSentenceTemplate = b.CoordinationSentenceTemplate,
-        };
-        _data.Blocks.Insert(_data.Blocks.IndexOf(b) + 1, copy);
-        await Persist();
-        await RefreshBlock(copy);
-    }
-    private static AccConfiguration CloneConfig(AccConfiguration c) => new()
-    {
-        Key = "cfg:" + Guid.NewGuid().ToString("N")[..8],
-        Name = c.Name,
-        Open = c.Open.Select(o => new AccConfigOpen { Callsign = o.Callsign, CenterPoint = o.CenterPoint, Range = o.Range }).ToList(),
-    };
-    private async Task SetGroupTitle(AccBlock b, string t) { b.Title = t; await Persist(); }
-    private async Task ToggleMember(AccBlock b, string cs)
-    {
-        if (b.MemberCallsigns.Contains(cs, StringComparer.OrdinalIgnoreCase))
-            b.MemberCallsigns.RemoveAll(x => string.Equals(x, cs, StringComparison.OrdinalIgnoreCase));
-        else b.MemberCallsigns.Add(cs);
-        await PersistAndRefresh(b);
-    }
-
-    // ---- ordine / hidden / custom (per blocco) ----
-    private async Task MoveSection(AccBlock b, int idx, int dir)
-    {
-        var order = OrderOf(b).ToList();
-        var j = idx + dir;
-        if (j < 0 || j >= order.Count) return;
-        (order[idx], order[j]) = (order[j], order[idx]);
-        b.SectionOrder = order;
-        await Persist();
-    }
-    private async Task ToggleHidden(AccBlock b, string key)
-    {
-        if (b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase))
-            b.HiddenSections.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
-        else b.HiddenSections.Add(key);
-        await Persist();
-    }
-    private async Task AddCustom(AccBlock b)
-    {
-        var key = "custom:" + Guid.NewGuid().ToString("N")[..8];
-        b.CustomSections.Add(new AppCustomSection(key, "Nuova sezione", new List<AppCustomBlock>()));
-        b.SectionOrder = OrderOf(b).ToList();   // Reconcile accoda già la nuova custom key
-        await Persist();
-    }
-    private async Task RemoveCustom(AccBlock b, string key)
-    {
-        var title = b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? "questa sezione";
-        if (!await Confirm($"Rimuovere «{title}»?")) return;
-        b.CustomSections.RemoveAll(c => c.Key == key);
-        b.SectionOrder.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
-        await Persist();
-    }
-
-    // ---- editoriali ----
-    private async Task SaveSeparations(AccBlock b, IReadOnlyList<AppSeparationRow> rows) { b.Separations = rows.ToList(); await Persist(); }
-    private async Task SaveVfr(AccBlock b, AppVfrContent c) { b.VfrJson = JsonSerializer.Serialize(c); await Persist(); }
-    private async Task MoveFreq(AccBlock b, (int Index, int Dir) m)
-    {
-        var rows = _freqs.GetValueOrDefault(b.Key) ?? new();
-        var j = m.Index + m.Dir;
-        if (j < 0 || j >= rows.Count) return;
-        (rows[m.Index], rows[j]) = (rows[j], rows[m.Index]);
-        b.FreqOrder = rows.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
-        await PersistAndRefresh(b);
-    }
-    private void FreqDragOver(AccBlock b, int idx)
-    {
-        if (_freqDrag is not (string key, int from) || key != b.Key || from == idx) return;
-        var rows = _freqs.GetValueOrDefault(b.Key);
-        if (rows is null || idx >= rows.Count) return;
-        var item = rows[from];
-        rows.RemoveAt(from);
-        rows.Insert(idx, item);
-        _freqDrag = (b.Key, idx);
-    }
-    private async Task FreqDragDrop(AccBlock b)
-    {
-        if (_freqDrag?.Key != b.Key) return;
-        _freqDrag = null;
-        var rows = _freqs.GetValueOrDefault(b.Key) ?? new();
-        b.FreqOrder = rows.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList();
-        await PersistAndRefresh(b);
-    }
-    private async Task AddLink(AccBlock b, string callsign)
-    {
-        if (string.IsNullOrWhiteSpace(callsign) || b.FreqLinkCallsigns.Contains(callsign, StringComparer.OrdinalIgnoreCase)) return;
-        b.FreqLinkCallsigns.Add(callsign);
-        _freqSearch[b.Key] = "";
-        await PersistAndRefresh(b);
-    }
-    private async Task RemoveLink(AccBlock b, string callsign)
-    {
-        b.FreqLinkCallsigns.RemoveAll(c => string.Equals(c, callsign, StringComparison.OrdinalIgnoreCase));
-        await PersistAndRefresh(b);
-    }
-
-    // ---- configurazioni ----
-    private async Task AddConfig(AccBlock b)
-    {
-        b.Configurations.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = "Nuova configurazione" });
-        await Persist();
-    }
-    private async Task RemoveConfig(AccBlock b, AccConfiguration c)
-    {
-        if (!await Confirm($"Rimuovere la configurazione «{c.Name}»?")) return;
-        b.Configurations.Remove(c);
-        await PersistAndRefresh(b);
-    }
-    private async Task DuplicateConfig(AccBlock b, AccConfiguration c)
-    {
-        var copy = CloneConfig(c);
-        copy.Name = c.Name + " (copia)";
-        b.Configurations.Insert(b.Configurations.IndexOf(c) + 1, copy);
-        await PersistAndRefresh(b);
-    }
-    private async Task MoveConfig(AccBlock b, int idx, int dir)
-    {
-        var j = idx + dir;
-        if (j < 0 || j >= b.Configurations.Count) return;
-        (b.Configurations[idx], b.Configurations[j]) = (b.Configurations[j], b.Configurations[idx]);
-        await PersistAndRefresh(b);
-    }
-    private void ConfigDragOver(AccBlock b, int idx)
-    {
-        if (_cfgDrag is not (string key, int from) || key != b.Key || from == idx) return;
-        var item = b.Configurations[from];
-        b.Configurations.RemoveAt(from);
-        b.Configurations.Insert(idx, item);
-        _cfgDrag = (b.Key, idx);
-    }
-    private async Task ConfigDragDrop(AccBlock b)
-    {
-        if (_cfgDrag?.Key != b.Key) return;
-        _cfgDrag = null;
-        await PersistAndRefresh(b);
-    }
-    private async Task SetConfigName(AccConfiguration c, string name) { c.Name = name; await Persist(); }
-    private async Task ToggleConfigSector(AccBlock b, AccConfiguration c, string cs)
-    {
-        var existing = c.Open.FirstOrDefault(o => string.Equals(o.Callsign, cs, StringComparison.OrdinalIgnoreCase));
-        if (existing is not null) c.Open.Remove(existing);
-        else c.Open.Add(new AccConfigOpen { Callsign = cs });
-        await PersistAndRefresh(b);
-    }
-    private async Task SetOpenCp(AccBlock b, AccConfigOpen o, string v) { o.CenterPoint = v; await PersistAndRefresh(b); }
-    private async Task SetOpenRange(AccBlock b, AccConfigOpen o, string v) { o.Range = v; await PersistAndRefresh(b); }
-
-    // ---- aree regolamentate (#8: aree speciali importate da IVAO) ----
-    private async Task ToggleSpecialArea(AccBlock b, string id)
-    {
-        if (b.AttachedSpecialAreaIds.Contains(id, StringComparer.OrdinalIgnoreCase))
-            b.AttachedSpecialAreaIds.RemoveAll(x => string.Equals(x, id, StringComparison.OrdinalIgnoreCase));
-        else b.AttachedSpecialAreaIds.Add(id);
-        await Persist();
-    }
-
-    // ---- custom (prosa) ----
-    private async Task SetCustomTitle(AccBlock b, AppCustomSection sec, string t)
-    {
-        var i = b.CustomSections.FindIndex(c => c.Key == sec.Key);
-        if (i >= 0) { b.CustomSections[i] = sec with { Title = t }; await Persist(); }
-    }
-    private async Task AddCustomProse(AccBlock b, AppCustomSection sec)
-    {
-        var i = b.CustomSections.FindIndex(c => c.Key == sec.Key);
-        if (i < 0) return;
-        b.CustomSections[i] = sec with { Blocks = sec.Blocks.Append(new AppCustomBlock(AppCustomBlockType.Prose, "", null, null)).ToList() };
-        await Persist();
-    }
-    private async Task SetCustomProse(AccBlock b, AppCustomSection sec, int bi, string text)
-    {
-        var i = b.CustomSections.FindIndex(c => c.Key == sec.Key);
-        if (i < 0) return;
-        var blocks = sec.Blocks.ToList();
-        if (bi < blocks.Count) blocks[bi] = blocks[bi] with { Text = text };
-        b.CustomSections[i] = sec with { Blocks = blocks };
-        await Persist();
-    }
-
-    // Override per-documento del template della frase di coordinamento (vuoto = default globale del file).
-    private RenderFragment CoordTemplateEditor(AccBlock b) => __builder =>
-    {
-        <div class="field" style="margin:0 0 12px">
-            <label>Frase di coordinamento — template (vuoto = default globale)</label>
-            <textarea rows="2" placeholder="@CoordTemplatePlaceholder"
-                      value="@b.CoordinationSentenceTemplate"
-                      @onchange="e => SetCoordTemplate(b, AsString(e.Value))"></textarea>
-            <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>.</p>
-        </div>
-    };
-    private const string CoordTemplatePlaceholder =
-        "{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}.";
-    private async Task SetCoordTemplate(AccBlock b, string text)
-    {
-        b.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
-        await PersistAndRefresh(b);
-    }
-    private async Task RemoveCustomBlock(AccBlock b, AppCustomSection sec, int bi)
-    {
-        var i = b.CustomSections.FindIndex(c => c.Key == sec.Key);
-        if (i < 0) return;
-        var blocks = sec.Blocks.ToList();
-        if (bi < blocks.Count) blocks.RemoveAt(bi);
-        b.CustomSections[i] = sec with { Blocks = blocks };
-        await Persist();
-    }
-
-    // ---- render sezione ----
-    private RenderFragment SectionBody(AccBlock b, string key, AppCustomSection? stored, bool isCustom) => __builder =>
-    {
-        switch (key)
-        {
-            case "separations": <AppSeparations Rows="b.Separations" Editing="_editing" RowsChanged="rows => SaveSeparations(b, rows)" /> break;
-            case "configurations": @ConfigEditor(b) break;
+            case "separations":
+                <AppSeparations Rows="blk.Block.Separations" Editing="_editing" RowsChanged="rows => SaveSeparations(blk, rows)" />
+                break;
+            case "configurations":
+                @ConfigEditor(blk)
+                break;
             case "aor":
-                @* @key include l'albero: al cambio ?tree l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
-                <AccAor @key="@(b.Key + ":" + _root)" View="_aors.GetValueOrDefault(b.Key) ?? AccAorView.Empty" Id="@b.Key" />
+                <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
                 break;
             case "frequencies":
-                <AppFrequencies Rows="_freqs.GetValueOrDefault(b.Key) ?? new()" Editing="_editing" OnMove="m => MoveFreq(b, m)"
-                                DragIndex="@(_freqDrag?.Key == b.Key ? _freqDrag.Value.Index : null)"
-                                OnDragStart="i => _freqDrag = (b.Key, i)" OnDragEnter="i => FreqDragOver(b, i)"
-                                OnDrop="() => FreqDragDrop(b)" OnDragEnd="() => FreqDragDrop(b)" />
-                @if (_editing) { @FreqLinkEditor(b) }
+                <AppFrequencies Rows="_freqs.GetValueOrDefault(bsId) ?? new()" Editing="_editing" OnMove="m => MoveFreq(blk, m)"
+                                DragIndex="@(_freqDrag?.Block == bsId ? _freqDrag.Value.Index : null)"
+                                OnDragStart="i => _freqDrag = (bsId, i)" OnDragEnter="i => FreqDragOver(blk, i)"
+                                OnDrop="() => FreqDragDrop(blk)" OnDragEnd="() => FreqDragDrop(blk)" />
+                @if (_editing) { @FreqLinkEditor(blk) }
                 break;
-            case "minima": <AppMinima /> break;
-            case "vfr": <AppVfr Content="ParseVfr(b.VfrJson)" Editing="_editing" ContentChanged="c => SaveVfr(b, c)" /> break;
+            case "minima":
+                <AppMinima />
+                break;
+            case "vfr":
+                <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_editing" ContentChanged="c => SaveVfr(blk, c)" />
+                break;
             case "coordination":
-                @if (_editing) { @CoordTemplateEditor(b) }
-                <AccCoordinationView Coord="_coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty" />
+                @if (_editing)
+                {
+                    <div class="field" style="margin:0 0 12px">
+                        <label>Frase di coordinamento — template (vuoto = default globale)</label>
+                        <textarea rows="2" placeholder="{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}."
+                                  value="@blk.Block.CoordinationSentenceTemplate"
+                                  @onchange="e => SaveCoordTemplate(blk, AsString(e.Value))"></textarea>
+                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>.</p>
+                    </div>
+                }
+                <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />
                 break;
-            case "regulated": @RegulatedEditor(b) break;
-            default: @EditorialBody(b, key, stored, isCustom) break;
+            case "regulated":
+                @RegulatedEditor(blk)
+                break;
         }
     };
 
-    // Sezione fissa editoriale del catalogo (operationaltechnique/validity) senza handler dedicato: contenuto (prosa)
-    // come custom-section keyed sulla chiave fissa, creata al primo blocco. Titolo editabile solo per le custom vere.
-    private RenderFragment EditorialBody(AccBlock b, string key, AppCustomSection? sec, bool editableTitle) => __builder =>
+    private RenderFragment ConfigEditor(AccAssembledBlock blk) => __builder =>
     {
-        if (sec is not null) { @CustomEditor(b, sec, editableTitle) }
-        else if (_editing)
-        {
-            <button class="btn ghost" @onclick="() => AddEditorialProse(b, key)">+ Paragrafo</button>
-        }
-    };
-
-    private void EnsureSection(AccBlock b, string key)
-    {
-        if (b.CustomSections.Any(c => c.Key == key)) return;
-        var title = SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? "Sezione";
-        b.CustomSections.Add(new AppCustomSection(key, title, new List<AppCustomBlock>()));
-    }
-    private async Task AddEditorialProse(AccBlock b, string key)
-    {
-        EnsureSection(b, key);
-        await AddCustomProse(b, b.CustomSections.First(c => c.Key == key));
-    }
-
-    private RenderFragment ConfigEditor(AccBlock b) => __builder =>
-    {
-        var pool = PoolOf(b);
-        var tables = _configTables.GetValueOrDefault(b.Key) ?? Array.Empty<AccConfigTableView>();
-
+        var pool = PoolOf(blk);
+        var tables = _configTables.GetValueOrDefault(blk.BlockSectionId) ?? Array.Empty<AccConfigTableView>();
         @if (_editing)
         {
-            <p class="help" style="margin:0 0 8px">Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento (quali settori chiusi copre ciascun settore aperto). Riordina con ⠿/↑/↓.</p>
-            @foreach (var (c, ci) in b.Configurations.Select((c, i) => (c, i)))
+            <p class="help" style="margin:0 0 8px">Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</p>
+            @foreach (var c in blk.Block.Configurations)
             {
                 var cfg = c;
-                var idx = ci;
                 var tbl = tables.FirstOrDefault(t => t.ConfigKey == cfg.Key);
-                <div class="block @(_cfgDrag?.Key == b.Key && _cfgDrag.Value.Index == idx ? "app-sec-drag" : "")" style="margin-bottom:10px"
-                     @ondragover:preventDefault="true" @ondragenter="() => ConfigDragOver(b, idx)" @ondrop="() => ConfigDragDrop(b)" @ondragend="() => ConfigDragDrop(b)">
+                <div class="block" style="margin-bottom:10px">
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                        <span class="app-drag" title="Trascina per riordinare" draggable="true" @ondragstart="() => _cfgDrag = (b.Key, idx)">⠿</span>
-                        <input class="app-in" placeholder="Nome configurazione" value="@cfg.Name" @onchange="e => SetConfigName(cfg, AsString(e.Value))" />
-                        <button class="btn ghost" disabled="@(idx == 0)" title="Su" @onclick="() => MoveConfig(b, idx, -1)">↑</button>
-                        <button class="btn ghost" disabled="@(idx == b.Configurations.Count - 1)" title="Giù" @onclick="() => MoveConfig(b, idx, 1)">↓</button>
-                        <button class="btn ghost" title="Duplica configurazione" @onclick="() => DuplicateConfig(b, cfg)">⧉</button>
-                        <button class="btn ghost" title="Rimuovi configurazione" @onclick="() => RemoveConfig(b, cfg)">✕</button>
+                        <input class="app-in" placeholder="Nome configurazione" value="@cfg.Name" @onchange="e => SetConfigName(blk, cfg, AsString(e.Value))" />
+                        <button class="btn ghost" title="Rimuovi configurazione" @onclick="() => RemoveConfig(blk, cfg)">✕</button>
                     </div>
                     <p class="app-lbl" style="margin:0 0 4px">Settori aperti</p>
                     <div class="sector-pick">
@@ -604,7 +486,7 @@ else
                         {
                             var sec = s;
                             var on = cfg.OpenCallsigns.Contains(sec.Callsign, StringComparer.OrdinalIgnoreCase);
-                            <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleConfigSector(b, cfg, sec.Callsign)">@sec.Callsign</button>
+                            <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleConfigSector(blk, cfg, sec.Callsign)">@sec.Callsign</button>
                         }
                     </div>
                     @if (cfg.Open.Count > 0)
@@ -619,8 +501,8 @@ else
                                     <tr class="grp-start">
                                         <td class="uni">@(row?.UnifiedName ?? open.Callsign)</td>
                                         <td class="muted">@(row is null ? "—" : string.Join(", ", row.Absorbed))</td>
-                                        <td><input class="app-in" placeholder="es. GINEL" value="@open.CenterPoint" @onchange="e => SetOpenCp(b, open, AsString(e.Value))" /></td>
-                                        <td><input class="app-in" placeholder="es. 140" value="@open.Range" @onchange="e => SetOpenRange(b, open, AsString(e.Value))" /></td>
+                                        <td><input class="app-in" placeholder="es. GINEL" value="@open.CenterPoint" @onchange="e => SetOpenCp(blk, open, AsString(e.Value))" /></td>
+                                        <td><input class="app-in" placeholder="es. 140" value="@open.Range" @onchange="e => SetOpenRange(blk, open, AsString(e.Value))" /></td>
                                     </tr>
                                 }
                             </tbody>
@@ -628,14 +510,14 @@ else
                     }
                 </div>
             }
-            <button class="btn ghost" @onclick="() => AddConfig(b)">+ Aggiungi configurazione</button>
+            <button class="btn ghost" @onclick="() => AddConfig(blk)">+ Aggiungi configurazione</button>
         }
         else
         {
             @if (tables.Count == 0) { <p class="muted">Nessuna configurazione operativa.</p> }
             @foreach (var cfg in tables)
             {
-                <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@b.Key">
+                <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="b@blk.BlockSectionId">
                     <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
                     <div class="body">
                         <table class="cfg-table">
@@ -658,48 +540,43 @@ else
         }
     };
 
-    private RenderFragment FreqLinkEditor(AccBlock b) => __builder =>
+    private RenderFragment FreqLinkEditor(AccAssembledBlock blk) => __builder =>
     {
-        var search = _freqSearch.GetValueOrDefault(b.Key, "");
+        var search = _freqSearch.GetValueOrDefault(blk.BlockSectionId, "");
         <div class="block" style="border-style:dashed;margin-top:8px">
             <p class="app-lbl" style="margin:0 0 4px">Frequenze collegate <span class="muted">(riferimento vivo a un altro settore)</span></p>
-            @if (b.FreqLinkCallsigns.Count > 0)
+            @if (blk.Block.FreqLinkCallsigns.Count > 0)
             {
                 <div class="sector-pick" style="margin-bottom:6px">
-                    @foreach (var cs in b.FreqLinkCallsigns)
+                    @foreach (var cs in blk.Block.FreqLinkCallsigns)
                     {
                         var callsign = cs;
-                        <button type="button" class="sp-item on" title="Rimuovi link" @onclick="() => RemoveLink(b, callsign)">
-                            🔗 <b>@callsign</b> ✕
-                        </button>
+                        <button type="button" class="sp-item on" title="Rimuovi link" @onclick="() => RemoveLink(blk, callsign)">🔗 <b>@callsign</b> ✕</button>
                     }
                 </div>
             }
             <input class="app-in" placeholder="Collega frequenza (cerca callsign/ICAO)…" value="@search"
-                   @oninput="e => _freqSearch[b.Key] = AsString(e.Value)" />
+                   @oninput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(search))
             {
                 <div class="sector-pick">
                     @foreach (var l in _linkable
-                        .Where(l => !b.FreqLinkCallsigns.Contains(l.Callsign, StringComparer.OrdinalIgnoreCase))
-                        .Where(l => l.Callsign.Contains(search, StringComparison.OrdinalIgnoreCase)
-                                 || (l.Icao ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+                        .Where(l => !blk.Block.FreqLinkCallsigns.Contains(l.Callsign, StringComparer.OrdinalIgnoreCase))
+                        .Where(l => l.Callsign.Contains(search, StringComparison.OrdinalIgnoreCase) || (l.Icao ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
                         .Take(8))
                     {
                         var row = l;
-                        <button type="button" class="sp-item" @onclick="() => AddLink(b, row.Callsign)">
-                            <b>@row.Callsign</b> <span class="muted">@row.FrequencyMhz</span>
-                        </button>
+                        <button type="button" class="sp-item" @onclick="() => AddLink(blk, row.Callsign)"><b>@row.Callsign</b> <span class="muted">@row.FrequencyMhz</span></button>
                     }
                 </div>
             }
         </div>
     };
 
-    private RenderFragment RegulatedEditor(AccBlock b) => __builder =>
+    private RenderFragment RegulatedEditor(AccAssembledBlock blk) => __builder =>
     {
-        var attached = b.AttachedSpecialAreaIds;
-        <p class="app-lbl" style="margin:0 0 4px">Aree selezionate <span class="muted">(mostrate nella vIPI; l'utente le apre singolarmente)</span></p>
+        var attached = blk.Block.AttachedSpecialAreaIds;
+        <p class="app-lbl" style="margin:0 0 4px">Aree selezionate <span class="muted">(mostrate nella vIPI)</span></p>
         @if (attached.Count > 0)
         {
             <div class="sector-pick" style="margin-bottom:6px">
@@ -707,7 +584,7 @@ else
                 {
                     var areaId = id;
                     var name = _specialAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase))?.Name ?? areaId;
-                    <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleSpecialArea(b, areaId)">✓ <b>@name</b> ✕</button>
+                    <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleSpecialArea(blk, areaId)">✓ <b>@name</b> ✕</button>
                 }
             </div>
         }
@@ -715,25 +592,23 @@ else
 
         @if (_editing)
         {
-            var search = _areaSearch.GetValueOrDefault(b.Key, "");
+            var search = _areaSearch.GetValueOrDefault(blk.BlockSectionId, "");
             <input class="app-in" placeholder="Cerca area regolamentata (nome/tipo)…" value="@search"
-                   @oninput="e => _areaSearch[b.Key] = AsString(e.Value)" />
+                   @oninput="e => _areaSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (_specialAreaPicks.Count == 0)
             {
-                <p class="muted" style="margin-top:6px">Nessuna area importata da IVAO per questa ACC (l'import gira in background).</p>
+                <p class="muted" style="margin-top:6px">Nessuna area importata da IVAO per questa ACC.</p>
             }
             else
             {
                 <div class="sector-pick" style="margin-top:6px">
                     @foreach (var p in _specialAreaPicks
                         .Where(p => !attached.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                        .Where(p => string.IsNullOrWhiteSpace(search)
-                                 || p.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
-                                 || (p.Type ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+                        .Where(p => string.IsNullOrWhiteSpace(search) || p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
                         .Take(12))
                     {
                         var pick = p;
-                        <button type="button" class="sp-item" @onclick="() => ToggleSpecialArea(b, pick.IvaoId)">
+                        <button type="button" class="sp-item" @onclick="() => ToggleSpecialArea(blk, pick.IvaoId)">
                             <b>@pick.Name</b> @if (!string.IsNullOrWhiteSpace(pick.Type)) { <span class="muted">@pick.Type</span> }
                         </button>
                     }
@@ -741,64 +616,6 @@ else
             }
         }
     };
-
-    private RenderFragment CustomEditor(AccBlock b, AppCustomSection sec, bool editableTitle = true) => __builder =>
-    {
-        if (_editing && editableTitle)
-        {
-            <label class="app-lbl">Titolo<input class="app-in" value="@sec.Title" @onchange="e => SetCustomTitle(b, sec, AsString(e.Value))" /></label>
-        }
-        @foreach (var (block, bi) in sec.Blocks.Select((x, i) => (x, i)))
-        {
-            var idx = bi;
-            if (block.Type == AppCustomBlockType.Prose)
-            {
-                if (_editing)
-                {
-                    <div class="app-block-edit">
-                        <textarea class="app-ta" rows="3" value="@block.Text" @onchange="e => SetCustomProse(b, sec, idx, AsString(e.Value))"></textarea>
-                        <button class="btn ghost" title="Rimuovi blocco" @onclick="() => RemoveCustomBlock(b, sec, idx)">✕</button>
-                    </div>
-                }
-                else if (!string.IsNullOrWhiteSpace(block.Text)) { @MarkdownLite.Render(block.Text!) }
-            }
-        }
-        @if (_editing) { <button class="btn ghost" @onclick="() => AddCustomProse(b, sec)">+ Paragrafo</button> }
-    };
-
-    private static string AsString(object? v) => v as string ?? "";
-
-    private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
-
-    // Scroll all'ancora con offset = altezza reale della barra sticky (evita che il titolo finisca coperto).
-    private async Task JumpTo(string anchorId) => await JS.InvokeVoidAsync("vipiScrollTo", anchorId);
-
-    // ---- collapse sezioni ----
-    private void ToggleCollapsed(string sk) { if (!_collapsed.Add(sk)) _collapsed.Remove(sk); }
-    private void CollapseAll()
-    {
-        foreach (var b in _data.Blocks)
-            foreach (var key in OrderOf(b))
-                _collapsed.Add(b.Key + ":" + key);
-    }
-    private void ExpandAll() => _collapsed.Clear();
-
-    // ---- scorciatoia Ctrl+E (via vipi-editor.js) ----
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-        _dotRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("vipiEditorInit", _dotRef);
-    }
-
-    [JSInvokable]
-    public Task ToggleEdit()
-    {
-        if (_canEdit) { _editing = !_editing; StateHasChanged(); }
-        return Task.CompletedTask;
-    }
-
-    public void Dispose() => _dotRef?.Dispose();
 
     private static AppVfrContent ParseVfr(string? json)
     {
