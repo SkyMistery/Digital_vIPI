@@ -15,14 +15,16 @@ public static class DependencyInjection
         Microsoft.Extensions.Configuration.IConfiguration? configuration)
     {
         services.AddDbContext<VipiDbContext>(o => o.UseSqlite(connectionString));
+        services.AddScoped<Vipi.Application.Abstractions.IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.ITopologyProvider, TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.IContentRepository, EfContentRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IResourceLockRepository, EfResourceLockRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
-        services.AddScoped<Vipi.Application.Abstractions.IAirportProfileRepository, EfAirportProfileRepository>();
-        services.AddScoped<Vipi.Application.Abstractions.IAppProfileRepository, EfAppProfileRepository>();
-        services.AddScoped<Vipi.Application.Abstractions.IAccProfileRepository, EfAccProfileRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAccDerivationRepository, EfAccDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();
         services.AddScoped<Vipi.Application.Abstractions.ITransferRepository, EfTransferRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
@@ -35,7 +37,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
-        services.AddScoped<Vipi.Application.Abstractions.IVloaProfileRepository, EfVloaProfileRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IVloaDerivationRepository, EfVloaDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentProfileRepository, EfDocumentProfileRepository>();
         // Descrittori per-tipo del flusso di pubblicazione (doc 09 §3a): i motori generici consultano il registry.
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.VloaReleaseTarget>();
@@ -45,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTargetRegistry, Vipi.Application.Content.ReleaseTargetRegistry>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseRepository, EfReleaseRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IDocumentReviewRepository, EfDocumentReviewRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // Proiezione settori operativi dai cataloghi (fonte autoritativa unica, Round 20).

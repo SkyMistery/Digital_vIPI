@@ -57,6 +57,28 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SetSectorFrequency_Rejects_Projected_Sector()
+    {
+        // Un settore PROIETTATO ha la frequenza di sorgente: editarla darebbe l'illusione di una modifica che il
+        // prossimo SyncFromCatalogsAsync cancella in silenzio. Il repo la rifiuta (fonte unica = catalogo).
+        var accId = await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
+        var projected = new Vipi.Domain.Entities.Sector
+        {
+            AccId = accId, Callsign = "LIMM_NW_CTR", Name = "Milano Radar NW",
+            Type = SectorType.Ctr, Kind = SectorKind.Acc, DefaultFrequency = "128.800",
+            IsProjected = true, IsActive = true,
+        };
+        _db.Sectors.Add(projected);
+        await _db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _repo.SetSectorFrequencyAsync("LIMM", projected.Id, "128.805"));
+
+        // Frequenza invariata: l'edit è stato respinto, non applicato a metà.
+        Assert.Equal("128.800", (await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == projected.Id)).DefaultFrequency);
+    }
+
+    [Fact]
     public async Task Duplicate_Callsign_Is_Rejected()
     {
         await _repo.CreateAccAsync("LIMM", "Milano ACC", "LI");
@@ -98,7 +120,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
 
         var (created, found) = await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         Assert.True(found);
@@ -151,7 +173,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
 
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
@@ -178,7 +200,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
@@ -215,7 +237,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
@@ -251,7 +273,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
 
         // TA ignota: la tabella di default mostra la formula TA + offset.
         await profile.MergeFromSourceAsync("LIRF", null, Array.Empty<(string, int?, int?)>());
@@ -338,7 +360,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         var apId = await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");

@@ -7,10 +7,10 @@ namespace Vipi.Application.Abstractions;
 /// rigenerazione del documento vIPI aeroporto da esse. Le scritture per-area sostituiscono l'intera
 /// lista per l'aeroporto (l'editor invia la lista completa); il merge da IVAO è invece mirato.
 /// </summary>
-public interface IAirportProfileRepository
+public interface IAirportRepository
 {
     /// <summary>Carica il profilo completo (entità + frequenze proprie dai settori + link risolti). null = ICAO non assegnato.</summary>
-    Task<AirportProfileData?> LoadAsync(string icao, CancellationToken ct = default);
+    Task<AirportData?> LoadAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Codice ACC dell'aeroporto (per la guardia di autorizzazione). null = ICAO inesistente.</summary>
     Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default);

@@ -5,7 +5,7 @@ namespace Vipi.Application.Abstractions;
 /// <summary>Persistenza dell'elenco unificato dei documenti gestibili + hide/delete (Document + profili ACC/APP).</summary>
 public interface IDocumentAdminRepository
 {
-    /// <summary>Elenco unificato (una query per fonte: Document, AccProfile, AppProfile). Senza versioni/release.</summary>
+    /// <summary>Elenco unificato (una query sul modello unificato Document). Senza versioni/release.</summary>
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
 
     /// <summary>Codice ACC del documento (per l'autorizzazione ACC-scoped). null se non risolvibile.</summary>

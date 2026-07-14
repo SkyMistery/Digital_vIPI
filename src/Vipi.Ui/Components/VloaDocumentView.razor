@@ -1,7 +1,7 @@
 @* Resa condivisa di una vLOA (Letter of Agreement) nello stile del mockup 3d: TOC + doc-head + callout bilaterale
    + sezioni (stessa struttura documentale della vIPI, via SectionNode). Le sezioni AoR/Frequenze/Coordinamenti sono
    DERIVATE (data-driven) quando è fornito DocId. La pagina ospitante fornisce wrap/breadcrumb. *@
-@inject IVloaProfileService Vloa
+@inject IVloaDerivationService Vloa
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
 
@@ -27,7 +27,7 @@
                 <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">✎ Editor</a>
             }
         </div>
-        <div class="callout info"><span class="cic">🌍</span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (CH/AOD). The neighbour side is read-only.</div></div>
+        <div class="callout info"><span class="cic">🌍</span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
 
         @foreach (var s in View.Sections)
         {
@@ -37,27 +37,29 @@
             }
             else if (_derive && s.SectionKey == "aor")
             {
-                <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadAor()</div>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadAor()</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "frequencies")
             {
-                <div class="block" id="@s.Id"><h3 style="margin-top:0">@s.Title</h3>@ReadFreq()</div>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadFreq()</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "coordination")
             {
-                <div class="block" id="@s.Id">
-                    <h3 style="margin-top:0">@s.Title</h3>
-                    @if (!_hidden.Contains($"{_coord.HomeAcc} → {_coord.ForeignAcc}"))
-                    {
-                        <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
-                        @ReadCoord(_coord.HomeToForeign)
-                    }
-                    @if (!_hidden.Contains($"{_coord.ForeignAcc} → {_coord.HomeAcc}"))
-                    {
-                        <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
-                        @ReadCoord(_coord.ForeignToHome)
-                    }
-                </div>
+                <CollapsibleBlock Id="@s.Id">
+                    <Header><h3 style="margin-top:0">@s.Title</h3></Header>
+                    <ChildContent>
+                        @if (!_hidden.Contains($"{_coord.HomeAcc} → {_coord.ForeignAcc}"))
+                        {
+                            <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
+                            <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
+                        }
+                        @if (!_hidden.Contains($"{_coord.ForeignAcc} → {_coord.HomeAcc}"))
+                        {
+                            <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
+                            <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
+                        }
+                    </ChildContent>
+                </CollapsibleBlock>
             }
             else
             {
@@ -191,23 +193,4 @@
         }
     };
 
-    private RenderFragment ReadCoord(IReadOnlyList<VloaCoordRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted">Nessun trasferimento registrato per questa direzione.</p>
-        }
-        else
-        {
-            <table class="cfg-table">
-                <thead><tr><th>CoP</th><th>Flusso</th><th>FL</th><th>Da → A</th><th>Frase</th></tr></thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        <tr><td>@r.Cop</td><td>@r.Flow</td><td>@r.Fl</td><td>@r.Owner → @r.Next</td><td>@r.Sentence</td></tr>
-                    }
-                </tbody>
-            </table>
-        }
-    };
 }

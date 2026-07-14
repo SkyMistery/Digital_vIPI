@@ -11,10 +11,10 @@ namespace Vipi.Infrastructure.Persistence;
 /// Persistenza EF del profilo editoriale dell'APP standalone (1:1 col Sector APP) e derivazione del catalogo
 /// frequenze del sottoalbero. Le scritture per-area sostituiscono il valore; il profilo è creato on-demand.
 /// </summary>
-public sealed class EfAppProfileRepository : IAppProfileRepository
+public sealed class EfAppDerivationRepository : IAppDerivationRepository
 {
     private readonly VipiDbContext _db;
-    public EfAppProfileRepository(VipiDbContext db) => _db = db;
+    public EfAppDerivationRepository(VipiDbContext db) => _db = db;
 
     public async Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
@@ -130,7 +130,7 @@ public sealed class EfAppProfileRepository : IAppProfileRepository
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default) =>
-        await EfAccProfileRepository.BuildAtcNameMapAsync(_db, ct);
+        await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
         string appCallsign, IReadOnlySet<string> domainCallsigns,

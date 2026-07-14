@@ -329,6 +329,12 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == sectorId && s.AccId == fid, ct)
                      ?? throw new InvalidOperationException("Settore inesistente nella ACC.");
+        // Un settore PROIETTATO ha la frequenza come attributo di sorgente: SyncFromCatalogsAsync la riscrive a
+        // ogni import/hide/edit (EfSectorProjectionService: DefaultFrequency = catalogo). Editarla qui darebbe
+        // l'illusione di una modifica che il prossimo sync cancella in silenzio → si rifiuta. Catalogo = fonte unica.
+        if (sector.IsProjected)
+            throw new Vipi.Application.Aor.ValidationException(
+                "La frequenza di un settore proiettato è gestita dalla sorgente (sola lettura): modificala nel catalogo, non qui.");
         var f = (frequencyMhz ?? "").Trim();
         sector.DefaultFrequency = f.Length == 0 ? null : f;
         await _db.SaveChangesAsync(ct);

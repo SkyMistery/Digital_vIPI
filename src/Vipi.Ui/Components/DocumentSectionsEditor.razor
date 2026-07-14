@@ -8,7 +8,7 @@
 
 @foreach (var s in (RootSections ?? Doc.Sections))
 {
-    @SectionEditor(s)
+    @SectionEditor(s, 0)
 }
 
 @if (IsEditing)
@@ -113,65 +113,90 @@
     });
 
     // ---- render sezione (ricorsivo) ----
-    private RenderFragment SectionEditor(EditableSection s) => __builder =>
+    // relDepth = profondità RELATIVA alla radice di render (RootSections), non l'assoluta s.Depth: la vIPI ACC passa i
+    // FIGLI di un blocco come RootSections (s.Depth=1) ma devono rendersi come card di primo livello (.block), come APP/vLOA.
+    private RenderFragment SectionEditor(EditableSection s, int relDepth) => __builder =>
     {
-        var depth0 = s.Depth == 0;
         var mand = IsMandatory?.Invoke(s) == true;
         var hid = IsHiddenSection?.Invoke(s) == true;
-        var baseStyle = depth0 ? "" : "padding:10px;margin:8px 0";
-        <div class="@(depth0 ? "block" : "coord-sub")" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                @if (IsEditing && !mand)
-                {
-                    <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
-                           @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
-                    <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
-                    <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
-                    <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
-                    <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
-                }
-                else
-                {
-                    @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
-                    @if (mand) { <span class="pill grey" title="Sezione obbligatoria">obbligatoria</span> }
-                    @if (IsEditing && mand)
-                    {
-                        <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
-                    }
-                }
-                @if (IsEditing && OnToggleHidden.HasDelegate)
-                {
-                    <button class="btn ghost" style="margin-left:auto" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
-                            @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
-                }
+        if (relDepth == 0)
+        {
+            // Primo livello = card .block COLLASSABILE (CollapsibleBlock), coerente con tutti gli editor/viewer.
+            <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)">
+                <Header>@SectionHeader(s, mand, hid, true)</Header>
+                <ChildContent>@SectionBody(s, relDepth)</ChildContent>
+            </CollapsibleBlock>
+        }
+        else
+        {
+            var baseStyle = "padding:10px;margin:8px 0";
+            <div class="coord-sub" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
+                @SectionHeader(s, mand, hid, false)
+                @SectionBody(s, relDepth)
             </div>
+        }
+    };
 
-            @if (IsDerivedSection?.Invoke(s) == true)
+    // Intestazione (titolo/rinomina + azioni). depth0 = h3, annidata = h4.
+    private RenderFragment SectionHeader(EditableSection s, bool mand, bool hid, bool depth0) => __builder =>
+    {
+        @* Header dentro il <summary> di CollapsibleBlock (depth0): preventDefault impedisce che il click sui
+           controlli (rinomina/sposta/elimina/nascondi) collassi la card. Il toggle resta sul solo chevron. *@
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+            @if (IsEditing && !mand)
             {
-                @DerivedContent?.Invoke(s)
+                <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
+                       @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
+                <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
+                <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
             }
             else
             {
-                @foreach (var b in s.Blocks)
+                @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
+                @if (mand) { <span class="pill grey" title="Sezione obbligatoria">obbligatoria</span> }
+                @if (IsEditing && mand)
                 {
-                    @BlockEditor(s, b)
-                }
-
-                @if (IsEditing)
-                {
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
-                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
-                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
-                    </div>
+                    <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
                 }
             }
-
-            @foreach (var c in s.Children)
+            @if (IsEditing && OnToggleHidden.HasDelegate)
             {
-                @SectionEditor(c)
+                <button class="btn ghost" style="margin-left:auto" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
+                        @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
             }
         </div>
+    };
+
+    // Corpo: sezione derivata (host) oppure blocchi editoriali + sotto-sezioni ricorsive.
+    private RenderFragment SectionBody(EditableSection s, int relDepth) => __builder =>
+    {
+        @if (IsDerivedSection?.Invoke(s) == true)
+        {
+            @DerivedContent?.Invoke(s)
+        }
+        else
+        {
+            @foreach (var b in s.Blocks)
+            {
+                @BlockEditor(s, b)
+            }
+
+            @if (IsEditing)
+            {
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
+                </div>
+            }
+        }
+
+        @foreach (var c in s.Children)
+        {
+            @SectionEditor(c, relDepth + 1)
+        }
     };
 
     // ---- render blocco per formato ----

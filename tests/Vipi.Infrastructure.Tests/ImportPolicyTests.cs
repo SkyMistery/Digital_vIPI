@@ -32,6 +32,8 @@ public class ImportPolicyTests : IAsyncLifetime
         public List<SourceAirport> Airports { get; } = new();
         public Task<IReadOnlyList<SourceAirport>> GetAirportsAsync(CancellationToken ct = default)
             => Task.FromResult((IReadOnlyList<SourceAirport>)Airports);
+        public Task<SourceAirport?> GetByIcaoAsync(string icao, CancellationToken ct = default)
+            => Task.FromResult(Airports.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase)));
     }
 
     private sealed class FakeDetails : IAirportDetailProvider
@@ -61,12 +63,12 @@ public class ImportPolicyTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private AirportProfileService BuildService(FakeDirectory? dir = null, FakeDetails? det = null)
+    private AirportEditingService BuildService(FakeDirectory? dir = null, FakeDetails? det = null)
     {
         var provider = new FakeUser { User = new CurrentUser(1, "Admin", "LIRR", new[] { "IT-AOC" }) };
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
             Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
-        return new AirportProfileService(new EfAirportProfileRepository(_db), authz,
+        return new AirportEditingService(new EfAirportRepository(_db), authz,
             dir ?? new FakeDirectory(), det ?? new FakeDetails(), _store);
     }
 
@@ -101,7 +103,7 @@ public class ImportPolicyTests : IAsyncLifetime
     [Fact]
     public async Task Runways_Locked_Rejects_Geometry_Change_But_Allows_Editorial()
     {
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         await profile.MergeFromSourceAsync("LIRF", null, new[] { ("16L", (int?)3902, (int?)160) });
         var svc = BuildService();
         var stored = (await profile.LoadAsync("LIRF"))!.Runways.Single();
@@ -120,7 +122,7 @@ public class ImportPolicyTests : IAsyncLifetime
     [Fact]
     public async Task Reimport_Skips_Excluded_Categories()
     {
-        var profile = new EfAirportProfileRepository(_db);
+        var profile = new EfAirportRepository(_db);
         // Stato iniziale editoriale dell'utente: TA 4000 + pista 16L lunga 3902.
         await profile.MergeFromSourceAsync("LIRF", 4000, new[] { ("16L", (int?)3902, (int?)160) });
 

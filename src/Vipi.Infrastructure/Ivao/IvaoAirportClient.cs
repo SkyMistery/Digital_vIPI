@@ -65,4 +65,24 @@ public sealed class IvaoAirportClient : IAirportDirectory
         }
         finally { _airportCache.Gate.Release(); }
     }
+
+    /// <inheritdoc />
+    public async Task<SourceAirport?> GetByIcaoAsync(string icao, CancellationToken ct = default)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        if (icao.Length == 0) return null;
+        if (_airportCache.TryGetSingle(icao, out var cached)) return cached;
+        if (!_http.IsConfigured)
+            throw new InvalidOperationException(
+                "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile cercare l'aeroporto.");
+
+        // /v2/airports/{ICAO}: dettaglio singolo (anche estero). 404/altro → null (best-effort, non blocca l'editing).
+        var dto = await _http.GetJsonAsync<AirportDto>($"{_opt.AirportsPath}/{Uri.EscapeDataString(icao)}", ct);
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Icao)) return null;
+
+        var result = new SourceAirport(dto.Icao!, dto.Name ?? dto.Icao!, dto.CenterId, dto.City,
+            dto.TransitionAltitude, dto.Latitude, dto.Longitude);
+        _airportCache.PutSingle(icao, result);
+        return result;
+    }
 }

@@ -12,10 +12,10 @@ namespace Vipi.Infrastructure.Persistence;
 /// Persistenza EF del profilo strutturato dell'aeroporto + rigenerazione in-place del documento dalle entità.
 /// Le scritture per-area sostituiscono l'intera lista (l'editor invia tutto); il merge da IVAO è invece mirato.
 /// </summary>
-public sealed class EfAirportProfileRepository : IAirportProfileRepository
+public sealed class EfAirportRepository : IAirportRepository
 {
     private readonly VipiDbContext _db;
-    public EfAirportProfileRepository(VipiDbContext db) => _db = db;
+    public EfAirportRepository(VipiDbContext db) => _db = db;
 
     /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate.</summary>
     private static readonly string[] ManagedSectionTitles =
@@ -28,7 +28,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
     public async Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
 
-    public async Task<AirportProfileData?> LoadAsync(string icao, CancellationToken ct = default)
+    public async Task<AirportData?> LoadAsync(string icao, CancellationToken ct = default)
     {
         var airport = await _db.Airports.AsNoTracking().Include(a => a.Acc)
             .FirstOrDefaultAsync(a => a.Icao == icao, ct);
@@ -64,7 +64,7 @@ public sealed class EfAirportProfileRepository : IAirportProfileRepository
         var extras = await _db.AirportExtraSections.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Select(x => new ExtraSectionRow(x.Id, x.Title, x.Body)).ToListAsync(ct);
 
-        return new AirportProfileData
+        return new AirportData
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,

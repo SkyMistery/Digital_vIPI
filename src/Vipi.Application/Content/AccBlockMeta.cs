@@ -5,7 +5,7 @@ namespace Vipi.Application.Content;
 /// (doc refactor 08e-acc, schema "blockmeta"): identità/natura + gli override per-blocco (ordine/link frequenze,
 /// template coordinamento, sezioni nascoste). Le configurazioni e le aree attaccate vivono nei BodyJson delle sezioni
 /// figlie keyed (<c>configurations</c>/<c>regulated</c>); separations/vfr idem. Il resto (titolo, ordine sezioni) è
-/// nativo su <see cref="Vipi.Domain.Entities.DocumentSection"/>. <see cref="AccProfile"/> è eliminato in 08i.
+/// nativo su <see cref="Vipi.Domain.Entities.DocumentSection"/>. Lo storage profile <c>AccProfile</c> è eliminato in 08i.
 /// </summary>
 public sealed class AccBlockMeta
 {

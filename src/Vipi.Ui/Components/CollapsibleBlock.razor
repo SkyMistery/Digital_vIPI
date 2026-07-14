@@ -1,0 +1,24 @@
+@* Card sezione .block COLLASSABILE, condivisa da editor e viewer. Reso come <details>/<summary> NATIVO:
+   collassa senza circuito Blazor, quindi funziona anche sulle pagine viewer in static SSR (AppnPage, VloaListPage),
+   non solo negli editor InteractiveServer. Si aggancia agli helper JS esistenti: wireCollapse (persistenza via
+   data-persist) e vipiDetails (espandi/comprimi tutti). Il chevron è fuori da .cb-title, così negli editor il click
+   sui controlli dell'header (rinomina/sposta/elimina) NON collassa — quei controlli chiamano preventDefault. *@
+<details class="block cb @ExtraClass" id="@Id" style="@Style" open="@InitiallyOpen" data-persist="@Id" @attributes="Extra">
+    <summary class="cb-head">
+        <span class="cb-chev" aria-hidden="true">▸</span>
+        <div class="cb-title">@Header</div>
+    </summary>
+    <div class="cb-body">@ChildContent</div>
+</details>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public string? ExtraClass { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Stato iniziale (default aperto). La persistenza JS (data-persist) può sovrascriverlo al load.</summary>
+    [Parameter] public bool InitiallyOpen { get; set; } = true;
+    /// <summary>Attributi extra inoltrati al &lt;details&gt; radice (es. <c>@onchange</c> per MarkDirty negli editor bespoke).</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? Extra { get; set; }
+}

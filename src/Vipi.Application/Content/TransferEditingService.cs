@@ -102,6 +102,10 @@ public sealed class TransferService : ITransferService
     private static void ValidateFlow(TransferFlowInput i)
     {
         if (i.OwningSectorId <= 0) throw new ValidationException("Il flusso deve riferirsi a un settore proprio.");
+        // Arrivi/Partenze sono legati a un aeroporto (destinazione/origine): senza, la frase è orfana e la
+        // derivazione li scarta. Sorvoli/VFR/Altro invece reggono senza aeroporto.
+        if (i.Kind is Domain.TransferFlowKind.Arrival or Domain.TransferFlowKind.Departure && string.IsNullOrWhiteSpace(i.AirportIcao))
+            throw new ValidationException("Arrivi e Partenze richiedono un aeroporto. Per i flussi senza aeroporto usa Sorvoli/VFR/Altro.");
     }
 
     private static void ValidatePoint(TransferPointInput i)

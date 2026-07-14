@@ -9,12 +9,12 @@ namespace Vipi.Application.Content;
 /// frequenze+link, piste, SID) e rigenerazione del documento. Letture libere (servono anche al viewer);
 /// scritture ACC-gated via <see cref="IEditAuthorizationService"/>. Validazioni hard sugli input.
 /// </summary>
-public interface IAirportProfileService
+public interface IAirportEditingService
 {
     /// <summary>Lettura per il viewer (nessuna guardia): regole pista + link frequenze + resto.</summary>
-    Task<AirportProfileData?> LoadForViewAsync(string icao, CancellationToken ct = default);
+    Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default);
     /// <summary>Lettura per l'editor: richiede il permesso di editare la ACC dell'aeroporto.</summary>
-    Task<AirportProfileData?> LoadForEditAsync(string icao, CancellationToken ct = default);
+    Task<AirportData?> LoadForEditAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Policy di import globale (per editor e viewer): quali categorie sono di sorgente (sola lettura).</summary>
     Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default);
@@ -37,16 +37,16 @@ public interface IAirportProfileService
     Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default);
 }
 
-/// <inheritdoc cref="IAirportProfileService"/>
-public sealed class AirportProfileService : IAirportProfileService
+/// <inheritdoc cref="IAirportEditingService"/>
+public sealed class AirportEditingService : IAirportEditingService
 {
-    private readonly IAirportProfileRepository _repo;
+    private readonly IAirportRepository _repo;
     private readonly IEditAuthorizationService _authz;
     private readonly IAirportDirectory _directory;
     private readonly IAirportDetailProvider _details;
     private readonly IImportPolicyStore _policy;
 
-    public AirportProfileService(IAirportProfileRepository repo, IEditAuthorizationService authz,
+    public AirportEditingService(IAirportRepository repo, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy)
     {
         _repo = repo;
@@ -58,10 +58,10 @@ public sealed class AirportProfileService : IAirportProfileService
 
     public Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default) => _policy.GetAsync(ct);
 
-    public Task<AirportProfileData?> LoadForViewAsync(string icao, CancellationToken ct = default) =>
+    public Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default) =>
         _repo.LoadAsync(Norm(icao), ct);
 
-    public async Task<AirportProfileData?> LoadForEditAsync(string icao, CancellationToken ct = default)
+    public async Task<AirportData?> LoadForEditAsync(string icao, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
         return await _repo.LoadAsync(Norm(icao), ct);

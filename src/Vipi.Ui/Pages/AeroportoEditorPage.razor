@@ -1,4 +1,4 @@
-﻿@page "/vsop/{Acc}/airports/editor"
+@page "/vsop/{Acc}/airports/editor"
 @page "/vsop/{Acc}/aeroporto/editor"
 @layout SopLayout
 @rendermode InteractiveServer
@@ -7,7 +7,7 @@
 @using Vipi.Application.Auth
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
-@inject IAirportProfileService Profile
+@inject IAirportEditingService Profile
 @inject IAirportSectorService Sectors
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
@@ -547,7 +547,7 @@ else
     private string? _dirtyPanel;                 // invariante: al più il pannello corrente è "sporco"
     private int _statusSeq;                       // token per auto-chiusura del toast di successo
     private DotNetObjectReference<AeroportoEditorPage>? _selfRef;
-    private AirportProfileData? _data;
+    private AirportData? _data;
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private bool _canEdit;
     private bool _busy;

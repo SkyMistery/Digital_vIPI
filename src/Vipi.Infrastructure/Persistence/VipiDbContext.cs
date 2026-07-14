@@ -47,6 +47,7 @@ public class VipiDbContext : DbContext
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
+    public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -260,6 +261,9 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.AssigneeUserId);
             e.HasIndex(x => x.Status);
         });
+
+        // --- Lock di editing esclusivo su risorse nominate (pagine admin di struttura, wizard nuovo doc). ---
+        b.Entity<EditResourceLock>().HasIndex(x => x.ResourceKey).IsUnique();
 
         // --- Stato editoriale data-driven generico di un documento vIPI (1:1 col Document). Doc refactor 08e. ---
         b.Entity<DocumentProfile>(e =>

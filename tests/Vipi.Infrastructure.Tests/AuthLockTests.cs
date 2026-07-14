@@ -59,6 +59,19 @@ public class AuthLockTests : IAsyncLifetime
         Assert.True(draftId > 0);
     }
 
+    [Theory]
+    [InlineData("LIRR-CH", true)]     // chief ACC → admin completo
+    [InlineData("LIMM-ACH", true)]    // assistant chief ACC → admin completo
+    [InlineData("IT-DIR", true)]      // ruolo di divisione → admin
+    [InlineData("LIRR-TC", false)]    // altro ruolo ACC → non admin
+    [InlineData("LIRR-CHX", false)]   // suffisso non esatto → non admin
+    public void Acc_Chief_Roles_Are_Admin(string staffCode, bool expectedAdmin)
+    {
+        var user = new CurrentUser(42, "Tizio", "LIRR", new[] { staffCode });
+        var (_, authz, _) = Build(user);
+        Assert.Equal(expectedAdmin, authz.IsAdmin);
+    }
+
     [Fact]
     public async Task Plain_User_Without_Grant_Is_Denied()
     {

@@ -1,28 +1,29 @@
 @* Coordinamenti ACC: un'unica gerarchia Settore(NE) → ACC → Aeroporto → Arrivi/Partenze. *@
-<p class="muted" style="margin-top:0;font-size:13.5px">Trasferimenti dei settori del blocco, per settore → ACC dell'aeroporto → aeroporto → arrivi/partenze. Derivati dai flussi configurati.</p>
+@* English=true → stessa struttura con etichette in inglese (usato dalle vLOA, documenti bilaterali). *@
+<p class="muted" style="margin-top:0;font-size:13.5px">@Intro</p>
 
 @if (Coord.Sectors.Count == 0)
 {
-    <p class="muted" style="margin:0">Nessun coordinamento configurato per questo blocco.</p>
+    <p class="muted" style="margin:0">@EmptyMsg</p>
 }
 
 <div class="coord-wrap">
 @if (Coord.Sectors.Count > 0)
 {
-    @CoordTools
+    @CoordTools()
 }
 @foreach (var s in Coord.Sectors)
 {
     <details class="coord-sub" open>
         <summary><span>@s.SectorLabel</span><span class="chev">▸</span></summary>
         <div class="body">
-            @CoordTools
+            @CoordTools()
             @foreach (var acc in s.Accs)
             {
                 <details class="coord-sub2" open>
                     <summary><span>@acc.AccLabel</span><span class="chev">▸</span></summary>
                     <div class="body">
-                        @CoordTools
+                        @CoordTools()
                         @foreach (var ap in acc.Airports)
                         {
                             <details class="coord-sub2" open>
@@ -30,14 +31,23 @@
                                 <div class="body">
                                     @if (ap.Arrivals.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">Arrivi</p>
+                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@ArrivalsLabel</p>
                                         @RenderTable(ap.Arrivals)
                                     }
                                     @if (ap.Departures.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">Partenze</p>
+                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@DeparturesLabel</p>
                                         @RenderTable(ap.Departures)
                                     }
+                                </div>
+                            </details>
+                        }
+                        @foreach (var ex in acc.Extras)
+                        {
+                            <details class="coord-sub2" open>
+                                <summary><span>@ex.KindLabel</span><span class="chev">▸</span></summary>
+                                <div class="body">
+                                    @RenderTable(ex.Rows)
                                 </div>
                             </details>
                         }
@@ -52,13 +62,23 @@
 @code {
     [Parameter, EditorRequired] public AccCoordination Coord { get; set; } = AccCoordination.Empty;
 
+    /// <summary>Etichette in inglese (vLOA). Default false = italiano (vIPI ACC).</summary>
+    [Parameter] public bool English { get; set; }
+
+    private string Intro => English
+        ? "Sector transfers, grouped by sector → ACC → airport → arrivals/departures. Derived from the configured flows."
+        : "Trasferimenti dei settori del blocco, per settore → ACC dell'aeroporto → aeroporto → arrivi/partenze. Derivati dai flussi configurati.";
+    private string EmptyMsg => English ? "No coordination configured." : "Nessun coordinamento configurato per questo blocco.";
+    private string ArrivalsLabel => English ? "Arrivals" : "Arrivi";
+    private string DeparturesLabel => English ? "Departures" : "Partenze";
+
     // Controlli espandi/comprimi tutto (sezione + sottosezioni). Dentro un <details> agiscono sul suo sottoalbero;
     // in testa al blocco (fuori dai details) su tutti i coordinamenti. Vedi vipiDetails in vipi-ui.js.
-    private readonly RenderFragment CoordTools = __builder =>
+    private RenderFragment CoordTools() => __builder =>
     {
         <div class="coord-tools">
-            <button type="button" onclick="vipiDetails(this,true)">⊕ Espandi tutto</button>
-            <button type="button" onclick="vipiDetails(this,false)">⊖ Comprimi tutto</button>
+            <button type="button" onclick="vipiDetails(this,true)">⊕ @(English ? "Expand all" : "Espandi tutto")</button>
+            <button type="button" onclick="vipiDetails(this,false)">⊖ @(English ? "Collapse all" : "Comprimi tutto")</button>
         </div>
     };
 
@@ -69,7 +89,7 @@
             <p class="coord-sentence">@r.Sentence</p>
         }
         <table>
-            <thead><tr><th>CoP</th><th>Livello</th><th>Prossimo</th></tr></thead>
+            <thead><tr><th>CoP</th><th>@(English ? "Level" : "Livello")</th><th>@(English ? "Next" : "Prossimo")</th></tr></thead>
             <tbody>
                 @foreach (var r in rows)
                 {

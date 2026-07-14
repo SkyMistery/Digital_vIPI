@@ -5,8 +5,10 @@ using Xunit;
 
 namespace Vipi.Application.Tests;
 
-/// <summary>Composizione della frase di coordinamento: mapping stato ↑/↓/exact, omissione codice per APP,
-/// fallback nomi, livello speciale (niente «per FL»), aeroporto assente (nessuna frase).</summary>
+/// <summary>Composizione della frase di coordinamento: stato ↑/↓/exact, livello a parole
+/// («a livello N o livello inferiore/superiore»), parità («dispari»/«pari»), punto «tutti i punti»
+/// (CoP ALL/vuoto) e «tutti i punti verso X» (CoP «ALL to X»), omissione codice per APP, fallback nomi,
+/// livello speciale, aeroporto assente.</summary>
 public class CoordinationSentenceComposerTests
 {
     private static readonly CoordinationSentenceTemplate Tpl = CoordinationSentenceTemplate.Default;
@@ -48,52 +50,155 @@ public class CoordinationSentenceComposerTests
             ["LIRP_APP"] = "Pisa Approach",
         };
 
-    private static string? Compose(string owner, string target, string? icao, LevelConstraint c, string level, string cop)
-        => CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc, owner, target, icao, c, level, cop);
+    private static string? Compose(string owner, string target, string? icao, LevelConstraint c,
+        int? value, string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
+        LevelParity parity = LevelParity.Any, string? special = null, LevelUnit unit = LevelUnit.Fl)
+        => CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc, owner, target, icao,
+            c, value, unit, special, parity, cop, kind);
 
     [Fact]
     public void Ctr_target_includes_code_and_descent()
     {
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, "FL130↓", "VALMA");
-        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico con destinazione Fiumicino LIRF in discesa per FL130 su VALMA.", s);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, "VALMA");
+        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico con destinazione Fiumicino LIRF in discesa a livello 130 o livello inferiore su VALMA.", s);
     }
 
     [Fact]
-    public void App_target_omits_code()
+    public void Departure_uses_origin_wording_not_destination()
     {
-        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, "FL120↓", "MAREL");
-        Assert.Equal("Roma Radar NE trasferisce a Pisa Approach il traffico con destinazione Pisa - San Giusto LIRP in discesa per FL120 su MAREL.", s);
-        Assert.DoesNotContain("US0", s);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA", TransferFlowKind.Departure);
+        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico in partenza da Fiumicino LIRF in salita a livello 280 o livello superiore su VALMA.", s);
+        Assert.DoesNotContain("destinazione", s);
+    }
+
+    [Fact]
+    public void App_target_with_identifier_includes_code()
+    {
+        // APP consolidato (fornito dall'ACC) con MiddleIdentifier di posizione (es. US0): l'identifier va mostrato
+        // per disambiguare dal nome generico. L'omissione del codice vale solo per i terminali SENZA identifier.
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, "MAREL");
+        Assert.Equal("Roma Radar NE trasferisce a Pisa Approach US0 il traffico con destinazione Pisa - San Giusto LIRP in discesa a livello 120 o livello inferiore su MAREL.", s);
+    }
+
+    [Fact]
+    public void App_target_without_identifier_omits_code()
+    {
+        // Stesso APP ma senza MiddleIdentifier noto: nessun codice nella frase.
+        var codes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) { ["LIRR_NE_CTR"] = "NE" };
+        var s = CoordinationSentences.Compose(Tpl, Types, Names, codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, LevelUnit.Fl, null, LevelParity.Any, "MAREL");
+        Assert.Equal("Roma Radar NE trasferisce a Pisa Approach il traffico con destinazione Pisa - San Giusto LIRP in discesa a livello 120 o livello inferiore su MAREL.", s);
     }
 
     [Fact]
     public void Climb_and_level_state_words()
     {
-        var up = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, "FL280↑", "VALMA");
-        Assert.Contains("in salita per FL280", up);
-        var lvl = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, "FL240", "VALMA");
-        Assert.Contains("stabile per FL240", lvl);
+        var up = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA");
+        Assert.Contains("in salita a livello 280 o livello superiore", up);
+        var lvl = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 240, "VALMA");
+        Assert.Contains("stabile a livello 240 su", lvl);
     }
 
     [Fact]
-    public void Special_level_has_no_per_fl()
+    public void Parity_appended_as_word_with_value()
     {
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Special, "per aerovia", "ELB");
-        Assert.DoesNotContain("per FL", s);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, "TIGRA", parity: LevelParity.Odd);
+        Assert.Contains("in discesa a livello 150 o livello inferiore dispari su TIGRA.", s);
+    }
+
+    [Fact]
+    public void Parity_without_value_reads_un_livello()
+    {
+        // Sorvolo «stabile» senza valore numerico ma con parità → «per un livello dispari».
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.Exact, null, "TIGRA",
+            TransferFlowKind.Overflight, parity: LevelParity.Odd);
+        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico stabile per un livello dispari su TIGRA.", s);
+    }
+
+    [Theory]
+    [InlineData("ALL")]
+    [InlineData("all")]
+    [InlineData("")]
+    public void Cop_all_or_blank_reads_all_points(string cop)
+    {
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, cop);
+        Assert.EndsWith("su tutti i punti.", s);
+    }
+
+    [Theory]
+    [InlineData("ALL to GR", "verso GR")]
+    [InlineData("all to gr", "verso gr")]      // dest reso come scritto (nessuna mappa codice→nome)
+    [InlineData("ALL  to  LFFF", "verso LFFF")] // spazi extra tollerati
+    public void Cop_all_toward_reads_all_points_toward_dest(string cop, string tail)
+    {
+        // «stabile a livello 260 pari su tutti i punti verso X»: ALL to X → tutti i punti verso una nazione/FIR.
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 260, cop, parity: LevelParity.Even);
+        Assert.Contains("stabile a livello 260 pari su tutti i punti " + tail + ".", s);
+    }
+
+    [Fact]
+    public void Empty_cop_distinct_from_all_when_missing_point_customised()
+    {
+        // Config reale: FallbackMissingPoint = «—» (CoP vuoto = non compilato). «ALL»/«ALL to X» NON devono
+        // ereditare quel «—»: usano FallbackAllPoints/FallbackAllToward. Regressione del bug «su —» per CoP ALL.
+        var tpl = new CoordinationSentenceTemplate { FallbackMissingPoint = "—" };
+        string? C(string cop) => CoordinationSentences.Compose(tpl, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, LevelUnit.Fl, null, LevelParity.Any, cop);
+        Assert.EndsWith("su —.", C(""));
+        Assert.EndsWith("su tutti i punti.", C("ALL"));
+        Assert.EndsWith("su tutti i punti verso GR.", C("ALL to GR"));
+    }
+
+    [Fact]
+    public void English_template_composes_english_sentence()
+    {
+        // Template inglese (vLOA): stato/livello/parità/punto tutti in EN.
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, LevelUnit.Fl, null, LevelParity.Odd, "ALL");
+        Assert.Equal("Roma Radar NE transfers to Milano Radar WS2 the traffic inbound to Fiumicino LIRF descending at level 150 or below odd over all points.", s);
+    }
+
+    [Fact]
+    public void Special_level_has_no_livello_body()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Special, null, "ELB", special: "per aerovia");
+        Assert.DoesNotContain("a livello", s);
         Assert.Contains("destinazione Fiumicino LIRF per aerovia su ELB.", s);
     }
 
     [Fact]
-    public void Missing_airport_returns_null()
+    public void Missing_airport_returns_null_for_arrivals_and_departures()
     {
-        Assert.Null(Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.AtOrBelow, "FL130↓", "VALMA"));
-        Assert.Null(Compose("LIRR_NE_CTR", "LIMM_WS2", "", LevelConstraint.AtOrBelow, "FL130↓", "VALMA"));
+        // Arrivi/partenze senza aeroporto = relazione aeroporto orfana → nessuna frase.
+        Assert.Null(Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.AtOrBelow, 130, "VALMA"));
+        Assert.Null(Compose("LIRR_NE_CTR", "LIMM_WS2", "", LevelConstraint.AtOrBelow, 130, "VALMA"));
+        Assert.Null(Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.AtOrAbove, 280, "VALMA", TransferFlowKind.Departure));
+    }
+
+    [Fact]
+    public void Overflight_without_airport_composes_neutral_sentence()
+    {
+        // Sorvolo senza aeroporto: relazione neutra, nessun «con destinazione», frase valida.
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.Special, null, "ELB",
+            TransferFlowKind.Overflight, special: "per aerovia");
+        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico per aerovia su ELB.", s);
+        Assert.DoesNotContain("destinazione", s!);
+        Assert.DoesNotContain("partenza", s!);
+    }
+
+    [Fact]
+    public void Overflight_with_airport_shows_airport_neutrally()
+    {
+        // Sorvolo con aeroporto valorizzato: mostra il nome aeroporto senza relazione arrivo/partenza.
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, "VALMA", TransferFlowKind.Overflight);
+        Assert.Contains("Fiumicino LIRF", s!);
+        Assert.DoesNotContain("destinazione", s!);
     }
 
     [Fact]
     public void Unknown_names_fall_back_to_callsign_and_icao()
     {
-        var s = Compose("LFOO_CTR", "LFBB_XX", "LFPG", LevelConstraint.AtOrBelow, "FL130↓", "ABC");
+        var s = Compose("LFOO_CTR", "LFBB_XX", "LFPG", LevelConstraint.AtOrBelow, 130, "ABC");
         Assert.Contains("LFOO_CTR trasferisce a LFBB_XX", s);   // niente codice noto → solo callsign
         Assert.Contains("destinazione LFPG LFPG", s);            // ICAO come nome di fallback
     }

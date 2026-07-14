@@ -26,4 +26,14 @@ public sealed class DivisionOptions
     {
         "DIR", "ADIR", "WM", "AWM", "AOC", "AOAC", @"AOA\d+",
     };
+
+    /// <summary>
+    /// Suffissi (pattern regex) di ruoli admin <b>ACC-scoped</b>: il codice staff ha il prefisso ICAO dell'ACC, non
+    /// quello di divisione (es. <c>LIRR-CH</c>, <c>LIMM-ACH</c>). Il codice admin finale è
+    /// <c>^{prefissoIcao}[A-Z0-9]+-{suffisso}$</c> per ogni prefisso in <see cref="IcaoPrefixes"/>.
+    /// </summary>
+    public List<string> AdminAccRolePatterns { get; set; } = new()
+    {
+        "CH", "ACH",
+    };
 }

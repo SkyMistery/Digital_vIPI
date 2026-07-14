@@ -12,7 +12,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
-    private EfAirportProfileRepository _repo = default!;
+    private EfAirportRepository _repo = default!;
 
     public async Task InitializeAsync()
     {
@@ -23,7 +23,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         _db.Accs.Add(acc);
         _db.Airports.Add(new Airport { Icao = "LIRF", Name = "Fiumicino", Acc = acc });
         await _db.SaveChangesAsync();
-        _repo = new EfAirportProfileRepository(_db);
+        _repo = new EfAirportRepository(_db);
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }

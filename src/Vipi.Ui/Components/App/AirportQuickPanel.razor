@@ -8,7 +8,7 @@
 @using Vipi.Application.Content
 @using Vipi.Application.Weather
 @inject IVipiViewService ViewService
-@inject IAirportProfileService AirportProfile
+@inject IAirportEditingService AirportProfile
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject Vipi.Domain.Services.IAiracService Airac
 
@@ -81,7 +81,7 @@ else
     [Parameter, EditorRequired] public string Acc { get; set; } = default!;
 
     private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
-    private AirportProfileData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
+    private AirportData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
     private int? _ta;
     private List<(string Range, string Level)> _tlRows = new();
     private int? _qnh;

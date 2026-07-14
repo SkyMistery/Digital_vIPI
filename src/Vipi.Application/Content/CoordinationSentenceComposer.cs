@@ -16,9 +16,15 @@ public sealed class CoordinationSentenceData
     public bool OmitTargetCode { get; init; }
     public required string AirportName { get; init; }
     public required string AirportIcao { get; init; }
+    /// <summary>Tipo di flusso: guida la relazione aeroporto (arrivo = «con destinazione», partenza = «in partenza da»).</summary>
+    public TransferFlowKind Kind { get; init; } = TransferFlowKind.Arrival;
     public LevelConstraint? Constraint { get; init; }
-    /// <summary>Livello già formattato (es. «FL130↓», «per aerovia», «—»).</summary>
-    public required string LevelText { get; init; }
+    /// <summary>Livello strutturato: valore/unità/testo speciale/parità. La frase costruisce da sé la
+    /// fraseologia («a livello 150 o livello inferiore dispari», «per un livello pari», «per aerovia»).</summary>
+    public int? LevelValue { get; init; }
+    public LevelUnit LevelUnit { get; init; } = LevelUnit.Fl;
+    public string? LevelSpecial { get; init; }
+    public LevelParity Parity { get; init; } = LevelParity.Any;
     public required string Point { get; init; }
 }
 
@@ -42,8 +48,15 @@ public static class CoordinationSentenceComposer
             ? tpl.TargetNoCode.Replace("{name}", d.TargetName)
             : tpl.TargetWithCode.Replace("{name}", d.TargetName).Replace("{code}", code);
 
-        var airport = tpl.Airport.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
-        var point = string.IsNullOrWhiteSpace(d.Point) ? tpl.FallbackMissingPoint : d.Point;
+        // La relazione aeroporto dipende dal tipo di flusso: arrivo = «con destinazione», partenza = «in partenza da».
+        var airportTpl = d.Kind switch
+        {
+            TransferFlowKind.Departure => tpl.AirportDeparture,
+            TransferFlowKind.Arrival => tpl.AirportArrival,
+            _ => tpl.Airport,   // overflight/VFR/altro: relazione neutra
+        };
+        var airport = airportTpl.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
+        var point = ResolvePoint((d.Point ?? "").Trim(), tpl);
 
         var s = tpl.Template
             .Replace("{owner}", d.OwnerName)
@@ -56,13 +69,57 @@ public static class CoordinationSentenceComposer
         return Normalize(s);
     }
 
-    // FL senza glifo ↑/↓, con prefisso «per » quando è un livello numerico; il testo speciale resta com'è; «—»/vuoto → "".
+    // Fraseologia del livello ({fl}): il vincolo è reso a parole («o livello inferiore/superiore»), la parità
+    // come parola finale. Le parole vengono dal template (tpl.Level) → lingua-neutro (IT default, EN per le vLOA).
+    // Special → testo grezzo («per aerovia»). Con valore → «a livello N [o livello …] [parità]».
+    // Senza valore → «per un livello {parità}» se c'è parità, altrimenti "" (nessun livello da dire).
     private static string BuildFl(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
     {
-        var raw = (d.LevelText ?? "").Replace("↑", "").Replace("↓", "").Trim();
-        if (raw.Length == 0 || raw == "—") return "";
-        if (d.Constraint == LevelConstraint.Special) return raw;   // es. «per aerovia»
-        return "per " + raw;
+        if (d.Constraint == LevelConstraint.Special)
+            return string.IsNullOrWhiteSpace(d.LevelSpecial) ? "" : d.LevelSpecial.Trim();
+
+        var lvl = tpl.Level;
+        var parityWord = d.Parity switch
+        {
+            LevelParity.Even => lvl.ParityEven,
+            LevelParity.Odd => lvl.ParityOdd,
+            _ => "",
+        };
+
+        if (d.LevelValue is int v)
+        {
+            var body = (d.LevelUnit == LevelUnit.Fl ? lvl.FlBody : lvl.FtBody).Replace("{v}", v.ToString());
+            var bound = d.Constraint switch
+            {
+                LevelConstraint.AtOrBelow => " " + lvl.OrBelow,
+                LevelConstraint.AtOrAbove => " " + lvl.OrAbove,
+                _ => "",
+            };
+            return parityWord.Length == 0 ? body + bound : $"{body}{bound} {parityWord}";
+        }
+
+        // Nessun valore numerico: solo la parità produce una frase.
+        return parityWord.Length == 0 ? "" : $"{lvl.ForLevel} {parityWord}";
+    }
+
+    // Risolve il testo del punto dal CoP (case-insensitive). Tre casi distinti (NON condividono lo stesso
+    // fallback: il CoP vuoto = «nessun punto indicato», «ALL» = istruzione esplicita «tutti i punti»):
+    //   vuoto                → FallbackMissingPoint (es. «—»: l'editor non l'ha compilato);
+    //   «ALL»                → FallbackAllPoints («tutti i punti»);
+    //   «ALL to X»           → FallbackAllToward («tutti i punti verso X»), X = nazione/FIR come scritto;
+    //   qualsiasi altro CoP  → il CoP letterale.
+    private static readonly Regex AllPointsPattern =
+        new(@"^ALL(?:\s+to\s+(?<dest>\S.*))?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static string ResolvePoint(string cop, CoordinationSentenceTemplate tpl)
+    {
+        if (cop.Length == 0) return tpl.FallbackMissingPoint;
+        var m = AllPointsPattern.Match(cop);
+        if (!m.Success) return cop;
+        var dest = m.Groups["dest"].Value.Trim();
+        return dest.Length == 0
+            ? tpl.FallbackAllPoints
+            : tpl.FallbackAllToward.Replace("{dest}", dest);
     }
 
     // Collassa spazi multipli (da placeholder vuoti) e toglie lo spazio prima della punteggiatura.
@@ -70,10 +127,11 @@ public static class CoordinationSentenceComposer
         Regex.Replace(Regex.Replace(s, @"\s+([.,;:])", "$1"), @"\s{2,}", " ").Trim();
 }
 
-/// <summary>Risoluzione nomi/codici/aeroporto + composizione, condivisa da AccProfileService e AppProfileService.</summary>
+/// <summary>Risoluzione nomi/codici/aeroporto + composizione, condivisa da AccDerivationService e AppDocumentService.</summary>
 public static class CoordinationSentences
 {
-    /// <summary>Compone la frase per una riga CoP; null se manca l'aeroporto destinazione (nessuna frase).</summary>
+    /// <summary>Compone la frase per una riga CoP. Per arrivi/partenze l'aeroporto è obbligatorio (senza →
+    /// null, frase incompleta); per sorvoli/VFR/altro è opzionale (relazione neutra, l'aeroporto se c'è).</summary>
     public static string? Compose(
         CoordinationSentenceTemplate tpl,
         IReadOnlyDictionary<string, SectorType> types,
@@ -82,12 +140,21 @@ public static class CoordinationSentences
         IReadOnlyDictionary<string, string> airportMap,
         IReadOnlyDictionary<string, string> atcMap,
         string ownerCallsign, string targetCallsign, string? airportIcao,
-        LevelConstraint constraint, string levelText, string cop)
+        LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial, LevelParity parity,
+        string cop, TransferFlowKind kind = TransferFlowKind.Arrival)
     {
-        if (string.IsNullOrWhiteSpace(airportIcao)) return null;
+        // Arrivi/partenze senza aeroporto = «con destinazione»/«in partenza da» orfano → nessuna frase.
+        // Sorvoli/VFR/altro usano la relazione neutra e reggono anche senza aeroporto.
+        var hasAirport = !string.IsNullOrWhiteSpace(airportIcao);
+        if (!hasAirport && kind is TransferFlowKind.Arrival or TransferFlowKind.Departure) return null;
 
+        // APP/TWR non portano un codice settore CTR; ma un APP consolidato (fornito dall'ACC, es. Napoli su
+        // «Roma Radar») ha un MiddleIdentifier di posizione (es. US0) che va mostrato per disambiguare dal nome
+        // generico. Quindi ometti il codice solo per i terminali che non ne hanno uno.
+        var targetCode = codeMap.GetValueOrDefault(targetCallsign);
         var omit = types.TryGetValue(targetCallsign, out var tt)
-                   && tt is SectorType.App or SectorType.Twr or SectorType.ITwr;
+                   && tt is SectorType.App or SectorType.Twr or SectorType.ITwr
+                   && string.IsNullOrWhiteSpace(targetCode);
 
         // Mittente: nome base + codice settore (es. «Roma Radar» + «NE») quando è un CTR. Il ricevente porta il
         // codice nel proprio slot del template (targetWithCode), quindi qui il target è senza codice.
@@ -102,12 +169,16 @@ public static class CoordinationSentences
         {
             OwnerName = ownerName,
             TargetName = BaseName(targetCallsign, nameMap, atcMap),
-            TargetCode = omit ? null : codeMap.GetValueOrDefault(targetCallsign),
+            TargetCode = omit ? null : targetCode,
             OmitTargetCode = omit,
-            AirportName = airportMap.GetValueOrDefault(airportIcao!, airportIcao!),
-            AirportIcao = airportIcao!,
+            AirportName = hasAirport ? airportMap.GetValueOrDefault(airportIcao!, airportIcao!) : "",
+            AirportIcao = airportIcao ?? "",
+            Kind = kind,
             Constraint = constraint,
-            LevelText = levelText,
+            LevelValue = levelValue,
+            LevelUnit = levelUnit,
+            LevelSpecial = levelSpecial,
+            Parity = parity,
             Point = cop,
         });
     }

@@ -1,8 +1,8 @@
 # Refactor — Overview 🟢
 
 > Documento madre della revisione strutturale (post round ~23-34). Coordina i 9 doc
-> di area. **Fase corrente: solo carta** — nessuna modifica al codice finché un doc
-> di area non è approvato.
+> di area. **Stato: tutti i 9 doc chiusi ✅** (01–09 eseguiti, 2026-07). Residui di
+> pulizia tracciati nei singoli doc (es. rimozione `*ProfileModels`, create airport unico).
 
 ## Perché
 
@@ -36,7 +36,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 05 | [05-import-confinanti.md](05-import-confinanti.md) | Import ACC/settori confinanti (5+6) | ✅ (gen vLOA → doc 08) |
 | 06 | [06-gerarchia.md](06-gerarchia.md) | Gerarchia albero copertura (7) | ✅ |
 | 07 | [07-trasferimenti.md](07-trasferimenti.md) | Trasferimenti (8) | ✅ |
-| 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | 🟡 08a·b·c·d-vloa ✅ · ACC/APP/Airport = strategia B (⏳) |
+| 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | ✅ (08a–08i completi; residuo opzionale: create airport via use-case unico) |
 | 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | ✅ |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)

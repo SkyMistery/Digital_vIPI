@@ -3,7 +3,7 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 // Modelli del profilo dell'APP non remotizzato (standalone). Parti editoriali (salvate) + derivate (live).
-// Mirror, in chiave APP, di AirportProfileModels.
+// Mirror, in chiave APP, di AirportModels.
 
 /// <summary>Riga della sezione Separazioni (editoriale): colonne fisse verticale + laterale (es. «1000 ft» / «3 NM»);
 /// dalla 2ª riga in poi un free-text <see cref="Applicability"/> specifica quando si applica (la 1ª è la predefinita).</summary>
@@ -34,14 +34,16 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     public string? Sentence { get; init; }
 }
 
-/// <summary>Gruppo di coordinamenti verso un ente (un settore ACC o una torre): sotto-sezione del mockup.</summary>
+/// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>
 public sealed record AppCoordGroup(string TargetCallsign, IReadOnlyList<AppCoordRow> Rows);
 
-/// <summary>Coordinamenti derivati di un APP: verso gli ACC (partenze+arrivi) e verso le torri (solo arrivi).</summary>
+/// <summary>Coordinamenti derivati di un APP: verso gli ACC (partenze+arrivi), verso le torri (solo arrivi),
+/// e i flussi senza aeroporto (<see cref="Overflights"/>: sorvoli/VFR/altro, per etichetta di tipo).</summary>
 public sealed class AppCoordination
 {
     public required IReadOnlyList<AppCoordGroup> TowardAcc { get; init; }
     public required IReadOnlyList<AppCoordGroup> TowardTowers { get; init; }
+    public IReadOnlyList<AppCoordGroup> Overflights { get; init; } = Array.Empty<AppCoordGroup>();
 
     public static AppCoordination Empty { get; } =
         new() { TowardAcc = Array.Empty<AppCoordGroup>(), TowardTowers = Array.Empty<AppCoordGroup>() };

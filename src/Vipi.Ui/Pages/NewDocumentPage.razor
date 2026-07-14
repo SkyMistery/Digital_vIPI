@@ -26,6 +26,8 @@
     }
     else
     {
+        <EditLockBar ResourceKey="@ResourceLockKeys.NewDoc" LockChanged="OnLockChanged" />
+
         <div class="seg" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px">
             <button class="btn @(_kind == Kind.Vloa ? "primary" : "ghost")" @onclick="() => _kind = Kind.Vloa">📄 vLOA</button>
             <button class="btn @(_kind == Kind.Acc ? "primary" : "ghost")" @onclick="() => _kind = Kind.Acc">🗺 vIPI ACC</button>
@@ -39,7 +41,7 @@
                 <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia. Le vLOA con ACC confinanti si generano anche in blocco da <a href="/vsop/admin/confinanti">Confinanti</a>.</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
                     <div class="field"><label>Titolo</label><input placeholder="es. vLOA Roma–Marsiglia" @bind="_docTitle" /></div>
-                    <button class="btn primary" disabled="@_busy" @onclick="CreateVloa">Crea e apri editor</button>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="CreateVloa">Crea e apri editor</button>
                 </div>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:12px">
                     <div class="field"><label>ACC italiano (Home)</label>
@@ -153,8 +155,11 @@
     private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
 
     private bool _busy;
+    private bool _canEdit;   // true = questa sessione tiene il lock "nuovo documento" (EditLockBar)
     private string? _msg;
     private string _docTitle = "";
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     // vLOA
     private string? _homeAcc, _neighAcc;

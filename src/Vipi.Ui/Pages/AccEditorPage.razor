@@ -3,7 +3,7 @@
 @rendermode InteractiveServer
 @using System.Text.Json
 @inject IAccDocumentService AccDoc
-@inject IAccProfileService Profile
+@inject IAccDerivationService Profile
 @inject IEditingService Editing
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
@@ -53,6 +53,8 @@ else
                     </div>
                 </div>
             </div>
+
+            <DocReviewBar DocumentId="_docId" />
 
             @if (_lock is { Locked: true, IsMine: false })
             {
@@ -339,33 +341,15 @@ else
         await LoadAsync();
     });
 
-    // ---- configurazioni ----
-    private Task PersistConfigs(AccAssembledBlock blk) => Guard(async () =>
+    // ---- configurazioni (editor condiviso AppConfigurations: emette l'intera lista, l'host salva) ----
+    private Task SaveConfigs(AccAssembledBlock blk, IReadOnlyList<AccConfiguration> configs) => Guard(async () =>
     {
+        blk.Block.Configurations = configs.ToList();
         await AccDoc.SaveConfigurationsAsync(Acc, ChildId(blk, "configurations"), blk.Block.Configurations);
         await LoadAsync();
     });
-    private Task AddConfig(AccAssembledBlock blk)
-    {
-        blk.Block.Configurations.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = "Nuova configurazione" });
-        return PersistConfigs(blk);
-    }
-    private async Task RemoveConfig(AccAssembledBlock blk, AccConfiguration c)
-    {
-        if (!await Confirm($"Rimuovere la configurazione «{c.Name}»?")) return;
-        blk.Block.Configurations.Remove(c);
-        await PersistConfigs(blk);
-    }
-    private Task SetConfigName(AccAssembledBlock blk, AccConfiguration c, string name) { c.Name = name; return PersistConfigs(blk); }
-    private Task ToggleConfigSector(AccAssembledBlock blk, AccConfiguration c, string cs)
-    {
-        var existing = c.Open.FirstOrDefault(o => string.Equals(o.Callsign, cs, StringComparison.OrdinalIgnoreCase));
-        if (existing is not null) c.Open.Remove(existing);
-        else c.Open.Add(new AccConfigOpen { Callsign = cs });
-        return PersistConfigs(blk);
-    }
-    private Task SetOpenCp(AccAssembledBlock blk, AccConfigOpen o, string v) { o.CenterPoint = v; return PersistConfigs(blk); }
-    private Task SetOpenRange(AccAssembledBlock blk, AccConfigOpen o, string v) { o.Range = v; return PersistConfigs(blk); }
+
+    private Task<bool> ConfirmRemoveConfig(AccConfiguration c) => Confirm($"Rimuovere la configurazione «{c.Name}»?");
 
     // ---- aree regolamentate ----
     private Task ToggleSpecialArea(AccAssembledBlock blk, string areaId) => Guard(async () =>
@@ -415,7 +399,10 @@ else
                 <AppSeparations Rows="blk.Block.Separations" Editing="_editing" RowsChanged="rows => SaveSeparations(blk, rows)" />
                 break;
             case "configurations":
-                @ConfigEditor(blk)
+                <AppConfigurations Configs="blk.Block.Configurations" Pool="PoolOf(blk)"
+                                   Tables="_configTables.GetValueOrDefault(bsId) ?? Array.Empty<AccConfigTableView>()"
+                                   Editing="_editing" MapScope="@($"b{bsId}")" ConfigsChanged="configs => SaveConfigs(blk, configs)"
+                                   ConfirmRemove="ConfirmRemoveConfig" />
                 break;
             case "aor":
                 <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
@@ -438,10 +425,10 @@ else
                 {
                     <div class="field" style="margin:0 0 12px">
                         <label>Frase di coordinamento — template (vuoto = default globale)</label>
-                        <textarea rows="2" placeholder="{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}."
+                        <textarea rows="2" placeholder="{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}."
                                   value="@blk.Block.CoordinationSentenceTemplate"
                                   @onchange="e => SaveCoordTemplate(blk, AsString(e.Value))"></textarea>
-                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>.</p>
+                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. <code>{airport}</code> include già la relazione arrivo/partenza («con destinazione …» / «in partenza da …»): non aggiungere «con destinazione».</p>
                     </div>
                 }
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />
@@ -449,82 +436,6 @@ else
             case "regulated":
                 @RegulatedEditor(blk)
                 break;
-        }
-    };
-
-    private RenderFragment ConfigEditor(AccAssembledBlock blk) => __builder =>
-    {
-        var pool = PoolOf(blk);
-        var tables = _configTables.GetValueOrDefault(blk.BlockSectionId) ?? Array.Empty<AccConfigTableView>();
-        @if (_editing)
-        {
-            <p class="help" style="margin:0 0 8px">Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</p>
-            @foreach (var c in blk.Block.Configurations)
-            {
-                var cfg = c;
-                var tbl = tables.FirstOrDefault(t => t.ConfigKey == cfg.Key);
-                <div class="block" style="margin-bottom:10px">
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                        <input class="app-in" placeholder="Nome configurazione" value="@cfg.Name" @onchange="e => SetConfigName(blk, cfg, AsString(e.Value))" />
-                        <button class="btn ghost" title="Rimuovi configurazione" @onclick="() => RemoveConfig(blk, cfg)">✕</button>
-                    </div>
-                    <p class="app-lbl" style="margin:0 0 4px">Settori aperti</p>
-                    <div class="sector-pick">
-                        @foreach (var s in pool)
-                        {
-                            var sec = s;
-                            var on = cfg.OpenCallsigns.Contains(sec.Callsign, StringComparer.OrdinalIgnoreCase);
-                            <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleConfigSector(blk, cfg, sec.Callsign)">@sec.Callsign</button>
-                        }
-                    </div>
-                    @if (cfg.Open.Count > 0)
-                    {
-                        <table class="cfg-table" style="margin-top:8px">
-                            <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
-                            <tbody>
-                                @foreach (var o in cfg.Open)
-                                {
-                                    var open = o;
-                                    var row = tbl?.Rows.FirstOrDefault(r => string.Equals(r.UnifiedCallsign, open.Callsign, StringComparison.OrdinalIgnoreCase));
-                                    <tr class="grp-start">
-                                        <td class="uni">@(row?.UnifiedName ?? open.Callsign)</td>
-                                        <td class="muted">@(row is null ? "—" : string.Join(", ", row.Absorbed))</td>
-                                        <td><input class="app-in" placeholder="es. GINEL" value="@open.CenterPoint" @onchange="e => SetOpenCp(blk, open, AsString(e.Value))" /></td>
-                                        <td><input class="app-in" placeholder="es. 140" value="@open.Range" @onchange="e => SetOpenRange(blk, open, AsString(e.Value))" /></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                </div>
-            }
-            <button class="btn ghost" @onclick="() => AddConfig(blk)">+ Aggiungi configurazione</button>
-        }
-        else
-        {
-            @if (tables.Count == 0) { <p class="muted">Nessuna configurazione operativa.</p> }
-            @foreach (var cfg in tables)
-            {
-                <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="b@blk.BlockSectionId">
-                    <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
-                    <div class="body">
-                        <table class="cfg-table">
-                            <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
-                            <tbody>
-                                @foreach (var row in cfg.Rows)
-                                {
-                                    <tr class="grp-start">
-                                        <td class="uni">@row.UnifiedName</td>
-                                        <td>@string.Join(", ", row.Absorbed)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </details>
-            }
         }
     };
 

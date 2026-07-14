@@ -702,6 +702,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("LockedByUserId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("NeedsReviewUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReviewReason")
+                        .HasColumnType("TEXT");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("BLOB");
@@ -896,6 +902,36 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("EditGrants");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EditResourceLock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LockExpiresUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LockedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LockedByName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LockedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ResourceKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceKey")
+                        .IsUnique();
+
+                    b.ToTable("EditResourceLocks");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.EditorTask", b =>
@@ -1326,6 +1362,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("AirportIcao")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AirportName")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
@@ -1384,6 +1423,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Parity")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 

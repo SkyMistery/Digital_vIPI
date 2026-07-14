@@ -15,9 +15,12 @@ aggiungere codici admin senza toccare il codice.
 1. **`DivisionOptions` (sezione `Division`)** centralizza l'identità divisione:
    - `Code` — prefisso degli staff code admin **e** id nell'API membri divisione.
    - `IcaoPrefixes` — prefissi ICAO dei callsign ATC (filtro polling online).
-   - `AdminRolePatterns` — suffissi ruolo (regex) che valgono come admin.
-2. **Codici admin derivati**: `EditAuthorizationService` costruisce i pattern admin come
-   `^{Code}-{ruolo}$` dai ruoli della divisione. Cambiare `Division:Code` sposta tutti i codici admin.
+   - `AdminRolePatterns` — suffissi ruolo (regex) di divisione che valgono come admin.
+   - `AdminAccRolePatterns` — suffissi ruolo (regex) **ACC-scoped** (chief): il codice ha il prefisso ICAO
+     dell'ACC, non della divisione (es. `LIRR-CH`, `LIMM-ACH`).
+2. **Codici admin derivati**: `EditAuthorizationService` costruisce i pattern admin da entrambi i set:
+   `^{Code}-{ruolo}$` per i ruoli di divisione (es. `IT-DIR`) **e** `^{prefissoIcao}[A-Z0-9]+-{ruolo}$` per i
+   ruoli ACC-scoped (es. `LIRR-CH`), uno per ogni `IcaoPrefixes`. Cambiare `Division:Code`/`IcaoPrefixes` li sposta tutti.
 3. **Override esplicito** opzionale via `AuthOptions` (`Auth:AdminStaffCodes`): pattern regex completi
    che sostituiscono i derivati, per codici non riconducibili allo schema `{Code}-{ruolo}`.
 4. **`IvaoOptions` ripulito**: rimossi `Prefix` e `DivisionMembersPath` (ora derivati da `Division`);

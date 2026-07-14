@@ -13,4 +13,11 @@ public sealed class IvaoAirportCache
     public DateTimeOffset ExpiresAt = DateTimeOffset.MinValue;
 
     public bool IsFresh => Items is not null && DateTimeOffset.UtcNow < ExpiresAt;
+
+    /// <summary>Cache dei lookup per singolo ICAO (anche esteri, fuori dal paese configurato): evita di
+    /// ri-chiamare l'API a ogni pressione del tasto «cerca». Non entra in <see cref="Items"/> (catalogo IT).</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SourceAirport> _single = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool TryGetSingle(string icao, out SourceAirport airport) => _single.TryGetValue(icao, out airport!);
+    public void PutSingle(string icao, SourceAirport airport) => _single[icao] = airport;
 }

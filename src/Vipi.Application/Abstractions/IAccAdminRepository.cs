@@ -33,6 +33,9 @@ public interface IAccAdminRepository
     /// <summary>Mostra/nasconde un settore ATC.</summary>
     Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default);
 
+    /// <summary>Contesto gerarchico (radice? figli visibili?) del settore ATC, per validare l'occultamento (Regola 1). null se l'id non esiste.</summary>
+    Task<SubcenterHideContext?> GetSubcenterHideContextAsync(int id, CancellationToken ct = default);
+
     /// <summary>Imposta i limiti di quota (inferiore/superiore) di un settore ATC (admin).</summary>
     Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default);
 }

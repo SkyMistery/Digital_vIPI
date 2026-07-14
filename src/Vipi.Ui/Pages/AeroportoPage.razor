@@ -1,4 +1,4 @@
-﻿@page "/vsop/{Acc}/airports"
+@page "/vsop/{Acc}/airports"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Text.Json
@@ -8,7 +8,7 @@
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
-@inject IAirportProfileService Profile
+@inject IAirportEditingService Profile
 @inject IAirportSectorService AirportSectors
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
@@ -108,8 +108,9 @@ else
                 }
 
                 @* ---------- METAR / TAF live + parse ---------- *@
-                <div class="block" id="a-meteo">
-                    <h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">(live · NOAA)</span></h3>
+                <CollapsibleBlock Id="a-meteo">
+                    <Header><h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">(live · NOAA)</span></h3></Header>
+                    <ChildContent>
 
                     @if (_wx is not null && _wx.HasData)
                     {
@@ -196,7 +197,8 @@ else
                     {
                         <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR/TAF non disponibile per @_icao</b></div><div class="muted" style="font-size:12.5px">Servizio meteo non raggiungibile o ICAO senza bollettino. Riprova più tardi.</div></div>
                     }
-                </div>
+                    </ChildContent>
+                </CollapsibleBlock>
 
                 @* ---------- Transizione + Frequenze affiancate ---------- *@
                 @if (_taSection is not null || _freqSection is not null || _profile is not null)
@@ -204,8 +206,9 @@ else
                     <div class="apt-2col">
                         @if (_taSection is not null)
                         {
-                            <div class="block" id="@_taSection.Id">
-                                <h3 style="margin-top:0">@_taSection.Title</h3>
+                            <CollapsibleBlock Id="@_taSection.Id">
+                                <Header><h3 style="margin-top:0">@_taSection.Title</h3></Header>
+                                <ChildContent>
                                 <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
                                 @if (_tlRows.Count > 0)
                                 {
@@ -224,12 +227,14 @@ else
                                         </tbody>
                                     </table>
                                 }
-                            </div>
+                                </ChildContent>
+                            </CollapsibleBlock>
                         }
                         @if (FreqRows().Any() || _profile is not null)
                         {
-                            <div class="block" id="a-freq">
-                                <h3 style="margin-top:0">Frequenze</h3>
+                            <CollapsibleBlock Id="a-freq">
+                                <Header><h3 style="margin-top:0">Frequenze</h3></Header>
+                                <ChildContent>
                                 <table class="freq-table">
                                     <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
                                     <tbody>
@@ -246,7 +251,8 @@ else
                                         }
                                     </tbody>
                                 </table>
-                            </div>
+                                </ChildContent>
+                            </CollapsibleBlock>
                         }
                         else if (_freqSection is not null)
                         {
@@ -258,8 +264,9 @@ else
                 @* ---------- Piste: tabella con evidenza pista consigliata dal vento/regole ---------- *@
                 @if (_profile is { Runways.Count: > 0 })
                 {
-                    <div class="block" id="a-piste">
-                        <h3 style="margin-top:0">Piste</h3>
+                    <CollapsibleBlock Id="a-piste">
+                        <Header><h3 style="margin-top:0">Piste</h3></Header>
+                        <ChildContent>
                         <p class="muted" style="font-size:12.5px;margin:0 0 8px">
                             In <span class="rwy-key arr">verde gli arrivi</span> e <span class="rwy-key dep">blu le partenze</span> consigliati
                             @if (_ruleResult is not null) { <text>dalla regola attiva «@(_ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")»</text> } else { <text>dal vento METAR</text> }.
@@ -292,7 +299,8 @@ else
                                 }
                             </tbody>
                         </table>
-                    </div>
+                        </ChildContent>
+                    </CollapsibleBlock>
                 }
 
                 @foreach (var s in _otherSections)
@@ -306,10 +314,12 @@ else
                     <div class="extra-inline">
                         @foreach (var s in ExtraSections())
                         {
-                            <div class="block" id="extra-@s.Id">
-                                <h3 style="margin-top:0">@s.Title</h3>
-                                @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap">@s.Body</div> }
-                            </div>
+                            <CollapsibleBlock Id="@($"extra-{s.Id}")">
+                                <Header><h3 style="margin-top:0">@s.Title</h3></Header>
+                                <ChildContent>
+                                    @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap">@s.Body</div> }
+                                </ChildContent>
+                            </CollapsibleBlock>
                         }
                     </div>
                 }
@@ -359,7 +369,7 @@ else
     private IReadOnlyList<AirportRow> _allAirports = Array.Empty<AirportRow>();
     // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _wxMini = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, AirportProfileData?> _profiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, AirportData?> _profiles = new(StringComparer.OrdinalIgnoreCase);
     private int _wxGen;          // token anti-corsa: scarta i caricamenti meteo di ACC ormai cambiate
     private bool _wxLoading;     // true finché il meteo di questo elenco non è arrivato
     private string _icao = "";
@@ -373,7 +383,7 @@ else
     private int? _windDir;
     private int _windKt;
     private RunwaySuggestionResult _sugg = new(null, Array.Empty<RunwayPick>(), "");
-    private AirportProfileData? _profile;
+    private AirportData? _profile;
     private RunwayRuleResult? _ruleResult;
     private IReadOnlyList<AirportSectorRow> _airportSectors = Array.Empty<AirportSectorRow>();
     private HashSet<string> _depIdents = new(StringComparer.OrdinalIgnoreCase);
@@ -700,7 +710,7 @@ else
     /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "&lt; 984").</summary>
     // Sovrascrive TA e tabella TL con i valori del profilo strutturato LIVE (anteprima bozza). Il formato range QNH
     // usa i simboli riconosciuti da QnhRowMatches (≤/≥/–) per l'evidenziazione della riga col QNH corrente.
-    private void ApplyProfileTransition(AirportProfileData p)
+    private void ApplyProfileTransition(AirportData p)
     {
         _ta = p.TransitionAltitudeFt;
         if (p.TransitionLevels.Count == 0) return;

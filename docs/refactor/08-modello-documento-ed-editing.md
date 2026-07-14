@@ -156,7 +156,7 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
 > Rischio crescente; ogni sotto-giro branch/PR a sé, verificato **guidando l'app** (editor/viewer
 > Blazor non coperti da test — vincolo confermato in 08d-app+acc). vLOA è il **template** (già su `Document`).
 
-- **08e — storage ACC/APP/Airport su `Document`** (il cuore): mappare `AccProfile`/`AppProfile`/
+- **08e ✅ — storage ACC/APP/Airport su `Document`** (il cuore): mappare `AccProfile`/`AppProfile`/
   `AirportProfile` → `Document`(Type vIPI) + `DocumentVersion` + `DocumentSection`(tree, `SectionKey`
   da catalogo) + `ContentBlock`. **Architettura di storage (lock 2026-07-10, dal pattern vLOA provato):**
   - **Import-derivate** (aor/frequencies/coordination/minima): `DocumentSection` keyed, **Blocks vuoti**,
@@ -173,19 +173,26 @@ che si proietta comunque in un `DocumentView` classic al render/publish.
     (estende quello vLOA/`IEditingService`). **Greenfield**: migrazione EF che DROPpa le tabelle profile;
     derivato rigenerato dagli import; editoriale a mano perso (pre-prod). Test-first sul mapping.
   - Decomposto: **08e-app** (template, più semplice) → **08e-acc** → **08e-airport**.
-- **08f — editor+viewer editoriale unico** (design lock #1): un solo componente editor che edita un
+- **08f ✅ — editor+viewer editoriale unico** (design lock #1): un solo componente editor che edita un
   sottoalbero `DocumentSection` con blocchi `Prose`/`Table`/`Callout` + **sotto-sezioni** (depth ≤3),
   reorder/hide; + un solo viewer. Sostituisce `VloaEditor` inline, `CustomEditor`/`CustomBody` (ACC/APP)
   e il ponte generico di 08d. Elimina `AppCustomBlock`/`AppCustomSection` e `AppProfileModels` editoriali.
-- **08g — sezioni derivate keyed condivise + config ricca**: renderer per key (aor/frequencies/
+- **08g ✅ — sezioni derivate keyed condivise + config ricca**: renderer per key (aor/frequencies/
   coordination/minima/regulated) unici per tutti i tipi; **editor config ricco condiviso** portato
   anche in APP (design lock #2, pool = settori dell'aeroporto dell'APP; accorpamento come ACC).
-- **08h — Airport su `Document`**: il documento aeroporto (già generato con chiavi catalogo) finisce
+- **08h ✅ — Airport su `Document`**: il documento aeroporto (già generato con chiavi catalogo) finisce
   la migrazione; creazione via use-case unico, non più speciale in `StructureEditingService` (doc 03).
-- **08e-bis — creazione uniforme** `CreateDocumentUseCase` su `ReleaseTargetType` + fix routing `?doc`
+  **Residuo aperto**: creazione airport via use-case unico ancora da unificare (ex-08h, opzionale).
+- **08e-bis ✅ — creazione uniforme** `CreateDocumentUseCase` su `ReleaseTargetType` + fix routing `?doc`
   ([[vloa-editor-routing-todo]]). (Può accorparsi a 08e/08h secondo convenienza.)
-- **08i — cleanup**: rimozione entità/tabelle/servizi profile (`AccProfile`/`AppProfile`/`AirportProfile`,
-  `AppProfileModels`, `AccProfileModels`), codice morto ponte, `SectionCatalogBridge` se non più usato.
+- **08i ✅ — cleanup**: entità/tabelle profile droppate (migrazioni `DropAppProfile`/`DropAccProfile`/
+  `DropVloaProfile`, 2026-07-10) e repository rewired su `Document`. **Rename semantico** (2026-07-11): i tipi
+  Application non erano codice morto ma **mal chiamati** (storage sparito, nome `*Profile*` rimasto) → rinominati
+  per ruolo reale: `AccProfileService`→`AccDerivationService`, `VloaProfileService`→`VloaDerivationService`,
+  `AirportProfileService`→`AirportEditingService`; repo `I*ProfileRepository`→`*DerivationRepository`/`IAirportRepository`;
+  data `AccProfileData`→`AccVipiData`, `AirportProfileData`→`AirportData`; file `*ProfileModels.cs`→`AccVipiModels`/
+  `AppModels`/`AirportModels`. `DocumentProfile` (overlay unificato) e `SectionProfile` (membership catalogo) **restano**
+  (nomi legittimi). Commenti stale corretti. Build 0/0, 271 test verdi. **Residuo opzionale**: create airport via use-case unico.
 
 ## 5. Impatto
 

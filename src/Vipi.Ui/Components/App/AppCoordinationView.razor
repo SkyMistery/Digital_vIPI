@@ -2,13 +2,13 @@
 @* Nome del componente diverso dal DTO AppCoordination per evitare il mascheramento del tipo. *@
 <p class="muted" style="margin-top:0;font-size:13.5px">Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</p>
 
-@if (Coord.TowardAcc.Count == 0 && Coord.TowardTowers.Count == 0)
+@if (Coord.TowardAcc.Count == 0 && Coord.TowardTowers.Count == 0 && Coord.Overflights.Count == 0)
 {
     <p class="muted" style="margin:0">Nessun coordinamento configurato per questo APP.</p>
 }
 
 <div class="coord-wrap">
-@if (Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0)
+@if (Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0 || Coord.Overflights.Count > 0)
 {
     @CoordTools
 }
@@ -56,6 +56,23 @@
         </div>
     </details>
 }
+
+@if (Coord.Overflights.Count > 0)
+{
+    <details class="coord-sub" open>
+        <summary><span>Sorvoli e VFR</span><span class="chev">▸</span></summary>
+        <div class="body">
+            @CoordTools
+            @foreach (var g in Coord.Overflights)
+            {
+                <details class="coord-sub2" open>
+                    <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
+                    <div class="body">@RenderTable(g.Rows, showKind: false)</div>
+                </details>
+            }
+        </div>
+    </details>
+}
 </div>
 
 @code {
@@ -87,7 +104,7 @@
                 @foreach (var r in rows)
                 {
                     <tr>
-                        @if (showKind) { <td>@KindLabel(r.Kind)</td> }
+                        @if (showKind) { <td>@TransferFlowKindLabels.Label(r.Kind)</td> }
                         <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
                         <td>@r.Level</td>
                         <td>@r.Next</td>
@@ -95,14 +112,5 @@
                 }
             </tbody>
         </table>
-    };
-
-    private static string KindLabel(TransferFlowKind k) => k switch
-    {
-        TransferFlowKind.Departure => "Partenze",
-        TransferFlowKind.Arrival => "Arrivi",
-        TransferFlowKind.Overflight => "Sorvoli",
-        TransferFlowKind.Vfr => "VFR",
-        _ => "Altro",
     };
 }

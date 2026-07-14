@@ -157,13 +157,14 @@ Settimo giro (`../refactor/07-trasferimenti.md`). Giro piccolo; `TransferOnlineR
 - **Estrazione**: `ITransferService` da `TransferEditingService.cs`; i 6 DTO (`TransferFlowRow`/`TransferPointRow`/`TransferFlowInput`/`TransferPointInput`/`ResolvedTransferPoint`/`ResolvedTransferFlow`) da `TransferModels.cs` (rimosso), in file singoli.
 - **Porta di lettura `INeighbourReader { ListAsync }`** (ISP): `NeighbourImportService` la implementa (`INeighbourImportService : INeighbourReader`); `AdminTrasferimentiPage` inietta la sola porta di lettura invece del service import completo (la usava solo per leggere gli ACC esteri confinanti = mittenti estero→home). `ConfinantiAdminPage` resta sul service completo. Il problema originale del doc («la pagina triggera l'import») era mal descritto: era una lettura. Validazione già conforme a `Aor.ValidationException`.
 
-## Refactor 08 — Modello documento (programma 08a–08f, in corso)
+## Refactor 08 — Modello documento (programma 08a–08i, ✅ completo 2026-07-10, 271 test)
 **Decisione Fase 0**: unificazione **greenfield** dei due modelli documento su `Document` (classic) generalizzato con `SectionCatalog` condiviso; modello profile eliminato, documenti esistenti cancellati (no migrazione conversione); test-first. Decomposto in 6 sotto-giri.
 - **08a (fatto, +13 test)** — `SectionCatalog` unificato (natura per key, membership per profilo, `Reconcile` unificato che sostituisce quello duplicato in `AppSections`/`AccSections`) + modello sezione ricorsivo `DocSection`/`DocBlock` (Testo/Tabella/Callout + sotto-sezioni). Membership rivista con l'utente: 6 sezioni universali; `purpose` e Military-areas rimosse (fuse in `regulated`). Aeroporto escluso (documento a struttura propria).
 - **08b (fatto)** — estratti i tipi multi-classe dai file che sopravvivono all'unificazione: `Documents.cs` → 8 entità in file singoli; `EditingService.cs` → interfaccia + 2 eccezioni. Saltati i file profile (rimossi in 08d).
 - **08c (fatto, +11 test)** — `SectionCatalogBridge`: mappa l'enum legacy `BlockSection` alle chiavi del catalogo, additivo (nessuna rottura), usato dalle migrazioni per-tipo.
 - **08d-vloa (fatto, 246 test)** — `DocumentSection.SectionKind` (enum `BlockSection`) → `SectionKey` (chiave `SectionCatalog`) su tutto il modello classic: DTO (`RawSection`/`SectionView`/`EditableSection`) espongono `SectionKey`; viewer/editor vLOA + `AeroportoPage` confrontano per chiave; seed/builder convertono via bridge; migrazione EF `SectionKeyCatalog`. vLOA completamente migrata al catalogo. Approccio greenfield: nessuna migrazione dati (i test usano `EnsureCreated`).
-- **Residuo ACC/APP/Airport — strategia B** (decisa dopo 08d-vloa): adozione **incrementale** del `SectionCatalog` negli editor, **senza** droppare lo storage profile (il punto 12 è già risolto; il drop è pulizia interna sproporzionata). Passi per tipo (APP prima): `default:` editor → editoriale generico per sezioni editoriali senza handler (storage custom-per-key); switch `App/AccSections`→`SectionCatalog`; elimina i registry vecchi. ⚠ Modifica editor/viewer Blazor → **non verificabile coi soli test** (serve guidare l'app a vista). Poi 08e (creazione uniforme + fix `?doc`), 08f (cleanup).
+- **Strategia B bocciata → ritorno a strategia A greenfield** (2026-07-10, owner): B (adozione incrementale del `SectionCatalog` senza droppare lo storage profile) lasciava divergenze inaccettabili (config APP degradata, corpo custom divergente, no Callout/sotto-sezioni). Ritorno ad A: migrare lo storage ACC/APP/Airport sul modello `Document` classic (template = vLOA).
+- **08e–08i (fatto, 271 test)** — storage ACC/APP/Airport → `Document`+`DocumentSection`(keyed)+`ContentBlock`; override per-doc su side-entity unica `DocumentProfile`; editor+viewer editoriale unico (Prose/Table/Callout + sotto-sezioni); renderer derivati keyed condivisi + config ricca anche in APP; Airport migrato. Migrazioni **drop** delle tabelle profile: `DropAppProfile`/`DropAccProfile`/`DropVloaProfile` + `AddDocumentProfile`. Repository rewired su `Document`. **08i rename (2026-07-11)**: i tipi Application `*Profile*` (mal chiamati dopo il drop dello storage, non morti) rinominati per ruolo — `*ProfileService`→`AccDerivationService`/`VloaDerivationService`/`AirportEditingService`, repo→`*DerivationRepository`/`IAirportRepository`, data→`AccVipiData`/`AirportData`, file→`AccVipiModels`/`AppModels`/`AirportModels`; `DocumentProfile`/`SectionProfile` restano (legittimi). Build 0/0, 271 test. **Residuo opzionale**: creazione airport via use-case unico (ex-08h).
 
 ## Refactor 09 — Flusso di pubblicazione (registry polimorfico, 264 test)
 **Fase 0**: ri-mappato lo stato reale post-08 (il cuore release era già collassato: tutti e 4 i tipi su `DocReleasePayload`, switch snapshot/signature/preview/hide/delete a ramo unico). Residuo per-tipo genuino = sola identità+routing. **Target approvato (owner): opzione B — registry polimorfico pieno**, stratificato in 2 porte per non violare i layer.
@@ -174,3 +175,219 @@ Settimo giro (`../refactor/07-trasferimenti.md`). Giro piccolo; `TransferOnlineR
 - **§3c (fatto)** — pulizia switch vestigiali (`Signature`/`GetPreviewAsync`/`SetHidden`/`Delete`) a ramo unico.
 - **§5 (fatto, +3)** — `ReleaseGenericFlowTests`: un tipo con enum fuori intervallo (99) è pubblicabile/preview/diff/elencabile/authz registrando **solo un descrittore**, zero modifiche ai motori → obiettivo utente ("nuovo tipo senza reimplementare la pubblicazione") provato.
 - **Verifica live (CDP)** — EditorLink ACC/APP, `ViewerUrl(?as=rel)` snapshot congelato, redirect `/vsop/release/{id}`, hide/unhide via descrittore. Baseline test **252→264**.
+
+## Manutenzione 08i + hardening processo (2026-07-11, 271 test)
+Sessione di chiusura del debito post-08, senza cambi di comportamento.
+- **Audit coerenza 08**: il codice era completo (tabelle profile droppate, repo su `Document`) ma il tracciamento mentiva — `00-overview.md` e `rounds.md` davano 08 ancora `🟡 strategia B ⏳`, l'header del doc 08 diceva `✅ COMPLETO`. Riallineati overview/§4/rounds.
+- **08i rename** (dettaglio nella sezione Refactor 08): i tipi `*Profile*` Application, mal chiamati dopo il drop dello storage, rinominati per ruolo (`*DerivationService`/`AirportEditingService`/`*DerivationRepository`/`AccVipiData`/`AirportData`) + file. 28 `.cs` + 9 `.razor` + 15 file rinominati. `DocumentProfile`/`SectionProfile` tenuti (legittimi). Build 0/0, 271 test. Sorpresa: gli editor Blazor usavano i nomi (grep `.razor` diede falso negativo) → beccati dal compilatore.
+- **Commenti stale corretti**: `<see cref>` a entità morte, riferimenti a `AppProfileService`/tabelle droppate.
+- **Memorie riallineate**: `acc-profile-design` e `appn-editor-design` descrivevano lo storage pre-08 (`AccProfile.BlocksJson`, `AppSections`, `SaveBlocksAsync`) → riscritte a post-08 (parti di derivazione tenute, storage corretto).
+- **Hardening `FEATURE-PROCESS.md`** (anti-vibecoding): la falla emersa (codice giusto, *record* rimasto vero a metà) non era coperta. Aggiunta **domanda 4 pre-flight «Propagazione»** (rimuovi/rinomini → aggiorna nomi/commenti/doc/memorie nello stesso giro) + 3 righe DoD (verify con traccia, tracciamento coerente header==indice==rounds, nessun nome/commento morto) + fix label «Regola del 3»→«del 2» (scattava a ≥2).
+
+## Feature: configurazioni APP multi-settore (2026-07-12)
+APP standalone con >1 settore (es. LIPE_APP → LIPE_W/LIPE_E) ora ha le **configurazioni** come l'ACC (settori aperti →
+accorpamento → guida l'AoR). Nessuna rotta/migrazione nuova.
+- **Modello**: riuso `AccConfiguration`/`AccConfigOpen` (no gemello). Storage nel blocco keyed `configurations` del Document.
+- **Derivazione condivisa**: estratto `ConfigTableProjector` (puro); `AccDerivation.DeriveConfigTableAsync` ora copre anche i
+  blocchi gruppo-APP (prima usciva vuoto per non-Aerovia); nuovo `AppDocumentService.DeriveConfigTableAsync` (inietta `IAorService`).
+- **UI condivisa**: `Components/App/AppConfigurations.razor` (edit+view, `MapScope` per il link config↔mappa `data-cfgblock`),
+  usato da `AppEditorPage`+`AccEditorPage`+`AppnPage`. Tolto il `ConfigEditor` duplicato in `AccEditorPage` (Regola del 2).
+- **Bug fixato**: `configurations` era nel catalogo APP ma mancava nei Special/Live set di editor/viewer → sezione vuota.
+- Test: `AppDocumentServiceTests.Configurations_Roundtrip_And_Derive_Accorpamento_Table`. Baseline 259 verdi (Application+Infrastructure).
+
+## Feature: lock di editing esclusivo su pagine admin (2026-07-12)
+Le pagine senza `Document` sottostante (sectorstructure/acc/trasferimenti/airports + editor/newdoc) hanno ora un lock
+«una persona alla volta». Vedi memoria `edit-resource-lock-design`.
+- **Nuovo modello per-risorsa** (non gemello del lock Document, che è per documentId): entità `EditResourceLock` (migr.
+  `AddEditResourceLock`), `IResourceLockRepository`/`Ef*`, `IResourceLockService` + `ResourceLockKeys`.
+- **2 chiavi**: `admin:structure` condivisa dalle 4 pagine catalogo (stessa topologia), `editor:newdoc` separata.
+- **UI condivisa** `Components/EditLockBar.razor`: «Inizia/Fine modifica», banner lock altrui, forza sblocco admin. Le pagine
+  disabilitano i controlli mutanti quando non tengono il lock; StrutturaPage guarda anche il drag-drop in codice.
+- **Tab-close**: TTL corto 3min + heartbeat 60s → chiusa la scheda il lock si libera da sé. `DisposeAsync` **non** rilascia
+  (navigando fra le 4 pagine che condividono `admin:structure` si perderebbe il lock ad ogni cambio pagina); rilascio immediato
+  solo su «Fine modifica» / «Forza sblocco».
+- Test `ResourceLockTests` (4). Baseline 272→276 verdi.
+
+## Fix & rifiniture UI (2026-07-12, seguito)
+- **Ruoli admin ACC-scoped**: i chief hanno codici col prefisso ICAO dell'ACC (`LIRR-CH`, `LIMM-ACH`), non `IT-`. Aggiunto
+  `DivisionOptions.AdminAccRolePatterns = ["CH","ACH"]`; `EditAuthorizationService` deriva anche `^{prefissoIcao}[A-Z0-9]+-{ruolo}$`.
+  Doc: `guide/config.md`, `adr-0004`. Test `AuthLockTests` (+5).
+- **Rename UI ruoli → «Staff»**: «Area AOD / DIR» → «Area Staff», «staff AOC/AOAC/AOA» → «staff», «CH/AOD» → «staff» (10 file razor).
+- **Lock editing pagine admin**: barra `EditLockBar` su sectorstructure/acc/trasferimenti/airports + newdoc (vedi sopra). Il lock
+  `editor:newdoc` gate solo la creazione vLOA; i bottoni «Apri editor» (navigazione) NON sono gatati.
+- **Sezioni collassabili ovunque**: nuovo `Components/CollapsibleBlock.razor` usato da `DocumentSectionsEditor` (editor ACC/APP/vLOA)
+  + viewer (`AppnPage`/`AccVipiPage`/`VloaDocumentView`/`AeroportoPage`/`RidottaPage`/`SectionNode`). Le sotto-sezioni erano già
+  collassabili. Fix collegato: `DocumentSectionsEditor` usa profondità **relativa** (le sezioni ACC — figlie di un blocco —
+  tornano card `.block` di primo livello, non `.coord-sub`).
+- **Config = callsign, non nome**: la tabella accorpamento mostra il callsign (`LIRR_NE_CTR`) invece del nome («Roma Radar»);
+  rimosso `AccConfigTableRow.UnifiedName` e il parametro `names` da `ConfigTableProjector` (Absorbed = callsign).
+- **Filtro nazione** nelle pagine admin ACC/struttura (select tematizzato, un filtro per entrambe le tabelle ACC/settori).
+
+## Fix: direzione frasi coordinamenti + identifier APP consolidato (2026-07-13)
+Due bug nella sezione Coordinamenti derivata (`AccDerivationService.DeriveCoordinationAsync` + `CoordinationSentenceComposer`), emersi su un flusso reale LIBB (Brindisi ES, arrivi LIRN):
+- **Direzione invertita**: `AccDerivationService.cs` invertiva mittente/destinatario per gli arrivi con `next` di tipo CTR (`invert = Arrival && next è Ctr`). Euristica sbagliata: **tutti** i flussi arrivo nel dato reale sono `owner=cede → next=riceve` (come la pagina trasferimenti); il caso «vicino consegna a noi» è già coperto dal ciclo *entranti*. Rimosso l'invert → sempre `sender=owner, receiver=next`. Es. NILTO ora «Brindisi Radar ES trasferisce a Roma Radar TS», non il contrario.
+- **Identifier APP perso**: un APP consolidato fornito dall'ACC (es. `LIRN_US0_APP`, Napoli su «Roma Radar», `MiddleIdentifier=US0`) mostrava solo il nome generico «Roma Radar». `CoordinationSentences.Compose` ometteva **sempre** il codice per APP/TWR → ora lo omette **solo se manca** il MiddleIdentifier. Es. «…trasferisce a Roma Radar US0…».
+- Propagazione: aggiornati commenti + test `AccDerivationTests` (rinominato `Owned_Flow_Sentence_Reads_Owner_As_Sender`) e `CoordinationSentenceComposerTests` (`App_target_with_identifier_includes_code` + `App_target_without_identifier_omits_code`). Baseline verde: Application 138, Infrastructure 134.
+- Backlog collegato: rework trasferimenti per **sorvoli senza aeroporto** (memoria `transfers-overflight-rework`, come/quando da decidere).
+
+## Feature: sorvoli senza aeroporto nella sezione Coordinamenti (2026-07-13)
+I flussi **Sorvolo/VFR/Altro senza aeroporto** ora compaiono nella sezione Coordinamenti Estesa (ACC + APP
+non remotizzati). Prima venivano persi: la frase richiedeva un aeroporto e l'albero raggruppava solo
+Arrivi/Partenze per aeroporto. Il modello/editor/DB già li accettavano (`AirportIcao` nullable) — nessuna
+migrazione. Pre-flight FEATURE-PROCESS + carta approvata (`plans/linear-giggling-map.md`).
+- **Frase kind-aware** (`CoordinationSentenceComposer.cs`): l'aeroporto resta obbligatorio per Arrivi/Partenze
+  (senza → nessuna frase, «con destinazione» orfano), **opzionale** per Sorvoli/VFR/Altro (relazione neutra
+  `tpl.Airport`). Es. «Roma Radar NE trasferisce a Brindisi Radar ES il traffico per aerovia su ELB.» ~~Vale
+  anche per vLOA~~ (corretto nel seguito: vLOA non passava `flow.Kind` — vedi round «Fix sorvoli end-to-end»).
+- **Cuore condiviso** `CoordinationDerivation` (nuovo, puro): estrae i due cicli owned+entranti + la direzione
+  `owner→next` (niente invert) + la composizione, prima **duplicati** in `AccDerivationService` e
+  `AppDocumentService`. Questo **corregge anche l'invert residuo dell'APP** (l'ACC era già stato corretto il
+  2026-07-13). Test di caratterizzazione `CoordinationDerivationTests`.
+- **Collocazione**: ACC → nodo «Sorvoli» sotto l'ACC accanto agli aeroporti (`AccAccAirports.Extras` +
+  `AccExtraFlows`); APP → gruppo `AppCoordination.Overflights`. Bucket per `TransferFlowKind` (arr/dep →
+  aeroporto; ovf/vfr/altro → sorvoli). Viewer `AccCoordinationView`/`AppCoordinationView` aggiornati.
+- **Regola del 2**: centralizzato `TransferFlowKindLabels.Label` (era duplicato in `TransfersLive`,
+  `AppCoordinationView`, `VloaDerivationService`).
+- Test: Application 138→144, Infrastructure 134→137 (nuovi: cuore, frase sorvolo, nodo Sorvoli ACC,
+  regressione invert APP + gruppo Overflights). Verifica live dei viewer: da fare guidando il flusso reale.
+
+## Fix sorvoli end-to-end + parità livello (2026-07-13, seguito)
+Seguito al round precedente, dopo che i sorvoli senza aeroporto **non comparivano** guidando il flusso reale.
+Pre-flight FEATURE-PROCESS (`plans/encapsulated-hatching-stardust.md`). Il modello era già corretto (nessun
+modello gemello aggiunto); i difetti erano a valle.
+- **Bug propagazione vLOA (kind-aware mancato)**: `VloaDerivationService.DeriveCoordinationAsync` chiamava
+  `CoordinationSentences.Compose` **senza `flow.Kind`** → default `Arrival` → un sorvolo senza aeroporto
+  ricadeva nel ramo `return null` (frase vLOA nulla). Il round precedente aveva scritto «vale anche per vLOA»
+  ma il consumer non era stato aggiornato. **Fix**: passare `flow.Kind`.
+- **Causa radice «non compare»**: `CoordinationDerivation.Build` scarta i punti con ricevente non risolto
+  (null o non in `types`) → un sorvolo con riga UNICOM non produce entry. Policy confermata (serve un
+  ricevente), ma reso **visibile in editor**: badge «⚠ nessun ricevente» sul flusso, hint sul «+ Gruppo»
+  disabilitato (manca il settore mittente), help chiarito (è il ricevente — interno o estero confinante — a
+  far comparire i sorvoli). Il picker ricevente usa già tutti i settori attivi (esteri confermati inclusi).
+  Caratterizzazione `CoordinationDerivationTests` (`Point_with_unresolved_next_is_dropped`,
+  `Overflight_to_foreign_confining_ctr_stays_owner_to_next`).
+- **Aeroporto obbligatorio per Arrivi/Partenze**: `TransferService.ValidateFlow` ora rifiuta un flusso
+  Arrivo/Partenza senza `AirportIcao` (`ValidationException`); l'editor disabilita «+ Gruppo»/«Salva» con hint.
+  Simmetrico alla frase kind-aware (arr/dep senza aeroporto = orfano). Sorvoli/VFR/Altro restano opzionali.
+- **Parità livello (regola semicircolare)**: nuovo enum `LevelParity { Any, Even, Odd }` + campo
+  `TransferPoint.Parity` (migrazione `AddTransferPointParity`, default `Any`). `LevelFormatting.Format` prende
+  la parità e appende «(pari)»/«(dispari)» al `LevelText` → **propaga da solo** a viste ACC/APP/vLOA/live e
+  alla frase (`{fl}`), senza rami per-tipo duplicati. Select nell'editor (add + edit riga). Seed EW ora mostra
+  un sorvolo dispari/pari verso Roma TS (prima aveva ricevente null → sarebbe stato scartato).
+- Test: Domain +`LevelFormattingTests`, Application 144→146, Infrastructure 137→139. Verifica live: app
+  avviata, migrazione applicata pulita; da guidare i viewer per la conferma finale.
+
+## Fraseologia coordinamenti: livello naturale + parità + «tutti i punti» (2026-07-13, seguito)
+La frase infilava la parità nel `LevelText` («per — (dispari)», sgrammaticato). Ora la frase si compone dal
+**livello strutturato**, non dalla stringa pre-formattata (che resta per le tabelle). Cambi in
+`CoordinationSentenceComposer` (`CoordinationSentences.Compose` prende `value/unit/special/parity` al posto di
+`levelText`; `BuildFl` riscritto) e call site allineati (`CoordinationDerivation`, `VloaDerivationService`).
+- **Livello a parole**: `per FL150` → `a livello 150 o livello inferiore` (≤) / `o livello superiore` (≥);
+  Exact → `a livello 240`; Special (`per aerovia`) invariato. Parità come parola finale (`… dispari`/`… pari`).
+  Senza valore numerico + parità → `per un livello dispari`.
+- **Punto**: CoP `ALL` (case-insensitive) o vuoto → `su tutti i punti` (`FallbackMissingPoint`).
+  Seguito (2026-07-14): CoP `ALL to X` → `su tutti i punti verso X` (`FallbackAllToward`, placeholder `{dest}`,
+  `X` = nazione/FIR come scritto, nessuna mappa codice→nome). Parse in `CoordinationSentenceComposer.ResolvePoint`
+  (regex `^ALL(\s+to\s+…)?$`); campi template aggiunti anche a `CoordinationSentenceOptions`/provider (hot-reload).
+  **Separati i tre casi** (bug reale: la frase usciva `su —` per CoP `ALL`): il file `content/coordination-sentence.json`
+  override `FallbackMissingPoint = "—"` per il CoP VUOTO, e `ALL`/`ALL to X` lo ereditavano. Ora `ALL` usa
+  `FallbackAllPoints` («tutti i punti»), `ALL to X` usa `FallbackAllToward`, solo il CoP vuoto usa `FallbackMissingPoint`.
+  Diagnosi: dato (`Cop='ALL'`) e codice erano giusti, la regressione era il default globale nel json.
+- `LevelText` (tabelle) invariato («FL150↓ (dispari)»). Test aggiornati: Application 146→151 (nuove attese +
+  casi parità/tutti-i-punti); Domain 19, Infrastructure 139 invariati.
+
+## Nascondi singolo settore: regole gerarchia + revisione documenti (2026-07-13)
+Il tasto «🚫 nascondi settore» in `/vsop/admin/acc` c'era ma non applicava le regole di dominio (e falliva in
+silenzio). Pre-flight FEATURE-PROCESS (`plans/luminous-hugging-river.md`). Nessun modello gemello: riuso della
+catena `IsHidden`/`IsActive`; unico fatto nuovo = flag di revisione su `Document`.
+- **Regola 1 (blocco radice)**: `AccAdminService.SetSubcenterHiddenAsync` rifiuta con `ValidationException`
+  l'occultamento d'un settore **radice** con figli visibili (li orfanerebbe). Nuovo
+  `IAccAdminRepository.GetSubcenterHideContextAsync` (+ DTO `SubcenterHideContext`) con **una** query che unisce
+  `AccSector`+`AirportSector` sui `ParentCallsign`.
+- **Regola 2 (reparent al nonno)**: `EfSectorProjectionService` step 4 — se il `ParentCallsign` d'un figlio punta
+  a un settore nascosto, il figlio risale al primo antenato **visibile** (`NearestVisibleAncestor`, guard
+  anti-ciclo), invece di restare agganciato a un padre disattivato. Un solo code-path (settore/ACC nascosto,
+  orfano). Vedi `modello-dati.md §9.12`.
+- **Regola 3 (revisione documenti)**: nuovi campi `Document.NeedsReviewUtc`/`ReviewReason` (migrazione
+  **`AddDocumentReviewSignal`**). `IDocumentReviewService`/`EfDocumentReviewRepository`: reverse-lookup dei
+  documenti ACC vIPI + APP + vLOA confinanti dove il settore compare (via `Sector.DocumentId` e
+  `NeighbourCandidate.AdjacentHomeCallsigns`), set del flag + **1 incarico/doc** (`IEditorTaskService`,
+  idempotente per titolo). Banner `DocReviewBar` nei tre editor (ACC/APP/vLOA) con «✓ Segna come rivista»
+  (`ClearReviewAsync`, ACC-gated). Le CONFIGURAZIONI: il pool esclude già i settori inattivi (nessuna riga); il
+  preset `OpenCallsigns` non si auto-modifica → lo cura l'editor guidato dal banner.
+- **Fix bug UI**: `AccAdminPage.SetSubHidden`/`SetHidden` allargano il `catch` (`ValidationException` +
+  `Exception` con log) → niente più fallimento silenzioso.
+- **Fix «resta nel documento»**: `TopologyBuilder.BuildAsync(accId)` leggeva `Sectors` per `AccId` **senza**
+  filtrare `IsActive` → un settore nascosto (disattivato dalla proiezione) restava nella topologia del doc ACC
+  (AoR/coordinamenti/config) e non si poteva rimuovere. Aggiunto `&& s.IsActive` (coerente con `BuildGlobalAsync`
+  e con `EfAccDerivationRepository`). Regressione `Topology_Excludes_Deactivated_Hidden_Sector`; AoR S1–S10 invariati.
+- Test: Domain 19, Application 151, Infrastructure 139→146 (2 proiezione reparent + topologia + 4 `HideSectorReviewTests`).
+  Verifica live: da guidare (tasto in `/vsop/admin/acc` → banner negli editor).
+
+## Feature: nome aeroporto per aeroporti fuori DB nei trasferimenti (2026-07-14)
+Additiva. In `/vsop/admin/trasferimenti`, quando si indica un aeroporto **non a catalogo** (nuovo/estero) si
+può ora dare anche il **nome**, così nelle sezioni trasferimenti (editor, live/Ridotta, coordinamenti ACC/APP/vLOA,
+frasi) compare «Nome ICAO» e non il solo ICAO. Nessun modello gemello: campo `TransferFlow.AirportName` (nullable)
+accanto ad `AirportIcao` (migrazione **`AddTransferFlowAirportName`**), propagato a `TransferFlowInput`/`TransferFlowRow`.
+- **Punto di fusione unico** (Regola del 2): `CoordinationDerivation.MergeAirportNames(airportMap, flows)` sovrappone
+  i nomi dei flussi alla mappa ICAO→nome del catalogo (il catalogo vince, i nomi-flusso riempiono i buchi). Chiamato
+  dai 4 consumatori (`AccDerivationService`, `AppDocumentService`, `VloaDerivationService`; il live legge il nome dal
+  `Flow`). Così frase + etichette aeroporto beneficiano senza duplicare la logica.
+- **UI**: campo «Nome aeroporto (fuori DB)» che compare solo quando l'ICAO digitato non è nel catalogo (form nuovo
+  gruppo + edit gruppo); header aeroporto «✈ ICAO — Nome» (`AptHeader`, nome da catalogo o da flusso). Il nome viene
+  salvato solo per aeroporti fuori DB (per quelli a catalogo il nome resta la fonte unica del catalogo).
+  Per un aeroporto **fuori DB il nome è obbligatorio**: `NewAptMissingName` disabilita «+ Gruppo»/«Salva» con hint
+  «Aeroporto fuori DB: indica il nome» (non si aggiunge un aeroporto a mano senza nome).
+- Build Infrastructure + Ui verdi. **Verifica live: da guidare** (riavvio app → `Database.Migrate()` applica la colonna).
+
+## Feature: coordinamenti vLOA in stile ACC + frasi in inglese (2026-07-14)
+La sezione Coordinamenti delle vLOA era una **tabella piatta** (CoP/Flusso/FL/Da→A/Frase) in italiano. Ora è
+**identica alla vIPI ACC** (gerarchia Settore→ACC→Aeroporto→Arrivi/Partenze + Sorvoli, `AccCoordinationView`) ma
+**in inglese**, coerente col documento bilaterale. Nessun modello gemello: la vLOA riusa `AccCoordination`.
+- **Grouping condiviso** (Regola del 2): estratto `AccDerivationService.BuildTree` → `CoordinationDerivation.BuildAccTree`
+  (funzione pura, la lingua delle etichette di tipo arriva da un `Func<TransferFlowKind,string>`). Usato da ACC (IT,
+  `TransferFlowKindLabels.Label`) e vLOA (EN, `LabelEn`).
+- **Frase bilingue**: la fraseologia del livello/parità era hardcoded IT nel composer → spostata nel template
+  (`CoordinationSentenceLevel`: `FlBody`/`OrBelow`/`OrAbove`/`ForLevel`/`ParityEven`/`ParityOdd`, default IT invariati).
+  Nuovo `CoordinationSentenceTemplate.English` (stato/aeroporto/livello/punto in EN). `BuildFl(tpl, d)` legge dal template.
+  Le vLOA compongono con `CoordinationSentenceTemplate.English` invece di `_sentence.Current`.
+- **Modello**: `VloaCoordination` ora porta `AccCoordination HomeToForeign/ForeignToHome` (era `IReadOnlyList<VloaCoordRow>`);
+  **rimosso `VloaCoordRow`**. `AccCoordinationView` ha il flag `English` (etichette/tabella localizzate). `VloaDocumentView`
+  e `VloaEditor` rendono via `AccCoordinationView English="true"` (rimossi i `ReadCoord`/`CoordView` a tabella piatta).
+- Test: Application 156 (nuovo `English_template_composes_english_sentence`), Domain 19, Infrastructure 146. Build completa verde.
+  **Verifica live: da guidare** (aprire una vLOA → sezione Coordinamenti in stile ACC, frasi EN).
+
+## Feature: lookup nome aeroporto fuori DB su IVAO nei trasferimenti (2026-07-14)
+Additiva. In `/vsop/admin/trasferimenti`, per un aeroporto **fuori catalogo** (nuovo/estero) si può ora premere
+«🔍 IVAO» accanto al campo «Nome aeroporto» per cercarne il nome sull'API IVAO invece di digitarlo a mano. Il
+risultato riempie il campo nome libero del flusso; **non** viene inserito nel catalogo aeroporti (così NON compare
+nei picker «Nuovo documento» — vincolo esplicito: niente documenti su scali non italiani).
+- **Porta**: `IAirportDirectory.GetByIcaoAsync(icao)` — dettaglio di un SINGOLO aeroporto per ICAO (anche estero),
+  sola lettura. Impl `IvaoAirportClient` via `GET /v2/airports/{ICAO}` (scope `configuration`), cache per-ICAO
+  separata (`IvaoAirportCache.TryGetSingle/PutSingle`, non tocca il catalogo IT `Items`). Fake test aggiornato.
+- **Use-case**: `IStructureEditingService.LookupExternalAirportAsync` → `ExternalAirportInfo(Icao,Name,City,AccCode)`
+  (riusa la `IAirportDirectory` già iniettata). **Non** persiste nulla.
+- **UI**: tasto «🔍 IVAO» nei form nuovo-gruppo e edit-gruppo (solo quando l'ICAO è fuori DB); esito accanto al campo
+  (nome + città/FIR, o «non trovato»). Test: Infrastructure 146, Application 156. Build completa verde.
+  **Verifica live: da guidare** (serve token IVAO configurato; provare un ICAO estero es. LGKR/LFPG).
+
+## Audit correttezza + fonti-dati multiple (2026-07-14)
+Revisione senior (bug/errori/duplicazioni di fonte). Fix confermati e verificati:
+- **A1 — frequenza settore proiettato = sola lettura.** `EfStructureEditingRepository.SetSectorFrequencyAsync`
+  rifiuta con `Vipi.Application.Aor.ValidationException` un settore `IsProjected`: la sua frequenza è di sorgente e
+  `SyncFromCatalogsAsync` la riscrive a ogni sync (l'edit veniva perso in silenzio). Catalogo = fonte unica.
+- **A2 — cache confinanti invalidata al choke point.** L'invalidazione (prima solo in `SetParentAsync`) ora avviene
+  in `EfSectorProjectionService.SyncFromCatalogsAsync` (choke point di ogni mutazione catalogo: import/hide/neighbour):
+  niente più set stantio fino al TTL 5 min. `InvalidateConfiningCache` è `internal static`.
+- **A3 — orfani senza legami editoriali dangling.** Nel passo orfani del sync, disattivare un settore proiettato ora
+  azzera anche `DocumentId`/`IsPrimary`/`FeaturedRank` (niente FK a documenti fantasma).
+- **A4 — import confinanti atomico.** Nuova porta `IUnitOfWork` (impl `EfUnitOfWork`, transazione sul context scoped):
+  `NeighbourImportService` avvolge persist catalogo estero + riproiezione in un'unica transazione.
+- **Minori (B):** backoff esponenziale + jitter in `TransientRetryHandler`; margine token IVAO 120s (skew d'orologio);
+  log esito import SID in `AuroraSidProvider`; `DevCurrentUserProvider` logga l'eccezione invece di ingoiarla;
+  commento footgun su `IvaoOptions.DivisionMembersPathFormat` (non usabile col token app).
+- **Falsi positivi scartati** (verificati): lock `EfResourceLockRepository` è corretto (acquisizione atomica
+  `ExecuteUpdateAsync` + indice UNIQUE su `ResourceKey`); `MetarParser` `IndexOf('/')`/`t[4..]` guardati dalla regex/lunghezza.
+- Test: Infrastructure 148 (+2: rifiuto edit su proiettato, orfano azzera i legami), Application 156, Domain 19.
+  Build completa verde (a parte lock DLL del Vipi.Host in esecuzione). **Verifica live: da guidare** (import confinanti;
+  tentativo edit frequenza su settore proiettato).

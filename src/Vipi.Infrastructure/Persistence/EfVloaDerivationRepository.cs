@@ -6,11 +6,11 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
 
-/// <inheritdoc cref="IVloaProfileRepository"/>
-public sealed class EfVloaProfileRepository : IVloaProfileRepository
+/// <inheritdoc cref="IVloaDerivationRepository"/>
+public sealed class EfVloaDerivationRepository : IVloaDerivationRepository
 {
     private readonly VipiDbContext _db;
-    public EfVloaProfileRepository(VipiDbContext db) => _db = db;
+    public EfVloaDerivationRepository(VipiDbContext db) => _db = db;
 
     public async Task<VloaPairInfo?> GetPairAsync(int docId, CancellationToken ct = default)
     {
@@ -51,14 +51,14 @@ public sealed class EfVloaProfileRepository : IVloaProfileRepository
 
     // vLOA usa la side-entity unificata DocumentProfile (doc 08i): stessi campi Hidden AoR/Freq/Sezioni; i campi extra
     // (FreqLinks/CoordTemplate) restano null per le vLOA. La tabella VloaProfiles è stata eliminata.
-    public async Task<VloaProfileState> LoadProfileAsync(int docId, CancellationToken ct = default)
+    public async Task<VloaEditorialState> LoadEditorialAsync(int docId, CancellationToken ct = default)
     {
         var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
-        return new VloaProfileState(Deserialize(p?.HiddenAorSectorsJson), Deserialize(p?.HiddenFrequenciesJson),
+        return new VloaEditorialState(Deserialize(p?.HiddenAorSectorsJson), Deserialize(p?.HiddenFrequenciesJson),
             Deserialize(p?.HiddenSectionsJson));
     }
 
-    public async Task SaveProfileAsync(int docId, VloaProfileState state, CancellationToken ct = default)
+    public async Task SaveEditorialAsync(int docId, VloaEditorialState state, CancellationToken ct = default)
     {
         var p = await _db.DocumentProfiles.FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
         if (p is null)

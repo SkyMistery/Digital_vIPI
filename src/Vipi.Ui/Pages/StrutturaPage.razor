@@ -10,7 +10,7 @@
 <PageTitle>Struttura (ACC, settori) · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <b>Struttura</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <b>Struttura</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">Gerarchia di copertura globale + documenti</span></div>
         @if (Authz.IsAdmin)
@@ -29,6 +29,11 @@
     @if (_msg is not null)
     {
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
+    }
+
+    @if (Authz.IsAdmin)
+    {
+        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
     }
 
     <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span></div>
@@ -61,7 +66,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px">
                 <input class="htree-search" placeholder="cerca callsign / ACC…" value="@_treeFilter" @oninput="OnSearchInput" style="flex:1" />
-                <select @bind="_countryFilter" title="Filtra per nazione">
+                <select class="htree-select" @bind="_countryFilter" title="Filtra per nazione">
                     <option value="">tutte le nazioni</option>
                     @foreach (var c in CountryOptions())
                     {
@@ -104,7 +109,7 @@
                                 <div id="@RowId(n.Kind, n.Id)"
                                      class="acc-row @(IsSelected(n.Kind, n.Id) ? "sel" : "") @(IsHit(n) ? "match" : "") @DropClass(n)"
                                      style="padding-left:@(12 + n.Depth * 20)px"
-                                     draggable="@(Authz.IsAdmin ? "true" : "false")"
+                                     draggable="@(Authz.IsAdmin && _canEdit ? "true" : "false")"
                                      @ondragstart="() => OnDragStart(n)"
                                      @ondragend="OnDragEnd"
                                      ondragover="event.preventDefault()"
@@ -161,8 +166,8 @@
                 @RenderCoverage(sel)
                 <div class="field" style="margin-top:10px">
                     <label>Padre (fallback immediato)</label>
-                    <input placeholder="filtra callsign…" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || _busy)" style="margin-bottom:6px" />
-                    <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
+                    <input placeholder="filtra callsign…" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" style="margin-bottom:6px" />
+                    <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
                         <option value="">@(sel.Kind == HierarchyNodeKind.Acc ? "— radice —" : "— da assegnare —")</option>
                         @foreach (var p in EligibleParents(sel))
                         {
@@ -170,7 +175,7 @@
                         }
                     </select>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-                        <button class="btn primary" disabled="@(!Authz.IsAdmin || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">Applica</button>
+                        <button class="btn primary" disabled="@(!Authz.IsAdmin || !_canEdit || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">Applica</button>
                         @if (IsDirty(sel))
                         {
                             <button class="btn ghost" disabled="@_busy" @onclick="() => _pendingParent = sel.ParentCallsign">Annulla</button>
@@ -213,6 +218,9 @@
     private string? _dropTargetCs;
 
     private bool _scrollPending;   // dopo una ricerca: porta in vista il primo match
+    private bool _canEdit;         // true = questa sessione tiene il lock di struttura (EditLockBar)
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     protected override async Task OnInitializedAsync()
     {
@@ -483,7 +491,7 @@
     private static string RowId(HierarchyNodeKind kind, int id) => $"hn-{kind}-{id}";
 
     // --- Drag & drop re-parent (le righe albero sono FlatNode: risolvo l'HierarchyNode dai campi) ---
-    private void OnDragStart(FlatNode n) { _dragKind = n.Kind; _dragId = n.Id; }
+    private void OnDragStart(FlatNode n) { if (!_canEdit) return; _dragKind = n.Kind; _dragId = n.Id; }
     private void OnDragEnd() { _dragKind = null; _dropTargetCs = null; }
     private void OnDragEnter(FlatNode target) { _dropTargetCs = target.Callsign; }
 
@@ -518,7 +526,7 @@
         var target = NodeOf(targetRow);
         _dropTargetCs = null;
         if (child is null || target?.Callsign is null) { _dragKind = null; return; }
-        if (!Authz.IsAdmin) { _dragKind = null; return; }
+        if (!Authz.IsAdmin || !_canEdit) { _dragKind = null; return; }
         if (!IsEligibleParent(child, target))
         {
             _msg = $"Non puoi agganciare {child.Callsign ?? child.Label} sotto {target.Callsign} (sé stesso/discendente o nazione diversa).";

@@ -50,6 +50,26 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<SubcenterHideContext?> GetSubcenterHideContextAsync(int id, CancellationToken ct = default)
+    {
+        var s = await _db.AccSectors.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (s is null) return null;
+        var cs = s.ComposePosition;
+
+        // ACC nascosti: i loro settori NON contano come figli visibili.
+        var hidden = (await _db.Accs.Where(a => a.IsHidden).Select(a => a.Code).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Figli (cross-catalogo) non nascosti che nominano questo settore come padre.
+        var accChildCenters = await _db.AccSectors.AsNoTracking()
+            .Where(x => x.ParentCallsign == cs && !x.IsHidden).Select(x => x.CenterId).ToListAsync(ct);
+        var airChildCenters = await _db.AirportSectors.AsNoTracking()
+            .Where(x => x.ParentCallsign == cs && !x.IsHidden).Select(x => x.AccCode).ToListAsync(ct);
+        var hasVisibleChildren = accChildCenters.Concat(airChildCenters).Any(code => !hidden.Contains(code));
+
+        return new SubcenterHideContext(cs, s.ParentCallsign, s.CenterId, hasVisibleChildren);
+    }
+
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
     {
         var s = await _db.AccSectors.FirstOrDefaultAsync(x => x.Id == id, ct)

@@ -12,15 +12,15 @@ public sealed record VloaPairInfo(
     string ForeignCountry);
 
 /// <summary>Stato editoriale persistito di una vLOA: callsign nascosti da AoR/frequenze + titoli di sezioni nascoste.</summary>
-public sealed record VloaProfileState(
+public sealed record VloaEditorialState(
     IReadOnlyList<string> HiddenAorSectors, IReadOnlyList<string> HiddenFrequencies,
     IReadOnlyList<string> HiddenSections);
 
 /// <summary>Settore di confine (CTR/FSS) di un ACC col suo poligono grezzo, per il calcolo di adiacenza al volo.</summary>
 public sealed record VloaSectorPoly(string Callsign, string Raw);
 
-/// <summary>Persistenza dello stato data-driven della vLOA (VloaProfile) e risoluzione della coppia/settori confinanti.</summary>
-public interface IVloaProfileRepository
+/// <summary>Derivazione dello stato data-driven della vLOA (overlay su DocumentProfile) e risoluzione della coppia/settori confinanti.</summary>
+public interface IVloaDerivationRepository
 {
     /// <summary>Risolve la coppia di una vLOA dai suoi <c>DocumentParty</c> + i settori confinanti persistiti
     /// (<c>NeighbourCandidate</c>), con fallback a tutti i settori di confine dei due ACC. null se il doc non è una vLOA.</summary>
@@ -29,11 +29,11 @@ public interface IVloaProfileRepository
     /// <summary>Settori di confine (CTR/FSS con poligono) di un ACC dal catalogo, per il calcolo di adiacenza al volo.</summary>
     Task<IReadOnlyList<VloaSectorPoly>> GetBoundaryPolygonsAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Carica lo stato editoriale (insiemi nascosti). Vuoto se non esiste ancora un VloaProfile.</summary>
-    Task<VloaProfileState> LoadProfileAsync(int docId, CancellationToken ct = default);
+    /// <summary>Carica lo stato editoriale (insiemi nascosti). Vuoto se non esiste ancora un DocumentProfile.</summary>
+    Task<VloaEditorialState> LoadEditorialAsync(int docId, CancellationToken ct = default);
 
     /// <summary>Upsert dello stato editoriale (insiemi nascosti) per la vLOA.</summary>
-    Task SaveProfileAsync(int docId, VloaProfileState state, CancellationToken ct = default);
+    Task SaveEditorialAsync(int docId, VloaEditorialState state, CancellationToken ct = default);
 
     /// <summary>Codice ACC Home (italiano) della vLOA, per l'autorizzazione all'editing. null se non risolvibile.</summary>
     Task<string?> GetHomeAccCodeAsync(int docId, CancellationToken ct = default);

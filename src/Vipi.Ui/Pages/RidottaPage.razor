@@ -58,22 +58,24 @@ else
 
         <div class="callout info"><span class="cic">⚡</span><div><p class="ct">Modalità ridotta · live</p>Proiezione <b>Ridotta</b> con collasso AoR basato su chi è online ora. Le sezioni sono indipendenti e riespandibili a mano.</div></div>
 
-        <div class="block">
-            <h3 style="margin-top:0">🟢 Online nel mio dominio</h3>
-            @if (_domainOnline.Count > 0)
-            {
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    @foreach (var cs in _domainOnline)
-                    {
-                        <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">@cs</span>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="muted" style="margin:0;font-size:13px">Nessun subordinato online nel dominio di <b>@_p</b>: copri tutti i settori.</p>
-            }
-        </div>
+        <CollapsibleBlock>
+            <Header><h3 style="margin-top:0">🟢 Online nel mio dominio</h3></Header>
+            <ChildContent>
+                @if (_domainOnline.Count > 0)
+                {
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        @foreach (var cs in _domainOnline)
+                        {
+                            <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">@cs</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="muted" style="margin:0;font-size:13px">Nessun subordinato online nel dominio di <b>@_p</b>: copri tutti i settori.</p>
+                }
+            </ChildContent>
+        </CollapsibleBlock>
 
         <div id="red-sector">
             @foreach (var s in _view.Sections)
@@ -81,8 +83,9 @@ else
                 <SectionNode Section="s" />
             }
 
-            <div class="block">
-                <h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3>
+            <CollapsibleBlock>
+                <Header><h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3></Header>
+                <ChildContent>
                 @if (_resolved.Count == 0)
                 {
                     <p class="help">Nessun coordinamento per questa ACC.</p>
@@ -134,7 +137,8 @@ else
                         </details>
                     }
                 }
-            </div>
+                </ChildContent>
+            </CollapsibleBlock>
         </div>
     </div>
 }

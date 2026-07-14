@@ -79,3 +79,12 @@ derivati live, non salvati nel payload editoriale.
 - **Verifica** (Fase 3): risoluzione live invariata (test `TransferOnlineResolver` verdi);
   CRUD flussi/punti ACC-gated; la pagina trasferimenti mostra ancora i mittenti esteri
   confinanti; conteggio test = baseline (222).
+
+## 6. Aggiornamenti successivi (2026-07-13)
+- **Sorvoli senza aeroporto** derivati nei Coordinamenti (cuore condiviso `CoordinationDerivation`;
+  frase kind-aware). I consumer ACC/APP/**vLOA** devono passare `flow.Kind` a `CoordinationSentences.Compose`
+  (il fix vLOA chiudeva una falla di propagazione: prima ometteva il kind → sorvolo trattato come arrivo →
+  frase nulla). Un punto con ricevente non risolto (null/non in `types`) viene scartato: policy intenzionale,
+  segnalata in editor (badge «nessun ricevente»). Vedi `history/rounds.md` «Fix sorvoli end-to-end».
+- **Parità livello** (`TransferPoint.Parity`, enum `LevelParity`): resa nel `LevelText` via
+  `LevelFormatting.Format(...,parity)` → propaga a tutte le viste + frase senza rami duplicati.

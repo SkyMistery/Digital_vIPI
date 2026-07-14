@@ -8,7 +8,7 @@ namespace Vipi.Application.Content;
 
 // =====================================================================================
 //  vLOA data-driven: AoR / Frequenze / Coordinamenti DERIVATI unendo i due ACC (Home
-//  italiano + Neighbour estero). Stato editoriale (settori/frequenze nascosti) in VloaProfile.
+//  italiano + Neighbour estero). Stato editoriale (settori/frequenze nascosti) nella side-entity DocumentProfile.
 // =====================================================================================
 
 /// <summary>Identità della coppia vLOA (per intestazioni/etichette).</summary>
@@ -33,20 +33,19 @@ public sealed record VloaFreqData(
     public static VloaFreqData Empty { get; } = new("", "", "", "", Array.Empty<VloaFreqRow>());
 }
 
-/// <summary>Riga di coordinamento derivata da un trasferimento registrato (CoP/Flusso/FL/Condizioni).</summary>
-public sealed record VloaCoordRow(string Cop, string Flow, string Fl, string Owner, string Next, string? Sentence);
-
-/// <summary>Coordinamenti della vLOA nelle due direzioni (home→estero, estero→home), derivati dai trasferimenti.</summary>
+/// <summary>Coordinamenti della vLOA nelle due direzioni (home→estero, estero→home). Ogni direzione è un
+/// <see cref="AccCoordination"/> (stessa gerarchia Settore→ACC→Aeroporto→Arrivi/Partenze della vIPI ACC): la
+/// sezione è resa da <c>AccCoordinationView</c> in inglese, non più da una tabella piatta dedicata.</summary>
 public sealed record VloaCoordination(
     string HomeAcc, string ForeignAcc,
-    IReadOnlyList<VloaCoordRow> HomeToForeign, IReadOnlyList<VloaCoordRow> ForeignToHome)
+    AccCoordination HomeToForeign, AccCoordination ForeignToHome)
 {
     public static VloaCoordination Empty { get; } =
-        new("", "", Array.Empty<VloaCoordRow>(), Array.Empty<VloaCoordRow>());
+        new("", "", AccCoordination.Empty, AccCoordination.Empty);
 }
 
 /// <summary>Derivazione data-driven delle sezioni AoR/Frequenze/Coordinamenti della vLOA + toggle di visibilità.</summary>
-public interface IVloaProfileService
+public interface IVloaDerivationService
 {
     Task<VloaPairMeta?> GetPairMetaAsync(int docId, CancellationToken ct = default);
     Task<VloaAorData> DeriveAorAsync(int docId, CancellationToken ct = default);
@@ -66,20 +65,20 @@ public interface IVloaProfileService
     Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default);
 }
 
-/// <inheritdoc cref="IVloaProfileService"/>
-public sealed class VloaProfileService : IVloaProfileService
+/// <inheritdoc cref="IVloaDerivationService"/>
+public sealed class VloaDerivationService : IVloaDerivationService
 {
     private const string HomeColor = "#1f6feb";
     private const string ForeignColor = "#d1242f";
 
-    private readonly IVloaProfileRepository _repo;
-    private readonly IAccProfileRepository _accRepo;
+    private readonly IVloaDerivationRepository _repo;
+    private readonly IAccDerivationRepository _accRepo;
     private readonly ITransferService _transfers;
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IEditAuthorizationService _authz;
     private readonly NeighboursOptions _neighbours;
 
-    public VloaProfileService(IVloaProfileRepository repo, IAccProfileRepository accRepo, ITransferService transfers,
+    public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, ITransferService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours)
     {
         _repo = repo;
@@ -122,7 +121,7 @@ public sealed class VloaProfileService : IVloaProfileService
     {
         var pair = await _repo.GetPairAsync(docId, ct);
         if (pair is null) return VloaAorData.Empty;
-        var profile = await _repo.LoadProfileAsync(docId, ct);
+        var profile = await _repo.LoadEditorialAsync(docId, ct);
         var hidden = new HashSet<string>(profile.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);
         var atc = await _accRepo.GetSectorAtcNameMapAsync(ct);
         var (homeConf, foreignConf) = await ComputeConfiningAsync(pair, ct);
@@ -155,7 +154,7 @@ public sealed class VloaProfileService : IVloaProfileService
     {
         var pair = await _repo.GetPairAsync(docId, ct);
         if (pair is null) return VloaFreqData.Empty;
-        var profile = await _repo.LoadProfileAsync(docId, ct);
+        var profile = await _repo.LoadEditorialAsync(docId, ct);
         var hidden = new HashSet<string>(profile.HiddenFrequencies, StringComparer.OrdinalIgnoreCase);
         var empty = Array.Empty<string>();
 
@@ -177,20 +176,22 @@ public sealed class VloaProfileService : IVloaProfileService
 
         var types = await _accRepo.GetSectorTypeMapAsync(ct);
         var codeMap = await _accRepo.GetSectorCodeMapAsync(ct);
-        var airportMap = await _accRepo.GetAirportNameMapAsync(ct);
         var atcMap = await _accRepo.GetSectorAtcNameMapAsync(ct);
-        var tpl = _sentence.Current;
+        var accNameMap = await _accRepo.GetSectorAccNameMapAsync(ct);
+        // Le vLOA sono documenti bilaterali in INGLESE: frasi di coordinamento col template EN.
+        var tpl = CoordinationSentenceTemplate.English;
 
         var homeSet = new HashSet<string>(pair.HomeAll, StringComparer.OrdinalIgnoreCase);
         var foreignSet = new HashSet<string>(pair.ForeignAll, StringComparer.OrdinalIgnoreCase);
 
         var flows = (await _transfers.ListFlowsByAccAsync(pair.HomeAcc, ct))
             .Concat(await _transfers.ListFlowsByAccAsync(pair.ForeignAcc, ct)).ToList();
+        var airportMap = CoordinationDerivation.MergeAirportNames(await _accRepo.GetAirportNameMapAsync(ct), flows);
 
-        var h2f = new List<VloaCoordRow>();
-        var f2h = new List<VloaCoordRow>();
-
-        string Label(string cs) => atcMap.GetValueOrDefault(cs, cs);
+        // Solo i trasferimenti che attraversano il confine, per direzione (owner→next, senza inversione):
+        // home→estero (H2F) e estero→home (F2H). Ogni riga diventa una CoordinationEntry per l'albero ACC condiviso.
+        var h2f = new List<CoordinationEntry>();
+        var f2h = new List<CoordinationEntry>();
 
         foreach (var flow in flows)
         {
@@ -202,7 +203,7 @@ public sealed class VloaProfileService : IVloaProfileService
             foreach (var p in flow.Points)
             {
                 var next = p.NextSectorCallsign;
-                if (string.IsNullOrWhiteSpace(next)) continue;
+                if (string.IsNullOrWhiteSpace(next) || !types.TryGetValue(next!, out var nextType)) continue;
                 var nextHome = homeSet.Contains(next!);
                 var nextForeign = foreignSet.Contains(next!);
                 var isH2F = ownerHome && nextForeign;
@@ -210,13 +211,25 @@ public sealed class VloaProfileService : IVloaProfileService
                 if (!isH2F && !isF2H) continue;
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
-                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop);
-                var row = new VloaCoordRow(p.Cop, KindLabel(flow.Kind), p.LevelText, Label(owner), Label(next!), sentence);
-                (isH2F ? h2f : f2h).Add(row);
+                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind);
+                var row = new AppCoordRow(p.Cop, p.LevelText, next!, flow.Kind)
+                {
+                    OwnerCallsign = owner,
+                    AirportIcao = flow.AirportIcao,
+                    Constraint = p.LevelConstraint,
+                    Sentence = sentence,
+                };
+                var entry = new CoordinationEntry(owner, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row);
+                (isH2F ? h2f : f2h).Add(entry);
             }
         }
 
-        return new VloaCoordination(pair.HomeAcc, pair.ForeignAcc, h2f, f2h);
+        AccCoordination Tree(List<CoordinationEntry> es) => new()
+        {
+            Sectors = CoordinationDerivation.BuildAccTree(es, codeMap, atcMap, airportMap, accNameMap, TransferFlowKindLabels.LabelEn),
+        };
+
+        return new VloaCoordination(pair.HomeAcc, pair.ForeignAcc, Tree(h2f), Tree(f2h));
     }
 
     public Task ToggleAorSectorAsync(int docId, string callsign, CancellationToken ct = default) =>
@@ -229,7 +242,7 @@ public sealed class VloaProfileService : IVloaProfileService
         ToggleAsync(docId, sectionTitle, Target.Section, ct);
 
     public async Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default) =>
-        (await _repo.LoadProfileAsync(docId, ct)).HiddenSections;
+        (await _repo.LoadEditorialAsync(docId, ct)).HiddenSections;
 
     private enum Target { Aor, Freq, Section }
 
@@ -239,23 +252,15 @@ public sealed class VloaProfileService : IVloaProfileService
             ?? throw new Aor.ValidationException("vLOA inesistente.");
         await _authz.EnsureCanEditAccAsync(homeAcc, ct);
 
-        var state = await _repo.LoadProfileAsync(docId, ct);
+        var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);
         var hiddenFreq = new HashSet<string>(state.HiddenFrequencies, StringComparer.OrdinalIgnoreCase);
         var hiddenSec = new HashSet<string>(state.HiddenSections, StringComparer.OrdinalIgnoreCase);
         var target = which switch { Target.Aor => hiddenAor, Target.Freq => hiddenFreq, _ => hiddenSec };
         if (!target.Add(key)) target.Remove(key);   // toggle
 
-        await _repo.SaveProfileAsync(docId,
-            new VloaProfileState(hiddenAor.ToList(), hiddenFreq.ToList(), hiddenSec.ToList()), ct);
+        await _repo.SaveEditorialAsync(docId,
+            new VloaEditorialState(hiddenAor.ToList(), hiddenFreq.ToList(), hiddenSec.ToList()), ct);
     }
 
-    private static string KindLabel(TransferFlowKind kind) => kind switch
-    {
-        TransferFlowKind.Arrival => "Arrivi",
-        TransferFlowKind.Departure => "Partenze",
-        TransferFlowKind.Overflight => "Sorvoli",
-        TransferFlowKind.Vfr => "VFR",
-        _ => "Altro",
-    };
 }

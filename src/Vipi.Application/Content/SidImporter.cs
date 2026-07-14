@@ -8,11 +8,11 @@ namespace Vipi.Application.Content;
 public sealed class SidImporter : ISidImporter
 {
     private readonly ISidProvider _provider;
-    private readonly IAirportProfileRepository _repo;
+    private readonly IAirportRepository _repo;
     private readonly IImportPolicyStore _policy;
     private readonly IAiracService _airac;
 
-    public SidImporter(ISidProvider provider, IAirportProfileRepository repo, IImportPolicyStore policy, IAiracService airac)
+    public SidImporter(ISidProvider provider, IAirportRepository repo, IImportPolicyStore policy, IAiracService airac)
     {
         _provider = provider;
         _repo = repo;

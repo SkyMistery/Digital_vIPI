@@ -48,7 +48,7 @@ public sealed record ExtraSectionRow(int Id, string Title, string? Body);
 public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz);
 
 /// <summary>Profilo completo dell'aeroporto per editor e viewer.</summary>
-public sealed class AirportProfileData
+public sealed class AirportData
 {
     public required int AirportId { get; init; }
     public required string Icao { get; init; }

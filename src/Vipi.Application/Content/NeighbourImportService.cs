@@ -96,11 +96,17 @@ public sealed class NeighbourImportService : INeighbourImportService
             NeighbourDebugLog.Log($"  HIT {hit.HomeSector} × {hit.ForeignSector}  dist={hit.DistanceNm:0.0}NM");
 
         // 3b) Persisti il catalogo degli ACC esteri confinanti (Acc IsForeign + subcenter) e riproietta i Sector.
+        //     Atomico: persist + riproiezione vivono/muoiono insieme (un persist committato senza riproiezione
+        //     lascerebbe ACC esteri senza settori operativi = stato incoerente). Stesso context scoped → stessa tx.
         if (computed.ForeignCatalog.Count > 0)
         {
-            await repo.PersistForeignCatalogAsync(computed.ForeignCatalog, ct);
+            var uow = dbScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var projection = dbScope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
-            await projection.SyncFromCatalogsAsync(ct);
+            await uow.ExecuteInTransactionAsync(async c =>
+            {
+                await repo.PersistForeignCatalogAsync(computed.ForeignCatalog, c);
+                await projection.SyncFromCatalogsAsync(c);
+            }, ct);
             NeighbourDebugLog.Log($"Foreign catalog persisted: {computed.ForeignCatalog.Count} ACC, {computed.ForeignCatalog.Sum(f => f.Subcenters.Count)} subcenters. Projected.");
         }
 

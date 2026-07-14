@@ -1,0 +1,48 @@
+@* Banner di revisione pendente di un documento. Un evento a monte (es. un settore nascosto in /vsop/admin/acc) può
+   aver reso stantii FREQUENZE/AoR/CONFIGURAZIONI: si mostra il motivo e un pulsante per sciogliere la revisione una
+   volta rivisto. Componente autonomo: passa il DocumentId, interroga lo stato e lo scioglie da sé. *@
+@using Vipi.Application.Content
+@inject IDocumentReviewService Review
+
+@if (_state?.NeedsReviewUtc is not null)
+{
+    <div class="callout warning" style="align-items:center">
+        <span class="cic">⚠️</span>
+        <div style="flex:1">
+            <p class="ct">Revisione consigliata</p>
+            @(_state.ReviewReason ?? "Contenuti derivati potenzialmente stantii.")
+        </div>
+        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="Segna il documento come rivisto">✓ Segna come rivista</button>
+    </div>
+}
+
+@code {
+    /// <summary>Documento di cui mostrare lo stato di revisione. null = niente banner.</summary>
+    [Parameter] public int? DocumentId { get; set; }
+    /// <summary>Notifica opzionale alla pagina quando la revisione viene sciolta.</summary>
+    [Parameter] public EventCallback OnResolved { get; set; }
+
+    private DocumentReviewState? _state;
+    private int? _loadedFor;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (DocumentId == _loadedFor) return;   // evita ricariche a ogni render
+        _loadedFor = DocumentId;
+        _state = DocumentId is int id ? await Review.GetAsync(id) : null;
+    }
+
+    private async Task Resolve()
+    {
+        if (DocumentId is not int id) return;
+        _busy = true;
+        try
+        {
+            await Review.ClearReviewAsync(id);
+            _state = null;
+            await OnResolved.InvokeAsync();
+        }
+        finally { _busy = false; }
+    }
+}

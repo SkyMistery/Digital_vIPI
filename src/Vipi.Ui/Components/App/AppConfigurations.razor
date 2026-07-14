@@ -1,0 +1,123 @@
+@* Sezione Configurazioni CONDIVISA (vIPI ACC blocco Aerovia/gruppo-APP + vIPI APP standalone). In edit: crea/rinomina
+   configurazioni, scegli i settori aperti, imposta Center Point/Range per settore unificato; il sistema deriva
+   l'accorpamento (Tables). In lettura: le tabelle accorpamento in <details>. Emette l'intera lista via ConfigsChanged. *@
+@using Vipi.Application.Content
+
+@if (Editing)
+{
+    <p class="help" style="margin:0 0 8px">Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</p>
+    @foreach (var c in Configs)
+    {
+        var cfg = c;
+        var tbl = Tables.FirstOrDefault(t => t.ConfigKey == cfg.Key);
+        <div class="block" style="margin-bottom:10px">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                <input class="app-in" placeholder="Nome configurazione" value="@cfg.Name" @onchange="e => SetName(cfg, AsString(e.Value))" />
+                <button class="btn ghost" title="Rimuovi configurazione" @onclick="() => Remove(cfg)">✕</button>
+            </div>
+            <p class="app-lbl" style="margin:0 0 4px">Settori aperti</p>
+            <div class="sector-pick">
+                @foreach (var s in Pool)
+                {
+                    var sec = s;
+                    var on = cfg.OpenCallsigns.Contains(sec.Callsign, StringComparer.OrdinalIgnoreCase);
+                    <button type="button" class="sp-item @(on ? "on" : "")" @onclick="() => ToggleSector(cfg, sec.Callsign)">@sec.Callsign</button>
+                }
+            </div>
+            @if (cfg.Open.Count > 0)
+            {
+                <table class="cfg-table" style="margin-top:8px">
+                    <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                    <tbody>
+                        @foreach (var o in cfg.Open)
+                        {
+                            var open = o;
+                            var row = tbl?.Rows.FirstOrDefault(r => string.Equals(r.UnifiedCallsign, open.Callsign, StringComparison.OrdinalIgnoreCase));
+                            <tr class="grp-start">
+                                <td class="uni">@open.Callsign</td>
+                                <td class="muted">@(row is null ? "—" : string.Join(", ", row.Absorbed))</td>
+                                <td><input class="app-in" placeholder="es. GINEL" value="@open.CenterPoint" @onchange="e => SetCp(open, AsString(e.Value))" /></td>
+                                <td><input class="app-in" placeholder="es. 140" value="@open.Range" @onchange="e => SetRange(open, AsString(e.Value))" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+    <button class="btn ghost" @onclick="Add">+ Aggiungi configurazione</button>
+}
+else
+{
+    @if (Tables.Count == 0)
+    {
+        <p class="muted">Nessuna configurazione operativa.</p>
+    }
+    @foreach (var cfg in Tables)
+    {
+        <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@MapScope">
+            <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
+            <div class="body">
+                <table class="cfg-table">
+                    <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in cfg.Rows)
+                        {
+                            <tr class="grp-start">
+                                <td class="uni">@row.UnifiedCallsign</td>
+                                <td>@string.Join(", ", row.Absorbed)</td>
+                                <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
+                                <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AccConfiguration> Configs { get; set; } = Array.Empty<AccConfiguration>();
+    [Parameter] public IReadOnlyList<AccSectorPick> Pool { get; set; } = Array.Empty<AccSectorPick>();
+    [Parameter] public IReadOnlyList<AccConfigTableView> Tables { get; set; } = Array.Empty<AccConfigTableView>();
+    [Parameter] public bool Editing { get; set; }
+    /// <summary>Scope della mappa AoR associata (= Id passato a AccAor / <c>data-aor</c>): lega i details config alla mappa (vipi-aor.js).</summary>
+    [Parameter] public string? MapScope { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<AccConfiguration>> ConfigsChanged { get; set; }
+    /// <summary>Conferma opzionale prima di rimuovere (host = JS confirm). Null = rimuovi senza chiedere.</summary>
+    [Parameter] public Func<AccConfiguration, Task<bool>>? ConfirmRemove { get; set; }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    // Gli AccConfiguration/AccConfigOpen sono mutabili: si modificano in place e si riemette l'intera lista (l'host salva).
+    private Task Emit() => ConfigsChanged.InvokeAsync(Configs);
+
+    private Task Add()
+    {
+        var next = Configs.ToList();
+        next.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = "Nuova configurazione" });
+        return ConfigsChanged.InvokeAsync(next);
+    }
+
+    private async Task Remove(AccConfiguration cfg)
+    {
+        if (ConfirmRemove is not null && !await ConfirmRemove(cfg)) return;
+        var next = Configs.ToList();
+        next.Remove(cfg);
+        await ConfigsChanged.InvokeAsync(next);
+    }
+
+    private Task SetName(AccConfiguration cfg, string name) { cfg.Name = name; return Emit(); }
+
+    private Task ToggleSector(AccConfiguration cfg, string cs)
+    {
+        var existing = cfg.Open.FirstOrDefault(o => string.Equals(o.Callsign, cs, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) cfg.Open.Remove(existing);
+        else cfg.Open.Add(new AccConfigOpen { Callsign = cs });
+        return Emit();
+    }
+
+    private Task SetCp(AccConfigOpen o, string v) { o.CenterPoint = v; return Emit(); }
+    private Task SetRange(AccConfigOpen o, string v) { o.Range = v; return Emit(); }
+}

@@ -1,11 +1,13 @@
 @* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup). *@
 @if (Section.Depth == 0)
 {
-    <div class="block" id="@Section.Id">
-        <h3 style="margin-top:0">@Section.Title</h3>
-        @Blocks
-        @Children
-    </div>
+    <CollapsibleBlock Id="@Section.Id">
+        <Header><h3 style="margin-top:0">@Section.Title</h3></Header>
+        <ChildContent>
+            @Blocks
+            @Children
+        </ChildContent>
+    </CollapsibleBlock>
 }
 else
 {

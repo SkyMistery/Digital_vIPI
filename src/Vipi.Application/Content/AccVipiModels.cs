@@ -33,7 +33,7 @@ public sealed class AccRegulatedArea
 
 /// <summary>
 /// Un blocco della vIPI ACC: Aerovia (settori CTR, pool implicito) o gruppo-APP (settori APP scelti).
-/// Contiene lo stato editoriale stile AppProfile + le configurazioni che guidano l'AoR.
+/// Contiene lo stato editoriale (sezioni/override) + le configurazioni che guidano l'AoR.
 /// </summary>
 public sealed class AccBlock
 {
@@ -64,7 +64,7 @@ public sealed class AccBlock
 }
 
 /// <summary>Dati completi della vIPI ACC per editor e viewer: identità + blocchi.</summary>
-public sealed class AccProfileData
+public sealed class AccVipiData
 {
     public required string AccCode { get; init; }
     public required string AccName { get; init; }
@@ -93,8 +93,12 @@ public sealed record AccSpecialAreaView(
 /// <summary>Flussi verso un aeroporto (foglia dell'albero): arrivi + partenze separati.</summary>
 public sealed record AccAirportFlows(string AirportLabel, IReadOnlyList<AppCoordRow> Arrivals, IReadOnlyList<AppCoordRow> Departures);
 
-/// <summary>Aeroporti di un ACC (secondo livello): tutti gli aeroporti di quell'ACC a cui il settore trasferisce.</summary>
-public sealed record AccAccAirports(string AccLabel, IReadOnlyList<AccAirportFlows> Airports);
+/// <summary>Flussi senza aeroporto (sorvoli/VFR/altro) sotto un ACC, raggruppati per etichetta di tipo.</summary>
+public sealed record AccExtraFlows(string KindLabel, IReadOnlyList<AppCoordRow> Rows);
+
+/// <summary>Aeroporti di un ACC (secondo livello): gli aeroporti a cui il settore trasferisce (arrivi/partenze)
+/// + i flussi senza aeroporto (<see cref="Extras"/>: sorvoli/VFR/altro).</summary>
+public sealed record AccAccAirports(string AccLabel, IReadOnlyList<AccAirportFlows> Airports, IReadOnlyList<AccExtraFlows> Extras);
 
 /// <summary>Coordinamenti di un settore del blocco (primo livello, es. «NE»): ACC → Aeroporto → Arrivi/Partenze.</summary>
 public sealed record AccSectorApps(string SectorLabel, IReadOnlyList<AccAccAirports> Accs);
@@ -116,9 +120,10 @@ public sealed record AccSectorAor(string Callsign, string Name, string Color, IR
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
 public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);
 
-/// <summary>Riga tabella accorpamento derivata: settore unificato (aperto) + settori assorbiti + CP/Range manuali.</summary>
+/// <summary>Riga tabella accorpamento derivata: settore unificato (aperto) + settori assorbiti + CP/Range manuali.
+/// Settore unificato e assorbiti sono espressi come <b>callsign</b> (es. <c>LIRR_NE_CTR</c>), non come nome.</summary>
 public sealed record AccConfigTableRow(
-    string UnifiedCallsign, string UnifiedName, IReadOnlyList<string> Absorbed, string? CenterPoint, string? Range);
+    string UnifiedCallsign, IReadOnlyList<string> Absorbed, string? CenterPoint, string? Range);
 
 /// <summary>Tabella accorpamento di una configurazione (derivata via AorService).</summary>
 public sealed record AccConfigTableView(string ConfigKey, string ConfigName, IReadOnlyList<AccConfigTableRow> Rows);

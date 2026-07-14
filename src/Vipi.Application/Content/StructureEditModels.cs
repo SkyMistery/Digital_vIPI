@@ -5,6 +5,10 @@ namespace Vipi.Application.Content;
 /// <summary>Riga ACC per l'elenco struttura.</summary>
 public sealed record AccRow(int Id, string Code, string Name, string CountryPrefix, int Sectors);
 
+/// <summary>Esito del lookup di un aeroporto sulla sorgente esterna (IVAO), SOLO per riempire il nome di un
+/// aeroporto fuori DB. <paramref name="AccCode"/> = ACC/FIR di competenza (centerId), se noto.</summary>
+public sealed record ExternalAirportInfo(string Icao, string Name, string? City, string? AccCode);
+
 /// <summary>Aeroporto di una ACC per l'editor struttura.
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).</summary>
 public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null, bool IsHidden = false,

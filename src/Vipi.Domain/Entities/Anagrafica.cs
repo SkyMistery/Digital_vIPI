@@ -378,7 +378,7 @@ public class AirportFrequencyLink
 //  Profilo della vIPI di ACC: documento a BLOCCHI (Aerovia/CTR + gruppi APP). 1:1 con l'Acc.
 //  Tutta la struttura (blocchi, sezioni, ordine, hidden, custom, configurazioni, editoriale)
 //  è serializzata in BlocksJson; le sezioni derivate (AoR/Frequenze/Coordinamenti) si calcolano
-//  LIVE dai cataloghi/trasferimenti. Mirror, in chiave ACC multi-settore, di AppProfile.
+//  LIVE dai cataloghi/trasferimenti. Mirror, in chiave ACC multi-settore, del blocco APP.
 // =========================================================================================
 
 /// <summary>

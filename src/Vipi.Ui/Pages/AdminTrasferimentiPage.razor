@@ -20,7 +20,7 @@
 </style>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Trasferimenti</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Trasferimenti</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Trasferimenti tra settori</h2><span class="muted">Per ogni <b>settore</b> i trasferimenti sono raggruppati per <b>aeroporto</b> e per <b>tipo</b> (arrivi/partenze); ogni riga indica il <b>punto</b>, la <b>quota</b> e il <b>settore ricevente</b>. Nella vista operativa, se un settore è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</span></div>
     </div>
@@ -33,6 +33,8 @@
     {
         @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
         @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+
+        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
 
         @* ---- Scelta ACC ---- *@
         <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
@@ -47,7 +49,7 @@
                     @foreach (var a in Stations.Accs)
                     {
                         var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
-                        <button class="btn @(active ? "primary" : "ghost")" disabled="@_busy" title="@a.Name" @onclick="() => SelectAcc(a.Code)">@a.Code</button>
+                        <button class="btn @(active ? "primary" : "ghost")" disabled="@(_busy)" title="@a.Name" @onclick="() => SelectAcc(a.Code)">@a.Code</button>
                     }
                 </div>
             }
@@ -96,6 +98,16 @@
                             </div>
                         }
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(_fApt) && !IsKnownApt(_fApt))
+                    {
+                        <div class="field"><label>Nome aeroporto <span class="muted" style="font-weight:400">(fuori DB)</span></label>
+                            <div style="display:flex;gap:6px">
+                                <input placeholder="es. Parigi Charles de Gaulle" @bind="_fAptName" title="Mostrato accanto all'ICAO nelle sezioni trasferimenti" />
+                                <button type="button" class="btn ghost" style="white-space:nowrap" disabled="@_busy" @onclick="() => LookupApt(false)" title="Cerca il nome su IVAO (non aggiunge l'aeroporto al catalogo)">🔍 IVAO</button>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(_fAptMsg)) { <span class="muted" style="font-size:11.5px">@_fAptMsg</span> }
+                        </div>
+                    }
                     <div class="field narrow"><label>Tipo</label>
                         <select @bind="_fKind">
                             <option value="@TransferFlowKind.Arrival">Arrivi</option>
@@ -106,9 +118,12 @@
                         </select>
                     </div>
                     <div class="field"><label>Descrizione (opz.)</label><input placeholder="Roma NE trasferisce…" @bind="_fDesc" /></div>
-                    <button class="btn primary" disabled="@(_busy || _fSector == 0)" @onclick="AddFlow">+ Gruppo</button>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit || _fSector == 0 || NewAptMissingName(_fApt, _fAptName))" @onclick="AddFlow">+ Gruppo</button>
+                    @if (_canEdit && _fSector == 0) { <span class="muted" style="font-size:12px;align-self:center">Seleziona il settore mittente per abilitare</span> }
+                    else if (_canEdit && AirportRequiredMissing(_fKind, _fApt)) { <span class="muted" style="font-size:12px;align-self:center">Arrivi/Partenze richiedono un aeroporto</span> }
+                    else if (_canEdit && NewAptMissingName(_fApt, _fAptName)) { <span class="muted" style="font-size:12px;align-self:center">Aeroporto fuori DB: indica il nome</span> }
                 </div>
-                <p class="help" style="margin:6px 0 0">L'aeroporto può essere di uno stato estero (ICAO libero). Sorvoli/VFR possono restare senza aeroporto.</p>
+                <p class="help" style="margin:6px 0 0">L'aeroporto può essere di uno stato estero (ICAO libero). Sorvoli/VFR possono restare senza aeroporto: in quel caso è il <b>settore ricevente</b> di ogni riga (interno o estero confinante) a farli comparire nei coordinamenti — senza ricevente la riga resta UNICOM e non viene derivata.</p>
             </div>
 
             @if (_flows.Count == 0)
@@ -155,7 +170,7 @@
                     <div class="block">
                         <h5 style="margin:0;cursor:pointer" @onclick="() => ToggleApt(aptKey)">
                             <span style="display:inline-block;width:1em">@(aptOpen ? "▾" : "▸")</span>
-                            @(string.IsNullOrWhiteSpace(aptGroup.Key) ? "Senza aeroporto" : $"✈ {aptGroup.Key}")
+                            @AptHeader(aptGroup.Key)
                         </h5>
                         @if (aptOpen)
                         {
@@ -167,18 +182,22 @@
                                     <span style="display:inline-block;width:1em">@(flowOpen ? "▾" : "▸")</span>
                                     <span class="pill blue">@KindLabel(f.Kind)</span>
                                     <span class="muted" style="font-size:12px;font-weight:400">@f.Points.Count righe</span>
+                                    @if (f.Points.Count > 0 && f.Points.All(p => string.IsNullOrWhiteSpace(p.NextSectorCallsign)))
+                                    {
+                                        <span class="pill" style="background:#f4c542;color:#3a2f00" title="Ogni riga è UNICOM: senza settore ricevente il flusso non compare nei coordinamenti derivati">⚠ nessun ricevente</span>
+                                    }
                                 </h4>
                                 <span class="ln"></span>
                                 @if (_confirmDeleteFlowId == f.Id)
                                 {
                                     <span class="muted" style="font-size:12.5px">Eliminare? <b>@f.Points.Count righe</b></span>
-                                    <button class="btn danger" disabled="@_busy" @onclick="() => DeleteFlow(f.Id)">Sì, elimina</button>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _confirmDeleteFlowId = null">Annulla</button>
+                                    <button class="btn danger" disabled="@(_busy || !_canEdit)" @onclick="() => DeleteFlow(f.Id)">Sì, elimina</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _confirmDeleteFlowId = null">Annulla</button>
                                 }
                                 else
                                 {
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => EditFlow(f)">✎ Gruppo</button>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _confirmDeleteFlowId = f.Id">✕ Gruppo</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditFlow(f)">✎ Gruppo</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _confirmDeleteFlowId = f.Id">✕ Gruppo</button>
                                 }
                             </div>
                             @if (!flowOpen) { continue; }
@@ -210,9 +229,21 @@
                                         </select>
                                     </div>
                                     <div class="field narrow"><label>Aeroporto</label><input placeholder="LIRF / —" @bind="_efApt" /></div>
+                                    @if (!string.IsNullOrWhiteSpace(_efApt) && !IsKnownApt(_efApt))
+                                    {
+                                        <div class="field"><label>Nome aeroporto <span class="muted" style="font-weight:400">(fuori DB)</span></label>
+                                            <div style="display:flex;gap:6px">
+                                                <input placeholder="es. Parigi Charles de Gaulle" @bind="_efAptName" />
+                                                <button type="button" class="btn ghost" style="white-space:nowrap" disabled="@_busy" @onclick="() => LookupApt(true)" title="Cerca il nome su IVAO (non aggiunge l'aeroporto al catalogo)">🔍 IVAO</button>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(_efAptMsg)) { <span class="muted" style="font-size:11.5px">@_efAptMsg</span> }
+                                        </div>
+                                    }
                                     <div class="field"><label>Descrizione (opz.)</label><input placeholder="Roma NE trasferisce…" @bind="_efDesc" /></div>
-                                    <button class="btn primary" disabled="@_busy" @onclick="() => SaveFlow(f.Id)">💾 Salva</button>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _editFlowId = null">Annulla</button>
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || NewAptMissingName(_efApt, _efAptName))" @onclick="() => SaveFlow(f.Id)">💾 Salva</button>
+                                    @if (_canEdit && AirportRequiredMissing(_efKind, _efApt)) { <span class="muted" style="font-size:12px;align-self:center">Arrivi/Partenze richiedono un aeroporto</span> }
+                                    else if (_canEdit && NewAptMissingName(_efApt, _efAptName)) { <span class="muted" style="font-size:12px;align-self:center">Aeroporto fuori DB: indica il nome</span> }
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editFlowId = null">Annulla</button>
                                 </div>
                             }
                             else if (!string.IsNullOrWhiteSpace(f.Description)) { <p class="muted" style="margin:0 0 8px;font-size:13.5px">@f.Description</p> }
@@ -242,6 +273,11 @@
                                                         <input type="number" style="width:70px" @bind="_epValue" />
                                                         <select @bind="_epUnit" style="width:56px"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
                                                     }
+                                                    <select @bind="_epParity" style="width:78px" title="Livelli semicircolari">
+                                                        <option value="@LevelParity.Any">Tutti</option>
+                                                        <option value="@LevelParity.Even">Pari</option>
+                                                        <option value="@LevelParity.Odd">Dispari</option>
+                                                    </select>
                                                 </td>
                                                 <td>
                                                     <div class="sector-pick-wrap">
@@ -261,8 +297,8 @@
                                                     </div>
                                                 </td>
                                                 <td style="white-space:nowrap">
-                                                    <button class="btn primary" disabled="@_busy" @onclick="() => SavePoint(p.Id)">💾</button>
-                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _editPointId = null">✕</button>
+                                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SavePoint(p.Id)">💾</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editPointId = null">✕</button>
                                                 </td>
                                             </tr>
                                         }
@@ -273,10 +309,10 @@
                                                 <td>@p.LevelText</td>
                                                 <td>@(p.NextSectorCallsign ?? "—")</td>
                                                 <td style="white-space:nowrap">
-                                                    <button class="btn ghost" disabled="@(_busy || p.Id == f.Points[0].Id)" title="Sposta su" @onclick="() => Move(p.Id, true)">▲</button>
-                                                    <button class="btn ghost" disabled="@(_busy || p.Id == f.Points[^1].Id)" title="Sposta giù" @onclick="() => Move(p.Id, false)">▼</button>
-                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => EditPoint(p)">✎</button>
-                                                    <button class="btn ghost" disabled="@_busy" @onclick="() => DeletePoint(p.Id)">✕</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="Sposta su" @onclick="() => Move(p.Id, true)">▲</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="Sposta giù" @onclick="() => Move(p.Id, false)">▼</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditPoint(p)">✎</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => DeletePoint(p.Id)">✕</button>
                                                 </td>
                                             </tr>
                                         }
@@ -307,6 +343,13 @@
                                             <select @bind="_pUnit"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
                                         </div>
                                     }
+                                    <div class="field narrow"><label>Livelli <span class="muted" style="font-weight:400">(semicircolare)</span></label>
+                                        <select @bind="_pParity">
+                                            <option value="@LevelParity.Any">Tutti</option>
+                                            <option value="@LevelParity.Even">Pari</option>
+                                            <option value="@LevelParity.Odd">Dispari</option>
+                                        </select>
+                                    </div>
                                     <div class="field sector-pick-wrap"><label>Settore ricevente <span class="muted" style="font-weight:400">(vuoto = UNICOM)</span></label>
                                         <input placeholder="cerca callsign…" @bind="_pNextText" @bind:event="oninput" @bind:after="ResolvePNext"
                                                @onfocus="() => _pOpen = true" @onblur="() => _pOpen = false" />
@@ -322,13 +365,13 @@
                                             </div>
                                         }
                                     </div>
-                                    <button class="btn primary" disabled="@_busy" @onclick="() => AddPoint(f.Id)">Aggiungi riga</button>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _addPointFlowId = null">Annulla</button>
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => AddPoint(f.Id)">Aggiungi riga</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _addPointFlowId = null">Annulla</button>
                                 </div>
                             }
                             else
                             {
-                                <button class="btn ghost" style="margin-top:8px" disabled="@_busy" @onclick="() => OpenAddPoint(f.Id)">+ Riga (CoP/quota/ricevente)</button>
+                                <button class="btn ghost" style="margin-top:8px" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddPoint(f.Id)">+ Riga (CoP/quota/ricevente)</button>
                             }
                         }
                         }
@@ -348,7 +391,10 @@
     private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
     private IReadOnlyList<NeighbourCandidateRow> _candidates = Array.Empty<NeighbourCandidateRow>();
     private bool _busy;
+    private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
     private string? _status, _error;
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     // Stato collasso (chiavi presenti = collassate): settore, aeroporto (settore|icao), gruppo arrivi/partenze (flowId).
     private readonly HashSet<string> _collapsedSec = new(StringComparer.OrdinalIgnoreCase);
@@ -359,7 +405,8 @@
     private int _fSector;
     private string _fSectorText = "";
     private TransferFlowKind _fKind = TransferFlowKind.Arrival;
-    private string _fApt = "", _fDesc = "";
+    private string _fApt = "", _fAptName = "", _fDesc = "";
+    private string? _fAptMsg, _efAptMsg;   // esito lookup IVAO del nome aeroporto fuori DB (add / edit)
 
     // form nuova riga (punto) del gruppo _addPointFlowId. _pNextText = ricerca callsign; _pNext = id risolto (0 = UNICOM).
     private int? _addPointFlowId;
@@ -368,13 +415,14 @@
     private int? _pValue;
     private LevelUnit _pUnit = LevelUnit.Fl;
     private string _pSpecial = "";
+    private LevelParity _pParity = LevelParity.Any;
     private int _pNext;
     private string _pNextText = "";
 
     // form edit gruppo (flusso) in-place. _efSector = id mittente risolto (editabile).
     private int? _editFlowId;
     private TransferFlowKind _efKind = TransferFlowKind.Arrival;
-    private string _efApt = "", _efDesc = "";
+    private string _efApt = "", _efAptName = "", _efDesc = "";
     private int _efSector;
     private string _efSectorText = "";
     private bool _efOpen;
@@ -413,6 +461,7 @@
     private int? _epValue;
     private LevelUnit _epUnit = LevelUnit.Fl;
     private string _epSpecial = "";
+    private LevelParity _epParity = LevelParity.Any;
     private int _epNext;
     private string _epNextText = "";
 
@@ -441,7 +490,51 @@
         || a.Icao.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)
         || a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
 
-    private void PickApt(AirportAdminRow a) { _fApt = a.Icao; _aOpen = false; }
+    private void PickApt(AirportAdminRow a) { _fApt = a.Icao; _fAptName = ""; _aOpen = false; }
+
+    // Aeroporto fuori DB (nuovo/estero) senza nome: va bloccato, il nome è obbligatorio per gli aeroporti a mano.
+    private bool NewAptMissingName(string icao, string name) =>
+        !string.IsNullOrWhiteSpace(icao) && !IsKnownApt(icao) && string.IsNullOrWhiteSpace(name);
+
+    // Aeroporto già nel catalogo DB? Se sì il nome viene da lì e non serve chiederlo.
+    private bool IsKnownApt(string icao) =>
+        _airports.Any(a => string.Equals(a.Icao, icao.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    // Cerca il nome dell'aeroporto fuori DB su IVAO (per-ICAO, anche estero) e riempie il campo nome.
+    // NON lo aggiunge al catalogo: resta un nome libero sul flusso (così non compare nei picker «Nuovo documento»).
+    private async Task LookupApt(bool edit)
+    {
+        var icao = ((edit ? _efApt : _fApt) ?? "").Trim().ToUpperInvariant();
+        if (icao.Length < 3) { SetAptMsg(edit, "Digita prima l'ICAO."); return; }
+        _busy = true;
+        SetAptMsg(edit, "Ricerca su IVAO…");
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var info = await Struct.LookupExternalAirportAsync(icao);
+            if (info is null) { SetAptMsg(edit, $"«{icao}» non trovato su IVAO."); }
+            else
+            {
+                if (edit) _efAptName = info.Name; else _fAptName = info.Name;
+                var extra = string.Join(" · ", new[] { info.City, info.AccCode }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                SetAptMsg(edit, $"✓ {info.Icao} — {info.Name}{(extra.Length > 0 ? $" ({extra})" : "")}");
+            }
+        }
+        catch (Exception ex) { SetAptMsg(edit, $"Errore: {ex.Message}"); }
+        finally { _busy = false; }
+    }
+
+    private void SetAptMsg(bool edit, string msg) { if (edit) _efAptMsg = msg; else _fAptMsg = msg; }
+
+    // Etichetta header aeroporto: «✈ ICAO — Nome» (catalogo DB o nome salvato sul flusso); «Senza aeroporto» se null.
+    private string AptHeader(string? icao)
+    {
+        if (string.IsNullOrWhiteSpace(icao)) return "Senza aeroporto";
+        var name = _airports.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase))?.Name
+            ?? _flows.FirstOrDefault(f => string.Equals(f.AirportIcao, icao, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(f.AirportName))?.AirportName;
+        return string.IsNullOrWhiteSpace(name) ? $"✈ {icao}" : $"✈ {icao} — {name}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -462,7 +555,7 @@
     {
         _status = _error = null;
         _addPointFlowId = null;
-        _fSector = 0; _fSectorText = ""; _fApt = ""; _fDesc = "";
+        _fSector = 0; _fSectorText = ""; _fApt = ""; _fAptName = ""; _fDesc = "";
         _acc = string.IsNullOrWhiteSpace(_accCode) ? null : Stations.Resolve(_accCode);
         if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); return; }
         await LoadAsync();
@@ -497,6 +590,10 @@
         _ => "Altro",
     };
 
+    // Arrivi/Partenze richiedono un aeroporto (destinazione/origine): specchia la validazione del service.
+    private static bool AirportRequiredMissing(TransferFlowKind kind, string apt) =>
+        kind is TransferFlowKind.Arrival or TransferFlowKind.Departure && string.IsNullOrWhiteSpace(apt);
+
     private void ToggleSec(string key) { if (!_collapsedSec.Add(key)) _collapsedSec.Remove(key); }
     private void ToggleApt(string key) { if (!_collapsedApt.Add(key)) _collapsedApt.Remove(key); }
     private void ToggleFlow(int id) { if (!_collapsedFlow.Add(id)) _collapsedFlow.Remove(id); }
@@ -506,7 +603,7 @@
         _editPointId = null; _editFlowId = null;
         _addPointFlowId = flowId;
         _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
-        _pSpecial = ""; _pNext = 0; _pNextText = "";
+        _pSpecial = ""; _pParity = LevelParity.Any; _pNext = 0; _pNextText = "";
     }
 
     private async Task AddFlow()
@@ -517,9 +614,10 @@
             {
                 OwningSectorId = _fSector, Kind = _fKind,
                 AirportIcao = string.IsNullOrWhiteSpace(_fApt) ? null : _fApt,
+                AirportName = IsKnownApt(_fApt) ? null : _fAptName,
                 Description = string.IsNullOrWhiteSpace(_fDesc) ? null : _fDesc,
             });
-            _fSector = 0; _fSectorText = ""; _fApt = ""; _fDesc = "";
+            _fSector = 0; _fSectorText = ""; _fApt = ""; _fAptName = ""; _fDesc = "";
         }, "Gruppo aggiunto.");
     }
 
@@ -534,7 +632,7 @@
     private void EditFlow(TransferFlowRow f)
     {
         _editPointId = null; _addPointFlowId = null;
-        _editFlowId = f.Id; _efKind = f.Kind; _efApt = f.AirportIcao ?? ""; _efDesc = f.Description ?? "";
+        _editFlowId = f.Id; _efKind = f.Kind; _efApt = f.AirportIcao ?? ""; _efAptName = f.AirportName ?? ""; _efDesc = f.Description ?? "";
         _efSector = f.OwningSectorId; _efSectorText = f.OwningSectorCallsign; _efOpen = false;
     }
 
@@ -546,6 +644,7 @@
             {
                 OwningSectorId = _efSector, Kind = _efKind,
                 AirportIcao = string.IsNullOrWhiteSpace(_efApt) ? null : _efApt,
+                AirportName = IsKnownApt(_efApt) ? null : _efAptName,
                 Description = string.IsNullOrWhiteSpace(_efDesc) ? null : _efDesc,
             });
             _editFlowId = null;
@@ -557,7 +656,7 @@
         _editFlowId = null; _addPointFlowId = null;
         _editPointId = p.Id;
         _epCop = p.Cop; _epConstraint = p.LevelConstraint; _epValue = p.LevelValue; _epUnit = p.LevelUnit;
-        _epSpecial = p.LevelSpecial ?? ""; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
+        _epSpecial = p.LevelSpecial ?? ""; _epParity = p.Parity; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
     }
 
     private async Task SavePoint(int pointId)
@@ -567,7 +666,7 @@
             await Transfers.UpdatePointAsync(_acc!.Code, pointId, new TransferPointInput
             {
                 Cop = _epCop, LevelValue = _epValue, LevelUnit = _epUnit, LevelConstraint = _epConstraint,
-                LevelSpecial = _epSpecial, NextSectorId = _epNext == 0 ? null : _epNext,
+                LevelSpecial = _epSpecial, Parity = _epParity, NextSectorId = _epNext == 0 ? null : _epNext,
             });
             _editPointId = null;
         }, "Riga aggiornata.");
@@ -580,7 +679,7 @@
             await Transfers.AddPointAsync(_acc!.Code, flowId, new TransferPointInput
             {
                 Cop = _pCop, LevelValue = _pValue, LevelUnit = _pUnit, LevelConstraint = _pConstraint,
-                LevelSpecial = _pSpecial, NextSectorId = _pNext == 0 ? null : _pNext,
+                LevelSpecial = _pSpecial, Parity = _pParity, NextSectorId = _pNext == 0 ? null : _pNext,
             });
             _addPointFlowId = null;
         }, "Riga aggiunta.");

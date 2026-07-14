@@ -61,22 +61,35 @@ public interface IAppDocumentService
 
     /// <summary>Salva l'override per-documento del template della frase di coordinamento (null/vuoto = default; ACC-gated).</summary>
     Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
+
+    /// <summary>Settori APP selezionabili nelle configurazioni (i settori APP del dominio di copertura, primario incluso).</summary>
+    Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Configurazioni operative salvate (blocco keyed <c>configurations</c>). Vuoto se assente/non migrato.</summary>
+    Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva le configurazioni nel blocco keyed <c>configurations</c> del Document (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
+
+    /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero APP.</summary>
+    Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAppDocumentService"/>
 public sealed class AppDocumentService : IAppDocumentService
 {
-    private readonly IAppProfileRepository _apps;
+    private readonly IAppDerivationRepository _apps;
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
     private readonly ITransferService _transfers;
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IDocumentProfileRepository _docProfiles;
+    private readonly Aor.IAorService _aor;
 
-    public AppDocumentService(IAppProfileRepository apps, IEditingRepository editing, IEditAuthorizationService authz,
+    public AppDocumentService(IAppDerivationRepository apps, IEditingRepository editing, IEditAuthorizationService authz,
         ITopologyProvider topology, ITransferService transfers, ICoordinationSentenceTemplate sentence,
-        IDocumentProfileRepository docProfiles)
+        IDocumentProfileRepository docProfiles, Aor.IAorService aor)
     {
         _apps = apps;
         _editing = editing;
@@ -85,6 +98,7 @@ public sealed class AppDocumentService : IAppDocumentService
         _transfers = transfers;
         _sentence = sentence;
         _docProfiles = docProfiles;
+        _aor = aor;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
@@ -92,7 +106,7 @@ public sealed class AppDocumentService : IAppDocumentService
     // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
     // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
     private static readonly string[] LiveKeys =
-        { "separations", "aor", "frequencies", "minima", "vfr", "coordination" };
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination" };
 
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
@@ -147,60 +161,35 @@ public sealed class AppDocumentService : IAppDocumentService
         var types = await _apps.GetSectorTypeMapAsync(ct);
         var nameMap = await _apps.GetSectorNameMapAsync(ct);
         var codeMap = await _apps.GetSectorCodeMapAsync(ct);
-        var airportMap = await _apps.GetAirportNameMapAsync(ct);
+        var airportMap = CoordinationDerivation.MergeAirportNames(await _apps.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _apps.GetSectorAtcNameMapAsync(ct);
 
         var saved = (await LoadOverridesAsync(appCallsign, ct)).CoordinationSentenceTemplate;
         var overrideTpl = string.IsNullOrWhiteSpace(templateOverride) ? saved : templateOverride;
         var tpl = string.IsNullOrWhiteSpace(overrideTpl) ? _sentence.Current : _sentence.Current.WithTemplate(overrideTpl!);
 
-        string? Compose(string ownerCs, string targetCs, string? airportIcao, LevelConstraint constraint, string levelText, string cop)
-            => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, ownerCs, targetCs, airportIcao, constraint, levelText, cop);
+        // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
+        var domainSet = domain as IReadOnlySet<string> ?? new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);
+        var entries = CoordinationDerivation.Build(flows, domainSet, types, nameMap, codeMap, airportMap, atcMap, tpl);
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
+        var overflights = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var flow in flows.Where(f => domain.Contains(f.OwningSectorCallsign)))
-            foreach (var p in flow.Points)
-            {
-                var next = p.NextSectorCallsign;
-                if (string.IsNullOrWhiteSpace(next)) continue;
-                if (!types.TryGetValue(next, out var nextType)) continue;
-
-                var row = new AppCoordRow(p.Cop, p.LevelText, next, flow.Kind)
-                {
-                    OwnerCallsign = flow.OwningSectorCallsign,
-                    AirportIcao = flow.AirportIcao,
-                    Constraint = p.LevelConstraint,
-                    Sentence = Compose(flow.OwningSectorCallsign, next, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
-                };
-                if (nextType == SectorType.Ctr)
-                    Bucket(towardAcc, next).Add(row);
-                else if (nextType is SectorType.Twr or SectorType.ITwr && flow.Kind == TransferFlowKind.Arrival)
-                    Bucket(towardTwr, next).Add(row);
-            }
-
-        foreach (var flow in flows)
+        foreach (var e in entries)
         {
-            if (flow.Kind != TransferFlowKind.Arrival) continue;
-            var owner = flow.OwningSectorCallsign;
-            if (domain.Contains(owner)) continue;   // flussi dei nostri settori: già gestiti sopra
-            if (!types.TryGetValue(owner, out var ownerType) || ownerType != SectorType.Ctr) continue;
-
-            foreach (var p in flow.Points)
-            {
-                if (p.NextSectorCallsign is not string next || !domain.Contains(next)) continue;   // arrivo verso un settore del dominio
-                Bucket(towardAcc, owner).Add(new AppCoordRow(p.Cop, p.LevelText, owner, TransferFlowKind.Arrival)
-                {
-                    OwnerCallsign = owner,
-                    AirportIcao = flow.AirportIcao,
-                    Constraint = p.LevelConstraint,
-                    Sentence = Compose(owner, next, flow.AirportIcao, p.LevelConstraint, p.LevelText, p.Cop),
-                });
-            }
+            // Sorvoli/VFR/altro (senza aeroporto) → gruppo dedicato per etichetta di tipo.
+            if (e.Kind is not (TransferFlowKind.Arrival or TransferFlowKind.Departure))
+                Bucket(overflights, TransferFlowKindLabels.Label(e.Kind)).Add(e.Row);
+            // Arrivi/partenze verso un ACC (CTR) → verso ACC; il counterpart è la chiave del gruppo.
+            else if (e.CounterpartType == SectorType.Ctr)
+                Bucket(towardAcc, e.CounterpartCallsign).Add(e.Row);
+            // Arrivi verso una torre → verso torri (le partenze verso torre non si mostrano).
+            else if (e.CounterpartType is SectorType.Twr or SectorType.ITwr && e.Kind == TransferFlowKind.Arrival)
+                Bucket(towardTwr, e.CounterpartCallsign).Add(e.Row);
         }
 
-        return new AppCoordination { TowardAcc = ToGroups(towardAcc), TowardTowers = ToGroups(towardTwr) };
+        return new AppCoordination { TowardAcc = ToGroups(towardAcc), TowardTowers = ToGroups(towardTwr), Overflights = ToGroups(overflights) };
 
         static List<AppCoordRow> Bucket(Dictionary<string, List<AppCoordRow>> d, string key) =>
             d.TryGetValue(key, out var list) ? list : d[key] = new List<AppCoordRow>();
@@ -210,7 +199,7 @@ public sealed class AppDocumentService : IAppDocumentService
                 .Select(kv => new AppCoordGroup(kv.Key, kv.Value)).ToList();
     }
 
-    // Palette anelli AoR (APP blu IVAO, poi varianti per le torri). Coerente con AppProfileService.
+    // Palette anelli AoR (APP blu IVAO, poi varianti per le torri). Coerente con AccDerivationService.
     private static readonly string[] AorPalette = { "#0D2C99", "#C77D3C", "#5B8C5A", "#8E5BA6", "#B0413E", "#3C55AC", "#7EA2D6" };
 
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)
@@ -244,7 +233,13 @@ public sealed class AppDocumentService : IAppDocumentService
             sectors.Add(new AccSectorAor(callsign, callsign, AorPalette[i % AorPalette.Length], new[] { poly }));
             i++;
         }
-        return new AccAorView(sectors, Array.Empty<AccConfigSelection>());
+
+        // Configurazioni selezionabili sulla mappa: le salvate (settori aperti = APP aperti), altrimenti «tutti».
+        var configs = await GetConfigurationsAsync(app, ct);
+        var selections = configs.Count > 0
+            ? configs.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.ToList())).ToList()
+            : new List<AccConfigSelection> { new("all", "Tutti i settori", sectors.Select(s => s.Callsign).ToList()) };
+        return new AccAorView(sectors, selections);
     }
 
     public async Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default) =>
@@ -295,6 +290,54 @@ public sealed class AppDocumentService : IAppDocumentService
         var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
         var json = empty ? null : JsonSerializer.Serialize(content);
         await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    // --- Configurazioni (blocco keyed "configurations"): storage editoriale + accorpamento derivato. ---
+
+    // Settori APP del dominio di copertura (primario incluso), con nome: pool dei picker e delle righe accorpamento.
+    private async Task<IReadOnlyList<(string Callsign, string Name)>> AppSectorsOfAsync(string app, CancellationToken ct)
+    {
+        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(app);
+        var types = await _apps.GetSectorTypeMapAsync(ct);
+        var names = await _apps.GetSectorNameMapAsync(ct);
+        return domain
+            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
+            .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
+            .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase)
+            .Select(cs => (cs, names.GetValueOrDefault(cs, cs)))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var app = Norm(appCallsign);
+        return (await AppSectorsOfAsync(app, ct)).Select(s => new AccSectorPick(s.Callsign, s.Name)).ToList();
+    }
+
+    public async Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return Array.Empty<AccConfiguration>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "configurations", ct);
+        return ConfigTableProjector.Deserialize(json);
+    }
+
+    public async Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var json = (configs?.Count ?? 0) == 0 ? null : JsonSerializer.Serialize(configs);
+        await _editing.SaveSectionBlockJsonAsync(docId, "configurations", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var app = Norm(appCallsign);
+        var configs = await GetConfigurationsAsync(app, ct);
+        if (configs.Count == 0) return Array.Empty<AccConfigTableView>();
+
+        var topo = await _topology.BuildGlobalAsync(ct);
+        var sectors = await AppSectorsOfAsync(app, ct);
+        var pool = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+        return ConfigTableProjector.Build(_aor, topo, new[] { app }, pool, configs);
     }
 
     // --- Override editoriali su DocumentProfile (doc 08e f4-a): sezioni nascoste, ordine/link freq, template coord. ---

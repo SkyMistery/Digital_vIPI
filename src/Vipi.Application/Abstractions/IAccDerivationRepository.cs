@@ -10,9 +10,9 @@ public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, stri
 
 /// <summary>
 /// Persistenza della vIPI ACC (documento a blocchi, 1:1 con l'Acc) + primitive di derivazione live
-/// (poligoni AoR, frequenze dei membri, mappa tipi settore). Mirror in chiave ACC di <see cref="IAppProfileRepository"/>.
+/// (poligoni AoR, frequenze dei membri, mappa tipi settore). Mirror in chiave ACC di <see cref="IAppDerivationRepository"/>.
 /// </summary>
-public interface IAccProfileRepository
+public interface IAccDerivationRepository
 {
     /// <summary>Nome dell'ACC dal codice; null se l'ACC non esiste.</summary>
     Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default);

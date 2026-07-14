@@ -47,7 +47,7 @@ public interface IStructureEditingRepository
     /// <summary>
     /// Crea i settori d'aeroporto mancanti (DEL/GND/TWR con contenimento top-down) dalle <paramref name="positions"/>
     /// per un aeroporto già assegnato a una ACC. Idempotente sui settori esistenti. Ritorna (creati, aeroporto trovato).
-    /// La generazione del documento e del profilo è demandata a <see cref="IAirportProfileRepository"/>.
+    /// La generazione del documento e del profilo è demandata a <see cref="IAirportRepository"/>.
     /// </summary>
     Task<(int Created, bool AirportFound)> EnsureAirportSectorsAsync(
         string icao,
@@ -67,6 +67,7 @@ public interface IStructureEditingRepository
         int? airportId, CancellationToken ct = default);
     Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default);
 
-    /// <summary>Imposta la frequenza del settore (Sector.DefaultFrequency); vuoto/null = nessuna.</summary>
+    /// <summary>Imposta la frequenza del settore (Sector.DefaultFrequency); vuoto/null = nessuna. Rifiuta i settori
+    /// PROIETTATI (fonte = catalogo, sola lettura): il sync ne sovrascriverebbe l'edit. Solo settori seed/manuali.</summary>
     Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default);
 }

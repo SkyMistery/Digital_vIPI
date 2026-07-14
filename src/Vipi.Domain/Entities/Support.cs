@@ -96,6 +96,7 @@ public class TransferFlow
 
     public TransferFlowKind Kind { get; set; }              // Arrival/Departure/Overflight/Vfr/Other
     public string? AirportIcao { get; set; }                // dest (arrivi) / origine (partenze); null per OVF/VFR generici
+    public string? AirportName { get; set; }                // nome per aeroporti fuori DB (nuovi/esteri); null se in DB (nome dal catalogo)
     public string? Description { get; set; }                // prosa "… trasferisce … riceve …"
     public int Order { get; set; }
     public byte[]? RowVersion { get; set; }
@@ -121,6 +122,7 @@ public class TransferPoint
     public LevelUnit LevelUnit { get; set; }                // Fl | Feet
     public LevelConstraint LevelConstraint { get; set; }    // AtOrAbove(↑) | AtOrBelow(↓) | Exact | Special
     public string? LevelSpecial { get; set; }               // testo se Constraint=Special (es. "per aerovia")
+    public LevelParity Parity { get; set; }                 // Any | Even(pari) | Odd(dispari) — regola semicircolare
 
     public int? NextSectorId { get; set; }                  // ricevente nominale (settore reale); null = nessun ricevente → UNICOM
     public Sector? NextSector { get; set; }

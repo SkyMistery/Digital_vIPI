@@ -17,7 +17,10 @@ public sealed class IvaoOptions
     /// <summary>Endpoint token OpenID (client_credentials). PIANO §7.3.</summary>
     public string TokenEndpoint { get; set; } = "https://api.ivao.aero/v2/oauth/token";
 
-    /// <summary>Template path elenco membri divisione: <c>{0}</c> = codice divisione. Fase G; da confermare.</summary>
+    /// <summary>Template path elenco membri divisione: <c>{0}</c> = codice divisione.
+    /// ⚠ NON accessibile col token app (client_credentials): risponde 404/500. Il roster staffisti si costruisce dai
+    /// LOGIN + verifica per-VID (vedi StaffRoster), non da qui. Questo endpoint richiede credenziali utente con lo
+    /// scope membri: usarlo col token app è un footgun (fallisce a runtime con errore chiaro in IvaoDivisionClient).</summary>
     public string DivisionMembersPathFormat { get; set; } = "/v2/divisions/{0}/members";
 
     /// <summary>Path anagrafica aeroporti IVAO (paginato). Richiede scope <c>configuration</c>.</summary>

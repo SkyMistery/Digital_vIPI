@@ -17,14 +17,16 @@ else
                 <div class="xpair-body">
                     @foreach (var kind in owner.GroupBy(r => r.Flow.Kind).OrderBy(g => g.Key))
                     {
-                        <div class="xt-sub-h">@KindLabel(kind.Key)</div>
+                        <div class="xt-sub-h">@TransferFlowKindLabels.Label(kind.Key)</div>
                         <div class="xt-cards">
                             @foreach (var apt in kind.GroupBy(r => r.Flow.AirportIcao).OrderBy(g => g.Key ?? "~"))
                             {
                                 var points = apt.SelectMany(r => r.Points).ToList();
+                                var aptName = apt.Select(r => r.Flow.AirportName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
                                 <div class="xt-card">
                                     <div class="xt-card-h">
                                         <b class="xt-dest">@(string.IsNullOrWhiteSpace(apt.Key) ? "—" : apt.Key)</b>
+                                        @if (!string.IsNullOrWhiteSpace(aptName)) { <span class="muted" style="font-size:11px">@aptName</span> }
                                         <span class="muted" style="font-size:11px">@points.Count pt</span>
                                     </div>
                                     @foreach (var p in points)
@@ -49,12 +51,4 @@ else
     [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
     [Parameter] public string EmptyText { get; set; } = "Nessun coordinamento.";
 
-    private static string KindLabel(TransferFlowKind k) => k switch
-    {
-        TransferFlowKind.Arrival => "Arrivi",
-        TransferFlowKind.Departure => "Partenze",
-        TransferFlowKind.Overflight => "Sorvoli",
-        TransferFlowKind.Vfr => "VFR",
-        _ => "Altro",
-    };
 }

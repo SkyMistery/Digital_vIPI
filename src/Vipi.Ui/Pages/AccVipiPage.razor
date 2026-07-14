@@ -1,7 +1,7 @@
 @page "/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
-@inject IAccProfileService Profile
+@inject IAccDerivationService Profile
 @inject IAccDocumentService AccDoc
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
@@ -57,15 +57,17 @@ else
                     @foreach (var key in OrderOf(block))
                     {
                         var isHidden = IsHiddenSection(block, key);
-                        <div class="block" id="p-@(block.Key)-@key" style="@(isHidden ? "opacity:.65" : "")">
-                            <h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                            <AccSectionBody Block="block" Key="@key" Root="@_root"
-                                            Freqs="_freqs.GetValueOrDefault(block.Key)"
-                                            Coord="_coord.GetValueOrDefault(block.Key)"
-                                            Aor="_aors.GetValueOrDefault(block.Key)"
-                                            Areas="_areas.GetValueOrDefault(block.Key)"
-                                            ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
-                        </div>
+                        <CollapsibleBlock Id="@($"p-{block.Key}-{key}")" Style="@(isHidden ? "opacity:.65" : null)">
+                            <Header><h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3></Header>
+                            <ChildContent>
+                                <AccSectionBody Block="block" Key="@key" Root="@_root"
+                                                Freqs="_freqs.GetValueOrDefault(block.Key)"
+                                                Coord="_coord.GetValueOrDefault(block.Key)"
+                                                Aor="_aors.GetValueOrDefault(block.Key)"
+                                                Areas="_areas.GetValueOrDefault(block.Key)"
+                                                ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
+                            </ChildContent>
+                        </CollapsibleBlock>
                     }
                 }
             </div>
@@ -100,7 +102,7 @@ else
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
 
     private AccInfo? _acc;
-    private AccProfileData _data = new() { AccCode = "", AccName = "", Blocks = new() };
+    private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
     private bool _canEdit;
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;

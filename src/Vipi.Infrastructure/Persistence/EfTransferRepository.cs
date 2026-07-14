@@ -111,6 +111,9 @@ public sealed class EfTransferRepository : ITransferRepository
         f.OwningSectorId = i.OwningSectorId;
         f.Kind = i.Kind;
         f.AirportIcao = string.IsNullOrWhiteSpace(i.AirportIcao) ? null : i.AirportIcao.Trim().ToUpperInvariant();
+        // Nome solo per aeroporti fuori DB: senza ICAO non ha senso; se c'è, si tiene la stringa grezza.
+        f.AirportName = string.IsNullOrWhiteSpace(i.AirportIcao) || string.IsNullOrWhiteSpace(i.AirportName)
+            ? null : i.AirportName.Trim();
         f.Description = string.IsNullOrWhiteSpace(i.Description) ? null : i.Description.Trim();
     }
 
@@ -122,6 +125,7 @@ public sealed class EfTransferRepository : ITransferRepository
         p.LevelConstraint = i.LevelConstraint;
         p.LevelSpecial = i.LevelConstraint == LevelConstraint.Special
             ? (string.IsNullOrWhiteSpace(i.LevelSpecial) ? null : i.LevelSpecial.Trim()) : null;
+        p.Parity = i.Parity;
         p.NextSectorId = i.NextSectorId;
     }
 
@@ -133,6 +137,7 @@ public sealed class EfTransferRepository : ITransferRepository
         OwningSectorCallsign = f.OwningSector?.Callsign ?? $"#{f.OwningSectorId}",
         Kind = f.Kind,
         AirportIcao = f.AirportIcao,
+        AirportName = f.AirportName,
         Description = f.Description,
         Order = f.Order,
         Points = f.Points.OrderBy(p => p.Order).Select(MapPoint).ToList(),
@@ -146,7 +151,8 @@ public sealed class EfTransferRepository : ITransferRepository
         LevelUnit = p.LevelUnit,
         LevelConstraint = p.LevelConstraint,
         LevelSpecial = p.LevelSpecial,
-        LevelText = LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial),
+        Parity = p.Parity,
+        LevelText = LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial, p.Parity),
         NextSectorId = p.NextSectorId,
         NextSectorCallsign = p.NextSector?.Callsign,
         Order = p.Order,

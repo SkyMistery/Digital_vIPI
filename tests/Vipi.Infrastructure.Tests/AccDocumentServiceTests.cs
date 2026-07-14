@@ -30,7 +30,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         await RomaStructureSeed.SeedAsync(_db);
 
-        var repo = new EfAccProfileRepository(_db);
+        var repo = new EfAccDerivationRepository(_db);
         var editing = new EfEditingRepository(_db, new AiracService());
         _service = new AccDocumentService(repo, editing, new AllowAuthz(), TestReleaseTargets.ReleaseRepo(_db));
     }

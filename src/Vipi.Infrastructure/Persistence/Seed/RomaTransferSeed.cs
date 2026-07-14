@@ -37,27 +37,26 @@ public static class RomaTransferSeed
             Description = "Roma NE riceve le partenze da LIRF in salita e le instrada ai settori confinanti.",
             Points = { P("TARQ", 280, LevelConstraint.AtOrAbove, Id("LIRR_TS_CTR"), 1) },
         };
-        // EW · Sorvoli — mantenuti al livello di aerovia.
+        // EW · Sorvoli senza aeroporto — ceduti al settore confinante per regola semicircolare (dispari/pari).
         var f3 = new TransferFlow
         {
             AccId = acc.Id, OwningSectorId = ew.Value, Kind = TransferFlowKind.Overflight, Order = 1,
-            Description = "Sorvoli mantenuti al livello di aerovia salvo coordinamento.",
-            Points = { Special("ELB", "per aerovia", null, 1) },
+            Description = "Sorvoli mantenuti al livello di aerovia e ceduti a Roma TS: dispari/pari per direzione.",
+            Points =
+            {
+                P("ELB", 350, LevelConstraint.AtOrAbove, Id("LIRR_TS_CTR"), 1, LevelParity.Odd),
+                P("ELB", 360, LevelConstraint.AtOrAbove, Id("LIRR_TS_CTR"), 2, LevelParity.Even),
+            },
         };
 
         db.TransferFlows.AddRange(f1, f2, f3);
         await db.SaveChangesAsync(ct);
     }
 
-    private static TransferPoint P(string cop, int level, LevelConstraint constraint, int? nextSectorId, int order) => new()
+    private static TransferPoint P(string cop, int level, LevelConstraint constraint, int? nextSectorId, int order,
+        LevelParity parity = LevelParity.Any) => new()
     {
         Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = constraint,
-        NextSectorId = nextSectorId, Order = order,
-    };
-
-    private static TransferPoint Special(string cop, string special, int? nextSectorId, int order) => new()
-    {
-        Cop = cop, LevelConstraint = LevelConstraint.Special, LevelSpecial = special,
-        NextSectorId = nextSectorId, Order = order,
+        Parity = parity, NextSectorId = nextSectorId, Order = order,
     };
 }

@@ -46,7 +46,7 @@
                             @foreach (var row in cfg.Rows)
                             {
                                 <tr class="grp-start">
-                                    <td class="uni">@row.UnifiedName</td>
+                                    <td class="uni">@row.UnifiedCallsign</td>
                                     <td>@string.Join(", ", row.Absorbed)</td>
                                     <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
                                     <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>

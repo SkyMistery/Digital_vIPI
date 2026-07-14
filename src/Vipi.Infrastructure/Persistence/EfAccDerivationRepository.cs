@@ -8,13 +8,13 @@ using Vipi.Domain.Entities;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
-/// Persistenza EF della vIPI ACC (documento a blocchi, 1:1 con l'Acc) e primitive di derivazione live.
-/// La struttura a blocchi è serializzata in <see cref="AccProfile.BlocksJson"/>; il profilo è creato on-demand.
+/// Primitive EF di derivazione live della vIPI ACC (settori, topologia, frequenze): sola lettura dai cataloghi.
+/// Lo storage editoriale vive nel <c>Document</c> (doc 08e/08i); qui nessuna tabella profile (droppata in 08i).
 /// </summary>
-public sealed class EfAccProfileRepository : IAccProfileRepository
+public sealed class EfAccDerivationRepository : IAccDerivationRepository
 {
     private readonly VipiDbContext _db;
-    public EfAccProfileRepository(VipiDbContext db) => _db = db;
+    public EfAccDerivationRepository(VipiDbContext db) => _db = db;
 
     public async Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => a.Name).FirstOrDefaultAsync(ct);
@@ -279,7 +279,7 @@ public sealed class EfAccProfileRepository : IAccProfileRepository
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default) =>
-        await EfAccProfileRepository.BuildAtcNameMapAsync(_db, ct);
+        await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
 
     public async Task<IReadOnlyDictionary<string, string>> GetSectorAccNameMapAsync(CancellationToken ct = default)
     {

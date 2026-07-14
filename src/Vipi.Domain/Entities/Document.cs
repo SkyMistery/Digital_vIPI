@@ -17,6 +17,12 @@ public class Document
     /// <summary>Nascosto dal pubblico (reversibile): il documento resta con la sua storia ma i loader pubblici lo escludono.</summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>Revisione pendente: valorizzato quando un evento a monte (es. un settore nascosto) può aver reso stantii
+    /// FREQUENZE/AoR/CONFIGURAZIONI di questo documento. null = nessuna revisione richiesta.</summary>
+    public DateTime? NeedsReviewUtc { get; set; }
+    /// <summary>Motivo leggibile della revisione pendente, mostrato in banner nell'editor. null = nessuna.</summary>
+    public string? ReviewReason { get; set; }
+
     public byte[]? RowVersion { get; set; }
 
     // Lock di editing esclusivo (PIANO sicurezza): impedisce a due editor di lavorare lo stesso documento.

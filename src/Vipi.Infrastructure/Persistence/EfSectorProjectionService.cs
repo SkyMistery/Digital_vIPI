@@ -94,12 +94,20 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             changed++;
         }
 
-        // 4. Padre (contenimento) derivato dal ParentCallsign del catalogo, risolto nella mappa unita.
+        // 4. Padre (contenimento) derivato dal ParentCallsign del catalogo. Se il padre diretto è NASCOSTO
+        //    (non è in `desired`), il figlio risale la catena dei ParentCallsign fino al primo antenato VISIBILE
+        //    (nonno, bisnonno…). Un solo code-path che copre settore nascosto, ACC nascosto e orfano: si aggancia
+        //    solo a callsign confermati in `desired` (tutti upsertati IsActive=true), mai a un settore disattivato.
+        var parentOf = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in accSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
+        foreach (var s in airportSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
+
         foreach (var d in desired.Values)
         {
             var child = byCallsign[d.Callsign];
-            if (!string.IsNullOrWhiteSpace(d.ParentCallsign)
-                && byCallsign.TryGetValue(d.ParentCallsign!, out var parent)
+            var visibleParentCs = NearestVisibleAncestor(d.ParentCallsign, desired, parentOf);
+            if (visibleParentCs != null
+                && byCallsign.TryGetValue(visibleParentCs, out var parent)
                 && !ReferenceEquals(parent, child))
             {
                 child.ParentSector = parent;   // EF risolve l'Id alla SaveChanges anche per le nuove righe
@@ -112,17 +120,44 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         }
 
         // 5. Orfani: settori PROIETTATI il cui callsign non è più nel catalogo visibile → disattiva (non cancella).
+        //    Recide anche i legami editoriali (DocumentId/IsPrimary/FeaturedRank): un settore che non esiste più
+        //    nella sorgente non deve restare agganciato a un Document (FK dangling → artefatti doppio-documento
+        //    in rigenerazione, e "primario" fantasma). Se il callsign riappare, il sync lo re-upserta pulito.
         foreach (var s in existing)
         {
             if (s.IsProjected && !desired.ContainsKey(s.Callsign) && s.IsActive)
             {
                 s.IsActive = false;
+                s.DocumentId = null;
+                s.IsPrimary = false;
+                s.FeaturedRank = null;
                 changed++;
             }
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // I poligoni/visibilità dei settori appena riproiettati possono aver cambiato i confini esteri: invalida la
+        // cache del set confinanti (altrimenti resta stantia fino al TTL di 5 min). Questo è il choke point comune di
+        // ogni mutazione catalogo (import ACC/aeroporti, hide, neighbour), quindi basta invalidare qui.
+        EfHierarchyEditingService.InvalidateConfiningCache();
         return changed;
+    }
+
+    /// <summary>Risale la catena dei <c>ParentCallsign</c> partendo da <paramref name="parentCallsign"/> e ritorna il
+    /// primo antenato presente in <paramref name="desired"/> (cioè VISIBILE), saltando gli antenati nascosti; null se la
+    /// catena finisce (radice reale) o si esaurisce. Guard anti-ciclo con un set dei callsign già visitati.</summary>
+    private static string? NearestVisibleAncestor(
+        string? parentCallsign, Dictionary<string, Desired> desired, Dictionary<string, string?> parentOf)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var cur = parentCallsign;
+        while (!string.IsNullOrWhiteSpace(cur) && seen.Add(cur))
+        {
+            if (desired.ContainsKey(cur)) return cur;                       // antenato visibile → stop
+            cur = parentOf.TryGetValue(cur, out var p) ? p : null;          // nascosto → sali di un livello
+        }
+        return null;
     }
 
     private sealed record Desired(

@@ -64,6 +64,37 @@ public class TransferRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Add_Overflight_Without_Airport_And_No_Points_Roundtrips()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", new TransferFlowInput
+        {
+            OwningSectorId = _neId, Kind = TransferFlowKind.Overflight, AirportIcao = null, Description = null,
+        });
+
+        var flows = await _repo.ListFlowsByAccAsync("LIRR");
+        var f = Assert.Single(flows);
+        Assert.Equal(flowId, f.Id);
+        Assert.Equal(TransferFlowKind.Overflight, f.Kind);
+        Assert.Null(f.AirportIcao);
+        Assert.Empty(f.Points);
+    }
+
+    [Fact]
+    public async Task Point_Parity_Roundtrips_And_Shows_In_LevelText()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
+        {
+            Cop = "ELB", LevelValue = 290, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
+            Parity = LevelParity.Odd, NextSectorId = _ftwrId,
+        });
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal(LevelParity.Odd, p.Parity);
+        Assert.Equal("FL290↑ (dispari)", p.LevelText);
+    }
+
+    [Fact]
     public async Task Special_Level_Renders_Text()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());

@@ -13,8 +13,12 @@ public sealed class CoordinationSentenceOptions
     public string? TargetWithCode { get; set; }
     public string? TargetNoCode { get; set; }
     public string? Airport { get; set; }
+    public string? AirportArrival { get; set; }
+    public string? AirportDeparture { get; set; }
     public StateWords? Stato { get; set; }
     public string? FallbackMissingPoint { get; set; }
+    public string? FallbackAllPoints { get; set; }
+    public string? FallbackAllToward { get; set; }
 
     public sealed class StateWords
     {
@@ -45,7 +49,11 @@ public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentence
                 TargetWithCode = Fallback(o.TargetWithCode, d.TargetWithCode),
                 TargetNoCode = Fallback(o.TargetNoCode, d.TargetNoCode),
                 Airport = Fallback(o.Airport, d.Airport),
+                AirportArrival = Fallback(o.AirportArrival, d.AirportArrival),
+                AirportDeparture = Fallback(o.AirportDeparture, d.AirportDeparture),
                 FallbackMissingPoint = Fallback(o.FallbackMissingPoint, d.FallbackMissingPoint),
+                FallbackAllPoints = Fallback(o.FallbackAllPoints, d.FallbackAllPoints),
+                FallbackAllToward = Fallback(o.FallbackAllToward, d.FallbackAllToward),
                 Stato = new CoordinationSentenceState
                 {
                     // Special ha default "" (vuoto): usa il valore del file se presente (anche stringa vuota).

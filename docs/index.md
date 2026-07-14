@@ -59,6 +59,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |
 | [history/review-flusso-gap.md](history/review-flusso-gap.md) | Analisi flusso vs documenti (decisioni round 4). |
+| [history/audit-2026-07-14-correttezza-fonti-dati.md](history/audit-2026-07-14-correttezza-fonti-dati.md) | Audit senior correttezza + fonti-dati multiple: findings A1–A4/B1–B5, falsi positivi, fix. |
 
 ---
 **Nota:** i commenti nel codice sorgente (`.cs`/`.razor`) citano i documenti per **nome e sezione** in forma informale (es. «modello-dati §9.12», «ADR-0001 D5»), non come link a percorso.

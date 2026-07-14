@@ -82,7 +82,9 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
     private static IReadOnlySet<string>? _confiningCache;
     private static DateTime _confiningCachedAt;
     private static readonly TimeSpan _confiningTtl = TimeSpan.FromMinutes(5);
-    private static void InvalidateConfiningCache() { lock (_confiningLock) _confiningCache = null; }
+    /// <summary>Svuota la cache del set confinanti. Chiamata da <see cref="EfSectorProjectionService"/> a fine sync
+    /// (choke point di ogni mutazione catalogo) così il set non resta stantio fino al TTL dopo un import/hide.</summary>
+    internal static void InvalidateConfiningCache() { lock (_confiningLock) _confiningCache = null; }
 
     public async Task<IReadOnlySet<string>> ListConfiningForeignCallsignsAsync(CancellationToken ct = default)
     {
@@ -178,9 +180,10 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 break;
         }
         await _db.SaveChangesAsync(ct);
-        InvalidateConfiningCache();
 
-        // 4. Riproietta i Sector operativi (l'albero AoR deriva da qui).
+        // 4. Riproietta i Sector operativi (l'albero AoR deriva da qui). La riproiezione invalida essa stessa la
+        //    cache del set confinanti (vedi InvalidateConfiningCache in EfSectorProjectionService), quindi qui non
+        //    serve un'invalidazione esplicita.
         await _projection.SyncFromCatalogsAsync(ct);
     }
 

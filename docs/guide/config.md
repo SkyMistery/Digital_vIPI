@@ -20,6 +20,7 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 | `Division:Name` | string | `Italy` | Nome leggibile (display). |
 | `Division:IcaoPrefixes` | string[] | `["LI"]` | Prefissi ICAO dei callsign ATC della divisione. Filtra il polling online. IT→`["LI"]`, DE→`["ED","ET"]`. |
 | `Division:AdminRolePatterns` | string[] | `["DIR","ADIR","WM","AWM","AOC","AOAC","AOA\\d+"]` | Suffissi (regex, **senza** prefisso divisione) che valgono come admin. Codice finale = `^{Code}-{ruolo}$`. |
+| `Division:AdminAccRolePatterns` | string[] | `["CH","ACH"]` | Suffissi (regex) di ruoli admin **ACC-scoped** (prefisso ICAO dell'ACC, non della divisione, es. `LIRR-CH`, `LIMM-ACH`). Codice finale = `^{prefissoIcao}[A-Z0-9]+-{ruolo}$` per ogni `IcaoPrefixes`. |
 
 **Cambiare divisione (IT → DE):**
 ```json

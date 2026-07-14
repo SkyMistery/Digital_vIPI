@@ -76,6 +76,11 @@ public enum LevelUnit { Fl, Feet }
 /// (testo libero tipo «per aerovia»; il valore numerico è ignorato).</summary>
 public enum LevelConstraint { AtOrAbove, AtOrBelow, Exact, Special }
 
+/// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
+/// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da
+/// <see cref="DateParity"/> (parità del giorno del mese per le piste): stessa forma, semantica diversa.</summary>
+public enum LevelParity { Any, Even, Odd }
+
 /// <summary>Vincolo di parità del giorno del mese per una regola pista (es. alternanza Malpensa). Any = indifferente.</summary>
 public enum DateParity { Any, Even, Odd }
 

@@ -1,0 +1,112 @@
+@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
+   ResourceKey e ascolta LockChanged per abilitare/disabilitare i controlli della pagina. Heartbeat 60s finché la
+   scheda è aperta (TTL corto lato service → la chiusura scheda libera da sé in pochi minuti). Rilascio su teardown. *@
+@using Vipi.Application.Content
+@using Vipi.Application.Auth
+@implements IAsyncDisposable
+@inject IResourceLockService Locks
+@inject IEditAuthorizationService Authz
+
+<div class="lockbar @(_lock.IsMine ? "mine" : _lock.Locked ? "other" : "free")">
+    @if (_lock.IsMine)
+    {
+        <span class="lb-state"><span class="lb-dot"></span> Stai modificando@(_lock.ExpiresUtc is { } e ? $" · lock fino alle {e.ToLocalTime():HH:mm}" : "")</span>
+        <button class="btn ghost" @onclick="Release" title="Rilascia il lock così un altro editor può modificare">✓ Fine modifica</button>
+    }
+    else if (_lock.Locked)
+    {
+        <span class="lb-state"><span class="lb-dot"></span> 🔒 In modifica da <b>@(_lock.ByName ?? "un altro editor")</b>@(_lock.ExpiresUtc is { } e ? $" (fino alle {e.ToLocalTime():HH:mm})" : "")</span>
+        @if (Authz.IsAdmin)
+        {
+            <button class="btn ghost" @onclick="ForceUnlock" title="Sblocca comunque e prendi il controllo (admin)">🔓 Forza sblocco</button>
+        }
+    }
+    else
+    {
+        <span class="lb-state muted">Sola lettura. Prendi il lock per modificare (una persona alla volta).</span>
+        <button class="btn primary" @onclick="Acquire">✎ Inizia modifica</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string ResourceKey { get; set; } = default!;
+    /// <summary>Notifica la pagina ad ogni cambio: true = l'utente corrente tiene il lock (può modificare).</summary>
+    [Parameter] public EventCallback<bool> LockChanged { get; set; }
+
+    private LockInfo _lock = LockInfo.Free();
+    private CancellationTokenSource? _beat;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _lock = await Locks.InspectAsync(ResourceKey);
+        await NotifyAsync();
+        if (_lock.IsMine) StartHeartbeat();
+    }
+
+    private async Task Acquire()
+    {
+        _lock = await Locks.AcquireAsync(ResourceKey);
+        await NotifyAsync();
+        if (_lock.IsMine) StartHeartbeat();
+    }
+
+    private async Task Release()
+    {
+        StopHeartbeat();
+        await Locks.ReleaseAsync(ResourceKey);
+        _lock = LockInfo.Free();
+        await NotifyAsync();
+    }
+
+    private async Task ForceUnlock()
+    {
+        await Locks.ForceUnlockAsync(ResourceKey);   // admin: libera il lock altrui
+        await Acquire();                              // e prendilo io
+    }
+
+    // Rinnova il lock finché la scheda è aperta; se lo perdo (scaduto/forzato), aggiorno lo stato e fermo il battito.
+    private void StartHeartbeat()
+    {
+        StopHeartbeat();
+        var cts = _beat = new CancellationTokenSource();
+        _ = HeartbeatLoop(cts.Token);
+    }
+
+    private void StopHeartbeat()
+    {
+        _beat?.Cancel();
+        _beat?.Dispose();
+        _beat = null;
+    }
+
+    private async Task HeartbeatLoop(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(async () =>
+                {
+                    var was = _lock.IsMine;
+                    _lock = await Locks.HeartbeatAsync(ResourceKey);
+                    if (_lock.IsMine != was) { await NotifyAsync(); StateHasChanged(); }
+                });
+                if (!_lock.IsMine) { StopHeartbeat(); break; }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private Task NotifyAsync() => LockChanged.InvokeAsync(_lock.IsMine);
+
+    public ValueTask DisposeAsync()
+    {
+        // NON si rilascia il lock qui: il teardown scatta anche navigando tra le pagine che CONDIVIDONO la stessa
+        // risorsa (le 4 pagine di struttura), e rilasciare farebbe perdere il lock ad ogni cambio pagina. La chiusura
+        // scheda è già gestita dal TTL corto: fermato l'heartbeat, il lock scade da sé in pochi minuti. Il rilascio
+        // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (admin).
+        StopHeartbeat();
+        return ValueTask.CompletedTask;
+    }
+}

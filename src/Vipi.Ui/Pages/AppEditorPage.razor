@@ -8,6 +8,7 @@
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 @if (_acc is null)
 {
@@ -60,6 +61,8 @@ else
                 </div>
             </div>
 
+            <DocReviewBar DocumentId="_docId" />
+
             @if (_lock is { Locked: true, IsMine: false })
             {
                 <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
@@ -106,6 +109,11 @@ else
     private string? _coordTemplate;
     private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
     private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    // Configurazioni (APP multi-settore, es. LIPE_APP con LIPE_W/LIPE_E). Pool + salvate + accorpamento derivato.
+    private IReadOnlyList<AccSectorPick> _sectorPool = Array.Empty<AccSectorPick>();
+    private List<AccConfiguration> _configs = new();
+    private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private string _freqSearch = "";
@@ -154,6 +162,7 @@ else
         catch (ValidationException) { _notFound = true; return; }
 
         _linkable = await AppDoc.ListLinkableFrequenciesAsync();
+        _sectorPool = await AppDoc.ListSectorsAsync(_app);
         await LoadAsync();
     }
 
@@ -187,6 +196,8 @@ else
         _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await AppDoc.DeriveCoordinationAsync(_app);
         _aorView = await AppDoc.GetAorViewAsync(_app);
+        _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);
     }
 
     // ---- workflow bozza/lock/pubblicazione (come VloaEditor) ----
@@ -204,7 +215,7 @@ else
 
     // ---- sezioni derivate / editoriali-strutturate ----
     private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "aor", "frequencies", "vfr", "minima", "coordination" };
+        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination" };
 
     private static bool IsDerived(EditableSection s) => s.Depth == 0 && Special.Contains(s.SectionKey);
 
@@ -230,6 +241,18 @@ else
         _vfr = content;
         await AppDoc.SaveVfrAsync(_app, content);
     });
+
+    // ---- configurazioni ----
+    private Task SaveConfigs(IReadOnlyList<AccConfiguration> configs) => Guard(async () =>
+    {
+        _configs = configs.ToList();
+        await AppDoc.SaveConfigurationsAsync(_app, _configs);
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // ri-deriva l'accorpamento
+        _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
+    });
+
+    private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
+        await JS.InvokeAsync<bool>("confirm", $"Rimuovere la configurazione «{c.Name}»?");
 
     // ---- frequenze (derivate + override/link) ----
     private Task MoveFreq((int Index, int Dir) m) => Guard(async () =>
@@ -328,6 +351,10 @@ else
             case "separations":
                 <AppSeparations Rows="_separations" Editing="_editing" RowsChanged="SaveSeparations" />
                 break;
+            case "configurations":
+                <AppConfigurations Configs="_configs" Pool="_sectorPool" Tables="_configTable" Editing="_editing"
+                                   MapScope="@($"app-aor-{_app}")" ConfigsChanged="SaveConfigs" ConfirmRemove="ConfirmRemoveConfig" />
+                break;
             case "aor":
                 <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
                 break;
@@ -349,11 +376,11 @@ else
                     <div class="field" style="margin:0 0 12px">
                         <label>Frase di coordinamento — template (vuoto = default globale)</label>
                         <textarea class="app-in" rows="2"
-                                  placeholder="{owner} trasferisce a {target} il traffico con destinazione {airport} {stato} {fl} su {point}."
+                                  placeholder="{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}."
                                   value="@_coordTemplate"
                                   @oninput="e => PreviewCoordTemplate(AsString(e.Value))"
                                   @onchange="e => SaveCoordTemplate(AsString(e.Value))"></textarea>
-                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. L'anteprima sotto si aggiorna mentre digiti; al termine (uscendo dal campo) il template viene salvato.</p>
+                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. <code>{airport}</code> include già la relazione arrivo/partenza («con destinazione …» / «in partenza da …»): non aggiungere «con destinazione». L'anteprima sotto si aggiorna mentre digiti; al termine (uscendo dal campo) il template viene salvato.</p>
                     </div>
                 }
                 <AppCoordinationView Coord="@(_coordPreview ?? _coord)" />

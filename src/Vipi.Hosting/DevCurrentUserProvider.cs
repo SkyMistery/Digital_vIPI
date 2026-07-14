@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Vipi.Application.Abstractions;
 
 namespace Vipi.Hosting;
@@ -17,7 +18,12 @@ public sealed class DevCurrentUserProvider : ICurrentUserProvider
     private static readonly object Lock = new();
 
     private readonly IUserDirectory _ivao;
-    public DevCurrentUserProvider(IUserDirectory ivao) => _ivao = ivao;
+    private readonly ILogger<DevCurrentUserProvider> _log;
+    public DevCurrentUserProvider(IUserDirectory ivao, ILogger<DevCurrentUserProvider> log)
+    {
+        _ivao = ivao;
+        _log = log;
+    }
 
     public CurrentUser? Get()
     {
@@ -45,7 +51,12 @@ public sealed class DevCurrentUserProvider : ICurrentUserProvider
                     CanEdit = info.StaffPositionCodes.Count > 0,
                 };
         }
-        catch { /* offline / credenziali assenti: usa il fallback statico */ }
+        catch (Exception ex)
+        {
+            // Offline / credenziali assenti: si usa il fallback statico. NON ingoiare in silenzio (nascondeva anche
+            // errori di programmazione, es. NRE nel fetcher): logga così la degradazione è diagnosticabile.
+            _log.LogWarning(ex, "DevCurrentUserProvider: fetch utente {UserId} fallita, uso il fallback statico.", DevUserId);
+        }
 
         return new CurrentUser(DevUserId, $"VID {DevUserId}", "LIRR",
             new[] { "IT-AOA1", "IT-T03" }) { CanEdit = true };

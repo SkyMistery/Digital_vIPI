@@ -25,6 +25,10 @@ public interface IStructureEditingService
     /// <summary>Gestione aeroporti (admin): elenco cross-ACC + settori per i menu.</summary>
     Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default);
 
+    /// <summary>Cerca un aeroporto per ICAO sulla sorgente esterna (anche estero), SOLO per leggerne il nome
+    /// (es. aeroporto fuori DB nei trasferimenti). NON lo inserisce nel catalogo. null = non trovato.</summary>
+    Task<ExternalAirportInfo?> LookupExternalAirportAsync(string icao, CancellationToken ct = default);
+
     /// <summary>Nasconde/mostra un aeroporto (ACC-gated): la pagina pubblica e gli elenchi non lo mostrano più.</summary>
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
@@ -57,7 +61,8 @@ public interface IStructureEditingService
     /// <summary>Imposta le vLOA "in evidenza" della ACC (ordine = FeaturedRank 1..3) per la landing ACC.</summary>
     Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default);
 
-    /// <summary>Imposta la frequenza (Sector.DefaultFrequency) di un settore della ACC.</summary>
+    /// <summary>Imposta la frequenza (Sector.DefaultFrequency) di un settore della ACC. Solo settori seed/manuali:
+    /// sui proiettati la frequenza è di sorgente (sola lettura), l'edit viene rifiutato con <see cref="ValidationException"/>.</summary>
     Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default);
 }
 
@@ -65,7 +70,7 @@ public interface IStructureEditingService
 public sealed class StructureEditingService : IStructureEditingService
 {
     private readonly IStructureEditingRepository _repo;
-    private readonly IAirportProfileRepository _profile;
+    private readonly IAirportRepository _profile;
     private readonly IEditAuthorizationService _authz;
     private readonly IAirportDirectory _directory;
     private readonly IAirportDetailProvider _details;
@@ -77,7 +82,7 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly IAirportImportUseCase _airportImport;
 
     public StructureEditingService(
-        IStructureEditingRepository repo, IAirportProfileRepository profile, IEditAuthorizationService authz,
+        IStructureEditingRepository repo, IAirportRepository profile, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
         IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
         ISectorProjectionService projection, IAirportImportUseCase airportImport)
@@ -145,6 +150,14 @@ public sealed class StructureEditingService : IStructureEditingService
     {
         _authz.EnsureAdmin();
         return _repo.ListAllAirportsAsync(ct);
+    }
+
+    public async Task<ExternalAirportInfo?> LookupExternalAirportAsync(string icao, CancellationToken ct = default)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        if (icao.Length < 3) return null;   // ICAO plausibile
+        var a = await _directory.GetByIcaoAsync(icao, ct);
+        return a is null ? null : new ExternalAirportInfo(a.Icao, a.Name, a.City, a.AccCode);
     }
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)

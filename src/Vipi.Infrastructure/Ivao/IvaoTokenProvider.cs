@@ -57,8 +57,11 @@ public sealed class IvaoTokenProvider
                        ?? throw new InvalidOperationException("Risposta token IVAO vuota.");
 
             _token = body.AccessToken;
-            // Rinnova 60s prima della scadenza dichiarata.
-            _expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(30, body.ExpiresIn - 60));
+            // Rinnova 120s prima della scadenza dichiarata: il margine assorbe lo skew d'orologio tra questo host
+            // e IVAO (VM/NTP drift) evitando di presentare un token già scaduto lato server (→ 401 a cascata finché
+            // la cache locale non scade). Clamp a metà durata per token a vita brevissima.
+            var marginSec = Math.Min(120, Math.Max(30, body.ExpiresIn / 2));
+            _expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(30, body.ExpiresIn - marginSec));
             return _token;
         }
         finally

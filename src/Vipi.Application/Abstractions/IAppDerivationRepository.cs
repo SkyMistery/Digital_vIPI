@@ -11,7 +11,7 @@ public sealed record AppDocumentIdentity(int SectorId, string Callsign, string T
 /// del sottoalbero, poligoni AoR, mappe callsign→tipo/nome/codice per i coordinamenti, risoluzione link frequenza.
 /// NON persiste editoriale (quello vive nel Document + <c>DocumentProfile</c>): sola lettura dai cataloghi/settori.
 /// </summary>
-public interface IAppProfileRepository
+public interface IAppDerivationRepository
 {
     /// <summary>Codice ACC del settore APP (per la guardia di autorizzazione). null = inesistente.</summary>
     Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default);

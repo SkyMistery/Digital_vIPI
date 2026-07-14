@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 
@@ -13,16 +14,19 @@ public sealed class AuroraSidProvider : ISidProvider
     private readonly HttpClient _http;
     private readonly SectorfileOptions _opt;
     private readonly ISidFixAliasRepository _aliases;
+    private readonly ILogger<AuroraSidProvider> _log;
 
     // Cache dei navaid (fix+vor): stabili tra i file .sid dello stesso ciclo di import.
     private IReadOnlyDictionary<string, (double, double)>? _navCache;
     private readonly SemaphoreSlim _navLock = new(1, 1);
 
-    public AuroraSidProvider(HttpClient http, IOptions<SectorfileOptions> opt, ISidFixAliasRepository aliases)
+    public AuroraSidProvider(HttpClient http, IOptions<SectorfileOptions> opt, ISidFixAliasRepository aliases,
+        ILogger<AuroraSidProvider> log)
     {
         _http = http;
         _opt = opt.Value;
         _aliases = aliases;
+        _log = log;
     }
 
     public async Task<IReadOnlyList<SourceSid>> GetSidsAsync(string icao, CancellationToken ct = default)
@@ -34,7 +38,16 @@ public sealed class AuroraSidProvider : ISidProvider
 
         var nav = await GetNavaidsAsync(ct);
         var aliasMap = await _aliases.GetMapAsync(ct);
-        return AuroraSectorfileParser.ParseSids(icao, sidText, nav, aliasMap);
+        var sids = AuroraSectorfileParser.ParseSids(icao, sidText, nav, aliasMap);
+
+        // Traccia l'esito: un file .sid presente ma con 0 SID estratti segnala un formato cambiato/corrotto (le righe
+        // malformate vengono scartate in silenzio dal parser puro). Senza questo log la degradazione è invisibile.
+        var review = sids.Count(s => s.NeedsFixReview);
+        if (sids.Count == 0)
+            _log.LogWarning("SID {Icao}: file presente ma 0 SID estratti (formato .sid cambiato o corrotto?).", icao);
+        else
+            _log.LogInformation("SID {Icao}: {Count} estratti ({Review} da verificare fix).", icao, sids.Count, review);
+        return sids;
     }
 
     private async Task<IReadOnlyDictionary<string, (double, double)>> GetNavaidsAsync(CancellationToken ct)

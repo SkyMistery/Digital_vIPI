@@ -49,12 +49,23 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
         _user = user;
         _grants = grants;
 
-        // Override esplicito (pattern completi) se presente; altrimenti deriva dai ruoli admin della divisione:
-        // ^{Code}-{ruolo}$ (es. IT-DIR, DE-DIR). Cambiare Division.Code sposta tutti i codici admin.
+        // Override esplicito (pattern completi) se presente; altrimenti deriva i codici admin dalla divisione:
+        //  - ruoli di divisione: ^{Code}-{ruolo}$ (es. IT-DIR, DE-DIR);
+        //  - ruoli ACC-scoped (chief): ^{prefissoIcao}[A-Z0-9]+-{ruolo}$ (es. LIRR-CH, LIMM-ACH).
+        // Cambiare Division.Code / IcaoPrefixes sposta tutti i codici admin.
         var div = division.Value;
-        var patterns = options.Value.AdminStaffCodes is { Count: > 0 } configured
-            ? configured
-            : div.AdminRolePatterns.Select(role => $"^{Regex.Escape(div.Code)}-{role}$");
+        IEnumerable<string> patterns;
+        if (options.Value.AdminStaffCodes is { Count: > 0 } configured)
+        {
+            patterns = configured;
+        }
+        else
+        {
+            var divRoles = div.AdminRolePatterns.Select(role => $"^{Regex.Escape(div.Code)}-{role}$");
+            var accRoles = div.IcaoPrefixes.SelectMany(prefix =>
+                div.AdminAccRolePatterns.Select(role => $"^{Regex.Escape(prefix)}[A-Z0-9]+-{role}$"));
+            patterns = divRoles.Concat(accRoles);
+        }
 
         _adminCodes = patterns
             .Select(p => new Regex(p, RegexOptions.Compiled | RegexOptions.IgnoreCase))

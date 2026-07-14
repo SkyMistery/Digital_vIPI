@@ -17,8 +17,8 @@ public class AccProfileTests : IAsyncLifetime
 {
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
-    private EfAccProfileRepository _repo = default!;
-    private AccProfileService _service = default!;
+    private EfAccDerivationRepository _repo = default!;
+    private AccDerivationService _service = default!;
 
     private const string Acc = "LIRR";
 
@@ -40,11 +40,11 @@ public class AccProfileTests : IAsyncLifetime
             AcSec("LIRR_EW_CTR", "[[11.0,41.0],[12.0,41.0],[12.0,42.0],[11.0,42.0]]"));
         await _db.SaveChangesAsync();
 
-        _repo = new EfAccProfileRepository(_db);
+        _repo = new EfAccDerivationRepository(_db);
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AccProfileService(_repo, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
+        _service = new AccDerivationService(_repo, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
     }
 
     public async Task DisposeAsync()
@@ -54,7 +54,7 @@ public class AccProfileTests : IAsyncLifetime
     }
 
     // Nota: storage/load/save della vIPI ACC è ora su Document (AccDocumentService/AccDocumentServiceTests, doc 08e-acc).
-    // Qui restano solo le DERIVAZIONI live di AccProfileService (freq/coord/config-table), che i viewer/editor riusano.
+    // Qui restano solo le DERIVAZIONI live di AccDerivationService (freq/coord/config-table), che i viewer/editor riusano.
 
     [Fact]
     public async Task Derive_Frequencies_Aerovia_Covers_Whole_Acc()
@@ -99,6 +99,57 @@ public class AccProfileTests : IAsyncLifetime
         var airport = Assert.Single(accGroup.Airports);
         Assert.Single(airport.Arrivals);
         Assert.Single(airport.Departures);
+    }
+
+    [Fact]
+    public async Task Owned_Flow_Sentence_Reads_Owner_As_Sender()
+    {
+        var tr = new EfTransferRepository(_db);
+        var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
+        var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
+
+        // Flusso POSSEDUTO da EW (settore del blocco) con next = NE: EW detiene il traffico e lo cede a NE, quindi
+        // la frase deve avere EW come mittente e NE come destinatario (owner→next, come la pagina trasferimenti).
+        var fArr = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ew, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRP" });
+        await tr.AddPointAsync(Acc, fArr, Point("PISIP", 140, ne));
+
+        var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var coord = await _service.DeriveCoordinationAsync(Acc, block, "LIRR_NE_CTR");
+
+        var row = coord.Sectors.SelectMany(s => s.Accs).SelectMany(a => a.Airports).SelectMany(ap => ap.Arrivals).Single();
+        Assert.NotNull(row.Sentence);
+        // Il template è "{owner} trasferisce a {target} …": il mittente (inizio frase) è il proprietario EW, non NE.
+        Assert.StartsWith("Roma Radar EW", row.Sentence);
+        Assert.Contains("Roma Radar NE", row.Sentence!);
+        Assert.True(row.Sentence!.IndexOf("EW", StringComparison.Ordinal) < row.Sentence!.IndexOf("NE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Overflight_without_airport_appears_under_sorvoli_node()
+    {
+        var tr = new EfTransferRepository(_db);
+        var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
+        var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
+
+        // Sorvolo POSSEDUTO da EW, senza aeroporto, verso NE. Deve comparire nel nodo «Sorvoli», non fra gli aeroporti.
+        var f = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ew, Kind = TransferFlowKind.Overflight });
+        await tr.AddPointAsync(Acc, f, new TransferPointInput
+        {
+            Cop = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia", NextSectorId = ne,
+        });
+
+        var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var coord = await _service.DeriveCoordinationAsync(Acc, block, "LIRR_NE_CTR");
+
+        var accGroup = coord.Sectors.SelectMany(s => s.Accs).Single(a => a.Extras.Count > 0);
+        var sorvoli = Assert.Single(accGroup.Extras);
+        Assert.Equal("Sorvoli", sorvoli.KindLabel);
+        var row = Assert.Single(sorvoli.Rows);
+        Assert.Equal(TransferFlowKind.Overflight, row.Kind);
+        Assert.StartsWith("Roma Radar EW trasferisce a Roma Radar NE", row.Sentence);
+        Assert.DoesNotContain("destinazione", row.Sentence!);
+        // Nessun aeroporto «—» spurio: gli Extras non stanno fra gli Airports.
+        Assert.Empty(accGroup.Airports);
     }
 
     [Fact]

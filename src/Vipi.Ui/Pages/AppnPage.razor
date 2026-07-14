@@ -84,18 +84,21 @@ else
                     }
                     else if (IsSpecial(s.SectionKey))
                     {
-                        <div class="block" id="@AnchorOf(s)" style="@(hidden ? "opacity:.65" : "")">
-                            <h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3>
-                            @switch (s.SectionKey)
-                            {
-                                case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
-                                case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
-                                case "frequencies": <AppFrequencies Rows="_freqs" />; break;
-                                case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
-                                case "minima": <AppMinima />; break;
-                                case "coordination": <AppCoordinationView Coord="_coord" />; break;
-                            }
-                        </div>
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)">
+                            <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3></Header>
+                            <ChildContent>
+                                @switch (s.SectionKey)
+                                {
+                                    case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
+                                    case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
+                                    case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
+                                    case "frequencies": <AppFrequencies Rows="_freqs" />; break;
+                                    case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
+                                    case "minima": <AppMinima />; break;
+                                    case "coordination": <AppCoordinationView Coord="_coord" />; break;
+                                }
+                            </ChildContent>
+                        </CollapsibleBlock>
                     }
                     else
                     {
@@ -153,10 +156,11 @@ else
     private List<AppFreqRow> _freqs = new();
     private AppCoordination _coord = AppCoordination.Empty;
     private AccAorView _aorView = AccAorView.Empty;
+    private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
     // Sezioni "speciali" rese da componenti dedicati (derivate live + editoriali-strutturate); le altre via SectionNode.
     private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "aor", "frequencies", "vfr", "minima", "coordination" };
+        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination" };
     private static bool IsSpecial(string key) => Special.Contains(key);
 
     private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
@@ -253,6 +257,7 @@ else
         _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await AppDoc.DeriveCoordinationAsync(_app);
         _aorView = await AppDoc.GetAorViewAsync(_app);
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).

@@ -50,14 +50,14 @@ public class AppDocumentServiceTests : IAsyncLifetime
             Pos("LIRP_APP", "APP", "126.080"));
         await _db.SaveChangesAsync();
 
-        var repo = new EfAppProfileRepository(_db);
+        var repo = new EfAppDerivationRepository(_db);
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
         var editing = new EfEditingRepository(_db, new AiracService());
         var docProfiles = new EfDocumentProfileRepository(_db);
         _service = new AppDocumentService(repo, editing, authz, topo, transfers,
-            new StubCoordinationSentenceTemplate(), docProfiles);
+            new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService());
     }
 
     public async Task DisposeAsync()
@@ -80,6 +80,30 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.True(app.IsPrimary);
         Assert.Equal(App, app.Callsign);
         Assert.Equal("LIRR_NE_CTR", freqs[^1].Callsign);
+    }
+
+    [Fact]
+    public async Task Configurations_Roundtrip_And_Derive_Accorpamento_Table()
+    {
+        // Salva una configurazione col settore APP primario aperto + Center Point/Range manuali.
+        var cfg = new AccConfiguration { Key = "cfg:1", Name = "APP unico" };
+        cfg.Open.Add(new AccConfigOpen { Callsign = App, CenterPoint = "GINEL", Range = "140" });
+        await _service.SaveConfigurationsAsync(App, new[] { cfg });
+
+        // Round-trip storage (blocco keyed "configurations").
+        var loaded = await _service.GetConfigurationsAsync(App);
+        Assert.Single(loaded);
+        Assert.Equal("APP unico", loaded[0].Name);
+        Assert.Equal(App, loaded[0].Open[0].Callsign);
+
+        // Accorpamento derivato: una tabella per config; il settore aperto è unificato, con CP/Range dell'input.
+        var table = await _service.DeriveConfigTableAsync(App);
+        Assert.Single(table);
+        Assert.Equal("cfg:1", table[0].ConfigKey);
+        var row = Assert.Single(table[0].Rows);
+        Assert.Equal(App, row.UnifiedCallsign);
+        Assert.Equal("GINEL", row.CenterPoint);
+        Assert.Equal("140", row.Range);
     }
 
     [Fact]
@@ -136,6 +160,44 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.Equal("MAREL", row.Cop);
         Assert.Equal("LIRR_NE_CTR", row.Next);
         Assert.Empty(coord.TowardTowers);
+    }
+
+    [Fact]
+    public async Task Owned_Arrival_To_Acc_Reads_App_As_Sender()
+    {
+        // Regressione invert: arrivo POSSEDUTO dall'APP verso l'ACC (NE). Direzione owner→next: l'APP è il mittente,
+        // NE il destinatario ("… trasferisce a Roma Radar NE …"), non il contrario.
+        var tr = new EfTransferRepository(_db);
+        var fArr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRP" });
+        await tr.AddPointAsync("LIRR", fArr, Point("MAREL", 150, _neId));
+
+        var coord = await _service.DeriveCoordinationAsync(App);
+
+        var acc = Assert.Single(coord.TowardAcc);
+        Assert.Equal("LIRR_NE_CTR", acc.TargetCallsign);
+        var row = Assert.Single(acc.Rows);
+        Assert.Contains("trasferisce a Roma Radar NE", row.Sentence!);
+        Assert.False(row.Sentence!.StartsWith("Roma Radar NE"), "l'invert è tornato: NE non deve essere il mittente");
+    }
+
+    [Fact]
+    public async Task Overflight_without_airport_goes_to_overflights_group()
+    {
+        var tr = new EfTransferRepository(_db);
+        var fOvf = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Overflight });
+        await tr.AddPointAsync("LIRR", fOvf, new TransferPointInput
+        {
+            Cop = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia", NextSectorId = _neId,
+        });
+
+        var coord = await _service.DeriveCoordinationAsync(App);
+
+        var sorvoli = Assert.Single(coord.Overflights);
+        Assert.Equal("Sorvoli", sorvoli.TargetCallsign);
+        var row = Assert.Single(sorvoli.Rows);
+        Assert.Equal(TransferFlowKind.Overflight, row.Kind);
+        Assert.DoesNotContain("destinazione", row.Sentence!);
+        Assert.Empty(coord.TowardAcc);       // il sorvolo non è un arrivo/partenza verso ACC
     }
 
     // ---- Copertura del dominio di gerarchia: il doc del padre (LIRP_APP) copre i figli APP (LIRP_E_APP) ----

@@ -10,5 +10,6 @@ public sealed class TransferPointInput
     public required LevelUnit LevelUnit { get; init; }
     public required LevelConstraint LevelConstraint { get; init; }
     public string? LevelSpecial { get; init; }
+    public LevelParity Parity { get; init; } = LevelParity.Any;
     public int? NextSectorId { get; init; }
 }

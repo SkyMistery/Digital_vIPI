@@ -85,6 +85,11 @@
   Gli aeroporti **senza alcun settore** sono nascosti di default (`IsPublic = !IsHidden && Sectors>0`).
 - **Editor:** non rivisti in questo round ("poi ragioniamo sugli editor"). Restano raggiungibili
   dalla sezione Admin della landing ACC, invariati.
+- **Lock editing admin (2026-07):** le 4 pagine di struttura (`/vsop/admin/sectorstructure`, `/vsop/admin/acc`,
+  `/vsop/admin/trasferimenti`, `/vsop/admin/airports`) condividono **un** lock esclusivo (`admin:structure`), e
+  `/vsop/editor/newdoc` ne ha uno separato: una persona alla volta modifica. Barra `Components/EditLockBar.razor`
+  («Inizia/Fine modifica» + banner + «Forza sblocco» admin). Read-only finché non si prende il lock; TTL 3min +
+  heartbeat 60s (chiusa la scheda si libera da sé). Storage `EditResourceLock`. Vedi memoria `edit-resource-lock-design`.
 - **Anteprime (`?as=`, round 33):** i 4 viewer documentali (`AccVipiPage`, `AeroportoPage`, `AppnPage`,
   `VloaListPage`) accettano un parametro uniforme `as`: assente → **pubblica** (release effettiva al ciclo
   corrente, altrimenti live); `?as=draft` → **bozza live**; `?as=rel:{releaseId}` → **snapshot congelato**

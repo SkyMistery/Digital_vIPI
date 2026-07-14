@@ -5,17 +5,17 @@
 @inject IStationResolver Stations
 @inject IStaffRosterService Roster
 
-<PageTitle>Area AOD / DIR · IVAO Italia</PageTitle>
+<PageTitle>Area Staff · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Area AOD / DIR</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Area Staff</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Area AOD / DIR</h2><span class="muted">Tutte le funzioni riservate allo staff AOC/AOAC/AOA</span></div>
+        <div><h2 style="margin-bottom:2px">Area Staff</h2><span class="muted">Tutte le funzioni riservate allo staff</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff AOC/AOAC/AOA può accedere a quest'area.</div></div>
+        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff può accedere a quest'area.</div></div>
     }
     else
     {

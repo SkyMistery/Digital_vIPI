@@ -9,7 +9,7 @@
 <PageTitle>ACC · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>ACC</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>ACC</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">ACC</h2><span class="muted">Area Control Center importati dalla sorgente. Tutti attivi: nascondine alcuni se serve.</span></div>
     </div>
@@ -29,20 +29,28 @@
             <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
         }
 
+        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+
         <div class="section-title">
             <h3>ACC <span class="pill blue">@_accs.Count</span></h3><span class="ln"></span>
-            <button class="btn primary" disabled="@_busy" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">@if (_busy) { <span class="spin"></span> }⟳ Importa da sorgente</button>
+            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">@if (_busy) { <span class="spin"></span> }⟳ Importa da sorgente</button>
             <a class="btn ghost" href="/vsop/admin/sectorstructure">Struttura settori →</a>
         </div>
         <div class="block">
-            <div class="field"><input placeholder="🔎 filtra per codice o nome…" @bind="_q" @bind:event="oninput" /></div>
+            <div class="field" style="display:flex;gap:8px;align-items:center">
+                <input placeholder="🔎 filtra per codice o nome…" @bind="_q" @bind:event="oninput" style="flex:1" />
+                <select @bind="_country" title="Filtra per nazione (vale per entrambe le tabelle)" style="width:auto;flex:none;min-width:160px">
+                    <option value="">tutte le nazioni</option>
+                    @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
+                </select>
+            </div>
             @if (_accs.Count == 0)
             {
                 <p class="help">Nessun ACC. Premi «Importa da sorgente» per popolare l'elenco.</p>
             }
             else if (!ShownAccs().Any())
             {
-                <p class="help">Nessun risultato per «@_q».</p>
+                <p class="help">Nessun risultato@(string.IsNullOrWhiteSpace(_q) ? "" : $" per «{_q}»") con i filtri attivi.</p>
             }
             else
             {
@@ -66,7 +74,7 @@
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
                                         @(a.IsHidden ? "👁 Mostra" : "🚫 Nascondi")
                                     </button>
                                 </td>
@@ -80,14 +88,20 @@
         <div class="section-title"><h3>Settori ACC <span class="pill blue">@_subs.Count</span></h3><span class="ln"></span></div>
         <div class="block">
             <p class="muted" style="font-size:11.5px;margin:0 0 8px">Subcenter importati dalla sorgente (callsign · ACC · position · middle id · freq · shape). I limiti di quota li imposti tu. I settori di un ACC nascosto risultano nascosti.</p>
-            <div class="field"><input placeholder="🔎 filtra per callsign, ACC, position…" @bind="_qSub" @bind:event="oninput" /></div>
+            <div class="field" style="display:flex;gap:8px;align-items:center">
+                <input placeholder="🔎 filtra per callsign, ACC, position…" @bind="_qSub" @bind:event="oninput" style="flex:1" />
+                <select @bind="_country" title="Filtra per nazione (vale per entrambe le tabelle)" style="width:auto;flex:none;min-width:160px">
+                    <option value="">tutte le nazioni</option>
+                    @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
+                </select>
+            </div>
             @if (_subs.Count == 0)
             {
                 <p class="help">Nessun settore ACC. Premi «Importa da sorgente».</p>
             }
             else if (!ShownSubs().Any())
             {
-                <p class="help">Nessun risultato per «@_qSub».</p>
+                <p class="help">Nessun risultato@(string.IsNullOrWhiteSpace(_qSub) ? "" : $" per «{_qSub}»") con i filtri attivi.</p>
             }
             else
             {
@@ -104,8 +118,8 @@
                                 <td>@(s.MiddleIdentifier ?? "—")</td>
                                 <td>@(s.Frequency ?? "—")</td>
                                 <td>@(s.HasPolygon ? "✓" : "—")</td>
-                                <td><input style="width:70px" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" /></td>
-                                <td><input style="width:70px" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" /></td>
+                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" /></td>
+                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" /></td>
                                 <td>
                                     @if (s.AccHidden)
                                     {
@@ -121,8 +135,8 @@
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => SaveLimits(s.Id)" title="Salva limiti">💾</button>
-                                    <button class="btn ghost" disabled="@(_busy || s.AccHidden)" @onclick="() => SetSubHidden(s.Id, !s.IsHidden)"
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveLimits(s.Id)" title="Salva limiti">💾</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || s.AccHidden)" @onclick="() => SetSubHidden(s.Id, !s.IsHidden)"
                                             title="@(s.AccHidden ? "L'ACC è nascosto: mostra prima l'ACC" : "Mostra/nascondi")">
                                         @(s.IsHidden ? "👁" : "🚫")
                                     </button>
@@ -143,9 +157,13 @@
     private readonly Dictionary<int, int?> _upper = new();
     private string _q = "";
     private string _qSub = "";
+    private string _country = "";   // filtro nazione (prefisso ICAO, "" = tutte) condiviso dalle due tabelle
     private bool _busy;
+    private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
     private string? _msg;
     private string? _ok;
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,16 +180,55 @@
     }
 
     private IEnumerable<AccAdminRow> ShownAccs() =>
-        _accs.Where(a => string.IsNullOrWhiteSpace(_q)
-            || a.Code.Contains(_q, StringComparison.OrdinalIgnoreCase)
-            || a.Name.Contains(_q, StringComparison.OrdinalIgnoreCase));
+        _accs.Where(a => (string.IsNullOrEmpty(_country) || PrefixOf(a.Code) == _country)
+            && (string.IsNullOrWhiteSpace(_q)
+                || a.Code.Contains(_q, StringComparison.OrdinalIgnoreCase)
+                || a.Name.Contains(_q, StringComparison.OrdinalIgnoreCase)));
 
     private IEnumerable<AccSectorRow> ShownSubs() =>
-        _subs.Where(s => string.IsNullOrWhiteSpace(_qSub)
-            || s.ComposePosition.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
-            || s.CenterId.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
-            || (s.Position ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase)
-            || (s.MiddleIdentifier ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase));
+        _subs.Where(s => (string.IsNullOrEmpty(_country) || PrefixOf(s.CenterId) == _country)
+            && (string.IsNullOrWhiteSpace(_qSub)
+                || s.ComposePosition.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+                || s.CenterId.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+                || (s.Position ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase)
+                || (s.MiddleIdentifier ?? "").Contains(_qSub, StringComparison.OrdinalIgnoreCase)));
+
+    // --- Filtro per nazione: prefisso ICAO (primi 2 char del codice ACC / CenterId) → nome ---
+    private sealed record CountryOption(string Prefix, string Name);
+
+    private static string PrefixOf(string code)
+    {
+        var c = code ?? "";
+        return (c.Length >= 2 ? c.Substring(0, 2) : c).ToUpperInvariant();
+    }
+
+    private List<CountryOption> CountryOptions() =>
+        _accs.Select(a => PrefixOf(a.Code))
+             .Concat(_subs.Select(s => PrefixOf(s.CenterId)))
+             .Where(p => !string.IsNullOrWhiteSpace(p))
+             .Distinct(StringComparer.OrdinalIgnoreCase)
+             .Select(p => new CountryOption(p, CountryName(p)))
+             .OrderBy(c => c.Prefix.Equals("LI", StringComparison.OrdinalIgnoreCase) ? "" : c.Name)   // Italia prima
+             .ToList();
+
+    private static string CountryName(string prefix) => prefix.ToUpperInvariant() switch
+    {
+        "LI" => "🇮🇹 Italia",
+        "LF" => "🇫🇷 Francia",
+        "LS" => "🇨🇭 Svizzera",
+        "LO" => "🇦🇹 Austria",
+        "LD" => "🇭🇷 Croazia",
+        "LJ" => "🇸🇮 Slovenia",
+        "LG" => "🇬🇷 Grecia",
+        "LM" => "🇲🇹 Malta",
+        "LA" => "🇦🇱 Albania",
+        "LQ" => "🇧🇦 Bosnia",
+        "LY" => "🇷🇸 Serbia/Montenegro",
+        "LW" => "🇲🇰 Macedonia del Nord",
+        "DT" => "🇹🇳 Tunisia",
+        "DA" => "🇩🇿 Algeria",
+        _ => prefix.ToUpperInvariant(),
+    };
 
     // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
     private static int ParseLower(object? v)
@@ -215,7 +272,9 @@
         _busy = true; _msg = null; _ok = null;
         try { await Acc.SetHiddenAsync(accId, hidden); await ReloadAsync(); }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (ValidationException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex) { _msg = "Errore imprevisto: " + ex.Message; Logger.LogError(ex, "Nascondi ACC fallito"); }
         finally { _busy = false; }
     }
 
@@ -224,7 +283,9 @@
         _busy = true; _msg = null; _ok = null;
         try { await Acc.SetSubcenterHiddenAsync(id, hidden); await ReloadAsync(); }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (ValidationException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex) { _msg = "Errore imprevisto: " + ex.Message; Logger.LogError(ex, "Nascondi settore fallito"); }
         finally { _busy = false; }
     }
 

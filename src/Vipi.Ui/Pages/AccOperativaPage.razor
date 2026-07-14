@@ -4,7 +4,7 @@
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
-@inject IAccProfileService Profile
+@inject IAccDerivationService Profile
 @inject IAccDocumentService AccDoc
 @inject ITopologyProvider Topology
 @inject IAorService Aor
@@ -128,7 +128,7 @@ else
     [Parameter] public string Acc { get; set; } = default!;
 
     private AccInfo? _acc;
-    private AccProfileData _data = new() { AccCode = "", AccName = "", Blocks = new() };
+    private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
     private Topology? _topo;
     private string? _root;
     private IReadOnlyList<string> _positions = Array.Empty<string>();

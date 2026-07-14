@@ -6,12 +6,12 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Authoring della vIPI ACC sul modello unificato <c>Document</c> (doc refactor 08e-acc, strategia A/Opzione A). Sostituirà
-/// il vecchio <c>AccProfileService</c>/<c>AccProfile</c> (rimossi in 08i): i blocchi vivono come sezioni radice del Document
-/// (una per blocco) con le sezioni-catalogo come figlie; il metadata del blocco (natura/membri/override) nel <c>BodyJson</c>
-/// del blocco proprio della sezione-blocco, config/aree/separations/vfr nei <c>BodyJson</c> delle figlie keyed. Le derivazioni
-/// (freq/coord/AoR/config-table) restano calcolate live: si passa il blocco assemblato a <see cref="IAccProfileService"/>.
-/// Questo service possiede solo il ciclo storage (Ensure/assembla/salva); l'autorizzazione è ACC-scoped.
+/// Authoring della vIPI ACC sul modello unificato <c>Document</c> (doc refactor 08e-acc, strategia A/Opzione A).
+/// Rimpiazza lo storage profile eliminato in 08i (tabelle <c>AccProfiles</c> droppate): i blocchi vivono come sezioni
+/// radice del Document (una per blocco) con le sezioni-catalogo come figlie; il metadata del blocco (natura/membri/override)
+/// nel <c>BodyJson</c> del blocco proprio della sezione-blocco, config/aree/separations/vfr nei <c>BodyJson</c> delle figlie
+/// keyed. Le derivazioni (freq/coord/AoR/config-table) restano calcolate live da <see cref="IAccDerivationService"/>, a cui
+/// si passa il blocco assemblato. Questo service possiede solo il ciclo storage (Ensure/assembla/salva); authz ACC-scoped.
 /// </summary>
 public interface IAccDocumentService
 {
@@ -60,12 +60,12 @@ public interface IAccDocumentService
 /// <inheritdoc cref="IAccDocumentService"/>
 public sealed class AccDocumentService : IAccDocumentService
 {
-    private readonly IAccProfileRepository _repo;
+    private readonly IAccDerivationRepository _repo;
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
     private readonly IReleaseRepository _releases;
 
-    public AccDocumentService(IAccProfileRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
+    public AccDocumentService(IAccDerivationRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
         IReleaseRepository releases)
     {
         _repo = repo;
@@ -158,7 +158,7 @@ public sealed class AccDocumentService : IAccDocumentService
 
         var name = (await _repo.ResolveAccDocumentIdentityAsync(accCode, ct))?.AccName ?? accCode;
         var blocks = AccDocumentAssembler.Assemble(raw);
-        var data = new AccProfileData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
+        var data = new AccVipiData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
         return new AccReleaseView(data, rel.ReleaseAiracCycle);
     }
 

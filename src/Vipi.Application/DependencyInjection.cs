@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
         services.AddScoped<Auth.IStaffRosterService, Auth.StaffRosterService>();
         services.AddScoped<IEditingService, EditingService>();
+        services.AddScoped<IResourceLockService, ResourceLockService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccImportUseCase, AccImportUseCase>();
         services.AddScoped<ISpecialAreaImportUseCase, SpecialAreaImportUseCase>();
@@ -26,13 +27,14 @@ public static class DependencyInjection
         services.AddSingleton<NeighbourAdjacencyComputer>();   // puro, senza stato
         services.AddScoped<INeighbourImportService, NeighbourImportService>();
         services.AddScoped<INeighbourReader>(sp => sp.GetRequiredService<INeighbourImportService>());   // stessa istanza, porta di sola lettura (ISP)
-        services.AddScoped<IAirportProfileService, AirportProfileService>();
+        services.AddScoped<IAirportEditingService, AirportEditingService>();
         services.AddScoped<IAppDocumentService, AppDocumentService>();
-        services.AddScoped<IAccProfileService, AccProfileService>();
+        services.AddScoped<IAccDerivationService, AccDerivationService>();
         services.AddScoped<IAccDocumentService, AccDocumentService>();
-        services.AddScoped<IVloaProfileService, VloaProfileService>();
+        services.AddScoped<IVloaDerivationService, VloaDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
+        services.AddScoped<IDocumentReviewService, DocumentReviewService>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();

@@ -3,7 +3,7 @@
    Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
 @inject IEditingService Editing
-@inject IVloaProfileService Vloa
+@inject IVloaDerivationService Vloa
 @inject NavigationManager Nav
 
 @if (_notFound)
@@ -49,7 +49,9 @@ else
     </div>
 
     <div class="callout warning"><span class="cic">🤝</span><div><p class="ct">Documento bilaterale — lato italiano editabile</p>
-        Solo <b>CH/AOD italiano</b> modifica la parte <b>Home (@Home)</b>. La parte <b>Neighbour (@Foreign)</b> è concordata fuori dal tool.</div></div>
+        Solo lo <b>staff italiano</b> modifica la parte <b>Home (@Home)</b>. La parte <b>Neighbour (@Foreign)</b> è concordata fuori dal tool.</div></div>
+
+    <DocReviewBar DocumentId="_docId" />
 
     @if (_lock is { Locked: true, IsMine: false })
     {
@@ -225,7 +227,7 @@ else
                 break;
             case "coordination":
                 var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
-                @CoordView(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)
+                <AccCoordinationView Coord="@(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
                 break;
         }
     };
@@ -299,32 +301,6 @@ else
                                 }
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
-        }
-    };
-
-    private RenderFragment CoordView(IReadOnlyList<VloaCoordRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted">Nessun trasferimento registrato per questa direzione. Aggiungili in «Trasferimenti».</p>
-        }
-        else
-        {
-            <table class="cfg-table">
-                <thead><tr><th>CoP</th><th>Flusso</th><th>FL</th><th>Da → A</th><th>Frase</th></tr></thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        <tr>
-                            <td>@r.Cop</td>
-                            <td>@r.Flow</td>
-                            <td>@r.Fl</td>
-                            <td>@r.Owner → @r.Next</td>
-                            <td>@r.Sentence</td>
-                        </tr>
                     }
                 </tbody>
             </table>

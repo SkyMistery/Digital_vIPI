@@ -11,7 +11,7 @@
 <PageTitle>Aeroporti · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area AOD / DIR</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Aeroporti</b></div>
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Aeroporti</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">Aeroporti</h2><span class="muted">Assegnazione aeroporti IVAO alle ACC, ACC di competenza e gerarchia di settori</span></div>
     </div>
@@ -30,6 +30,8 @@
         {
             <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
         }
+
+        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
 
         <div class="topo-layout">
             @* --- SINISTRA: aeroporti assegnati a una ACC --- *@
@@ -61,10 +63,10 @@
                                     <option value="">sposta in ACC…</option>
                                     @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                 </select>
-                                <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">Sposta</button>
-                                <button class="btn primary" disabled="@_busy" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">@if (_busy) { <span class="spin"></span> }📄 Genera documenti</button>
-                                <button class="btn ghost danger" disabled="@_busy" @onclick="BulkDeleteAssigned">🗑 Elimina selezionati</button>
-                                <button class="btn ghost" disabled="@_busy" @onclick="() => _selAssigned.Clear()">deseleziona</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">Sposta</button>
+                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">@if (_busy) { <span class="spin"></span> }📄 Genera documenti</button>
+                                <button class="btn ghost danger" disabled="@(_busy || !_canEdit)" @onclick="BulkDeleteAssigned">🗑 Elimina selezionati</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selAssigned.Clear()">deseleziona</button>
                             </div>
                         }
                         <table class="res-table">
@@ -79,7 +81,7 @@
                                         <td class="col-chk"><input type="checkbox" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
                                         <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Apri editor aeroporto @a.Icao"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
                                         <td>
-                                            <select disabled="@_busy" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
+                                            <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
                                                 {
                                                     <option value="@f.Code" selected="@(f.Code == a.AccCode)">@f.Code</option>
@@ -111,9 +113,9 @@
                                             <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Editor profilo aeroporto">✎</a>
                                             @if (a.Sectors > 0)
                                             {
-                                                <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? "Mostra l'aeroporto al pubblico" : "Nascondi l'aeroporto: la sua pagina diventa inaccessibile al pubblico")">@(a.IsHidden ? "👁 Mostra" : "🙈 Nascondi")</button>
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? "Mostra l'aeroporto al pubblico" : "Nascondi l'aeroporto: la sua pagina diventa inaccessibile al pubblico")">@(a.IsHidden ? "👁 Mostra" : "🙈 Nascondi")</button>
                                             }
-                                            <button class="btn ghost" disabled="@_busy" @onclick="() => Remove(a.Id, a.AccCode)" title="Solo se senza settori">🗑</button>
+                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => Remove(a.Id, a.AccCode)" title="Solo se senza settori">🗑</button>
                                         </td>
                                     </tr>
                                 }
@@ -128,7 +130,7 @@
                 <div class="section-title"><h3>Anagrafica IVAO <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
                     @if (_ivao is not null)
                     {
-                        <button class="btn primary" disabled="@_busy" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla ACC di competenza già esistente e importa i loro settori dalla sorgente">@if (_busy) { <span class="spin"></span> }⟳ Auto-assegna noti</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla ACC di competenza già esistente e importa i loro settori dalla sorgente">@if (_busy) { <span class="spin"></span> }⟳ Auto-assegna noti</button>
                     }
                 </div>
                 <div class="block">
@@ -158,8 +160,8 @@
                                         <option value="">assegna a ACC…</option>
                                         @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                     </select>
-                                    <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">Assegna selezionati</button>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _selIvao.Clear()">deseleziona</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">Assegna selezionati</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selIvao.Clear()">deseleziona</button>
                                 </div>
                             }
                             <table class="res-table">
@@ -190,11 +192,11 @@
                                                 {
                                                     var pick = _assignAcc.GetValueOrDefault(ap.Icao, "");
                                                     <div class="assign-cell">
-                                                        <select disabled="@_busy" value="@pick" @onchange="e => SetAssignAcc(ap.Icao, e.Value?.ToString())">
+                                                        <select disabled="@(_busy || !_canEdit)" value="@pick" @onchange="e => SetAssignAcc(ap.Icao, e.Value?.ToString())">
                                                             <option value="">ACC…</option>
                                                             @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                                         </select>
-                                                        <button class="btn ghost" disabled="@(_busy || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">assegna</button>
+                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">assegna</button>
                                                     </div>
                                                 }
                                             </td>
@@ -219,8 +221,11 @@
     private string _qAssigned = "", _qIvao = "";
     private string _filterAcc = "";   // filtro ACC sulla tabella di sinistra ("" = tutte)
     private bool _busy;
+    private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
     private string? _msg;
     private string? _ok;
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     // selezione multipla (azioni bulk)
     private readonly HashSet<int> _selAssigned = new();
