@@ -84,11 +84,7 @@ public sealed class EfAirportRepository : IAirportRepository
         var a = await _db.Airports.Include(x => x.TransitionLevels)
             .FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
         a.TransitionAltitudeFt = ta;
-        // Ricalcola il TL delle sole righe che corrispondono ancora alle fasce di default (TL = TA + offset);
-        // le righe con fasce QNH personalizzate restano intatte.
-        foreach (var row in a.TransitionLevels)
-            if (DefaultBandOffset(row.QnhFrom, row.QnhTo) is int offset)
-                row.Level = TransitionLevelFor(ta, offset);
+        RecomputeDefaultBandLevels(a);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -254,6 +250,9 @@ public sealed class EfAirportRepository : IAirportRepository
 
         // Tabella Transition Level standard (TL = TA + margine per fascia QNH) se non ancora impostata.
         EnsureDefaultTransitionLevels(airport);
+        // Con TA di sorgente (bottone "Salva TA" bloccato) questo è l'unico path che aggiorna la TA: ricalcola
+        // qui le righe di fascia-default già esistenti, altrimenti resterebbero sull'ultima TA (o "TA + N ft").
+        RecomputeDefaultBandLevels(airport);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -506,6 +505,15 @@ public sealed class EfAirportRepository : IAirportRepository
                 Level = TransitionLevelFor(airport.TransitionAltitudeFt, band.OffsetFt),
             });
         }
+    }
+
+    /// <summary>Ricalcola il TL delle sole righe che combaciano ancora con le fasce di default (TL = TA + offset);
+    /// le righe con fasce QNH personalizzate restano intatte. Idempotente.</summary>
+    private static void RecomputeDefaultBandLevels(Airport airport)
+    {
+        foreach (var row in airport.TransitionLevels)
+            if (DefaultBandOffset(row.QnhFrom, row.QnhTo) is int offset)
+                row.Level = TransitionLevelFor(airport.TransitionAltitudeFt, offset);
     }
 
     /// <summary>Offset della fascia di default che combacia esattamente con (from,to), altrimenti null (fascia personalizzata).</summary>

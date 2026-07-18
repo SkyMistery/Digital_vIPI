@@ -34,20 +34,27 @@ public sealed class NoaaWeatherClient : IWeatherProvider
         if (_cache.TryGetValue(icao, out var hit) && now < hit.Expiry)
             return hit.Report;
 
-        try
-        {
-            var http = _factory.CreateClient(HttpClientName);
-            var metar = await FetchMetarAsync(http, icao, ct);
-            var taf = await FetchTafAsync(http, icao, ct);
-            var report = new WeatherReport(icao, metar, taf, now);
-            _cache[icao] = (report, now.AddMinutes(Math.Max(1, _opt.TtlMinutes)));
-            return report;
-        }
-        catch
-        {
-            // Servizio non raggiungibile: ricade sull'ultimo valore noto (se c'è), altrimenti vuoto.
-            return _cache.TryGetValue(icao, out var stale) ? stale.Report : WeatherReport.Empty(icao);
-        }
+        var http = _factory.CreateClient(HttpClientName);
+        // METAR e TAF sono bollettini indipendenti: uno mancante (es. NOAA risponde 204 No Content sul
+        // METAR ma ha il TAF) non deve scartare l'altro. Ogni fetch tollera errore/empty tornando null.
+        var metar = await TryFetchAsync(() => FetchMetarAsync(http, icao, ct));
+        var taf = await TryFetchAsync(() => FetchTafAsync(http, icao, ct));
+
+        // Entrambi assenti: probabile servizio irraggiungibile → ricade sull'ultimo valore noto (anche scaduto).
+        if (metar is null && taf is null && _cache.TryGetValue(icao, out var stale))
+            return stale.Report;
+
+        var report = new WeatherReport(icao, metar, taf, now);
+        _cache[icao] = (report, now.AddMinutes(Math.Max(1, _opt.TtlMinutes)));
+        return report;
+    }
+
+    // Un singolo fetch: errore di trasporto o body vuoto (204 → JsonException) diventano "nessun dato" (null),
+    // senza propagare l'eccezione all'altro bollettino.
+    private static async Task<string?> TryFetchAsync(Func<Task<string?>> fetch)
+    {
+        try { return await fetch(); }
+        catch { return null; }
     }
 
     private async Task<string?> FetchMetarAsync(HttpClient http, string icao, CancellationToken ct)

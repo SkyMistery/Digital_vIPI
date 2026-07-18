@@ -16,7 +16,8 @@ public interface IContentRepository
     /// posizione aeroportuale (torre) di quell'aeroporto. Null se non esiste.
     /// </summary>
     /// <param name="ignoreRelease">true = ignora la release AIRAC effettiva e torna lo stato pubblicato/live (anteprima bozza).</param>
-    Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, CancellationToken ct = default);
+    /// <param name="preferWorking">true = usa la versione di lavorazione più recente (bozza inclusa), non la pubblicata (anteprima bozza).</param>
+    Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
     /// <summary>
     /// Carica la vIPI di un APP non remotizzato (per callsign, es. "LIRP_APP"): documento con settore primario

@@ -11,7 +11,7 @@ namespace Vipi.Application.Content;
 public interface IVipiViewService
 {
     Task<DocumentView?> BuildAccVipiAsync(string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default);
-    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default);
+    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
     /// <summary>Vista documentale di un APP non remotizzato (storage su Document, doc 08e). Le sezioni derivate
     /// (aor/freq/coord/minima) restano vuote nel view: la pagina le rende live per <c>SectionKey</c>.</summary>
@@ -55,8 +55,8 @@ public sealed class VipiViewService : IVipiViewService
         return await BuildAsync(_repo.LoadAccVipiAsync(accCode, ct), tier, live, aor);
     }
 
-    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadAirportVipiAsync(icao, ignoreRelease, ct), tier, live, null);
+    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadAirportVipiAsync(icao, ignoreRelease, preferWorking, ct), tier, live, null);
 
     public Task<DocumentView?> BuildAppVipiAsync(string appCallsign, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadAppVipiAsync(appCallsign, ignoreRelease, preferWorking, ct), tier, live, null);

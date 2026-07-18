@@ -465,7 +465,7 @@ else
         {
             case PreviewKind.Draft:
                 if (await Authz.CanEditAccAsync(_acc.Code))
-                    _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false, ignoreRelease: true);
+                    _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
                 else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
                 break;
             case PreviewKind.Release:
