@@ -654,6 +654,15 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.RenderMode = mode;
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default)
     {
         await RequireDraftAsync(versionId, ct);

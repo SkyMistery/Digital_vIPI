@@ -29,6 +29,9 @@ public interface IEditingService
     Task<int> AddBlockAsync(int sectionId, BlockFormat format, BlockTier tier, BlockVisibility visibility, CancellationToken ct = default);
     Task DeleteBlockAsync(int blockId, CancellationToken ct = default);
     Task RenameSectionAsync(int sectionId, string title, CancellationToken ct = default);
+    /// <summary>Imposta il RenderMode (Live/Frozen) di una sezione derivabile nella bozza (doc 10 §3a/§S4c): governa se
+    /// al publish l'output della sezione viene congelato nello snapshot (Frozen) o reso live al view (Live).</summary>
+    Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default);
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
     Task DeleteSectionAsync(int sectionId, CancellationToken ct = default);
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
