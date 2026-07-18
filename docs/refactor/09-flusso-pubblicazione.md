@@ -6,6 +6,13 @@
 
 ## 1. Stato attuale (ri-mappato post-08, 2026-07-10)
 
+> **[Superato in parte — doc 10, 2026-07-18]** Il **doc 10** («Snapshot totale + RenderMode») ha reso lo
+> snapshot **totale** (congela anche l'output delle sezioni derivate `Frozen` in `DocReleasePayload.FrozenSections`)
+> e ha **rimosso l'overlay di visibilità separato** (`VloaOverlaySnapshot`, `DocReleasePayload.Vloa`,
+> `IReleaseTarget.IncludesVisibilityOverlay` e il ramo overlay in `SnapshotWorkingAsync`, §S5). Dove sotto
+> si legge «overlay `Vloa/App` da `DocumentProfile`» / «overlay opzionale», quel ramo **non esiste più**: la
+> visibilità è dentro la fotografia congelata.
+
 **Doc 08 ha già collassato il cuore.** Tutti e 4 i tipi (`Vloa`, `AccVipi`, `App`, `Airport`)
 sono ora su modello unificato `Document`+`DocumentVersion`. Il ramo di snapshot/preview/firma
 è **uniforme**: un solo `DocReleasePayload` (`RawDocument` congelato + overlay opzionale).

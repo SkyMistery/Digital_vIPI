@@ -136,11 +136,15 @@ Slice verticali, 1 commit/passo, `dotnet build` verde a ogni commit, meccanico s
   sempre live sopra. Entrambi i path.
 - **S4c — Editor: toggle + badge.** Controllo `Live`/`Frozen` per sezione derivabile nei 4 editor
   (ACC/App/vLOA/Airport), persistenza su `RenderMode`, badge di stato per sezione.
-- **S5 — Rimozione (propagazione).** Drop `VloaOverlaySnapshot`/`payload.Vloa`/`IncludesVisibilityOverlay`
-  + fallback live pubblico. Visibilità = release effettiva. Aggiorna commenti/`<see cref>`, docs
-  (08e, 08e-acc, 09, `spec/modello-dati.md`), memorie — **nello stesso giro**.
-- **S6 — Migrazione A.** Backfill copia statica per i `Published`; set default `RenderMode` sulle
-  sezioni esistenti.
+- **S5 — Rimozione overlay (propagazione).** ✅ Drop `VloaOverlaySnapshot`/`payload.Vloa`/
+  `IncludesVisibilityOverlay` (+ 4 impl + ramo overlay in `SnapshotWorkingAsync`). Aggiorna
+  commenti/`<see cref>`, docs (09, `spec/modello-dati.md`), memorie — **nello stesso giro**.
+  *La rimozione del **fallback live pubblico** è stata spostata in S6* (vedi nota): togliere il fallback
+  prima del backfill lascerebbe un buco pubblico (Published senza release → invisibile). In S6 le due
+  cose atterrano **atomiche** → nessun buco.
+- **S6 — Migrazione A + fallback.** Rimuove il fallback live pubblico (visibilità pubblica = release
+  effettiva) **e** nello stesso giro backfilla una copia statica per i `Published` senza release; set
+  default `RenderMode` sulle sezioni esistenti. Ordine atomico = nessun buco pubblico.
 - **S7 — Verify live + chiusura.** Guida il flusso reale per le 4 famiglie × {`Live`,`Frozen`} con
   traccia; `history/rounds.md` + indice `00-overview` + memorie coerenti.
 
