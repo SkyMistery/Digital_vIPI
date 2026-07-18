@@ -436,9 +436,9 @@ else
         if (_listMode)
         {
             var data = await Structure.LoadAsync(_acc.Code);
-            // Solo aeroporti con documento vIPI PUBBLICATO (non basta l'import: lo staff deve pubblicare a mano).
+            // Solo aeroporti con release AIRAC effettiva e non nascosti (doc 10 §3f: visibilità pubblica = release effettiva).
             var published = (await Docs.ListAsync())
-                .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.IsPublished
+                .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
                             && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
                 .Select(m => m.Scope)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);

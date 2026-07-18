@@ -19,5 +19,9 @@ internal static class TestReleaseTargets
 
     public static EfReleaseRepository ReleaseRepo(VipiDbContext db) => new(db, Registry(db));
 
-    public static EfDocumentAdminRepository AdminRepo(VipiDbContext db) => new(db, Registry(db));
+    public static EfDocumentAdminRepository AdminRepo(VipiDbContext db)
+    {
+        var registry = Registry(db);
+        return new(db, registry, new EfReleaseRepository(db, registry));
+    }
 }

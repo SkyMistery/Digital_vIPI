@@ -109,4 +109,24 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         var vloa = Assert.Single(await _repo.ListAsync(), m => m.Kind == ManagedDocKind.Vloa);
         Assert.Equal("LIRR", await _repo.GetAccCodeAsync(new ManagedDocRef(ManagedDocKind.Vloa, vloa.ReleaseKey, vloa.DocumentId)));
     }
+
+    [Fact]
+    public async Task List_HasEffectiveRelease_TracksActiveReleaseNotJustPublishedStatus()
+    {
+        // Tutti i doc sono Published ma SENZA release → gate visibilità pubblica (doc 10 §3f) false per tutti.
+        Assert.All(await _repo.ListAsync(), m => Assert.False(m.HasEffectiveRelease));
+
+        // Release AIRAC in vigore ORA per il solo aeroporto (chiave = ICAO) → solo lui diventa pubblicamente visibile.
+        _db.DocReleases.Add(new DocRelease
+        {
+            TargetType = ReleaseTargetType.Airport, TargetKey = "LIRA", VersionNumber = 1,
+            ReleaseAiracCycle = "2606", ReleaseEffectiveUtc = DateTime.UtcNow.AddMinutes(-1),
+            Status = ReleaseStatus.Effective, PayloadJson = "{}", CreatedUtc = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var all = await _repo.ListAsync();
+        Assert.True(Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi).HasEffectiveRelease);
+        Assert.False(Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi).HasEffectiveRelease);   // published ma senza release
+    }
 }

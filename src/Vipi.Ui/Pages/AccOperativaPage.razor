@@ -162,8 +162,9 @@ else
         _positions = ctr.Select(s => s.Callsign).ToList();
         var primary = ctr.FirstOrDefault(s => s.IsPrimary)?.Callsign;
 
+        // Visibilità pubblica = release effettiva (doc 10 §3f), non nascosti.
         var published = (await Docs.ListAsync())
-            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.IsPublished
+            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
                         && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
             .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
         _apts = structure?.Airports

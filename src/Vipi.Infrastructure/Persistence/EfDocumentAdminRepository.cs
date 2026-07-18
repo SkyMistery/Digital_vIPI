@@ -11,10 +11,12 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
 {
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
-    public EfDocumentAdminRepository(VipiDbContext db, IReleaseTargetRegistry targets)
+    private readonly IReleaseRepository _releases;
+    public EfDocumentAdminRepository(VipiDbContext db, IReleaseTargetRegistry targets, IReleaseRepository releases)
     {
         _db = db;
         _targets = targets;
+        _releases = releases;
     }
 
     public async Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default)
@@ -36,6 +38,15 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                     result.Add(managed);
                     break;
                 }
+
+        // Visibilità pubblica = release effettiva (doc 10 §3f): una sola query batch per popolare HasEffectiveRelease,
+        // così i gate delle liste pubbliche filtrano su questo invece di Status==Published.
+        var summaries = await _releases.SummariesAsync(
+            result.Select(m => (m.ReleaseTarget, m.ReleaseKey)).Distinct().ToList(), ct);
+        result = result.Select(m => m with
+        {
+            HasEffectiveRelease = summaries.TryGetValue((m.ReleaseTarget, m.ReleaseKey), out var s) && s.EffectiveCycle is not null,
+        }).ToList();
 
         return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
     }
