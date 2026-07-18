@@ -19,6 +19,11 @@ public sealed class RawSection
     public required int Depth { get; init; }
     public required string SectionKey { get; init; }
     public required int Order { get; init; }
+
+    /// <summary>Modalità di resa della sezione (doc 10 §3a): viaggia nello snapshot così cattura e viewer sanno se
+    /// congelare/leggere-frozen (Frozen) o derivare live (Live). Default Frozen per retro-compat degli snapshot vecchi.</summary>
+    public RenderMode RenderMode { get; init; } = RenderMode.Frozen;
+
     public List<RawBlock> Blocks { get; init; } = new();
     public List<RawSection> Children { get; init; } = new();
 }
