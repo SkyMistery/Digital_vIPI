@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -146,6 +147,9 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => new { x.DocumentVersionId, x.ParentSectionId, x.Order });
             e.Property(x => x.RowVersion).IsConcurrencyToken();
+            // doc 10 §3a: default DB Frozen → le righe esistenti (pre-migration) e ogni insert senza valore
+            // esplicito diventano Frozen (enum→stringa "Frozen"). L'editor imposta Live dove serve.
+            e.Property(x => x.RenderMode).HasDefaultValue(RenderMode.Frozen);
             e.HasOne(x => x.DocumentVersion).WithMany(v => v.Sections).HasForeignKey(x => x.DocumentVersionId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.ParentSection).WithMany(s => s.Children).HasForeignKey(x => x.ParentSectionId).OnDelete(DeleteBehavior.Restrict);
         });

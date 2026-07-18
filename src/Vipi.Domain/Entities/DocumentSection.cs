@@ -13,6 +13,10 @@ public class DocumentSection
     public int Depth { get; set; }                     // 0 = radice … max 3 (vincolo applicativo)
     public string SectionKey { get; set; } = "custom"; // chiave SectionCatalog (ex enum BlockSection); "custom" = editoriale generica
 
+    /// <summary>Solo per le sezioni DERIVABILI (doc 10 §3a): Frozen = output congelato nello snapshot; Live = derivata
+    /// sempre corrente al view. Le sezioni statiche restano Frozen. Default Frozen (l'editor imposta Live dove serve).</summary>
+    public RenderMode RenderMode { get; set; } = RenderMode.Frozen;
+
     public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
 
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();

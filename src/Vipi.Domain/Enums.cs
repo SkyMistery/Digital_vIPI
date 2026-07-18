@@ -15,6 +15,12 @@ public enum DocumentType { Vipi, Vloa }
 /// <summary>Stato di un documento o di una sua versione.</summary>
 public enum DocumentStatus { Draft, Published, Archived }
 
+/// <summary>Come una sezione DERIVABILE si comporta nella copia pubblicata (doc 10 §3a). <c>Frozen</c> = il suo output
+/// viene congelato nello snapshot della release e il pubblico lo vede immutato fino alla ripubblicazione;
+/// <c>Live</c> = il pubblico vede sempre la derivazione corrente (es. SID aeroporto). Ignorato per le sezioni statiche
+/// (sempre Frozen). Default <c>Frozen</c>.</summary>
+public enum RenderMode { Frozen, Live }
+
 /// <summary>Tipo di bersaglio di una release AIRAC (documento versionato per snapshot editoriale).</summary>
 public enum ReleaseTargetType { Vloa, AccVipi, App, Airport }
 
