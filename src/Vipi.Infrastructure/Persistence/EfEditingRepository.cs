@@ -110,6 +110,7 @@ public sealed class EfEditingRepository : IEditingRepository
             SectionKey = s.SectionKey,
             Depth = s.Depth,
             Order = s.Order,
+            RenderMode = s.RenderMode,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
                 {
@@ -651,6 +652,15 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
         section.Title = string.IsNullOrWhiteSpace(title) ? section.Title : title.Trim();
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.RenderMode = mode;
         await _db.SaveChangesAsync(ct);
     }
 

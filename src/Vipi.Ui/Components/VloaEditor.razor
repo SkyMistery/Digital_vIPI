@@ -69,7 +69,8 @@ else
     <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                             IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
                             IsMandatory="IsMandatory" IsHiddenSection="IsHidden"
-                            OnToggleHidden="s => ToggleSection(s.Title)" />
+                            OnToggleHidden="s => ToggleSection(s.Title)"
+                            IsRenderModeToggleable="IsRenderModeToggleable" />
 }
 
 @code {
@@ -90,6 +91,8 @@ else
     // Titoli delle sezioni OBBLIGATORIE (mockup 3d): bloccate (no rinomina/sposta/elimina).
     private IReadOnlySet<string> _mandatory = new HashSet<string>();
     private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
+    // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;

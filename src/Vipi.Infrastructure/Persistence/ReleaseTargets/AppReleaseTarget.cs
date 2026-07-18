@@ -15,7 +15,6 @@ public sealed class AppReleaseTarget : IReleaseTarget
     public ReleaseTargetType Type => ReleaseTargetType.App;
     public ManagedDocKind ManagedKind => ManagedDocKind.AppVipi;
     public int DescribeOrder => 1;
-    public bool IncludesVisibilityOverlay => true;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()

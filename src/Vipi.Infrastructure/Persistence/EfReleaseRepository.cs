@@ -23,8 +23,7 @@ public sealed class EfReleaseRepository : IReleaseRepository
 
     public async Task<string?> SnapshotWorkingAsync(ReleaseTargetType type, string key, string airacCycle, CancellationToken ct = default)
     {
-        // Ramo unico post-08: tutti i tipi sono su Document. Il descrittore per-tipo risolve solo l'identità (chiave→doc)
-        // e dichiara se serve congelare l'overlay di visibilità da DocumentProfile (doc 09 §3a).
+        // Ramo unico post-08: tutti i tipi sono su Document. Il descrittore per-tipo risolve solo l'identità (chiave→doc).
         var target = _targets.For(type);
         var docId = await target.ResolveDocumentIdAsync(key, ct);
         if (docId is null) return null;
@@ -37,17 +36,9 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var raw = await EfContentRepository.BuildRawFromVersionAsync(_db, versionId.Value, doc.Title, airacCycle, ct);
         if (raw is null) return null;
 
+        // Fotografia editoriale della struttura; l'output derivato Frozen lo aggiunge ReleaseService (doc 10 §3c). La
+        // visibilità (nascosti) è già dentro la copia congelata → nessun overlay separato (rimosso in doc 10 §S5).
         var payload = new DocReleasePayload { Doc = raw };
-        if (target.IncludesVisibilityOverlay)
-        {
-            var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
-            payload.Vloa = new VloaOverlaySnapshot
-            {
-                HiddenAorSectors = Deser(p?.HiddenAorSectorsJson),
-                HiddenFrequencies = Deser(p?.HiddenFrequenciesJson),
-                HiddenSections = Deser(p?.HiddenSectionsJson),
-            };
-        }
         return JsonSerializer.Serialize(payload);
     }
 
@@ -221,10 +212,4 @@ public sealed class EfReleaseRepository : IReleaseRepository
         }
     }
 
-    private static List<string> Deser(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return new();
-        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
-        catch (JsonException) { return new(); }
-    }
 }

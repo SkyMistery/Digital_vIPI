@@ -2,6 +2,7 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccDerivationService Profile
+@inject IAccViewDerivationService ViewDeriv
 @inject IAccDocumentService AccDoc
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
@@ -11,6 +12,13 @@
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+}
+else if (_notAvailable)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vIPI non disponibile</p>Nessuna vIPI pubblicata per <b>@_acc.Code</b>. Se la stai preparando, aprila dall'<a href="/vsop/@Acc.ToLowerInvariant()/editor">editor</a> e pubblicala.</div></div>
+    </div>
 }
 else
 {
@@ -103,6 +111,9 @@ else
 
     private AccInfo? _acc;
     private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
+    private IReadOnlyList<AccAssembledBlock>? _blocks;   // blocchi con Id sezione (view/draft); null in anteprima release
+    private bool _useFrozen;                              // vista pubblica: leggi frozen dalla release effettiva
+    private bool _notAvailable;                           // vista pubblica senza release effettiva → "non disponibile" (doc 10 §S6b)
     private bool _canEdit;
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
@@ -126,35 +137,66 @@ else
 
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _blocks = null;
+        _useFrozen = false;
+        _notAvailable = false;
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                try { _data = (await AccDoc.LoadForEditAsync(Acc)).Data; }
-                catch (EditNotAllowedException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
-                catch (ValidationException) { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
+                try { var m = await AccDoc.LoadForEditAsync(Acc); _data = m.Data; _blocks = m.Blocks; }
+                catch (EditNotAllowedException) { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
+                catch (ValidationException) { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             case PreviewKind.Release:
                 AccReleaseView? rv = null;
                 try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }
-                else { _mode = default; _data = (await AccDoc.LoadForViewAsync(Acc))!.Data; }
+                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }   // anteprima release: derive live (no ids)
+                else { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             default:
-                _data = (await AccDoc.LoadForViewAsync(Acc))!.Data;
+                LoadViewModel(await AccDoc.LoadForViewAsync(Acc));   // vista pubblica: frozen dalla release effettiva
                 break;
         }
         _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
 
         _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
-        foreach (var b in _data.Blocks)
+        if (_blocks is not null)
         {
-            _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
-            _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
-            _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
-            _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
-            _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
+            // freq/coord/aor risolti dal service (frozen se pubblica + release effettiva, sennò live); aree/config-table
+            // sempre live (derivano da input già congelati). doc 10 §3d.
+            var derived = await ViewDeriv.ResolveForViewAsync(Acc, _blocks, _useFrozen);
+            foreach (var b in _data.Blocks)
+            {
+                _freqs[b.Key] = derived.Freqs.GetValueOrDefault(b.Key)?.ToList() ?? new();
+                _coord[b.Key] = derived.Coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty;
+                _aors[b.Key] = derived.Aor.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
+                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
+                _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
+            }
         }
+        else
+        {
+            // Anteprima release (nessun Id sezione): deriva tutto live come prima.
+            foreach (var b in _data.Blocks)
+            {
+                _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
+                _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
+                _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
+                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
+                _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
+            }
+        }
+    }
+
+    // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen. model null (nessuna
+    // release effettiva, doc 10 §S6b) → "non disponibile".
+    private void LoadViewModel(AccDocumentModel? model)
+    {
+        if (model is null) { _notAvailable = true; return; }
+        _data = model.Data;
+        _blocks = model.Blocks;
+        _useFrozen = true;
     }
 
     private string PreviewTitlePrefix() => _mode.Kind switch

@@ -15,7 +15,6 @@ public sealed class VloaReleaseTarget : IReleaseTarget
     public ReleaseTargetType Type => ReleaseTargetType.Vloa;
     public ManagedDocKind ManagedKind => ManagedDocKind.Vloa;
     public int DescribeOrder => 0;
-    public bool IncludesVisibilityOverlay => true;
 
     public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
         Task.FromResult(int.TryParse(key, out var id) ? id : (int?)null);

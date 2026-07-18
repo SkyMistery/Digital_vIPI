@@ -111,6 +111,9 @@ public interface IEditingRepository
     /// <summary>Rinomina una sezione di una bozza.</summary>
     Task RenameSectionAsync(int sectionId, string title, CancellationToken ct = default);
 
+    /// <summary>Imposta il <see cref="RenderMode"/> di una sezione di una bozza (doc 10 §3a). Errore se non è una bozza.</summary>
+    Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default);
+
     /// <summary>Aggiunge una sezione (radice se parentSectionId è null) in coda ai fratelli. Errore se supera la profondità massima o se non è una bozza. Ritorna l'Id.</summary>
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
 

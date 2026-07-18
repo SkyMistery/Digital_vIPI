@@ -28,6 +28,8 @@ var app = builder.Build();
 
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
 app.MigrateVipiDatabase();
+// Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
+app.BackfillVipiReleases();
 
 if (!app.Environment.IsDevelopment())
 {

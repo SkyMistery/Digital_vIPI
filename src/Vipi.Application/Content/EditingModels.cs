@@ -54,6 +54,11 @@ public sealed class EditableSection
     public required string SectionKey { get; init; }
     public required int Depth { get; init; }
     public required int Order { get; init; }
+
+    /// <summary>Modalità di resa della sezione (doc 10 §3a): l'editor mostra badge + toggle Live/Frozen sulle sezioni
+    /// derivabili. Governa se al publish l'output viene congelato (Frozen) o reso live al view (Live).</summary>
+    public RenderMode RenderMode { get; init; } = RenderMode.Frozen;
+
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }
     public required IReadOnlyList<EditableSection> Children { get; init; }
 }

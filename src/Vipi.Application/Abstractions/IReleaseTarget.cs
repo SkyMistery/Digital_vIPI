@@ -6,8 +6,8 @@ namespace Vipi.Application.Abstractions;
 
 /// <summary>
 /// Descrittore per-tipo del flusso di pubblicazione (doc 09 §3a). Isola le SOLE parti rimaste per-tipo dopo
-/// l'unificazione del modello documento (doc 08): risoluzione d'identità (chiave↔Document↔ACC), presenza di
-/// overlay di visibilità nel payload, e derivazione shape(Document)→<see cref="ManagedDoc"/> per l'elenco unificato.
+/// l'unificazione del modello documento (doc 08): risoluzione d'identità (chiave↔Document↔ACC) e derivazione
+/// shape(Document)→<see cref="ManagedDoc"/> per l'elenco unificato.
 /// I motori generici (EfReleaseRepository / EfDocumentAdminRepository) consultano il registry invece di switchare
 /// sul tipo: aggiungere un tipo di documento = registrare un descrittore, zero switch toccati.
 /// </summary>
@@ -22,9 +22,6 @@ public interface IReleaseTarget
     /// <summary>Ordine di tentativo in <see cref="TryDescribe"/> (più basso prima). L'aeroporto è il catch-all finale
     /// dei Document vIPI non riconosciuti come APP/ACC → deve avere l'ordine più alto.</summary>
     int DescribeOrder { get; }
-
-    /// <summary>true se lo snapshot include l'overlay di visibilità congelato da <c>DocumentProfile</c> (vLOA/APP).</summary>
-    bool IncludesVisibilityOverlay { get; }
 
     /// <summary>Chiave di release → id del <see cref="Document"/> sorgente. null se non risolvibile.</summary>
     Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default);

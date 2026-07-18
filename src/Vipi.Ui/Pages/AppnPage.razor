@@ -2,6 +2,7 @@
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
+@inject IAppViewDerivationService AppView
 @inject IEditAuthorizationService Authz
 @inject IVipiViewService ViewService
 @inject IEditingService Editing
@@ -32,7 +33,7 @@ else if (_vloaMode)
         }
         else
         {
-            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
+            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" UseFrozen="_vloaUseFrozen" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
         }
     </div>
 }
@@ -143,14 +144,17 @@ else
     private string _vloaForeign = "";
     private DocumentView? _vloaView;
     private int? _vloaDocId;
+    private bool _vloaUseFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
 
     private AccInfo? _acc;
     private string _app = "";
     private string _displayName = "";
     private bool _canEdit;
 
-    // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate live da AppDocumentService.
+    // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate frozen (release effettiva) o
+    // live (bozza/anteprima) via AppViewDerivationService.
     private DocumentView? _view;
+    private bool _useFrozen;   // vista pubblica: leggi le derivate frozen dalla release effettiva (doc 10 §3d)
     private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
     private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
@@ -204,6 +208,7 @@ else
         if (_vloaMode)
         {
             _vloaDocId = await Editing.ResolveVloaIdByPairAsync(home, _vloaForeign);
+            _vloaUseFrozen = false;
             switch (_mode.Kind)
             {
                 case PreviewKind.Draft:
@@ -218,6 +223,7 @@ else
                     break;
                 default:
                     _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false);
+                    _vloaUseFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
                     break;
             }
             return;
@@ -225,6 +231,7 @@ else
 
         _app = (App ?? "").Trim().ToUpperInvariant();
         _view = null;
+        _useFrozen = false;
         if (string.IsNullOrWhiteSpace(_app)) return;
 
         var identity = await AppDoc.GetIdentityAsync(_app);
@@ -246,6 +253,7 @@ else
                 break;
             default:
                 _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false);
+                _useFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
                 break;
         }
         if (_view is null) return;
@@ -253,11 +261,12 @@ else
         var overrides = await AppDoc.GetOverridesAsync(_app);
         _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Derivate live (sempre attuali, anche in anteprima release: "i dati derivati restano live").
-        _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
-        _coord = await AppDoc.DeriveCoordinationAsync(_app);
-        _aorView = await AppDoc.GetAorViewAsync(_app);
-        _configTable = await AppDoc.DeriveConfigTableAsync(_app);
+        // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
+        var derived = await AppView.ResolveForViewAsync(_app, _useFrozen);
+        _freqs = derived.Freqs.ToList();
+        _coord = derived.Coord;
+        _aorView = derived.Aor;
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // deriva da config già congelata → sempre live
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).

@@ -815,6 +815,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("ParentSectionId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("RenderMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Frozen");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("BLOB");

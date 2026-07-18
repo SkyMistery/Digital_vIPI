@@ -226,6 +226,27 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SetSectionRenderMode_Persists_On_Draft_And_Guards_Published()
+    {
+        var docId = await AccDocIdAsync();
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 9);
+        var sec = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == draftId && s.SectionKey == "frequencies").FirstAsync();
+        Assert.Equal(RenderMode.Frozen, sec.RenderMode);   // default
+
+        await _repo.SetSectionRenderModeAsync(sec.Id, RenderMode.Live);
+        Assert.Equal(RenderMode.Live, (await _db.DocumentSections.AsNoTracking().FirstAsync(s => s.Id == sec.Id)).RenderMode);
+
+        // Sezione di una versione PUBBLICATA (non bozza) → errore.
+        var pubVer = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var pubSec = await _db.DocumentSections.Where(s => s.DocumentVersionId == pubVer).Select(s => s.Id).FirstAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.SetSectionRenderModeAsync(pubSec, RenderMode.Live));
+
+        // Sezione inesistente → errore.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.SetSectionRenderModeAsync(999999, RenderMode.Live));
+    }
+
+    [Fact]
     public async Task CreateDocument_Vloa_Adds_Two_Parties()
     {
         var sectors = await _db.Sectors.Select(s => s.Id).Take(2).ToListAsync();

@@ -162,4 +162,14 @@ public static class VipiModuleExtensions
         scope.ServiceProvider.GetRequiredService<VipiDbContext>().Database.Migrate();
         return host;
     }
+
+    /// <summary>Migrazione A (doc 10 §3f): backfilla una release effettiva per ogni documento pubblicato senza copia
+    /// congelata, così la visibilità pubblica = release effettiva non lascia buchi. Idempotente: sicuro a ogni avvio.</summary>
+    public static IHost BackfillVipiReleases(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
+            .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
+        return host;
+    }
 }

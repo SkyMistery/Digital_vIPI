@@ -94,8 +94,7 @@ public sealed class EfContentRepository : IContentRepository
         if (doc is null) return null;
 
         // Se il documento ha una release AIRAC effettiva ADESSO, il pubblico vede lo snapshot editoriale congelato
-        // (i dati derivati restano live). Altrimenti fallback allo stato pubblicato corrente (comportamento storico).
-        // ignoreRelease=true (anteprima bozza): salta lo snapshot e usa sempre lo stato pubblicato/live.
+        // (i dati derivati restano live). ignoreRelease=true (anteprima bozza): salta lo snapshot e usa lo stato live.
         ReleaseTargetType? relType = null; string? relKey = null;
         if (!ignoreRelease) (relType, relKey) = await ResolveReleaseTargetAsync(doc, ct);
         if (relType is ReleaseTargetType t && relKey is string key)
@@ -108,9 +107,12 @@ public sealed class EfContentRepository : IContentRepository
             }
         }
 
-        // Fallback (nessuna release effettiva): il pubblico vede il documento solo se è editorialmente pubblicato
-        // (Document.Status == Published). Un doc ancora in bozza (es. aeroporto appena generato) resta invisibile finché
-        // lo staff non lo pubblica o non pubblica una release. preferWorking (anteprima bozza gated all'editor) bypassa.
+        // Visibilità pubblica = esiste una release effettiva (doc 10 §3f/§S6b): rimosso il fallback storico che
+        // rendeva LIVE la versione pubblicata senza release. Sul path pubblico puro (né anteprima bozza né working)
+        // niente release ⇒ invisibile. La migrazione A (backfill al boot) garantisce una release ai Published.
+        if (!ignoreRelease && !preferWorking) return null;
+
+        // Da qui in poi SOLO anteprime gated all'editor (ignoreRelease/preferWorking): mostrano lo stato live/bozza.
         if (!preferWorking && doc.Status != DocumentStatus.Published) return null;
 
         // preferWorking (anteprima bozza): la versione di lavorazione più recente (bozza inclusa), non la pubblicata.
@@ -155,6 +157,7 @@ public sealed class EfContentRepository : IContentRepository
             Depth = s.Depth,
             SectionKey = s.SectionKey,
             Order = s.Order,
+            RenderMode = s.RenderMode,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new())
@@ -229,6 +232,7 @@ public sealed class EfContentRepository : IContentRepository
         RawSection Build(DocumentSection s) => new()
         {
             Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, Order = s.Order,
+            RenderMode = s.RenderMode,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new()).Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new()).Select(Build).ToList(),
         };

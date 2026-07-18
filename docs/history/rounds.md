@@ -391,3 +391,18 @@ Revisione senior (bug/errori/duplicazioni di fonte). Fix confermati e verificati
 - Test: Infrastructure 148 (+2: rifiuto edit su proiettato, orfano azzera i legami), Application 156, Domain 19.
   Build completa verde (a parte lock DLL del Vipi.Host in esecuzione). **Verifica live: da guidare** (import confinanti;
   tentativo edit frequenza su settore proiettato).
+
+## Refactor doc 10: snapshot totale + RenderMode per sezione (2026-07-18/19)
+Estende l'asse pubblicazione (doc 09): da freeze parziale (solo prose statiche; derivate sempre live) a **snapshot
+totale** — al Pubblica si congela una fotografia completa (derivate incluse), con eccezioni **live per-sezione**
+governate da un flag `RenderMode {Frozen,Live}` su `DocumentSection`. Branch `refactor/10-snapshot-totale`, 25 commit,
+suite 353 verde, verify live confermata (boot+backfill su DB reale, visibilità pubblica, badge editor; flussi a click
+confermati a mano dall'owner). Carta: `docs/refactor/10-snapshot-totale-e-rendermode.md`.
+- **S2** `RenderMode` su `DocumentSection`+`RawSection` (migration `AddSectionRenderMode`, default DB Frozen) + `DocReleasePayload.FrozenSections` (sectionId→JSON view-model).
+- **S3/S4** cattura al publish (`IFrozenSectionProvider`/`FrozenSectionRegistry`, provider vLOA/App/ACC/Airport; `ReleaseService` cattura le sole sezioni `Frozen`) + lettura al view (`IFrozenSectionReader`, `GetFrozenByKeyAsync` risolve l'Id dal `payload.Doc` per i doc a sezione unica) + resolver per famiglia (`Acc/App/Vloa/AirportViewDerivationService`: frozen se pubblica+release effettiva, sennò live).
+- **S3b** SID aeroporto **de-cotta**: `RebuildDocumentAsync` non cuoce più la tabella SID → sezione keyed `sids` (default `RenderMode.Live`); merge editoriali+importate a **view-time** (`AirportSidDerivationService`). Le release pre-S3b (SID cotta, key `custom`) restano rese com'erano finché non si ripubblica.
+- **S4c** toggle + badge Live/Frozen negli editor: `SetSectionRenderModeAsync` (draft-gated); `DocumentSectionsEditor` (condiviso ACC/App/vLOA) espone badge+toggle sulle sezioni derivabili; airport via `Get/SetSidsRenderModeAsync` + `RebuildDocumentAsync` **preserva** il RenderMode tra i rebuild.
+- **S5** rimozione dell'overlay di visibilità morto (`VloaOverlaySnapshot`/`DocReleasePayload.Vloa`/`IReleaseTarget.IncludesVisibilityOverlay` + ramo in `SnapshotWorkingAsync`): la visibilità è dentro la fotografia congelata.
+- **S6** **visibilità pubblica = release effettiva** (rimosso il fallback live alla versione pubblicata su tutte e 4 le famiglie; ACC senza guscio sintetico) + **migrazione A** (`BackfillMissingReleasesAsync`, al boot dopo `MigrateVipiDatabase`): copia statica per i Published senza release, idempotente → nessun buco pubblico.
+- **Gate liste pubbliche** (AccLanding/AeroportoPage/AccOperativaPage): da `Status==Published` a `HasEffectiveRelease && !IsHidden` (nuovo `ManagedDoc.HasEffectiveRelease`, batch in `EfDocumentAdminRepository.ListAsync`) = stesso predicato del viewer.
+- **Note:** overlay runtime (online settori, meteo/pista) sempre live sopra il congelato. Caveat accettato: AIRAC misto in pagina (sezione Live di ciclo diverso).

@@ -19,4 +19,7 @@ public sealed record ManagedDoc(
     ReleaseTargetType ReleaseTarget,
     string ReleaseKey,
     int? DocumentId,
-    string? NeighbourCode = null);
+    string? NeighbourCode = null,
+    /// <summary>Ha una release AIRAC EFFETTIVA adesso (doc 10 §3f): gate della visibilità pubblica. Popolato da
+    /// <c>IDocumentAdminRepository.ListAsync</c>; il descrittore per-tipo lo lascia false (non conosce le release).</summary>
+    bool HasEffectiveRelease = false);

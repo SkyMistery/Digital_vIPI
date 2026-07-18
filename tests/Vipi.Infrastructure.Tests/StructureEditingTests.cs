@@ -154,6 +154,13 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Contains("Piste", sectionTitles);
         Assert.Contains("SID", sectionTitles);
 
+        // SID de-cotta (doc 10 §3e): la sezione "SID" ora è derivabile (key "sids", RenderMode.Live) e VUOTA — le righe
+        // si derivano a view-time, non sono più cotte nel documento.
+        var sidSec = await _db.DocumentSections.Include(s => s.Blocks).SingleAsync(s => s.Title == "SID");
+        Assert.Equal("sids", sidSec.SectionKey);
+        Assert.Equal(Vipi.Domain.RenderMode.Live, sidSec.RenderMode);
+        Assert.Empty(sidSec.Blocks);
+
         // ATIS (dal catalogo) nella tabella Frequenze; TA nella prose; piste con lunghezza.
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.BodyJson != null && b.BodyJson.Contains("135.975"));
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.Body != null && b.Body.Contains("6000 ft"));
@@ -166,6 +173,30 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Equal("FL80", prof.TransitionLevels.Single(t => t.QnhFrom == 977).Level);    // 977–994 → +2000
         Assert.Equal("FL75", prof.TransitionLevels.Single(t => t.QnhFrom == 995).Level);    // 995–1012 → +1500
         Assert.Equal("FL70", prof.TransitionLevels.Single(t => t.QnhFrom == 1013).Level);   // ≥ 1013 → +1000
+    }
+
+    [Fact]
+    public async Task SidsRenderMode_Defaults_Live_And_Survives_Rebuild()
+    {
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        var profile = new EfAirportRepository(_db);
+        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+
+        await profile.RebuildDocumentAsync("LIRF");
+        Assert.Equal(RenderMode.Live, await profile.GetSidsRenderModeAsync("LIRF"));   // default
+
+        // Lo staff congela la sezione SID.
+        await profile.SetSidsRenderModeAsync("LIRF", RenderMode.Frozen);
+        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
+
+        // Un nuovo rebuild rigenera la sezione ma PRESERVA la scelta editoriale.
+        await profile.RebuildDocumentAsync("LIRF");
+        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
+
+        var sidSec = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
+        Assert.Equal(RenderMode.Frozen, sidSec.RenderMode);
     }
 
     [Fact]
@@ -365,14 +396,19 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
 
-        var content = new EfContentRepository(_db, TestReleaseTargets.ReleaseRepo(_db));
-        // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché lo staff non pubblica.
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        var content = new EfContentRepository(_db, releases);
+        // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché non c'è una release effettiva.
         Assert.Null(await content.LoadAirportVipiAsync("LIRF"));
+
+        // Doc 10 §S6b: visibilità pubblica = release effettiva. Pubblico la versione + creo una release in vigore ora.
         await PublishAirportDocAsync("LIRF");
-        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: documento servito
+        var snap = (await releases.SnapshotWorkingAsync(ReleaseTargetType.Airport, "LIRF", "2607"))!;
+        await releases.SaveReleaseAsync(ReleaseTargetType.Airport, "LIRF", "2607", DateTime.UtcNow.AddMinutes(-1), snap, 1, null);
+        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: release effettiva servita
 
         await _repo.SetAirportHiddenAsync("LIRR", apId, true);
-        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));      // nascosto: pagina pubblica inaccessibile
+        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));      // nascosto: pagina pubblica inaccessibile anche con release
 
         await _repo.SetAirportHiddenAsync("LIRR", apId, false);
         Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // di nuovo visibile

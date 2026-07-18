@@ -16,6 +16,7 @@ public static class SectionCatalog
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
             ["minima"] = SectionKind.Derived,
+            ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
             ["separations"] = SectionKind.Editorial,
             ["configurations"] = SectionKind.Editorial,
             ["vfr"] = SectionKind.Editorial,

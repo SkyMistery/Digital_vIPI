@@ -2,6 +2,7 @@
    + sezioni (stessa struttura documentale della vIPI, via SectionNode). Le sezioni AoR/Frequenze/Coordinamenti sono
    DERIVATE (data-driven) quando è fornito DocId. La pagina ospitante fornisce wrap/breadcrumb. *@
 @inject IVloaDerivationService Vloa
+@inject IVloaViewDerivationService VloaView
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
 
@@ -104,6 +105,9 @@
     /// <summary>Id del Document vLOA: se fornito, AoR/Frequenze/Coordinamenti sono derivati dai dati (data-driven).</summary>
     [Parameter] public int? DocId { get; set; }
 
+    /// <summary>Vista pubblica: legge le derivate frozen dalla release effettiva (doc 10 §3d). False (bozza/anteprima) = live.</summary>
+    [Parameter] public bool UseFrozen { get; set; }
+
     /// <summary>Codici ACC della coppia (per il riepilogo online + i link della colonna destra). Opzionali.</summary>
     [Parameter] public string? HomeAcc { get; set; }
     [Parameter] public string? ForeignAcc { get; set; }
@@ -132,9 +136,11 @@
         _derive = DocId is int;
         if (DocId is int docId)
         {
-            _aor = await Vloa.DeriveAorAsync(docId);
-            _freq = await Vloa.DeriveFrequenciesAsync(docId);
-            _coord = await Vloa.DeriveCoordinationAsync(docId);
+            // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
+            var d = await VloaView.ResolveForViewAsync(docId, UseFrozen);
+            _aor = d.Aor;
+            _freq = d.Freq;
+            _coord = d.Coord;
             _hidden = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(docId), StringComparer.OrdinalIgnoreCase);
         }
         // vLOA editabile solo lato italiano (CH/AOD dell'ACC home).
