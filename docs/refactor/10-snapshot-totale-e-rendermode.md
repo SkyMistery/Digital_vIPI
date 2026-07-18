@@ -143,9 +143,10 @@ Slice verticali, 1 commit/passo, `dotnet build` verde a ogni commit, meccanico s
 - **S6 — Migrazione A + fallback.** ✅ Rimuove il fallback live pubblico (visibilità pubblica = release effettiva:
   `EfContentRepository.LoadVipiAsync` + `AccDocumentService.LoadForViewAsync` → null senza release; `AccVipiPage`
   mostra "non disponibile") **e** backfilla (`ReleaseService.BackfillMissingReleasesAsync`, al boot via
-  `BackfillVipiReleases`) i `Published` senza release. Ordine atomico = nessun buco pubblico. *Residuo minore: il gate
-  delle LISTE pubbliche `Status==Published`→ha-release non è stato cambiato (dopo il backfill Published≈ha-release →
-  nessuna incoerenza pratica); rifinibile a parte.*
+  `BackfillVipiReleases`) i `Published` senza release. Ordine atomico = nessun buco pubblico. Anche il gate delle
+  LISTE pubbliche (AccLanding/AeroportoPage/AccOperativaPage) passa da `Status==Published` a `HasEffectiveRelease && !IsHidden`
+  (nuovo campo `ManagedDoc.HasEffectiveRelease`, popolato in batch da `EfDocumentAdminRepository.ListAsync`) = identico
+  predicato del viewer.
 - **S7 — Verify live + chiusura.** ✅ Boot + backfill su DB reale, visibilità pubblica (ACC senza release → "non
   disponibile", con release → contenuto), badge editor — osservati via HTTP/prerender; i flussi a click (toggle /
   ripubblica / SID live) confermati a mano dall'owner. `history/rounds.md` + indice `00-overview` + carta + memorie coerenti.
