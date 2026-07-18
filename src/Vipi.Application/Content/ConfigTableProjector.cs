@@ -36,7 +36,11 @@ public static class ConfigTableProjector
                 foreach (var kv in aor.Resolve(topology, root, open).Ownership)
                     ownership[kv.Key] = kv.Value;
 
-            var openOrder = cfg.OpenCallsigns.ToList();
+            // Ordine di apertura per callsign, precomputato (lookup O(1) nell'OrderBy invece di FindIndex O(n) per confronto).
+            var openOrder = new Dictionary<string, int>(OIC);
+            var openIdx = 0;
+            foreach (var cs in cfg.OpenCallsigns)
+                if (!openOrder.ContainsKey(cs)) openOrder[cs] = openIdx++;
             // Il "settore unificato" è per definizione un settore APERTO: si tengono solo le righe del pool il cui
             // proprietario è nell'insieme aperto (i rami senza aperti non compaiono come unificati).
             var rows = ownership
@@ -48,7 +52,7 @@ public static class ConfigTableProjector
                     var absorbed = g.Select(kv => kv.Key).OrderBy(c => c, OIC).ToList();   // callsign, non nomi
                     return new AccConfigTableRow(g.Key, absorbed, cp?.CenterPoint, cp?.Range);
                 })
-                .OrderBy(r => { var i = openOrder.FindIndex(o => string.Equals(o, r.UnifiedCallsign, StringComparison.OrdinalIgnoreCase)); return i < 0 ? int.MaxValue : i; })
+                .OrderBy(r => openOrder.TryGetValue(r.UnifiedCallsign, out var i) ? i : int.MaxValue)
                 .ThenBy(r => r.UnifiedCallsign, OIC)
                 .ToList();
 

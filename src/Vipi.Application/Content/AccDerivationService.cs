@@ -98,9 +98,7 @@ public sealed class AccDerivationService : IAccDerivationService
         {
             var overrides = block.FreqOrder.GroupBy(o => o.Callsign, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.Last().Order, StringComparer.OrdinalIgnoreCase);
-            rows = rows
-                .Select((r, i) => (r, key: overrides.TryGetValue(r.Callsign, out var ov) ? ov : 1000 + i))
-                .OrderBy(x => x.key).Select(x => x.r).ToList();
+            rows = FrequencyOrdering.ApplyOrder(rows, overrides);
         }
 
         return rows;
@@ -131,9 +129,6 @@ public sealed class AccDerivationService : IAccDerivationService
         return new AccCoordination { Sectors = sectors };
     }
 
-    // Palette anelli AoR (ciclata per indice settore). Coerente col mockup (blu IVAO + varianti).
-    private static readonly string[] AorPalette = { "#0D2C99", "#3C55AC", "#7EA2D6", "#5B8C5A", "#C77D3C", "#8E5BA6", "#B0413E" };
-
     public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
     {
         accCode = Norm(accCode);
@@ -158,7 +153,7 @@ public sealed class AccDerivationService : IAccDerivationService
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            sectors.Add(new AccSectorAor(cs, name, AorPalette[i % AorPalette.Length], new[] { poly }));
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorPalette.ColorAt(i), new[] { poly }));
             i++;
         }
         return new AccAorView(sectors, configs);

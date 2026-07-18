@@ -157,7 +157,9 @@
             {
                 var secKey = secGroup.Key;
                 var secOpen = _filtering || !_collapsedSec.Contains(secKey);
-                <div class="section-title" style="margin-bottom:4px;cursor:pointer" @onclick="() => ToggleSec(secKey)">
+                <div class="section-title" style="margin-bottom:4px;cursor:pointer" role="button" tabindex="0"
+                     aria-expanded="@secOpen" @onclick="() => ToggleSec(secKey)"
+                     @onkeydown="e => { if (IsActivationKey(e)) ToggleSec(secKey); }">
                     <h3 style="margin:0"><span style="display:inline-block;width:1em">@(secOpen ? "▾" : "▸")</span> @secKey</h3>
                     <span class="ln"></span>
                     <span class="muted" style="font-size:12px">@secGroup.Count() gruppi</span>
@@ -168,7 +170,8 @@
                     var aptKey = $"{secKey}|{aptGroup.Key}";
                     var aptOpen = _filtering || !_collapsedApt.Contains(aptKey);
                     <div class="block">
-                        <h5 style="margin:0;cursor:pointer" @onclick="() => ToggleApt(aptKey)">
+                        <h5 style="margin:0;cursor:pointer" role="button" tabindex="0" aria-expanded="@aptOpen"
+                            @onclick="() => ToggleApt(aptKey)" @onkeydown="e => { if (IsActivationKey(e)) ToggleApt(aptKey); }">
                             <span style="display:inline-block;width:1em">@(aptOpen ? "▾" : "▸")</span>
                             @AptHeader(aptGroup.Key)
                         </h5>
@@ -178,7 +181,8 @@
                         {
                             var flowOpen = _filtering || !_collapsedFlow.Contains(f.Id);
                             <div class="section-title" style="margin:6px 0">
-                                <h4 style="margin:0;cursor:pointer" @onclick="() => ToggleFlow(f.Id)">
+                                <h4 style="margin:0;cursor:pointer" role="button" tabindex="0" aria-expanded="@flowOpen"
+                                    @onclick="() => ToggleFlow(f.Id)" @onkeydown="e => { if (IsActivationKey(e)) ToggleFlow(f.Id); }">
                                     <span style="display:inline-block;width:1em">@(flowOpen ? "▾" : "▸")</span>
                                     <span class="pill blue">@KindLabel(f.Kind)</span>
                                     <span class="muted" style="font-size:12px;font-weight:400">@f.Points.Count righe</span>
@@ -597,6 +601,10 @@
     private void ToggleSec(string key) { if (!_collapsedSec.Add(key)) _collapsedSec.Remove(key); }
     private void ToggleApt(string key) { if (!_collapsedApt.Add(key)) _collapsedApt.Remove(key); }
     private void ToggleFlow(int id) { if (!_collapsedFlow.Add(id)) _collapsedFlow.Remove(id); }
+
+    // Attivazione da tastiera per i toggle non-<button> (Invio/Spazio), per accessibilità.
+    private static bool IsActivationKey(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+        => e.Key is "Enter" or " " or "Spacebar";
 
     private void OpenAddPoint(int flowId)
     {

@@ -140,11 +140,7 @@ public sealed class AppDocumentService : IAppDocumentService
         var order = overrides.FreqOrder.ToDictionary(o => o.Callsign, o => o.Order, StringComparer.OrdinalIgnoreCase);
 
         var all = catalog.Concat(links).ToList();
-        return all
-            .Select((row, i) => (row, key: order.TryGetValue(row.Callsign, out var ov) ? ov : 1000 + i))
-            .OrderBy(x => x.key)
-            .Select(x => x.row)
-            .ToList();
+        return FrequencyOrdering.ApplyOrder(all, order);
     }
 
     public async Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, string? templateOverride = null, CancellationToken ct = default)
@@ -199,9 +195,6 @@ public sealed class AppDocumentService : IAppDocumentService
                 .Select(kv => new AppCoordGroup(kv.Key, kv.Value)).ToList();
     }
 
-    // Palette anelli AoR (APP blu IVAO, poi varianti per le torri). Coerente con AccDerivationService.
-    private static readonly string[] AorPalette = { "#0D2C99", "#C77D3C", "#5B8C5A", "#8E5BA6", "#B0413E", "#3C55AC", "#7EA2D6" };
-
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)
     {
         var app = Norm(appCallsign);
@@ -221,7 +214,7 @@ public sealed class AppDocumentService : IAppDocumentService
         {
             var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
             if (poly is null) continue;
-            sectors.Add(new AccSectorAor(cs, cs, AorPalette[i % AorPalette.Length], new[] { poly }));
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorPalette.ColorAt(i), new[] { poly }));
             i++;
         }
 
@@ -230,7 +223,7 @@ public sealed class AppDocumentService : IAppDocumentService
         {
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
-            sectors.Add(new AccSectorAor(callsign, callsign, AorPalette[i % AorPalette.Length], new[] { poly }));
+            sectors.Add(new AccSectorAor(callsign, callsign, Aor.AorPalette.ColorAt(i), new[] { poly }));
             i++;
         }
 

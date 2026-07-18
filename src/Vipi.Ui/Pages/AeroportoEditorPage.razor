@@ -17,7 +17,7 @@
 @inject Vipi.Domain.Services.IAiracService Airac
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@implements IDisposable
+@implements IAsyncDisposable
 
 @if (_acc is null)
 {
@@ -78,7 +78,7 @@ else
 
                     @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
                     {
-                        <div class="rule-card">
+                        <div class="rule-card" @key="r">
                             <div class="rule-head">
                                 <span class="rule-ord">#@(idx + 1)</span>
                                 <div style="display:flex;gap:6px">
@@ -175,7 +175,7 @@ else
                         <tbody>
                             @foreach (var t in _tls)
                             {
-                                <tr>
+                                <tr @key="t">
                                     <td><input type="number" style="width:90px" @bind="t.From" placeholder="aperto" /></td>
                                     <td><input type="number" style="width:90px" @bind="t.To" placeholder="aperto" /></td>
                                     <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
@@ -207,7 +207,7 @@ else
                             @foreach (var id in _linkIds)
                             {
                                 var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
-                                <tr>
+                                <tr @key="id">
                                     <td>@(lf?.Icao ?? "—")</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
                                     <td class="muted">link</td>
                                     <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
@@ -253,7 +253,7 @@ else
                         <tbody>
                             @foreach (var r in _rwys)
                             {
-                                <tr>
+                                <tr @key="r">
                                     <td><input style="width:64px" @bind="r.Ident" disabled="@(_policy.Runways)" /></td>
                                     <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
                                     <td><input style="width:80px" @bind="r.Tora" /></td>
@@ -329,7 +329,7 @@ else
                         <tbody>
                             @foreach (var s in _sids)
                             {
-                                <tr>
+                                <tr @key="s">
                                     <td><input style="width:56px" @bind="s.Runway" /></td>
                                     <td><input style="width:70px" @bind="s.Fix" /></td>
                                     <td><input style="width:90px" @bind="s.Name" /></td>
@@ -360,7 +360,7 @@ else
                     <p class="help">Sezioni editoriali libere (titolo + testo). Nel documento compaiono nella <b>colonna libera di destra</b> su schermo desktop e <b>sotto le SID</b> su schermi stretti/cellulare. Si valutano nell'ordine in cui le metti.</p>
                     @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
                     {
-                        <div class="rule-card">
+                        <div class="rule-card" @key="s">
                             <div class="rule-head">
                                 <span class="rule-ord">#@(idx + 1)</span>
                                 <div style="display:flex;gap:6px">
@@ -617,11 +617,13 @@ else
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _selfRef?.Dispose();
-        // Rilascia la guardia beforeunload lasciando la pagina.
-        _ = JS.InvokeVoidAsync("vipiSetDirty", false);
+        // Rilascia la guardia beforeunload lasciando la pagina. Il circuito può essere già chiuso
+        // (navigazione/refresh): ignora JSDisconnectedException invece di lasciare un task non osservato.
+        try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
+        catch (JSDisconnectedException) { }
     }
 
     // --- Stato "sporco" per pannello + navigazione tra pannelli ---

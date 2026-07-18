@@ -137,10 +137,15 @@ public static class CoordinationDerivation
                         ag.Where(e => IsAirportKind(e.Kind))
                             .GroupBy(e => e.AirportIcao ?? "", StringComparer.OrdinalIgnoreCase)
                             .OrderBy(pg => AirportLabel(pg.Key), StringComparer.OrdinalIgnoreCase)
-                            .Select(pg => new AccAirportFlows(
-                                AirportLabel(pg.Key),
-                                pg.Where(e => e.Kind == TransferFlowKind.Arrival).Select(e => e.Row).ToList(),
-                                pg.Where(e => e.Kind == TransferFlowKind.Departure).Select(e => e.Row).ToList()))
+                            .Select(pg =>
+                            {
+                                // pg contiene solo Arrival/Departure (filtrato sopra): partiziona in una sola passata.
+                                var byArrival = pg.ToLookup(e => e.Kind == TransferFlowKind.Arrival);
+                                return new AccAirportFlows(
+                                    AirportLabel(pg.Key),
+                                    byArrival[true].Select(e => e.Row).ToList(),
+                                    byArrival[false].Select(e => e.Row).ToList());
+                            })
                             .ToList(),
                         // Sorvoli/VFR/altro: senza aeroporto, raggruppati per etichetta di tipo.
                         ag.Where(e => !IsAirportKind(e.Kind))

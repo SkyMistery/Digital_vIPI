@@ -143,6 +143,10 @@ public static class CoordinationSentences
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial, LevelParity parity,
         string cop, TransferFlowKind kind = TransferFlowKind.Arrival)
     {
+        // Senza mittente o destinatario la frase è priva di soggetto/oggetto → riga incompleta, nessuna frase
+        // (coerente col contratto «dati incompleti → null»; evita anche lookup con chiave vuota più sotto).
+        if (string.IsNullOrWhiteSpace(ownerCallsign) || string.IsNullOrWhiteSpace(targetCallsign)) return null;
+
         // Arrivi/partenze senza aeroporto = «con destinazione»/«in partenza da» orfano → nessuna frase.
         // Sorvoli/VFR/altro usano la relazione neutra e reggono anche senza aeroporto.
         var hasAirport = !string.IsNullOrWhiteSpace(airportIcao);
