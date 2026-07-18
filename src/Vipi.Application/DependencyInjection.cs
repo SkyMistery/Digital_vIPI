@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();
         services.AddScoped<IAppViewDerivationService, AppViewDerivationService>();
         services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
+        services.AddScoped<IAirportSidDerivationService, AirportSidDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();
