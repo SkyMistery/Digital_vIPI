@@ -105,7 +105,8 @@ else
                                             AddLabel="+ Aggiungi sezione custom" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                             IsDerivedSection="IsStructured" DerivedContent="DerivedFor(blk)"
                                             IsMandatory="IsMandatory" IsHiddenSection="s => IsHidden(blk, s)"
-                                            OnToggleHidden="s => ToggleHidden(blk, s)" />
+                                            OnToggleHidden="s => ToggleHidden(blk, s)"
+                                            IsRenderModeToggleable="IsRenderModeToggleable" />
                 </div>
             }
 
@@ -262,6 +263,8 @@ else
         { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
 
     private static bool IsStructured(EditableSection s) => Structured.Contains(s.SectionKey);
+    // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
     // Le sezioni-catalogo (chiavi note) sono obbligatorie: titolo bloccato, no elimina. Le custom (chiavi ignote) no.
     private static bool IsMandatory(EditableSection s) =>
         Structured.Contains(s.SectionKey) || s.SectionKey is "operationaltechnique" or "validity";

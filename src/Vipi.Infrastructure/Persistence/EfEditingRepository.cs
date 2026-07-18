@@ -110,6 +110,7 @@ public sealed class EfEditingRepository : IEditingRepository
             SectionKey = s.SectionKey,
             Depth = s.Depth,
             Order = s.Order,
+            RenderMode = s.RenderMode,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
                 {
