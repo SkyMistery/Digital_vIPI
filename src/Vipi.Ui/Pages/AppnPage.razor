@@ -33,7 +33,7 @@ else if (_vloaMode)
         }
         else
         {
-            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
+            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" UseFrozen="_vloaUseFrozen" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
         }
     </div>
 }
@@ -144,6 +144,7 @@ else
     private string _vloaForeign = "";
     private DocumentView? _vloaView;
     private int? _vloaDocId;
+    private bool _vloaUseFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
 
     private AccInfo? _acc;
     private string _app = "";
@@ -207,6 +208,7 @@ else
         if (_vloaMode)
         {
             _vloaDocId = await Editing.ResolveVloaIdByPairAsync(home, _vloaForeign);
+            _vloaUseFrozen = false;
             switch (_mode.Kind)
             {
                 case PreviewKind.Draft:
@@ -221,6 +223,7 @@ else
                     break;
                 default:
                     _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false);
+                    _vloaUseFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
                     break;
             }
             return;

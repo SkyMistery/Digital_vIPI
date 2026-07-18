@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IFrozenSectionReader, FrozenSectionReader>();   // doc 10 §3d: lettura frozen al view
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();
         services.AddScoped<IAppViewDerivationService, AppViewDerivationService>();
+        services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();

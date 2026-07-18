@@ -33,7 +33,7 @@ else if (_foreign.Length > 0)
                                PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
                                DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
-            <VloaDocumentView View="_view" DocId="_viewDocId" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
         </div>
     }
 }
@@ -89,6 +89,7 @@ else
     private DocumentView? _view;
     private int? _viewDocId;
     private string? _viewSubtitle;
+    private bool _useFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
     private PreviewMode _mode;
     private string? _relCycle;
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
@@ -112,6 +113,7 @@ else
         {
             _mode = PreviewMode.Parse(As);
             _relCycle = null;
+            _useFrozen = false;
             switch (_mode.Kind)
             {
                 case PreviewKind.Draft:
@@ -128,6 +130,7 @@ else
                     // DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven), come sulla pagina /apps/vipi?vloa=…
                     // Senza, si vedrebbero i blocchi statici salvati: stesso documento, resa diversa.
                     _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false);
+                    _useFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
                     break;
             }
             _viewDocId = row.DocId;
