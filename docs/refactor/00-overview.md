@@ -1,8 +1,9 @@
 # Refactor — Overview 🟢
 
 > Documento madre della revisione strutturale (post round ~23-34). Coordina i 9 doc
-> di area. **Stato: tutti i 9 doc chiusi ✅** (01–09 eseguiti, 2026-07). Residui di
+> di area. **Stato: i 9 doc del refactor sono chiusi ✅** (01–09 eseguiti, 2026-07). Residui di
 > pulizia tracciati nei singoli doc (es. rimozione `*ProfileModels`, create airport unico).
+> **Estensione post-refactor:** doc 10 (snapshot totale + `RenderMode`) — carta approvata, esecuzione da avviare.
 
 ## Perché
 
@@ -38,6 +39,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 07 | [07-trasferimenti.md](07-trasferimenti.md) | Trasferimenti (8) | ✅ |
 | 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | ✅ (08a–08i completi; residuo opzionale: create airport via use-case unico) |
 | 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | ✅ |
+| 10 | [10-snapshot-totale-e-rendermode.md](10-snapshot-totale-e-rendermode.md) | Snapshot totale + `RenderMode` per sezione (estende 09) | 🟢 carta approvata, esecuzione da avviare |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)
 
