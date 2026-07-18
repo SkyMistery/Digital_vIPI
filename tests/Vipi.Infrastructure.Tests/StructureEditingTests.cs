@@ -154,6 +154,13 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Contains("Piste", sectionTitles);
         Assert.Contains("SID", sectionTitles);
 
+        // SID de-cotta (doc 10 §3e): la sezione "SID" ora è derivabile (key "sids", RenderMode.Live) e VUOTA — le righe
+        // si derivano a view-time, non sono più cotte nel documento.
+        var sidSec = await _db.DocumentSections.Include(s => s.Blocks).SingleAsync(s => s.Title == "SID");
+        Assert.Equal("sids", sidSec.SectionKey);
+        Assert.Equal(Vipi.Domain.RenderMode.Live, sidSec.RenderMode);
+        Assert.Empty(sidSec.Blocks);
+
         // ATIS (dal catalogo) nella tabella Frequenze; TA nella prose; piste con lunghezza.
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.BodyJson != null && b.BodyJson.Contains("135.975"));
         Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.Body != null && b.Body.Contains("6000 ft"));
