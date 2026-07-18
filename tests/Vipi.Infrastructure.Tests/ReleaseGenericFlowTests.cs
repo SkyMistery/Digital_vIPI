@@ -77,7 +77,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     {
         var repo = new EfReleaseRepository(_db, Registry());
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()));
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry()));
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
 
@@ -91,6 +91,25 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
 
         var diff = await svc.DiffAsync(rel.Id);   // nessuna baseline in vigore → tutte "Aggiunta"
         Assert.Contains(diff.Rows, r => r.Label == "Sezione Fittizia");
+    }
+
+    [Fact]
+    public async Task Backfill_Creates_Effective_Release_For_Published_Without_One_And_Is_Idempotent()
+    {
+        var repo = new EfReleaseRepository(_db, Registry());
+        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry()));
+
+        // Il doc fittizio è Published SENZA release → il backfill ne genera una effettiva ora.
+        Assert.Null(await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));
+        Assert.Equal(1, await svc.BackfillMissingReleasesAsync());
+
+        var eff = await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow);
+        Assert.NotNull(eff);
+        Assert.Contains("Sezione Fittizia", eff!.PayloadJson);
+
+        // Idempotente: una seconda passata non crea nulla (già coperto).
+        Assert.Equal(0, await svc.BackfillMissingReleasesAsync());
     }
 
     private sealed class AllowAuthz : IEditAuthorizationService

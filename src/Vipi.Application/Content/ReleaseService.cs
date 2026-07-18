@@ -21,6 +21,12 @@ public interface IReleaseService
     /// <summary>Forza la pubblicazione immediata (review): ciclo corrente, effettiva adesso.</summary>
     Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
+    /// <summary>Migrazione A (doc 10 §3f): per ogni documento <c>Published</c> e non nascosto SENZA release effettiva,
+    /// genera una copia statica al ciclo corrente (effettiva adesso), così togliere il fallback live pubblico (S6b) non
+    /// lascia buchi. Operazione di sistema (nessuna authz), idempotente: salta i bersagli già coperti e i documenti
+    /// senza contenuto. Ritorna il numero di release generate.</summary>
+    Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default);
+
     /// <summary>Annulla una release (per Id). Authz sull'ACC del bersaglio.</summary>
     Task CancelReleaseAsync(int releaseId, CancellationToken ct = default);
 
@@ -54,13 +60,16 @@ public sealed class ReleaseService : IReleaseService
     private readonly IEditAuthorizationService _authz;
     private readonly IAiracService _airac;
     private readonly IFrozenSectionRegistry _frozen;
+    private readonly IDocumentAdminRepository _admin;
 
-    public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac, IFrozenSectionRegistry frozen)
+    public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
+        IFrozenSectionRegistry frozen, IDocumentAdminRepository admin)
     {
         _repo = repo;
         _authz = authz;
         _airac = airac;
         _frozen = frozen;
+        _admin = admin;
     }
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
@@ -93,6 +102,26 @@ public sealed class ReleaseService : IReleaseService
         // nelle liste pubbliche (gate su Status==Published) e nel fallback del viewer, non solo via snapshot di release.
         // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
         await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, ct);
+    }
+
+    public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var cycle = _airac.GetCycle(now);
+        var count = 0;
+        foreach (var d in await _admin.ListAsync(ct))
+        {
+            if (!d.IsPublished || d.IsHidden) continue;   // solo i pubblicati, non nascosti
+            if (await _repo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, now, ct) is not null) continue;   // già coperto → idempotente
+
+            // Riusa il path di cattura (§3d); tollera i documenti senza contenuto (null) senza esplodere.
+            var finalJson = await BuildSnapshotJsonAsync(d.ReleaseTarget, d.ReleaseKey, cycle, ct);
+            if (finalJson is null) continue;
+            await _repo.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, now,
+                finalJson, createdByUserId: 0, note: "backfill migrazione A (doc 10)", ct);
+            count++;
+        }
+        return count;
     }
 
     public async Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
@@ -181,18 +210,22 @@ public sealed class ReleaseService : IReleaseService
 
     private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
     {
-        var json = await _repo.SnapshotWorkingAsync(type, key, cycle, ct)
+        var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct)
             ?? throw new Aor.ValidationException("Nessun contenuto da pubblicare: crea prima il documento (bozza).");
+        await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
+    }
 
-        // Cattura totale (doc 10 §3c): congela anche l'OUTPUT delle sezioni derivate in modalità Frozen, così il
-        // pubblico vede una fotografia completa. Le sezioni Live restano fuori (il viewer le deriva sul momento).
+    // Snapshot totale (doc 10 §3c): struttura congelata + OUTPUT delle sezioni derivate in modalità Frozen, così il
+    // pubblico vede una fotografia completa (le sezioni Live restano fuori: il viewer le deriva sul momento). Ritorna il
+    // JSON del payload pronto per SaveReleaseAsync, o null se il documento non ha contenuto (nessuna versione di lavoro).
+    private async Task<string?> BuildSnapshotJsonAsync(ReleaseTargetType type, string key, string cycle, CancellationToken ct)
+    {
+        var json = await _repo.SnapshotWorkingAsync(type, key, cycle, ct);
+        if (json is null) return null;
         var payload = JsonSerializer.Deserialize<DocReleasePayload>(json)!;
         var frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
-        var finalJson = JsonSerializer.Serialize(payload);
-
-        var userId = _authz.CurrentUserId ?? 0;
-        await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, userId, note, ct);
+        return JsonSerializer.Serialize(payload);
     }
 
     private async Task EnsureCanEditAsync(ReleaseTargetType type, string key, CancellationToken ct)
