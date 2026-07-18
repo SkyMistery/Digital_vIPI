@@ -6,7 +6,8 @@
 > documento (derivate incluse). Le modifiche restano visibili **solo nell'editor** finché non si
 > ripubblica. Eccezione governata da un flag **per-sezione** (`RenderMode`), non da regole hardcoded.
 >
-> **Stato: carta approvata (Fase 0) — esecuzione da avviare.** Dipende da: doc 08, doc 09.
+> **Stato: eseguito ✅ (S0→S7, 2026-07-19).** Branch `refactor/10-snapshot-totale` (25 commit), suite 353 verde,
+> verify live confermata (owner). **In attesa di merge su main.** Dipende da: doc 08, doc 09.
 
 ## 1. Stato attuale (post-09, 2026-07-18)
 
@@ -121,32 +122,33 @@ dell'eccezione live, accettato consapevolmente (le SID sono dati di riferimento 
 
 Slice verticali, 1 commit/passo, `dotnet build` verde a ogni commit, meccanico separato da logica.
 
-- **S0 — Carta.** Questo doc + riga indice `00-overview`. Zero codice. *(questo passo)*
-- **S1 — Test-first di caratterizzazione.** Baseline del comportamento live attuale per famiglia;
-  test target: sezione `Frozen` invariante ai cambi catalogo, sezione `Live` che li riflette.
-  Estende `ContentReleaseVisibilityTests` / `ReleaseRepositoryTests`.
-- **S2 — Modello dati (meccanico).** `RenderMode` su `DocumentSection` (migration, default `Frozen`);
-  `DocReleasePayload` esteso coi frozen view-model. Nessun consumo ancora.
-- **S3 — Cattura al publish.** Registry `IFrozenSectionProvider` per famiglia; `SnapshotWorkingAsync`
-  (o la cattura spostata in `ReleaseService`, dove i derivation service sono iniettabili) cattura una
-  sezione **solo se `Frozen`**.
-- **S3b — SID de-cotta.** `RebuildDocumentAsync` non cuoce più `sids`; sezione derivabile, default
-  `Live`; merge editoriali+importate → derivazione a view-time.
-- **S4 — Viewer da frozen.** Per sezione: frozen-in-payload → payload, sennò live; overlay runtime
-  sempre live sopra. Entrambi i path.
-- **S4c — Editor: toggle + badge.** Controllo `Live`/`Frozen` per sezione derivabile nei 4 editor
-  (ACC/App/vLOA/Airport), persistenza su `RenderMode`, badge di stato per sezione.
+- **S0 — Carta.** ✅ Questo doc + riga indice `00-overview`.
+- **S1 — Test-first di caratterizzazione.** ✅ `SnapshotFreezeCharacterizationTests` (baseline live per famiglia).
+- **S2 — Modello dati (meccanico).** ✅ `RenderMode` su `DocumentSection` (migration `AddSectionRenderMode`, default
+  `Frozen`); `DocReleasePayload.FrozenSections` (sectionId→JSON). Nessun consumo ancora.
+- **S3 — Cattura al publish.** ✅ Registry `IFrozenSectionProvider` per famiglia; la cattura vive in `ReleaseService`
+  (`BuildSnapshotJsonAsync`) e congela una sezione **solo se `Frozen`**.
+- **S3b — SID de-cotta.** ✅ `RebuildDocumentAsync` non cuoce più `sids` (sezione derivabile, default `Live`); merge
+  editoriali+importate → `AirportSidDerivationService` a view-time.
+- **S4 — Viewer da frozen.** ✅ `IFrozenSectionReader` (`GetFrozenByKeyAsync` per i doc a sezione unica) + resolver per
+  famiglia (`Acc/App/Vloa/AirportViewDerivationService`); overlay runtime sempre live sopra. Entrambi i path.
+- **S4c — Editor: toggle + badge.** ✅ `SetSectionRenderModeAsync` (draft-gated); `DocumentSectionsEditor` (condiviso
+  ACC/App/vLOA) badge+toggle sulle derivabili; airport via `Get/SetSidsRenderModeAsync` + rebuild che **preserva** il RenderMode.
 - **S5 — Rimozione overlay (propagazione).** ✅ Drop `VloaOverlaySnapshot`/`payload.Vloa`/
   `IncludesVisibilityOverlay` (+ 4 impl + ramo overlay in `SnapshotWorkingAsync`). Aggiorna
   commenti/`<see cref>`, docs (09, `spec/modello-dati.md`), memorie — **nello stesso giro**.
   *La rimozione del **fallback live pubblico** è stata spostata in S6* (vedi nota): togliere il fallback
   prima del backfill lascerebbe un buco pubblico (Published senza release → invisibile). In S6 le due
   cose atterrano **atomiche** → nessun buco.
-- **S6 — Migrazione A + fallback.** Rimuove il fallback live pubblico (visibilità pubblica = release
-  effettiva) **e** nello stesso giro backfilla una copia statica per i `Published` senza release; set
-  default `RenderMode` sulle sezioni esistenti. Ordine atomico = nessun buco pubblico.
-- **S7 — Verify live + chiusura.** Guida il flusso reale per le 4 famiglie × {`Live`,`Frozen`} con
-  traccia; `history/rounds.md` + indice `00-overview` + memorie coerenti.
+- **S6 — Migrazione A + fallback.** ✅ Rimuove il fallback live pubblico (visibilità pubblica = release effettiva:
+  `EfContentRepository.LoadVipiAsync` + `AccDocumentService.LoadForViewAsync` → null senza release; `AccVipiPage`
+  mostra "non disponibile") **e** backfilla (`ReleaseService.BackfillMissingReleasesAsync`, al boot via
+  `BackfillVipiReleases`) i `Published` senza release. Ordine atomico = nessun buco pubblico. *Residuo minore: il gate
+  delle LISTE pubbliche `Status==Published`→ha-release non è stato cambiato (dopo il backfill Published≈ha-release →
+  nessuna incoerenza pratica); rifinibile a parte.*
+- **S7 — Verify live + chiusura.** ✅ Boot + backfill su DB reale, visibilità pubblica (ACC senza release → "non
+  disponibile", con release → contenuto), badge editor — osservati via HTTP/prerender; i flussi a click (toggle /
+  ripubblica / SID live) confermati a mano dall'owner. `history/rounds.md` + indice `00-overview` + carta + memorie coerenti.
 
 ## 5. Impatto / Verifica
 
