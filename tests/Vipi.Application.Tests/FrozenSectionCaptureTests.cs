@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -50,6 +51,30 @@ public class FrozenSectionCaptureTests
         var doc = Doc(Sec(10, "aor", RenderMode.Frozen));
         Assert.Empty(await registry.CaptureAsync(ReleaseTargetType.Airport, "LIRF", doc));
     }
+
+    // Rete anti-regressione silenziosa (doc 10 §3d): i view-model catturati devono round-trippare in System.Text.Json,
+    // altrimenti il frozen si romperebbe senza errore al view. Serializza→deserializza→riserializza e confronta.
+    [Theory]
+    [MemberData(nameof(FrozenViewModels))]
+    public void FrozenViewModel_RoundTrips(object vm)
+    {
+        var t = vm.GetType();
+        var json1 = JsonSerializer.Serialize(vm, t);
+        var back = JsonSerializer.Deserialize(json1, t);
+        Assert.NotNull(back);
+        Assert.Equal(json1, JsonSerializer.Serialize(back, t));
+    }
+
+    public static IEnumerable<object[]> FrozenViewModels() => new[]
+    {
+        new object[] { AccAorView.Empty },
+        new object[] { AppCoordination.Empty },
+        new object[] { AccCoordination.Empty },
+        new object[] { VloaAorData.Empty },
+        new object[] { VloaFreqData.Empty },
+        new object[] { VloaCoordination.Empty },
+        new object[] { new List<AppFreqRow>() },
+    };
 
     private sealed class FakeVloa : IVloaDerivationService
     {
