@@ -9,6 +9,7 @@
 @inject IStructureEditingService Structure
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject IAirportEditingService Profile
+@inject IAirportViewDerivationService AirportView
 @inject IAirportSectorService AirportSectors
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
@@ -303,6 +304,32 @@ else
                     </CollapsibleBlock>
                 }
 
+                @* ---------- SID: sezione derivata a view-time (doc 10 §3e), non più cotta nel documento ---------- *@
+                @if (_sidSection is not null)
+                {
+                    <CollapsibleBlock Id="a-sid">
+                        <Header><h3 style="margin-top:0">@_sidSection.Title</h3></Header>
+                        <ChildContent>
+                        @if (_sids.Rows.Count > 0)
+                        {
+                            <table class="cfg-table">
+                                <thead><tr><th>Pista</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th></tr></thead>
+                                <tbody>
+                                    @foreach (var r in _sids.Rows)
+                                    {
+                                        <tr><td>@r.Runway</td><td>@r.Fix</td><td>@r.Name</td><td>@r.Transition</td><td>@r.InitialClimb</td><td>@r.Type</td><td>@r.Cat</td><td>@r.Wtc</td><td>@r.Condition</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="callout info"><span class="cic">🔄</span><div><p class="ct">SID non ancora inserite</p>Aggiungile dall'editor aeroporto o importale dal sectorfile.</div></div>
+                        }
+                        </ChildContent>
+                    </CollapsibleBlock>
+                }
+
                 @foreach (var s in _otherSections)
                 {
                     <SectionNode Section="s" />
@@ -391,6 +418,8 @@ else
 
     private SectionView? _taSection;
     private SectionView? _freqSection;
+    private SectionView? _sidSection;   // sezione "sids" (doc 10 §3e): resa custom dalla derivazione, non da SectionNode
+    private AirportSidView _sids = AirportSidView.Empty;
     private List<SectionView> _otherSections = new();
     private List<SectionView> _extraSections = new();
     private int? _ta;
@@ -464,6 +493,10 @@ else
             ? _profile.Runways.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);
         SplitSections(_view);
+        // SID derivata a view-time (doc 10 §3e): frozen dalla release effettiva solo in vista pubblica (default), live
+        // in bozza/anteprima-release. La sezione è Live di default → di norma sempre derivata live (frozen è null).
+        var sidUseFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
+        _sids = await AirportView.ResolveSidsForViewAsync(_icao, sidUseFrozen);
         // Anteprima BOZZA: TA/TL derivati dal profilo strutturato LIVE (working), non dall'ultimo rebuild pubblicato
         // nel DocumentView — così la bozza riflette le modifiche editoriali non ancora rigenerate/pubblicate.
         if (_mode.Kind == PreviewKind.Draft && _profile is not null) ApplyProfileTransition(_profile);
@@ -559,6 +592,7 @@ else
         if (FreqRows().Any() || _profile is not null) yield return ("a-freq", "Frequenze");
         else if (_freqSection is not null) yield return (_freqSection.Id, _freqSection.Title);
         if (_profile is { Runways.Count: > 0 }) yield return ("a-piste", "Piste");
+        if (_sidSection is not null) yield return ("a-sid", _sidSection.Title);
         foreach (var s in _otherSections) yield return (s.Id, s.Title);
         foreach (var s in ExtraSections()) yield return ($"extra-{s.Id}", s.Title);
     }
@@ -654,7 +688,7 @@ else
     /// <summary>Separa le sezioni: transizione (custom + badge TA) e frequenze affiancate, il resto generico.</summary>
     private void SplitSections(DocumentView view)
     {
-        _taSection = _freqSection = null;
+        _taSection = _freqSection = _sidSection = null;
         _otherSections = new();
         _extraSections = new();
         _ta = null; _tlRows = new(); _tlCols = Array.Empty<string>();
@@ -669,6 +703,9 @@ else
             // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
             else if (_profile is { Runways.Count: > 0 } && s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase))
                 continue;
+            // La sezione SID è derivata a view-time (doc 10 §3e): resa custom, fuori da _otherSections.
+            else if (s.SectionKey == "sids")
+                _sidSection = s;
             // Sezioni editoriali libere: rese con layout dedicato (inline + rail) da _extraSections, non tra le "altre".
             else if (s.SectionKey == "airportextra")
                 _extraSections.Add(s);

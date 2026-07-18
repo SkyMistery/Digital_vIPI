@@ -36,12 +36,14 @@ public static class DependencyInjection
         services.AddScoped<IFrozenSectionProvider, VloaFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AppFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AccFrozenSectionProvider>();
+        services.AddScoped<IFrozenSectionProvider, AirportFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionRegistry, FrozenSectionRegistry>();
         services.AddScoped<IFrozenSectionReader, FrozenSectionReader>();   // doc 10 §3d: lettura frozen al view
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();
         services.AddScoped<IAppViewDerivationService, AppViewDerivationService>();
         services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
         services.AddScoped<IAirportSidDerivationService, AirportSidDerivationService>();
+        services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();
