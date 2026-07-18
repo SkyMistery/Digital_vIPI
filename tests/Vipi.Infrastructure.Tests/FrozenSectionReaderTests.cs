@@ -69,4 +69,43 @@ public class FrozenSectionReaderTests : IAsyncLifetime
 
         Assert.Null(await _reader.GetFrozenJsonAsync(ReleaseTargetType.Vloa, "1", 5));
     }
+
+    // --- By-key: risolve l'Id della sezione derivabile+Frozen da payload.Doc (doc a sezione unica App/vLOA) ---
+
+    private static RawSection Derived(int id, string key, RenderMode mode) => new()
+    {
+        Id = id, Title = key, Depth = 0, SectionKey = key, Order = id, RenderMode = mode,
+    };
+
+    private static string PayloadWithDoc(RawSection[] roots, params (int SectionId, object Vm)[] frozen)
+    {
+        var p = new DocReleasePayload
+        {
+            Doc = new RawDocument { Title = "vLOA", AiracCycle = "2606", Roots = roots },
+        };
+        foreach (var (id, vm) in frozen) p.FrozenSections[id] = JsonSerializer.Serialize(vm);
+        return JsonSerializer.Serialize(p);
+    }
+
+    [Fact]
+    public async Task ByKey_Resolves_SectionId_From_PayloadDoc()
+    {
+        var roots = new[] { Derived(7, "aor", RenderMode.Frozen), Derived(9, "frequencies", RenderMode.Frozen) };
+        var json = PayloadWithDoc(roots, (7, new { name = "AOR congelata" }), (9, new { name = "freq congelata" }));
+        await _releases.SaveReleaseAsync(ReleaseTargetType.App, "LIRP_APP", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
+
+        var aor = await _reader.GetFrozenByKeyAsync<Dictionary<string, string>>(ReleaseTargetType.App, "LIRP_APP", "aor");
+        Assert.Equal("AOR congelata", aor!["name"]);
+    }
+
+    [Fact]
+    public async Task ByKey_Live_Section_Returns_Null()
+    {
+        // Sezione Live: assente da FrozenDerived e da FrozenSections → by-key null → il chiamante deriva live.
+        var roots = new[] { Derived(7, "aor", RenderMode.Live) };
+        var json = PayloadWithDoc(roots);
+        await _releases.SaveReleaseAsync(ReleaseTargetType.App, "LIRP_APP", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
+
+        Assert.Null(await _reader.GetFrozenByKeyAsync<Dictionary<string, string>>(ReleaseTargetType.App, "LIRP_APP", "aor"));
+    }
 }
