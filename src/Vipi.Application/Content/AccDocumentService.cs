@@ -122,8 +122,10 @@ public sealed class AccDocumentService : IAccDocumentService
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
         if (id is null) return null;   // ACC inesistente
 
-        // Se esiste una release AIRAC in vigore per questo ACC, il pubblico vede i blocchi CONGELATI dello snapshot
-        // (le sezioni derivate — freq/AoR/coord — restano live coi cataloghi correnti). Doc 08e-acc.
+        // Visibilità pubblica = esiste una release AIRAC in vigore (doc 10 §3f/§S6b, uniforme alle altre famiglie):
+        // il pubblico vede i blocchi CONGELATI dello snapshot (le derivate — freq/AoR/coord — restano live). Senza
+        // release effettiva la vIPI ACC è invisibile (null) — rimosso il fallback storico alla versione pubblicata
+        // live e il guscio sintetico vuoto. La migrazione A (backfill al boot) garantisce una release ai Published.
         var rel = await _releases.GetEffectiveAsync(ReleaseTargetType.AccVipi, $"{accCode}|{id.RootCallsign}", DateTime.UtcNow, ct);
         if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
         {
@@ -131,20 +133,7 @@ public sealed class AccDocumentService : IAccDocumentService
             return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks);
         }
 
-        if (id.DocumentId is int docId && await _editing.LoadForViewAsync(docId, ct) is { } doc)
-        {
-            var docBlocks = AccDocumentAssembler.Assemble(doc);
-            return new AccDocumentModel(doc.DocumentId, doc.VersionId, IsDraft: false, accCode, id.AccName, docBlocks);
-        }
-
-        // Non ancora migrato/pubblicato: blocco Aerovia vuoto di default (le derivate restano live dai cataloghi).
-        var aerovia = new AccBlock
-        {
-            Key = "aerovia", Kind = AccBlockKind.Aerovia, Title = "Settori di aerovia",
-            SectionOrder = SectionCatalog.For(SectionProfile.AccAerovia).Select(d => d.Key).ToList(),
-        };
-        var synthetic = new AccAssembledBlock(0, aerovia, new Dictionary<string, int>());
-        return new AccDocumentModel(0, 0, IsDraft: false, accCode, id.AccName, new[] { synthetic });
+        return null;
     }
 
     public async Task<AccReleaseView?> LoadForReleaseAsync(string accCode, int releaseId, CancellationToken ct = default)

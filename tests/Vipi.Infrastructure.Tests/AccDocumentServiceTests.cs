@@ -127,28 +127,19 @@ public class AccDocumentServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task LoadForView_Synthetic_Before_Publish_Then_Published_Tree()
+    public async Task LoadForView_Null_Without_Effective_Release()
     {
-        // Non ancora migrato: blocco Aerovia sintetico (docId 0), sezioni derivate rese live dai cataloghi.
-        var pre = await _service.LoadForViewAsync(Acc);
-        Assert.NotNull(pre);
-        Assert.Equal(0, pre!.DocumentId);
-        var synth = Assert.Single(pre.Blocks);
-        Assert.Equal(AccBlockKind.Aerovia, synth.Block.Kind);
-        Assert.NotEmpty(synth.Block.SectionOrder);
+        // Doc 10 §S6b: visibilità pubblica = release effettiva (uniforme alle altre famiglie). Rimosso il guscio
+        // sintetico e il fallback alla versione pubblicata live.
+        // Non ancora migrato: nessuna release → invisibile (null).
+        Assert.Null(await _service.LoadForViewAsync(Acc));
 
-        // Crea + pubblica la bozza.
+        // Anche dopo aver pubblicato la VERSIONE (senza release effettiva) resta invisibile: serve una release.
         var docId = await _service.EnsureAsync(Acc);
         var editing = new EfEditingRepository(_db, new AiracService());
         var draftVer = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
         await editing.PublishAsync(draftVer, actorUserId: 1, note: "pub");
-
-        // Ora la vista pubblica legge l'albero pubblicato.
-        var post = await _service.LoadForViewAsync(Acc);
-        Assert.NotNull(post);
-        Assert.Equal(docId, post!.DocumentId);
-        Assert.False(post.IsDraft);
-        Assert.Equal(AccBlockKind.Aerovia, Assert.Single(post.Blocks).Block.Kind);
+        Assert.Null(await _service.LoadForViewAsync(Acc));
     }
 
     [Fact]

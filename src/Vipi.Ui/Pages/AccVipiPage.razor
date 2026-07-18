@@ -13,6 +13,13 @@
 {
     <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
+else if (_notAvailable)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vIPI non disponibile</p>Nessuna vIPI pubblicata per <b>@_acc.Code</b>. Se la stai preparando, aprila dall'<a href="/vsop/@Acc.ToLowerInvariant()/editor">editor</a> e pubblicala.</div></div>
+    </div>
+}
 else
 {
     <PageTitle>@PreviewTitlePrefix()vIPI @_data.AccName · IVAO Italia</PageTitle>
@@ -106,6 +113,7 @@ else
     private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
     private IReadOnlyList<AccAssembledBlock>? _blocks;   // blocchi con Id sezione (view/draft); null in anteprima release
     private bool _useFrozen;                              // vista pubblica: leggi frozen dalla release effettiva
+    private bool _notAvailable;                           // vista pubblica senza release effettiva → "non disponibile" (doc 10 §S6b)
     private bool _canEdit;
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
@@ -131,6 +139,7 @@ else
         _relCycle = null;
         _blocks = null;
         _useFrozen = false;
+        _notAvailable = false;
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
@@ -180,10 +189,11 @@ else
         }
     }
 
-    // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen.
+    // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen. model null (nessuna
+    // release effettiva, doc 10 §S6b) → "non disponibile".
     private void LoadViewModel(AccDocumentModel? model)
     {
-        if (model is null) return;
+        if (model is null) { _notAvailable = true; return; }
         _data = model.Data;
         _blocks = model.Blocks;
         _useFrozen = true;

@@ -396,14 +396,19 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
 
-        var content = new EfContentRepository(_db, TestReleaseTargets.ReleaseRepo(_db));
-        // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché lo staff non pubblica.
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        var content = new EfContentRepository(_db, releases);
+        // Alla generazione il doc nasce in BOZZA: non ancora servito al pubblico finché non c'è una release effettiva.
         Assert.Null(await content.LoadAirportVipiAsync("LIRF"));
+
+        // Doc 10 §S6b: visibilità pubblica = release effettiva. Pubblico la versione + creo una release in vigore ora.
         await PublishAirportDocAsync("LIRF");
-        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: documento servito
+        var snap = (await releases.SnapshotWorkingAsync(ReleaseTargetType.Airport, "LIRF", "2607"))!;
+        await releases.SaveReleaseAsync(ReleaseTargetType.Airport, "LIRF", "2607", DateTime.UtcNow.AddMinutes(-1), snap, 1, null);
+        Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // visibile: release effettiva servita
 
         await _repo.SetAirportHiddenAsync("LIRR", apId, true);
-        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));      // nascosto: pagina pubblica inaccessibile
+        Assert.Null(await content.LoadAirportVipiAsync("LIRF"));      // nascosto: pagina pubblica inaccessibile anche con release
 
         await _repo.SetAirportHiddenAsync("LIRR", apId, false);
         Assert.NotNull(await content.LoadAirportVipiAsync("LIRF"));   // di nuovo visibile

@@ -12,12 +12,10 @@ namespace Vipi.Infrastructure.Tests;
 /// <summary>
 /// Caratterizzazione del comportamento di freeze PRE doc 10 (asse "snapshot totale + RenderMode"). Rete
 /// anti-regressione dei due comportamenti che il doc 10 §3f/§3c cambierà consapevolmente:
-///  (a) un Document `Published` SENZA release effettiva è servito al pubblico via fallback live (§3f lo rimuove:
-///      visibilità pubblica ⇔ release effettiva);
+///  (a) POST doc 10 §3f/§S6b: un Document `Published` SENZA release effettiva NON è più servito al pubblico
+///      (rimosso il fallback live): visibilità pubblica ⇔ release effettiva. La migrazione A (backfill) copre i Published.
 ///  (b) POST doc 10 §3c/§S5: lo snapshot NON scrive più l'overlay di visibilità separato — la visibilità entra nella
 ///      copia congelata (`Doc` + `FrozenSections`); il payload non ha più campo `Vloa`.
-/// (a) è ancora VERDE (fallback live pubblico): sarà aggiornato in S6, quando la rimozione del fallback atterra
-/// atomica col backfill (nessun buco pubblico). (b) documenta lo stato POST-rimozione overlay.
 /// </summary>
 public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
 {
@@ -63,16 +61,14 @@ public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
         return (callsign, doc.Id);
     }
 
-    // (a) PRE doc 10 §3f: un Document Published senza alcuna release è visibile al pubblico (fallback live alla
-    // versione pubblicata). Dopo S5 questo diventerà NON visibile (serve una release effettiva) → aggiornare qui.
+    // (a) POST doc 10 §3f/§S6b: un Document Published senza release effettiva NON è più servito al pubblico (rimosso il
+    // fallback live alla versione pubblicata). Visibilità pubblica = release effettiva.
     [Fact]
-    public async Task PublishedApp_WithoutRelease_IsVisibleToPublic_PreDoc10()
+    public async Task PublishedApp_WithoutRelease_IsNotVisibleToPublic_PostDoc10()
     {
         var (app, _) = await SeedAppAsync("LICC_APP", "Tecnica operativa", "Testo pubblicato come versione", published: true);
 
-        var pub = await _content.LoadAppVipiAsync(app);   // nessuna release: oggi fallback allo stato Published
-        Assert.NotNull(pub);
-        Assert.Contains(pub!.Roots, s => s.Title == "Tecnica operativa");
+        Assert.Null(await _content.LoadAppVipiAsync(app));   // nessuna release effettiva → invisibile
     }
 
     // (b) POST doc 10 §3c/§S5: lo snapshot App NON scrive più l'overlay di visibilità separato, anche se il
