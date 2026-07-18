@@ -16,7 +16,6 @@ public sealed class AccVipiReleaseTarget : IReleaseTarget
     public ReleaseTargetType Type => ReleaseTargetType.AccVipi;
     public ManagedDocKind ManagedKind => ManagedDocKind.AccVipi;
     public int DescribeOrder => 2;
-    public bool IncludesVisibilityOverlay => false;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default)
     {

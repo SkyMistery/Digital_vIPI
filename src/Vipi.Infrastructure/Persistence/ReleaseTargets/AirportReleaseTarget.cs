@@ -16,7 +16,6 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     public ReleaseTargetType Type => ReleaseTargetType.Airport;
     public ManagedDocKind ManagedKind => ManagedDocKind.AirportVipi;
     public int DescribeOrder => 3;
-    public bool IncludesVisibilityOverlay => false;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()

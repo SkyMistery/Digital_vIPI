@@ -14,10 +14,10 @@ namespace Vipi.Infrastructure.Tests;
 /// anti-regressione dei due comportamenti che il doc 10 §3f/§3c cambierà consapevolmente:
 ///  (a) un Document `Published` SENZA release effettiva è servito al pubblico via fallback live (§3f lo rimuove:
 ///      visibilità pubblica ⇔ release effettiva);
-///  (b) lo snapshot di App/vLOA scrive l'overlay `payload.Vloa` (`VloaOverlaySnapshot`), oggi mai riletto
-///      (§3c lo rimuove: la visibilità entra nella copia congelata).
-/// Questi test sono VERDI ora e documentano lo stato di partenza; vanno AGGIORNATI (non cancellati alla cieca)
-/// quando S5 rimuove fallback/overlay — così il diff di comportamento è esplicito e tracciato.
+///  (b) POST doc 10 §3c/§S5: lo snapshot NON scrive più l'overlay di visibilità separato — la visibilità entra nella
+///      copia congelata (`Doc` + `FrozenSections`); il payload non ha più campo `Vloa`.
+/// (a) è ancora VERDE (fallback live pubblico): sarà aggiornato in S6, quando la rimozione del fallback atterra
+/// atomica col backfill (nessun buco pubblico). (b) documenta lo stato POST-rimozione overlay.
 /// </summary>
 public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
 {
@@ -75,10 +75,10 @@ public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
         Assert.Contains(pub!.Roots, s => s.Title == "Tecnica operativa");
     }
 
-    // (b) PRE doc 10 §3c: lo snapshot App scrive l'overlay di visibilità (VloaOverlaySnapshot) dal DocumentProfile,
-    // oggi mai riletto al view. Dopo S5 l'overlay separato sparisce (assorbito nella copia congelata) → aggiornare qui.
+    // (b) POST doc 10 §3c/§S5: lo snapshot App NON scrive più l'overlay di visibilità separato, anche se il
+    // DocumentProfile ha dei nascosti: la struttura si congela in `Doc`, la visibilità è dentro la copia congelata.
     [Fact]
-    public async Task SnapshotWorking_App_WritesDeadVisibilityOverlay_PreDoc10()
+    public async Task SnapshotWorking_App_DoesNotWriteVisibilityOverlay_PostDoc10()
     {
         var (app, docId) = await SeedAppAsync("LIME_APP", "Tecnica operativa", "Testo", published: false);
         _db.Set<DocumentProfile>().Add(new DocumentProfile
@@ -93,8 +93,7 @@ public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
         var payload = JsonSerializer.Deserialize<DocReleasePayload>(json)!;
 
         Assert.NotNull(payload.Doc);                                   // struttura statica congelata
-        Assert.NotNull(payload.Vloa);                                  // overlay scritto (morto: mai riletto al view)
-        Assert.Contains("LIME_APP", payload.Vloa!.HiddenFrequencies);
-        Assert.Contains("LIME_TWR", payload.Vloa!.HiddenAorSectors);
+        Assert.DoesNotContain("Vloa", json);                          // nessun overlay separato nel payload
+        Assert.DoesNotContain("HiddenFrequencies", json);             // i nascosti non viaggiano più come overlay
     }
 }

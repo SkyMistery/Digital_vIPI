@@ -118,7 +118,6 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         public ReleaseTargetType Type => FakeType;
         public ManagedDocKind ManagedKind => FakeKind;
         public int DescribeOrder => 0;
-        public bool IncludesVisibilityOverlay => false;
 
         public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) => Task.FromResult<int?>(_docId);
         public Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) => Task.FromResult<string?>("FAKE");
