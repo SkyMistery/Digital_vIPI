@@ -281,6 +281,9 @@ public sealed class EfAirportRepository : IAirportRepository
         var docId = sectors.Where(s => s.DocumentId != null).Select(s => s.DocumentId).FirstOrDefault();
         Document doc;
         DocumentVersion ver;
+        // RenderMode editoriale della sezione SID (doc 10 §3e/§S4c): preservato tra i rebuild (la sezione è rigenerata,
+        // ma la scelta Live/Frozen dello staff no). Default Live alla prima generazione.
+        var sidsMode = RenderMode.Live;
         if (docId is int existing)
         {
             doc = await _db.Documents.Include(d => d.Versions).FirstAsync(d => d.Id == existing, ct);
@@ -290,6 +293,7 @@ public sealed class EfAirportRepository : IAirportRepository
             // eventuali sezioni aggiunte a mano di altra natura.
             var managed = ver.Sections
                 .Where(s => ManagedSectionTitles.Contains(s.Title) || s.SectionKey == ExtraSectionKey).ToList();
+            sidsMode = ver.Sections.FirstOrDefault(s => s.SectionKey == "sids")?.RenderMode ?? RenderMode.Live;
             foreach (var s in managed) _db.ContentBlocks.RemoveRange(s.Blocks);
             _db.DocumentSections.RemoveRange(managed);
         }
@@ -393,7 +397,7 @@ public sealed class EfAirportRepository : IAirportRepository
         // e l'ordine per FIX/priorità si derivano a view-time (AirportSidDerivationService); il viewer li rende live.
         // La sezione resta come ancora del RenderMode (default Live) e portante per la cattura di release quando Frozen.
         var sid = b.Section("SID", "sids", ++order);
-        sid.RenderMode = RenderMode.Live;
+        sid.RenderMode = sidsMode;   // preserva la scelta editoriale Live/Frozen tra i rebuild (doc 10 §S4c)
 
         // 6 — Sezioni editoriali libere del profilo (titolo + prosa markdown), keyed così da entrare nel documento
         // (e quindi nello snapshot di release) invece di restare in uno store parallelo. Doc 08e-airport.
@@ -408,6 +412,33 @@ public sealed class EfAirportRepository : IAirportRepository
         doc.LastUpdatedAiracCycle = cycle;
         await _db.SaveChangesAsync(ct);
         return doc.Id;
+    }
+
+    public async Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default)
+    {
+        var sec = await CurrentSidsSectionAsync(icao, ct);
+        return sec?.RenderMode ?? RenderMode.Live;
+    }
+
+    public async Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default)
+    {
+        var sec = await CurrentSidsSectionAsync(icao, ct);
+        if (sec is null) return;   // documento/sezione non ancora generati: nasceranno al primo rebuild (default Live)
+        sec.RenderMode = mode;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.
+    private async Task<DocumentSection?> CurrentSidsSectionAsync(string icao, CancellationToken ct)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        var verId = await _db.Sectors
+            .Where(s => s.AirportIcao == icao && s.DocumentId != null)
+            .Select(s => s.Document!.CurrentVersionId)
+            .FirstOrDefaultAsync(ct);
+        if (verId is not int vid) return null;
+        return await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.DocumentVersionId == vid && s.SectionKey == "sids", ct);
     }
 
     // ---- helper ----

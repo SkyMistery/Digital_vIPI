@@ -176,6 +176,30 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SidsRenderMode_Defaults_Live_And_Survives_Rebuild()
+    {
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        var profile = new EfAirportRepository(_db);
+        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+
+        await profile.RebuildDocumentAsync("LIRF");
+        Assert.Equal(RenderMode.Live, await profile.GetSidsRenderModeAsync("LIRF"));   // default
+
+        // Lo staff congela la sezione SID.
+        await profile.SetSidsRenderModeAsync("LIRF", RenderMode.Frozen);
+        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
+
+        // Un nuovo rebuild rigenera la sezione ma PRESERVA la scelta editoriale.
+        await profile.RebuildDocumentAsync("LIRF");
+        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
+
+        var sidSec = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
+        Assert.Equal(RenderMode.Frozen, sidSec.RenderMode);
+    }
+
+    [Fact]
     public async Task Reimport_Overwrites_Ivao_Fields_But_Preserves_Editorial()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");

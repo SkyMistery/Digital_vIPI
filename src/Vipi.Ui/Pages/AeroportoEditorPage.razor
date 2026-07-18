@@ -7,6 +7,7 @@
 @using Vipi.Application.Auth
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
+@using RenderMode = Vipi.Domain.RenderMode
 @inject IAirportEditingService Profile
 @inject IAirportSectorService Sectors
 @inject IReleaseService Releases
@@ -276,6 +277,23 @@ else
             @* ===================== SID ===================== *@
             @if (_panel == "SID")
             {
+                <div class="block">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <h3 style="margin:0">Resa pubblica della sezione SID</h3>
+                        <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 Live" : "🧊 Congelata")</span>
+                        <span class="ln" style="flex:1"></span>
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit)"
+                                @onclick="() => SetSidsMode(!_sidsLive)">
+                            @(_sidsLive ? "🧊 Congela al publish" : "🔴 Rendi sempre live")
+                        </button>
+                    </div>
+                    <p class="help">
+                        <b>Live</b> (default): le SID pubbliche si aggiornano sempre dai dati (import inclusi), anche senza
+                        ripubblicare — utile per dati di riferimento IVAO. <b>Congelata</b>: la sezione è fotografata al momento
+                        della pubblicazione, come il resto del documento (nessun AIRAC misto in pagina).
+                    </p>
+                </div>
+
                 @if (_imported.Count > 0)
                 {
                     <div class="block">
@@ -562,6 +580,7 @@ else
     private List<RwEdit> _rwys = new();
     private List<RuleEdit> _rules = new();
     private List<SidEdit> _sids = new();
+    private bool _sidsLive = true;   // RenderMode della sezione SID (doc 10 §S4c): true=Live, false=Frozen
     private List<ImportedSidEdit> _imported = new();
     private List<ExtraEdit> _extras = new();
     private List<int> _linkIds = new();
@@ -744,6 +763,7 @@ else
             }).ToList();
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
         _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body }).ToList();
+        _sidsLive = await Profile.GetSidsRenderModeAsync(_icao) == RenderMode.Live;
 
         _sectors = await Sectors.ListByAirportAsync(_icao);
         _secLower.Clear(); _secUpper.Clear();
@@ -787,6 +807,13 @@ else
     private Task SaveSids() => Guarded(() => Profile.SaveSidsAsync(_icao,
         _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()),
         "SID salvate.");
+    // RenderMode della sezione SID (doc 10 §S4c): persistito subito (non serve ripubblicare per cambiare la resa).
+    private Task SetSidsMode(bool live) => Guarded(async () =>
+    {
+        await Profile.SetSidsRenderModeAsync(_icao, live ? RenderMode.Live : RenderMode.Frozen);
+        _sidsLive = live;
+    }, live ? "SID: resa live." : "SID: congelata al publish.");
+
     private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()), "Link salvati.");
     private Task SaveExtras() => Guarded(() => Profile.SaveExtraSectionsAsync(_icao,
         _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", s.Body)).ToList()), "Sezioni extra salvate.");

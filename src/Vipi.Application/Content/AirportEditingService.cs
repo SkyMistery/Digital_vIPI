@@ -1,6 +1,7 @@
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -30,6 +31,13 @@ public interface IAirportEditingService
     Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
+
+    /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c): Live (default) = derivata al view;
+    /// Frozen = congelata al publish. Lettura libera (serve al viewer/editor).</summary>
+    Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>Imposta il RenderMode della sezione SID (doc 10 §S4c). ACC-gated. Preservato dai rebuild.</summary>
+    Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default);
 
     /// <summary>Re-importa da IVAO (merge mirato): aggiorna TA/ATIS/piste, preserva il lavoro editoriale.</summary>
     Task ReimportFromSourceAsync(string icao, CancellationToken ct = default);
@@ -153,6 +161,15 @@ public sealed class AirportEditingService : IAirportEditingService
         foreach (var r in rows)
             if (string.IsNullOrWhiteSpace(r.Title)) throw new ValidationException("Titolo obbligatorio per ogni sezione extra.");
         await _repo.SaveExtraSectionsAsync(Norm(icao), rows, ct);
+    }
+
+    public Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default) =>
+        _repo.GetSidsRenderModeAsync(Norm(icao), ct);
+
+    public async Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default)
+    {
+        await EnsureCanEditAsync(icao, ct);
+        await _repo.SetSidsRenderModeAsync(Norm(icao), mode, ct);
     }
 
     public async Task ReimportFromSourceAsync(string icao, CancellationToken ct = default)
