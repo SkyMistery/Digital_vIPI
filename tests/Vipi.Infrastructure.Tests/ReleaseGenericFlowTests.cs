@@ -76,7 +76,8 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     public async Task ReleaseService_PublishPreviewDiff_UnknownType_ViaDescriptorOnly()
     {
         var repo = new EfReleaseRepository(_db, Registry());
-        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService());
+        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()));
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
 

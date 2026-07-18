@@ -32,6 +32,9 @@ public static class DependencyInjection
         services.AddScoped<IAccDerivationService, AccDerivationService>();
         services.AddScoped<IAccDocumentService, AccDocumentService>();
         services.AddScoped<IVloaDerivationService, VloaDerivationService>();
+        // doc 10 §3b: cattura Frozen delle sezioni derivate. Un provider per famiglia; il registry li risolve per tipo.
+        services.AddScoped<IFrozenSectionProvider, VloaFrozenSectionProvider>();
+        services.AddScoped<IFrozenSectionRegistry, FrozenSectionRegistry>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();

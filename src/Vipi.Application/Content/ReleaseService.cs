@@ -53,12 +53,14 @@ public sealed class ReleaseService : IReleaseService
     private readonly IReleaseRepository _repo;
     private readonly IEditAuthorizationService _authz;
     private readonly IAiracService _airac;
+    private readonly IFrozenSectionRegistry _frozen;
 
-    public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac)
+    public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac, IFrozenSectionRegistry frozen)
     {
         _repo = repo;
         _authz = authz;
         _airac = airac;
+        _frozen = frozen;
     }
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
@@ -179,10 +181,18 @@ public sealed class ReleaseService : IReleaseService
 
     private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
     {
-        var payload = await _repo.SnapshotWorkingAsync(type, key, cycle, ct)
+        var json = await _repo.SnapshotWorkingAsync(type, key, cycle, ct)
             ?? throw new Aor.ValidationException("Nessun contenuto da pubblicare: crea prima il documento (bozza).");
+
+        // Cattura totale (doc 10 §3c): congela anche l'OUTPUT delle sezioni derivate in modalità Frozen, così il
+        // pubblico vede una fotografia completa. Le sezioni Live restano fuori (il viewer le deriva sul momento).
+        var payload = JsonSerializer.Deserialize<DocReleasePayload>(json)!;
+        var frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
+        foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
+        var finalJson = JsonSerializer.Serialize(payload);
+
         var userId = _authz.CurrentUserId ?? 0;
-        await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, payload, userId, note, ct);
+        await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, userId, note, ct);
     }
 
     private async Task EnsureCanEditAsync(ReleaseTargetType type, string key, CancellationToken ct)
