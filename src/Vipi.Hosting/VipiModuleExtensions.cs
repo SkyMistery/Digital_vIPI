@@ -57,6 +57,7 @@ public static class VipiModuleExtensions
         services.Configure<VipiChromeOptions>(configuration.GetSection(VipiChromeOptions.SectionName));
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
+        services.Configure<Vipi.Application.ReleaseRetentionOptions>(configuration.GetSection(Vipi.Application.ReleaseRetentionOptions.SectionName));
         services.Configure<HostIdentityOptions>(configuration.GetSection(HostIdentityOptions.SectionName));
 
         // Template (default globale) della frase di coordinamento: file editabile «content/coordination-sentence.json».
@@ -170,6 +171,16 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
             .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
+        return host;
+    }
+
+    /// <summary>Retention pubblicazione: pota una volta all'avvio release Superseded oltre soglia e versioni Archived
+    /// oltre N (contiene l'accumulo storico; poi il per-publish lo mantiene limitato). Idempotente.</summary>
+    public static IHost PruneVipiReleases(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
+            .PruneAllAsync().GetAwaiter().GetResult();
         return host;
     }
 }

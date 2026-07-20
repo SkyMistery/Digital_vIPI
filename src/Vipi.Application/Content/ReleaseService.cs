@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -51,6 +52,11 @@ public interface IReleaseService
     /// per mostrare lo stato sulle righe collassate dell'elenco. Chiave = (TargetType, TargetKey).</summary>
     Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
         IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default);
+
+    /// <summary>Sweep di retention su tutti i documenti gestiti (system op, come <see cref="BackfillMissingReleasesAsync"/>):
+    /// pota release Superseded oltre soglia e versioni Archived oltre N per ciascun bersaglio. Idempotente. Ritorna il
+    /// numero di versioni archiviate rimosse.</summary>
+    Task<int> PruneAllAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IReleaseService"/>
@@ -61,15 +67,22 @@ public sealed class ReleaseService : IReleaseService
     private readonly IAiracService _airac;
     private readonly IFrozenSectionRegistry _frozen;
     private readonly IDocumentAdminRepository _admin;
+    private readonly IEditingRepository _editing;
+    private readonly IReleaseTargetRegistry _targets;
+    private readonly ReleaseRetentionOptions _retention;
 
     public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
-        IFrozenSectionRegistry frozen, IDocumentAdminRepository admin)
+        IFrozenSectionRegistry frozen, IDocumentAdminRepository admin, IEditingRepository editing,
+        IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention)
     {
         _repo = repo;
         _authz = authz;
         _airac = airac;
         _frozen = frozen;
         _admin = admin;
+        _editing = editing;
+        _targets = targets;
+        _retention = retention.Value;
     }
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
@@ -213,7 +226,37 @@ public sealed class ReleaseService : IReleaseService
         var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct)
             ?? throw new Aor.ValidationException("Nessun contenuto da pubblicare: crea prima il documento (bozza).");
         await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
+        // Retention per-publish: mantiene limitato l'accumulo del bersaglio appena pubblicato.
+        await PruneTargetAsync(type, key, ct);
     }
+
+    public async Task<int> PruneAllAsync(CancellationToken ct = default)
+    {
+        var removed = 0;
+        var keepFrom = KeepSupersededFromUtc();
+        foreach (var d in await _admin.ListAsync(ct))
+        {
+            await _repo.PruneReleasesAsync(d.ReleaseTarget, d.ReleaseKey, keepFrom, ct);
+            if (d.DocumentId is int docId)
+                removed += await _editing.PruneArchivedVersionsAsync(docId, _retention.KeepArchivedVersionsPerDocument, ct);
+        }
+        return removed;
+    }
+
+    // Potatura del singolo bersaglio: release Superseded oltre soglia + versioni Archived oltre N.
+    private async Task PruneTargetAsync(ReleaseTargetType type, string key, CancellationToken ct)
+    {
+        await _repo.PruneReleasesAsync(type, key, KeepSupersededFromUtc(), ct);
+        var docId = await _targets.For(type).ResolveDocumentIdAsync(key, ct);
+        if (docId is int id)
+            await _editing.PruneArchivedVersionsAsync(id, _retention.KeepArchivedVersionsPerDocument, ct);
+    }
+
+    // Soglia temporale: data efficace del ciclo AIRAC corrente meno N cicli (28 giorni cadauno). Le release Superseded
+    // con data efficace anteriore vengono potate.
+    private DateTime KeepSupersededFromUtc() =>
+        _airac.EffectiveUtcForCycle(_airac.GetCycle(DateTime.UtcNow))
+              .AddDays(-_retention.KeepSupersededWithinCycles * 28);
 
     // Snapshot totale (doc 10 §3c): struttura congelata + OUTPUT delle sezioni derivate in modalità Frozen, così il
     // pubblico vede una fotografia completa (le sezioni Live restano fuori: il viewer le deriva sul momento). Ritorna il

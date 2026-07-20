@@ -132,6 +132,13 @@ public interface IEditingRepository
     /// <summary>Storico versioni di un documento (più recente prima).</summary>
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Pota le versioni <c>Archived</c> del documento oltre le più recenti <paramref name="keepN"/> (per
+    /// VersionNumber): elimina ogni versione eccedente coi suoi <c>ContentBlock</c> e <c>DocumentSection</c> in ordine
+    /// esplicito (blocchi → sezioni post-order → versione) per rispettare i FK Restrict su <c>Section</c> e
+    /// <c>ParentSection</c>. La versione corrente (Published) e le bozze (Draft) non vengono mai toccate. Retention:
+    /// la release porta già la fotografia. Ritorna il numero di versioni rimosse.</summary>
+    Task<int> PruneArchivedVersionsAsync(int documentId, int keepN, CancellationToken ct = default);
+
     // Risoluzione del documento proprietario (per l'autorizzazione ACC-scoped sulle op annidate).
     Task<int?> GetDocumentIdByVersionAsync(int versionId, CancellationToken ct = default);
     Task<int?> GetDocumentIdBySectionAsync(int sectionId, CancellationToken ct = default);

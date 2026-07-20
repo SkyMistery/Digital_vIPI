@@ -808,6 +808,45 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<int> PruneArchivedVersionsAsync(int documentId, int keepN, CancellationToken ct = default)
+    {
+        // Le Archived più recenti prima; salta le keepN da tenere, pota le rimanenti. Current (Published) e Draft escluse.
+        var archivedIds = await _db.DocumentVersions
+            .Where(v => v.DocumentId == documentId && v.Status == DocumentStatus.Archived)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => v.Id)
+            .ToListAsync(ct);
+        var toDelete = archivedIds.Skip(Math.Max(0, keepN)).ToList();
+        if (toDelete.Count == 0) return 0;
+
+        foreach (var versionId in toDelete)
+        {
+            // Ordine esplicito per i FK Restrict (Block→Section, Section→ParentSection self-ref): non affidarsi al
+            // cascade DB. Blocchi → sezioni figli-prima-dei-genitori → versione (stesso pattern di DeleteSectionAsync).
+            var blocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == versionId).ToListAsync(ct);
+            _db.ContentBlocks.RemoveRange(blocks);
+
+            var sections = await _db.DocumentSections.Where(s => s.DocumentVersionId == versionId).ToListAsync(ct);
+            var childrenByParent = sections.Where(s => s.ParentSectionId != null)
+                .GroupBy(s => s.ParentSectionId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var ordered = new List<DocumentSection>();
+            void Collect(DocumentSection s)
+            {
+                if (childrenByParent.TryGetValue(s.Id, out var kids))
+                    foreach (var k in kids) Collect(k);
+                ordered.Add(s); // post-order: figli prima dei genitori
+            }
+            foreach (var root in sections.Where(s => s.ParentSectionId == null)) Collect(root);
+            _db.DocumentSections.RemoveRange(ordered);
+
+            var ver = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == versionId, ct);
+            if (ver is not null) _db.DocumentVersions.Remove(ver);
+            await _db.SaveChangesAsync(ct);
+        }
+        return toDelete.Count;
+    }
+
     public async Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default)
     {
         var currentVersionId = await _db.Documents.Where(d => d.Id == documentId)

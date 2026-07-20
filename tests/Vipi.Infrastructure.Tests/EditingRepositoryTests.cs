@@ -291,6 +291,47 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PruneArchivedVersions_KeepsNewestN_DeletesRest_WithChildren_PreservesCurrentAndDraft()
+    {
+        var docId = await AccDocIdAsync();
+
+        // Genera 3 versioni Archived pubblicando in sequenza (ogni publish archivia la corrente precedente).
+        for (var i = 0; i < 3; i++)
+        {
+            var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+            await _repo.PublishAsync(draftId, actorUserId: 1, note: $"v{i}");
+        }
+        var archived = await _db.DocumentVersions.AsNoTracking()
+            .Where(v => v.DocumentId == docId && v.Status == DocumentStatus.Archived)
+            .OrderBy(v => v.VersionNumber).Select(v => v.Id).ToListAsync();
+        Assert.Equal(3, archived.Count);   // la vIPI seedata era Published → prima archiviata + 2 successive
+        var currentId = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+
+        // Una bozza pendente non deve essere toccata.
+        var pendingDraft = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+
+        var oldest = archived[0];
+        var oldestSections = await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == oldest);
+        Assert.True(oldestSections > 0);   // porta righe figlie → verifica la cancellazione ordinata
+
+        var removed = await _repo.PruneArchivedVersionsAsync(docId, keepN: 1);
+        Assert.Equal(2, removed);   // tiene la più recente Archived, pota le altre 2
+
+        // Le due potate (incl. la più vecchia) spariscono con sezioni e blocchi.
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == oldest || v.Id == archived[1]));
+        Assert.Equal(0, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == oldest));
+        Assert.Equal(0, await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == oldest));
+
+        // La Archived più recente, la corrente e la bozza restano intatte.
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == archived[2]));
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == currentId));
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == pendingDraft && v.Status == DocumentStatus.Draft));
+
+        // Idempotente: seconda passata non rimuove altro (resta 1 Archived).
+        Assert.Equal(0, await _repo.PruneArchivedVersionsAsync(docId, keepN: 1));
+    }
+
+    [Fact]
     public async Task AddSection_Respects_MaxDepth()
     {
         var docId = await AccDocIdAsync();

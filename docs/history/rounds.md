@@ -406,3 +406,26 @@ confermati a mano dall'owner). Carta: `docs/refactor/10-snapshot-totale-e-render
 - **S6** **visibilità pubblica = release effettiva** (rimosso il fallback live alla versione pubblicata su tutte e 4 le famiglie; ACC senza guscio sintetico) + **migrazione A** (`BackfillMissingReleasesAsync`, al boot dopo `MigrateVipiDatabase`): copia statica per i Published senza release, idempotente → nessun buco pubblico.
 - **Gate liste pubbliche** (AccLanding/AeroportoPage/AccOperativaPage): da `Status==Published` a `HasEffectiveRelease && !IsHidden` (nuovo `ManagedDoc.HasEffectiveRelease`, batch in `EfDocumentAdminRepository.ListAsync`) = stesso predicato del viewer.
 - **Note:** overlay runtime (online settori, meteo/pista) sempre live sopra il congelato. Caveat accettato: AIRAC misto in pagina (sezione Live di ciclo diverso).
+
+## Feature: retention pubblicazione (anti-bloat) (2026-07-20)
+Il flusso di pubblicazione (doc 09/10) non potava mai nulla → crescita illimitata del DB su cicli AIRAC ricorrenti.
+Due vettori: (1) ogni publish inserisce una riga `DocRelease` con lo snapshot JSON totale (post doc 10) e le vecchie
+diventano solo `Superseded`, mai cancellate; (2) ogni publish archivia la versione pubblicata precedente
+(`DocumentVersion` `Archived`) con tutte le sezioni/blocchi, tenute per sempre (ridondanti: la release porta già la
+fotografia). Retention additiva, nessun cambio schema. Segue `FEATURE-PROCESS.md`.
+- **`ReleaseRetentionOptions`** (sezione `ReleaseRetention` di appsettings, in `Vipi.Application`): `KeepSupersededWithinCycles`
+  (default 13 ≈ 1 anno AIRAC), `KeepArchivedVersionsPerDocument` (default 3). Registrata in `VipiModuleExtensions`.
+- **`IReleaseRepository.PruneReleasesAsync(type,key,keepFromUtc)`**: elimina le release `Superseded` con
+  `ReleaseEffectiveUtc < keepFromUtc`. `Effective`/`Scheduled` mai toccate (stato diverso). La soglia la calcola
+  `ReleaseService` via `IAiracService` (data efficace del ciclo corrente − N cicli), non il repo.
+- **`IEditingRepository.PruneArchivedVersionsAsync(documentId,keepN)`**: pota le versioni `Archived` oltre le più recenti
+  `keepN`, cancellando blocchi → sezioni (post-order) → versione in ordine esplicito per i FK `Restrict`
+  (`Section`/`ParentSection` self-ref); `Current` (Published) e `Draft` intatte. Vedi memoria `ef-executedelete-tracker-constraint`.
+- **Orchestrazione** in `ReleaseService`: potatura **per-publish** del bersaglio (in `SnapshotAndSaveAsync`, dopo lo snapshot)
+  + `PruneAllAsync` (system op, enumera `IDocumentAdminRepository.ListAsync`). **Sweep al boot** `PruneVipiReleases`
+  (`VipiModuleExtensions`/`Program.cs`, dopo `BackfillVipiReleases`): contiene l'accumulo storico, poi il per-publish lo mantiene.
+- **Bonifica propagazione**: rimosso il testo bugiardo «il pubblico vede lo stato pubblicato/live corrente (fallback)»
+  (rimosso in doc 10 §S6) da `AeroportoEditorPage`/`AppEditorPage`/`VersioniPage`/`ReleasePanel` → «il documento non è
+  ancora visibile al pubblico. Pubblica per renderlo visibile.».
+- Test: retention confini keep/delete per ciclo + versioni (cancellazione ordinata figli, Current/Draft preservati,
+  idempotenza). Suite 356 verde. **Verifica live: da guidare** (conteggio righe DB prima/dopo publish e boot).

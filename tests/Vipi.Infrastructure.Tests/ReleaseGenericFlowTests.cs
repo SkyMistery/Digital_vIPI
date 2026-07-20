@@ -77,7 +77,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     {
         var repo = new EfReleaseRepository(_db, Registry());
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())));
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
 
@@ -98,7 +100,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     {
         var repo = new EfReleaseRepository(_db, Registry());
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())));
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
 
         // Il doc fittizio è Published SENZA release → il backfill ne genera una effettiva ora.
         Assert.Null(await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));

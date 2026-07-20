@@ -30,6 +30,8 @@ var app = builder.Build();
 app.MigrateVipiDatabase();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
 app.BackfillVipiReleases();
+// Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
+app.PruneVipiReleases();
 
 if (!app.Environment.IsDevelopment())
 {

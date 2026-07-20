@@ -186,6 +186,19 @@ public sealed class EfReleaseRepository : IReleaseRepository
         return result;
     }
 
+    public async Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default)
+    {
+        // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
+        var stale = await _db.DocReleases
+            .Where(r => r.TargetType == type && r.TargetKey == key
+                        && r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc)
+            .ToListAsync(ct);
+        if (stale.Count == 0) return 0;
+        _db.DocReleases.RemoveRange(stale);
+        await _db.SaveChangesAsync(ct);
+        return stale.Count;
+    }
+
     // ---- helper ----
     private async Task<int?> WorkingVersionIdAsync(Document doc, CancellationToken ct)
     {
