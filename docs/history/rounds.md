@@ -441,3 +441,22 @@ fotografia). Retention additiva, nessun cambio schema. Segue `FEATURE-PROCESS.md
   Superseded (vale anche per lo schedulato, che non promuove). Sicuro: le release portano la fotografia, non referenziano
   le versioni. Test regressione `ReleaseGenericFlowTests.PublishNow_EnforcesArchivedCap_...` +
   `EditingRepositoryTests.EditingService_Publish_EnforcesArchivedCap_...` (rosso→verde). Suite **358** verde.
+
+## Feature: aggiunta manuale di settori esteri a una coppia confinante (2026-07-21)
+Un ACC può passare **direttamente a un settore estero** non catturato dall'import automatico (es. un avvicinamento
+`LGKR_APP`). In `/vsop/admin/confinanti`, sulle righe **confermate**, un bottone «➕ Settore» apre un input: si digita
+il callsign, il sistema lo **verifica sulla sorgente (IVAO)** e — se esiste — lo materializza come `AccSector` sotto
+l'ACC estero della coppia (`CenterId = ForeignAccCode`) e **riproietta** come per gli altri settori. Da lì compare tra
+i settori dell'ACC estero e nei picker dei coordinamenti.
+- **Modello invariato**: il settore estero resta un `AccSector` proiettato in `Sector` da `SyncFromCatalogsAsync`
+  (nessun modello gemello). Riuso di `PersistForeignCatalogAsync` (solo-upsert → sopravvive ai re-import) + proiezione,
+  atomico via `IUnitOfWork`.
+- **Verifica sorgente** in `ForeignSectorResolver` (isolato come `ForeignAccFetcher`), dispatch per natura del callsign:
+  APP/DEP/TWR/GND/DEL → `IAirportDetailProvider` (`/v2/airports/{ICAO}/ATCPositions` + dettaglio per poligono/freq);
+  CTR/FSS → `IAccDirectory.GetSubcentersAsync`. Parsing puro in `ForeignSectorCallsign.Parse` (ICAO+suffisso+natura).
+- **Guard anti-collisione** (`INeighbourRepository.FindSectorOwnerAsync`): callsign già sotto lo stesso ACC → idempotente
+  (solo avviso, con nota se nascosto → riattivalo da `/vsop/admin/acc`); già sotto un altro ACC (estero o italiano) →
+  `ValidationException` (niente hijack/righe fantasma). Coppia non confermata → errore.
+- API: `INeighbourImportService.AddForeignSectorAsync(candidateId, callsign)` → `AddForeignSectorResult`.
+- Nessun cambio schema/rotta. Test: `ForeignSectorCallsignTests`, `ForeignSectorResolverTests`, `FindSectorOwnerTests`.
+  Suite verde (19 dom + 194 app + 171 infra). **Verificato live** (2026-07-21): flusso su `/vsop/admin/confinanti` funzionante.

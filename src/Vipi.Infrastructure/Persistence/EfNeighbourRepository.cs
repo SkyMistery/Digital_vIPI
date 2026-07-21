@@ -211,6 +211,21 @@ public sealed class EfNeighbourRepository : INeighbourRepository
         return row.Id;
     }
 
+    public async Task<SectorOwner?> FindSectorOwnerAsync(string callsign, CancellationToken ct = default)
+    {
+        var cs = (callsign ?? "").Trim();
+        if (cs.Length == 0) return null;
+        var acc = await _db.AccSectors.AsNoTracking()
+            .Where(s => s.ComposePosition == cs)
+            .Select(s => new SectorOwner(s.CenterId, s.IsHidden))
+            .FirstOrDefaultAsync(ct);
+        if (acc is not null) return acc;
+        return await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.ComposePosition == cs)
+            .Select(s => new SectorOwner(s.AccCode, s.IsHidden))
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<int> MaterializeAndCreateVloaAsync(int candidateId, CancellationToken ct = default)
     {
         var cand = await _db.NeighbourCandidates.FirstOrDefaultAsync(c => c.Id == candidateId, ct)

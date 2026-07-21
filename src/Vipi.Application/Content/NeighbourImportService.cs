@@ -27,7 +27,16 @@ public interface INeighbourImportService : INeighbourReader
     Task<int> AddManualAsync(string homeAccCode, string foreignAccCode, string foreignAccName,
         string countryId, string foreignRootCallsign, string? regionMapPolygon, CancellationToken ct = default);
     Task<int> GenerateVloaAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Aggiunge a mano un settore all'ACC estero di una coppia CONFERMATA: verifica il callsign sulla sorgente
+    /// (IVAO), lo materializza come <c>AccSector</c> sotto l'ACC estero e riproietta. Errore se la coppia non è
+    /// confermata, se il callsign non esiste sulla sorgente, o se appartiene già a un altro ACC (no hijack).</summary>
+    Task<AddForeignSectorResult> AddForeignSectorAsync(int candidateId, string callsign, CancellationToken ct = default);
 }
+
+/// <summary>Esito dell'aggiunta manuale di un settore estero. <paramref name="AlreadyPresent"/>=true → il callsign era
+/// già sotto lo stesso ACC (nessuna modifica; <paramref name="Hidden"/> indica se è nascosto).</summary>
+public sealed record AddForeignSectorResult(string Callsign, string ForeignAccCode, bool AlreadyPresent, bool Hidden);
 
 /// <inheritdoc cref="INeighbourImportService"/>
 public sealed class NeighbourImportService : INeighbourImportService
@@ -39,10 +48,11 @@ public sealed class NeighbourImportService : INeighbourImportService
     private readonly NeighboursOptions _opt;
     private readonly ForeignAccFetcher _fetcher;
     private readonly NeighbourAdjacencyComputer _computer;
+    private readonly ForeignSectorResolver _sectorResolver;
 
     public NeighbourImportService(INeighbourRepository repo, IAccDirectory directory,
         IEditAuthorizationService authz, IServiceScopeFactory scopeFactory, IOptions<NeighboursOptions> opt,
-        ForeignAccFetcher fetcher, NeighbourAdjacencyComputer computer)
+        ForeignAccFetcher fetcher, NeighbourAdjacencyComputer computer, ForeignSectorResolver sectorResolver)
     {
         _repo = repo;
         _directory = directory;
@@ -51,6 +61,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         _opt = opt.Value;
         _fetcher = fetcher;
         _computer = computer;
+        _sectorResolver = sectorResolver;
     }
 
     public async Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default)
@@ -202,5 +213,47 @@ public sealed class NeighbourImportService : INeighbourImportService
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
             throw new Aor.ValidationException("Conferma prima la coppia, poi genera la vLOA.");
         return await _repo.MaterializeAndCreateVloaAsync(id, ct);
+    }
+
+    public async Task<AddForeignSectorResult> AddForeignSectorAsync(int candidateId, string callsign, CancellationToken ct = default)
+    {
+        _authz.EnsureAdmin();
+        var parsed = ForeignSectorCallsign.Parse(callsign);   // valida la forma (throwa ValidationException)
+
+        // Scope DI dedicato: le fetch sorgente possono durare e il context del circuito Blazor potrebbe riciclarsi.
+        using var dbScope = _scopeFactory.CreateScope();
+        var repo = dbScope.ServiceProvider.GetRequiredService<INeighbourRepository>();
+
+        var cand = await repo.GetAsync(candidateId, ct)
+            ?? throw new Aor.ValidationException("Candidato inesistente.");
+        if (cand.Status != NeighbourCandidateStatus.Confirmed)
+            throw new Aor.ValidationException("Conferma prima la coppia, poi aggiungi settori esteri.");
+
+        var foreignAcc = cand.ForeignAccCode.ToUpperInvariant();
+
+        // Guard: il callsign è già catalogato? Stesso ACC → idempotente (solo avviso); altro ACC → rifiuta (no hijack).
+        if (await repo.FindSectorOwnerAsync(parsed.Callsign, ct) is { } owner)
+        {
+            if (string.Equals(owner.AccCode, foreignAcc, StringComparison.OrdinalIgnoreCase))
+                return new AddForeignSectorResult(parsed.Callsign, foreignAcc, AlreadyPresent: true, Hidden: owner.IsHidden);
+            throw new Aor.ValidationException(
+                $"«{parsed.Callsign}» appartiene già all'ACC {owner.AccCode} — non spostabile da qui.");
+        }
+
+        // Verifica sulla sorgente (dispatch per natura del callsign). Assente → errore.
+        var sub = await _sectorResolver.ResolveAsync(parsed, foreignAcc, ct)
+            ?? throw new Aor.ValidationException($"Settore «{parsed.Callsign}» non trovato sulla sorgente (IVAO).");
+
+        // Persist (riuso PersistForeignCatalog: upsert Acc estero + AccSector) + riproiezione, atomico.
+        var uow = dbScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var projection = dbScope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
+        var import = new ForeignAccImport(foreignAcc, cand.ForeignAccName, new[] { sub });
+        await uow.ExecuteInTransactionAsync(async c =>
+        {
+            await repo.PersistForeignCatalogAsync(new[] { import }, c);
+            await projection.SyncFromCatalogsAsync(c);
+        }, ct);
+
+        return new AddForeignSectorResult(parsed.Callsign, foreignAcc, AlreadyPresent: false, Hidden: false);
     }
 }

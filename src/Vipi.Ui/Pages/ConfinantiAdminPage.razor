@@ -121,6 +121,10 @@
                                     {
                                         <button class="btn primary" disabled="@_busy" @onclick="() => Generate(r.Id)" title="Materializza l'ACC estero e crea la vLOA">🌍 Genera vLOA</button>
                                     }
+                                    @if (r.Status == NeighbourCandidateStatus.Confirmed)
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => OpenSector(r.Id)" title="Aggiungi a mano un settore all'ACC estero (verificato su IVAO)">➕ @(_sectorAddId == r.Id ? "Chiudi" : "Settore")</button>
+                                    }
                                     @if (!r.HasPolygon)
                                     {
                                         <button class="btn ghost" disabled="@_busy" @onclick="() => OpenPolygon(r.Id)" title="Incolla il poligono estero (IVAO non lo espone)">📐 Poligono</button>
@@ -138,6 +142,22 @@
                                                 <button class="btn primary" disabled="@_busy" @onclick="() => SavePolygon(r.Id)">💾 Salva poligono</button>
                                                 <button class="btn ghost" disabled="@_busy" @onclick="() => _polyEditId = null">Annulla</button>
                                             </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            @if (_sectorAddId == r.Id)
+                            {
+                                <tr>
+                                    <td colspan="10">
+                                        <div class="field">
+                                            <label>Callsign settore estero da aggiungere a <b>@r.ForeignAccCode</b> (verificato su IVAO)</label>
+                                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                                <input style="min-width:180px;max-width:240px;text-transform:uppercase" @bind="_sectorCallsign" placeholder="es. LGKR_APP" />
+                                                <button class="btn primary" disabled="@_busy" @onclick="() => AddSector(r.Id)">💾 Aggiungi settore</button>
+                                                <button class="btn ghost" disabled="@_busy" @onclick="() => _sectorAddId = null">Annulla</button>
+                                            </div>
+                                            <p class="muted" style="font-size:11px;margin:6px 0 0">Aeroporto (APP/DEP/TWR/GND/DEL) o center (CTR/FSS). Se non esiste su IVAO viene rifiutato. Compare poi tra i settori dell'ACC estero e nei picker coordinamenti.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -267,6 +287,10 @@
     private NeighbourPairDetail? _detail;
     private bool _detailBusy;
 
+    // Aggiunta manuale di un settore estero a una coppia confermata.
+    private int? _sectorAddId;
+    private string _sectorCallsign = "";
+
     // Ricerca + filtro stato (client-side sulle righe già caricate).
     private string _q = "";
     private NeighbourCandidateStatus? _statusFilter;
@@ -338,6 +362,33 @@
         Guarded(() => Neighbours.GenerateVloaAsync(id), "vLOA generata.");
 
     private void OpenPolygon(int id) { _polyEditId = id; _polyText = ""; }
+
+    private void OpenSector(int id)
+    {
+        if (_sectorAddId == id) { _sectorAddId = null; return; }
+        _sectorAddId = id; _sectorCallsign = "";
+    }
+
+    // Guard dedicato (non Guarded): il messaggio ok è dinamico e Guarded lo azzererebbe a fine azione.
+    private async Task AddSector(int id)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try
+        {
+            var res = await Neighbours.AddForeignSectorAsync(id, _sectorCallsign);
+            await ReloadAsync();
+            _ok = res.AlreadyPresent
+                ? $"Settore {res.Callsign} già presente su {res.ForeignAccCode}"
+                    + (res.Hidden ? " (nascosto — riattivalo da /vsop/admin/acc)." : ".")
+                : $"Settore {res.Callsign} aggiunto a {res.ForeignAccCode}.";
+            _sectorAddId = null; _sectorCallsign = "";
+        }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE ADDSECTOR EX: {ex}"); _msg = "Errore: " + ex.Message; }
+        finally { _busy = false; }
+    }
 
     // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero rosso.
     private static string GeoSectorsJson(NeighbourPairDetail det)
