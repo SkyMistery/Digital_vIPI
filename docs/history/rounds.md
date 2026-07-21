@@ -428,4 +428,16 @@ fotografia). Retention additiva, nessun cambio schema. Segue `FEATURE-PROCESS.md
   (rimosso in doc 10 §S6) da `AeroportoEditorPage`/`AppEditorPage`/`VersioniPage`/`ReleasePanel` → «il documento non è
   ancora visibile al pubblico. Pubblica per renderlo visibile.».
 - Test: retention confini keep/delete per ciclo + versioni (cancellazione ordinata figli, Current/Draft preservati,
-  idempotenza). Suite 356 verde. **Verifica live: da guidare** (conteggio righe DB prima/dopo publish e boot).
+  idempotenza). Suite 356 verde.
+- **Verifica live (2026-07-21) + fix off-by-one cap Archived.** Verify su DB reale: prune release Superseded oltre soglia
+  (backdate + boot sweep, idempotente), visibilità pubblica = release effettiva (doc 10 S6, tutte 4 famiglie),
+  freeze/ripubblica. **Trovato**: il cap versioni `Archived` restava a **N+1**. Due cause distinte:
+  (1) *release-publish* (`ReleaseService.PublishNowAsync`) potava in `SnapshotAndSaveAsync` **prima** di
+  `PublishWorkingVersionAsync` (che archivia la precedente); (2) *version-publish* (`EditingService.PublishAsync`, pulsante
+  «Pubblica versione» di `VersioniPage`) **non potava affatto** (retention agganciata solo al release-publish).
+  **Fix**: prune `Archived` spostato/aggiunto **dopo** l'archiviazione in **entrambi** i path
+  (`ReleaseService.PruneArchivedVersionsForTargetAsync` dopo la promozione; `EditingService.PublishAsync` dopo
+  `_repo.PublishAsync`, iniettando `ReleaseRetentionOptions`). In `SnapshotAndSaveAsync` resta solo il prune release
+  Superseded (vale anche per lo schedulato, che non promuove). Sicuro: le release portano la fotografia, non referenziano
+  le versioni. Test regressione `ReleaseGenericFlowTests.PublishNow_EnforcesArchivedCap_...` +
+  `EditingRepositoryTests.EditingService_Publish_EnforcesArchivedCap_...` (rosso→verde). Suite **358** verde.

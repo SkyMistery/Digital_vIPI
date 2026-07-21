@@ -332,6 +332,40 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EditingService_Publish_EnforcesArchivedCap_NotOffByOne()
+    {
+        // Il version-publish (bozza→pubblicata) archivia la precedente: deve potare le Archived oltre il cap NELLO STESSO
+        // giro, non lasciarne N+1 in attesa del boot sweep. keepN=2: dopo ogni publish le Archived restano ≤ 2.
+        var docId = await AccDocIdAsync();
+        var svc = new EditingService(_repo, new AllowAuthz(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 2 }));
+
+        for (var i = 0; i < 5; i++)
+        {
+            var draftId = await svc.CreateDraftAsync(docId);
+            await svc.PublishAsync(draftId, note: null);
+            var archived = await _db.DocumentVersions.CountAsync(v => v.DocumentId == docId && v.Status == DocumentStatus.Archived);
+            Assert.True(archived <= 2, $"Archived {archived} oltre il cap 2 dopo il publish #{i}");
+        }
+    }
+
+    private sealed class AllowAuthz : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public int? CurrentUserId => 111;
+        public string? CurrentName => "test";
+        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<IReadOnlyList<Vipi.Application.Auth.GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Auth.GrantRow>>(Array.Empty<Vipi.Application.Auth.GrantRow>());
+        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
+        public void EnsureAdmin() { }
+    }
+
+    [Fact]
     public async Task AddSection_Respects_MaxDepth()
     {
         var docId = await AccDocIdAsync();

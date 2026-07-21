@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -11,11 +12,13 @@ public sealed class EditingService : IEditingService
 
     private readonly IEditingRepository _repo;
     private readonly IEditAuthorizationService _authz;
+    private readonly ReleaseRetentionOptions _retention;
 
-    public EditingService(IEditingRepository repo, IEditAuthorizationService authz)
+    public EditingService(IEditingRepository repo, IEditAuthorizationService authz, IOptions<ReleaseRetentionOptions> retention)
     {
         _repo = repo;
         _authz = authz;
+        _retention = retention.Value;
     }
 
     // Lista dei documenti = metadati per il picker dell'editor (non sensibile). Le aperture/modifiche sono ACC-gated.
@@ -160,6 +163,10 @@ public sealed class EditingService : IEditingService
         var docId = await AuthorizeVersionAsync(versionId, ct);
         await EnsureLockAsync(docId, ct);
         await _repo.PublishAsync(versionId, _authz.CurrentUserId ?? 0, note, ct);
+        // Retention versioni: dopo l'archiviazione della precedente (in _repo.PublishAsync) → cap Archived esatto, non
+        // N+1. Le release non referenziano le versioni (portano la fotografia), quindi potare è sicuro. Stessa regola del
+        // release-publish (ReleaseService.PublishNowAsync) e del boot sweep.
+        await _repo.PruneArchivedVersionsAsync(docId, _retention.KeepArchivedVersionsPerDocument, ct);
         await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct); // pubblicato → lascia il documento libero
     }
 

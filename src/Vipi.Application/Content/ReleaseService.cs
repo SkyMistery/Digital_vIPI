@@ -115,6 +115,9 @@ public sealed class ReleaseService : IReleaseService
         // nelle liste pubbliche (gate su Status==Published) e nel fallback del viewer, non solo via snapshot di release.
         // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
         await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, ct);
+        // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
+        // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
+        await PruneArchivedVersionsForTargetAsync(type, key, ct);
     }
 
     public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
@@ -226,8 +229,9 @@ public sealed class ReleaseService : IReleaseService
         var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct)
             ?? throw new Aor.ValidationException("Nessun contenuto da pubblicare: crea prima il documento (bozza).");
         await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
-        // Retention per-publish: mantiene limitato l'accumulo del bersaglio appena pubblicato.
-        await PruneTargetAsync(type, key, ct);
+        // Retention per-publish (release Superseded): sia per l'immediato sia per lo schedulato. Le versioni Archived
+        // si potano solo dopo la promozione della bozza (PublishNowAsync) → vedi PruneArchivedVersionsForTargetAsync.
+        await _repo.PruneReleasesAsync(type, key, KeepSupersededFromUtc(), ct);
     }
 
     public async Task<int> PruneAllAsync(CancellationToken ct = default)
@@ -243,10 +247,10 @@ public sealed class ReleaseService : IReleaseService
         return removed;
     }
 
-    // Potatura del singolo bersaglio: release Superseded oltre soglia + versioni Archived oltre N.
-    private async Task PruneTargetAsync(ReleaseTargetType type, string key, CancellationToken ct)
+    // Potatura versioni Archived oltre N del bersaglio. Va invocata DOPO l'archiviazione della versione appena
+    // pubblicata (PublishNowAsync), altrimenti il conteggio è di uno in meno e resta N+1.
+    private async Task PruneArchivedVersionsForTargetAsync(ReleaseTargetType type, string key, CancellationToken ct)
     {
-        await _repo.PruneReleasesAsync(type, key, KeepSupersededFromUtc(), ct);
         var docId = await _targets.For(type).ResolveDocumentIdAsync(key, ct);
         if (docId is int id)
             await _editing.PruneArchivedVersionsAsync(id, _retention.KeepArchivedVersionsPerDocument, ct);

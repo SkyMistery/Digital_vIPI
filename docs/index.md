@@ -12,6 +12,12 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 5. `spec/mappa-pagine.md` — rotte del sito.
 6. `adr/` — decisioni architetturali (in ordine 0001 → 0006).
 
+## Processo (anti-vibecoding) 🟢
+| File | Scopo |
+|---|---|
+| [FEATURE-PROCESS.md](FEATURE-PROCESS.md) | Runbook per feature nuove: pre-flight 4 domande (modello / dispatch «Regola del 2» / ingressi+verifica / **propagazione**) + DoD. |
+| [refactor/REFACTOR-PROCESS.md](refactor/REFACTOR-PROCESS.md) | Runbook per refactor: ciclo Fase 0→4, gate «carta prima di codice». |
+
 ## Specifiche tecniche — `spec/` 🟢
 | File | Scopo |
 |---|---|
@@ -35,6 +41,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | File | Scopo |
 |---|---|
 | [design/piano-vipi-tool.md](design/piano-vipi-tool.md) | Documento di design strategico di base (requisiti, roadmap). Parti superate dai round successivi. |
+| [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
 
 ## Decisioni architetturali — `adr/` 🟢
 | File | Scopo |
@@ -46,17 +53,30 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [adr/adr-0005-superficie-modulo-e-isolamento.md](adr/adr-0005-superficie-modulo-e-isolamento.md) | Superficie del modulo + isolamento CSS/JS. |
 | [adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md](adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) | Indipendenza dalla sorgente + policy di import (+ nota Round 20: fonte unica). |
 
-## Refactor — `refactor/` 🟣
+## Refactor — `refactor/` 🟢
+Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti eseguiti**). Ordine di studio bottom-up.
 | File | Scopo |
 |---|---|
-| [refactor/00-overview.md](refactor/00-overview.md) | Piano di revisione strutturale post round ~23-34: DAG dipendenze, principi, indice dei 9 doc di area, ordine di studio bottom-up. |
+| [refactor/00-overview.md](refactor/00-overview.md) | Piano: DAG dipendenze, principi, indice dei doc di area, ordine di studio. |
+| [refactor/REFACTOR-PROCESS.md](refactor/REFACTOR-PROCESS.md) | Runbook anti-vibecoding per i refactor (ciclo Fase 0→4, gate «carta prima di codice»). |
+| [refactor/01-import-infra-condivisa.md](refactor/01-import-infra-condivisa.md) | Infrastruttura di import condivisa. |
+| [refactor/02-import-acc-e-settori.md](refactor/02-import-acc-e-settori.md) | Import ACC e settori. |
+| [refactor/03-import-aeroporti-e-settori.md](refactor/03-import-aeroporti-e-settori.md) | Import aeroporti e settori. |
+| [refactor/04-import-github.md](refactor/04-import-github.md) | Import da GitHub (sectorfile Aurora: SID, ecc.). |
+| [refactor/05-import-confinanti.md](refactor/05-import-confinanti.md) | Import ACC confinanti/esteri. |
+| [refactor/06-gerarchia.md](refactor/06-gerarchia.md) | Gerarchia di copertura (padri per callsign, cross-ACC). |
+| [refactor/07-trasferimenti.md](refactor/07-trasferimenti.md) | Coordinamenti/trasferimenti (sorvoli, vLOA in stile ACC+EN). |
+| [refactor/08-modello-documento-ed-editing.md](refactor/08-modello-documento-ed-editing.md) | Modello `Document`+`DocumentVersion` unificato per tutti e 4 i tipi + editing. |
+| [refactor/09-flusso-pubblicazione.md](refactor/09-flusso-pubblicazione.md) | Flusso di pubblicazione generico (registry `IReleaseTarget`/`IDocKindRoutes`). |
+| [refactor/10-snapshot-totale-e-rendermode.md](refactor/10-snapshot-totale-e-rendermode.md) | Snapshot totale al publish + `RenderMode` per sezione; visibilità pubblica = release effettiva. **Merged.** |
 
 ## Storia — `history/` ⚪
 | File | Scopo |
 |---|---|
-| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R30). |
+| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R34) + asse refactor 01→10 e retention/fix pubblicazione. |
 | [history/handoff-round5.md](history/handoff-round5.md) | Handoff di chiusura del Round 5 (fusione Settore/Posizione). |
 | [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
+| [history/handoff-coordinamenti-fasi-3-4.md](history/handoff-coordinamenti-fasi-3-4.md) | Handoff coordinamenti/trasferimenti (fasi 3-4, refactor 07). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |
 | [history/review-flusso-gap.md](history/review-flusso-gap.md) | Analisi flusso vs documenti (decisioni round 4). |
 | [history/audit-2026-07-14-correttezza-fonti-dati.md](history/audit-2026-07-14-correttezza-fonti-dati.md) | Audit senior correttezza + fonti-dati multiple: findings A1–A4/B1–B5, falsi positivi, fix. |

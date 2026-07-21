@@ -116,6 +116,40 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Equal(0, await svc.BackfillMissingReleasesAsync());
     }
 
+    [Fact]
+    public async Task PublishNow_EnforcesArchivedCap_Exactly_AfterVersionArchived_NotOffByOne()
+    {
+        // Retention versioni con cap=1: dopo ogni PublishNow (che archivia la versione precedente) le Archived
+        // devono restare esattamente 1, NON 2. Regressione off-by-one: se il prune Archived gira prima della
+        // promozione della bozza, conta una versione in meno e ne lascia N+1.
+        var svc = new ReleaseService(new EfReleaseRepository(_db, Registry()), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }));
+
+        // Publish #1: promuove v2, archivia v1 → 1 Archived (al cap).
+        await AddDraftAsync(2);
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null);
+        Assert.Equal(1, await ArchivedCountAsync());
+
+        // Publish #2: promuove v3, archivia v2. Il prune Archived deve girare DOPO l'archiviazione → resta 1, non 2.
+        await AddDraftAsync(3);
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null);
+        Assert.Equal(1, await ArchivedCountAsync());
+    }
+
+    private async Task AddDraftAsync(int versionNumber)
+    {
+        var draft = new DocumentVersion { DocumentId = _docId, VersionNumber = versionNumber, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        _db.DocumentVersions.Add(draft);
+        await _db.SaveChangesAsync();
+        _db.DocumentSections.Add(new DocumentSection { DocumentVersionId = draft.Id, Title = "Sezione Fittizia", Order = 1, Depth = 0, SectionKey = "custom", RowVersion = Guid.NewGuid().ToByteArray() });
+        await _db.SaveChangesAsync();
+    }
+
+    private Task<int> ArchivedCountAsync() =>
+        _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
+
     private sealed class AllowAuthz : IEditAuthorizationService
     {
         public bool IsAdmin => true;
