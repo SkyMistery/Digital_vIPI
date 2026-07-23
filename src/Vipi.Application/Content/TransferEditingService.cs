@@ -112,5 +112,6 @@ public sealed class TransferService : ITransferService
     {
         if (i.LevelConstraint != Domain.LevelConstraint.Special && i.LevelValue is null && string.IsNullOrWhiteSpace(i.Cop))
             throw new ValidationException("Indica almeno il CoP o un livello.");
+        // Le tre dimensioni condizione (pista/area/personalizzata) sono tutte opzionali e indipendenti: nessun vincolo.
     }
 }

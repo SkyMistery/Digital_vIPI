@@ -3,16 +3,17 @@
    volta rivisto. Componente autonomo: passa il DocumentId, interroga lo stato e lo scioglie da sé. *@
 @using Vipi.Application.Content
 @inject IDocumentReviewService Review
+@inject IStringLocalizer<SharedResource> L
 
 @if (_state?.NeedsReviewUtc is not null)
 {
     <div class="callout warning" style="align-items:center">
         <span class="cic">⚠️</span>
         <div style="flex:1">
-            <p class="ct">Revisione consigliata</p>
-            @(_state.ReviewReason ?? "Contenuti derivati potenzialmente stantii.")
+            <p class="ct">@L["Review_Recommended"]</p>
+            @(_state.ReviewReason ?? L["Review_DefaultReason"].Value)
         </div>
-        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="Segna il documento come rivisto">✓ Segna come rivista</button>
+        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="@L["Review_MarkTitle"]">✓ @L["Review_MarkReviewed"]</button>
     </div>
 }
 

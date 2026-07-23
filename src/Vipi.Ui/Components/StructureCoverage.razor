@@ -1,0 +1,31 @@
+@* Anteprima copertura (dominio giù: figli diretti + aeroporti coperti) di un nodo di struttura. Markup
+   dichiarativo: Blazor encoda i valori dinamici (no MarkupString, no XSS). Dati già calcolati dalla pagina. *@
+
+<div class="fallback-chain">
+    <div class="muted" style="font-size:12px;margin:8px 0 4px">Copre (dominio):</div>
+    @if (IsLeaf)
+    {
+        <div class="help">L'aeroporto è una foglia: nessun sottoalbero.</div>
+    }
+    else if (Rows.Count == 0)
+    {
+        <div class="help">Nessun sottoalbero (copre solo sé stesso).</div>
+    }
+    else
+    {
+        @foreach (var r in Rows)
+        {
+            <div>
+                ↳ <b>@r.Name</b> <span class="node-badge @r.BadgeClass">@r.Badge</span>@if (r.DescendantCount > 0)
+                {<span class="muted" style="font-size:11px"> +@r.DescendantCount</span>}
+            </div>
+        }
+        <div style="margin-top:6px;font-family:'Nunito Sans';font-weight:700;color:var(--ivao-blue)">@AirportsCovered aeroport@(AirportsCovered == 1 ? "o" : "i") copert@(AirportsCovered == 1 ? "o" : "i")</div>
+    }
+</div>
+
+@code {
+    [Parameter] public bool IsLeaf { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<CoverageChildRow> Rows { get; set; } = Array.Empty<CoverageChildRow>();
+    [Parameter] public int AirportsCovered { get; set; }
+}

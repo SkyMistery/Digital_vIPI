@@ -4,6 +4,7 @@
    (aor/frequencies/coordination/config/…) sono renderizzate dall'host via DerivedContent; l'host possiede
    caricamento, lock, guard di salvataggio (Run), obbligatorietà e nascondi (per-tipo). *@
 @inject IEditingService Editing
+@inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
 @using RenderMode = Vipi.Domain.RenderMode
 
@@ -15,7 +16,7 @@
 @if (IsEditing)
 {
     <div class="block" style="border-style:dashed">
-        <button class="btn primary" @onclick="() => AddSection(AddParentId)">@AddLabel</button>
+        <button class="btn primary" @onclick="() => AddSection(AddParentId)">@(AddLabel ?? L["Dse_AddSection"].Value)</button>
     </div>
 }
 
@@ -28,8 +29,8 @@
     [Parameter] public IReadOnlyList<EditableSection>? RootSections { get; set; }
     /// <summary>Sezione padre per "+ Aggiungi sezione" (default null = radice). ACC: l'Id della sezione-blocco.</summary>
     [Parameter] public int? AddParentId { get; set; }
-    /// <summary>Etichetta del pulsante di aggiunta sezione.</summary>
-    [Parameter] public string AddLabel { get; set; } = "+ Aggiungi sezione";
+    /// <summary>Etichetta del pulsante di aggiunta sezione (null = default localizzato).</summary>
+    [Parameter] public string? AddLabel { get; set; }
 
     /// <summary>Guard dell'host: esegue la mutazione mostrando stato salvataggio / gestendo lock ed errori.</summary>
     [Parameter, EditorRequired] public Func<Func<Task>, Task> Run { get; set; } = default!;
@@ -158,39 +159,40 @@
             {
                 <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
                        @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
-                <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
-                <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
-                <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
-                <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
+                <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => MoveSection(s.Id, 1)">↓</button>
+                <button class="btn ghost" title="@L["Dse_AddSubsectionTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteSection"]" TriggerTitle="@L["Dse_DeleteSection"]"
+                               Prompt="@L["Dse_DeleteSectionPrompt"]" OnConfirm="() => DeleteSection(s.Id)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             }
             else
             {
                 @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
-                @if (mand) { <span class="pill grey" title="Sezione obbligatoria">obbligatoria</span> }
+                @if (mand) { <span class="pill grey" title="@L["Dse_MandatoryTitle"]">@L["Dse_Mandatory"]</span> }
                 @if (IsEditing && mand)
                 {
-                    <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    <button class="btn ghost" title="@L["Dse_AddSubsectionExtraTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
                 }
             }
             @if (IsRenderModeToggleable?.Invoke(s) == true)
             {
                 var live = s.RenderMode == RenderMode.Live;
                 <span class="pill @(live ? "green" : "grey")" style="@(OnToggleHidden.HasDelegate ? null : "margin-left:auto")"
-                      title="@(live ? "Live: sempre aggiornata dai cataloghi al view pubblico" : "Congelata: fotografata al momento della pubblicazione")">
-                    @(live ? "🔴 Live" : "🧊 Congelata")
+                      title="@(live ? L["Dse_LiveTitle"] : L["Dse_FrozenTitle"])">
+                    @(live ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])
                 </span>
                 @if (IsEditing)
                 {
-                    <button class="btn ghost" title="@(live ? "Congela: fotografa al publish" : "Rendi live: sempre aggiornata")"
+                    <button class="btn ghost" title="@(live ? L["Dse_FreezeTitle"] : L["Dse_MakeLiveTitle"])"
                             @onclick="() => SetRenderMode(s.Id, live ? RenderMode.Frozen : RenderMode.Live)">
-                        @(live ? "🧊 Congela" : "🔴 Rendi live")
+                        @(live ? "🧊 " + L["Dse_Freeze"] : "🔴 " + L["Dse_MakeLive"])
                     </button>
                 }
             }
             @if (IsEditing && OnToggleHidden.HasDelegate)
             {
-                <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
-                        @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
+                <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
+                        @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
             }
         </div>
     };
@@ -212,9 +214,9 @@
             @if (IsEditing)
             {
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
                     <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ @L["Dse_Table"]</button>
                 </div>
             }
         }
@@ -240,32 +242,33 @@
                 {
                     case BlockFormat.Prose:
                     case BlockFormat.List:
-                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="Testo (markdown leggero)…"
+                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="@L["Dse_TextMarkdownPh"]"
                                   @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
                         break;
                     case BlockFormat.Callout:
                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-                            <span class="muted" style="font-size:12px">Tipo:</span>
+                            <span class="muted" style="font-size:12px">@L["Dse_TypeLabel"]</span>
                             <select class="app-in" style="max-width:150px" value="@b.CalloutKind"
                                     @onchange="e => SaveBlock(b, kind: Enum.Parse<CalloutKind>(AsString(e.Value)))">
                                 @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
                             </select>
                         </div>
-                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="Testo callout…"
+                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="@L["Dse_CalloutTextPh"]"
                                   @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
                         break;
                     case BlockFormat.Table:
                         @TableEditor(b)
                         break;
                     default:
-                        <p class="muted">Blocco @b.Format (non editabile qui).</p>
+                        <p class="muted">@(string.Format(L["Dse_BlockNotEditable"].Value, b.Format))</p>
                         break;
                 }
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-                <button class="btn ghost" title="Su" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
-                <button class="btn ghost" title="Giù" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
-                <button class="btn ghost" title="Elimina blocco" @onclick="() => DeleteBlock(b.Id)">✕</button>
+                <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
+                <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteBlock"]" TriggerTitle="@L["Dse_DeleteBlock"]"
+                               Prompt="@L["Dse_DeleteBlockPrompt"]" OnConfirm="() => DeleteBlock(b.Id)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             </div>
         </div>
         }
@@ -277,7 +280,7 @@
         {
             case BlockFormat.Callout:
                 <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
-                    <span class="cic">@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)</span>
+                    <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)" Size="18" /></span>
                     <div>@MarkdownLite.Render(b.Body)</div>
                 </div>
                 break;
@@ -292,7 +295,7 @@
 
     private static string CalloutIcon(CalloutKind k) => k switch
     {
-        CalloutKind.Success => "✅", CalloutKind.Warning => "⚠️", CalloutKind.Danger => "⛔", _ => "ℹ️",
+        CalloutKind.Success => "check-circle", CalloutKind.Warning => "warning", CalloutKind.Danger => "octagon", _ => "info",
     };
 
     // ---- editor tabella (columns + rows di celle) ----
@@ -372,11 +375,11 @@
                         <th>
                             <div style="display:flex;gap:4px;align-items:center">
                                 <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
-                                <button class="btn ghost" title="Rimuovi colonna" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
+                                <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
                             </div>
                         </th>
                     }
-                    <th style="width:42px"><button class="btn ghost" title="Aggiungi colonna" @onclick="() => AddTableCol(b)">＋</button></th>
+                    <th style="width:42px"><button class="btn ghost" title="@L["Dse_AddColumn"]" @onclick="() => AddTableCol(b)">＋</button></th>
                 </tr>
             </thead>
             <tbody>
@@ -390,12 +393,12 @@
                             var cell = cidx < rows[ridx].Count ? rows[ridx][cidx] : "";
                             <td><input class="app-in" value="@cell" @onchange="e => SetTableCell(b, ridx, cidx, AsString(e.Value))" /></td>
                         }
-                        <td><button class="btn ghost" title="Rimuovi riga" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
+                        <td><button class="btn ghost" title="@L["Dse_RemoveRow"]" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
                     </tr>
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ Riga</button>
+        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
     };
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>

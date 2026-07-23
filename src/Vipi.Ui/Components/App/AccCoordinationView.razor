@@ -88,8 +88,9 @@
         {
             <p class="coord-sentence">@r.Sentence</p>
         }
+        var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
         <table>
-            <thead><tr><th>CoP</th><th>@(English ? "Level" : "Livello")</th><th>@(English ? "Next" : "Prossimo")</th></tr></thead>
+            <thead><tr><th>CoP</th><th>@(English ? "Level" : "Livello")</th><th>@(English ? "Next" : "Prossimo")</th>@if (hasCond) { <th>@(English ? "Condition" : "Condizione")</th> }</tr></thead>
             <tbody>
                 @foreach (var r in rows)
                 {
@@ -97,6 +98,7 @@
                         <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
                         <td>@r.Level</td>
                         <td>@r.Next</td>
+                        @if (hasCond) { <td>@(string.IsNullOrWhiteSpace(r.ConditionLabel) ? "—" : r.ConditionLabel)</td> }
                     </tr>
                 }
             </tbody>

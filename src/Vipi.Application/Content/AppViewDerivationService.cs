@@ -37,7 +37,7 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
         var freqs = (useFrozen ? await FrozenAsync<List<AppFreqRow>>("frequencies") : null)
             ?? (await _app.DeriveFrequenciesAsync(app, ct)).ToList();
         var coord = (useFrozen ? await FrozenAsync<AppCoordination>("coordination") : null)
-            ?? await _app.DeriveCoordinationAsync(app, null, ct);
+            ?? await _app.DeriveCoordinationAsync(app, ct);
         var aor = (useFrozen ? await FrozenAsync<AccAorView>("aor") : null)
             ?? await _app.GetAorViewAsync(app, ct);
         return new AppViewDerived(freqs, coord, aor);

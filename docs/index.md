@@ -31,6 +31,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 |---|---|
 | [guide/integration.md](guide/integration.md) | Come agganciare il modulo (RCL) a un sito host ASP.NET Core. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
+| [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
 
 ## Reference — `reference/` 🔵
 | File | Scopo |
@@ -42,6 +43,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 |---|---|
 | [design/piano-vipi-tool.md](design/piano-vipi-tool.md) | Documento di design strategico di base (requisiti, roadmap). Parti superate dai round successivi. |
 | [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
+| [design/piano-ux-hardening.md](design/piano-ux-hardening.md) | UX hardening (audit 2026-07-22): U1 conferma delete (`InlineConfirm`), U2 icone SVG (`Icon`), U3 zoom a11y, U5–U12 refactor tema (token colori/font, dedup CSS, `.choice`/`.pill.neutral`, `LoadingState`/`EmptyState`, `.live-badge.off`, touch target). **U4 i18n IT+EN COMPLETO (2026-07-23):** chrome app tutta localizzata (nav+viewer+admin 12/12+editor 12/12), 1071 chiavi `SharedResource.resx`/`.en.resx`, switch runtime `?culture=en`. Contenuto editoriale dal DB resta IT. |
 
 ## Decisioni architetturali — `adr/` 🟢
 | File | Scopo |
@@ -52,6 +54,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [adr/adr-0004-configurazione-divisione-e-admin.md](adr/adr-0004-configurazione-divisione-e-admin.md) | Configurazione divisione + derivazione codici admin. |
 | [adr/adr-0005-superficie-modulo-e-isolamento.md](adr/adr-0005-superficie-modulo-e-isolamento.md) | Superficie del modulo + isolamento CSS/JS. |
 | [adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md](adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) | Indipendenza dalla sorgente + policy di import (+ nota Round 20: fonte unica). |
+| [adr/adr-0007-produzione-persistenza-e-scala.md](adr/adr-0007-produzione-persistenza-e-scala.md) | Produzione: tampone WAL SQLite ora + cutover Postgres pianificato + scala Blazor + guardia identità dev. |
 
 ## Refactor — `refactor/` 🟢
 Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti eseguiti**). Ordine di studio bottom-up.
@@ -73,13 +76,14 @@ Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti es
 ## Storia — `history/` ⚪
 | File | Scopo |
 |---|---|
-| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R34) + asse refactor 01→10 e retention/fix pubblicazione. |
+| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R34) + asse refactor 01→10, retention/fix pubblicazione e feature 2026-07 (confinanti, QoL editor trasferimenti, condizione operativa pista/area). |
 | [history/handoff-round5.md](history/handoff-round5.md) | Handoff di chiusura del Round 5 (fusione Settore/Posizione). |
 | [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
 | [history/handoff-coordinamenti-fasi-3-4.md](history/handoff-coordinamenti-fasi-3-4.md) | Handoff coordinamenti/trasferimenti (fasi 3-4, refactor 07). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |
 | [history/review-flusso-gap.md](history/review-flusso-gap.md) | Analisi flusso vs documenti (decisioni round 4). |
 | [history/audit-2026-07-14-correttezza-fonti-dati.md](history/audit-2026-07-14-correttezza-fonti-dati.md) | Audit senior correttezza + fonti-dati multiple: findings A1–A4/B1–B5, falsi positivi, fix. |
+| [history/audit-2026-07-22-criticita-full-stack.md](history/audit-2026-07-22-criticita-full-stack.md) | Audit full-stack (back/front/DB): 15 criticità con severità + piano a fasi + Fase 1 (health-check migrazioni, osservabilità import, rete test bUnit/E2E). |
 
 ---
 **Nota:** i commenti nel codice sorgente (`.cs`/`.razor`) citano i documenti per **nome e sezione** in forma informale (es. «modello-dati §9.12», «ADR-0001 D5»), non come link a percorso.

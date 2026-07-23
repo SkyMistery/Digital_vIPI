@@ -12,7 +12,7 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
 else if (_view is null)
 {
@@ -29,7 +29,7 @@ else
         <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
         <div class="reduced-top">
             <h2 style="margin:0">@_view.Title — Ridotta</h2>
-            <span class="airac">📅 AIRAC @_view.AiracCycle</span>
+            <span class="airac"><Icon Name="calendar" /> AIRAC @_view.AiracCycle</span>
             <span class="live-badge" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">
                 <span class="dot" style="width:8px;height:8px;border-radius:50%;background:#1a7f37;display:inline-block"></span>
                 Live · @_p
@@ -84,7 +84,7 @@ else
             }
 
             <CollapsibleBlock>
-                <Header><h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3></Header>
+                <Header><h3 style="margin-top:0"><Icon Name="refresh" /> Trasferimenti · dove passo il traffico</h3></Header>
                 <ChildContent>
                 @if (_resolved.Count == 0)
                 {

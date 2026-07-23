@@ -126,7 +126,10 @@ public sealed class VipiViewService : IVipiViewService
                 yield return d;
     }
 
-    /// <summary>Mappa una sezione grezza in SectionView; ritorna null se vuota (nessun blocco tenuto, nessun figlio).</summary>
+    /// <summary>Mappa una sezione grezza in SectionView; ritorna null se vuota (nessun blocco tenuto, nessun figlio) —
+    /// SALVO le sezioni DERIVATE (es. <c>sids</c>), che per contratto hanno Blocks/figli vuoti nello snapshot e il cui
+    /// contenuto è materializzato a view-time dalla pagina per SectionKey: vanno preservate come àncora, altrimenti la
+    /// pagina non le trova e la sezione (con le SID derivate) sparisce del tutto.</summary>
     private static SectionView? Map(RawSection s, IReadOnlyDictionary<int, BlockRender> renders)
     {
         var blocks = s.Blocks
@@ -154,7 +157,7 @@ public sealed class VipiViewService : IVipiViewService
             .OfType<SectionView>()
             .ToList();
 
-        if (blocks.Count == 0 && children.Count == 0)
+        if (blocks.Count == 0 && children.Count == 0 && SectionCatalog.KindOf(s.SectionKey) != SectionKind.Derived)
             return null;
 
         return new SectionView

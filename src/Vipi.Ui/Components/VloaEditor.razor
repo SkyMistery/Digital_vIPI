@@ -5,65 +5,66 @@
 @inject IEditingService Editing
 @inject IVloaDerivationService Vloa
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
 
 @if (_notFound)
 {
-    <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vLOA inesistente</p>
-        Nessuna vLOA per la coppia <b>@Home ↔ @Foreign</b>. Generala dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+    <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">@L["Vle_NotExist"]</p>
+        @((MarkupString)string.Format(L["Vle_NotExistBody"].Value, Home, Foreign))</div></div>
 }
 else if (_denied)
 {
-    <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>
-        Non hai i permessi per editare la vLOA di @Home. Serve un grant sulla ACC o il ruolo admin.</div></div>
+    <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>
+        @(string.Format(L["Vle_UnauthorizedBody"].Value, Home))</div></div>
 }
 else if (_doc is null)
 {
-    <p class="help">Caricamento editor vLOA…</p>
+    <p class="help">@L["Vle_LoadingEditor"]</p>
 }
 else
 {
     <div class="editor-bar">
         <div class="doc-head" style="margin:0">
             <div>
-                <h2 style="margin-bottom:2px">✎ Editor vLOA — @Home ↔ @Foreign</h2>
-                <span class="muted">Letter of Agreement · lato Home (@Home) editabile · Neighbour (@Foreign) sola lettura</span>
+                <h2 style="margin-bottom:2px">✎ @L["Vle_EditorTitle"] — @Home ↔ @Foreign</h2>
+                <span class="muted">@(string.Format(L["Vle_Chrome"].Value, Home, Foreign))</span>
             </div>
             <div class="editor-actions">
-                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
-                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
+                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
                 <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                    @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
+                    @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
                 </span>
-                <a class="btn ghost" href="/vsop/@Home.ToLowerInvariant()/apps/vipi?vloa=@Foreign&as=draft" target="_blank" rel="noopener" title="Anteprima bozza in nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
+                <a class="btn ghost" href="/vsop/@Home.ToLowerInvariant()/apps/vipi?vloa=@Foreign&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
                 @if (_editing)
                 {
-                    <button class="btn primary" @onclick="Publish" title="Pubblica la bozza corrente">📢 Pubblica</button>
-                    <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
+                    <button class="btn primary" @onclick="Publish" title="@L["Ed_PublishTitle"]"><Icon Name="megaphone" /> @L["Ed_Publish"]</button>
+                    <button class="btn ghost" @onclick="() => _editing = false">✓ @L["Lock_FinishEdit"]</button>
                 }
                 else
                 {
-                    <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
+                    <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
                 }
             </div>
         </div>
     </div>
 
-    <div class="callout warning"><span class="cic">🤝</span><div><p class="ct">Documento bilaterale — lato italiano editabile</p>
-        Solo lo <b>staff italiano</b> modifica la parte <b>Home (@Home)</b>. La parte <b>Neighbour (@Foreign)</b> è concordata fuori dal tool.</div></div>
+    <div class="callout warning"><span class="cic">🤝</span><div><p class="ct">@L["Vle_BilateralTitle"]</p>
+        @((MarkupString)string.Format(L["Vle_BilateralBody"].Value, Home, Foreign))</div></div>
 
     <DocReviewBar DocumentId="_docId" />
 
     @if (_lock is { Locked: true, IsMine: false })
     {
-        <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
-            Bloccata da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : ""). Non puoi salvare finché il lock è attivo.</div></div>
+        <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
+            @(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
     }
-    @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
 
     @if (_doc.Sections.Count == 0)
     {
-        <div class="callout info"><span class="cic">📄</span><div><p class="ct">vLOA vuota</p>
-            @if (_editing) { <text>Aggiungi la prima sezione qui sotto.</text> } else { <text>Premi «✎ Modifica» per iniziare a comporre la lettera di accordo.</text> }</div></div>
+        <div class="callout info"><span class="cic"><Icon Name="file" Size="18" /></span><div><p class="ct">@L["Vle_Empty"]</p>
+            @if (_editing) { <text>@L["Vle_EmptyEditing"]</text> } else { <text>@L["Vle_EmptyReadonly"]</text> }</div></div>
     }
 
     <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
@@ -206,7 +207,7 @@ else
             var tick = ++_saveTick;
             _ = DismissSavedAsync(tick);
         }
-        catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questa vLOA."; _save = SaveState.Idle; }
+        catch (EditNotAllowedException) { _error = L["Vle_NoEditPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
     }
@@ -239,14 +240,14 @@ else
     {
         @if (_editing && _aor.Toggles.Count > 0)
         {
-            <p class="muted" style="font-size:12.5px;margin:0 0 6px">Nascondi/mostra i settori nella mappa (persistito nel documento):</p>
+            <p class="muted" style="font-size:12.5px;margin:0 0 6px">@L["Vle_AorToggleHint"]</p>
             <div class="aor-toggles" style="margin-bottom:8px">
                 @foreach (var t in _aor.Toggles)
                 {
                     <button type="button" class="aor-chip @(t.Hidden ? "" : "on")" @onclick="() => ToggleAor(t.Callsign)"
-                            title="@(t.Hidden ? "Mostra" : "Nascondi")">
+                            title="@(t.Hidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])">
                         <span class="sw" style="background:@(t.Color)33;border-color:@t.Color"></span>
-                        @t.Name @(t.IsForeign ? "· estero" : "")
+                        @t.Name @(t.IsForeign ? "· " + L["Xfer_Foreign"] : "")
                     </button>
                 }
             </div>
@@ -258,7 +259,7 @@ else
     {
         @if (_freq.Rows.Count == 0)
         {
-            <p class="muted">Nessuna frequenza derivata (proietta i settori dei due ACC).</p>
+            <p class="muted">@L["Vle_NoDerivedFreq"]</p>
         }
         else
         {
@@ -273,7 +274,7 @@ else
     {
         @if (rows.Count == 0)
         {
-            <p class="muted" style="margin:0">Nessuna frequenza.</p>
+            <p class="muted" style="margin:0">@L["Vle_NoFreq"]</p>
         }
         else
         {
@@ -286,7 +287,7 @@ else
                     @if (_editing) { <col style="width:104px" /> }
                 </colgroup>
                 <thead>
-                    <tr><th></th><th>Nome</th><th>Callsign</th><th>Frequenza</th>@if (_editing) { <th></th> }</tr>
+                    <tr><th></th><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Vle_Frequency"]</th>@if (_editing) { <th></th> }</tr>
                 </thead>
                 <tbody>
                     @foreach (var r in rows)
@@ -300,7 +301,7 @@ else
                                 <td>@r.Row.FrequencyMhz</td>
                                 @if (_editing)
                                 {
-                                    <td><button class="btn ghost" @onclick="() => ToggleFreq(r.Row.Callsign)">@(r.Hidden ? "Mostra" : "Nascondi")</button></td>
+                                    <td><button class="btn ghost" @onclick="() => ToggleFreq(r.Row.Callsign)">@(r.Hidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button></td>
                                 }
                             </tr>
                         }

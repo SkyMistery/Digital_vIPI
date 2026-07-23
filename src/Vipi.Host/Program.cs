@@ -22,7 +22,10 @@ builder.Services.AddResponseCompression(o =>
 
 // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
 // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
-builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.Environment.IsDevelopment());
+var useDevIdentity = builder.Environment.IsDevelopment();
+// Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development.
+Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
+builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
 var app = builder.Build();
 
@@ -73,3 +76,7 @@ app.MapRazorComponents<App>()
 app.MapVipiModule();
 
 app.Run();
+
+// Punto d'ingresso esposto per i test d'integrazione in-process (WebApplicationFactory<Program>).
+// I top-level statement generano una classe Program internal: questa partial la rende raggiungibile dai test.
+public partial class Program { }

@@ -50,7 +50,6 @@ public class AccDocumentAssemblerTests
             HiddenSections = new() { "vfr" },
             FreqOrder = new() { new AppFreqOrderOverride("LIRP_APP", 0) },
             FreqLinkCallsigns = new() { "LIRR_CTR" },
-            CoordinationSentenceTemplate = "tpl",
         };
         var configs = new List<AccConfiguration>
         {
@@ -86,7 +85,10 @@ public class AccDocumentAssemblerTests
         Assert.Equal("aerovia", aerovia.Block.Key);
         Assert.Single(aerovia.Block.Configurations);
         Assert.Equal("Conf 1", aerovia.Block.Configurations[0].Name);
-        Assert.Equal(new[] { "area-42" }, aerovia.Block.AttachedSpecialAreaIds);
+        // regulated array legacy ["area-42"] → manuale (OwnAuto=false) con quegli id (back-compat).
+        Assert.False(aerovia.Block.Regulated.OwnAuto);
+        Assert.Equal(new[] { "area-42" }, aerovia.Block.Regulated.OwnIds);
+        Assert.Empty(aerovia.Block.Regulated.ExtraIds);
         Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique" }, aerovia.Block.SectionOrder);
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
@@ -105,7 +107,6 @@ public class AccDocumentAssemblerTests
         Assert.Equal(new[] { "LIRP_APP" }, grp.Block.MemberCallsigns);
         Assert.Equal(new[] { "vfr" }, grp.Block.HiddenSections);
         Assert.Equal("LIRR_CTR", Assert.Single(grp.Block.FreqLinkCallsigns));
-        Assert.Equal("tpl", grp.Block.CoordinationSentenceTemplate);
         Assert.Equal(0, Assert.Single(grp.Block.FreqOrder).Order);
     }
 
@@ -118,7 +119,25 @@ public class AccDocumentAssemblerTests
         Assert.Equal(AccBlockKind.Aerovia, block.Kind);
         Assert.Empty(block.MemberCallsigns);
         Assert.Empty(block.Configurations);
-        Assert.Empty(block.AttachedSpecialAreaIds);
+        // Nessuna figlia regulated → aree del proprio ACC in automatico (default dinamico), nessuna esplicita.
+        Assert.True(block.Regulated.OwnAuto);
+        Assert.Empty(block.Regulated.OwnIds);
+        Assert.Empty(block.Regulated.ExtraIds);
         Assert.Empty(block.SectionOrder);
+    }
+
+    [Fact]
+    public void Regulated_Object_Schema_RoundTrips()
+    {
+        var sel = new RegulatedSelection { OwnAuto = false, OwnIds = new() { "a1" }, ExtraIds = new() { "x9" } };
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "regulated", "Aree", 1, ownJson: JsonSerializer.Serialize(sel)),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.False(block.Regulated.OwnAuto);
+        Assert.Equal(new[] { "a1" }, block.Regulated.OwnIds);
+        Assert.Equal(new[] { "x9" }, block.Regulated.ExtraIds);
     }
 }

@@ -2,20 +2,21 @@
    configurazioni, scegli i settori aperti, imposta Center Point/Range per settore unificato; il sistema deriva
    l'accorpamento (Tables). In lettura: le tabelle accorpamento in <details>. Emette l'intera lista via ConfigsChanged. *@
 @using Vipi.Application.Content
+@inject IStringLocalizer<SharedResource> L
 
 @if (Editing)
 {
-    <p class="help" style="margin:0 0 8px">Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</p>
+    <p class="help" style="margin:0 0 8px">@L["AppCfg_EditHelp"]</p>
     @foreach (var c in Configs)
     {
         var cfg = c;
         var tbl = Tables.FirstOrDefault(t => t.ConfigKey == cfg.Key);
         <div class="block" style="margin-bottom:10px">
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                <input class="app-in" placeholder="Nome configurazione" value="@cfg.Name" @onchange="e => SetName(cfg, AsString(e.Value))" />
-                <button class="btn ghost" title="Rimuovi configurazione" @onclick="() => Remove(cfg)">✕</button>
+                <input class="app-in" placeholder="@L["AppCfg_NamePlaceholder"]" value="@cfg.Name" @onchange="e => SetName(cfg, AsString(e.Value))" />
+                <button class="btn ghost" title="@L["AppCfg_Remove"]" @onclick="() => Remove(cfg)">✕</button>
             </div>
-            <p class="app-lbl" style="margin:0 0 4px">Settori aperti</p>
+            <p class="app-lbl" style="margin:0 0 4px">@L["AppCfg_OpenSectors"]</p>
             <div class="sector-pick">
                 @foreach (var s in Pool)
                 {
@@ -27,7 +28,7 @@
             @if (cfg.Open.Count > 0)
             {
                 <table class="cfg-table" style="margin-top:8px">
-                    <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                    <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>Center Point</th><th>Range</th></tr></thead>
                     <tbody>
                         @foreach (var o in cfg.Open)
                         {
@@ -45,13 +46,13 @@
             }
         </div>
     }
-    <button class="btn ghost" @onclick="Add">+ Aggiungi configurazione</button>
+    <button class="btn ghost" @onclick="Add">@L["AppCfg_Add"]</button>
 }
 else
 {
     @if (Tables.Count == 0)
     {
-        <p class="muted">Nessuna configurazione operativa.</p>
+        <p class="muted">@L["AppCfg_None"]</p>
     }
     @foreach (var cfg in Tables)
     {
@@ -59,7 +60,7 @@ else
             <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
             <div class="body">
                 <table class="cfg-table">
-                    <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                    <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>Center Point</th><th>Range</th></tr></thead>
                     <tbody>
                         @foreach (var row in cfg.Rows)
                         {
@@ -96,7 +97,7 @@ else
     private Task Add()
     {
         var next = Configs.ToList();
-        next.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = "Nuova configurazione" });
+        next.Add(new AccConfiguration { Key = "cfg:" + Guid.NewGuid().ToString("N")[..8], Name = L["AppCfg_NewName"] });
         return ConfigsChanged.InvokeAsync(next);
     }
 

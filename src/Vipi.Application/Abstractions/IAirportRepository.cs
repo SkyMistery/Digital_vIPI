@@ -46,6 +46,9 @@ public interface IAirportRepository
     /// <summary>Rigenera in-place le sezioni gestite del documento dell'aeroporto dalle entità, preservando le altre. Ritorna l'id documento.</summary>
     Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default);
 
+    /// <summary>Id del Document proiettato dell'aeroporto (via settori d'aeroporto con <c>DocumentId</c>), o null se non ancora generato.</summary>
+    Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
+
     /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c). Default <see cref="RenderMode.Live"/>
     /// se il documento/sezione non esistono ancora.</summary>
     Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default);

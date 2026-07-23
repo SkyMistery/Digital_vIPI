@@ -9,53 +9,54 @@
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
-    <PageTitle>Editor APP @_app · vIPI</PageTitle>
+    <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>Editor</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @if (_notFound)
         {
-            <div class="doc-head"><div><h2 style="margin-bottom:2px">✎ Editor APP @_app</h2><span class="muted">@_acc.Name</span></div></div>
-            <div class="callout warning"><span class="cic">⚠️</span><div>APP non trovato. Verifica che il callsign sia un avvicinamento non remotizzato (es. <code>LIRP_APP</code>).</div></div>
+            <div class="doc-head"><div><h2 style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_app</h2><span class="muted">@_acc.Name</span></div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@((MarkupString)L["App_NotFound"].Value)</div></div>
         }
         else if (_denied)
         {
-            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>Non hai i permessi per editare la ACC @_acc.Code.</div></div>
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["App_DeniedBody"].Value, _acc.Code))</div></div>
         }
         else if (_doc is null)
         {
-            <p class="help">Caricamento editor APP…</p>
+            <p class="help">@L["App_LoadingEditor"]</p>
         }
         else
         {
             <div class="editor-bar">
                 <div class="doc-head" style="margin:0">
-                    <div><h2 style="margin-bottom:2px">✎ Editor APP @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
+                    <div><h2 style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
                     <div class="editor-actions">
-                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
-                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
+                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
                         <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                            @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
+                            @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
                         </span>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
                         @if (_editing)
                         {
-                            <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
+                            <button class="btn ghost" @onclick="() => _editing = false">✓ @L["Lock_FinishEdit"]</button>
                         }
                         else
                         {
-                            <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
+                            <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
                         }
                     </div>
                 </div>
@@ -65,10 +66,10 @@ else
 
             @if (_lock is { Locked: true, IsMine: false })
             {
-                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
-                    Bloccato da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : ""). Non puoi salvare finché il lock è attivo.</div></div>
+                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
+                    @(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
             }
-            @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
+            @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
 
             <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                     IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
@@ -106,8 +107,6 @@ else
     private List<AppFreqRow> _freqs = new();
     private List<int> _linkIds = new();
     private AppCoordination _coord = AppCoordination.Empty;
-    private AppCoordination? _coordPreview;
-    private string? _coordTemplate;
     private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
     private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
 
@@ -119,7 +118,6 @@ else
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private string _freqSearch = "";
     private int? _freqDragIndex;
-    private CancellationTokenSource? _coordDebounce;
 
     // Release AIRAC (target App).
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
@@ -180,10 +178,8 @@ else
             _separations = (await AppDoc.GetSeparationsAsync(_app)).ToList();
             _vfr = await AppDoc.GetVfrAsync(_app);
             var overrides = await AppDoc.GetOverridesAsync(_app);
-            _coordTemplate = overrides.CoordinationSentenceTemplate;
             _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
             _linkIds = overrides.FreqLinkSectorIds.ToList();
-            _coordPreview = null;
             await RefreshDerivedAsync();
 
             _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
@@ -255,7 +251,7 @@ else
     });
 
     private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
-        await JS.InvokeAsync<bool>("confirm", $"Rimuovere la configurazione «{c.Name}»?");
+        await JS.InvokeAsync<bool>("confirm", string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
 
     // ---- frequenze (derivate + override/link) ----
     private Task MoveFreq((int Index, int Dir) m) => Guard(async () =>
@@ -297,29 +293,6 @@ else
         await RefreshDerivedAsync();
     });
 
-    // ---- coordinamenti (template) ----
-    private async Task PreviewCoordTemplate(string text)
-    {
-        _coordDebounce?.Cancel();
-        var cts = _coordDebounce = new CancellationTokenSource();
-        try
-        {
-            await Task.Delay(400, cts.Token);
-            var preview = await AppDoc.DeriveCoordinationAsync(_app, string.IsNullOrWhiteSpace(text) ? null : text);
-            if (!cts.Token.IsCancellationRequested) { _coordPreview = preview; await InvokeAsync(StateHasChanged); }
-        }
-        catch (OperationCanceledException) { }
-    }
-
-    private Task SaveCoordTemplate(string text) => Guard(async () =>
-    {
-        _coordDebounce?.Cancel();
-        _coordTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
-        await AppDoc.SaveCoordinationTemplateAsync(_app, _coordTemplate);
-        await RefreshDerivedAsync();
-        _coordPreview = null;
-    });
-
     // ---- infra ----
     private async Task Guard(Func<Task> action)
     {
@@ -333,7 +306,7 @@ else
             var tick = ++_saveTick;
             _ = DismissSavedAsync(tick);
         }
-        catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questo APP."; _save = SaveState.Idle; }
+        catch (EditNotAllowedException) { _error = L["App_NoEditPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
     }
@@ -374,19 +347,7 @@ else
                 <AppMinima />
                 break;
             case "coordination":
-                @if (_editing)
-                {
-                    <div class="field" style="margin:0 0 12px">
-                        <label>Frase di coordinamento — template (vuoto = default globale)</label>
-                        <textarea class="app-in" rows="2"
-                                  placeholder="{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}."
-                                  value="@_coordTemplate"
-                                  @oninput="e => PreviewCoordTemplate(AsString(e.Value))"
-                                  @onchange="e => SaveCoordTemplate(AsString(e.Value))"></textarea>
-                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. <code>{airport}</code> include già la relazione arrivo/partenza («con destinazione …» / «in partenza da …»): non aggiungere «con destinazione». L'anteprima sotto si aggiorna mentre digiti; al termine (uscendo dal campo) il template viene salvato.</p>
-                    </div>
-                }
-                <AppCoordinationView Coord="@(_coordPreview ?? _coord)" />
+                <AppCoordinationView Coord="_coord" />
                 break;
         }
     };
@@ -394,7 +355,7 @@ else
     private RenderFragment FreqLinkPicker() => __builder =>
     {
         <div class="app-linkpick">
-            <input class="app-in" placeholder="Collega frequenza (cerca callsign/ICAO)…" value="@_freqSearch"
+            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@_freqSearch"
                    @oninput="e => _freqSearch = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(_freqSearch))
             {
@@ -419,12 +380,12 @@ else
     private RenderFragment Release() => __builder =>
     {
         <div class="block" id="@_releaseAnchor">
-            <h3 style="margin-top:0">📅 Versioni &amp; release AIRAC</h3>
-            <p class="help">Pubblica lo stato editoriale corrente <b>subito</b> (review sul ciclo in corso) oppure <b>pianificalo</b> a un ciclo AIRAC futuro. Il pubblico vede la release in vigore al ciclo corrente (@_currentCycle).</p>
+            <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
+            <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
 
             @if (_rels.Count == 0)
             {
-                <p class="help" style="margin:0 0 6px">Nessuna release: il documento non è ancora visibile al pubblico. Pubblica per renderlo visibile.</p>
+                <p class="help" style="margin:0 0 6px">@L["Rel_NoRelease"]</p>
             }
             else
             {
@@ -434,14 +395,14 @@ else
                         <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                         <div style="flex:1">
                             <b>@RelLabel(r)</b>
-                            <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                         </div>
                         <span class="vact">
-                            <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{r.Id}")" target="_blank" rel="noopener">👁 Anteprima</a>
-                            <button class="btn ghost" @onclick="() => ToggleDiff(r.Id)">🔍 Differenze</button>
+                            <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{r.Id}")" target="_blank" rel="noopener"><Icon Name="eye" /> @L["Rel_Preview"]</a>
+                            <button class="btn ghost" @onclick="() => ToggleDiff(r.Id)"><Icon Name="search" /> @L["Rel_Diff"]</button>
                             @if (Authz.IsAdmin)
                             {
-                                <button class="btn ghost" @onclick="() => CancelRelease(r.Id)">✕ Annulla</button>
+                                <button class="btn ghost" @onclick="() => CancelRelease(r.Id)">✕ @L["Common_Cancel"]</button>
                             }
                         </span>
                     </div>
@@ -456,12 +417,12 @@ else
                 <select class="app-in" style="min-width:270px;max-width:340px" @bind="_relCycle">
                     @foreach (var c in _upcoming)
                     {
-                        <option value="@c.Cycle">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
+                        <option value="@c.Cycle">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
                     }
                 </select>
-                <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
-                <button class="btn primary" @onclick="PublishReleaseNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
-                <button class="btn ghost" @onclick="PublishRelease" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
+                <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" @bind="_relNote" />
+                <button class="btn primary" @onclick="PublishReleaseNow" title="@L["Rel_PublishNowTitle"]"><Icon Name="megaphone" /> @L["Rel_PublishNow"]</button>
+                <button class="btn ghost" @onclick="PublishRelease" title="@L["Rel_ScheduleTitle"]"><Icon Name="calendar" /> @L["Rel_ScheduleAtCycle"]</button>
             </div>
         </div>
     };
@@ -508,29 +469,33 @@ else
         }
     }
 
-    private static string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 In vigore" : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
+    private string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
+        ? "🟢 " + L["Rel_Effective"] : r.Status == ReleaseStatus.Scheduled ? "🕒 " + L["Rel_Scheduled"] : L["Rel_Superseded"];
     private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
+    private string ChangeLabel(string change) => change switch
+    {
+        "Aggiunta" => L["Rel_ChangeAdded"], "Rimossa" => L["Rel_ChangeRemoved"], "Modificata" => L["Rel_ChangeModified"], _ => change,
+    };
 
     private RenderFragment DiffBlock(int releaseId) => __builder =>
     {
         @if (_diffs.TryGetValue(releaseId, out var diff))
         {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">Confronto con: @diff.BaselineLabel</div>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @diff.BaselineLabel</div>
             @if (diff.Rows.Count == 0)
             {
-                <p class="help" style="margin:0">Nessuna differenza strutturale rilevata.</p>
+                <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
             }
             else
             {
                 <table class="cfg-table">
-                    <thead><tr><th>Voce</th><th>Modifica</th><th>Dettaglio</th></tr></thead>
+                    <thead><tr><th>@L["Rel_ColItem"]</th><th>@L["Rel_ColChange"]</th><th>@L["Rel_ColDetail"]</th></tr></thead>
                     <tbody>
                         @foreach (var r in diff.Rows)
                         {
                             <tr>
                                 <td>@r.Label</td>
-                                <td><span class="pill @DiffPill(r.Change)">@r.Change</span></td>
+                                <td><span class="pill @DiffPill(r.Change)">@ChangeLabel(r.Change)</span></td>
                                 <td class="muted" style="font-size:12px">@r.Detail</td>
                             </tr>
                         }
@@ -538,6 +503,6 @@ else
                 </table>
             }
         }
-        else { <p class="help" style="margin:0">Caricamento differenze…</p> }
+        else { <p class="help" style="margin:0">@L["Rel_LoadingDiff"]</p> }
     };
 }

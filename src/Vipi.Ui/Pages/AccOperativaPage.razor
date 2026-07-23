@@ -13,47 +13,55 @@
 @inject ICurrentUserProvider Users
 @inject IAiracService Airac
 @inject Microsoft.JSInterop.IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 @implements IAsyncDisposable
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
+}
+else if (_notAvailable)
+{
+    <div class="wrap">
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Operativa_Tab"]</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Operativa_NotAvailTitle"]</p>@((MarkupString)string.Format(L["Operativa_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/vipi"))</div></div>
+    </div>
 }
 else
 {
-    <PageTitle>@_data.AccName — Operativa · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@_data.AccName — @L["Operativa_Tab"] · vIPI IVAO Italia</PageTitle>
     <div class="wrap">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>Operativa</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>@L["Operativa_Tab"]</b>
         </div>
 
         <div class="reduced-top">
-            <h2 style="margin:0">@_data.AccName — Operativa</h2>
+            <h2 style="margin:0">@_data.AccName — @L["Operativa_Tab"]</h2>
             <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_p</span>
-            <label class="muted" style="font-size:13px;margin-left:auto">Postazione
+            <label class="muted" style="font-size:13px;margin-left:auto">@L["Operativa_Position"]
                 <select @bind="_p" @bind:after="LoadAsync" style="margin-left:6px;padding:4px 8px">
                     @foreach (var pos in _positions) { <option value="@pos">@pos</option> }
                 </select>
             </label>
             @if (_myCallsign is not null)
             {
-                <span class="xo-chip on" title="Rilevato dalla tua connessione IVAO">@_myCallsign</span>
+                <span class="xo-chip on" title="@L["Operativa_DetectedFromIvao"]">@_myCallsign</span>
             }
-            <span class="muted" style="font-size:13px">@_snapshot.Callsigns.Count ATC online · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
-            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">← Documento esteso</a>
+            <span class="muted" style="font-size:13px">@L["Operativa_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
+            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Operativa_ExtendedDoc"]</a>
         </div>
 
-        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">Modalità ridotta + live</p>Vedi solo l'essenziale per la postazione <b>@_p</b>. Le sezioni sono indipendenti: puoi tenerne aperte più di una (es. Frequenze e Trasferimenti insieme). Per tutto il resto apri il documento esteso.</div></div>
+        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Operativa_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Operativa_ReducedLiveBody"], _p))</div></div>
 
-        <p class="muted" style="font-size:13.5px;margin-bottom:7px">Vista rapida — il mio settore o un aeroporto sotto controllo diretto</p>
+        <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Operativa_QuickView"]</p>
         <div class="apt-quick" style="margin-bottom:22px">
-            <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 Il mio settore</span>
+            <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Operativa_MySector"]</span>
             @foreach (var (ap, direct, deleg) in OrderedApts())
             {
                 var icao = ap.Icao;
                 <span class="ch sw @(direct && !deleg ? "" : "ch-deleg") @(_selectedApt == icao ? "on" : "")"
-                      title="@(deleg ? "controllato da un'altra posizione online" : direct ? "vista rapida aeroporto" : "gestito da un altro settore")"
-                      @onclick="() => _selectedApt = icao">@icao@(deleg ? " ·delegato" : "")</span>
+                      title="@(deleg ? L["Operativa_AptDelegatedTip"] : direct ? L["Operativa_AptQuickTip"] : L["Operativa_AptOtherTip"])"
+                      @onclick="() => _selectedApt = icao">@icao@(deleg ? L["Operativa_DelegSuffix"] : "")</span>
             }
         </div>
 
@@ -76,19 +84,19 @@ else
 
         <div class="red-top-grid">
             <details class="acc-item" open>
-                <summary><span>📻 Frequenze</span><span class="tag-state tag-covered">aperto</span></summary>
+                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
                 <div class="body">
                     @if (freqRows.Count > 0) { <AppFrequencies Rows="freqRows" /> }
-                    else { <p class="muted" style="font-size:13px;margin:0">Nessuna frequenza derivata.</p> }
+                    else { <p class="muted" style="font-size:13px;margin:0">@L["Operativa_NoFreqDerived"]</p> }
                 </div>
             </details>
 
             @foreach (var block in appGroups.Where(b => IsDelegated(b)))
             {
                 <details class="acc-item collapsed-strip">
-                    <summary><span>🔇 @block.Title — delegati</span><span class="tag-state tag-online">online</span></summary>
+                    <summary><span>🔇 @block.Title — @L["Operativa_Delegated"]</span><span class="tag-state tag-online">@L["Common_TagOnline"]</span></summary>
                     <div class="body">
-                        <p class="muted" style="font-size:13px;margin-top:0">Compresso perché un settore di <b>@block.Title</b> è online (collasso morbido). Sotto restano le frequenze per l'handoff.</p>
+                        <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Operativa_CollapsedBody"], block.Title))</p>
                         <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
                     </div>
                 </details>
@@ -97,7 +105,7 @@ else
             @foreach (var block in appGroups.Where(b => !IsDelegated(b)))
             {
                 <details class="acc-item" open>
-                    <summary><span>📡 @block.Title</span><span class="tag-state tag-covered">coperto</span></summary>
+                    <summary><span>📡 @block.Title</span><span class="tag-state tag-covered">@L["Common_TagCovered"]</span></summary>
                     <div class="body">
                         <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
                     </div>
@@ -106,18 +114,18 @@ else
         </div>
 
         <details class="acc-item" open>
-            <summary><span>🔄 Trasferimenti · dove passo il traffico</span><span class="tag-state tag-covered">aperto</span></summary>
+            <summary><span><Icon Name="refresh" /> @L["Operativa_TransfersTitle"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
             <div class="body">
                 <div class="xfer-online">
-                    <span class="xo-label">Online nel tuo intorno:</span>
+                    <span class="xo-label">@L["Operativa_OnlineAround"]</span>
                     @if (onlineAround.Count > 0)
                     {
                         @foreach (var cs in onlineAround) { <span class="xo-chip on">@cs</span> }
                     }
-                    else { <span class="muted xo-hint">nessun ente adiacente online</span> }
-                    <span class="muted xo-hint">— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</span>
+                    else { <span class="muted xo-hint">@L["Operativa_NoNeighbourOnline"]</span> }
+                    <span class="muted xo-hint">@L["Operativa_TransfersHint"]</span>
                 </div>
-                <TransfersLive Flows="_resolved" EmptyText="Nessun coordinamento per questa ACC." />
+                <TransfersLive Flows="_resolved" EmptyText="@L["Operativa_NoCoord"]" />
             </div>
         </details>
         }
@@ -139,6 +147,7 @@ else
     private string? _myCallsign;
     private IReadOnlyList<AirportRow> _apts = Array.Empty<AirportRow>();
     private string? _selectedApt;
+    private bool _notAvailable;   // ACC senza vIPI pubblicata (LoadForViewAsync null) → stato "non disponibile"
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
 
@@ -192,7 +201,12 @@ else
     {
         if (_acc is null) return;
 
-        _data = (await AccDoc.LoadForViewAsync(_acc.Code))!.Data;
+        // Visibilità pubblica = release effettiva (doc 10 §3f): senza vIPI pubblicata LoadForViewAsync torna null
+        // → "operativa non disponibile" invece di NRE (era `!.Data` su null).
+        var model = await AccDoc.LoadForViewAsync(_acc.Code);
+        if (model is null) { _notAvailable = true; return; }
+        _notAvailable = false;
+        _data = model.Data;
         _snapshot = Online.GetCurrent();
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;

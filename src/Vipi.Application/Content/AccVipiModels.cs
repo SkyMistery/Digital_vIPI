@@ -52,15 +52,12 @@ public sealed class AccBlock
     // editoriale
     public List<AppSeparationRow> Separations { get; set; } = new();
     public string? VfrJson { get; set; }
-    public List<AccRegulatedArea> RegulatedAreas { get; set; } = new();          // legacy (deprecato): sostituito da AttachedSpecialAreaIds
-    public List<string> AttachedSpecialAreaIds { get; set; } = new();            // #8: id IVAO delle aree speciali attaccate
+    public List<AccRegulatedArea> RegulatedAreas { get; set; } = new();          // legacy (deprecato): sostituito da Regulated
+    public RegulatedSelection Regulated { get; set; } = new();                    // #8: aree speciali (proprio ACC auto/manuale + extra altri-ACC)
 
     // frequenze
     public List<AppFreqOrderOverride> FreqOrder { get; set; } = new();
     public List<string> FreqLinkCallsigns { get; set; } = new();   // link extra per callsign (riferimento vivo)
-
-    /// <summary>Override per-documento del template della frase di coordinamento; null/vuoto = default globale (file).</summary>
-    public string? CoordinationSentenceTemplate { get; set; }
 }
 
 /// <summary>Dati completi della vIPI ACC per editor e viewer: identità + blocchi.</summary>
@@ -77,8 +74,20 @@ public sealed record AccSectorPick(string Callsign, string Name);
 /// <summary>Radice di un albero di settori CTR dell'ACC (una vIPI per albero). Callsign + nome del CTR radice.</summary>
 public sealed record AccTreeRoot(string Callsign, string Name);
 
-/// <summary>Area speciale selezionabile (picker editor), filtrabile per ACC.</summary>
-public sealed record SpecialAreaPick(string IvaoId, string Name, string? Type, int? MinimumAlt, int? MaximumAlt);
+/// <summary>Area speciale selezionabile (picker editor). <see cref="CenterId"/> = ACC di appartenenza (per il picker
+/// cross-ACC delle aree extra).</summary>
+public sealed record SpecialAreaPick(string IvaoId, string Name, string? Type, int? MinimumAlt, int? MaximumAlt, string CenterId);
+
+/// <summary>Selezione delle aree regolamentate di un blocco vIPI ACC. Le aree del <b>proprio</b> ACC sono in
+/// <see cref="OwnAuto"/> (tutte, dinamiche: seguono gli import) finché lo staff non passa a manuale scegliendo un
+/// sottoinsieme in <see cref="OwnIds"/>. <see cref="ExtraIds"/> sono aree di <b>altri</b> ACC aggiunte a mano
+/// (indipendenti dal modo auto/manuale delle proprie). Il modo auto vale solo per il blocco Aerovia.</summary>
+public sealed class RegulatedSelection
+{
+    public bool OwnAuto { get; set; } = true;
+    public List<string> OwnIds { get; set; } = new();
+    public List<string> ExtraIds { get; set; } = new();
+}
 
 /// <summary>Area speciale grezza dal DB (per la proiezione nel viewer). Shape = JSON grezzo.</summary>
 public sealed record SpecialAreaDetail(

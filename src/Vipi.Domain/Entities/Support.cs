@@ -127,6 +127,14 @@ public class TransferPoint
     public int? NextSectorId { get; set; }                  // ricevente nominale (settore reale); null = nessun ricevente → UNICOM
     public Sector? NextSector { get; set; }
 
+    // Condizione operativa (livello variabile per pista/area/personalizzata). Tre dimensioni INDIPENDENTI e additive
+    // (una riga può averle tutte): tutte null = riga sempre valida. Verità denormalizzata per il display (sopravvive a
+    // rename/rimozione config e agli snapshot pubblicati). Più righe stessa CoP con condizioni diverse = varianti.
+    public string? ConditionLabel { get; set; }             // PISTA/E in uso: può elencarne più ("16R / 16L")
+    public int? ConditionRefId { get; set; }                // soft-ref opzionale pista singola: AirportRunwayRule.Id/RunwayRow.Id; nessun FK
+    public string? ConditionAreaLabel { get; set; }         // AREA attiva (SpecialArea.Name)
+    public string? ConditionCustomLabel { get; set; }       // condizione PERSONALIZZATA (testo libero)
+
     public int Order { get; set; }
 }
 

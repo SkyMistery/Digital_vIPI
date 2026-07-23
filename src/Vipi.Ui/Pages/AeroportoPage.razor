@@ -16,22 +16,23 @@
 @inject IEditAuthorizationService Authz
 @inject IReleaseService Releases
 @using Vipi.Ui.Shared
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_listMode)
 {
-    <PageTitle>Aeroporti @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["AccLanding_Airports"] @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Aeroporti</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["AccLanding_Airports"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Aeroporti — @_acc.Name - @_acc.Code</h2></div>
+            <div><h2 style="margin-bottom:2px">@L["AccLanding_Airports"] — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_allAirports.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun aeroporto</p>Nessun aeroporto con documento pubblicato sotto questa ACC.</div></div>
+            <EmptyState Title="@L["Common_NoAirport"]">@L["Airport_NoneBody"]</EmptyState>
         }
         else
         {
@@ -39,27 +40,27 @@ else if (_listMode)
                 @foreach (var ap in _allAirports)
                 {
                     var n = OnlineAt(ap.Icao);
-                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao" style="text-decoration:none;color:inherit">
+                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
                         <div class="apt-top">
                             <h4>@ap.Icao</h4>
-                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
+                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
                         </div>
                         <p class="muted">@ap.Name</p>
                         @if (_wxMini.TryGetValue(ap.Icao, out var wx))
                         {
                             <div class="apt-wx">
-                                <span><span class="wx-k">Vento</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
+                                <span><span class="wx-k">@L["Airport_Wind"]</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
                                 <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
                                 @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
                                 {
-                                    <span><span class="wx-k">Decolli</span><b>@(wx.Dep ?? "—")</b></span>
-                                    <span><span class="wx-k">Atterraggi</span><b>@(wx.Arr ?? "—")</b></span>
+                                    <span><span class="wx-k">@L["Airport_Departures"]</span><b>@(wx.Dep ?? "—")</b></span>
+                                    <span><span class="wx-k">@L["Airport_Arrivals"]</span><b>@(wx.Arr ?? "—")</b></span>
                                 }
                             </div>
                         }
                         else if (_wxLoading)
                         {
-                            <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">Meteo in caricamento…</span></div>
+                            <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">@L["Airport_WxLoading"]</span></div>
                         }
                     </a>
                 }
@@ -70,8 +71,8 @@ else if (_listMode)
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vIPI aeroporto pubblicata per @_icao.</div></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Airport_DocNotAvailTitle"]</p>@string.Format(L["Airport_DocNotAvailBody"], _icao)</div></div>
     </div>
 }
 else
@@ -79,11 +80,11 @@ else
     <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/airports">Aeroporti</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc">
-                <p class="toc-h">Sommario</p>
+                <p class="toc-h">@L["Common_Contents"]</p>
                 <ul>
                     @foreach (var (id, title) in TocEntries())
                     {
@@ -94,10 +95,10 @@ else
 
             <div>
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">Aeroporto · @_acc.Name</span></div>
+                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">@L["Airport_SubtitlePrefix"] · @_acc.Name</span></div>
                     @if (_canEdit)
                     {
-                        <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">✎ Editor</a>
+                        <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">@L["Common_Editor"]</a>
                     }
                 </div>
 
@@ -110,7 +111,7 @@ else
 
                 @* ---------- METAR / TAF live + parse ---------- *@
                 <CollapsibleBlock Id="a-meteo">
-                    <Header><h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">(live · NOAA)</span></h3></Header>
+                    <Header><h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span></h3></Header>
                     <ChildContent>
 
                     @if (_wx is not null && _wx.HasData)
@@ -125,25 +126,25 @@ else
                             <div class="wx-view">
                                 <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_metar.Raw</div>
                                 <div class="metar-parse">
-                                    <span class="mp"><span class="muted">Vento</span><b>@(_metar.Wind?.Label ?? "—")</b></span>
-                                    <span class="mp"><span class="muted">Visibilità</span><b>@(_metar.Visibility ?? "—")</b></span>
-                                    <span class="mp"><span class="muted">Nubi</span><b>@_metar.CloudsLabel</b></span>
+                                    <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@(_metar.Wind?.Label ?? "—")</b></span>
+                                    <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@(_metar.Visibility ?? "—")</b></span>
+                                    <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@_metar.CloudsLabel</b></span>
                                     <span class="mp"><span class="muted">QNH</span><b>@(_metar.QnhHpa is int q ? $"{q} hPa" : "—")</b></span>
                                     <span class="mp"><span class="muted">Temp/DP</span><b>@(_metar.TempC is int t ? $"{t} / {_metar.DewpointC} °C" : "—")</b></span>
                                     @if (_metar.Weather is not null)
                                     {
-                                        <span class="mp"><span class="muted">Tempo</span><b>@_metar.Weather</b></span>
+                                        <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@_metar.Weather</b></span>
                                     }
                                     @if (_metar.Trend is not null)
                                     {
-                                        <span class="mp"><span class="muted">Tendenza</span><b>@_metar.Trend</b></span>
+                                        <span class="mp"><span class="muted">@L["Airport_Trend"]</span><b>@_metar.Trend</b></span>
                                     }
                                 </div>
                             </div>
                         }
                         else if (_tab == "metar")
                         {
-                            <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR non disponibile per @_icao</b></div></div>
+                            <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_MetarNA"], _icao)</b></div></div>
                         }
 
                         @if (_tab == "taf" && _taf is not null)
@@ -152,7 +153,7 @@ else
                                 <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_taf.Raw</div>
                                 @if (_taf.ValidityRaw is not null)
                                 {
-                                    <div class="taf-valid">⏱️ Validità: <b style="margin:0 4px">@_taf.ValidityRaw</b></div>
+                                    <div class="taf-valid"><Icon Name="clock" /> @L["Airport_Validity"]: <b style="margin:0 4px">@TafPeriod.Format(_taf.ValidityRaw, DateTime.UtcNow)</b></div>
                                 }
                                 <div class="taf-tl">
                                     @foreach (var seg in _taf.Segments)
@@ -161,29 +162,29 @@ else
                                         <div class="taf-row @cls">
                                             <div class="taf-head">
                                                 <span class="taf-kind @cls">@TafLabel(seg)</span>
-                                                <span class="taf-when">@(seg.PeriodRaw ?? "dall'inizio validità")</span>
+                                                <span class="taf-when">@(seg.PeriodRaw is null ? L["Airport_FromValidityStart"].Value : TafPeriod.Format(seg.PeriodRaw, DateTime.UtcNow))</span>
                                                 <span class="taf-raw">@seg.Raw</span>
                                             </div>
                                             <div class="taf-parse">
                                                 @if (seg.Wind is not null)
                                                 {
-                                                    <span class="mp"><span class="muted">Vento</span><b>@seg.Wind.Label</b></span>
+                                                    <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@seg.Wind.Label</b></span>
                                                 }
                                                 @if (seg.Wind?.GustKt is int g)
                                                 {
-                                                    <span class="mp"><span class="muted">Raffiche</span><b>@g kt</b></span>
+                                                    <span class="mp"><span class="muted">@L["Airport_Gusts"]</span><b>@g kt</b></span>
                                                 }
                                                 @if (seg.Visibility is not null)
                                                 {
-                                                    <span class="mp"><span class="muted">Visibilità</span><b>@seg.Visibility</b></span>
+                                                    <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@seg.Visibility</b></span>
                                                 }
                                                 @if (seg.Clouds.Count > 0)
                                                 {
-                                                    <span class="mp"><span class="muted">Nubi</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
+                                                    <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
                                                 }
                                                 @if (seg.Weather is not null)
                                                 {
-                                                    <span class="mp"><span class="muted">Tempo</span><b>@seg.Weather</b></span>
+                                                    <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@seg.Weather</b></span>
                                                 }
                                             </div>
                                         </div>
@@ -192,11 +193,11 @@ else
                             </div>
                         }
 
-                        <p class="muted" style="font-size:12px;margin:10px 0 0">Aggiornato @(_wx.AsOf?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</p>
+                        <p class="muted" style="font-size:12px;margin:10px 0 0">@L["AppOp_UpdatedAt", (_wx.AsOf?.ToLocalTime().ToString("HH:mm:ss") ?? "—")]</p>
                     }
                     else
                     {
-                        <div class="empty-ph"><span class="ei">🌫️</span><div><b>METAR/TAF non disponibile per @_icao</b></div><div class="muted" style="font-size:12.5px">Servizio meteo non raggiungibile o ICAO senza bollettino. Riprova più tardi.</div></div>
+                        <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_WxNA"], _icao)</b></div><div class="muted" style="font-size:12.5px">@L["Airport_WxNAHint"]</div></div>
                     }
                     </ChildContent>
                 </CollapsibleBlock>
@@ -213,7 +214,7 @@ else
                                 <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
                                 @if (_tlRows.Count > 0)
                                 {
-                                    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">Transition Level in base al QNH@(_metar?.QnhHpa is int ? $" (attuale {_metar!.QnhHpa} hPa)" : ""):</p>
+                                    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">@L["Airport_TransLevelByQnh"]@(_metar?.QnhHpa is int ? string.Format(L["Airport_QnhCurrent"], _metar!.QnhHpa) : ""):</p>
                                     <table class="tl-table">
                                         <thead><tr>@foreach (var c in _tlCols) { <th>@c</th> }</tr></thead>
                                         <tbody>
@@ -222,7 +223,7 @@ else
                                                 var now = _metar?.QnhHpa is int q && QnhRowMatches(r.Range, q);
                                                 <tr class="@(now ? "tl-now" : "")">
                                                     <td>@r.Range</td>
-                                                    <td>@(_ta is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">QNH attuale</span> }</td>
+                                                    <td>@(_ta is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -234,15 +235,15 @@ else
                         @if (FreqRows().Any() || _profile is not null)
                         {
                             <CollapsibleBlock Id="a-freq">
-                                <Header><h3 style="margin-top:0">Frequenze</h3></Header>
+                                <Header><h3 style="margin-top:0">@L["Common_Frequencies"]</h3></Header>
                                 <ChildContent>
                                 <table class="freq-table">
-                                    <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th></tr></thead>
+                                    <thead><tr><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Airport_Frequency"]</th></tr></thead>
                                     <tbody>
                                         @foreach (var f in FreqRows())
                                         {
                                             <tr class="@(f.IsPrimary ? "primary" : null)">
-                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {FreqName(f.Position)}" : (MarkupString)FreqName(f.Position))</td><td>@f.ComposePosition</td>
+                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {System.Net.WebUtility.HtmlEncode(FreqName(f.Position))}" : (MarkupString)System.Net.WebUtility.HtmlEncode(FreqName(f.Position)))</td><td>@f.ComposePosition</td>
                                                 <td>@(f.Frequency ?? "—")</td>
                                             </tr>
                                         }
@@ -266,18 +267,18 @@ else
                 @if (_profile is { Runways.Count: > 0 })
                 {
                     <CollapsibleBlock Id="a-piste">
-                        <Header><h3 style="margin-top:0">Piste</h3></Header>
+                        <Header><h3 style="margin-top:0">@L["Airport_Runways"]</h3></Header>
                         <ChildContent>
                         <p class="muted" style="font-size:12.5px;margin:0 0 8px">
-                            In <span class="rwy-key arr">verde gli arrivi</span> e <span class="rwy-key dep">blu le partenze</span> consigliati
-                            @if (_ruleResult is not null) { <text>dalla regola attiva «@(_ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")»</text> } else { <text>dal vento METAR</text> }.
-                            @if (_windDir is int wd) { <text> Vento @wd° / @_windKt kt.</text> }
-                            @if (_metar?.HasRain == true) { <span class="pill">🌧️ pioggia</span> }
-                            @if (_metar?.HasSnow == true) { <span class="pill">❄️ neve</span> }
+                            @((MarkupString)L["Airport_RwyLegend"].Value)
+                            @if (_ruleResult is not null) { <text>@string.Format(L["Airport_RwyByRule"], _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")</text> } else { <text>@L["Airport_RwyByWind"]</text> }.
+                            @if (_windDir is int wd) { <text> @string.Format(L["Airport_WindVal"], wd, _windKt)</text> }
+                            @if (_metar?.HasRain == true) { <span class="pill">🌧️ @L["Airport_Rain"]</span> }
+                            @if (_metar?.HasSnow == true) { <span class="pill">❄️ @L["Airport_Snow"]</span> }
                             @if (_ruleResult?.Note is string rn) { <span class="pill" style="background:#fff4e5;color:#9a6700">@rn</span> }
                         </p>
                         <table class="rwy-table">
-                            <thead><tr><th>Pista</th><th>Uso</th><th>Lung. (m)</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th></tr></thead>
+                            <thead><tr><th>@L["Airport_Runway"]</th><th>@L["Airport_Use"]</th><th>@L["Airport_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th></tr></thead>
                             <tbody>
                                 @foreach (var r in _profile.Runways)
                                 {
@@ -286,8 +287,8 @@ else
                                     <tr class="@RwyRowClass(dep, arr)">
                                         <td><b>@r.Ident</b></td>
                                         <td style="white-space:nowrap;font-size:15px">
-                                            @if (dep) { <span title="Consigliata per le partenze">🛫</span> }
-                                            @if (arr) { <span title="Consigliata per gli arrivi">🛬</span> }
+                                            @if (dep) { <span title="@L["Airport_RwyDepTip"]">🛫</span> }
+                                            @if (arr) { <span title="@L["Airport_RwyArrTip"]">🛬</span> }
                                             @if (!dep && !arr) { <span class="muted" style="font-size:12px">—</span> }
                                         </td>
                                         <td>@(r.LengthM?.ToString() ?? "—")</td>
@@ -312,19 +313,34 @@ else
                         <ChildContent>
                         @if (_sids.Rows.Count > 0)
                         {
-                            <table class="cfg-table">
-                                <thead><tr><th>Pista</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th></tr></thead>
+                            @if (SidRunways().Count > 1)
+                            {
+                                <div class="cfg-sel" style="margin:0 0 12px">
+                                    <span class="cfg-sel-lab">@L["Airport_Runway"]</span>
+                                    @foreach (var rw in SidRunways())
+                                    {
+                                        <button type="button" class="cfg-btn @(string.Equals(_sidRwy, rw, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                                                @onclick="() => SelectSidRwy(rw)">
+                                            @rw @if (_depIdents.Contains(rw)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            <div style="overflow:auto">
+                            <table class="res-table sid-table">
+                                <thead><tr><th>@L["Airport_Runway"]</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th></tr></thead>
                                 <tbody>
-                                    @foreach (var r in _sids.Rows)
+                                    @foreach (var r in ShownSids())
                                     {
                                         <tr><td>@r.Runway</td><td>@r.Fix</td><td>@r.Name</td><td>@r.Transition</td><td>@r.InitialClimb</td><td>@r.Type</td><td>@r.Cat</td><td>@r.Wtc</td><td>@r.Condition</td></tr>
                                     }
                                 </tbody>
                             </table>
+                            </div>
                         }
                         else
                         {
-                            <div class="callout info"><span class="cic">🔄</span><div><p class="ct">SID non ancora inserite</p>Aggiungile dall'editor aeroporto o importale dal sectorfile.</div></div>
+                            <div class="callout info"><span class="cic"><Icon Name="refresh" Size="18" /></span><div><p class="ct">@L["Airport_NoSidsTitle"]</p>@L["Airport_NoSidsBody"]</div></div>
                         }
                         </ChildContent>
                     </CollapsibleBlock>
@@ -355,19 +371,19 @@ else
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
             <aside class="doc-rail">
                 <div class="rail-card">
-                    <h5>📋 Riepilogo</h5>
-                    <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@_view.AiracCycle</b></div>
-                    <div class="rail-line"><span class="muted">ATC online</span>
+                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@_view.AiracCycle</b></div>
+                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
                         @{ var n = OnlineAt(_icao); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5>🔗 Collegamenti</h5>
+                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">Home</a></li>
+                        <li><a href="/vsop">@L["Common_Home"]</a></li>
                         <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">Aeroporti</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
                     </ul>
                 </div>
                 @foreach (var s in ExtraSections())
@@ -420,6 +436,8 @@ else
     private SectionView? _freqSection;
     private SectionView? _sidSection;   // sezione "sids" (doc 10 §3e): resa custom dalla derivazione, non da SectionNode
     private AirportSidView _sids = AirportSidView.Empty;
+    private string? _sidRwy;             // pista selezionata nel filtro SID (default: pista in uso in partenza)
+    private bool _sidRwyUserPicked;      // l'utente ha scelto una pista → non sovrascrivere col default al Recompute
     private List<SectionView> _otherSections = new();
     private List<SectionView> _extraSections = new();
     private int? _ta;
@@ -508,8 +526,8 @@ else
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => "[Bozza] ",
-        PreviewKind.Release => "[Anteprima] ",
+        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
         _ => "",
     };
 
@@ -589,9 +607,9 @@ else
     {
         yield return ("a-meteo", "METAR & TAF");
         if (_taSection is not null) yield return (_taSection.Id, _taSection.Title);
-        if (FreqRows().Any() || _profile is not null) yield return ("a-freq", "Frequenze");
+        if (FreqRows().Any() || _profile is not null) yield return ("a-freq", L["Common_Frequencies"]);
         else if (_freqSection is not null) yield return (_freqSection.Id, _freqSection.Title);
-        if (_profile is { Runways.Count: > 0 }) yield return ("a-piste", "Piste");
+        if (_profile is { Runways.Count: > 0 }) yield return ("a-piste", L["Airport_Runways"]);
         if (_sidSection is not null) yield return ("a-sid", _sidSection.Title);
         foreach (var s in _otherSections) yield return (s.Id, s.Title);
         foreach (var s in ExtraSections()) yield return ($"extra-{s.Id}", s.Title);
@@ -630,7 +648,30 @@ else
             _depIdents.Add((_sugg.DepIdent ?? _sugg.Best.Ident).Trim());
             _arrIdents.Add((_sugg.ArrIdent ?? _sugg.Best.Ident).Trim());
         }
+
+        // Default filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID. Se l'utente ha
+        // già scelto una pista la rispettiamo; se la sua scelta non è più valida ricade sul default.
+        var sidRwys = SidRunways();
+        if (!_sidRwyUserPicked || _sidRwy is null || !sidRwys.Contains(_sidRwy, StringComparer.OrdinalIgnoreCase))
+            _sidRwy = sidRwys.FirstOrDefault(r => _depIdents.Contains(r)) ?? sidRwys.FirstOrDefault();
     }
+
+    /// <summary>Piste distinte presenti nelle SID pubblicate (escluso "—"/vuoto), ordinate.</summary>
+    private List<string> SidRunways() => _sids.Rows
+        .Select(r => r.Runway)
+        .Where(x => !string.IsNullOrWhiteSpace(x) && x != "—")
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    /// <summary>SID da mostrare: quelle della pista selezionata + quelle senza pista (valide per tutte). Se nessuna
+    /// pista è selezionata (SID senza pista) le mostra tutte.</summary>
+    private IEnumerable<AirportSidRowView> ShownSids() => _sids.Rows
+        .Where(r => _sidRwy is null
+            || string.Equals(r.Runway, _sidRwy, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(r.Runway) || r.Runway == "—");
+
+    private void SelectSidRwy(string rw) { _sidRwy = rw; _sidRwyUserPicked = true; }
 
     private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

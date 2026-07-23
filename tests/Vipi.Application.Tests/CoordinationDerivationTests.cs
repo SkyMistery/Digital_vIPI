@@ -111,6 +111,22 @@ public class CoordinationDerivationTests
     }
 
     [Fact]
+    public void Condition_label_propagates_to_row_and_sentence()
+    {
+        // Variante condizionata da pista: la label finisce sulla riga e la clausola nella frase.
+        var pt = new TransferPointRow
+        {
+            Id = 0, Cop = "NILTO", LevelValue = 195, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            Parity = LevelParity.Any, LevelText = "≤FL195", NextSectorCallsign = "LIRR_TS_CTR", Order = 1,
+            ConditionLabel = "RWY 16",
+        };
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", pt) };
+        var e = Assert.Single(Build(flows, "LIBB_ES_CTR"));
+        Assert.Equal("RWY 16", e.Row.ConditionLabel);
+        Assert.EndsWith("con pista RWY 16 in uso.", e.Row.Sentence);
+    }
+
+    [Fact]
     public void Incoming_arrival_from_neighbour_ctr_reads_neighbour_as_sender()
     {
         // Flusso posseduto da un CTR vicino (non membro) che consegna a un nostro settore del blocco.

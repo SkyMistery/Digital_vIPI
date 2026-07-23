@@ -5,6 +5,7 @@
 @inject IVloaViewDerivationService VloaView
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
 
 <div class="doc-layout">
     <aside class="toc">
@@ -25,10 +26,10 @@
             </div>
             @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
             {
-                <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">✎ Editor</a>
+                <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">@L["Common_Editor"]</a>
             }
         </div>
-        <div class="callout info"><span class="cic">🌍</span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
+        <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
 
         @foreach (var s in View.Sections)
         {
@@ -71,8 +72,8 @@
 
     <aside class="doc-rail">
         <div class="rail-card">
-            <h5>📋 Riepilogo</h5>
-            <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@View.AiracCycle</b></div>
+            <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+            <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@View.AiracCycle</b></div>
             @if (!string.IsNullOrWhiteSpace(HomeAcc))
             {
                 <div class="rail-line"><span class="muted">@HomeAcc online</span>@OnlineBadge(HomeAcc)</div>
@@ -85,10 +86,10 @@
         @if (!string.IsNullOrWhiteSpace(HomeAcc))
         {
             <div class="rail-card">
-                <h5>🔗 Collegamenti</h5>
+                <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                 <ul class="rail-links">
-                    <li><a href="/vsop">Home</a></li>
-                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vloa">Elenco vLoA</a></li>
+                    <li><a href="/vsop">@L["Common_Home"]</a></li>
+                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vloa">@L["Vloa_ListLink"]</a></li>
                     <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vipi">vIPI @HomeAcc</a></li>
                 </ul>
             </div>
@@ -157,7 +158,7 @@
         var visible = _freq.Rows.Where(r => !r.Hidden).ToList();
         @if (visible.Count == 0)
         {
-            <p class="muted">Nessuna frequenza disponibile.</p>
+            <p class="muted">@L["Vloa_NoFreqAvail"]</p>
         }
         else
         {
@@ -172,7 +173,7 @@
     {
         @if (rows.Count == 0)
         {
-            <p class="muted" style="margin:0">Nessuna frequenza.</p>
+            <p class="muted" style="margin:0">@L["Vloa_NoFreq"]</p>
         }
         else
         {

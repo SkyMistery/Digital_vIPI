@@ -265,6 +265,10 @@ public sealed class EfAirportRepository : IAirportRepository
 
         // Garantisce la tabella TL di default anche per aeroporti generati senza import IVAO (es. TA/TL mai popolate).
         EnsureDefaultTransitionLevels(airport);
+        // Risolve i livelli delle fasce-default se la TA è nota ma le righe portano ancora il placeholder "TA + N ft"
+        // (seminate quando la TA non era ancora arrivata dalla sorgente): senza questo il rebuild pubblicherebbe i
+        // placeholder invece dei FL calcolati. Le fasce personalizzate restano intatte.
+        RecomputeDefaultBandLevels(airport);
 
         // Solo i settori-FOGLIA dell'aeroporto (DEL/GND/TWR/ITwr) appartengono alla vIPI d'aeroporto.
         // Gli APP NON ci vanno mai: se sono "di ACC" stanno nella vIPI di ACC, se standalone hanno doc proprio.
@@ -425,6 +429,15 @@ public sealed class EfAirportRepository : IAirportRepository
         if (sec is null) return;   // documento/sezione non ancora generati: nasceranno al primo rebuild (default Live)
         sec.RenderMode = mode;
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        return await _db.Sectors.AsNoTracking()
+            .Where(s => s.AirportIcao == icao && s.DocumentId != null)
+            .Select(s => s.DocumentId)
+            .FirstOrDefaultAsync(ct);
     }
 
     // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.

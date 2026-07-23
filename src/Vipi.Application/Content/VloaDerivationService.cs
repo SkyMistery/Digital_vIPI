@@ -211,13 +211,15 @@ public sealed class VloaDerivationService : IVloaDerivationService
                 if (!isH2F && !isF2H) continue;
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
-                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind);
+                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
+                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
                 var row = new AppCoordRow(p.Cop, p.LevelText, next!, flow.Kind)
                 {
                     OwnerCallsign = owner,
                     AirportIcao = flow.AirportIcao,
                     Constraint = p.LevelConstraint,
                     Sentence = sentence,
+                    ConditionLabel = p.ConditionDisplay,
                 };
                 var entry = new CoordinationEntry(owner, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row);
                 (isH2F ? h2f : f2h).Add(entry);

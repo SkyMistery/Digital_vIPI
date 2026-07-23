@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();
         services.AddScoped<IImportPolicyService, ImportPolicyService>();
+        services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();
         return services;
     }
 }

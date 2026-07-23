@@ -10,7 +10,7 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
 else if (_foreign.Length > 0)
 {
@@ -48,7 +48,7 @@ else
         </div>
         @if (_vloas.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLoA</p>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</div></div>
+            <EmptyState Title="Nessuna vLoA">Non ci sono ancora lettere di accordo pubblicate per questa ACC.</EmptyState>
         }
         else
         {
@@ -61,7 +61,7 @@ else
                     {
                         var neigh = v.NeighbourCode ?? v.Title;
                         var neighOnline = NeighOnline(v.NeighbourCode);
-                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode" style="text-decoration:none;color:inherit">
+                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
                             <div class="apt-top">
                                 <h4>@neigh</h4>
                                 <span class="country-tag">@g.Key</span>

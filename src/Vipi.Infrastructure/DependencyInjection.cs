@@ -5,7 +5,7 @@ using Vipi.Infrastructure.Persistence;
 
 namespace Vipi.Infrastructure;
 
-/// <summary>Registra la persistenza SQLite e i servizi infrastrutturali della vIPI.</summary>
+/// <summary>Registra la persistenza (provider selezionabile via <c>Persistence:Provider</c>, default SQLite) e i servizi infrastrutturali della vIPI.</summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString)
@@ -14,7 +14,33 @@ public static class DependencyInjection
     public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString,
         Microsoft.Extensions.Configuration.IConfiguration? configuration)
     {
-        services.AddDbContext<VipiDbContext>(o => o.UseSqlite(connectionString));
+        // Selezione provider di persistenza (ADR-0007): default SQLite; Postgres pianificato (cutover non attuato).
+        var provider = Persistence.PersistenceProviderResolver.Resolve(
+            configuration?[Persistence.PersistenceProviderResolver.ProviderConfigKey]);
+
+        switch (provider)
+        {
+            case Persistence.PersistenceProvider.Sqlite:
+                // Tampone concorrenza SQLite (A1): WAL + busy_timeout a ogni apertura connessione. Vedi SqliteTuningInterceptor.
+                services.AddDbContext<VipiDbContext>(o => o
+                    .UseSqlite(connectionString)
+                    .AddInterceptors(new Persistence.SqliteTuningInterceptor()));
+                break;
+
+            case Persistence.PersistenceProvider.Postgres:
+                // Cutover Postgres NON ancora attuato (ADR-0007): servono un assembly di migrazioni dedicato
+                // (le 60 migrazioni attuali sono SQLite-flavored) + validazione su istanza reale + revisione dei
+                // punti provider-specifici (RowVersion, tipi). Per abilitarlo: aggiungere il pacchetto
+                // Npgsql.EntityFrameworkCore.PostgreSQL e sostituire questo throw con:
+                //   services.AddDbContext<VipiDbContext>(o => o.UseNpgsql(connectionString,
+                //       npg => npg.MigrationsAssembly("Vipi.Infrastructure.Postgres")));
+                throw new InvalidOperationException(
+                    "Persistence:Provider 'Postgres' selezionato ma il cutover non è ancora attuato " +
+                    "(mancano le migrazioni dedicate e la validazione su istanza). Vedi docs/adr/adr-0007-produzione-persistenza-e-scala.md.");
+
+            default:
+                throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");
+        }
         services.AddScoped<Vipi.Application.Abstractions.IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.ITopologyProvider, TopologyBuilder>();
@@ -35,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IConsistencyReportRepository, EfConsistencyReportRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IVloaDerivationRepository, EfVloaDerivationRepository>();

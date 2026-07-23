@@ -764,9 +764,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("CoordinationSentenceTemplate")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("DocumentId")
                         .HasColumnType("INTEGER");
 
@@ -1032,6 +1029,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.ImportState", b =>
                 {
                     b.Property<string>("Category")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastAttemptUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastError")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LastSuccessUtc")
@@ -1401,6 +1404,21 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConditionAreaLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConditionCustomLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConditionLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ConditionRefId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Cop")

@@ -1,7 +1,7 @@
 @using System.Text.Json
 
 <div class="callout @Kind">
-    <span class="cic">@Icon</span>
+    <span class="cic"><Icon Name="@IconName" Size="18" /></span>
     <div>
         <p class="ct">@Title</p>
         @MarkdownLite.Render(Block.Body)
@@ -14,12 +14,12 @@
     private CalloutKind K => Block.CalloutKind ?? CalloutKind.Info;
     private string Kind => K.ToString().ToLowerInvariant();
 
-    private string Icon => K switch
+    private string IconName => K switch
     {
-        CalloutKind.Success => "✅",
-        CalloutKind.Warning => "⚠️",
-        CalloutKind.Danger => "⛔",
-        _ => "ℹ️",
+        CalloutKind.Success => "check-circle",
+        CalloutKind.Warning => "warning",
+        CalloutKind.Danger => "octagon",
+        _ => "info",
     };
 
     private string Title

@@ -1,21 +1,22 @@
 @* Banner condiviso delle anteprime documentali (bozza / release). Mostrato dai viewer tipizzati quando la
    modalità non è pubblica. Solo display: il gating avviene al caricamento nel viewer. *@
 @using Vipi.Ui.Shared
+@inject IStringLocalizer<SharedResource> L
 
 @if (Kind == PreviewKind.Draft)
 {
-    <div class="callout warning"><span class="cic">👁</span><div>
-        <p class="ct">Anteprima bozza live</p>
-        Stai vedendo lo stato editoriale <b>corrente</b> (non la versione pubblica). I dati derivati (frequenze/coordinamenti/AoR) usano i cataloghi correnti.
-        <a href="@PublicHref">Apri la versione pubblica →</a>
+    <div class="callout warning"><span class="cic"><Icon Name="eye" Size="18" /></span><div>
+        <p class="ct">@L["Preview_DraftTitle"]</p>
+        @((MarkupString)L["Preview_DraftBody"].Value)
+        <a href="@PublicHref">@L["Preview_OpenPublic"]</a>
     </div></div>
 }
 else if (Kind == PreviewKind.Release)
 {
-    <div class="callout info"><span class="cic">👁</span><div>
-        <p class="ct">Anteprima release AIRAC @Cycle</p>
-        Come apparirà il documento quando questa release entrerà in vigore. I dati derivati usano i cataloghi correnti.
-        <a href="@PublicHref">[Pubblica]</a> · <a href="@DraftHref">[Bozza]</a>
+    <div class="callout info"><span class="cic"><Icon Name="eye" Size="18" /></span><div>
+        <p class="ct">@(string.Format(L["Preview_ReleaseTitle"].Value, Cycle))</p>
+        @L["Preview_ReleaseBody"]
+        <a href="@PublicHref">@L["Preview_Public"]</a> · <a href="@DraftHref">@L["Preview_Draft"]</a>
     </div></div>
 }
 

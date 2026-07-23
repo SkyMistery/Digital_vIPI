@@ -1,19 +1,22 @@
 @* Pannello release AIRAC riutilizzabile: timeline + pubblica al ciclo / pubblica ora. Per gli editor profile-based
-   (ACC/APP) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale. *@
+   (ACC/APP/Aeroporto) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale.
+   Parametri opt-in (default = timeline semplice): ShowDiff, AllowCancel, BeforePublishAsync, PreviewUrlFactory. *@
 @inject IReleaseService Releases
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <div class="block" style="margin-top:10px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <b>📅 Release AIRAC</b>
-        <span class="muted" style="font-size:12px">il pubblico vede la release in vigore al ciclo corrente (@_currentCycle); l'editor lavora sempre sulla bozza live</span>
+        <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
+        <span class="muted" style="font-size:12px">@(string.Format(L["Rel_HeaderNote"].Value, _currentCycle))</span>
     </div>
 
-    @if (_error is not null) { <div class="callout danger" style="margin:0 0 6px"><span class="cic">⛔</span><div>@_error</div></div> }
-    @if (_ok is not null) { <div class="callout success" style="margin:0 0 6px"><span class="cic">✓</span><div>@_ok</div></div> }
+    @if (_error is not null) { <div class="callout danger" style="margin:0 0 6px"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
+    @if (_ok is not null) { <div class="callout success" style="margin:0 0 6px"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div> }
 
     @if (_rels.Count == 0)
     {
-        <p class="help" style="margin:0 0 6px">Nessuna release: il documento non è ancora visibile al pubblico. Pubblica per renderlo visibile.</p>
+        <p class="help" style="margin:0 0 6px">@L["Rel_NoRelease"]</p>
     }
     else
     {
@@ -23,14 +26,28 @@
                 <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                 <div style="flex:1">
                     <b>@Label(r)</b>
-                    <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                    <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                 </div>
-                @{ var previewUrl = PreviewUrl(r.Id); }
-                @if (previewUrl is not null)
-                {
-                    <a class="btn ghost" href="@previewUrl" target="_blank" rel="noopener" title="Anteprima del documento come sarà a questo ciclo">👁 Anteprima</a>
-                }
+                <span class="vact">
+                    @{ var previewUrl = PreviewFor(r.Id); }
+                    @if (previewUrl is not null)
+                    {
+                        <a class="btn ghost" href="@previewUrl" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
+                    }
+                    @if (ShowDiff)
+                    {
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
+                    }
+                    @if (AllowCancel)
+                    {
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => CancelRelease(r.Id)" title="@L["Rel_CancelTitle"]">✕ @L["Common_Cancel"]</button>
+                    }
+                </span>
             </div>
+            @if (ShowDiff && _diffOpen.Contains(r.Id))
+            {
+                <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
+            }
         }
     }
 
@@ -38,18 +55,28 @@
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle">
             @foreach (var c in _upcoming)
             {
-                <option value="@c.Cycle">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
+                <option value="@c.Cycle">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
             }
         </select>
-        <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_note" />
-        <button class="btn primary" disabled="@_busy" @onclick="PublishNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
-        <button class="btn ghost" disabled="@_busy" @onclick="PublishAtCycle" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
+        <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" @bind="_note" />
+        <button class="btn primary" disabled="@_busy" @onclick="PublishNow" title="@L["Rel_PublishNowTitle"]"><Icon Name="megaphone" /> @L["Rel_PublishNow"]</button>
+        <button class="btn ghost" disabled="@_busy" @onclick="PublishAtCycle" title="@L["Rel_ScheduleTitle"]"><Icon Name="calendar" /> @L["Rel_ScheduleAtCycle"]</button>
     </div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public ReleaseTargetType Target { get; set; }
     [Parameter, EditorRequired] public string Key { get; set; } = default!;
+
+    /// <summary>Eseguito PRIMA della pubblicazione (es. rigenerare il documento dell'aeroporto dalla bozza, chiedere
+    /// conferma). Se ritorna false, la pubblicazione è annullata. Null = nessun passo preliminare.</summary>
+    [Parameter] public Func<Task<bool>>? BeforePublishAsync { get; set; }
+    /// <summary>Mostra il pulsante «Differenze» + il blocco diff per ogni release.</summary>
+    [Parameter] public bool ShowDiff { get; set; }
+    /// <summary>Mostra il pulsante «Annulla» per ogni release (tipicamente solo admin).</summary>
+    [Parameter] public bool AllowCancel { get; set; }
+    /// <summary>Costruisce l'URL di anteprima release per id (l'host conosce l'ACC). Null = usa il default per-target.</summary>
+    [Parameter] public Func<int, string?>? PreviewUrlFactory { get; set; }
 
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -58,6 +85,8 @@
     private string? _note;
     private bool _busy;
     private string? _error, _ok;
+    private readonly HashSet<int> _diffOpen = new();
+    private readonly Dictionary<int, ReleaseDiff> _diffs = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -67,30 +96,108 @@
         await Reload();
     }
 
-    private async Task Reload() => _rels = await Releases.ListAsync(Target, Key);
+    private async Task Reload()
+    {
+        _rels = await Releases.ListAsync(Target, Key);
+        _diffOpen.Clear(); _diffs.Clear();
+    }
 
-    private Task PublishAtCycle() => Run(() => Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note),
-        $"Release pubblicata al ciclo AIRAC {_cycle ?? _currentCycle}.");
+    private Task PublishAtCycle() => Run(async () =>
+    {
+        if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
+        await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
+        return true;
+    }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle));
 
-    private Task PublishNow() => Run(() => Releases.PublishNowAsync(Target, Key, _note), "Release pubblicata subito (review).");
+    private Task PublishNow() => Run(async () =>
+    {
+        if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
+        await Releases.PublishNowAsync(Target, Key, _note);
+        return true;
+    }, L["Rel_PublishedNow"]);
 
-    private async Task Run(Func<Task> action, string ok)
+    private Task CancelRelease(int releaseId) => Run(async () =>
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", L["Rel_CancelConfirm"].Value))
+            return false;
+        await Releases.CancelReleaseAsync(releaseId);
+        return true;
+    }, L["Rel_Canceled"]);
+
+    private async Task ToggleDiff(int releaseId)
+    {
+        if (_diffOpen.Remove(releaseId)) return;
+        _diffOpen.Add(releaseId);
+        if (!_diffs.ContainsKey(releaseId))
+        {
+            try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
+            catch (EditNotAllowedException ex) { _error = ex.Message; }
+        }
+    }
+
+    // Esegue l'azione (che ritorna true=proceduta → mostra ok; false=annullata → nessun messaggio) con guardia busy/errori.
+    private async Task Run(Func<Task<bool>> action, string ok)
     {
         _busy = true; _error = _ok = null;
-        try { await action(); await Reload(); _ok = ok; }
+        try
+        {
+            if (await action()) { await Reload(); _ok = ok; }
+        }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
 
-    private static string Label(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 In vigore"
-        : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
+    private string Label(ReleaseInfo r) => r.IsEffectiveNow
+        ? "🟢 " + L["Rel_Effective"]
+        : r.Status == ReleaseStatus.Scheduled ? "🕒 " + L["Rel_Scheduled"] : L["Rel_Superseded"];
 
-    // URL del viewer tipizzato in modalità anteprima release. Key: ACC = "{acc}|{root}"; Airport = ICAO; App = callsign.
-    private string? PreviewUrl(int releaseId) => Target switch
+    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
+
+    // Etichetta localizzata del tipo di modifica diff (i valori grezzi dal service restano in IT per il DiffPill).
+    private string ChangeLabel(string change) => change switch
     {
-        ReleaseTargetType.AccVipi => $"/vsop/{Key.Split('|')[0].ToLowerInvariant()}/vipi?as=rel:{releaseId}",
-        _ => null,
+        "Aggiunta" => L["Rel_ChangeAdded"],
+        "Rimossa" => L["Rel_ChangeRemoved"],
+        "Modificata" => L["Rel_ChangeModified"],
+        _ => change,
     };
+
+    private RenderFragment DiffBlock(int releaseId) => __builder =>
+    {
+        @if (_diffs.TryGetValue(releaseId, out var diff))
+        {
+            <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @diff.BaselineLabel</div>
+            @if (diff.Rows.Count == 0)
+            {
+                <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
+            }
+            else
+            {
+                <table class="cfg-table">
+                    <thead><tr><th>@L["Rel_ColItem"]</th><th>@L["Rel_ColChange"]</th><th>@L["Rel_ColDetail"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in diff.Rows)
+                        {
+                            <tr>
+                                <td>@row.Label</td>
+                                <td><span class="pill @DiffPill(row.Change)">@ChangeLabel(row.Change)</span></td>
+                                <td class="muted" style="font-size:12px">@row.Detail</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+        else { <p class="help" style="margin:0">@L["Rel_LoadingDiff"]</p> }
+    };
+
+    // URL anteprima: factory dell'host se presente, altrimenti default per-target.
+    private string? PreviewFor(int releaseId) => PreviewUrlFactory is not null
+        ? PreviewUrlFactory(releaseId)
+        : Target switch
+        {
+            ReleaseTargetType.AccVipi => $"/vsop/{Key.Split('|')[0].ToLowerInvariant()}/vipi?as=rel:{releaseId}",
+            _ => null,
+        };
 }

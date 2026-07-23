@@ -127,7 +127,16 @@ public sealed class EfTransferRepository : ITransferRepository
             ? (string.IsNullOrWhiteSpace(i.LevelSpecial) ? null : i.LevelSpecial.Trim()) : null;
         p.Parity = i.Parity;
         p.NextSectorId = i.NextSectorId;
+
+        // Condizione: tre dimensioni indipendenti (pista/area/personalizzata), ognuna trim→null se vuota.
+        // Il soft-ref pista è tenuto solo se c'è una pista.
+        p.ConditionLabel = NullIfBlank(i.ConditionLabel);
+        p.ConditionRefId = p.ConditionLabel is null ? null : i.ConditionRefId;
+        p.ConditionAreaLabel = NullIfBlank(i.ConditionAreaLabel);
+        p.ConditionCustomLabel = NullIfBlank(i.ConditionCustomLabel);
     }
+
+    private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static TransferFlowRow MapFlow(TransferFlow f) => new()
     {
@@ -155,6 +164,10 @@ public sealed class EfTransferRepository : ITransferRepository
         LevelText = LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial, p.Parity),
         NextSectorId = p.NextSectorId,
         NextSectorCallsign = p.NextSector?.Callsign,
+        ConditionLabel = p.ConditionLabel,
+        ConditionRefId = p.ConditionRefId,
+        ConditionAreaLabel = p.ConditionAreaLabel,
+        ConditionCustomLabel = p.ConditionCustomLabel,
         Order = p.Order,
     };
 }

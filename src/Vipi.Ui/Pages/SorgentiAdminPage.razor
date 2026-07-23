@@ -5,61 +5,95 @@
 @using Vipi.Application.Content
 @using Vipi.Application.Auth
 @inject IImportPolicyService Policy
+@inject IImportStateStore ImportStates
 @inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Sorgenti dati · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Sorg_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Sorgenti dati</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Sorg_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Sorgenti dati</h2><span class="muted">Decidi quali dati arrivano dalla sorgente (oggi IVAO) e quali si gestiscono a mano</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Sorg_Title"]</h2><span class="muted">@L["Sorg_Subtitle"]</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
     else
     {
-        @if (_msg is not null) { <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div> }
-        @if (_ok is not null) { <div class="callout"><span class="cic">✅</span><div>@_ok</div></div> }
+        @if (_msg is not null) { <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div>@_msg</div></div> }
+        @if (_ok is not null) { <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div> }
 
         <div class="block" style="max-width:720px">
-            <p class="help">
-                Le categorie <b>importate</b> dalla sorgente sono <b>autorevoli e in sola lettura</b> per gli utenti:
-                vengono sovrascritte ai re-import e non si possono modificare negli editor. Escludendo una categoria
-                la rendi <b>manuale</b>: l'import non la tocca più e gli editor la lasciano modificabile.
-            </p>
+            <p class="help">@((MarkupString)L["Sorg_Intro"].Value)</p>
 
             <table class="res-table" style="max-width:680px">
-                <thead><tr><th>Categoria</th><th>Provenienza</th><th></th></tr></thead>
+                <thead><tr><th>@L["Sorg_ColCategory"]</th><th>@L["Sorg_ColProvenance"]</th><th></th></tr></thead>
                 <tbody>
                     <tr>
-                        <td><b>Transition Altitude</b><br /><span class="muted" style="font-size:11px">Quota di transizione dell'aeroporto</span></td>
+                        <td><b>Transition Altitude</b><br /><span class="muted" style="font-size:11px">@L["Sorg_TaDesc"]</span></td>
                         <td>@Provenance(_p.TransitionAltitude)</td>
-                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.TransitionAltitude" /> importa dalla sorgente</label></td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.TransitionAltitude" /> @L["Sorg_ImportFromSource"]</label></td>
                     </tr>
                     <tr>
-                        <td><b>Piste</b><br /><span class="muted" style="font-size:11px">Ident, lunghezza e bearing delle piste</span></td>
+                        <td><b>@L["Sorg_RunwaysLabel"]</b><br /><span class="muted" style="font-size:11px">@L["Sorg_RunwaysDesc"]</span></td>
                         <td>@Provenance(_p.Runways)</td>
-                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Runways" /> importa dalla sorgente</label></td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Runways" /> @L["Sorg_ImportFromSource"]</label></td>
                     </tr>
                     <tr>
-                        <td><b>Settori</b><br /><span class="muted" style="font-size:11px">Settori d'aeroporto (callsign/tipo/frequenza)</span></td>
+                        <td><b>@L["Sorg_SectorsLabel"]</b><br /><span class="muted" style="font-size:11px">@L["Sorg_SectorsDesc"]</span></td>
                         <td>@Provenance(_p.Sectors)</td>
-                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sectors" /> importa dalla sorgente</label></td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sectors" /> @L["Sorg_ImportFromSource"]</label></td>
                     </tr>
                     <tr>
-                        <td><b>SID</b><br /><span class="muted" style="font-size:11px">SID dal sectorfile Aurora (GitHub)</span></td>
+                        <td><b>SID</b><br /><span class="muted" style="font-size:11px">@L["Sorg_SidDesc"]</span></td>
                         <td>@Provenance(_p.Sids)</td>
-                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sids" /> importa dalla sorgente</label></td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sids" /> @L["Sorg_ImportFromSource"]</label></td>
                     </tr>
                 </tbody>
             </table>
 
             <div style="margin-top:14px">
-                <button class="btn primary" disabled="@_busy" @onclick="Save">Salva</button>
+                <button class="btn primary" disabled="@_busy" @onclick="Save">@L["Common_Save"]</button>
             </div>
+        </div>
+
+        <div class="block" style="max-width:720px;margin-top:18px">
+            <h3 style="margin-bottom:2px">@L["Sorg_StatesTitle"]</h3>
+            <p class="help">@L["Sorg_StatesHelp"]</p>
+            @if (_states.Count == 0)
+            {
+                <div class="help">@L["Sorg_NoStates"]</div>
+            }
+            else
+            {
+                <table class="res-table" style="max-width:680px">
+                    <thead><tr><th>@L["Sorg_ColCategory"]</th><th>@L["Sorg_ColLastSuccess"]</th><th>@L["Sorg_ColLastAttempt"]</th><th>@L["Common_State"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in _states)
+                        {
+                            <tr>
+                                <td><b>@s.Category</b></td>
+                                <td>@Fmt(s.LastSuccessUtc == default ? (DateTime?)null : s.LastSuccessUtc)</td>
+                                <td>@Fmt(s.LastAttemptUtc)</td>
+                                <td>
+                                    @if (s.LastError is { Length: > 0 })
+                                    {
+                                        <span class="node-badge danger" title="@s.LastError">⚠️ @L["Sorg_ErrorBadge"]</span>
+                                        <div class="muted" style="font-size:11px;margin-top:2px">@s.LastError</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="node-badge"><Icon Name="check-circle" /> @L["Sorg_OkBadge"]</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
         </div>
     }
 </div>
@@ -74,6 +108,7 @@
     }
 
     private PolicyEdit _p = new();
+    private IReadOnlyList<Vipi.Domain.Entities.ImportState> _states = Array.Empty<Vipi.Domain.Entities.ImportState>();
     private bool _busy;
     private string? _msg, _ok;
 
@@ -82,9 +117,12 @@
         if (!Authz.IsAdmin) return;
         var s = await Policy.GetAsync();
         _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors, Sids = s.Sids };
+        _states = await ImportStates.GetAllAsync();
     }
 
-    private static string Provenance(bool imported) => imported ? "🔒 da sorgente (sola lettura)" : "✎ manuale";
+    private string Provenance(bool imported) => imported ? "🔒 " + L["Sorg_ProvSource"] : "✎ " + L["Sorg_ProvManual"];
+
+    private static string Fmt(DateTime? utc) => utc is DateTime d ? d.ToString("yyyy-MM-dd HH:mm 'UTC'") : "—";
 
     private async Task Save()
     {
@@ -92,9 +130,9 @@
         try
         {
             await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors, _p.Sids));
-            _ok = "Policy delle sorgenti salvata.";
+            _ok = L["Sorg_Saved"];
         }
-        catch (EditNotAllowedException) { _msg = "Operazione riservata agli amministratori."; }
+        catch (EditNotAllowedException) { _msg = L["Common_OpAdminOnly"]; }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }

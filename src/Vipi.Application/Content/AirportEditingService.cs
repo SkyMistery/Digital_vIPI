@@ -20,6 +20,9 @@ public interface IAirportEditingService
     /// <summary>Policy di import globale (per editor e viewer): quali categorie sono di sorgente (sola lettura).</summary>
     Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default);
 
+    /// <summary>Id del Document proiettato dell'aeroporto (per il banner di revisione), o null se non ancora generato. Lettura libera.</summary>
+    Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
+
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
@@ -65,6 +68,8 @@ public sealed class AirportEditingService : IAirportEditingService
     }
 
     public Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default) => _policy.GetAsync(ct);
+
+    public Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default) => _repo.GetDocumentIdAsync(Norm(icao), ct);
 
     public Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default) =>
         _repo.LoadAsync(Norm(icao), ct);

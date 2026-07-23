@@ -202,4 +202,87 @@ public class CoordinationSentenceComposerTests
         Assert.Contains("LFOO_CTR trasferisce a LFBB_XX", s);   // niente codice noto → solo callsign
         Assert.Contains("destinazione LFPG LFPG", s);            // ICAO come nome di fallback
     }
+
+    private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null) =>
+        CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, runway, area, custom);
+
+    [Fact]
+    public void Runway_condition_appends_clause_before_period()
+    {
+        // Variante editoriale: clausola condizione appesa a fine frase, prima del punto.
+        var s = ComposeCond(runway: "RWY 16");
+        Assert.EndsWith("su VALMA con pista RWY 16 in uso.", s);
+    }
+
+    [Fact]
+    public void Area_condition_uses_active_wording()
+    {
+        var s = ComposeCond(area: "R41");
+        Assert.EndsWith("su VALMA con R41 attiva.", s);
+    }
+
+    [Fact]
+    public void Custom_condition_uses_generic_wording()
+    {
+        var s = ComposeCond(custom: "traffico intenso");
+        Assert.EndsWith("su VALMA in condizione traffico intenso.", s);
+    }
+
+    [Fact]
+    public void No_condition_appends_no_clause()
+    {
+        Assert.EndsWith("su VALMA.", ComposeCond());
+        Assert.EndsWith("su VALMA.", ComposeCond(runway: "  "));   // label vuota → niente clausola
+    }
+
+    [Fact]
+    public void English_template_composes_english_condition_clause()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, "RWY 16");
+        Assert.EndsWith("over VALMA with runway RWY 16 in use.", s);
+    }
+
+    [Fact]
+    public void Multi_runway_label_lists_runways_in_one_clause()
+    {
+        // Stessa condizione su più piste: l'etichetta le elenca, una sola clausola.
+        var s = ComposeCond(runway: "16R / 16L");
+        Assert.EndsWith("su VALMA con pista 16R / 16L in uso.", s);
+    }
+
+    [Fact]
+    public void Runway_and_area_combine_with_and_wording()
+    {
+        // Pista + area insieme: forma dedicata «con pista X in uso e Y attiva».
+        var s = ComposeCond(runway: "16R", area: "R41");
+        Assert.EndsWith("su VALMA con pista 16R in uso e R41 attiva.", s);
+    }
+
+    [Fact]
+    public void Runway_and_area_english_wording()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, "16R", "R41");
+        Assert.EndsWith("over VALMA with runway 16R in use and R41 active.", s);
+    }
+
+    [Fact]
+    public void All_three_conditions_joined_with_e()
+    {
+        // Tre dimensioni indipendenti insieme: pista+area (forma dedicata) « e » personalizzata.
+        var s = ComposeCond(runway: "16R", area: "R41", custom: "traffico intenso");
+        Assert.EndsWith("su VALMA con pista 16R in uso e R41 attiva e in condizione traffico intenso.", s);
+    }
+
+    [Fact]
+    public void Area_and_custom_without_runway_joined()
+    {
+        var s = ComposeCond(area: "R41", custom: "notte");
+        Assert.EndsWith("su VALMA con R41 attiva e in condizione notte.", s);
+    }
 }

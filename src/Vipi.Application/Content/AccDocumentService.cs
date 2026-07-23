@@ -41,8 +41,9 @@ public interface IAccDocumentService
     /// <summary>Salva le configurazioni di un blocco nel <c>BodyJson</c> della sua sezione figlia <c>configurations</c>. ACC-gated.</summary>
     Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
-    /// <summary>Salva le aree regolamentate attaccate (id IVAO) nel <c>BodyJson</c> della sezione figlia <c>regulated</c>. ACC-gated.</summary>
-    Task SaveRegulatedAsync(string accCode, int regulatedSectionId, IReadOnlyList<string> attachedIds, CancellationToken ct = default);
+    /// <summary>Salva la selezione aree regolamentate (proprio ACC auto/manuale + extra) nel <c>BodyJson</c> della sezione
+    /// figlia <c>regulated</c>. «Puro automatico senza extra» azzera il BodyJson (resta dinamico). ACC-gated.</summary>
+    Task SaveRegulatedAsync(string accCode, int regulatedSectionId, RegulatedSelection selection, CancellationToken ct = default);
 
     /// <summary>Salva le righe Separazioni nel <c>BodyJson</c> della sezione figlia <c>separations</c>. ACC-gated.</summary>
     Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
@@ -166,8 +167,12 @@ public sealed class AccDocumentService : IAccDocumentService
     public Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default) =>
         SaveJsonAsync(accCode, configSectionId, (configs?.Count ?? 0) == 0 ? null : configs, ct);
 
-    public Task SaveRegulatedAsync(string accCode, int regulatedSectionId, IReadOnlyList<string> attachedIds, CancellationToken ct = default) =>
-        SaveJsonAsync(accCode, regulatedSectionId, (attachedIds?.Count ?? 0) == 0 ? null : attachedIds, ct);
+    public Task SaveRegulatedAsync(string accCode, int regulatedSectionId, RegulatedSelection selection, CancellationToken ct = default)
+    {
+        // Puro automatico senza extra = default dinamico → azzera il BodyJson (nessuno stato persistito).
+        var isPureAuto = selection.OwnAuto && selection.OwnIds.Count == 0 && selection.ExtraIds.Count == 0;
+        return SaveJsonAsync(accCode, regulatedSectionId, isPureAuto ? null : selection, ct);
+    }
 
     public Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)
     {

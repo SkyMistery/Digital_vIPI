@@ -316,7 +316,14 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
         await _db.SpecialAreas.AsNoTracking()
             .Where(s => s.CenterId == accCode)
             .OrderBy(s => s.Name)
-            .Select(s => new SpecialAreaPick(s.IvaoId, s.Name, s.Type, s.MinimumAlt, s.MaximumAlt))
+            .Select(s => new SpecialAreaPick(s.IvaoId, s.Name, s.Type, s.MinimumAlt, s.MaximumAlt, s.CenterId))
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasExcludingAccAsync(string accCode, CancellationToken ct = default) =>
+        await _db.SpecialAreas.AsNoTracking()
+            .Where(s => s.CenterId != accCode)
+            .OrderBy(s => s.CenterId).ThenBy(s => s.Name)
+            .Select(s => new SpecialAreaPick(s.IvaoId, s.Name, s.Type, s.MinimumAlt, s.MaximumAlt, s.CenterId))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<SpecialAreaDetail>> GetSpecialAreasByIdsAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default)

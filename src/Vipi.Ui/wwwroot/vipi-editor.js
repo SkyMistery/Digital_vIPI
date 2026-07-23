@@ -25,7 +25,7 @@
     // Chiamato da OnAfterRenderAsync: l'ultima pagina montata diventa la destinataria.
     window.vipiEditorInit = function (dotRef) { current = dotRef; };
 
-    // --- Editor aeroporto: Ctrl/Cmd+S salva il pannello corrente; guardia beforeunload se ci sono modifiche non salvate. ---
+    // --- Editor aeroporto: Ctrl/Cmd+S salva le sezioni modificate; guardia beforeunload se ci sono modifiche non salvate. ---
     var airportRef = null;   // DotNetObjectReference dell'editor aeroporto
     var airportDirty = false;
 
@@ -33,18 +33,30 @@
     window.vipiAirportEditorInit = function (dotRef) { airportRef = dotRef; };
     // Chiamato dalla pagina quando lo stato "sporco" cambia.
     window.vipiSetDirty = function (v) { airportDirty = !!v; };
+    // Espande/comprime tutte le sezioni <details.ed-sec> dell'editor.
+    window.vipiEditorSections = function (open) {
+        document.querySelectorAll('details.ed-sec').forEach(function (d) {
+            if (open) { d.setAttribute('open', ''); } else { d.removeAttribute('open'); }
+        });
+    };
 
     if (!window.__vipiAirportKeys) {
         window.__vipiAirportKeys = true;
-        // Ctrl/Cmd+S → salva pannello corrente (anche col focus in un campo).
+        // Ctrl/Cmd+S → salva tutte le sezioni modificate (anche col focus in un campo).
         document.addEventListener('keydown', function (e) {
             if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-                if (airportRef) { e.preventDefault(); airportRef.invokeMethodAsync('SaveCurrentPanel'); }
+                if (airportRef) { e.preventDefault(); airportRef.invokeMethodAsync('SaveAllDirty'); }
             }
         });
         // Avviso del browser su chiusura/refresh/navigazione con modifiche pendenti.
         window.addEventListener('beforeunload', function (e) {
             if (airportDirty) { e.preventDefault(); e.returnValue = ''; }
+        });
+        // Saltando a una sezione dalla mini-nav (#sec-…), se è collassata la apre.
+        window.addEventListener('hashchange', function () {
+            if (!location.hash) return;
+            var el = document.querySelector(location.hash);
+            if (el && el.tagName === 'DETAILS') el.setAttribute('open', '');
         });
     }
 

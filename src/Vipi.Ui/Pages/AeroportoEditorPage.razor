@@ -16,61 +16,79 @@
 @inject ISidImporter SidImporter
 @inject ISidFixAliasRepository SidAliases
 @inject Vipi.Domain.Services.IAiracService Airac
-@inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
-    <PageTitle>Editor aeroporto @_icao · vIPI</PageTitle>
+    <PageTitle>@L["Ape_EditorTitle"] @_icao · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>Editor</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
         </div>
 
-        <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">✎ Editor aeroporto @_icao</h2><span class="muted">@_acc.Name</span></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ Re-importa da IVAO</button>
+        <div class="editor-bar">
+            <div class="doc-head" style="margin:0">
+                <div><h2 style="margin-bottom:2px">✎ @L["Ape_EditorTitle"] @_icao</h2><span class="muted">@_acc.Name</span></div>
+                <div class="editor-actions">
+                    @if (_data is not null)
+                    {
+                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                        <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
+                            @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
+                        </span>
+                    }
+                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ @L["Ape_ReimportIvao"]</button>
+                </div>
             </div>
         </div>
 
+        @if (_data is not null)
+        {
+            <DocReviewBar DocumentId="_docDbId" OnResolved="LoadAsync" />
+        }
+
         @if (_data is null)
         {
-            <div class="callout warning"><span class="cic">⚠️</span><div>Aeroporto non trovato o nessun profilo. Genera prima il documento da «Gestione aeroporti».</div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@L["Ape_NotFound"]</div></div>
         }
         else
         {
             @if (!_canEdit)
             {
-                <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per editare la ACC @_data.AccCode.</div></div>
+                <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
             }
 
-            <div class="wx-tabs" style="margin:10px 0 16px">
+            <nav class="editor-nav">
                 @foreach (var p in _panels)
                 {
-                    <button class="wx-tab @(_panel == p ? "on" : "")" @onclick="() => SelectPanel(p)">@p@if (_dirtyPanel == p) { <span class="dirt" title="Modifiche non salvate"></span> }</button>
+                    <a class="wx-tab" href="#sec-@Anchor(p)">@PanelLabel(p)@if (_dirtySections.Contains(p)) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</a>
                 }
-            </div>
+                <span style="flex:1"></span>
+                <button type="button" class="wx-tab" @onclick="() => ToggleAllSections(true)" title="@L["Ape_ExpandAllTitle"]">⊞ @L["Common_ExpandAll"]</button>
+                <button type="button" class="wx-tab" @onclick="() => ToggleAllSections(false)" title="@L["Ape_CollapseAllTitle"]">⊟ @L["Common_CollapseAll"]</button>
+            </nav>
 
             @* ===================== REGOLE PISTE ===================== *@
-            @if (_panel == "Regole piste")
-            {
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">Regole scelta pista</h3>
-                    <p class="help">Ogni regola: quando le piste indicate hanno <b>vento in coda ≤</b> la soglia, <b>traverso ≤</b> la soglia (opzionale) e la <b>superficie</b> corrisponde, diventano preferenziali per partenze/arrivi. Coda e traverso si calcolano dal vento corrente. Si valutano in <b>ordine</b>: la prima che si applica vince (metti le più specifiche in alto). Se nessuna si applica, vale la pista con miglior vento di testa.</p>
-                    <p class="help" style="margin-top:-4px">I chip DEP/ARR elencano le piste del pannello «Piste» in memoria: una pista appena aggiunta lì compare subito, ma diventa definitiva solo dopo «Salva piste».</p>
+            <details id="sec-regole" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Regole piste")@if (_dirtySections.Contains("Regole piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Regole piste")'>
+                    <h3 style="margin-top:0">@L["Ape_RwRulesTitle"]</h3>
+                    <p class="help">@((MarkupString)L["Ape_RwRulesHelp"].Value)</p>
+                    <p class="help" style="margin-top:-4px">@L["Ape_RwRulesHelp2"]</p>
 
                     @{ var issues = RuleIssues(); }
                     @if (issues.Errors.Count > 0)
                     {
-                        <div class="callout danger"><span class="cic">⛔</span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
+                        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
                     }
                     @if (issues.Warnings.Count > 0)
                     {
@@ -83,14 +101,14 @@ else
                             <div class="rule-head">
                                 <span class="rule-ord">#@(idx + 1)</span>
                                 <div style="display:flex;gap:6px">
-                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="Su">↑</button>
-                                    <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="Giù">↓</button>
-                                    <button class="btn ghost" @onclick="() => RemoveRule(r)">✕ Rimuovi</button>
+                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="@L["Common_Up"]">↑</button>
+                                    <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="@L["Common_Down"]">↓</button>
+                                    <button class="btn ghost" @onclick="() => RemoveRule(r)">✕ @L["Common_Remove"]</button>
                                 </div>
                             </div>
                             <div class="rule-rwys">
                                 <div><span class="muted">DEP:</span>
-                                    @if (_rwys.Count == 0) { <i class="muted">nessuna pista definita</i> }
+                                    @if (_rwys.Count == 0) { <i class="muted">@L["Ape_NoRwDefined"]</i> }
                                     @foreach (var ident in RwIdents())
                                     {
                                         var id = ident;
@@ -106,34 +124,34 @@ else
                                 </div>
                             </div>
                             <div class="rule-grid">
-                                <label>Coda max (kt)<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
-                                <label>Traverso max (kt, opz.)<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
-                                <label>Superficie<select @bind="r.Surface"><option value="any">indiff</option><option value="dry">asciutta</option><option value="wet">bagnata</option></select></label>
-                                <label>Nome<input @bind="r.Name" placeholder="es. 35 asciutta" /></label>
-                                <label>Note<input @bind="r.Note" placeholder="testo libero" /></label>
+                                <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
+                                <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
+                                <label>@L["Ape_Surface"]<select @bind="r.Surface"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
+                                <label>@L["Airport_Name"]<input @bind="r.Name" placeholder="@L["Ape_RuleNamePh"]" /></label>
+                                <label>@L["Ape_Notes"]<input @bind="r.Note" placeholder="@L["Ape_FreeText"]" /></label>
                             </div>
                             <details class="rule-adv">
-                                <summary>Avanzate — orario · giorni · parità · validità (opzionali)</summary>
+                                <summary>@L["Ape_Advanced"]</summary>
                                 <div class="rule-grid" style="margin-top:8px">
-                                    <label>Orario da (LT)<input type="time" @bind="r.TimeFrom" /></label>
-                                    <label>a (LT)<input type="time" @bind="r.TimeTo" /></label>
-                                    <label>Parità giorno<select @bind="r.Parity"><option value="">indiff</option><option value="even">pari</option><option value="odd">dispari</option></select></label>
-                                    <label>Valida dal (giorno/mese)
+                                    <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" /></label>
+                                    <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" /></label>
+                                    <label>@L["Ape_DayParity"]<select @bind="r.Parity"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
+                                    <label>@L["Ape_ValidFrom"]
                                         <span style="display:flex;gap:4px">
                                             <select @bind="r.DateFromDay" style="flex:1">@DayOptions()</select>
                                             <select @bind="r.DateFromMonth" style="flex:2">@MonthOptions()</select>
                                         </span>
                                     </label>
-                                    <label>fino al (giorno/mese)
+                                    <label>@L["Ape_ValidTo"]
                                         <span style="display:flex;gap:4px">
                                             <select @bind="r.DateToDay" style="flex:1">@DayOptions()</select>
                                             <select @bind="r.DateToMonth" style="flex:2">@MonthOptions()</select>
                                         </span>
                                     </label>
                                 </div>
-                                <p class="help" style="margin:6px 0 0">Finestra di validità <b>stagionale ricorrente</b>: solo giorno e mese (nessun anno, si ripete ogni anno). Es. dal 1 gen al 31 mar. Lasciare vuoto = sempre valida.</p>
+                                <p class="help" style="margin:6px 0 0">@((MarkupString)L["Ape_SeasonalHelp"].Value)</p>
                                 <div class="rule-days">
-                                    <span class="muted">Giorni:</span>
+                                    <span class="muted">@L["Ape_Days"]</span>
                                     @for (var b = 0; b < 7; b++)
                                     {
                                         var bit = b;
@@ -145,21 +163,21 @@ else
                     }
 
                     <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddRule">+ Regola</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">Salva regole</button>
+                        <button class="btn ghost" @onclick="AddRule">+ @L["Ape_Rule"]</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">@L["Ape_SaveRules"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== QUOTE DI TRANSIZIONE ===================== *@
-            @if (_panel == "Quote transizione")
-            {
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">Quote di transizione</h3>
-                    <p class="help">Tabella di default <b>TL = TA + margine</b> per fascia QNH (QNH&lt;977 → +2500 ft; 977–994 → +2000; 995–1012 → +1500; QNH≥1013 → +1000), arrotondata al FL superiore. Salvando la TA le righe di default si ricalcolano; puoi comunque modificare fasce e livelli a mano.</p>
+            <details id="sec-tl" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Quote transizione")@if (_dirtySections.Contains("Quote transizione")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Quote transizione")'>
+                    <h3 style="margin-top:0">@L["Ape_TlTitle"]</h3>
+                    <p class="help">@((MarkupString)L["Ape_TlHelp"].Value)</p>
                     @if (_policy.TransitionAltitude)
                     {
-                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="Campo importato dalla sorgente: sola lettura. Modificabile solo se un amministratore esclude «TA» in /vsop/admin/sorgenti">🔒 da sorgente</span> La Transition Altitude è importata dalla sorgente (sola lettura).</p>
+                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="@L["Ape_TaFromSourceTitle"]">🔒 @L["Ape_FromSource"]</span> @L["Ape_TaFromSource"]</p>
                     }
                     @{ var tlIssues = TlIssues(); }
                     @if (tlIssues.Count > 0)
@@ -167,18 +185,18 @@ else
                         <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in tlIssues) { <div>@m</div> }</div></div>
                     }
                     <div class="se-row">
-                        <label><b>Transition Altitude (ft)</b></label>
+                        <label><b>@L["Ape_TaLabel"]</b></label>
                         <input type="number" style="width:100px" @bind="_ta" disabled="@(_policy.TransitionAltitude)" />
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">Salva TA</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">@L["Ape_SaveTa"]</button>
                     </div>
                     <table class="res-table" style="max-width:460px">
-                        <thead><tr><th>QNH da (hPa)</th><th>QNH a (hPa)</th><th>Transition Level</th><th></th></tr></thead>
+                        <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var t in _tls)
                             {
                                 <tr @key="t">
-                                    <td><input type="number" style="width:90px" @bind="t.From" placeholder="aperto" /></td>
-                                    <td><input type="number" style="width:90px" @bind="t.To" placeholder="aperto" /></td>
+                                    <td><input type="number" style="width:90px" @bind="t.From" placeholder="@L["Ape_Open"]" /></td>
+                                    <td><input type="number" style="width:90px" @bind="t.To" placeholder="@L["Ape_Open"]" /></td>
                                     <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
                                     <td><button class="btn ghost" @onclick="() => RemoveTl(t)">✕</button></td>
                                 </tr>
@@ -186,24 +204,24 @@ else
                         </tbody>
                     </table>
                     <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddTl">+ Riga</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">Salva tabella</button>
+                        <button class="btn ghost" @onclick="AddTl">+ @L["Dse_Row"]</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">@L["Ape_SaveTable"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== FREQUENZE ===================== *@
-            @if (_panel == "Frequenze")
-            {
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">Frequenze</h3>
-                    <p class="help">Le frequenze proprie vengono dal catalogo settori (pannello «Settori»): ATIS · Delivery · Ground · TWR · APP. La principale (★) si sceglie lì. Qui puoi aggiungere link a frequenze già nel DB (riferimento vivo).</p>
+            <details id="sec-freq" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Frequenze")@if (_dirtySections.Contains("Frequenze")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Frequenze")'>
+                    <h3 style="margin-top:0">@L["Common_Frequencies"]</h3>
+                    <p class="help">@L["Ape_FreqHelp"]</p>
                     <table class="res-table freq-table">
-                        <thead><tr><th>Nome</th><th>Callsign</th><th>Frequenza</th><th>Origine</th><th></th></tr></thead>
+                        <thead><tr><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var f in FreqRows())
                             {
-                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqName(f.Position)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">catalogo</td><td></td></tr>
+                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqName(f.Position)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
                             }
                             @foreach (var id in _linkIds)
                             {
@@ -217,32 +235,32 @@ else
                         </tbody>
                     </table>
                     <div class="se-row" style="margin-top:10px">
-                        <input style="width:200px" placeholder="cerca callsign/freq…" @bind="_freqSearch" @bind:event="oninput" />
+                        <input style="width:200px" placeholder="@L["Ape_SearchCallsignFreq"]" @bind="_freqSearch" @bind:event="oninput" />
                         <select @bind="_pickFreqId" style="min-width:240px">
-                            <option value="0">— scegli frequenza —</option>
+                            <option value="0">@L["Ape_PickFreq"]</option>
                             @foreach (var lf in FilteredLinkable())
                             {
                                 <option value="@lf.SectorId">@lf.Callsign · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")</option>
                             }
                         </select>
                         <button class="btn ghost" @onclick="AddLink">+ Link</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">Salva link</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">@L["Ape_SaveLinks"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== PISTE ===================== *@
-            @if (_panel == "Piste")
-            {
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">Piste</h3>
+            <details id="sec-piste" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Piste")@if (_dirtySections.Contains("Piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Piste")'>
+                    <h3 style="margin-top:0">@L["Sorg_RunwaysLabel"]</h3>
                     @if (_policy.Runways)
                     {
-                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="Importate dalla sorgente: ident/lunghezza/bearing e l'insieme delle piste sono in sola lettura. Modificabili solo escludendo «Piste» in /vsop/admin/sorgenti">🔒 da sorgente</span> Pista, lunghezza e bearing sono importati dalla sorgente (sola lettura). Restano editabili solo le colonne TORA/LDA/APP/Patterns/Circling.</p>
+                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="@L["Ape_RwFromSourceTitle"]">🔒 @L["Ape_FromSource"]</span> @L["Ape_RwFromSource"]</p>
                     }
                     else
                     {
-                        <p class="help">Ident / lunghezza / bearing arrivano dalla sorgente (re-import li sovrascrive). Le altre colonne sono editoriali.</p>
+                        <p class="help">@L["Ape_RwEditorial"]</p>
                     }
                     @{ var rwIssues = RwIssues(); }
                     @if (rwIssues.Count > 0)
@@ -250,7 +268,7 @@ else
                         <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in rwIssues) { <div>@m</div> }</div></div>
                     }
                     <table class="res-table">
-                        <thead><tr><th>Pista</th><th>Lung. (m)</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
+                        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var r in _rwys)
                             {
@@ -268,44 +286,40 @@ else
                         </tbody>
                     </table>
                     <div style="margin-top:10px;display:flex;gap:8px">
-                        @if (!_policy.Runways) { <button class="btn ghost" @onclick="AddRwy">+ Pista</button> }
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">Salva piste</button>
+                        @if (!_policy.Runways) { <button class="btn ghost" @onclick="AddRwy">+ @L["Ape_Runway"]</button> }
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">@L["Ape_SaveRunways"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== SID ===================== *@
-            @if (_panel == "SID")
-            {
+            <details id="sec-sid" class="ed-sec" open>
+                <summary class="ed-sec-head">SID@if (_dirtySections.Contains("SID")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                        <h3 style="margin:0">Resa pubblica della sezione SID</h3>
-                        <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 Live" : "🧊 Congelata")</span>
+                        <h3 style="margin:0">@L["Ape_SidRenderTitle"]</h3>
+                        <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])</span>
                         <span class="ln" style="flex:1"></span>
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                                 @onclick="() => SetSidsMode(!_sidsLive)">
-                            @(_sidsLive ? "🧊 Congela al publish" : "🔴 Rendi sempre live")
+                            @(_sidsLive ? "🧊 " + L["Ape_FreezeAtPublish"] : "🔴 " + L["Ape_MakeAlwaysLive"])
                         </button>
                     </div>
-                    <p class="help">
-                        <b>Live</b> (default): le SID pubbliche si aggiornano sempre dai dati (import inclusi), anche senza
-                        ripubblicare — utile per dati di riferimento IVAO. <b>Congelata</b>: la sezione è fotografata al momento
-                        della pubblicazione, come il resto del documento (nessun AIRAC misto in pagina).
-                    </p>
+                    <p class="help">@((MarkupString)L["Ape_SidRenderHelp"].Value)</p>
                 </div>
 
                 @if (_imported.Count > 0)
                 {
                     <div class="block">
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                            <h3 style="margin:0">SID importate dal sectorfile</h3>
+                            <h3 style="margin:0">@L["Ape_SidImportedTitle"]</h3>
                             <span class="ln" style="flex:1"></span>
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="Ripreleva le SID dal sectorfile GitHub">↻ Re-importa SID</button>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]">↻ @L["Ape_ReimportSid"]</button>
                         </div>
-                        <p class="help">Righe da sorgente: non editabili nei dati, ma imposti <b>priorità per punto</b>, <b>fix</b> se «da verificare», e la <b>pubblicazione</b> (di default dal ciclo successivo al prelievo).</p>
+                        <p class="help">@((MarkupString)L["Ape_SidImportedHelp"].Value)</p>
                         <div style="overflow:auto">
                         <table class="res-table sid-table">
-                            <thead><tr><th>Punto (FIX)</th><th>SID</th><th>Pista</th><th>Trans.</th><th>Type</th><th>Priorità</th><th>Pubblicazione</th><th></th></tr></thead>
+                            <thead><tr><th>@L["Ape_PointFix"]</th><th>SID</th><th>@L["Ape_Runway"]</th><th>@L["Ape_Trans"]</th><th>Type</th><th>@L["Ape_Priority"]</th><th>@L["Ape_Publication"]</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var e in _imported)
                                 {
@@ -313,9 +327,9 @@ else
                                         <td>
                                             @if (e.NeedsReview)
                                             {
-                                                <span title="fix da verificare">⚠</span>
+                                                <span title="@L["Ape_FixToVerify"]">⚠</span>
                                                 <input style="width:70px" @bind="e.FixOverride" placeholder="@e.Fix" />
-                                                <label style="font-size:11px" title="Aggiungi l'alias @e.Fix → per gli import futuri"><input type="checkbox" @bind="e.CreateAlias" /> alias</label>
+                                                <label style="font-size:11px" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" /> alias</label>
                                             }
                                             else { <b>@e.Fix</b> }
                                         </td>
@@ -325,9 +339,9 @@ else
                                         <td>@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
                                         <td><input type="number" style="width:60px" @bind="e.Priority" /></td>
                                         <td style="white-space:nowrap">
-                                            @if (e.IsPublicNow) { <span class="pill green">pubblica</span> }
-                                            else { <span class="pill future" title="pubblica automaticamente dal ciclo @e.PublishFromCycle">🕒 @e.PublishFromCycle</span> }
-                                            <label style="font-size:11px;margin-left:6px"><input type="checkbox" @bind="e.ForcePublished" /> ora</label>
+                                            @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                            else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))">🕒 @e.PublishFromCycle</span> }
+                                            <label style="font-size:11px;margin-left:6px"><input type="checkbox" @bind="e.ForcePublished" /> @L["Ape_Now"]</label>
                                         </td>
                                         <td><button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SaveImported(e)">💾</button></td>
                                     </tr>
@@ -338,12 +352,12 @@ else
                     </div>
                 }
 
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">SID manuali</h3>
-                    <p class="help">Righe aggiunte a mano dallo staff: preservate dagli import. Campi non presenti nel sectorfile (Initial climb / Cat / WTC / Condition) vanno qui.</p>
+                <div class="block" @onchange='() => MarkDirty("SID")'>
+                    <h3 style="margin-top:0">@L["Ape_SidManualTitle"]</h3>
+                    <p class="help">@L["Ape_SidManualHelp"]</p>
                     <div style="overflow:auto">
                     <table class="res-table sid-table">
-                        <thead><tr><th>Pista</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th><th></th></tr></thead>
+                        <thead><tr><th>@L["Ape_Runway"]</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var s in _sids)
                             {
@@ -365,58 +379,58 @@ else
                     </div>
                     <div style="margin-top:10px;display:flex;gap:8px">
                         <button class="btn ghost" @onclick="AddSid">+ SID</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveSids">Salva SID manuali</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveSids">@L["Ape_SaveManualSids"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== SEZIONI EXTRA ===================== *@
-            @if (_panel == "Sezioni extra")
-            {
-                <div class="block" @onchange="MarkDirty">
-                    <h3 style="margin-top:0">Sezioni extra</h3>
-                    <p class="help">Sezioni editoriali libere (titolo + testo). Nel documento compaiono nella <b>colonna libera di destra</b> su schermo desktop e <b>sotto le SID</b> su schermi stretti/cellulare. Si valutano nell'ordine in cui le metti.</p>
+            <details id="sec-extra" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Sezioni extra")@if (_dirtySections.Contains("Sezioni extra")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Sezioni extra")'>
+                    <h3 style="margin-top:0">@L["Ape_ExtraTitle"]</h3>
+                    <p class="help">@((MarkupString)L["Ape_ExtraHelp"].Value)</p>
                     @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
                     {
                         <div class="rule-card" @key="s">
                             <div class="rule-head">
                                 <span class="rule-ord">#@(idx + 1)</span>
                                 <div style="display:flex;gap:6px">
-                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => MoveExtra(idx, -1)" title="Su">↑</button>
-                                    <button class="btn ghost" disabled="@(idx == _extras.Count - 1)" @onclick="() => MoveExtra(idx, 1)" title="Giù">↓</button>
-                                    <button class="btn ghost" @onclick="() => RemoveExtra(s)">✕ Rimuovi</button>
+                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => MoveExtra(idx, -1)" title="@L["Common_Up"]">↑</button>
+                                    <button class="btn ghost" disabled="@(idx == _extras.Count - 1)" @onclick="() => MoveExtra(idx, 1)" title="@L["Common_Down"]">↓</button>
+                                    <button class="btn ghost" @onclick="() => RemoveExtra(s)">✕ @L["Common_Remove"]</button>
                                 </div>
                             </div>
-                            <label style="display:block">Titolo<input style="width:100%" @bind="s.Title" placeholder="es. Note operative" /></label>
-                            <label style="display:block;margin-top:8px">Testo<textarea style="width:100%;min-height:120px" @bind="s.Body" @bind:event="oninput" placeholder="Testo libero (gli a capo vengono preservati)"></textarea></label>
-                            <div class="help" style="margin-top:8px">Anteprima (a capo preservati):</div>
+                            <label style="display:block">@L["Nd_LblTitle"]<input style="width:100%" @bind="s.Title" placeholder="@L["Ape_ExtraTitlePh"]" /></label>
+                            <label style="display:block;margin-top:8px">@L["Ape_TextLabel"]<textarea style="width:100%;min-height:120px" @bind="s.Body" @bind:event="oninput" placeholder="@L["Ape_ExtraBodyPh"]"></textarea></label>
+                            <div class="help" style="margin-top:8px">@L["Ape_PreviewLabel"]</div>
                             <div class="extra-preview">@s.Body</div>
                         </div>
                     }
                     <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddExtra">+ Sezione</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || _extras.Any(s => string.IsNullOrWhiteSpace(s.Title)))" @onclick="SaveExtras">Salva sezioni</button>
+                        <button class="btn ghost" @onclick="AddExtra">+ @L["Ape_Section"]</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || _extras.Any(s => string.IsNullOrWhiteSpace(s.Title)))" @onclick="SaveExtras">@L["Ape_SaveSections"]</button>
                     </div>
                 </div>
-            }
+            </details>
 
             @* ===================== SETTORI ===================== *@
-            @if (_panel == "Settori")
-            {
-                <div class="block" @onchange="MarkDirty">
+            <details id="sec-settori" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Settori")@if (_dirtySections.Contains("Settori")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <div class="block" @onchange='() => MarkDirty("Settori")'>
                     <div class="section-title" style="margin-top:0">
-                        <h3 style="margin:0">Settori ATC <span class="pill blue">@_sectors.Count</span></h3><span class="ln"></span>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="Importa/aggiorna i settori ATC (incl. APP) dalla sorgente">⟳ Importa settori da sorgente</button>
+                        <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3><span class="ln"></span>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
                     </div>
-                    <p class="muted" style="font-size:11.5px;margin:0 0 8px">Settori ATC importati dalla sorgente (callsign · ACC · position · middle id · freq · shape), inclusi gli APP. I limiti di quota li imposti tu; puoi nascondere i settori che non vuoi mostrare.</p>
+                    <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["Ape_SectorsNote"]</p>
                     @if (_sectors.Count == 0)
                     {
-                        <p class="help">Nessun settore importato. Premi «Importa settori da sorgente».</p>
+                        <p class="help">@L["Ape_NoSectors"]</p>
                     }
                     else
                     {
                         <table class="res-table">
-                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="Solo APP: di ACC (remotizzato) o avvicinamento proprio (doc dedicato)">ACC?</th><th>Freq</th><th>Princ.</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
+                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var s in _sectors)
                                 {
@@ -429,7 +443,7 @@ else
                                         <td style="text-align:center">
                                             @if (IsApp(s.Position))
                                             {
-                                                <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="Avvicinamento di ACC (remotizzato). Deseleziona se è l'APP proprio dell'aeroporto (documento dedicato)." />
+                                                <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
                                             }
                                             else { <span class="muted">—</span> }
                                         </td>
@@ -437,7 +451,7 @@ else
                                         <td style="text-align:center">
                                             @if (CanBePrimary(s.Position))
                                             {
-                                                <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="Frequenza principale per questo tipo" />
+                                                <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
                                             }
                                             else { <span class="muted">—</span> }
                                         </td>
@@ -445,10 +459,10 @@ else
                                         @if (hasLimits)
                                         {
                                             <td>
-                                                <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" disabled="@(!_canEdit || s.LimitsFromSource)" />
-                                                @if (s.LimitsFromSource) { <span class="pill" style="background:#eef1f6;color:#5b6470;margin-left:4px" title="Limiti importati dalla sorgente (IVAO): sola lettura.">🔒</span> }
+                                                <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
+                                                @if (s.LimitsFromSource) { <span class="pill" style="background:#eef1f6;color:#5b6470;margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
                                             </td>
-                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
+                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
                                         }
                                         else
                                         {
@@ -458,19 +472,19 @@ else
                                         <td>
                                             @if (s.IsHidden)
                                             {
-                                                <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                                <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
                                             }
                                             else
                                             {
-                                                <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                                <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
                                             @if (hasLimits && !s.LimitsFromSource)
                                             {
-                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="Salva limiti">💾</button>
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]">💾</button>
                                             }
-                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="Mostra/nascondi">@(s.IsHidden ? "👁" : "🚫")</button>
+                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]">@(s.IsHidden ? "👁" : "🚫")</button>
                                         </td>
                                     </tr>
                                 }
@@ -478,78 +492,36 @@ else
                         </table>
                     }
                 </div>
-            }
+            </details>
 
             @* ===================== VERSIONI (release AIRAC) ===================== *@
-            @if (_panel == "Versioni")
-            {
+            <details id="sec-versioni" class="ed-sec" open>
+                <summary class="ed-sec-head">@PanelLabel("Versioni")</summary>
                 <div class="block">
-                    <h3 style="margin-top:0">Versioni &amp; release AIRAC</h3>
-                    <p class="help">La pubblicazione avviene <b>solo da qui</b>. Pubblicare <b>rigenera il documento dalla bozza corrente</b> (regole, TL, piste, SID, sezioni, settori) e poi ne congela una fotografia. <b>Pubblica ora</b> = in vigore subito (review sul ciclo corrente); <b>Pubblica al ciclo</b> = pianificata a un ciclo AIRAC futuro, entra in vigore automaticamente a quella data. Il pubblico vede la release in vigore al ciclo corrente (@_currentCycle).</p>
+                    <h3 style="margin-top:0">@L["App_VersionsReleases"]</h3>
+                    <p class="help">@((MarkupString)L["Ape_VersionsHelp"].Value)</p>
 
                     @if (!_canEdit)
                     {
-                        <div class="callout warning"><span class="cic">🔒</span><div>Sola lettura: non hai i permessi per pubblicare release per @_icao.</div></div>
-                    }
-
-                    @if (_rels.Count == 0)
-                    {
-                        <p class="help" style="margin:0 0 6px">Nessuna release: il documento non è ancora visibile al pubblico. Pubblica per renderlo visibile.</p>
+                        <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnlyPublish"].Value, _icao))</div></div>
                     }
                     else
                     {
-                        @foreach (var r in _rels)
-                        {
-                            <div class="ver-row @(r.IsEffectiveNow ? "current" : "")">
-                                <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
-                                <div style="flex:1">
-                                    <b>@RelLabel(r)</b>
-                                    <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
-                                </div>
-                                <span class="vact">
-                                    <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=rel:{r.Id}")" target="_blank" rel="noopener" title="Anteprima del documento come sarà a questo ciclo">👁 Anteprima</a>
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(r.Id)" title="Cosa cambia rispetto a quella in vigore">🔍 Differenze</button>
-                                    @if (Authz.IsAdmin)
-                                    {
-                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => CancelRelease(r.Id)" title="Annulla questa release">✕ Annulla</button>
-                                    }
-                                </span>
-                            </div>
-                            @if (_diffOpen.Contains(r.Id))
-                            {
-                                <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
-                            }
-                        }
-                    }
-
-                    @if (_canEdit)
-                    {
-                        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px">
-                            <select class="app-in" style="min-width:270px;max-width:340px" @bind="_relCycle">
-                                @foreach (var c in _upcoming)
-                                {
-                                    <option value="@c.Cycle">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
-                                }
-                            </select>
-                            <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
-                            <button class="btn primary" disabled="@_busy" @onclick="PublishReleaseNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
-                            <button class="btn ghost" disabled="@_busy" @onclick="PublishRelease" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
-                        </div>
+                        <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
+                                      ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                      BeforePublishAsync="BeforePublishAsync"
+                                      PreviewUrlFactory="ReleasePreviewUrl" />
                     }
                 </div>
-            }
+            </details>
         }
     </div>
 
-    @* Toast fissi: sempre visibili anche in fondo a tabelle lunghe (SID/Settori). Il successo si auto-chiude. *@
+    @* Toast d'errore fisso: sempre visibile anche in fondo a tabelle lunghe (SID/Settori). Il successo è nel badge header. *@
     <div class="editor-toast">
         @if (_error is not null)
         {
-            <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null" title="Chiudi">✕</button></div>
-        }
-        @if (_status is not null)
-        {
-            <div class="callout success"><span class="cic">✅</span><div style="flex:1">@_status</div></div>
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null" title="@L["Common_Close"]">✕</button></div>
         }
     </div>
 }
@@ -557,22 +529,26 @@ else
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? Icao { get; set; }
-    [SupplyParameterFromQuery] public string? Panel { get; set; }
-
     private AccInfo? _acc;
     private string _icao = "LIRF";
-    private string? _loadedIcao;                 // evita reload dei buffer quando cambia solo ?panel
-    private string? _dirtyPanel;                 // invariante: al più il pannello corrente è "sporco"
-    private int _statusSeq;                       // token per auto-chiusura del toast di successo
+    private string? _loadedIcao;
+    private readonly HashSet<string> _dirtySections = new();   // sezioni con modifiche non salvate (scroll unico)
     private DotNetObjectReference<AeroportoEditorPage>? _selfRef;
+    private bool _jsReady;   // true solo dopo il primo render interattivo (JS interop lecito)
     private AirportData? _data;
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private bool _canEdit;
     private bool _busy;
-    private string? _error, _status;
+    private string? _error;
+    private int? _docDbId;                 // Document proiettato dell'aeroporto (per DocReviewBar); null se non generato
+    private bool _hasEffectiveRelease;     // per la pill di stato in header (Pubblicata/Bozza)
 
+    private enum SaveState { Idle, Saving, Saved }
+    private SaveState _save = SaveState.Idle;
+    private int _saveTick;
+
+    // Nomi delle sezioni: chiavi dirty + voci della mini-nav (àncora via Anchor()).
     private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID", "Sezioni extra", "Settori", "Versioni" };
-    private string _panel = "Regole piste";
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
     private int? _ta;
@@ -587,25 +563,30 @@ else
     private string _freqSearch = "";
     private int _pickFreqId;
 
-    // Release AIRAC (tab Versioni): timeline + selettore ciclo/nota + diff.
-    private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
-    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
-    private string _currentCycle = "";
-    private string? _relCycle;
-    private string? _relNote;
-    private readonly HashSet<int> _diffOpen = new();
-    private readonly Dictionary<int, ReleaseDiff> _diffs = new();
-
     // Settori ATC importati (catalogo): righe + buffer limiti editabili per id.
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
     private readonly Dictionary<int, int?> _secLower = new();
     private readonly Dictionary<int, int?> _secUpper = new();
 
-    protected override void OnInitialized()
+    // Slug d'àncora per la mini-nav (link #sec-…) e gli id di sezione. Le chiavi restano IT stabili (logica dirty).
+    private static string Anchor(string panel) => panel switch
     {
-        _currentCycle = Releases.CurrentCycle();
-        _upcoming = Releases.UpcomingCycles(14);
-        _relCycle ??= _upcoming.FirstOrDefault()?.Cycle;
+        "Regole piste" => "regole", "Quote transizione" => "tl", "Frequenze" => "freq", "Piste" => "piste",
+        "SID" => "sid", "Sezioni extra" => "extra", "Settori" => "settori", "Versioni" => "versioni", _ => "",
+    };
+
+    // Etichetta localizzata della sezione (chiave interna stabile → display).
+    private string PanelLabel(string panel) => panel switch
+    {
+        "Regole piste" => L["Ape_PanelRules"], "Quote transizione" => L["Ape_PanelTl"], "Frequenze" => L["Common_Frequencies"],
+        "Piste" => L["Sorg_RunwaysLabel"], "SID" => "SID", "Sezioni extra" => L["Ape_PanelExtra"],
+        "Settori" => L["Ape_PanelSectors"], "Versioni" => L["Ape_PanelVersions"], _ => panel,
+    };
+
+    // Espande/comprime tutte le sezioni <details> (lato JS: niente stato C# da sincronizzare col toggle del browser).
+    private async Task ToggleAllSections(bool open)
+    {
+        if (_jsReady) await JS.InvokeVoidAsync("vipiEditorSections", open);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -614,14 +595,10 @@ else
         if (_acc is null) return;
         _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
 
-        // ?panel deep-link: seleziona il pannello se valido (senza ricaricare i dati).
-        if (!string.IsNullOrWhiteSpace(Panel) && _panels.Contains(Panel)) _panel = Panel!;
-
-        // Ricarica i buffer solo quando cambia l'aeroporto: cambiare pannello via URL non deve
-        // sovrascrivere le modifiche non salvate.
+        // Ricarica i buffer solo quando cambia l'aeroporto.
         if (_loadedIcao != _icao)
         {
-            _dirtyPanel = null;
+            _dirtySections.Clear();
             _loadedIcao = _icao;
             await LoadAsync();
         }
@@ -633,87 +610,75 @@ else
         {
             _selfRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("vipiAirportEditorInit", _selfRef);
+            _jsReady = true;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         _selfRef?.Dispose();
-        // Rilascia la guardia beforeunload lasciando la pagina. Il circuito può essere già chiuso
-        // (navigazione/refresh): ignora JSDisconnectedException invece di lasciare un task non osservato.
+        // Rilascia la guardia beforeunload lasciando la pagina. Salta se il render interattivo non è mai avvenuto
+        // (dispose durante il prerender statico → JS interop illecito, InvalidOperationException). Il circuito può
+        // anche essere già chiuso (navigazione/refresh): ignora JSDisconnectedException.
+        if (!_jsReady) return;
         try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
         catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
     }
 
-    // --- Stato "sporco" per pannello + navigazione tra pannelli ---
-    private async Task MarkDirty()
+    // --- Stato "sporco" per sezione (scroll unico): la guardia beforeunload è attiva se almeno una è sporca ---
+    private async Task MarkDirty(string section)
     {
-        if (_dirtyPanel != _panel)
-        {
-            _dirtyPanel = _panel;
-            await JS.InvokeVoidAsync("vipiSetDirty", true);
-        }
+        if (_dirtySections.Add(section)) await JS.InvokeVoidAsync("vipiSetDirty", true);
     }
 
-    private async Task ClearDirty()
+    private async Task ClearDirty(string section)
     {
-        if (_dirtyPanel is not null)
-        {
-            _dirtyPanel = null;
+        if (_dirtySections.Remove(section) && _dirtySections.Count == 0)
             await JS.InvokeVoidAsync("vipiSetDirty", false);
-        }
-    }
-
-    private async Task SelectPanel(string p)
-    {
-        if (p == _panel) return;
-        if (_dirtyPanel == _panel)
-        {
-            if (!await Confirm($"Modifiche non salvate in «{_panel}». Scartarle e cambiare pannello?"))
-                return;
-            await LoadAsync();   // scarto reale: ripristina i buffer dal server, non solo il flag
-        }
-        await ClearDirty();
-        _panel = p;
-        Nav.NavigateTo(Nav.GetUriWithQueryParameter("panel", p), replace: true);
     }
 
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 
-    // --- Aggiunte/rimozioni con marcatura dirty (rimozioni con conferma) ---
-    private async Task AddRule() { _rules.Add(new RuleEdit()); await MarkDirty(); }
-    private async Task AddTl() { _tls.Add(new TlEdit()); await MarkDirty(); }
-    private async Task AddRwy() { _rwys.Add(new RwEdit()); await MarkDirty(); }
-    private async Task AddSid() { _sids.Add(new SidEdit()); await MarkDirty(); }
-    private async Task AddExtra() { _extras.Add(new ExtraEdit()); await MarkDirty(); }
+    // --- Aggiunte/rimozioni con marcatura dirty per-sezione (rimozioni con conferma) ---
+    private async Task AddRule() { _rules.Add(new RuleEdit()); await MarkDirty("Regole piste"); }
+    private async Task AddTl() { _tls.Add(new TlEdit()); await MarkDirty("Quote transizione"); }
+    private async Task AddRwy() { _rwys.Add(new RwEdit()); await MarkDirty("Piste"); }
+    private async Task AddSid() { _sids.Add(new SidEdit()); await MarkDirty("SID"); }
+    private async Task AddExtra() { _extras.Add(new ExtraEdit()); await MarkDirty("Sezioni extra"); }
 
-    private async Task RemoveRule(RuleEdit r) { if (await Confirm("Rimuovere questa regola?")) { _rules.Remove(r); await MarkDirty(); } }
-    private async Task RemoveTl(TlEdit t) { if (await Confirm("Rimuovere questa riga?")) { _tls.Remove(t); await MarkDirty(); } }
-    private async Task RemoveRwy(RwEdit r) { if (await Confirm("Rimuovere questa pista?")) { _rwys.Remove(r); await MarkDirty(); } }
-    private async Task RemoveSid(SidEdit s) { if (await Confirm("Rimuovere questa SID?")) { _sids.Remove(s); await MarkDirty(); } }
-    private async Task RemoveExtra(ExtraEdit s) { if (await Confirm("Rimuovere questa sezione?")) { _extras.Remove(s); await MarkDirty(); } }
-    private async Task RemoveLink(int id) { _linkIds.Remove(id); await MarkDirty(); }
+    private async Task RemoveRule(RuleEdit r) { if (await Confirm(L["Ape_RemoveRuleConfirm"].Value)) { _rules.Remove(r); await MarkDirty("Regole piste"); } }
+    private async Task RemoveTl(TlEdit t) { if (await Confirm(L["Ape_RemoveRowConfirm"].Value)) { _tls.Remove(t); await MarkDirty("Quote transizione"); } }
+    private async Task RemoveRwy(RwEdit r) { if (await Confirm(L["Ape_RemoveRwConfirm"].Value)) { _rwys.Remove(r); await MarkDirty("Piste"); } }
+    private async Task RemoveSid(SidEdit s) { if (await Confirm(L["Ape_RemoveSidConfirm"].Value)) { _sids.Remove(s); await MarkDirty("SID"); } }
+    private async Task RemoveExtra(ExtraEdit s) { if (await Confirm(L["Ape_RemoveSectionConfirm"].Value)) { _extras.Remove(s); await MarkDirty("Sezioni extra"); } }
+    private async Task RemoveLink(int id) { _linkIds.Remove(id); await MarkDirty("Frequenze"); }
 
-    // Ctrl/Cmd+S da JS: salva il pannello corrente (se editabile). Pannello «Settori» non ha salvataggio in blocco.
+    // Ctrl/Cmd+S da JS: salva TUTTE le sezioni sporche valide (scroll unico). «Settori» salva per riga, niente blocco.
     [JSInvokable]
-    public Task SaveCurrentPanel()
+    public async Task SaveAllDirty()
     {
-        if (_busy || !_canEdit) return Task.CompletedTask;
-        return _panel switch
+        if (_busy || !_canEdit) return;
+        foreach (var s in _dirtySections.ToList())
         {
-            "Regole piste" => RuleIssues().Errors.Count == 0 ? SaveRules() : Task.CompletedTask,
-            "Quote transizione" => SaveTls(),
-            "Frequenze" => SaveLinks(),
-            "Piste" => SaveRwys(),
-            "SID" => SaveSids(),
-            "Sezioni extra" => _extras.Any(s => string.IsNullOrWhiteSpace(s.Title)) ? Task.CompletedTask : SaveExtras(),
-            _ => Task.CompletedTask,
-        };
+            switch (s)
+            {
+                case "Regole piste": if (RuleIssues().Errors.Count == 0) await SaveRules(); break;
+                case "Quote transizione": await SaveTls(); break;
+                case "Frequenze": await SaveLinks(); break;
+                case "Piste": await SaveRwys(); break;
+                case "SID": await SaveSids(); break;
+                case "Sezioni extra": if (!_extras.Any(x => string.IsNullOrWhiteSpace(x.Title))) await SaveExtras(); break;
+            }
+        }
     }
 
     private async Task LoadAsync()
     {
-        _error = _status = null;
+        _error = null;
+        // Reload totale = i buffer tornano allo stato server: nessuna sezione è più "sporca".
+        _dirtySections.Clear();
+        if (_jsReady) { try { await JS.InvokeVoidAsync("vipiSetDirty", false); } catch (JSDisconnectedException) { } catch (InvalidOperationException) { } }
         try
         {
             _data = await Profile.LoadForEditAsync(_icao);
@@ -769,9 +734,10 @@ else
         _secLower.Clear(); _secUpper.Clear();
         foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
 
-        // Release AIRAC del target aeroporto (chiave = ICAO). I diff aperti si scartano: gli id possono cambiare.
-        _rels = await Releases.ListAsync(ReleaseTargetType.Airport, _icao);
-        _diffOpen.Clear(); _diffs.Clear();
+        // Document proiettato (per il banner revisione) + stato pubblicazione (pill header). La timeline release
+        // completa è gestita dal componente ReleasePanel nella sezione «Versioni».
+        _docDbId = await Profile.GetDocumentIdAsync(_icao);
+        _hasEffectiveRelease = (await Releases.ListAsync(ReleaseTargetType.Airport, _icao)).Any(r => r.IsEffectiveNow);
     }
 
     private IEnumerable<LinkableFrequencyRow> FilteredLinkable()
@@ -787,46 +753,43 @@ else
 
     private async Task AddLink()
     {
-        if (_pickFreqId != 0 && !_linkIds.Contains(_pickFreqId)) { _linkIds.Add(_pickFreqId); await MarkDirty(); }
+        if (_pickFreqId != 0 && !_linkIds.Contains(_pickFreqId)) { _linkIds.Add(_pickFreqId); await MarkDirty("Frequenze"); }
         _pickFreqId = 0;
     }
 
-    private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta), "TA salvata.");
-    private Task SaveTls() => Guarded(() => Profile.SaveTransitionLevelsAsync(_icao,
-        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()), "Tabella TL salvata.");
-    private Task SaveRwys() => Guarded(() => Profile.SaveRunwaysAsync(_icao,
-        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()),
-        "Piste salvate.");
-    private Task SaveRules() => Guarded(() => Profile.SaveRunwayRulesAsync(_icao,
+    private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
+    private Task SaveTls() => SaveSection("Quote transizione", () => Profile.SaveTransitionLevelsAsync(_icao,
+        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+    private Task SaveRwys() => SaveSection("Piste", () => Profile.SaveRunwaysAsync(_icao,
+        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
+    private Task SaveRules() => SaveSection("Regole piste", () => Profile.SaveRunwayRulesAsync(_icao,
         _rules.Select(r => new RunwayRuleRow(0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name,
             r.MaxTail, r.MaxCross, r.Surface switch { "dry" => RunwaySurface.Dry, "wet" => RunwaySurface.Wet, _ => RunwaySurface.Any }, r.Note,
             TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
             r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
-            CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()),
-        "Regole salvate.");
-    private Task SaveSids() => Guarded(() => Profile.SaveSidsAsync(_icao,
-        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()),
-        "SID salvate.");
+            CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()));
+    private Task SaveSids() => SaveSection("SID", () => Profile.SaveSidsAsync(_icao,
+        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()));
     // RenderMode della sezione SID (doc 10 §S4c): persistito subito (non serve ripubblicare per cambiare la resa).
     private Task SetSidsMode(bool live) => Guarded(async () =>
     {
         await Profile.SetSidsRenderModeAsync(_icao, live ? RenderMode.Live : RenderMode.Frozen);
         _sidsLive = live;
-    }, live ? "SID: resa live." : "SID: congelata al publish.");
+    });
 
-    private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()), "Link salvati.");
-    private Task SaveExtras() => Guarded(() => Profile.SaveExtraSectionsAsync(_icao,
-        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", s.Body)).ToList()), "Sezioni extra salvate.");
+    private Task SaveLinks() => SaveSection("Frequenze", () => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+    private Task SaveExtras() => SaveSection("Sezioni extra", () => Profile.SaveExtraSectionsAsync(_icao,
+        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", s.Body)).ToList()));
 
     private async Task Reimport()
     {
-        if (!await Confirm("Re-importare da IVAO? I campi importati dalla sorgente verranno sovrascritti."))
+        if (!await Confirm(L["Ape_ReimportConfirm"].Value))
             return;
-        await Guarded(() => Profile.ReimportFromSourceAsync(_icao), "Re-import completato (campi IVAO aggiornati).");
+        if (await Guarded(() => Profile.ReimportFromSourceAsync(_icao))) await LoadAsync();
     }
 
     // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
-    private Task ReimportSids() => Guarded(() => SidImporter.ImportAsync(_icao), "Re-import SID completato.");
+    private async Task ReimportSids() { if (await Guarded(() => SidImporter.ImportAsync(_icao))) await LoadAsync(); }
 
     private Task SaveImported(ImportedSidEdit e) => Guarded(async () =>
     {
@@ -837,7 +800,8 @@ else
             if (e.CreateAlias) await SidAliases.UpsertAsync(e.Fix, resolvedFix);   // e.Fix = prefisso grezzo
         }
         await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix);
-    }, "SID importata aggiornata.");
+        e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
+    });
 
     // Ciclo di prima pubblicazione automatica = ciclo successivo a quello di prelievo.
     private string NextCycleOf(string? sourceCycle)
@@ -847,103 +811,33 @@ else
         catch (ArgumentException) { return "—"; }
     }
 
-    // --- Release AIRAC (tab Versioni). Pubblicare rigenera prima il documento dalla bozza, poi congela lo snapshot. ---
-    private async Task PublishRelease()
+    // --- Release AIRAC (sezione «Versioni» via ReleasePanel). Prima di pubblicare rigenera il documento dalla bozza. ---
+    // Callback passato a ReleasePanel: avvisa sulle sezioni non salvate, conferma, poi rigenera. false = annulla il publish.
+    private async Task<bool> BeforePublishAsync()
     {
-        var cycle = _relCycle ?? _upcoming.FirstOrDefault()?.Cycle;
-        if (cycle is null) return;
-        if (_dirtyPanel is not null &&
-            !await Confirm($"Modifiche non salvate in «{_dirtyPanel}»: non entreranno nella release. Continuare?"))
-            return;
-        if (!await Confirm($"Rigenerare dalla bozza e pianificare la release al ciclo AIRAC {cycle}?"))
-            return;
-        await Guarded(async () =>
-        {
-            await Profile.RebuildDocumentAsync(_icao);
-            await Releases.PublishAsync(ReleaseTargetType.Airport, _icao, cycle, _relNote);
-        }, $"Release pianificata al ciclo {cycle}.");
+        if (_dirtySections.Count > 0 &&
+            !await Confirm(string.Format(L["Ape_UnsavedPublishConfirm"].Value, string.Join(", ", _dirtySections.Select(PanelLabel)))))
+            return false;
+        if (!await Confirm(L["Ape_RebuildConfirm"].Value))
+            return false;
+        await Profile.RebuildDocumentAsync(_icao);
+        return true;
     }
 
-    private async Task PublishReleaseNow()
-    {
-        if (_dirtyPanel is not null &&
-            !await Confirm($"Modifiche non salvate in «{_dirtyPanel}»: non entreranno nella release. Continuare?"))
-            return;
-        if (!await Confirm("Rigenerare dalla bozza e pubblicare ORA (review sul ciclo corrente)? Sarà visibile pubblicamente."))
-            return;
-        await Guarded(async () =>
-        {
-            await Profile.RebuildDocumentAsync(_icao);
-            await Releases.PublishNowAsync(ReleaseTargetType.Airport, _icao, _relNote);
-        }, "Release pubblicata subito (review).");
-    }
-
-    private async Task CancelRelease(int releaseId)
-    {
-        if (!await Confirm("Annullare questa release? Il pubblico tornerà alla precedente in vigore."))
-            return;
-        await Guarded(() => Releases.CancelReleaseAsync(releaseId), "Release annullata.");
-    }
-
-    private async Task ToggleDiff(int releaseId)
-    {
-        if (!_diffOpen.Remove(releaseId))
-        {
-            _diffOpen.Add(releaseId);
-            if (!_diffs.ContainsKey(releaseId))
-            {
-                try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
-                catch (EditNotAllowedException ex) { _error = ex.Message; }
-            }
-        }
-    }
-
-    private static string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 In vigore" : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
-    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
-
-    private RenderFragment DiffBlock(int releaseId) => __builder =>
-    {
-        @if (_diffs.TryGetValue(releaseId, out var diff))
-        {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">Confronto con: @diff.BaselineLabel</div>
-            @if (diff.Rows.Count == 0)
-            {
-                <p class="help" style="margin:0">Nessuna differenza strutturale rilevata.</p>
-            }
-            else
-            {
-                <table class="cfg-table">
-                    <thead><tr><th>Voce</th><th>Modifica</th><th>Dettaglio</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in diff.Rows)
-                        {
-                            <tr>
-                                <td>@r.Label</td>
-                                <td><span class="pill @DiffPill(r.Change)">@r.Change</span></td>
-                                <td class="muted" style="font-size:12px">@r.Detail</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else { <p class="help" style="margin:0">Caricamento differenze…</p> }
-    };
+    private string ReleasePreviewUrl(int releaseId) =>
+        $"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=rel:{releaseId}";
 
     // --- Settori ATC importati (catalogo): import + limiti + mostra/nascondi ---
     private Task ImportSectors() => Guarded(async () =>
     {
-        var r = await Sectors.ImportFromSourceAsync(_icao);
-        _status = $"Import settori completato: {r.Created} creati, {r.Updated} aggiornati.";
-    }, null);
+        await Sectors.ImportFromSourceAsync(_icao);
+        await ReloadSectorsAsync();   // rinfresca solo il catalogo settori (conteggio nella pill)
+    });
     private Task SaveSectorLimits(int id) => Guarded(() =>
-        Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id)), "Limiti settore salvati.");
-    private Task ToggleSectorHidden(int id, bool hidden) => Guarded(() =>
-        Sectors.SetHiddenAsync(id, hidden), hidden ? "Settore nascosto." : "Settore mostrato.");
-    private Task SetSectorPrimary(int id) => Guarded(() => Sectors.SetPrimaryAsync(id), "Frequenza principale aggiornata.");
-    private Task SetSectorAccApp(int id, bool v) => Guarded(() => Sectors.SetAccAppAsync(id, v),
-        v ? "APP segnato come «di ACC» (remotizzato)." : "APP segnato come avvicinamento proprio (documento dedicato).");
+        Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id)));
+    private Task ToggleSectorHidden(int id, bool hidden) => Guarded(async () => { await Sectors.SetHiddenAsync(id, hidden); await ReloadSectorsAsync(); });
+    private Task SetSectorPrimary(int id) => Guarded(async () => { await Sectors.SetPrimaryAsync(id); await ReloadSectorsAsync(); });
+    private Task SetSectorAccApp(int id, bool v) => Guarded(async () => { await Sectors.SetAccAppAsync(id, v); await ReloadSectorsAsync(); });
 
     // Solo le posizioni APP/DEP hanno il flag "di ACC".
     private static bool IsApp(string? position) => (position ?? "").Trim().ToUpperInvariant() is "APP" or "DEP";
@@ -1003,45 +897,60 @@ else
         return p is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
     }
 
-    private async Task Guarded(Func<Task> action, string? ok)
+    // Esegue un'azione con badge Salvataggio/Salvato + gestione errori. NON ricarica i buffer (in scroll-unico un reload
+    // totale cancellerebbe le modifiche non salvate di ALTRE sezioni): chi ha bisogno di refresh lo fa in modo mirato.
+    // Ritorna true = azione riuscita.
+    private async Task<bool> Guarded(Func<Task> action)
     {
-        _busy = true; _error = _status = null;
+        _busy = true; _error = null; _save = SaveState.Saving; StateHasChanged();
         try
         {
             await action();
-            await LoadAsync();
-            await ClearDirty();
-            if (ok is not null) { _status = ok; _ = AutoDismissStatus(); }
+            _save = SaveState.Saved;
+            var tick = ++_saveTick;
+            _ = DismissSavedAsync(tick);
+            return true;
         }
-        catch (EditNotAllowedException ex) { _error = ex.Message; }
-        catch (ValidationException ex) { _error = ex.Message; }
-        catch (InvalidOperationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        catch (InvalidOperationException ex) { _error = ex.Message; _save = SaveState.Idle; }
         finally { _busy = false; }
+        return false;
     }
 
-    // Il toast di successo si chiude da solo dopo qualche secondo (gli errori restano finché letti/chiusi).
-    private async Task AutoDismissStatus()
+    // Salvataggio in blocco di una sezione: i buffer locali già riflettono lo stato salvato (repo = replace totale),
+    // quindi niente reload; a successo si pulisce solo il dirty della sezione.
+    private async Task SaveSection(string section, Func<Task> action)
     {
-        var token = ++_statusSeq;
-        await Task.Delay(4500);
-        if (token == _statusSeq && _status is not null)
-        {
-            _status = null;
-            await InvokeAsync(StateHasChanged);
-        }
+        if (await Guarded(action)) await ClearDirty(section);
+    }
+
+    // Il badge «Salvato» si spegne da solo dopo qualche secondo (gli errori restano finché letti/chiusi).
+    private async Task DismissSavedAsync(int tick)
+    {
+        await Task.Delay(2000);
+        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
+    }
+
+    // Ricarica il solo catalogo settori + i buffer limiti (non tocca gli altri buffer di sezione).
+    private async Task ReloadSectorsAsync()
+    {
+        _sectors = await Sectors.ListByAirportAsync(_icao);
+        _secLower.Clear(); _secUpper.Clear();
+        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
     }
 
     // --- Configurazioni: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
-    private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
+    private string[] DayNames => new[] { L["Ape_Mon"].Value, L["Ape_Tue"].Value, L["Ape_Wed"].Value, L["Ape_Thu"].Value, L["Ape_Fri"].Value, L["Ape_Sat"].Value, L["Ape_Sun"].Value };
 
     private IReadOnlyList<string> RwIdents() =>
         _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
 
-    private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty(); }
+    private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty("Regole piste"); }
     private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
         ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
 
-    private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty(); }
+    private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty("Regole piste"); }
     private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
         ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
 
@@ -1050,7 +959,7 @@ else
         var j = idx + dir;
         if (j < 0 || j >= _rules.Count) return;
         (_rules[idx], _rules[j]) = (_rules[j], _rules[idx]);
-        await MarkDirty();
+        await MarkDirty("Regole piste");
     }
 
     private async Task MoveExtra(int idx, int dir)
@@ -1058,7 +967,7 @@ else
         var j = idx + dir;
         if (j < 0 || j >= _extras.Count) return;
         (_extras[idx], _extras[j]) = (_extras[j], _extras[idx]);
-        await MarkDirty();
+        await MarkDirty("Sezioni extra");
     }
 
     private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
@@ -1076,18 +985,21 @@ else
     private static int? CombineMd(int? month, int? day) =>
         month is int m && day is int d ? m * 100 + d : null;
 
-    private static readonly string[] MonthNames =
-        { "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre" };
+    private string[] MonthNames => new[]
+    {
+        L["Ape_Jan"].Value, L["Ape_Feb"].Value, L["Ape_Mar"].Value, L["Ape_Apr"].Value, L["Ape_May"].Value, L["Ape_Jun"].Value,
+        L["Ape_Jul"].Value, L["Ape_Aug"].Value, L["Ape_Sep"].Value, L["Ape_Oct"].Value, L["Ape_Nov"].Value, L["Ape_Dec"].Value,
+    };
 
-    private static RenderFragment DayOptions() => builder =>
+    private RenderFragment DayOptions() => builder =>
     {
         builder.AddMarkupContent(0, "<option value=\"\">—</option>");
         for (var d = 1; d <= 31; d++)
             builder.AddMarkupContent(d, $"<option value=\"{d}\">{d}</option>");
     };
-    private static RenderFragment MonthOptions() => builder =>
+    private RenderFragment MonthOptions() => builder =>
     {
-        builder.AddMarkupContent(0, "<option value=\"\">— mese —</option>");
+        builder.AddMarkupContent(0, $"<option value=\"\">— {L["Ape_Month"].Value} —</option>");
         for (var m = 1; m <= 12; m++)
             builder.AddMarkupContent(m, $"<option value=\"{m}\">{MonthNames[m - 1]}</option>");
     };
@@ -1099,16 +1011,16 @@ else
         for (var i = 0; i < _tls.Count; i++)
         {
             if (string.IsNullOrWhiteSpace(_tls[i].Level))
-                w.Add($"Riga #{i + 1}: Transition Level mancante.");
+                w.Add(string.Format(L["Ape_IssueTlMissing"].Value, i + 1));
             var aLo = _tls[i].From ?? int.MinValue;
             var aHi = _tls[i].To ?? int.MaxValue;
-            if (aLo > aHi) w.Add($"Riga #{i + 1}: «QNH da» maggiore di «QNH a».");
+            if (aLo > aHi) w.Add(string.Format(L["Ape_IssueQnhOrder"].Value, i + 1));
             for (var j = i + 1; j < _tls.Count; j++)
             {
                 var bLo = _tls[j].From ?? int.MinValue;
                 var bHi = _tls[j].To ?? int.MaxValue;
                 if (aLo <= bHi && bLo <= aHi)
-                    w.Add($"Fasce QNH sovrapposte tra riga #{i + 1} e #{j + 1}.");
+                    w.Add(string.Format(L["Ape_IssueQnhOverlap"].Value, i + 1, j + 1));
             }
         }
         return w;
@@ -1123,7 +1035,7 @@ else
         {
             var id = (r.Ident ?? "").Trim();
             if (id.Length == 0) continue;
-            if (!seen.Add(id)) w.Add($"Pista «{id}» duplicata: usa un ident unico.");
+            if (!seen.Add(id)) w.Add(string.Format(L["Ape_IssueRwDup"].Value, id));
         }
         return w;
     }
@@ -1141,11 +1053,11 @@ else
             var r = _rules[i];
             var n = i + 1;
             if (r.Dep.Count == 0 && r.Arr.Count == 0)
-                errors.Add($"Regola #{n}: seleziona almeno una pista DEP o ARR.");
+                errors.Add(string.Format(L["Ape_IssueRuleNoRw"].Value, n));
             foreach (var id in r.Dep.Concat(r.Arr).Where(id => !known.Contains(id)).Distinct())
-                warnings.Add($"Regola #{n}: pista «{id}» non è tra le piste dell'aeroporto.");
+                warnings.Add(string.Format(L["Ape_IssueRuleUnknownRw"].Value, n, id));
             if (r.TimeFrom is not null ^ r.TimeTo is not null)
-                warnings.Add($"Regola #{n}: finestra orario incompleta (manca inizio o fine).");
+                warnings.Add(string.Format(L["Ape_IssueRuleTimeWin"].Value, n));
         }
         return new RuleValidation(errors, warnings);
     }

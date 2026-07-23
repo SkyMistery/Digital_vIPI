@@ -40,7 +40,6 @@ public class DocumentProfileRepositoryTests : IAsyncLifetime
         Assert.Empty(data.HiddenSections);
         Assert.Empty(data.FreqOrder);
         Assert.Empty(data.FreqLinkSectorIds);
-        Assert.Null(data.CoordinationSentenceTemplate);
     }
 
     [Fact]
@@ -51,24 +50,14 @@ public class DocumentProfileRepositoryTests : IAsyncLifetime
         await _repo.SaveHiddenSectionsAsync(docId, new[] { "vfr", "regulated" });
         await _repo.SaveFreqOrderAsync(docId, new[] { new AppFreqOrderOverride("LIRP_APP", 0), new AppFreqOrderOverride("LIRP_TWR", 1) });
         await _repo.SaveFreqLinksAsync(docId, new[] { 42, 7 });
-        await _repo.SaveCoordinationTemplateAsync(docId, "  {owner} → {target}  ");
 
         var data = await _repo.GetAsync(docId);
         Assert.Equal(new[] { "vfr", "regulated" }, data.HiddenSections);
         Assert.Equal(new[] { 42, 7 }, data.FreqLinkSectorIds);
         Assert.Equal(2, data.FreqOrder.Count);
         Assert.Equal("LIRP_APP", data.FreqOrder[0].Callsign);
-        Assert.Equal("{owner} → {target}", data.CoordinationSentenceTemplate);   // trim applicato
 
         // Una sola riga per documento (get-or-create, non duplica).
         Assert.Equal(1, await _db.DocumentProfiles.CountAsync(p => p.DocumentId == docId));
-    }
-
-    [Fact]
-    public async Task Empty_Template_Normalized_To_Null()
-    {
-        var docId = await _db.Documents.Select(d => d.Id).FirstAsync();
-        await _repo.SaveCoordinationTemplateAsync(docId, "   ");
-        Assert.Null((await _repo.GetAsync(docId)).CoordinationSentenceTemplate);
     }
 }

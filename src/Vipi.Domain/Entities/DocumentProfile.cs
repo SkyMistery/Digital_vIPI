@@ -3,7 +3,7 @@ namespace Vipi.Domain.Entities;
 /// <summary>
 /// Stato editoriale data-driven di un documento vIPI (1:1 col <see cref="Document"/>), per le sezioni DERIVATE.
 /// Le sezioni AoR/Frequenze/Coordinamenti sono calcolate live dagli import; qui vivono solo le scelte dello staff che
-/// non appartengono al testo: settori/frequenze nascosti, ordine frequenze, link frequenza extra, template coord.
+/// non appartengono al testo: settori/frequenze nascosti, ordine frequenze, link frequenza extra.
 /// Side-entity unificata per tutti i tipi (vLOA, APP, …): ha assorbito il vecchio <c>VloaProfile</c> in 08i.
 /// Doc refactor 08e/08i.
 /// </summary>
@@ -27,9 +27,6 @@ public class DocumentProfile
 
     /// <summary>Id dei settori sorgente dei link frequenza extra (JSON array di int).</summary>
     public string? FreqLinksJson { get; set; }
-
-    /// <summary>Override per-documento del template della frase di coordinamento; null = default globale.</summary>
-    public string? CoordinationSentenceTemplate { get; set; }
 
     public byte[]? RowVersion { get; set; }
 }

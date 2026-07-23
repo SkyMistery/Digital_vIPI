@@ -32,6 +32,8 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     public LevelConstraint? Constraint { get; init; }
     /// <summary>Frase di coordinamento già composta (null/vuota = non mostrata).</summary>
     public string? Sentence { get; init; }
+    /// <summary>Etichetta condizione operativa (pista in uso / area attiva); null/vuota = riga sempre valida.</summary>
+    public string? ConditionLabel { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>

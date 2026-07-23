@@ -4,30 +4,31 @@
 @using System.Net
 @using System.Text.RegularExpressions
 @inject ISearchService Search
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Ricerca · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Search_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>Ricerca</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Search_Title"]</b></div>
 
     <div class="searchbar" style="background:#fff;border:1px solid var(--line);max-width:none;margin:6px 0 16px">
-        <span class="ico">🔍</span>
-        <input @bind="_q" @bind:event="oninput" @onkeyup="OnKey" placeholder="Cerca CoP, FIX, callsign, frequenze…" style="color:var(--ink)" />
+        <span class="ico"><Icon Name="search" /></span>
+        <input @bind="_q" @bind:event="oninput" @onkeyup="OnKey" placeholder="@L["Search_Placeholder"]" style="color:var(--ink)" />
     </div>
     <div class="apt-quick" style="margin-bottom:18px">
-        @foreach (var (label, sc) in _scopes)
+        @foreach (var (labelKey, sc) in _scopes)
         {
-            <span class="ch @(_scope == sc ? "on" : "")" style="cursor:pointer" @onclick="() => SetScope(sc)">@label</span>
+            <span class="ch @(_scope == sc ? "on" : "")" style="cursor:pointer" @onclick="() => SetScope(sc)">@L[labelKey]</span>
         }
     </div>
 
     @if (string.IsNullOrWhiteSpace(_q) || _q.Trim().Length < 2)
     {
-        <p class="muted" style="font-size:13px">Digita almeno 2 caratteri.</p>
+        <p class="muted" style="font-size:13px">@L["Search_MinChars"]</p>
     }
     else
     {
-        <p class="muted" style="font-size:13px;margin-bottom:12px">@_hits.Count risultati per <b>@_q</b></p>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">@L["Search_ResultsFor", _hits.Count] <b>@_q</b></p>
         <div class="res">
             @foreach (var h in _hits)
             {
@@ -38,7 +39,7 @@
             }
             @if (_hits.Count == 0)
             {
-                <p class="help">Nessun risultato.</p>
+                <p class="help">@L["Search_NoResults"]</p>
             }
         </div>
     }
@@ -51,9 +52,10 @@
     private SearchScope _scope = SearchScope.All;
     private IReadOnlyList<SearchHit> _hits = new List<SearchHit>();
 
+    // (chiave-risorsa, scope): l'etichetta è localizzata in markup via L[labelKey].
     private static readonly (string, SearchScope)[] _scopes =
     {
-        ("Tutti", SearchScope.All), ("vIPI", SearchScope.Vipi), ("vLOA", SearchScope.Vloa), ("Aeroporti", SearchScope.Airport),
+        ("Common_All", SearchScope.All), ("Search_ScopeVipi", SearchScope.Vipi), ("Search_ScopeVloa", SearchScope.Vloa), ("Search_ScopeAirports", SearchScope.Airport),
     };
 
     protected override async Task OnParametersSetAsync()

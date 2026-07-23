@@ -88,3 +88,40 @@ derivati live, non salvati nel payload editoriale.
   segnalata in editor (badge «nessun ricevente»). Vedi `history/rounds.md` «Fix sorvoli end-to-end».
 - **Parità livello** (`TransferPoint.Parity`, enum `LevelParity`): resa nel `LevelText` via
   `LevelFormatting.Format(...,parity)` → propaga a tutte le viste + frase senza rami duplicati.
+
+## 7. Aggiornamenti successivi (2026-07-22) — condizione operativa (pista/area)
+- **Livelli variabili per pista in uso / area attiva** (modello **editoriale**: varianti etichettate, non
+  calcolate live). Campi additivi su `TransferPoint`: `ConditionKind {None,Runway,Area,Custom}` + `ConditionLabel`
+  (verità display, denormalizzata) + `ConditionRefId` (soft-ref a `AirportRunwayRule`/`SpecialArea`, no FK).
+  Migrazione `AddTransferPointCondition`. Dettaglio schema: `spec/modello-dati.md` §9.20.
+- **Clausola frase** dallo slot `Condition` del template (`CoordinationSentenceComposer`, IT/EN), appesa a fine
+  frase; `AppCoordRow.ConditionLabel` reso come colonna condizionale (ACC/APP/vLOA) e pill nella Ridotta.
+- **Editor** (`AdminTrasferimentiPage`): selettore condizione nel form riga (kind + label con datalist delle
+  config pista dell'aeroporto del flusso, via `IAirportEditingService.LoadForViewAsync`); batch multi-CoP e
+  clona propagano la condizione. Validazione soft: kind ≠ None richiede una label.
+- Additivo (nessun rename → nessuna propagazione distruttiva). Test: composer (clausola IT/EN), derivation
+  (label su riga+frase), EF round-trip (`TransferRepositoryTests`). Suite verde (19 dom + 200 app + 174 infra).
+
+### 7.1 Estensione condizione (2026-07-22, stessa sessione) — multi-pista + area in AND
+- **Stessa condizione su più piste** in una sola riga: `ConditionLabel` con `Runway` può elencarle («16R / 16L»).
+  Editor: **multi-select** delle **piste reali** (`AirportRunways`, non le config `AirportRunwayRule`) dell'aeroporto
+  del flusso. Fix collegato: la condizione «Pista» ora legge `d.Runways` (prima leggeva `d.Rules` → vuoto senza
+  regole editoriali; es. LIBD aveva piste ma 0 regole).
+- **Pista + area in AND**: nuovo campo `ConditionAreaLabel` (overlay valido solo con `Kind=Runway`) → frase
+  «… con pista X in uso **e** Y attiva» (slot template `RunwayAndArea`, IT/EN). Migrazione
+  `AddTransferPointConditionArea`. Etichetta combinata per il display via `TransferConditionText.Display`
+  (`TransferPointRow.ConditionDisplay`), usata da pill admin + `AppCoordRow.ConditionLabel` (ACC/APP/vLOA/Ridotta).
+- vLOA ora porta anch'essa la condizione (prima `VloaDerivationService` la ometteva). Test: composer multi-pista +
+  combinato IT/EN + degrado area-sola. Suite verde (204 app + 174 infra).
+
+### 7.2 Condizioni indipendenti + area ricercabile (2026-07-22, stessa sessione)
+Su richiesta: pista / area / personalizzata devono essere **indipendenti** (una riga può averle tutte), non un tipo
+singolo. **Rimosso `ConditionKind` + enum `TransferConditionKind`**; la condizione è ora **tre colonne indipendenti**:
+- `ConditionLabel` (pista/e) · `ConditionAreaLabel` (area) · **`ConditionCustomLabel`** (personalizzata, nuova). Migrazione
+  `SplitTransferConditionColumns` (drop `ConditionKind`, add `ConditionCustomLabel`, backfill Area/Custom→colonne).
+- **Editor**: la colonna «Condizione» diventa **tre colonne** (Pista multi-select · Area · Personalizzata). L'**area** è
+  ora un **picker con ricerca a digitazione** (typeahead sul nome, stile picker settori), non più una `<select>`.
+- **Frase**: il composer compone la clausola di ogni dimensione presente e le unisce con `Condition.Join` («e»/«and»);
+  pista+area usano la forma dedicata `RunwayAndArea`. `ConditionDisplay` = «pista · area · personalizzata».
+- Test: composer (tre insieme, area+custom, join), EF round-trip (colonne indipendenti, ref solo con pista). Suite verde
+  (19 dom + 205 app + 174 infra).

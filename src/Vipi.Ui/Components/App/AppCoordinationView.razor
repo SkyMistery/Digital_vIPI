@@ -1,10 +1,11 @@
 @* Sezione Coordinamenti (derivata dai trasferimenti del settore APP): verso ACC (partenze+arrivi) · verso torri (solo arrivi). *@
 @* Nome del componente diverso dal DTO AppCoordination per evitare il mascheramento del tipo. *@
-<p class="muted" style="margin-top:0;font-size:13.5px">Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</p>
+@inject IStringLocalizer<SharedResource> L
+<p class="muted" style="margin-top:0;font-size:13.5px">@L["AppCoord_Intro"]</p>
 
 @if (Coord.TowardAcc.Count == 0 && Coord.TowardTowers.Count == 0 && Coord.Overflights.Count == 0)
 {
-    <p class="muted" style="margin:0">Nessun coordinamento configurato per questo APP.</p>
+    <p class="muted" style="margin:0">@L["AppCoord_None"]</p>
 }
 
 <div class="coord-wrap">
@@ -19,20 +20,20 @@
     var arrivi = accRows.Where(r => r.Kind == TransferFlowKind.Arrival).ToList();
 
     <details class="coord-sub" open>
-        <summary><span>Trasferimenti verso ACC</span><span class="chev">▸</span></summary>
+        <summary><span>@L["AppCoord_TowardAcc"]</span><span class="chev">▸</span></summary>
         <div class="body">
             @CoordTools
             @if (partenze.Count > 0)
             {
                 <details class="coord-sub2" open>
-                    <summary><span>Partenze</span><span class="chev">▸</span></summary>
+                    <summary><span>@L["Airport_Departures"]</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(partenze, showKind: false)</div>
                 </details>
             }
             @if (arrivi.Count > 0)
             {
                 <details class="coord-sub2" open>
-                    <summary><span>Arrivi</span><span class="chev">▸</span></summary>
+                    <summary><span>@L["Airport_Arrivals"]</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(arrivi, showKind: false, lastCol: "From")</div>
                 </details>
             }
@@ -43,7 +44,7 @@
 @if (Coord.TowardTowers.Count > 0)
 {
     <details class="coord-sub" open>
-        <summary><span>Trasferimenti verso le torri</span><span class="chev">▸</span></summary>
+        <summary><span>@L["AppCoord_TowardTowers"]</span><span class="chev">▸</span></summary>
         <div class="body">
             @CoordTools
             @foreach (var g in Coord.TowardTowers)
@@ -60,7 +61,7 @@
 @if (Coord.Overflights.Count > 0)
 {
     <details class="coord-sub" open>
-        <summary><span>Sorvoli e VFR</span><span class="chev">▸</span></summary>
+        <summary><span>@L["AppCoord_Overflights"]</span><span class="chev">▸</span></summary>
         <div class="body">
             @CoordTools
             @foreach (var g in Coord.Overflights)
@@ -79,11 +80,12 @@
     [Parameter, EditorRequired] public AppCoordination Coord { get; set; } = AppCoordination.Empty;
 
     // Controlli espandi/comprimi tutto (sezione + sottosezioni). Vedi vipiDetails in vipi-ui.js.
-    private readonly RenderFragment CoordTools = __builder =>
+    // Property (non field initializer): usa L, che è un membro d'istanza.
+    private RenderFragment CoordTools => __builder =>
     {
         <div class="coord-tools">
-            <button type="button" onclick="vipiDetails(this,true)">⊕ Espandi tutto</button>
-            <button type="button" onclick="vipiDetails(this,false)">⊖ Comprimi tutto</button>
+            <button type="button" onclick="vipiDetails(this,true)">@L["Common_ExpandAll"]</button>
+            <button type="button" onclick="vipiDetails(this,false)">@L["Common_CollapseAll"]</button>
         </div>
     };
 
@@ -93,11 +95,12 @@
         {
             <p class="coord-sentence">@r.Sentence</p>
         }
+        var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
         <table>
             <thead>
                 <tr>
-                    @if (showKind) { <th>Flusso</th> }
-                    <th>CoP</th><th>Livello</th><th>@lastCol</th>
+                    @if (showKind) { <th>@L["AppCoord_Flow"]</th> }
+                    <th>CoP</th><th>@L["AppCoord_Level"]</th><th>@lastCol</th>@if (hasCond) { <th>@L["AppCoord_Condition"]</th> }
                 </tr>
             </thead>
             <tbody>
@@ -108,6 +111,7 @@
                         <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
                         <td>@r.Level</td>
                         <td>@r.Next</td>
+                        @if (hasCond) { <td>@(string.IsNullOrWhiteSpace(r.ConditionLabel) ? "—" : r.ConditionLabel)</td> }
                     </tr>
                 }
             </tbody>

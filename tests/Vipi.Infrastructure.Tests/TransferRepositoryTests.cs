@@ -111,6 +111,57 @@ public class TransferRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Point_Condition_Roundtrips()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
+        {
+            Cop = "VALMA", LevelValue = 195, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            NextSectorId = _ftwrId, ConditionLabel = "RWY 16", ConditionRefId = 42,
+        });
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal("RWY 16", p.ConditionLabel);
+        Assert.Equal(42, p.ConditionRefId);
+    }
+
+    [Fact]
+    public async Task Point_Condition_Independent_Columns_Persist()
+    {
+        // Le tre dimensioni (pista/area/personalizzata) sono indipendenti e coesistono su una riga.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
+        {
+            Cop = "ELB", LevelValue = 150, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            NextSectorId = null, ConditionLabel = "16R / 16L", ConditionRefId = 7,
+            ConditionAreaLabel = "R41", ConditionCustomLabel = "notte",
+        });
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal("16R / 16L", p.ConditionLabel);
+        Assert.Equal(7, p.ConditionRefId);
+        Assert.Equal("R41", p.ConditionAreaLabel);
+        Assert.Equal("notte", p.ConditionCustomLabel);
+    }
+
+    [Fact]
+    public async Task Point_Condition_Ref_Kept_Only_With_Runway()
+    {
+        // Il soft-ref pista è tenuto solo se c'è una pista; senza pista viene azzerato anche se passato.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
+        {
+            Cop = "OSTIA", LevelValue = 120, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            NextSectorId = _ftwrId, ConditionLabel = null, ConditionRefId = 99, ConditionAreaLabel = "R41",
+        });
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Null(p.ConditionLabel);
+        Assert.Null(p.ConditionRefId);
+        Assert.Equal("R41", p.ConditionAreaLabel);
+    }
+
+    [Fact]
     public async Task MovePoint_Swaps_Order_And_Noop_At_Ends()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());

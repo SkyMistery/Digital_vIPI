@@ -5,18 +5,19 @@
 @inject IAccAdminService Acc
 @inject IEditAuthorizationService Authz
 @inject ILogger<AccAdminPage> Logger
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>ACC · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>ACC</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>ACC</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">ACC</h2><span class="muted">Area Control Center importati dalla sorgente. Tutti attivi: nascondine alcuni se serve.</span></div>
+        <div><h2 style="margin-bottom:2px">ACC</h2><span class="muted">@L["AccAdmin_Subtitle"]</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
     else
     {
@@ -26,56 +27,56 @@
         }
         @if (_ok is not null)
         {
-            <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
+            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
         }
 
         <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
 
         <div class="section-title">
             <h3>ACC <span class="pill blue">@_accs.Count</span></h3><span class="ln"></span>
-            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="Importa/aggiorna ACC e settori ACC dalla sorgente dati">@if (_busy) { <span class="spin"></span> }⟳ Importa da sorgente</button>
-            <a class="btn ghost" href="/vsop/admin/sectorstructure">Struttura settori →</a>
+            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["AccAdmin_ImportTitle"]">@if (_busy) { <span class="spin"></span> }⟳ @L["AccAdmin_ImportBtn"]</button>
+            <a class="btn ghost" href="/vsop/admin/sectorstructure">@L["Home_StructTitle"] →</a>
         </div>
         <div class="block">
             <div class="field" style="display:flex;gap:8px;align-items:center">
-                <input placeholder="🔎 filtra per codice o nome…" @bind="_q" @bind:event="oninput" style="flex:1" />
-                <select @bind="_country" title="Filtra per nazione (vale per entrambe le tabelle)" style="width:auto;flex:none;min-width:160px">
-                    <option value="">tutte le nazioni</option>
+                <input placeholder="@L["AccAdmin_FilterAcc"]" @bind="_q" @bind:event="oninput" style="flex:1" />
+                <select @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]" style="width:auto;flex:none;min-width:160px">
+                    <option value="">@L["AccAdmin_AllCountries"]</option>
                     @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
                 </select>
             </div>
             @if (_accs.Count == 0)
             {
-                <p class="help">Nessun ACC. Premi «Importa da sorgente» per popolare l'elenco.</p>
+                <p class="help">@L["AccAdmin_NoAcc"]</p>
             }
             else if (!ShownAccs().Any())
             {
-                <p class="help">Nessun risultato@(string.IsNullOrWhiteSpace(_q) ? "" : $" per «{_q}»") con i filtri attivi.</p>
+                <p class="help">@NoResultsMsg(_q)</p>
             }
             else
             {
                 <table class="res-table">
-                    <thead><tr><th>Codice</th><th>Nome</th><th>Militare</th><th>Stato</th><th></th></tr></thead>
+                    <thead><tr><th>@L["AccAdmin_ColCode"]</th><th>@L["Airport_Name"]</th><th>@L["AccAdmin_ColMilitary"]</th><th>@L["Common_State"]</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var a in ShownAccs())
                         {
                             <tr style="@(a.IsHidden ? "opacity:.5" : "")">
                                 <td><b>@a.Code</b></td>
                                 <td>@a.Name</td>
-                                <td>@(a.IsMilitary ? "🪖 sì" : "—")</td>
+                                <td>@(a.IsMilitary ? "🪖 " + L["Common_Yes"] : "—")</td>
                                 <td>
                                     @if (a.IsHidden)
                                     {
-                                        <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                        <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
                                     }
                                     else
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
-                                        @(a.IsHidden ? "👁 Mostra" : "🚫 Nascondi")
+                                        @(a.IsHidden ? "👁 " + L["AccAdmin_Show"] : "🚫 " + L["AccAdmin_Hide"])
                                     </button>
                                 </td>
                             </tr>
@@ -85,28 +86,28 @@
             }
         </div>
 
-        <div class="section-title"><h3>Settori ACC <span class="pill blue">@_subs.Count</span></h3><span class="ln"></span></div>
+        <div class="section-title"><h3>@L["AccAdmin_SubsTitle"] <span class="pill blue">@_subs.Count</span></h3><span class="ln"></span></div>
         <div class="block">
-            <p class="muted" style="font-size:11.5px;margin:0 0 8px">Subcenter importati dalla sorgente (callsign · ACC · position · middle id · freq · shape). I limiti di quota li imposti tu. I settori di un ACC nascosto risultano nascosti.</p>
+            <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["AccAdmin_SubsNote"]</p>
             <div class="field" style="display:flex;gap:8px;align-items:center">
-                <input placeholder="🔎 filtra per callsign, ACC, position…" @bind="_qSub" @bind:event="oninput" style="flex:1" />
-                <select @bind="_country" title="Filtra per nazione (vale per entrambe le tabelle)" style="width:auto;flex:none;min-width:160px">
-                    <option value="">tutte le nazioni</option>
+                <input placeholder="@L["AccAdmin_FilterSub"]" @bind="_qSub" @bind:event="oninput" style="flex:1" />
+                <select @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]" style="width:auto;flex:none;min-width:160px">
+                    <option value="">@L["AccAdmin_AllCountries"]</option>
                     @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
                 </select>
             </div>
             @if (_subs.Count == 0)
             {
-                <p class="help">Nessun settore ACC. Premi «Importa da sorgente».</p>
+                <p class="help">@L["AccAdmin_NoSubs"]</p>
             }
             else if (!ShownSubs().Any())
             {
-                <p class="help">Nessun risultato@(string.IsNullOrWhiteSpace(_qSub) ? "" : $" per «{_qSub}»") con i filtri attivi.</p>
+                <p class="help">@NoResultsMsg(_qSub)</p>
             }
             else
             {
                 <table class="res-table">
-                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Shape</th><th>Lim. inf. <span class="muted" style="font-weight:400">(GND=0)</span></th><th>Lim. sup. <span class="muted" style="font-weight:400">(UNL=illim.)</span></th><th>Stato</th><th></th></tr></thead>
+                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var s in ShownSubs())
                         {
@@ -118,26 +119,26 @@
                                 <td>@(s.MiddleIdentifier ?? "—")</td>
                                 <td>@(s.Frequency ?? "—")</td>
                                 <td>@(s.HasPolygon ? "✓" : "—")</td>
-                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="GND oppure quota in ft" /></td>
-                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="UNL oppure quota in ft" /></td>
+                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" /></td>
+                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" /></td>
                                 <td>
                                     @if (s.AccHidden)
                                     {
-                                        <span class="pill" style="background:#eef1f7;color:#57606a" title="L'ACC è nascosto">nascosto (ACC)</span>
+                                        <span class="pill neutral" title="@L["AccAdmin_AccHiddenTitle"]">@L["AccAdmin_HiddenAcc"]</span>
                                     }
                                     else if (s.IsHidden)
                                     {
-                                        <span class="pill" style="background:#eef1f7;color:#57606a">nascosto</span>
+                                        <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
                                     }
                                     else
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">attivo</span>
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveLimits(s.Id)" title="Salva limiti">💾</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]">💾</button>
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || s.AccHidden)" @onclick="() => SetSubHidden(s.Id, !s.IsHidden)"
-                                            title="@(s.AccHidden ? "L'ACC è nascosto: mostra prima l'ACC" : "Mostra/nascondi")">
+                                            title="@(s.AccHidden ? L["AccAdmin_ShowAccFirst"] : L["AccAdmin_ToggleHide"])">
                                         @(s.IsHidden ? "👁" : "🚫")
                                     </button>
                                 </td>
@@ -211,24 +212,27 @@
              .OrderBy(c => c.Prefix.Equals("LI", StringComparison.OrdinalIgnoreCase) ? "" : c.Name)   // Italia prima
              .ToList();
 
-    private static string CountryName(string prefix) => prefix.ToUpperInvariant() switch
+    private string CountryName(string prefix) => prefix.ToUpperInvariant() switch
     {
-        "LI" => "🇮🇹 Italia",
-        "LF" => "🇫🇷 Francia",
-        "LS" => "🇨🇭 Svizzera",
-        "LO" => "🇦🇹 Austria",
-        "LD" => "🇭🇷 Croazia",
-        "LJ" => "🇸🇮 Slovenia",
-        "LG" => "🇬🇷 Grecia",
-        "LM" => "🇲🇹 Malta",
-        "LA" => "🇦🇱 Albania",
-        "LQ" => "🇧🇦 Bosnia",
-        "LY" => "🇷🇸 Serbia/Montenegro",
-        "LW" => "🇲🇰 Macedonia del Nord",
-        "DT" => "🇹🇳 Tunisia",
-        "DA" => "🇩🇿 Algeria",
+        "LI" => "🇮🇹 " + L["Country_LI"],
+        "LF" => "🇫🇷 " + L["Country_LF"],
+        "LS" => "🇨🇭 " + L["Country_LS"],
+        "LO" => "🇦🇹 " + L["Country_LO"],
+        "LD" => "🇭🇷 " + L["Country_LD"],
+        "LJ" => "🇸🇮 " + L["Country_LJ"],
+        "LG" => "🇬🇷 " + L["Country_LG"],
+        "LM" => "🇲🇹 " + L["Country_LM"],
+        "LA" => "🇦🇱 " + L["Country_LA"],
+        "LQ" => "🇧🇦 " + L["Country_LQ"],
+        "LY" => "🇷🇸 " + L["Country_LY"],
+        "LW" => "🇲🇰 " + L["Country_LW"],
+        "DT" => "🇹🇳 " + L["Country_DT"],
+        "DA" => "🇩🇿 " + L["Country_DA"],
         _ => prefix.ToUpperInvariant(),
     };
+
+    private string NoResultsMsg(string q) =>
+        string.IsNullOrWhiteSpace(q) ? L["AccAdmin_NoResults"] : L["AccAdmin_NoResultsFor", q];
 
     // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
     private static int ParseLower(object? v)
@@ -258,9 +262,8 @@
             foreach (var f in r.SpecialAreaFailures)
                 Logger.LogWarning(f.Error, "Import aree speciali {Acc} saltato (import manuale).", f.AccCode);
             await ReloadAsync();
-            _ok = $"Import completato. ACC: {r.Acc.AccsCreated} creati, {r.Acc.AccsUpdated} aggiornati · " +
-                  $"Settori ACC: {r.Acc.SubcentersCreated} creati, {r.Acc.SubcentersUpdated} aggiornati."
-                  + (r.SpecialAreaFailures.Count > 0 ? $" · {r.SpecialAreaFailures.Count} ACC con aree speciali saltate (dettaglio nei log)." : "");
+            _ok = L["AccAdmin_ImportOk", r.Acc.AccsCreated, r.Acc.AccsUpdated, r.Acc.SubcentersCreated, r.Acc.SubcentersUpdated]
+                  + (r.SpecialAreaFailures.Count > 0 ? L["AccAdmin_ImportSpecialFailures", r.SpecialAreaFailures.Count].Value : "");
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
@@ -274,7 +277,7 @@
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
-        catch (Exception ex) { _msg = "Errore imprevisto: " + ex.Message; Logger.LogError(ex, "Nascondi ACC fallito"); }
+        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; Logger.LogError(ex, "Nascondi ACC fallito"); }
         finally { _busy = false; }
     }
 
@@ -285,7 +288,7 @@
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
-        catch (Exception ex) { _msg = "Errore imprevisto: " + ex.Message; Logger.LogError(ex, "Nascondi settore fallito"); }
+        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; Logger.LogError(ex, "Nascondi settore fallito"); }
         finally { _busy = false; }
     }
 
@@ -296,7 +299,7 @@
         {
             await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
             await ReloadAsync();
-            _ok = "Limiti salvati.";
+            _ok = L["AccAdmin_LimitsSaved"];
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }

@@ -26,6 +26,10 @@ public sealed class CoordinationSentenceData
     public string? LevelSpecial { get; init; }
     public LevelParity Parity { get; init; } = LevelParity.Any;
     public required string Point { get; init; }
+    /// <summary>Condizione operativa: tre dimensioni indipendenti, ognuna opzionale. Le presenti sono unite da « e ».</summary>
+    public string? ConditionLabel { get; init; }        // pista/e in uso («16R / 16L»)
+    public string? ConditionAreaLabel { get; init; }    // area attiva
+    public string? ConditionCustomLabel { get; init; }  // condizione personalizzata (testo libero)
 }
 
 /// <summary>Compone la frase di coordinamento sostituendo i placeholder del template. Funzione pura.</summary>
@@ -66,7 +70,37 @@ public static class CoordinationSentenceComposer
             .Replace("{fl}", fl)
             .Replace("{point}", point);
 
-        return Normalize(s);
+        return AppendCondition(Normalize(s), BuildCondition(tpl, d));
+    }
+
+    // Clausola condizione (pista/area/custom) appesa a fine frase. Vuota se None o senza etichetta. Appesa qui
+    // e non via placeholder del Template così vale anche per i template custom caricati da file (che non hanno {condition}).
+    private static string BuildCondition(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
+    {
+        var rwy = (d.ConditionLabel ?? "").Trim();
+        var area = (d.ConditionAreaLabel ?? "").Trim();
+        var custom = (d.ConditionCustomLabel ?? "").Trim();
+
+        // Tre dimensioni indipendenti: compone la clausola di ciascuna presente e le unisce con « e » (EN « and »).
+        // Pista+area insieme usano la forma dedicata «con pista X in uso e Y attiva» (fraseologia approvata).
+        var clauses = new List<string>(3);
+        if (rwy.Length > 0 && area.Length > 0)
+            clauses.Add(tpl.Condition.RunwayAndArea.Replace("{runway}", rwy).Replace("{area}", area).Trim());
+        else if (rwy.Length > 0)
+            clauses.Add(tpl.Condition.Runway.Replace("{label}", rwy).Trim());
+        else if (area.Length > 0)
+            clauses.Add(tpl.Condition.Area.Replace("{label}", area).Trim());
+        if (custom.Length > 0)
+            clauses.Add(tpl.Condition.Custom.Replace("{label}", custom).Trim());
+
+        return string.Join($" {tpl.Condition.Join} ", clauses.Where(c => c.Length > 0));
+    }
+
+    // Inserisce la clausola prima del punto finale («… su VALMA con pista RWY 16 in uso.»); senza punto finale, appende.
+    private static string AppendCondition(string s, string clause)
+    {
+        if (clause.Length == 0) return s;
+        return s.EndsWith(".") ? $"{s[..^1]} {clause}." : $"{s} {clause}";
     }
 
     // Fraseologia del livello ({fl}): il vincolo è reso a parole («o livello inferiore/superiore»), la parità
@@ -141,7 +175,8 @@ public static class CoordinationSentences
         IReadOnlyDictionary<string, string> atcMap,
         string ownerCallsign, string targetCallsign, string? airportIcao,
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial, LevelParity parity,
-        string cop, TransferFlowKind kind = TransferFlowKind.Arrival)
+        string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
+        string? conditionLabel = null, string? conditionAreaLabel = null, string? conditionCustomLabel = null)
     {
         // Senza mittente o destinatario la frase è priva di soggetto/oggetto → riga incompleta, nessuna frase
         // (coerente col contratto «dati incompleti → null»; evita anche lookup con chiave vuota più sotto).
@@ -184,6 +219,9 @@ public static class CoordinationSentences
             LevelSpecial = levelSpecial,
             Parity = parity,
             Point = cop,
+            ConditionLabel = conditionLabel,
+            ConditionAreaLabel = conditionAreaLabel,
+            ConditionCustomLabel = conditionCustomLabel,
         });
     }
 

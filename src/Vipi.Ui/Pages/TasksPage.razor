@@ -3,42 +3,43 @@
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
 @inject ICurrentUserProvider User
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>I miei incarichi · IVAO Italia</PageTitle>
+<PageTitle>@L["Tasks_MyTasks"] · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1200px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>I miei incarichi</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Tasks_MyTasks"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">📋 I miei incarichi</h2><span class="muted">Ciclo AIRAC corrente @_currentCycle · trascina lo stato per aggiornare l'avanzamento</span></div>
+        <div><h2 style="margin-bottom:2px"><Icon Name="clipboard" Size="22" /> @L["Tasks_MyTasks"]</h2><span class="muted">@string.Format(L["Tasks_Subtitle"], _currentCycle)</span></div>
     </div>
 
     @if (User.Get() is null)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Non autenticato</p>Accedi per vedere i tuoi incarichi.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Tasks_NotAuth"]</p>@L["Tasks_NotAuthBody"]</div></div>
     }
     else
     {
-        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
         @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
 
-        <div class="section-title"><h3>Nuovo incarico personale</h3><span class="ln"></span></div>
+        <div class="section-title"><h3>@L["Tasks_NewPersonal"]</h3><span class="ln"></span></div>
         <div class="block">
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                <input class="app-in" style="flex:1;min-width:220px" placeholder="Titolo dell'incarico…" @bind="_newTitle" />
+                <input class="app-in" style="flex:1;min-width:220px" placeholder="@L["Tasks_TitlePlaceholder"]" @bind="_newTitle" />
                 <select class="app-in" style="max-width:130px" @bind="_newPriority">
                     @foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }
                 </select>
                 <select class="app-in" style="max-width:170px" @bind="_newDue">
-                    <option value="">Senza scadenza</option>
-                    @foreach (var c in _upcoming) { <option value="@c.Cycle">Entro AIRAC @c.Cycle</option> }
+                    <option value="">@L["Tasks_NoDue"]</option>
+                    @foreach (var c in _upcoming) { <option value="@c.Cycle">@string.Format(L["Tasks_ByAirac"], c.Cycle)</option> }
                 </select>
-                <button class="btn primary" disabled="@_busy" @onclick="CreateMine">+ Aggiungi a me</button>
+                <button class="btn primary" disabled="@_busy" @onclick="CreateMine">@L["Tasks_AddToMe"]</button>
             </div>
-            <p class="help" style="margin:6px 0 0">Incarico libero (non legato a un documento). Gli incarichi su documenti li assegna un admin dalla dashboard.</p>
+            <p class="help" style="margin:6px 0 0">@L["Tasks_FreeHint"]</p>
         </div>
 
-        @if (_tasks is null) { <p class="help">Caricamento…</p> }
-        else if (_tasks.Count == 0) { <p class="help">Nessun incarico assegnato.</p> }
+        @if (_tasks is null) { <LoadingState /> }
+        else if (_tasks.Count == 0) { <p class="help">@L["Tasks_NoneAssigned"]</p> }
         else
         {
             <div class="apt-2col" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px">
@@ -95,7 +96,7 @@
             await Tasks.CreateAsync(input);
             _newTitle = ""; _newDue = "";
             await Load();
-            _status = "Incarico aggiunto.";
+            _status = L["Tasks_AddedMsg"];
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
@@ -113,7 +114,7 @@
     private async Task Delete(int id)
     {
         _busy = true; _status = _error = null;
-        try { await Tasks.DeleteAsync(id); await Load(); _status = "Incarico eliminato."; }
+        try { await Tasks.DeleteAsync(id); await Load(); _status = L["AdminTasks_DeletedMsg"]; }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
@@ -126,13 +127,13 @@
         <div class="block" style="margin-bottom:8px;@(overdue ? "border-color:var(--ivao-red)" : "")">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                 <span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span>
-                @if (t.DueAiracCycle is not null) { <span class="pill @(overdue ? "future" : "grey")" title="Scadenza AIRAC">@(overdue ? "⚠ in ritardo " : "")AIRAC @t.DueAiracCycle</span> }
+                @if (t.DueAiracCycle is not null) { <span class="pill @(overdue ? "future" : "grey")" title="@L["Tasks_DueAiracTitle"]">@(overdue ? L["Tasks_Late"].Value + " " : "")AIRAC @t.DueAiracCycle</span> }
             </div>
             <b>@t.Title</b>
             @if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:12px;margin-top:2px">@t.Description</div> }
             @if (t.TargetKey is not null)
             {
-                <div style="margin-top:4px"><a class="btn ghost" href="@Vipi.Ui.Shared.TaskDocLink.LinkFor(t.TargetType, t.TargetKey)">Apri documento →</a></div>
+                <div style="margin-top:4px"><a class="btn ghost" href="@Vipi.Ui.Shared.TaskDocLink.LinkFor(t.TargetType, t.TargetKey)">@L["Tasks_OpenDoc"]</a></div>
                 @if (!string.IsNullOrWhiteSpace(t.TargetLabel)) { <div class="muted" style="font-size:11px;margin-top:2px">@t.TargetLabel</div> }
             }
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
@@ -142,25 +143,25 @@
                 }
                 @if (t.CreatedByUserId == (User.Get()?.UserId ?? -1))
                 {
-                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => Delete(t.Id)" title="Elimina">🗑</button>
+                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => Delete(t.Id)" title="@L["Common_Remove"]" aria-label="@L["AdminTasks_DeleteTask"]"><Icon Name="trash" /></button>
                 }
             </div>
         </div>
     };
 
-    private static string ColLabel(EditorTaskStatus s) => s switch
+    private string ColLabel(EditorTaskStatus s) => s switch
     {
-        EditorTaskStatus.Todo => "Da fare",
-        EditorTaskStatus.InProgress => "In corso",
-        EditorTaskStatus.InReview => "In revisione",
-        EditorTaskStatus.Done => "Fatto",
-        EditorTaskStatus.Blocked => "Bloccato",
+        EditorTaskStatus.Todo => L["TaskStatus_Todo"],
+        EditorTaskStatus.InProgress => L["TaskStatus_InProgress"],
+        EditorTaskStatus.InReview => L["TaskStatus_InReview"],
+        EditorTaskStatus.Done => L["TaskStatus_Done"],
+        EditorTaskStatus.Blocked => L["TaskStatus_Blocked"],
         _ => s.ToString(),
     };
 
-    private static string PrioLabel(EditorTaskPriority p) => p switch
+    private string PrioLabel(EditorTaskPriority p) => p switch
     {
-        EditorTaskPriority.Low => "Bassa", EditorTaskPriority.Normal => "Normale", EditorTaskPriority.High => "Alta", _ => p.ToString(),
+        EditorTaskPriority.Low => L["TaskPrio_Low"], EditorTaskPriority.Normal => L["TaskPrio_Normal"], EditorTaskPriority.High => L["TaskPrio_High"], _ => p.ToString(),
     };
 
     private static string PrioPill(EditorTaskPriority p) => p switch

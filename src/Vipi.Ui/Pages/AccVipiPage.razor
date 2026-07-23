@@ -7,30 +7,31 @@
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
+@inject IStringLocalizer<SharedResource> L
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_notAvailable)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vIPI non disponibile</p>Nessuna vIPI pubblicata per <b>@_acc.Code</b>. Se la stai preparando, aprila dall'<a href="/vsop/@Acc.ToLowerInvariant()/editor">editor</a> e pubblicala.</div></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(L["AccVipi_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
     </div>
 }
 else
 {
     <PageTitle>@PreviewTitlePrefix()vIPI @_data.AccName · IVAO Italia</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
             <aside class="toc">
-                <p class="toc-h">Navigazione</p>
+                <p class="toc-h">@L["Common_Navigation"]</p>
                 @foreach (var block in _data.Blocks)
                 {
-                    <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : block.Title)</p>
+                    <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</p>
                     <ul>
                         @foreach (var key in OrderOf(block))
                         {
@@ -42,12 +43,12 @@ else
 
             <div>
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">Istruzioni di posizione · settori di aerovia e avvicinamenti</span></div>
+                    <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">@L["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa">⚡ Operativa</a>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">✎ Editor</a>
+                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@L["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -61,12 +62,12 @@ else
 
                 @foreach (var block in _data.Blocks)
                 {
-                    <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? "Settori di aerovia" : block.Title)</h2>
+                    <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
                     @foreach (var key in OrderOf(block))
                     {
                         var isHidden = IsHiddenSection(block, key);
                         <CollapsibleBlock Id="@($"p-{block.Key}-{key}")" Style="@(isHidden ? "opacity:.65" : null)">
-                            <Header><h3>@TitleOf(block, key) @if (isHidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3></Header>
+                            <Header><h3>@TitleOf(block, key) @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
                                 <AccSectionBody Block="block" Key="@key" Root="@_root"
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
@@ -82,20 +83,20 @@ else
 
             <aside class="doc-rail">
                 <div class="rail-card">
-                    <h5>📋 Riepilogo</h5>
-                    <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
-                    <div class="rail-line"><span class="muted">ATC online</span>
+                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
+                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
                         @{ var n = OnlineCount(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5>🔗 Collegamenti</h5>
+                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">Home</a></li>
+                        <li><a href="/vsop">@L["Common_Home"]</a></li>
                         <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_data.AccCode</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">Aeroporti</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
                         <li><a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a></li>
                     </ul>
                 </div>
@@ -171,7 +172,7 @@ else
                 _freqs[b.Key] = derived.Freqs.GetValueOrDefault(b.Key)?.ToList() ?? new();
                 _coord[b.Key] = derived.Coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty;
                 _aors[b.Key] = derived.Aor.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
-                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
+                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
             }
         }
@@ -183,7 +184,7 @@ else
                 _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
                 _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
                 _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
-                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(b);
+                _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
             }
         }
@@ -201,8 +202,8 @@ else
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => "[Bozza] ",
-        PreviewKind.Release => "[Anteprima] ",
+        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
         _ => "",
     };
 

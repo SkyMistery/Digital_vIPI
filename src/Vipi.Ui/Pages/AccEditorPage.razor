@@ -8,47 +8,48 @@
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
-    <PageTitle>Editor vIPI @_accName</PageTitle>
+    <PageTitle>@L["Acc_EditorTitle"] @_accName</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>Editor</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @if (_denied)
         {
-            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>Non hai i permessi per la ACC @_accName.</div></div>
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["Acc_DeniedBody"].Value, _accName))</div></div>
         }
         else if (_doc is null || _model is null)
         {
-            <p class="help">Caricamento editor vIPI…</p>
+            <p class="help">@L["Acc_LoadingEditor"]</p>
         }
         else
         {
             <div class="editor-bar">
                 <div class="doc-head" style="margin:0">
-                    <div><h2 style="margin-bottom:2px">✎ Editor vIPI @_accName</h2><span class="muted">Settori di aerovia + gruppi APP</span></div>
+                    <div><h2 style="margin-bottom:2px">✎ @L["Acc_EditorTitle"] @_accName</h2><span class="muted">@L["Acc_Subtitle"]</span></div>
                     <div class="editor-actions">
-                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
-                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
+                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
                         <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                            @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
+                            @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
                         </span>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda">👁 Anteprima bozza</a>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="@L["Acc_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
                         @if (_editing)
                         {
-                            <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
+                            <button class="btn ghost" @onclick="() => _editing = false">✓ @L["Lock_FinishEdit"]</button>
                         }
                         else
                         {
-                            <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
+                            <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
                         }
                     </div>
                 </div>
@@ -58,10 +59,10 @@ else
 
             @if (_lock is { Locked: true, IsMine: false })
             {
-                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
-                    Bloccato da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : "").</div></div>
+                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
+                    @(string.Format(L["Acc_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
             }
-            @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
+            @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
 
             @foreach (var bs in _doc.Sections)
             {
@@ -76,18 +77,18 @@ else
                         {
                             <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
                                    @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
-                            <button class="btn ghost" title="Rimuovi gruppo" @onclick="() => RemoveGroup(blockSection.Id)">✕ Gruppo</button>
+                            <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
                         }
                         else
                         {
-                            <h2 class="acc-block-h">@(isGroup ? blockSection.Title : "Settori di aerovia")</h2>
+                            <h2 class="acc-block-h">@(isGroup ? blockSection.Title : L["Acc_AirwaySectors"])</h2>
                         }
                     </div>
 
                     @if (_editing && isGroup)
                     {
                         <div class="block" style="border-style:dashed">
-                            <p class="app-lbl" style="margin:0 0 4px">Settori APP del gruppo</p>
+                            <p class="app-lbl" style="margin:0 0 4px">@L["Acc_GroupAppSectors"]</p>
                             <div class="sector-pick">
                                 @foreach (var s in _appSectors)
                                 {
@@ -102,7 +103,7 @@ else
                     }
 
                     <DocumentSectionsEditor Doc="_doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
-                                            AddLabel="+ Aggiungi sezione custom" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
+                                            AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                             IsDerivedSection="IsStructured" DerivedContent="DerivedFor(blk)"
                                             IsMandatory="IsMandatory" IsHiddenSection="s => IsHidden(blk, s)"
                                             OnToggleHidden="s => ToggleHidden(blk, s)"
@@ -113,7 +114,7 @@ else
             @if (_editing)
             {
                 <div class="block" style="border-style:dashed">
-                    <button class="btn primary" @onclick="AddGroup">+ Aggiungi gruppo APP</button>
+                    <button class="btn primary" @onclick="AddGroup">+ @L["Acc_AddAppGroup"]</button>
                 </div>
             }
 
@@ -150,9 +151,11 @@ else
     private IReadOnlyList<AccSectorPick> _ctrSectors = Array.Empty<AccSectorPick>();
     private IReadOnlyList<AccSectorPick> _appSectors = Array.Empty<AccSectorPick>();
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
-    private IReadOnlyList<SpecialAreaPick> _specialAreaPicks = Array.Empty<SpecialAreaPick>();
+    private IReadOnlyList<SpecialAreaPick> _specialAreaPicks = Array.Empty<SpecialAreaPick>();   // aree del proprio ACC
+    private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();     // aree di altri ACC (extra)
     private readonly Dictionary<int, string> _freqSearch = new();   // per blocco (BlockSectionId)
-    private readonly Dictionary<int, string> _areaSearch = new();
+    private readonly Dictionary<int, string> _areaSearch = new();   // ricerca aree proprio ACC (manuale)
+    private readonly Dictionary<int, string> _extraSearch = new();  // ricerca aree altri ACC (extra)
     private (int Block, int Index)? _freqDrag;
 
     protected override async Task OnParametersSetAsync()
@@ -173,6 +176,7 @@ else
         _ctrSectors = await Profile.GetBlockPoolAsync(Acc, new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia }, _root);
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _specialAreaPicks = await Profile.ListSpecialAreasByAccAsync(Acc);
+        _otherAreaPicks = await Profile.ListOtherAccSpecialAreasAsync(Acc);
         await LoadAsync();
     }
 
@@ -230,7 +234,7 @@ else
 
     private async Task RemoveGroup(int blockSectionId)
     {
-        if (!await Confirm("Rimuovere il gruppo? L'azione non è annullabile.")) return;
+        if (!await Confirm(L["Acc_RemoveGroupConfirm"].Value)) return;
         await Guard(async () =>
         {
             await AccDoc.RemoveGroupAsync(Acc, blockSectionId);
@@ -252,7 +256,7 @@ else
     private static AccBlockMeta MetaOf(AccBlock b) => new()
     {
         Key = b.Key, Kind = b.Kind, MemberCallsigns = b.MemberCallsigns, HiddenSections = b.HiddenSections,
-        FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns, CoordinationSentenceTemplate = b.CoordinationSentenceTemplate,
+        FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns,
     };
     private Task SaveMeta(AccAssembledBlock blk) => AccDoc.SaveBlockMetaAsync(Acc, blk.BlockSectionId, MetaOf(blk.Block));
 
@@ -336,14 +340,6 @@ else
         await LoadAsync();
     });
 
-    // ---- coordinamenti (template nel blockmeta) ----
-    private Task SaveCoordTemplate(AccAssembledBlock blk, string text) => Guard(async () =>
-    {
-        blk.Block.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
-        await SaveMeta(blk);
-        await LoadAsync();
-    });
-
     // ---- configurazioni (editor condiviso AppConfigurations: emette l'intera lista, l'host salva) ----
     private Task SaveConfigs(AccAssembledBlock blk, IReadOnlyList<AccConfiguration> configs) => Guard(async () =>
     {
@@ -352,18 +348,52 @@ else
         await LoadAsync();
     });
 
-    private Task<bool> ConfirmRemoveConfig(AccConfiguration c) => Confirm($"Rimuovere la configurazione «{c.Name}»?");
+    private Task<bool> ConfirmRemoveConfig(AccConfiguration c) => Confirm(string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
 
     // ---- aree regolamentate ----
-    private Task ToggleSpecialArea(AccAssembledBlock blk, string areaId) => Guard(async () =>
+    // Id delle aree del proprio ACC effettivamente selezionate: automatico (Aerovia) = tutte; altrimenti il sottoinsieme.
+    private List<string> EffectiveOwnIds(AccAssembledBlock blk) =>
+        blk.Block.Kind == AccBlockKind.Aerovia && blk.Block.Regulated.OwnAuto
+            ? _specialAreaPicks.Select(p => p.IvaoId).ToList()
+            : new List<string>(blk.Block.Regulated.OwnIds);
+
+    private Task SaveRegulated(AccAssembledBlock blk, RegulatedSelection sel) => Guard(async () =>
     {
-        var ids = blk.Block.AttachedSpecialAreaIds;
-        if (ids.Contains(areaId, StringComparer.OrdinalIgnoreCase))
-            ids.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
-        else ids.Add(areaId);
-        await AccDoc.SaveRegulatedAsync(Acc, ChildId(blk, "regulated"), ids);
+        await AccDoc.SaveRegulatedAsync(Acc, ChildId(blk, "regulated"), sel);
         await LoadAsync();
     });
+
+    // Toggle automatico/manuale delle aree del proprio ACC (solo Aerovia). Manuale materializza le attuali (tutte).
+    private Task SetOwnAuto(AccAssembledBlock blk, bool auto) => SaveRegulated(blk, new RegulatedSelection
+    {
+        OwnAuto = auto,
+        OwnIds = auto ? new() : EffectiveOwnIds(blk),
+        ExtraIds = new List<string>(blk.Block.Regulated.ExtraIds),
+    });
+
+    // Seleziona/deseleziona un'area del PROPRIO ACC. In automatico passa a manuale materializzando le attuali.
+    private Task ToggleOwnArea(AccAssembledBlock blk, string areaId) => SaveRegulated(blk, BuildToggleOwn(blk, areaId));
+
+    private RegulatedSelection BuildToggleOwn(AccAssembledBlock blk, string areaId)
+    {
+        var own = EffectiveOwnIds(blk);
+        if (own.Contains(areaId, StringComparer.OrdinalIgnoreCase))
+            own.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
+        else own.Add(areaId);
+        return new RegulatedSelection { OwnAuto = false, OwnIds = own, ExtraIds = new List<string>(blk.Block.Regulated.ExtraIds) };
+    }
+
+    // Aggiunge/rimuove un'area di ALTRO ACC (extra): non tocca il modo auto/manuale delle proprie.
+    private Task ToggleExtraArea(AccAssembledBlock blk, string areaId) => SaveRegulated(blk, BuildToggleExtra(blk, areaId));
+
+    private RegulatedSelection BuildToggleExtra(AccAssembledBlock blk, string areaId)
+    {
+        var extra = new List<string>(blk.Block.Regulated.ExtraIds);
+        if (extra.Contains(areaId, StringComparer.OrdinalIgnoreCase))
+            extra.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
+        else extra.Add(areaId);
+        return new RegulatedSelection { OwnAuto = blk.Block.Regulated.OwnAuto, OwnIds = new List<string>(blk.Block.Regulated.OwnIds), ExtraIds = extra };
+    }
 
     private IReadOnlyList<AccSectorPick> PoolOf(AccAssembledBlock blk) =>
         blk.Block.Kind == AccBlockKind.Aerovia ? _ctrSectors
@@ -380,7 +410,7 @@ else
             var tick = ++_saveTick;
             _ = DismissSavedAsync(tick);
         }
-        catch (EditNotAllowedException) { _error = "Non hai i permessi."; _save = SaveState.Idle; }
+        catch (EditNotAllowedException) { _error = L["Acc_NoPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
     }
@@ -424,16 +454,6 @@ else
                 <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_editing" ContentChanged="c => SaveVfr(blk, c)" />
                 break;
             case "coordination":
-                @if (_editing)
-                {
-                    <div class="field" style="margin:0 0 12px">
-                        <label>Frase di coordinamento — template (vuoto = default globale)</label>
-                        <textarea rows="2" placeholder="{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}."
-                                  value="@blk.Block.CoordinationSentenceTemplate"
-                                  @onchange="e => SaveCoordTemplate(blk, AsString(e.Value))"></textarea>
-                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. <code>{airport}</code> include già la relazione arrivo/partenza («con destinazione …» / «in partenza da …»): non aggiungere «con destinazione».</p>
-                    </div>
-                }
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />
                 break;
             case "regulated":
@@ -446,18 +466,18 @@ else
     {
         var search = _freqSearch.GetValueOrDefault(blk.BlockSectionId, "");
         <div class="block" style="border-style:dashed;margin-top:8px">
-            <p class="app-lbl" style="margin:0 0 4px">Frequenze collegate <span class="muted">(riferimento vivo a un altro settore)</span></p>
+            <p class="app-lbl" style="margin:0 0 4px">@L["Acc_LinkedFreqs"] <span class="muted">@L["Acc_LinkedFreqsHint"]</span></p>
             @if (blk.Block.FreqLinkCallsigns.Count > 0)
             {
                 <div class="sector-pick" style="margin-bottom:6px">
                     @foreach (var cs in blk.Block.FreqLinkCallsigns)
                     {
                         var callsign = cs;
-                        <button type="button" class="sp-item on" title="Rimuovi link" @onclick="() => RemoveLink(blk, callsign)">🔗 <b>@callsign</b> ✕</button>
+                        <button type="button" class="sp-item on" title="@L["Acc_RemoveLink"]" @onclick="() => RemoveLink(blk, callsign)"><Icon Name="link" /> <b>@callsign</b> ✕</button>
                     }
                 </div>
             }
-            <input class="app-in" placeholder="Collega frequenza (cerca callsign/ICAO)…" value="@search"
+            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@search"
                    @oninput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(search))
             {
@@ -477,45 +497,125 @@ else
 
     private RenderFragment RegulatedEditor(AccAssembledBlock blk) => __builder =>
     {
-        var attached = blk.Block.AttachedSpecialAreaIds;
-        <p class="app-lbl" style="margin:0 0 4px">Aree selezionate <span class="muted">(mostrate nella vIPI)</span></p>
-        @if (attached.Count > 0)
-        {
-            <div class="sector-pick" style="margin-bottom:6px">
-                @foreach (var id in attached)
+        var isAerovia = blk.Block.Kind == AccBlockKind.Aerovia;
+        var reg = blk.Block.Regulated;
+        var ownIds = EffectiveOwnIds(blk);   // aree del proprio ACC effettivamente mostrate
+
+        // --- Aree del proprio ACC (automatico/manuale, solo Aerovia) ---
+        <div class="block" style="border-style:dashed">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                <p class="app-lbl" style="margin:0">@L["Acc_OwnAreas"]</p>
+                @if (isAerovia && _editing)
                 {
-                    var areaId = id;
-                    var name = _specialAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase))?.Name ?? areaId;
-                    <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleSpecialArea(blk, areaId)">✓ <b>@name</b> ✕</button>
+                    <div class="sector-pick" style="margin:0">
+                        <button type="button" class="sp-item @(reg.OwnAuto ? "on" : "")" @onclick="() => SetOwnAuto(blk, true)">@L["Acc_Automatic"]</button>
+                        <button type="button" class="sp-item @(!reg.OwnAuto ? "on" : "")" @onclick="() => SetOwnAuto(blk, false)">@L["Acc_Manual"]</button>
+                    </div>
+                }
+                else if (isAerovia)
+                {
+                    <span class="pill @(reg.OwnAuto ? "green" : "grey")">@(reg.OwnAuto ? L["Acc_Automatic"] : L["Acc_Manual"])</span>
                 }
             </div>
-        }
-        else { <p class="muted">Nessuna area selezionata.</p> }
 
-        @if (_editing)
-        {
-            var search = _areaSearch.GetValueOrDefault(blk.BlockSectionId, "");
-            <input class="app-in" placeholder="Cerca area regolamentata (nome/tipo)…" value="@search"
-                   @oninput="e => _areaSearch[blk.BlockSectionId] = AsString(e.Value)" />
-            @if (_specialAreaPicks.Count == 0)
+            @if (isAerovia && reg.OwnAuto)
             {
-                <p class="muted" style="margin-top:6px">Nessuna area importata da IVAO per questa ACC.</p>
+                <p class="help" style="margin:0 0 6px">@L["Acc_AllAreasAuto"]@(_editing ? " " + L["Acc_RemoveToManual"].Value : "")</p>
             }
-            else
+
+            @if (ownIds.Count > 0)
             {
-                <div class="sector-pick" style="margin-top:6px">
-                    @foreach (var p in _specialAreaPicks
-                        .Where(p => !attached.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                        .Where(p => string.IsNullOrWhiteSpace(search) || p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
-                        .Take(12))
+                <div class="sector-pick" style="margin-bottom:6px">
+                    @foreach (var id in ownIds)
                     {
-                        var pick = p;
-                        <button type="button" class="sp-item" @onclick="() => ToggleSpecialArea(blk, pick.IvaoId)">
-                            <b>@pick.Name</b> @if (!string.IsNullOrWhiteSpace(pick.Type)) { <span class="muted">@pick.Type</span> }
-                        </button>
+                        var areaId = id;
+                        var name = _specialAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase))?.Name ?? areaId;
+                        @if (_editing)
+                        {
+                            <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleOwnArea(blk, areaId)">✓ <b>@name</b> ✕</button>
+                        }
+                        else { <span class="sp-item on">✓ <b>@name</b></span> }
                     }
                 </div>
             }
+            else { <p class="muted">@L["Acc_NoOwnAreaSelected"]</p> }
+
+            @if (_editing && (!isAerovia || !reg.OwnAuto))
+            {
+                var search = _areaSearch.GetValueOrDefault(blk.BlockSectionId, "");
+                @if (isAerovia)
+                {
+                    <button type="button" class="btn ghost" style="margin-bottom:6px" @onclick="() => SetOwnAuto(blk, true)">↺ @L["Acc_BackToAuto"]</button>
+                }
+                <input class="app-in" placeholder="@L["Acc_SearchOwnArea"]" value="@search"
+                       @oninput="e => _areaSearch[blk.BlockSectionId] = AsString(e.Value)" />
+                @if (_specialAreaPicks.Count == 0)
+                {
+                    <p class="muted" style="margin-top:6px">@L["Acc_NoIvaoArea"]</p>
+                }
+                else
+                {
+                    <div class="sector-pick" style="margin-top:6px">
+                        @foreach (var p in _specialAreaPicks
+                            .Where(p => !ownIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
+                            .Where(p => string.IsNullOrWhiteSpace(search) || p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+                            .Take(12))
+                        {
+                            var pick = p;
+                            <button type="button" class="sp-item" @onclick="() => ToggleOwnArea(blk, pick.IvaoId)">
+                                <b>@pick.Name</b> @if (!string.IsNullOrWhiteSpace(pick.Type)) { <span class="muted">@pick.Type</span> }
+                            </button>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        // --- Aree di altri ACC (extra) — solo Aerovia ---
+        @if (isAerovia)
+        {
+            <div class="block" style="border-style:dashed;margin-top:8px">
+                <p class="app-lbl" style="margin:0 0 4px">@L["Acc_OtherAccAreas"] <span class="muted">@L["Acc_AddedManually"]</span></p>
+                @if (reg.ExtraIds.Count > 0)
+                {
+                    <div class="sector-pick" style="margin-bottom:6px">
+                        @foreach (var id in reg.ExtraIds)
+                        {
+                            var areaId = id;
+                            var pk = _otherAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase));
+                            var name = pk?.Name ?? areaId;
+                            @if (_editing)
+                            {
+                                <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(blk, areaId)">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span> ✕</button>
+                            }
+                            else { <span class="sp-item on">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span></span> }
+                        }
+                    </div>
+                }
+                else if (!_editing) { <p class="muted">@L["Acc_None"]</p> }
+
+                @if (_editing)
+                {
+                    var esearch = _extraSearch.GetValueOrDefault(blk.BlockSectionId, "");
+                    <input class="app-in" placeholder="@L["Acc_SearchOtherArea"]" value="@esearch"
+                           @oninput="e => _extraSearch[blk.BlockSectionId] = AsString(e.Value)" />
+                    @if (!string.IsNullOrWhiteSpace(esearch))
+                    {
+                        <div class="sector-pick" style="margin-top:6px">
+                            @foreach (var p in _otherAreaPicks
+                                .Where(p => !reg.ExtraIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
+                                .Where(p => p.Name.Contains(esearch, StringComparison.OrdinalIgnoreCase) || p.CenterId.Contains(esearch, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(esearch, StringComparison.OrdinalIgnoreCase))
+                                .Take(12))
+                            {
+                                var pick = p;
+                                <button type="button" class="sp-item" @onclick="() => ToggleExtraArea(blk, pick.IvaoId)">
+                                    <b>@pick.Name</b> <span class="muted">@pick.CenterId</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                }
+            </div>
         }
     };
 

@@ -25,7 +25,7 @@ public sealed class AppFrozenSectionProvider : IFrozenSectionProvider
             {
                 "aor" => await _app.GetAorViewAsync(key, ct),
                 "frequencies" => await _app.DeriveFrequenciesAsync(key, ct),
-                "coordination" => await _app.DeriveCoordinationAsync(key, null, ct),
+                "coordination" => await _app.DeriveCoordinationAsync(key, ct),
                 _ => null,
             };
             if (vm is not null) result[s.Id] = JsonSerializer.Serialize(vm);

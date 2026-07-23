@@ -26,4 +26,6 @@ public class ImportState
 {
     public string Category { get; set; } = default!;   // chiave naturale
     public DateTime LastSuccessUtc { get; set; }
+    public DateTime? LastAttemptUtc { get; set; }       // ultimo tentativo (riuscito o no); null se mai tentato
+    public string? LastError { get; set; }              // messaggio dell'ultimo fallimento; null se l'ultimo tentativo è riuscito
 }

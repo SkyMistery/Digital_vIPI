@@ -9,18 +9,19 @@
 @inject IReleaseService Releases
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
+@inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_vloaMode)
 {
     <PageTitle>@PreviewTitlePrefix()vLOA @Acc.ToUpperInvariant() ↔ @_vloaForeign · IVAO Italia</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_vloaForeign</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_vloaForeign</b></div>
         @if (_mode.IsPreview)
         {
             <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
@@ -29,7 +30,7 @@ else if (_vloaMode)
         }
         @if (_vloaView is null)
         {
-            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">vLOA non disponibile</p>Nessuna vLOA pubblicata per la coppia <b>@Acc.ToUpperInvariant() ↔ @_vloaForeign</b>. Generala dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{Acc.ToUpperInvariant()} ↔ {_vloaForeign}"))</div></div>
         }
         else
         {
@@ -39,17 +40,17 @@ else if (_vloaMode)
 }
 else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">APP non trovato</p>Nessun avvicinamento non remotizzato pubblicato per <code>@_app</code>. Se lo stai preparando, aprilo dall'<a href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">editor</a> e pubblicalo.</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotFoundTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {
     <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a> › <b>@_app</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
             <aside class="toc">
-                <p class="toc-h">Sommario</p>
+                <p class="toc-h">@L["Common_Contents"]</p>
                 <ul>
                     @foreach (var s in VisibleSections())
                     {
@@ -59,12 +60,12 @@ else
             </aside>
             <div>
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · Avvicinamento non remotizzato · doc proprio</span></div>
+                    <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa-app?app=@_app">⚡ Operativa</a>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa-app?app=@_app">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">✎ Editor</a>
+                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@L["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -74,7 +75,7 @@ else
                                    PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
                                    DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
-                <div class="callout info"><span class="cic">📡</span><div><p class="ct">APP con documentazione propria</p>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</div></div>
+                <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
 
                 @foreach (var s in _view.Sections)
                 {
@@ -86,7 +87,7 @@ else
                     else if (IsSpecial(s.SectionKey))
                     {
                         <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)">
-                            <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill" style="background:#eef1f7;color:#57606a;font-weight:500">🚫 nascosta (non nel pubblico)</span> }</h3></Header>
+                            <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
                                 @switch (s.SectionKey)
                                 {
@@ -110,19 +111,19 @@ else
 
             <aside class="doc-rail">
                 <div class="rail-card">
-                    <h5>📋 Riepilogo</h5>
-                    <div class="rail-line"><span class="muted">Ciclo AIRAC</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
-                    <div class="rail-line"><span class="muted">ATC online</span>
+                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
+                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
                         @{ var n = OnlineApp(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5>🔗 Collegamenti</h5>
+                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">Home</a></li>
+                        <li><a href="/vsop">@L["Common_Home"]</a></li>
                         <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a></li>
+                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
                     </ul>
                 </div>
             </aside>
@@ -173,8 +174,8 @@ else
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => "[Bozza] ",
-        PreviewKind.Release => "[Anteprima] ",
+        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
         _ => "",
     };
 

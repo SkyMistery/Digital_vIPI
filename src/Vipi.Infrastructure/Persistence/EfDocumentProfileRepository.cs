@@ -22,7 +22,6 @@ public sealed class EfDocumentProfileRepository : IDocumentProfileRepository
             HiddenFrequencies = DeserializeStrings(p?.HiddenFrequenciesJson),
             FreqOrder = DeserializeFreqOrder(p?.FreqOrderJson),
             FreqLinkSectorIds = DeserializeInts(p?.FreqLinksJson),
-            CoordinationSentenceTemplate = p?.CoordinationSentenceTemplate,
         };
     }
 
@@ -34,9 +33,6 @@ public sealed class EfDocumentProfileRepository : IDocumentProfileRepository
 
     public Task SaveFreqLinksAsync(int documentId, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default) =>
         MutateAsync(documentId, p => p.FreqLinksJson = JsonSerializer.Serialize(sourceSectorIds), ct);
-
-    public Task SaveCoordinationTemplateAsync(int documentId, string? template, CancellationToken ct = default) =>
-        MutateAsync(documentId, p => p.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(template) ? null : template.Trim(), ct);
 
     // Get-or-create della riga profilo, applica la mutazione, salva.
     private async Task MutateAsync(int documentId, Action<DocumentProfile> mutate, CancellationToken ct)

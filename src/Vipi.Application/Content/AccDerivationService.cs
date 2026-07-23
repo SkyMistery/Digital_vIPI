@@ -41,11 +41,16 @@ public interface IAccDerivationService
 
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
-    /// <summary>Aree speciali dell'ACC (picker editor #8).</summary>
+    /// <summary>Aree speciali del proprio ACC (picker editor #8).</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Aree speciali attaccate al blocco, risolte per il viewer (metadati + shape proiettata), nell'ordine scelto.</summary>
-    Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(AccBlock block, CancellationToken ct = default);
+    /// <summary>Aree speciali di altri ACC (picker editor aree extra #8).</summary>
+    Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Aree regolamentate del blocco risolte per il viewer (metadati + shape), in ordine (proprie poi extra).
+    /// Aerovia in automatico = tutte le aree del proprio <paramref name="accCode"/> (dinamico); altrimenti il sottoinsieme
+    /// scelto. Sempre in coda le aree extra di altri ACC.</summary>
+    Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(string accCode, AccBlock block, CancellationToken ct = default);
 
 }
 
@@ -117,9 +122,7 @@ public sealed class AccDerivationService : IAccDerivationService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
         var accNameMap = await _repo.GetSectorAccNameMapAsync(ct);
-        var tpl = string.IsNullOrWhiteSpace(block.CoordinationSentenceTemplate)
-            ? _sentence.Current
-            : _sentence.Current.WithTemplate(block.CoordinationSentenceTemplate!);
+        var tpl = _sentence.Current;
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var entries = CoordinationDerivation.Build(flows, owners, types, nameMap, codeMap, airportMap, atcMap, tpl);
@@ -218,14 +221,23 @@ public sealed class AccDerivationService : IAccDerivationService
     public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct);
 
-    public async Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(AccBlock block, CancellationToken ct = default)
+    public Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string accCode, CancellationToken ct = default) =>
+        _repo.ListSpecialAreasExcludingAccAsync(Norm(accCode), ct);
+
+    public async Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(string accCode, AccBlock block, CancellationToken ct = default)
     {
-        if (block.AttachedSpecialAreaIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
-        var details = await _repo.GetSpecialAreasByIdsAsync(block.AttachedSpecialAreaIds, ct);
+        // Aree del proprio ACC: automatico (Aerovia) = tutte; altrimenti il sottoinsieme scelto. Poi le extra di altri ACC.
+        IReadOnlyList<string> ownIds = block.Kind == AccBlockKind.Aerovia && block.Regulated.OwnAuto
+            ? (await _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct)).Select(p => p.IvaoId).ToList()
+            : block.Regulated.OwnIds;
+        var orderedIds = ownIds.Concat(block.Regulated.ExtraIds).ToList();
+        if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
+
+        var details = await _repo.GetSpecialAreasByIdsAsync(orderedIds, ct);
         var byId = details.ToDictionary(d => d.IvaoId, StringComparer.OrdinalIgnoreCase);
 
         var result = new List<AccSpecialAreaView>();
-        foreach (var id in block.AttachedSpecialAreaIds)   // preserva l'ordine scelto dallo staff
+        foreach (var id in orderedIds)   // preserva l'ordine (proprie poi extra)
         {
             if (!byId.TryGetValue(id, out var d)) continue;
             var shape = string.IsNullOrWhiteSpace(d.RegionMapPolygon) ? null : Aor.AorPolygonProjector.Project(d.RegionMapPolygon);

@@ -54,7 +54,8 @@ public static class CoordinationDerivation
 
         string? Compose(string sender, string receiver, string? icao, TransferPointRow p, TransferFlowKind kind)
             => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver, icao,
-                p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind);
+                p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
+                p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
 
         // 1) Flussi POSSEDUTI dai settori del blocco/dominio (qualsiasi Next: ACC/APP/torre; qualsiasi tipo).
         foreach (var flow in flows.Where(f => owners.Contains(f.OwningSectorCallsign)))
@@ -68,6 +69,7 @@ public static class CoordinationDerivation
                     AirportIcao = flow.AirportIcao,
                     Constraint = p.LevelConstraint,
                     Sentence = Compose(flow.OwningSectorCallsign, next!, flow.AirportIcao, p, flow.Kind),
+                    ConditionLabel = p.ConditionDisplay,
                 };
                 entries.Add(new CoordinationEntry(flow.OwningSectorCallsign, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row));
             }
@@ -90,6 +92,7 @@ public static class CoordinationDerivation
                     Constraint = p.LevelConstraint,
                     // Mittente = CTR vicino (owner), destinatario = nostro settore del blocco (recv).
                     Sentence = Compose(owner, recv!, flow.AirportIcao, p, TransferFlowKind.Arrival),
+                    ConditionLabel = p.ConditionDisplay,
                 };
                 entries.Add(new CoordinationEntry(recv!, owner, ownerType, flow.AirportIcao, TransferFlowKind.Arrival, IsIncoming: true, row));
             }

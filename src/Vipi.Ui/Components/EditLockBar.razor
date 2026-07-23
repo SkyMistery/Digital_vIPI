@@ -6,25 +6,26 @@
 @implements IAsyncDisposable
 @inject IResourceLockService Locks
 @inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
 
 <div class="lockbar @(_lock.IsMine ? "mine" : _lock.Locked ? "other" : "free")">
     @if (_lock.IsMine)
     {
-        <span class="lb-state"><span class="lb-dot"></span> Stai modificando@(_lock.ExpiresUtc is { } e ? $" · lock fino alle {e.ToLocalTime():HH:mm}" : "")</span>
-        <button class="btn ghost" @onclick="Release" title="Rilascia il lock così un altro editor può modificare">✓ Fine modifica</button>
+        <span class="lb-state"><span class="lb-dot"></span> @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToLocalTime().ToString("HH:mm")) : "")</span>
+        <button class="btn ghost" @onclick="Release" title="@L["Lock_ReleaseTitle"]">✓ @L["Lock_FinishEdit"]</button>
     }
     else if (_lock.Locked)
     {
-        <span class="lb-state"><span class="lb-dot"></span> 🔒 In modifica da <b>@(_lock.ByName ?? "un altro editor")</b>@(_lock.ExpiresUtc is { } e ? $" (fino alle {e.ToLocalTime():HH:mm})" : "")</span>
+        <span class="lb-state"><span class="lb-dot"></span> 🔒 @L["Lock_LockedByPrefix"] <b>@(_lock.ByName ?? L["Lock_AnotherEditor"].Value)</b>@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_LockedUntilSuffix"].Value, e.ToLocalTime().ToString("HH:mm")) : "")</span>
         @if (Authz.IsAdmin)
         {
-            <button class="btn ghost" @onclick="ForceUnlock" title="Sblocca comunque e prendi il controllo (admin)">🔓 Forza sblocco</button>
+            <button class="btn ghost" @onclick="ForceUnlock" title="@L["Lock_ForceTitle"]">🔓 @L["Lock_ForceUnlock"]</button>
         }
     }
     else
     {
-        <span class="lb-state muted">Sola lettura. Prendi il lock per modificare (una persona alla volta).</span>
-        <button class="btn primary" @onclick="Acquire">✎ Inizia modifica</button>
+        <span class="lb-state muted">@L["Lock_ReadOnly"]</span>
+        <button class="btn primary" @onclick="Acquire">✎ @L["Lock_StartEdit"]</button>
     }
 </div>
 

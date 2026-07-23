@@ -195,6 +195,11 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Flow).WithMany(f => f.Points).HasForeignKey(x => x.FlowId).OnDelete(DeleteBehavior.Cascade);
             // Il ricevente nominale è un riferimento debole: se il settore sparisce, il punto resta (solo fallback).
             e.HasOne(x => x.NextSector).WithMany().HasForeignKey(x => x.NextSectorId).OnDelete(DeleteBehavior.SetNull);
+            // Condizione: label denormalizzata (verità per il display). ConditionRefId è soft-ref (no FK: la config
+            // pista/area può essere rinominata/rimossa senza rompere il punto o lo snapshot pubblicato).
+            e.Property(x => x.ConditionLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
         });
 
         b.Entity<EditGrant>(e =>

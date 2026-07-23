@@ -62,7 +62,7 @@ public class AppViewDerivationServiceTests
 
         public Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<AppFreqRow>>(LiveFreqs);
-        public Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, string? templateOverride = null, CancellationToken ct = default) =>
+        public Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AppCoordination.Empty);
         public Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AccAorView.Empty);
@@ -81,7 +81,6 @@ public class AppViewDerivationServiceTests
         public Task SaveHiddenSectionsAsync(string a, IReadOnlyList<string> k, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyOrderAsync(string a, IReadOnlyList<AppFreqOrderOverride> o, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task SaveCoordinationTemplateAsync(string a, string? t, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveConfigurationsAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotImplementedException();

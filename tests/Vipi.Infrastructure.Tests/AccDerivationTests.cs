@@ -175,7 +175,66 @@ public class AccProfileTests : IAsyncLifetime
         Assert.Equal(2, row.Absorbed.Count);                 // accorpa NE + TS
     }
 
+    [Fact]
+    public async Task Regulated_Aerovia_Auto_Returns_All_Own_Acc_Areas()
+    {
+        _db.Accs.Add(new Acc { Code = "LIMM", Name = "Milano" });
+        _db.SpecialAreas.AddRange(Area("a1", Acc, "R14A"), Area("a2", Acc, "R99"), Area("x1", "LIMM", "Other"));
+        await _db.SaveChangesAsync();
+
+        // Aerovia con Regulated di default (OwnAuto=true) → tutte e sole le aree del proprio ACC (ordinate per nome).
+        var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var views = await _service.GetAttachedSpecialAreasAsync(Acc, block);
+        Assert.Equal(new[] { "a1", "a2" }, views.Select(v => v.IvaoId));
+    }
+
+    [Fact]
+    public async Task Regulated_Aerovia_Manual_Subset_Plus_Extra_Other_Acc()
+    {
+        _db.Accs.Add(new Acc { Code = "LIMM", Name = "Milano" });
+        _db.SpecialAreas.AddRange(Area("a1", Acc, "AAA"), Area("a2", Acc, "BBB"), Area("x1", "LIMM", "XXX"));
+        await _db.SaveChangesAsync();
+
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Regulated = new RegulatedSelection { OwnAuto = false, OwnIds = { "a2" }, ExtraIds = { "x1" } },
+        };
+        var views = await _service.GetAttachedSpecialAreasAsync(Acc, block);
+        Assert.Equal(new[] { "a2", "x1" }, views.Select(v => v.IvaoId));   // sottoinsieme proprio poi extra
+    }
+
+    [Fact]
+    public async Task Regulated_AppGroup_Ignores_Auto_And_Uses_OwnIds_Only()
+    {
+        _db.SpecialAreas.Add(Area("a1", Acc, "AAA"));
+        await _db.SaveChangesAsync();
+
+        // Gruppo APP con OwnAuto=true (default): l'automatico vale solo per Aerovia → nessuna area.
+        var block = new AccBlock { Key = "grp:1", Kind = AccBlockKind.AppGroup };
+        var views = await _service.GetAttachedSpecialAreasAsync(Acc, block);
+        Assert.Empty(views);
+    }
+
+    [Fact]
+    public async Task ListOtherAccSpecialAreas_Excludes_Own_Acc()
+    {
+        _db.Accs.AddRange(new Acc { Code = "LIMM", Name = "Milano" }, new Acc { Code = "LIBB", Name = "Brindisi" });
+        _db.SpecialAreas.AddRange(Area("a1", Acc, "AAA"), Area("x1", "LIMM", "XXX"), Area("x2", "LIBB", "YYY"));
+        await _db.SaveChangesAsync();
+
+        var others = await _service.ListOtherAccSpecialAreasAsync(Acc);
+        Assert.DoesNotContain(others, p => p.CenterId == Acc);
+        Assert.Contains(others, p => p.IvaoId == "x1" && p.CenterId == "LIMM");
+        Assert.Contains(others, p => p.IvaoId == "x2" && p.CenterId == "LIBB");
+    }
+
     // ---- helper ----
+
+    private static SpecialArea Area(string ivaoId, string acc, string name) => new()
+    {
+        IvaoId = ivaoId, CenterId = acc, Name = name,
+    };
 
     private static AirportSector ApSec(string compose, string position, string freq, string? poly) => new()
     {

@@ -1,0 +1,18 @@
+@* Stato "vuoto" condiviso (U6, docs/design/piano-ux-hardening.md): callout info con icona + titolo +
+   messaggio. Uniforma i vari <div class="callout info"> usati come empty-state nelle liste. *@
+<div class="callout info">
+    <span class="cic"><Icon Name="@Icon" Size="18" /></span>
+    <div>
+        @if (!string.IsNullOrEmpty(Title)) { <p class="ct">@Title</p> }
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>Nome icona (Icon.razor). Default «inbox».</summary>
+    [Parameter] public string Icon { get; set; } = "inbox";
+    /// <summary>Titolo in grassetto (facoltativo).</summary>
+    [Parameter] public string? Title { get; set; }
+    /// <summary>Testo/markup del messaggio.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
