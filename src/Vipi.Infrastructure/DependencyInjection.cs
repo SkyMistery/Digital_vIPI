@@ -23,7 +23,9 @@ public static class DependencyInjection
             case Persistence.PersistenceProvider.Sqlite:
                 // Tampone concorrenza SQLite (A1): WAL + busy_timeout a ogni apertura connessione. Vedi SqliteTuningInterceptor.
                 services.AddDbContext<VipiDbContext>(o => o
-                    .UseSqlite(connectionString)
+                    // Query con >1 Include di collection: split in più SELECT (default consigliato MS) invece del
+                    // JOIN cartesiano di SingleQuery. Toglie il warning EF 20504 e migliora la perf su tali query.
+                    .UseSqlite(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                     .AddInterceptors(new Persistence.SqliteTuningInterceptor()));
                 break;
 

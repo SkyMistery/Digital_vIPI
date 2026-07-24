@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.ResponseCompression;
+using Vipi.Host.Auth;
 using Vipi.Host.Components;
 using Vipi.Hosting;
 
@@ -20,9 +21,14 @@ builder.Services.AddResponseCompression(o =>
     o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
 });
 
+// Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
+// Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
+var authEnabled = builder.AddVipiStandaloneAuth();
+
 // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
 // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
-var useDevIdentity = builder.Environment.IsDevelopment();
+// Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).
+var useDevIdentity = builder.Environment.IsDevelopment() && !authEnabled;
 // Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development.
 Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
 builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
@@ -56,6 +62,15 @@ app.UseStaticFiles(new StaticFileOptions
             : "public,max-age=604800", // 7 giorni in produzione
 });
 app.UseAntiforgery();
+
+// Auth standalone (scenario C): serve il ClaimsPrincipal alle richieste. Prima di UseVipiModule,
+// così lo StaffLoginTrackingMiddleware vede già l'utente autenticato. Montato solo se attivo.
+if (authEnabled)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapVipiStandaloneAuth();
+}
 
 // Middleware del modulo (registrazione login staff nel roster).
 app.UseVipiModule();

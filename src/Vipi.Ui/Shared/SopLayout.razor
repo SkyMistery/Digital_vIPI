@@ -61,7 +61,15 @@
             }
             @if (_user is { } u)
             {
-                <div class="user-chip"><span class="avatar" title="@u.Name">@Initials(u.Name)</span></div>
+                <div class="user-chip">
+                    <span class="avatar" title="@u.Name">@Initials(u.Name)</span>
+                    @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
+                    <a class="editor-btn icon-only" href="/vsop/auth/logout" title="Logout" aria-label="Logout"><Icon Name="log-out" /></a>
+                </div>
+            }
+            else
+            {
+                <a class="editor-btn" href="/vsop/auth/login?returnUrl=/vsop" title="Login IVAO"><Icon Name="log-in" /> Login</a>
             }
         </div>
     </header>
