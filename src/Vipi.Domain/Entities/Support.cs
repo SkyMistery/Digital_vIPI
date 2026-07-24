@@ -124,6 +124,10 @@ public class TransferPoint
     public string? LevelSpecial { get; set; }               // testo se Constraint=Special (es. "per aerovia")
     public LevelParity Parity { get; set; }                 // Any | Even(pari) | Odd(dispari) — regola semicircolare
 
+    // Stato verticale del traffico: parola «stabile/in discesa/in salita» nella frase. INDIPENDENTE dal vincolo di
+    // livello (LevelConstraint): «a 130 o inferiore» è un bound, non implica una discesa. Unspecified = nessuna parola.
+    public TransferVerticalState VerticalState { get; set; } // Unspecified | Level | Descending | Climbing
+
     public int? NextSectorId { get; set; }                  // ricevente nominale (settore reale); null = nessun ricevente → UNICOM
     public Sector? NextSector { get; set; }
 

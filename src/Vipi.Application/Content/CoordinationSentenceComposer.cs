@@ -19,6 +19,9 @@ public sealed class CoordinationSentenceData
     /// <summary>Tipo di flusso: guida la relazione aeroporto (arrivo = «con destinazione», partenza = «in partenza da»).</summary>
     public TransferFlowKind Kind { get; init; } = TransferFlowKind.Arrival;
     public LevelConstraint? Constraint { get; init; }
+    /// <summary>Stato verticale ({stato}): parola «stabile/in discesa/in salita». INDIPENDENTE dal vincolo di livello.
+    /// Unspecified → nessuna parola.</summary>
+    public TransferVerticalState VerticalState { get; init; } = TransferVerticalState.Unspecified;
     /// <summary>Livello strutturato: valore/unità/testo speciale/parità. La frase costruisce da sé la
     /// fraseologia («a livello 150 o livello inferiore dispari», «per un livello pari», «per aerovia»).</summary>
     public int? LevelValue { get; init; }
@@ -37,12 +40,13 @@ public static class CoordinationSentenceComposer
 {
     public static string Compose(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
     {
-        var stato = d.Constraint switch
+        // Stato verticale scelto a mano (indipendente dal vincolo di livello): «a 130 o inferiore» non è una discesa.
+        var stato = d.VerticalState switch
         {
-            LevelConstraint.AtOrBelow => tpl.Stato.AtOrBelow,
-            LevelConstraint.AtOrAbove => tpl.Stato.AtOrAbove,
-            LevelConstraint.Exact => tpl.Stato.Exact,
-            _ => tpl.Stato.Special,
+            TransferVerticalState.Descending => tpl.Stato.Descending,
+            TransferVerticalState.Climbing => tpl.Stato.Climbing,
+            TransferVerticalState.Level => tpl.Stato.Level,
+            _ => "",
         };
 
         var fl = BuildFl(tpl, d);
@@ -176,7 +180,8 @@ public static class CoordinationSentences
         string ownerCallsign, string targetCallsign, string? airportIcao,
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial, LevelParity parity,
         string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
-        string? conditionLabel = null, string? conditionAreaLabel = null, string? conditionCustomLabel = null)
+        string? conditionLabel = null, string? conditionAreaLabel = null, string? conditionCustomLabel = null,
+        TransferVerticalState verticalState = TransferVerticalState.Unspecified)
     {
         // Senza mittente o destinatario la frase è priva di soggetto/oggetto → riga incompleta, nessuna frase
         // (coerente col contratto «dati incompleti → null»; evita anche lookup con chiave vuota più sotto).
@@ -214,6 +219,7 @@ public static class CoordinationSentences
             AirportIcao = airportIcao ?? "",
             Kind = kind,
             Constraint = constraint,
+            VerticalState = verticalState,
             LevelValue = levelValue,
             LevelUnit = levelUnit,
             LevelSpecial = levelSpecial,

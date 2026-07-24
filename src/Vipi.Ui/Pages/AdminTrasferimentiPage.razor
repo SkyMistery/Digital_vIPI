@@ -164,6 +164,12 @@
                     </select>
                     <span class="muted" style="font-size:12px;white-space:nowrap">@GroupsCountLabel(shown.Count) · @(string.Format(L["Xfer_RowsCount"].Value, shown.Sum(f => f.Points.Count)))</span>
                     @if (_filtering) { <button class="btn ghost" @onclick="() => { _flowFilter = string.Empty; _kindFilter = null; }">↺ @L["Xfer_Reset"]</button> }
+                    <span class="ln" style="flex:1"></span>
+                    <button class="btn ghost" title="@L["Xfer_ExpandAll"]" @onclick="ExpandAll">⊞ @L["Xfer_ExpandAll"]</button>
+                    <button class="btn ghost" title="@L["Xfer_CollapseAll"]" @onclick="CollapseAll">⊟ @L["Xfer_CollapseAll"]</button>
+                    <label class="muted" style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer" title="@L["Xfer_ShowPreviewsTitle"]">
+                        <input type="checkbox" @bind="_showPreviews" /> @L["Xfer_ShowPreviews"]
+                    </label>
                 </div>
                 @if (shown.Count == 0)
                 {
@@ -302,8 +308,8 @@
                                                 <td><input style="width:90px" placeholder="VALMA / —" @bind="_epCop" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" /></td>
                                                 <td>
                                                     <select @bind="_epConstraint" style="width:78px">
-                                                        <option value="@LevelConstraint.AtOrBelow">≤ (↓)</option>
-                                                        <option value="@LevelConstraint.AtOrAbove">≥ (↑)</option>
+                                                        <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
+                                                        <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
                                                         <option value="@LevelConstraint.Exact">@L["Xfer_Exact"]</option>
                                                         <option value="@LevelConstraint.Special">@L["Xfer_Special"]</option>
                                                     </select>
@@ -321,10 +327,17 @@
                                                         <option value="@LevelParity.Even">@L["Xfer_ParityEven"]</option>
                                                         <option value="@LevelParity.Odd">@L["Xfer_ParityOdd"]</option>
                                                     </select>
+                                                    <select @bind="_epVState" style="width:96px" title="@L["Xfer_VState"]">
+                                                        <option value="@TransferVerticalState.Unspecified">@L["Xfer_VStateNone"]</option>
+                                                        <option value="@TransferVerticalState.Level">@L["Xfer_VStateLevel"]</option>
+                                                        <option value="@TransferVerticalState.Descending">@L["Xfer_VStateDescending"]</option>
+                                                        <option value="@TransferVerticalState.Climbing">@L["Xfer_VStateClimbing"]</option>
+                                                    </select>
                                                 </td>
                                                 <td>
                                                     <div class="sector-pick-wrap">
                                                         <input style="width:150px" placeholder="UNICOM" @bind="_epNextText" @bind:event="oninput" @bind:after="ResolveEpNext"
+                                                               @onkeydown="e => TrySavePoint(p.Id, e)"
                                                                @onfocus="() => _epOpen = true" @onblur="() => _epOpen = false" />
                                                         @if (_epOpen)
                                                         {
@@ -366,10 +379,14 @@
                                                 </td>
                                                 <td><input style="width:120px" placeholder="@L["Xfer_Custom"]" @bind="_epCondCustomLabel" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" /></td>
                                                 <td style="white-space:nowrap">
-                                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SavePoint(p.Id)">💾</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editPointId = null">✕</button>
+                                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SaveRowTitle"]" @onclick="() => SavePoint(p.Id)">💾</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CancelEsc"]" @onclick="() => _editPointId = null">✕</button>
                                                 </td>
                                             </tr>
+                                            var prevEdit = PreviewEdit(f);
+                                            <tr class="xfer-prev"><td colspan="7" style="border-top:0;padding:0 6px 6px 6px">
+                                                <span class="muted" style="font-size:11.5px"><b>@L["Xfer_PreviewLabel"]:</b> <span style="font-style:italic">@(string.IsNullOrWhiteSpace(prevEdit) ? L["Xfer_PreviewIncomplete"].Value : $"“{prevEdit}”")</span></span>
+                                            </td></tr>
                                         }
                                         else
                                         {
@@ -381,13 +398,23 @@
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionAreaLabel)) { <span class="pill neutral" title="@L["Xfer_ActiveArea"]">@p.ConditionAreaLabel</span> } else { <span class="muted">—</span> }</td>
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> } else { <span class="muted">—</span> }</td>
                                                 <td style="white-space:nowrap">
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveTop"]" @onclick="() => MoveToEnd(p.Id, true)">⤒</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveUp"]" @onclick="() => Move(p.Id, true)">▲</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="@L["Xfer_MoveDown"]" @onclick="() => Move(p.Id, false)">▼</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="@L["Xfer_MoveBottom"]" @onclick="() => MoveToEnd(p.Id, false)">⤓</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateRow"]" @onclick="() => CloneRow(f, p)">⧉</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditPoint(f, p)">✎</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => DeletePoint(p.Id)">✕</button>
                                                 </td>
                                             </tr>
+                                            @if (_showPreviews)
+                                            {
+                                                var prev = PreviewRow(f, p);
+                                                @if (!string.IsNullOrWhiteSpace(prev))
+                                                {
+                                                    <tr class="xfer-prev"><td colspan="7" style="border-top:0;padding:0 6px 6px 6px"><span class="muted" style="font-size:11.5px;font-style:italic">“@prev”</span></td></tr>
+                                                }
+                                            }
                                         }
                                     }
                                 </tbody>
@@ -399,8 +426,8 @@
                                     <div class="field narrow"><label>CoP <span class="muted" style="font-weight:400">@L["Xfer_CopListHint"]</span></label><input placeholder="VALMA / VALMA, ELB, TOP" @bind="_pCop" @bind:event="oninput" @onkeydown="e => TrySubmitPoint(f.Id, e)" /></div>
                                     <div class="field narrow"><label>@L["Xfer_Constraint"]</label>
                                         <select @bind="_pConstraint">
-                                            <option value="@LevelConstraint.AtOrBelow">≤ (↓)</option>
-                                            <option value="@LevelConstraint.AtOrAbove">≥ (↑)</option>
+                                            <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
+                                            <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
                                             <option value="@LevelConstraint.Exact">@L["Xfer_Exact"]</option>
                                             <option value="@LevelConstraint.Special">@L["Xfer_Special"]</option>
                                         </select>
@@ -421,6 +448,14 @@
                                             <option value="@LevelParity.Any">@L["Xfer_ParityAny"]</option>
                                             <option value="@LevelParity.Even">@L["Xfer_ParityEven"]</option>
                                             <option value="@LevelParity.Odd">@L["Xfer_ParityOdd"]</option>
+                                        </select>
+                                    </div>
+                                    <div class="field narrow"><label>@L["Xfer_VState"]</label>
+                                        <select @bind="_pVState">
+                                            <option value="@TransferVerticalState.Unspecified">@L["Xfer_VStateNone"]</option>
+                                            <option value="@TransferVerticalState.Level">@L["Xfer_VStateLevel"]</option>
+                                            <option value="@TransferVerticalState.Descending">@L["Xfer_VStateDescending"]</option>
+                                            <option value="@TransferVerticalState.Climbing">@L["Xfer_VStateClimbing"]</option>
                                         </select>
                                     </div>
                                     <div class="field sector-pick-wrap"><label>@L["Xfer_ColReceiver"] <span class="muted" style="font-weight:400">@L["Xfer_EmptyUnicom"]</span></label>
@@ -466,7 +501,12 @@
                                         <input placeholder="@L["Xfer_CustomPh"]" @bind="_pCondCustomLabel" @bind:event="oninput" @onkeydown="e => TrySubmitPoint(f.Id, e)" />
                                     </div>
                                     <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => AddPoint(f.Id)">@L["Xfer_AddRow"]</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(f.Id, true)">＋ @L["Xfer_AddRowContinue"]</button>
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _addPointFlowId = null">@L["Common_Cancel"]</button>
+                                    @{ var prevAdd = PreviewAdd(f); }
+                                    <div style="flex-basis:100%;margin-top:2px">
+                                        <span class="muted" style="font-size:11.5px"><b>@L["Xfer_PreviewLabel"]:</b> <span style="font-style:italic">@(string.IsNullOrWhiteSpace(prevAdd) ? L["Xfer_PreviewIncomplete"].Value : $"“{prevAdd}”")</span></span>
+                                    </div>
                                 </div>
                             }
                             else
@@ -494,6 +534,11 @@
     private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
     private string? _status, _error;
 
+    // Anteprima frasi: contesto (mappe + template) caricato alla scelta dell'ACC; compone in locale (nessun round-trip
+    // per tasto). _showPreviews = mostra la frase risultante sotto ogni riga in lettura (default on).
+    private CoordinationPreviewContext? _preview;
+    private bool _showPreviews = true;
+
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
     // Stato collasso (chiavi presenti = collassate): settore, aeroporto (settore|icao), gruppo arrivi/partenze (flowId).
@@ -516,6 +561,7 @@
     private LevelUnit _pUnit = LevelUnit.Fl;
     private string _pSpecial = "";
     private LevelParity _pParity = LevelParity.Any;
+    private TransferVerticalState _pVState = TransferVerticalState.Unspecified;
     private int _pNext;
     private string _pNextText = "";
     // Condizione: tre dimensioni indipendenti (tutte opzionali).
@@ -579,6 +625,7 @@
     private LevelUnit _epUnit = LevelUnit.Fl;
     private string _epSpecial = "";
     private LevelParity _epParity = LevelParity.Any;
+    private TransferVerticalState _epVState = TransferVerticalState.Unspecified;
     private int _epNext;
     private string _epNextText = "";
     private string[] _epCondRwys = Array.Empty<string>();   // piste selezionate (ident)
@@ -731,13 +778,18 @@
         _addPointFlowId = null; _cloneFlowId = null; _editFlowId = null; _editPointId = null;
         _fSector = 0; _fSectorText = ""; _fApt = ""; _fAptName = ""; _fDesc = "";
         _acc = string.IsNullOrWhiteSpace(_accCode) ? null : Stations.Resolve(_accCode);
-        if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); _areas = Array.Empty<SpecialAreaPick>(); return; }
+        if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); _areas = Array.Empty<SpecialAreaPick>(); _preview = null; return; }
         _areas = await AccDeriv.ListSpecialAreasByAccAsync(_acc.Code);
-        await LoadAsync();
+        await LoadAsync();   // popola anche _preview
         CollapseAll();
     }
 
-    private async Task LoadAsync() => _flows = await Transfers.ListFlowsByAccAsync(_acc!.Code);
+    private async Task LoadAsync()
+    {
+        _flows = await Transfers.ListFlowsByAccAsync(_acc!.Code);
+        // Rinfresca il contesto anteprima (mappe aeroporti/nomi) così le frasi riflettono l'ultima modifica.
+        _preview = await AccDeriv.GetPreviewContextAsync(_acc.Code);
+    }
 
     // Su scelta ACC parti con tutto collassato: riempi i set di collasso con tutte le chiavi correnti.
     private void CollapseAll()
@@ -749,6 +801,45 @@
             _collapsedApt.Add($"{f.OwningSectorCallsign}|{f.AirportIcao}");
             _collapsedFlow.Add(f.Id);
         }
+    }
+
+    // Espandi tutto: svuota i set di collasso (tutti i livelli aperti).
+    private void ExpandAll() { _collapsedSec.Clear(); _collapsedApt.Clear(); _collapsedFlow.Clear(); }
+
+    // Apre il percorso (settore ▸ aeroporto ▸ flusso) fino a un flusso specifico: usato dopo add/clona/edit così il
+    // gruppo toccato è subito visibile anche se il ramo era collassato.
+    private void ExpandTo(int flowId)
+    {
+        var f = _flows.FirstOrDefault(x => x.Id == flowId);
+        if (f is null) return;
+        _collapsedSec.Remove(f.OwningSectorCallsign);
+        _collapsedApt.Remove($"{f.OwningSectorCallsign}|{f.AirportIcao}");
+        _collapsedFlow.Remove(f.Id);
+    }
+
+    // Anteprima frase di una riga esistente (lettura). Null = dati incompleti / UNICOM (nessuna frase, come la derivazione).
+    private string? PreviewRow(TransferFlowRow f, TransferPointRow p) =>
+        _preview?.Compose(f.OwningSectorCallsign, p.NextSectorCallsign, f.AirportIcao, f.Kind,
+            p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.VerticalState, p.Cop,
+            p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
+
+    // Anteprima live della riga in EDIT (dai campi _ep*). Usa la label piste combinata come nel salvataggio.
+    private string? PreviewEdit(TransferFlowRow f) =>
+        _preview?.Compose(f.OwningSectorCallsign, _epNext == 0 ? null : _epNextText, f.AirportIcao, f.Kind,
+            _epConstraint, _epValue, _epUnit, _epSpecial, _epParity, _epVState, _epCop,
+            _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
+            string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
+            string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel);
+
+    // Anteprima live della riga in AGGIUNTA (dai campi _p*). Per liste di CoP usa il primo come esempio.
+    private string? PreviewAdd(TransferFlowRow f)
+    {
+        var cop = SplitCops(_pCop).FirstOrDefault() ?? "";
+        return _preview?.Compose(f.OwningSectorCallsign, _pNext == 0 ? null : _pNextText, f.AirportIcao, f.Kind,
+            _pConstraint, _pValue, _pUnit, _pSpecial, _pParity, _pVState, cop,
+            _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys),
+            string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
+            string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel);
     }
 
     /// <summary>Settori mittenti candidati: i settori di questo ACC + quelli degli ACC esteri confinanti (per la
@@ -817,16 +908,23 @@
 
     private async Task TrySubmitPoint(int flowId, Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
-        if (e.Key != "Enter" || _pOpen) return;
+        if (e.Key == "Escape") { _addPointFlowId = null; return; }   // Esc = annulla aggiunta
+        if (e.Key != "Enter") return;
         if (_busy || !_canEdit) return;
+        // Ctrl+Invio = «Salva e aggiungi» (form aperto); Invio semplice aggiunge e chiude (non mentre un picker è aperto).
+        if (e.CtrlKey) { await AddPoint(flowId, keepOpen: true); return; }
+        if (_pOpen) return;
         await AddPoint(flowId);
     }
 
-    // Invio salva l'edit in-place della singola riga (non mentre il picker ricevente è aperto).
+    // Invio (o Ctrl+Invio) salva l'edit in-place della riga; Esc annulla. Invio semplice non salva mentre il picker
+    // ricevente è aperto (lì serve a scegliere); Ctrl+Invio salva comunque.
     private async Task TrySavePoint(int pointId, Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
-        if (e.Key != "Enter" || _epOpen) return;
+        if (e.Key == "Escape") { _editPointId = null; return; }   // Esc = annulla modifica
+        if (e.Key != "Enter") return;
         if (_busy || !_canEdit) return;
+        if (_epOpen && !e.CtrlKey) return;
         await SavePoint(pointId);
     }
 
@@ -835,16 +933,17 @@
         _editPointId = null; _editFlowId = null; _cloneFlowId = null;
         _addPointFlowId = f.Id;
         _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
-        _pSpecial = ""; _pParity = LevelParity.Any; _pNext = 0; _pNextText = "";
+        _pSpecial = ""; _pParity = LevelParity.Any; _pVState = TransferVerticalState.Unspecified; _pNext = 0; _pNextText = "";
         _pCondRwys = Array.Empty<string>(); _pCondAreaLabel = ""; _pAreaText = ""; _pAreaOpen = false; _pCondCustomLabel = "";
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
     private async Task AddFlow()
     {
+        var newId = 0;
         await Guarded(async () =>
         {
-            await Transfers.AddFlowAsync(_acc!.Code, new TransferFlowInput
+            newId = await Transfers.AddFlowAsync(_acc!.Code, new TransferFlowInput
             {
                 OwningSectorId = _fSector, Kind = _fKind,
                 AirportIcao = string.IsNullOrWhiteSpace(_fApt) ? null : _fApt,
@@ -853,12 +952,15 @@
             });
             _fSector = 0; _fSectorText = ""; _fApt = ""; _fAptName = ""; _fDesc = "";
         }, L["Xfer_GroupAdded"]);
+        if (newId > 0) ExpandTo(newId);   // rendi subito visibile il gruppo appena creato
     }
 
     private Task DeleteFlow(int id) => Guarded(() =>
         Transfers.DeleteFlowAsync(_acc!.Code, id), L["Xfer_GroupDeleted"]);
 
     private Task Move(int pointId, bool up) => Guarded(() => Transfers.MovePointAsync(_acc!.Code, pointId, up), null);
+
+    private Task MoveToEnd(int pointId, bool top) => Guarded(() => Transfers.MovePointToEndAsync(_acc!.Code, pointId, top), null);
 
     private void EditFlow(TransferFlowRow f)
     {
@@ -888,7 +990,7 @@
         _editPointId = null; _editFlowId = null; _cloneFlowId = null;
         _addPointFlowId = f.Id;
         _pCop = p.Cop; _pConstraint = p.LevelConstraint; _pValue = p.LevelValue; _pUnit = p.LevelUnit;
-        _pSpecial = p.LevelSpecial ?? ""; _pParity = p.Parity; _pNext = p.NextSectorId ?? 0; _pNextText = p.NextSectorCallsign ?? "";
+        _pSpecial = p.LevelSpecial ?? ""; _pParity = p.Parity; _pVState = p.VerticalState; _pNext = p.NextSectorId ?? 0; _pNextText = p.NextSectorCallsign ?? "";
         _pCondRwys = ParseRwys(p.ConditionLabel); _pCondAreaLabel = p.ConditionAreaLabel ?? ""; _pAreaText = p.ConditionAreaLabel ?? ""; _pAreaOpen = false;
         _pCondCustomLabel = p.ConditionCustomLabel ?? "";
         await LoadCondRulesAsync(f.AirportIcao);
@@ -911,9 +1013,10 @@
     private async Task ConfirmCloneFlow(TransferFlowRow f)
     {
         var icao = f.AirportIcao;
+        var clonedId = 0;
         await Guarded(async () =>
         {
-            var newId = await Transfers.AddFlowAsync(_acc!.Code, new TransferFlowInput
+            clonedId = await Transfers.AddFlowAsync(_acc!.Code, new TransferFlowInput
             {
                 OwningSectorId = _cloneSector, Kind = f.Kind,
                 AirportIcao = string.IsNullOrWhiteSpace(icao) ? null : icao,
@@ -922,16 +1025,17 @@
             });
             foreach (var p in f.Points)
             {
-                await Transfers.AddPointAsync(_acc!.Code, newId, new TransferPointInput
+                await Transfers.AddPointAsync(_acc!.Code, clonedId, new TransferPointInput
                 {
                     Cop = p.Cop, LevelValue = p.LevelValue, LevelUnit = p.LevelUnit, LevelConstraint = p.LevelConstraint,
-                    LevelSpecial = p.LevelSpecial, Parity = p.Parity, NextSectorId = p.NextSectorId,
+                    LevelSpecial = p.LevelSpecial, Parity = p.Parity, VerticalState = p.VerticalState, NextSectorId = p.NextSectorId,
                     ConditionLabel = p.ConditionLabel, ConditionRefId = p.ConditionRefId,
                     ConditionAreaLabel = p.ConditionAreaLabel, ConditionCustomLabel = p.ConditionCustomLabel,
                 });
             }
             _cloneFlowId = null;
         }, string.Format(L["Xfer_GroupCloned"].Value, f.Points.Count));
+        if (clonedId > 0) ExpandTo(clonedId);   // mostra il gruppo clonato
     }
 
     private async Task EditPoint(TransferFlowRow f, TransferPointRow p)
@@ -939,7 +1043,7 @@
         _editFlowId = null; _addPointFlowId = null; _cloneFlowId = null;
         _editPointId = p.Id;
         _epCop = p.Cop; _epConstraint = p.LevelConstraint; _epValue = p.LevelValue; _epUnit = p.LevelUnit;
-        _epSpecial = p.LevelSpecial ?? ""; _epParity = p.Parity; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
+        _epSpecial = p.LevelSpecial ?? ""; _epParity = p.Parity; _epVState = p.VerticalState; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
         _epCondRwys = ParseRwys(p.ConditionLabel); _epCondAreaLabel = p.ConditionAreaLabel ?? ""; _epAreaText = p.ConditionAreaLabel ?? ""; _epAreaOpen = false;
         _epCondCustomLabel = p.ConditionCustomLabel ?? "";
         await LoadCondRulesAsync(f.AirportIcao);
@@ -959,7 +1063,7 @@
             await Transfers.UpdatePointAsync(_acc!.Code, pointId, new TransferPointInput
             {
                 Cop = _epCop, LevelValue = _epValue, LevelUnit = _epUnit, LevelConstraint = _epConstraint,
-                LevelSpecial = _epSpecial, Parity = _epParity, NextSectorId = _epNext == 0 ? null : _epNext,
+                LevelSpecial = _epSpecial, Parity = _epParity, VerticalState = _epVState, NextSectorId = _epNext == 0 ? null : _epNext,
                 ConditionLabel = _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
                 ConditionRefId = ResolveRwyRef(_epCondRwys),
                 ConditionAreaLabel = string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
@@ -969,7 +1073,9 @@
         }, L["Xfer_RowUpdated"]);
     }
 
-    private async Task AddPoint(int flowId)
+    // keepOpen = «Salva e aggiungi»: lascia il form aperto e conserva livello/ricevente/condizioni, azzera solo il CoP
+    // (inserimento in serie di righe simili). false = comportamento classico: chiude il form.
+    private async Task AddPoint(int flowId, bool keepOpen = false)
     {
         var cops = SplitCops(_pCop);
         await Guarded(async () =>
@@ -979,14 +1085,15 @@
                 await Transfers.AddPointAsync(_acc!.Code, flowId, new TransferPointInput
                 {
                     Cop = cop, LevelValue = _pValue, LevelUnit = _pUnit, LevelConstraint = _pConstraint,
-                    LevelSpecial = _pSpecial, Parity = _pParity, NextSectorId = _pNext == 0 ? null : _pNext,
+                    LevelSpecial = _pSpecial, Parity = _pParity, VerticalState = _pVState, NextSectorId = _pNext == 0 ? null : _pNext,
                     ConditionLabel = _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys),
                     ConditionRefId = ResolveRwyRef(_pCondRwys),
                     ConditionAreaLabel = string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
                     ConditionCustomLabel = string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel,
                 });
             }
-            _addPointFlowId = null;
+            if (keepOpen) { _pCop = ""; }   // pronto per la riga successiva (stesso livello/ricevente/condizioni)
+            else { _addPointFlowId = null; }
         }, cops.Count > 1 ? string.Format(L["Xfer_RowsAdded"].Value, cops.Count) : L["Xfer_RowAdded"].Value);
     }
 

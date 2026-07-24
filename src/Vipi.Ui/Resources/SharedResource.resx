@@ -716,6 +716,23 @@
   <data name="Xfer_ParityAny" xml:space="preserve"><value>Tutti</value></data>
   <data name="Xfer_ParityEven" xml:space="preserve"><value>Pari</value></data>
   <data name="Xfer_ParityOdd" xml:space="preserve"><value>Dispari</value></data>
+  <data name="Xfer_VState" xml:space="preserve"><value>Stato verticale</value></data>
+  <data name="Xfer_VStateNone" xml:space="preserve"><value>—</value></data>
+  <data name="Xfer_VStateLevel" xml:space="preserve"><value>Stabile</value></data>
+  <data name="Xfer_VStateDescending" xml:space="preserve"><value>↓ In discesa</value></data>
+  <data name="Xfer_VStateClimbing" xml:space="preserve"><value>↑ In salita</value></data>
+  <data name="Xfer_ExpandAll" xml:space="preserve"><value>Espandi tutto</value></data>
+  <data name="Xfer_CollapseAll" xml:space="preserve"><value>Comprimi tutto</value></data>
+  <data name="Xfer_ShowPreviews" xml:space="preserve"><value>Anteprima frasi</value></data>
+  <data name="Xfer_ShowPreviewsTitle" xml:space="preserve"><value>Mostra sotto ogni riga la frase di coordinamento risultante</value></data>
+  <data name="Xfer_MoveTop" xml:space="preserve"><value>Sposta in cima</value></data>
+  <data name="Xfer_MoveBottom" xml:space="preserve"><value>Sposta in fondo</value></data>
+  <data name="Xfer_AddRowContinue" xml:space="preserve"><value>Salva e aggiungi</value></data>
+  <data name="Xfer_AddRowContinueTitle" xml:space="preserve"><value>Salva la riga e lascia il form aperto per la prossima (Ctrl+Invio)</value></data>
+  <data name="Xfer_PreviewLabel" xml:space="preserve"><value>Anteprima</value></data>
+  <data name="Xfer_PreviewIncomplete" xml:space="preserve"><value>(riga incompleta o verso UNICOM: nessuna frase)</value></data>
+  <data name="Xfer_SaveRowTitle" xml:space="preserve"><value>Salva (Invio / Ctrl+Invio)</value></data>
+  <data name="Xfer_CancelEsc" xml:space="preserve"><value>Annulla (Esc)</value></data>
   <data name="Xfer_RunwaysInUseTitle" xml:space="preserve"><value>Pista/e in uso (multi-selezione: Ctrl/⌘)</value></data>
   <data name="Xfer_NoRunway" xml:space="preserve"><value>nessuna pista</value></data>
   <data name="Xfer_SearchArea" xml:space="preserve"><value>cerca area…</value></data>

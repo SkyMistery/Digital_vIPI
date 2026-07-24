@@ -716,6 +716,23 @@
   <data name="Xfer_ParityAny" xml:space="preserve"><value>All</value></data>
   <data name="Xfer_ParityEven" xml:space="preserve"><value>Even</value></data>
   <data name="Xfer_ParityOdd" xml:space="preserve"><value>Odd</value></data>
+  <data name="Xfer_VState" xml:space="preserve"><value>Vertical state</value></data>
+  <data name="Xfer_VStateNone" xml:space="preserve"><value>—</value></data>
+  <data name="Xfer_VStateLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="Xfer_VStateDescending" xml:space="preserve"><value>↓ Descending</value></data>
+  <data name="Xfer_VStateClimbing" xml:space="preserve"><value>↑ Climbing</value></data>
+  <data name="Xfer_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
+  <data name="Xfer_CollapseAll" xml:space="preserve"><value>Collapse all</value></data>
+  <data name="Xfer_ShowPreviews" xml:space="preserve"><value>Sentence preview</value></data>
+  <data name="Xfer_ShowPreviewsTitle" xml:space="preserve"><value>Show the resulting coordination sentence under each row</value></data>
+  <data name="Xfer_MoveTop" xml:space="preserve"><value>Move to top</value></data>
+  <data name="Xfer_MoveBottom" xml:space="preserve"><value>Move to bottom</value></data>
+  <data name="Xfer_AddRowContinue" xml:space="preserve"><value>Save &amp; add</value></data>
+  <data name="Xfer_AddRowContinueTitle" xml:space="preserve"><value>Save the row and keep the form open for the next one (Ctrl+Enter)</value></data>
+  <data name="Xfer_PreviewLabel" xml:space="preserve"><value>Preview</value></data>
+  <data name="Xfer_PreviewIncomplete" xml:space="preserve"><value>(incomplete row or toward UNICOM: no sentence)</value></data>
+  <data name="Xfer_SaveRowTitle" xml:space="preserve"><value>Save (Enter / Ctrl+Enter)</value></data>
+  <data name="Xfer_CancelEsc" xml:space="preserve"><value>Cancel (Esc)</value></data>
   <data name="Xfer_RunwaysInUseTitle" xml:space="preserve"><value>Runway(s) in use (multi-select: Ctrl/⌘)</value></data>
   <data name="Xfer_NoRunway" xml:space="preserve"><value>no runway</value></data>
   <data name="Xfer_SearchArea" xml:space="preserve"><value>search area…</value></data>

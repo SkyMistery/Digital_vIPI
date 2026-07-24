@@ -89,11 +89,11 @@ public static class RomaVloaSeed
         var sb = b.Section("LIRR → DTTC (Southbound)", BlockSection.Coordination, 1, coord);
         b.Prose(sb, "**Roma transfers** southbound traffic to Tunis at the CoP, climbing as published.");
         b.Table(sb, new { columns = new[] { "CoP", "Flow", "FL", "Conditions" }, unified = false,
-            rows = new object[] { Cells("ESEBA", "SB", "FL350↑", "Transfer 10 NM before CoP"), Cells("PESUN", "SB", "FL310↑", "Even levels") } });
+            rows = new object[] { Cells("ESEBA", "SB", "FL350+", "Transfer 10 NM before CoP"), Cells("PESUN", "SB", "FL310+", "Even levels") } });
         var nb = b.Section("DTTC → LIRR (Northbound)", BlockSection.Coordination, 2, coord);
         b.Prose(nb, "**Tunis transfers** northbound traffic to Roma at the CoP, descending as published.");
         b.Table(nb, new { columns = new[] { "CoP", "Flow", "FL", "Conditions" }, unified = false,
-            rows = new object[] { Cells("ESEBA", "NB", "FL360↓", "Odd levels"), Cells("PESUN", "NB", "FL340↓", "Transfer 10 NM before CoP") } });
+            rows = new object[] { Cells("ESEBA", "NB", "FL360-", "Odd levels"), Cells("PESUN", "NB", "FL340-", "Transfer 10 NM before CoP") } });
 
         var mil = b.Section("Military areas coordination and management", BlockSection.AreasCorridors, 6);
         b.Prose(mil, "Activation and crossing of cross-border military areas adjacent to the common boundary are coordinated between the two units. When the cross-border area D-XX (FL150→FL300) is active, southbound traffic via ESEBA is rerouted via PESUN.");

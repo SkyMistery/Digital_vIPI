@@ -624,3 +624,28 @@ Chiusura di **U4** della carta `design/piano-ux-hardening.md` (decisione owner: 
 - **Gotcha (registrati)**: (1) MAI `L["x"]` annidato in `$"..."` → calcolare in `@code`; (2) `RenderFragment`/enum-label che usano `L` NON `static` né field-initializer → property `=>`/metodo istanza (CS0236); (3) `L["x"]` è `LocalizedString` → serve `.Value` per array `string[]`; (4) le **stringhe usate come chiavi di logica** (`_dirtySections`/`_panels`/switch) restano IT stabili, display via helper `PanelLabel(key)` — non localizzare gli identificatori; (5) HTML nei valori resx XML-escaped + reso con `(MarkupString)`.
 - **Verifica**: **1071 chiavi IT+EN allineate** (diff nomi vuoto), build 0 warning, `Vipi.Ui.Tests` **13/13 verde**; **verify live IT↔EN OK** su tutte le rotte admin + editor (HTTP 200, corpo commuta: «Editor vIPI»↔«vIPI editor», «Regole scelta pista»↔«Runway selection rules», ecc.). `RidottaPage`/`RidottaAppPage` **saltate** (disabilitate).
 - **Follow-up aperto** (fuori scope i18n): `Release()` inline di `AppEditorPage` non ancora migrato a `ReleasePanel` (dedup, annotato in memoria [[editor-uniform-pattern]]); revisione EN madrelingua consigliata.
+
+## Stato verticale trasferimenti disaccoppiato dal vincolo (24 lug 2026)
+Su richiesta owner: la parola «in discesa/salita/stabile» nella frase di coordinamento **derivava dal `LevelConstraint`**
+(≤→discesa, ≥→salita). Errato: `≥` è un **bound di livello** («a 130 o superiore»), non una salita. Ora lo stato verticale
+è una **dimensione indipendente** scelta a mano.
+- Nuovo enum `TransferVerticalState { Unspecified, Level, Descending, Climbing }` + campo `TransferPoint.VerticalState`.
+  Composer: `{stato}` da questo campo (non dal constraint), `Unspecified`→nessuna parola; `{fl}` (bound «o livello inferiore»)
+  resta dal constraint. Rinomina `CoordinationSentenceState`→{Descending,Climbing,Level} + chiavi JSON `stato.*`.
+- Migrazione `AddTransferPointVerticalState` con **backfill da constraint** (le frasi esistenti restano identiche); seed idem.
+  Editor: nuova `<select>` «Stato verticale» (form add/edit, risorse `Xfer_VState*`). Dettaglio: `refactor/07-trasferimenti.md` §7.3.
+- Suite **450 verde**, build 0 warning. Verify live frase Brindisi (PISIP) **pendente**.
+
+## Editor trasferimenti — QoL (24 lug 2026)
+Migliorie di quality-of-life su `/vsop/admin/trasferimenti` (richiesta owner dopo studio della pagina):
+- **Anteprima frase live**: nuovo `CoordinationPreviewContext` (mappe types/name/code/airport/atc + template, stesse fonti di
+  `DeriveCoordinationAsync` → l'anteprima combacia con l'output) via `IAccDerivationService.GetPreviewContextAsync`. Composizione
+  in locale (funzione pura, nessun round-trip per tasto). Mostrata sotto ogni riga in lettura (toggle «Anteprima frasi») e live
+  nei form add/edit.
+- **Espandi/comprimi tutto** in toolbar + **auto-espansione** del percorso al gruppo dopo add/clona (`ExpandTo`).
+- **«Salva e aggiungi»** (bottone + Ctrl+Invio): il form nuova riga resta aperto e conserva livello/ricevente/condizioni, azzera
+  solo il CoP (inserimento in serie).
+- **Esc** annulla add/edit inline; **Ctrl+Invio** salva l'edit riga (anche col picker aperto).
+- **Sposta in cima/fondo** (`⤒`/`⤓`): nuovo `MovePointToEndAsync` (repo/service) che ricompatta gli `Order`.
+- Fix propagazione: `ConfirmCloneFlow` (clona gruppo) ora copia anche `VerticalState` (prima lo perdeva).
+- Test: `TransferRepositoryTests.MovePointToEnd_Reorders_To_Top_And_Bottom`. Progetti core verdi (Domain 23 · App 211 · Infra 191 · Ui 13; +Hosting 13 +E2E 4 = **455 tot**), chiavi i18n IT/EN allineate (1088). Verify live pendente.

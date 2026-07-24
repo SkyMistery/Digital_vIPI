@@ -12,6 +12,7 @@ public sealed class TransferPointRow
     public required LevelConstraint LevelConstraint { get; init; }
     public string? LevelSpecial { get; init; }
     public LevelParity Parity { get; init; } = LevelParity.Any;
+    public TransferVerticalState VerticalState { get; init; } = TransferVerticalState.Unspecified;
     public required string LevelText { get; init; }
     public int? NextSectorId { get; init; }
     public string? NextSectorCallsign { get; init; }

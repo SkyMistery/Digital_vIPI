@@ -51,10 +51,9 @@ public sealed class CoordinationSentenceTemplate
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState
         {
-            AtOrBelow = "descending",
-            AtOrAbove = "climbing",
-            Exact = "level",
-            Special = "",
+            Descending = "descending",
+            Climbing = "climbing",
+            Level = "level",
         },
         Level = new CoordinationSentenceLevel
         {
@@ -80,13 +79,13 @@ public sealed class CoordinationSentenceTemplate
     };
 }
 
-/// <summary>Parola per lo stato verticale del traffico, derivata dal vincolo di livello.</summary>
+/// <summary>Parola per lo stato verticale del traffico, scelto a mano sul punto (<see cref="Vipi.Domain.TransferVerticalState"/>).
+/// Indipendente dal vincolo di livello. <c>Unspecified</c> non ha parola (frase senza stato).</summary>
 public sealed class CoordinationSentenceState
 {
-    public string AtOrBelow { get; init; } = "in discesa";
-    public string AtOrAbove { get; init; } = "in salita";
-    public string Exact { get; init; } = "stabile";
-    public string Special { get; init; } = "";
+    public string Descending { get; init; } = "in discesa";
+    public string Climbing { get; init; } = "in salita";
+    public string Level { get; init; } = "stabile";
 }
 
 /// <summary>Fraseologia del livello nella frase di coordinamento ({fl}). Testi lingua-specifici estratti dal composer

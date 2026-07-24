@@ -55,7 +55,7 @@ public static class CoordinationDerivation
         string? Compose(string sender, string receiver, string? icao, TransferPointRow p, TransferFlowKind kind)
             => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver, icao,
                 p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
-                p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
+                p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState);
 
         // 1) Flussi POSSEDUTI dai settori del blocco/dominio (qualsiasi Next: ACC/APP/torre; qualsiasi tipo).
         foreach (var flow in flows.Where(f => owners.Contains(f.OwningSectorCallsign)))

@@ -96,6 +96,18 @@ public sealed class EfTransferRepository : ITransferRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default)
+    {
+        var p = await PointInAccAsync(accCode, pointId, ct);
+        // Fratelli dello stesso flusso in ordine corrente; sposto p all'estremo e ricompatto gli Order (1..N).
+        var siblings = await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).OrderBy(x => x.Order).ToListAsync(ct);
+        if (siblings.Count < 2) return;
+        siblings.Remove(p);
+        if (top) siblings.Insert(0, p); else siblings.Add(p);
+        for (var i = 0; i < siblings.Count; i++) siblings[i].Order = i + 1;
+        await _db.SaveChangesAsync(ct);
+    }
+
     // ---- helper ----
 
     private async Task<int> AccIdAsync(string accCode, CancellationToken ct) =>
@@ -126,6 +138,7 @@ public sealed class EfTransferRepository : ITransferRepository
         p.LevelSpecial = i.LevelConstraint == LevelConstraint.Special
             ? (string.IsNullOrWhiteSpace(i.LevelSpecial) ? null : i.LevelSpecial.Trim()) : null;
         p.Parity = i.Parity;
+        p.VerticalState = i.VerticalState;
         p.NextSectorId = i.NextSectorId;
 
         // Condizione: tre dimensioni indipendenti (pista/area/personalizzata), ognuna trim→null se vuota.
@@ -161,7 +174,8 @@ public sealed class EfTransferRepository : ITransferRepository
         LevelConstraint = p.LevelConstraint,
         LevelSpecial = p.LevelSpecial,
         Parity = p.Parity,
-        LevelText = LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial, p.Parity),
+        VerticalState = p.VerticalState,
+        LevelText = LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial, p.Parity, p.VerticalState),
         NextSectorId = p.NextSectorId,
         NextSectorCallsign = p.NextSector?.Callsign,
         ConditionLabel = p.ConditionLabel,

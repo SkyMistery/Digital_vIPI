@@ -57,6 +57,16 @@ public static class RomaTransferSeed
         LevelParity parity = LevelParity.Any) => new()
     {
         Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = constraint,
-        Parity = parity, NextSectorId = nextSectorId, Order = order,
+        Parity = parity, VerticalState = VStateFrom(constraint), NextSectorId = nextSectorId, Order = order,
+    };
+
+    // Stato verticale di demo derivato dal vincolo (come il backfill della migrazione): mantiene le frasi
+    // «in discesa/salita/stabile» sui dati di esempio. In produzione lo stato è un campo indipendente scelto a mano.
+    private static TransferVerticalState VStateFrom(LevelConstraint c) => c switch
+    {
+        LevelConstraint.AtOrBelow => TransferVerticalState.Descending,
+        LevelConstraint.AtOrAbove => TransferVerticalState.Climbing,
+        LevelConstraint.Exact => TransferVerticalState.Level,
+        _ => TransferVerticalState.Unspecified,
     };
 }

@@ -33,6 +33,10 @@ public interface IAccDerivationService
     /// <summary>Coordinamenti derivati del blocco (flussi posseduti dai membri + entranti): verso ACC/APP/torri.</summary>
     Task<AccCoordination> DeriveCoordinationAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
+    /// <summary>Mappe di risoluzione + template per l'anteprima live delle frasi nell'editor trasferimenti.
+    /// Stesse mappe della derivazione reale → l'anteprima combacia con l'output pubblicato.</summary>
+    Task<CoordinationPreviewContext> GetPreviewContextAsync(string accCode, CancellationToken ct = default);
+
     /// <summary>Vista AoR del blocco: anelli per-settore (toggleabili) + configurazioni selezionabili. Una sola mappa.</summary>
     Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
@@ -130,6 +134,19 @@ public sealed class AccDerivationService : IAccDerivationService
         // Un'unica gerarchia (condivisa con la vLOA): Settore → ACC → Aeroporto(arrivi/partenze) + Sorvoli/VFR/altro.
         var sectors = CoordinationDerivation.BuildAccTree(entries, codeMap, atcMap, airportMap, accNameMap, TransferFlowKindLabels.Label);
         return new AccCoordination { Sectors = sectors };
+    }
+
+    public async Task<CoordinationPreviewContext> GetPreviewContextAsync(string accCode, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+        // Stesse fonti di DeriveCoordinationAsync: così l'anteprima editor combacia con la derivazione reale.
+        var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
+        var types = await _repo.GetSectorTypeMapAsync(ct);
+        var nameMap = await NameMapAsync(accCode, ct);
+        var codeMap = await _repo.GetSectorCodeMapAsync(ct);
+        var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
+        var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
+        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap, _sentence.Current);
     }
 
     public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)

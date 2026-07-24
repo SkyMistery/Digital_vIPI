@@ -212,7 +212,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
                     owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
-                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
+                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState);
                 var row = new AppCoordRow(p.Cop, p.LevelText, next!, flow.Kind)
                 {
                     OwnerCallsign = owner,

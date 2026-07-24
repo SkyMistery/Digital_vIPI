@@ -125,3 +125,23 @@ singolo. **Rimosso `ConditionKind` + enum `TransferConditionKind`**; la condizio
   pista+area usano la forma dedicata `RunwayAndArea`. `ConditionDisplay` = «pista · area · personalizzata».
 - Test: composer (tre insieme, area+custom, join), EF round-trip (colonne indipendenti, ref solo con pista). Suite verde
   (19 dom + 205 app + 174 infra).
+
+### 7.3 Stato verticale disaccoppiato dal vincolo (2026-07-24)
+Su richiesta: la parola `{stato}` («in discesa/salita/stabile») nella frase **derivava dal `LevelConstraint`**
+(≤→discesa, ≥→salita, esatto→stabile). Sbagliato: `≥` è un **bound di livello** («a 130 o superiore»), non implica
+una salita. Ora lo stato verticale è una **dimensione indipendente**.
+- **Nuovo enum** `TransferVerticalState { Unspecified, Level, Descending, Climbing }` + campo `TransferPoint.VerticalState`.
+  Il composer sorgente `{stato}` da questo campo (non più dal constraint); `Unspecified` → **nessuna parola** (frase col
+  solo bound: «… con destinazione LIBD a livello 130 o livello inferiore su PISIP»). Il `{fl}` resta guidato dal constraint.
+- **Rinomina** `CoordinationSentenceState.{AtOrBelow,AtOrAbove,Exact,Special}` → `{Descending,Climbing,Level}` (nomi che
+  ora dicono lo stato, non il vincolo); propagata a `CoordinationSentenceOptions.StateWords` + chiavi JSON
+  `content/coordination-sentence.json` (`descending/climbing/level`).
+- **Migrazione** `AddTransferPointVerticalState` (colonna TEXT, default `Unspecified`) con **backfill da constraint**
+  (≤→Descending, ≥→Climbing, esatto→Level) → le frasi esistenti restano identiche. Seed demo idem (`VStateFrom`).
+- **Editor** (`AdminTrasferimentiPage`): nuova `<select>` «Stato verticale» nei form add/edit riga (risorse `Xfer_VState*`).
+- **Convenzione display** (`LevelFormatting.Format`, usato in tabella trasferimenti + tutte le viste coordinamenti): le
+  **frecce `↑`/`↓`** indicano ora lo **stato verticale** (salita/discesa), il **vincolo di livello** usa i segni
+  **`+`** (≥) / **`-`** (≤). Es. `FL290+ ↑ (dispari)`. Prima le frecce indicavano il vincolo. Le opzioni del
+  selettore vincolo mostrano `≤ (-)` / `≥ (+)`; le opzioni stato verticale mostrano `↓ In discesa` / `↑ In salita`.
+- Test: composer (stato scelto a mano IT/EN, regressione «constraint senza stato»), EF round-trip. Suite verde
+  (450 tot, 0 warning).

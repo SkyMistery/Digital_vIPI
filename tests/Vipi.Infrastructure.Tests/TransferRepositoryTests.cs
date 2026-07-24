@@ -59,7 +59,7 @@ public class TransferRepositoryTests : IAsyncLifetime
         var f = Assert.Single(flows);
         Assert.Equal("LIRR_NE_CTR", f.OwningSectorCallsign);
         Assert.Equal(2, f.Points.Count);
-        Assert.Equal("FL130↓", f.Points[0].LevelText);
+        Assert.Equal("FL130-", f.Points[0].LevelText);   // ≤ → «-»; nessuno stato verticale → nessuna freccia
         Assert.Equal("LIRF_TWR", f.Points[0].NextSectorCallsign);
     }
 
@@ -86,12 +86,13 @@ public class TransferRepositoryTests : IAsyncLifetime
         await _repo.AddPointAsync("LIRR", flowId, new TransferPointInput
         {
             Cop = "ELB", LevelValue = 290, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
-            Parity = LevelParity.Odd, NextSectorId = _ftwrId,
+            Parity = LevelParity.Odd, VerticalState = TransferVerticalState.Climbing, NextSectorId = _ftwrId,
         });
 
         var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
         Assert.Equal(LevelParity.Odd, p.Parity);
-        Assert.Equal("FL290↑ (dispari)", p.LevelText);
+        Assert.Equal(TransferVerticalState.Climbing, p.VerticalState);   // round-trip stato verticale (indipendente dal vincolo)
+        Assert.Equal("FL290+ ↑ (dispari)", p.LevelText);   // ≥ → «+», stato salita → «↑», parità dispari
     }
 
     [Fact]
@@ -190,6 +191,25 @@ public class TransferRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MovePointToEnd_Reorders_To_Top_And_Bottom()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var a = await _repo.AddPointAsync("LIRR", flowId, Point("AAA", 100, _ftwrId));
+        await _repo.AddPointAsync("LIRR", flowId, Point("BBB", 110, _ftwrId));
+        var c = await _repo.AddPointAsync("LIRR", flowId, Point("CCC", 120, _ftwrId));
+
+        // C in cima → CCC, AAA, BBB
+        await _repo.MovePointToEndAsync("LIRR", c, top: true);
+        var cops = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToArray();
+        Assert.Equal(new[] { "CCC", "AAA", "BBB" }, cops);
+
+        // A in fondo → CCC, BBB, AAA
+        await _repo.MovePointToEndAsync("LIRR", a, top: false);
+        cops = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToArray();
+        Assert.Equal(new[] { "CCC", "BBB", "AAA" }, cops);
+    }
+
+    [Fact]
     public async Task Update_And_Delete_Point_And_Flow()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
@@ -197,7 +217,7 @@ public class TransferRepositoryTests : IAsyncLifetime
 
         await _repo.UpdatePointAsync("LIRR", pid, Point("VALMA", 90, _tsId));
         var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
-        Assert.Equal("FL90↓", p.LevelText);
+        Assert.Equal("FL90-", p.LevelText);
         Assert.Equal("LIRR_TS_CTR", p.NextSectorCallsign);
 
         await _repo.DeletePointAsync("LIRR", pid);
@@ -233,6 +253,6 @@ public class TransferRepositoryTests : IAsyncLifetime
         var flows = await _repo.ListFlowsByAccAsync("LIRR");
         Assert.NotEmpty(flows);
         Assert.Contains(flows, f => f.OwningSectorCallsign == "LIRR_NE_CTR" && f.Kind == TransferFlowKind.Arrival
-            && f.Points.Any(p => p.Cop == "VALMA" && p.LevelText == "FL130↓"));
+            && f.Points.Any(p => p.Cop == "VALMA" && p.LevelText == "FL130- ↓"));   // seed: ≤ → «-», stato backfill discesa → «↓»
     }
 }

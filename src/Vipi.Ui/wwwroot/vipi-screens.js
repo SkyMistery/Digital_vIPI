@@ -18,17 +18,17 @@
         { fix: 'OST', sid: 'OST 1C', rwy: ['07', '25'], trans: ['OST → TARQ', 'OST → ELB'], climb: 'FL080', cat: 'A–D', wtc: 'L/M/H' },
     ];
     var xfer = [
-        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'VALMA', fl: 'FL280↑', chain: ['WS2'] },
-        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'DEVOX', fl: 'FL250↑', chain: ['ES2', 'WS2'] },
-        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'RIXUV', fl: 'FL240↑', chain: ['ES2', 'WS2'] },
-        { pair: 'Roma ↔ Milano', apt: 'LIML', phase: 'arr', cop: 'ELB', fl: 'FL310↑', chain: ['WS2'] },
-        { pair: 'Roma ↔ Milano', apt: 'LIRP', phase: 'dep', cop: 'TARQ', fl: 'FL230↑', chain: ['WS2'] },
-        { pair: 'Roma ↔ Padova', apt: 'LIPE', phase: 'arr', cop: 'OSKOR', fl: 'FL330↑', chain: ['CE1'] },
-        { pair: 'Roma ↔ Padova', apt: 'LIRZ', phase: 'dep', cop: 'BAGNO', fl: 'FL250↑', chain: ['CE1'] },
-        { pair: 'Roma ↔ Roma (interno)', apt: 'LIRN', phase: 'arr', cop: 'PESET', fl: 'FL130↓', chain: ['TS'], std: 'tieni' },
-        { pair: 'Roma ↔ Roma (interno)', apt: 'LIRN', phase: 'arr', cop: 'TEANO', fl: 'FL150↓', chain: ['TS'], std: 'tieni' },
-        { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'ESEBA', fl: 'FL350↑', chain: ['DTTC'], std: 'boundary' },
-        { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'PESUN', fl: 'FL310↑', chain: ['DTTC'], std: 'boundary' },
+        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'VALMA', fl: 'FL280+', chain: ['WS2'] },
+        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'DEVOX', fl: 'FL250+', chain: ['ES2', 'WS2'] },
+        { pair: 'Roma ↔ Milano', apt: 'LIMC', phase: 'arr', cop: 'RIXUV', fl: 'FL240+', chain: ['ES2', 'WS2'] },
+        { pair: 'Roma ↔ Milano', apt: 'LIML', phase: 'arr', cop: 'ELB', fl: 'FL310+', chain: ['WS2'] },
+        { pair: 'Roma ↔ Milano', apt: 'LIRP', phase: 'dep', cop: 'TARQ', fl: 'FL230+', chain: ['WS2'] },
+        { pair: 'Roma ↔ Padova', apt: 'LIPE', phase: 'arr', cop: 'OSKOR', fl: 'FL330+', chain: ['CE1'] },
+        { pair: 'Roma ↔ Padova', apt: 'LIRZ', phase: 'dep', cop: 'BAGNO', fl: 'FL250+', chain: ['CE1'] },
+        { pair: 'Roma ↔ Roma (interno)', apt: 'LIRN', phase: 'arr', cop: 'PESET', fl: 'FL130-', chain: ['TS'], std: 'tieni' },
+        { pair: 'Roma ↔ Roma (interno)', apt: 'LIRN', phase: 'arr', cop: 'TEANO', fl: 'FL150-', chain: ['TS'], std: 'tieni' },
+        { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'ESEBA', fl: 'FL350+', chain: ['DTTC'], std: 'boundary' },
+        { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'PESUN', fl: 'FL310+', chain: ['DTTC'], std: 'boundary' },
     ];
     var NEXT_PALETTE = [
         { bg: '#e2e8ff', fg: '#0D2C99' }, { bg: '#dafbe7', fg: '#0f7a37' }, { bg: '#f0e8ff', fg: '#6a3fb5' },
@@ -36,7 +36,7 @@
     ];
     var NEXT_FIXED = { WS2: 0, ES2: 1, CE1: 2, TS: 3, DTTC: 4 };
 
-    function flCls(fl) { return fl.indexOf('↓') >= 0 ? 'down' : 'up'; }
+    function flCls(fl) { return fl.indexOf('-') >= 0 ? 'down' : 'up'; }
     function resolveNext(r) { for (var i = 0; i < r.chain.length; i++) { if (xOnline[r.chain[i]]) return r.chain[i]; } return 'UNICOM'; }
     function nextStyle(to) {
         if (/Confine|UNICOM/.test(to)) return 'background:#eceef5;color:#555;border-left:3px solid #9aa0b0';
