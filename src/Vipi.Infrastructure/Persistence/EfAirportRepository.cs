@@ -157,10 +157,12 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        // Snapshot priorità + forzatura pubblicazione da TUTTE le righe (manuali + importate), per riapplicarle a StableKey coincidente.
+        // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
+        // il fix risolto a mano e il ciclo di PRIMO prelievo alle righe con StableKey coincidente.
         var prior = await _db.AirportSids.AsNoTracking()
             .Where(x => x.AirportId == id && x.StableKey != null)
-            .ToDictionaryAsync(x => x.StableKey!, x => (x.Priority, x.ForcePublished), ct);
+            .ToDictionaryAsync(x => x.StableKey!,
+                x => new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type), ct);
 
         _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
 
@@ -168,18 +170,45 @@ public sealed class EfAirportRepository : IAirportRepository
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
-            prior.TryGetValue(r.StableKey, out var carried);
+            var found = prior.TryGetValue(r.StableKey, out var p);
+
+            // Il ciclo-sorgente è la data di PRIMO prelievo. Se il contenuto è invariato dall'import precedente,
+            // conserva quel ciclo: così, superato il ciclo, la SID diventa pubblica (IsPublicAt) e ci RESTA. Solo un
+            // contenuto cambiato (nuova revisione) riparte dal ciclo corrente, riottenendo il buffer di un ciclo.
+            var sourceCycle = found && ContentUnchanged(p!, r) ? (p!.SourceAiracCycle ?? airacCycle) : airacCycle;
+
+            // Se la sorgente ripropone il prefisso grezzo (NeedsFixReview) ma quel fix era già stato risolto a mano,
+            // conserva la risoluzione invece di ripristinare il grezzo a ogni reimport.
+            var fix = r.Fix.Trim();
+            var needsReview = r.NeedsFixReview;
+            if (found && r.NeedsFixReview && !p!.NeedsFixReview && !string.IsNullOrWhiteSpace(p.Fix))
+            {
+                fix = p.Fix!.Trim();
+                needsReview = false;
+            }
+
             _db.AirportSids.Add(new AirportSid
             {
-                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
+                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
                 Transition = r.Transition, Type = r.Type,
-                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = airacCycle,
-                NeedsFixReview = r.NeedsFixReview,
-                Priority = carried.Priority, ForcePublished = carried.ForcePublished,
+                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
+                NeedsFixReview = needsReview,
+                Priority = p?.Priority, ForcePublished = p?.ForcePublished ?? false,
             });
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    // "Contenuto invariato" = stessi campi che definiscono la SID lato sorgente (codice con revisione, transition, tipo).
+    // Fix/pista fanno parte della StableKey, quindi qui non si riconfrontano.
+    private static bool ContentUnchanged(PriorSid p, ImportedSid r) =>
+        string.Equals(p.Name, r.Name.Trim(), StringComparison.Ordinal)
+        && string.Equals(p.Transition ?? "", r.Transition ?? "", StringComparison.Ordinal)
+        && string.Equals(p.Type ?? "", r.Type ?? "", StringComparison.Ordinal);
+
+    // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
+    private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
+        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type);
 
     public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
     {

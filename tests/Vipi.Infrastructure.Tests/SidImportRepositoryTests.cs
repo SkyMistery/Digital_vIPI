@@ -71,6 +71,43 @@ public class SidImportRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reimport_Unchanged_Keeps_First_SourceCycle()
+    {
+        // Stesso contenuto SID prelevato a due cicli diversi: conserva il ciclo di PRIMO prelievo, così passato
+        // quel ciclo la SID diventa pubblica (IsPublicAt) e ci resta — il re-timbro non la ri-nasconde.
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
+
+        var s = (await _repo.LoadAsync("LIRF"))!.Sids.Single(x => x.IsImported);
+        Assert.Equal("2606", s.SourceAiracCycle);
+    }
+
+    [Fact]
+    public async Task Reimport_Preserves_Manually_Resolved_Fix()
+    {
+        // Import con fix non risolto (prefisso grezzo, da verificare).
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        {
+            new ImportedSid("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
+        }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.True(imp.NeedsFixReview);
+
+        // L'operatore risolve il fix a mano.
+        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: "ZAGRE");
+
+        // Reimport: la sorgente ripropone ancora il prefisso grezzo → la risoluzione manuale va conservata.
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        {
+            new ImportedSid("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
+        }, "2607");
+
+        var after = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Equal("ZAGRE", after.Fix);
+        Assert.False(after.NeedsFixReview);
+    }
+
+    [Fact]
     public async Task SaveManualSids_Does_Not_Touch_Imported()
     {
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");

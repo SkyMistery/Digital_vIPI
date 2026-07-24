@@ -649,3 +649,11 @@ Migliorie di quality-of-life su `/vsop/admin/trasferimenti` (richiesta owner dop
 - **Sposta in cima/fondo** (`⤒`/`⤓`): nuovo `MovePointToEndAsync` (repo/service) che ricompatta gli `Order`.
 - Fix propagazione: `ConfirmCloneFlow` (clona gruppo) ora copia anche `VerticalState` (prima lo perdeva).
 - Test: `TransferRepositoryTests.MovePointToEnd_Reorders_To_Top_And_Bottom`. Progetti core verdi (Domain 23 · App 211 · Infra 191 · Ui 13; +Hosting 13 +E2E 4 = **455 tot**), chiavi i18n IT/EN allineate (1088). Verify live pendente.
+
+## Audit import SID — idempotenza + parser (24 lug 2026)
+Rifiniture di correttezza sull'import SID (sectorfile Aurora), dettaglio in memoria `sid-import-mechanism` e `refactor/04-import-github.md` §6.
+- **Gate AIRAC = PRIMO prelievo**: `ReplaceImportedSidsAsync` conserva `SourceAiracCycle` originale se il contenuto è invariato (`ContentUnchanged` per `StableKey`); solo una revisione riparte dal ciclo corrente. Prima ri-timbrava a ogni run 24h → `IsPublicAt` mai vero → SID sempre nascoste.
+- **Fix manuale conservato** tra reimport (snapshot `PriorSid`): se la sorgente ripropone il grezzo `NeedsFixReview` ma era già risolto a mano, ri-applica la risoluzione.
+- **Lock per-ICAO** (`SemaphoreSlim` statico in `SidImporter`): nessun indice unico su `StableKey` → serializza job 24h + bottone editor (no righe duplicate da delete+add concorrenti).
+- **Parser navaid = solo NOMI** (`IReadOnlySet<string>`): coordinate non necessarie alla completion fix, rimossi `ParseCoord`/`ParseNavaidLines`; `ResolveFix` match esatto O(1) → alias → prefisso unico.
+- Test: `SidImportRepositoryTests` (re-import ciclo invariato + fix manuale), `AuroraSectorfileParserTests` (nome-based). Infra **191 verde**.

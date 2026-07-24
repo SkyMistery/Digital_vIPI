@@ -16,8 +16,8 @@ public sealed class AuroraSidProvider : ISidProvider
     private readonly ISidFixAliasRepository _aliases;
     private readonly ILogger<AuroraSidProvider> _log;
 
-    // Cache dei navaid (fix+vor): stabili tra i file .sid dello stesso ciclo di import.
-    private IReadOnlyDictionary<string, (double, double)>? _navCache;
+    // Cache dei nomi navaid (fix+vor): stabili tra i file .sid dello stesso ciclo di import.
+    private IReadOnlySet<string>? _navCache;
     private readonly SemaphoreSlim _navLock = new(1, 1);
 
     public AuroraSidProvider(HttpClient http, IOptions<SectorfileOptions> opt, ISidFixAliasRepository aliases,
@@ -50,7 +50,7 @@ public sealed class AuroraSidProvider : ISidProvider
         return sids;
     }
 
-    private async Task<IReadOnlyDictionary<string, (double, double)>> GetNavaidsAsync(CancellationToken ct)
+    private async Task<IReadOnlySet<string>> GetNavaidsAsync(CancellationToken ct)
     {
         if (_navCache is not null) return _navCache;
         await _navLock.WaitAsync(ct);

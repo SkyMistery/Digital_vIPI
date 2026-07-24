@@ -65,3 +65,21 @@ punto (`StableKey`); la pubblicazione è differita al ciclo AIRAC N+1 (round 34)
 - **Verifica** (Fase 3): import SID manuale e auto → stesse SID importate; SID manuali e
   priorità preservate; base URL vuoto disattiva l'import senza errori; logging preservato;
   conteggio test = baseline (199).
+
+## 6. Audit correttezza (2026-07-24)
+
+Rifiniture sul re-import (idempotenza) e sul parsing, oltre al refactor §4. Dettaglio in memoria `sid-import-mechanism`.
+
+- **Gate AIRAC = data di PRIMO prelievo.** `ReplaceImportedSidsAsync` conserva `SourceAiracCycle`
+  originale se il contenuto è invariato (`ContentUnchanged` = Name+Transition+Type per `StableKey`
+  coincidente); solo una revisione reale riparte dal ciclo corrente. Prima ri-timbrava il ciclo a
+  ogni run 24h → `IsPublicAt` mai vero → SID importate sempre nascoste.
+- **Fix manuale conservato tra reimport.** Se la sorgente ripropone il prefisso grezzo
+  (`NeedsFixReview`) ma quel fix era già stato risolto a mano, la risoluzione viene ri-applicata per
+  `StableKey` (snapshot `PriorSid`).
+- **Concorrenza.** Nessun indice unico su `StableKey` → `SidImporter` serializza le scritture per-ICAO
+  con `SemaphoreSlim` statico (job 24h + bottone editor insieme non duplicano righe da delete+add).
+- **Parser navaid = solo NOMI** (`IReadOnlySet<string>`): le coordinate non servono alla completion
+  fix, rimossi `ParseCoord`/`ParseNavaidLines`; `ResolveFix` fa match esatto O(1) → alias → prefisso unico.
+- **Test**: `SidImportRepositoryTests` (re-import ciclo invariato, fix manuale conservato),
+  `AuroraSectorfileParserTests` (completion nome-based). Suite Infra verde.

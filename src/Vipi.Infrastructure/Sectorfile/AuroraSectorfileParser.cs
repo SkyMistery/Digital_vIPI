@@ -1,4 +1,3 @@
-using System.Globalization;
 using Vipi.Application.Abstractions;
 
 namespace Vipi.Infrastructure.Sectorfile;
@@ -11,52 +10,32 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// </summary>
 public static class AuroraSectorfileParser
 {
-    /// <summary>Indice unico NOME→(lat,lon) unendo itfix (coord col 1-2) e itvor (coord col 2-3). I fix vincono sui VOR.</summary>
-    public static IReadOnlyDictionary<string, (double Lat, double Lon)> ParseNavaids(string? fixText, string? vorText)
+    /// <summary>Insieme dei NOMI navaid (fix + VOR) unendo itfix e itvor. Le coordinate non servono alla completion
+    /// dei fix SID (solo i nomi), quindi non vengono parsate.</summary>
+    public static IReadOnlySet<string> ParseNavaids(string? fixText, string? vorText)
     {
-        var map = new Dictionary<string, (double, double)>(StringComparer.OrdinalIgnoreCase);
-        // VOR prima, così i fix (aggiunti dopo) hanno precedenza sui nomi omonimi.
-        foreach (var (name, lat, lon) in ParseNavaidLines(vorText, latCol: 2, lonCol: 3)) map[name] = (lat, lon);
-        foreach (var (name, lat, lon) in ParseNavaidLines(fixText, latCol: 1, lonCol: 2)) map[name] = (lat, lon);
-        return map;
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in ParseNavaidNames(vorText)) names.Add(name);
+        foreach (var name in ParseNavaidNames(fixText)) names.Add(name);
+        return names;
     }
 
-    private static IEnumerable<(string Name, double Lat, double Lon)> ParseNavaidLines(string? text, int latCol, int lonCol)
+    private static IEnumerable<string> ParseNavaidNames(string? text)
     {
         if (string.IsNullOrEmpty(text)) yield break;
         foreach (var raw in text.Split('\n'))
         {
             var line = raw.Trim();
             if (line.Length == 0) continue;
-            var c = line.Split(';');
-            if (c.Length <= lonCol) continue;
-            var name = c[0].Trim();
-            if (name.Length == 0) continue;
-            yield return (name, ParseCoord(c[latCol]), ParseCoord(c[lonCol]));
+            var name = line.Split(';', 2)[0].Trim();
+            if (name.Length != 0) yield return name;
         }
-    }
-
-    /// <summary>Coord Aurora "N046.02.37.000" / "E011.07.48.000" → gradi decimali. 0 se non parsabile.</summary>
-    private static double ParseCoord(string? s)
-    {
-        s = s?.Trim();
-        if (string.IsNullOrEmpty(s) || s.Length < 2) return 0;
-        var hemi = char.ToUpperInvariant(s[0]);
-        var body = s[1..].Split('.');
-        if (body.Length < 3) return 0;
-        if (!int.TryParse(body[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return 0;
-        int.TryParse(body[1], out var min);
-        double sec = 0;
-        if (body.Length >= 4) double.TryParse(body[2] + "." + body[3], NumberStyles.Float, CultureInfo.InvariantCulture, out sec);
-        else double.TryParse(body[2], NumberStyles.Float, CultureInfo.InvariantCulture, out sec);
-        var val = deg + min / 60.0 + sec / 3600.0;
-        return hemi is 'S' or 'W' ? -val : val;
     }
 
     /// <summary>Parsa un file <c>&lt;icao&gt;.sid</c> in una lista di <see cref="SourceSid"/> risolti.</summary>
     public static IReadOnlyList<SourceSid> ParseSids(
         string icao, string? sidFile,
-        IReadOnlyDictionary<string, (double Lat, double Lon)> navIndex,
+        IReadOnlySet<string> navNames,
         IReadOnlyDictionary<string, string> aliasMap)
     {
         var result = new List<SourceSid>();
@@ -79,7 +58,7 @@ public static class AuroraSectorfileParser
             // Codice = SID o SID-TRANS: il fix di partenza si estrae dalla sola parte SID.
             var sidPart = code.Split('-')[0].Trim();
             var (prefix, letter) = SplitDesignator(sidPart);
-            var (fix, needsReview) = ResolveFix(prefix, navIndex, aliasMap);
+            var (fix, needsReview) = ResolveFix(prefix, navNames, aliasMap);
 
             var runways = runwaysField.Length == 0
                 ? new List<string?> { null }
@@ -110,14 +89,14 @@ public static class AuroraSectorfileParser
     // nessuno) grezzo + NeedsFixReview. L'ambiguità (più candidati) NON si indovina: va risolta con un alias.
     private static (string Fix, bool NeedsReview) ResolveFix(
         string prefix,
-        IReadOnlyDictionary<string, (double, double)> navIndex,
+        IReadOnlySet<string> navNames,
         IReadOnlyDictionary<string, string> aliasMap)
     {
         if (prefix.Length == 0) return (prefix, true);
 
-        // (1) match esatto (il prefisso È già un fix/VOR, es. OST).
-        foreach (var name in navIndex.Keys)
-            if (string.Equals(name, prefix, StringComparison.OrdinalIgnoreCase)) return (name, false);
+        // (1) match esatto O(1) (il prefisso È già un fix/VOR, es. OST). Set case-insensitive: i nomi Aurora sono
+        // maiuscoli come i codici SID, quindi il prefisso porta già la grafia canonica.
+        if (navNames.Contains(prefix)) return (prefix, false);
 
         // (2) alias autoritativo (scavalca l'ambiguità).
         if (aliasMap.TryGetValue(prefix, out var aliased) && !string.IsNullOrWhiteSpace(aliased))
@@ -126,7 +105,7 @@ public static class AuroraSectorfileParser
         // (3) UNICO nome che inizia col prefisso (il fix reale è più lungo del troncato). Se più di uno → ambiguo.
         string? only = null;
         var multiple = false;
-        foreach (var name in navIndex.Keys)
+        foreach (var name in navNames)
             if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
                 if (only is null) only = name;
