@@ -2,7 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore Vipi.slnx
+# Restore del solo Host (+ i suoi ProjectReference): l'immagine sdk:8.0 non supporta il formato .slnx.
+RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
 RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
