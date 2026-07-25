@@ -1,0 +1,43 @@
+# Deploy vIPI su una VM (Oracle Cloud Always Free): app Blazor Server + Caddy (HTTPS auto Let's Encrypt).
+# I segreti stanno in .env (NON committato). Avvio: docker compose up -d --build
+services:
+  app:
+    build: .                       # usa il Dockerfile nella root del repo
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      # DB SQLite sul volume persistente: unico file condiviso tra i restart.
+      - ConnectionStrings__Vipi=Data Source=/app/data/vipi.db
+      # Login IVAO acceso.
+      - VipiAuth__Enabled=true
+      - VipiAuth__ClientId=${VIPI_CLIENT_ID}
+      - VipiAuth__ClientSecret=${VIPI_CLIENT_SECRET}
+      # Polling tracker IVAO (token app).
+      - Ivao__ClientId=${IVAO_CLIENT_ID}
+      - Ivao__ClientSecret=${IVAO_CLIENT_SECRET}
+      # Chi può editare (pattern regex sui codici staff). Es: IT-.*
+      - Auth__AdminStaffCodes__0=${ADMIN_STAFF_PATTERN}
+    volumes:
+      - vipi_data:/app/data
+    expose:
+      - "8080"                     # visibile solo a Caddy, non pubblicato all'esterno
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"                    # ACME challenge + redirect a https
+      - "443:443"                  # HTTPS pubblico
+    environment:
+      - SITE_ADDRESS=${SITE_ADDRESS}   # es. vipitest.duckdns.org (Caddy prende il cert per questo host)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data           # certificati Let's Encrypt (persistono i rinnovi)
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  vipi_data:
+  caddy_data:
+  caddy_config:

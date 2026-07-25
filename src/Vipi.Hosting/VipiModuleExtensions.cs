@@ -156,11 +156,17 @@ public static class VipiModuleExtensions
         return endpoints;
     }
 
-    /// <summary>Crea/migra il database del modulo all'avvio.</summary>
+    /// <summary>Crea/migra il database del modulo all'avvio. SQLite: migrazioni versionate (Migrate). Postgres
+    /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato da modello (EnsureCreated).</summary>
     public static IHost MigrateVipiDatabase(this IHost host)
     {
         using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<VipiDbContext>().Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<VipiDbContext>();
+        // ProviderName evita di referenziare Npgsql da Vipi.Hosting (lo conosce solo Infrastructure).
+        if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+            db.Database.EnsureCreated();
+        else
+            db.Database.Migrate();
         return host;
     }
 

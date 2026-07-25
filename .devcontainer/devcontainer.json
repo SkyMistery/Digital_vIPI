@@ -1,0 +1,20 @@
+{
+  "name": "vIPI Dev",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
+  "forwardPorts": [5034],
+  "portsAttributes": {
+    "5034": {
+      "label": "vIPI Web",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "dotnet restore \"src/Vipi.Host/Vipi.Host.csproj\"",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit"
+      ]
+    }
+  }
+}

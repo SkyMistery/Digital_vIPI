@@ -7,7 +7,7 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Branch di selezione provider in <see cref="DependencyInjection.AddVipiInfrastructure(IServiceCollection,string,IConfiguration?)"/>:
-/// SQLite (default) registra il DbContext; Postgres fallisce con il rimando all'ADR (cutover non attuato).
+/// SQLite (default) e Postgres (deploy hostato Render+Neon, schema via EnsureCreated) registrano entrambi il DbContext.
 /// </summary>
 public class PersistenceProviderWiringTests
 {
@@ -27,11 +27,10 @@ public class PersistenceProviderWiringTests
     }
 
     [Fact]
-    public void Postgres_selection_fails_with_adr_pointer()
+    public void Postgres_selection_registers_dbcontext()
     {
         var services = new ServiceCollection();
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            services.AddVipiInfrastructure("Host=localhost;Database=vipi", Config("Postgres")));
-        Assert.Contains("adr-0007", ex.Message);
+        services.AddVipiInfrastructure("Host=localhost;Database=vipi", Config("Postgres"));
+        Assert.Contains(services, d => d.ServiceType == typeof(Vipi.Infrastructure.Persistence.VipiDbContext));
     }
 }

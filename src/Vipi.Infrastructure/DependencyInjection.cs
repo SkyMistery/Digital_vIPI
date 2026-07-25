@@ -30,15 +30,12 @@ public static class DependencyInjection
                 break;
 
             case Persistence.PersistenceProvider.Postgres:
-                // Cutover Postgres NON ancora attuato (ADR-0007): servono un assembly di migrazioni dedicato
-                // (le 60 migrazioni attuali sono SQLite-flavored) + validazione su istanza reale + revisione dei
-                // punti provider-specifici (RowVersion, tipi). Per abilitarlo: aggiungere il pacchetto
-                // Npgsql.EntityFrameworkCore.PostgreSQL e sostituire questo throw con:
-                //   services.AddDbContext<VipiDbContext>(o => o.UseNpgsql(connectionString,
-                //       npg => npg.MigrationsAssembly("Vipi.Infrastructure.Postgres")));
-                throw new InvalidOperationException(
-                    "Persistence:Provider 'Postgres' selezionato ma il cutover non è ancora attuato " +
-                    "(mancano le migrazioni dedicate e la validazione su istanza). Vedi docs/adr/adr-0007-produzione-persistenza-e-scala.md.");
+                // Deploy hostato (Render + Neon): le 60 migrazioni sono SQLite-flavored e non girano su Postgres,
+                // quindi lo schema si crea via EnsureCreated in MigrateVipiDatabase (no cronologia migrazioni).
+                // Adeguato a un DB test/fresco; NON usare EnsureCreated e Migrate insieme sullo stesso DB.
+                services.AddDbContext<VipiDbContext>(o => o
+                    .UseNpgsql(connectionString, npg => npg.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+                break;
 
             default:
                 throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");

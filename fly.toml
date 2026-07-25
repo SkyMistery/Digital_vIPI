@@ -1,0 +1,30 @@
+# Fly.io deploy della vIPI (Blazor Server + SQLite su volume persistente).
+# CAMBIA "app" con un nome globale unico prima del primo deploy (o lascia che `fly launch` lo generi).
+app = "vipi-italy"
+primary_region = "fra"   # Frankfurt: vicino all'Italia. Alternative: "mad", "cdg".
+
+[build]
+  # Usa il Dockerfile nella root del repo.
+
+[env]
+  ASPNETCORE_URLS = "http://+:8080"
+  # DB SQLite sul volume montato: unico file condiviso e persistente tra i deploy.
+  ConnectionStrings__Vipi = "Data Source=/app/data/vipi.db"
+  # Login IVAO acceso: ClientId/Secret vanno come SECRET (fly secrets set), non qui.
+  VipiAuth__Enabled = "true"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Sempre-attiva: 1 macchina viva (Blazor Server = SignalR sticky, mono-istanza con SQLite).
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "vipi_data"
+  destination = "/app/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

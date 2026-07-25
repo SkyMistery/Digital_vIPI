@@ -23,13 +23,17 @@ L'audit full-stack del 22 lug ha fissato il **target di prodotto: pubblico di di
 
 **Ora (attuato):** `SqliteTuningInterceptor` abilita **WAL** (i lettori non bloccano lo scrittore) + **`busy_timeout=5000ms`** (lo scrittore attende il lock invece di fallire subito) a ogni apertura di connessione. Registrato nel path `UseSqlite`. È una **mitigazione**, non la soluzione: alza la soglia di contesa ma resta un solo scrittore.
 
-**Cutover Postgres (pianificato, NON ancora attuato):** per il carico pubblico la persistenza va su **PostgreSQL**. Passi previsti:
-1. ✅ **Fatto (scaffolding, 22 lug):** selezione provider via config (`Persistence:Provider` = `Sqlite` | `Postgres`), branch in `AddVipiInfrastructure` — stesso pattern di `DataSource:Provider` (ADR-0006 D2). `PersistenceProviderResolver` puro e testato; **default `Sqlite`** (path operativo intatto); selezionare `Postgres` **fallisce con rimando a questo ADR** (nessun path silenziosamente rotto). Resta da fare (2)→(4).
-2. **Migrations per-provider**: le 60 migrazioni attuali sono SQLite-flavored. Postgres richiede un **assembly di migrazioni dedicato** (o cartelle separate con `MigrationsAssembly`) — non si riusano le stesse. Non convertibili in automatico.
-3. Rivedere i punti provider-specifici: `RowVersion` (SQLite = trigger/BLOB shim; Postgres = `xmin`/`bytea`), tipi `TEXT`, default enum→stringa (già portabile).
-4. Validare su un'istanza Postgres reale prima del cutover (non riproducibile nell'ambiente di sviluppo attuale).
+**Postgres — due livelli distinti:**
 
-> ⚠️ Motivo del rinvio: un provider-switch a metà (senza migrations dedicate + istanza di validazione) si rompe a runtime. Meglio SQLite+WAL in esercizio finché il cutover non è eseguito e validato per intero.
+**(a) Deploy preview/test collaboratori (attuato):** per far provare la vIPI ai collaboratori su host free senza disco persistente (Render + Neon), selezionare `Persistence:Provider=Postgres` ora registra `UseNpgsql` e crea lo schema **da modello via `EnsureCreated`** in `MigrateVipiDatabase` (nessuna cronologia migrazioni). Adeguato a un DB fresco/di prova; `RowVersion` usa `.IsConcurrencyToken()` con assegnazione manuale → mappa `bytea`, nessun conflitto `xmin`. Pacchetto `Npgsql.EntityFrameworkCore.PostgreSQL` aggiunto. **Default resta `Sqlite`** (dev locale + migrazioni versionate intatti). Vedi `deploy/render/README.md`. Limite: **niente migrazioni incrementali** su Postgres in questo path — un cambio di modello richiede drop schema + riavvio.
+
+**(b) Cutover Postgres di produzione (pianificato, NON ancora attuato):** per il carico pubblico servono migrazioni versionate anche su Postgres. Passi residui rispetto ad (a):
+1. ✅ **Fatto:** selezione provider via config (`Persistence:Provider` = `Sqlite` | `Postgres`), branch in `AddVipiInfrastructure` — stesso pattern di `DataSource:Provider` (ADR-0006 D2). `PersistenceProviderResolver` puro e testato; **default `Sqlite`**. Ora entrambi i provider registrano il DbContext (Postgres via `EnsureCreated`, punto (a)).
+2. **Migrations per-provider**: le 60 migrazioni attuali sono SQLite-flavored. La produzione Postgres richiede un **assembly di migrazioni dedicato** (o cartelle separate con `MigrationsAssembly`) al posto di `EnsureCreated` — non si riusano le stesse, non convertibili in automatico.
+3. Rivedere i punti provider-specifici: `RowVersion` (SQLite = BLOB manuale; Postgres = `bytea`, già ok con `IsConcurrencyToken`), tipi `TEXT`, default enum→stringa (già portabile).
+4. Validare su un'istanza Postgres reale prima del cutover di produzione (il path (a) su Neon fornisce già una prima validazione runtime dello schema).
+
+> ⚠️ Il path (a) `EnsureCreated` è per anteprima/test, non per produzione: senza cronologia migrazioni non evolve lo schema in modo incrementale. La produzione resta su SQLite+WAL finché il cutover (b) con migrazioni dedicate non è eseguito e validato.
 
 ### D2 — Scala Blazor Server: backplane + separazione viewer/editor
 
@@ -54,5 +58,5 @@ L'audit full-stack del 22 lug ha fissato il **target di prodotto: pubblico di di
 
 **Aperti (esterni, non code-verificabili qui):**
 - Montaggio della RCL vIPI nel sito host + configurazione `HostIdentity` coi claim reali IVAO e `Auth:AdminStaffCodes` / ruoli divisione confermati.
-- Esecuzione e validazione del cutover Postgres su istanza reale.
+- Esecuzione e validazione del **cutover Postgres di produzione** (migrazioni dedicate) su istanza reale — il path preview `EnsureCreated` (Render+Neon) è attuato ma non copre l'evoluzione incrementale dello schema.
 - Provisioning backplane + topologia di deploy; stima utenti concorrenti.
