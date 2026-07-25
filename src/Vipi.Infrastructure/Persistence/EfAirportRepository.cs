@@ -301,8 +301,11 @@ public sealed class EfAirportRepository : IAirportRepository
 
         // Solo i settori-FOGLIA dell'aeroporto (DEL/GND/TWR/ITwr) appartengono alla vIPI d'aeroporto.
         // Gli APP NON ci vanno mai: se sono "di ACC" stanno nella vIPI di ACC, se standalone hanno doc proprio.
-        var sectors = await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
-            .OrderBy(s => (int)s.Type).ToListAsync(ct);
+        // Ordino per (int)Type in MEMORIA: Type è un enum salvato come stringa, quindi ORDER BY (int)Type in SQL
+        // genera CAST("Type" AS integer) → su Postgres 'Twr'→integer lancia 22P02 (su SQLite tornava 0 in silenzio).
+        var sectors = (await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
+            .ToListAsync(ct))
+            .OrderBy(s => (int)s.Type).ToList();
         var links = await _db.AirportFrequencyLinks.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order)
             .Include(x => x.SourceSector).Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null).ToListAsync(ct);
 
