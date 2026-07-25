@@ -9,7 +9,9 @@ services:
     healthCheckPath: /vsop
     envVars:
       - key: ASPNETCORE_URLS
-        value: http://+:8080      # Render instrada sulla porta esposta; 8080 = quella del Dockerfile
+        value: http://+:8080      # 8080 = porta del Dockerfile
+      - key: PORT
+        value: "8080"             # dice a Render di instradare su 8080 (default sarebbe 10000)
       - key: Persistence__Provider
         value: Postgres           # attiva UseNpgsql + schema via EnsureCreated
       # Stringa di connessione Neon (.NET/Npgsql). NON committare: valore nella dashboard (sync:false).
