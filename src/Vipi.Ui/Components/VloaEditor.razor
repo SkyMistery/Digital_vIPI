@@ -2,10 +2,12 @@
    bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
    Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
-@inject IEditingService Editing
-@inject IVloaDerivationService Vloa
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@* Editing e Vloa risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash
+   "second operation" sotto latenza Postgres. Vedi [[EditLockBar]]. *@
 
 @if (_notFound)
 {
@@ -98,6 +100,15 @@ else
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
     private int _saveTick;
+
+    // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IEditingService Editing = default!;
+    private IVloaDerivationService Vloa = default!;
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Vloa = ScopedServices.GetRequiredService<IVloaDerivationService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {

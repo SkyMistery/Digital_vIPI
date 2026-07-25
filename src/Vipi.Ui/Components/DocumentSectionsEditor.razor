@@ -3,10 +3,12 @@
    type-agnostico (opera su versionId/section/block). Riusato da vLOA, ACC, APP, Airport. Le sezioni DERIVATE
    (aor/frequencies/coordination/config/…) sono renderizzate dall'host via DerivedContent; l'host possiede
    caricamento, lock, guard di salvataggio (Run), obbligatorietà e nascondi (per-tipo). *@
-@inject IEditingService Editing
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
 @using RenderMode = Vipi.Domain.RenderMode
+@* Editing risolto dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 @foreach (var s in (RootSections ?? Doc.Sections))
 {
@@ -51,6 +53,11 @@
     [Parameter] public Func<EditableSection, bool>? IsHiddenSection { get; set; }
     /// <summary>Toggle nascondi/mostra (l'host decide la chiave: titolo per vLOA, SectionKey per ACC/APP).</summary>
     [Parameter] public EventCallback<EditableSection> OnToggleHidden { get; set; }
+
+    // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IEditingService Editing = default!;
+    protected override void OnInitialized()
+        => Editing = ScopedServices.GetRequiredService<IEditingService>();
 
     private static string AsString(object? v) => v as string ?? "";
 

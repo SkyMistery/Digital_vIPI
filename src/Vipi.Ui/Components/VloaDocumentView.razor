@@ -1,11 +1,12 @@
 @* Resa condivisa di una vLOA (Letter of Agreement) nello stile del mockup 3d: TOC + doc-head + callout bilaterale
    + sezioni (stessa struttura documentale della vIPI, via SectionNode). Le sezioni AoR/Frequenze/Coordinamenti sono
    DERIVATE (data-driven) quando è fornito DocId. La pagina ospitante fornisce wrap/breadcrumb. *@
-@inject IVloaDerivationService Vloa
-@inject IVloaViewDerivationService VloaView
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+@* Vloa e VloaView risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 <div class="doc-layout">
     <aside class="toc">
@@ -119,6 +120,15 @@
     private VloaFreqData _freq = VloaFreqData.Empty;
     private VloaCoordination _coord = VloaCoordination.Empty;
     private HashSet<string> _hidden = new(StringComparer.OrdinalIgnoreCase);
+
+    // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IVloaDerivationService Vloa = default!;
+    private IVloaViewDerivationService VloaView = default!;
+    protected override void OnInitialized()
+    {
+        Vloa = ScopedServices.GetRequiredService<IVloaDerivationService>();
+        VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
+    }
 
     private bool IsHidden(SectionView s) => _hidden.Contains(s.Title);
 

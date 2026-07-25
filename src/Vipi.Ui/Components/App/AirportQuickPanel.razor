@@ -7,10 +7,11 @@
 @using System.Text.RegularExpressions
 @using Vipi.Application.Content
 @using Vipi.Application.Weather
-@inject IVipiViewService ViewService
-@inject IAirportEditingService AirportProfile
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject Vipi.Domain.Services.IAiracService Airac
+@* ViewService e AirportProfile risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 @if (_view is null)
 {
@@ -89,6 +90,15 @@ else
     private List<string> _runways = new();
     private string _selRwy = "all";
     private string? _loadedIcao;
+
+    // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IVipiViewService ViewService = default!;
+    private IAirportEditingService AirportProfile = default!;
+    protected override void OnInitialized()
+    {
+        ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
+        AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
