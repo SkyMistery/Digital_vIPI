@@ -5,6 +5,7 @@ services:
     name: vipi
     runtime: docker
     dockerfilePath: ./Dockerfile
+    region: frankfurt             # EU, vicino all'Italia + stessa regione di Neon (round-trip DB e SignalR bassi)
     plan: free                    # dorme dopo 15min inattività; cold start ~1min al risveglio
     healthCheckPath: /vsop
     envVars:
