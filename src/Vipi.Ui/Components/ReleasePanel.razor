@@ -1,12 +1,12 @@
 @* Pannello release AIRAC riutilizzabile: timeline + pubblica al ciclo / pubblica ora. Per gli editor profile-based
    (ACC/APP/Aeroporto) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale.
    Parametri opt-in (default = timeline semplice): ShowDiff, AllowCancel, BeforePublishAsync, PreviewUrlFactory. *@
-@using Microsoft.Extensions.DependencyInjection
-@inherits OwningComponentBase
+@inject IReleaseService Releases
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
-@* Releases risolto dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second operation"
-   quando questo pannello carica mentre l'editor genitore ha ancora una query in volo. Vedi [[EditLockBar]]. *@
+@* Releases NON isolato: il publish è un'unica operazione logica composta con BeforePublishAsync della pagina
+   (es. AeroportoEditorPage.RebuildDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
+   spezzerebbe il publish su due context → hang. Deve condividere il context del circuito con la pagina. *@
 
 <div class="block" style="margin-top:10px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -90,11 +90,6 @@
     private string? _error, _ok;
     private readonly HashSet<int> _diffOpen = new();
     private readonly Dictionary<int, ReleaseDiff> _diffs = new();
-
-    // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
-    private IReleaseService Releases = default!;
-    protected override void OnInitialized()
-        => Releases = ScopedServices.GetRequiredService<IReleaseService>();
 
     protected override async Task OnParametersSetAsync()
     {
