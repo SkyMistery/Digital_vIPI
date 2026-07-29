@@ -371,17 +371,18 @@ else
                         <div class="se-row" style="gap:8px;margin-bottom:6px;flex-wrap:wrap">
                             <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? "☑ Deseleziona tutte" : "☐ Seleziona tutte")</button>
                             <button class="btn primary" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="SaveSelectedImported">💾 Salva selezionate (@_selSid.Count)</button>
-                            <span class="muted" style="font-size:11.5px;align-self:center">Click, poi Shift/Ctrl+click per selezionare l'intervallo.</span>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="PublishSelectedImported" title="Forza la pubblicazione immediata delle SID selezionate">🕒 Pubblica selezionate (@_selSid.Count)</button>
+                            <span class="muted" style="font-size:11.5px;align-self:center">Click = seleziona · Shift/Ctrl+click = intervallo · trascina giù = seleziona, su = deseleziona.</span>
                         </div>
                         <div style="overflow:auto">
                         <table class="res-table sid-table">
                             <thead><tr><th style="width:26px"><input type="checkbox" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th>@L["Ape_PointFix"]</th><th>SID</th><th>@L["Ape_Runway"]</th><th>@L["Ape_Trans"]</th><th>Type</th><th>@L["Ape_Priority"]</th><th>@L["Ape_Publication"]</th><th></th></tr></thead>
-                            <tbody>
+                            <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                                 @for (var vi = 0; vi < iview.Count; vi++)
                                 {
                                     var idx = vi; var e = iview[idx];
                                     <tr style="@(_selSid.Contains(e.Id) ? "background:#eaf1ff" : null)">
-                                        <td><input type="checkbox" checked="@_selSid.Contains(e.Id)" @onclick:preventDefault="true" @onclick="ev => ToggleSel(idx, ev, iview)" /></td>
+                                        <td style="cursor:ns-resize;user-select:none" title="Click per selezionare · trascina per selezionare a intervallo" @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" @onclick:preventDefault="true" /></td>
                                         <td>
                                             @if (e.NeedsReview)
                                             {
@@ -399,7 +400,6 @@ else
                                         <td style="white-space:nowrap">
                                             @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
                                             else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))">🕒 @e.PublishFromCycle</span> }
-                                            <label style="font-size:11px;margin-left:6px"><input type="checkbox" @bind="e.ForcePublished" /> @L["Ape_Now"]</label>
                                         </td>
                                         <td><button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SaveImported(e)">💾</button></td>
                                     </tr>
@@ -995,21 +995,56 @@ else
         return q.ToList();
     }
 
-    // --- Multi-select importate: click = toggle singolo (e nuova ancora); Shift/Ctrl+click = intervallo dall'ancora ---
-    private void ToggleSel(int idx, MouseEventArgs ev, List<ImportedSidEdit> view)
+    // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
+    //     trascina giù = seleziona lo spazzato, trascina su = deseleziona lo spazzato ---
+    private bool _selDragActive;
+    private int _selDragStart;
+    private bool _selDragMoved;
+    private bool _selDragMods;
+
+    private void SelDragStart(int idx, MouseEventArgs e)
     {
-        if ((ev.ShiftKey || ev.CtrlKey) && _lastSelIdx is int a && a >= 0 && a < view.Count)
+        _selDragActive = true;
+        _selDragStart = idx;
+        _selDragMoved = false;
+        _selDragMods = e.ShiftKey || e.CtrlKey;
+    }
+
+    private void SelDragEnter(int idx)
+    {
+        if (!_selDragActive || idx == _selDragStart) return;
+        _selDragMoved = true;
+        var view = ImportedView();
+        var down = idx >= _selDragStart;                 // verso il basso = seleziona; verso l'alto = deseleziona
+        var lo = Math.Min(idx, _selDragStart);
+        var hi = Math.Max(idx, _selDragStart);
+        for (var i = lo; i <= hi && i < view.Count; i++)
+            if (down) _selSid.Add(view[i].Id); else _selSid.Remove(view[i].Id);
+        _lastSelIdx = idx;
+    }
+
+    private void SelDragEnd()
+    {
+        if (_selDragActive && !_selDragMoved)            // click puro sulla riga d'avvio (nessun trascinamento)
         {
-            var lo = Math.Min(a, idx);
-            var hi = Math.Max(a, idx);
-            for (var i = lo; i <= hi; i++) _selSid.Add(view[i].Id);
+            var view = ImportedView();
+            if (_selDragStart < view.Count)
+            {
+                if (_selDragMods && _lastSelIdx is int a && a >= 0 && a < view.Count)
+                {
+                    var lo = Math.Min(a, _selDragStart);
+                    var hi = Math.Max(a, _selDragStart);
+                    for (var i = lo; i <= hi; i++) _selSid.Add(view[i].Id);
+                }
+                else
+                {
+                    var id = view[_selDragStart].Id;
+                    if (!_selSid.Remove(id)) _selSid.Add(id);
+                    _lastSelIdx = _selDragStart;
+                }
+            }
         }
-        else
-        {
-            var id = view[idx].Id;
-            if (!_selSid.Remove(id)) _selSid.Add(id);
-            _lastSelIdx = idx;
-        }
+        _selDragActive = false;
     }
 
     private bool AllSelected(List<ImportedSidEdit> view) => view.Count > 0 && view.All(e => _selSid.Contains(e.Id));
@@ -1029,6 +1064,20 @@ else
         _selSid.Clear();
         _lastSelIdx = null;
         _saveInfo = $"Salvate {targets.Count} SID selezionate.";
+        _saveInfoWarn = false;
+        var tick = ++_infoTick;
+        _ = DismissInfoAsync(tick);
+    });
+
+    // Pubblica subito (ForcePublished) le importate selezionate: stessa selezione del salvataggio in blocco.
+    private Task PublishSelectedImported() => Guarded(async () =>
+    {
+        var targets = _imported.Where(e => _selSid.Contains(e.Id)).ToList();
+        if (targets.Count == 0) return;
+        foreach (var e in targets) { e.ForcePublished = true; await PersistImported(e); }
+        _selSid.Clear();
+        _lastSelIdx = null;
+        _saveInfo = $"Pubblicate {targets.Count} SID selezionate.";
         _saveInfoWarn = false;
         var tick = ++_infoTick;
         _ = DismissInfoAsync(tick);
