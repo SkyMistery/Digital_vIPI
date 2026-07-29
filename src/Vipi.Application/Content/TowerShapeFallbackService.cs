@@ -6,7 +6,8 @@ namespace Vipi.Application.Content;
 /// <summary>
 /// Genera una shape tonda di fallback (cerchio di raggio fisso, default 5 NM) per i settori TWR privi di poligono
 /// dalla sorgente, così da poterli comunque disegnare. La shape è marcata sintetica (IsShapeSynthetic): mai
-/// sovrascrive una shape reale, e il futuro fallback GitHub potrà rimpiazzarla. Il centro è il riferimento
+/// sovrascrive una shape reale. È l'ULTIMO ripiego: gira DOPO <see cref="IGithubTowerShapeService"/> (poligoni TWR
+/// reali da GitHub twrs.tfl), quindi il cerchio copre solo le TWR che nemmeno GitHub ha. Il centro è il riferimento
 /// aeroporto (<see cref="Vipi.Domain.Entities.Airport.Latitude"/>/Longitude), popolato all'import dal blocco
 /// "airport" del dettaglio postazione IVAO (<c>/v2/ATCPositions/{compose}</c>, presente su ogni postazione).
 /// Come ultimo ripiego, se le coord non sono note, usa il centro del poligono di un settore fratello già presente

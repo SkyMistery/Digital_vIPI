@@ -103,6 +103,13 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
         services.AddHostedService<Sectorfile.SidImportHostedService>();
+
+        // Shape TWR reali dal file poligoni Aurora (twrs.tfl) su GitHub: stesso repo raw pubblico dell'import SID.
+        services.AddHttpClient<Vipi.Application.Abstractions.ITowerShapeSource, Sectorfile.AuroraTowerShapeProvider>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
         return services;
     }
 }

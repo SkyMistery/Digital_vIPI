@@ -61,6 +61,16 @@ public sealed class AirportSectorImportHostedService : BackgroundService
             _log.LogInformation("Import settori aeroporto da sorgente saltato: {Reason}", ex.Message);
         }
 
+        // Shape TWR REALI da GitHub (twrs.tfl): ripiego "buono", PRIMA del cerchio così il cerchio copre solo le
+        // TWR che nemmeno GitHub ha. Isolato: un errore di rete non deve impedire il cerchio sintetico.
+        int githubShapes = 0;
+        try
+        {
+            var gh = sp.GetRequiredService<Vipi.Application.Content.IGithubTowerShapeService>();
+            githubShapes = await gh.ApplyAsync(ct);
+        }
+        catch (Exception ex) { _log.LogDebug(ex, "Shape TWR da GitHub saltate."); }
+
         // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
         int circles = 0;
         try
@@ -70,8 +80,8 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         }
         catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
 
-        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR sintetiche {Circles}. Documento non generato (scollegato, doc 03).",
-            airports, created, updated, circles);
+        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR GitHub {Github}, cerchi sintetici {Circles}. Documento non generato (scollegato, doc 03).",
+            airports, created, updated, githubShapes, circles);
         return true;
     }
 }

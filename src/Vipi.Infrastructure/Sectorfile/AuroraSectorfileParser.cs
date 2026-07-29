@@ -1,3 +1,4 @@
+using System.Globalization;
 using Vipi.Application.Abstractions;
 
 namespace Vipi.Infrastructure.Sectorfile;
@@ -118,4 +119,70 @@ public static class AuroraSectorfileParser
     }
 
     private static string? Blank(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    // --- TWR shape (DYNAMIC_SEC/twrs.tfl) ---
+
+    /// <summary>
+    /// Parsa il file <c>twrs.tfl</c> (poligoni TWR di Aurora) in una mappa callsign → anello di punti (Lat, Lon).
+    /// Formato a blocchi: riga intestazione <c>CALLSIGN;TWR;1;TWR;1;</c> seguita da righe coordinata
+    /// <c>N041.37.28.965;E015.43.18.960;</c> (DMS, un vertice per riga), il blocco chiude su riga vuota o sull'header
+    /// successivo. Anelli con &lt; 3 punti scartati. Puro, deterministico. Chiave callsign in MAIUSCOLO.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<(double Lat, double Lon)>> ParseTowerShapes(string? tfl)
+    {
+        var result = new Dictionary<string, IReadOnlyList<(double, double)>>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(tfl)) return result;
+
+        string? current = null;
+        List<(double, double)>? ring = null;
+
+        void Flush()
+        {
+            if (current is not null && ring is { Count: >= 3 }) result[current] = ring;
+            current = null; ring = null;
+        }
+
+        foreach (var raw in tfl.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0) { Flush(); continue; }   // riga vuota = fine blocco
+
+            var fields = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
+            {
+                ring?.Add((lat, lon));   // vertice (ignorato se non siamo dentro un blocco)
+            }
+            else if (fields.Length >= 1 && fields[0].Length != 0)
+            {
+                Flush();                 // nuova intestazione: chiude il blocco precedente
+                current = fields[0].ToUpperInvariant();
+                ring = new List<(double, double)>();
+            }
+        }
+        Flush();
+        return result;
+    }
+
+    /// <summary>Converte una coordinata DMS Aurora (<c>N041.37.28.965</c> / <c>E015.43.18.960</c>) in gradi decimali
+    /// con segno (S/W negativi). False se malformata.</summary>
+    public static bool TryParseDms(string? token, out double degrees)
+    {
+        degrees = 0;
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        token = token.Trim();
+        var hemi = char.ToUpperInvariant(token[0]);
+        if (hemi is not ('N' or 'S' or 'E' or 'W')) return false;
+
+        var parts = token[1..].Split('.');
+        if (parts.Length < 3) return false;
+        // Secondi = "SS.sss": parts[2] interi + eventuale parts[3] frazione.
+        var secText = parts.Length >= 4 ? parts[2] + "." + parts[3] : parts[2];
+        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return false;
+        if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var min)) return false;
+        if (!double.TryParse(secText, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return false;
+
+        var value = deg + min / 60.0 + sec / 3600.0;
+        degrees = hemi is 'S' or 'W' ? -value : value;
+        return true;
+    }
 }

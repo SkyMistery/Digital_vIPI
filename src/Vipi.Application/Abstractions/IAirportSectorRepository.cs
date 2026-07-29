@@ -52,13 +52,18 @@ public interface IAirportSectorRepository
     /// <summary>Scrive una shape SINTETICA (IsShapeSynthetic=true) su un settore. Mai chiamare su shape reali.</summary>
     Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
 
+    /// <summary>Scrive una shape REALE (IsShapeSynthetic=false) su un settore, dalla sorgente GitHub (twrs.tfl).
+    /// È un poligono vero (non un cerchio), quindi il fallback tondo non deve poi rimpiazzarlo.</summary>
+    Task SetRealShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
+
     /// <summary>Poligoni grezzi NON sintetici di tutti i settori d'aeroporto (per ICAO), per derivare un centro di
     /// ripiego dal poligono di un settore fratello (es. APP) quando le coordinate aeroporto non sono note.</summary>
     Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default);
 }
 
-/// <summary>Riga di lavoro per il fallback shape TWR: settore + coord aeroporto (null = ignote) + poligono grezzo attuale.</summary>
-public sealed record TwrShapeRow(int SectorId, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon);
+/// <summary>Riga di lavoro per il fallback shape TWR: settore (+ callsign per il match GitHub) + coord aeroporto
+/// (null = ignote) + poligono grezzo attuale.</summary>
+public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon);
 
 /// <summary>Poligono grezzo di un settore d'aeroporto (per derivare un centro di ripiego).</summary>
 public sealed record AirportPolygonRow(string AirportIcao, string RawPolygon);
