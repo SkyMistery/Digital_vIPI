@@ -7,8 +7,9 @@ using Vipi.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// File editabile (default globale) della frase di coordinamento. reloadOnChange: l'autore edita senza restart.
-builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: true);
+// File (default globale) della frase di coordinamento. reloadOnChange:false — il FileSystemWatcher esaurirebbe
+// le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).
+builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: false);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
