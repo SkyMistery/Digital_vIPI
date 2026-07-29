@@ -283,7 +283,9 @@
 .editor-toast .callout{margin:0;box-shadow:0 6px 24px rgba(20,30,60,.18);animation:xpop .18s ease-out}
 /* Badge "modifiche non salvate" sul tab attivo. */
 .wx-tab .dirt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ivao-yellow,#f5b301);margin-left:6px;vertical-align:middle}
-.extra-preview{border:1px dashed var(--line,#e2e6f0);border-radius:8px;padding:10px 12px;margin-top:8px;background:#fafbff;font-size:13px;color:#333;white-space:pre-wrap;word-break:break-word}
+.extra-preview{border:1px dashed var(--line,#e2e6f0);border-radius:8px;padding:10px 12px;margin-top:4px;background:#fafbff;font-size:13px;color:#333;word-break:break-word}
+.extra-preview :first-child{margin-top:0}
+.extra-preview :last-child{margin-bottom:0}
 .extra-preview:empty::before{content:'(anteprima vuota)';color:#9aa2b1}
 .sep-box{border:2px solid var(--ivao-blue);border-radius:12px;padding:16px 18px;background:#f7f9ff;margin-bottom:6px}
 .sep-box h4{margin:0 0 8px;color:var(--ivao-blue)}
@@ -919,18 +921,41 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
   body { background: #fff; }
 }
 
-/* ---- Editor regole pista (card) ---- */
-.rule-card { border: 1px solid #e2e6f0; border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #fafbff; }
-.rule-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.rule-ord { font-weight: 700; color: var(--brand, #0D2C99); }
-.rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 12px; }
-.rule-grid label, .rule-note { display: flex; flex-direction: column; font-size: 12px; color: #5a6478; gap: 3px; }
-.rule-grid input, .rule-grid select, .rule-note input { font-size: 14px; padding: 4px 6px; }
-.rule-days, .rule-rwys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
-.rule-rwys { flex-direction: column; align-items: stretch; gap: 8px; }
+/* ---- Editor regole pista (card) — allineato al design system (input/label come .se-row/.res-table) ---- */
+.rule-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 12px 0; background: var(--surface); box-shadow: var(--shadow); transition: border-color .12s, box-shadow .12s; }
+.rule-card:hover { border-color: #cdd6ee; }
+.rule-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.rule-ord { font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .03em; color: var(--ivao-blue); }
+.rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 14px; }
+.rule-grid label, .rule-note { display: flex; flex-direction: column; gap: 4px; }
+.rule-grid > label, .rule-rwys > div > .muted, .rule-days > .muted, .rule-note {
+  font-family: var(--font-head); font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--ink-soft);
+}
+.rule-grid input, .rule-grid select, .rule-note input {
+  border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px;
+  font-family: var(--font-body); font-size: 13px; text-transform: none; color: var(--ink);
+  background: #fff; transition: .12s;
+}
+.rule-grid select {
+  padding-right: 28px; cursor: pointer; -webkit-appearance: none; appearance: none;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;
+}
+.rule-grid input:hover, .rule-grid select:hover { border-color: #b9c4ee; }
+.rule-grid input:focus, .rule-grid select:focus, .rule-note input:focus { outline: 0; border-color: var(--ivao-blue); box-shadow: 0 0 0 2px #e2e8ff; }
+.rule-days, .rule-rwys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.rule-rwys { flex-direction: column; align-items: stretch; gap: 10px; }
 .rule-rwys > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rule-days .pill, .rule-rwys .pill { cursor: pointer; user-select: none; }
-.rule-note { margin-top: 10px; }
+.rule-note { margin-top: 12px; }
+
+/* «Avanzate» collassabile dentro la card regola */
+.rule-adv { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.rule-adv > summary { list-style: none; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-head); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--ivao-blue); }
+.rule-adv > summary::-webkit-details-marker { display: none; }
+.rule-adv > summary::before { content: "\25B8"; font-size: 10px; transition: transform .15s; }
+.rule-adv[open] > summary::before { transform: rotate(90deg); }
 
 /* Tabella Piste con evidenza pista consigliata (arrivi=verde, partenze=blu, entrambi=alternanza). */
 .rwy-table{width:100%;border-collapse:collapse}

@@ -1,0 +1,242 @@
+@* Editor di blocchi editoriali IN-MEMORY, condiviso. Stesso vocabolario/markup del sotto-editor blocchi di
+   DocumentSectionsEditor (Prosa/Callout/Tabella), ma su una lista <ExtraBlock> mutata in loco: l'host decide
+   come persistere (OnChanged → salva/marca dirty). Riusato dall'editor aeroporto (Sezioni extra). *@
+@using System.Text.Json
+@inject IStringLocalizer<SharedResource> L
+
+@foreach (var b in Blocks)
+{
+    var blk = b;
+    @if (!Editing)
+    {
+        @ReadOnlyBlock(blk)
+    }
+    else
+    {
+        <div class="app-block-edit" style="align-items:flex-start;gap:8px;margin:6px 0">
+            <div style="flex:1">
+                @switch (blk.Format)
+                {
+                    case BlockFormat.Prose:
+                    case BlockFormat.List:
+                        <textarea class="app-ta" rows="3" value="@blk.Text" placeholder="@L["Dse_TextMarkdownPh"]"
+                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Callout:
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+                            <span class="muted" style="font-size:12px">@L["Dse_TypeLabel"]</span>
+                            <select class="app-in" style="max-width:150px" value="@blk.CalloutKind"
+                                    @onchange="e => SetKind(blk, Enum.Parse<CalloutKind>(AsString(e.Value)))">
+                                @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
+                            </select>
+                        </div>
+                        <textarea class="app-ta" rows="2" value="@blk.Text" placeholder="@L["Dse_CalloutTextPh"]"
+                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        break;
+                    case BlockFormat.Table:
+                        @TableEditor(blk)
+                        break;
+                }
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+                <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => Move(blk, -1)">↑</button>
+                <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => Move(blk, 1)">↓</button>
+                <button class="btn ghost" title="@L["Dse_DeleteBlock"]" @onclick="() => Remove(blk)"><Icon Name="x" /></button>
+            </div>
+        </div>
+    }
+}
+
+@if (Editing)
+{
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn ghost" @onclick="() => Add(BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
+        <button class="btn ghost" @onclick="() => Add(BlockFormat.Callout)">+ Callout</button>
+        <button class="btn ghost" @onclick="() => Add(BlockFormat.Table)">+ @L["Dse_Table"]</button>
+    </div>
+}
+
+@code {
+    /// <summary>Blocchi editati in loco. L'host la possiede e la persiste su <see cref="OnChanged"/>.</summary>
+    [Parameter, EditorRequired] public List<ExtraBlock> Blocks { get; set; } = new();
+    [Parameter] public bool Editing { get; set; }
+    /// <summary>Invocato dopo ogni mutazione (aggiunta/modifica/spostamento/rimozione).</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    private Task Changed() => OnChanged.InvokeAsync();
+
+    // ---- mutazioni blocco ----
+    private Task SetText(ExtraBlock b, string v) { b.Text = v; return Changed(); }
+    private Task SetKind(ExtraBlock b, CalloutKind k) { b.CalloutKind = k; return Changed(); }
+
+    private Task Add(BlockFormat format)
+    {
+        var b = new ExtraBlock { Format = format };
+        if (format == BlockFormat.Table) b.TableJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""";
+        Blocks.Add(b);
+        return Changed();
+    }
+
+    private Task Remove(ExtraBlock b) { Blocks.Remove(b); return Changed(); }
+
+    private Task Move(ExtraBlock b, int dir)
+    {
+        var i = Blocks.IndexOf(b);
+        var j = i + dir;
+        if (j < 0 || j >= Blocks.Count) return Task.CompletedTask;
+        (Blocks[i], Blocks[j]) = (Blocks[j], Blocks[i]);
+        return Changed();
+    }
+
+    // ---- render read-only (identico a DocumentSectionsEditor.ReadOnlyBlock) ----
+    private RenderFragment ReadOnlyBlock(ExtraBlock b) => __builder =>
+    {
+        switch (b.Format)
+        {
+            case BlockFormat.Callout:
+                <div class="callout @b.CalloutKind.ToString().ToLowerInvariant()">
+                    <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind)" Size="18" /></span>
+                    <div>@MarkdownLite.Render(b.Text)</div>
+                </div>
+                break;
+            case BlockFormat.Table:
+                @RenderTablePreview(b);
+                break;
+            default:
+                @if (!string.IsNullOrWhiteSpace(b.Text)) { <div class="prose">@MarkdownLite.Render(b.Text)</div> }
+                break;
+        }
+    };
+
+    private static string CalloutIcon(CalloutKind k) => k switch
+    {
+        CalloutKind.Success => "check-circle", CalloutKind.Warning => "warning", CalloutKind.Danger => "octagon", _ => "info",
+    };
+
+    // ---- editor tabella (columns + rows di celle) — stesso formato JSON di DocumentSectionsEditor ----
+    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
+    {
+        var cols = new List<string>();
+        var rows = new List<List<string>>();
+        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
+                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
+                foreach (var row in rr.EnumerateArray())
+                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
+                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
+                        : new List<string>());
+        }
+        catch (JsonException) { }
+        return (cols, rows);
+    }
+
+    private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
+        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+
+    private Task SetTableCol(ExtraBlock b, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        if (ci < cols.Count) cols[ci] = val;
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+    private Task RemoveTableCol(ExtraBlock b, int ci)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        if (ci < cols.Count) cols.RemoveAt(ci);
+        foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+    private Task AddTableCol(ExtraBlock b)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        cols.Add($"Colonna {cols.Count + 1}");
+        foreach (var r in rows) r.Add("");
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+    private Task SetTableCell(ExtraBlock b, int ri, int ci, string val)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+    private Task AddTableRow(ExtraBlock b)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+    private Task RemoveTableRow(ExtraBlock b, int ri)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        if (ri < rows.Count) rows.RemoveAt(ri);
+        b.TableJson = SerializeTable(cols, rows);
+        return Changed();
+    }
+
+    private RenderFragment TableEditor(ExtraBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        <table class="cfg-table">
+            <thead>
+                <tr>
+                    @for (var ci = 0; ci < cols.Count; ci++)
+                    {
+                        var cidx = ci;
+                        <th>
+                            <div style="display:flex;gap:4px;align-items:center">
+                                <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
+                                <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
+                            </div>
+                        </th>
+                    }
+                    <th style="width:42px"><button class="btn ghost" title="@L["Dse_AddColumn"]" @onclick="() => AddTableCol(b)">＋</button></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var ri = 0; ri < rows.Count; ri++)
+                {
+                    var ridx = ri;
+                    <tr>
+                        @for (var ci = 0; ci < cols.Count; ci++)
+                        {
+                            var cidx = ci;
+                            var cell = cidx < rows[ridx].Count ? rows[ridx][cidx] : "";
+                            <td><input class="app-in" value="@cell" @onchange="e => SetTableCell(b, ridx, cidx, AsString(e.Value))" /></td>
+                        }
+                        <td><button class="btn ghost" title="@L["Dse_RemoveRow"]" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+    };
+
+    private RenderFragment RenderTablePreview(ExtraBlock b) => __builder =>
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+        @if (cols.Count > 0 || rows.Count > 0)
+        {
+            <table class="cfg-table">
+                <thead><tr>@foreach (var c in cols) { <th>@c</th> }</tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? r[i] : "")</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        }
+    };
+}

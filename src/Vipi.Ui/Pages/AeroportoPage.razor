@@ -360,7 +360,7 @@ else
                             <CollapsibleBlock Id="@($"extra-{s.Id}")">
                                 <Header><h3 style="margin-top:0">@s.Title</h3></Header>
                                 <ChildContent>
-                                    @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap">@s.Body</div> }
+                                    <DocumentBlocksEditor Blocks="s.Blocks" Editing="false" />
                                 </ChildContent>
                             </CollapsibleBlock>
                         }
@@ -390,7 +390,7 @@ else
                 {
                     <div class="rail-card" id="extra-rail-@s.Id">
                         <h5>@s.Title</h5>
-                        @if (!string.IsNullOrWhiteSpace(s.Body)) { <div style="white-space:pre-wrap;font-size:13px">@s.Body</div> }
+                        <DocumentBlocksEditor Blocks="s.Blocks" Editing="false" />
                     </div>
                 }
             </aside>
@@ -618,13 +618,19 @@ else
     /// <summary>Sezioni editoriali libere del profilo (colonna destra desktop / sotto le SID su schermi stretti).</summary>
     // Sezioni editoriali libere. In anteprima RELEASE si leggono dal documento congelato (_view, dove _profile è null);
     // in live/bozza dal profilo (entità fresca, il documento si rigenera solo alla pubblicazione). Doc 08e-airport.
-    private IReadOnlyList<(string Id, string Title, string? Body)> ExtraSections() =>
+    // Sezioni extra come blocchi (Prosa/Callout/Tabella), rese col renderer condiviso DocumentBlocksEditor (read-only).
+    // In anteprima RELEASE dal documento congelato (BlockView); in live/bozza dai blocchi serializzati nel profilo.
+    private IReadOnlyList<(string Id, string Title, List<ExtraBlock> Blocks)> ExtraSections() =>
         _mode.Kind == PreviewKind.Release
             ? _extraSections.Select(s => (
                 Id: s.Id, s.Title,
-                Body: s.Blocks.FirstOrDefault(b => b.Format == BlockFormat.Prose)?.Body)).ToList()
+                Blocks: s.Blocks.Select(b => new ExtraBlock
+                {
+                    Format = b.Format, Text = b.Body, TableJson = b.BodyJson,
+                    CalloutKind = b.CalloutKind ?? CalloutKind.Info,
+                }).ToList())).ToList()
             : (_profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>())
-                .Select(r => ($"extra-doc-{r.Id}", r.Title, r.Body)).ToList();
+                .Select(r => ($"extra-doc-{r.Id}", r.Title, ExtraBlocks.Parse(r.Body))).ToList();
 
     private void Recompute()
     {

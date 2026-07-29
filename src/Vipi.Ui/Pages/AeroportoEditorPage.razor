@@ -487,17 +487,14 @@ else
                     {
                         <div class="rule-card" @key="s">
                             <div class="rule-head">
-                                <span class="rule-ord">#@(idx + 1)</span>
+                                <input class="app-in" style="font-weight:700;flex:1;max-width:420px" @bind="s.Title" placeholder="@L["Ape_ExtraTitlePh"]" />
                                 <div style="display:flex;gap:6px">
                                     <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => MoveExtra(idx, -1)" title="@L["Common_Up"]">↑</button>
                                     <button class="btn ghost" disabled="@(idx == _extras.Count - 1)" @onclick="() => MoveExtra(idx, 1)" title="@L["Common_Down"]">↓</button>
-                                    <button class="btn ghost" @onclick="() => RemoveExtra(s)">✕ @L["Common_Remove"]</button>
+                                    <button class="btn ghost" @onclick="() => RemoveExtra(s)" title="@L["Common_Remove"]"><Icon Name="x" /></button>
                                 </div>
                             </div>
-                            <label style="display:block">@L["Nd_LblTitle"]<input style="width:100%" @bind="s.Title" placeholder="@L["Ape_ExtraTitlePh"]" /></label>
-                            <label style="display:block;margin-top:8px">@L["Ape_TextLabel"]<textarea style="width:100%;min-height:120px" @bind="s.Body" @bind:event="oninput" placeholder="@L["Ape_ExtraBodyPh"]"></textarea></label>
-                            <div class="help" style="margin-top:8px">@L["Ape_PreviewLabel"]</div>
-                            <div class="extra-preview">@s.Body</div>
+                            <DocumentBlocksEditor Blocks="s.Blocks" Editing="_canEdit" OnChanged='() => MarkDirty("Sezioni extra")' />
                         </div>
                     }
                     <div style="margin-top:10px;display:flex;gap:8px">
@@ -921,7 +918,7 @@ else
         _selSid.Clear();   // i buffer importati sono nuovi: azzera selezione multipla e ancora
         _lastSelIdx = null;
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
-        _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body }).ToList();
+        _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body, Blocks = ExtraBlocks.Parse(s.Body) }).ToList();
         _sidsLive = await Profile.GetSidsRenderModeAsync(_icao) == RenderMode.Live;
 
         _sectors = await Sectors.ListByAirportAsync(_icao);
@@ -974,7 +971,7 @@ else
 
     private Task SaveLinks() => SaveSection("Frequenze", () => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
     private Task SaveExtras() => SaveSection("Sezioni extra", () => Profile.SaveExtraSectionsAsync(_icao,
-        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", s.Body)).ToList()));
+        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", ExtraBlocks.Serialize(s.Blocks))).ToList()));
 
     private async Task Reimport()
     {
@@ -1431,5 +1428,5 @@ else
         public int? Priority; public bool ForcePublished; public bool NeedsReview; public bool IsPublicNow; public string PublishFromCycle = "—";
         public string? FixOverride; public bool CreateAlias;
     }
-    private sealed class ExtraEdit { public string? Title; public string? Body; }
+    private sealed class ExtraEdit { public string? Title; public string? Body; public List<ExtraBlock> Blocks = new(); }
 }

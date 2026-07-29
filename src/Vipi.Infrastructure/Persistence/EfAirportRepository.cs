@@ -448,7 +448,23 @@ public sealed class EfAirportRepository : IAirportRepository
         foreach (var x in extras)
         {
             var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Sezione" : x.Title, ExtraSectionKey, ++order);
-            if (!string.IsNullOrWhiteSpace(x.Body)) b.Prose(sec, BlockTier.Extended, x.Body!);
+            // I blocchi editoriali (Prosa/Callout/Tabella) sono serializzati nel Body (formato condiviso col vIPI editor);
+            // un Body legacy markdown viene letto come un singolo blocco prosa (ExtraBlocks.Parse).
+            foreach (var blk in ExtraBlocks.Parse(x.Body))
+            {
+                switch (blk.Format)
+                {
+                    case BlockFormat.Callout when !string.IsNullOrWhiteSpace(blk.Text):
+                        b.Callout(sec, blk.CalloutKind, "", BlockTier.Extended, blk.Text!);
+                        break;
+                    case BlockFormat.Table when !string.IsNullOrWhiteSpace(blk.TableJson):
+                        b.TableRaw(sec, BlockTier.Extended, blk.TableJson!);
+                        break;
+                    case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
+                        b.Prose(sec, BlockTier.Extended, blk.Text!);
+                        break;
+                }
+            }
         }
 
         doc.LastUpdatedUtc = now;
@@ -671,6 +687,10 @@ public sealed class EfAirportRepository : IAirportRepository
 
         public void Table(DocumentSection s, BlockTier tier, object data) =>
             Add(s, BlockFormat.Table, tier, bodyJson: JsonSerializer.Serialize(data));
+
+        /// <summary>Tabella con BodyJson già serializzato (columns/rows) — usato dai blocchi extra a formato condiviso.</summary>
+        public void TableRaw(DocumentSection s, BlockTier tier, string bodyJson) =>
+            Add(s, BlockFormat.Table, tier, bodyJson: bodyJson);
 
         private void Add(DocumentSection s, BlockFormat format, BlockTier tier,
             string? body = null, string? bodyJson = null, CalloutKind? callout = null)
