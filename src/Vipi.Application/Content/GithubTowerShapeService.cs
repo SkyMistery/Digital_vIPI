@@ -33,11 +33,13 @@ public sealed class GithubTowerShapeService : IGithubTowerShapeService
     {
         var filter = string.IsNullOrWhiteSpace(icao) ? null : icao.Trim().ToUpperInvariant();
 
-        // "Vuoto/degenere" = il poligono attuale non si proietta (stesso criterio del cerchio sintetico): così
-        // becchiamo le TWR che la sorgente IVAO espone come "[]" o null, senza mai toccare una shape reale IVAO.
+        // Bersaglio: TWR senza poligono valido ("[]"/null → non proiettabile) OPPURE con un cerchio SINTETICO
+        // di ripiego (il poligono reale GitHub è meglio del cerchio e lo rimpiazza). MAI una shape reale IVAO
+        // (proiettabile e non sintetica): quella è verità primaria. La shape GitHub applicata (reale, non sintetica)
+        // non è più un bersaglio → idempotente.
         var targets = (await _repo.ListTwrShapesAsync(ct))
             .Where(t => filter is null || string.Equals(t.AirportIcao, filter, StringComparison.OrdinalIgnoreCase))
-            .Where(t => AorPolygonProjector.Project(t.RawPolygon) is null)
+            .Where(t => t.IsShapeSynthetic || AorPolygonProjector.Project(t.RawPolygon) is null)
             .ToList();
         if (targets.Count == 0) return 0;
 

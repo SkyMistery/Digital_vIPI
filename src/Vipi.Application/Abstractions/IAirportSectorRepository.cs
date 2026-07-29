@@ -62,8 +62,8 @@ public interface IAirportSectorRepository
 }
 
 /// <summary>Riga di lavoro per il fallback shape TWR: settore (+ callsign per il match GitHub) + coord aeroporto
-/// (null = ignote) + poligono grezzo attuale.</summary>
-public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon);
+/// (null = ignote) + poligono grezzo attuale + se la shape attuale è sintetica (cerchio di ripiego).</summary>
+public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon, bool IsShapeSynthetic);
 
 /// <summary>Poligono grezzo di un settore d'aeroporto (per derivare un centro di ripiego).</summary>
 public sealed record AirportPolygonRow(string AirportIcao, string RawPolygon);

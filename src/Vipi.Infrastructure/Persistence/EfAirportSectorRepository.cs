@@ -102,7 +102,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         await _db.AirportSectors.AsNoTracking()
             .Where(s => s.Position == "TWR" && !s.IsHidden)
             .Join(_db.Airports.AsNoTracking(), s => s.AirportIcao, a => a.Icao,
-                (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude, s.RegionMapPolygon))
+                (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude, s.RegionMapPolygon, s.IsShapeSynthetic))
             .ToListAsync(ct);
 
     public async Task SetAirportCoordsAsync(string icao, double latitude, double longitude, CancellationToken ct = default)

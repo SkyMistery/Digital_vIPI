@@ -83,6 +83,33 @@ public class GithubTowerShapeServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Replaces_Synthetic_Circle_With_Github_Real_Shape()
+    {
+        // Regime stazionario reale: la TWR ha già un CERCHIO sintetico da un run precedente (proietta, ma è ripiego).
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", null, "[]", null, null, 40.886, 14.291),
+        });
+        var twr = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRN_TWR");
+        await _repo.SetSyntheticShapeAsync(twr.Id, "[[14.2,40.8],[14.25,40.85],[14.3,40.8],[14.2,40.8]]");
+
+        var source = new FakeSource(new Dictionary<string, string>
+        {
+            ["LIRN_TWR"] = "[[14.1,40.7],[14.4,40.7],[14.4,41.0],[14.1,40.7]]",
+        });
+        var svc = new GithubTowerShapeService(_repo, source);
+
+        // Il cerchio sintetico viene rimpiazzato dal poligono reale GitHub.
+        Assert.Equal(1, await svc.ApplyAsync());
+        var after = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRN_TWR");
+        Assert.False(after.IsShapeSynthetic);
+        Assert.Equal("[[14.1,40.7],[14.4,40.7],[14.4,41.0],[14.1,40.7]]", after.RegionMapPolygon);
+
+        // Idempotente: ora è reale non-sintetica → non più bersaglio.
+        Assert.Equal(0, await svc.ApplyAsync());
+    }
+
+    [Fact]
     public async Task Icao_Filter_Applies_Only_To_That_Airport()
     {
         // Due aeroporti con TWR vuota, entrambi su GitHub; il bottone manuale (icao) tocca solo il suo.
