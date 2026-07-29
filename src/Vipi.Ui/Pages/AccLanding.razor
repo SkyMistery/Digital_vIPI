@@ -145,16 +145,22 @@ else
             var airports = data.Airports.Where(x => x.IsPublic && publishedApts.Contains(x.Icao)).ToList();
             // APP: solo non remotizzati (Standalone) e pubblicati (non nascosti), con collasso d'albero (solo l'antenato).
             var apps = StandaloneApps(data.Sectors, managed, _acc.Code);
+            // vLOA: solo quelle con release AIRAC effettiva e non nascoste (stessa regola di aeroporti/APP, doc 10 §3f).
+            var publishedVloas = managed
+                .Where(m => m.Kind == ManagedDocKind.Vloa && m.HasEffectiveRelease && !m.IsHidden && m.DocumentId is not null)
+                .Select(m => m.DocumentId!.Value)
+                .ToHashSet();
+            var vloas = data.Vloas.Where(v => publishedVloas.Contains(v.DocId)).ToList();
             _airportsTotal = airports.Count;
             _appsTotal = apps.Count;
-            _vloasTotal = data.Vloas.Count;
+            _vloasTotal = vloas.Count;
             _airports = airports
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Icao)
                 .Take(3).ToList();
             _apps = apps
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Callsign)
                 .Take(3).ToList();
-            _vloas = data.Vloas
+            _vloas = vloas
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Title)
                 .Take(3).ToList();
         }
