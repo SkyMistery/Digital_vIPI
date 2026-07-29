@@ -71,6 +71,12 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             {
                 ["ConnectionStrings:Vipi"] = $"Data Source={_dbPath}",
             }));
+            // E2E: niente OIDC reale in CI (nessun ClientId) → disattiva l'auth standalone; i test usano l'identità dev.
+            // ConfigureAppConfiguration (non Host) così vince su appsettings.Development.json, che ha VipiAuth:Enabled=true.
+            builder.ConfigureAppConfiguration(cfg => cfg.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["VipiAuth:Enabled"] = "false",
+            }));
             return base.CreateHost(builder);
         }
 
