@@ -34,7 +34,12 @@ public static class DependencyInjection
                 // quindi lo schema si crea via EnsureCreated in MigrateVipiDatabase (no cronologia migrazioni).
                 // Adeguato a un DB test/fresco; NON usare EnsureCreated e Migrate insieme sullo stesso DB.
                 services.AddDbContext<VipiDbContext>(o => o
-                    .UseNpgsql(connectionString, npg => npg.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+                    .UseNpgsql(connectionString, npg => npg
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                        // Neon (serverless) sospende il compute e chiude le connessioni idle: la prima query
+                        // dopo l'inattività fallisce "transient". Ritenta in automatico (execution strategy).
+                        // Retry-safe: EfUnitOfWork avvolge già le transazioni in CreateExecutionStrategy().
+                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
                 break;
 
             default:
