@@ -22,7 +22,8 @@ public sealed record RunwayRuleRow(int Id, string DepRunways, string ArrRunways,
 public sealed record SidRow(int Id, string? Runway, string Fix, string Name, string? Transition,
     string? InitialClimb, string? Type, string? Cat, string? Wtc, string? Condition,
     bool IsImported = false, int? Priority = null, string? StableKey = null,
-    string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false)
+    string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false,
+    bool InitialClimbByApp = false)
 {
     /// <summary>La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate solo se forzate o dal ciclo successivo al prelievo.</summary>
     public bool IsPublicAt(string currentCycle, Vipi.Domain.Services.IAiracService airac)

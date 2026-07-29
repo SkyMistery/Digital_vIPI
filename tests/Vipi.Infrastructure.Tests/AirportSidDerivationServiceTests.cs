@@ -52,7 +52,8 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
 
         // Forzata → compare; ordine per FIX: ALAXI prima di OSTIA.
         var g = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ALAX7G");
-        await _repo.UpdateImportedSidAsync(g.Id, priority: null, forcePublished: true, resolvedFix: null);
+        await _repo.UpdateImportedSidAsync(g.Id, priority: null, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         var v2 = await _sut.DeriveAsync("LIRF");
         Assert.Equal(new[] { "ALAXI", "OSTIA" }, v2.Rows.Select(r => r.Fix).ToArray());

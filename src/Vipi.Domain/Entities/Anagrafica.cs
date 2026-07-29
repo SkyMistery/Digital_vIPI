@@ -311,6 +311,8 @@ public class AirportSid
     public string Name { get; set; } = default!;       // nome SID
     public string? Transition { get; set; }
     public string? InitialClimb { get; set; }
+    /// <summary>La quota di initial climb va concordata con l'APP (non imposta d'ufficio). Flag editoriale.</summary>
+    public bool InitialClimbByApp { get; set; }
     public string? Type { get; set; }
     public string? Cat { get; set; }
     public string? Wtc { get; set; }

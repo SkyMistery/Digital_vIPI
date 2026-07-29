@@ -50,7 +50,8 @@ public class SidImportRepositoryTests : IAsyncLifetime
         var g = afterFirst.Single(s => s.Name == "ALAX7G");
 
         // Priorità + forzatura su una importata.
-        await _repo.UpdateImportedSidAsync(g.Id, priority: 1, forcePublished: true, resolvedFix: null);
+        await _repo.UpdateImportedSidAsync(g.Id, priority: 1, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Secondo import: il codice cambia revisione (7G→8G) ma la StableKey resta → priorità/forzatura preservate.
         await _repo.ReplaceImportedSidsAsync("LIRF", new[]
@@ -94,7 +95,8 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.True(imp.NeedsFixReview);
 
         // L'operatore risolve il fix a mano.
-        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: "ZAGRE");
+        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: "ZAGRE",
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Reimport: la sorgente ripropone ancora il prefisso grezzo → la risoluzione manuale va conservata.
         await _repo.ReplaceImportedSidsAsync("LIRF", new[]
@@ -105,6 +107,33 @@ public class SidImportRepositoryTests : IAsyncLifetime
         var after = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
         Assert.Equal("ZAGRE", after.Fix);
         Assert.False(after.NeedsFixReview);
+    }
+
+    [Fact]
+    public async Task Editorial_Enrichments_On_Imported_Persist_And_Survive_Reimport()
+    {
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+
+        // L'operatore aggiunge gli arricchimenti editoriali che la sorgente non fornisce.
+        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: null,
+            initialClimb: "5000", initialClimbByApp: true, cat: "C, D", wtc: "M, H", condition: "solo notte");
+
+        var saved = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Equal("5000", saved.InitialClimb);
+        Assert.True(saved.InitialClimbByApp);
+        Assert.Equal("C, D", saved.Cat);
+        Assert.Equal("M, H", saved.Wtc);
+        Assert.Equal("solo notte", saved.Condition);
+
+        // Reimport della stessa riga (StableKey invariata): gli arricchimenti a mano non vanno persi.
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
+        var after = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Equal("5000", after.InitialClimb);
+        Assert.True(after.InitialClimbByApp);
+        Assert.Equal("C, D", after.Cat);
+        Assert.Equal("M, H", after.Wtc);
+        Assert.Equal("solo notte", after.Condition);
     }
 
     [Fact]

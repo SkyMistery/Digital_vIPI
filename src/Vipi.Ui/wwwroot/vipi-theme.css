@@ -115,6 +115,13 @@
 .pill.future{background:#fff3cf;color:var(--warn-ink);border:1px dashed #e2b400}
 .pill.neutral{background:#eef1f7;color:#57606a}  /* pill grigio-azzurra (condizione/nascosta), U8: prima inline */
 
+/* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
+.tok-set{display:inline-flex;gap:2px;flex-wrap:wrap}
+.tok{border:1px solid #ccd2e0;background:#fff;color:#5a6472;border-radius:4px;padding:1px 5px;min-width:18px;font-size:11px;line-height:1.5;font-weight:600;cursor:pointer}
+.tok:hover{border-color:var(--ivao-blue)}
+.tok.on{background:var(--ivao-blue);border-color:var(--ivao-blue);color:#fff}
+.ic-app{font-size:11px;color:#5a6472;display:inline-flex;align-items:center;gap:2px;margin-left:3px;cursor:pointer}
+
 /* ---------- Screen 1: Home ---------- */
 .hero{background:linear-gradient(120deg,var(--ivao-blue),var(--ivao-lightblue));color:#fff;border-radius:var(--radius);padding:34px 36px;margin-bottom:28px;position:relative;overflow:hidden}
 .hero h1{color:#fff;margin-bottom:8px}

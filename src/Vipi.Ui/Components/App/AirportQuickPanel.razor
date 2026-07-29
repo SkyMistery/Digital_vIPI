@@ -127,7 +127,7 @@ else
     // ---- TA/TL dal documento pubblico (stessa logica di AeroportoPage.SplitSections/ParseTlTable) ----
     private void ParseTransition(DocumentView view)
     {
-        var sec = view.Sections.FirstOrDefault(s => s.Title.Contains("transizione", StringComparison.OrdinalIgnoreCase));
+        var sec = view.Sections.FirstOrDefault(s => s.Title.Contains("transi", StringComparison.OrdinalIgnoreCase));
         if (sec is null) return;
         foreach (var b in sec.Blocks)
         {

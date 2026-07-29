@@ -330,7 +330,7 @@ else
 
             @* ===================== SID ===================== *@
             <details id="sec-sid" class="ed-sec" open>
-                <summary class="ed-sec-head">SID@if (_dirtySections.Contains("SID")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
+                <summary class="ed-sec-head">@PanelLabel("SID")@if (_dirtySections.Contains("SID")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                         <h3 style="margin:0">@L["Ape_SidRenderTitle"]</h3>
@@ -370,7 +370,7 @@ else
                         </div>
                         <div style="overflow:auto">
                         <table class="res-table sid-table">
-                            <thead><tr><th style="width:26px"><input type="checkbox" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th>@L["Ape_PointFix"]</th><th>SID</th><th>@L["Ape_Runway"]</th><th>@L["Ape_Trans"]</th><th>Type</th><th>@L["Ape_Priority"]</th><th>@L["Ape_Publication"]</th><th></th></tr></thead>
+                            <thead><tr><th style="width:26px"><input type="checkbox" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th>@L["Ape_PointFix"]</th><th>SID</th><th>@L["Ape_Runway"]</th><th>@L["Ape_Trans"]</th><th>Type</th><th>Initial climb</th><th>Cat.</th><th>WTC</th><th>Condition</th><th>@L["Ape_Priority"]</th><th>@L["Ape_Publication"]</th><th></th></tr></thead>
                             <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                                 @for (var vi = 0; vi < iview.Count; vi++)
                                 {
@@ -381,8 +381,8 @@ else
                                             @if (e.NeedsReview)
                                             {
                                                 <span title="@L["Ape_FixToVerify"]">⚠</span>
-                                                <input style="width:70px" @bind="e.FixOverride" placeholder="@e.Fix" />
-                                                <label style="font-size:11px" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" /> alias</label>
+                                                <input style="width:70px" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" />
+                                                <label style="font-size:11px" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> alias</label>
                                             }
                                             else { <b>@e.Fix</b> }
                                         </td>
@@ -390,7 +390,28 @@ else
                                         <td>@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
                                         <td>@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
                                         <td>@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
-                                        <td><input type="number" style="width:60px" @bind="e.Priority" /></td>
+                                        <td style="white-space:nowrap">
+                                            <input type="number" min="0" step="100" style="width:58px" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="Quota imposta in ft (solo numero)" />
+                                            <label class="ic-app" title="La quota va concordata con l'APP"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" /> APP</label>
+                                        </td>
+                                        <td>
+                                            <div class="tok-set">
+                                                @foreach (var t in CatTokens)
+                                                {
+                                                    <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" @onclick="() => { e.Cat = ToggleTok(e.Cat, t, CatTokens); TouchImported(e); }" title="Categoria aeromobile (VREF)">@t</button>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="tok-set">
+                                                @foreach (var t in WtcTokens)
+                                                {
+                                                    <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" @onclick="() => { e.Wtc = ToggleTok(e.Wtc, t, WtcTokens); TouchImported(e); }" title="Wake Turbulence Category">@t</button>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td><input style="width:120px" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" /></td>
+                                        <td><input type="number" style="width:60px" @bind="e.Priority" @bind:after="() => TouchImported(e)" /></td>
                                         <td style="white-space:nowrap">
                                             @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
                                             else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))">🕒 @e.PublishFromCycle</span> }
@@ -400,7 +421,7 @@ else
                                 }
                                 @if (iview.Count == 0)
                                 {
-                                    <tr><td colspan="9" class="muted">Nessuna SID importata corrisponde al filtro.</td></tr>
+                                    <tr><td colspan="13" class="muted">Nessuna SID importata corrisponde al filtro.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -916,6 +937,7 @@ else
                 Id = s.Id, Fix = s.Fix, Name = s.Name, Runway = s.Runway, Transition = s.Transition, Type = s.Type,
                 Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
                 IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
+                InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
             }).ToList();
         _selSid.Clear();   // i buffer importati sono nuovi: azzera selezione multipla e ancora
         _lastSelIdx = null;
@@ -995,9 +1017,31 @@ else
             resolvedFix = e.FixOverride!.Trim();
             if (e.CreateAlias) await SidAliases.UpsertAsync(e.Fix, resolvedFix);   // e.Fix = prefisso grezzo
         }
-        await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix);
+        await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix,
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
     }
+
+    // --- Arricchimenti multi-select su SID importate: CAT per VREF, WTC per scia; salvati come CSV nell'ordine canonico ---
+    private static readonly string[] WtcTokens = { "L", "M", "H", "S" };
+    private static readonly string[] CatTokens = { "A", "B", "C", "D", "E" };
+
+    private static bool HasTok(string? csv, string tok) =>
+        (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(tok, StringComparer.OrdinalIgnoreCase);
+
+    // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
+    private static string? ToggleTok(string? csv, string tok, string[] order)
+    {
+        var set = (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.ToUpperInvariant()).ToHashSet();
+        if (!set.Remove(tok)) set.Add(tok);
+        var res = string.Join(", ", order.Where(set.Contains));
+        return res.Length == 0 ? null : res;
+    }
+
+    // Ogni modifica a una riga importata la auto-seleziona: così "Salva selezionate" raccoglie tutte le righe toccate.
+    private void TouchImported(ImportedSidEdit e) => _selSid.Add(e.Id);
 
     // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
     private List<ImportedSidEdit> ImportedView()
@@ -1429,6 +1473,8 @@ else
         public int Id; public string Fix = ""; public string Name = ""; public string? Runway; public string? Transition; public string? Type;
         public int? Priority; public bool ForcePublished; public bool NeedsReview; public bool IsPublicNow; public string PublishFromCycle = "—";
         public string? FixOverride; public bool CreateAlias;
+        // Arricchimenti editoriali sovrapposti alla riga di sorgente (persistiti con la riga, preservati al reimport).
+        public string? InitialClimb; public bool InitialClimbByApp; public string? Cat; public string? Wtc; public string? Condition;
     }
     private sealed class ExtraEdit { public string? Title; public string? Body; public List<ExtraBlock> Blocks = new(); }
 }

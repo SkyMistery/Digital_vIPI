@@ -30,8 +30,10 @@ public interface IAirportRepository
     /// Priority e ForcePublished per StableKey. Le righe manuali restano intatte.</summary>
     Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default);
 
-    /// <summary>Aggiorna i campi editabili di UNA riga SID importata (priorità, forzatura pubblicazione, fix risolto a mano).</summary>
-    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
+    /// <summary>Aggiorna i campi editabili di UNA riga SID importata: priorità, forzatura pubblicazione, fix risolto a
+    /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.</summary>
+    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 

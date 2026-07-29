@@ -17,9 +17,16 @@ public sealed class EfAirportRepository : IAirportRepository
     private readonly VipiDbContext _db;
     public EfAirportRepository(VipiDbContext db) => _db = db;
 
-    /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate.</summary>
+    /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate. Include sia i
+    /// titoli EN correnti sia quelli IT legacy, così un rebuild di un documento vecchio rimuove le sezioni italiane
+    /// (e le rigenera in inglese) invece di lasciarle duplicate.</summary>
     private static readonly string[] ManagedSectionTitles =
-        { "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
+    {
+        // EN correnti
+        "Runway rules", "Transition levels", "Frequencies", "Runways", "SID",
+        // IT legacy (documenti generati prima dell'i18n)
+        "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste",
+    };
 
     /// <summary>Chiave delle sezioni editoriali libere dell'aeroporto emesse nel documento dal profilo (doc 08e-airport):
     /// hanno titolo arbitrario, quindi si riconoscono/rimuovono per chiave (non per titolo come le managed).</summary>
@@ -50,7 +57,7 @@ public sealed class EfAirportRepository : IAirportRepository
         var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
             .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
-                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview))
+                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp))
             .ToListAsync(ct);
 
         // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
@@ -155,7 +162,8 @@ public sealed class EfAirportRepository : IAirportRepository
             _db.AirportSids.Add(new AirportSid
             {
                 AirportId = id, Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
-                Transition = r.Transition, InitialClimb = r.InitialClimb, Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
+                Transition = r.Transition, InitialClimb = r.InitialClimb, InitialClimbByApp = r.InitialClimbByApp,
+                Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
                 IsImported = false,
             });
         }
@@ -170,7 +178,8 @@ public sealed class EfAirportRepository : IAirportRepository
         var prior = await _db.AirportSids.AsNoTracking()
             .Where(x => x.AirportId == id && x.StableKey != null)
             .ToDictionaryAsync(x => x.StableKey!,
-                x => new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type), ct);
+                x => new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
+                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp), ct);
 
         _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
 
@@ -202,6 +211,9 @@ public sealed class EfAirportRepository : IAirportRepository
                 IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
                 NeedsFixReview = needsReview,
                 Priority = p?.Priority, ForcePublished = p?.ForcePublished ?? false,
+                // Arricchimenti editoriali sovrapposti a mano: sopravvivono al reimport (la sorgente non li fornisce).
+                InitialClimb = p?.InitialClimb, InitialClimbByApp = p?.InitialClimbByApp ?? false,
+                Cat = p?.Cat, Wtc = p?.Wtc, Condition = p?.Condition,
             });
         }
         await _db.SaveChangesAsync(ct);
@@ -216,14 +228,22 @@ public sealed class EfAirportRepository : IAirportRepository
 
     // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
     private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
-        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type);
+        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type,
+        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp);
 
-    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
+    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
         var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
         if (s is null) return;
         s.Priority = priority;
         s.ForcePublished = forcePublished;
+        // Arricchimenti editoriali: null/vuoto = campo cancellato (Trim per non salvare spazi).
+        s.InitialClimb = Blank(initialClimb);
+        s.InitialClimbByApp = initialClimbByApp;
+        s.Cat = Blank(cat);
+        s.Wtc = Blank(wtc);
+        s.Condition = Blank(condition);
         if (!string.IsNullOrWhiteSpace(resolvedFix))
         {
             s.Fix = resolvedFix.Trim();
@@ -231,6 +251,8 @@ public sealed class EfAirportRepository : IAirportRepository
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
 
     public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
     {
@@ -376,13 +398,13 @@ public sealed class EfAirportRepository : IAirportRepository
         // 1 — Regole piste (solo se presenti). Scelta in base a vento in coda/traverso + superficie.
         if (airport.RunwayRules.Count > 0)
         {
-            var sec = b.Section("Regole piste", BlockSection.Airport, ++order);
+            var sec = b.Section("Runway rules", BlockSection.Airport, ++order);
             b.Prose(sec, BlockTier.Reduced,
-                "Si applica la **prima** regola le cui condizioni sono soddisfatte (vento in coda/traverso entro le soglie " +
-                "indicate e superficie corrispondente); se nessuna si applica, vale la pista con miglior vento di testa.");
+                "The **first** rule whose conditions are met applies (tailwind/crosswind within the stated limits and " +
+                "matching surface); if none applies, the runway with the best headwind is used.");
             b.Table(sec, BlockTier.Reduced, new
             {
-                columns = new[] { "Condizione", "DEP", "ARR", "Note" },
+                columns = new[] { "Condition", "DEP", "ARR", "Notes" },
                 unified = false,
                 rows = airport.RunwayRules.OrderBy(r => r.Order)
                     .Select(r => (object)new { cells = new[] { RuleCondition(r), Dash(r.DepRunways), Dash(r.ArrRunways), r.Note ?? "—" } })
@@ -390,10 +412,10 @@ public sealed class EfAirportRepository : IAirportRepository
             });
         }
 
-        // 2 — Quote di transizione (TA + tabella TL).
-        var trans = b.Section("Quote di transizione", BlockSection.Airport, ++order);
+        // 2 — Transition levels (TA + tabella TL).
+        var trans = b.Section("Transition levels", BlockSection.Airport, ++order);
         b.Prose(trans, BlockTier.Reduced, airport.TransitionAltitudeFt is int taFt
-            ? $"**Transition Altitude:** {taFt} ft" : "**Transition Altitude:** _da inserire_");
+            ? $"**Transition Altitude:** {taFt} ft" : "**Transition Altitude:** _to be defined_");
         if (airport.TransitionLevels.Count > 0)
             b.Table(trans, BlockTier.Reduced, new
             {
@@ -415,14 +437,14 @@ public sealed class EfAirportRepository : IAirportRepository
         }
         foreach (var l in links)
             freqRows.Add(new { cells = new[] { l.LabelOverride ?? l.SourceSector!.Callsign, l.SourceSector!.Callsign, l.SourceSector!.DefaultFrequency! } });
-        var freq = b.Section("Frequenze", BlockSection.Frequencies, ++order);
-        b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Nome", "Callsign", "Frequenza" }, unified = false, rows = freqRows });
+        var freq = b.Section("Frequencies", BlockSection.Frequencies, ++order);
+        b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Name", "Callsign", "Frequency" }, unified = false, rows = freqRows });
 
-        // 4 — Piste.
-        var rwy = b.Section("Piste", BlockSection.Airport, ++order);
+        // 4 — Runways.
+        var rwy = b.Section("Runways", BlockSection.Airport, ++order);
         b.Table(rwy, BlockTier.Extended, new
         {
-            columns = new[] { "Pista", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
+            columns = new[] { "Runway", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
             unified = false,
             rows = airport.Runways.OrderBy(r => r.Order).Select(r => (object)new
             {
@@ -447,7 +469,7 @@ public sealed class EfAirportRepository : IAirportRepository
         var extras = await _db.AirportExtraSections.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order).ToListAsync(ct);
         foreach (var x in extras)
         {
-            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Sezione" : x.Title, ExtraSectionKey, ++order);
+            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Section" : x.Title, ExtraSectionKey, ++order);
             // I blocchi editoriali (Prosa/Callout/Tabella) sono serializzati nel Body (formato condiviso col vIPI editor);
             // un Body legacy markdown viene letto come un singolo blocco prosa (ExtraBlocks.Parse).
             foreach (var blk in ExtraBlocks.Parse(x.Body))
@@ -616,16 +638,16 @@ public sealed class EfAirportRepository : IAirportRepository
     /// <summary>Condizione della regola in testo: soglie coda/traverso + superficie + nome + eventuali condizioni temporali avanzate.</summary>
     private static string RuleCondition(AirportRunwayRule r)
     {
-        var parts = new List<string> { $"coda ≤ {r.MaxTailwindKt} kt" };
-        if (r.MaxCrosswindKt is int xw) parts.Add($"traverso ≤ {xw} kt");
-        if (r.Surface == RunwaySurface.Dry) parts.Add("pista asciutta");
-        else if (r.Surface == RunwaySurface.Wet) parts.Add("pista bagnata");
+        var parts = new List<string> { $"tailwind ≤ {r.MaxTailwindKt} kt" };
+        if (r.MaxCrosswindKt is int xw) parts.Add($"crosswind ≤ {xw} kt");
+        if (r.Surface == RunwaySurface.Dry) parts.Add("dry runway");
+        else if (r.Surface == RunwaySurface.Wet) parts.Add("wet runway");
         if (r.TimeFromLocalMin is int tf && r.TimeToLocalMin is int tt) parts.Add($"{Hhmm(tf)}–{Hhmm(tt)} LT");
-        else if (r.TimeFromLocalMin is int tf2) parts.Add($"da {Hhmm(tf2)} LT");
-        else if (r.TimeToLocalMin is int tt2) parts.Add($"fino {Hhmm(tt2)} LT");
+        else if (r.TimeFromLocalMin is int tf2) parts.Add($"from {Hhmm(tf2)} LT");
+        else if (r.TimeToLocalMin is int tt2) parts.Add($"until {Hhmm(tt2)} LT");
         if (DaysLabel(r.DaysOfWeekMask) is string dl) parts.Add(dl);
-        if (r.DateParity == DateParity.Even) parts.Add("giorni pari");
-        else if (r.DateParity == DateParity.Odd) parts.Add("giorni dispari");
+        if (r.DateParity == DateParity.Even) parts.Add("even days");
+        else if (r.DateParity == DateParity.Odd) parts.Add("odd days");
         if (DateWindowLabel(r.DateFromMonthDay, r.DateToMonthDay) is string dw) parts.Add(dw);
         var cond = string.Join(", ", parts);
         return string.IsNullOrWhiteSpace(r.Name) ? cond : $"{r.Name!.Trim()}: {cond}";
@@ -634,20 +656,20 @@ public sealed class EfAirportRepository : IAirportRepository
     private static string Hhmm(int min) => $"{min / 60:00}:{min % 60:00}";
 
     private static readonly string[] MonthAbbr =
-        { "gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic" };
+        { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    /// <summary>Etichetta della finestra stagionale ricorrente (MMDD): "dal 1 gen al 31 mar". null = nessun vincolo.</summary>
+    /// <summary>Etichetta della finestra stagionale ricorrente (MMDD): "from 1 Jan to 31 Mar". null = nessun vincolo.</summary>
     private static string? DateWindowLabel(int? from, int? to)
     {
         if (from is null && to is null) return null;
-        if (from is int f && to is int t) return $"dal {Md(f)} al {Md(t)}";
-        if (from is int f2) return $"dal {Md(f2)}";
-        return $"fino al {Md(to!.Value)}";
+        if (from is int f && to is int t) return $"from {Md(f)} to {Md(t)}";
+        if (from is int f2) return $"from {Md(f2)}";
+        return $"until {Md(to!.Value)}";
 
         static string Md(int mmdd) => $"{mmdd % 100} {MonthAbbr[Math.Clamp(mmdd / 100, 1, 12) - 1]}";
     }
 
-    private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
+    private static readonly string[] DayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
     private static string? DaysLabel(int? mask)
     {

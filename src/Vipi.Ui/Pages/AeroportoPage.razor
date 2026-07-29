@@ -746,13 +746,16 @@ else
 
         foreach (var s in view.Sections)
         {
-            if (_taSection is null && s.Title.Contains("transizione", StringComparison.OrdinalIgnoreCase))
+            // Match bilingue (documenti EN correnti + IT legacy non ancora rigenerati): "transi" copre
+            // transizione/transition, "frequen" copre Frequenze/Frequencies, pista/runway per le piste.
+            if (_taSection is null && s.Title.Contains("transi", StringComparison.OrdinalIgnoreCase))
                 _taSection = s;
             else if (_freqSection is null &&
-                     (s.SectionKey == "frequencies" || s.Title.Contains("Frequenz", StringComparison.OrdinalIgnoreCase)))
+                     (s.SectionKey == "frequencies" || s.Title.Contains("frequen", StringComparison.OrdinalIgnoreCase)))
                 _freqSection = s;
             // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
-            else if (_profile is { Runways.Count: > 0 } && s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase))
+            else if (_profile is { Runways.Count: > 0 }
+                     && (s.Title.Contains("pist", StringComparison.OrdinalIgnoreCase) || s.Title.Contains("runway", StringComparison.OrdinalIgnoreCase)))
                 continue;
             // La sezione SID è derivata a view-time (doc 10 §3e): resa custom, fuori da _otherSections.
             else if (s.SectionKey == "sids")
@@ -832,7 +835,7 @@ else
         var idents = new List<string>();
         foreach (var s in view.Sections)
         {
-            if (!s.Title.Contains("Pist", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!s.Title.Contains("pist", StringComparison.OrdinalIgnoreCase) && !s.Title.Contains("runway", StringComparison.OrdinalIgnoreCase)) continue;
             foreach (var b in s.Blocks)
             {
                 if (b.Format != BlockFormat.Table || string.IsNullOrWhiteSpace(b.BodyJson)) continue;

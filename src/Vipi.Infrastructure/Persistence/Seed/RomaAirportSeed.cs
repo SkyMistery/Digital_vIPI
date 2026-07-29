@@ -48,13 +48,13 @@ public static class RomaAirportSeed
 
         // 1 — METAR & TAF (stub non-live dichiarato)
         var wx = b.Section("METAR & TAF", BlockSection.Airport, 1);
-        b.Callout(wx, CalloutKind.Warning, "Dati meteo non live", BlockTier.Reduced,
-            "⏳ METAR/TAF reali arrivano col polling meteo (fase F3). Il valore qui sotto è un **esempio statico**, non aggiornato.");
+        b.Callout(wx, CalloutKind.Warning, "Weather data not live", BlockTier.Reduced,
+            "⏳ Real METAR/TAF will come with weather polling (phase F3). The value below is a **static example**, not updated.");
         b.Prose(wx, BlockTier.Reduced,
-            "**METAR (esempio):** `LIRF 191250Z 16012KT 9999 FEW035 SCT100 26/14 Q1015 NOSIG`");
+            "**METAR (example):** `LIRF 191250Z 16012KT 9999 FEW035 SCT100 26/14 Q1015 NOSIG`");
 
-        // 2 — Quote di transizione
-        var trans = b.Section("Quote di transizione", BlockSection.Airport, 2);
+        // 2 — Transition levels
+        var trans = b.Section("Transition levels", BlockSection.Airport, 2);
         b.Prose(trans, BlockTier.Reduced, "**Transition Altitude:** 6000 ft");
         b.Table(trans, BlockTier.Reduced, new
         {
@@ -69,40 +69,40 @@ public static class RomaAirportSeed
             }
         });
 
-        // 3 — Frequenze
-        var freq = b.Section("Frequenze", BlockSection.Frequencies, 3);
+        // 3 — Frequencies
+        var freq = b.Section("Frequencies", BlockSection.Frequencies, 3);
         b.Table(freq, BlockTier.Reduced, new
         {
-            columns = new[] { "Nome", "Callsign", "Frequenza" },
+            columns = new[] { "Name", "Callsign", "Frequency" },
             unified = false,
             rows = new object[]
             {
-                Cells("Ground (se attivo)", "LIRF_GND", "121.700"),
+                Cells("Ground (if active)", "LIRF_GND", "121.700"),
                 FreqRow("Tower", "LIRF_TWR", "118.700"),
                 Cells("Approach", "LIRF_APP", "119.200"),
             }
         });
 
-        // 4 — Piste
-        var rwy = b.Section("Piste", BlockSection.Airport, 4);
+        // 4 — Runways
+        var rwy = b.Section("Runways", BlockSection.Airport, 4);
         b.Table(rwy, BlockTier.Extended, new
         {
-            columns = new[] { "Pista", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
+            columns = new[] { "Runway", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
             unified = false,
             rows = new object[]
             {
                 Cells("16L", "3902 m", "3902 m", "ILS CAT III · RNP", "—", "No"),
-                Cells("16R", "3900 m", "3900 m", "ILS CAT II · RNP", "Sx", "No"),
-                Cells("34L", "3900 m", "3900 m", "ILS CAT I · RNP", "Dx", "Sì"),
-                Cells("07", "3309 m", "3309 m", "RNP", "Sx", "Sì"),
-                Cells("25", "3309 m", "3309 m", "ILS CAT I", "Dx", "Sì"),
+                Cells("16R", "3900 m", "3900 m", "ILS CAT II · RNP", "Left", "No"),
+                Cells("34L", "3900 m", "3900 m", "ILS CAT I · RNP", "Right", "Yes"),
+                Cells("07", "3309 m", "3309 m", "RNP", "Left", "Yes"),
+                Cells("25", "3309 m", "3309 m", "ILS CAT I", "Right", "Yes"),
             }
         });
 
-        // 5 — SID (stub: dal sectorfile GitHub)
+        // 5 — SID (stub: from GitHub sectorfile)
         var sid = b.Section("SID", BlockSection.Airport, 5);
-        b.Callout(sid, CalloutKind.Info, "Origine dati: sectorfile su GitHub", BlockTier.Extended,
-            "🔄 Le SID sono **sempre** importate dal sectorfile della divisione su GitHub, non inserite a mano. La tabella si allineerà all'AIRAC del sectorfile. Parsing rimandato (fase F4).");
+        b.Callout(sid, CalloutKind.Info, "Data source: sectorfile on GitHub", BlockTier.Extended,
+            "🔄 SIDs are **always** imported from the division sectorfile on GitHub, not entered by hand. The table will align to the sectorfile AIRAC. Parsing deferred (phase F4).");
 
         await db.SaveChangesAsync(ct);
         doc.CurrentVersionId = ver.Id;
