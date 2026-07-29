@@ -209,7 +209,8 @@ else
                         @if (_taSection is not null)
                         {
                             <CollapsibleBlock Id="@_taSection.Id">
-                                <Header><h3 style="margin-top:0">@_taSection.Title</h3></Header>
+                                @* Heading fisso in inglese: il titolo salvato può essere IT su documenti non ancora rigenerati. *@
+                                <Header><h3 style="margin-top:0">Transition levels</h3></Header>
                                 <ChildContent>
                                 <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
                                 @if (_tlRows.Count > 0)
