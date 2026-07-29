@@ -7,7 +7,7 @@
     case "configurations": @ConfigTableBody() break;
     case "aor":
         @* @key include l'albero: al cambio root l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
-        <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
+        <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" Aor3dPageUrl="@Aor3dPageUrl" />
         break;
     case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
     case "minima": <AppMinima /> break;
@@ -23,6 +23,8 @@
     [Parameter, EditorRequired] public AccBlock Block { get; set; } = default!;
     [Parameter, EditorRequired] public string Key { get; set; } = default!;
     [Parameter] public string? Root { get; set; }
+    /// <summary>URL della pagina 3D dedicata, instradato ad AccAor per il link «Apri pagina» nel tab 3D. null = nessun link.</summary>
+    [Parameter] public string? Aor3dPageUrl { get; set; }
 
     [Parameter] public IReadOnlyList<AppFreqRow>? Freqs { get; set; }
     [Parameter] public AccCoordination? Coord { get; set; }

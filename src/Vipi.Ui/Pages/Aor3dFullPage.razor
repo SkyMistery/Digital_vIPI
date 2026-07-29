@@ -1,0 +1,72 @@
+@page "/vsop/aor3d/{Kind}/{Key}"
+@layout SopLayout
+@using Vipi.Ui.Shared
+@inject IAccDocumentService AccDoc
+@inject IAccViewDerivationService AccViewDeriv
+@inject IAppDocumentService AppDoc
+@inject IVloaDerivationService VloaDeriv
+@inject NavigationManager Nav
+
+@* Pagina 3D dedicata dell'AoR (schermo quasi intero). Sorgente-neutra: risolve l'AccAorView dal discriminatore Kind
+   (acc = intera ACC unendo i blocchi · app = APP standalone · vloa = coppia vLOA) e la rende con AccAor3d.
+   Raggiunta dal link «Apri pagina» nel tab 3D del blocco AoR (AccAor). *@
+
+<div class="wrap">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>AoR 3D</b> › @_title</div>
+
+    @if (_view.Sectors is { Count: > 0 })
+    {
+        <h1 style="margin:8px 0 14px">Area di responsabilità — 3D · @_title</h1>
+        <AccAor3d View="_view" Id="@($"page-{Kind}-{Key}")" StageStyle="height:calc(100vh - 190px);min-height:420px" />
+    }
+    else
+    {
+        <div class="callout warning" style="margin-top:14px">
+            <span class="cic"><Icon Name="map" Size="18" /></span>
+            <div>
+                <p class="ct">AoR non disponibile</p>
+                Nessun poligono per i settori di <b>@Key</b> (non ancora importati/pubblicati o sorgente sconosciuta).
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Kind { get; set; } = "";
+    [Parameter] public string Key { get; set; } = "";
+
+    private AccAorView _view = AccAorView.Empty;
+    private string _title = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _view = AccAorView.Empty;
+        _title = Key;
+        switch ((Kind ?? "").ToLowerInvariant())
+        {
+            case "acc": _view = await LoadAccAsync(Key); break;
+            case "app": _view = await AppDoc.GetAorViewAsync(Key); break;
+            case "vloa" when int.TryParse(Key, out var docId): _view = (await VloaDeriv.DeriveAorAsync(docId)).Map; break;
+        }
+    }
+
+    // ACC intera: unione degli anelli di tutti i blocchi (dedup per callsign), configurazioni concatenate.
+    private async Task<AccAorView> LoadAccAsync(string accCode)
+    {
+        var model = await AccDoc.LoadForViewAsync(accCode);
+        if (model is null) return AccAorView.Empty;
+        _title = model.AccName;
+        var derived = await AccViewDeriv.ResolveForViewAsync(accCode, model.Blocks, useFrozen: true);
+
+        var sectors = new List<AccSectorAor>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var configs = new List<AccConfigSelection>();
+        foreach (var aor in derived.Aor.Values)
+        {
+            foreach (var s in aor.Sectors)
+                if (seen.Add(s.Callsign)) sectors.Add(s);
+            configs.AddRange(aor.Configs);
+        }
+        return new AccAorView(sectors, configs);
+    }
+}

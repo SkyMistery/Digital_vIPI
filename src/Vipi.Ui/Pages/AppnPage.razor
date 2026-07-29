@@ -93,7 +93,7 @@ else
                                 {
                                     case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
                                     case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
-                                    case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
+                                    case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" Aor3dPageUrl="@($"/vsop/aor3d/app/{_app}")" />; break;
                                     case "frequencies": <AppFrequencies Rows="_freqs" />; break;
                                     case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
                                     case "minima": <AppMinima />; break;
