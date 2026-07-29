@@ -10,16 +10,20 @@
 @using RenderMode = Vipi.Domain.RenderMode
 @* Editing risolto dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
-@foreach (var s in (RootSections ?? Doc.Sections))
+@if (ShowToc)
 {
-    @SectionEditor(s, 0)
-}
-
-@if (IsEditing)
-{
-    <div class="block" style="border-style:dashed">
-        <button class="btn primary" @onclick="() => AddSection(AddParentId)">@(AddLabel ?? L["Dse_AddSection"].Value)</button>
+    <div class="ed-layout @(RightRail is not null ? "with-rail" : null)">
+        <EditorToc Items="BuildToc()" />
+        <div>@SectionsBody</div>
+        @if (RightRail is not null)
+        {
+            <aside class="ed-rail">@RightRail</aside>
+        }
     </div>
+}
+else
+{
+    @SectionsBody
 }
 
 @code {
@@ -53,6 +57,40 @@
     [Parameter] public Func<EditableSection, bool>? IsHiddenSection { get; set; }
     /// <summary>Toggle nascondi/mostra (l'host decide la chiave: titolo per vLOA, SectionKey per ACC/APP).</summary>
     [Parameter] public EventCallback<EditableSection> OnToggleHidden { get; set; }
+
+    /// <summary>Mostra il menu-sezioni laterale (TOC) sticky: avvolge il render in griglia 2 colonne (toc | contenuto).
+    /// Opt-in per gli editor a singola istanza (App/vLOA); la vIPI ACC costruisce il TOC a livello pagina.</summary>
+    [Parameter] public bool ShowToc { get; set; }
+    /// <summary>Voci extra da accodare al TOC (es. il blocco Release reso dall'host fuori da questo editor).</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? ExtraTocItems { get; set; }
+    /// <summary>Rail azioni a destra (opt-in, richiede <see cref="ShowToc"/>): pulsanti/badge dell'host — Preview, Modifica,
+    /// Pubblica, stato salvataggio. Quando presente la griglia diventa 3 colonne (toc | contenuto | azioni).</summary>
+    [Parameter] public RenderFragment? RightRail { get; set; }
+
+    // Voci TOC = sezioni di primo livello (anchor s-{Id}, già usato da CollapsibleBlock) + eventuali extra dell'host.
+    private IReadOnlyList<EditorTocItem> BuildToc()
+    {
+        var items = new List<EditorTocItem>();
+        foreach (var s in (RootSections ?? Doc.Sections))
+            items.Add(new EditorTocItem($"s-{s.Id}", s.Title));
+        if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
+        return items;
+    }
+
+    private RenderFragment SectionsBody => __builder =>
+    {
+        foreach (var s in (RootSections ?? Doc.Sections))
+        {
+            @SectionEditor(s, 0)
+        }
+
+        @if (IsEditing)
+        {
+            <div class="block" style="border-style:dashed">
+                <button class="btn primary" @onclick="() => AddSection(AddParentId)">@(AddLabel ?? L["Dse_AddSection"].Value)</button>
+            </div>
+        }
+    };
 
     // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IEditingService Editing = default!;

@@ -43,22 +43,6 @@ else
             <div class="editor-bar">
                 <div class="doc-head" style="margin:0">
                     <div><h2 style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
-                    <div class="editor-actions">
-                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                        <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                            @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
-                        </span>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                        @if (_editing)
-                        {
-                            <button class="btn ghost" @onclick="() => _editing = false">✓ @L["Lock_FinishEdit"]</button>
-                        }
-                        else
-                        {
-                            <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
-                        }
-                    </div>
                 </div>
             </div>
 
@@ -75,7 +59,31 @@ else
                                     IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" IsHiddenSection="IsHidden"
                                     OnToggleHidden="ToggleHidden"
-                                    IsRenderModeToggleable="IsRenderModeToggleable" />
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    ShowToc="true" ExtraTocItems="_tocExtra">
+                <RightRail>
+                    @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                    else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
+                    </span>
+                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                    @if (_editing)
+                    {
+                        <span class="save-badge lock-mine" title="@L["Lock_Editing"]">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToString("HH:mm")) : "")</span>
+                        <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="save-badge lock-badge" title="@L["Ed_LockedByOther"]">🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } e ? $" · → {e:HH:mm}" : "")</span>
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
+                    }
+                </RightRail>
+            </DocumentSectionsEditor>
 
             @Release()
         }
@@ -128,6 +136,8 @@ else
     private readonly HashSet<int> _diffOpen = new();
     private readonly Dictionary<int, ReleaseDiff> _diffs = new();
     private const string _releaseAnchor = "p-release";
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor).
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
 
     protected override void OnInitialized()
     {
@@ -201,13 +211,24 @@ else
     private async Task StartEditing()
     {
         if (_docId is not int id) return;
-        await Guard(async () =>
+        await GuardCore(async () =>
         {
             if (_doc is { IsEditable: false }) await Editing.CreateDraftAsync(id);
             else await Editing.AcquireLockAsync(id);
             await LoadAsync();
             _editing = _doc?.IsEditable == true;
-        });
+        }, silent: true);
+    }
+
+    // Fine modifica: rilascia il lock così il documento è subito libero per gli altri (non aspetta i 30 min di TTL).
+    private async Task FinishEditing()
+    {
+        _editing = false;
+        if (_docId is int id)
+        {
+            await GuardCore(() => Editing.ReleaseLockAsync(id), silent: true);
+            _lock = await Editing.InspectLockAsync(id);
+        }
     }
 
     // ---- sezioni derivate / editoriali-strutturate ----
@@ -294,17 +315,21 @@ else
     });
 
     // ---- infra ----
-    private async Task Guard(Func<Task> action)
+    // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
+    private Task Guard(Func<Task> action) => GuardCore(action, silent: false);
+    private async Task GuardCore(Func<Task> action, bool silent)
     {
         _error = null;
-        _save = SaveState.Saving;
-        StateHasChanged();
+        if (!silent) { _save = SaveState.Saving; StateHasChanged(); }
         try
         {
             await action();
-            _save = SaveState.Saved;
-            var tick = ++_saveTick;
-            _ = DismissSavedAsync(tick);
+            if (!silent)
+            {
+                _save = SaveState.Saved;
+                var tick = ++_saveTick;
+                _ = DismissSavedAsync(tick);
+            }
         }
         catch (EditNotAllowedException) { _error = L["App_NoEditPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }

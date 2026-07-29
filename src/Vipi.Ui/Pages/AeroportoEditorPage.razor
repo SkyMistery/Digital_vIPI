@@ -35,29 +35,9 @@ else
             <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
         </div>
 
-        <div class="editor-bar" style="position:sticky;top:0;z-index:20;background:var(--bg,#fff)">
+        <div class="editor-bar">
             <div class="doc-head" style="margin:0">
                 <div><h2 style="margin-bottom:2px">✎ @L["Ape_EditorTitle"] @_icao</h2><span class="muted">@_acc.Name</span></div>
-                <div class="editor-actions">
-                    @if (_data is not null)
-                    {
-                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                        @if (_canEdit && _dirtySections.Count > 0)
-                        {
-                            <button class="btn primary" disabled="@_busy" @onclick="SaveAllClicked" title="Salva tutte le sezioni modificate — Ctrl+S">💾 Salva tutto (@_dirtySections.Count)</button>
-                        }
-                        <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
-                            @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
-                        </span>
-                    }
-                    <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                    @if (LastImport() is DateTime li)
-                    {
-                        <span class="muted" style="font-size:11.5px;align-self:center" title="Ultimo import settori da IVAO">↧ @li.ToString("dd/MM HH:mm")</span>
-                    }
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ @L["Ape_ReimportIvao"]</button>
-                </div>
             </div>
         </div>
 
@@ -77,15 +57,14 @@ else
                 <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
             }
 
-            <nav class="editor-nav">
-                @foreach (var p in _panels)
-                {
-                    <a class="wx-tab" href="#sec-@Anchor(p)">@PanelLabel(p)@if (_dirtySections.Contains(p)) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</a>
-                }
-                <span style="flex:1"></span>
-                <button type="button" class="wx-tab" @onclick="() => ToggleAllSections(true)" title="@L["Ape_ExpandAllTitle"]">⊞ @L["Common_ExpandAll"]</button>
-                <button type="button" class="wx-tab" @onclick="() => ToggleAllSections(false)" title="@L["Ape_CollapseAllTitle"]">⊟ @L["Common_CollapseAll"]</button>
-            </nav>
+            <div class="ed-layout with-rail">
+            <EditorToc Items="BuildToc()">
+                <Footer>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ape_ExpandAllTitle"]">⊞ @L["Common_ExpandAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ape_CollapseAllTitle"]">⊟ @L["Common_CollapseAll"]</button>
+                </Footer>
+            </EditorToc>
+            <div>
 
             @* ===================== REGOLE PISTE ===================== *@
             <details id="sec-regole" class="ed-sec" open>
@@ -608,6 +587,25 @@ else
                     }
                 </div>
             </details>
+            </div>
+            <aside class="ed-rail">
+                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                @if (_canEdit && _dirtySections.Count > 0)
+                {
+                    <button class="btn primary" disabled="@_busy" @onclick="SaveAllClicked" title="Salva tutte le sezioni modificate — Ctrl+S">💾 Salva tutto (@_dirtySections.Count)</button>
+                }
+                <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
+                    @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
+                </span>
+                <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ @L["Ape_ReimportIvao"]</button>
+                @if (LastImport() is DateTime li)
+                {
+                    <span class="ed-rail-meta" title="Ultimo import settori da IVAO">↧ @li.ToString("dd/MM HH:mm")</span>
+                }
+            </aside>
+            </div>
         }
     </div>
 
@@ -647,6 +645,10 @@ else
 
     // Nomi delle sezioni: chiavi dirty + voci della mini-nav (àncora via Anchor()).
     private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID", "Sezioni extra", "Settori", "Versioni" };
+
+    // Menu-sezioni laterale (TOC): una voce per pannello, con pallino "non salvato".
+    private IReadOnlyList<EditorTocItem> BuildToc()
+        => _panels.Select(p => new EditorTocItem($"sec-{Anchor(p)}", PanelLabel(p), _dirtySections.Contains(p))).ToList();
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
     private int? _ta;

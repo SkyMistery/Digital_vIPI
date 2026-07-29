@@ -736,7 +736,7 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .res-where{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);font-size:13px;margin-bottom:4px}
 .res-snip{font-size:14px;color:var(--ink-soft)}
 .res-snip mark{background:#fff3cf;color:var(--ink);padding:0 3px;border-radius:3px;font-weight:600}
-@media(max-width:1080px){.doc-layout,.ed-layout{grid-template-columns:1fr}.toc{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
+@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:1fr}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 5b: Topologia settori ---------- */
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
@@ -1016,11 +1016,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .tree-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
 
 /* Editor ACC: barra sticky (header + albero + indice sezioni) */
-.editor-bar{position:sticky;top:0;z-index:20;background:var(--bg,#fff);padding:10px 0 8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+/* Non piu sticky: le azioni vivono nel rail a destra, la barra tiene solo il titolo (niente doppio header che copre il TOC). */
+.editor-bar{background:var(--bg,#fff);padding:10px 0 8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
 .editor-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .save-badge{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .save-badge.saving{background:#fff3cf;color:#8a6d00}
 .save-badge.saved{background:#e7fbef;color:var(--ok-ink)}
+.save-badge.lock-badge{background:#fde8e8;color:#a1223a;font-weight:700}
+.save-badge.lock-mine{background:#e7fbef;color:var(--ok-ink);font-weight:700}
 .editor-toc{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin-top:8px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px}
 .editor-toc::-webkit-scrollbar{height:6px}
 .editor-toc::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
@@ -1028,6 +1031,20 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .editor-toc .toc-jump:hover{border-color:var(--ivao-lightblue);color:var(--ivao-blue)}
 .editor-toc .toc-sep{flex:0 0 auto;width:1px;height:18px;background:var(--line);margin:0 2px}
 .editor-toc .toc-lab{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ivao-blue);padding:0 2px}
+/* Editor: menu-sezioni laterale (TOC) sticky, griglia 2 colonne (toc | contenuto). Vedi EditorToc.razor. */
+.ed-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;align-items:start}
+/* con rail azioni a destra: toc | contenuto | azioni */
+.ed-layout.with-rail{grid-template-columns:248px minmax(0,1fr) 232px}
+.ed-rail{position:sticky;top:70px;align-self:start;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow)}
+.ed-rail .btn,.ed-rail .save-badge,.ed-rail .pill{width:100%;justify-content:center;text-align:center;box-sizing:border-box}
+/* nel rail il testo dei badge/pill puo andare a capo: 232px stretti, "Stai modificando · lock fino alle HH:mm" non entra su una riga */
+.ed-rail .save-badge,.ed-rail .pill{white-space:normal;line-height:1.3;border-radius:10px;height:auto}
+.ed-rail .ed-rail-meta{font-size:11.5px;color:var(--ink-soft,#556);text-align:center}
+.editor-toc-side{top:70px;max-height:calc(100vh - 92px)}
+.editor-toc-side li{list-style:none}
+.editor-toc-side .dirt{margin-left:6px}
+.ed-layout .block[id],.ed-layout .ed-sec[id],.ed-layout .acc-block[id]{scroll-margin-top:84px}
+.toc-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .app-collapse{background:none;border:none;cursor:pointer;font-size:14px;color:var(--ivao-blue);padding:0 4px;line-height:1}
 /* salto d'ancora: lascia spazio sotto la barra sticky così il titolo sezione non finisce coperto */
 .struct .app-sec .block[id]{scroll-margin-top:180px}
