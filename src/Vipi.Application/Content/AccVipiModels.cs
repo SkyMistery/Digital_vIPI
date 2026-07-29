@@ -83,6 +83,10 @@ public sealed record AccSectorPick(string Callsign, string Name);
 /// (per cercare l'ente). Sorgente = tutti i settori DB con poligono.</summary>
 public sealed record SectorShapePick(string Callsign, string Name, string? AccCode);
 
+/// <summary>Limiti di quota GREZZI di un settore (ft o FL, come in DB): per l'estrusione 3D, normalizzati poi da
+/// <see cref="Vipi.Application.Aor.AorFlBand"/>. Entrambi null = nessun limite noto.</summary>
+public sealed record SectorFlLimits(int? Lower, int? Upper);
+
 /// <summary>Stato editoriale della sezione <c>aor</c>: callsign dei settori DB aggiunti a mano come shape extra +
 /// override di colore per settore (callsign → hex, sia primari sia extra). Colore assente = default per tipo-ente.</summary>
 public sealed class AorExtraShapes
@@ -164,8 +168,12 @@ public sealed class AccCoordination
 /// <summary>AoR di una configurazione: nome config + i poligoni (unione) dei suoi settori aperti.</summary>
 public sealed record AccConfigAor(string ConfigKey, string ConfigName, IReadOnlyList<AppAorPolygon> Polygons);
 
-/// <summary>AoR di un singolo settore del blocco: callsign + nome + colore + poligoni. Anello toggleabile in mappa.</summary>
-public sealed record AccSectorAor(string Callsign, string Name, string Color, IReadOnlyList<AppAorPolygon> Polygons);
+/// <summary>AoR di un singolo settore del blocco: callsign + nome + colore + poligoni. Anello toggleabile in mappa.
+/// <paramref name="LowerFl"/>/<paramref name="UpperFl"/> = banda FL per l'estrusione 3D (normalizzata via
+/// <see cref="Vipi.Application.Aor.AorFlBand"/>; null = non disponibile → il viewer 3D usa GND/UNL di default).</summary>
+public sealed record AccSectorAor(
+    string Callsign, string Name, string Color, IReadOnlyList<AppAorPolygon> Polygons,
+    int? LowerFl = null, int? UpperFl = null);
 
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
 public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);

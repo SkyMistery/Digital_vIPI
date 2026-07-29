@@ -131,6 +131,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
         var all = homeConf.Concat(foreignConf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var raw = await _accRepo.GetSectorPolygonsRawByCallsignAsync(all, ct);
+        var limits = await _accRepo.GetSectorLimitsByCallsignAsync(all, ct);
 
         var toggles = new List<VloaAorSectorToggle>();
         var mapSectors = new List<AccSectorAor>();
@@ -143,7 +144,10 @@ public sealed class VloaDerivationService : IVloaDerivationService
             toggles.Add(new VloaAorSectorToggle(cs, name, color, isForeign, isHidden));
             if (isHidden || !raw.TryGetValue(cs, out var poly)) return;
             var projected = AorPolygonProjector.Project(poly);
-            if (projected is not null) mapSectors.Add(new AccSectorAor(cs, name, color, new[] { projected }));
+            if (projected is null) return;
+            int? lo = null, hi = null;
+            if (limits.TryGetValue(cs, out var l)) (lo, hi) = AorFlBand.Normalize(l.Lower, l.Upper);
+            mapSectors.Add(new AccSectorAor(cs, name, color, new[] { projected }, lo, hi));
         }
 
         foreach (var cs in homeConf) Add(cs, false);

@@ -166,6 +166,7 @@ public sealed class AccDerivationService : IAccDerivationService
         if (callsigns.Count == 0) callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).ToList();
 
         var rawByCs = await _repo.GetSectorPolygonsRawByCallsignAsync(callsigns, ct);
+        var limits = await _repo.GetSectorLimitsByCallsignAsync(callsigns, ct);
         var names = await NameMapAsync(accCode, ct);
 
         var sectors = new List<AccSectorAor>();
@@ -175,7 +176,8 @@ public sealed class AccDerivationService : IAccDerivationService
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }));
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }, lo, hi));
         }
 
         // Shape extra scelte a mano (settori DB, anche esteri): appese come anelli toggleabili dopo i settori
@@ -183,16 +185,25 @@ public sealed class AccDerivationService : IAccDerivationService
         if (block.ExtraAorCallsigns.Count > 0)
         {
             var extraRaw = await _repo.GetSectorPolygonsRawByCallsignAsync(block.ExtraAorCallsigns, ct);
-            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extraRaw, names, block.AorColorOverrides);
+            var extraLimits = await _repo.GetSectorLimitsByCallsignAsync(block.ExtraAorCallsigns, ct);
+            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extraRaw, extraLimits, names, block.AorColorOverrides);
         }
 
         return new AccAorView(sectors, configs);
     }
 
-    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override.
+    // Banda FL (Lower/Upper) di un settore per l'estrusione 3D, normalizzata; assente = default GND/UNL.
+    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
+    {
+        if (!limits.TryGetValue(cs, out var l)) return (null, null);
+        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
+        return (bottom, top);
+    }
+
+    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override; banda FL.
     private static void AppendExtraShapes(List<AccSectorAor> sectors, IReadOnlyList<string> extra,
-        IReadOnlyDictionary<string, string> rawByCs, IReadOnlyDictionary<string, string> names,
-        IReadOnlyDictionary<string, string> colorOverrides)
+        IReadOnlyDictionary<string, string> rawByCs, IReadOnlyDictionary<string, SectorFlLimits> limits,
+        IReadOnlyDictionary<string, string> names, IReadOnlyDictionary<string, string> colorOverrides)
     {
         var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
         foreach (var cs in extra.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -201,7 +212,8 @@ public sealed class AccDerivationService : IAccDerivationService
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides), new[] { poly }));
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides), new[] { poly }, lo, hi));
             present.Add(cs);
         }
     }

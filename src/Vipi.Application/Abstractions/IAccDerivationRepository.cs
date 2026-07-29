@@ -42,6 +42,10 @@ public interface IAccDerivationRepository
     /// <summary>Poligoni grezzi mappati per callsign (per anelli AoR toggleabili singolarmente). Chiave case-insensitive.</summary>
     Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
 
+    /// <summary>Limiti di quota (Lower/Upper grezzi) mappati per callsign, per l'estrusione 3D dell'AoR. Cerca in
+    /// entrambi i cataloghi (CTR AccSector + APP/TWR AirportSector). Chiave case-insensitive; assenti = non nel dizionario.</summary>
+    Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
+
     /// <summary>Tutti i settori DB con poligono AoR (CTR + APP/torri), selezionabili come shape extra. Callsign + nome + ACC.</summary>
     Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
 

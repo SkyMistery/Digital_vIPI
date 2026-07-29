@@ -140,6 +140,9 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
     public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
         SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
 
+    public Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        SectorLimitsByCallsignAsync(_db, callsigns, ct);
+
     public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
         SelectableSectorShapesAsync(_db, ct);
 
@@ -161,6 +164,26 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
             .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
             .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToListAsync(ct);
         foreach (var r in app) res.TryAdd(r.ComposePosition, r.RegionMapPolygon!);
+
+        return res;
+    }
+
+    internal static async Task<IReadOnlyDictionary<string, SectorFlLimits>> SectorLimitsByCallsignAsync(
+        VipiDbContext db, IReadOnlyList<string> callsigns, CancellationToken ct)
+    {
+        var res = new Dictionary<string, SectorFlLimits>(StringComparer.OrdinalIgnoreCase);
+        if (callsigns.Count == 0) return res;
+        var set = callsigns.ToList();
+
+        var ctr = await db.AccSectors.AsNoTracking()
+            .Where(s => set.Contains(s.ComposePosition))
+            .Select(s => new { s.ComposePosition, s.LowerLimit, s.UpperLimit }).ToListAsync(ct);
+        foreach (var r in ctr) res[r.ComposePosition] = new SectorFlLimits(r.LowerLimit, r.UpperLimit);
+
+        var app = await db.AirportSectors.AsNoTracking()
+            .Where(s => set.Contains(s.ComposePosition))
+            .Select(s => new { s.ComposePosition, s.LowerLimit, s.UpperLimit }).ToListAsync(ct);
+        foreach (var r in app) res.TryAdd(r.ComposePosition, new SectorFlLimits(r.LowerLimit, r.UpperLimit));
 
         return res;
     }

@@ -211,11 +211,14 @@ public sealed class AppDocumentService : IAppDocumentService
             .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var cs in appCallsigns)
+        var appCsList = appCallsigns.ToList();
+        var limits = await _apps.GetSectorLimitsByCallsignAsync(appCsList, ct);
+        foreach (var cs in appCsList)
         {
             var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
             if (poly is null) continue;
-            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }));
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
         }
 
         // Shape extra scelte a mano (settori DB, anche torri/esteri): sostituiscono l'overlay torri automatico.
@@ -223,6 +226,7 @@ public sealed class AppDocumentService : IAppDocumentService
         if (custom.Callsigns.Count > 0)
         {
             var rawByCs = await _apps.GetSectorPolygonsRawByCallsignAsync(custom.Callsigns, ct);
+            var extraLimits = await _apps.GetSectorLimitsByCallsignAsync(custom.Callsigns, ct);
             var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
             var names = await _apps.GetSectorNameMapAsync(ct);
             foreach (var cs in custom.Callsigns.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -230,7 +234,8 @@ public sealed class AppDocumentService : IAppDocumentService
                 if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
                 var poly = Aor.AorPolygonProjector.Project(raw);
                 if (poly is null) continue;
-                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs), Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }));
+                var (lo, hi) = FlBandOf(cs, extraLimits);
+                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs), Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
                 present.Add(cs);
             }
         }
@@ -241,6 +246,14 @@ public sealed class AppDocumentService : IAppDocumentService
             ? configs.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.ToList())).ToList()
             : new List<AccConfigSelection> { new("all", "Tutti i settori", sectors.Select(s => s.Callsign).ToList()) };
         return new AccAorView(sectors, selections);
+    }
+
+    // Banda FL (Lower/Upper) normalizzata per l'estrusione 3D; callsign assente dai limiti = default GND/UNL.
+    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
+    {
+        if (!limits.TryGetValue(cs, out var l)) return (null, null);
+        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
+        return (bottom, top);
     }
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>

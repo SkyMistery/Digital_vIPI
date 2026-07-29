@@ -54,6 +54,9 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
     public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
         EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
 
+    public Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        EfAccDerivationRepository.SectorLimitsByCallsignAsync(_db, callsigns, ct);
+
     public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
         EfAccDerivationRepository.SelectableSectorShapesAsync(_db, ct);
 
