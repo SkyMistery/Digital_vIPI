@@ -127,6 +127,11 @@ else
     private List<AccConfiguration> _configs = new();
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
+    // Shape AoR extra (settori DB scelti a mano) + override colore per settore + catalogo globale del picker.
+    private List<string> _aorExtras = new();
+    private Dictionary<string, string> _aorColors = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();
+
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private string _freqSearch = "";
     private int? _freqDragIndex;
@@ -176,6 +181,7 @@ else
 
         _linkable = await AppDoc.ListLinkableFrequenciesAsync();
         _sectorPool = await AppDoc.ListSectorsAsync(_app);
+        _shapeCatalog = await AppDoc.ListSelectableSectorShapesAsync();
         await LoadAsync();
     }
 
@@ -206,6 +212,9 @@ else
     {
         _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await AppDoc.DeriveCoordinationAsync(_app);
+        var aorCustom = await AppDoc.GetAorCustomizationAsync(_app);
+        _aorExtras = aorCustom.Callsigns.ToList();
+        _aorColors = new Dictionary<string, string>(aorCustom.Colors, StringComparer.OrdinalIgnoreCase);
         _aorView = await AppDoc.GetAorViewAsync(_app);
         _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
         _configTable = await AppDoc.DeriveConfigTableAsync(_app);
@@ -274,6 +283,26 @@ else
         _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // ri-deriva l'accorpamento
         _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
     });
+
+    // ---- shape AoR extra + colori ----
+    private Task SaveAorExtras(IReadOnlyList<string> callsigns) => Guard(async () =>
+    {
+        _aorExtras = callsigns.ToList();
+        await SaveAorCustomization();
+    });
+
+    private Task SaveAorColor((string Callsign, string? Hex) pick) => Guard(async () =>
+    {
+        if (pick.Hex is null) _aorColors.Remove(pick.Callsign);
+        else _aorColors[pick.Callsign] = pick.Hex;
+        await SaveAorCustomization();
+    });
+
+    private async Task SaveAorCustomization()
+    {
+        await AppDoc.SaveAorCustomizationAsync(_app, new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors });
+        _aorView = await AppDoc.GetAorViewAsync(_app);   // ri-deriva gli anelli sulla mappa
+    }
 
     private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
         await JS.InvokeAsync<bool>("confirm", string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
@@ -362,6 +391,19 @@ else
                 break;
             case "aor":
                 <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
+                @if (_editing)
+                {
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Shape aggiuntive</h4>
+                        <p class="help" style="margin:0 0 8px">Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</p>
+                        <AorExtraShapePicker Selected="_aorExtras" Catalog="_shapeCatalog" Editing="_editing" SelectedChanged="SaveAorExtras" />
+                    </div>
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Colori dei settori</h4>
+                        <p class="help" style="margin:0 0 8px">Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</p>
+                        <AorColorEditor Sectors="_aorView.Sectors" Editing="_editing" ColorChanged="SaveAorColor" />
+                    </div>
+                }
                 break;
             case "frequencies":
                 <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink"

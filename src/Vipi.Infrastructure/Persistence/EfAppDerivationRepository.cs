@@ -51,38 +51,11 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         await _db.AirportSectors.AsNoTracking().Where(s => s.ComposePosition == appCallsign)
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);
 
-    public async Task<IReadOnlyList<string>> GetTowerPolygonsRawAsync(string appCallsign, CancellationToken ct = default)
-    {
-        // Aeroporto dell'APP (dal catalogo), poi le sue TWR visibili con poligono.
-        var icao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign)
-            .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (icao is null) return Array.Empty<string>();
+    public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
 
-        var polys = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.AirportIcao == icao && s.Position == "TWR" && !s.IsHidden
-                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .OrderBy(s => s.ComposePosition)
-            .Select(s => s.RegionMapPolygon!)
-            .ToListAsync(ct);
-        return polys;
-    }
-
-    public async Task<IReadOnlyList<(string Callsign, string Poly)>> GetTowerPolygonsWithCallsignRawAsync(string appCallsign, CancellationToken ct = default)
-    {
-        var icao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign)
-            .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (icao is null) return Array.Empty<(string, string)>();
-
-        var rows = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.AirportIcao == icao && s.Position == "TWR" && !s.IsHidden
-                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .OrderBy(s => s.ComposePosition)
-            .Select(s => new { s.ComposePosition, Poly = s.RegionMapPolygon! })
-            .ToListAsync(ct);
-        return rows.Select(r => (r.ComposePosition, r.Poly)).ToList();
-    }
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        EfAccDerivationRepository.SelectableSectorShapesAsync(_db, ct);
 
     public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()

@@ -1017,6 +1017,22 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .sp-item.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
 .sp-item.on b,.sp-item b{font-weight:700}
 
+/* Picker shape AoR extra: chip dei settori selezionati. */
+.aor-extra-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.aor-extra-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#f2f5ff;font-size:12.5px;line-height:1.2}
+.aor-extra-chip b{font-weight:700}
+.aor-extra-chip .x{border:0;background:none;color:#a00;cursor:pointer;font-size:12px;padding:0;line-height:1}
+.aor-extra .sp-empty{display:block;padding:8px 11px}
+
+/* Editor colori settori AoR. */
+.aor-colors{display:flex;flex-direction:column;gap:6px}
+.aor-color-row{display:flex;align-items:center;gap:9px}
+.aor-color-in{width:34px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.aor-color-in:disabled{cursor:default;opacity:.7}
+.aor-color-lab{font-size:13px}
+.aor-color-reset{border:1px solid var(--line);background:#fff;border-radius:999px;padding:2px 10px;font-size:12px;cursor:pointer;color:#444}
+.aor-color-reset:hover{background:#f2f5ff;border-color:var(--ivao-lightblue)}
+
 /* Selettore albero (tab) — classi separate dall'AoR per evitare collisioni JS. */
 .tree-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tree-chip{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;background:#fff;text-decoration:none;color:#222}

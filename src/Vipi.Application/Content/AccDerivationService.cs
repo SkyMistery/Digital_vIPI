@@ -45,6 +45,9 @@ public interface IAccDerivationService
 
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
+    /// <summary>Tutti i settori DB con poligono AoR, selezionabili come shape extra (picker globale, cerca per ente).</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
+
     /// <summary>Aree speciali del proprio ACC (picker editor #8).</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default);
 
@@ -166,17 +169,41 @@ public sealed class AccDerivationService : IAccDerivationService
         var names = await NameMapAsync(accCode, ct);
 
         var sectors = new List<AccSectorAor>();
-        var i = 0;
         foreach (var cs in callsigns)
         {
             if (!rawByCs.TryGetValue(cs, out var raw)) continue;
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }));
         }
+
+        // Shape extra scelte a mano (settori DB, anche esteri): appese come anelli toggleabili dopo i settori
+        // principali, dedup su quanto già presente. Nome = da NameMap se noto, altrimenti il callsign.
+        if (block.ExtraAorCallsigns.Count > 0)
+        {
+            var extraRaw = await _repo.GetSectorPolygonsRawByCallsignAsync(block.ExtraAorCallsigns, ct);
+            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extraRaw, names, block.AorColorOverrides);
+        }
+
         return new AccAorView(sectors, configs);
+    }
+
+    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override.
+    private static void AppendExtraShapes(List<AccSectorAor> sectors, IReadOnlyList<string> extra,
+        IReadOnlyDictionary<string, string> rawByCs, IReadOnlyDictionary<string, string> names,
+        IReadOnlyDictionary<string, string> colorOverrides)
+    {
+        var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+        foreach (var cs in extra.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
+            var poly = Aor.AorPolygonProjector.Project(raw);
+            if (poly is null) continue;
+            var name = names.TryGetValue(cs, out var n) ? n : cs;
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides), new[] { poly }));
+            present.Add(cs);
+        }
     }
 
     public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
@@ -234,6 +261,9 @@ public sealed class AccDerivationService : IAccDerivationService
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _repo.ListLinkableFrequenciesAsync(ct);
+
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        _repo.ListSelectableSectorShapesAsync(ct);
 
     public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct);

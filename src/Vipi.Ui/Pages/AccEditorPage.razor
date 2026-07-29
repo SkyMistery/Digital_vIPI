@@ -191,6 +191,7 @@ else
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<SpecialAreaPick> _specialAreaPicks = Array.Empty<SpecialAreaPick>();   // aree del proprio ACC
     private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();     // aree di altri ACC (extra)
+    private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();       // settori con shape (picker shape extra AoR)
     private readonly Dictionary<int, string> _freqSearch = new();   // per blocco (BlockSectionId)
     private readonly Dictionary<int, string> _areaSearch = new();   // ricerca aree proprio ACC (manuale)
     private readonly Dictionary<int, string> _extraSearch = new();  // ricerca aree altri ACC (extra)
@@ -215,6 +216,7 @@ else
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _specialAreaPicks = await Profile.ListSpecialAreasByAccAsync(Acc);
         _otherAreaPicks = await Profile.ListOtherAccSpecialAreasAsync(Acc);
+        _shapeCatalog = await Profile.ListSelectableSectorShapesAsync();
         await LoadAsync();
     }
 
@@ -399,6 +401,27 @@ else
 
     private Task<bool> ConfirmRemoveConfig(AccConfiguration c) => Confirm(string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
 
+    // ---- shape AoR extra (settori DB scelti a mano) + colori ----
+    private Task SaveAorExtras(AccAssembledBlock blk, IReadOnlyList<string> callsigns) => Guard(async () =>
+    {
+        blk.Block.ExtraAorCallsigns = callsigns.ToList();
+        await SaveAorCustomization(blk);
+    });
+
+    private Task SaveAorColor(AccAssembledBlock blk, (string Callsign, string? Hex) pick) => Guard(async () =>
+    {
+        if (pick.Hex is null) blk.Block.AorColorOverrides.Remove(pick.Callsign);
+        else blk.Block.AorColorOverrides[pick.Callsign] = pick.Hex;
+        await SaveAorCustomization(blk);
+    });
+
+    private async Task SaveAorCustomization(AccAssembledBlock blk)
+    {
+        await AccDoc.SaveAorCustomizationAsync(Acc, ChildId(blk, "aor"),
+            new AorExtraShapes { Callsigns = blk.Block.ExtraAorCallsigns, Colors = blk.Block.AorColorOverrides });
+        await LoadAsync();
+    }
+
     // ---- aree regolamentate ----
     // Id delle aree del proprio ACC effettivamente selezionate: automatico (Aerovia) = tutte; altrimenti il sottoinsieme.
     private List<string> EffectiveOwnIds(AccAssembledBlock blk) =>
@@ -495,6 +518,21 @@ else
                 break;
             case "aor":
                 <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
+                @if (_editing)
+                {
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Shape aggiuntive</h4>
+                        <p class="help" style="margin:0 0 8px">Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</p>
+                        <AorExtraShapePicker Selected="blk.Block.ExtraAorCallsigns" Catalog="_shapeCatalog" Editing="_editing"
+                                             SelectedChanged="cs => SaveAorExtras(blk, cs)" />
+                    </div>
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Colori dei settori</h4>
+                        <p class="help" style="margin:0 0 8px">Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</p>
+                        <AorColorEditor Sectors="(_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty).Sectors" Editing="_editing"
+                                        ColorChanged="pick => SaveAorColor(blk, pick)" />
+                    </div>
+                }
                 break;
             case "frequencies":
                 <AppFrequencies Rows="_freqs.GetValueOrDefault(bsId) ?? new()" Editing="_editing" OnMove="m => MoveFreq(blk, m)"

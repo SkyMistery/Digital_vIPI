@@ -69,9 +69,10 @@ public class AppViewDerivationServiceTests
 
         // Resto non usato dal resolver.
         public Task<int> EnsureAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<AppAorPolygon?> GetAorPolygonAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<AorExtraShapes> GetAorCustomizationAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task SaveAorCustomizationAsync(string a, AorExtraShapes d, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveSeparationsAsync(string a, IReadOnlyList<AppSeparationRow> r, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<AppVfrContent> GetVfrAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();

@@ -24,12 +24,19 @@ public interface IAppDocumentService
     /// <summary>Coordinamenti derivati dai trasferimenti del settore APP (frase dal template globale).</summary>
     Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Vista AoR come mappa a settori (APP + torri dello stesso aeroporto). Riusa il modello di AccAorView.</summary>
+    /// <summary>Vista AoR come mappa a settori (APP del dominio + shape extra scelte a mano). Riusa il modello di AccAorView.</summary>
     Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default);
 
-    Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default);
-    Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string appCallsign, CancellationToken ct = default);
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
+
+    /// <summary>Personalizzazione AoR salvata (shape extra + override colore per settore), sezione <c>aor</c>. Vuota se assente.</summary>
+    Task<AorExtraShapes> GetAorCustomizationAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva la personalizzazione AoR (shape extra + colori) nella sezione <c>aor</c> (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveAorCustomizationAsync(string appCallsign, AorExtraShapes data, CancellationToken ct = default);
+
+    /// <summary>Tutti i settori DB con poligono AoR, selezionabili come shape extra (picker globale, cerca per ente).</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
 
     /// <summary>Righe della sezione Separazioni (editoriale-strutturata), lette dal blocco keyed del Document. Vuoto se non migrato/assente.</summary>
     Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string appCallsign, CancellationToken ct = default);
@@ -193,7 +200,7 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         var app = Norm(appCallsign);
         var sectors = new List<AccSectorAor>();
-        var i = 0;
+        var custom = await GetAorCustomizationAsync(app, ct);   // shape extra + override colore
 
         // Settori APP del dominio di copertura (primario + figli standalone), coerente con le frequenze che usano DomainOf.
         var topo = await _topology.BuildGlobalAsync(ct);
@@ -208,17 +215,24 @@ public sealed class AppDocumentService : IAppDocumentService
         {
             var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
             if (poly is null) continue;
-            sectors.Add(new AccSectorAor(cs, cs, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }));
         }
 
-        var towers = await _apps.GetTowerPolygonsWithCallsignRawAsync(app, ct);
-        foreach (var (callsign, raw) in towers)
+        // Shape extra scelte a mano (settori DB, anche torri/esteri): sostituiscono l'overlay torri automatico.
+        // Appese come anelli toggleabili dopo i settori APP, dedup su quanto già presente.
+        if (custom.Callsigns.Count > 0)
         {
-            var poly = Aor.AorPolygonProjector.Project(raw);
-            if (poly is null) continue;
-            sectors.Add(new AccSectorAor(callsign, callsign, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            var rawByCs = await _apps.GetSectorPolygonsRawByCallsignAsync(custom.Callsigns, ct);
+            var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+            var names = await _apps.GetSectorNameMapAsync(ct);
+            foreach (var cs in custom.Callsigns.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
+                var poly = Aor.AorPolygonProjector.Project(raw);
+                if (poly is null) continue;
+                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs), Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }));
+                present.Add(cs);
+            }
         }
 
         // Configurazioni selezionabili sulla mappa: le salvate (settori aperti = APP aperti), altrimenti «tutti».
@@ -229,17 +243,27 @@ public sealed class AppDocumentService : IAppDocumentService
         return new AccAorView(sectors, selections);
     }
 
-    public async Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default) =>
-        Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(Norm(appCallsign), ct));
-
-    public async Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string appCallsign, CancellationToken ct = default)
-    {
-        var raws = await _apps.GetTowerPolygonsRawAsync(Norm(appCallsign), ct);
-        return raws.Select(Aor.AorPolygonProjector.Project).Where(p => p is not null).Select(p => p!).ToList();
-    }
-
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _apps.ListLinkableFrequenciesAsync(ct);
+
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        _apps.ListSelectableSectorShapesAsync(ct);
+
+    public async Task<AorExtraShapes> GetAorCustomizationAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return new AorExtraShapes();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "aor", ct);
+        return Deserialize<AorExtraShapes>(json) ?? new AorExtraShapes();
+    }
+
+    public async Task SaveAorCustomizationAsync(string appCallsign, AorExtraShapes data, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var clean = AorCustomizationCleaner.Clean(data);
+        var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
+        var json = empty ? null : JsonSerializer.Serialize(clean);
+        await _editing.SaveSectionBlockJsonAsync(docId, "aor", json, _authz.CurrentUserId ?? 0, ct);
+    }
 
     // --- Sezioni editoriali-strutturate su Document (doc 08e f3b-iii): separations/vfr in ContentBlock.BodyJson. ---
 

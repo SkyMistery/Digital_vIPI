@@ -137,18 +137,27 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
         return ctr.Concat(app).ToList();
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default)
+    public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
+
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        SelectableSectorShapesAsync(_db, ct);
+
+    // Helper statici condivisi con EfAppDerivationRepository (stessa semantica: CTR AccSector + APP/TWR AirportSector).
+
+    internal static async Task<IReadOnlyDictionary<string, string>> SectorPolygonsRawByCallsignAsync(
+        VipiDbContext db, IReadOnlyList<string> callsigns, CancellationToken ct)
     {
         var res = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (callsigns.Count == 0) return res;
         var set = callsigns.ToList();
 
-        var ctr = await _db.AccSectors.AsNoTracking()
+        var ctr = await db.AccSectors.AsNoTracking()
             .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
             .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToListAsync(ct);
         foreach (var r in ctr) res[r.ComposePosition] = r.RegionMapPolygon!;
 
-        var app = await _db.AirportSectors.AsNoTracking()
+        var app = await db.AirportSectors.AsNoTracking()
             .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
             .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToListAsync(ct);
         foreach (var r in app) res.TryAdd(r.ComposePosition, r.RegionMapPolygon!);
@@ -156,21 +165,26 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
         return res;
     }
 
-    public async Task<IReadOnlyList<string>> GetTowerPolygonsRawForAppsAsync(IReadOnlyList<string> appCallsigns, CancellationToken ct = default)
+    // Picker globale delle shape extra: ogni settore DB con poligono (CTR di aerovia + APP/torri d'aeroporto), non nascosto.
+    // Nome = AtcCallsign IVAO se presente, altrimenti il callsign. ACC = CenterId (CTR) / AccCode (aeroporto), per cercare l'ente.
+    internal static async Task<IReadOnlyList<SectorShapePick>> SelectableSectorShapesAsync(VipiDbContext db, CancellationToken ct)
     {
-        if (appCallsigns.Count == 0) return Array.Empty<string>();
-        var apps = appCallsigns.ToList();
+        var ctr = await db.AccSectors.AsNoTracking()
+            .Where(s => !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
+            .Select(s => new { s.ComposePosition, s.AtcCallsign, Acc = s.CenterId }).ToListAsync(ct);
+        var app = await db.AirportSectors.AsNoTracking()
+            .Where(s => !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
+            .Select(s => new { s.ComposePosition, s.AtcCallsign, Acc = s.AccCode }).ToListAsync(ct);
 
-        var icaos = await _db.AirportSectors.AsNoTracking()
-            .Where(s => apps.Contains(s.ComposePosition))
-            .Select(s => s.AirportIcao).Distinct().ToListAsync(ct);
-        if (icaos.Count == 0) return Array.Empty<string>();
-
-        return await _db.AirportSectors.AsNoTracking()
-            .Where(s => icaos.Contains(s.AirportIcao) && s.Position == "TWR" && !s.IsHidden
-                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .OrderBy(s => s.ComposePosition)
-            .Select(s => s.RegionMapPolygon!).ToListAsync(ct);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var res = new List<SectorShapePick>();
+        foreach (var r in ctr.Concat(app))
+        {
+            if (!seen.Add(r.ComposePosition)) continue;
+            var name = string.IsNullOrWhiteSpace(r.AtcCallsign) ? r.ComposePosition : r.AtcCallsign!;
+            res.Add(new SectorShapePick(r.ComposePosition, name, r.Acc));
+        }
+        return res.OrderBy(r => r.AccCode).ThenBy(r => r.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesForMembersAsync(

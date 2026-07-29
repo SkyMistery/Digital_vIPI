@@ -49,6 +49,14 @@ public sealed class AccBlock
     public List<AppCustomSection> CustomSections { get; set; } = new();
     public List<AccConfiguration> Configurations { get; set; } = new();
 
+    /// <summary>Callsign di settori DB (anche esteri) aggiunti a mano come shape AoR extra: appesi come anelli
+    /// toggleabili dopo i settori principali e selezionabili nelle configurazioni. Storage: sezione figlia <c>aor</c>.</summary>
+    public List<string> ExtraAorCallsigns { get; set; } = new();
+
+    /// <summary>Override di colore per settore (callsign → hex), sia primari sia extra. Assente = default per tipo-ente
+    /// (<see cref="Vipi.Application.Aor.AorColorScheme"/>). Storage: sezione figlia <c>aor</c>.</summary>
+    public Dictionary<string, string> AorColorOverrides { get; set; } = new();
+
     // editoriale
     public List<AppSeparationRow> Separations { get; set; } = new();
     public string? VfrJson { get; set; }
@@ -70,6 +78,39 @@ public sealed class AccVipiData
 
 /// <summary>Settore selezionabile (per picker membri gruppo / settori aperti config): callsign + nome.</summary>
 public sealed record AccSectorPick(string Callsign, string Name);
+
+/// <summary>Settore selezionabile come shape AoR extra (picker globale): callsign + nome IVAO + ACC di appartenenza
+/// (per cercare l'ente). Sorgente = tutti i settori DB con poligono.</summary>
+public sealed record SectorShapePick(string Callsign, string Name, string? AccCode);
+
+/// <summary>Stato editoriale della sezione <c>aor</c>: callsign dei settori DB aggiunti a mano come shape extra +
+/// override di colore per settore (callsign → hex, sia primari sia extra). Colore assente = default per tipo-ente.</summary>
+public sealed class AorExtraShapes
+{
+    public List<string> Callsigns { get; set; } = new();
+    public Dictionary<string, string> Colors { get; set; } = new();
+}
+
+/// <summary>Normalizza la personalizzazione AoR prima del salvataggio: callsign trimmati/dedup, colori solo per
+/// callsign non vuoti con hex non vuoto. Condiviso tra il salvataggio ACC e APP.</summary>
+public static class AorCustomizationCleaner
+{
+    public static AorExtraShapes Clean(AorExtraShapes? data)
+    {
+        data ??= new AorExtraShapes();
+        var callsigns = (data.Callsigns ?? new())
+            .Select(c => (c ?? "").Trim()).Where(c => c.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var colors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in data.Colors ?? new())
+        {
+            var cs = (kv.Key ?? "").Trim();
+            var hex = (kv.Value ?? "").Trim();
+            if (cs.Length > 0 && hex.Length > 0) colors[cs] = hex;
+        }
+        return new AorExtraShapes { Callsigns = callsigns, Colors = colors };
+    }
+}
 
 /// <summary>Radice di un albero di settori CTR dell'ACC (una vIPI per albero). Callsign + nome del CTR radice.</summary>
 public sealed record AccTreeRoot(string Callsign, string Name);

@@ -42,8 +42,8 @@ public interface IAccDerivationRepository
     /// <summary>Poligoni grezzi mappati per callsign (per anelli AoR toggleabili singolarmente). Chiave case-insensitive.</summary>
     Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
 
-    /// <summary>Poligoni grezzi delle TWR degli aeroporti dei settori APP indicati (overlay torri sull'AoR APP).</summary>
-    Task<IReadOnlyList<string>> GetTowerPolygonsRawForAppsAsync(IReadOnlyList<string> appCallsigns, CancellationToken ct = default);
+    /// <summary>Tutti i settori DB con poligono AoR (CTR + APP/torri), selezionabili come shape extra. Callsign + nome + ACC.</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
 
     /// <summary>Frequenze derivate per un insieme di settori membri (+ link extra), ordinate. Espande gli APP col catalogo aeroporto.</summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesForMembersAsync(

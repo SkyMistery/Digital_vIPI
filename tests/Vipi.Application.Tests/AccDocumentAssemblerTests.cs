@@ -123,7 +123,41 @@ public class AccDocumentAssemblerTests
         Assert.True(block.Regulated.OwnAuto);
         Assert.Empty(block.Regulated.OwnIds);
         Assert.Empty(block.Regulated.ExtraIds);
+        Assert.Empty(block.ExtraAorCallsigns);
         Assert.Empty(block.SectionOrder);
+    }
+
+    [Fact]
+    public void ExtraAorCallsigns_And_Colors_Read_From_Aor_Section_BodyJson()
+    {
+        var extras = new AorExtraShapes
+        {
+            Callsigns = new() { "LGKR_APP", "LIRP_TWR" },
+            Colors = new() { ["LIRP_TWR"] = "#b0413e" },
+        };
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "aor", "AOR", 1, ownJson: JsonSerializer.Serialize(extras)),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.Equal(new[] { "LGKR_APP", "LIRP_TWR" }, block.ExtraAorCallsigns);
+        Assert.Equal("#b0413e", block.AorColorOverrides["LIRP_TWR"]);
+    }
+
+    [Fact]
+    public void Frozen_AccAorView_In_Aor_Section_Does_Not_Leak_Into_ExtraAorCallsigns()
+    {
+        // Negli snapshot frozen il BodyJson di "aor" contiene l'AccAorView renderizzato, non AorExtraShapes:
+        // la deserializzazione tollerante deve produrre una lista vuota (nessun campo "callsigns").
+        var frozen = JsonSerializer.Serialize(AccAorView.Empty);
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "aor", "AOR", 1, ownJson: frozen),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.Empty(block.ExtraAorCallsigns);
     }
 
     [Fact]

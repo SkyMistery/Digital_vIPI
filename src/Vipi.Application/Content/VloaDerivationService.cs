@@ -14,7 +14,8 @@ namespace Vipi.Application.Content;
 /// <summary>Identità della coppia vLOA (per intestazioni/etichette).</summary>
 public sealed record VloaPairMeta(string HomeAcc, string ForeignAcc, string HomeName, string ForeignName);
 
-/// <summary>Chip toggle di un settore AoR: identità + colore (blu home / rosso estero) + stato nascosto.</summary>
+/// <summary>Chip toggle di un settore AoR: identità + colore (due tonalità dello stesso blu per nazione:
+/// scura = ACC home italiano, chiara = ACC estero) + stato nascosto.</summary>
 public sealed record VloaAorSectorToggle(string Callsign, string Name, string Color, bool IsForeign, bool Hidden);
 
 /// <summary>Vista AoR della vLOA: la mappa (settori NON nascosti, riusa <see cref="AccAorView"/>) + i chip di tutti i settori.</summary>
@@ -68,8 +69,10 @@ public interface IVloaDerivationService
 /// <inheritdoc cref="IVloaDerivationService"/>
 public sealed class VloaDerivationService : IVloaDerivationService
 {
-    private const string HomeColor = "#1f6feb";
-    private const string ForeignColor = "#d1242f";
+    // Due tonalità dello STESSO colore (blu IVAO) per distinguere le nazioni dei due ACC: scura = home (Italia),
+    // chiara = estero. Evita il contrasto blu/rosso mantenendo un'unica famiglia cromatica.
+    private const string HomeColor = "#0D2C99";
+    private const string ForeignColor = "#7EA2D6";
 
     private readonly IVloaDerivationRepository _repo;
     private readonly IAccDerivationRepository _accRepo;

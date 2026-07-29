@@ -1,0 +1,36 @@
+@* Editor dei colori degli anelli AoR: una riga per settore (primari + extra) con selettore colore e reset al default
+   per tipo-ente. Emette (callsign, hex) sul cambio; hex null = torna al default. *@
+
+@if (Sectors.Count > 0)
+{
+    <div class="aor-colors">
+        @foreach (var s in Sectors)
+        {
+            var sec = s;
+            var isDefault = string.Equals(sec.Color, AorColorScheme.DefaultForCallsign(sec.Callsign), StringComparison.OrdinalIgnoreCase);
+            <div class="aor-color-row">
+                <input type="color" class="aor-color-in" value="@sec.Color" disabled="@(!Editing)"
+                       @onchange="e => OnPick(sec.Callsign, e.Value as string)" title="Colore di @sec.Callsign" />
+                <span class="aor-color-lab"><b>@sec.Callsign</b> <span class="muted">@sec.Name</span></span>
+                @if (Editing && !isDefault)
+                {
+                    <button type="button" class="aor-color-reset" title="Ripristina il colore di default per tipo-ente"
+                            @onclick="() => OnPick(sec.Callsign, null)">default</button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Settori attualmente in mappa (primari + extra), col colore risolto corrente.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AccSectorAor> Sectors { get; set; } = Array.Empty<AccSectorAor>();
+
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Emette (callsign, hex). hex null = reset al default per tipo-ente.</summary>
+    [Parameter] public EventCallback<(string Callsign, string? Hex)> ColorChanged { get; set; }
+
+    private Task OnPick(string callsign, string? hex) =>
+        ColorChanged.InvokeAsync((callsign, string.IsNullOrWhiteSpace(hex) ? null : hex));
+}

@@ -191,8 +191,8 @@
                                                                 @foreach (var a in det.Adjacencies)
                                                                 {
                                                                     <tr>
-                                                                        <td><span class="sw" style="background:#1f6feb33;border:1px solid #1f6feb;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.HomeSector</td>
-                                                                        <td><span class="sw" style="background:#d1242f33;border:1px solid #d1242f;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.ForeignSector</td>
+                                                                        <td><span class="sw" style="background:#0D2C9933;border:1px solid #0D2C99;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.HomeSector</td>
+                                                                        <td><span class="sw" style="background:#7EA2D633;border:1px solid #7EA2D6;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.ForeignSector</td>
                                                                         <td>@a.DistanceNm.ToString("0.0") NM</td>
                                                                     </tr>
                                                                 }
@@ -202,19 +202,19 @@
                                                 </div>
                                                 <div>
                                                     <div style="display:flex;gap:12px;font-size:11.5px;margin:0 0 4px">
-                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#1f6feb33;border:1px solid #1f6feb;border-radius:2px"></span> @det.HomeAccCode (@L["Conf_Home"])</span>
-                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#d1242f33;border:1px solid #d1242f;border-radius:2px"></span> @det.ForeignAccCode (@L["Conf_Foreign"])</span>
+                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#0D2C9933;border:1px solid #0D2C99;border-radius:2px"></span> @det.HomeAccCode (@L["Conf_Home"])</span>
+                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#7EA2D633;border:1px solid #7EA2D6;border-radius:2px"></span> @det.ForeignAccCode (@L["Conf_Foreign"])</span>
                                                     </div>
                                                     @if (det.MapViewBox is { } vb)
                                                     {
                                                         <svg viewBox="@vb" width="100%" height="320" style="background:#f7f9ff;border:1px solid var(--line);border-radius:11px">
                                                             @foreach (var s in det.HomeShapes)
                                                             {
-                                                                <path d="@s.Path" fill="#1f6feb" fill-opacity="0.16" stroke="#1f6feb" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
+                                                                <path d="@s.Path" fill="#0D2C99" fill-opacity="0.16" stroke="#0D2C99" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
                                                             }
                                                             @foreach (var s in det.ForeignShapes)
                                                             {
-                                                                <path d="@s.Path" fill="#d1242f" fill-opacity="0.16" stroke="#d1242f" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
+                                                                <path d="@s.Path" fill="#7EA2D6" fill-opacity="0.16" stroke="#7EA2D6" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
                                                             }
                                                         </svg>
                                                         <p class="muted" style="font-size:11px;margin:4px 0 0">@L["Conf_MapHint"]</p>
@@ -230,11 +230,11 @@
                                                             <div class="aor-toggles">
                                                                 @foreach (var s in det.HomeShapes)
                                                                 {
-                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#1f6feb33;border-color:#1f6feb"></span> @s.Sector</span>
+                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#0D2C9933;border-color:#0D2C99"></span> @s.Sector</span>
                                                                 }
                                                                 @foreach (var s in det.ForeignShapes)
                                                                 {
-                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#d1242f33;border-color:#d1242f"></span> @s.Sector</span>
+                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#7EA2D633;border-color:#7EA2D6"></span> @s.Sector</span>
                                                                 }
                                                                 <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Conf_AllShapes"]</a> · <a class="aor-all" data-act="none">@L["Conf_NoneShapes"]</a></span>
                                                             </div>
@@ -390,8 +390,8 @@
     // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero rosso.
     private static string GeoSectorsJson(NeighbourPairDetail det)
     {
-        var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#1f6feb", rings = new[] { s.Points } })
-            .Concat(det.ForeignShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#d1242f", rings = new[] { s.Points } }))
+        var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#0D2C99", rings = new[] { s.Points } })
+            .Concat(det.ForeignShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#7EA2D6", rings = new[] { s.Points } }))
             .ToList();
         return System.Text.Json.JsonSerializer.Serialize(list);
     }

@@ -45,6 +45,10 @@ public interface IAccDocumentService
     /// figlia <c>regulated</c>. «Puro automatico senza extra» azzera il BodyJson (resta dinamico). ACC-gated.</summary>
     Task SaveRegulatedAsync(string accCode, int regulatedSectionId, RegulatedSelection selection, CancellationToken ct = default);
 
+    /// <summary>Salva la personalizzazione AoR (shape extra + override colore per settore) nel <c>BodyJson</c> della
+    /// sezione figlia <c>aor</c>. Vuota (nessun extra, nessun colore) azzera il BodyJson. ACC-gated.</summary>
+    Task SaveAorCustomizationAsync(string accCode, int aorSectionId, AorExtraShapes data, CancellationToken ct = default);
+
     /// <summary>Salva le righe Separazioni nel <c>BodyJson</c> della sezione figlia <c>separations</c>. ACC-gated.</summary>
     Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
 
@@ -172,6 +176,13 @@ public sealed class AccDocumentService : IAccDocumentService
         // Puro automatico senza extra = default dinamico → azzera il BodyJson (nessuno stato persistito).
         var isPureAuto = selection.OwnAuto && selection.OwnIds.Count == 0 && selection.ExtraIds.Count == 0;
         return SaveJsonAsync(accCode, regulatedSectionId, isPureAuto ? null : selection, ct);
+    }
+
+    public Task SaveAorCustomizationAsync(string accCode, int aorSectionId, AorExtraShapes data, CancellationToken ct = default)
+    {
+        var clean = AorCustomizationCleaner.Clean(data);
+        var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
+        return SaveJsonAsync(accCode, aorSectionId, empty ? null : clean, ct);
     }
 
     public Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)

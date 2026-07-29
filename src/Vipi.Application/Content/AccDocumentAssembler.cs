@@ -52,6 +52,10 @@ public static class AccDocumentAssembler
             var regulated = ParseRegulated(ChildBodyJson(blockSection, "regulated"));
             var separations = Deserialize<List<AppSeparationRow>>(ChildBodyJson(blockSection, "separations")) ?? new();
             var vfrJson = ChildBodyJson(blockSection, "vfr");   // AppVfrContent grezzo (AccBlock.VfrJson è stringa)
+            // Shape AoR extra + override colore dalla sezione figlia "aor" (editoriale). Negli snapshot frozen quel
+            // BodyJson contiene invece l'AccAorView renderizzato: Deserialize<AorExtraShapes> ignora i campi estranei →
+            // liste vuote (ok: la vista frozen usa lo snapshot congelato, non ri-deriva).
+            var aorCustom = Deserialize<AorExtraShapes>(ChildBodyJson(blockSection, "aor")) ?? new();
             var customs = CustomSectionsOf(blockSection);
 
             var block = new AccBlock
@@ -64,6 +68,8 @@ public static class AccDocumentAssembler
                 FreqOrder = meta?.FreqOrder ?? new(),
                 FreqLinkCallsigns = meta?.FreqLinkCallsigns ?? new(),
                 Configurations = configs,
+                ExtraAorCallsigns = aorCustom.Callsigns ?? new(),
+                AorColorOverrides = aorCustom.Colors ?? new(),
                 Regulated = regulated,
                 Separations = separations,
                 VfrJson = vfrJson,

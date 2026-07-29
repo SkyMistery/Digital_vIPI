@@ -176,6 +176,50 @@ public class AccProfileTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DeriveAorView_Appends_Extra_Shapes_After_Sectors_Dedup()
+    {
+        // Blocco Aerovia (membri = tutti i CTR). Config "all" apre i CTR; aggiungo shape extra:
+        //  - LIRP_APP (APP d'aeroporto, con poligono) → appesa come anello extra;
+        //  - LIRR_NE_CTR → già presente tra i settori → NON duplicata.
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "Tutti",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } },
+            },
+            ExtraAorCallsigns = { "LIRP_APP", "LIRR_NE_CTR" },
+        };
+
+        var view = await _service.DeriveAorViewAsync(Acc, block);
+
+        Assert.Contains(view.Sectors, s => s.Callsign == "LIRP_APP");    // shape extra appesa
+        Assert.Single(view.Sectors, s => s.Callsign == "LIRR_NE_CTR");   // no duplicati per l'extra già presente
+    }
+
+    [Fact]
+    public async Task DeriveAorView_Colors_Default_By_Type_And_Honor_Override()
+    {
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "Tutti",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_EW_CTR" } } },
+            },
+            ExtraAorCallsigns = { "LIRP_APP" },
+            AorColorOverrides = { ["LIRR_NE_CTR"] = "#123456" },
+        };
+
+        var view = await _service.DeriveAorViewAsync(Acc, block);
+        Assert.Equal("#123456", view.Sectors.Single(s => s.Callsign == "LIRR_NE_CTR").Color);                         // override
+        Assert.Equal(Vipi.Application.Aor.AorColorScheme.Defaults["CTR"], view.Sectors.Single(s => s.Callsign == "LIRR_EW_CTR").Color);  // default CTR
+        Assert.Equal(Vipi.Application.Aor.AorColorScheme.Defaults["APP"], view.Sectors.Single(s => s.Callsign == "LIRP_APP").Color);     // default APP (extra)
+    }
+
+    [Fact]
     public async Task Regulated_Aerovia_Auto_Returns_All_Own_Acc_Areas()
     {
         _db.Accs.Add(new Acc { Code = "LIMM", Name = "Milano" });
