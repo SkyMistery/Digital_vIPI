@@ -50,7 +50,7 @@ public static class VipiStandaloneAuthExtensions
             .AddCookie(o =>
             {
                 o.Cookie.Name = "vipi.auth";
-                o.ExpireTimeSpan = TimeSpan.FromDays(1);
+                o.ExpireTimeSpan = TimeSpan.FromDays(7);
                 o.SlidingExpiration = true;
                 o.LoginPath = "/vsop/auth/login";
             })
@@ -128,7 +128,9 @@ public static class VipiStandaloneAuthExtensions
         // Avvia il flusso IVAO; al ritorno il cookie è impostato e si torna a returnUrl (default /vsop).
         app.MapGet("/vsop/auth/login", (string? returnUrl) =>
             Results.Challenge(
-                new AuthenticationProperties { RedirectUri = SafeReturn(returnUrl) },
+                // IsPersistent=true ⇒ cookie sopravvive a chiusura browser; scadenza = ExpireTimeSpan (7gg,
+                // sliding). Le props del challenge fanno round-trip via OIDC e finiscono sul sign-in del cookie.
+                new AuthenticationProperties { RedirectUri = SafeReturn(returnUrl), IsPersistent = true },
                 new[] { IvaoScheme }));
 
         // Logout: cancella il cookie locale e la sessione IVAO (redirect end-session).
