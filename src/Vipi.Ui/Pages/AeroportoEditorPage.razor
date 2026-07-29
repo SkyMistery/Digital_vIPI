@@ -217,17 +217,17 @@ else
                     <h3 style="margin-top:0">@L["Common_Frequencies"]</h3>
                     <p class="help">@L["Ape_FreqHelp"]</p>
                     <table class="res-table freq-table">
-                        <thead><tr><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
+                        <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var f in FreqRows())
                             {
-                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqName(f.Position)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
+                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
                             }
                             @foreach (var id in _linkIds)
                             {
                                 var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
                                 <tr @key="id">
-                                    <td>@(lf?.Icao ?? "—")</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
                                     <td class="muted">link</td>
                                     <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
                                 </tr>
@@ -852,6 +852,10 @@ else
             .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
             .ThenBy(s => s.ComposePosition);
     }
+
+    /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO; fallback al nome-posizione (come nel documento).</summary>
+    private static string FreqDisplayName(AirportSectorRow f) =>
+        string.IsNullOrWhiteSpace(f.AtcCallsign) ? FreqName(f.Position) : f.AtcCallsign;
 
     private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
     {

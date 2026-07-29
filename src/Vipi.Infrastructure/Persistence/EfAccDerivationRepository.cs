@@ -309,7 +309,7 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
         await _db.Sectors.AsNoTracking()
             .Where(s => s.DefaultFrequency != null)
             .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
-            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
+            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!, null))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>

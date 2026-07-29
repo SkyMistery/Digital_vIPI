@@ -238,12 +238,12 @@ else
                                 <Header><h3 style="margin-top:0">@L["Common_Frequencies"]</h3></Header>
                                 <ChildContent>
                                 <table class="freq-table">
-                                    <thead><tr><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Airport_Frequency"]</th></tr></thead>
+                                    <thead><tr><th>Callsign</th><th>Position</th><th>@L["Airport_Frequency"]</th></tr></thead>
                                     <tbody>
                                         @foreach (var f in FreqRows())
                                         {
                                             <tr class="@(f.IsPrimary ? "primary" : null)">
-                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {System.Net.WebUtility.HtmlEncode(FreqName(f.Position))}" : (MarkupString)System.Net.WebUtility.HtmlEncode(FreqName(f.Position)))</td><td>@f.ComposePosition</td>
+                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {System.Net.WebUtility.HtmlEncode(FreqDisplayName(f))}" : (MarkupString)System.Net.WebUtility.HtmlEncode(FreqDisplayName(f)))</td><td>@f.ComposePosition</td>
                                                 <td>@(f.Frequency ?? "—")</td>
                                             </tr>
                                         }
@@ -689,6 +689,10 @@ else
             .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
             .ThenBy(s => s.ComposePosition);
     }
+
+    /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO (es. "Pisa Approach"); fallback al nome-posizione.</summary>
+    private static string FreqDisplayName(AirportSectorRow f) =>
+        string.IsNullOrWhiteSpace(f.AtcCallsign) ? FreqName(f.Position) : f.AtcCallsign;
 
     private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
     {

@@ -54,12 +54,15 @@ public sealed class EfAirportRepository : IAirportRepository
             .ToListAsync(ct);
 
         // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
-        var links = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
+        var linkRaw = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Include(x => x.SourceSector)
             .Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null)
-            .Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
-                x.LabelOverride ?? x.SourceSector!.Callsign, x.SourceSector!.Callsign, x.SourceSector!.DefaultFrequency!))
+            .Select(x => new { x.Id, x.SourceSectorId, x.LabelOverride, x.SourceSector!.Callsign, Freq = x.SourceSector!.DefaultFrequency! })
             .ToListAsync(ct);
+        // Etichetta = override staff, altrimenti atcCallsign IVAO (dal catalogo), altrimenti il callsign.
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        var links = linkRaw.Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
+            x.LabelOverride ?? (atc.TryGetValue(x.Callsign, out var n) ? n : x.Callsign), x.Callsign, x.Freq)).ToList();
 
         var extras = await _db.AirportExtraSections.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Select(x => new ExtraSectionRow(x.Id, x.Title, x.Body)).ToListAsync(ct);
@@ -72,12 +75,17 @@ public sealed class EfAirportRepository : IAirportRepository
         };
     }
 
-    public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking()
+    public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default)
+    {
+        var raw = await _db.Sectors.AsNoTracking()
             .Where(s => s.DefaultFrequency != null)
             .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
-            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
+            .Select(s => new { s.Id, s.AirportIcao, s.Callsign, Freq = s.DefaultFrequency! })
             .ToListAsync(ct);
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        return raw.Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.Freq,
+            atc.TryGetValue(s.Callsign, out var n) ? n : null)).ToList();
+    }
 
     public async Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default)
     {

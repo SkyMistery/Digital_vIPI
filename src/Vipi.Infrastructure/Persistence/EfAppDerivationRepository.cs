@@ -44,7 +44,7 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
             if (byId.TryGetValue(id, out var s))
                 rows.Add(new AppFreqRow(id, s.Callsign, s.Callsign, s.DefaultFrequency!,
                     s.Type.ToString().ToUpperInvariant(), false, true));
-        return rows;
+        return await ApplyAtcNamesAsync(rows, ct);
     }
 
     public async Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default) =>
@@ -88,7 +88,7 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         await _db.Sectors.AsNoTracking()
             .Where(s => s.DefaultFrequency != null)
             .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
-            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
+            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!, null))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyDictionary<string, SectorType>> GetSectorTypeMapAsync(CancellationToken ct = default)
@@ -186,7 +186,17 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
                 }
         }
 
-        return ordered;
+        // Nome visualizzato reale (IVAO atcCallsign, es. "Palermo Approach") dal catalogo: sovrascrive il nome-posizione dove disponibile.
+        return await ApplyAtcNamesAsync(ordered, ct);
+    }
+
+    /// <summary>Sostituisce <see cref="AppFreqRow.Name"/> con l'atcCallsign IVAO (dal catalogo) dove presente; altrimenti lascia il nome-posizione.</summary>
+    private async Task<IReadOnlyList<AppFreqRow>> ApplyAtcNamesAsync(IReadOnlyList<AppFreqRow> rows, CancellationToken ct)
+    {
+        if (rows.Count == 0) return rows;
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        if (atc.Count == 0) return rows;
+        return rows.Select(r => atc.TryGetValue(r.Callsign, out var n) ? r with { Name = n } : r).ToList();
     }
 
     // ---- helper ----

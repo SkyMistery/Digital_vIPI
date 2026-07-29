@@ -45,7 +45,7 @@ public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, 
 public sealed record ExtraSectionRow(int Id, string Title, string? Body);
 
 /// <summary>Settore selezionabile dal picker (qualunque settore con frequenza nel DB).</summary>
-public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz);
+public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz, string? AtcCallsign = null);
 
 /// <summary>Profilo completo dell'aeroporto per editor e viewer.</summary>
 public sealed class AirportData
