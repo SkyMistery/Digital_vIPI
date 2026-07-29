@@ -28,6 +28,7 @@
             <input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze…" aria-label="Cerca" />
         </form>
         <div class="right">
+            <a class="editor-btn icon-only" href="/vsop/guida" title="Guida" aria-label="Guida"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {
                 <div class="staff-badge" title="Posizione staff"><Icon Name="award" /> @_staff</div>

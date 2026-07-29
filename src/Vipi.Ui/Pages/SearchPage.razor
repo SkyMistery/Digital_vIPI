@@ -32,8 +32,8 @@
         <div class="res">
             @foreach (var h in _hits)
             {
-                <a class="res-row" href="@h.Url" style="display:block;text-decoration:none;color:inherit">
-                    <div class="res-where">@h.Where</div>
+                <a class="res-row @(IsGuide(h) ? "guide" : null)" href="@h.Url" style="display:block;text-decoration:none;color:inherit">
+                    <div class="res-where">@if (IsGuide(h)) { <Icon Name="book-open" Size="13" /> } @h.Where</div>
                     <div class="res-snip">@Highlight(h.Snippet)</div>
                 </a>
             }
@@ -68,6 +68,9 @@
     private async Task SetScope(SearchScope sc) { _scope = sc; await RunAsync(); }
 
     private async Task RunAsync() => _hits = await Search.SearchAsync(_q, _scope);
+
+    // Hit della Guida (Where "Guida › …"): mostrati con icona libro. Vedi GuideSearchCatalog.
+    private static bool IsGuide(SearchHit h) => h.Where.StartsWith("Guida ›", StringComparison.Ordinal);
 
     // Evidenziazione sicura: encode dell'HTML, poi <mark> attorno alle occorrenze del termine (no XSS).
     private MarkupString Highlight(string text)

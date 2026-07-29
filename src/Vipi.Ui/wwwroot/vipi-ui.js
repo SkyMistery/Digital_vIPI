@@ -91,6 +91,41 @@
         });
     }
 
+    // Apre l'elemento (se <details>) e tutti i <details> che lo contengono, così un deep-link "#id" verso una
+    // sezione collassata (Guida, editor) la mostra invece di atterrare su un pannello chiuso. Ritorna l'elemento.
+    function openDetailsFor(el) {
+        var d = el;
+        while (d && d !== document.body) {
+            if (d.tagName === 'DETAILS' && !d.open) d.open = true;
+            d = d.parentElement;
+        }
+        return el;
+    }
+
+    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /vsop/guida#editor-release):
+    // apre la sezione target e scorre con l'offset della top-bar. Anche su hashchange nella stessa pagina.
+    var hashLandingWired = false;
+    function wireHashLanding() {
+        function land() {
+            var id = location.hash ? location.hash.slice(1) : '';
+            if (!id) return;
+            var el = document.getElementById(id);
+            if (!el) return;
+            openDetailsFor(el);
+            var bar = document.querySelector('.topbar');
+            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
+            // Ritardo minimo: lascia riflettere l'apertura del <details> nel layout prima di misurare.
+            setTimeout(function () {
+                var y = el.getBoundingClientRect().top + window.pageYOffset - off;
+                window.scrollTo({ top: y, behavior: 'auto' });
+            }, 30);
+        }
+        land();
+        if (hashLandingWired) return;
+        hashLandingWired = true;
+        window.addEventListener('hashchange', land);
+    }
+
     var anchorsWired = false;
     function wireAnchors() {
         // Con <base href="/"> i link "#id" verrebbero risolti come "/#id" (→ home).
@@ -108,6 +143,7 @@
             if (!el) return;
             e.preventDefault();
             e.stopImmediatePropagation();
+            openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
             // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
             var bar = document.querySelector('.topbar');
             var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
@@ -178,6 +214,7 @@
         wireAnchors();
         wireCollapse();
         wireSearchKey();
+        wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
     };
 
     document.addEventListener('DOMContentLoaded', function () {

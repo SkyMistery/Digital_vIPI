@@ -8,9 +8,14 @@
    (es. AeroportoEditorPage.RebuildDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
    spezzerebbe il publish su due context → hang. Deve condividere il context del circuito con la pagina. *@
 
-<div class="block" style="margin-top:10px">
+<div class="block" style="margin-top:10px" data-tour="release">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
+        <HelpHint Href="/vsop/guida#editor-release" AriaLabel="Aiuto sulla pubblicazione">
+            <b>Pubblicare</b> rende la bozza visibile a tutti, legata a un ciclo <b>AIRAC</b>.
+            <b>Pubblica ora</b> = subito; <b>Programma al ciclo</b> = alla data del ciclo scelto.
+            Prima controlla l'<b>anteprima</b> della bozza.
+        </HelpHint>
         <span class="muted" style="font-size:12px">@(string.Format(L["Rel_HeaderNote"].Value, _currentCycle))</span>
     </div>
 

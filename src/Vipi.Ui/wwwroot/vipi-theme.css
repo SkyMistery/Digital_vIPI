@@ -1060,6 +1060,60 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
 .aor-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;user-select:none;opacity:.45;transition:.18s;background:#fff}
 .aor-chip .sw{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--ivao-lightblue);display:inline-block}
+
+/* ── HelpHint: "?" contestuale (popover nativo <details>) ─────────────────────── */
+.help-hint{display:inline-block;position:relative;vertical-align:middle}
+.help-hint>summary{list-style:none;cursor:help;display:inline-flex;align-items:center;color:var(--ink-soft);line-height:1}
+.help-hint>summary::-webkit-details-marker{display:none}
+.help-hint>summary::marker{content:""}
+.help-hint>summary:hover,.help-hint[open]>summary{color:var(--ivao-blue)}
+.help-pop{position:absolute;z-index:60;top:calc(100% + 6px);left:0;width:270px;max-width:74vw;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px;
+  box-shadow:var(--shadow);font-size:12.5px;line-height:1.5;color:var(--ink);font-weight:400;text-align:left;white-space:normal}
+.help-pop-body{margin:0}
+.help-pop-body b{font-weight:700}
+.help-pop-body code{background:#eef0f5;border-radius:4px;padding:1px 5px;font-size:11.5px}
+.help-more{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-weight:600;font-size:12px;text-decoration:none;color:var(--ivao-blue)}
+.help-more:hover{text-decoration:underline}
+/* accanto a controlli allineati a destra: apri il popover verso sinistra */
+.help-hint.left .help-pop{left:auto;right:0}
+
+/* ── Pagina Guida ─────────────────────────────────────────────────────────────── */
+.guida-toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 18px;margin:6px 0 24px;
+  padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.guida-toc h3{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);grid-column:1/-1}
+.guida-toc a{display:block;padding:3px 0;text-decoration:none;color:var(--ink);font-size:13.5px}
+.guida-toc a:hover{color:var(--ivao-blue)}
+.guida-sec{margin-bottom:14px}
+.guida-sec .cb-body{padding-top:2px}
+.guida-sec .cb-body p{margin:8px 0}
+.guida-sec .cb-body ul{margin:8px 0;padding-left:20px}
+.guida-sec .cb-body li{margin:5px 0}
+.guida-sec .cb-body h4{margin:16px 0 4px;font-size:14.5px}
+.guida-sec code,.guida-body code{background:#eef0f5;border-radius:4px;padding:1px 6px;font-size:12.5px}
+.guida-kbd{display:inline-block;padding:1px 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:#fafbfe;font-size:12px;font-weight:600}
+.guida-lead{font-size:15px;color:var(--ink-soft);margin:2px 0 18px;max-width:70ch}
+.guida-part{margin:26px 0 10px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ivao-blue)}
+.guida-part .ln{flex:1;height:1px;background:var(--line)}
+.guida-step{display:flex;gap:12px;margin:10px 0}
+.guida-step .n{flex:none;width:24px;height:24px;border-radius:999px;background:var(--ivao-blue);color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ── Tour guidato editor (vipi-tour.js) ───────────────────────────────────────── */
+.vt-overlay{position:fixed;inset:0;z-index:2000;background:transparent;pointer-events:none}
+.vt-spot{position:fixed;z-index:2001;border-radius:10px;pointer-events:none;
+  box-shadow:0 0 0 3px var(--ivao-blue),0 0 0 9999px rgba(12,20,40,.5);transition:top .18s,left .18s,width .18s,height .18s}
+.vt-card{position:fixed;z-index:2002;width:320px;max-width:88vw;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:15px 17px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+.vt-card .vt-close{position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;
+  font-size:16px;line-height:1;color:var(--ink-soft);padding:2px 4px}
+.vt-card .vt-close:hover{color:var(--ivao-blue)}
+.vt-card .vt-step{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+.vt-card .vt-title{margin:3px 0 6px;font-size:16px}
+.vt-card .vt-body{font-size:13.5px;line-height:1.5;color:var(--ink)}
+.vt-card .vt-actions{display:flex;align-items:center;gap:8px;margin-top:14px}
+.vt-card .vt-spacer{flex:1}
+.vt-card .vt-skip{background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:12.5px;padding:0}
+.vt-card .vt-skip:hover{color:var(--ivao-blue);text-decoration:underline}
 .aor-chip-actions{font-size:12.5px;color:var(--ink-soft,#556)}
 .aor-chip-actions .aor-all{cursor:pointer;text-decoration:underline}
 .cfg-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}

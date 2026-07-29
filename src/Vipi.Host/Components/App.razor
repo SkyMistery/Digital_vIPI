@@ -48,6 +48,7 @@
     <script src="_content/Vipi.Ui/vipi-live.js"></script>
     <script src="_content/Vipi.Ui/vipi-aor.js"></script>
     <script src="_content/Vipi.Ui/vipi-editor.js"></script>
+    <script src="_content/Vipi.Ui/vipi-tour.js"></script>
     <script>
         // Ri-applica zoom e ricollega l'interattività dopo ogni navigazione "enhanced" di Blazor
         // (che rimpiazza il DOM e perderebbe lo stile zoom inline e gli handler).
@@ -56,6 +57,7 @@
             window.vipiWireUi && window.vipiWireUi();
             window.vipiInitScreens && window.vipiInitScreens();
             window.vipiInitAor && window.vipiInitAor();
+            window.vipiMaybeTour && window.vipiMaybeTour();
         });
     </script>
 </body>

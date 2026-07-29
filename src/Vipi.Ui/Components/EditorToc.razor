@@ -4,7 +4,7 @@
 
 @if (Items.Count > 0)
 {
-    <aside class="toc editor-toc-side">
+    <aside class="toc editor-toc-side" data-tour="toc">
         <p class="toc-h">@(HeaderLabel ?? L["Common_Navigation"])</p>
         <ul>
             @{ string? lastGroup = null; }

@@ -614,12 +614,21 @@ else
                 else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
                 @if (_canEdit && _dirtySections.Count > 0)
                 {
-                    <button class="btn primary" disabled="@_busy" @onclick="SaveAllClicked" title="Salva tutte le sezioni modificate — Ctrl+S">💾 Salva tutto (@_dirtySections.Count)</button>
+                    <button class="btn primary" data-tour="save" disabled="@_busy" @onclick="SaveAllClicked" title="Salva tutte le sezioni modificate — Ctrl+S">💾 Salva tutto (@_dirtySections.Count)</button>
+                    <HelpHint Href="/vsop/guida#editor-salva" AriaLabel="Aiuto sul salvataggio">
+                        Salva tutte le sezioni modificate nella <b>bozza</b> (anche con
+                        <span class="guida-kbd">Ctrl</span>+<span class="guida-kbd">S</span>). Il pubblico le vede
+                        solo dopo la <b>pubblicazione</b>.
+                    </HelpHint>
                 }
                 <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
                     @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
                 </span>
                 <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
+                    Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
+                    <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
+                </HelpHint>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ @L["Ape_ReimportIvao"]</button>
                 @if (LastImport() is DateTime li)
                 {
