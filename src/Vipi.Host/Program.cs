@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Vipi.Host;
 using Vipi.Host.Auth;
 using Vipi.Host.Components;
 using Vipi.Hosting;
@@ -26,6 +27,10 @@ builder.Services.AddResponseCompression(o =>
 // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
 var authEnabled = builder.AddVipiStandaloneAuth();
 
+// Persistenza chiavi Data Protection su DB (solo Postgres): antiforgery/cookie sopravvivono ai redeploy
+// sul container effimero di Render. No-op in dev (SQLite → file-store di default). Vedi VipiDataProtection.cs.
+builder.AddVipiDataProtection();
+
 // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
 // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
 // Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).
@@ -47,6 +52,8 @@ forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
+// Crea la tabella delle chiavi Data Protection se manca (idempotente; no-op se il modulo non è attivo).
+app.UseVipiDataProtection();
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
 app.MigrateVipiDatabase();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).

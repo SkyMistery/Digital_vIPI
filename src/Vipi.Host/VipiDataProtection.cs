@@ -1,0 +1,56 @@
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Vipi.Infrastructure.Persistence;
+
+namespace Vipi.Host;
+
+/// <summary>
+/// Persistenza delle chiavi Data Protection (usate per antiforgery, cookie auth, ecc.). STACCABILE come il
+/// modulo auth. Su Render (free) il container è effimero: il key-ring di default finisce in
+/// <c>/root/.aspnet/DataProtection-Keys</c> e si perde a ogni redeploy → token antiforgery invalidi e utenti
+/// sloggati. Qui le chiavi vanno su un DbContext dedicato, così vivono su Neon (persistente) e sopravvivono
+/// ai redeploy. Attivo SOLO quando <c>Persistence:Provider=Postgres</c>: in dev (SQLite) resta il file-store
+/// di default, adeguato a una singola macchina. Il context è separato da <see cref="VipiDbContext"/> per non
+/// toccarne modello e migrazioni; la sua unica tabella si crea via EnsureCreated all'avvio.
+/// </summary>
+public static class VipiDataProtection
+{
+    /// <summary>Se il provider è Postgres, registra il key-store su DB. Ritorna <c>true</c> se attivato.</summary>
+    public static bool AddVipiDataProtection(this WebApplicationBuilder builder)
+    {
+        var provider = PersistenceProviderResolver.Resolve(
+            builder.Configuration[PersistenceProviderResolver.ProviderConfigKey]);
+        if (provider != PersistenceProvider.Postgres) return false;
+
+        var connectionString = builder.Configuration.GetConnectionString("Vipi");
+        if (string.IsNullOrWhiteSpace(connectionString)) return false;
+
+        builder.Services.AddDbContext<DataProtectionKeysDbContext>(o => o.UseNpgsql(connectionString));
+
+        // SetApplicationName fissa il discriminatore di scopo: instanze/redeploy diversi condividono lo stesso
+        // key-ring (senza, ogni deploy userebbe uno scopo diverso e i vecchi token resterebbero comunque invalidi).
+        builder.Services.AddDataProtection()
+            .SetApplicationName("vIPI")
+            .PersistKeysToDbContext<DataProtectionKeysDbContext>();
+
+        return true;
+    }
+
+    /// <summary>Crea la tabella delle chiavi se manca (idempotente). No-op se il modulo non è attivo.</summary>
+    public static WebApplication UseVipiDataProtection(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetService<DataProtectionKeysDbContext>();
+        ctx?.Database.EnsureCreated();
+        return app;
+    }
+}
+
+/// <summary>Context dedicato al solo key-ring Data Protection (tabella <c>DataProtectionKeys</c>).</summary>
+public sealed class DataProtectionKeysDbContext : DbContext, IDataProtectionKeyContext
+{
+    public DataProtectionKeysDbContext(DbContextOptions<DataProtectionKeysDbContext> options) : base(options) { }
+
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+}
