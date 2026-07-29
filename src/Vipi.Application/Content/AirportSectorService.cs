@@ -11,14 +11,16 @@ public sealed class AirportSectorService : IAirportSectorService
     private readonly IAirportSectorImporter _importer;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
+    private readonly IGithubTowerShapeService _githubShapes;
 
     public AirportSectorService(IAirportSectorRepository repo, IAirportSectorImporter importer,
-        IEditAuthorizationService authz, ISectorProjectionService projection)
+        IEditAuthorizationService authz, ISectorProjectionService projection, IGithubTowerShapeService githubShapes)
     {
         _repo = repo;
         _importer = importer;
         _authz = authz;
         _projection = projection;
+        _githubShapes = githubShapes;
     }
 
     public Task<IReadOnlyList<AirportSectorRow>> ListByAirportAsync(string icao, CancellationToken ct = default) =>
@@ -37,6 +39,16 @@ public sealed class AirportSectorService : IAirportSectorService
         // NB: l'import popola SOLO il catalogo. La generazione del documento è scollegata (doc 03 §4.3):
         // avviene a parte via «Genera documenti» (GenerateAirportDocumentAsync).
         return new AirportSectorImportResult(created, updated);
+    }
+
+    public async Task<int> ApplyGithubTwrShapesAsync(string icao, CancellationToken ct = default)
+    {
+        icao = Norm(icao);
+        await EnsureCanEditAsync(icao, ct);
+
+        var applied = await _githubShapes.ApplyAsync(icao, ct);
+        if (applied > 0) await _projection.SyncFromCatalogsAsync(ct);   // le nuove shape entrano nella proiezione
+        return applied;
     }
 
     public async Task SetHiddenAsync(int id, bool hidden, CancellationToken ct = default)

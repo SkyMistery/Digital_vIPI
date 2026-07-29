@@ -515,6 +515,10 @@ else
                             <span class="muted" style="font-size:11.5px" title="Ultimo import da IVAO">↧ @lastImp.ToString("dd/MM/yyyy HH:mm")</span>
                         }
                         <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
+                        @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
+                        {
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
+                        }
                     </div>
                     <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["Ape_SectorsNote"]</p>
                     @if (_sectors.Count == 0)
@@ -1202,6 +1206,16 @@ else
     {
         await Sectors.ImportFromSourceAsync(_icao);
         await ReloadSectorsAsync();   // rinfresca solo il catalogo settori (conteggio nella pill)
+    });
+    // Shape TWR reali da GitHub (twrs.tfl) per questo aeroporto: riempie le TWR senza poligono IVAO, non tocca le reali.
+    private Task ImportTwrShapes() => Guarded(async () =>
+    {
+        var n = await Sectors.ApplyGithubTwrShapesAsync(_icao);
+        await ReloadSectorsAsync();
+        _saveInfo = n > 0
+            ? string.Format(L["Ape_ImportTwrShapesDone"].Value, n)
+            : L["Ape_ImportTwrShapesNone"].Value;
+        _saveInfoWarn = n == 0;
     });
     private Task SaveSectorLimits(int id) => Guarded(() =>
         Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id)));

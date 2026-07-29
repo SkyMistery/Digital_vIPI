@@ -12,8 +12,9 @@ namespace Vipi.Application.Content;
 /// </summary>
 public interface IGithubTowerShapeService
 {
-    /// <summary>Applica le shape GitHub alle TWR senza poligono. Ritorna il numero di shape applicate.</summary>
-    Task<int> ApplyAsync(CancellationToken ct = default);
+    /// <summary>Applica le shape GitHub alle TWR senza poligono. Se <paramref name="icao"/> è dato, si limita a
+    /// quell'aeroporto (bottone manuale nell'editor); null = tutte (job automatico). Ritorna il numero applicate.</summary>
+    Task<int> ApplyAsync(string? icao = null, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IGithubTowerShapeService"/>
@@ -28,11 +29,14 @@ public sealed class GithubTowerShapeService : IGithubTowerShapeService
         _source = source;
     }
 
-    public async Task<int> ApplyAsync(CancellationToken ct = default)
+    public async Task<int> ApplyAsync(string? icao = null, CancellationToken ct = default)
     {
+        var filter = string.IsNullOrWhiteSpace(icao) ? null : icao.Trim().ToUpperInvariant();
+
         // "Vuoto/degenere" = il poligono attuale non si proietta (stesso criterio del cerchio sintetico): così
         // becchiamo le TWR che la sorgente IVAO espone come "[]" o null, senza mai toccare una shape reale IVAO.
         var targets = (await _repo.ListTwrShapesAsync(ct))
+            .Where(t => filter is null || string.Equals(t.AirportIcao, filter, StringComparison.OrdinalIgnoreCase))
             .Where(t => AorPolygonProjector.Project(t.RawPolygon) is null)
             .ToList();
         if (targets.Count == 0) return 0;

@@ -83,6 +83,32 @@ public class GithubTowerShapeServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Icao_Filter_Applies_Only_To_That_Airport()
+    {
+        // Due aeroporti con TWR vuota, entrambi su GitHub; il bottone manuale (icao) tocca solo il suo.
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", null, "[]", null, null, 40.886, 14.291),
+        });
+        await _repo.ImportForAirportAsync("LIRP", new[]
+        {
+            new SourceAtcPosition("LIRP_TWR", "118.300", "TWR", null, "[]", null, null, 43.68, 10.39),
+        });
+
+        var source = new FakeSource(new Dictionary<string, string>
+        {
+            ["LIRN_TWR"] = "[[14.2,40.8],[14.4,40.8],[14.4,41.0],[14.2,40.8]]",
+            ["LIRP_TWR"] = "[[9.0,42.0],[9.1,42.0],[9.1,42.1],[9.0,42.0]]",
+        });
+
+        var svc = new GithubTowerShapeService(_repo, source);
+        Assert.Equal(1, await svc.ApplyAsync("LIRN"));
+
+        var lirp = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRP_TWR");
+        Assert.Equal("[]", lirp.RegionMapPolygon);   // altro aeroporto: intatto
+    }
+
+    [Fact]
     public async Task Leaves_Circle_For_Twr_Not_In_Github()
     {
         await _repo.ImportForAirportAsync("LIRN", new[]

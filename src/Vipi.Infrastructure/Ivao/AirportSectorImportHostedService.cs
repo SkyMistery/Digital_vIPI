@@ -67,7 +67,7 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         try
         {
             var gh = sp.GetRequiredService<Vipi.Application.Content.IGithubTowerShapeService>();
-            githubShapes = await gh.ApplyAsync(ct);
+            githubShapes = await gh.ApplyAsync(ct: ct);
         }
         catch (Exception ex) { _log.LogDebug(ex, "Shape TWR da GitHub saltate."); }
 

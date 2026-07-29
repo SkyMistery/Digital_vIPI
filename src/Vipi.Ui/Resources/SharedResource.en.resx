@@ -1117,6 +1117,10 @@
   <data name="Ape_AtcSectors" xml:space="preserve"><value>ATC sectors</value></data>
   <data name="Ape_ImportSectorsTitle" xml:space="preserve"><value>Import/update the ATC sectors (incl. APP) from the source</value></data>
   <data name="Ape_ImportSectors" xml:space="preserve"><value>Import sectors from source</value></data>
+  <data name="Ape_ImportTwrShapes" xml:space="preserve"><value>TWR shapes from GitHub</value></data>
+  <data name="Ape_ImportTwrShapesTitle" xml:space="preserve"><value>Apply the real shapes from the Aurora sectorfile (GitHub twrs.tfl) to TWRs without a polygon</value></data>
+  <data name="Ape_ImportTwrShapesDone" xml:space="preserve"><value>Applied {0} TWR shapes from GitHub.</value></data>
+  <data name="Ape_ImportTwrShapesNone" xml:space="preserve"><value>No TWR shape to apply (already present or not on GitHub).</value></data>
   <data name="Ape_SectorsNote" xml:space="preserve"><value>ATC sectors imported from the source (callsign · ACC · position · middle id · freq · shape), including the APPs. You set the altitude limits; you can hide the sectors you do not want to show.</value></data>
   <data name="Ape_NoSectors" xml:space="preserve"><value>No sector imported. Press «Import sectors from source».</value></data>
   <data name="Ape_AccQTitle" xml:space="preserve"><value>APP only: of ACC (remotized) or own approach (dedicated doc)</value></data>

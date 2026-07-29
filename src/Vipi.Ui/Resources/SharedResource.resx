@@ -1117,6 +1117,10 @@
   <data name="Ape_AtcSectors" xml:space="preserve"><value>Settori ATC</value></data>
   <data name="Ape_ImportSectorsTitle" xml:space="preserve"><value>Importa/aggiorna i settori ATC (incl. APP) dalla sorgente</value></data>
   <data name="Ape_ImportSectors" xml:space="preserve"><value>Importa settori da sorgente</value></data>
+  <data name="Ape_ImportTwrShapes" xml:space="preserve"><value>Shape TWR da GitHub</value></data>
+  <data name="Ape_ImportTwrShapesTitle" xml:space="preserve"><value>Applica alle TWR senza poligono le shape reali dal sectorfile Aurora (GitHub twrs.tfl)</value></data>
+  <data name="Ape_ImportTwrShapesDone" xml:space="preserve"><value>Applicate {0} shape TWR da GitHub.</value></data>
+  <data name="Ape_ImportTwrShapesNone" xml:space="preserve"><value>Nessuna shape TWR da applicare (già presenti o non su GitHub).</value></data>
   <data name="Ape_SectorsNote" xml:space="preserve"><value>Settori ATC importati dalla sorgente (callsign · ACC · position · middle id · freq · shape), inclusi gli APP. I limiti di quota li imposti tu; puoi nascondere i settori che non vuoi mostrare.</value></data>
   <data name="Ape_NoSectors" xml:space="preserve"><value>Nessun settore importato. Premi «Importa settori da sorgente».</value></data>
   <data name="Ape_AccQTitle" xml:space="preserve"><value>Solo APP: di ACC (remotizzato) o avvicinamento proprio (doc dedicato)</value></data>
