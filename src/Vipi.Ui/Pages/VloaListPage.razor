@@ -98,6 +98,9 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+        // Scalda le cache prima del render: HomeOnline() usa ResolveByCallsign senza query durante il render
+        // (evita "second operation" sul DbContext condiviso su Postgres).
+        Stations.Prewarm();
 
         var data = await Structure.LoadAsync(_acc.Code);
         _vloas = data?.Vloas.OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title).ToList()

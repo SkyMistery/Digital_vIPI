@@ -19,6 +19,11 @@ public interface IStationResolver
     /// <summary>ACC di competenza di un callsign ATC: per testa = codice ACC (es. LIRR_NE_CTR → LIRR),
     /// oppure per testa = ICAO di un aeroporto (es. LIRP_TWR → l'ACC di LIRP). Null se non riconosciuto.</summary>
     AccInfo? ResolveByCallsign(string callsign);
+
+    /// <summary>Forza il caricamento delle cache (ACC + mappa aeroporti→ACC) FUORI dal render. Va chiamato dal
+    /// ciclo di vita async della pagina prima di usare <see cref="ResolveByCallsign"/> nel render: evita che il
+    /// lazy-load colpisca il DbContext condiviso durante il render (crash "second operation" su Postgres).</summary>
+    void Prewarm();
 }
 
 /// <inheritdoc cref="IStationResolver"/>
@@ -39,6 +44,9 @@ public sealed class StationResolver : IStationResolver
 
     public AccInfo? Resolve(string accCode) =>
         Accs.FirstOrDefault(a => a.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase));
+
+    // Scalda entrambe le cache in una volta (chiamata dal ciclo di vita async, context libero e sequenziale).
+    public void Prewarm() { _ = Accs; _ = AirportToAcc; }
 
     public AccInfo? ResolveByCallsign(string callsign)
     {

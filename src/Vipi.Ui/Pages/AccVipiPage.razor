@@ -131,6 +131,9 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+        // Scalda le cache del resolver ORA (context libero): OnlineCount() nel render usa ResolveByCallsign
+        // senza toccare il DB → niente crash "second operation" su Postgres.
+        Stations.Prewarm();
 
         // vIPI ACC = una sola per ACC: sempre il CTR radice primario. Il parametro ?tree è ignorato (nessun selettore).
         _roots = await Profile.ListTreeRootsAsync(Acc);

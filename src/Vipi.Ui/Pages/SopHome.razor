@@ -64,6 +64,11 @@
 </div>
 
 @code {
+    // Scalda le cache del resolver (ACC + mappa aeroporti) prima del render: la home itera tutte le ACC e per
+    // ognuna chiama OnlineCount()→ResolveByCallsign. Senza prewarm il lazy-load colpirebbe il DbContext condiviso
+    // durante il render → crash "second operation" su Postgres.
+    protected override void OnInitialized() => Stations.Prewarm();
+
     // Conteggio one-shot al render: ATC online del dato ACC. Include sia i settori d'area (es. LIRR_NE_CTR)
     // sia le postazioni d'aeroporto sotto quell'ACC (es. LIRP_TWR / LIEO_EW0_APP → l'ACC dell'aeroporto).
     private int OnlineCount(string accCode)
