@@ -36,7 +36,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             .OrderBy(s => s.ComposePosition)
             .Select(s => new AirportSectorRow(s.Id, s.ComposePosition, s.AirportIcao, s.AccCode, s.Position,
                 s.MiddleIdentifier, s.Frequency, s.LowerLimit, s.UpperLimit, s.IsHidden, s.RegionMapPolygon != null, s.IsPrimary,
-                s.IsAccApp, s.LimitsFromSource, s.AtcCallsign))
+                s.IsAccApp, s.LimitsFromSource, s.AtcCallsign, s.ImportedAtUtc))
             .ToListAsync(ct);
     }
 
