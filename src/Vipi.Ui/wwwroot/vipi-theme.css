@@ -269,6 +269,13 @@
 .callout.success .ct{color:var(--ok-ink)}
 .callout.warning{background:#fff7df;border-color:var(--ivao-yellow)}
 .callout.warning .ct{color:var(--warn-ink)}
+
+/* Combobox enti (editor frequenze): lista che si apre sotto il campo di ricerca */
+.freq-picker-list{position:absolute;z-index:30;left:0;right:0;top:100%;margin-top:2px;max-height:260px;overflow:auto;background:#fff;border:1px solid var(--line,#d0d7de);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.14)}
+.freq-picker-item{display:block;width:100%;text-align:left;padding:6px 10px;border:0;background:none;cursor:pointer;font-size:13px}
+.freq-picker-item:hover:not(:disabled){background:#eaf1ff}
+.freq-picker-item:disabled{opacity:.5;cursor:default}
+.freq-picker-empty{padding:8px 10px;font-size:13px}
 .callout.danger{background:#fdeaea;border-color:var(--ivao-red)}
 .callout.danger .ct{color:var(--danger-ink)}
 /* Toast fisso dell'editor: i messaggi salva/errore restano visibili anche in fondo a tabelle lunghe. */

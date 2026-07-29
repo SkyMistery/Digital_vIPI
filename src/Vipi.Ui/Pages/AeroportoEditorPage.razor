@@ -276,16 +276,31 @@ else
                             }
                         </tbody>
                     </table>
-                    <div class="se-row" style="margin-top:10px">
-                        <input style="width:200px" placeholder="@L["Ape_SearchCallsignFreq"]" @bind="_freqSearch" @bind:event="oninput" />
-                        <select @bind="_pickFreqId" style="min-width:240px">
-                            <option value="0">@L["Ape_PickFreq"]</option>
-                            @foreach (var lf in FilteredLinkable())
+                    <div class="se-row" style="margin-top:10px;align-items:flex-start">
+                        <div style="position:relative;width:320px">
+                            <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
+                                   @bind="_freqSearch" @bind:event="oninput"
+                                   @onfocus="() => _freqPickerOpen = true" @onblur="() => _freqPickerOpen = false" />
+                            @if (_freqPickerOpen)
                             {
-                                <option value="@lf.SectorId">@lf.Callsign · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")</option>
+                                var opts = FilteredLinkable().ToList();
+                                <div class="freq-picker-list">
+                                    @if (opts.Count == 0)
+                                    {
+                                        <div class="freq-picker-empty muted">Nessun ente trovato.</div>
+                                    }
+                                    @foreach (var lf in opts)
+                                    {
+                                        var id = lf.SectorId;
+                                        var added = _linkIds.Contains(id);
+                                        <button type="button" class="freq-picker-item" disabled="@added"
+                                                @onmousedown:preventDefault="true" @onmousedown="() => PickLinkable(id)">
+                                            <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — già aggiunto</span> }
+                                        </button>
+                                    }
+                                </div>
                             }
-                        </select>
-                        <button class="btn ghost" @onclick="AddLink">+ Link</button>
+                        </div>
                         <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">@L["Ape_SaveLinks"]</button>
                     </div>
                 </div>
@@ -653,7 +668,7 @@ else
     private List<ExtraEdit> _extras = new();
     private List<int> _linkIds = new();
     private string _freqSearch = "";
-    private int _pickFreqId;
+    private bool _freqPickerOpen;   // combobox: lista enti collegabili aperta sotto il campo di ricerca
 
     // Feedback del salvataggio-in-blocco (Ctrl+S / "Salva tutto"): riepilogo sezioni salvate vs saltate.
     private string? _saveInfo;
@@ -930,10 +945,11 @@ else
             .Take(50);
     }
 
-    private async Task AddLink()
+    // Combobox enti: click su una voce = aggiunge il link; il campo di ricerca resta pronto per il prossimo.
+    private async Task PickLinkable(int id)
     {
-        if (_pickFreqId != 0 && !_linkIds.Contains(_pickFreqId)) { _linkIds.Add(_pickFreqId); await MarkDirty("Frequenze"); }
-        _pickFreqId = 0;
+        if (!_linkIds.Contains(id)) { _linkIds.Add(id); await MarkDirty("Frequenze"); }
+        _freqSearch = "";
     }
 
     private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
