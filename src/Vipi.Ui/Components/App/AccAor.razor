@@ -3,6 +3,11 @@
 @using System.Text.Json
 @if (View.Sectors is { Count: > 0 })
 {
+    <div class="aor-viewmode" data-aor-view>
+        <button type="button" class="aor-vm-btn on" data-view="2d">Mappa 2D</button>
+        <button type="button" class="aor-vm-btn" data-view="3d">Vista 3D</button>
+    </div>
+    <div class="aor-view aor-view-2d">
     <div class="aor-block" data-aor="@Id">
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
@@ -38,6 +43,11 @@
             </div>
         }
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</p>
+    </div>
+    </div>
+    <div class="aor-view aor-view-3d" hidden>
+        <AccAor3d View="View" Id="@($"{Id}-3d")" />
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</p>
     </div>
 }
 else

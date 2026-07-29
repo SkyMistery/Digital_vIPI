@@ -9,6 +9,7 @@
     <!-- Font self-hosted dal modulo (nessuna chiamata esterna a Google Fonts). -->
     <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css?v=@AssetVersion" />
     <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-aor3d.css?v=@AssetVersion" />
     <link rel="stylesheet" href="Vipi.Host.styles.css?v=@AssetVersion" />
     <!-- Leaflet (mappa AOR minimal). -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -48,6 +49,9 @@
     <script src="_content/Vipi.Ui/vipi-screens.js?v=@AssetVersion"></script>
     <script src="_content/Vipi.Ui/vipi-live.js?v=@AssetVersion"></script>
     <script src="_content/Vipi.Ui/vipi-aor.js?v=@AssetVersion"></script>
+    <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). -->
+    <script src="_content/Vipi.Ui/vendor/three.min.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-aor3d.js?v=@AssetVersion"></script>
     <script src="_content/Vipi.Ui/vipi-editor.js?v=@AssetVersion"></script>
     <script src="_content/Vipi.Ui/vipi-tour.js?v=@AssetVersion"></script>
     <script>
@@ -58,6 +62,7 @@
             window.vipiWireUi && window.vipiWireUi();
             window.vipiInitScreens && window.vipiInitScreens();
             window.vipiInitAor && window.vipiInitAor();
+            window.vipiInitAor3d && window.vipiInitAor3d();
             window.vipiMaybeTour && window.vipiMaybeTour();
         });
     </script>
@@ -75,9 +80,9 @@
 
     private static readonly string[] VersionedAssets =
     {
-        "_content/Vipi.Ui/vipi-fonts.css", "_content/Vipi.Ui/vipi-theme.css", "Vipi.Host.styles.css",
+        "_content/Vipi.Ui/vipi-fonts.css", "_content/Vipi.Ui/vipi-theme.css", "_content/Vipi.Ui/vipi-aor3d.css", "Vipi.Host.styles.css",
         "_content/Vipi.Ui/vipi-ui.js", "_content/Vipi.Ui/vipi-screens.js", "_content/Vipi.Ui/vipi-live.js",
-        "_content/Vipi.Ui/vipi-aor.js", "_content/Vipi.Ui/vipi-editor.js", "_content/Vipi.Ui/vipi-tour.js",
+        "_content/Vipi.Ui/vipi-aor.js", "_content/Vipi.Ui/vipi-aor3d.js", "_content/Vipi.Ui/vipi-editor.js", "_content/Vipi.Ui/vipi-tour.js",
     };
 
     private static string ComputeAssetVersion(Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)

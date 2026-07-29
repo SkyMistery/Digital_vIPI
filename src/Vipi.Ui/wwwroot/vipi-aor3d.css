@@ -1,0 +1,40 @@
+/* Viewer 3D dell'AoR (vipi-aor3d.js). Stili class-based (istanze multiple per pagina). */
+
+/* Tab 2D/3D del blocco AoR (toggle client-side in vipi-aor3d.js). */
+.aor-viewmode { display: inline-flex; background: #eef1fb; border-radius: 9px; padding: 3px; margin-bottom: 12px; }
+.aor-vm-btn { border: 0; background: transparent; color: var(--ivao-lightblue); padding: 7px 16px; border-radius: 7px; cursor: pointer; font-family: 'Poppins'; font-size: 13px; font-weight: 500; }
+.aor-vm-btn.on { background: var(--ivao-blue); color: #fff; font-weight: 600; }
+.aor-view[hidden] { display: none; }
+
+.aor3d-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+
+.aor3d-stage {
+    height: 540px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: linear-gradient(180deg, #e9eeff, #f7f9ff); position: relative; cursor: grab; touch-action: none;
+}
+.aor3d-stage.grabbing { cursor: grabbing; }
+.aor3d-stage canvas { display: block; }
+.aor3d-stage:fullscreen { height: 100%; width: 100%; border-radius: 0; }
+
+.aor3d-legend {
+    position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.92);
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font-size: 12.5px; box-shadow: var(--shadow);
+    max-height: calc(100% - 24px); overflow: auto;
+}
+.aor3d-legend .lgt {
+    font-family: 'Nunito Sans'; font-weight: 700; color: var(--ivao-blue); font-size: 11px;
+    text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px;
+}
+.aor3d-legend .lg-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; user-select: none; }
+.aor3d-legend .lg-row.off { opacity: .38; }
+.aor3d-legend .lg-row .sw { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+.aor3d-legend .lg-row .fl { margin-left: auto; color: var(--ink-soft); font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
+
+.aor3d-hint {
+    position: absolute; bottom: 12px; right: 14px; background: rgba(13,44,153,.82);
+    color: #fff; border-radius: 8px; padding: 6px 11px; font-size: 12px; pointer-events: none;
+}
+.aor3d-fallback {
+    display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+    text-align: center; padding: 30px; color: var(--ink-soft); font-size: 14px;
+}
