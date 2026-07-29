@@ -52,7 +52,17 @@ public sealed class IvaoTokenProvider
             };
             var http = _factory.CreateClient(HttpClientName);
             using var res = await http.SendAsync(req, ct);
-            res.EnsureSuccessStatusCode();
+            if (!res.IsSuccessStatusCode)
+            {
+                // EnsureSuccessStatusCode() butta via il body: IVAO ci mette il motivo (invalid_client,
+                // scope non concesso, grant non abilitato…). Lo includo nel messaggio per diagnosticare
+                // i 400 sul token app. Body troncato: evita di riversare risposte enormi nei log.
+                var err = await res.Content.ReadAsStringAsync(ct);
+                if (err.Length > 500) err = err[..500] + "…";
+                throw new HttpRequestException(
+                    $"Token IVAO fallito: HTTP {(int)res.StatusCode} {res.ReasonPhrase}. " +
+                    $"Body: {(string.IsNullOrWhiteSpace(err) ? "(vuoto)" : err)}");
+            }
             var body = await res.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken: ct)
                        ?? throw new InvalidOperationException("Risposta token IVAO vuota.");
 
