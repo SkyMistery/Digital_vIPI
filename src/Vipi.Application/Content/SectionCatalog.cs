@@ -28,6 +28,15 @@ public static class SectionCatalog
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
     public static SectionKind KindOf(string key) => KindByKey.TryGetValue(key, out var k) ? k : SectionKind.Editorial;
 
+    // Sezioni che nel DOCUMENTO nascono COLLASSATE (doc 11 §3i): quelle il cui contenuto è voluminoso per natura
+    // — «Aree regolamentate» su una ACC sono decine di aree, ognuna con la sua mappa, e aperta la sezione occupa
+    // il documento da sola. Vale nei viewer; l'editor le apre comunque (lì il corpo è il picker, non l'elenco).
+    private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
+
+    /// <summary>Vero se la sezione si apre COLLASSATA nel documento: si espande a mano (doc 11 §3i).</summary>
+    public static bool IsInitiallyCollapsed(string key) => InitiallyCollapsedKeys.Contains(key);
+
     /// <summary>
     /// Vero se la sezione espone all'editor il toggle Live/Frozen (doc 10 §3a): solo le sezioni DERIVATE, perché
     /// per quelle editoriali non esiste una derivazione da congelare. La regola stava ripetuta identica nei tre

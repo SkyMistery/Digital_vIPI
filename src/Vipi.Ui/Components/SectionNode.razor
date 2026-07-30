@@ -5,7 +5,8 @@
 }
 @if (depth <= 0)
 {
-    <CollapsibleBlock Id="@Section.Id">
+    @* Alcune sezioni nascono collassate nel documento (doc 11 §3i): il catalogo sa quali. *@
+    <CollapsibleBlock Id="@Section.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))">
         <Header><h3 style="margin-top:0">@Section.Title</h3></Header>
         <ChildContent><SectionBody Section="Section" DepthOffset="DepthOffset" /></ChildContent>
     </CollapsibleBlock>

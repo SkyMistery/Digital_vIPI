@@ -745,3 +745,8 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
   espanso il solo primo livello (settore per vIPI ACC/vLOA, gruppo per l'APP) e dentro tutto è compresso;
   «Espandi tutto» e la stampa (`beforeprint`) restano invariati. `CoordinationCollapseTests` (bUnit) presidia
   gli `open` del markup, che nessun altro test guardava.
+- **P9 (§3i, richiesta owner in verifica live)**: «Aree regolamentate» nasce **collassata** nel documento (65 aree
+  con mappa su LIBB). Quali sezioni si aprono chiuse lo dice `SectionCatalog.IsInitiallyCollapsed` — il catalogo è
+  già la fonte unica della natura delle sezioni, così la regola vale per le tre famiglie senza ripeterla. Nessuno
+  stato persistito: è una proprietà del tipo di sezione, non una scelta editoriale. L'**editor** la apre comunque
+  (lì il corpo è il picker delle aree, non l'elenco).

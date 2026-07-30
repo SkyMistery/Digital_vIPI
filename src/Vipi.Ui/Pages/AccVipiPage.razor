@@ -69,7 +69,8 @@ else
                     @foreach (var s in VisibleSections(block))
                     {
                         var isHidden = s.IsHidden;
-                        <CollapsibleBlock Id="@($"p-{block.Key}-{s.Key}")" Style="@(isHidden ? "opacity:.65" : null)">
+                        <CollapsibleBlock Id="@($"p-{block.Key}-{s.Key}")" Style="@(isHidden ? "opacity:.65" : null)"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.Key))">
                             <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
                                 <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Editorial="s.Editorial"

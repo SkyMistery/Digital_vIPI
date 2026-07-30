@@ -138,4 +138,14 @@ public class SectionCatalogTests
         Assert.Single(parent.Blocks);
         Assert.Equal("Foglia", Assert.Single(parent.SubSections).Title);
     }
+
+    [Fact]
+    public void Regulated_Opens_Collapsed_In_The_Document()
+    {
+        // doc 11 §3i: «Aree regolamentate» su una ACC sono decine di aree con mappa — la sezione nasce chiusa.
+        Assert.True(SectionCatalog.IsInitiallyCollapsed("regulated"));
+        Assert.False(SectionCatalog.IsInitiallyCollapsed("aor"));
+        Assert.False(SectionCatalog.IsInitiallyCollapsed("coordination"));
+        Assert.False(SectionCatalog.IsInitiallyCollapsed("custom:aaaa1111"));
+    }
 }

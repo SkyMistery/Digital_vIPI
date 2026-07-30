@@ -5,7 +5,7 @@
 > pulizia tracciati nei singoli doc (es. rimozione `*ProfileModels`, create airport unico).
 > **Estensione post-refactor:** doc 10 (snapshot totale + `RenderMode`) — **eseguito ✅** (S0→S7, 2026-07-19), su branch `refactor/10-snapshot-totale`, verify live confermata; **in attesa di merge su main**.
 >
-> **Estensione post-audit:** doc 11 (uniformità dei tre documenti: vIPI ACC / vIPI APP / vLOA) — **eseguito ✅** (P1→P8, 2026-07-30), branch `fix/uniformita-tre-documenti`, suite 660 verde, verifica live confermata dall'owner.
+> **Estensione post-audit:** doc 11 (uniformità dei tre documenti: vIPI ACC / vIPI APP / vLOA) — **eseguito ✅** (P1→P9, 2026-07-30), branch `fix/uniformita-tre-documenti`, suite 663 verde, verifica live confermata dall'owner.
 
 ## Perché
 
@@ -42,7 +42,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 08 | [08-modello-documento-ed-editing.md](08-modello-documento-ed-editing.md) | Modello documento + editing (9+12) | ✅ (08a–08i completi; residuo opzionale: create airport via use-case unico) |
 | 09 | [09-flusso-pubblicazione.md](09-flusso-pubblicazione.md) | Pubblicazione DocRelease (10) | ✅ |
 | 10 | [10-snapshot-totale-e-rendermode.md](10-snapshot-totale-e-rendermode.md) | Snapshot totale + `RenderMode` per sezione (estende 09) | ✅ eseguito (S0→S7), verify live ok, da mergiare |
-| 11 | [11-uniformita-tre-documenti.md](11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (estende 08-10) | ✅ eseguito (P1→P8), suite 660, verify live ok |
+| 11 | [11-uniformita-tre-documenti.md](11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (estende 08-10) | ✅ eseguito (P1→P9), suite 663, verify live ok |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)
 

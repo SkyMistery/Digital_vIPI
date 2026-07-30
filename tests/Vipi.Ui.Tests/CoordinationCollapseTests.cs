@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
 using Vipi.Domain;
+using Vipi.Ui.Components;
 using Vipi.Ui.Components.App;
 using Xunit;
 
@@ -66,5 +67,23 @@ public class CoordinationCollapseTests : TestContext
 
         Assert.Contains("<details class=\"coord-sub\" open", cut.Markup);
         Assert.DoesNotContain("<details class=\"coord-sub2\" open", cut.Markup);
+    }
+
+    private static SectionView Section(string key, string title) => new()
+    {
+        Id = "s-1", Title = title, Depth = 0, SectionKey = key,
+        Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>(),
+    };
+
+    [Fact]
+    public void Regulated_section_renders_collapsed_others_open()
+    {
+        // doc 11 §3i: la card «Aree regolamentate» nasce chiusa; le altre no. È l'attributo `open` del <details>,
+        // che nessun altro test guarda.
+        var regolamentate = RenderComponent<SectionNode>(p => p.Add(x => x.Section, Section("regulated", "Aree regolamentate")));
+        var aor = RenderComponent<SectionNode>(p => p.Add(x => x.Section, Section("aor", "AOR")));
+
+        Assert.DoesNotContain("open", regolamentate.Find("details.block").OuterHtml.Split('>')[0]);
+        Assert.Contains("open", aor.Find("details.block").OuterHtml.Split('>')[0]);
     }
 }
