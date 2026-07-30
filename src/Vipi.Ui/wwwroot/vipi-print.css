@@ -1,0 +1,114 @@
+/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
+   CSS, nessun endpoint export server-side).
+
+   Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
+   nel tema usava `body *{visibility:hidden}` + `.printable` visibile: `.printable` non esisteva in nessun
+   markup (stampa = pagina bianca su tutte le pagine) e il `position:absolute` sul contenuto rompeva la
+   paginazione multi-pagina. Qui non c'è opt-in per pagina: ogni pagina /vsop è stampabile.
+
+   Regole confinate in `.vipi-root` (il modulo non tocca body/html del sito ospitante, vedi App.razor); fanno
+   eccezione `@page` e il reset dello zoom, che per natura sono globali. Le classi `.vt-*` (tour) vivono fuori
+   da `.vipi-root` perché l'overlay è agganciato al body. */
+
+/* Elementi di sola stampa (intestazione PrintMeta): invisibili a schermo, non serve @media screen. */
+.print-only { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  /* Lo zoom di pagina è applicato inline su <html> da App.razor (localStorage): in stampa va neutralizzato,
+     altrimenti al 130% il documento esce tagliato. La dichiarazione !important d'autore batte l'inline. */
+  html { zoom: 1 !important; }
+  html, body { background: #fff !important; }
+
+  /* Le tinte di sfondo portano informazione (piste ARR/DEP, callout, riga TL col QNH corrente, pill):
+     senza print-color-adjust i browser le scartano in stampa. Le ombre invece sono solo decorative. */
+  .vipi-root *, .vipi-root *::before, .vipi-root *::after {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+
+  /* ── Chrome e comandi: fuori dalla carta ────────────────────────────────────────
+     Barra superiore, indice/rail sticky, briciole, bottoni e link-azione, barra di lock, `?` di aiuto,
+     tab meteo, selettore configurazioni, toggle 2D/3D, azioni Tutti/Nessuno sui chip AoR. Il tasto
+     «Stampa» stesso è un `.btn` (quindi già coperto); `.noprint` è la valvola per i casi senza aggancio. */
+  .vipi-root .topbar,
+  .vipi-root .skip-link,
+  .vipi-root .toc,
+  .vipi-root .doc-rail,
+  .vipi-root .breadcrumb,
+  .vipi-root .btn,
+  .vipi-root .editor-btn,
+  .vipi-root .lockbar,
+  .vipi-root .help-hint,
+  .vipi-root .wx-tabs,
+  .vipi-root .cfg-sel,
+  .vipi-root .aor-chip-actions,
+  .vipi-root .aor-viewmode,
+  .vipi-root .aor3d-bar,
+  .vipi-root .aor3d-hint,
+  .vipi-root .leaflet-control-zoom,
+  .vipi-root .metar-live,
+  .vipi-root .onl-badge,
+  .vipi-root .noprint,
+  .vt-overlay, .vt-spot, .vt-card { display: none !important; }
+
+  /* PreviewBanner (bozza / anteprima release) e DocReviewBar restano stampati: una copia cartacea non deve
+     poter passare per pubblicata. Sono `.callout`, che non nascondiamo. */
+
+  .print-only { display: block !important; }
+
+  /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
+  .vipi-root .wrap { max-width: none !important; padding: 0 !important; }
+  .vipi-root .doc-layout,
+  .vipi-root .apt-2col,
+  .vipi-root .aor-wrap { display: block !important; }
+  /* Sticky/max-height sono legati al viewport: senza reset clippano il contenuto sulla carta. */
+  .vipi-root .toc,
+  .vipi-root .doc-rail,
+  .vipi-root .detail-sticky { position: static !important; max-height: none !important; }
+  /* Contenitori a scorrimento (es. wrapper della tabella SID): in stampa lo scroll non esiste, taglia. */
+  .vipi-root [style*="overflow:auto"],
+  .vipi-root [style*="overflow: auto"] { overflow: visible !important; }
+  .vipi-root img, .vipi-root svg { max-width: 100% !important; }
+
+  /* ── Interruzioni di pagina ────────────────────────────────────────────────────
+     `.block` NON ha break-inside:avoid: una sezione più alta di una pagina non starebbe comunque, e il
+     browser finirebbe per lasciare mezza pagina bianca. Teniamo unite le unità piccole e i titoli col
+     proprio contenuto. */
+  .vipi-root .cb-head,
+  .vipi-root h2, .vipi-root h3, .vipi-root h4 { break-after: avoid; }
+  .vipi-root .callout,
+  .vipi-root .rail-card,
+  .vipi-root .rule-card,
+  .vipi-root .mp,
+  .vipi-root .taf-row,
+  .vipi-root tr { break-inside: avoid; }
+  .vipi-root p { orphans: 3; widows: 3; }
+
+  /* ── Tabelle: dentro i 186 mm utili dell'A4 verticale ──────────────────────────
+     Le tabelle larghe (SID 9 colonne, Piste 8) a schermo scorrono; su carta si stringono con corpo minore
+     e testo che va a capo. `thead` ripetuto a ogni pagina per le tabelle lunghe (SID). */
+  .vipi-root table { font-size: 9.5pt; width: 100% !important; }
+  .vipi-root .sid-table { min-width: 0 !important; }
+  .vipi-root thead { display: table-header-group; }
+  .vipi-root th, .vipi-root td { padding: 3px 5px !important; overflow-wrap: break-word; }
+
+  /* ── Ritocchi di leggibilità/inchiostro ───────────────────────────────────────── */
+  /* METAR/TAF grezzi: a schermo sono un riquadro blu notte, su carta sarebbero una macchia d'inchiostro. */
+  .vipi-root .metar { background: #fff !important; color: #000 !important; border: 1px solid #999; }
+  .vipi-root .block { border: 1px solid #c8cee0; padding: 12px 14px; margin-bottom: 12px; }
+  /* La mappa AoR (Leaflet, o l'SVG di fallback) ha altezza fissa in px: la teniamo, ma intera su una pagina.
+     L'attribuzione delle tile resta visibile (licenza della sorgente cartografica). */
+  .vipi-root .aor-leaflet { break-inside: avoid; }
+  .vipi-root a { color: inherit; text-decoration: none; }
+
+  /* ── Sezioni collassate ────────────────────────────────────────────────────────
+     CollapsibleBlock è un <details> nativo col collasso persistito (localStorage, data-persist): quel che
+     l'utente ha chiuso resterebbe fuori dalla stampa. L'apertura effettiva la fa `vipi-ui.js` su
+     'beforeprint' (ripristinata su 'afterprint'), perché in Chrome il contenuto di un <details> chiuso è
+     nascosto dallo user-agent con content-visibility e il CSS d'autore da solo non lo rivela. Queste due
+     regole sono il ripiego per i browser che non emettono gli eventi di stampa. */
+  .vipi-root details:not([open]) > .cb-body { display: block !important; }
+  .vipi-root details::details-content { content-visibility: visible !important; }
+}
