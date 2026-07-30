@@ -34,6 +34,15 @@ manuali). Lo stato/errore di ogni import è visibile in **`/vsop/admin/sorgenti`
 Cancella `vipi.db*` (inclusi `-wal`/`-shm`, vedi WAL in ADR-0007) nella cartella `src/Vipi.Host/` e riavvia:
 riparte da DB vuoto e ripercorre la sequenza sopra.
 
+## Verificare una modifica a schermo
+Per **guidare** l'app (non solo avviarla) usa la skill **`.claude/skills/verifica-live/`**: avvio su una **copia**
+del `vipi.db` (la verifica pubblica e annulla release, quindi scriverebbe sui dati di sviluppo), driver
+Edge+puppeteer-core, bersagli utili nel DB e trappole già pagate. Due cose che sorprendono:
+- serve **`VipiAuth__Enabled=false`**, altrimenti in Development l'app pretende il login OIDC IVAO reale
+  (`appsettings.Development.json` porta `Enabled=true`, e `useDevIdentity = IsDevelopment && !authEnabled`);
+- le pagine sono `@rendermode InteractiveServer`, quindi la prima risposta HTTP è il **prerender**: un `200` non
+  prova che la pagina funzioni, bisogna attendere l'aggancio del circuito Blazor.
+
 ## Note
 - Le fixture Roma (`*Seed.cs`) esistono **solo come dati dei test**, non vengono seminate all'avvio.
 - Salute dell'istanza: **`/vsop/health`** (Unhealthy se migrazioni pendenti; Degraded se incongruenze dati o

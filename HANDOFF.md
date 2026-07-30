@@ -1,11 +1,27 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 luglio 2026 (hardening deploy Render+Neon: DataProtection su DB, retry Neon, prewarm resolver, login 7gg)
+**Ultimo aggiornamento:** 30 luglio 2026 (audit concorrenza + codice morto + ridondanze; verifica live)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> **⚠️ Sessione 2026-07-30 — audit concorrenza / codice morto / ridondanze.** Branch
+> `fix/audit-race-deadcode-redundancy`, 14 commit, suite **505 → 631 verde**, build 0 warning. Documento completo:
+> `docs/history/audit-2026-07-30-concorrenza-e-ridondanze.md`. Le tre cose da sapere subito:
+> - **Import SID era rotto in silenzio** su LIRF/LIMC/LIME/LIBG/LIED/LIEO/LIPQ (ogni *reimport* falliva: snapshot
+>   costruito con `ToDictionaryAsync(StableKey)` su chiave legittimamente ripetuta; il job logga a `LogDebug`).
+>   Fixato. ⚠️ **La `StableKey` NON è unica per design** — non aggiungere un indice unico, fallisce sui dati veri.
+> - **Le migration si provano su una copia di `src/Vipi.Host/vipi.db`**, non solo su DB vuoti da `EnsureCreated`:
+>   i test partono sempre da vuoto e non vedono questa classe di problemi.
+> - **Nuova skill `.claude/skills/verifica-live/`** per lanciare e guidare l'app in locale (la procedura non era
+>   scritta: `dev-bootstrap.md` si fermava a `dotnet run`, e serve `VipiAuth__Enabled=false` per entrare).
+>   Guidandola è uscito `rel. v@r.VersionNumber` **letterale** a schermo: in Razor una `@` fra due caratteri
+>   non-spazio è letta come **indirizzo email** e non apre un'espressione, senza alcun warning → usare `v@(...)`.
+>
+> Aperto, **non di codice**: la SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota
+> implausibile (le altre BANAV hanno `9000` → «FL90»). Da correggere nell'editor.
 
 > **⚠️ Sessione 2026-07-29 — hardening deploy Render+Neon (leggere se si lavora sul deploy hostato).** Il sito test gira su Render+Neon Postgres (vedi `deploy/render/README.md` e memoria [[deploy-hosting-options]]). Fix di questa sessione, tutti su branch `fix/airport-weather-tl-draft-preview`:
 > - **Login IVAO ricordato 7 giorni** (`VipiStandaloneAuthExtensions.cs`): cookie `ExpireTimeSpan=7gg` sliding + `IsPersistent=true` sul challenge → un solo login, sopravvive a chiusura browser.
-> - **Retry-on-failure Neon** (`Infrastructure/DependencyInjection.cs`, ramo Postgres): `EnableRetryOnFailure` — Neon serverless chiude le connessioni idle, la prima query dava 500 `transient failure`. Retry-safe perché `EfUnitOfWork` avvolge già le transazioni in `CreateExecutionStrategy()`.
+> - **Retry-on-failure Neon** (`Infrastructure/DependencyInjection.cs`, ramo Postgres): `EnableRetryOnFailure` — Neon serverless chiude le connessioni idle, la prima query dava 500 `transient failure`. ⚠️ **Corretto il 30 lug:** questa nota diceva «retry-safe perché `EfUnitOfWork` avvolge già le transazioni in `CreateExecutionStrategy()`» — **necessario ma non sufficiente.** Al retry la strategy rigira la lambda sullo stesso context scoped e il rollback non ripulisce il change-tracker, quindi le entità del tentativo fallito venivano riemesse (doppi insert). Ora `EfUnitOfWork` azzera il tracker a ogni tentativo.
 > - **DataProtection su Postgres** (`src/Vipi.Host/VipiDataProtection.cs`, modulo staccabile): su Render il container è effimero → il key-ring di default si perdeva a ogni redeploy (antiforgery rotto + logout). Ora le chiavi vanno su un `DbContext` dedicato (tabella `DataProtectionKeys` su Neon). ⚠️ **NON** `EnsureCreated()` (verifica il *database*, non la tabella → non creava nulla sul DB esistente): la tabella si crea con `CREATE TABLE IF NOT EXISTS`. Attivo solo se `Persistence:Provider=Postgres`; in dev SQLite resta il file-store.
 > - **StationResolver.Prewarm()** (fix crash `A second operation was started`, memoria [[blazor-dbcontext-concurrency]]): `OnlineCount()` faceva lazy-load DB **durante il render** su `AccVipiPage`/`SopHome`/`VloaListPage`. Nuovo `IStationResolver.Prewarm()` scalda le cache nel ciclo di vita async. **Regola: nessuna I/O DB durante il render, nemmeno lazy via service scoped.**
 > - **Tool `Vipi.DbSeed`** (copia SQLite locale→Neon): fix ciclo `Document↔DocumentVersion` (insert a 2 fasi con `CurrentVersionId=null`). Uso: `dotnet run --project tools/Vipi.DbSeed -- <vipi.db> "<connstring-postgres>"` (fa TRUNCATE+reseed).
@@ -29,9 +45,12 @@ Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e l
 ```bash
 cd "vIPI Ivao Italy"            # cartella interna con la solution
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx          # 447 test (Domain 19 · App 210 · Infra 188 · Hosting 13 · Ui/bUnit 13 · E2E 4)
+dotnet test  Vipi.slnx          # 631 test (Domain 23 · App 273 · Infra 228 · Hosting 18 · Ui/bUnit 85 · E2E 4)
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
+- 🔎 **Per verificare una modifica UI a schermo** (non solo coi test): skill **`.claude/skills/verifica-live/`** —
+  avvio su una copia del DB, driver Edge+puppeteer-core, bersagli e trappole già mappate. Le regressioni Blazor
+  sono silenziose coi test verdi, quindi il runbook chiede di guidare il flusso reale.
 - ⚠️ **AZIONE PENDENTE (2026-07-22, audit Fase 1):** **RIAVVIARE il Host** per applicare `AddImportStateLastError` (additiva: `ImportState.LastAttemptUtc`/`LastError`). Poi `/vsop/admin/sorgenti` mostra il **report stato import** (ultimo successo/tentativo/errore per categoria). Nota: da questa sessione `/vsop/health` è **Unhealthy (503)** se ci sono migrazioni pendenti (schema drift). Audit completo: `docs/history/audit-2026-07-22-criticita-full-stack.md`. Nuova rete di test: `Vipi.Ui.Tests` (bUnit) + `Vipi.E2E.Tests` (WebApplicationFactory in-process).
 - ℹ️ **FASE 2 audit ESEGUITA (2026-07-22, nessun cambio schema):** **B1** report consistenza soft-ref in **`/vsop/admin/diagnostica`** (pista orfana · label pista divergente · area fantasma · gerarchia `ParentCallsign` dangling) — solo diagnosi, nessun auto-fix; `IConsistencyReportService`/`Analyze` (logica pura) + `IConsistencyReportRepository` (EF read-only); se ci sono finding, `/vsop/health` → **Degraded**. **C1** XSS: `HtmlEncode` dei valori dinamici in `StrutturaPage`/`AeroportoPage` (pattern gemello `SearchPage`/`MarkdownLite`).
 - ℹ️ **FASE 3 audit ESEGUITA (2026-07-22) — parte code, resto pianificato in ADR-0007:** **A1** tampone concorrenza SQLite `SqliteTuningInterceptor` (WAL + `busy_timeout`) nel path `UseSqlite`; **D1** `ProductionIdentityGuard.EnsureSafe` in `Program` fa **hard-fail** all'avvio se l'identità dev è attiva fuori da Development (no admin-onnipotente in prod); test path prod `HostIdentityCurrentUserProvider` (nuovo progetto `Vipi.Hosting.Tests`). **A1 cutover Postgres + A2 scala Blazor = pianificati in `docs/adr/adr-0007-produzione-persistenza-e-scala.md`** (non attuati: servono migrations Postgres dedicate + istanza di validazione + backplane). **ESTERNI residui:** montare la RCL nel sito host + configurare `HostIdentity` coi claim/staff-code IVAO reali; eseguire il cutover Postgres; provisioning backplane.
