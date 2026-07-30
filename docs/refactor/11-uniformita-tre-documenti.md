@@ -6,7 +6,7 @@
 > che sta **fra** editor e viewer: chiave di sezione, resa del contenuto editoriale, stato «nascosta»,
 > e i fallback della vista pubblica.
 >
-> **Stato: eseguito ✅ (P1→P6, 2026-07-30).** Branch `fix/uniformita-tre-documenti`, 7 commit.
+> **Stato: eseguito ✅ (P1→P7, 2026-07-30).** Branch `fix/uniformita-tre-documenti`.
 > Suite **640 → 657 verde**. **Verifica live 20/20** su copia del `vipi.db` reale (LIBB per l'ACC,
 > LIBP_APP e LIBD_CS0_APP per l'APP, LIBB↔LDZO per la vLOA), Edge/puppeteer — vedi §5.
 > Dipende da: doc 08, 09, 10.
@@ -159,6 +159,23 @@ dell'early-return.
 - La rotta `/vsop/{acc}/apps/vipi?vloa=` viene **rimossa**: la vLOA ha una rotta sola,
   `/vsop/{acc}/vloa?acc=`. Link dell'editor e `PreviewBanner` puntano lì.
 
+### 3g. Sotto-sezioni collocabili prima del corpo (richiesta owner, verifica live 2026-07-30)
+Le sotto-sezioni si rendevano **sempre dopo** il corpo della sezione: dopo i blocchi in una sezione
+editoriale, dopo la resa derivata in una strutturata. In «Aree regolamentate» questo obbliga a leggere
+prima le mappe delle aree e poi le premesse, che è l'ordine sbagliato per un documento operativo.
+
+Nuova colonna `DocumentSection.BeforeParentBody` (bool, default `false`) — **terzo flag per-sezione**
+sullo stesso modello di `RenderMode` (doc 10 §3a) e `IsHidden` (§3c): versionato, catturato nello
+snapshot, copiato nella bozza. Con `true` la sotto-sezione si rende **prima** del corpo del padre; fra
+loro le sotto-sezioni restano ordinate per `Order`.
+
+Il corpo della sezione diventa quindi una posizione in una sequenza di tre slot — *figlie «prima» →
+corpo → figlie «dopo»* — resa in modo identico da tutti e tre i viewer e dall'editor condiviso
+(`SectionBody` accetta lo slot da rendere; gli host che producono il corpo da sé lo invocano due volte).
+L'editor espone il toggle sull'intestazione della sotto-sezione, accanto ai controlli d'ordine.
+
+Default `false` ⇒ nessuna migrazione dati: i documenti esistenti restano come sono.
+
 ## 4. Passi di migrazione
 
 | # | Passo | Tocca |
@@ -169,6 +186,7 @@ dell'early-return.
 | **P4** | `DocumentSection.IsHidden` versionato + migrazione dai 3 storage + resa uniforme in bozza | migrazione EF, `DocumentSection`, `RawSection`/`SectionView`/`EditableSection`, `IEditingService`, i 3 editor, i 3 viewer |
 | **P5** | Gate standalone APP + authz prima dell'early-return + gate elenco su release effettiva | `EfAppDerivationRepository`, `AppDocumentService`, `AppsListPage`, `AppEditorPage` |
 | **P6** | Coordination vLOA derivata, `ReleasePanel` nell'editor vLOA, rotta vLOA unica | `VloaEditor`, `AppnPage`, `VloaEditorPage`, `mappa-pagine.md` |
+| **P7** | `DocumentSection.BeforeParentBody` + slot di resa nei tre viewer e nell'editor | migrazione EF, `DocumentSection`, `RawSection`/`SectionView`/`EditableSection`, `IEditingService`, `DocumentSectionsEditor`, `SectionBody`, `AccSectionBody`, `AppnPage`, `VloaDocumentView` |
 
 Ogni passo: commit proprio, `dotnet build` verde, test aggiunti dove il comportamento è deterministico.
 
@@ -182,8 +200,9 @@ Ogni passo: commit proprio, `dotnet build` verde, test aggiunti dove il comporta
 - `DocumentSection.IsHidden`: round-trip editing → snapshot di release → viewer.
 - `LoadAppVipiAsync`/`ResolveForDocumentAsync`: un APP `Remotized` non ha identità documentale.
 
-**Esito test:** baseline 640 → **657 verde** (nuovi: `SectionKeysTests`, `AccEditorialFidelityTests`,
-`DocumentMaintenanceTests`, `AppDocumentSurfaceTests`, `CreateDraft_Preserves_Per_Section_Flags`).
+**Esito test:** baseline 640 → **658 verde** (nuovi: `SectionKeysTests`, `AccEditorialFidelityTests`,
+`DocumentMaintenanceTests`, `AppDocumentSurfaceTests`, `CreateDraft_Preserves_Per_Section_Flags`,
+`Subsection_Position_Relative_To_The_Body_Survives_Assembly`, `SetSectionBeforeParentBody_Requires_A_Draft`).
 
 **Esito verifica live (2026-07-30, copia del `vipi.db` reale, Edge/puppeteer): 20/20.**
 Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"` residue),
@@ -202,6 +221,10 @@ Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"`
 5. ✅ `/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
 6. ✅ Editor vLOA: `#p-release` con Differenze / Pubblica ora / Programma al ciclo; nessun pulsante di blocco
    sulla sezione padre «Coordination»; la vecchia rotta `apps/vipi?vloa=` non serve più il documento.
+7. ✅ **P7** (§3g): sotto-sezione «PREMESSA-ZZ» in «Aree regolamentate» del blocco Aerovia di LIBB — di default
+   dopo il corpo; col comando «⤒ Prima del contenuto» passa sopra il pannello aree nell'**editor**, sopra la
+   mappa/elenco in **bozza** e, dopo «Pubblica ora», anche in **pubblica** (lo snapshot conserva la posizione);
+   il comando è reversibile. Confermato anche a occhio sul ritaglio della card, non solo da DOM.
 
 **Propagazione (domanda 4 del pre-flight):** questo giro **rimuove** `AppCustomSection`/`AppCustomBlock`,
 i campi `HiddenSections` dei tre storage e la rotta `apps/vipi?vloa=` → vanno aggiornati nello stesso

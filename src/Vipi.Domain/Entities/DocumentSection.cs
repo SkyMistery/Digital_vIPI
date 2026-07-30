@@ -24,6 +24,11 @@ public class DocumentSection
     /// pubblicare.</summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>Sotto-sezione resa PRIMA del corpo della sezione padre (doc 11 §3g): blocchi per una sezione
+    /// editoriale, resa derivata per una strutturata. Default false = dopo, il comportamento storico. Terzo flag
+    /// per-sezione con <see cref="RenderMode"/> e <see cref="IsHidden"/>: versionato e catturato nello snapshot.</summary>
+    public bool BeforeParentBody { get; set; }
+
     public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
 
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();

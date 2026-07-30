@@ -151,6 +151,7 @@ public sealed class EfContentRepository : IContentRepository
             Order = s.Order,
             RenderMode = s.RenderMode,
             IsHidden = s.IsHidden,
+            BeforeParentBody = s.BeforeParentBody,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new())
@@ -225,7 +226,7 @@ public sealed class EfContentRepository : IContentRepository
         RawSection Build(DocumentSection s) => new()
         {
             Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, Order = s.Order,
-            RenderMode = s.RenderMode, IsHidden = s.IsHidden,
+            RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new()).Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new()).Select(Build).ToList(),
         };

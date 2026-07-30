@@ -68,6 +68,7 @@ public class EditingRepositoryTests : IAsyncLifetime
         var source = await _db.DocumentSections.Where(s => s.DocumentVersionId == srcVer).OrderBy(s => s.Id).FirstAsync();
         source.RenderMode = RenderMode.Live;
         source.IsHidden = true;
+        source.BeforeParentBody = true;
         await _db.SaveChangesAsync();
 
         var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
@@ -76,6 +77,24 @@ public class EditingRepositoryTests : IAsyncLifetime
             .Where(s => s.DocumentVersionId == draftId && s.Title == source.Title).FirstAsync();
         Assert.Equal(RenderMode.Live, copy.RenderMode);
         Assert.True(copy.IsHidden);
+        Assert.True(copy.BeforeParentBody);
+    }
+
+    [Fact]
+    public async Task SetSectionBeforeParentBody_Requires_A_Draft()
+    {
+        // Stessa regola degli altri flag per-sezione: si tocca solo la bozza (doc 11 §3g).
+        var docId = await AccDocIdAsync();
+        var published = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var onPublished = await _db.DocumentSections.Where(s => s.DocumentVersionId == published).OrderBy(s => s.Id).FirstAsync();
+
+        await Assert.ThrowsAnyAsync<Exception>(() => _repo.SetSectionBeforeParentBodyAsync(onPublished.Id, true));
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+        var onDraft = await _db.DocumentSections.Where(s => s.DocumentVersionId == draftId).OrderBy(s => s.Id).FirstAsync();
+        await _repo.SetSectionBeforeParentBodyAsync(onDraft.Id, true);
+
+        Assert.True((await _db.DocumentSections.FindAsync(onDraft.Id))!.BeforeParentBody);
     }
 
     [Fact]

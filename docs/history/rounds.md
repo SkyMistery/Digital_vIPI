@@ -733,3 +733,10 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
 - **Superficie uniforme**: `ReleasePanel` anche nell'editor vLOA (era l'unico senza, e l'unico con un
   «Pubblica» di versione); la sezione padre «Coordination» è derivata anche in editing; **una sola rotta
   viewer per la vLOA** (`apps/vipi?vloa=` rimossa, era pure quella linkata dall'editor).
+- **P7 (§3g, richiesta owner in verifica live)**: le sotto-sezioni si rendevano **sempre dopo** il corpo della
+  sezione. In «Aree regolamentate» significava leggere prima le mappe e poi le premesse. Nuova colonna
+  `DocumentSection.BeforeParentBody` (migrazione `AddSectionBeforeParentBody`) — terzo flag per-sezione con
+  `RenderMode` e `IsHidden`: il corpo diventa una **posizione in una sequenza di tre slot** (*figlie «prima» →
+  corpo → figlie «dopo»*), resa identica nei tre viewer e nell'editor condiviso (`SectionBody` accetta lo slot;
+  gli host che producono il corpo da sé lo invocano due volte). Toggle «⤒ Prima del contenuto / ⤓ Dopo il
+  contenuto» sull'intestazione della sotto-sezione. Default `false` ⇒ nessuna migrazione dati.

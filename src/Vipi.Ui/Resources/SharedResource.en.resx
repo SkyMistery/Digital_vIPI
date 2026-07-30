@@ -936,6 +936,10 @@
   <data name="Dse_FreezeTitle" xml:space="preserve"><value>Freeze: snapshot at publish</value></data>
   <data name="Dse_MakeLiveTitle" xml:space="preserve"><value>Make live: always updated</value></data>
   <data name="Dse_HiddenState" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Dse_BeforeBody" xml:space="preserve"><value>Before the content</value></data>
+  <data name="Dse_AfterBody" xml:space="preserve"><value>After the content</value></data>
+  <data name="Dse_MoveBeforeBodyTitle" xml:space="preserve"><value>Move this subsection BEFORE the section content (currently after)</value></data>
+  <data name="Dse_MoveAfterBodyTitle" xml:space="preserve"><value>Move this subsection AFTER the section content (currently before)</value></data>
   <data name="Dse_Hide" xml:space="preserve"><value>Hide</value></data>
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Show in the published document</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Hide from the published document</value></data>

@@ -936,6 +936,10 @@
   <data name="Dse_FreezeTitle" xml:space="preserve"><value>Congela: fotografa al publish</value></data>
   <data name="Dse_MakeLiveTitle" xml:space="preserve"><value>Rendi live: sempre aggiornata</value></data>
   <data name="Dse_HiddenState" xml:space="preserve"><value>Nascosta</value></data>
+  <data name="Dse_BeforeBody" xml:space="preserve"><value>Prima del contenuto</value></data>
+  <data name="Dse_AfterBody" xml:space="preserve"><value>Dopo il contenuto</value></data>
+  <data name="Dse_MoveBeforeBodyTitle" xml:space="preserve"><value>Sposta questa sotto-sezione PRIMA del contenuto della sezione (ora è dopo)</value></data>
+  <data name="Dse_MoveAfterBodyTitle" xml:space="preserve"><value>Sposta questa sotto-sezione DOPO il contenuto della sezione (ora è prima)</value></data>
   <data name="Dse_Hide" xml:space="preserve"><value>Nascondi</value></data>
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Mostra nel documento pubblicato</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Nascondi dal documento pubblicato</value></data>

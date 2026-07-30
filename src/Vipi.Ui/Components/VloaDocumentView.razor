@@ -54,11 +54,11 @@
             }
             else if (_derive && s.SectionKey == "aor")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadAor()@SubSections(s)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "frequencies")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadFreq()@SubSections(s)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "coordination")
             {
@@ -158,10 +158,10 @@
 
     // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
     // pur essendo creabili dall'editor con «+ sotto-sez». I blocchi della sezione derivata NON si rendono
-    // (portano il payload, non contenuto).
-    private RenderFragment SubSections(SectionView s) => __builder =>
+    // (portano il payload, non contenuto). Lo slot decide se stanno prima o dopo il corpo (doc 11 §3g).
+    private RenderFragment SubSections(SectionView s, SectionSlot slot) => __builder =>
     {
-        @if (s.Children.Count > 0) { <SectionBody Section="s" ShowBlocks="false" /> }
+        @if (SectionBody.HasChildren(s, slot)) { <SectionBody Section="s" ShowBlocks="false" Slot="slot" /> }
     };
 
     // ATC online di un ACC (testa callsign = codice ACC, es. LIMM_CTR / LFMM_N_CTR).

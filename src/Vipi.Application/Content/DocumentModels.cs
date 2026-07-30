@@ -28,6 +28,9 @@ public sealed class RawSection
     /// congela anche la scelta di nascondere.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g). Viaggia nello snapshot con gli altri flag.</summary>
+    public bool BeforeParentBody { get; init; }
+
     public List<RawBlock> Blocks { get; init; } = new();
     public List<RawSection> Children { get; init; } = new();
 }
@@ -65,6 +68,9 @@ public sealed class SectionView
     /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c). I viewer la omettono in pubblica/release e la
     /// marcano in anteprima bozza.</summary>
     public bool IsHidden { get; init; }
+
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g).</summary>
+    public bool BeforeParentBody { get; init; }
 
     public required IReadOnlyList<BlockView> Blocks { get; init; }
     public required IReadOnlyList<SectionView> Children { get; init; }

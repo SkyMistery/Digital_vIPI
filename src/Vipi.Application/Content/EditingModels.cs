@@ -62,6 +62,9 @@ public sealed class EditableSection
     /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c): l'editor la mostra comunque, marcata.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g); l'editor espone il toggle.</summary>
+    public bool BeforeParentBody { get; init; }
+
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }
     public required IReadOnlyList<EditableSection> Children { get; init; }
 }

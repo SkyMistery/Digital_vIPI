@@ -70,6 +70,11 @@ else
                         <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)">
                             <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
+                                @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
+                                @if (SectionBody.HasChildren(s, SectionSlot.Before))
+                                {
+                                    <SectionBody Section="s" ShowBlocks="false" Slot="SectionSlot.Before" />
+                                }
                                 @switch (s.SectionKey)
                                 {
                                     case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
@@ -82,7 +87,10 @@ else
                                 }
                                 @* Le sotto-sezioni di una sezione speciale restano contenuto del documento (doc 11 §3b):
                                    prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez». *@
-                                @if (s.Children.Count > 0) { <SectionBody Section="s" ShowBlocks="false" /> }
+                                @if (SectionBody.HasChildren(s, SectionSlot.After))
+                                {
+                                    <SectionBody Section="s" ShowBlocks="false" Slot="SectionSlot.After" />
+                                }
                             </ChildContent>
                         </CollapsibleBlock>
                     }

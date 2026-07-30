@@ -1,6 +1,12 @@
 @* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
    Riceve il blocco + la chiave sezione + i valori già derivati per quel blocco. *@
 
+@* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
+@if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.Before))
+{
+    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.Before" DepthOffset="-1" />
+}
+
 @switch (Key)
 {
     case "separations": <AppSeparations Rows="Block.Separations" /> break;
@@ -20,11 +26,11 @@
         break;
 }
 
-@* Le sotto-sezioni di una sezione strutturata restano contenuto del documento: si rendono dopo il corpo derivato
-   (prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez»). *@
-@if (IsStructured(Key) && Editorial is { Children.Count: > 0 })
+@* Le sotto-sezioni di una sezione strutturata restano contenuto del documento: quelle non marcate «prima» si
+   rendono dopo il corpo derivato (prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez»). *@
+@if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.After))
 {
-    <SectionBody Section="Editorial" ShowBlocks="false" DepthOffset="-1" />
+    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.After" DepthOffset="-1" />
 }
 
 @code {

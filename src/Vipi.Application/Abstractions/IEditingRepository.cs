@@ -117,6 +117,9 @@ public interface IEditingRepository
     /// <summary>Nasconde/mostra una sezione di una bozza (doc 11 §3c). Errore se non è una bozza.</summary>
     Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
 
+    /// <summary>Colloca una sotto-sezione prima/dopo il corpo del padre (doc 11 §3g). Errore se non è una bozza.</summary>
+    Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
+
     /// <summary>Aggiunge una sezione (radice se parentSectionId è null) in coda ai fratelli. Errore se supera la profondità massima o se non è una bozza. Ritorna l'Id.</summary>
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
 

@@ -134,6 +134,13 @@ else
         await OnChanged.InvokeAsync();
     });
 
+    // Sposta la sotto-sezione prima/dopo il corpo del padre (doc 11 §3g): stato per-sezione, versionato.
+    private Task ToggleBeforeParentBody(EditableSection s) => Run(async () =>
+    {
+        await Editing.SetSectionBeforeParentBodyAsync(s.Id, !s.BeforeParentBody);
+        await OnChanged.InvokeAsync();
+    });
+
     // ---- blocchi ----
     private Task AddBlock(int sectionId, BlockFormat format) => Run(async () =>
     {
@@ -243,12 +250,27 @@ else
                 <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
                         @onclick="() => ToggleHidden(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
             }
+            @* Posizione rispetto al corpo del padre: solo per le SOTTO-sezioni (una sezione di primo livello non ha
+               un corpo che la preceda). Doc 11 §3g. *@
+            @if (IsEditing && !depth0)
+            {
+                <button class="btn ghost" title="@(s.BeforeParentBody ? L["Dse_MoveAfterBodyTitle"] : L["Dse_MoveBeforeBodyTitle"])"
+                        @onclick="() => ToggleBeforeParentBody(s)">
+                    @(s.BeforeParentBody ? "⤓ " + L["Dse_AfterBody"] : "⤒ " + L["Dse_BeforeBody"])
+                </button>
+            }
         </div>
     };
 
-    // Corpo: sezione derivata (host) oppure blocchi editoriali + sotto-sezioni ricorsive.
+    // Corpo a TRE SLOT (doc 11 §3g): sotto-sezioni «prima» → corpo (derivato dall'host o blocchi editoriali) →
+    // sotto-sezioni «dopo». Stessa sequenza dei viewer.
     private RenderFragment SectionBody(EditableSection s, int relDepth) => __builder =>
     {
+        @foreach (var c in s.Children.Where(c => c.BeforeParentBody))
+        {
+            @SectionEditor(c, relDepth + 1)
+        }
+
         @if (IsDerivedSection?.Invoke(s) == true)
         {
             @DerivedContent?.Invoke(s)
@@ -270,7 +292,7 @@ else
             }
         }
 
-        @foreach (var c in s.Children)
+        @foreach (var c in s.Children.Where(c => !c.BeforeParentBody))
         {
             @SectionEditor(c, relDepth + 1)
         }

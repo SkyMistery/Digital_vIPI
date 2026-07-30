@@ -15,10 +15,12 @@ public class AccEditorialFidelityTests
         new() { Id = id, Order = order, Format = format, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, Body = body, BodyJson = json, CalloutKind = kind };
 
     private static EditableSection Sec(int id, string key, string title, int order, int depth = 1,
-        IEnumerable<EditableBlock>? blocks = null, IEnumerable<EditableSection>? children = null) =>
+        IEnumerable<EditableBlock>? blocks = null, IEnumerable<EditableSection>? children = null,
+        bool beforeParentBody = false) =>
         new()
         {
             Id = id, SectionKey = key, Title = title, Order = order, Depth = depth,
+            BeforeParentBody = beforeParentBody,
             Blocks = (blocks ?? Array.Empty<EditableBlock>()).ToList(),
             Children = (children ?? Array.Empty<EditableSection>()).ToList(),
         };
@@ -96,5 +98,23 @@ public class AccEditorialFidelityTests
         var keys = blocks.Single().Block.Sections.Select(s => s.Key).ToList();
 
         Assert.Equal(new[] { "coordination", "custom:aaaa1111", "aor" }, keys.Take(3).ToArray());
+    }
+
+    [Fact]
+    public void Subsection_Position_Relative_To_The_Body_Survives_Assembly()
+    {
+        // doc 11 §3g: la sotto-sezione può precedere il corpo della sezione (es. una premessa sopra le mappe
+        // delle aree regolamentate). Il flag deve arrivare fino alla vista di resa.
+        var regolamentate = Sec(10, "regulated", "Aree regolamentate", 1, children: new[]
+        {
+            Sec(11, "custom:aaaa1111", "Premessa", 1, depth: 2, beforeParentBody: true),
+            Sec(12, "custom:bbbb2222", "Note finali", 2, depth: 2),
+        });
+
+        var sezione = Assert.Single(AssembleAerovia(regolamentate).Single().Block.Sections, s => s.SectionId == 10);
+        var figlie = sezione.Editorial!.Children;
+
+        Assert.True(figlie.Single(c => c.Title == "Premessa").BeforeParentBody);
+        Assert.False(figlie.Single(c => c.Title == "Note finali").BeforeParentBody);
     }
 }

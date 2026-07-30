@@ -158,6 +158,7 @@ public sealed class VipiViewService : IVipiViewService
             Depth = s.Depth,
             SectionKey = s.SectionKey,
             IsHidden = s.IsHidden,
+            BeforeParentBody = s.BeforeParentBody,
             Blocks = blocks,
             Children = children,
         };

@@ -130,6 +130,13 @@ public sealed class EditingService : IEditingService
         await _repo.SetSectionRenderModeAsync(sectionId, mode, ct);
     }
 
+    public async Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default)
+    {
+        var docId = await AuthorizeSectionAsync(sectionId, ct);
+        await EnsureLockAsync(docId, ct);
+        await _repo.SetSectionBeforeParentBodyAsync(sectionId, before, ct);
+    }
+
     public async Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default)
     {
         var docId = await AuthorizeSectionAsync(sectionId, ct);
