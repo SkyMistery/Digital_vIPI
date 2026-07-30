@@ -80,7 +80,7 @@ Devono combaciare esatti. Se cambi URL (es. ricreando il servizio) vanno aggiorn
 
 | Sintomo | Causa | Fix |
 |---------|-------|-----|
-| Build fallisce: `MSB4068 <Solution> unrecognized` su `Vipi.slnx` | L'immagine `sdk:8.0` non supporta il formato `.slnx` | Dockerfile fa `dotnet restore` del **csproj di Host**, non della soluzione |
+| Build fallisce: `MSB4068 <Solution> unrecognized` su `Vipi.slnx` | Era l'immagine `sdk:8.0`, che non supportava il formato `.slnx`. Con `sdk:10.0` il formato è supportato | Dockerfile fa comunque `dotnet restore` del **csproj di Host**, non della soluzione: evita di scaricare i pacchetti dei progetti di test |
 | Servizio buildato da `main` senza i fix | Il nuovo Web Service punta a `main` di default | Settings → Build & Deploy → **Branch** = `fix/airport-weather-tl-draft-preview` |
 | Gira su SQLite (log con `AUTOINCREMENT`/`PRAGMA`), dati persi al redeploy | Manca `Persistence__Provider=Postgres` (+ connection string) | Aggiungi gli env var (§2.7) |
 | Latenza ~1s per click | Regione Oregon/USA (Blazor Server = round-trip a ogni azione) | Ricrea il servizio in **Frankfurt** |

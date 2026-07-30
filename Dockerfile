@@ -1,12 +1,13 @@
 # Build multi-stage del modulo ospitato dall'host di esempio Vipi.Host.
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
-# Restore del solo Host (+ i suoi ProjectReference): l'immagine sdk:8.0 non supporta il formato .slnx.
+# Restore del solo Host (+ i suoi ProjectReference): l'immagine ora leggerebbe anche Vipi.slnx, ma
+# restorare la soluzione intera tirerebbe dentro i pacchetti dei progetti di test, inutili nell'immagine.
 RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
 RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app .
 # Il DB SQLite di default è relativo: per la persistenza montare un volume su /app/data e impostare
