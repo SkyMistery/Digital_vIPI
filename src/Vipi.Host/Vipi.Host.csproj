@@ -23,9 +23,9 @@
   <ItemGroup>
     <!-- Modulo login IVAO OIDC (scenario C, standalone). STACCABILE: rimuovi questo pacchetto + i file
          Auth\*.cs quando vIPI va embedded in un host con auth propria. Il core resta invariato. -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.*" />
     <!-- Key-ring Data Protection su DB (antiforgery/cookie persistenti tra redeploy su Render). Vedi VipiDataProtection.cs. -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.*" />
   </ItemGroup>
 
 </Project>
