@@ -19,7 +19,10 @@ public class DocumentProfile
     /// <summary>Callsign dei settori le cui frequenze sono nascoste dalla tabella (JSON array).</summary>
     public string? HiddenFrequenciesJson { get; set; }
 
-    /// <summary>Chiavi (SectionCatalog) delle sezioni nascoste dal documento pubblicato (JSON array).</summary>
+    /// <summary>SUPERATA (doc 11 §3c): le sezioni nascoste sono un flag versionato sulla sezione
+    /// (<c>DocumentSection.IsHidden</c>). La colonna resta solo perché la riconciliazione al boot
+    /// (<c>IDocumentMaintenance.MigrateHiddenSectionsAsync</c>) vi legge le voci storiche e poi la azzera;
+    /// nessun altro codice la scrive.</summary>
     public string? HiddenSectionsJson { get; set; }
 
     /// <summary>Override d'ordine delle frequenze per callsign (JSON di AppFreqOrderOverride).</summary>
