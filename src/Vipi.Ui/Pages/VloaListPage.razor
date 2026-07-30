@@ -131,23 +131,30 @@ else
                 case PreviewKind.Draft:
                     if (await Authz.CanEditAccAsync(_acc.Code))
                         _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 case PreviewKind.Release:
                     var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
                     if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 default:
-                    // DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven), come sulla pagina /apps/vipi?vloa=…
-                    // Senza, si vedrebbero i blocchi statici salvati: stesso documento, resa diversa.
-                    _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false);
-                    _useFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
+                    await LoadPublicAsync(row.DocId);
                     break;
             }
             _viewDocId = row.DocId;
             _viewSubtitle = $"{_acc.Name} ↔ {row.Neighbour ?? _foreign}";
         }
+    }
+
+    // Vista PUBBLICA (doc 11 §3d): documento + derivate frozen si impostano INSIEME, così il degrado di
+    // un'anteprima non autorizzata/non corrispondente produce esattamente la pubblica (prima restava _useFrozen=false
+    // → derivate LIVE al pubblico). DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven): senza, si vedrebbero
+    // i blocchi statici salvati, stesso documento e resa diversa.
+    private async Task LoadPublicAsync(int docId)
+    {
+        _view = await ViewService.BuildVloaByIdAsync(docId, BlockTier.Extended, live: false);
+        _useFrozen = true;
     }
 
     private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)

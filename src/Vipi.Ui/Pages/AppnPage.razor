@@ -182,6 +182,21 @@ else
         _ => "",
     };
 
+    // Vista PUBBLICA (doc 11 §3d): documento + derivate frozen si impostano INSIEME. È anche il degrado di
+    // un'anteprima non autorizzata/non corrispondente: senza questo, il fallback lasciava _useFrozen=false e
+    // serviva al pubblico le derivate LIVE (congelamento AIRAC bypassabile dall'URL con un ?as=rel: qualsiasi).
+    private async Task LoadAppPublicAsync()
+    {
+        _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false);
+        _useFrozen = true;
+    }
+
+    private async Task LoadVloaPublicAsync(string home)
+    {
+        _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false);
+        _vloaUseFrozen = true;
+    }
+
     // Anteprima release gated (authz nel servizio) + verifica identità: null se inesistente/altro bersaglio/non autorizzato.
     private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
     {
@@ -218,16 +233,15 @@ else
                 case PreviewKind.Draft:
                     if (await Authz.CanEditAccAsync(home))
                         _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                    else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadVloaPublicAsync(home); }
                     break;
                 case PreviewKind.Release:
                     var pv = _vloaDocId is int vid ? await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, vid.ToString()) : null;
                     if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _vloaView = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                    else { _mode = default; _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadVloaPublicAsync(home); }
                     break;
                 default:
-                    _vloaView = await ViewService.BuildVloaByPairAsync(home, _vloaForeign, BlockTier.Extended, live: false);
-                    _vloaUseFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
+                    await LoadVloaPublicAsync(home);
                     break;
             }
             return;
@@ -248,16 +262,15 @@ else
         {
             case PreviewKind.Draft:
                 if (_canEdit) _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                else { _mode = default; _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false); }
+                else { _mode = default; await LoadAppPublicAsync(); }
                 break;
             case PreviewKind.Release:
                 var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
                 if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                else { _mode = default; _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false); }
+                else { _mode = default; await LoadAppPublicAsync(); }
                 break;
             default:
-                _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false);
-                _useFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
+                await LoadAppPublicAsync();
                 break;
         }
         if (_view is null) return;
