@@ -333,7 +333,7 @@ else
                                 <tbody>
                                     @foreach (var r in ShownSids())
                                     {
-                                        <tr><td>@r.Runway</td><td>@r.Fix</td><td>@r.Name</td><td>@r.Transition</td><td>@r.InitialClimb</td><td>@r.Type</td><td>@r.Cat</td><td>@r.Wtc</td><td>@r.Condition</td></tr>
+                                        <tr><td>@r.Runway</td><td>@r.Fix</td><td>@r.Name</td><td>@r.Transition</td><td>@FormatInitialClimb(r.InitialClimb)</td><td>@r.Type</td><td>@r.Cat</td><td>@r.Wtc</td><td>@r.Condition</td></tr>
                                     }
                                 </tbody>
                             </table>
@@ -352,7 +352,7 @@ else
                     <SectionNode Section="s" />
                 }
 
-                @* Sezioni extra — copia inline sotto le SID, visibile solo su schermi stretti (su desktop usa il rail di destra). *@
+                @* Sezioni extra editoriali (es. Remarks) — full-width collassabili in colonna principale: le lunghe non stanno nel rail sticky. *@
                 @if (ExtraSections().Any())
                 {
                     <div class="extra-inline">
@@ -387,13 +387,6 @@ else
                         <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
                     </ul>
                 </div>
-                @foreach (var s in ExtraSections())
-                {
-                    <div class="rail-card" id="extra-rail-@s.Id">
-                        <h5>@s.Title</h5>
-                        <DocumentBlocksEditor Blocks="s.Blocks" Editing="false" />
-                    </div>
-                }
             </aside>
         </div>
     </div>
@@ -679,6 +672,20 @@ else
             || string.IsNullOrWhiteSpace(r.Runway) || r.Runway == "—");
 
     private void SelectSidRwy(string rw) { _sidRwy = rw; _sidRwyUserPicked = true; }
+
+    /// <summary>Initial climb: mostra "ft" se la quota è a/sotto la TA, "FL" se sopra (es. 9000 → FL90, 11000 → FL110).
+    /// Preserva eventuali note (es. "(to be coordinated with APP)"); non tocca i valori non numerici ("—", solo nota).</summary>
+    private string FormatInitialClimb(string? raw)
+    {
+        var s = (raw ?? "").Trim();
+        if (s.Length == 0 || s == "—") return "—";
+        var m = System.Text.RegularExpressions.Regex.Match(s, @"^([\d,]+)\s*(.*)$");
+        if (!m.Success || !int.TryParse(m.Groups[1].Value.Replace(",", ""), out var feet))
+            return s;   // nessuna quota numerica (es. "to be coordinated with APP")
+        var note = m.Groups[2].Value.Trim();
+        var label = _ta is int ta && feet > ta ? $"FL{(int)Math.Round(feet / 100.0)}" : $"{feet} ft";
+        return note.Length == 0 ? label : $"{label} {note}";
+    }
 
     private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

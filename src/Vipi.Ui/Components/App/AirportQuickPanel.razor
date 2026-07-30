@@ -62,7 +62,7 @@ else
                             <td><b>@s.Fix</b></td>
                             <td>@s.Name</td>
                             <td>@(string.IsNullOrWhiteSpace(s.Transition) ? "—" : s.Transition)</td>
-                            <td>@(string.IsNullOrWhiteSpace(s.InitialClimb) ? "—" : s.InitialClimb)</td>
+                            <td>@FormatInitialClimb(s.InitialClimb)</td>
                             <td>@(string.IsNullOrWhiteSpace(s.Cat) ? "—" : s.Cat)</td>
                             <td>@(string.IsNullOrWhiteSpace(s.Wtc) ? "—" : s.Wtc)</td>
                         </tr>
@@ -206,6 +206,19 @@ else
     }
 
     private static string? Norm(string? r) => string.IsNullOrWhiteSpace(r) ? null : r.Trim();
+
+    /// <summary>Initial climb: "ft" se a/sotto la TA, "FL" se sopra (es. 9000 → FL90). Come AeroportoPage.FormatInitialClimb.</summary>
+    private string FormatInitialClimb(string? raw)
+    {
+        var s = (raw ?? "").Trim();
+        if (s.Length == 0 || s == "—") return "—";
+        var m = Regex.Match(s, @"^([\d,]+)\s*(.*)$");
+        if (!m.Success || !int.TryParse(m.Groups[1].Value.Replace(",", ""), out var feet))
+            return s;
+        var note = m.Groups[2].Value.Trim();
+        var label = _ta is int ta && feet > ta ? $"FL{(int)Math.Round(feet / 100.0)}" : $"{feet} ft";
+        return note.Length == 0 ? label : $"{label} {note}";
+    }
 
     private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
         new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
