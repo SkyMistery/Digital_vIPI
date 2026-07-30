@@ -121,13 +121,13 @@ public class AirportSectorImportTests : IAsyncLifetime
         // default: una principale PER TIPO presente (GND, TWR, APP) = 3; ATIS mai principale
         Assert.Equal(3, sectors.Count(s => s.IsPrimary));
         Assert.False(sectors.Single(s => s.ComposePosition == "LIRN_ATIS").IsPrimary);
-        Assert.Single(sectors.Where(s => s.Position == "TWR" && s.IsPrimary));
+        Assert.Single(sectors, s => s.Position == "TWR" && s.IsPrimary);
 
         // scelta esplicita dell'altra TWR: esclusiva SOLO tra le TWR (GND/APP intatte)
         var otherTwr = sectors.Single(s => s.Position == "TWR" && !s.IsPrimary);
         await _repo.SetPrimaryAsync(otherTwr.Id);
         var after = await _repo.ListByAirportAsync("LIRN");
-        Assert.Single(after.Where(s => s.Position == "TWR" && s.IsPrimary));
+        Assert.Single(after, s => s.Position == "TWR" && s.IsPrimary);
         Assert.True(after.Single(s => s.Id == otherTwr.Id).IsPrimary);
         Assert.True(after.Single(s => s.ComposePosition == "LIRN_GND").IsPrimary);
         Assert.True(after.Single(s => s.ComposePosition == "LIRN_US0_APP").IsPrimary);

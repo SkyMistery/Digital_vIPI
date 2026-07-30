@@ -43,13 +43,13 @@ builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIden
 var app = builder.Build();
 
 // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
-// UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownNetworks/Proxies
+// UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
 // svuotati perché l'IP del proxy non è fisso. Innocuo in locale (gli header non arrivano).
 var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
 };
-forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownIPNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
