@@ -320,7 +320,7 @@ else
 
     private static bool IsStructured(EditableSection s) => Structured.Contains(s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
-    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
     // Le sezioni-catalogo (chiavi note) sono obbligatorie: titolo bloccato, no elimina. Le custom (chiavi ignote) no.
     private static bool IsMandatory(EditableSection s) =>
         Structured.Contains(s.SectionKey) || s.SectionKey is "operationaltechnique" or "validity";

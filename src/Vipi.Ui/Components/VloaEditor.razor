@@ -108,7 +108,7 @@ else
     private IReadOnlySet<string> _mandatory = new HashSet<string>();
     private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
-    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;

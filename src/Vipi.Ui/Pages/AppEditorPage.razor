@@ -241,7 +241,7 @@ else
     // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
     private bool IsMandatory(EditableSection s) => SectionCatalog.Find(SectionProfile.App, s.SectionKey) is not null;
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
-    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
     private bool IsHidden(EditableSection s) => _hiddenKeys.Contains(s.SectionKey);
 
     private Task ToggleHidden(EditableSection s) => Guard(async () =>

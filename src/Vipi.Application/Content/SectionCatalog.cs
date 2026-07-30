@@ -28,6 +28,13 @@ public static class SectionCatalog
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
     public static SectionKind KindOf(string key) => KindByKey.TryGetValue(key, out var k) ? k : SectionKind.Editorial;
 
+    /// <summary>
+    /// Vero se la sezione espone all'editor il toggle Live/Frozen (doc 10 §3a): solo le sezioni DERIVATE, perché
+    /// per quelle editoriali non esiste una derivazione da congelare. La regola stava ripetuta identica nei tre
+    /// editor (ACC, APP, vLOA) e vive qui, dove è definita la natura delle sezioni.
+    /// </summary>
+    public static bool IsRenderModeToggleable(string key) => KindOf(key) == SectionKind.Derived;
+
     private static SectionDescriptor D(string key, string title, int order) => new(key, title, order, KindOf(key));
 
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/

@@ -20,6 +20,31 @@ public class SectionCatalogTests
     public void KindOf_is_single_source(string key, SectionKind expected) =>
         Assert.Equal(expected, SectionCatalog.KindOf(key));
 
+    // Il toggle Live/Frozen (doc 10 §3a) vale solo per le sezioni derivate: la regola stava ripetuta nei tre
+    // editor, ora è qui. Ogni chiave del catalogo deve rispondere in modo coerente con la propria natura.
+    [Theory]
+    [InlineData("aor", true)]
+    [InlineData("frequencies", true)]
+    [InlineData("coordination", true)]
+    [InlineData("minima", true)]
+    [InlineData("sids", true)]
+    [InlineData("separations", false)]
+    [InlineData("vfr", false)]
+    [InlineData("validity", false)]
+    [InlineData("una-sezione-custom", false)]   // chiave ignota = editoriale = niente toggle
+    public void IsRenderModeToggleable_only_for_derived(string key, bool expected) =>
+        Assert.Equal(expected, SectionCatalog.IsRenderModeToggleable(key));
+
+    [Fact]
+    public void IsRenderModeToggleable_agrees_with_KindOf_on_every_catalog_key()
+    {
+        // Invariante di coerenza: le due porte non possono divergere.
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+            foreach (var d in SectionCatalog.For(p))
+                Assert.Equal(SectionCatalog.KindOf(d.Key) == SectionKind.Derived,
+                    SectionCatalog.IsRenderModeToggleable(d.Key));
+    }
+
     [Fact]
     public void Universals_present_in_every_profile()
     {
