@@ -673,19 +673,7 @@ else
 
     private void SelectSidRwy(string rw) { _sidRwy = rw; _sidRwyUserPicked = true; }
 
-    /// <summary>Initial climb: mostra "ft" se la quota è a/sotto la TA, "FL" se sopra (es. 9000 → FL90, 11000 → FL110).
-    /// Preserva eventuali note (es. "(to be coordinated with APP)"); non tocca i valori non numerici ("—", solo nota).</summary>
-    private string FormatInitialClimb(string? raw)
-    {
-        var s = (raw ?? "").Trim();
-        if (s.Length == 0 || s == "—") return "—";
-        var m = System.Text.RegularExpressions.Regex.Match(s, @"^([\d,]+)\s*(.*)$");
-        if (!m.Success || !int.TryParse(m.Groups[1].Value.Replace(",", ""), out var feet))
-            return s;   // nessuna quota numerica (es. "to be coordinated with APP")
-        var note = m.Groups[2].Value.Trim();
-        var label = _ta is int ta && feet > ta ? $"FL{(int)Math.Round(feet / 100.0)}" : $"{feet} ft";
-        return note.Length == 0 ? label : $"{label} {note}";
-    }
+    private string FormatInitialClimb(string? raw) => AirportViewFormat.InitialClimb(raw, _ta);
 
     private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -721,10 +709,7 @@ else
         _ => position ?? "—",
     };
 
-    private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
-        new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
-            r.TimeFromLocalMin, r.TimeToLocalMin, r.DaysOfWeekMask, r.DateParity,
-            r.DateFromMonthDay, r.DateToMonthDay);
+    private static RunwayRuleEval MapRule(RunwayRuleRow r) => AirportViewFormat.MapRule(r);
 
     private static string TafCss(TafChangeKind k) => k switch
     {
@@ -792,18 +777,9 @@ else
 
     private void ParseTlTable(string json)
     {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("columns", out var cols))
-                _tlCols = cols.EnumerateArray().Select(c => c.GetString() ?? "").ToList();
-            if (root.TryGetProperty("rows", out var rows))
-                foreach (var row in rows.EnumerateArray())
-                    if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() >= 2)
-                        _tlRows.Add((cells[0].GetString() ?? "", cells[1].GetString() ?? ""));
-        }
-        catch (JsonException) { _tlRows = new(); }
+        var table = AirportViewFormat.ParseTransitionLevels(json);
+        if (table.Columns.Count > 0) _tlCols = table.Columns;
+        _tlRows.AddRange(table.Rows);
     }
 
     /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "&lt; 984").</summary>
@@ -825,17 +801,7 @@ else
         (int f, int t) => $"{f}–{t}",
     };
 
-    private static bool QnhRowMatches(string range, int qnh)
-    {
-        var nums = System.Text.RegularExpressions.Regex.Matches(range, @"\d+")
-            .Select(m => int.Parse(m.Value)).ToList();
-        if (nums.Count == 0) return false;
-        if (range.Contains('≥') || range.Contains(">=")) return qnh >= nums[0];
-        if (range.Contains('≤') || range.Contains("<=")) return qnh <= nums[0];
-        if (range.Contains('>')) return qnh > nums[0];
-        if (range.Contains('<')) return qnh < nums[0];
-        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
-    }
+    private static bool QnhRowMatches(string range, int qnh) => AirportViewFormat.QnhRowMatches(range, qnh);
 
     /// <summary>Estrae gli identificativi pista dalla tabella "Piste" del documento (prima colonna).</summary>
     private static List<string> ExtractRunways(DocumentView view)

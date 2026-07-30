@@ -138,22 +138,10 @@ else
             }
             else if (b.Format == BlockFormat.Table && b.BodyJson is not null && _tlRows.Count == 0)
             {
-                ParseTlTable(b.BodyJson);
+                // Qui servono solo le righe: le intestazioni le rende il documento completo, non il pannello.
+                _tlRows.AddRange(AirportViewFormat.ParseTransitionLevels(b.BodyJson).Rows);
             }
         }
-    }
-
-    private void ParseTlTable(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("rows", out var rows))
-                foreach (var row in rows.EnumerateArray())
-                    if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() >= 2)
-                        _tlRows.Add((cells[0].GetString() ?? "", cells[1].GetString() ?? ""));
-        }
-        catch (JsonException) { _tlRows = new(); }
     }
 
     private string TlNow()
@@ -161,7 +149,7 @@ else
         if (_tlRows.Count == 0) return "—";
         if (_qnh is int q)
         {
-            var hit = _tlRows.FirstOrDefault(r => QnhRowMatches(r.Range, q));
+            var hit = _tlRows.FirstOrDefault(r => AirportViewFormat.QnhRowMatches(r.Range, q));
             if (hit.Level is not null) return _ta is null ? "N/A" : hit.Level;
         }
         return _ta is null ? "N/A" : _tlRows[0].Level;
@@ -176,7 +164,7 @@ else
         if (_profile.Rules.Count > 0)
         {
             var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
-            var rr = RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
+            var rr = RunwaySuggestion.EvaluateRules(_profile.Rules.Select(AirportViewFormat.MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
             if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
         }
         if (_runways.Count > 0)
@@ -207,32 +195,5 @@ else
 
     private static string? Norm(string? r) => string.IsNullOrWhiteSpace(r) ? null : r.Trim();
 
-    /// <summary>Initial climb: "ft" se a/sotto la TA, "FL" se sopra (es. 9000 → FL90). Come AeroportoPage.FormatInitialClimb.</summary>
-    private string FormatInitialClimb(string? raw)
-    {
-        var s = (raw ?? "").Trim();
-        if (s.Length == 0 || s == "—") return "—";
-        var m = Regex.Match(s, @"^([\d,]+)\s*(.*)$");
-        if (!m.Success || !int.TryParse(m.Groups[1].Value.Replace(",", ""), out var feet))
-            return s;
-        var note = m.Groups[2].Value.Trim();
-        var label = _ta is int ta && feet > ta ? $"FL{(int)Math.Round(feet / 100.0)}" : $"{feet} ft";
-        return note.Length == 0 ? label : $"{label} {note}";
-    }
-
-    private static RunwayRuleEval MapRule(RunwayRuleRow r) =>
-        new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
-            r.TimeFromLocalMin, r.TimeToLocalMin, r.DaysOfWeekMask, r.DateParity,
-            r.DateFromMonthDay, r.DateToMonthDay);
-
-    private static bool QnhRowMatches(string range, int qnh)
-    {
-        var nums = Regex.Matches(range, @"\d+").Select(m => int.Parse(m.Value)).ToList();
-        if (nums.Count == 0) return false;
-        if (range.Contains('≥') || range.Contains(">=")) return qnh >= nums[0];
-        if (range.Contains('≤') || range.Contains("<=")) return qnh <= nums[0];
-        if (range.Contains('>')) return qnh > nums[0];
-        if (range.Contains('<')) return qnh < nums[0];
-        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
-    }
+    private string FormatInitialClimb(string? raw) => AirportViewFormat.InitialClimb(raw, _ta);
 }
