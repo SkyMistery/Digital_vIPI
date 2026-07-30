@@ -1,7 +1,28 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 luglio 2026 (stampa documenti; audit concorrenza + codice morto + ridondanze; verifica live)
+**Ultimo aggiornamento:** 30 luglio 2026 (uniformità dei tre documenti — doc 11; stampa documenti; audit concorrenza + codice morto + ridondanze)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
+> `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
+> Carta completa: `docs/refactor/11-uniformita-tre-documenti.md`. Le cose da sapere subito:
+> - **Il modello era unico, la rilettura no.** Ogni famiglia interpretava lo stesso `Document` a modo suo:
+>   chiave di sezione, resa del contenuto editoriale, stato «nascosta», fallback della vista pubblica.
+>   Sei difetti alti, tutti **invisibili ai test verdi** e trovati guidando l'app reale.
+> - **Stato per-sezione ⇒ colonna su `DocumentSection`.** `IsHidden` (migrazione `AddSectionIsHidden`) e
+>   `BeforeParentBody` (`AddSectionBeforeParentBody`) si aggiungono a `RenderMode` di doc 10: versionati e dentro
+>   lo snapshot. Prima «nascondi» viveva in tre storage, due non versionati → **cambiava la pagina pubblica senza
+>   pubblicare**. ⚠️ `CreateDraftAsync` non copiava i flag: aprire una bozza resettava `RenderMode` a `Frozen`.
+> - **Chiavi di sezione univoche** (`custom:{guid8}`): la costante `"custom"` faceva collidere le sezioni libere.
+>   Migrazione dati al boot (`IDocumentMaintenance`), non EF: le migration del repo sono SQLite-flavored.
+> - **`?as=` non valido ⇒ pubblica CON derivate frozen.** Prima il fallback lasciava `_useFrozen=false`: il
+>   congelamento AIRAC era bypassabile dall'URL.
+> - **P7–P9 chiesti dall'owner in verifica live**: sotto-sezioni collocabili **prima** del corpo; coordinamenti
+>   con il solo primo livello espanso; «Aree regolamentate» che nasce collassata (viewer **ed** editor).
+> - ⚠️ **Viewer ed editor possono avere sequenze opposte per la stessa sezione** (vLOA/coordinamenti: il viewer
+>   rende le direzioni nel padre, l'editor nelle figlie). Toccarne una sola ha prodotto un albero duplicato.
+> - **§3bis del doc 11: «non-problemi verificati»** — due apparenti duplicazioni nei coordinamenti che sono dato
+>   corretto. Leggerlo prima di «aggiustarle».
 
 > **🖨️ Sessione 2026-07-30 (2) — stampa dei documenti + fix pubblicazione.** Branch
 > `fix/audit-race-deadcode-redundancy`, 14 commit, suite **631 → 640 verde**, build 0 warning. Schede complete:
