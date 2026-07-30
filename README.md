@@ -46,7 +46,7 @@ dotnet ef migrations add <Nome> \
 (usa `DesignTimeDbContextFactory`; a runtime la connection string la fornisce l'host)
 
 ## Stato in breve
-Solution .NET 8 a 4 layer + Host Blazor Server, **128 test verdi**. Consultazione + editing + sicurezza dal DB;
+Solution .NET 10 a 4 layer + Host Blazor Server, **663 test verdi**. Consultazione + editing + sicurezza dal DB;
 live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/vsop`; **fonte unica = cataloghi**
 (i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). Dettaglio completo
 e prossimi passi in **`HANDOFF.md`**; storia in **`docs/history/rounds.md`**.

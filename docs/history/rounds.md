@@ -756,3 +756,28 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
   (sempre `ForeignToHome`, perché il titolo non inizia col codice Home), quindi l'albero del vicino compariva
   **fuori** dalle sotto-sezioni *e* dentro «LDZO → LIBB». Ora il padre non ha corpo proprio: le direzioni sono
   le sue sotto-sezioni. Nel viewer la sequenza è opposta (il padre rende entrambe, le figlie no) ed era corretta.
+
+## 2026-07-30 — Migrazione da .NET 8 a .NET 10 (terza sessione)
+
+Bump di framework, non di comportamento: 13 progetti da `net8.0` a `net10.0`, pacchetti `8.0.*` → `10.0.*`
+(EF Core 10, Npgsql 10.0.3, OIDC 10, `Components.Web` 10.0.10). Suite **663 verde**, identica alla baseline
+net8 misurata prima di partire. Verifica live su copia del `vipi.db` reale.
+
+- **Gate bUnit prima di tutto.** bUnit aggancia gli internals del Renderer Blazor: era il punto dove la
+  migrazione poteva morire. Primo commit = **solo il TFM**, pacchetti ancora 8.0.\*, per isolare la domanda
+  «il runtime 10 regge?» dalla domanda «i pacchetti 10 reggono?». I 92 test UI sono passati subito; bUnit poi
+  è salito a **1.40.0** e resta su 1.x — la 2.x è una riscrittura di API, fuori dallo scopo di un bump.
+- **Test infrastructure ferma al 2023**: xunit 2.5.3 → 2.9.3, `runner.visualstudio` 2.5.3 → 3.1.5,
+  `Test.Sdk` 17.8.0 → 18.8.1, coverlet 6.0.0 → 10.0.1. bunit 1.40 toglie anche la dipendenza da
+  `Microsoft.Extensions.Caching.Memory` 9.0.0-preview, che era segnalata NU1903.
+- **Due warning nuovi, entrambi chiusi**: `ASPDEPR005` (`ForwardedHeadersOptions.KnownNetworks` deprecato in
+  ASP.NET Core 10 → `KnownIPNetworks`) e `xUnit2031` (`Assert.Single(x.Where(p))` → `Assert.Single(x, p)`,
+  5 occorrenze nei test Infrastructure).
+- **`global.json` nuovo** (`10.0.100` + `rollForward: latestFeature`): finora non c'era e locale e CI
+  sceglievano l'SDK per conto loro. Docker passa a `sdk:10.0`/`aspnet:10.0`; il restore resta sul csproj di
+  Host, ora per non tirare i pacchetti dei test e non più perché `sdk:8.0` non leggeva `.slnx`.
+- **Verifica live (copia del DB reale)**: le **due migrazioni pendenti si applicano sotto EF Core 10**
+  (`ProductVersion` 10.0.10) e `/vsop/health` non segnala schema drift; viewer LIBD completo (transition level
+  con `≤`/`–`/`≥`, 20 SID, remarks), editor con timeline a 3 release e **round-trip del circuito verificato**
+  (click su «Differences» → il DOM cambia), elenco documenti e drafts a posto. `health` risponde `Degraded` per
+  la cache ATC ferma: previsto senza credenziali IVAO, non una regressione.

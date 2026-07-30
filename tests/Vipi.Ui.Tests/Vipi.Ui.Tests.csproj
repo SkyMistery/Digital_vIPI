@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -10,11 +10,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="bunit" Version="1.29.5" />
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="xunit" Version="2.5.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <!-- Parser HTML di bUnit. La 1.2.0 che tira bunit ha una mXSS (GHSA-pgww-w46g-26qg), patchata in 1.5.0.
+         Dipendenza di soli test, ma l'audit NuGet è rumoroso: pinnata finché bunit non sale da sé. -->
+    <PackageReference Include="AngleSharp" Version="1.6.0" />
+    <PackageReference Include="bunit" Version="1.40.0" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
 
   <ItemGroup>

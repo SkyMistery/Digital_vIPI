@@ -46,7 +46,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
 
         var afterFirst = (await _repo.LoadAsync("LIRF"))!.Sids;
         Assert.Equal(3, afterFirst.Count);                                   // 1 manuale + 2 importate
-        Assert.Single(afterFirst.Where(s => !s.IsImported));                 // la manuale c'è
+        Assert.Single(afterFirst, s => !s.IsImported);                       // la manuale c'è
         var g = afterFirst.Single(s => s.Name == "ALAX7G");
 
         // Priorità + forzatura su una importata.
@@ -62,7 +62,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
 
         var afterSecond = (await _repo.LoadAsync("LIRF"))!.Sids;
         Assert.Equal(3, afterSecond.Count);
-        Assert.Single(afterSecond.Where(s => !s.IsImported && s.Name == "OST7A"));   // manuale intatta
+        Assert.Single(afterSecond, s => !s.IsImported && s.Name == "OST7A");         // manuale intatta
         var g2 = afterSecond.Single(s => s.Name == "ALAX8G");
         Assert.Equal(1, g2.Priority);                                        // priorità mantenuta
         Assert.True(g2.ForcePublished);                                      // forzatura mantenuta
@@ -192,7 +192,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null) });
 
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids;
-        Assert.Single(sids.Where(s => s.IsImported));       // importata ancora presente
-        Assert.Single(sids.Where(s => !s.IsImported));      // manuale presente
+        Assert.Single(sids, s => s.IsImported);             // importata ancora presente
+        Assert.Single(sids, s => !s.IsImported);            // manuale presente
     }
 }
