@@ -17,8 +17,15 @@ public sealed class IvaoTokenProvider
     private readonly IvaoOptions _opt;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    private string? _token;
-    private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
+    // Token e scadenza in un unico riferimento immutabile, pubblicato con Volatile: in due campi separati il
+    // percorso veloce (fuori dal gate) leggerebbe una coppia non atomica — una DateTimeOffset non si scrive
+    // atomicamente — potendo osservare una scadenza strappata o disallineata dal token.
+    private CachedToken? _cached;
+
+    private sealed record CachedToken(string Value, DateTimeOffset ExpiresAt)
+    {
+        public bool IsValid => DateTimeOffset.UtcNow < ExpiresAt;
+    }
 
     public IvaoTokenProvider(IHttpClientFactory factory, IOptions<IvaoOptions> opt)
     {
@@ -33,12 +40,12 @@ public sealed class IvaoTokenProvider
     public async Task<string?> GetTokenAsync(CancellationToken ct = default)
     {
         if (!IsConfigured) return null;
-        if (_token is not null && DateTimeOffset.UtcNow < _expiresAt) return _token;
+        if (Volatile.Read(ref _cached) is { IsValid: true } hit) return hit.Value;
 
         await _gate.WaitAsync(ct);
         try
         {
-            if (_token is not null && DateTimeOffset.UtcNow < _expiresAt) return _token;
+            if (Volatile.Read(ref _cached) is { IsValid: true } cached) return cached.Value;
 
             using var req = new HttpRequestMessage(HttpMethod.Post, _opt.TokenEndpoint)
             {
@@ -66,13 +73,13 @@ public sealed class IvaoTokenProvider
             var body = await res.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken: ct)
                        ?? throw new InvalidOperationException("Risposta token IVAO vuota.");
 
-            _token = body.AccessToken;
             // Rinnova 120s prima della scadenza dichiarata: il margine assorbe lo skew d'orologio tra questo host
             // e IVAO (VM/NTP drift) evitando di presentare un token già scaduto lato server (→ 401 a cascata finché
             // la cache locale non scade). Clamp a metà durata per token a vita brevissima.
             var marginSec = Math.Min(120, Math.Max(30, body.ExpiresIn / 2));
-            _expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(30, body.ExpiresIn - marginSec));
-            return _token;
+            var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(30, body.ExpiresIn - marginSec));
+            Volatile.Write(ref _cached, new CachedToken(body.AccessToken, expiresAt));
+            return body.AccessToken;
         }
         finally
         {
