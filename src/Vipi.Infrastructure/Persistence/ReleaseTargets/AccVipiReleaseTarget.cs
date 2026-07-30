@@ -19,10 +19,26 @@ public sealed class AccVipiReleaseTarget : IReleaseTarget
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default)
     {
-        var accCode = key.Split('|', 2)[0];
-        return await _db.Sectors.AsNoTracking()
-            .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr
-                        && s.ParentSectorId == null && s.IsActive && s.DocumentId != null)
+        var parts = key.Split('|', 2);
+        // Confronti in maiuscolo: i codici ACC e i callsign lo sono per convenzione e le chiavi si costruiscono già
+        // così, ma il confronto stringa di EF è sensibile al caso e una chiave scritta a mano non deve mancare il
+        // bersaglio in silenzio.
+        var accCode = parts[0].Trim().ToUpperInvariant();
+        var root = parts.Length > 1 ? parts[1].Trim().ToUpperInvariant() : "";
+
+        var roots = _db.Sectors.AsNoTracking()
+            .Where(s => s.Acc!.Code.ToUpper() == accCode && s.Type == SectorType.Ctr
+                        && s.ParentSectorId == null && s.IsActive && s.DocumentId != null);
+
+        // La parte root della chiave sceglie QUALE albero (quindi quale documento) dell'ACC si pubblica: va rispettata,
+        // altrimenti su una ACC a più alberi si promuove la bozza del documento sbagliato. Nessun fallback quando il
+        // root è indicato ma non risolve: meglio «nessun contenuto da pubblicare» che pubblicare un altro documento.
+        if (root.Length > 0)
+            return await roots.Where(s => s.Callsign.ToUpper() == root)
+                .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
+
+        // Chiave legacy col solo codice ACC: criterio storico (copertura, poi callsign).
+        return await roots
             .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
             .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
     }

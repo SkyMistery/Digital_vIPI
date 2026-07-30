@@ -60,9 +60,35 @@ localizer. Suite 633 → 635.
   `Pages/AeroportoEditorPage.razor` (aggancio `Published="LoadAsync"`),
   `Resources/SharedResource{,.en}.resx` (`Rel_VersionLabel`), `tests/Vipi.Ui.Tests/ReleasePanelTests.cs`.
 
+## Seguito — la chiave di release ACC ignorava la radice (corretto)
+Trovato indagando, corretto subito dopo. `AccVipiReleaseTarget.ResolveDocumentIdAsync` prendeva il **primo** CTR
+radice dell'ACC per `CoverageOrder` e **scartava la parte `root`** della chiave `"{acc}|{root}"` — che è invece
+ciò che sceglie *quale* albero, quindi quale documento, si pubblica. Su LIBB c'è un solo CTR radice con
+documento (`LIBB_ES_CTR`), quindi era innocuo oggi; con una ACC **multi-albero** «Pubblica ora» avrebbe promosso
+la bozza del documento sbagliato, in silenzio, perché la chiave sembrava corretta.
+
+Ora: se il root è indicato, si risolve **per callsign** e non esiste fallback — meglio «nessun contenuto da
+pubblicare» che pubblicare un altro documento. Chiave col solo codice ACC (legacy): resta il criterio storico
+(`CoverageOrder`, poi callsign). I confronti sono in maiuscolo su entrambe le parti: i callsign e i codici ACC lo
+sono per convenzione e le chiavi si costruiscono già così, ma il confronto stringa di EF è sensibile al caso e
+una chiave scritta a mano non deve mancare il bersaglio senza dirlo.
+
+Test-first (`AccVipiReleaseTargetTests`, 5 casi, 3 rossi prima del fix): due alberi nella stessa ACC con
+`CoverageOrder` **inverso** all'ordine alfabetico dei callsign, così un fallback su uno dei due criteri
+sbaglierebbe comunque; più il caso maiuscole/minuscole, la chiave legacy e la radice inesistente o senza
+documento. Suite 635 → 640.
+
+Verifica live (`/vsop/libb/editor`): nessuna regressione — `Published v14` → `Draft v15` → **`Published v15`**,
+release **#14** `Effective`. Catena controllata nel DB: chiave `LIBB|LIBB_ES_CTR` → settore 2 → documento 1 →
+versione 31 (v15) promossa, audit `Publish` coerente.
+
 ## Non toccato (lo segnalo)
 `VloaEditor` mostra la stessa pill ma **non** ospita `ReleasePanel` (le vLOA si pubblicano da `VersioniPage`),
-quindi non ha il problema. E `AccVipiReleaseTarget.ResolveDocumentIdAsync` **ignora la parte `root`** della
-chiave `"{acc}|{root}"`: prende il primo CTR radice dell'ACC per `CoverageOrder`. Su LIBB c'è un solo CTR radice
-con documento, quindi oggi è innocuo — ma con più alberi/documenti per la stessa ACC promuoverebbe la bozza del
-documento sbagliato. Da guardare quando si aggiunge una ACC multi-albero.
+quindi non ha il problema.
+
+`EfAccDerivationRepository.ResolveAccDocumentIdentityAsync` — che produce il `RootCallsign` con cui l'editor
+costruisce la chiave — sceglie il primo CTR radice attivo **senza** richiedere che abbia un documento, mentre il
+release target considera solo le radici che ce l'hanno. Non è un problema nel flusso reale (il documento esiste
+già quando si pubblica, creato entrando in modifica), ma i due criteri divergono: se un giorno la radice primaria
+di un'ACC restasse senza documento, l'editor la userebbe come chiave e la pubblicazione risponderebbe «nessun
+contenuto». Da unificare se si mette mano alla risoluzione della radice.
