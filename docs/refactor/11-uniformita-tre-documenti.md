@@ -6,10 +6,11 @@
 > che sta **fra** editor e viewer: chiave di sezione, resa del contenuto editoriale, stato «nascosta»,
 > e i fallback della vista pubblica.
 >
-> **Stato: eseguito ✅ (P1→P9, 2026-07-30).** Branch `fix/uniformita-tre-documenti`.
-> Suite **640 → 657 verde**. **Verifica live 20/20** su copia del `vipi.db` reale (LIBB per l'ACC,
-> LIBP_APP e LIBD_CS0_APP per l'APP, LIBB↔LDZO per la vLOA), Edge/puppeteer — vedi §5.
-> Dipende da: doc 08, 09, 10.
+> **Stato: eseguito ✅ (P1→P9, 2026-07-30).** Branch `fix/uniformita-tre-documenti`, 17 commit.
+> Suite **640 → 663 verde**. **Verifica live confermata dall'owner** su copia del `vipi.db` reale (LIBB per
+> l'ACC, LIBP_APP e LIBD_CS0_APP per l'APP, LIBB↔LDZO per la vLOA), Edge/puppeteer — vedi §5.
+> P1–P6 dall'audit; **P7–P9 chiesti dall'owner durante la verifica live**, con un fix di regressione a valle
+> (§3f). Dipende da: doc 08, 09, 10.
 
 ## 1. Stato rilevato (audit 2026-07-30, verificato live)
 

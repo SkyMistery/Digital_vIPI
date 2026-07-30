@@ -81,7 +81,7 @@ Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti es
 | [refactor/08-modello-documento-ed-editing.md](refactor/08-modello-documento-ed-editing.md) | Modello `Document`+`DocumentVersion` unificato per tutti e 4 i tipi + editing. |
 | [refactor/09-flusso-pubblicazione.md](refactor/09-flusso-pubblicazione.md) | Flusso di pubblicazione generico (registry `IReleaseTarget`/`IDocKindRoutes`). |
 | [refactor/10-snapshot-totale-e-rendermode.md](refactor/10-snapshot-totale-e-rendermode.md) | Snapshot totale al publish + `RenderMode` per sezione; visibilità pubblica = release effettiva. **Merged.** |
-| [refactor/11-uniformita-tre-documenti.md](refactor/11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (audit 2026-07-30): chiave di sezione univoca, resa editoriale condivisa, `DocumentSection.IsHidden` versionato, fallback a pubblica frozen, superficie APP = non remotizzati. |
+| [refactor/11-uniformita-tre-documenti.md](refactor/11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (audit 2026-07-30, P1→P9): chiave di sezione univoca, resa editoriale condivisa, `DocumentSection.IsHidden` e `BeforeParentBody` versionati, fallback a pubblica frozen, superficie APP = non remotizzati, stato iniziale di apertura delle sezioni. Include **§3bis: non-problemi verificati**, da non «aggiustare». |
 
 ## Storia — `history/` ⚪
 | File | Scopo |
