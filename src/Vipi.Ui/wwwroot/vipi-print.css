@@ -30,8 +30,10 @@
 
   /* ── Chrome e comandi: fuori dalla carta ────────────────────────────────────────
      Barra superiore, indice/rail sticky, briciole, bottoni e link-azione, barra di lock, `?` di aiuto,
-     tab meteo, selettore configurazioni, toggle 2D/3D, azioni Tutti/Nessuno sui chip AoR. Il tasto
-     «Stampa» stesso è un `.btn` (quindi già coperto); `.noprint` è la valvola per i casi senza aggancio. */
+     tab meteo, selettore configurazioni, toggle 2D/3D, azioni Tutti/Nessuno sui chip AoR, e i chevron dei
+     <details> (l'apri/chiudi non esiste sulla carta). Il tasto «Stampa» stesso è un `.btn` (quindi già
+     coperto); `.noprint` è la valvola per i testi che spiegano un'interazione (es. «accendi/spegni i settori
+     sopra la mappa»), che a schermo servono e su carta no. */
   .vipi-root .topbar,
   .vipi-root .skip-link,
   .vipi-root .toc,
@@ -50,6 +52,8 @@
   .vipi-root .aor3d-hint,
   .vipi-root .leaflet-control-zoom,
   .vipi-root .metar-live,
+  .vipi-root .cb-chev,
+  .vipi-root .chev,
   .vipi-root .onl-badge,
   .vipi-root .noprint,
   .vt-overlay, .vt-spot, .vt-card { display: none !important; }

@@ -36,7 +36,7 @@
     {
         var tables = ConfigTables ?? Array.Empty<AccConfigTableView>();
         @if (tables.Count == 0) { <p class="muted">Nessuna configurazione operativa.</p> }
-        else { <p class="muted" style="margin-top:0;font-size:13.5px">Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</p> }
+        else { <p class="muted noprint" style="margin-top:0;font-size:13.5px">Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</p> }
         @foreach (var cfg in tables)
         {
             <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@Block.Key">

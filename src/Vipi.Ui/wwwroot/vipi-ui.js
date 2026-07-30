@@ -185,6 +185,10 @@
         if (printWired) return;
         printWired = true;
         var closed = [];
+        // Chrome segnala la stampa DUE volte (beforeprint e il passaggio a media 'print'): senza questa guardia
+        // la seconda apertura ripartirebbe da una pagina già espansa, raccogliendo un elenco vuoto — e dopo la
+        // stampa le sezioni che l'utente aveva chiuso resterebbero aperte (verificato live).
+        var expanded = false;
 
         function stampTime() {
             // L'intestazione PrintMeta porta l'ora di render lato server: qui la sostituiamo con quella reale di
@@ -196,6 +200,8 @@
         }
 
         function expand() {
+            if (expanded) return;
+            expanded = true;
             stampTime();
             closed = [];
             suppressPersist = true;
@@ -209,6 +215,8 @@
         }
 
         function restore() {
+            if (!expanded) return;
+            expanded = false;
             suppressPersist = true;
             closed.forEach(function (d) { d.open = false; });
             closed = [];
