@@ -137,24 +137,14 @@ else
     private string _freqSearch = "";
     private int? _freqDragIndex;
 
-    // Release AIRAC (target App).
-    private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
-    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    // Release AIRAC (target App): la timeline e la pubblicazione sono nel componente condiviso ReleasePanel,
+    // come negli editor ACC e aeroporto. Qui resta solo il ciclo corrente per il testo d'aiuto.
     private string _currentCycle = "";
-    private string? _relCycle;
-    private string? _relNote;
-    private readonly HashSet<int> _diffOpen = new();
-    private readonly Dictionary<int, ReleaseDiff> _diffs = new();
     private const string _releaseAnchor = "p-release";
     // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor).
     private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
 
-    protected override void OnInitialized()
-    {
-        _currentCycle = Releases.CurrentCycle();
-        _upcoming = Releases.UpcomingCycles(14);
-        _relCycle ??= _upcoming.FirstOrDefault()?.Cycle;
-    }
+    protected override void OnInitialized() => _currentCycle = Releases.CurrentCycle();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -202,9 +192,6 @@ else
             _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
             _linkIds = overrides.FreqLinkSectorIds.ToList();
             await RefreshDerivedAsync();
-
-            _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
-            _diffOpen.Clear(); _diffs.Clear();
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -456,133 +443,23 @@ else
         </div>
     };
 
-    // ---- release AIRAC (target App): timeline + selettore + diff ----
+    // ---- release AIRAC (target App) ----
+    // La pagina fornisce solo l'involucro di sezione (ancora TOC + titolo + aiuto); timeline, selettore ciclo,
+    // diff, annulla e pubblicazione sono nel componente condiviso ReleasePanel, come in AccEditorPage e
+    // AeroportoEditorPage. Prima questa pagina era l'unica dei tre editor con una copia inline.
     private RenderFragment Release() => __builder =>
     {
         <div class="block" id="@_releaseAnchor">
             <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
             <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
 
-            @if (_rels.Count == 0)
-            {
-                <p class="help" style="margin:0 0 6px">@L["Rel_NoRelease"]</p>
-            }
-            else
-            {
-                @foreach (var r in _rels)
-                {
-                    <div class="ver-row @(r.IsEffectiveNow ? "current" : "")">
-                        <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
-                        <div style="flex:1">
-                            <b>@RelLabel(r)</b>
-                            <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
-                        </div>
-                        <span class="vact">
-                            <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{r.Id}")" target="_blank" rel="noopener"><Icon Name="eye" /> @L["Rel_Preview"]</a>
-                            <button class="btn ghost" @onclick="() => ToggleDiff(r.Id)"><Icon Name="search" /> @L["Rel_Diff"]</button>
-                            @if (Authz.IsAdmin)
-                            {
-                                <button class="btn ghost" @onclick="() => CancelRelease(r.Id)">✕ @L["Common_Cancel"]</button>
-                            }
-                        </span>
-                    </div>
-                    @if (_diffOpen.Contains(r.Id))
-                    {
-                        <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
-                    }
-                }
-            }
-
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px" data-tour="release">
-                <select class="app-in" style="min-width:270px;max-width:340px" @bind="_relCycle">
-                    @foreach (var c in _upcoming)
-                    {
-                        <option value="@c.Cycle">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
-                    }
-                </select>
-                <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" @bind="_relNote" />
-                <button class="btn primary" @onclick="PublishReleaseNow" title="@L["Rel_PublishNowTitle"]"><Icon Name="megaphone" /> @L["Rel_PublishNow"]</button>
-                <button class="btn ghost" @onclick="PublishRelease" title="@L["Rel_ScheduleTitle"]"><Icon Name="calendar" /> @L["Rel_ScheduleAtCycle"]</button>
-            </div>
+            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
+                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          PreviewUrlFactory="ReleasePreviewUrl" />
         </div>
     };
 
-    private async Task ReloadReleases()
-    {
-        _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
-        _diffOpen.Clear(); _diffs.Clear();
-    }
+    private string ReleasePreviewUrl(int releaseId) =>
+        $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
 
-    private async Task PublishRelease()
-    {
-        var cycle = _relCycle ?? _upcoming.FirstOrDefault()?.Cycle;
-        if (cycle is null) return;
-        await Guard(async () =>
-        {
-            await Releases.PublishAsync(ReleaseTargetType.App, _app, cycle, _relNote);
-            await ReloadReleases();
-        });
-    }
-
-    private Task PublishReleaseNow() => Guard(async () =>
-    {
-        await Releases.PublishNowAsync(ReleaseTargetType.App, _app, _relNote);
-        await ReloadReleases();
-    });
-
-    private Task CancelRelease(int releaseId) => Guard(async () =>
-    {
-        await Releases.CancelReleaseAsync(releaseId);
-        await ReloadReleases();
-    });
-
-    private async Task ToggleDiff(int releaseId)
-    {
-        if (!_diffOpen.Remove(releaseId))
-        {
-            _diffOpen.Add(releaseId);
-            if (!_diffs.ContainsKey(releaseId))
-            {
-                try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
-                catch (EditNotAllowedException ex) { _error = ex.Message; }
-            }
-        }
-    }
-
-    private string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 " + L["Rel_Effective"] : r.Status == ReleaseStatus.Scheduled ? "🕒 " + L["Rel_Scheduled"] : L["Rel_Superseded"];
-    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
-    private string ChangeLabel(string change) => change switch
-    {
-        "Aggiunta" => L["Rel_ChangeAdded"], "Rimossa" => L["Rel_ChangeRemoved"], "Modificata" => L["Rel_ChangeModified"], _ => change,
-    };
-
-    private RenderFragment DiffBlock(int releaseId) => __builder =>
-    {
-        @if (_diffs.TryGetValue(releaseId, out var diff))
-        {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @diff.BaselineLabel</div>
-            @if (diff.Rows.Count == 0)
-            {
-                <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
-            }
-            else
-            {
-                <table class="cfg-table">
-                    <thead><tr><th>@L["Rel_ColItem"]</th><th>@L["Rel_ColChange"]</th><th>@L["Rel_ColDetail"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in diff.Rows)
-                        {
-                            <tr>
-                                <td>@r.Label</td>
-                                <td><span class="pill @DiffPill(r.Change)">@ChangeLabel(r.Change)</span></td>
-                                <td class="muted" style="font-size:12px">@r.Detail</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else { <p class="help" style="margin:0">@L["Rel_LoadingDiff"]</p> }
-    };
 }
