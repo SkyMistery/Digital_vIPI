@@ -53,9 +53,15 @@ Vincoli del contesto già presenti:
 pubblicata. Restano anche i chip-legenda dell'AoR, le mappe (Leaflet o l'SVG di fallback) e l'attribuzione
 delle tile (licenza della sorgente cartografica).
 
+## Fuori dalla carta per scelta (dati live)
+- **METAR & TAF** del documento aeroporto (`CollapsibleBlock Id="a-meteo"` → `ExtraClass="noprint"`): è un dato
+  live, su carta sarebbe un'istantanea scaduta; inoltre solo il tab attivo (METAR *o* TAF) è nel DOM.
+- **Ridotta** (`RidottaPage`, `RidottaAppPage`): il piano §22.7 esclude la ridotta/kneeboard dall'export. Le due
+  pagine sono disabilitate dal Round 12 (nessun `@page` → irraggiungibili), ma portano già `noprint` sul
+  contenuto e un avviso `.print-only`, così la regola vale se la rotta rientra.
+
 ## Fuori scopo
 - Endpoint di export PDF server-side (headless): la stampa del browser copre RNF-6.
-- **Ridotta/kneeboard**: il piano §22.7 la esclude esplicitamente dall'export.
 - Editor e pagine admin: sono pagine di lavoro. Ereditano comunque le regole generiche.
 
 ## Passi (un commit per slice, build verde a ogni passo)
@@ -82,9 +88,11 @@ Tre correzioni nate dalla verifica:
   dall'utente restavano aperte. Risolto con una guardia di idempotenza su `expand`/`restore`.
 
 ## Limiti noti
-- **METAR/TAF**: solo il tab attivo è nel DOM (Blazor), quindi si stampa quello che si sta guardando. Non
-  aggirabile in CSS.
 - L'intestazione `PrintMeta` è sulla prima pagina, non su tutte (vedi Design).
+- Restano stampati altri elementi **derivati dal METAR**, perché appartengono a sezioni documentali: la pista
+  consigliata (evidenza verde/blu + «Wind 350° / 6 kt» nella legenda) e la pill «current QNH» nella tabella dei
+  livelli di transizione. Se anche questi devono sparire dalla carta è una decisione editoriale, non un limite
+  tecnico.
 - **APP non remotizzato**: la modifica al `doc-head` è identica a quella dei fratelli, ma il DB di sviluppo non
   ha alcun documento APPn pubblicato né in bozza → non verificata a schermo, solo in build.
 

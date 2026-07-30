@@ -25,7 +25,10 @@ else
 {
     <PageTitle>@_acc.Name — Ridotta · vIPI IVAO Italia</PageTitle>
 
-    <div class="wrap">
+    @* La ridotta NON è stampabile (piano §22.7: si esporta solo la vista Estesa). È una vista live, non un
+       documento: su carta sarebbe un'istantanea scaduta. Il marcatore vale già ora, prima che la rotta rientri. *@
+    <p class="print-only">Questa vista è live e non è stampabile: stampa il documento vIPI dell'ACC.</p>
+    <div class="wrap noprint">
         <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Vista ridotta</b></div>
         <div class="reduced-top">
             <h2 style="margin:0">@_view.Title — Ridotta</h2>
