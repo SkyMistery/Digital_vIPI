@@ -140,6 +140,14 @@ cade in **posizioni diverse** da una tabella all'altra, quindi regole per posizi
 Verificato live: 31 tabelle, **1 sola** combinazione di larghezze (schermo 124/95/510, stampa 114/87/469); +1
 pagina sul vIPI ACC (28 → 29) perché le colonne fisse mandano a capo qualche cella in più.
 
+**Ritocco (stesso giorno):** «Livello» dal 13% al **21%**. Al 13% (95px) andavano a capo **32** celle: i valori
+con quota + verso + parità («FL260- ↓ (dispari)», il più largo a 121px) non ci stavano. Misurato a runtime
+provando le percentuali una per una: il minimo che azzera i capoversi è il 20% (146px), il 21% (153px) lascia un
+margine perché un valore appena più lungo non torni a capo. Provate anche misure in `em` — nessun vantaggio: in
+stampa vanno bene entrambe, a schermo solo la percentuale azzera. Il costo lo paga «Prossimo», che prende il
+resto: da ~70% a ~62% della tabella. Verificato a 1920/1600/1400/1200 px e in stampa A4: **0** celle a capo in
+«Livello» e **0** in «Prossimo» (che al massimo contiene `LIBD_CS0_APP`, 102px in 415–640px disponibili).
+
 ## Refuso corretto strada facendo
 La legenda piste usciva «recommended**from** the METAR wind» / «consigliati**dal** vento METAR», a schermo e in
 stampa: **Razor scarta il testo di sola spaziatura che precede un blocco di codice** — e lo scarta anche se lo

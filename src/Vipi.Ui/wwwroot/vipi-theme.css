@@ -371,10 +371,14 @@
    contenuto, quindi le stesse colonne uscivano larghe in modo diverso da una tabella all'altra (a schermo e in
    stampa). Larghezze fisse per colonna SEMANTICA (classe c-* sul th, non la posizione): «Prossimo» non ha
    larghezza e prende il resto. */
+/* «Livello» al 21%: i valori con quota + verso + parità («FL260- ↓ (dispari)», il più largo a 121px) devono stare
+   su UNA riga. Misurato: al 13% ne andavano a capo 32, servono 146px e il 21% ne dà 153 — un margine, non il
+   minimo esatto, così un valore appena più lungo non torna a capo. Il costo lo paga «Prossimo», che non ha
+   larghezza e prende il resto: da ~70% a ~62% della tabella, dove i callsign stanno larghi comunque. */
 .coord-table{table-layout:fixed}
 .coord-table th.c-flow{width:13%}
 .coord-table th.c-cop{width:17%}
-.coord-table th.c-level{width:13%}
+.coord-table th.c-level{width:21%}
 .coord-table th.c-cond{width:27%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
 /* tip operativo (stile riquadro centrato) */
