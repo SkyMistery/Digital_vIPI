@@ -88,33 +88,61 @@
     {
         StopHeartbeat();
         var cts = _beat = new CancellationTokenSource();
-        _ = HeartbeatLoop(cts.Token);
+        _ = HeartbeatLoop(cts, cts.Token);
     }
 
+    /// <summary>Ferma il battito corrente, qualunque sia.</summary>
     private void StopHeartbeat()
     {
-        _beat?.Cancel();
-        _beat?.Dispose();
+        var cts = _beat;
         _beat = null;
+        Cancel(cts);
     }
 
-    private async Task HeartbeatLoop(CancellationToken ct)
+    /// <summary>
+    /// Ferma <paramref name="cts"/> solo se è ancora il battito corrente. Serve al loop che si auto-ferma: senza
+    /// il controllo d'identità, un loop vecchio che scopre di aver perso il lock annullerebbe il CancellationTokenSource
+    /// di un battito NUOVO avviato nel frattempo da «Inizia modifica» (ABA) — heartbeat morto in silenzio e lock
+    /// scaduto mentre l'utente sta ancora editando.
+    /// </summary>
+    private void StopIfCurrent(CancellationTokenSource cts)
+    {
+        if (!ReferenceEquals(_beat, cts)) return;
+        _beat = null;
+        Cancel(cts);
+    }
+
+    private static void Cancel(CancellationTokenSource? cts)
+    {
+        if (cts is null) return;
+        try { cts.Cancel(); } catch (ObjectDisposedException) { /* già fermato */ }
+        cts.Dispose();
+    }
+
+    private async Task HeartbeatLoop(CancellationTokenSource cts, CancellationToken ct)
     {
         try
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
             while (await timer.WaitForNextTickAsync(ct))
             {
+                // Lo stato del lock si legge DENTRO InvokeAsync, sul contesto del renderer: è lì che _lock viene
+                // scritto, e leggerlo dal thread del timer sarebbe una lettura non sincronizzata.
+                var stillMine = true;
                 await InvokeAsync(async () =>
                 {
                     var was = _lock.IsMine;
                     _lock = await Locks.HeartbeatAsync(ResourceKey);
+                    stillMine = _lock.IsMine;
                     if (_lock.IsMine != was) { await NotifyAsync(); StateHasChanged(); }
                 });
-                if (!_lock.IsMine) { StopHeartbeat(); break; }
+                if (!stillMine) { StopIfCurrent(cts); break; }
             }
         }
         catch (OperationCanceledException) { }
+        // Cancel()+Dispose() concorrenti all'attesa affiorano come ObjectDisposedException, non come
+        // OperationCanceledException: senza questo catch resterebbe un'eccezione non osservata sul task fire-and-forget.
+        catch (ObjectDisposedException) { }
     }
 
     private Task NotifyAsync() => LockChanged.InvokeAsync(_lock.IsMine);

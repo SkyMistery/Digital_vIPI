@@ -8,20 +8,37 @@ namespace Vipi.Hosting;
 
 /// <summary>
 /// Limita la frequenza di registrazione del login per UserId (una scrittura al massimo ogni finestra),
-/// così il middleware non tocca il DB a ogni richiesta. Singleton.
+/// così il middleware non tocca il DB a ogni richiesta. Singleton, thread-safe.
 /// </summary>
 public sealed class StaffLoginThrottle
 {
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(5);
     private readonly ConcurrentDictionary<int, DateTime> _last = new();
 
-    public bool ShouldRecord(int UserId)
+    /// <summary>
+    /// True al massimo una volta per finestra e per UserId. La decisione è atomica: un semplice
+    /// leggi-poi-scrivi lascerebbe passare due richieste concorrenti dello stesso utente (entrambe vedono il
+    /// valore vecchio e ritornano true), che è esattamente la doppia scrittura che questa classe deve evitare —
+    /// e Blazor Server apre più richieste in parallelo per ogni caricamento di pagina.
+    /// </summary>
+    public bool ShouldRecord(int userId)
     {
         var now = DateTime.UtcNow;
-        var prev = _last.GetOrAdd(UserId, DateTime.MinValue);
-        if (now - prev < Window) return false;
-        _last[UserId] = now;
-        return true;
+        while (true)
+        {
+            if (_last.TryGetValue(userId, out var prev))
+            {
+                if (now - prev < Window) return false;
+                // Vince solo chi sostituisce il valore che ha effettivamente osservato.
+                if (_last.TryUpdate(userId, now, prev)) return true;
+            }
+            else if (_last.TryAdd(userId, now))
+            {
+                return true;   // primo login di questo utente in questo processo
+            }
+            // Perso il confronto: qualcun altro ha aggiornato tra la lettura e la scrittura. Rileggi e ridecidi
+            // (il giro successivo trova la finestra fresca e ritorna false).
+        }
     }
 }
 
