@@ -457,9 +457,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AirportId", "Order");
 
-                    b.HasIndex("AirportId", "StableKey")
-                        .IsUnique();
-
                     b.ToTable("AirportSids");
                 });
 

@@ -175,11 +175,23 @@ public sealed class EfAirportRepository : IAirportRepository
         var id = await AirportIdAsync(icao, ct);
         // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
         // il fix risolto a mano e il ciclo di PRIMO prelievo alle righe con StableKey coincidente.
-        var prior = await _db.AirportSids.AsNoTracking()
+        //
+        // First-wins sulla chiave, in ordine di Id. La StableKey esclude di proposito la cifra della revisione,
+        // quindi un file .sid che contiene DUE revisioni della stessa SID (es. ROBO1H e ROBO2H) produce due righe
+        // con la stessa chiave: costruire qui un dizionario a chiave unica lanciava «An item with the same key has
+        // already been added» al primo REIMPORT di quell'aeroporto. Il primo import passava (tabella vuota, nessuna
+        // chiave da indicizzare) e ogni successivo fallliva, quindi l'import restava rotto per sempre su quegli
+        // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
+        // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
+        var priorRows = await _db.AirportSids.AsNoTracking()
             .Where(x => x.AirportId == id && x.StableKey != null)
-            .ToDictionaryAsync(x => x.StableKey!,
-                x => new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
-                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp), ct);
+            .OrderBy(x => x.Id)
+            .ToListAsync(ct);
+        var prior = new Dictionary<string, PriorSid>();
+        foreach (var x in priorRows)
+            prior.TryAdd(x.StableKey!,
+                new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
+                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp));
 
         _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
 

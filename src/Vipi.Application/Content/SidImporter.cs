@@ -10,10 +10,12 @@ public sealed class SidImporter : ISidImporter
 {
     // Serializza gli import sullo stesso aeroporto (job periodico + bottone editor): ReplaceImportedSidsAsync fa
     // delete+add, quindi due run concorrenti tenterebbero di scrivere due volte le stesse righe.
-    // ATTENZIONE: è un lock DI PROCESSO. Copre il deploy attuale (Render, istanza singola), non due repliche o due
-    // processi: la garanzia strutturale è l'indice unico (AirportId, StableKey) su AirportSids, che in quel caso fa
-    // fallire il secondo scrittore invece di duplicare le SID. Il dizionario è limitato dal numero di aeroporti in
-    // catalogo (decine), quindi non richiede sfoltimento.
+    //
+    // ATTENZIONE: è un lock DI PROCESSO, e copre il deploy attuale (Render, istanza singola) ma non due repliche.
+    // Non si può rafforzare con un indice unico su (AirportId, StableKey): quella chiave esclude di proposito la
+    // cifra della revisione ed è legittimamente ripetuta quando il file .sid contiene due revisioni della stessa
+    // SID. Se si passerà a più istanze servirà un lock condiviso (advisory lock DB), non un vincolo di unicità.
+    // Il dizionario è limitato dal numero di aeroporti in catalogo (decine), quindi non richiede sfoltimento.
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ISidProvider _provider;

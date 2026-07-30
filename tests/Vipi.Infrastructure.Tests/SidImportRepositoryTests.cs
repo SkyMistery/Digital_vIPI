@@ -72,6 +72,55 @@ public class SidImportRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reimport_Sopravvive_A_Due_Revisioni_Con_La_Stessa_StableKey()
+    {
+        // La StableKey esclude di proposito la cifra della revisione, quindi un file .sid che contiene DUE revisioni
+        // della stessa SID produce due righe con la stessa chiave. È il caso reale: sul DB di sviluppo ci sono 20
+        // coppie così (LIRF, LIMC, LIME, LIBG…). Il primo import passa; il secondo indicizzava le righe precedenti
+        // con un dizionario a chiave unica e lanciava, quindi l'import di quegli aeroporti era rotto per sempre.
+        var due = new[]
+        {
+            Imp("ROBO1H", "ROBOT", "LIRF|ROBOT|H||07"),
+            Imp("ROBO2H", "ROBOT", "LIRF|ROBOT|H||07"),
+        };
+
+        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2606");
+        Assert.Equal(2, (await _repo.LoadAsync("LIRF"))!.Sids.Count(s => s.IsImported));
+
+        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2607");   // prima lanciava ArgumentException
+
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+        Assert.Equal(2, sids.Count);                                          // nessuna riga persa né duplicata
+        Assert.Equal(new[] { "ROBO1H", "ROBO2H" }, sids.Select(s => s.Name).OrderBy(n => n));
+    }
+
+    [Fact]
+    public async Task Con_Chiave_Duplicata_Gli_Arricchimenti_Si_Riapplicano_In_Modo_Deterministico()
+    {
+        var due = new[]
+        {
+            Imp("ROBO1H", "ROBOT", "LIRF|ROBOT|H||07"),
+            Imp("ROBO2H", "ROBOT", "LIRF|ROBOT|H||07"),
+        };
+        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2606");
+
+        // Arricchimento editoriale sulla prima riga della coppia.
+        var first = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).OrderBy(s => s.Id).First();
+        await _repo.UpdateImportedSidAsync(first.Id, priority: 3, forcePublished: true, resolvedFix: null,
+            initialClimb: "5000ft", initialClimbByApp: false, cat: null, wtc: null, condition: null);
+
+        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2607");
+
+        // Regola first-wins: l'arricchimento associato alla chiave torna su TUTTE le righe che la condividono.
+        // Non è ambiguo per l'utente — la chiave È l'identità editoriale, la revisione no.
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+        Assert.Equal(2, sids.Count);
+        Assert.All(sids, s => Assert.Equal(3, s.Priority));
+        Assert.All(sids, s => Assert.Equal("5000ft", s.InitialClimb));
+        Assert.All(sids, s => Assert.True(s.ForcePublished));
+    }
+
+    [Fact]
     public async Task Reimport_Unchanged_Keeps_First_SourceCycle()
     {
         // Stesso contenuto SID prelevato a due cicli diversi: conserva il ciclo di PRIMO prelievo, così passato
