@@ -190,7 +190,9 @@ else
         if (relDepth == 0)
         {
             // Primo livello = card .block COLLASSABILE (CollapsibleBlock), coerente con tutti gli editor/viewer.
-            <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)">
+            // Alcune sezioni nascono chiuse anche in editing (doc 11 §3i): lo dice il catalogo, non l'host.
+            <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)"
+                              InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                 <Header>@SectionHeader(s, mand, hid, true)</Header>
                 <ChildContent>@SectionBody(s, relDepth)</ChildContent>
             </CollapsibleBlock>

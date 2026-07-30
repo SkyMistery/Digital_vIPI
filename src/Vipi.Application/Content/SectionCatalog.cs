@@ -28,9 +28,9 @@ public static class SectionCatalog
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
     public static SectionKind KindOf(string key) => KindByKey.TryGetValue(key, out var k) ? k : SectionKind.Editorial;
 
-    // Sezioni che nel DOCUMENTO nascono COLLASSATE (doc 11 §3i): quelle il cui contenuto è voluminoso per natura
-    // — «Aree regolamentate» su una ACC sono decine di aree, ognuna con la sua mappa, e aperta la sezione occupa
-    // il documento da sola. Vale nei viewer; l'editor le apre comunque (lì il corpo è il picker, non l'elenco).
+    // Sezioni che nascono COLLASSATE (doc 11 §3i): quelle il cui contenuto è voluminoso per natura — «Aree
+    // regolamentate» su una ACC sono decine di aree, ognuna con la sua mappa, e aperta la sezione occupa il
+    // documento da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
     private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
 

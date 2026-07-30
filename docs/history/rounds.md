@@ -748,5 +748,6 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
 - **P9 (§3i, richiesta owner in verifica live)**: «Aree regolamentate» nasce **collassata** nel documento (65 aree
   con mappa su LIBB). Quali sezioni si aprono chiuse lo dice `SectionCatalog.IsInitiallyCollapsed` — il catalogo è
   già la fonte unica della natura delle sezioni, così la regola vale per le tre famiglie senza ripeterla. Nessuno
-  stato persistito: è una proprietà del tipo di sezione, non una scelta editoriale. L'**editor** la apre comunque
-  (lì il corpo è il picker delle aree, non l'elenco).
+  stato persistito: è una proprietà del tipo di sezione, non una scelta editoriale. Vale **ovunque, viewer ed
+  editor** (11 contesti verificati): un primo giro aveva escluso gli editor, ma la regola a metà rendeva quella
+  sezione l'unica a comportarsi in modo diverso fra documento ed editing.

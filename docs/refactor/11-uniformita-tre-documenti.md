@@ -169,8 +169,9 @@ tre le famiglie senza ripeterla. Nessuno stato persistito: non è una scelta edi
 proprietà del tipo di sezione. La persistenza a schermo (`data-persist`) continua a ricordare ciò che l'utente
 apre o chiude.
 
-**L'editor la apre comunque**: lì il corpo della sezione è il *picker* delle aree, non l'elenco con le mappe —
-chiuderlo nasconderebbe il controllo su cui si sta lavorando.
+Vale **ovunque, viewer ed editor** (decisione owner). Un primo giro aveva escluso gli editor — lì il corpo è il
+*picker* delle aree, non l'elenco con le mappe — ma la regola a metà rendeva la sezione l'unica a comportarsi in
+modo diverso fra documento ed editing, che è proprio il disallineamento che questo doc chiude.
 
 ### 3h. Coordinamenti: aperto il solo primo livello (richiesta owner, verifica live 2026-07-30)
 I coordinamenti nascevano **tutti aperti** a ogni livello (`<details … open>` scritto a mano). Su una ACC reale
@@ -248,9 +249,9 @@ Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"`
 5. ✅ `/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
 6. ✅ Editor vLOA: `#p-release` con Differenze / Pubblica ora / Programma al ciclo; nessun pulsante di blocco
    sulla sezione padre «Coordination»; la vecchia rotta `apps/vipi?vloa=` non serve più il documento.
-9. ✅ **P9** (§3i): vIPI ACC di LIBB e vLOA LIBB↔LDZO → la sezione aree nasce **chiusa** in entrambe, tutte le
-   altre restano aperte; aperta a mano, le 65 aree dentro restano chiuse; nell'**editor** resta aperta.
-   Confermato anche sul ritaglio della pagina.
+9. ✅ **P9** (§3i): scan di **11 contesti** — viewer ACC (2 blocchi) pubblica e bozza, viewer APP pubblica e
+   bozza, 3 vLOA, viewer aeroporto (non ha la sezione), e i **3 editor**: la sezione aree è chiusa ovunque,
+   tutte le altre restano aperte; aperta a mano, le 65 aree dentro restano chiuse. Confermato sul ritaglio.
 8. ✅ **P8** (§3h): vIPI ACC di LIBB → «Coordinamenti»: «ES» aperto, i 6 ACC sotto (Beograd, Brindisi, Greece,
    Roma, Tirana, Zagreb) chiusi, 0/34 sottolivelli aperti; idem la vLOA in bozza («ES» e «Zagreb Radar» aperti,
    0/8 interni). «Espandi tutto» continua ad aprire tutti e 34. Confermato anche sul ritaglio della sezione.
