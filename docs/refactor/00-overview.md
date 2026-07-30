@@ -4,6 +4,8 @@
 > di area. **Stato: i 9 doc del refactor sono chiusi ✅** (01–09 eseguiti, 2026-07). Residui di
 > pulizia tracciati nei singoli doc (es. rimozione `*ProfileModels`, create airport unico).
 > **Estensione post-refactor:** doc 10 (snapshot totale + `RenderMode`) — **eseguito ✅** (S0→S7, 2026-07-19), su branch `refactor/10-snapshot-totale`, verify live confermata; **in attesa di merge su main**.
+>
+> **Estensione post-audit:** doc 11 (uniformità dei tre documenti: vIPI ACC / vIPI APP / vLOA) — **carta approvata, esecuzione in corso 🟡** (P1→P6, dal 2026-07-30), branch `fix/uniformita-tre-documenti`.
 
 ## Perché
 
