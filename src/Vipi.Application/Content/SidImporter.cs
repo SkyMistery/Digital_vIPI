@@ -9,7 +9,11 @@ namespace Vipi.Application.Content;
 public sealed class SidImporter : ISidImporter
 {
     // Serializza gli import sullo stesso aeroporto (job periodico + bottone editor): ReplaceImportedSidsAsync fa
-    // delete+add e non esiste un indice unico su StableKey, quindi due run concorrenti creerebbero righe duplicate.
+    // delete+add, quindi due run concorrenti tenterebbero di scrivere due volte le stesse righe.
+    // ATTENZIONE: è un lock DI PROCESSO. Copre il deploy attuale (Render, istanza singola), non due repliche o due
+    // processi: la garanzia strutturale è l'indice unico (AirportId, StableKey) su AirportSids, che in quel caso fa
+    // fallire il secondo scrittore invece di duplicare le SID. Il dizionario è limitato dal numero di aeroporti in
+    // catalogo (decine), quindi non richiede sfoltimento.
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ISidProvider _provider;

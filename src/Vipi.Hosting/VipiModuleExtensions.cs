@@ -157,8 +157,9 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>Crea/migra il database del modulo all'avvio. SQLite: migrazioni versionate (Migrate). Postgres
-    /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato da modello (EnsureCreated),
-    /// poi <see cref="PostgresSchemaReconciler"/> allinea le colonne nuove (EnsureCreated non altera le tabelle esistenti).</summary>
+    /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato e allineato al modello da
+    /// <see cref="PostgresSchemaReconciler.InitializeSchema"/>, che serializza l'operazione fra istanze e aggiunge
+    /// colonne e indici nuovi (EnsureCreated non altera le tabelle esistenti).</summary>
     public static IHost MigrateVipiDatabase(this IHost host)
     {
         using var scope = host.Services.CreateScope();
@@ -166,8 +167,9 @@ public static class VipiModuleExtensions
         // ProviderName evita di referenziare Npgsql da Vipi.Hosting (lo conosce solo Infrastructure).
         if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
         {
-            db.Database.EnsureCreated();
-            PostgresSchemaReconciler.EnsureModelColumns(db);   // allinea le colonne nuove del modello (drift EnsureCreated)
+            var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+                ?.CreateLogger(typeof(PostgresSchemaReconciler).FullName!);
+            PostgresSchemaReconciler.InitializeSchema(db, log);
         }
         else
             db.Database.Migrate();

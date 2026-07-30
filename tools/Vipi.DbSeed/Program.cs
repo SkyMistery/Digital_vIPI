@@ -71,8 +71,7 @@ using var dst = new SeedDbContext(new DbContextOptionsBuilder<VipiDbContext>().U
 // Schema: garantiscilo e allinealo al modello PRIMA del wipe. Senza questo, se il DB avesse una colonna nuova mancante
 // (drift EnsureCreated), il TRUNCATE passerebbe ma l'INSERT fallirebbe → destinazione lasciata VUOTA. Reconcile evita il rischio.
 Console.WriteLine("Verifica/allineamento schema di destinazione…");
-dst.Database.EnsureCreated();
-PostgresSchemaReconciler.EnsureModelColumns(dst);
+PostgresSchemaReconciler.InitializeSchema(dst);   // EnsureCreated + colonne e indici nuovi, sotto advisory lock
 
 // 2) Wipe della destinazione: TRUNCATE di tutte le tabelle in un colpo (CASCADE per le FK).
 var quotedTables = entityTypes.Select(e => Quote(e.GetTableName()!)).ToList();

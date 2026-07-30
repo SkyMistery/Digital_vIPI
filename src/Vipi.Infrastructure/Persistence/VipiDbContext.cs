@@ -234,6 +234,11 @@ public class VipiDbContext : DbContext
         b.Entity<AirportSid>(e =>
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
+            // Identità stabile unica per aeroporto: rende esplicito un invariante che il merge dell'import già
+            // assume (ReplaceImportedSidsAsync indicizza le righe precedenti per StableKey) e che due import
+            // concorrenti sullo stesso ICAO violerebbero creando righe duplicate. Le righe manuali hanno
+            // StableKey NULL e restano indistinte: sia SQLite sia Postgres trattano i NULL come non uguali.
+            e.HasIndex(x => new { x.AirportId, x.StableKey }).IsUnique();
             e.HasOne(x => x.Airport).WithMany(a => a.Sids).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<AirportFrequencyLink>(e =>
