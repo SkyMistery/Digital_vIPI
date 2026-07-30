@@ -278,7 +278,10 @@ else
                         <Header><h3 style="margin-top:0">@L["Airport_Runways"]</h3></Header>
                         <ChildContent>
                         <p class="muted" style="font-size:12.5px;margin:0 0 8px">
-                            @((MarkupString)L["Airport_RwyLegend"].Value)
+                            @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che
+                               precede un blocco di codice (anche dentro <text>), e usciva «consigliatidal
+                               vento METAR» / «recommendedfrom the METAR wind». *@
+                            @((MarkupString)L["Airport_RwyLegend"].Value)&#32;
                             @if (_ruleResult is not null) { <text>@string.Format(L["Airport_RwyByRule"], _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")</text> } else { <text>@L["Airport_RwyByWind"]</text> }.
                             @if (_windDir is int wd) { <text> @string.Format(L["Airport_WindVal"], wd, _windKt)</text> }
                             @if (_metar?.HasRain == true) { <span class="pill">🌧️ @L["Airport_Rain"]</span> }

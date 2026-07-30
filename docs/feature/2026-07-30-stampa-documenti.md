@@ -105,7 +105,10 @@ Tre correzioni nate dalla verifica:
   `Components/App/AccSectionBody.razor`, `Components/Blocks/AorBlock.razor`,
   `src/Vipi.Ui/Resources/SharedResource{,.en}.resx`, `docs/design/piano-vipi-tool.md`, `HANDOFF.md`.
 
-## Osservazione non di codice
-Nella legenda piste dell'aeroporto esce «recommended**from** the METAR wind» (manca lo spazio): è la
-concatenazione di `Airport_RwyLegend` + `Airport_RwyByWind`/`Airport_RwyByRule` in `AeroportoPage.razor`, e si
-vede **anche a schermo**. Non toccata qui.
+## Refuso corretto strada facendo
+La legenda piste usciva «recommended**from** the METAR wind» / «consigliati**dal** vento METAR», a schermo e in
+stampa: **Razor scarta il testo di sola spaziatura che precede un blocco di codice** — e lo scarta anche se lo
+si scrive dentro `<text>`. Lo spazio va messo come **entità**: `@((MarkupString)L["Airport_RwyLegend"].Value)&#32;`
+prima dell'`@if` che sceglie fra `Airport_RwyByRule` e `Airport_RwyByWind` (`AeroportoPage.razor`). Verificato sul
+testo reso dal browser, non sul sorgente HTML: «green for arrivals and blue for departures recommended from the
+METAR wind. Wind 360° / 8 kt.»
