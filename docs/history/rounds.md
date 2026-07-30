@@ -781,3 +781,31 @@ net8 misurata prima di partire. Verifica live su copia del `vipi.db` reale.
   con `≤`/`–`/`≥`, 20 SID, remarks), editor con timeline a 3 release e **round-trip del circuito verificato**
   (click su «Differences» → il DOM cambia), elenco documenti e drafts a posto. `health` risponde `Degraded` per
   la cache ATC ferma: previsto senza credenziali IVAO, non una regressione.
+
+## 2026-07-30 — Asset statici su MapStaticAssets (quarta sessione)
+
+Sostituito il cache-busting fatto a mano (`?v=<mtime>` in `App.razor`) con `MapStaticAssets` di ASP.NET
+Core 10. Motivo tecnico, non estetico: **il vecchio token era un massimo globale**. `ComputeAssetVersion`
+prendeva l'mtime più recente fra 12 file e lo appiccicava a tutti, quindi una riga cambiata in
+`vipi-theme.css` faceva riscaricare al browser tutti i CSS e tutti i JS.
+
+- **Un buco che il fingerprint per contenuto non può avere.** `vendor/three.min.js` riceveva il `?v=` ma
+  **non era nella lista `VersionedAssets`**: aggiornandolo da solo, il token non cambiava e il browser
+  continuava a servire la versione vecchia. 592 KB, l'asset più pesante del progetto.
+- **Cosa dà in cambio** (misurato sul pubblicato, non dedotto): `vipi-theme.css` 97 KB →
+  **18,5 KB in brotli precompilato a build-time**, `Cache-Control: max-age=31536000, immutable` + ETag.
+  Prima erano 7 giorni e la compressione la faceva `UseResponseCompression` a ogni richiesta — su Render
+  free la CPU è la risorsa scarsa. Nel publish compaiono 15 `.br` e 15 `.gz`.
+- **Regressione trovata e chiusa.** I `.woff2` sono referenziati da **dentro** `vipi-fonts.css`, quindi non
+  passano da `@Assets` e `MapStaticAssets` li serviva col profilo non-impronta: `max-age=3600,
+  must-revalidate`, **più corto** dei 7 giorni di prima. Header riportato a 7 giorni.
+  Primo tentativo sbagliato e istruttivo: uno `UseStaticFiles` che conoscesse il solo `.woff2` **non serve
+  nulla**, perché `StaticFileMiddleware` si tira indietro quando il routing ha già selezionato un endpoint —
+  e ora il font *è* un endpoint. Funziona invece riscrivere l'header in `Response.OnStarting`.
+- **Verifica**: 663 test verdi (non provano niente sugli asset), poi header controllati sul pubblicato in
+  Production e browser guidato sulle 7 rotte — zero 404 sugli asset, zero errori console, round-trip del
+  circuito ancora vivo, pagina renderizzata con font e stili al loro posto.
+
+**Non toccato, ma emerso**: `three.min.js` (592 KB) è caricato in `App.razor` su **ogni** pagina, anche
+quelle senza mappa 3D. Vale più di tutto il fingerprinting messo insieme ed è un lavoro diverso
+(caricamento condizionale sulle rotte AoR).
