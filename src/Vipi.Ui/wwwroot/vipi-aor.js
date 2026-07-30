@@ -190,6 +190,10 @@
         mainPolys.forEach(function (p) { bounds = bounds.extend(p.getBounds()); });
         if (twrGroup) twrGroup.eachLayer(function (l) { bounds = bounds.extend(l.getBounds()); });
         map.fitBounds(bounds, { padding: [18, 18] });
+        // Refit esposto come in initSectors (contratto uniforme per i due tipi di mappa): la stampa riduce
+        // l'altezza del contenitore e deve riadattare l'inquadratura, non ritagliarla. Vedi wirePrint in
+        // vipi-ui.js. Qui i poligoni non cambiano, quindi i bounds sono quelli calcolati sopra.
+        el._aorRefit = function () { map.fitBounds(bounds, { padding: [18, 18] }); };
         // Ricalcolo dimensioni quando il contenitore diventa visibile/ridimensiona.
         setTimeout(function () { map.invalidateSize(); }, 60);
     }

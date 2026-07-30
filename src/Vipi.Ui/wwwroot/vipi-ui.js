@@ -199,6 +199,40 @@
             });
         }
 
+        // Mappe AoR: a schermo il contenitore è alto 340px, su A4 sono ~90 mm di cui gran parte mare. Le
+        // riduciamo per la stampa. Non basta il CSS: Leaflet tiene la propria dimensione in memoria, quindi
+        // cambiare l'altezza da foglio di stile RITAGLIA la mappa invece di riadattarla. Serve invalidateSize()
+        // + il refit sui settori accesi, che vipi-aor.js espone su `_leafletMap` / `_aorRefit`.
+        // Due misure: la mappa AoR principale del documento resta leggibile (200px ≈ 53 mm), le miniature
+        // per-area (.area-map, una per area regolamentata: su una ACC sono decine) scendono a 130px ≈ 34 mm.
+        // Solo verso il BASSO: una vIPI ACC ha mappe-area già a 190px e portarle alla misura della principale
+        // le ingrandirebbe, allungando il documento invece di accorciarlo (preso in questo modo alla prima
+        // verifica: 34 pagine prima, 34 dopo).
+        var PRINT_MAP_H = 200, PRINT_AREA_MAP_H = 130;
+
+        function resizeMaps(toPrint) {
+            document.querySelectorAll('.aor-leaflet').forEach(function (el) {
+                var m = el._leafletMap;
+                if (!m) return;   // fallback SVG (nessun Leaflet): scala già da sé
+                if (toPrint) {
+                    // Altezza calcolata, non il rettangolo: con lo zoom di pagina attivo il rect è scalato, e
+                    // 'beforeprint' scatta prima che il media passi a print (quindi prima del reset dello zoom).
+                    var target = el.classList.contains('area-map') ? PRINT_AREA_MAP_H : PRINT_MAP_H;
+                    if ((parseFloat(getComputedStyle(el).height) || 0) <= target) return;
+                    // L'altezza da ripristinare vive SULL'elemento: un indice di posizione si disallineerebbe
+                    // se Blazor rirenderizzasse la pagina fra apertura e ripristino.
+                    el._printPrevH = el.style.height;
+                    el.style.height = target + 'px';
+                } else {
+                    if (el._printPrevH === undefined) return;
+                    el.style.height = el._printPrevH;
+                    el._printPrevH = undefined;
+                }
+                m.invalidateSize(false);
+                if (el._aorRefit) el._aorRefit();
+            });
+        }
+
         function expand() {
             if (expanded) return;
             expanded = true;
@@ -212,11 +246,15 @@
                 d.open = true;
             });
             suppressPersist = false;
+            // Dopo l'apertura: una mappa dentro un <details> chiuso ha dimensione zero e invalidateSize() non
+            // avrebbe niente da misurare.
+            resizeMaps(true);
         }
 
         function restore() {
             if (!expanded) return;
             expanded = false;
+            resizeMaps(false);
             suppressPersist = true;
             closed.forEach(function (d) { d.open = false; });
             closed = [];

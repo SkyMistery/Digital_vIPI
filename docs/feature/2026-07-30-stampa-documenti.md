@@ -39,7 +39,7 @@ Vincoli del contesto già presenti:
   tabelle 8,5pt, pill 7,5pt, card `.block` più compatte. **Non basta ridurre la base** su `.vipi-root`: gli
   elementi del tema hanno `font-size` espliciti in px e non erediterebbero, quindi i portatori di testo sono
   elencati uno per uno. I titoli del tema usano `:where()` (specificità 0) → nessun `!important` necessario.
-  Effetto: documento aeroporto **3 → 2 pagine**, vIPI ACC 36 → 34.
+  Effetto: documento aeroporto **3 → 2 pagine**, vIPI ACC 36 → 34, poi 28 con le mappe rimpicciolite.
 - `thead { display: table-header-group }` → l'intestazione della tabella si ripete a ogni pagina.
 - `print-color-adjust: exact`: le tinte **portano informazione** (piste ARR/DEP, riga TL col QNH corrente,
   callout, pill) e i browser di default le scartano.
@@ -49,6 +49,13 @@ Vincoli del contesto già presenti:
   totale li aggiunge il browser.
 - **Tasto «Stampa»** (`btn ghost`, `onclick="window.print()"` — HTML puro, funziona anche in SSR statico) nel
   `doc-head` dei quattro viewer documento, visibile a **tutti**: serve al controllore, non allo staff.
+- **Mappe AoR rimpicciolite per la carta** (`resizeMaps` in `wirePrint`): il CSS da solo non basta — Leaflet
+  tiene la propria dimensione in memoria, quindi cambiare l'altezza da foglio di stile **ritaglia** la mappa
+  invece di riadattarla. Serve `invalidateSize(false)` + il refit sui settori accesi, esposto da `vipi-aor.js`
+  su `_leafletMap` / `_aorRefit` (il refit è stato aggiunto anche al percorso mappa-singola, così il contratto
+  è uniforme fra i due tipi). Due misure e **solo verso il basso**: AoR principale 340 → 200px (≈53 mm),
+  miniature per-area (`.area-map`, decine su una ACC) 190 → 130px (≈34 mm). L'altezza da ripristinare vive
+  sull'elemento (`_printPrevH`), non in un array indicizzato che si disallineerebbe a un re-render Blazor.
 - **`wirePrint()` in `vipi-ui.js`**: apre i `<details>` su `beforeprint` e li richiude su `afterprint`, con la
   persistenza sospesa (le preferenze di collasso dell'utente non cambiano). Il CSS non basta: in Chrome il
   contenuto di un `<details>` chiuso è nascosto dallo user-agent (`content-visibility` su
