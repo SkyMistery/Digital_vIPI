@@ -72,17 +72,32 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Compressione prima dei file statici così CSS/JS escono compressi.
+// Compressione delle risposte dinamiche (HTML del prerender, JSON, SignalR). I file statici NON passano
+// più di qui: MapStaticAssets serve i .br/.gz precompilati a build-time, senza spendere CPU per richiesta.
 app.UseResponseCompression();
 
-app.UseStaticFiles(new StaticFileOptions
+// I .woff2 sono referenziati da DENTRO vipi-fonts.css, quindi non passano da @Assets: MapStaticAssets li
+// serve col profilo non-impronta (max-age 1h + must-revalidate), più corto dei 7 giorni di prima. I nomi
+// arrivano da Google Fonts, sono già content-addressed e i file non cambiano: si riporta la cache lunga.
+// Va fatto riscrivendo l'header e non con UseStaticFiles: il font lo serve un ENDPOINT di MapStaticAssets, e
+// StaticFileMiddleware si tira indietro quando il routing ha già selezionato un endpoint (non servirebbe nulla).
+app.Use(async (ctx, next) =>
 {
-    // In sviluppo niente cache: CSS/JS aggiornati sono sempre riletti (evita il "vecchio stile" in cache).
-    OnPrepareResponse = ctx =>
-        ctx.Context.Response.Headers.CacheControl = app.Environment.IsDevelopment()
-            ? "no-cache, no-store, must-revalidate"
-            : "public,max-age=604800", // 7 giorni in produzione
+    if (ctx.Request.Path.Value?.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        // OnStarting: l'header va riscritto dopo che l'endpoint ha impostato il suo, ma prima del flush.
+        ctx.Response.OnStarting(() =>
+        {
+            ctx.Response.Headers.CacheControl = app.Environment.IsDevelopment()
+                ? "no-cache, no-store, must-revalidate"
+                : "public,max-age=604800"; // 7 giorni, invariato rispetto a prima di MapStaticAssets
+            return Task.CompletedTask;
+        });
+    }
+
+    await next();
 });
+
 app.UseAntiforgery();
 
 // Auth standalone (scenario C): serve il ClaimsPrincipal alle richieste. Prima di UseVipiModule,
@@ -105,9 +120,15 @@ app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"
 // Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
 app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
 
+// File statici (wwwroot dell'host + wwwroot della RCL vIPI). Sostituisce UseStaticFiles: gli asset sono
+// impronta-per-contenuto (`@Assets[...]` in App.razor) e serviti con `immutable`, quindi un deploy rifà
+// scaricare solo i file davvero cambiati; le varianti brotli/gzip sono precompilate a build-time.
+app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly);   // monta la RCL vIPI
+    .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly)    // monta la RCL vIPI
+    .WithStaticAssets();
 
 // Endpoint del modulo (SSE live ATC).
 app.MapVipiModule();
