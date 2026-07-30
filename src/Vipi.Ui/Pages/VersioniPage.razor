@@ -464,7 +464,8 @@
                         <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                         <div>
                             <b>@ReleaseLabel(r)</b>
-                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">rel. v@(r.VersionNumber) · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            @* «rilascio #N» = progressivo della release, non la versione del documento (vedi ReleasePanel). *@
+                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">@L["Rel_VersionLabel", r.VersionNumber] · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                         </div>
                         <span class="vact">
                             <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>

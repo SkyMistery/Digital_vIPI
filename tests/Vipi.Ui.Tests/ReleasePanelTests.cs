@@ -100,7 +100,7 @@ public class ReleasePanelTests : TestContext
     }
 
     private IRenderedComponent<ReleasePanel> Render(bool showDiff = false, bool allowCancel = false,
-        Func<int, string?>? previewUrl = null, Func<Task<bool>>? beforePublish = null) =>
+        Func<int, string?>? previewUrl = null, Func<Task<bool>>? beforePublish = null, Action? onPublished = null) =>
         RenderComponent<ReleasePanel>(p =>
         {
             p.Add(x => x.Target, ReleaseTargetType.App);
@@ -109,6 +109,7 @@ public class ReleasePanelTests : TestContext
             p.Add(x => x.AllowCancel, allowCancel);
             if (previewUrl is not null) p.Add(x => x.PreviewUrlFactory, previewUrl);
             if (beforePublish is not null) p.Add(x => x.BeforePublishAsync, beforePublish);
+            if (onPublished is not null) p.Add(x => x.Published, onPublished);
         });
 
     [Fact]
@@ -140,13 +141,16 @@ public class ReleasePanelTests : TestContext
     {
         // Trovato guidando l'app: scritto «v@r.VersionNumber», Razor legge «v@r.…» come indirizzo email (la @ fra
         // due caratteri non-spazio non apre un'espressione) e lo emette LETTERALE — a schermo compariva
-        // «rel. v@r.VersionNumber». Serve la forma con parentesi «v@(r.VersionNumber)».
+        // «rel. v@r.VersionNumber».
+        // L'etichetta è passata dal localizer (chiave Rel_VersionLabel, «rilascio #{0}»): con la forma
+        // string.Format(L[chiave].Value, n) il numero NON arriverebbe mai al testo, perché quell'indexer non
+        // interpola. Serve l'overload L[chiave, n], che è quello che formatta.
         Arrange(Rel(1));
 
         var cut = Render();
 
         Assert.DoesNotContain("@r.VersionNumber", cut.Markup);
-        Assert.Contains("rel. v3", cut.Markup);   // VersionNumber = 3 in Rel()
+        Assert.Contains("Rel_VersionLabel 3", cut.Markup);   // KeyLocalizer: chiave + argomenti; VersionNumber = 3 in Rel()
     }
 
     [Fact]
@@ -192,6 +196,36 @@ public class ReleasePanelTests : TestContext
 
         Assert.Equal(1, fake.PublishedNow);
         Assert.Equal("motivo della pubblicazione", fake.LastNote);
+    }
+
+    [Fact]
+    public void Published_Avvisa_L_Host_Dopo_Ogni_Pubblicazione()
+    {
+        // «Pubblica ora» promuove la bozza a versione pubblicata, ma il pannello ricarica solo le PROPRIE release:
+        // senza questo avviso l'editor ospitante continuava a mostrare «Bozza vN» a pubblicazione avvenuta
+        // (visto su /vsop/libb/editor).
+        var avvisi = 0;
+        Arrange();
+        var cut = Render(onPublished: () => avvisi++);
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).Click();
+        Assert.Equal(1, avvisi);
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("ScheduleAtCycle")).Click();
+        Assert.Equal(2, avvisi);   // anche lo schedulato: cambia la timeline che l'host può mostrare
+    }
+
+    [Fact]
+    public void Published_Non_Avvisa_Se_BeforePublishAsync_Annulla()
+    {
+        var avvisi = 0;
+        var fake = Arrange();
+        var cut = Render(beforePublish: () => Task.FromResult(false), onPublished: () => avvisi++);
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).Click();
+
+        Assert.Equal(0, fake.PublishedNow);   // niente pubblicazione…
+        Assert.Equal(0, avvisi);              // …quindi niente avviso: l'host non deve ricaricare per nulla
     }
 
     [Fact]

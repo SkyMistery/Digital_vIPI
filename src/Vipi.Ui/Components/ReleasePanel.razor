@@ -34,9 +34,10 @@
                 <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                 <div style="flex:1">
                     <b>@Label(r)</b>
-                    @* v@(...) con parentesi: senza, Razor legge «v@r.VersionNumber» come indirizzo email e lo
-                       emette LETTERALE (la @ fra due caratteri non-spazio non apre un'espressione). *@
-                    <div class="vmeta">rel. v@(r.VersionNumber) · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                    @* «rilascio #N»: N è il progressivo della RELEASE per questo bersaglio (SaveReleaseAsync:
+                       max+1), non la versione del documento. Scritto «rel. vN» si confondeva con la pill
+                       «Bozza vN»/«Pubblicata vN» dell'editor, che invece è la versione. *@
+                    <div class="vmeta">@L["Rel_VersionLabel", r.VersionNumber] · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                 </div>
                 <span class="vact">
                     @{ var previewUrl = PreviewFor(r.Id); }
@@ -90,6 +91,12 @@
     /// <summary>Costruisce l'URL di anteprima release per id (l'host conosce l'ACC). Null = usa il default per-target.</summary>
     [Parameter] public Func<int, string?>? PreviewUrlFactory { get; set; }
 
+    /// <summary>Notificata dopo una pubblicazione riuscita. Serve perché «Pubblica ora» promuove la bozza a versione
+    /// pubblicata (<c>PublishWorkingVersionAsync</c>) ma questo pannello ricarica solo le PROPRIE release: senza
+    /// l'avviso, l'host continua a mostrare lo stato documento letto all'apertura della pagina — la pill restava
+    /// «Bozza vN» a pubblicazione avvenuta.</summary>
+    [Parameter] public EventCallback Published { get; set; }
+
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
@@ -119,14 +126,14 @@
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
         await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
         return true;
-    }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle));
+    }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
     private Task PublishNow() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
         await Releases.PublishNowAsync(Target, Key, _note);
         return true;
-    }, L["Rel_PublishedNow"]);
+    }, L["Rel_PublishedNow"], notify: true);
 
     private Task CancelRelease(int releaseId) => Run(async () =>
     {
@@ -148,12 +155,18 @@
     }
 
     // Esegue l'azione (che ritorna true=proceduta → mostra ok; false=annullata → nessun messaggio) con guardia busy/errori.
-    private async Task Run(Func<Task<bool>> action, string ok)
+    // notify: avvisa l'host (Published) dopo aver ricaricato le release — solo per le azioni che pubblicano.
+    private async Task Run(Func<Task<bool>> action, string ok, bool notify = false)
     {
         _busy = true; _error = _ok = null;
         try
         {
-            if (await action()) { await Reload(); _ok = ok; }
+            if (await action())
+            {
+                await Reload();
+                _ok = ok;
+                if (notify) await Published.InvokeAsync();
+            }
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }

@@ -1167,4 +1167,5 @@
   <data name="Ape_IssueRuleTimeWin" xml:space="preserve"><value>Rule #{0}: incomplete time window (start or end missing).</value></data>
   <data name="Common_Print" xml:space="preserve"><value>Print</value></data>
   <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Printed on</value></data>
+  <data name="Rel_VersionLabel" xml:space="preserve"><value>release #{0}</value></data>
 </root>

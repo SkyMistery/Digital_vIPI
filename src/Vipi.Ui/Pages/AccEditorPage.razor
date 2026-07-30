@@ -106,7 +106,10 @@ else
                 </div>
             }
 
-            <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")" />
+            @* Published: dopo «Pubblica ora» la bozza è promossa a versione pubblicata — ricarichiamo, o la pill
+               «Bozza vN» del rail resta quella letta all'apertura. *@
+            <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")"
+                          Published="LoadAsync" />
             </div>
             <aside class="ed-rail">
                 @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }

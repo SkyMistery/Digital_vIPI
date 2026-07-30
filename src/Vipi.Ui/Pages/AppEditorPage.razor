@@ -453,9 +453,11 @@ else
             <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
             <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
 
+            @* Published: ricarica lo stato documento dopo la pubblicazione (la pill «Bozza vN» del rail sarebbe stantia). *@
             <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
                           ShowDiff="true" AllowCancel="Authz.IsAdmin"
-                          PreviewUrlFactory="ReleasePreviewUrl" />
+                          PreviewUrlFactory="ReleasePreviewUrl"
+                          Published="LoadAsync" />
         </div>
     };
 

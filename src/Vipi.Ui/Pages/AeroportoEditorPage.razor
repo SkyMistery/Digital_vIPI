@@ -606,10 +606,14 @@ else
                     }
                     else
                     {
+                        @* Published: ricarica il profilo dopo la pubblicazione. Qui LoadAsync è un reload totale
+                           (azzera i buffer sporchi), coerente col fatto che BeforePublishAsync ha già avvisato
+                           sulle sezioni non salvate e rigenerato il documento dalla bozza. *@
                         <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
                                       ShowDiff="true" AllowCancel="Authz.IsAdmin"
                                       BeforePublishAsync="BeforePublishAsync"
-                                      PreviewUrlFactory="ReleasePreviewUrl" />
+                                      PreviewUrlFactory="ReleasePreviewUrl"
+                                      Published="LoadAsync" />
                     }
                 </div>
             </details>
