@@ -7,6 +7,7 @@
 .aor-view[hidden] { display: none; }
 
 .aor3d-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.aor3d-bar .btn.ghost.on { background: var(--ivao-blue); color: #fff; }
 
 .aor3d-stage {
     height: 540px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;

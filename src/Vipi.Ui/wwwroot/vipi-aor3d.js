@@ -22,31 +22,89 @@
         return s;
     }
 
-    // Proiezione condivisa lat/lon → piano XY (equirettangolare, x scalata per cos(latMedio)), centrata sul bbox
-    // e scalata così che il lato maggiore = TARGET. Ritorna una funzione (lat,lon)→[X,Y] o null se dati degeneri.
+    // --- Web Mercator + tile helpers (per allineare le tile della basemap ai poligoni proiettati) ---
+    var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+    function mercY(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * D2R / 2)) * R2D; }   // lat → Y mercatore (in "gradi")
+    function lon2tile(lon, z) { return (lon + 180) / 360 * Math.pow(2, z); }
+    function lat2tile(lat, z) { return (1 - Math.log(Math.tan(lat * D2R) + 1 / Math.cos(lat * D2R)) / Math.PI) / 2 * Math.pow(2, z); }
+    function tile2lon(x, z) { return x / Math.pow(2, z) * 360 - 180; }
+    function tile2lat(y, z) { var n = Math.PI - 2 * Math.PI * y / Math.pow(2, z); return R2D * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))); }
+
+    // Proiezione condivisa lat/lon → piano XY in WEB MERCATOR (x=lon, y=mercY(lat)), centrata sul bbox e scalata così
+    // che il lato maggiore = TARGET. Mercatore (non equirettangolare) così le tile della basemap combaciano coi poligoni.
+    // Ritorna { project:(lat,lon)→[X,Y], minLat,maxLat,minLon,maxLon } o null se dati degeneri.
     function makeProjector(sectors) {
         var all = [];
         sectors.forEach(function (s) {
             (s.rings || []).forEach(function (r) { (r || []).forEach(function (p) { if (p && p.length >= 2) all.push(p); }); });
         });
         if (all.length < 3) return null;
-        var latMean = all.reduce(function (a, p) { return a + p[0]; }, 0) / all.length;
-        var k = Math.cos(latMean * Math.PI / 180);
-        var xs = all.map(function (p) { return p[1] * k; });
-        var ys = all.map(function (p) { return p[0]; });
-        var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
-        var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+        var lats = all.map(function (p) { return p[0]; }), lons = all.map(function (p) { return p[1]; });
+        var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+        var minLon = Math.min.apply(null, lons), maxLon = Math.max.apply(null, lons);
+        var minX = minLon, maxX = maxLon, minY = mercY(minLat), maxY = mercY(maxLat);
         var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
         var span = Math.max(maxX - minX, maxY - minY);
         var scale = span > 0 ? TARGET / span : 1;
-        return function (lat, lon) { return [(lon * k - cx) * scale, (lat - cy) * scale]; };
+        return {
+            project: function (lat, lon) { return [(lon - cx) * scale, (mercY(lat) - cy) * scale]; },
+            minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon
+        };
     }
 
-    function build(stage, sectors) {
+    // Pavimento = mappa geografica reale: cuce le tile CartoDB Positron che coprono il bbox e le applica come texture su
+    // un piano a z=0. crossOrigin='anonymous' (le tile mandano ACAO:*) → niente canvas "tainted". Fallimento rete/CORS =
+    // nessuna basemap (resta la griglia). onReady(plane) al completamento per il primo render.
+    function buildBasemap(THREE, proj, onReady) {
+        // Zoom massimo che tiene la griglia di tile piccola (≤ ~20 tile).
+        var z = 11, tx0, tx1, ty0, ty1;
+        for (; z >= 2; z--) {
+            tx0 = Math.floor(lon2tile(proj.minLon, z)); tx1 = Math.floor(lon2tile(proj.maxLon, z));
+            ty0 = Math.floor(lat2tile(proj.maxLat, z)); ty1 = Math.floor(lat2tile(proj.minLat, z));   // lat alta = tile y bassa
+            if ((tx1 - tx0 + 1) * (ty1 - ty0 + 1) <= 20) break;
+        }
+        var cols = tx1 - tx0 + 1, rows = ty1 - ty0 + 1;
+        var canvas = document.createElement('canvas'); canvas.width = cols * 256; canvas.height = rows * 256;
+        var g = canvas.getContext('2d');
+        g.fillStyle = '#eef1f7'; g.fillRect(0, 0, canvas.width, canvas.height);
+
+        var texture = new THREE.CanvasTexture(canvas);
+        // Estensione geografica della griglia di tile → angoli in XY (stessa proiezione dei poligoni). Il piano vi si adatta.
+        var west = tile2lon(tx0, z), east = tile2lon(tx1 + 1, z);
+        var north = tile2lat(ty0, z), south = tile2lat(ty1 + 1, z);
+        var nw = proj.project(north, west), se = proj.project(south, east);
+        var w = Math.abs(se[0] - nw[0]), h = Math.abs(nw[1] - se[1]);
+        var geo = new THREE.PlaneGeometry(w, h);
+        var mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, depthWrite: false });
+        var plane = new THREE.Mesh(geo, mat);
+        plane.position.set((nw[0] + se[0]) / 2, (nw[1] + se[1]) / 2, -0.5);   // sotto i prismi (z≥0)
+
+        // Carica e disegna ogni tile; ridisegna la texture quando tutte sono pronte.
+        var pending = cols * rows, ok = 0;
+        var subs = ['a', 'b', 'c', 'd'];
+        for (var ix = tx0; ix <= tx1; ix++) {
+            for (var iy = ty0; iy <= ty1; iy++) {
+                (function (col, row, tileX, tileY) {
+                    var img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = function () {
+                        try { g.drawImage(img, col * 256, row * 256, 256, 256); ok++; } catch (e) { }
+                        if (--pending === 0) { texture.needsUpdate = true; if (onReady) onReady(ok > 0 ? plane : null); }
+                    };
+                    img.onerror = function () { if (--pending === 0) { texture.needsUpdate = true; if (onReady) onReady(ok > 0 ? plane : null); } };
+                    img.src = 'https://' + subs[(tileX + tileY) % 4] + '.basemaps.cartocdn.com/light_all/' + z + '/' + tileX + '/' + tileY + '@2x.png';
+                })(ix - tx0, iy - ty0, ix, iy);
+            }
+        }
+        return plane;
+    }
+
+    function build(stage, sectors, onBasemap) {
         var THREE = window.THREE;
         var w = stage.clientWidth || 800, h = stage.clientHeight || 540;
-        var project = makeProjector(sectors);
-        if (!project) return null;
+        var proj = makeProjector(sectors);
+        if (!proj) return null;
+        var project = proj.project;
 
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera(45, w / h, 1, 5000); camera.up.set(0, 0, 1);
@@ -56,7 +114,14 @@
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.85));
         var dl = new THREE.DirectionalLight(0xffffff, 0.55); dl.position.set(60, 40, 140); scene.add(dl);
-        var grid = new THREE.GridHelper(TARGET * 1.3, 18, 0xc3cdf0, 0xe0e5f6); grid.rotation.x = Math.PI / 2; scene.add(grid);
+        var grid = new THREE.GridHelper(TARGET * 1.3, 18, 0xc3cdf0, 0xe0e5f6); grid.rotation.x = Math.PI / 2;
+        grid.visible = false; scene.add(grid);   // nascosta di default: si mostra se la basemap non c'è / è spenta
+
+        // Pavimento = mappa geografica (asincrono): al termine lo aggiunge alla scena e notifica per il re-render.
+        var basemap = buildBasemap(THREE, proj, function (plane) {
+            if (plane) { scene.add(plane); } else { grid.visible = true; }
+            if (onBasemap) onBasemap(plane);
+        });
 
         var group = new THREE.Group(); scene.add(group);
         sectors.forEach(function (s, idx) {
@@ -87,7 +152,7 @@
             group.add(secGroup);
         });
 
-        return { scene: scene, camera: camera, renderer: renderer, group: group };
+        return { scene: scene, camera: camera, renderer: renderer, group: group, grid: grid, getBasemap: function () { return basemap; } };
     }
 
     function initOne(stage) {
@@ -103,12 +168,12 @@
             return;
         }
 
-        var ctx = build(stage, sectors);
+        var ctx = build(stage, sectors, function () { render(); });   // re-render quando la basemap è pronta
         if (!ctx) return;
         stage.dataset.init = '1';
 
         var theta = 0.78, phi = 0.92, radius = 260;
-        function render() { ctx.renderer.render(ctx.scene, ctx.camera); }
+        function render() { if (ctx) ctx.renderer.render(ctx.scene, ctx.camera); }
         function updateCam() {
             ctx.camera.position.set(
                 radius * Math.sin(phi) * Math.cos(theta),
@@ -157,6 +222,16 @@
             if (stage.requestFullscreen) stage.requestFullscreen();
         });
         document.addEventListener('fullscreenchange', function () { setTimeout(resize, 60); });
+
+        // Toggle «Mappa base»: mostra/nasconde il pavimento geografico (e, in alternanza, la griglia).
+        var mapBtn = stage.parentElement && stage.parentElement.querySelector('.aor3d-basemap');
+        if (mapBtn) mapBtn.addEventListener('click', function () {
+            var plane = ctx.getBasemap && ctx.getBasemap();
+            var on = mapBtn.classList.toggle('on');
+            if (plane) plane.visible = on;
+            if (ctx.grid) ctx.grid.visible = !on || !plane;   // senza basemap resta la griglia
+            render();
+        });
 
         // Ricalcolo dimensioni quando il contenitore diventa visibile/ridimensiona.
         if (window.ResizeObserver) { var ro = new ResizeObserver(function () { resize(); }); ro.observe(stage); }
