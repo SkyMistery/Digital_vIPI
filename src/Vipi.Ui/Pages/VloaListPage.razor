@@ -7,6 +7,7 @@
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IDocumentAdminService Docs
+@inject IStringLocalizer<SharedResource> L
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -20,7 +21,8 @@ else if (_foreign.Length > 0)
     {
         <div class="wrap">
             <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>—</b></div>
-            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLoA pubblicata tra @_acc.Code e @_foreign.</div></div>
+            @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
     }
     else

@@ -57,14 +57,14 @@ else
                             IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
                             IsMandatory="IsMandatory"
                             IsRenderModeToggleable="IsRenderModeToggleable"
-                            ShowToc="true">
+                            ShowToc="true" ExtraTocItems="_tocExtra">
         <RightRail>
             @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
             else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
             <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
                 @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
             </span>
-            <a class="btn ghost" data-tour="preview" href="/vsop/@Home.ToLowerInvariant()/apps/vipi?vloa=@Foreign&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+            <a class="btn ghost" data-tour="preview" href="/vsop/@Home.ToLowerInvariant()/vloa?acc=@Foreign&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
             <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
                 Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
                 <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
@@ -72,7 +72,6 @@ else
             @if (_editing)
             {
                 <span class="save-badge lock-mine" title="@L["Lock_Editing"]">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToString("HH:mm")) : "")</span>
-                <button class="btn primary" @onclick="Publish" title="@L["Ed_PublishTitle"]"><Icon Name="megaphone" /> @L["Ed_Publish"]</button>
                 <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
             }
             else if (_lock is { Locked: true, IsMine: false })
@@ -86,6 +85,16 @@ else
             }
         </RightRail>
     </DocumentSectionsEditor>
+
+    @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f). Prima l'editor vLOA era
+       l'unico senza pannello release — la si poteva pubblicare solo da /vsop/versioni — e l'unico con un
+       «Pubblica» di versione. «Pubblica ora» fa snapshot + promozione della bozza. *@
+    <div class="block" id="@_releaseAnchor">
+        <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
+        <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
+                      ShowDiff="true" PreviewUrlFactory="ReleasePreviewUrl"
+                      Published="LoadAsync" />
+    </div>
 }
 
 @code {
@@ -107,6 +116,13 @@ else
     private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+
+    private const string _releaseAnchor = "p-release";
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor), come nell'editor APP.
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
+
+    private string ReleasePreviewUrl(int releaseId) =>
+        $"/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
@@ -171,10 +187,11 @@ else
     });
 
     // Sezione derivata (data-driven) da renderizzare come vista, non come blocchi statici.
+    // Derivata = il corpo lo produce il viewer/editor dai dati, non i blocchi. La sezione PADRE dei coordinamenti
+    // è derivata quanto le due figlie (doc 11 §3f): l'editor offriva blocchi lì, ma il viewer li sostituisce con le
+    // due direzioni e non li mostra mai.
     private static bool IsDerived(EditableSection s) =>
-        (s.SectionKey == "aor" && s.Depth == 0)
-        || (s.SectionKey == "frequencies" && s.Depth == 0)
-        || (s.SectionKey == "coordination" && s.Depth > 0);
+        s.SectionKey is "aor" or "frequencies" or "coordination";
 
     // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
     private async Task StartEditing()
@@ -205,17 +222,6 @@ else
             await GuardCore(() => Editing.ReleaseLockAsync(id), silent: true);
             _lock = await Editing.InspectLockAsync(id);
         }
-    }
-
-    private async Task Publish()
-    {
-        if (_doc is null) return;
-        await Guard(async () =>
-        {
-            await Editing.PublishAsync(_doc.VersionId, null);
-            _editing = false;
-            await LoadAsync();
-        });
     }
 
     // ---- infra ----

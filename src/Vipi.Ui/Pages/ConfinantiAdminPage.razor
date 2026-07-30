@@ -100,7 +100,7 @@
                                 <td>
                                     @if (r.VloaDocumentId is int docId)
                                     {
-                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/apps/vipi?vloa=@r.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
+                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/vloa?acc=@r.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
                                         <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@r.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">✎ @L["Common_Editor"]</a>
                                     }
                                     else { <span class="muted">—</span> }
