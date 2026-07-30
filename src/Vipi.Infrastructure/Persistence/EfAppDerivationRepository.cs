@@ -176,34 +176,12 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
     }
 
     // ---- helper ----
+    // Ordine, nome e sigla-da-tipo vengono da FrequencyPositions (Application). Vedi la nota lì sulla divergenza
+    // che le tre copie precedenti avevano accumulato.
 
-    private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
-    private static int PositionOrder(string position)
-    {
-        var i = Array.IndexOf(FreqTypeOrder, position.Trim().ToUpperInvariant());
-        return i < 0 ? 99 : i;
-    }
+    private static int PositionOrder(string position) => FrequencyPositions.OrderOf(position);
 
-    private static string PositionFromType(SectorType t) => t switch
-    {
-        SectorType.Del => "DEL",
-        SectorType.Gnd => "GND",
-        SectorType.Twr or SectorType.ITwr => "TWR",
-        SectorType.App => "APP",
-        SectorType.Ctr => "CTR",
-        _ => t.ToString().ToUpperInvariant(),
-    };
+    private static string PositionFromType(SectorType t) => FrequencyPositions.FromSectorType(t);
 
-    private static string FreqNameForPosition(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => string.IsNullOrWhiteSpace(position) ? "—" : position!,
-    };
+    private static string FreqNameForPosition(string? position) => FrequencyPositions.NameOf(position);
 }

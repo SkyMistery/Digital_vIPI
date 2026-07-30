@@ -544,25 +544,12 @@ public sealed class EfAirportRepository : IAirportRepository
     /// <summary>TWR e I_TWR (AFIS) sono entrambe "torri" ai fini di frequenza primaria/etichetta.</summary>
     private static bool IsTower(SectorType type) => type is SectorType.Twr or SectorType.ITwr;
 
-    private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
-    private static int FreqOrder(AirportSector s)
-    {
-        var i = Array.IndexOf(FreqTypeOrder, (s.Position ?? "").Trim().ToUpperInvariant());
-        return i < 0 ? 99 : i;
-    }
+    // Ordine e nome vengono da FrequencyPositions (Application). La copia che stava qui era divergente: usava
+    // `position ?? "—"`, quindi una posizione di soli spazi rendeva una cella BIANCA nel documento aeroporto
+    // mentre ACC e APP rendevano il trattino. Ora il comportamento è uno solo (nessuna cella vuota).
+    private static int FreqOrder(AirportSector s) => FrequencyPositions.OrderOf(s.Position);
 
-    private static string FreqNameForPosition(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => position ?? "—",
-    };
+    private static string FreqNameForPosition(string? position) => FrequencyPositions.NameOf(position);
 
     private static int? BearingFromIdent(string ident)
     {

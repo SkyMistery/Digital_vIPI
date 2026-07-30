@@ -19,6 +19,7 @@
 @inject ISidFixAliasRepository SidAliases
 @inject Vipi.Domain.Services.IAiracService Airac
 @inject IJSRuntime JS
+@inject ILogger<AeroportoEditorPage> Logger
 @implements IAsyncDisposable
 @inject IStringLocalizer<SharedResource> L
 
@@ -1302,6 +1303,14 @@ else
         catch (EditNotAllowedException ex) { _error = ex.Message; _save = SaveState.Idle; }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
         catch (InvalidOperationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        // Rete di sicurezza: senza questo, un'eccezione non prevista (DbUpdateException, Npgsql…) sfuggiva,
+        // abbatteva il circuito e lasciava il badge inchiodato su "Salvataggio". Meglio un errore visibile.
+        catch (Exception ex)
+        {
+            _error = L["Common_UnexpectedError"] + ex.Message;
+            _save = SaveState.Idle;
+            Logger.LogError(ex, "Azione editor aeroporto fallita ({Icao}).", _icao);
+        }
         finally { _busy = false; }
         return false;
     }

@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
 @inject NavigationManager Nav
+@inject ILogger<VloaEditor> Logger
 @inject IStringLocalizer<SharedResource> L
 @* Editing e Vloa risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash
    "second operation" sotto latenza Postgres. Vedi [[EditLockBar]]. *@
@@ -248,6 +249,14 @@ else
         catch (EditNotAllowedException) { _error = L["Vle_NoEditPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        // Rete di sicurezza: senza questo, un'eccezione non prevista (DbUpdateException, Npgsql…) sfuggiva,
+        // abbatteva il circuito e lasciava il badge inchiodato su "Salvataggio". Meglio un errore visibile.
+        catch (Exception ex)
+        {
+            _error = L["Common_UnexpectedError"] + ex.Message;
+            _save = SaveState.Idle;
+            Logger.LogError(ex, "Azione editor vLOA fallita (documento {DocId}).", _docId);
+        }
     }
 
     private async Task DismissSavedAsync(int tick)
