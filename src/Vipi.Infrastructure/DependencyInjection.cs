@@ -38,7 +38,8 @@ public static class DependencyInjection
                         .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                         // Neon (serverless) sospende il compute e chiude le connessioni idle: la prima query
                         // dopo l'inattività fallisce "transient". Ritenta in automatico (execution strategy).
-                        // Retry-safe: EfUnitOfWork avvolge già le transazioni in CreateExecutionStrategy().
+                        // Retry-safe: EfUnitOfWork avvolge le transazioni in CreateExecutionStrategy() E azzera il
+                        // change-tracker a ogni tentativo (il rollback non lo ripulisce). Vedi EfUnitOfWork.
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
                 break;
 
