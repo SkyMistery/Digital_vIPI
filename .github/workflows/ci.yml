@@ -15,3 +15,31 @@ jobs:
       - run: dotnet restore Vipi.slnx
       - run: dotnet build Vipi.slnx --no-restore -c Release
       - run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal
+
+  # L'immagine è ciò che gira davvero su Render: se il Dockerfile si rompe, i test verdi non se ne accorgono.
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dell'immagine (stesso Dockerfile del deploy)
+        run: docker build -t vipi:ci .
+      - name: Smoke del container
+        run: |
+          # DB su /tmp: in aspnet:10.0 il processo gira come utente non-root e /app non è scrivibile.
+          # VipiAuth spento: senza i segreti OIDC l'avvio in Production fallirebbe (vedi Auth/VipiAuth).
+          docker run -d --name vipi -p 8080:8080 \
+            -e VipiAuth__Enabled=false \
+            -e ConnectionStrings__Vipi="Data Source=/tmp/vipi.db" \
+            vipi:ci
+          # /vsop/health risponde 200 su Healthy e Degraded, 503 su Unhealthy (DB irraggiungibile o
+          # migrazioni pendenti): -f rende il curl il vero criterio di successo.
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/vsop/health; then echo; echo "container su"; exit 0; fi
+            sleep 2
+          done
+          echo "il container non ha risposto in 60s"
+          docker logs vipi
+          exit 1
+      - name: Log del container
+        if: always()
+        run: docker logs vipi || true
