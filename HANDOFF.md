@@ -1,7 +1,19 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 luglio 2026 (audit concorrenza + codice morto + ridondanze; verifica live)
+**Ultimo aggiornamento:** 30 luglio 2026 (stampa documenti; audit concorrenza + codice morto + ridondanze; verifica live)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> **🖨️ Sessione 2026-07-30 (2) — stampa dei documenti.** Branch `fix/audit-race-deadcode-redundancy`, 4 commit,
+> suite **633 verde**. Documento: `docs/feature/2026-07-30-stampa-documenti.md`. Da sapere:
+> - **La stampa era rotta da sempre e in silenzio**: il blocco `@media print` in `vipi-theme.css` nascondeva
+>   tutto e mostrava solo `.printable`, classe che **nessun markup applicava** → Ctrl+P dava un foglio bianco su
+>   qualunque pagina. Ora c'è il foglio dedicato **`vipi-print.css`** (nasconde il chrome, contenuto nel flusso
+>   normale, A4 verticale, `thead` ripetuto, colori informativi preservati) + `PrintMeta` + tasto «Stampa».
+> - **Un `<details>` chiuso non si apre col solo CSS** (Chrome lo nasconde da user-agent con
+>   `content-visibility` su `::details-content`): serve l'hook `beforeprint` (`wirePrint` in `vipi-ui.js`).
+>   E **Chrome segnala la stampa due volte** (`beforeprint` + cambio media `print`) → gli handler di stampa
+>   vanno resi **idempotenti**, altrimenti il ripristino post-stampa non avviene.
+> - Nessun endpoint di export PDF: la stampa del browser copre RNF-6 (piano §10, §22.7 aggiornati).
 
 > **⚠️ Sessione 2026-07-30 — audit concorrenza / codice morto / ridondanze.** Branch
 > `fix/audit-race-deadcode-redundancy`, 14 commit, suite **505 → 631 verde**, build 0 warning. Documento completo:
