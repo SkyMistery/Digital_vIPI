@@ -14,7 +14,7 @@
         <ul>
             @foreach (var s in View.Sections)
             {
-                @if (!IsHidden(s)) { <li><a href="#@s.Id">@s.Title</a></li> }
+                @if (IsDraft || !s.IsHidden) { <li><a href="#@s.Id">@s.Title</a></li> }
             }
         </ul>
     </aside>
@@ -39,9 +39,18 @@
 
         @foreach (var s in View.Sections)
         {
-            @if (IsHidden(s))
+            @if (s.IsHidden && !IsDraft)
             {
-                <text></text>
+                <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
+            }
+            else if (s.IsHidden)
+            {
+                @* Anteprima bozza: la sezione nascosta si vede, marcata — come ACC e APP (doc 11 §3c). Prima
+                   spariva anche in bozza, quindi non c'era modo di rivedere cosa si era nascosto. *@
+                <CollapsibleBlock Id="@s.Id" Style="opacity:.65">
+                    <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
+                    <ChildContent><SectionBody Section="s" /></ChildContent>
+                </CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "aor")
             {
@@ -56,17 +65,18 @@
                 <CollapsibleBlock Id="@s.Id">
                     <Header><h3 style="margin-top:0">@s.Title</h3></Header>
                     <ChildContent>
-                        @if (!_hidden.Contains($"{_coord.HomeAcc} → {_coord.ForeignAcc}"))
+                        @* Le due direzioni sono sotto-sezioni del documento: si mostrano se la loro sezione non è
+                           nascosta (prima il confronto era sul TITOLO composto, che una rinomina rompeva). *@
+                        @if (DirectionVisible(s, 0))
                         {
                             <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
                             <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
                         }
-                        @if (!_hidden.Contains($"{_coord.ForeignAcc} → {_coord.HomeAcc}"))
+                        @if (DirectionVisible(s, 1))
                         {
                             <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
                             <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                         }
-                        @SubSections(s)
                     </ChildContent>
                 </CollapsibleBlock>
             }
@@ -120,12 +130,14 @@
     [Parameter] public string? HomeAcc { get; set; }
     [Parameter] public string? ForeignAcc { get; set; }
 
+    /// <summary>Anteprima bozza: le sezioni nascoste restano visibili, marcate (doc 11 §3c).</summary>
+    [Parameter] public bool IsDraft { get; set; }
+
     private bool _derive;
     private bool _canEdit;
     private VloaAorData _aor = VloaAorData.Empty;
     private VloaFreqData _freq = VloaFreqData.Empty;
     private VloaCoordination _coord = VloaCoordination.Empty;
-    private HashSet<string> _hidden = new(StringComparer.OrdinalIgnoreCase);
 
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IVloaDerivationService Vloa = default!;
@@ -136,7 +148,13 @@
         VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
     }
 
-    private bool IsHidden(SectionView s) => _hidden.Contains(s.Title);
+    // Direzione dei coordinamenti: visibile se la sotto-sezione corrispondente esiste e non è nascosta (in bozza
+    // si mostra comunque). Se il documento non ha sotto-sezioni (vLOA vecchie) si mostrano entrambe.
+    private bool DirectionVisible(SectionView coordination, int index)
+    {
+        if (coordination.Children.Count <= index) return true;
+        return IsDraft || !coordination.Children[index].IsHidden;
+    }
 
     // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
     // pur essendo creabili dall'editor con «+ sotto-sez». I blocchi della sezione derivata NON si rendono
@@ -166,7 +184,6 @@
             _aor = d.Aor;
             _freq = d.Freq;
             _coord = d.Coord;
-            _hidden = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(docId), StringComparer.OrdinalIgnoreCase);
         }
         // vLOA editabile solo lato italiano (CH/AOD dell'ACC home).
         _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && await Authz.CanEditAccAsync(HomeAcc!);

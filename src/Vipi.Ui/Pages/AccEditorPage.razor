@@ -93,8 +93,7 @@ else
                     <DocumentSectionsEditor Doc="_doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
                                             AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                             IsDerivedSection="IsStructured" DerivedContent="DerivedFor(blk)"
-                                            IsMandatory="IsMandatory" IsHiddenSection="s => IsHidden(blk, s)"
-                                            OnToggleHidden="s => ToggleHidden(blk, s)"
+                                            IsMandatory="IsMandatory"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
                 </div>
             }
@@ -310,7 +309,7 @@ else
     // ---- meta blocco (override + membri) ----
     private static AccBlockMeta MetaOf(AccBlock b) => new()
     {
-        Key = b.Key, Kind = b.Kind, MemberCallsigns = b.MemberCallsigns, HiddenSections = b.HiddenSections,
+        Key = b.Key, Kind = b.Kind, MemberCallsigns = b.MemberCallsigns,
         FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns,
     };
     private Task SaveMeta(AccAssembledBlock blk) => AccDoc.SaveBlockMetaAsync(Acc, blk.BlockSectionId, MetaOf(blk.Block));
@@ -327,18 +326,6 @@ else
     // Le sezioni-catalogo (chiavi note) sono obbligatorie: titolo bloccato, no elimina. Le custom (chiavi ignote) no.
     private static bool IsMandatory(EditableSection s) =>
         Structured.Contains(s.SectionKey) || s.SectionKey is "operationaltechnique" or "validity";
-    private static bool IsHidden(AccAssembledBlock blk, EditableSection s) =>
-        blk.Block.HiddenSections.Contains(s.SectionKey, StringComparer.OrdinalIgnoreCase);
-    private Task ToggleHidden(AccAssembledBlock blk, EditableSection s) => Guard(async () =>
-    {
-        var hidden = blk.Block.HiddenSections;
-        if (hidden.Contains(s.SectionKey, StringComparer.OrdinalIgnoreCase))
-            hidden.RemoveAll(k => string.Equals(k, s.SectionKey, StringComparison.OrdinalIgnoreCase));
-        else hidden.Add(s.SectionKey);
-        await SaveMeta(blk);
-        await LoadAsync();
-    });
-
     // ---- editoriali-strutturate ----
     private Task SaveSeparations(AccAssembledBlock blk, IReadOnlyList<AppSeparationRow> rows) => Guard(async () =>
     {

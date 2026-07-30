@@ -39,7 +39,7 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         return ver;
     }
 
-    private DocumentSection Section(DocumentVersion ver, string key, int order) => new()
+    private static DocumentSection Section(DocumentVersion ver, string key, int order) => new()
     {
         DocumentVersion = ver, Title = $"s{order}", Order = order, Depth = 0, SectionKey = key,
         RowVersion = Guid.NewGuid().ToByteArray(),
@@ -77,5 +77,82 @@ public class DocumentMaintenanceTests : IAsyncLifetime
 
         Assert.Equal(0, await _maintenance.ReconcileCustomSectionKeysAsync());
         Assert.Equal(after, await _db.DocumentSections.Select(s => s.SectionKey).SingleAsync());
+    }
+
+    [Fact]
+    public async Task Hidden_Sections_Move_From_DocumentProfile_To_The_Section_Flag()
+    {
+        // APP: chiavi; vLOA: titoli. Stessa colonna, stessa migrazione.
+        var ver = await SeedVersionAsync();
+        var vfr = Section(ver, "vfr", 1);
+        var aor = Section(ver, "aor", 2);
+        var libera = Section(ver, SectionKeys.NewCustom(), 3);
+        libera.Title = "Note";
+        _db.DocumentSections.AddRange(vfr, aor, libera);
+        _db.DocumentProfiles.Add(new DocumentProfile
+        {
+            DocumentId = ver.DocumentId,
+            HiddenSectionsJson = "[\"vfr\",\"Note\"]",
+        });
+        await _db.SaveChangesAsync();
+
+        var touched = await _maintenance.MigrateHiddenSectionsAsync();
+
+        Assert.Equal(2, touched);
+        Assert.True((await _db.DocumentSections.FindAsync(vfr.Id))!.IsHidden);
+        Assert.True((await _db.DocumentSections.FindAsync(libera.Id))!.IsHidden);
+        Assert.False((await _db.DocumentSections.FindAsync(aor.Id))!.IsHidden);
+        // Sorgente azzerata ⇒ rieseguire non rimette nascosto ciò che è stato rimesso pubblico.
+        Assert.Null((await _db.DocumentProfiles.FirstAsync()).HiddenSectionsJson);
+        Assert.Equal(0, await _maintenance.MigrateHiddenSectionsAsync());
+    }
+
+    [Fact]
+    public async Task Ambiguous_Custom_Entry_Hides_Every_Free_Section()
+    {
+        // Conservativo: dopo la riconciliazione delle chiavi "custom" non identifica più una sezione sola,
+        // quindi si nascondono tutte le libere (non si scopre in pubblico ciò che era nascosto).
+        var ver = await SeedVersionAsync();
+        var a = Section(ver, SectionKeys.NewCustom(), 1);
+        var b = Section(ver, SectionKeys.NewCustom(), 2);
+        var aor = Section(ver, "aor", 3);
+        _db.DocumentSections.AddRange(a, b, aor);
+        _db.DocumentProfiles.Add(new DocumentProfile { DocumentId = ver.DocumentId, HiddenSectionsJson = "[\"custom\"]" });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(2, await _maintenance.MigrateHiddenSectionsAsync());
+        Assert.True((await _db.DocumentSections.FindAsync(a.Id))!.IsHidden);
+        Assert.True((await _db.DocumentSections.FindAsync(b.Id))!.IsHidden);
+        Assert.False((await _db.DocumentSections.FindAsync(aor.Id))!.IsHidden);
+    }
+
+    [Fact]
+    public async Task Hidden_Sections_Move_From_Acc_BlockMeta_To_The_Section_Flag()
+    {
+        var ver = await SeedVersionAsync();
+        var blocco = Section(ver, "aerovia", 1);
+        _db.DocumentSections.Add(blocco);
+        await _db.SaveChangesAsync();
+
+        var vfr = Section(ver, "vfr", 1);
+        vfr.ParentSectionId = blocco.Id;
+        var aor = Section(ver, "aor", 2);
+        aor.ParentSectionId = blocco.Id;
+        _db.DocumentSections.AddRange(vfr, aor);
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = blocco.Id, Order = 1, Format = BlockFormat.Table,
+            Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            BodyJson = "{\"Key\":\"aerovia\",\"HiddenSections\":[\"vfr\"]}",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(1, await _maintenance.MigrateHiddenSectionsAsync());
+        Assert.True((await _db.DocumentSections.FindAsync(vfr.Id))!.IsHidden);
+        Assert.False((await _db.DocumentSections.FindAsync(aor.Id))!.IsHidden);
+        // Blockmeta riscritto senza la proprietà ⇒ idempotente.
+        Assert.DoesNotContain("HiddenSections", (await _db.ContentBlocks.FirstAsync()).BodyJson);
+        Assert.Equal(0, await _maintenance.MigrateHiddenSectionsAsync());
     }
 }

@@ -68,7 +68,7 @@ else
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
                     @foreach (var s in VisibleSections(block))
                     {
-                        var isHidden = IsHiddenSection(block, s.Key);
+                        var isHidden = s.IsHidden;
                         <CollapsibleBlock Id="@($"p-{block.Key}-{s.Key}")" Style="@(isHidden ? "opacity:.65" : null)">
                             <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
@@ -236,14 +236,8 @@ else
     }
 
     // Sezioni da mostrare, NELL'ORDINE del documento (doc 11 §3b: si itera la lista di sezioni, non un elenco di
-    // chiavi riconciliato a view-time). Anteprima BOZZA: mostra anche le nascoste (stato editoriale in lavorazione);
-    // pubblica/release: filtrate.
-    private IReadOnlyList<AccBlockSection> VisibleSections(AccBlock b)
-    {
-        var hidden = b.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return b.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !hidden.Contains(s.Key)).ToList();
-    }
-
-    private bool IsHiddenSection(AccBlock b, string key) =>
-        _mode.Kind == PreviewKind.Draft && b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
+    // chiavi riconciliato a view-time). Anteprima BOZZA: mostra anche le nascoste (stato editoriale in lavorazione),
+    // marcate; pubblica/release: filtrate. Lo stato «nascosta» è sulla sezione e versionato (doc 11 §3c).
+    private IReadOnlyList<AccBlockSection> VisibleSections(AccBlock b) =>
+        b.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden).ToList();
 }

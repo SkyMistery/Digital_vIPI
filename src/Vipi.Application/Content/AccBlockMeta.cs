@@ -12,7 +12,6 @@ public sealed class AccBlockMeta
     public string Key { get; set; } = "";
     public AccBlockKind Kind { get; set; }
     public List<string> MemberCallsigns { get; set; } = new();
-    public List<string> HiddenSections { get; set; } = new();
     public List<AppFreqOrderOverride> FreqOrder { get; set; } = new();
     public List<string> FreqLinkCallsigns { get; set; } = new();
 }

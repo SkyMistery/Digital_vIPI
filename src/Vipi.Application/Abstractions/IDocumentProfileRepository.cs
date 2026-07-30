@@ -12,9 +12,6 @@ public interface IDocumentProfileRepository
     /// <summary>Legge gli override del documento (tutti vuoti se non esiste ancora una riga).</summary>
     Task<DocumentProfileData> GetAsync(int documentId, CancellationToken ct = default);
 
-    /// <summary>Chiavi (SectionCatalog) delle sezioni nascoste dal pubblico.</summary>
-    Task SaveHiddenSectionsAsync(int documentId, IReadOnlyList<string> sectionKeys, CancellationToken ct = default);
-
     /// <summary>Override d'ordine delle frequenze per callsign.</summary>
     Task SaveFreqOrderAsync(int documentId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
 
@@ -25,7 +22,6 @@ public interface IDocumentProfileRepository
 /// <summary>Override letti dal <c>DocumentProfile</c> (già deserializzati). Liste vuote / null se assenti.</summary>
 public sealed class DocumentProfileData
 {
-    public IReadOnlyList<string> HiddenSections { get; init; } = Array.Empty<string>();
     public IReadOnlyList<AppFreqOrderOverride> FreqOrder { get; init; } = Array.Empty<AppFreqOrderOverride>();
     public IReadOnlyList<int> FreqLinkSectorIds { get; init; } = Array.Empty<int>();
     public IReadOnlyList<string> HiddenAorSectors { get; init; } = Array.Empty<string>();

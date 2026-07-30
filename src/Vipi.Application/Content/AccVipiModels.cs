@@ -29,7 +29,7 @@ public sealed class AccConfiguration
 /// blocchi e le sotto-sezioni già pronti per la resa condivisa (<c>SectionNode</c>/<c>SectionBody</c>): per le
 /// sezioni strutturate (aor/frequenze/…) il corpo lo produce la pagina, ma le sotto-sezioni restano qui.
 /// </summary>
-public sealed record AccBlockSection(int SectionId, string Key, string Title, SectionView? Editorial);
+public sealed record AccBlockSection(int SectionId, string Key, string Title, bool IsHidden, SectionView? Editorial);
 
 /// <summary>
 /// Un blocco della vIPI ACC: Aerovia (settori CTR, pool implicito) o gruppo-APP (settori APP scelti).
@@ -49,7 +49,6 @@ public sealed class AccBlock
     /// con <c>SectionId = 0</c>.</summary>
     public List<AccBlockSection> Sections { get; set; } = new();
 
-    public List<string> HiddenSections { get; set; } = new();
     public List<AccConfiguration> Configurations { get; set; } = new();
 
     /// <summary>Callsign di settori DB (anche esteri) aggiunti a mano come shape AoR extra: appesi come anelli

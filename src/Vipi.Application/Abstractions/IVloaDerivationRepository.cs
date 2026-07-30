@@ -11,10 +11,10 @@ public sealed record VloaPairInfo(
     IReadOnlyList<string> HomeAll, IReadOnlyList<string> ForeignAll,
     string ForeignCountry);
 
-/// <summary>Stato editoriale persistito di una vLOA: callsign nascosti da AoR/frequenze + titoli di sezioni nascoste.</summary>
+/// <summary>Stato editoriale persistito di una vLOA: callsign nascosti da AoR/frequenze. Le SEZIONI nascoste
+/// stanno sul documento (<c>DocumentSection.IsHidden</c>, doc 11 §3c), non più qui.</summary>
 public sealed record VloaEditorialState(
-    IReadOnlyList<string> HiddenAorSectors, IReadOnlyList<string> HiddenFrequencies,
-    IReadOnlyList<string> HiddenSections);
+    IReadOnlyList<string> HiddenAorSectors, IReadOnlyList<string> HiddenFrequencies);
 
 /// <summary>Settore di confine (CTR/FSS) di un ACC col suo poligono grezzo, per il calcolo di adiacenza al volo.</summary>
 public sealed record VloaSectorPoly(string Callsign, string Raw);

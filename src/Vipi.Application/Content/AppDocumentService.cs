@@ -56,9 +56,6 @@ public interface IAppDocumentService
     /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
     Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Salva le chiavi delle sezioni nascoste dal pubblico (ACC-gated).</summary>
-    Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default);
-
     /// <summary>Salva l'override d'ordine delle frequenze per callsign (ACC-gated).</summary>
     Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
 
@@ -371,9 +368,6 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
         LoadOverridesAsync(appCallsign, ct);
-
-    public Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default) =>
-        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveHiddenSectionsAsync(docId, sectionKeys ?? Array.Empty<string>(), c), ct);
 
     public Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), c), ct);

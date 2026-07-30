@@ -130,6 +130,13 @@ public sealed class EditingService : IEditingService
         await _repo.SetSectionRenderModeAsync(sectionId, mode, ct);
     }
 
+    public async Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default)
+    {
+        var docId = await AuthorizeSectionAsync(sectionId, ct);
+        await EnsureLockAsync(docId, ct);
+        await _repo.SetSectionHiddenAsync(sectionId, hidden, ct);
+    }
+
     public async Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default)
     {
         var docId = await AuthorizeVersionAsync(versionId, ct);

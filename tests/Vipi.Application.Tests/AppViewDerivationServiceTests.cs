@@ -79,7 +79,6 @@ public class AppViewDerivationServiceTests
         public Task SaveVfrAsync(string a, AppVfrContent c, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<AppDocumentIdentity?> GetIdentityAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<DocumentProfileData> GetOverridesAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task SaveHiddenSectionsAsync(string a, IReadOnlyList<string> k, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyOrderAsync(string a, IReadOnlyList<AppFreqOrderOverride> o, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();

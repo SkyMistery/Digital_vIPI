@@ -53,10 +53,6 @@ else
     /// (aor/frequencies/coordination/minima). Il badge di stato compare per queste; il toggle solo in modifica.</summary>
     [Parameter] public Func<EditableSection, bool>? IsRenderModeToggleable { get; set; }
 
-    /// <summary>Sezione nascosta dal documento pubblicato.</summary>
-    [Parameter] public Func<EditableSection, bool>? IsHiddenSection { get; set; }
-    /// <summary>Toggle nascondi/mostra (l'host decide la chiave: titolo per vLOA, SectionKey per ACC/APP).</summary>
-    [Parameter] public EventCallback<EditableSection> OnToggleHidden { get; set; }
 
     /// <summary>Mostra il menu-sezioni laterale (TOC) sticky: avvolge il render in griglia 2 colonne (toc | contenuto).
     /// Opt-in per gli editor a singola istanza (App/vLOA); la vIPI ACC costruisce il TOC a livello pagina.</summary>
@@ -130,6 +126,14 @@ else
         await OnChanged.InvokeAsync();
     });
 
+    // Nascondi/mostra: stato VERSIONATO sulla sezione (doc 11 §3c), uguale per ACC/APP/vLOA. Prima ogni editor
+    // passava un proprio callback su uno storage diverso (blockmeta / DocumentProfile per chiave / per titolo).
+    private Task ToggleHidden(EditableSection s) => Run(async () =>
+    {
+        await Editing.SetSectionHiddenAsync(s.Id, !s.IsHidden);
+        await OnChanged.InvokeAsync();
+    });
+
     // ---- blocchi ----
     private Task AddBlock(int sectionId, BlockFormat format) => Run(async () =>
     {
@@ -175,7 +179,7 @@ else
     private RenderFragment SectionEditor(EditableSection s, int relDepth) => __builder =>
     {
         var mand = IsMandatory?.Invoke(s) == true;
-        var hid = IsHiddenSection?.Invoke(s) == true;
+        var hid = s.IsHidden;
         if (relDepth == 0)
         {
             // Primo livello = card .block COLLASSABILE (CollapsibleBlock), coerente con tutti gli editor/viewer.
@@ -222,7 +226,7 @@ else
             @if (IsRenderModeToggleable?.Invoke(s) == true)
             {
                 var live = s.RenderMode == RenderMode.Live;
-                <span class="pill @(live ? "green" : "grey")" style="@(OnToggleHidden.HasDelegate ? null : "margin-left:auto")"
+                <span class="pill @(live ? "green" : "grey")"
                       title="@(live ? L["Dse_LiveTitle"] : L["Dse_FrozenTitle"])">
                     @(live ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])
                 </span>
@@ -234,10 +238,10 @@ else
                     </button>
                 }
             }
-            @if (IsEditing && OnToggleHidden.HasDelegate)
+            @if (IsEditing)
             {
                 <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
-                        @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
+                        @onclick="() => ToggleHidden(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
             }
         </div>
     };

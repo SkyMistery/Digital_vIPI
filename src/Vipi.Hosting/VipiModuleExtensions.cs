@@ -189,6 +189,12 @@ public static class VipiModuleExtensions
         if (keys > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Riconciliate {Count} sezioni libere con chiave storica «custom».", keys);
+
+        // DOPO la riconciliazione delle chiavi: le voci storiche "custom" non identificano più una sola sezione.
+        var hidden = maintenance.MigrateHiddenSectionsAsync().GetAwaiter().GetResult();
+        if (hidden > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
         return host;
     }
 

@@ -55,8 +55,7 @@ else
 
     <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                             IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
-                            IsMandatory="IsMandatory" IsHiddenSection="IsHidden"
-                            OnToggleHidden="s => ToggleSection(s.Title)"
+                            IsMandatory="IsMandatory"
                             IsRenderModeToggleable="IsRenderModeToggleable"
                             ShowToc="true">
         <RightRail>
@@ -99,7 +98,6 @@ else
     private VloaAorData _aor = VloaAorData.Empty;
     private VloaFreqData _freq = VloaFreqData.Empty;
     private VloaCoordination _coord = VloaCoordination.Empty;
-    private HashSet<string> _hiddenSections = new(StringComparer.OrdinalIgnoreCase);
     private LockInfo _lock = LockInfo.Free();
     private bool _notFound, _denied, _editing;
     private string? _error;
@@ -158,16 +156,7 @@ else
         _aor = await Vloa.DeriveAorAsync(id);
         _freq = await Vloa.DeriveFrequenciesAsync(id);
         _coord = await Vloa.DeriveCoordinationAsync(id);
-        _hiddenSections = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(id), StringComparer.OrdinalIgnoreCase);
     }
-
-    private bool IsHidden(EditableSection s) => _hiddenSections.Contains(s.Title);
-
-    private Task ToggleSection(string title) => Guard(async () =>
-    {
-        await Vloa.ToggleSectionAsync(_docId!.Value, title);
-        _hiddenSections = new HashSet<string>(await Vloa.GetHiddenSectionsAsync(_docId!.Value), StringComparer.OrdinalIgnoreCase);
-    });
 
     private Task ToggleAor(string cs) => Guard(async () =>
     {

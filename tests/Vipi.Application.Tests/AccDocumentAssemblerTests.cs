@@ -47,7 +47,6 @@ public class AccDocumentAssemblerTests
         {
             Key = "grp:abc", Kind = AccBlockKind.AppGroup,
             MemberCallsigns = new() { "LIRP_APP" },
-            HiddenSections = new() { "vfr" },
             FreqOrder = new() { new AppFreqOrderOverride("LIRP_APP", 0) },
             FreqLinkCallsigns = new() { "LIRR_CTR" },
         };
@@ -112,7 +111,6 @@ public class AccDocumentAssemblerTests
         Assert.Equal(AccBlockKind.AppGroup, grp.Block.Kind);
         Assert.Equal("grp:abc", grp.Block.Key);
         Assert.Equal(new[] { "LIRP_APP" }, grp.Block.MemberCallsigns);
-        Assert.Equal(new[] { "vfr" }, grp.Block.HiddenSections);
         Assert.Equal("LIRR_CTR", Assert.Single(grp.Block.FreqLinkCallsigns));
         Assert.Equal(0, Assert.Single(grp.Block.FreqOrder).Order);
     }

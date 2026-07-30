@@ -17,16 +17,12 @@ public sealed class EfDocumentProfileRepository : IDocumentProfileRepository
         var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == documentId, ct);
         return new DocumentProfileData
         {
-            HiddenSections = DeserializeStrings(p?.HiddenSectionsJson),
             HiddenAorSectors = DeserializeStrings(p?.HiddenAorSectorsJson),
             HiddenFrequencies = DeserializeStrings(p?.HiddenFrequenciesJson),
             FreqOrder = DeserializeFreqOrder(p?.FreqOrderJson),
             FreqLinkSectorIds = DeserializeInts(p?.FreqLinksJson),
         };
     }
-
-    public Task SaveHiddenSectionsAsync(int documentId, IReadOnlyList<string> sectionKeys, CancellationToken ct = default) =>
-        MutateAsync(documentId, p => p.HiddenSectionsJson = JsonSerializer.Serialize(sectionKeys), ct);
 
     public Task SaveFreqOrderAsync(int documentId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         MutateAsync(documentId, p => p.FreqOrderJson = JsonSerializer.Serialize(overrides), ct);

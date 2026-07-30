@@ -37,7 +37,6 @@ public class DocumentProfileRepositoryTests : IAsyncLifetime
     {
         var docId = await _db.Documents.Select(d => d.Id).FirstAsync();
         var data = await _repo.GetAsync(docId);
-        Assert.Empty(data.HiddenSections);
         Assert.Empty(data.FreqOrder);
         Assert.Empty(data.FreqLinkSectorIds);
     }
@@ -47,12 +46,10 @@ public class DocumentProfileRepositoryTests : IAsyncLifetime
     {
         var docId = await _db.Documents.Select(d => d.Id).FirstAsync();
 
-        await _repo.SaveHiddenSectionsAsync(docId, new[] { "vfr", "regulated" });
         await _repo.SaveFreqOrderAsync(docId, new[] { new AppFreqOrderOverride("LIRP_APP", 0), new AppFreqOrderOverride("LIRP_TWR", 1) });
         await _repo.SaveFreqLinksAsync(docId, new[] { 42, 7 });
 
         var data = await _repo.GetAsync(docId);
-        Assert.Equal(new[] { "vfr", "regulated" }, data.HiddenSections);
         Assert.Equal(new[] { 42, 7 }, data.FreqLinkSectorIds);
         Assert.Equal(2, data.FreqOrder.Count);
         Assert.Equal("LIRP_APP", data.FreqOrder[0].Callsign);

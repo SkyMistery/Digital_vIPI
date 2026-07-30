@@ -59,6 +59,9 @@ public sealed class EditableSection
     /// derivabili. Governa se al publish l'output viene congelato (Frozen) o reso live al view (Live).</summary>
     public RenderMode RenderMode { get; init; } = RenderMode.Frozen;
 
+    /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c): l'editor la mostra comunque, marcata.</summary>
+    public bool IsHidden { get; init; }
+
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }
     public required IReadOnlyList<EditableSection> Children { get; init; }
 }

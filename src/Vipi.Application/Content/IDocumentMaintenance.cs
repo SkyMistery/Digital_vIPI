@@ -11,4 +11,9 @@ public interface IDocumentMaintenance
     /// <summary>Assegna una chiave univoca alle sezioni libere nate con la chiave storica ambigua
     /// <c>"custom"</c>. Ritorna il numero di sezioni riconciliate.</summary>
     Task<int> ReconcileCustomSectionKeysAsync(CancellationToken ct = default);
+
+    /// <summary>Porta lo stato «sezione nascosta» dai tre storage storici (blockmeta ACC per chiave,
+    /// <c>DocumentProfile</c> per chiave nell'APP e per titolo nella vLOA) al flag versionato
+    /// <c>DocumentSection.IsHidden</c> (doc 11 §3c), e azzera le sorgenti. Ritorna le sezioni marcate.</summary>
+    Task<int> MigrateHiddenSectionsAsync(CancellationToken ct = default);
 }

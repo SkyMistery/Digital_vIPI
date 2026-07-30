@@ -26,6 +26,7 @@ public static class AccDocumentAssembler
     private static EditableSection ToEditable(RawSection s) => new()
     {
         Id = s.Id, Title = s.Title, SectionKey = s.SectionKey, Depth = s.Depth, Order = s.Order,
+        RenderMode = s.RenderMode, IsHidden = s.IsHidden,
         Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new EditableBlock
         {
             Id = b.Id, Order = b.Order, Format = b.Format, Tier = b.Tier, Visibility = b.Visibility,
@@ -63,7 +64,6 @@ public static class AccDocumentAssembler
                 Kind = kind,
                 Title = blockSection.Title,
                 MemberCallsigns = meta?.MemberCallsigns ?? new(),
-                HiddenSections = meta?.HiddenSections ?? new(),
                 FreqOrder = meta?.FreqOrder ?? new(),
                 FreqLinkCallsigns = meta?.FreqLinkCallsigns ?? new(),
                 Configurations = configs,
@@ -85,7 +85,7 @@ public static class AccDocumentAssembler
     private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind)
     {
         var sections = blockSection.Children.OrderBy(c => c.Order)
-            .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, ToSectionView(c)))
+            .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c)))
             .ToList();
 
         // Documenti vecchi (o snapshot) senza una sezione-catalogo: la si accoda comunque, così le derivate
@@ -94,7 +94,7 @@ public static class AccDocumentAssembler
         var present = sections.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
             if (!present.Contains(desc.Key))
-                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, null));
+                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, false, null));
 
         return sections;
     }
@@ -107,6 +107,7 @@ public static class AccDocumentAssembler
         Title = s.Title,
         Depth = s.Depth,
         SectionKey = s.SectionKey,
+        IsHidden = s.IsHidden,
         Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new BlockView
         {
             Id = b.Id,

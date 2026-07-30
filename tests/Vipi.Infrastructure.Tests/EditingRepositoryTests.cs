@@ -59,6 +59,26 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateDraft_Preserves_Per_Section_Flags()
+    {
+        // La copia bozza portava titolo/ordine/chiave ma NON i flag per-sezione: aprire una bozza resettava
+        // RenderMode a Frozen (doc 10) e avrebbe azzerato IsHidden (doc 11 §3c).
+        var docId = await AccDocIdAsync();
+        var srcVer = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var source = await _db.DocumentSections.Where(s => s.DocumentVersionId == srcVer).OrderBy(s => s.Id).FirstAsync();
+        source.RenderMode = RenderMode.Live;
+        source.IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+
+        var copy = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == draftId && s.Title == source.Title).FirstAsync();
+        Assert.Equal(RenderMode.Live, copy.RenderMode);
+        Assert.True(copy.IsHidden);
+    }
+
+    [Fact]
     public async Task CreateDocument_Vipi_From_Scratch_Has_Draft_And_Root_Section()
     {
         // Settore non ancora descritto da nessun documento (gli ACC sono già assegnati dal content seed).

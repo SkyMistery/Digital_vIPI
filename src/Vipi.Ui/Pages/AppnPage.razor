@@ -34,7 +34,7 @@ else if (_vloaMode)
         }
         else
         {
-            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" UseFrozen="_vloaUseFrozen" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
+            <VloaDocumentView View="_vloaView" DocId="_vloaDocId" UseFrozen="_vloaUseFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)" Subtitle="@($"{_acc.Name} ↔ {_vloaForeign}")" HomeAcc="@Acc.Trim().ToUpperInvariant()" ForeignAcc="@_vloaForeign" />
         }
     </div>
 }
@@ -82,7 +82,7 @@ else
 
                 @foreach (var s in _view.Sections)
                 {
-                    var hidden = _hiddenKeys.Contains(s.SectionKey);
+                    var hidden = s.IsHidden;
                     @if (hidden && _mode.Kind != PreviewKind.Draft)
                     {
                         <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
@@ -106,6 +106,15 @@ else
                                    prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez». *@
                                 @if (s.Children.Count > 0) { <SectionBody Section="s" ShowBlocks="false" /> }
                             </ChildContent>
+                        </CollapsibleBlock>
+                    }
+                    else if (hidden)
+                    {
+                        @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali (prima passava
+                           da SectionNode senza pill né opacità, e non si capiva che era fuori dal pubblico). *@
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65">
+                            <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
+                            <ChildContent><SectionBody Section="s" /></ChildContent>
                         </CollapsibleBlock>
                     }
                     else
@@ -162,7 +171,6 @@ else
     // live (bozza/anteprima) via AppViewDerivationService.
     private DocumentView? _view;
     private bool _useFrozen;   // vista pubblica: leggi le derivate frozen dalla release effettiva (doc 10 §3d)
-    private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
     private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
     private AppCoordination _coord = AppCoordination.Empty;
@@ -176,7 +184,7 @@ else
 
     private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
     private IEnumerable<SectionView> VisibleSections() =>
-        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !_hiddenKeys.Contains(s.SectionKey));
+        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
@@ -277,9 +285,6 @@ else
                 break;
         }
         if (_view is null) return;
-
-        var overrides = await AppDoc.GetOverridesAsync(_app);
-        _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
         var derived = await AppView.ResolveForViewAsync(_app, _useFrozen);

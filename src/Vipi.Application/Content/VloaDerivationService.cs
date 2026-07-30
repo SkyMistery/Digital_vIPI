@@ -59,11 +59,6 @@ public interface IVloaDerivationService
     /// <summary>Inverte la visibilità di una frequenza nella tabella (persistito). Authz: edit dell'ACC Home.</summary>
     Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default);
 
-    /// <summary>Inverte la visibilità di una sezione (per titolo) nel documento pubblicato. Authz: edit dell'ACC Home.</summary>
-    Task ToggleSectionAsync(int docId, string sectionTitle, CancellationToken ct = default);
-
-    /// <summary>Titoli delle sezioni nascoste (per l'editor/viewer). Lettura senza authz.</summary>
-    Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IVloaDerivationService"/>
@@ -247,13 +242,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
     public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) =>
         ToggleAsync(docId, callsign, Target.Freq, ct);
 
-    public Task ToggleSectionAsync(int docId, string sectionTitle, CancellationToken ct = default) =>
-        ToggleAsync(docId, sectionTitle, Target.Section, ct);
-
-    public async Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default) =>
-        (await _repo.LoadEditorialAsync(docId, ct)).HiddenSections;
-
-    private enum Target { Aor, Freq, Section }
+    private enum Target { Aor, Freq }
 
     private async Task ToggleAsync(int docId, string key, Target which, CancellationToken ct)
     {
@@ -264,12 +253,10 @@ public sealed class VloaDerivationService : IVloaDerivationService
         var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);
         var hiddenFreq = new HashSet<string>(state.HiddenFrequencies, StringComparer.OrdinalIgnoreCase);
-        var hiddenSec = new HashSet<string>(state.HiddenSections, StringComparer.OrdinalIgnoreCase);
-        var target = which switch { Target.Aor => hiddenAor, Target.Freq => hiddenFreq, _ => hiddenSec };
+        var target = which == Target.Aor ? hiddenAor : hiddenFreq;
         if (!target.Add(key)) target.Remove(key);   // toggle
 
-        await _repo.SaveEditorialAsync(docId,
-            new VloaEditorialState(hiddenAor.ToList(), hiddenFreq.ToList(), hiddenSec.ToList()), ct);
+        await _repo.SaveEditorialAsync(docId, new VloaEditorialState(hiddenAor.ToList(), hiddenFreq.ToList()), ct);
     }
 
 }
