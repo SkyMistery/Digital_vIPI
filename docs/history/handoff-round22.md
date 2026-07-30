@@ -39,7 +39,9 @@
 - **`"[]"` non è null:** il «poligono vuoto» va rilevato col proiettore, non con un confronto SQL `null/''`.
 - **Endpoint coord:** usa **`/v2/ATCPositions/{compose}`** (blocco `airport`), NON `/v2/airports` (richiede scope `configuration`; il dettaglio basta con `tracker`).
 - **Credenziali IVAO** reali in **user secrets** (UserSecretsId `79756a9b-0ff7-4ec7-89d3-88a116771871`, chiavi `Ivao:ClientId`/`Ivao:ClientSecret`); in `appsettings.json` sono **vuote**.
-- Codice rimasto ma ora **non usato** dal fallback: `SourceAirport.Latitude/Longitude` + mapping in `GetAirportsAsync`, `IAirportSectorRepository.SetAirportCoordsAsync` — innocui, eliminabili in un cleanup.
+- ~~Codice rimasto ma ora **non usato** dal fallback: `SourceAirport.Latitude/Longitude` + mapping in `GetAirportsAsync`, `IAirportSectorRepository.SetAirportCoordsAsync` — innocui, eliminabili in un cleanup.~~
+  **RIMOSSI** nel cleanup del 2026-07-30: erano scritti e mai riletti. Le coordinate del riferimento aeroporto
+  restano quelle di `IAirportDetailProvider` (`AirportLatitude`/`AirportLongitude` da ATCPositions).
 
 ## 4. ✅ Verifica runtime ESEGUITA (30 giu 2026)
 Host riavviato (`dotnet run --project src/Vipi.Host`), job di avvio girati. Esito DB (`src/Vipi.Host/vipi.db`):

@@ -47,6 +47,22 @@ In futuro un nuovo provider (altro network, **DB interno**, dataset statico) si 
 
 ---
 
+## 1c. `Persistence` — selezione del provider di database
+
+Mappata su `PersistenceProviderResolver` (`src/Vipi.Infrastructure/Persistence/PersistenceProvider.cs`), scelta in
+`AddVipiInfrastructure`. La connection string resta `ConnectionStrings:Vipi` (§4).
+
+| Chiave | Tipo | Default | Significato |
+|---|---|---|---|
+| `Persistence:Provider` | string | `Sqlite` | `Sqlite` (operativo: file + WAL/busy_timeout via `SqliteTuningInterceptor`) o `Postgres` (cutover **pianificato**, non attuato: selezionarlo fa **fallire l'avvio** con rimando all'ADR-0007). Valore sconosciuto ⇒ errore con i valori validi. |
+
+> ⚠️ **Postgres non è ancora operativo.** L'abilitazione richiede: pacchetto `Npgsql.EntityFrameworkCore.PostgreSQL`,
+> un **assembly di migrazioni dedicato** (le migrazioni attuali sono SQLite-flavored), revisione dei punti
+> provider-specifici (RowVersion, tipi) e **validazione su istanza reale**. Passi e razionale in
+> `../adr/adr-0007-produzione-persistenza-e-scala.md` (D1).
+
+---
+
 ## 2. `Ivao` — API IVAO e polling (F3)
 
 Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `../adr/adr-0001-scelte-architetturali-fondanti.md` (D6) e `../adr/adr-0003-trasporto-live-sse.md` (trasporto SSE).

@@ -32,6 +32,8 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     public LevelConstraint? Constraint { get; init; }
     /// <summary>Frase di coordinamento già composta (null/vuota = non mostrata).</summary>
     public string? Sentence { get; init; }
+    /// <summary>Etichetta condizione operativa (pista in uso / area attiva); null/vuota = riga sempre valida.</summary>
+    public string? ConditionLabel { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>
@@ -62,15 +64,4 @@ public sealed record AppVfrContent(string? Intro, IReadOnlyList<AppVfrRow> Rows)
 {
     public static AppVfrContent Empty { get; } = new(null, Array.Empty<AppVfrRow>());
 }
-
-/// <summary>Tipo di blocco di una sezione custom.</summary>
-public enum AppCustomBlockType { Prose, Table }
-
-/// <summary>Blocco di una sezione custom: prosa (markdown in <see cref="Text"/>) o tabella (<see cref="Columns"/>+<see cref="Rows"/>).</summary>
-public sealed record AppCustomBlock(
-    AppCustomBlockType Type, string? Text,
-    IReadOnlyList<string>? Columns, IReadOnlyList<IReadOnlyList<string>>? Rows);
-
-/// <summary>Sezione custom (libera): chiave stabile + titolo + blocchi prosa/tabella. Riordinata insieme alle fisse.</summary>
-public sealed record AppCustomSection(string Key, string Title, IReadOnlyList<AppCustomBlock> Blocks);
 

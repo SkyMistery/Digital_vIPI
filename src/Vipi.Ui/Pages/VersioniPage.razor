@@ -11,66 +11,67 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Bozze &amp; versioni · IVAO Italia</PageTitle>
+<PageTitle>@L["Nd_Drafts"] · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Bozze &amp; versioni</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Nd_Drafts"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Bozze &amp; versioni</h2><span class="muted">Documenti, storico versioni e release AIRAC · ciclo corrente @_currentCycle</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Nd_Drafts"]</h2><span class="muted">@(string.Format(L["Ver_Subtitle"].Value, _currentCycle))</span></div>
         <div style="display:flex;gap:8px;align-items:center">
             @if (_docs is not null && Filtered().Any())
             {
-                <button type="button" class="btn ghost" @onclick="ToggleExpandAll">@(AllExpanded ? "▴ Comprimi tutti" : "▾ Espandi tutti")</button>
+                <button type="button" class="btn ghost" @onclick="ToggleExpandAll">@(AllExpanded ? "▴ " + L["Ver_CollapseAll"] : "▾ " + L["Ver_ExpandAll"])</button>
             }
-            <a class="btn primary" href="/vsop/editor/newdoc">➕ Nuovo documento</a>
+            <a class="btn primary" href="/vsop/editor/newdoc"><Icon Name="plus" /> @L["Nd_Title"]</a>
         </div>
     </div>
 
-    @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Operazione non consentita</p>@_error</div></div> }
-    @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Ver_NotAllowed"]</p>@_error</div></div> }
+    @if (_status is not null) { <div class="callout success"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_status</div></div> }
 
     @if (_docs is null)
     {
-        <p class="help">Caricamento…</p>
+        <LoadingState />
     }
     else
     {
         @* ---- riepilogo campagna release ---- *@
         <div class="block" style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:10px 0;font-size:13px">
-            <b>📅 Ciclo corrente @_currentCycle</b>
-            <span class="muted">@_docs.Count documenti</span>
-            <span class="pill green" title="Con una release in vigore ora">🟢 @CampaignCount("effective") in vigore</span>
-            <span class="pill blue" title="Con una release futura schedulata">🕒 @CampaignCount("scheduled") schedulate</span>
-            <span class="pill grey" title="Senza release: il pubblico vede lo stato live">⚠️ @CampaignCount("none") senza release</span>
+            <b><Icon Name="calendar" /> @(string.Format(L["Ver_CurrentCycle"].Value, _currentCycle))</b>
+            <span class="muted">@(string.Format(L["Ver_NDocs"].Value, _docs.Count))</span>
+            <span class="pill green" title="@L["Ver_EffectiveTitle"]">🟢 @(string.Format(L["Ver_NEffective"].Value, CampaignCount("effective")))</span>
+            <span class="pill blue" title="@L["Ver_ScheduledTitle"]">🕒 @(string.Format(L["Ver_NScheduled"].Value, CampaignCount("scheduled")))</span>
+            <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @(string.Format(L["Ver_NNoRelease"].Value, CampaignCount("none")))</span>
         </div>
 
         @* ---- barra ricerca + filtri ---- *@
         <div class="htree-search" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0">
-            <input class="app-in" style="flex:1;min-width:220px" placeholder="cerca titolo / scope / ACC…"
+            <input class="app-in" style="flex:1;min-width:220px" placeholder="@L["Ver_SearchPh"]"
                    value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" />
-            <span>Tipo:</span>
+            <span>@L["Ver_KindLabel"]</span>
             @foreach (var (k, lab) in KindFilters)
             {
                 <span class="pill @(_kindFilter == k ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetKind(k)">@lab</span>
             }
-            <span style="margin-left:6px">Stato:</span>
+            <span style="margin-left:6px">@L["Ver_StatusLabel"]</span>
             @foreach (var (s, lab) in StatusFilters)
             {
                 <span class="pill @(_statusFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetStatus(s)">@lab</span>
             }
-            <span style="margin-left:6px">Release:</span>
+            <span style="margin-left:6px">@L["Ver_ReleaseLabel"]</span>
             @foreach (var (s, lab) in ReleaseFilters)
             {
                 <span class="pill @(_releaseFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetRelease(s)">@lab</span>
             }
         </div>
 
-        <p class="muted" style="font-size:12px">@Filtered().Count() @(IsFiltering ? $"su {_docs.Count}" : "") documenti@(IsFiltering ? " (filtrati)" : "")</p>
+        <p class="muted" style="font-size:12px">@Filtered().Count() @(IsFiltering ? string.Format(L["Ver_OfTotal"].Value, _docs.Count) : "") @L["Ver_DocsWord"]@(IsFiltering ? L["Ver_FilteredSuffix"].Value : "")</p>
 
         @if (!Filtered().Any())
         {
-            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Nessun documento</p>Nessun documento corrisponde ai filtri.</div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">@L["Ver_NoDoc"]</p>@L["Ver_NoDocMatch"]</div></div>
         }
 
         @foreach (var d in Filtered())
@@ -79,33 +80,36 @@
             var open = _expanded.Contains(key);
             <div class="doc-rowi" style="@(d.IsHidden ? "opacity:.6" : "")">
                 <button type="button" class="btn ghost" style="min-width:30px" @onclick="() => Toggle(key)">@(open ? "▾" : "▸")</button>
-                <span class="di">@Icon(d.Kind)</span>
+                <span class="di"><Icon Name="@KindIcon(d.Kind)" Size="18" /></span>
                 <div style="flex:1">
                     <b>@d.Title</b>
                     <div class="muted" style="font-size:12px">@KindLabel(d.Kind) · @d.Scope</div>
                 </div>
-                @if (d.IsHidden) { <span class="pill grey">Nascosto</span> }
-                else if (d.HasDraft) { <span class="pill grey">Bozza aperta</span> }
-                else { <span class="pill green">Pubblico</span> }
+                @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
+                else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
+                else { <span class="pill green">@L["Ver_Public"]</span> }
                 @{ var sum = SummaryOf(d); }
                 @if (sum is not null && sum.EffectiveCycle is not null)
                 {
-                    <span class="pill green" title="Release in vigore ora">🟢 AIRAC @sum.EffectiveCycle</span>
+                    <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @sum.EffectiveCycle</span>
                 }
                 @if (sum is not null && sum.NextScheduledCycle is not null)
                 {
-                    <span class="pill blue" title="Release schedulata per un ciclo futuro">🕒 @sum.NextScheduledCycle</span>
+                    <span class="pill blue" title="@L["Ver_ScheduledFutureTitle"]">🕒 @sum.NextScheduledCycle</span>
                 }
                 @if (_summariesLoaded && sum is null)
                 {
-                    <span class="pill grey" title="Nessuna release: il pubblico vede lo stato live">⚠️ No release</span>
+                    <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
                 }
-                <a class="btn ghost" href="@EditorLink(d)">Apri editor →</a>
+                <a class="btn ghost" href="@EditorLink(d)">@L["Nd_OpenEditor"]</a>
                 @if (Authz.IsAdmin)
                 {
-                    <button class="btn ghost" disabled="@_busy" title="@(d.IsHidden ? "Mostra al pubblico" : "Nascondi dal pubblico")"
-                            @onclick="() => ToggleHidden(d)">@(d.IsHidden ? "👁 Mostra" : "🙈 Nascondi")</button>
-                    <button class="btn ghost" disabled="@_busy" title="Elimina definitivamente" @onclick="() => Delete(d)">🗑</button>
+                    <button class="btn ghost" disabled="@_busy" title="@(d.IsHidden ? L["Ver_ShowPublicTitle"] : L["Ver_HidePublicTitle"])"
+                            @onclick="() => ToggleHidden(d)"><Icon Name="@(d.IsHidden ? "eye" : "eye-off")" /> @(d.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button>
+                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_DeletePermTitle"]" AriaLabel="@L["Ver_DeleteDocAria"]"
+                                   Prompt="@L["Ver_DeletePrompt"]" Disabled="@_busy" OnConfirm="() => Delete(d)">
+                        <Trigger><Icon Name="trash" /></Trigger>
+                    </InlineConfirm>
                 }
             </div>
 
@@ -142,18 +146,21 @@
     private string _statusFilter = "all";     // all|public|draft|hidden
     private string _releaseFilter = "all";    // all|effective|scheduled|none
 
-    private static readonly (ManagedDocKind?, string)[] KindFilters =
+    private (ManagedDocKind?, string)[] KindFilters =>
+    new (ManagedDocKind?, string)[]
     {
-        (null, "Tutti"), (ManagedDocKind.Vloa, "vLOA"), (ManagedDocKind.AccVipi, "ACC"),
-        (ManagedDocKind.AirportVipi, "Aeroporto"), (ManagedDocKind.AppVipi, "APP"),
+        (null, L["Ver_FilterAll_M"]), (ManagedDocKind.Vloa, "vLOA"), (ManagedDocKind.AccVipi, "ACC"),
+        (ManagedDocKind.AirportVipi, L["Nd_Airport"]), (ManagedDocKind.AppVipi, "APP"),
     };
-    private static readonly (string, string)[] StatusFilters =
+    private (string, string)[] StatusFilters =>
+    new (string, string)[]
     {
-        ("all", "Tutti"), ("public", "Pubblici"), ("draft", "Solo bozza"), ("hidden", "Nascosti"),
+        ("all", L["Ver_FilterAll_M"]), ("public", L["Ver_FilterPublic"]), ("draft", L["Ver_FilterDraft"]), ("hidden", L["Ver_FilterHidden"]),
     };
-    private static readonly (string, string)[] ReleaseFilters =
+    private (string, string)[] ReleaseFilters =>
+    new (string, string)[]
     {
-        ("all", "Tutte"), ("effective", "In vigore"), ("scheduled", "Schedulate"), ("none", "Senza release"),
+        ("all", L["Ver_FilterAll_F"]), ("effective", L["Rel_Effective"]), ("scheduled", L["Ver_FilterScheduled"]), ("none", L["Ver_FilterNoRelease"]),
     };
 
     protected override async Task OnInitializedAsync()
@@ -370,7 +377,7 @@
     };
 
     // Riepilogo leggero delle aree toccate dal DetailsJson {"Areas":[...],"Saves":N}.
-    private static string HistoryDetail(string? json)
+    private string HistoryDetail(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return "";
         try
@@ -381,7 +388,7 @@
                 ? string.Join(", ", a.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)))
                 : "";
             var saves = root.TryGetProperty("Saves", out var s) && s.TryGetInt32(out var n) ? n : 0;
-            var sfx = saves > 1 ? $" · {saves} salvataggi" : "";
+            var sfx = saves > 1 ? string.Format(L["Ver_SavesSuffix"].Value, saves) : "";
             return areas.Length > 0 ? $"{areas}{sfx}" : sfx.TrimStart(' ', '·', ' ');
         }
         catch (System.Text.Json.JsonException) { return ""; }
@@ -392,23 +399,24 @@
         var key = RowKey(d);
         @if (_loadingKeys.Contains(key))
         {
-            <p class="help" style="margin:0 0 6px">Caricamento…</p>
+            <p class="help" style="margin:0 0 6px">@L["Common_Loading"]</p>
         }
         @if (_versions.TryGetValue(key, out var vers) && vers.Count > 0)
         {
             foreach (var v in vers)
             {
                 <div class="ver-row @(v.IsCurrent ? "current" : "")">
-                    <span class="vb">v@v.VersionNumber</span>
+                    @* v@(...) con parentesi: «v@v.…» sarebbe letto da Razor come email ed emesso letterale. *@
+                    <span class="vb">v@(v.VersionNumber)</span>
                     <div>
                         <b>@StatusLabel(v.Status)</b>
-                        @if (v.IsCurrent) { <span class="pill green">corrente</span> }
-                        <div class="vmeta" title="Autore = chi ha creato la bozza">@Author(v.CreatedByUserId) · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
+                        @if (v.IsCurrent) { <span class="pill green">@L["Ver_Current"]</span> }
+                        <div class="vmeta" title="@L["Ver_AuthorDraftTitle"]">@Author(v.CreatedByUserId) · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
                     </div>
                     <span class="vact">
                         @if (v.Status == DocumentStatus.Draft)
                         {
-                            <button class="btn primary" disabled="@_busy" @onclick="() => Publish(d, v.Id)">Pubblica versione</button>
+                            <button class="btn primary" disabled="@_busy" @onclick="() => Publish(d, v.Id)">@L["Ver_PublishVersion"]</button>
                         }
                     </span>
                 </div>
@@ -419,8 +427,8 @@
         {
             <div class="block" style="margin-top:8px">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                    <b>🕓 Storia modifiche</b>
-                    <span class="muted" style="font-size:12px">chi ha editato e quando (i profili non hanno versioni: solo tracciamento)</span>
+                    <b>🕓 @L["Ver_HistoryTitle"]</b>
+                    <span class="muted" style="font-size:12px">@L["Ver_HistorySubtitle"]</span>
                 </div>
                 @if (_history.TryGetValue(key, out var hist) && hist.Count > 0)
                 {
@@ -438,15 +446,15 @@
                 }
                 else
                 {
-                    <p class="help" style="margin:0">Nessuna modifica registrata.</p>
+                    <p class="help" style="margin:0">@L["Ver_NoHistory"]</p>
                 }
             </div>
         }
 
         <div class="block" style="margin-top:8px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <b>📅 Release AIRAC</b>
-                <span class="muted" style="font-size:12px">il pubblico vede la release in vigore al ciclo corrente (@_currentCycle)</span>
+                <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
+                <span class="muted" style="font-size:12px">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</span>
             </div>
             @if (_releases.TryGetValue(key, out var rels) && rels.Count > 0)
             {
@@ -456,38 +464,41 @@
                         <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                         <div>
                             <b>@ReleaseLabel(r)</b>
-                            <div class="vmeta" title="Autore = chi ha pubblicato questa release">rel. v@r.VersionNumber · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            @* «rilascio #N» = progressivo della release, non la versione del documento (vedi ReleasePanel). *@
+                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">@L["Rel_VersionLabel", r.VersionNumber] · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                         </div>
                         <span class="vact">
-                            <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="Anteprima del documento come sarà a questo ciclo">👁 Anteprima</a>
-                            <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(key, r.Id)" title="Cosa cambia rispetto a quella in vigore">🔍 Differenze</button>
+                            <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
+                            <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(key, r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
                             @if (Authz.IsAdmin)
                             {
-                                <button class="btn ghost" disabled="@_busy" @onclick="() => CancelRelease(key, r.Id)" title="Annulla questa release">✕ Annulla</button>
+                                <button class="btn ghost" disabled="@_busy" @onclick="() => CancelRelease(key, r.Id)" title="@L["Rel_CancelTitle"]">✕ @L["Common_Cancel"]</button>
                             }
                         </span>
                     </div>
                     @if (_diffOpen.Contains(r.Id))
                     {
-                        <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
+                        <div class="block" style="margin:2px 0 8px 24px">
+                            <ReleaseDiffTable Diff="@(_diffs.TryGetValue(r.Id, out var d) ? d : null)" />
+                        </div>
                     }
                 }
             }
             else
             {
-                <p class="help" style="margin:0 0 6px">Nessuna release: il pubblico vede lo stato pubblicato/live corrente (fallback).</p>
+                <p class="help" style="margin:0 0 6px">@L["Rel_NoRelease"]</p>
             }
 
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
                 <select class="app-in" style="min-width:270px;max-width:340px" @onchange="e => SetCycle(key, e.Value?.ToString())">
                     @foreach (var c in _upcoming)
                     {
-                        <option value="@c.Cycle" selected="@(SelectedCycle(key) == c.Cycle)">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
+                        <option value="@c.Cycle" selected="@(SelectedCycle(key) == c.Cycle)">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
                     }
                 </select>
-                <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
-                <button class="btn primary" disabled="@_busy" @onclick="() => PublishRelease(d)">Pubblica al ciclo</button>
-                <button class="btn ghost" disabled="@_busy" @onclick="() => PublishNow(d)" title="Entra in vigore subito (review sul ciclo corrente)">Pubblica ora (review)</button>
+                <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
+                <button class="btn primary" disabled="@_busy" @onclick="() => PublishRelease(d)">@L["Ver_PublishAtCycle"]</button>
+                <button class="btn ghost" disabled="@_busy" @onclick="() => PublishNow(d)" title="@L["Ver_PublishNowTitle"]">@L["Ver_PublishNowReview"]</button>
             </div>
         </div>
     };
@@ -501,7 +512,7 @@
         {
             if (d.DocumentId is int docId) await Editing.AcquireLockAsync(docId);
             await Editing.PublishAsync(versionId, note: null);
-        }, "Versione pubblicata.");
+        }, L["Ver_VersionPublished"]);
     }
 
     private async Task PublishRelease(ManagedDoc d)
@@ -510,7 +521,7 @@
         var cycle = SelectedCycle(key) ?? _upcoming.FirstOrDefault()?.Cycle;
         if (cycle is null) return;
         _releases.Remove(key);
-        await Run(() => Releases.PublishAsync(d.ReleaseTarget, d.ReleaseKey, cycle, NoteOf(key)), $"Release pubblicata al ciclo {cycle}.");
+        await Run(() => Releases.PublishAsync(d.ReleaseTarget, d.ReleaseKey, cycle, NoteOf(key)), string.Format(L["Ver_ReleasePublishedCycle"].Value, cycle));
         await LoadDetailAsync(key);
         await LoadSummariesAsync();
     }
@@ -519,7 +530,7 @@
     {
         var key = RowKey(d);
         _releases.Remove(key);
-        await Run(() => Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), "Release pubblicata subito (review).");
+        await Run(() => Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
         await LoadDetailAsync(key);
         await LoadSummariesAsync();
     }
@@ -530,10 +541,10 @@
 
     private async Task CancelRelease(string key, int releaseId)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", "Annullare questa release? Il pubblico tornerà alla precedente in vigore."))
+        if (!await JS.InvokeAsync<bool>("confirm", L["Rel_CancelConfirm"].Value))
             return;
         _releases.Remove(key);
-        await Run(() => Releases.CancelReleaseAsync(releaseId), "Release annullata.");
+        await Run(() => Releases.CancelReleaseAsync(releaseId), L["Rel_Canceled"]);
         await LoadDetailAsync(key);
         await LoadSummariesAsync();
     }
@@ -551,40 +562,6 @@
         }
     }
 
-    private RenderFragment DiffBlock(int releaseId) => __builder =>
-    {
-        @if (_diffs.TryGetValue(releaseId, out var diff))
-        {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">Confronto con: @diff.BaselineLabel</div>
-            @if (diff.Rows.Count == 0)
-            {
-                <p class="help" style="margin:0">Nessuna differenza strutturale rilevata.</p>
-            }
-            else
-            {
-                <table class="cfg-table">
-                    <thead><tr><th>Voce</th><th>Modifica</th><th>Dettaglio</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in diff.Rows)
-                        {
-                            <tr>
-                                <td>@r.Label</td>
-                                <td><span class="pill @DiffPill(r.Change)">@r.Change</span></td>
-                                <td class="muted" style="font-size:12px">@r.Detail</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else { <p class="help" style="margin:0">Caricamento differenze…</p> }
-    };
-
-    private static string DiffPill(string change) => change switch
-    {
-        "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue",
-    };
-
     // Anteprima release nel viewer tipizzato (?as=rel:{id}). No hop via /vsop/release: costruiamo l'URL diretto.
     private string PreviewLink(ManagedDoc d, int releaseId)
     {
@@ -596,15 +573,15 @@
     private async Task ToggleHidden(ManagedDoc d)
     {
         await Run(() => DocAdmin.SetHiddenAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId), !d.IsHidden),
-            d.IsHidden ? "Documento mostrato." : "Documento nascosto.");
+            d.IsHidden ? L["Ver_DocShown"] : L["Ver_DocHidden"]);
         await LoadAsync();
     }
 
     private async Task Delete(ManagedDoc d)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminare definitivamente «{d.Title}»? L'operazione è irreversibile (rimuove versioni e release)."))
+        if (!await JS.InvokeAsync<bool>("confirm", string.Format(L["Ver_DeleteConfirm"].Value, d.Title)))
             return;
-        await Run(() => DocAdmin.DeleteAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId)), "Documento eliminato.");
+        await Run(() => DocAdmin.DeleteAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId)), L["Ver_DocDeleted"]);
         _expanded.Remove(RowKey(d));
         await LoadAsync();
     }
@@ -628,22 +605,23 @@
     private string? NoteOf(string key) => _note.TryGetValue(key, out var n) ? n : null;
     private void SetNote(string key, string? n) => _note[key] = n;
 
-    private static string Icon(ManagedDocKind k) => k switch
+    // Icona per tipo documento, coerente coi bottoni di NewDocumentPage (globe/map/plane/file).
+    private static string KindIcon(ManagedDocKind k) => k switch
     {
-        ManagedDocKind.Vloa => "🌍", ManagedDocKind.AccVipi => "📗",
-        ManagedDocKind.AirportVipi => "📘", ManagedDocKind.AppVipi => "📙", _ => "📄",
+        ManagedDocKind.Vloa => "globe", ManagedDocKind.AccVipi => "map",
+        ManagedDocKind.AirportVipi => "plane-takeoff", ManagedDocKind.AppVipi => "plane-landing", _ => "file",
     };
-    private static string KindLabel(ManagedDocKind k) => k switch
+    private string KindLabel(ManagedDocKind k) => k switch
     {
-        ManagedDocKind.Vloa => "vLOA", ManagedDocKind.AccVipi => "vIPI ACC",
-        ManagedDocKind.AirportVipi => "vIPI Aeroporto", ManagedDocKind.AppVipi => "vIPI APP", _ => k.ToString(),
+        ManagedDocKind.Vloa => "vLOA", ManagedDocKind.AccVipi => L["Nd_KindAcc"],
+        ManagedDocKind.AirportVipi => L["Nd_KindAirport"], ManagedDocKind.AppVipi => "vIPI APP", _ => k.ToString(),
     };
-    private static string StatusLabel(DocumentStatus s) => s switch
+    private string StatusLabel(DocumentStatus s) => s switch
     {
-        DocumentStatus.Draft => "Bozza", DocumentStatus.Published => "Pubblicata", DocumentStatus.Archived => "Archiviata", _ => s.ToString(),
+        DocumentStatus.Draft => L["Ver_StBozza"], DocumentStatus.Published => L["Ver_StPubblicata"], DocumentStatus.Archived => L["Ver_StArchiviata"], _ => s.ToString(),
     };
-    private static string ReleaseLabel(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 In vigore" : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
+    private string ReleaseLabel(ReleaseInfo r) => r.IsEffectiveNow
+        ? "🟢 " + L["Rel_Effective"] : r.Status == ReleaseStatus.Scheduled ? "🕒 " + L["Rel_Scheduled"] : L["Rel_Superseded"];
 
     private string EditorLink(ManagedDoc d)
     {

@@ -11,12 +11,11 @@ namespace Vipi.Application.Content;
 public interface IVipiViewService
 {
     Task<DocumentView?> BuildAccVipiAsync(string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default);
-    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default);
+    Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
     /// <summary>Vista documentale di un APP non remotizzato (storage su Document, doc 08e). Le sezioni derivate
     /// (aor/freq/coord/minima) restano vuote nel view: la pagina le rende live per <c>SectionKey</c>.</summary>
     Task<DocumentView?> BuildAppVipiAsync(string appCallsign, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
-    Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default);
     Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
     Task<DocumentView?> BuildVloaByPairAsync(string homeAccCode, string foreignAccCode, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
@@ -55,14 +54,11 @@ public sealed class VipiViewService : IVipiViewService
         return await BuildAsync(_repo.LoadAccVipiAsync(accCode, ct), tier, live, aor);
     }
 
-    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadAirportVipiAsync(icao, ignoreRelease, ct), tier, live, null);
+    public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
+        BuildAsync(_repo.LoadAirportVipiAsync(icao, ignoreRelease, preferWorking, ct), tier, live, null);
 
     public Task<DocumentView?> BuildAppVipiAsync(string appCallsign, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadAppVipiAsync(appCallsign, ignoreRelease, preferWorking, ct), tier, live, null);
-
-    public Task<DocumentView?> BuildVloaAsync(string accCode, BlockTier tier, bool live, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadVloaAsync(accCode, ct), tier, live, null);
 
     public Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadVloaByIdAsync(docId, ignoreRelease, preferWorking, ct), tier, live, null);
@@ -112,7 +108,6 @@ public sealed class VipiViewService : IVipiViewService
 
         var sections = raw.Roots
             .Select(s => Map(s, renders))
-            .OfType<SectionView>()
             .ToList();
 
         return new DocumentView { Title = raw.Title, AiracCycle = raw.AiracCycle, Sections = sections };
@@ -126,8 +121,11 @@ public sealed class VipiViewService : IVipiViewService
                 yield return d;
     }
 
-    /// <summary>Mappa una sezione grezza in SectionView; ritorna null se vuota (nessun blocco tenuto, nessun figlio).</summary>
-    private static SectionView? Map(RawSection s, IReadOnlyDictionary<int, BlockRender> renders)
+    /// <summary>Mappa una sezione grezza in SectionView. Nessuna sezione viene scartata: una sezione esiste perché
+    /// l'editore l'ha creata, quindi deve comparire anche vuota (doc 11 §3b) — prima le sezioni senza blocchi né figli
+    /// sparivano dalla bozza subito dopo essere state create, e le DERIVATE (es. <c>sids</c>) erano l'unica eccezione
+    /// esplicita. Restano filtrati solo i blocchi fuori Tier.</summary>
+    private static SectionView Map(RawSection s, IReadOnlyDictionary<int, BlockRender> renders)
     {
         var blocks = s.Blocks
             .Where(b => renders.ContainsKey(b.Id))         // filtrati per Tier
@@ -151,11 +149,7 @@ public sealed class VipiViewService : IVipiViewService
         var children = s.Children
             .OrderBy(c => c.Order)
             .Select(c => Map(c, renders))
-            .OfType<SectionView>()
             .ToList();
-
-        if (blocks.Count == 0 && children.Count == 0)
-            return null;
 
         return new SectionView
         {
@@ -163,6 +157,8 @@ public sealed class VipiViewService : IVipiViewService
             Title = s.Title,
             Depth = s.Depth,
             SectionKey = s.SectionKey,
+            IsHidden = s.IsHidden,
+            BeforeParentBody = s.BeforeParentBody,
             Blocks = blocks,
             Children = children,
         };

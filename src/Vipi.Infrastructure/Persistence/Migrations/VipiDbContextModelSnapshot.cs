@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.29");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -416,6 +416,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("InitialClimb")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("InitialClimbByApp")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsImported")
                         .HasColumnType("INTEGER");
 
@@ -764,9 +767,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("CoordinationSentenceTemplate")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("DocumentId")
                         .HasColumnType("INTEGER");
 
@@ -803,10 +803,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("BeforeParentBody")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Depth")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("DocumentVersionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsHidden")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
@@ -1032,6 +1038,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.ImportState", b =>
                 {
                     b.Property<string>("Category")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastAttemptUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastError")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LastSuccessUtc")
@@ -1403,6 +1415,21 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ConditionAreaLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConditionCustomLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConditionLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ConditionRefId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Cop")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1431,6 +1458,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Parity")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VerticalState")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

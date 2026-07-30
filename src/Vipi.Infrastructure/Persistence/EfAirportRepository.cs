@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -17,9 +17,16 @@ public sealed class EfAirportRepository : IAirportRepository
     private readonly VipiDbContext _db;
     public EfAirportRepository(VipiDbContext db) => _db = db;
 
-    /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate.</summary>
+    /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate. Include sia i
+    /// titoli EN correnti sia quelli IT legacy, così un rebuild di un documento vecchio rimuove le sezioni italiane
+    /// (e le rigenera in inglese) invece di lasciarle duplicate.</summary>
     private static readonly string[] ManagedSectionTitles =
-        { "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste", "SID" };
+    {
+        // EN correnti
+        "Runway rules", "Transition levels", "Frequencies", "Runways", "SID",
+        // IT legacy (documenti generati prima dell'i18n)
+        "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste",
+    };
 
     /// <summary>Chiave delle sezioni editoriali libere dell'aeroporto emesse nel documento dal profilo (doc 08e-airport):
     /// hanno titolo arbitrario, quindi si riconoscono/rimuovono per chiave (non per titolo come le managed).</summary>
@@ -50,16 +57,19 @@ public sealed class EfAirportRepository : IAirportRepository
         var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
             .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
-                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview))
+                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp))
             .ToListAsync(ct);
 
         // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
-        var links = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
+        var linkRaw = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Include(x => x.SourceSector)
             .Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null)
-            .Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
-                x.LabelOverride ?? x.SourceSector!.Callsign, x.SourceSector!.Callsign, x.SourceSector!.DefaultFrequency!))
+            .Select(x => new { x.Id, x.SourceSectorId, x.LabelOverride, x.SourceSector!.Callsign, Freq = x.SourceSector!.DefaultFrequency! })
             .ToListAsync(ct);
+        // Etichetta = override staff, altrimenti atcCallsign IVAO (dal catalogo), altrimenti il callsign.
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        var links = linkRaw.Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
+            x.LabelOverride ?? (atc.TryGetValue(x.Callsign, out var n) ? n : x.Callsign), x.Callsign, x.Freq)).ToList();
 
         var extras = await _db.AirportExtraSections.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Select(x => new ExtraSectionRow(x.Id, x.Title, x.Body)).ToListAsync(ct);
@@ -72,23 +82,24 @@ public sealed class EfAirportRepository : IAirportRepository
         };
     }
 
-    public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking()
+    public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default)
+    {
+        var raw = await _db.Sectors.AsNoTracking()
             .Where(s => s.DefaultFrequency != null)
             .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
-            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
+            .Select(s => new { s.Id, s.AirportIcao, s.Callsign, Freq = s.DefaultFrequency! })
             .ToListAsync(ct);
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        return raw.Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.Freq,
+            atc.TryGetValue(s.Callsign, out var n) ? n : null)).ToList();
+    }
 
     public async Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default)
     {
         var a = await _db.Airports.Include(x => x.TransitionLevels)
             .FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
         a.TransitionAltitudeFt = ta;
-        // Ricalcola il TL delle sole righe che corrispondono ancora alle fasce di default (TL = TA + offset);
-        // le righe con fasce QNH personalizzate restano intatte.
-        foreach (var row in a.TransitionLevels)
-            if (DefaultBandOffset(row.QnhFrom, row.QnhTo) is int offset)
-                row.Level = TransitionLevelFor(ta, offset);
+        RecomputeDefaultBandLevels(a);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -151,7 +162,8 @@ public sealed class EfAirportRepository : IAirportRepository
             _db.AirportSids.Add(new AirportSid
             {
                 AirportId = id, Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
-                Transition = r.Transition, InitialClimb = r.InitialClimb, Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
+                Transition = r.Transition, InitialClimb = r.InitialClimb, InitialClimbByApp = r.InitialClimbByApp,
+                Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
                 IsImported = false,
             });
         }
@@ -161,10 +173,25 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        // Snapshot priorità + forzatura pubblicazione da TUTTE le righe (manuali + importate), per riapplicarle a StableKey coincidente.
-        var prior = await _db.AirportSids.AsNoTracking()
+        // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
+        // il fix risolto a mano e il ciclo di PRIMO prelievo alle righe con StableKey coincidente.
+        //
+        // First-wins sulla chiave, in ordine di Id. La StableKey esclude di proposito la cifra della revisione,
+        // quindi un file .sid che contiene DUE revisioni della stessa SID (es. ROBO1H e ROBO2H) produce due righe
+        // con la stessa chiave: costruire qui un dizionario a chiave unica lanciava «An item with the same key has
+        // already been added» al primo REIMPORT di quell'aeroporto. Il primo import passava (tabella vuota, nessuna
+        // chiave da indicizzare) e ogni successivo fallliva, quindi l'import restava rotto per sempre su quegli
+        // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
+        // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
+        var priorRows = await _db.AirportSids.AsNoTracking()
             .Where(x => x.AirportId == id && x.StableKey != null)
-            .ToDictionaryAsync(x => x.StableKey!, x => (x.Priority, x.ForcePublished), ct);
+            .OrderBy(x => x.Id)
+            .ToListAsync(ct);
+        var prior = new Dictionary<string, PriorSid>();
+        foreach (var x in priorRows)
+            prior.TryAdd(x.StableKey!,
+                new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
+                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp));
 
         _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
 
@@ -172,25 +199,63 @@ public sealed class EfAirportRepository : IAirportRepository
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
-            prior.TryGetValue(r.StableKey, out var carried);
+            var found = prior.TryGetValue(r.StableKey, out var p);
+
+            // Il ciclo-sorgente è la data di PRIMO prelievo. Se il contenuto è invariato dall'import precedente,
+            // conserva quel ciclo: così, superato il ciclo, la SID diventa pubblica (IsPublicAt) e ci RESTA. Solo un
+            // contenuto cambiato (nuova revisione) riparte dal ciclo corrente, riottenendo il buffer di un ciclo.
+            var sourceCycle = found && ContentUnchanged(p!, r) ? (p!.SourceAiracCycle ?? airacCycle) : airacCycle;
+
+            // Se la sorgente ripropone il prefisso grezzo (NeedsFixReview) ma quel fix era già stato risolto a mano,
+            // conserva la risoluzione invece di ripristinare il grezzo a ogni reimport.
+            var fix = r.Fix.Trim();
+            var needsReview = r.NeedsFixReview;
+            if (found && r.NeedsFixReview && !p!.NeedsFixReview && !string.IsNullOrWhiteSpace(p.Fix))
+            {
+                fix = p.Fix!.Trim();
+                needsReview = false;
+            }
+
             _db.AirportSids.Add(new AirportSid
             {
-                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
+                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
                 Transition = r.Transition, Type = r.Type,
-                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = airacCycle,
-                NeedsFixReview = r.NeedsFixReview,
-                Priority = carried.Priority, ForcePublished = carried.ForcePublished,
+                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
+                NeedsFixReview = needsReview,
+                Priority = p?.Priority, ForcePublished = p?.ForcePublished ?? false,
+                // Arricchimenti editoriali sovrapposti a mano: sopravvivono al reimport (la sorgente non li fornisce).
+                InitialClimb = p?.InitialClimb, InitialClimbByApp = p?.InitialClimbByApp ?? false,
+                Cat = p?.Cat, Wtc = p?.Wtc, Condition = p?.Condition,
             });
         }
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
+    // "Contenuto invariato" = stessi campi che definiscono la SID lato sorgente (codice con revisione, transition, tipo).
+    // Fix/pista fanno parte della StableKey, quindi qui non si riconfrontano.
+    private static bool ContentUnchanged(PriorSid p, ImportedSid r) =>
+        string.Equals(p.Name, r.Name.Trim(), StringComparison.Ordinal)
+        && string.Equals(p.Transition ?? "", r.Transition ?? "", StringComparison.Ordinal)
+        && string.Equals(p.Type ?? "", r.Type ?? "", StringComparison.Ordinal);
+
+    // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
+    private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
+        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type,
+        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp);
+
+    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
         var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
         if (s is null) return;
         s.Priority = priority;
         s.ForcePublished = forcePublished;
+        // Arricchimenti editoriali: null/vuoto = campo cancellato (Trim per non salvare spazi).
+        s.InitialClimb = Blank(initialClimb);
+        s.InitialClimbByApp = initialClimbByApp;
+        s.Cat = Blank(cat);
+        s.Wtc = Blank(wtc);
+        s.Condition = Blank(condition);
         if (!string.IsNullOrWhiteSpace(resolvedFix))
         {
             s.Fix = resolvedFix.Trim();
@@ -198,6 +263,8 @@ public sealed class EfAirportRepository : IAirportRepository
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
 
     public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
     {
@@ -254,6 +321,9 @@ public sealed class EfAirportRepository : IAirportRepository
 
         // Tabella Transition Level standard (TL = TA + margine per fascia QNH) se non ancora impostata.
         EnsureDefaultTransitionLevels(airport);
+        // Con TA di sorgente (bottone "Salva TA" bloccato) questo è l'unico path che aggiorna la TA: ricalcola
+        // qui le righe di fascia-default già esistenti, altrimenti resterebbero sull'ultima TA (o "TA + N ft").
+        RecomputeDefaultBandLevels(airport);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -266,11 +336,18 @@ public sealed class EfAirportRepository : IAirportRepository
 
         // Garantisce la tabella TL di default anche per aeroporti generati senza import IVAO (es. TA/TL mai popolate).
         EnsureDefaultTransitionLevels(airport);
+        // Risolve i livelli delle fasce-default se la TA è nota ma le righe portano ancora il placeholder "TA + N ft"
+        // (seminate quando la TA non era ancora arrivata dalla sorgente): senza questo il rebuild pubblicherebbe i
+        // placeholder invece dei FL calcolati. Le fasce personalizzate restano intatte.
+        RecomputeDefaultBandLevels(airport);
 
         // Solo i settori-FOGLIA dell'aeroporto (DEL/GND/TWR/ITwr) appartengono alla vIPI d'aeroporto.
         // Gli APP NON ci vanno mai: se sono "di ACC" stanno nella vIPI di ACC, se standalone hanno doc proprio.
-        var sectors = await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
-            .OrderBy(s => (int)s.Type).ToListAsync(ct);
+        // Ordino per (int)Type in MEMORIA: Type è un enum salvato come stringa, quindi ORDER BY (int)Type in SQL
+        // genera CAST("Type" AS integer) → su Postgres 'Twr'→integer lancia 22P02 (su SQLite tornava 0 in silenzio).
+        var sectors = (await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
+            .ToListAsync(ct))
+            .OrderBy(s => (int)s.Type).ToList();
         var links = await _db.AirportFrequencyLinks.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order)
             .Include(x => x.SourceSector).Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null).ToListAsync(ct);
 
@@ -333,13 +410,13 @@ public sealed class EfAirportRepository : IAirportRepository
         // 1 — Regole piste (solo se presenti). Scelta in base a vento in coda/traverso + superficie.
         if (airport.RunwayRules.Count > 0)
         {
-            var sec = b.Section("Regole piste", BlockSection.Airport, ++order);
+            var sec = b.Section("Runway rules", BlockSection.Airport, ++order);
             b.Prose(sec, BlockTier.Reduced,
-                "Si applica la **prima** regola le cui condizioni sono soddisfatte (vento in coda/traverso entro le soglie " +
-                "indicate e superficie corrispondente); se nessuna si applica, vale la pista con miglior vento di testa.");
+                "The **first** rule whose conditions are met applies (tailwind/crosswind within the stated limits and " +
+                "matching surface); if none applies, the runway with the best headwind is used.");
             b.Table(sec, BlockTier.Reduced, new
             {
-                columns = new[] { "Condizione", "DEP", "ARR", "Note" },
+                columns = new[] { "Condition", "DEP", "ARR", "Notes" },
                 unified = false,
                 rows = airport.RunwayRules.OrderBy(r => r.Order)
                     .Select(r => (object)new { cells = new[] { RuleCondition(r), Dash(r.DepRunways), Dash(r.ArrRunways), r.Note ?? "—" } })
@@ -347,10 +424,10 @@ public sealed class EfAirportRepository : IAirportRepository
             });
         }
 
-        // 2 — Quote di transizione (TA + tabella TL).
-        var trans = b.Section("Quote di transizione", BlockSection.Airport, ++order);
+        // 2 — Transition levels (TA + tabella TL).
+        var trans = b.Section("Transition levels", BlockSection.Airport, ++order);
         b.Prose(trans, BlockTier.Reduced, airport.TransitionAltitudeFt is int taFt
-            ? $"**Transition Altitude:** {taFt} ft" : "**Transition Altitude:** _da inserire_");
+            ? $"**Transition Altitude:** {taFt} ft" : "**Transition Altitude:** _to be defined_");
         if (airport.TransitionLevels.Count > 0)
             b.Table(trans, BlockTier.Reduced, new
             {
@@ -372,14 +449,14 @@ public sealed class EfAirportRepository : IAirportRepository
         }
         foreach (var l in links)
             freqRows.Add(new { cells = new[] { l.LabelOverride ?? l.SourceSector!.Callsign, l.SourceSector!.Callsign, l.SourceSector!.DefaultFrequency! } });
-        var freq = b.Section("Frequenze", BlockSection.Frequencies, ++order);
-        b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Nome", "Callsign", "Frequenza" }, unified = false, rows = freqRows });
+        var freq = b.Section("Frequencies", BlockSection.Frequencies, ++order);
+        b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Name", "Callsign", "Frequency" }, unified = false, rows = freqRows });
 
-        // 4 — Piste.
-        var rwy = b.Section("Piste", BlockSection.Airport, ++order);
+        // 4 — Runways.
+        var rwy = b.Section("Runways", BlockSection.Airport, ++order);
         b.Table(rwy, BlockTier.Extended, new
         {
-            columns = new[] { "Pista", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
+            columns = new[] { "Runway", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
             unified = false,
             rows = airport.Runways.OrderBy(r => r.Order).Select(r => (object)new
             {
@@ -404,8 +481,24 @@ public sealed class EfAirportRepository : IAirportRepository
         var extras = await _db.AirportExtraSections.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order).ToListAsync(ct);
         foreach (var x in extras)
         {
-            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Sezione" : x.Title, ExtraSectionKey, ++order);
-            if (!string.IsNullOrWhiteSpace(x.Body)) b.Prose(sec, BlockTier.Extended, x.Body!);
+            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Section" : x.Title, ExtraSectionKey, ++order);
+            // I blocchi editoriali (Prosa/Callout/Tabella) sono serializzati nel Body (formato condiviso col vIPI editor);
+            // un Body legacy markdown viene letto come un singolo blocco prosa (ExtraBlocks.Parse).
+            foreach (var blk in ExtraBlocks.Parse(x.Body))
+            {
+                switch (blk.Format)
+                {
+                    case BlockFormat.Callout when !string.IsNullOrWhiteSpace(blk.Text):
+                        b.Callout(sec, blk.CalloutKind, "", BlockTier.Extended, blk.Text!);
+                        break;
+                    case BlockFormat.Table when !string.IsNullOrWhiteSpace(blk.TableJson):
+                        b.TableRaw(sec, BlockTier.Extended, blk.TableJson!);
+                        break;
+                    case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
+                        b.Prose(sec, BlockTier.Extended, blk.Text!);
+                        break;
+                }
+            }
         }
 
         doc.LastUpdatedUtc = now;
@@ -426,6 +519,15 @@ public sealed class EfAirportRepository : IAirportRepository
         if (sec is null) return;   // documento/sezione non ancora generati: nasceranno al primo rebuild (default Live)
         sec.RenderMode = mode;
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        return await _db.Sectors.AsNoTracking()
+            .Where(s => s.AirportIcao == icao && s.DocumentId != null)
+            .Select(s => s.DocumentId)
+            .FirstOrDefaultAsync(ct);
     }
 
     // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.
@@ -454,25 +556,12 @@ public sealed class EfAirportRepository : IAirportRepository
     /// <summary>TWR e I_TWR (AFIS) sono entrambe "torri" ai fini di frequenza primaria/etichetta.</summary>
     private static bool IsTower(SectorType type) => type is SectorType.Twr or SectorType.ITwr;
 
-    private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
-    private static int FreqOrder(AirportSector s)
-    {
-        var i = Array.IndexOf(FreqTypeOrder, (s.Position ?? "").Trim().ToUpperInvariant());
-        return i < 0 ? 99 : i;
-    }
+    // Ordine e nome vengono da FrequencyPositions (Application). La copia che stava qui era divergente: usava
+    // `position ?? "—"`, quindi una posizione di soli spazi rendeva una cella BIANCA nel documento aeroporto
+    // mentre ACC e APP rendevano il trattino. Ora il comportamento è uno solo (nessuna cella vuota).
+    private static int FreqOrder(AirportSector s) => FrequencyPositions.OrderOf(s.Position);
 
-    private static string FreqNameForPosition(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => position ?? "—",
-    };
+    private static string FreqNameForPosition(string? position) => FrequencyPositions.NameOf(position);
 
     private static int? BearingFromIdent(string ident)
     {
@@ -508,6 +597,15 @@ public sealed class EfAirportRepository : IAirportRepository
         }
     }
 
+    /// <summary>Ricalcola il TL delle sole righe che combaciano ancora con le fasce di default (TL = TA + offset);
+    /// le righe con fasce QNH personalizzate restano intatte. Idempotente.</summary>
+    private static void RecomputeDefaultBandLevels(Airport airport)
+    {
+        foreach (var row in airport.TransitionLevels)
+            if (DefaultBandOffset(row.QnhFrom, row.QnhTo) is int offset)
+                row.Level = TransitionLevelFor(airport.TransitionAltitudeFt, offset);
+    }
+
     /// <summary>Offset della fascia di default che combacia esattamente con (from,to), altrimenti null (fascia personalizzata).</summary>
     private static int? DefaultBandOffset(int? from, int? to)
     {
@@ -539,16 +637,16 @@ public sealed class EfAirportRepository : IAirportRepository
     /// <summary>Condizione della regola in testo: soglie coda/traverso + superficie + nome + eventuali condizioni temporali avanzate.</summary>
     private static string RuleCondition(AirportRunwayRule r)
     {
-        var parts = new List<string> { $"coda ≤ {r.MaxTailwindKt} kt" };
-        if (r.MaxCrosswindKt is int xw) parts.Add($"traverso ≤ {xw} kt");
-        if (r.Surface == RunwaySurface.Dry) parts.Add("pista asciutta");
-        else if (r.Surface == RunwaySurface.Wet) parts.Add("pista bagnata");
+        var parts = new List<string> { $"tailwind ≤ {r.MaxTailwindKt} kt" };
+        if (r.MaxCrosswindKt is int xw) parts.Add($"crosswind ≤ {xw} kt");
+        if (r.Surface == RunwaySurface.Dry) parts.Add("dry runway");
+        else if (r.Surface == RunwaySurface.Wet) parts.Add("wet runway");
         if (r.TimeFromLocalMin is int tf && r.TimeToLocalMin is int tt) parts.Add($"{Hhmm(tf)}–{Hhmm(tt)} LT");
-        else if (r.TimeFromLocalMin is int tf2) parts.Add($"da {Hhmm(tf2)} LT");
-        else if (r.TimeToLocalMin is int tt2) parts.Add($"fino {Hhmm(tt2)} LT");
+        else if (r.TimeFromLocalMin is int tf2) parts.Add($"from {Hhmm(tf2)} LT");
+        else if (r.TimeToLocalMin is int tt2) parts.Add($"until {Hhmm(tt2)} LT");
         if (DaysLabel(r.DaysOfWeekMask) is string dl) parts.Add(dl);
-        if (r.DateParity == DateParity.Even) parts.Add("giorni pari");
-        else if (r.DateParity == DateParity.Odd) parts.Add("giorni dispari");
+        if (r.DateParity == DateParity.Even) parts.Add("even days");
+        else if (r.DateParity == DateParity.Odd) parts.Add("odd days");
         if (DateWindowLabel(r.DateFromMonthDay, r.DateToMonthDay) is string dw) parts.Add(dw);
         var cond = string.Join(", ", parts);
         return string.IsNullOrWhiteSpace(r.Name) ? cond : $"{r.Name!.Trim()}: {cond}";
@@ -557,20 +655,20 @@ public sealed class EfAirportRepository : IAirportRepository
     private static string Hhmm(int min) => $"{min / 60:00}:{min % 60:00}";
 
     private static readonly string[] MonthAbbr =
-        { "gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic" };
+        { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    /// <summary>Etichetta della finestra stagionale ricorrente (MMDD): "dal 1 gen al 31 mar". null = nessun vincolo.</summary>
+    /// <summary>Etichetta della finestra stagionale ricorrente (MMDD): "from 1 Jan to 31 Mar". null = nessun vincolo.</summary>
     private static string? DateWindowLabel(int? from, int? to)
     {
         if (from is null && to is null) return null;
-        if (from is int f && to is int t) return $"dal {Md(f)} al {Md(t)}";
-        if (from is int f2) return $"dal {Md(f2)}";
-        return $"fino al {Md(to!.Value)}";
+        if (from is int f && to is int t) return $"from {Md(f)} to {Md(t)}";
+        if (from is int f2) return $"from {Md(f2)}";
+        return $"until {Md(to!.Value)}";
 
         static string Md(int mmdd) => $"{mmdd % 100} {MonthAbbr[Math.Clamp(mmdd / 100, 1, 12) - 1]}";
     }
 
-    private static readonly string[] DayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
+    private static readonly string[] DayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
     private static string? DaysLabel(int? mask)
     {
@@ -587,7 +685,7 @@ public sealed class EfAirportRepository : IAirportRepository
         public DocBuilder(VipiDbContext db, DocumentVersion ver) { _db = db; _ver = ver; }
 
         public DocumentSection Section(string title, BlockSection kind, int order) =>
-            Section(title, SectionCatalogBridge.KeyFor(kind) ?? "custom", order);
+            Section(title, SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(), order);
 
         public DocumentSection Section(string title, string sectionKey, int order)
         {
@@ -610,6 +708,10 @@ public sealed class EfAirportRepository : IAirportRepository
 
         public void Table(DocumentSection s, BlockTier tier, object data) =>
             Add(s, BlockFormat.Table, tier, bodyJson: JsonSerializer.Serialize(data));
+
+        /// <summary>Tabella con BodyJson già serializzato (columns/rows) — usato dai blocchi extra a formato condiviso.</summary>
+        public void TableRaw(DocumentSection s, BlockTier tier, string bodyJson) =>
+            Add(s, BlockFormat.Table, tier, bodyJson: bodyJson);
 
         private void Add(DocumentSection s, BlockFormat format, BlockTier tier,
             string? body = null, string? bodyJson = null, CalloutKind? callout = null)

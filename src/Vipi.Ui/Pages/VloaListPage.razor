@@ -6,11 +6,13 @@
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
+@inject IDocumentAdminService Docs
+@inject IStringLocalizer<SharedResource> L
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
 else if (_foreign.Length > 0)
 {
@@ -19,7 +21,8 @@ else if (_foreign.Length > 0)
     {
         <div class="wrap">
             <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>—</b></div>
-            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Documento non disponibile</p>Nessuna vLoA pubblicata tra @_acc.Code e @_foreign.</div></div>
+            @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
     }
     else
@@ -33,7 +36,7 @@ else if (_foreign.Length > 0)
                                PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
                                DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
-            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
         </div>
     }
 }
@@ -46,14 +49,14 @@ else
         <div class="doc-head">
             <div><h2 style="margin-bottom:2px">vLoA — @_acc.Name - @_acc.Code</h2></div>
         </div>
-        @if (_vloas.Count == 0)
+        @if (_visibleVloas.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLoA</p>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</div></div>
+            <EmptyState Title="Nessuna vLoA">Non ci sono ancora lettere di accordo pubblicate per questa ACC.</EmptyState>
         }
         else
         {
             var homeOnline = HomeOnline();
-            @foreach (var g in _vloas.GroupBy(v => Prefix(v.NeighbourCode)).OrderBy(g => Country(g.Key)))
+            @foreach (var g in _visibleVloas.GroupBy(v => Prefix(v.NeighbourCode)).OrderBy(g => Country(g.Key)))
             {
                 <div class="section-title" style="margin-top:22px"><h3>@Country(g.Key)</h3><span class="ln"></span></div>
                 <div class="choice-grid">
@@ -61,7 +64,7 @@ else
                     {
                         var neigh = v.NeighbourCode ?? v.Title;
                         var neighOnline = NeighOnline(v.NeighbourCode);
-                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode" style="text-decoration:none;color:inherit">
+                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
                             <div class="apt-top">
                                 <h4>@neigh</h4>
                                 <span class="country-tag">@g.Key</span>
@@ -92,16 +95,27 @@ else
     private bool _useFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
     private PreviewMode _mode;
     private string? _relCycle;
-    private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
+    private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();          // tutte (per la risoluzione doc: preview/draft editor)
+    private IReadOnlyList<VloaRow> _visibleVloas = Array.Empty<VloaRow>();   // solo pubblicate e non nascoste (elenco pubblico)
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+        // Scalda le cache prima del render: HomeOnline() usa ResolveByCallsign senza query durante il render
+        // (evita "second operation" sul DbContext condiviso su Postgres).
+        Stations.Prewarm();
 
         var data = await Structure.LoadAsync(_acc.Code);
         _vloas = data?.Vloas.OrderBy(v => v.FeaturedRank ?? int.MaxValue).ThenBy(v => v.Title).ToList()
             ?? (IReadOnlyList<VloaRow>)Array.Empty<VloaRow>();
+
+        // Elenco pubblico: solo vLOA con release AIRAC effettiva e non nascoste (stessa regola di aeroporti/APP, doc 10 §3f).
+        var publishedVloas = (await Docs.ListAsync())
+            .Where(m => m.Kind == ManagedDocKind.Vloa && m.HasEffectiveRelease && !m.IsHidden && m.DocumentId is not null)
+            .Select(m => m.DocumentId!.Value)
+            .ToHashSet();
+        _visibleVloas = _vloas.Where(v => publishedVloas.Contains(v.DocId)).ToList();
 
         _foreign = (Neighbour ?? "").Trim().ToUpperInvariant();
         _view = null; _viewDocId = null; _viewSubtitle = null;
@@ -119,23 +133,30 @@ else
                 case PreviewKind.Draft:
                     if (await Authz.CanEditAccAsync(_acc.Code))
                         _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 case PreviewKind.Release:
                     var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
                     if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                    else { _mode = default; _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false); }
+                    else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 default:
-                    // DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven), come sulla pagina /apps/vipi?vloa=…
-                    // Senza, si vedrebbero i blocchi statici salvati: stesso documento, resa diversa.
-                    _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false);
-                    _useFrozen = true;   // vista pubblica: derivate frozen dalla release effettiva
+                    await LoadPublicAsync(row.DocId);
                     break;
             }
             _viewDocId = row.DocId;
             _viewSubtitle = $"{_acc.Name} ↔ {row.Neighbour ?? _foreign}";
         }
+    }
+
+    // Vista PUBBLICA (doc 11 §3d): documento + derivate frozen si impostano INSIEME, così il degrado di
+    // un'anteprima non autorizzata/non corrispondente produce esattamente la pubblica (prima restava _useFrozen=false
+    // → derivate LIVE al pubblico). DocId ⇒ AoR/Frequenze/Coordinamenti derivati (data-driven): senza, si vedrebbero
+    // i blocchi statici salvati, stesso documento e resa diversa.
+    private async Task LoadPublicAsync(int docId)
+    {
+        _view = await ViewService.BuildVloaByIdAsync(docId, BlockTier.Extended, live: false);
+        _useFrozen = true;
     }
 
     private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)

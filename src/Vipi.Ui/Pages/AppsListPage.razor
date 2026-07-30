@@ -8,7 +8,7 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
 }
 else
 {
@@ -24,7 +24,7 @@ else
         }
         @if (_apps.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessun APP non remotizzato</p>Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</div></div>
+            <EmptyState Title="Nessun APP non remotizzato">Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</EmptyState>
         }
         else
         {
@@ -37,7 +37,7 @@ else
                     var href = st == AppState.Published
                         ? $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={ap.Callsign}"
                         : $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={ap.Callsign}";
-                    <a class="choice apt-card" href="@href" style="text-decoration:none;color:inherit">
+                    <a class="choice apt-card" href="@href">
                         <div class="apt-top">
                             <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
@@ -90,7 +90,10 @@ else
             .ToDictionary(g => g.Key, g =>
             {
                 var m = g.First();
-                return m.IsHidden ? AppState.Hidden : m.IsPublished ? AppState.Published : AppState.Draft;
+                // Visibilità pubblica = release AIRAC effettiva (doc 10 §3f, doc 11 §3e), la stessa regola della
+                // pagina: prima l'elenco guardava lo stato del Document, quindi un APP servito al pubblico poteva
+                // comparire qui come bozza e linkare all'editor invece che al documento.
+                return m.IsHidden ? AppState.Hidden : m.HasEffectiveRelease ? AppState.Published : AppState.Draft;
             }, StringComparer.OrdinalIgnoreCase);
 
         // APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC).

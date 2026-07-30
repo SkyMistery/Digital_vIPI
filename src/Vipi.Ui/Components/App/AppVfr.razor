@@ -1,12 +1,13 @@
 @* Sezione VFR (editoriale): prosa introduttiva (markdown) + tabella opzionale (situazione→procedura). *@
+@inject IStringLocalizer<SharedResource> L
 @if (Editing)
 {
-    <label class="app-lbl">Introduzione (markdown)
+    <label class="app-lbl">@L["AppVfr_IntroLabel"]
         <textarea class="app-ta" rows="4" value="@Content.Intro"
                   @onchange="e => SetIntro(AsString(e.Value))"></textarea>
     </label>
     <table>
-        <thead><tr><th>Situazione</th><th>Procedura</th><th style="width:48px"></th></tr></thead>
+        <thead><tr><th>@L["AppVfr_Situation"]</th><th>@L["AppVfr_Procedure"]</th><th style="width:48px"></th></tr></thead>
         <tbody>
             @foreach (var (row, i) in Content.Rows.Select((r, i) => (r, i)))
             {
@@ -14,12 +15,12 @@
                 <tr>
                     <td><input class="app-in" value="@row.Situation" @onchange="e => UpdateRow(idx, AsString(e.Value), row.Procedure)" /></td>
                     <td><input class="app-in" value="@row.Procedure" @onchange="e => UpdateRow(idx, row.Situation, AsString(e.Value))" /></td>
-                    <td><button class="btn ghost" title="Rimuovi" @onclick="() => RemoveRow(idx)">✕</button></td>
+                    <td><button class="btn ghost" title="@L["Common_Remove"]" @onclick="() => RemoveRow(idx)">✕</button></td>
                 </tr>
             }
         </tbody>
     </table>
-    <button class="btn ghost" @onclick="AddRow">+ Aggiungi riga</button>
+    <button class="btn ghost" @onclick="AddRow">@L["Common_AddRow"]</button>
 }
 else
 {
@@ -30,7 +31,7 @@ else
     @if (Content.Rows.Count > 0)
     {
         <table>
-            <thead><tr><th>Situazione</th><th>Procedura</th></tr></thead>
+            <thead><tr><th>@L["AppVfr_Situation"]</th><th>@L["AppVfr_Procedure"]</th></tr></thead>
             <tbody>
                 @foreach (var row in Content.Rows)
                 {
@@ -41,7 +42,7 @@ else
     }
     @if (string.IsNullOrWhiteSpace(Content.Intro) && Content.Rows.Count == 0)
     {
-        <p class="muted" style="margin:0">Nessun contenuto VFR.</p>
+        <p class="muted" style="margin:0">@L["AppVfr_NoContent"]</p>
     }
 }
 

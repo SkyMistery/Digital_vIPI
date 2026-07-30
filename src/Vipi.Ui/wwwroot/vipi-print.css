@@ -1,0 +1,159 @@
+/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
+   CSS, nessun endpoint export server-side).
+
+   Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
+   nel tema usava `body *{visibility:hidden}` + `.printable` visibile: `.printable` non esisteva in nessun
+   markup (stampa = pagina bianca su tutte le pagine) e il `position:absolute` sul contenuto rompeva la
+   paginazione multi-pagina. Qui non c'è opt-in per pagina: ogni pagina /vsop è stampabile.
+
+   Regole confinate in `.vipi-root` (il modulo non tocca body/html del sito ospitante, vedi App.razor); fanno
+   eccezione `@page` e il reset dello zoom, che per natura sono globali. Le classi `.vt-*` (tour) vivono fuori
+   da `.vipi-root` perché l'overlay è agganciato al body. */
+
+/* Elementi di sola stampa (intestazione PrintMeta): invisibili a schermo, non serve @media screen. */
+.print-only { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  /* Lo zoom di pagina è applicato inline su <html> da App.razor (localStorage): in stampa va neutralizzato,
+     altrimenti al 130% il documento esce tagliato. La dichiarazione !important d'autore batte l'inline. */
+  html { zoom: 1 !important; }
+  html, body { background: #fff !important; }
+
+  /* Le tinte di sfondo portano informazione (piste ARR/DEP, callout, riga TL col QNH corrente, pill):
+     senza print-color-adjust i browser le scartano in stampa. Le ombre invece sono solo decorative. */
+  .vipi-root *, .vipi-root *::before, .vipi-root *::after {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+
+  /* ── Chrome e comandi: fuori dalla carta ────────────────────────────────────────
+     Barra superiore, indice/rail sticky, briciole, bottoni e link-azione, barra di lock, `?` di aiuto,
+     tab meteo, selettore configurazioni, toggle 2D/3D, azioni Tutti/Nessuno sui chip AoR, e i chevron dei
+     <details> (l'apri/chiudi non esiste sulla carta). Il tasto «Stampa» stesso è un `.btn` (quindi già
+     coperto); `.noprint` è la valvola per i testi che spiegano un'interazione (es. «accendi/spegni i settori
+     sopra la mappa»), che a schermo servono e su carta no. */
+  .vipi-root .topbar,
+  .vipi-root .skip-link,
+  .vipi-root .toc,
+  .vipi-root .doc-rail,
+  .vipi-root .breadcrumb,
+  .vipi-root .btn,
+  .vipi-root .editor-btn,
+  .vipi-root .lockbar,
+  .vipi-root .help-hint,
+  .vipi-root .wx-tabs,
+  .vipi-root .cfg-sel,
+  .vipi-root .coord-tools,
+  .vipi-root .aor-chip-actions,
+  .vipi-root .aor-viewmode,
+  .vipi-root .aor3d-bar,
+  .vipi-root .aor3d-hint,
+  .vipi-root .leaflet-control-zoom,
+  .vipi-root .metar-live,
+  .vipi-root .cb-chev,
+  .vipi-root .chev,
+  .vipi-root .onl-badge,
+  .vipi-root .noprint,
+  .vt-overlay, .vt-spot, .vt-card { display: none !important; }
+
+  /* PreviewBanner (bozza / anteprima release) e DocReviewBar restano stampati: una copia cartacea non deve
+     poter passare per pubblicata. Sono `.callout`, che non nascondiamo. */
+
+  /* ── Intestazione di stampa (PrintMeta) ────────────────────────────────────────
+     Rimpiazza il chrome nascosto: dà al foglio titolo, ambito, ciclo AIRAC, ora e indirizzo. Il `.doc-head`
+     che la segue si nasconde per non ripetere il titolo (PrintMeta va sempre subito prima). */
+  .print-only { display: block !important; }
+  .vipi-root .print-meta + .doc-head { display: none !important; }
+  .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
+  .vipi-root .print-meta .pm-title { margin: 0; font-size: 13pt; color: var(--ivao-blue); }
+  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: #444; }
+  .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: #555; }
+  .vipi-root .print-meta .pm-url { word-break: break-all; }
+
+  /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
+  .vipi-root .wrap { max-width: none !important; padding: 0 !important; }
+  .vipi-root .doc-layout,
+  .vipi-root .apt-2col,
+  .vipi-root .aor-wrap { display: block !important; }
+  /* Sticky/max-height sono legati al viewport: senza reset clippano il contenuto sulla carta. */
+  .vipi-root .toc,
+  .vipi-root .doc-rail,
+  .vipi-root .detail-sticky { position: static !important; max-height: none !important; }
+  /* Contenitori a scorrimento (es. wrapper della tabella SID): in stampa lo scroll non esiste, taglia. */
+  .vipi-root [style*="overflow:auto"],
+  .vipi-root [style*="overflow: auto"] { overflow: visible !important; }
+  .vipi-root img, .vipi-root svg { max-width: 100% !important; }
+
+  /* ── Interruzioni di pagina ────────────────────────────────────────────────────
+     `.block` NON ha break-inside:avoid: una sezione più alta di una pagina non starebbe comunque, e il
+     browser finirebbe per lasciare mezza pagina bianca. Teniamo unite le unità piccole e i titoli col
+     proprio contenuto. */
+  .vipi-root .cb-head,
+  .vipi-root h2, .vipi-root h3, .vipi-root h4 { break-after: avoid; }
+  .vipi-root .callout,
+  .vipi-root .rail-card,
+  .vipi-root .rule-card,
+  .vipi-root .mp,
+  .vipi-root .taf-row,
+  .vipi-root tr { break-inside: avoid; }
+  .vipi-root p { orphans: 3; widows: 3; }
+
+  /* ── Scala tipografica della carta ─────────────────────────────────────────────
+     A schermo il tema parte da 16px con h2 32px e h3 28px: misure giuste per un monitor, enormi su A4 (28px
+     ≈ 21pt). Qui si riscala tutto in punti. Non basta ridurre la base su `.vipi-root`: gli elementi del tema
+     hanno font-size espliciti in px, che non erediterebbero — quindi i portatori di testo sono elencati.
+     I titoli del tema usano `:where()` (specificità 0), quindi queste regole vincono senza !important. */
+  .vipi-root { font-size: 9.5pt; line-height: 1.42; }
+  .vipi-root h1 { font-size: 15pt; }
+  .vipi-root h2 { font-size: 13pt; }
+  .vipi-root h3 { font-size: 11.5pt; }
+  .vipi-root h4 { font-size: 10pt; }
+  .vipi-root h5, .vipi-root h6 { font-size: 9.5pt; }
+  .vipi-root p, .vipi-root li, .vipi-root .muted, .vipi-root .help,
+  .vipi-root .callout, .vipi-root .callout .ct, .vipi-root .rail-line { font-size: 9.5pt; }
+  .vipi-root .metar, .vipi-root .mp, .vipi-root .rap-box { font-size: 9pt; }
+  .vipi-root .ta-badge { padding: 5px 12px; }
+  .vipi-root .ta-badge b { font-size: 11pt; }
+  .vipi-root .ta-badge .muted { font-size: 8pt; }
+  .vipi-root .pill, .vipi-root .rwy-key, .vipi-root .st-pill,
+  .vipi-root .pref-tag, .vipi-root .aor-chip { font-size: 7.5pt; }
+  /* Card più compatte: il riquadro serve a separare le sezioni, non a fare aria. */
+  .vipi-root .block { padding: 9px 11px; margin-bottom: 9px; }
+
+  /* Separazioni radar: a schermo sono un riquadro bordato 2px con una griglia a 3 colonne (la terza vuota,
+     perché le separazioni sono due) e valori a 16px — su carta è mezza pagina per dire «1000 ft / 5 NM».
+     In stampa diventano due targhette in fila, etichetta e valore sulla stessa riga. */
+  .vipi-root .sep-box { border-width: 1px; padding: 5px 7px; margin-bottom: 4px; }
+  .vipi-root .sep-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vipi-root .sep-grid .it { display: flex; align-items: baseline; gap: 6px; padding: 3px 8px; }
+  .vipi-root .sep-grid .it b { display: inline; font-size: 10pt; }
+  .vipi-root .app-sep-item { margin-bottom: 6px; }
+
+  /* ── Tabelle: dentro i 186 mm utili dell'A4 verticale ──────────────────────────
+     Le tabelle larghe (SID 9 colonne, Piste 8) a schermo scorrono; su carta si stringono con corpo minore
+     e testo che va a capo. `thead` ripetuto a ogni pagina per le tabelle lunghe (SID). */
+  .vipi-root table { font-size: 8.5pt; width: 100% !important; }
+  .vipi-root .sid-table { min-width: 0 !important; }
+  .vipi-root thead { display: table-header-group; }
+  .vipi-root th, .vipi-root td { padding: 3px 5px !important; overflow-wrap: break-word; }
+
+  /* ── Ritocchi di leggibilità/inchiostro ───────────────────────────────────────── */
+  /* METAR/TAF grezzi: a schermo sono un riquadro blu notte, su carta sarebbero una macchia d'inchiostro. */
+  .vipi-root .metar { background: #fff !important; color: #000 !important; border: 1px solid #999; }
+  .vipi-root .block { border: 1px solid #c8cee0; padding: 12px 14px; margin-bottom: 12px; }
+  /* La mappa AoR (Leaflet, o l'SVG di fallback) ha altezza fissa in px: la teniamo, ma intera su una pagina.
+     L'attribuzione delle tile resta visibile (licenza della sorgente cartografica). */
+  .vipi-root .aor-leaflet { break-inside: avoid; }
+  .vipi-root a { color: inherit; text-decoration: none; }
+
+  /* ── Sezioni collassate ────────────────────────────────────────────────────────
+     CollapsibleBlock è un <details> nativo col collasso persistito (localStorage, data-persist): quel che
+     l'utente ha chiuso resterebbe fuori dalla stampa. L'apertura effettiva la fa `vipi-ui.js` su
+     'beforeprint' (ripristinata su 'afterprint'), perché in Chrome il contenuto di un <details> chiuso è
+     nascosto dallo user-agent con content-visibility e il CSS d'autore da solo non lo rivela. Queste due
+     regole sono il ripiego per i browser che non emettono gli eventi di stampa. */
+  .vipi-root details:not([open]) > .cb-body { display: block !important; }
+  .vipi-root details::details-content { content-visibility: visible !important; }
+}

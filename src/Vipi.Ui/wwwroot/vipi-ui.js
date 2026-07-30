@@ -91,6 +91,41 @@
         });
     }
 
+    // Apre l'elemento (se <details>) e tutti i <details> che lo contengono, così un deep-link "#id" verso una
+    // sezione collassata (Guida, editor) la mostra invece di atterrare su un pannello chiuso. Ritorna l'elemento.
+    function openDetailsFor(el) {
+        var d = el;
+        while (d && d !== document.body) {
+            if (d.tagName === 'DETAILS' && !d.open) d.open = true;
+            d = d.parentElement;
+        }
+        return el;
+    }
+
+    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /vsop/guida#editor-release):
+    // apre la sezione target e scorre con l'offset della top-bar. Anche su hashchange nella stessa pagina.
+    var hashLandingWired = false;
+    function wireHashLanding() {
+        function land() {
+            var id = location.hash ? location.hash.slice(1) : '';
+            if (!id) return;
+            var el = document.getElementById(id);
+            if (!el) return;
+            openDetailsFor(el);
+            var bar = document.querySelector('.topbar');
+            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
+            // Ritardo minimo: lascia riflettere l'apertura del <details> nel layout prima di misurare.
+            setTimeout(function () {
+                var y = el.getBoundingClientRect().top + window.pageYOffset - off;
+                window.scrollTo({ top: y, behavior: 'auto' });
+            }, 30);
+        }
+        land();
+        if (hashLandingWired) return;
+        hashLandingWired = true;
+        window.addEventListener('hashchange', land);
+    }
+
     var anchorsWired = false;
     function wireAnchors() {
         // Con <base href="/"> i link "#id" verrebbero risolti come "/#id" (→ home).
@@ -108,6 +143,7 @@
             if (!el) return;
             e.preventDefault();
             e.stopImmediatePropagation();
+            openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
             // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
             var bar = document.querySelector('.topbar');
             var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
@@ -119,6 +155,10 @@
         }, true);
     }
 
+    // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
+    // dell'utente (vedi wirePrint).
+    var suppressPersist = false;
+
     function wireCollapse() {
         // <details data-persist="key">: ricorda aperto/chiuso in localStorage tra le navigazioni.
         document.querySelectorAll('details[data-persist]').forEach(function (d) {
@@ -129,9 +169,138 @@
             try { saved = localStorage.getItem(key); } catch (e) { }
             if (saved !== null) d.open = saved === '1';
             d.addEventListener('toggle', function () {
+                if (suppressPersist) return;
                 try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { }
             });
         });
+    }
+
+    var printWired = false;
+    function wirePrint() {
+        // Stampa: una sezione collassata (CollapsibleBlock, collasso persistito) resterebbe fuori dal foglio.
+        // Apriamo tutti i <details> prima di stampare e ripristiniamo esattamente quelli che erano chiusi.
+        // Il CSS d'autore da solo non basta: in Chrome il contenuto di un <details> chiuso è nascosto dallo
+        // user-agent (content-visibility su ::details-content). Il foglio vipi-print.css tiene comunque le
+        // regole di ripiego per i browser che non segnalano la stampa.
+        if (printWired) return;
+        printWired = true;
+        var closed = [];
+        // Chrome segnala la stampa DUE volte (beforeprint e il passaggio a media 'print'): senza questa guardia
+        // la seconda apertura ripartirebbe da una pagina già espansa, raccogliendo un elenco vuoto — e dopo la
+        // stampa le sezioni che l'utente aveva chiuso resterebbero aperte (verificato live).
+        var expanded = false;
+
+        function stampTime() {
+            // L'intestazione PrintMeta porta l'ora di render lato server: qui la sostituiamo con quella reale di
+            // stampa (UTC, stesso formato), così una pagina rimasta aperta a lungo non stampa un orario vecchio.
+            var now = new Date().toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+            document.querySelectorAll('.print-meta [data-print-time]').forEach(function (el) {
+                el.textContent = now;
+            });
+        }
+
+        // Mappe AoR: a schermo il contenitore è alto 340px, su A4 sono ~90 mm di cui gran parte mare. Le
+        // riduciamo per la stampa. Non basta il CSS: Leaflet tiene la propria dimensione in memoria, quindi
+        // cambiare l'altezza da foglio di stile RITAGLIA la mappa invece di riadattarla. Serve invalidateSize()
+        // + il refit sui settori accesi, che vipi-aor.js espone su `_leafletMap` / `_aorRefit`.
+        // Due misure: la mappa AoR principale del documento resta leggibile (200px ≈ 53 mm), le miniature
+        // per-area (.area-map, una per area regolamentata: su una ACC sono decine) scendono a 130px ≈ 34 mm.
+        // Solo verso il BASSO: una vIPI ACC ha mappe-area già a 190px e portarle alla misura della principale
+        // le ingrandirebbe, allungando il documento invece di accorciarlo (preso in questo modo alla prima
+        // verifica: 34 pagine prima, 34 dopo).
+        var PRINT_MAP_H = 260, PRINT_AREA_MAP_H = 130;
+
+        // Larghezza della cornice della mappa AoR principale, dedotta dalle PROPORZIONI dell'area inquadrata.
+        // Perché serve: `fitBounds` sceglie lo zoom che fa stare i bounds in ENTRAMBE le dimensioni. In una
+        // cornice larga e bassa (703 × 200) un AoR alto e stretto come LIBB è limitato dall'altezza, quindi lo
+        // zoom scende e il foglio esce con mezzo Mediterraneo attorno a un poligono minuscolo. Dando alla
+        // cornice la forma dell'AoR, il poligono la riempie; il margine auto la centra nel foglio.
+        function frameWidth(el, m, h) {
+            var b = el._aorBounds;
+            if (!b || !m.project) return null;
+            var z = 6;   // zoom qualsiasi: serve solo il RAPPORTO fra le due proiezioni Mercator
+            var nw = m.project(b.getNorthWest(), z), se = m.project(b.getSouthEast(), z);
+            var dy = Math.abs(se.y - nw.y);
+            if (dy < 1) return null;
+            var w = Math.round(h * (Math.abs(se.x - nw.x) / dy)) + 30;   // +30 = margine attorno al poligono
+            var max = el.parentElement ? el.parentElement.clientWidth : w;
+            return Math.max(170, Math.min(w, max || w));
+        }
+
+        function resizeMaps(toPrint) {
+            document.querySelectorAll('.aor-leaflet').forEach(function (el) {
+                var m = el._leafletMap;
+                if (!m) return;   // fallback SVG (nessun Leaflet): scala già da sé
+                var isArea = el.classList.contains('area-map');
+                if (toPrint) {
+                    // Altezza calcolata, non il rettangolo: con lo zoom di pagina attivo il rect è scalato, e
+                    // 'beforeprint' scatta prima che il media passi a print (quindi prima del reset dello zoom).
+                    var target = isArea ? PRINT_AREA_MAP_H : PRINT_MAP_H;
+                    var now = parseFloat(getComputedStyle(el).height) || 0;
+                    // Le miniature per-area vivono in una griglia accanto al testo: si toccano solo in altezza.
+                    if (isArea && now <= target) return;
+                    // Misure da ripristinare sull'elemento, non in un array indicizzato che si disallineerebbe
+                    // se Blazor rirenderizzasse la pagina fra apertura e ripristino.
+                    el._printPrevH = el.style.height;
+                    el.style.height = target + 'px';
+                    if (!isArea) {
+                        var w = frameWidth(el, m, target);
+                        if (w) {
+                            el._printPrevW = [el.style.width, el.style.margin];
+                            el.style.width = w + 'px';
+                            el.style.margin = '0 auto';
+                        }
+                    }
+                } else {
+                    if (el._printPrevH === undefined) return;
+                    el.style.height = el._printPrevH;
+                    el._printPrevH = undefined;
+                    if (el._printPrevW) {
+                        el.style.width = el._printPrevW[0];
+                        el.style.margin = el._printPrevW[1];
+                        el._printPrevW = undefined;
+                    }
+                }
+                m.invalidateSize(false);
+                if (el._aorRefit) el._aorRefit();
+            });
+        }
+
+        function expand() {
+            if (expanded) return;
+            expanded = true;
+            stampTime();
+            closed = [];
+            suppressPersist = true;
+            document.querySelectorAll('details:not([open])').forEach(function (d) {
+                // Il `?` di aiuto e il tour non vanno in stampa: aprirli sposterebbe il layout per nulla.
+                if (d.classList.contains('help-hint')) return;
+                closed.push(d);
+                d.open = true;
+            });
+            suppressPersist = false;
+            // Dopo l'apertura: una mappa dentro un <details> chiuso ha dimensione zero e invalidateSize() non
+            // avrebbe niente da misurare.
+            resizeMaps(true);
+        }
+
+        function restore() {
+            if (!expanded) return;
+            expanded = false;
+            resizeMaps(false);
+            suppressPersist = true;
+            closed.forEach(function (d) { d.open = false; });
+            closed = [];
+            suppressPersist = false;
+        }
+
+        window.addEventListener('beforeprint', expand);
+        window.addEventListener('afterprint', restore);
+        // Safari non emette beforeprint/afterprint: il cambio di media 'print' è l'equivalente.
+        var mq = window.matchMedia && window.matchMedia('print');
+        if (mq && mq.addEventListener) {
+            mq.addEventListener('change', function (e) { if (e.matches) { expand(); } else { restore(); } });
+        }
     }
 
     // Espandi/comprimi tutti i <details> di uno scope. Bottone dentro un <details> → agisce sui discendenti di
@@ -178,6 +347,8 @@
         wireAnchors();
         wireCollapse();
         wireSearchKey();
+        wirePrint();
+        wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
     };
 
     document.addEventListener('DOMContentLoaded', function () {

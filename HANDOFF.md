@@ -1,7 +1,85 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 luglio 2026 (Round 34 — vista operativa + QoL admin + import SID GitHub + import gated)
+**Ultimo aggiornamento:** 30 luglio 2026 (uniformità dei tre documenti — doc 11; stampa documenti; audit concorrenza + codice morto + ridondanze)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
+> `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
+> Carta completa: `docs/refactor/11-uniformita-tre-documenti.md`. Le cose da sapere subito:
+> - **Il modello era unico, la rilettura no.** Ogni famiglia interpretava lo stesso `Document` a modo suo:
+>   chiave di sezione, resa del contenuto editoriale, stato «nascosta», fallback della vista pubblica.
+>   Sei difetti alti, tutti **invisibili ai test verdi** e trovati guidando l'app reale.
+> - **Stato per-sezione ⇒ colonna su `DocumentSection`.** `IsHidden` (migrazione `AddSectionIsHidden`) e
+>   `BeforeParentBody` (`AddSectionBeforeParentBody`) si aggiungono a `RenderMode` di doc 10: versionati e dentro
+>   lo snapshot. Prima «nascondi» viveva in tre storage, due non versionati → **cambiava la pagina pubblica senza
+>   pubblicare**. ⚠️ `CreateDraftAsync` non copiava i flag: aprire una bozza resettava `RenderMode` a `Frozen`.
+> - **Chiavi di sezione univoche** (`custom:{guid8}`): la costante `"custom"` faceva collidere le sezioni libere.
+>   Migrazione dati al boot (`IDocumentMaintenance`), non EF: le migration del repo sono SQLite-flavored.
+> - **`?as=` non valido ⇒ pubblica CON derivate frozen.** Prima il fallback lasciava `_useFrozen=false`: il
+>   congelamento AIRAC era bypassabile dall'URL.
+> - **P7–P9 chiesti dall'owner in verifica live**: sotto-sezioni collocabili **prima** del corpo; coordinamenti
+>   con il solo primo livello espanso; «Aree regolamentate» che nasce collassata (viewer **ed** editor).
+> - ⚠️ **Viewer ed editor possono avere sequenze opposte per la stessa sezione** (vLOA/coordinamenti: il viewer
+>   rende le direzioni nel padre, l'editor nelle figlie). Toccarne una sola ha prodotto un albero duplicato.
+> - **§3bis del doc 11: «non-problemi verificati»** — due apparenti duplicazioni nei coordinamenti che sono dato
+>   corretto. Leggerlo prima di «aggiustarle».
+
+> **🖨️ Sessione 2026-07-30 (2) — stampa dei documenti + fix pubblicazione.** Branch
+> `fix/audit-race-deadcode-redundancy`, 14 commit, suite **631 → 640 verde**, build 0 warning. Schede complete:
+> `docs/feature/2026-07-30-stampa-documenti.md` e `docs/feature/2026-07-30-pill-stato-dopo-publish.md`.
+> Le cose da sapere subito:
+> - **La stampa era rotta da sempre e in silenzio**: il blocco `@media print` in `vipi-theme.css` nascondeva
+>   tutto e mostrava solo `.printable`, classe che **nessun markup applicava** → Ctrl+P dava un foglio bianco su
+>   qualunque pagina. Ora c'è il foglio dedicato **`vipi-print.css`** (nasconde il chrome, contenuto nel flusso
+>   normale, A4 verticale, `thead` ripetuto, colori informativi preservati, scala tipografica da carta) +
+>   `PrintMeta` + tasto «Stampa» sui quattro viewer. Nessun endpoint di export: la stampa del browser copre
+>   RNF-6 (piano §10, §22.7 aggiornati). **Dati live fuori dalla carta** per decisione: METAR/TAF e Ridotta.
+> - **Tre trappole del browser, tutte invisibili ai test.** Un `<details>` chiuso **non si apre col solo CSS**
+>   (Chrome lo nasconde da user-agent con `content-visibility` su `::details-content`) → serve l'hook
+>   `beforeprint` (`wirePrint` in `vipi-ui.js`). **Chrome segnala la stampa due volte** (`beforeprint` + cambio
+>   media `print`) → gli handler di stampa vanno resi **idempotenti**, o il ripristino post-stampa non avviene.
+>   **Leaflet** tiene la propria dimensione in memoria: ridurre l'altezza da CSS **ritaglia** la mappa invece di
+>   riadattarla (serve `invalidateSize` + refit).
+> - **«Bozza vN» dopo «Pubblica ora» era solo la pill**, non la pubblicazione (release `Effective`, audit e
+>   documento promosso erano corretti): `ReleasePanel` ricaricava solo le proprie release senza avvisare l'host.
+>   Ora ha un `EventCallback Published` che i tre editor agganciano al proprio `LoadAsync`. ⚠️
+>   `string.Format(L["chiave"].Value, n)` **non interpola** — serve l'overload `L["chiave", n]`.
+> - **⚠️ Chiave di release ACC**: `"{acc}|{root}"` — la parte `root` sceglie *quale* albero/documento si
+>   pubblica e **va rispettata**. `AccVipiReleaseTarget` la scartava (primo CTR radice per `CoverageOrder`): su
+>   una ACC multi-albero avrebbe promosso la bozza del documento sbagliato, in silenzio. Corretto.
+> - **Razor scarta il testo di sola spaziatura che precede un blocco di codice**, anche dentro `<text>`: la
+>   legenda piste usciva «recommended**from** the METAR wind». Lo spazio va scritto come entità `&#32;`.
+>   Stessa famiglia della trappola `v@r.Proprietà` (sessione precedente).
+
+> **⚠️ Sessione 2026-07-30 — audit concorrenza / codice morto / ridondanze.** Branch
+> `fix/audit-race-deadcode-redundancy`, 14 commit, suite **505 → 631 verde**, build 0 warning. Documento completo:
+> `docs/history/audit-2026-07-30-concorrenza-e-ridondanze.md`. Le tre cose da sapere subito:
+> - **Import SID era rotto in silenzio** su LIRF/LIMC/LIME/LIBG/LIED/LIEO/LIPQ (ogni *reimport* falliva: snapshot
+>   costruito con `ToDictionaryAsync(StableKey)` su chiave legittimamente ripetuta; il job logga a `LogDebug`).
+>   Fixato. ⚠️ **La `StableKey` NON è unica per design** — non aggiungere un indice unico, fallisce sui dati veri.
+> - **Le migration si provano su una copia di `src/Vipi.Host/vipi.db`**, non solo su DB vuoti da `EnsureCreated`:
+>   i test partono sempre da vuoto e non vedono questa classe di problemi.
+> - **Nuova skill `.claude/skills/verifica-live/`** per lanciare e guidare l'app in locale (la procedura non era
+>   scritta: `dev-bootstrap.md` si fermava a `dotnet run`, e serve `VipiAuth__Enabled=false` per entrare).
+>   Guidandola è uscito `rel. v@r.VersionNumber` **letterale** a schermo: in Razor una `@` fra due caratteri
+>   non-spazio è letta come **indirizzo email** e non apre un'espressione, senza alcun warning → usare `v@(...)`.
+>
+> Aperto, **non di codice**: la SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota
+> implausibile (le altre BANAV hanno `9000` → «FL90»). Da correggere nell'editor.
+
+> **⚠️ Sessione 2026-07-29 — hardening deploy Render+Neon (leggere se si lavora sul deploy hostato).** Il sito test gira su Render+Neon Postgres (vedi `deploy/render/README.md` e memoria [[deploy-hosting-options]]). Fix di questa sessione, tutti su branch `fix/airport-weather-tl-draft-preview`:
+> - **Login IVAO ricordato 7 giorni** (`VipiStandaloneAuthExtensions.cs`): cookie `ExpireTimeSpan=7gg` sliding + `IsPersistent=true` sul challenge → un solo login, sopravvive a chiusura browser.
+> - **Retry-on-failure Neon** (`Infrastructure/DependencyInjection.cs`, ramo Postgres): `EnableRetryOnFailure` — Neon serverless chiude le connessioni idle, la prima query dava 500 `transient failure`. ⚠️ **Corretto il 30 lug:** questa nota diceva «retry-safe perché `EfUnitOfWork` avvolge già le transazioni in `CreateExecutionStrategy()`» — **necessario ma non sufficiente.** Al retry la strategy rigira la lambda sullo stesso context scoped e il rollback non ripulisce il change-tracker, quindi le entità del tentativo fallito venivano riemesse (doppi insert). Ora `EfUnitOfWork` azzera il tracker a ogni tentativo.
+> - **DataProtection su Postgres** (`src/Vipi.Host/VipiDataProtection.cs`, modulo staccabile): su Render il container è effimero → il key-ring di default si perdeva a ogni redeploy (antiforgery rotto + logout). Ora le chiavi vanno su un `DbContext` dedicato (tabella `DataProtectionKeys` su Neon). ⚠️ **NON** `EnsureCreated()` (verifica il *database*, non la tabella → non creava nulla sul DB esistente): la tabella si crea con `CREATE TABLE IF NOT EXISTS`. Attivo solo se `Persistence:Provider=Postgres`; in dev SQLite resta il file-store.
+> - **StationResolver.Prewarm()** (fix crash `A second operation was started`, memoria [[blazor-dbcontext-concurrency]]): `OnlineCount()` faceva lazy-load DB **durante il render** su `AccVipiPage`/`SopHome`/`VloaListPage`. Nuovo `IStationResolver.Prewarm()` scalda le cache nel ciclo di vita async. **Regola: nessuna I/O DB durante il render, nemmeno lazy via service scoped.**
+> - **Tool `Vipi.DbSeed`** (copia SQLite locale→Neon): fix ciclo `Document↔DocumentVersion` (insert a 2 fasi con `CurrentVersionId=null`). Uso: `dotnet run --project tools/Vipi.DbSeed -- <vipi.db> "<connstring-postgres>"` (fa TRUNCATE+reseed).
+> - **`IvaoTokenProvider`**: logga il body d'errore sui token 400 (prima `EnsureSuccessStatusCode()` lo scartava).
+>
+> **⏳ APERTO — token app IVAO (400):** il polling tracker + import ACC falliscono con `POST /v2/oauth/token → 400`. Diagnosi: **NON è codice** (endpoint/grant/scope validati col discovery OIDC IVAO). È il **secret/app sul portale**: o `Ivao:ClientSecret` stale nei user-secrets, o l'app `fc95c992…` non ha grant `client_credentials`/scope `tracker`+`configuration` abilitati. Il nuovo log mostra l'`error` esatto nel body. Nota: `Ivao:ClientId == VipiAuth:ClientId` (stessa app IVAO per login utente + token app). Aggiornare il secret sia in user-secrets locali sia in `Ivao__ClientSecret` su Render.
+>
+> **NB dev locale:** per testare login/logout in locale serve `VipiAuth:Enabled=true` in `appsettings.Development.json` (spegne l'utente dev fittizio → login IVAO vero) + redirect `http://localhost:5034/signin-oidc` e `/signout-callback-oidc` registrati sul portale IVAO. Questo flag è tenuto **fuori dai commit** (preferenza locale).
+
+> **⚠️ Stato corrente (2026-07-21) — leggere prima.** Dopo il Round 34 il progetto è passato per l'**asse di refactor strutturale `docs/refactor/01→10` (tutti eseguiti)**: modello **`Document`+`DocumentVersion` unificato** per tutti e 4 i tipi (vIPI ACC / APP / Airport / vLOA), editing e storage su documento (doc 08); **flusso di pubblicazione generico** via registry `IReleaseTarget`/`IDocKindRoutes` (doc 09); **snapshot totale al publish + `RenderMode` per sezione** con **visibilità pubblica = release effettiva** (doc 10, merged). Aggiunta **retention pubblicazione** (anti-bloat: pota release `Superseded` oltre 13 cicli e versioni `Archived` oltre 3/documento; per-publish + boot sweep `PruneVipiReleases`). **Fix 2026-07-21:** off-by-one del cap `Archived` su **entrambi** i path publish (release-publish `ReleaseService.PublishNowAsync` e version-publish `EditingService.PublishAsync`) — ora il prune gira dopo l'archiviazione. Suite **358 verde**. Dettagli in `docs/history/rounds.md` (in coda), `docs/refactor/00-overview.md` e memoria `publication-retention-plan`. **NB:** le sezioni §4→§8 qui sotto descrivono lo stato a Round 34 e NON riflettono ancora l'asse 08→10 (modello/pubblicazione): in caso di conflitto valgono i doc `refactor/` + `spec/modello-dati.md`.
 **Stato:** progetto **in sviluppo attivo**. Solution .NET 8 a 4 layer + Host Blazor Server, consultazione+editing+sicurezza dal DB. **Import SID da GitHub** (sectorfile Aurora `ivao-italy/it-aurora-sector`): parser + completion fix/VOR + alias, merge preserva-manuali, priorità per punto persistente (StableKey), pubblicazione differita al ciclo AIRAC N+1 (round 34, `AddSidImport`). **Import periodici gated** (`ImportState`, `AddImportState`): niente più fetch-all a ogni riavvio (round 34). **Vista operativa ACC** rifatta sul mockup `#reduced` + vista rapida aeroporto inline (`AirportQuickPanel`); QoL admin `sectorstructure`/`trasferimenti` (round 34). **Versioning AIRAC**: release schedulate per ciclo su TUTTI i tipi (`DocRelease`; round 29, §9.17) + **task management editor**. **Anteprime unificate `?as=`** nei viewer tipizzati (round 33). **vLOA data-driven** + **ACC esteri confinanti** (round 27-28, §9.16). **vIPI ACC/APP data-driven a blocchi** (round 21/23). **Live IVAO** (polling + cache + SSE). **Sorgente dati disaccoppiata** + **policy di import opt-out** (categorie: TA/Runways/Sectors/**Sids**). Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia per callsign cross-ACC (Round 20).
 
 > **Storia dei round:** `docs/history/rounds.md` (changelog R5→R34). **Indice doc:** `docs/index.md`. Ultimo round: **34** — vista operativa + QoL admin + import SID GitHub + gating import; modello in `docs/spec/modello-dati.md` §9.8 (migrazioni). (R33: anteprime `?as=`; R30: QoL Bozze & versioni §9.18; R29: versioning AIRAC + task §9.17.)
@@ -15,9 +93,17 @@ Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e l
 ```bash
 cd "vIPI Ivao Italy"            # cartella interna con la solution
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx          # ~199 test (Domain 12 · App 91 · Infra 96)
+dotnet test  Vipi.slnx          # 631 test (Domain 23 · App 273 · Infra 228 · Hosting 18 · Ui/bUnit 85 · E2E 4)
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
+- 🔎 **Per verificare una modifica UI a schermo** (non solo coi test): skill **`.claude/skills/verifica-live/`** —
+  avvio su una copia del DB, driver Edge+puppeteer-core, bersagli e trappole già mappate. Le regressioni Blazor
+  sono silenziose coi test verdi, quindi il runbook chiede di guidare il flusso reale.
+- ⚠️ **AZIONE PENDENTE (2026-07-22, audit Fase 1):** **RIAVVIARE il Host** per applicare `AddImportStateLastError` (additiva: `ImportState.LastAttemptUtc`/`LastError`). Poi `/vsop/admin/sorgenti` mostra il **report stato import** (ultimo successo/tentativo/errore per categoria). Nota: da questa sessione `/vsop/health` è **Unhealthy (503)** se ci sono migrazioni pendenti (schema drift). Audit completo: `docs/history/audit-2026-07-22-criticita-full-stack.md`. Nuova rete di test: `Vipi.Ui.Tests` (bUnit) + `Vipi.E2E.Tests` (WebApplicationFactory in-process).
+- ℹ️ **FASE 2 audit ESEGUITA (2026-07-22, nessun cambio schema):** **B1** report consistenza soft-ref in **`/vsop/admin/diagnostica`** (pista orfana · label pista divergente · area fantasma · gerarchia `ParentCallsign` dangling) — solo diagnosi, nessun auto-fix; `IConsistencyReportService`/`Analyze` (logica pura) + `IConsistencyReportRepository` (EF read-only); se ci sono finding, `/vsop/health` → **Degraded**. **C1** XSS: `HtmlEncode` dei valori dinamici in `StrutturaPage`/`AeroportoPage` (pattern gemello `SearchPage`/`MarkdownLite`).
+- ℹ️ **FASE 3 audit ESEGUITA (2026-07-22) — parte code, resto pianificato in ADR-0007:** **A1** tampone concorrenza SQLite `SqliteTuningInterceptor` (WAL + `busy_timeout`) nel path `UseSqlite`; **D1** `ProductionIdentityGuard.EnsureSafe` in `Program` fa **hard-fail** all'avvio se l'identità dev è attiva fuori da Development (no admin-onnipotente in prod); test path prod `HostIdentityCurrentUserProvider` (nuovo progetto `Vipi.Hosting.Tests`). **A1 cutover Postgres + A2 scala Blazor = pianificati in `docs/adr/adr-0007-produzione-persistenza-e-scala.md`** (non attuati: servono migrations Postgres dedicate + istanza di validazione + backplane). **ESTERNI residui:** montare la RCL nel sito host + configurare `HostIdentity` coi claim/staff-code IVAO reali; eseguire il cutover Postgres; provisioning backplane.
+- ℹ️ **MINORI audit ESEGUITI (2026-07-22):** **C4** `StrutturaPage` — estratti i `RenderFragment` HTML-a-mano in componenti dichiarativi `StructureCoverage`/`StructureFallbackChain` (chiude C1 alla radice, +6 bUnit con regressione XSS). **B4** spec §3 marcata `[SUPERATO]` (usa §9). **B3** nuova checklist `docs/guide/dev-bootstrap.md` (coerente «Nessun seed»). **C3** chiuso come non-issue (aor3d già off; AoR block = editoriale, non stub). Onboarding dev: vedi `docs/guide/dev-bootstrap.md`.
+- ⚠️ **AZIONE PENDENTE (2026-07-22):** **RIAVVIARE il Host** per applicare le migrazioni pendenti dei trasferimenti — `AddTransferPointConditionArea` poi **`SplitTransferConditionColumns`** (backfilla e droppa `ConditionKind`). Sessione 22 lug: condizione trasferimenti = **tre colonne indipendenti** (pista multi-select · area con **ricerca a digitazione** · personalizzata), enum `TransferConditionKind` **rimosso**; fix condizione «Pista» che legge le **piste reali** `AirportRunways` (non le config); bottone **«Re-importa da IVAO (tutti)»** su `/vsop/admin/airports`. Verifica live su LIBD. Suite **19 dom + 205 app + 174 infra** verde. Dettaglio: `spec/modello-dati.md` §9.20, `refactor/07-trasferimenti.md` §7-7.2, memorie `transfer-condition-model` / `airport-runway-import`.
 - ⚠️ **NOTA (Round 34):** il **`vipi.db` dev è stato resettato** a fine sessione (testando il gating import). Al primo avvio ripopola da zero (ACC → settori → aree → SID) e stampa lo stato in `ImportStates`; i riavvii successivi **saltano** i fetch finché non scadono i 24h (o via bottoni manuali). Le SID importate sono pubbliche solo dal ciclo AIRAC successivo.
 - ⚠️ **AZIONE PENDENTE (Round 22):** **fermare e RIAVVIARE il Host** per applicare la migrazione **`AddAirportCoordsAndTwrSyntheticShape`** (additiva) e far girare il job che (a) popola `Airport.Latitude/Longitude` dal dettaglio ATCPositions e (b) genera le **shape tonde 5 NM** per le TWR vuote (`/v2/ATCPositions/{compose}.regionMapPolygon = "[]"`). Il job parte ~30s dopo l'avvio. Poi su `/vsop/{acc}/apps/vipi?app={APP}` l'AOR mostra il cerchio della torre col toggle «Shape torre». ⚠️ Credenziali IVAO in **user secrets** (`Ivao:ClientId/ClientSecret`), scope `tracker` basta per il dettaglio postazione. Il Host viene **fermato** a fine sessione (blocca le DLL in build).
 - ⚠️ **AZIONE PENDENTE (Round 20):** se il DB è ancora pre-round-20: **reset `src/Vipi.Host/vipi.db`** in dev (o applica `AddHierarchyParentCallsign`) → riavvia. Poi `/vsop/admin/acc` → «Importa da sorgente»: la **sync** popola i `Sector` dai cataloghi; in `/vsop/admin/sectorstructure` compare l'**albero di copertura globale** (cross-ACC).
@@ -77,7 +163,7 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
    - **Mapping token-handler → callsign** trasferimenti (oggi euristica match-segmento). Valutare tabella esplicita.
    - **Endpoint membri divisione** (`/v2/divisions/IT/members`) da confermare.
    - Estendere `live=true` a **vIPI aeroporto / vLOA** (oggi solo ACC Ridotta).
-2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO). **SID ✅** (sectorfile Aurora GitHub, round 34, sez. config `Sectorfile`). Restano: **shape reali TWR dal sectorfile GitHub** (rimpiazza le sintetiche `IsShapeSynthetic`), **minime MVA** (`<icao>.mva` stesso repo — riusa il pattern SID: parser + import gated + pubblicazione differita), AoR 3D (Three.js).
+2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO). **SID ✅** (sectorfile Aurora GitHub, round 34, sez. config `Sectorfile`). **AoR 3D ✅** (Three.js r128 vendorizzato: tab 2D/3D nel blocco AoR + pagina `/vsop/aor3d/{Kind}/{Key}`; settori estrusi per banda FL, con **basemap geografica CartoDB come pavimento** — proiezione Web Mercator, toggle «Mappa base» — e rendering leggibile: altezza adattiva/opacità/etichette). Restano: **shape reali TWR dal sectorfile GitHub** (rimpiazza le sintetiche `IsShapeSynthetic`), **minime MVA** (`<icao>.mva` stesso repo — riusa il pattern SID: parser + import gated + pubblicazione differita). Nota AoR 3D: i settori senza limiti admin estrudono GND→UNL (banda piatta) → il rilievo 3D emerge solo coi `LowerLimit`/`UpperLimit` valorizzati.
 3. **Fonte unica (Round 20) — follow-up:** doc+AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi. Eliminazione totale di `Sector` + **risoluzione live** "chi controlla l'aeroporto adesso" (presidiato se DEL/GND/TWR online, altrimenti primo antenato online risalendo `ParentCallsign`) = fase live. ✅ **Fatto per i trasferimenti:** `ITransferService.ResolveForAccAsync` + `ITopologyProvider.BuildGlobalAsync` risolvono mittente e ricevente risalendo la gerarchia globale (terminale UNICOM); Ridotta li mostra nidificati Settore ▸ Aeroporto ▸ Tipo. Resta da estendere la stessa risalita alla "presidenza aeroporto" generale.
 4. **Auth di produzione:** adapter reali `ICurrentUserProvider` — `HostIdentity` (A/B, claim `Ivao.It`) e OIDC (C); mappare gli **staff code reali** (§6). Montare la RCL nel sito host.
 5. **Copertura/rifiniture:** viewer **audit log**, "scarta bozza", editor visuale mappe AoR, test property-based AoR, rifinitura UI.

@@ -9,55 +9,41 @@
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject ILogger<AppEditorPage> Logger
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
-    <PageTitle>Editor APP @_app · vIPI</PageTitle>
+    <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps">Avvicinamenti non remotizzati</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>Editor</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @if (_notFound)
         {
-            <div class="doc-head"><div><h2 style="margin-bottom:2px">✎ Editor APP @_app</h2><span class="muted">@_acc.Name</span></div></div>
-            <div class="callout warning"><span class="cic">⚠️</span><div>APP non trovato. Verifica che il callsign sia un avvicinamento non remotizzato (es. <code>LIRP_APP</code>).</div></div>
+            <div class="doc-head"><div><h2 style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_app</h2><span class="muted">@_acc.Name</span></div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@((MarkupString)L["App_NotFound"].Value)</div></div>
         }
         else if (_denied)
         {
-            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">Non autorizzato</p>Non hai i permessi per editare la ACC @_acc.Code.</div></div>
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["App_DeniedBody"].Value, _acc.Code))</div></div>
         }
         else if (_doc is null)
         {
-            <p class="help">Caricamento editor APP…</p>
+            <p class="help">@L["App_LoadingEditor"]</p>
         }
         else
         {
             <div class="editor-bar">
                 <div class="doc-head" style="margin:0">
-                    <div><h2 style="margin-bottom:2px">✎ Editor APP @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
-                    <div class="editor-actions">
-                        @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 Salvataggio…</span> }
-                        else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ Salvato</span> }
-                        <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                            @(_doc.VersionStatus == DocumentStatus.Draft ? $"Bozza v{_doc.VersionNumber}" : $"Pubblicata v{_doc.VersionNumber}")
-                        </span>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="Apri la bozza live in una nuova scheda (non la versione pubblica)">👁 Anteprima bozza</a>
-                        @if (_editing)
-                        {
-                            <button class="btn ghost" @onclick="() => _editing = false">✓ Fine modifica</button>
-                        }
-                        else
-                        {
-                            <button class="btn ghost" @onclick="StartEditing">✎ Modifica</button>
-                        }
-                    </div>
+                    <div><h2 style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_displayName</h2><span class="muted">@_app · @_acc.Name</span></div>
                 </div>
             </div>
 
@@ -65,16 +51,43 @@ else
 
             @if (_lock is { Locked: true, IsMine: false })
             {
-                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">In modifica da un altro editor</p>
-                    Bloccato da @(_lock.ByName ?? "un altro utente")@(_lock.ExpiresUtc is { } e ? $" (fino alle {e:HH:mm})" : ""). Non puoi salvare finché il lock è attivo.</div></div>
+                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
+                    @(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
             }
-            @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
+            @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
 
             <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                     IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
-                                    IsMandatory="IsMandatory" IsHiddenSection="IsHidden"
-                                    OnToggleHidden="ToggleHidden"
-                                    IsRenderModeToggleable="IsRenderModeToggleable" />
+                                    IsMandatory="IsMandatory"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    ShowToc="true" ExtraTocItems="_tocExtra">
+                <RightRail>
+                    @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                    else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
+                    </span>
+                    <a class="btn ghost" data-tour="preview" href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                    <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
+                        Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
+                        <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
+                    </HelpHint>
+                    @if (_editing)
+                    {
+                        <span class="save-badge lock-mine" title="@L["Lock_Editing"]">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToString("HH:mm")) : "")</span>
+                        <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="save-badge lock-badge" title="@L["Ed_LockedByOther"]">🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } e ? $" · → {e:HH:mm}" : "")</span>
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
+                    }
+                </RightRail>
+            </DocumentSectionsEditor>
 
             @Release()
         }
@@ -106,37 +119,30 @@ else
     private List<AppFreqRow> _freqs = new();
     private List<int> _linkIds = new();
     private AppCoordination _coord = AppCoordination.Empty;
-    private AppCoordination? _coordPreview;
-    private string? _coordTemplate;
     private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
-    private HashSet<string> _hiddenKeys = new(StringComparer.OrdinalIgnoreCase);
 
     // Configurazioni (APP multi-settore, es. LIPE_APP con LIPE_W/LIPE_E). Pool + salvate + accorpamento derivato.
     private IReadOnlyList<AccSectorPick> _sectorPool = Array.Empty<AccSectorPick>();
     private List<AccConfiguration> _configs = new();
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
+    // Shape AoR extra (settori DB scelti a mano) + override colore per settore + catalogo globale del picker.
+    private List<string> _aorExtras = new();
+    private Dictionary<string, string> _aorColors = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();
+
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private string _freqSearch = "";
     private int? _freqDragIndex;
-    private CancellationTokenSource? _coordDebounce;
 
-    // Release AIRAC (target App).
-    private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
-    private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    // Release AIRAC (target App): la timeline e la pubblicazione sono nel componente condiviso ReleasePanel,
+    // come negli editor ACC e aeroporto. Qui resta solo il ciclo corrente per il testo d'aiuto.
     private string _currentCycle = "";
-    private string? _relCycle;
-    private string? _relNote;
-    private readonly HashSet<int> _diffOpen = new();
-    private readonly Dictionary<int, ReleaseDiff> _diffs = new();
     private const string _releaseAnchor = "p-release";
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor).
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
 
-    protected override void OnInitialized()
-    {
-        _currentCycle = Releases.CurrentCycle();
-        _upcoming = Releases.UpcomingCycles(14);
-        _relCycle ??= _upcoming.FirstOrDefault()?.Cycle;
-    }
+    protected override void OnInitialized() => _currentCycle = Releases.CurrentCycle();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -164,6 +170,7 @@ else
 
         _linkable = await AppDoc.ListLinkableFrequenciesAsync();
         _sectorPool = await AppDoc.ListSectorsAsync(_app);
+        _shapeCatalog = await AppDoc.ListSelectableSectorShapesAsync();
         await LoadAsync();
     }
 
@@ -180,14 +187,8 @@ else
             _separations = (await AppDoc.GetSeparationsAsync(_app)).ToList();
             _vfr = await AppDoc.GetVfrAsync(_app);
             var overrides = await AppDoc.GetOverridesAsync(_app);
-            _coordTemplate = overrides.CoordinationSentenceTemplate;
-            _hiddenKeys = overrides.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
             _linkIds = overrides.FreqLinkSectorIds.ToList();
-            _coordPreview = null;
             await RefreshDerivedAsync();
-
-            _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
-            _diffOpen.Clear(); _diffs.Clear();
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -196,6 +197,9 @@ else
     {
         _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
         _coord = await AppDoc.DeriveCoordinationAsync(_app);
+        var aorCustom = await AppDoc.GetAorCustomizationAsync(_app);
+        _aorExtras = aorCustom.Callsigns.ToList();
+        _aorColors = new Dictionary<string, string>(aorCustom.Colors, StringComparer.OrdinalIgnoreCase);
         _aorView = await AppDoc.GetAorViewAsync(_app);
         _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
         _configTable = await AppDoc.DeriveConfigTableAsync(_app);
@@ -205,13 +209,24 @@ else
     private async Task StartEditing()
     {
         if (_docId is not int id) return;
-        await Guard(async () =>
+        await GuardCore(async () =>
         {
             if (_doc is { IsEditable: false }) await Editing.CreateDraftAsync(id);
             else await Editing.AcquireLockAsync(id);
             await LoadAsync();
             _editing = _doc?.IsEditable == true;
-        });
+        }, silent: true);
+    }
+
+    // Fine modifica: rilascia il lock così il documento è subito libero per gli altri (non aspetta i 30 min di TTL).
+    private async Task FinishEditing()
+    {
+        _editing = false;
+        if (_docId is int id)
+        {
+            await GuardCore(() => Editing.ReleaseLockAsync(id), silent: true);
+            _lock = await Editing.InspectLockAsync(id);
+        }
     }
 
     // ---- sezioni derivate / editoriali-strutturate ----
@@ -223,15 +238,7 @@ else
     // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
     private bool IsMandatory(EditableSection s) => SectionCatalog.Find(SectionProfile.App, s.SectionKey) is not null;
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
-    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.KindOf(s.SectionKey) == SectionKind.Derived;
-    private bool IsHidden(EditableSection s) => _hiddenKeys.Contains(s.SectionKey);
-
-    private Task ToggleHidden(EditableSection s) => Guard(async () =>
-    {
-        if (!_hiddenKeys.Add(s.SectionKey)) _hiddenKeys.Remove(s.SectionKey);
-        await AppDoc.SaveHiddenSectionsAsync(_app, _hiddenKeys.ToList());
-    });
-
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
     // ---- editoriali-strutturate (persist immediato via AppDocumentService) ----
     private Task SaveSeparations(IReadOnlyList<AppSeparationRow> rows) => Guard(async () =>
     {
@@ -254,8 +261,28 @@ else
         _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
     });
 
+    // ---- shape AoR extra + colori ----
+    private Task SaveAorExtras(IReadOnlyList<string> callsigns) => Guard(async () =>
+    {
+        _aorExtras = callsigns.ToList();
+        await SaveAorCustomization();
+    });
+
+    private Task SaveAorColor((string Callsign, string? Hex) pick) => Guard(async () =>
+    {
+        if (pick.Hex is null) _aorColors.Remove(pick.Callsign);
+        else _aorColors[pick.Callsign] = pick.Hex;
+        await SaveAorCustomization();
+    });
+
+    private async Task SaveAorCustomization()
+    {
+        await AppDoc.SaveAorCustomizationAsync(_app, new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors });
+        _aorView = await AppDoc.GetAorViewAsync(_app);   // ri-deriva gli anelli sulla mappa
+    }
+
     private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
-        await JS.InvokeAsync<bool>("confirm", $"Rimuovere la configurazione «{c.Name}»?");
+        await JS.InvokeAsync<bool>("confirm", string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
 
     // ---- frequenze (derivate + override/link) ----
     private Task MoveFreq((int Index, int Dir) m) => Guard(async () =>
@@ -297,45 +324,34 @@ else
         await RefreshDerivedAsync();
     });
 
-    // ---- coordinamenti (template) ----
-    private async Task PreviewCoordTemplate(string text)
-    {
-        _coordDebounce?.Cancel();
-        var cts = _coordDebounce = new CancellationTokenSource();
-        try
-        {
-            await Task.Delay(400, cts.Token);
-            var preview = await AppDoc.DeriveCoordinationAsync(_app, string.IsNullOrWhiteSpace(text) ? null : text);
-            if (!cts.Token.IsCancellationRequested) { _coordPreview = preview; await InvokeAsync(StateHasChanged); }
-        }
-        catch (OperationCanceledException) { }
-    }
-
-    private Task SaveCoordTemplate(string text) => Guard(async () =>
-    {
-        _coordDebounce?.Cancel();
-        _coordTemplate = string.IsNullOrWhiteSpace(text) ? null : text.Trim();
-        await AppDoc.SaveCoordinationTemplateAsync(_app, _coordTemplate);
-        await RefreshDerivedAsync();
-        _coordPreview = null;
-    });
-
     // ---- infra ----
-    private async Task Guard(Func<Task> action)
+    // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
+    private Task Guard(Func<Task> action) => GuardCore(action, silent: false);
+    private async Task GuardCore(Func<Task> action, bool silent)
     {
         _error = null;
-        _save = SaveState.Saving;
-        StateHasChanged();
+        if (!silent) { _save = SaveState.Saving; StateHasChanged(); }
         try
         {
             await action();
-            _save = SaveState.Saved;
-            var tick = ++_saveTick;
-            _ = DismissSavedAsync(tick);
+            if (!silent)
+            {
+                _save = SaveState.Saved;
+                var tick = ++_saveTick;
+                _ = DismissSavedAsync(tick);
+            }
         }
-        catch (EditNotAllowedException) { _error = "Non hai i permessi per modificare questo APP."; _save = SaveState.Idle; }
+        catch (EditNotAllowedException) { _error = L["App_NoEditPerm"]; _save = SaveState.Idle; }
         catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
         catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        // Rete di sicurezza: senza questo, un'eccezione non prevista (DbUpdateException, Npgsql…) sfuggiva,
+        // abbatteva il circuito e lasciava il badge inchiodato su "Salvataggio". Meglio un errore visibile.
+        catch (Exception ex)
+        {
+            _error = L["Common_UnexpectedError"] + ex.Message;
+            _save = SaveState.Idle;
+            Logger.LogError(ex, "Azione editor APP fallita (documento {DocId}).", _docId);
+        }
     }
 
     private async Task DismissSavedAsync(int tick)
@@ -360,6 +376,19 @@ else
                 break;
             case "aor":
                 <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
+                @if (_editing)
+                {
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Shape aggiuntive</h4>
+                        <p class="help" style="margin:0 0 8px">Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</p>
+                        <AorExtraShapePicker Selected="_aorExtras" Catalog="_shapeCatalog" Editing="_editing" SelectedChanged="SaveAorExtras" />
+                    </div>
+                    <div class="block" style="margin-top:10px">
+                        <h4 style="margin:0 0 6px">Colori dei settori</h4>
+                        <p class="help" style="margin:0 0 8px">Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</p>
+                        <AorColorEditor Sectors="_aorView.Sectors" Editing="_editing" ColorChanged="SaveAorColor" />
+                    </div>
+                }
                 break;
             case "frequencies":
                 <AppFrequencies Rows="_freqs" Editing="_editing" OnMove="MoveFreq" OnRemoveLink="RemoveLink"
@@ -374,19 +403,7 @@ else
                 <AppMinima />
                 break;
             case "coordination":
-                @if (_editing)
-                {
-                    <div class="field" style="margin:0 0 12px">
-                        <label>Frase di coordinamento — template (vuoto = default globale)</label>
-                        <textarea class="app-in" rows="2"
-                                  placeholder="{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}."
-                                  value="@_coordTemplate"
-                                  @oninput="e => PreviewCoordTemplate(AsString(e.Value))"
-                                  @onchange="e => SaveCoordTemplate(AsString(e.Value))"></textarea>
-                        <p class="help" style="margin:.3em 0 0">Placeholder: <code>{owner}</code> <code>{target}</code> <code>{airport}</code> <code>{stato}</code> <code>{fl}</code> <code>{point}</code>. <code>{airport}</code> include già la relazione arrivo/partenza («con destinazione …» / «in partenza da …»): non aggiungere «con destinazione». L'anteprima sotto si aggiorna mentre digiti; al termine (uscendo dal campo) il template viene salvato.</p>
-                    </div>
-                }
-                <AppCoordinationView Coord="@(_coordPreview ?? _coord)" />
+                <AppCoordinationView Coord="_coord" />
                 break;
         }
     };
@@ -394,7 +411,7 @@ else
     private RenderFragment FreqLinkPicker() => __builder =>
     {
         <div class="app-linkpick">
-            <input class="app-in" placeholder="Collega frequenza (cerca callsign/ICAO)…" value="@_freqSearch"
+            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@_freqSearch"
                    @oninput="e => _freqSearch = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(_freqSearch))
             {
@@ -415,129 +432,25 @@ else
         </div>
     };
 
-    // ---- release AIRAC (target App): timeline + selettore + diff ----
+    // ---- release AIRAC (target App) ----
+    // La pagina fornisce solo l'involucro di sezione (ancora TOC + titolo + aiuto); timeline, selettore ciclo,
+    // diff, annulla e pubblicazione sono nel componente condiviso ReleasePanel, come in AccEditorPage e
+    // AeroportoEditorPage. Prima questa pagina era l'unica dei tre editor con una copia inline.
     private RenderFragment Release() => __builder =>
     {
         <div class="block" id="@_releaseAnchor">
-            <h3 style="margin-top:0">📅 Versioni &amp; release AIRAC</h3>
-            <p class="help">Pubblica lo stato editoriale corrente <b>subito</b> (review sul ciclo in corso) oppure <b>pianificalo</b> a un ciclo AIRAC futuro. Il pubblico vede la release in vigore al ciclo corrente (@_currentCycle).</p>
+            <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
+            <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
 
-            @if (_rels.Count == 0)
-            {
-                <p class="help" style="margin:0 0 6px">Nessuna release: il pubblico vede lo stato pubblicato/live corrente (fallback).</p>
-            }
-            else
-            {
-                @foreach (var r in _rels)
-                {
-                    <div class="ver-row @(r.IsEffectiveNow ? "current" : "")">
-                        <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
-                        <div style="flex:1">
-                            <b>@RelLabel(r)</b>
-                            <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · in vigore dal @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
-                        </div>
-                        <span class="vact">
-                            <a class="btn ghost" href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{r.Id}")" target="_blank" rel="noopener">👁 Anteprima</a>
-                            <button class="btn ghost" @onclick="() => ToggleDiff(r.Id)">🔍 Differenze</button>
-                            @if (Authz.IsAdmin)
-                            {
-                                <button class="btn ghost" @onclick="() => CancelRelease(r.Id)">✕ Annulla</button>
-                            }
-                        </span>
-                    </div>
-                    @if (_diffOpen.Contains(r.Id))
-                    {
-                        <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
-                    }
-                }
-            }
-
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px">
-                <select class="app-in" style="min-width:270px;max-width:340px" @bind="_relCycle">
-                    @foreach (var c in _upcoming)
-                    {
-                        <option value="@c.Cycle">AIRAC @c.Cycle — dal @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
-                    }
-                </select>
-                <input class="app-in" style="max-width:240px" placeholder="Nota (facoltativa)…" @bind="_relNote" />
-                <button class="btn primary" @onclick="PublishReleaseNow" title="Pubblica e rendi visibile al pubblico subito">📢 Pubblica ora</button>
-                <button class="btn ghost" @onclick="PublishRelease" title="Programma la pubblicazione a un ciclo AIRAC futuro">📅 Programma al ciclo</button>
-            </div>
+            @* Published: ricarica lo stato documento dopo la pubblicazione (la pill «Bozza vN» del rail sarebbe stantia). *@
+            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
+                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          PreviewUrlFactory="ReleasePreviewUrl"
+                          Published="LoadAsync" />
         </div>
     };
 
-    private async Task ReloadReleases()
-    {
-        _rels = await Releases.ListAsync(ReleaseTargetType.App, _app);
-        _diffOpen.Clear(); _diffs.Clear();
-    }
+    private string ReleasePreviewUrl(int releaseId) =>
+        $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
 
-    private async Task PublishRelease()
-    {
-        var cycle = _relCycle ?? _upcoming.FirstOrDefault()?.Cycle;
-        if (cycle is null) return;
-        await Guard(async () =>
-        {
-            await Releases.PublishAsync(ReleaseTargetType.App, _app, cycle, _relNote);
-            await ReloadReleases();
-        });
-    }
-
-    private Task PublishReleaseNow() => Guard(async () =>
-    {
-        await Releases.PublishNowAsync(ReleaseTargetType.App, _app, _relNote);
-        await ReloadReleases();
-    });
-
-    private Task CancelRelease(int releaseId) => Guard(async () =>
-    {
-        await Releases.CancelReleaseAsync(releaseId);
-        await ReloadReleases();
-    });
-
-    private async Task ToggleDiff(int releaseId)
-    {
-        if (!_diffOpen.Remove(releaseId))
-        {
-            _diffOpen.Add(releaseId);
-            if (!_diffs.ContainsKey(releaseId))
-            {
-                try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
-                catch (EditNotAllowedException ex) { _error = ex.Message; }
-            }
-        }
-    }
-
-    private static string RelLabel(ReleaseInfo r) => r.IsEffectiveNow
-        ? "🟢 In vigore" : r.Status == ReleaseStatus.Scheduled ? "🕒 Schedulata" : "Superata";
-    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
-
-    private RenderFragment DiffBlock(int releaseId) => __builder =>
-    {
-        @if (_diffs.TryGetValue(releaseId, out var diff))
-        {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">Confronto con: @diff.BaselineLabel</div>
-            @if (diff.Rows.Count == 0)
-            {
-                <p class="help" style="margin:0">Nessuna differenza strutturale rilevata.</p>
-            }
-            else
-            {
-                <table class="cfg-table">
-                    <thead><tr><th>Voce</th><th>Modifica</th><th>Dettaglio</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in diff.Rows)
-                        {
-                            <tr>
-                                <td>@r.Label</td>
-                                <td><span class="pill @DiffPill(r.Change)">@r.Change</span></td>
-                                <td class="muted" style="font-size:12px">@r.Detail</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else { <p class="help" style="margin:0">Caricamento differenze…</p> }
-    };
 }

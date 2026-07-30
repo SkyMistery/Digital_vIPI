@@ -218,4 +218,31 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Single(list, r => r.IsEffectiveNow);                       // una sola in vigore
         Assert.Contains(list, r => r.Status == ReleaseStatus.Superseded); // la prima superata
     }
+
+    [Fact]
+    public async Task PruneReleases_RemovesOnlyOldSuperseded_KeepsEffectiveScheduledAndRecent_AndIsIdempotent()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+
+        // Tre cicli diversi: due passati (il più recente diventa Effective, l'altro Superseded) + una futura Scheduled.
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2401", now.AddDays(-400), json, 1, "vecchissima"); // Superseded, oltre soglia
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2605", now.AddDays(-60), json, 1, "recente");      // Superseded, entro soglia
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2606", now.AddDays(-1), json, 1, "attuale");       // Effective
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2699", now.AddDays(28), json, 1, "futura");        // Scheduled
+
+        var cutoff = now.AddDays(-100);
+        var removed = await _repo.PruneReleasesAsync(ReleaseTargetType.Vloa, key, cutoff);
+        Assert.Equal(1, removed);   // solo la "vecchissima" (Superseded, eff < cutoff)
+
+        var list = await _repo.ListAsync(ReleaseTargetType.Vloa, key);
+        Assert.DoesNotContain(list, r => r.Note == "vecchissima");
+        Assert.Contains(list, r => r.Note == "recente");    // Superseded ma entro soglia → tenuta
+        Assert.Contains(list, r => r.Note == "attuale" && r.IsEffectiveNow);
+        Assert.Contains(list, r => r.Note == "futura" && r.Status == ReleaseStatus.Scheduled);
+
+        // Idempotente: seconda passata non rimuove nulla.
+        Assert.Equal(0, await _repo.PruneReleasesAsync(ReleaseTargetType.Vloa, key, cutoff));
+    }
 }

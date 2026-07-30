@@ -1,0 +1,42 @@
+@* Menu-sezioni laterale (TOC) CONDIVISO tra gli editor: aside.toc sticky, riusa lo stile del viewer.
+   Proiezione dato-guidata di sezioni già in memoria (nessuna query DB). Vedi docs/feature/2026-07-29-toc-editor.md. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (Items.Count > 0)
+{
+    <aside class="toc editor-toc-side" data-tour="toc">
+        <p class="toc-h">@(HeaderLabel ?? L["Common_Navigation"])</p>
+        <ul>
+            @{ string? lastGroup = null; }
+            @foreach (var it in Items)
+            {
+                @if (it.GroupLabel is { Length: > 0 } g && !string.Equals(g, lastGroup, StringComparison.Ordinal))
+                {
+                    lastGroup = g;
+                    <li class="toc-grp-li"><p class="toc-grp">@g</p></li>
+                }
+                <li>
+                    <a class="lvl@(it.Level)" href="#@it.AnchorId">
+                        @it.Label
+                        @if (it.Dirty) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }
+                    </a>
+                </li>
+            }
+        </ul>
+        @if (Footer is not null)
+        {
+            <div class="toc-foot">@Footer</div>
+        }
+    </aside>
+}
+
+@code {
+    /// <summary>Voci del menu (proiezione delle sezioni). Vuoto = nessun aside renderizzato.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<EditorTocItem> Items { get; set; } = System.Array.Empty<EditorTocItem>();
+
+    /// <summary>Intestazione del pannello (default: "Navigazione" localizzato).</summary>
+    [Parameter] public string? HeaderLabel { get; set; }
+
+    /// <summary>Contenuto extra in fondo al TOC (es. pulsanti Espandi/Comprimi tutto).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+}

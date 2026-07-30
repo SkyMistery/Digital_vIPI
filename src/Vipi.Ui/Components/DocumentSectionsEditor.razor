@@ -3,20 +3,27 @@
    type-agnostico (opera su versionId/section/block). Riusato da vLOA, ACC, APP, Airport. Le sezioni DERIVATE
    (aor/frequencies/coordination/config/…) sono renderizzate dall'host via DerivedContent; l'host possiede
    caricamento, lock, guard di salvataggio (Run), obbligatorietà e nascondi (per-tipo). *@
-@inject IEditingService Editing
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
+@inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
 @using RenderMode = Vipi.Domain.RenderMode
+@* Editing risolto dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
-@foreach (var s in (RootSections ?? Doc.Sections))
+@if (ShowToc)
 {
-    @SectionEditor(s, 0)
-}
-
-@if (IsEditing)
-{
-    <div class="block" style="border-style:dashed">
-        <button class="btn primary" @onclick="() => AddSection(AddParentId)">@AddLabel</button>
+    <div class="ed-layout @(RightRail is not null ? "with-rail" : null)">
+        <EditorToc Items="BuildToc()" />
+        <div>@SectionsBody</div>
+        @if (RightRail is not null)
+        {
+            <aside class="ed-rail">@RightRail</aside>
+        }
     </div>
+}
+else
+{
+    @SectionsBody
 }
 
 @code {
@@ -28,8 +35,8 @@
     [Parameter] public IReadOnlyList<EditableSection>? RootSections { get; set; }
     /// <summary>Sezione padre per "+ Aggiungi sezione" (default null = radice). ACC: l'Id della sezione-blocco.</summary>
     [Parameter] public int? AddParentId { get; set; }
-    /// <summary>Etichetta del pulsante di aggiunta sezione.</summary>
-    [Parameter] public string AddLabel { get; set; } = "+ Aggiungi sezione";
+    /// <summary>Etichetta del pulsante di aggiunta sezione (null = default localizzato).</summary>
+    [Parameter] public string? AddLabel { get; set; }
 
     /// <summary>Guard dell'host: esegue la mutazione mostrando stato salvataggio / gestendo lock ed errori.</summary>
     [Parameter, EditorRequired] public Func<Func<Task>, Task> Run { get; set; } = default!;
@@ -46,10 +53,45 @@
     /// (aor/frequencies/coordination/minima). Il badge di stato compare per queste; il toggle solo in modifica.</summary>
     [Parameter] public Func<EditableSection, bool>? IsRenderModeToggleable { get; set; }
 
-    /// <summary>Sezione nascosta dal documento pubblicato.</summary>
-    [Parameter] public Func<EditableSection, bool>? IsHiddenSection { get; set; }
-    /// <summary>Toggle nascondi/mostra (l'host decide la chiave: titolo per vLOA, SectionKey per ACC/APP).</summary>
-    [Parameter] public EventCallback<EditableSection> OnToggleHidden { get; set; }
+
+    /// <summary>Mostra il menu-sezioni laterale (TOC) sticky: avvolge il render in griglia 2 colonne (toc | contenuto).
+    /// Opt-in per gli editor a singola istanza (App/vLOA); la vIPI ACC costruisce il TOC a livello pagina.</summary>
+    [Parameter] public bool ShowToc { get; set; }
+    /// <summary>Voci extra da accodare al TOC (es. il blocco Release reso dall'host fuori da questo editor).</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? ExtraTocItems { get; set; }
+    /// <summary>Rail azioni a destra (opt-in, richiede <see cref="ShowToc"/>): pulsanti/badge dell'host — Preview, Modifica,
+    /// Pubblica, stato salvataggio. Quando presente la griglia diventa 3 colonne (toc | contenuto | azioni).</summary>
+    [Parameter] public RenderFragment? RightRail { get; set; }
+
+    // Voci TOC = sezioni di primo livello (anchor s-{Id}, già usato da CollapsibleBlock) + eventuali extra dell'host.
+    private IReadOnlyList<EditorTocItem> BuildToc()
+    {
+        var items = new List<EditorTocItem>();
+        foreach (var s in (RootSections ?? Doc.Sections))
+            items.Add(new EditorTocItem($"s-{s.Id}", s.Title));
+        if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
+        return items;
+    }
+
+    private RenderFragment SectionsBody => __builder =>
+    {
+        foreach (var s in (RootSections ?? Doc.Sections))
+        {
+            @SectionEditor(s, 0)
+        }
+
+        @if (IsEditing)
+        {
+            <div class="block" style="border-style:dashed">
+                <button class="btn primary" @onclick="() => AddSection(AddParentId)">@(AddLabel ?? L["Dse_AddSection"].Value)</button>
+            </div>
+        }
+    };
+
+    // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IEditingService Editing = default!;
+    protected override void OnInitialized()
+        => Editing = ScopedServices.GetRequiredService<IEditingService>();
 
     private static string AsString(object? v) => v as string ?? "";
 
@@ -81,6 +123,21 @@
     private Task SetRenderMode(int sectionId, RenderMode mode) => Run(async () =>
     {
         await Editing.SetSectionRenderModeAsync(sectionId, mode);
+        await OnChanged.InvokeAsync();
+    });
+
+    // Nascondi/mostra: stato VERSIONATO sulla sezione (doc 11 §3c), uguale per ACC/APP/vLOA. Prima ogni editor
+    // passava un proprio callback su uno storage diverso (blockmeta / DocumentProfile per chiave / per titolo).
+    private Task ToggleHidden(EditableSection s) => Run(async () =>
+    {
+        await Editing.SetSectionHiddenAsync(s.Id, !s.IsHidden);
+        await OnChanged.InvokeAsync();
+    });
+
+    // Sposta la sotto-sezione prima/dopo il corpo del padre (doc 11 §3g): stato per-sezione, versionato.
+    private Task ToggleBeforeParentBody(EditableSection s) => Run(async () =>
+    {
+        await Editing.SetSectionBeforeParentBodyAsync(s.Id, !s.BeforeParentBody);
         await OnChanged.InvokeAsync();
     });
 
@@ -129,11 +186,13 @@
     private RenderFragment SectionEditor(EditableSection s, int relDepth) => __builder =>
     {
         var mand = IsMandatory?.Invoke(s) == true;
-        var hid = IsHiddenSection?.Invoke(s) == true;
+        var hid = s.IsHidden;
         if (relDepth == 0)
         {
             // Primo livello = card .block COLLASSABILE (CollapsibleBlock), coerente con tutti gli editor/viewer.
-            <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)">
+            // Alcune sezioni nascono chiuse anche in editing (doc 11 §3i): lo dice il catalogo, non l'host.
+            <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)"
+                              InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                 <Header>@SectionHeader(s, mand, hid, true)</Header>
                 <ChildContent>@SectionBody(s, relDepth)</ChildContent>
             </CollapsibleBlock>
@@ -158,46 +217,62 @@
             {
                 <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
                        @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
-                <button class="btn ghost" title="Su" @onclick="() => MoveSection(s.Id, -1)">↑</button>
-                <button class="btn ghost" title="Giù" @onclick="() => MoveSection(s.Id, 1)">↓</button>
-                <button class="btn ghost" title="Aggiungi sotto-sezione" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
-                <button class="btn ghost" title="Elimina sezione" @onclick="() => DeleteSection(s.Id)">✕</button>
+                <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => MoveSection(s.Id, 1)">↓</button>
+                <button class="btn ghost" title="@L["Dse_AddSubsectionTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteSection"]" TriggerTitle="@L["Dse_DeleteSection"]"
+                               Prompt="@L["Dse_DeleteSectionPrompt"]" OnConfirm="() => DeleteSection(s.Id)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             }
             else
             {
                 @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
-                @if (mand) { <span class="pill grey" title="Sezione obbligatoria">obbligatoria</span> }
+                @if (mand) { <span class="pill grey" title="@L["Dse_MandatoryTitle"]">@L["Dse_Mandatory"]</span> }
                 @if (IsEditing && mand)
                 {
-                    <button class="btn ghost" title="Aggiungi sotto-sezione (extra)" @onclick="() => AddSection(s.Id)">+ sotto-sez</button>
+                    <button class="btn ghost" title="@L["Dse_AddSubsectionExtraTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
                 }
             }
             @if (IsRenderModeToggleable?.Invoke(s) == true)
             {
                 var live = s.RenderMode == RenderMode.Live;
-                <span class="pill @(live ? "green" : "grey")" style="@(OnToggleHidden.HasDelegate ? null : "margin-left:auto")"
-                      title="@(live ? "Live: sempre aggiornata dai cataloghi al view pubblico" : "Congelata: fotografata al momento della pubblicazione")">
-                    @(live ? "🔴 Live" : "🧊 Congelata")
+                <span class="pill @(live ? "green" : "grey")"
+                      title="@(live ? L["Dse_LiveTitle"] : L["Dse_FrozenTitle"])">
+                    @(live ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])
                 </span>
                 @if (IsEditing)
                 {
-                    <button class="btn ghost" title="@(live ? "Congela: fotografa al publish" : "Rendi live: sempre aggiornata")"
+                    <button class="btn ghost" title="@(live ? L["Dse_FreezeTitle"] : L["Dse_MakeLiveTitle"])"
                             @onclick="() => SetRenderMode(s.Id, live ? RenderMode.Frozen : RenderMode.Live)">
-                        @(live ? "🧊 Congela" : "🔴 Rendi live")
+                        @(live ? "🧊 " + L["Dse_Freeze"] : "🔴 " + L["Dse_MakeLive"])
                     </button>
                 }
             }
-            @if (IsEditing && OnToggleHidden.HasDelegate)
+            @if (IsEditing)
             {
-                <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? "Mostra nel documento pubblicato" : "Nascondi dal documento pubblicato")"
-                        @onclick="() => OnToggleHidden.InvokeAsync(s)">@(hid ? "🙈 Nascosta" : "👁 Nascondi")</button>
+                <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
+                        @onclick="() => ToggleHidden(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
+            }
+            @* Posizione rispetto al corpo del padre: solo per le SOTTO-sezioni (una sezione di primo livello non ha
+               un corpo che la preceda). Doc 11 §3g. *@
+            @if (IsEditing && !depth0)
+            {
+                <button class="btn ghost" title="@(s.BeforeParentBody ? L["Dse_MoveAfterBodyTitle"] : L["Dse_MoveBeforeBodyTitle"])"
+                        @onclick="() => ToggleBeforeParentBody(s)">
+                    @(s.BeforeParentBody ? "⤓ " + L["Dse_AfterBody"] : "⤒ " + L["Dse_BeforeBody"])
+                </button>
             }
         </div>
     };
 
-    // Corpo: sezione derivata (host) oppure blocchi editoriali + sotto-sezioni ricorsive.
+    // Corpo a TRE SLOT (doc 11 §3g): sotto-sezioni «prima» → corpo (derivato dall'host o blocchi editoriali) →
+    // sotto-sezioni «dopo». Stessa sequenza dei viewer.
     private RenderFragment SectionBody(EditableSection s, int relDepth) => __builder =>
     {
+        @foreach (var c in s.Children.Where(c => c.BeforeParentBody))
+        {
+            @SectionEditor(c, relDepth + 1)
+        }
+
         @if (IsDerivedSection?.Invoke(s) == true)
         {
             @DerivedContent?.Invoke(s)
@@ -212,14 +287,14 @@
             @if (IsEditing)
             {
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ Paragrafo</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
                     <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ Tabella</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ @L["Dse_Table"]</button>
                 </div>
             }
         }
 
-        @foreach (var c in s.Children)
+        @foreach (var c in s.Children.Where(c => !c.BeforeParentBody))
         {
             @SectionEditor(c, relDepth + 1)
         }
@@ -240,32 +315,33 @@
                 {
                     case BlockFormat.Prose:
                     case BlockFormat.List:
-                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="Testo (markdown leggero)…"
+                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="@L["Dse_TextMarkdownPh"]"
                                   @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
                         break;
                     case BlockFormat.Callout:
                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-                            <span class="muted" style="font-size:12px">Tipo:</span>
+                            <span class="muted" style="font-size:12px">@L["Dse_TypeLabel"]</span>
                             <select class="app-in" style="max-width:150px" value="@b.CalloutKind"
                                     @onchange="e => SaveBlock(b, kind: Enum.Parse<CalloutKind>(AsString(e.Value)))">
                                 @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
                             </select>
                         </div>
-                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="Testo callout…"
+                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="@L["Dse_CalloutTextPh"]"
                                   @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
                         break;
                     case BlockFormat.Table:
                         @TableEditor(b)
                         break;
                     default:
-                        <p class="muted">Blocco @b.Format (non editabile qui).</p>
+                        <p class="muted">@(string.Format(L["Dse_BlockNotEditable"].Value, b.Format))</p>
                         break;
                 }
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-                <button class="btn ghost" title="Su" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
-                <button class="btn ghost" title="Giù" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
-                <button class="btn ghost" title="Elimina blocco" @onclick="() => DeleteBlock(b.Id)">✕</button>
+                <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => MoveBlock(b.Id, -1)">↑</button>
+                <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => MoveBlock(b.Id, 1)">↓</button>
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteBlock"]" TriggerTitle="@L["Dse_DeleteBlock"]"
+                               Prompt="@L["Dse_DeleteBlockPrompt"]" OnConfirm="() => DeleteBlock(b.Id)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             </div>
         </div>
         }
@@ -277,7 +353,7 @@
         {
             case BlockFormat.Callout:
                 <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
-                    <span class="cic">@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)</span>
+                    <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)" Size="18" /></span>
                     <div>@MarkdownLite.Render(b.Body)</div>
                 </div>
                 break;
@@ -292,7 +368,7 @@
 
     private static string CalloutIcon(CalloutKind k) => k switch
     {
-        CalloutKind.Success => "✅", CalloutKind.Warning => "⚠️", CalloutKind.Danger => "⛔", _ => "ℹ️",
+        CalloutKind.Success => "check-circle", CalloutKind.Warning => "warning", CalloutKind.Danger => "octagon", _ => "info",
     };
 
     // ---- editor tabella (columns + rows di celle) ----
@@ -372,11 +448,11 @@
                         <th>
                             <div style="display:flex;gap:4px;align-items:center">
                                 <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
-                                <button class="btn ghost" title="Rimuovi colonna" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
+                                <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
                             </div>
                         </th>
                     }
-                    <th style="width:42px"><button class="btn ghost" title="Aggiungi colonna" @onclick="() => AddTableCol(b)">＋</button></th>
+                    <th style="width:42px"><button class="btn ghost" title="@L["Dse_AddColumn"]" @onclick="() => AddTableCol(b)">＋</button></th>
                 </tr>
             </thead>
             <tbody>
@@ -390,12 +466,12 @@
                             var cell = cidx < rows[ridx].Count ? rows[ridx][cidx] : "";
                             <td><input class="app-in" value="@cell" @onchange="e => SetTableCell(b, ridx, cidx, AsString(e.Value))" /></td>
                         }
-                        <td><button class="btn ghost" title="Rimuovi riga" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
+                        <td><button class="btn ghost" title="@L["Dse_RemoveRow"]" @onclick="() => RemoveTableRow(b, ridx)">✕</button></td>
                     </tr>
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ Riga</button>
+        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
     };
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>

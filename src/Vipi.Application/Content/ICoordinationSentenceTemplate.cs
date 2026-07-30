@@ -31,6 +31,9 @@ public sealed class CoordinationSentenceTemplate
     public CoordinationSentenceState Stato { get; init; } = new();
     /// <summary>Fraseologia del livello ({fl}): parole/format-string usati dal composer, così è lingua-neutro.</summary>
     public CoordinationSentenceLevel Level { get; init; } = new();
+    /// <summary>Clausola condizione (pista in uso / area attiva), appesa a fine frase quando il punto ha una condizione.
+    /// Placeholder {label}. Vuota quando la condizione è None.</summary>
+    public CoordinationSentenceCondition Condition { get; init; } = new();
     /// <summary>Reso quando il CoP è VUOTO (non compilato): distinto da «ALL». Il default globale può renderlo «—».</summary>
     public string FallbackMissingPoint { get; init; } = "tutti i punti";
     /// <summary>Reso quando il CoP è «ALL»: istruzione esplicita «tutti i punti di consegna».</summary>
@@ -48,10 +51,9 @@ public sealed class CoordinationSentenceTemplate
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState
         {
-            AtOrBelow = "descending",
-            AtOrAbove = "climbing",
-            Exact = "level",
-            Special = "",
+            Descending = "descending",
+            Climbing = "climbing",
+            Level = "level",
         },
         Level = new CoordinationSentenceLevel
         {
@@ -63,35 +65,27 @@ public sealed class CoordinationSentenceTemplate
             ParityEven = "even",
             ParityOdd = "odd",
         },
+        Condition = new CoordinationSentenceCondition
+        {
+            Runway = "with runway {label} in use",
+            Area = "with {label} active",
+            RunwayAndArea = "with runway {runway} in use and {area} active",
+            Custom = "under condition {label}",
+            Join = "and",
+        },
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",
     };
-
-    /// <summary>Override della sola frase principale (per-documento), mantenendo gli altri campi del default globale.</summary>
-    public CoordinationSentenceTemplate WithTemplate(string template) => new()
-    {
-        Template = template,
-        TargetWithCode = TargetWithCode,
-        TargetNoCode = TargetNoCode,
-        Airport = Airport,
-        AirportArrival = AirportArrival,
-        AirportDeparture = AirportDeparture,
-        Stato = Stato,
-        Level = Level,
-        FallbackMissingPoint = FallbackMissingPoint,
-        FallbackAllPoints = FallbackAllPoints,
-        FallbackAllToward = FallbackAllToward,
-    };
 }
 
-/// <summary>Parola per lo stato verticale del traffico, derivata dal vincolo di livello.</summary>
+/// <summary>Parola per lo stato verticale del traffico, scelto a mano sul punto (<see cref="Vipi.Domain.TransferVerticalState"/>).
+/// Indipendente dal vincolo di livello. <c>Unspecified</c> non ha parola (frase senza stato).</summary>
 public sealed class CoordinationSentenceState
 {
-    public string AtOrBelow { get; init; } = "in discesa";
-    public string AtOrAbove { get; init; } = "in salita";
-    public string Exact { get; init; } = "stabile";
-    public string Special { get; init; } = "";
+    public string Descending { get; init; } = "in discesa";
+    public string Climbing { get; init; } = "in salita";
+    public string Level { get; init; } = "stabile";
 }
 
 /// <summary>Fraseologia del livello nella frase di coordinamento ({fl}). Testi lingua-specifici estratti dal composer
@@ -111,4 +105,20 @@ public sealed class CoordinationSentenceLevel
     public string ForLevel { get; init; } = "per un livello";
     public string ParityEven { get; init; } = "pari";
     public string ParityOdd { get; init; } = "dispari";
+}
+
+/// <summary>Clausola condizione operativa appesa a fine frase (pista in uso / area attiva / condizione libera).
+/// Placeholder {label}. Lingua-specifica come il resto del template (IT default, EN nelle vLOA).</summary>
+public sealed class CoordinationSentenceCondition
+{
+    /// <summary>Condizione di pista in uso, placeholder {label}: «con pista {label} in uso».</summary>
+    public string Runway { get; init; } = "con pista {label} in uso";
+    /// <summary>Condizione di area attiva, placeholder {label}: «con {label} attiva».</summary>
+    public string Area { get; init; } = "con {label} attiva";
+    /// <summary>Condizione combinata pista + area in AND, placeholder {runway}/{area}: «con pista {runway} in uso e {area} attiva».</summary>
+    public string RunwayAndArea { get; init; } = "con pista {runway} in uso e {area} attiva";
+    /// <summary>Condizione libera, placeholder {label}: «in condizione {label}».</summary>
+    public string Custom { get; init; } = "in condizione {label}";
+    /// <summary>Congiunzione tra clausole condizione presenti (pista/area/personalizzata): «e» (EN «and»).</summary>
+    public string Join { get; init; } = "e";
 }

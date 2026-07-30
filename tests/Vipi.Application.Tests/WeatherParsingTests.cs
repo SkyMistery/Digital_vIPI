@@ -83,6 +83,38 @@ public class WeatherParsingTests
         Assert.Equal(240, taf.Segments[3].Wind!.DirectionDeg);
     }
 
+    [Fact] // TAF period leggibile: range validità + punto singolo (FM), con mese dedotto dalla data di riferimento
+    public void TafPeriod_Formats_Human_Readable()
+    {
+        var reference = new DateTime(2026, 7, 21, 11, 30, 0, DateTimeKind.Utc);
+
+        Assert.Equal("21-07 12:00 → 22-07 12:00 UTC", TafPeriod.Format("2112/2212", reference));
+        Assert.Equal("21-07 18:00 UTC", TafPeriod.Format("2118", reference));
+        Assert.Equal("dall'inizio", TafPeriod.Format("dall'inizio", reference)); // non-periodo ⇒ invariato
+    }
+
+    [Fact] // TAF period: ora 24 = 00:00 del giorno dopo; cambio mese vicino a fine mese
+    public void TafPeriod_Handles_Hour24_And_MonthRollover()
+    {
+        Assert.Equal("01-08 00:00 UTC",
+            TafPeriod.Format("3124", new DateTime(2026, 7, 31, 6, 0, 0, DateTimeKind.Utc)));
+        // Emesso il 31/07, periodo sul giorno 01 → agosto
+        Assert.Equal("01-08 06:00 UTC",
+            TafPeriod.Format("0106", new DateTime(2026, 7, 31, 23, 0, 0, DateTimeKind.Utc)));
+    }
+
+    [Fact] // TAF reale LIRN (doppio "TAF", CAVOK, più BECMG): non deve lanciare e deve formattare tutti i periodi
+    public void TafPeriod_RealLirn_NoThrow()
+    {
+        var taf = MetarParser.ParseTaf(
+            "TAF TAF LIRN 211100Z 2112/2212 23010KT CAVOK BECMG 2116/2118 VRB05KT BECMG 2200/2202 03010KT BECMG 2209/2211 23010KT");
+        var now = new DateTime(2026, 7, 21, 11, 30, 0, DateTimeKind.Utc);
+        Assert.Equal("21-07 12:00 → 22-07 12:00 UTC", TafPeriod.Format(taf.ValidityRaw, now));
+        // Il segmento Base non ha periodo (PeriodRaw null → la pagina mostra "dall'inizio validità"); gli altri sì.
+        foreach (var s in taf.Segments.Where(s => s.PeriodRaw is not null))
+            Assert.Contains("UTC", TafPeriod.Format(s.PeriodRaw, now));
+    }
+
     [Fact] // pista: vento 160/12 favorisce 16
     public void Runway_Picks_Best_Headwind()
     {

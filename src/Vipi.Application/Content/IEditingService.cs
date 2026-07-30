@@ -32,6 +32,12 @@ public interface IEditingService
     /// <summary>Imposta il RenderMode (Live/Frozen) di una sezione derivabile nella bozza (doc 10 §3a/§S4c): governa se
     /// al publish l'output della sezione viene congelato nello snapshot (Frozen) o reso live al view (Live).</summary>
     Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default);
+    /// <summary>Nasconde/mostra una sezione nella bozza (doc 11 §3c): l'editor la mostra comunque, la vista pubblica e
+    /// le anteprime release la omettono. Stato versionato ⇒ diventa effettivo solo con la pubblicazione.</summary>
+    Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
+    /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
+    /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>
+    Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
     Task DeleteSectionAsync(int sectionId, CancellationToken ct = default);
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);

@@ -17,26 +17,18 @@ public sealed class EfDocumentProfileRepository : IDocumentProfileRepository
         var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == documentId, ct);
         return new DocumentProfileData
         {
-            HiddenSections = DeserializeStrings(p?.HiddenSectionsJson),
             HiddenAorSectors = DeserializeStrings(p?.HiddenAorSectorsJson),
             HiddenFrequencies = DeserializeStrings(p?.HiddenFrequenciesJson),
             FreqOrder = DeserializeFreqOrder(p?.FreqOrderJson),
             FreqLinkSectorIds = DeserializeInts(p?.FreqLinksJson),
-            CoordinationSentenceTemplate = p?.CoordinationSentenceTemplate,
         };
     }
-
-    public Task SaveHiddenSectionsAsync(int documentId, IReadOnlyList<string> sectionKeys, CancellationToken ct = default) =>
-        MutateAsync(documentId, p => p.HiddenSectionsJson = JsonSerializer.Serialize(sectionKeys), ct);
 
     public Task SaveFreqOrderAsync(int documentId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         MutateAsync(documentId, p => p.FreqOrderJson = JsonSerializer.Serialize(overrides), ct);
 
     public Task SaveFreqLinksAsync(int documentId, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default) =>
         MutateAsync(documentId, p => p.FreqLinksJson = JsonSerializer.Serialize(sourceSectorIds), ct);
-
-    public Task SaveCoordinationTemplateAsync(int documentId, string? template, CancellationToken ct = default) =>
-        MutateAsync(documentId, p => p.CoordinationSentenceTemplate = string.IsNullOrWhiteSpace(template) ? null : template.Trim(), ct);
 
     // Get-or-create della riga profilo, applica la mutazione, salva.
     private async Task MutateAsync(int documentId, Action<DocumentProfile> mutate, CancellationToken ct)

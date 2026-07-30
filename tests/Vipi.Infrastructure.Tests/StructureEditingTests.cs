@@ -149,9 +149,9 @@ public class StructureEditingTests : IAsyncLifetime
         var doc = await _db.Documents.FirstAsync();
         Assert.Equal(DocumentStatus.Draft, doc.Status);
         var sectionTitles = await _db.DocumentSections.Select(s => s.Title).ToListAsync();
-        Assert.Contains("Quote di transizione", sectionTitles);
-        Assert.Contains("Frequenze", sectionTitles);
-        Assert.Contains("Piste", sectionTitles);
+        Assert.Contains("Transition levels", sectionTitles);
+        Assert.Contains("Frequencies", sectionTitles);
+        Assert.Contains("Runways", sectionTitles);
         Assert.Contains("SID", sectionTitles);
 
         // SID de-cotta (doc 10 §3e): la sezione "SID" ora è derivabile (key "sids", RenderMode.Live) e VUOTA — le righe
@@ -256,9 +256,9 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.RebuildDocumentAsync("LIRF");
 
         var titles = await _db.DocumentSections.Select(s => s.Title).ToListAsync();
-        Assert.Contains("Regole piste", titles);
+        Assert.Contains("Runway rules", titles);
         Assert.Contains("Note locali", titles);                       // sezione manuale preservata
-        Assert.Single(titles, t => t == "Frequenze");                 // non duplicata
+        Assert.Single(titles, t => t == "Frequencies");               // non duplicata
         var freqBlock = await _db.ContentBlocks.FirstAsync(b => b.BodyJson != null && b.BodyJson.Contains("LIRF_APP"));
         Assert.Contains("119.200", freqBlock.BodyJson!);              // valore del link risolto
     }
@@ -296,7 +296,7 @@ public class StructureEditingTests : IAsyncLifetime
         var after = await _db.DocumentSections.Where(s => s.SectionKey == "airportextra").ToListAsync();
         Assert.Equal("Solo questa", Assert.Single(after).Title);
         // Le sezioni gestite restano singole (rebuild idempotente).
-        Assert.Single(await _db.DocumentSections.Where(s => s.Title == "Frequenze").ToListAsync());
+        Assert.Single(await _db.DocumentSections.Where(s => s.Title == "Frequencies").ToListAsync());
     }
 
     [Fact]

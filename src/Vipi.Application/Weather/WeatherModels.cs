@@ -55,3 +55,53 @@ public sealed record ParsedTaf(
     string? Station,
     string? ValidityRaw,
     IReadOnlyList<TafSegment> Segments);
+
+/// <summary>
+/// Formatta i periodi TAF grezzi (ddHH) in forma leggibile "DD-MM HH:MM UTC" per la parte SPIEGATA (non la stringa
+/// grezza). Il mese non è nel TAF → dedotto dalla data di riferimento (ora corrente) gestendo il cambio mese.
+/// </summary>
+public static class TafPeriod
+{
+    /// <summary>"2112/2212" → "21-07 12:00 → 22-07 12:00 UTC"; "2112" (FM/PROB) → "21-07 12:00 UTC". Null/illeggibile ⇒ grezzo.</summary>
+    public static string? Format(string? period, DateTime referenceUtc)
+    {
+        if (string.IsNullOrWhiteSpace(period)) return period;
+        var slash = period.IndexOf('/');
+        if (slash > 0)
+        {
+            var a = FormatPoint(period[..slash], referenceUtc);
+            var b = FormatPoint(period[(slash + 1)..], referenceUtc);
+            return a is null || b is null ? period : $"{a} → {b} UTC";
+        }
+        var p = FormatPoint(period, referenceUtc);
+        return p is null ? period : $"{p} UTC";
+    }
+
+    // ddHH → "DD-MM HH:MM". Ora TAF ammette 24 = fine giornata (→ 00:00 del giorno dopo).
+    private static string? FormatPoint(string ddhh, DateTime referenceUtc)
+    {
+        if (ddhh.Length != 4 || !int.TryParse(ddhh[..2], out var day) || !int.TryParse(ddhh[2..], out var hour)
+            || day is < 1 or > 31 || hour is < 0 or > 24)
+            return null;
+        if (ResolveDate(day, referenceUtc) is not DateTime date) return null;
+        var when = date.AddHours(hour);   // hour 24 → 00:00 giorno successivo
+        return $"{when:dd-MM} {when:HH:mm}";
+    }
+
+    // Sceglie l'anno/mese in cui cade il giorno-del-mese indicato, più vicino alla data di riferimento (gestisce fine mese).
+    private static DateTime? ResolveDate(int day, DateTime reference)
+    {
+        var refDate = reference.Date;
+        foreach (var off in new[] { 0, 1, -1 })
+        {
+            var m = refDate.AddMonths(off);
+            if (day <= DateTime.DaysInMonth(m.Year, m.Month))
+            {
+                var cand = new DateTime(m.Year, m.Month, day, 0, 0, 0, DateTimeKind.Utc);
+                if (Math.Abs((cand - refDate).TotalDays) <= 20) return cand;
+            }
+        }
+        var clamped = Math.Min(day, DateTime.DaysInMonth(reference.Year, reference.Month));
+        return new DateTime(reference.Year, reference.Month, clamped, 0, 0, 0, DateTimeKind.Utc);
+    }
+}

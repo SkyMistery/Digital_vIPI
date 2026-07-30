@@ -23,11 +23,15 @@ public interface IAppDerivationRepository
     /// <summary>Poligono AoR grezzo (JSON IVAO) dal catalogo AirportSector del callsign APP. null = assente.</summary>
     Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Poligoni grezzi (JSON) delle TWR dello stesso aeroporto dell'APP (visibili, con shape). Per l'overlay AoR.</summary>
-    Task<IReadOnlyList<string>> GetTowerPolygonsRawAsync(string appCallsign, CancellationToken ct = default);
+    /// <summary>Poligoni grezzi mappati per callsign (CTR + APP), per le shape AoR extra scelte a mano. Case-insensitive.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
 
-    /// <summary>Come <see cref="GetTowerPolygonsRawAsync"/> ma con il callsign della torre (per le chip on/off della mappa AoR).</summary>
-    Task<IReadOnlyList<(string Callsign, string Poly)>> GetTowerPolygonsWithCallsignRawAsync(string appCallsign, CancellationToken ct = default);
+    /// <summary>Limiti di quota (Lower/Upper grezzi) mappati per callsign (CTR + APP/TWR), per l'estrusione 3D dell'AoR.
+    /// Case-insensitive; assenti = non nel dizionario.</summary>
+    Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
+
+    /// <summary>Tutti i settori DB con poligono AoR (CTR + APP/torri), selezionabili come shape extra. Callsign + nome + ACC.</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
 
     /// <summary>Tutti i settori con frequenza (per il picker di link), con ICAO/callsign.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);

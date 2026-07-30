@@ -1,0 +1,8 @@
+@* Stato di caricamento condiviso (U6, docs/design/piano-ux-hardening.md). Sostituisce i vari
+   paragrafi "help / Caricamento…" sparsi, uniformando testo + spinner. *@
+<p class="help loading-state"><span class="spin" aria-hidden="true"></span> @Text</p>
+
+@code {
+    /// <summary>Testo mostrato accanto allo spinner. Default «Caricamento…».</summary>
+    [Parameter] public string Text { get; set; } = "Caricamento…";
+}

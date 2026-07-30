@@ -1,0 +1,21 @@
+@* Catena di fallback (antenati per callsign) di un nodo di struttura. Markup dichiarativo: Blazor encoda i
+   valori dinamici (no MarkupString, no XSS). Le righe sono già calcolate dalla pagina. *@
+
+<div class="fallback-chain">
+    <div class="muted" style="font-size:12px;margin-bottom:4px">Catena di fallback:</div>
+    @if (Rows.Count == 0)
+    {
+        <div class="help">Radice (nessun padre): copre sé stesso top-down.</div>
+    }
+    else
+    {
+        @foreach (var r in Rows)
+        {
+            <div>→ <b>@r.Callsign</b> <span class="node-badge @r.BadgeClass">@r.Badge</span> <span class="acc-tag">@r.AccCode</span></div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<FallbackChainRow> Rows { get; set; } = Array.Empty<FallbackChainRow>();
+}

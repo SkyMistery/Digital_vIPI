@@ -20,6 +20,9 @@ public interface IAirportEditingService
     /// <summary>Policy di import globale (per editor e viewer): quali categorie sono di sorgente (sola lettura).</summary>
     Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default);
 
+    /// <summary>Id del Document proiettato dell'aeroporto (per il banner di revisione), o null se non ancora generato. Lettura libera.</summary>
+    Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
+
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
@@ -27,8 +30,10 @@ public interface IAirportEditingService
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
-    /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto di UNA riga SID importata (ACC-gated).</summary>
-    Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
+    /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto e arricchimenti editoriali (initial climb, CAT,
+    /// WTC, condition) di UNA riga SID importata (ACC-gated).</summary>
+    Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
@@ -65,6 +70,8 @@ public sealed class AirportEditingService : IAirportEditingService
     }
 
     public Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default) => _policy.GetAsync(ct);
+
+    public Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default) => _repo.GetDocumentIdAsync(Norm(icao), ct);
 
     public Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default) =>
         _repo.LoadAsync(Norm(icao), ct);
@@ -143,10 +150,11 @@ public sealed class AirportEditingService : IAirportEditingService
         await _repo.SaveSidsAsync(Norm(icao), rows, ct);
     }
 
-    public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default)
+    public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
-        await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, ct);
+        await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, initialClimb, initialClimbByApp, cat, wtc, condition, ct);
     }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)

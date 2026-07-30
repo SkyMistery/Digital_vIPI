@@ -195,6 +195,11 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Flow).WithMany(f => f.Points).HasForeignKey(x => x.FlowId).OnDelete(DeleteBehavior.Cascade);
             // Il ricevente nominale è un riferimento debole: se il settore sparisce, il punto resta (solo fallback).
             e.HasOne(x => x.NextSector).WithMany().HasForeignKey(x => x.NextSectorId).OnDelete(DeleteBehavior.SetNull);
+            // Condizione: label denormalizzata (verità per il display). ConditionRefId è soft-ref (no FK: la config
+            // pista/area può essere rinominata/rimossa senza rompere il punto o lo snapshot pubblicato).
+            e.Property(x => x.ConditionLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
         });
 
         b.Entity<EditGrant>(e =>
@@ -229,6 +234,11 @@ public class VipiDbContext : DbContext
         b.Entity<AirportSid>(e =>
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
+            // NON aggiungere un indice unico su (AirportId, StableKey): la StableKey esclude di proposito la cifra
+            // della revisione, quindi un file .sid con due revisioni della stessa SID (es. ROBOT1H e ROBOT2H)
+            // produce legittimamente due righe con la stessa chiave. Misurato sul DB di sviluppo: 20 coppie così
+            // su 1478 righe. Vedi ReplaceImportedSidsAsync, che per questo indicizza le righe precedenti con una
+            // regola first-wins e non con un dizionario a chiave unica.
             e.HasOne(x => x.Airport).WithMany(a => a.Sids).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<AirportFrequencyLink>(e =>

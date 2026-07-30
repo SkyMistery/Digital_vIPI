@@ -59,6 +59,45 @@ public class EditingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateDraft_Preserves_Per_Section_Flags()
+    {
+        // La copia bozza portava titolo/ordine/chiave ma NON i flag per-sezione: aprire una bozza resettava
+        // RenderMode a Frozen (doc 10) e avrebbe azzerato IsHidden (doc 11 §3c).
+        var docId = await AccDocIdAsync();
+        var srcVer = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var source = await _db.DocumentSections.Where(s => s.DocumentVersionId == srcVer).OrderBy(s => s.Id).FirstAsync();
+        source.RenderMode = RenderMode.Live;
+        source.IsHidden = true;
+        source.BeforeParentBody = true;
+        await _db.SaveChangesAsync();
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+
+        var copy = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == draftId && s.Title == source.Title).FirstAsync();
+        Assert.Equal(RenderMode.Live, copy.RenderMode);
+        Assert.True(copy.IsHidden);
+        Assert.True(copy.BeforeParentBody);
+    }
+
+    [Fact]
+    public async Task SetSectionBeforeParentBody_Requires_A_Draft()
+    {
+        // Stessa regola degli altri flag per-sezione: si tocca solo la bozza (doc 11 §3g).
+        var docId = await AccDocIdAsync();
+        var published = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var onPublished = await _db.DocumentSections.Where(s => s.DocumentVersionId == published).OrderBy(s => s.Id).FirstAsync();
+
+        await Assert.ThrowsAnyAsync<Exception>(() => _repo.SetSectionBeforeParentBodyAsync(onPublished.Id, true));
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+        var onDraft = await _db.DocumentSections.Where(s => s.DocumentVersionId == draftId).OrderBy(s => s.Id).FirstAsync();
+        await _repo.SetSectionBeforeParentBodyAsync(onDraft.Id, true);
+
+        Assert.True((await _db.DocumentSections.FindAsync(onDraft.Id))!.BeforeParentBody);
+    }
+
+    [Fact]
     public async Task CreateDocument_Vipi_From_Scratch_Has_Draft_And_Root_Section()
     {
         // Settore non ancora descritto da nessun documento (gli ACC sono già assegnati dal content seed).
@@ -288,6 +327,81 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal("TESTO MODIFICATO", publishedBlock.Body);
 
         Assert.True(await _db.AuditLogs.AnyAsync(a => a.Action == AuditAction.Publish && a.UserId == 222));
+    }
+
+    [Fact]
+    public async Task PruneArchivedVersions_KeepsNewestN_DeletesRest_WithChildren_PreservesCurrentAndDraft()
+    {
+        var docId = await AccDocIdAsync();
+
+        // Genera 3 versioni Archived pubblicando in sequenza (ogni publish archivia la corrente precedente).
+        for (var i = 0; i < 3; i++)
+        {
+            var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+            await _repo.PublishAsync(draftId, actorUserId: 1, note: $"v{i}");
+        }
+        var archived = await _db.DocumentVersions.AsNoTracking()
+            .Where(v => v.DocumentId == docId && v.Status == DocumentStatus.Archived)
+            .OrderBy(v => v.VersionNumber).Select(v => v.Id).ToListAsync();
+        Assert.Equal(3, archived.Count);   // la vIPI seedata era Published → prima archiviata + 2 successive
+        var currentId = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+
+        // Una bozza pendente non deve essere toccata.
+        var pendingDraft = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+
+        var oldest = archived[0];
+        var oldestSections = await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == oldest);
+        Assert.True(oldestSections > 0);   // porta righe figlie → verifica la cancellazione ordinata
+
+        var removed = await _repo.PruneArchivedVersionsAsync(docId, keepN: 1);
+        Assert.Equal(2, removed);   // tiene la più recente Archived, pota le altre 2
+
+        // Le due potate (incl. la più vecchia) spariscono con sezioni e blocchi.
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == oldest || v.Id == archived[1]));
+        Assert.Equal(0, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == oldest));
+        Assert.Equal(0, await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == oldest));
+
+        // La Archived più recente, la corrente e la bozza restano intatte.
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == archived[2]));
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == currentId));
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == pendingDraft && v.Status == DocumentStatus.Draft));
+
+        // Idempotente: seconda passata non rimuove altro (resta 1 Archived).
+        Assert.Equal(0, await _repo.PruneArchivedVersionsAsync(docId, keepN: 1));
+    }
+
+    [Fact]
+    public async Task EditingService_Publish_EnforcesArchivedCap_NotOffByOne()
+    {
+        // Il version-publish (bozza→pubblicata) archivia la precedente: deve potare le Archived oltre il cap NELLO STESSO
+        // giro, non lasciarne N+1 in attesa del boot sweep. keepN=2: dopo ogni publish le Archived restano ≤ 2.
+        var docId = await AccDocIdAsync();
+        var svc = new EditingService(_repo, new AllowAuthz(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 2 }));
+
+        for (var i = 0; i < 5; i++)
+        {
+            var draftId = await svc.CreateDraftAsync(docId);
+            await svc.PublishAsync(draftId, note: null);
+            var archived = await _db.DocumentVersions.CountAsync(v => v.DocumentId == docId && v.Status == DocumentStatus.Archived);
+            Assert.True(archived <= 2, $"Archived {archived} oltre il cap 2 dopo il publish #{i}");
+        }
+    }
+
+    private sealed class AllowAuthz : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public int? CurrentUserId => 111;
+        public string? CurrentName => "test";
+        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<IReadOnlyList<Vipi.Application.Auth.GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Auth.GrantRow>>(Array.Empty<Vipi.Application.Auth.GrantRow>());
+        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
+        public void EnsureAdmin() { }
     }
 
     [Fact]

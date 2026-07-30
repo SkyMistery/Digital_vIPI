@@ -114,6 +114,12 @@ public interface IEditingRepository
     /// <summary>Imposta il <see cref="RenderMode"/> di una sezione di una bozza (doc 10 §3a). Errore se non è una bozza.</summary>
     Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default);
 
+    /// <summary>Nasconde/mostra una sezione di una bozza (doc 11 §3c). Errore se non è una bozza.</summary>
+    Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>Colloca una sotto-sezione prima/dopo il corpo del padre (doc 11 §3g). Errore se non è una bozza.</summary>
+    Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
+
     /// <summary>Aggiunge una sezione (radice se parentSectionId è null) in coda ai fratelli. Errore se supera la profondità massima o se non è una bozza. Ritorna l'Id.</summary>
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
 
@@ -131,6 +137,13 @@ public interface IEditingRepository
 
     /// <summary>Storico versioni di un documento (più recente prima).</summary>
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>Pota le versioni <c>Archived</c> del documento oltre le più recenti <paramref name="keepN"/> (per
+    /// VersionNumber): elimina ogni versione eccedente coi suoi <c>ContentBlock</c> e <c>DocumentSection</c> in ordine
+    /// esplicito (blocchi → sezioni post-order → versione) per rispettare i FK Restrict su <c>Section</c> e
+    /// <c>ParentSection</c>. La versione corrente (Published) e le bozze (Draft) non vengono mai toccate. Retention:
+    /// la release porta già la fotografia. Ritorna il numero di versioni rimosse.</summary>
+    Task<int> PruneArchivedVersionsAsync(int documentId, int keepN, CancellationToken ct = default);
 
     // Risoluzione del documento proprietario (per l'autorizzazione ACC-scoped sulle op annidate).
     Task<int?> GetDocumentIdByVersionAsync(int versionId, CancellationToken ct = default);

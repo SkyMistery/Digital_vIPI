@@ -1,19 +1,20 @@
-﻿@page "/vsop/changed"
+@page "/vsop/changed"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IChangesService Changes
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Cosa è cambiato · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Changed_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>Cosa è cambiato</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Changed_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Cosa è cambiato</h2><span class="muted">Documenti pubblicati nel ciclo AIRAC corrente</span></div>
-        <span class="airac">📅 AIRAC @Changes.CurrentCycle</span>
+        <div><h2 style="margin-bottom:2px">@L["Changed_Title"]</h2><span class="muted">@L["Changed_Subtitle"]</span></div>
+        <span class="airac"><Icon Name="calendar" /> AIRAC @Changes.CurrentCycle</span>
     </div>
 
     <div class="apt-quick" style="margin:6px 0 20px">
-        <span class="ch @(_acc is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(null)">Tutti</span>
+        <span class="ch @(_acc is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(null)">@L["Common_All"]</span>
         @foreach (var f in _accs)
         {
             <span class="ch @(_acc == f ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(f)">@f</span>
@@ -22,11 +23,11 @@
 
     @if (_rows is null)
     {
-        <p class="help">Caricamento…</p>
+        <LoadingState />
     }
     else if (Filtered.Count == 0)
     {
-        <div class="callout info"><span class="cic">✅</span><div><p class="ct">Nessuna modifica</p>Nessun documento pubblicato nel ciclo @Changes.CurrentCycle@(_acc is null ? "" : $" per {_acc}").</div></div>
+        <div class="callout info"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div><p class="ct">@L["Changed_NoChanges"]</p>@L["Changed_NoChangesBody", Changes.CurrentCycle]@AccSuffix()</div></div>
     }
     else
     {
@@ -34,17 +35,18 @@
             @foreach (var r in Filtered)
             {
                 <div class="chg-row">
-                    <span class="chg-tag @(r.IsNew ? "add" : "mod")">@(r.IsNew ? "Nuovo" : "Aggiornato")</span>
+                    <span class="chg-tag @(r.IsNew ? "add" : "mod")">@(r.IsNew ? L["Changed_New"] : L["Changed_Updated"])</span>
                     <div style="flex:1">
-                        <b>@r.DocTitle</b> <span class="muted">· @r.AccCode · v@r.VersionNumber</span>
+                        @* v@(...) con parentesi: «v@r.…» sarebbe letto da Razor come email ed emesso letterale. *@
+                        <b>@r.DocTitle</b> <span class="muted">· @r.AccCode · v@(r.VersionNumber)</span>
                         @if (!string.IsNullOrWhiteSpace(r.Note)) { <div class="muted">@r.Note</div> }
                         <div class="diff">
-                            <span>sezioni @r.PrevSections → <b>@r.CurrSections</b></span> ·
-                            <span>blocchi @r.PrevBlocks → <b>@r.CurrBlocks</b></span> ·
+                            <span>@L["Changed_Sections"] @r.PrevSections → <b>@r.CurrSections</b></span> ·
+                            <span>@L["Changed_Blocks"] @r.PrevBlocks → <b>@r.CurrBlocks</b></span> ·
                             <span class="muted">VID @r.PublishedByUserId · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
                         </div>
                     </div>
-                    <a class="chg-link" href="@r.Url">Apri →</a>
+                    <a class="chg-link" href="@r.Url">@L["Common_OpenArrow"]</a>
                 </div>
             }
         </div>
@@ -67,4 +69,7 @@
     }
 
     private void SetAcc(string? f) => _acc = f;
+
+    // Suffisso "per {ACC}" localizzato (evita localizer annidato nell'interpolazione).
+    private string AccSuffix() => _acc is null ? "" : $" {L["Changed_ForAcc", _acc]}";
 }

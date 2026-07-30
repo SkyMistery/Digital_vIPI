@@ -103,9 +103,7 @@ public static class IvaoServiceCollectionExtensions
         // Riepilogo ATC online (fetch grezzo per il poller, nessuna porta).
         services.AddScoped<IvaoOnlineAtcClient>();
 
-        // Elenco membri divisione + profilo del singolo utente.
-        services.AddScoped<IvaoDivisionClient>();
-        services.AddScoped<IDivisionMembersProvider>(sp => sp.GetRequiredService<IvaoDivisionClient>());
+        // Profilo del singolo utente (il roster staff si popola dai login, non dall'elenco membri divisione).
         services.AddScoped<IvaoUserClient>();
         services.AddScoped<IUserDirectory>(sp => sp.GetRequiredService<IvaoUserClient>());
 

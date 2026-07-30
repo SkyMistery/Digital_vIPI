@@ -1,0 +1,56 @@
+@* InlineConfirm — conferma inline a due stati per azioni DISTRUTTIVE su dati persistiti.
+   Vedi docs/design/piano-ux-hardening.md §3a (U1). Estrae il pattern collaudato di
+   AdminTrasferimentiPage (_confirmDeleteFlowId) in un componente unico e riusabile: lo
+   stato aperto/chiuso è INTERNO, le pagine chiamanti non tengono più un id «in conferma».
+
+   Regola d'uso: SOLO azioni che distruggono dato salvato (semantica «Elimina»). Le
+   «Rimuovi» su form non ancora persistito restano immediate (già annullabili non salvando).
+
+   Il click ferma la propagazione: il componente vive spesso dentro righe/summary cliccabili
+   (tabelle struttura, header gruppo) che altrimenti reagirebbero al toggle. *@
+<span class="inline-confirm">
+    @if (_open)
+    {
+        <span class="ic-prompt muted">@(Prompt ?? "Eliminare?")</span>
+        <button type="button" class="btn @(Danger ? "danger" : "primary")" disabled="@Disabled"
+                @onclick="ConfirmAsync" @onclick:stopPropagation="true">@ConfirmLabel</button>
+        <button type="button" class="btn ghost" disabled="@Disabled"
+                @onclick="Cancel" @onclick:stopPropagation="true">@CancelLabel</button>
+    }
+    else
+    {
+        <button type="button" class="@TriggerClass" title="@TriggerTitle" aria-label="@AriaLabel"
+                disabled="@Disabled" @onclick="Open" @onclick:stopPropagation="true">@Trigger</button>
+    }
+</span>
+
+@code {
+    /// <summary>Contenuto del bottone di innesco (icona/etichetta). Es. <c>🗑</c> o <c>✕ Elimina</c>.</summary>
+    [Parameter] public RenderFragment? Trigger { get; set; }
+    /// <summary>Classe del bottone di innesco. Default = <c>btn ghost</c>.</summary>
+    [Parameter] public string TriggerClass { get; set; } = "btn ghost";
+    /// <summary>Tooltip del bottone di innesco.</summary>
+    [Parameter] public string? TriggerTitle { get; set; }
+    /// <summary>Nome accessibile del bottone di innesco (necessario se il Trigger è solo un'icona).</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+    /// <summary>Testo della domanda di conferma. Default = «Eliminare?».</summary>
+    [Parameter] public string? Prompt { get; set; }
+    [Parameter] public string ConfirmLabel { get; set; } = "Sì, elimina";
+    [Parameter] public string CancelLabel { get; set; } = "Annulla";
+    /// <summary>Se true (default) il bottone di conferma è rosso (azione distruttiva).</summary>
+    [Parameter] public bool Danger { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Invocato alla conferma. La chiusura avviene prima dell'invocazione.</summary>
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private bool _open;
+
+    private void Open() => _open = true;
+    private void Cancel() => _open = false;
+
+    private async Task ConfirmAsync()
+    {
+        _open = false;
+        await OnConfirm.InvokeAsync();
+    }
+}

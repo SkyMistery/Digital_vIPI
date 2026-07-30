@@ -1,10 +1,12 @@
-﻿@* DISABILITATA (rebuild /vsop, Round 12) — rotta rimossa. Ex: "/vsop/{Acc}/ridotta-app". Vedi PAGINE_DISABILITATE.md *@
+@* DISABILITATA (rebuild /vsop, Round 12) — rotta rimossa. Ex: "/vsop/{Acc}/ridotta-app". Vedi PAGINE_DISABILITATE.md *@
 @layout SopLayout
 @inject IStationResolver Stations
 
 <PageTitle>LIRP Pisa APP — Ridotta · IVAO Italia</PageTitle>
 
-<div class="wrap">
+@* Come RidottaPage: vista live, NON stampabile (piano §22.7). *@
+<p class="print-only">Questa vista è live e non è stampabile: stampa il documento vIPI dell'APP.</p>
+<div class="wrap noprint">
     <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc?.Name</a> › <b>Vista ridotta · APP</b></div>
     <div class="reduced-top">
         <h2 style="margin:0">LIRP Pisa APP — Ridotta</h2>
@@ -21,7 +23,7 @@
             </tbody></table></div>
         </details>
         <details class="acc-item" open>
-            <summary><span>🛬 Vista rapida — LIRP</span><span class="tag-state tag-covered">aperto</span></summary>
+            <summary><span><Icon Name="plane-landing" /> Vista rapida — LIRP</span><span class="tag-state tag-covered">aperto</span></summary>
             <div class="body">
                 <div class="rap-quick" style="margin-bottom:8px">
                     <div class="rap-box"><span class="muted">TA</span><b>6000 ft</b></div>
@@ -37,7 +39,7 @@
     </div>
 
     <details class="acc-item" open>
-        <summary><span>🔄 Trasferimenti · dove passo il traffico</span><span class="tag-state tag-covered">aperto</span></summary>
+        <summary><span><Icon Name="refresh" /> Trasferimenti · dove passo il traffico</span><span class="tag-state tag-covered">aperto</span></summary>
         <div class="body">
             <div class="xfer-online">
                 <span class="xo-label">Online nel tuo intorno:</span>
@@ -48,8 +50,8 @@
             <div>
                 <div class="xpair"><div class="xpair-h">Pisa APP ↔ Roma ACC</div><div class="xpair-body"><div class="xt-cards">
                     <div class="xt-card"><div class="xt-card-h"><b class="xt-dest">Verso ACC</b><span class="muted" style="font-size:11px">2 pt</span></div>
-                        <div class="xt-pt"><span class="cop">VALMA</span><b class="fl up">FL150↑</b><span class="xt-next" style="background:#e2e8ff;color:#0D2C99;border-left:3px solid #0D2C99">→ <b>EW</b></span></div>
-                        <div class="xt-pt"><span class="cop">ELKAP</span><b class="fl down">FL150↓</b><span class="xt-next" style="background:#dafbe7;color:#0f7a37;border-left:3px solid #0f7a37">→ <b>SU</b></span></div>
+                        <div class="xt-pt"><span class="cop">VALMA</span><b class="fl up">FL150+</b><span class="xt-next" style="background:#e2e8ff;color:#0D2C99;border-left:3px solid #0D2C99">→ <b>EW</b></span></div>
+                        <div class="xt-pt"><span class="cop">ELKAP</span><b class="fl down">FL150-</b><span class="xt-next" style="background:#dafbe7;color:#0f7a37;border-left:3px solid #0f7a37">→ <b>SU</b></span></div>
                     </div>
                 </div></div></div>
                 <div class="xpair"><div class="xpair-h">Pisa APP ↔ Torri</div><div class="xpair-body"><div class="xt-cards">

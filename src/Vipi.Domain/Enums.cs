@@ -82,6 +82,11 @@ public enum LevelUnit { Fl, Feet }
 /// (testo libero tipo «per aerovia»; il valore numerico è ignorato).</summary>
 public enum LevelConstraint { AtOrAbove, AtOrBelow, Exact, Special }
 
+/// <summary>Stato verticale del traffico al trasferimento (parola «stabile/in discesa/in salita» nella frase di
+/// coordinamento). Dimensione INDIPENDENTE dal <see cref="LevelConstraint"/> (che è solo un vincolo di livello:
+/// «a 130 o inferiore» non implica una discesa). <c>Unspecified</c> = nessuna parola di stato nella frase.</summary>
+public enum TransferVerticalState { Unspecified, Level, Descending, Climbing }
+
 /// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
 /// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da
 /// <see cref="DateParity"/> (parità del giorno del mese per le piste): stessa forma, semantica diversa.</summary>

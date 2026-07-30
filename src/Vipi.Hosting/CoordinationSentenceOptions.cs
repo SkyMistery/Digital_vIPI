@@ -22,10 +22,9 @@ public sealed class CoordinationSentenceOptions
 
     public sealed class StateWords
     {
-        public string? AtOrBelow { get; set; }
-        public string? AtOrAbove { get; set; }
-        public string? Exact { get; set; }
-        public string? Special { get; set; }
+        public string? Descending { get; set; }
+        public string? Climbing { get; set; }
+        public string? Level { get; set; }
     }
 }
 
@@ -56,11 +55,9 @@ public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentence
                 FallbackAllToward = Fallback(o.FallbackAllToward, d.FallbackAllToward),
                 Stato = new CoordinationSentenceState
                 {
-                    // Special ha default "" (vuoto): usa il valore del file se presente (anche stringa vuota).
-                    AtOrBelow = Fallback(o.Stato?.AtOrBelow, d.Stato.AtOrBelow),
-                    AtOrAbove = Fallback(o.Stato?.AtOrAbove, d.Stato.AtOrAbove),
-                    Exact = Fallback(o.Stato?.Exact, d.Stato.Exact),
-                    Special = o.Stato?.Special ?? d.Stato.Special,
+                    Descending = Fallback(o.Stato?.Descending, d.Stato.Descending),
+                    Climbing = Fallback(o.Stato?.Climbing, d.Stato.Climbing),
+                    Level = Fallback(o.Stato?.Level, d.Stato.Level),
                 },
             };
         }

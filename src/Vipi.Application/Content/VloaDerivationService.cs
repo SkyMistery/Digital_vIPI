@@ -14,7 +14,8 @@ namespace Vipi.Application.Content;
 /// <summary>Identità della coppia vLOA (per intestazioni/etichette).</summary>
 public sealed record VloaPairMeta(string HomeAcc, string ForeignAcc, string HomeName, string ForeignName);
 
-/// <summary>Chip toggle di un settore AoR: identità + colore (blu home / rosso estero) + stato nascosto.</summary>
+/// <summary>Chip toggle di un settore AoR: identità + colore (due tonalità dello stesso blu per nazione:
+/// scura = ACC home italiano, chiara = ACC estero) + stato nascosto.</summary>
 public sealed record VloaAorSectorToggle(string Callsign, string Name, string Color, bool IsForeign, bool Hidden);
 
 /// <summary>Vista AoR della vLOA: la mappa (settori NON nascosti, riusa <see cref="AccAorView"/>) + i chip di tutti i settori.</summary>
@@ -58,18 +59,15 @@ public interface IVloaDerivationService
     /// <summary>Inverte la visibilità di una frequenza nella tabella (persistito). Authz: edit dell'ACC Home.</summary>
     Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default);
 
-    /// <summary>Inverte la visibilità di una sezione (per titolo) nel documento pubblicato. Authz: edit dell'ACC Home.</summary>
-    Task ToggleSectionAsync(int docId, string sectionTitle, CancellationToken ct = default);
-
-    /// <summary>Titoli delle sezioni nascoste (per l'editor/viewer). Lettura senza authz.</summary>
-    Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IVloaDerivationService"/>
 public sealed class VloaDerivationService : IVloaDerivationService
 {
-    private const string HomeColor = "#1f6feb";
-    private const string ForeignColor = "#d1242f";
+    // Due tonalità dello STESSO colore (blu IVAO) per distinguere le nazioni dei due ACC: scura = home (Italia),
+    // chiara = estero. Evita il contrasto blu/rosso mantenendo un'unica famiglia cromatica.
+    private const string HomeColor = "#0D2C99";
+    private const string ForeignColor = "#7EA2D6";
 
     private readonly IVloaDerivationRepository _repo;
     private readonly IAccDerivationRepository _accRepo;
@@ -128,6 +126,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
         var all = homeConf.Concat(foreignConf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var raw = await _accRepo.GetSectorPolygonsRawByCallsignAsync(all, ct);
+        var limits = await _accRepo.GetSectorLimitsByCallsignAsync(all, ct);
 
         var toggles = new List<VloaAorSectorToggle>();
         var mapSectors = new List<AccSectorAor>();
@@ -140,7 +139,10 @@ public sealed class VloaDerivationService : IVloaDerivationService
             toggles.Add(new VloaAorSectorToggle(cs, name, color, isForeign, isHidden));
             if (isHidden || !raw.TryGetValue(cs, out var poly)) return;
             var projected = AorPolygonProjector.Project(poly);
-            if (projected is not null) mapSectors.Add(new AccSectorAor(cs, name, color, new[] { projected }));
+            if (projected is null) return;
+            int? lo = null, hi = null;
+            if (limits.TryGetValue(cs, out var l)) (lo, hi) = AorFlBand.Normalize(l.Lower, l.Upper);
+            mapSectors.Add(new AccSectorAor(cs, name, color, new[] { projected }, lo, hi));
         }
 
         foreach (var cs in homeConf) Add(cs, false);
@@ -211,13 +213,15 @@ public sealed class VloaDerivationService : IVloaDerivationService
                 if (!isH2F && !isF2H) continue;
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
-                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind);
+                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
+                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState);
                 var row = new AppCoordRow(p.Cop, p.LevelText, next!, flow.Kind)
                 {
                     OwnerCallsign = owner,
                     AirportIcao = flow.AirportIcao,
                     Constraint = p.LevelConstraint,
                     Sentence = sentence,
+                    ConditionLabel = p.ConditionDisplay,
                 };
                 var entry = new CoordinationEntry(owner, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row);
                 (isH2F ? h2f : f2h).Add(entry);
@@ -238,13 +242,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
     public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) =>
         ToggleAsync(docId, callsign, Target.Freq, ct);
 
-    public Task ToggleSectionAsync(int docId, string sectionTitle, CancellationToken ct = default) =>
-        ToggleAsync(docId, sectionTitle, Target.Section, ct);
-
-    public async Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default) =>
-        (await _repo.LoadEditorialAsync(docId, ct)).HiddenSections;
-
-    private enum Target { Aor, Freq, Section }
+    private enum Target { Aor, Freq }
 
     private async Task ToggleAsync(int docId, string key, Target which, CancellationToken ct)
     {
@@ -255,12 +253,10 @@ public sealed class VloaDerivationService : IVloaDerivationService
         var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);
         var hiddenFreq = new HashSet<string>(state.HiddenFrequencies, StringComparer.OrdinalIgnoreCase);
-        var hiddenSec = new HashSet<string>(state.HiddenSections, StringComparer.OrdinalIgnoreCase);
-        var target = which switch { Target.Aor => hiddenAor, Target.Freq => hiddenFreq, _ => hiddenSec };
+        var target = which == Target.Aor ? hiddenAor : hiddenFreq;
         if (!target.Add(key)) target.Remove(key);   // toggle
 
-        await _repo.SaveEditorialAsync(docId,
-            new VloaEditorialState(hiddenAor.ToList(), hiddenFreq.ToList(), hiddenSec.ToList()), ct);
+        await _repo.SaveEditorialAsync(docId, new VloaEditorialState(hiddenAor.ToList(), hiddenFreq.ToList()), ct);
     }
 
 }

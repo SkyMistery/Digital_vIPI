@@ -3,42 +3,43 @@
 @rendermode InteractiveServer
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_foreign.Length > 0)
 {
-    <PageTitle>Editor vLOA @Acc.ToUpperInvariant() ↔ @_foreign · vIPI</PageTitle>
+    <PageTitle>@L["Vle_EditorTitle"] @Acc.ToUpperInvariant() ↔ @_foreign · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · Editor</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · @L["Common_Editor"]</b>
         </div>
         <VloaEditor Home="@Acc.ToUpperInvariant()" Foreign="@_foreign" />
     </div>
 }
 else
 {
-    <PageTitle>Editor vLOA @_acc.Code · vIPI</PageTitle>
+    <PageTitle>@L["Vle_EditorTitle"] @_acc.Code · vIPI</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>Editor vLOA</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@L["Vle_EditorVloa"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Editor vLOA — @_acc.Name</h2><p class="muted" style="margin:0">Scegli la lettera di accordo da modificare (coppia @_acc.Code ↔ vicino).</p></div>
+            <div><h2 style="margin-bottom:2px">@L["Vle_EditorVloa"] — @_acc.Name</h2><p class="muted" style="margin:0">@(string.Format(L["Vle_ChooseLoa"].Value, _acc.Code))</p></div>
         </div>
         @if (_vloas.Count == 0)
         {
-            <div class="callout info"><span class="cic">📭</span><div><p class="ct">Nessuna vLOA</p>Non ci sono lettere di accordo per questa ACC. Generane una dalla pagina <a href="/vsop/admin/confinanti">ACC confinanti</a>.</div></div>
+            <EmptyState Title="@L["Vle_NoVloa"]">@((MarkupString)L["Vle_NoVloaBody"].Value)</EmptyState>
         }
         else
         {
             <div class="choice-grid" style="margin-top:14px">
                 @foreach (var v in _vloas)
                 {
-                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode" style="text-decoration:none;color:inherit">
+                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode">
                         <h4><span class="ic">🤝</span> @v.Title</h4>
-                        <p class="muted">@(v.Neighbour ?? v.NeighbourCode ?? "Lettera di accordo bilaterale")</p>
+                        <p class="muted">@(v.Neighbour ?? v.NeighbourCode ?? L["Vle_BilateralLoa"].Value)</p>
                     </a>
                 }
             </div>

@@ -1,0 +1,351 @@
+@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
+   usa CollapsibleBlock (<details> nativo) → nessun circuito, cercabile con Ctrl+F, ancore deep-link.
+   La lingua è scelta dal parametro di query ?lang=it|en (toggle in cima); default = cultura corrente del browser.
+   Contenuto DATA-DRIVEN (liste _consult/_modify): un'unica sorgente per corpo pagina e indice. *@
+@page "/vsop/guida"
+@layout SopLayout
+@using System.Globalization
+
+<PageTitle>@T("Guida","Guide") · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1000px">
+    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>@T("Guida","Guide")</b></div>
+    <div class="doc-head">
+        <div>
+            <h2 style="margin-bottom:2px"><Icon Name="book-open" /> @T("Guida a vIPI / vLOA","vIPI / vLOA Guide")</h2>
+            <span class="muted">@T("Come consultare le procedure e come usare gli strumenti di modifica","How to consult the procedures and how to use the editing tools")</span>
+        </div>
+        <div class="apt-quick" style="margin:0" role="group" aria-label="@T("Lingua","Language")">
+            <a class="ch @(_en ? "" : "on")" href="/vsop/guida?lang=it">IT</a>
+            <a class="ch @(_en ? "on" : "")" href="/vsop/guida?lang=en">EN</a>
+        </div>
+    </div>
+    <p class="guida-lead">@T("Questa pagina è il riferimento completo. Dentro l'app trovi anche piccoli","This page is the complete reference. Inside the app you'll also find small")
+        <Icon Name="help-circle" Size="14" /> @T("accanto ai controlli: cliccali per un aiuto al volo che rimanda qui. Usa","next to the controls: click them for quick help that links back here. Use")
+        <code>Ctrl+F</code> @T("per cercare.","to search.")</p>
+
+    @* ── Indice (derivato dalle stesse liste) ──────────────────────────────── *@
+    <nav class="guida-toc" aria-label="@T("Indice guida","Guide index")">
+        <h3>@T("Consultare","Reading")</h3>
+        @foreach (var s in _consult)
+        {
+            <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>
+        }
+        <h3>@T("Modificare","Editing")</h3>
+        @foreach (var s in _modify)
+        {
+            <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>
+        }
+    </nav>
+
+    @* ══════════════════════ PARTE 1 · CONSULTARE ══════════════════════ *@
+    <div class="guida-part"><Icon Name="eye" Size="14" /> @T("Consultare","Reading") <span class="ln"></span></div>
+    @foreach (var s in _consult)
+    {
+        <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
+            <Header><Icon Name="@s.Icon" /> &nbsp;@T(s.TitleIt, s.TitleEn)</Header>
+            <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
+        </CollapsibleBlock>
+    }
+
+    @* ══════════════════════ PARTE 2 · MODIFICARE ══════════════════════ *@
+    <div class="guida-part"><Icon Name="pencil" Size="14" /> @T("Modificare","Editing") <span class="ln"></span></div>
+    @foreach (var s in _modify)
+    {
+        <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
+            <Header><Icon Name="@s.Icon" /> &nbsp;@T(s.TitleIt, s.TitleEn)</Header>
+            <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
+        </CollapsibleBlock>
+    }
+
+    <p class="muted" style="margin:22px 0 40px;font-size:13px">
+        @T("Manca qualcosa o qualcosa non torna? Segnalalo allo staff così aggiorniamo questa guida.",
+           "Missing something or something wrong? Let the staff know so we can update this guide.")
+    </p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "lang")] public string? Lang { get; set; }
+
+    private bool _en;
+
+    protected override void OnParametersSet()
+    {
+        // Esplicito ?lang= vince; altrimenti segue la cultura negoziata (browser Accept-Language / cookie).
+        _en = Lang is not null
+            ? Lang.Equals("en", StringComparison.OrdinalIgnoreCase)
+            : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string T(string it, string en) => _en ? en : it;
+
+    // Sezione localizzata: ancora, icona, titolo (it/en) e corpo HTML (it/en). Corpi senza attributi con virgolette
+    // così restano stringhe verbatim leggibili; niente <Icon> nel corpo (usa unicode) perché sono MarkupString.
+    private sealed record Sec(string Anchor, string Icon, string TitleIt, string TitleEn, string BodyIt, string BodyEn);
+
+    private static readonly List<Sec> _consult = new()
+    {
+        new Sec("nav", "map", "Navigare tra le pagine", "Navigating the pages",
+            @"<p>Tutto vive sotto <code>/vsop</code>. La barra in alto ha i codici <b>ACC</b> (LIRR, LIMM, …),
+               la ricerca e, se sei ATC/staff, i tasti Editor e Incarichi.</p>
+              <ul>
+                <li><b>Home</b> (<code>/vsop</code>) → card degli ACC con quanti controllori sono online.</li>
+                <li><b>Landing ACC</b> (<code>/vsop/{acc}</code>) → il <b>vIPI di ACC</b>, gli <b>aeroporti</b>,
+                    gli <b>APP non remotizzati</b> e le <b>vLOA</b> in evidenza.</li>
+                <li>Da lì apri il documento specifico: vIPI ACC, vIPI aeroporto (con le SID), APP, o vLOA verso un vicino.</li>
+              </ul>",
+            @"<p>Everything lives under <code>/vsop</code>. The top bar has the <b>ACC</b> codes (LIRR, LIMM, …),
+               search and, if you are ATC/staff, the Editor and Tasks buttons.</p>
+              <ul>
+                <li><b>Home</b> (<code>/vsop</code>) → ACC cards with how many controllers are online.</li>
+                <li><b>ACC landing</b> (<code>/vsop/{acc}</code>) → the <b>ACC vIPI</b>, the <b>airports</b>,
+                    the <b>non-remoted APPs</b> and the featured <b>vLOAs</b>.</li>
+                <li>From there open the specific document: ACC vIPI, airport vIPI (with SIDs), APP, or a vLOA to a neighbour.</li>
+              </ul>"),
+
+        new Sec("ricerca", "search", "Cercare", "Searching",
+            @"<p>La barra di ricerca in alto (o <code>/vsop/search</code>) è full-text: cerca <b>CoP, FIX, callsign,
+               frequenze</b> e testo dei documenti. Servono almeno 2 caratteri. I filtri (chip) restringono l'ambito;
+               ogni risultato porta al punto esatto del documento. Anche le sezioni di questa Guida compaiono nei risultati.</p>",
+            @"<p>The search bar at the top (or <code>/vsop/search</code>) is full-text: it searches <b>CoPs, FIXes,
+               callsigns, frequencies</b> and document text. At least 2 characters are needed. The chips narrow the scope;
+               each result jumps to the exact point in the document. Sections of this Guide appear in the results too.</p>"),
+
+        new Sec("live", "radio", "Stato live e ATC online", "Live status and online ATC",
+            @"<p>Il badge in alto a destra mostra se sei <b>connesso</b> come ATC (col tuo callsign) o disconnesso.
+               Le card ACC in Home contano i controllori online. Alcune viste (Coordinamenti/Trasferimenti) risolvono
+               <b>in tempo reale</b> chi è collegato, risalendo la gerarchia dei settori fino a UNICOM.</p>",
+            @"<p>The badge at the top right shows whether you are <b>connected</b> as ATC (with your callsign) or offline.
+               The ACC cards on Home count online controllers. Some views (Coordinations/Transfers) resolve
+               <b>in real time</b> who is connected, climbing the sector hierarchy up to UNICOM.</p>"),
+
+        new Sec("changed", "activity", "Cosa è cambiato", "What changed",
+            @"<p><code>/vsop/changed</code> elenca i documenti <b>nuovi</b> o <b>aggiornati</b> nel ciclo AIRAC corrente,
+               con quante sezioni/blocchi sono cambiati e chi ha pubblicato. Filtra per ACC. È il primo posto da
+               guardare quando entra in vigore un nuovo ciclo.</p>",
+            @"<p><code>/vsop/changed</code> lists the <b>new</b> or <b>updated</b> documents in the current AIRAC cycle,
+               with how many sections/blocks changed and who published. Filter by ACC. It's the first place to
+               check when a new cycle comes into effect.</p>"),
+
+        new Sec("anteprime", "file", "Anteprime e badge bozza", "Previews and draft badge",
+            @"<p>Ogni documento può essere visto in tre modi, controllati dal parametro <code>?as=</code> nell'URL:</p>
+              <ul>
+                <li><b>Pubblica</b> (default, nessun parametro): quello che vede tutti — la release in vigore, o il live se non c'è release.</li>
+                <li><b>Bozza</b> (<code>?as=draft</code>): le modifiche non ancora pubblicate. Solo per chi può modificare quell'ACC.</li>
+                <li><b>Release congelata</b> (<code>?as=rel:{id}</code>): lo snapshot esatto di una pubblicazione passata.</li>
+              </ul>
+              <p>Una fascia colorata in cima segnala quando <b>non</b> stai vedendo la versione pubblica. Se non sei
+               autorizzato, la vista <b>degrada a pubblica</b> senza rivelare la bozza.</p>",
+            @"<p>Every document can be viewed in three ways, controlled by the <code>?as=</code> URL parameter:</p>
+              <ul>
+                <li><b>Public</b> (default, no parameter): what everyone sees — the effective release, or the live version if there's no release.</li>
+                <li><b>Draft</b> (<code>?as=draft</code>): changes not yet published. Only for who can edit that ACC.</li>
+                <li><b>Frozen release</b> (<code>?as=rel:{id}</code>): the exact snapshot of a past publication.</li>
+              </ul>
+              <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
+               not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
+    };
+
+    private static readonly List<Sec> _modify = new()
+    {
+        new Sec("editor-accesso", "key", "Chi può modificare e da dove", "Who can edit and from where",
+            @"<p>Puoi modificare se sei <b>admin</b> o hai un <b>permesso (grant)</b> su un ACC. In quel caso in alto
+               a destra compaiono due tasti:</p>
+              <ul>
+                <li><b>Editor</b> → <code>/vsop/versioni</code>, l'<b>hub documenti</b>: elenco di tutti i documenti
+                    (vIPI ACC/APP, aeroporti, vLOA) con ricerca/filtri, «Apri editor» per riga, «Nuovo documento»,
+                    storico versioni e release.</li>
+                <li><b>Incarichi</b> → <code>/vsop/tasks</code>, i lavori assegnati a te.</li>
+              </ul>
+              <p>Puoi anche aprire l'editor direttamente dal documento che stai guardando, col tasto <b>✎ Editor</b>
+               (compare solo se sei autorizzato su quell'ACC).</p>
+              <p class=""muted"">Al <b>primo accesso</b> a un editor parte un breve <b>tour guidato</b> che indica i
+               comandi principali (indice, salva, anteprima, pubblica). Per rivederlo, aggiungi <code>?tour=1</code>
+               all'URL dell'editor.</p>",
+            @"<p>You can edit if you are an <b>admin</b> or hold a <b>grant</b> on an ACC. In that case two buttons
+               appear at the top right:</p>
+              <ul>
+                <li><b>Editor</b> → <code>/vsop/versioni</code>, the <b>documents hub</b>: a list of all documents
+                    (ACC/APP vIPI, airports, vLOA) with search/filters, ""Open editor"" per row, ""New document"",
+                    version history and releases.</li>
+                <li><b>Tasks</b> → <code>/vsop/tasks</code>, the jobs assigned to you.</li>
+              </ul>
+              <p>You can also open the editor straight from the document you're viewing, with the <b>✎ Editor</b> button
+               (it appears only if you are authorized on that ACC).</p>
+              <p class=""muted"">On your <b>first visit</b> to an editor a short <b>guided tour</b> starts, pointing out
+               the main controls (index, save, preview, publish). To see it again, add <code>?tour=1</code>
+               to the editor URL.</p>"),
+
+        new Sec("editor-lock", "key", "Prendere in carico (lock)", "Taking the lock",
+            @"<p>Per evitare che due persone si sovrascrivano, alcune pagine si aprono in <b>sola lettura</b> finché
+               non premi <b>«Inizia modifica»</b> nella barra in alto. Da quel momento il documento è tuo:</p>
+              <ul>
+                <li>Un <b>heartbeat</b> ogni 60 s tiene vivo il lock; se chiudi la scheda si libera da solo.</li>
+                <li>Se resti inattivo, scade dopo ~3 minuti.</li>
+                <li>Chi arriva dopo vede «in modifica da …»; un admin può <b>«Forzare lo sblocco»</b>.</li>
+              </ul>
+              <p>Finito, premi <b>«Fine modifica»</b> per liberarlo subito. Le pagine di struttura admin condividono
+               un unico lock (una persona alla volta).</p>",
+            @"<p>To keep two people from overwriting each other, some pages open <b>read-only</b> until you press
+               <b>""Start editing""</b> in the top bar. From then on the document is yours:</p>
+              <ul>
+                <li>A <b>heartbeat</b> every 60 s keeps the lock alive; closing the tab releases it by itself.</li>
+                <li>If you stay idle, it expires after ~3 minutes.</li>
+                <li>Whoever comes later sees ""being edited by …""; an admin can <b>""Force unlock""</b>.</li>
+              </ul>
+              <p>When done, press <b>""Finish editing""</b> to release it right away. The admin structure pages share
+               a single lock (one person at a time).</p>"),
+
+        new Sec("editor-documento", "file", "Editor documento: sezioni e blocchi", "Document editor: sections and blocks",
+            @"<p>Un documento è fatto di <b>sezioni</b> (i capitoli) che contengono <b>blocchi</b> (i contenuti).
+               Nell'editor puoi:</p>
+              <ul>
+                <li><b>Aggiungere</b> una sezione o un blocco (＋).</li>
+                <li><b>Riordinare</b> con le frecce ↑ / ↓ (o trascinando, dove supportato).</li>
+                <li><b>Rinominare</b> il titolo e <b>eliminare</b> (🗑).</li>
+                <li><b>Comprimere</b> le sezioni cliccando l'intestazione: lo stato resta memorizzato.</li>
+              </ul>
+              <p>Le sezioni <b>derivate</b> (frequenze, AOR, coordinamenti) si compilano da sole dai dati di sorgente:
+               le vedi ma non le editi a mano.</p>",
+            @"<p>A document is made of <b>sections</b> (the chapters) that contain <b>blocks</b> (the content).
+               In the editor you can:</p>
+              <ul>
+                <li><b>Add</b> a section or a block (＋).</li>
+                <li><b>Reorder</b> with the ↑ / ↓ arrows (or by dragging, where supported).</li>
+                <li><b>Rename</b> the title and <b>delete</b> (🗑).</li>
+                <li><b>Collapse</b> sections by clicking the header: the state is remembered.</li>
+              </ul>
+              <p><b>Derived</b> sections (frequencies, AOR, coordinations) fill themselves from source data:
+               you see them but don't edit them by hand.</p>"),
+
+        new Sec("editor-blocchi", "grid", "I tipi di blocco", "Block types",
+            @"<p>Ogni blocco ha un tipo, scelto quando lo aggiungi:</p>
+              <ul>
+                <li><b>Prosa</b> — testo libero (paragrafi, elenchi).</li>
+                <li><b>Tabella</b> — righe/colonne, per limiti, frequenze, quote.</li>
+                <li><b>Callout / Tip</b> — riquadro evidenziato (nota, attenzione, suggerimento).</li>
+                <li><b>Separazioni</b> — regole di separazione formattate.</li>
+                <li><b>Mappa AOR / Area</b> — porzione di spazio aereo resa graficamente.</li>
+              </ul>
+              <p>Scrivi contenuti brevi e verificabili: un lettore in frequenza deve trovare la risposta a colpo d'occhio.</p>",
+            @"<p>Each block has a type, chosen when you add it:</p>
+              <ul>
+                <li><b>Prose</b> — free text (paragraphs, lists).</li>
+                <li><b>Table</b> — rows/columns, for limits, frequencies, altitudes.</li>
+                <li><b>Callout / Tip</b> — a highlighted box (note, warning, tip).</li>
+                <li><b>Separations</b> — formatted separation rules.</li>
+                <li><b>AOR / Area map</b> — a portion of airspace rendered graphically.</li>
+              </ul>
+              <p>Write short, verifiable content: a reader on frequency must find the answer at a glance.</p>"),
+
+        new Sec("editor-salva", "check-circle", "Indice laterale e salvataggio", "Side index and saving",
+            @"<p>L'<b>indice laterale</b> (TOC) elenca le sezioni: cliccane una per saltarci. Un pallino segnala le
+               sezioni con <b>modifiche non salvate</b>.</p>
+              <p>Salva con <b>«Salva tutto»</b>: scrive le modifiche nella <b>bozza</b>, non ancora al pubblico
+               (anche con <code>Ctrl+S</code>). Il pubblico vedrà i cambiamenti solo dopo la <b>pubblicazione</b>.</p>",
+            @"<p>The <b>side index</b> (TOC) lists the sections: click one to jump to it. A dot marks the sections with
+               <b>unsaved changes</b>.</p>
+              <p>Save with <b>""Save all""</b>: it writes the changes to the <b>draft</b>, not yet to the public
+               (also with <code>Ctrl+S</code>). The public sees the changes only after <b>publishing</b>.</p>"),
+
+        new Sec("editor-anteprima", "eye", "Vedere la bozza in anteprima", "Preview the draft",
+            @"<p>Il tasto <b>«Anteprima»</b> apre il documento come <code>?as=draft</code>: vedi la bozza esattamente
+               come apparirà, con una fascia che ricorda che <b>non</b> è ancora pubblica. Controlla sempre qui prima
+               di pubblicare.</p>",
+            @"<p>The <b>""Preview""</b> button opens the document as <code>?as=draft</code>: you see the draft exactly
+               as it will look, with a banner reminding you it is <b>not</b> public yet. Always check here before
+               publishing.</p>"),
+
+        new Sec("editor-release", "megaphone", "Pubblicare (release AIRAC)", "Publishing (AIRAC release)",
+            @"<p>La bozza diventa pubblica con una <b>release</b>, legata a un ciclo <b>AIRAC</b>. Nel pannello release:</p>
+              <ul>
+                <li><b>Pubblica ora</b> — la bozza corrente entra in vigore <b>subito</b>.</li>
+                <li><b>Programma al ciclo</b> — scegli un AIRAC futuro: la release entra in vigore <b>alla data</b> di quel ciclo.</li>
+              </ul>
+              <p>Ogni release è uno <b>snapshot congelato</b>: resta consultabile anche dopo. Aggiungi una <b>nota</b>
+               per spiegare cosa cambia (comparirà in «Cosa è cambiato»). Gli admin possono vedere le <b>differenze</b>
+               e <b>annullare</b> una release.</p>
+              <p><b>Regola pratica:</b> salva → anteprima bozza → pubblica. Non pubblicare senza aver guardato l'anteprima.</p>",
+            @"<p>The draft goes public with a <b>release</b>, tied to an <b>AIRAC</b> cycle. In the release panel:</p>
+              <ul>
+                <li><b>Publish now</b> — the current draft takes effect <b>immediately</b>.</li>
+                <li><b>Schedule at cycle</b> — pick a future AIRAC: the release takes effect <b>on the date</b> of that cycle.</li>
+              </ul>
+              <p>Each release is a <b>frozen snapshot</b>: it stays consultable afterwards. Add a <b>note</b>
+               to explain what changes (it shows up in ""What changed""). Admins can see the <b>differences</b>
+               and <b>cancel</b> a release.</p>
+              <p><b>Rule of thumb:</b> save → preview draft → publish. Don't publish without checking the preview.</p>"),
+
+        new Sec("editor-aeroporto", "building", "Editor aeroporto (SID, frequenze, piste)", "Airport editor (SIDs, frequencies, runways)",
+            @"<p>Apre il profilo dell'aeroporto: dati generali, sezioni a blocchi condivise, più le parti specifiche.</p>
+              <ul>
+                <li><b>Piste</b> — importate da IVAO per singolo aeroporto; le regole pista/area guidano le condizioni
+                    di trasferimento.</li>
+                <li><b>Frequenze</b> — sezione derivata dai settori ATC dell'aeroporto.</li>
+                <li><b>SID</b> — importate da Aurora al primo prelievo del ciclo AIRAC; i fix aggiunti a mano vengono
+                    riportati. L'import è bloccato per-ICAO durante l'operazione.</li>
+                <li><b>Settori ATC</b> — mostra/nascondi i settori importati e imposta i limiti.</li>
+              </ul>
+              <p>Come per gli altri, salvi nella bozza e pubblichi col pannello release.</p>",
+            @"<p>Opens the airport profile: general data, shared block sections, plus the specific parts.</p>
+              <ul>
+                <li><b>Runways</b> — imported from IVAO per single airport; the runway/area rules drive the transfer
+                    conditions.</li>
+                <li><b>Frequencies</b> — a section derived from the airport's ATC sectors.</li>
+                <li><b>SIDs</b> — imported from Aurora on the first fetch of the AIRAC cycle; manually added fixes are
+                    carried over. The import is locked per-ICAO during the operation.</li>
+                <li><b>ATC sectors</b> — show/hide the imported sectors and set the limits.</li>
+              </ul>
+              <p>As with the others, you save to the draft and publish with the release panel.</p>"),
+
+        new Sec("editor-app", "radio", "Editor APP non remotizzato", "Non-remoted APP editor",
+            @"<p>Per gli APP che non sono remotizzati esiste un editor dedicato (<code>/vsop/{acc}/apps/editor</code>),
+               con 6 sezioni fisse — <b>Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti</b> — più sezioni
+               personalizzate. Frequenze, coordinamenti e AOR sono <b>derivati live</b>. Riordini e nascondi le sezioni;
+               i documenti APP vengono instradati qui automaticamente.</p>",
+            @"<p>For APPs that are not remoted there is a dedicated editor (<code>/vsop/{acc}/apps/editor</code>),
+               with 6 fixed sections — <b>Separations · AOR · Frequencies · VFR · Minima · Coordinations</b> — plus
+               custom sections. Frequencies, coordinations and AOR are <b>derived live</b>. You reorder and hide the
+               sections; APP documents are routed here automatically.</p>"),
+
+        new Sec("editor-vloa", "globe", "Editor vLOA", "vLOA editor",
+            @"<p>Una vLOA è l'accordo tra un ACC <b>italiano</b> e un <b>vicino estero</b> (es. Roma ↔ Marsiglia).
+               L'editor (<code>/vsop/{acc}/vloa/editor?acc=YYYY</code>) apre la <b>coppia</b>; senza <code>?acc=</code>
+               mostra un elenco da cui sceglierla. I <b>Coordinamenti</b> includono anche i <b>sorvoli senza aeroporto</b>
+               e i punti di trasferimento (CoP).</p>",
+            @"<p>A vLOA is the agreement between an <b>Italian</b> ACC and a <b>foreign neighbour</b> (e.g. Rome ↔ Marseille).
+               The editor (<code>/vsop/{acc}/vloa/editor?acc=YYYY</code>) opens the <b>pair</b>; without <code>?acc=</code>
+               it shows a list to pick from. The <b>Coordinations</b> also include <b>overflights with no airport</b>
+               and the transfer points (CoP).</p>"),
+
+        new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
+            @"<p>L'editor del vIPI di ACC (<code>/vsop/{acc}/editor</code>) è <b>multi-albero</b>: un documento può coprire
+               più alberi di settori (CTR + APP dell'area, anche cross-ACC). Da qui imposti anche cosa mettere
+               <b>«In evidenza»</b> nella landing ACC (aeroporti, APP, vLOA — massimo 3 ciascuno).</p>",
+            @"<p>The ACC vIPI editor (<code>/vsop/{acc}/editor</code>) is <b>multi-tree</b>: one document can cover
+               several sector trees (CTR + APP of the area, even cross-ACC). From here you also set what to
+               <b>""Feature""</b> on the ACC landing (airports, APPs, vLOAs — max 3 each).</p>"),
+
+        new Sec("admin", "grid", "Aree admin", "Admin areas",
+            @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
+              <ul>
+                <li><b>Gerarchia settori</b> (<code>/sectorstructure</code>) — catena di copertura per callsign, cross-ACC.</li>
+                <li><b>Trasferimenti</b> (<code>/trasferimenti</code>) — CoP, quote e settore ricevente per Settore ▸ Aeroporto ▸ Arrivi/Partenze.</li>
+                <li><b>ACC e settori</b> (<code>/acc</code>) e <b>Aeroporti</b> (<code>/airports</code>) — import da sorgente, mostra/nascondi, limiti.</li>
+                <li><b>Sorgenti</b> (<code>/sorgenti</code>) — policy di import dei dati.</li>
+                <li><b>Permessi</b> (<code>/permessi</code>) — chi può modificare cosa.</li>
+                <li><b>Audit</b> (<code>/audit</code>) — registro delle operazioni.</li>
+              </ul>
+              <p>Le pagine di struttura condividono un <b>lock unico</b>: una persona alla volta.</p>",
+            @"<p>Admins only, under <code>/vsop/admin</code>:</p>
+              <ul>
+                <li><b>Sector hierarchy</b> (<code>/sectorstructure</code>) — the coverage chain per callsign, cross-ACC.</li>
+                <li><b>Transfers</b> (<code>/trasferimenti</code>) — CoP, altitudes and receiving sector per Sector ▸ Airport ▸ Arrivals/Departures.</li>
+                <li><b>ACC and sectors</b> (<code>/acc</code>) and <b>Airports</b> (<code>/airports</code>) — import from source, show/hide, limits.</li>
+                <li><b>Sources</b> (<code>/sorgenti</code>) — data import policy.</li>
+                <li><b>Permissions</b> (<code>/permessi</code>) — who can edit what.</li>
+                <li><b>Audit</b> (<code>/audit</code>) — the operations log.</li>
+              </ul>
+              <p>The structure pages share a <b>single lock</b>: one person at a time.</p>"),
+    };
+}

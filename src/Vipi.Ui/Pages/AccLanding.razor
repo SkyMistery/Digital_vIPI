@@ -5,43 +5,44 @@
 @inject IEditAuthorizationService Authz
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
+@inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
     <PageTitle>@_acc.Name · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <b>@_acc.Code</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@_acc.Code</b></div>
         <div class="doc-head">
             <div>
                 <h2 style="margin:0">@_acc.Code — @_acc.Name</h2>
             </div>
-            <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
+            <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         </div>
 
         @{ var a = Acc.ToLowerInvariant(); }
-        <div class="section-title" style="margin-top:18px"><h3>Documenti</h3><span class="ln"></span></div>
+        <div class="section-title" style="margin-top:18px"><h3>@L["AccLanding_Documents"]</h3><span class="ln"></span></div>
         <div class="choice-grid">
             <a class="big-choice nav-card c-vipi" href="/vsop/@a/vipi">
                 <div class="bc-body">
-                    <span class="eyebrow">Documento principale</span>
-                    <h4>vIPI di @_acc.Name</h4>
-                    <span class="muted">Documento di ACC: separazioni, AoR, configurazioni, frequenze, minime e coordinamenti. Include gli APP remotizzati.</span>
+                    <span class="eyebrow">@L["AccLanding_MainDoc"]</span>
+                    <h4>@L["AccLanding_VipiOf", _acc.Name]</h4>
+                    <span class="muted">@L["AccLanding_VipiDesc"]</span>
                 </div>
-                <span class="bc-open">Apri</span>
+                <span class="bc-open">@L["Common_Open"]</span>
             </a>
 
             <div class="choice nav-card c-air">
-                <a class="nav-head" href="/vsop/@a/airports"><h4>Aeroporti</h4><span class="count">@_airportsTotal</span></a>
-                <p class="muted">vIPI dei singoli aeroporti sotto la ACC.</p>
+                <a class="nav-head" href="/vsop/@a/airports"><h4>@L["AccLanding_Airports"]</h4><span class="count">@_airportsTotal</span></a>
+                <p class="muted">@L["AccLanding_AirportsDesc"]</p>
                 <ul class="linklist">
                     @if (_airports.Count == 0)
                     {
-                        <li class="empty"><span class="muted">Nessun aeroporto</span></li>
+                        <li class="empty"><span class="muted">@L["Common_NoAirport"]</span></li>
                     }
                     else
                     {
@@ -51,16 +52,16 @@ else
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/airports">Vedi tutti</a>
+                <a class="see-all" href="/vsop/@a/airports">@L["Common_SeeAll"]</a>
             </div>
 
             <div class="choice nav-card c-app">
-                <a class="nav-head" href="/vsop/@a/apps"><h4>Avvicinamenti non remotizzati</h4><span class="count">@_appsTotal</span></a>
-                <p class="muted">APP con documentazione propria.</p>
+                <a class="nav-head" href="/vsop/@a/apps"><h4>@L["AccLanding_Apps"]</h4><span class="count">@_appsTotal</span></a>
+                <p class="muted">@L["AccLanding_AppsDesc"]</p>
                 <ul class="linklist">
                     @if (_apps.Count == 0)
                     {
-                        <li class="empty"><span class="muted">Nessun APP non remotizzato</span></li>
+                        <li class="empty"><span class="muted">@L["Common_NoApp"]</span></li>
                     }
                     else
                     {
@@ -70,16 +71,16 @@ else
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/apps">Vedi tutti</a>
+                <a class="see-all" href="/vsop/@a/apps">@L["Common_SeeAll"]</a>
             </div>
 
             <div class="choice nav-card c-vloa">
                 <a class="nav-head" href="/vsop/@a/vloa"><h4>vLoA</h4><span class="count">@_vloasTotal</span></a>
-                <p class="muted">Lettere di accordo con i centri confinanti.</p>
+                <p class="muted">@L["AccLanding_VloaDesc"]</p>
                 <ul class="linklist">
                     @if (_vloas.Count == 0)
                     {
-                        <li class="empty"><span class="muted">Nessuna vLoA</span></li>
+                        <li class="empty"><span class="muted">@L["Common_NoVloa"]</span></li>
                     }
                     else
                     {
@@ -89,19 +90,19 @@ else
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/vloa">Vedi tutte</a>
+                <a class="see-all" href="/vsop/@a/vloa">@L["Common_SeeAllF"]</a>
             </div>
         </div>
 
-        <div class="section-title"><h3>Vista operativa</h3><span class="ln"></span></div>
+        <div class="section-title"><h3>@L["AccLanding_OpsView"]</h3><span class="ln"></span></div>
         <div class="choice-grid">
             <a class="big-choice nav-card c-vipi" href="/vsop/@a/operativa">
                 <div class="bc-body">
                     <span class="eyebrow">⚡ Live</span>
-                    <h4>Vista operativa di @_acc.Name</h4>
-                    <span class="muted">Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</span>
+                    <h4>@L["AccLanding_OpsViewOf", _acc.Name]</h4>
+                    <span class="muted">@L["AccLanding_OpsViewDesc"]</span>
                 </div>
-                <span class="bc-open">Apri</span>
+                <span class="bc-open">@L["Common_Open"]</span>
             </a>
         </div>
 
@@ -109,7 +110,7 @@ else
         {
             <div class="section-title"><h3>Admin</h3><span class="ln"></span></div>
             <div class="choice-grid">
-                <a class="choice nav-card c-admin" href="/vsop/admin/trasferimenti"><div class="nav-head"><h4>Trasferimenti</h4></div><p class="muted">Flussi e punti di coordinamento (pagina admin).</p></a>
+                <a class="choice nav-card c-admin" href="/vsop/admin/trasferimenti"><div class="nav-head"><h4>@L["Home_TransfersTitle"]</h4></div><p class="muted">@L["AccLanding_TransfersAdminDesc"]</p></a>
             </div>
         }
     </div>
@@ -144,16 +145,22 @@ else
             var airports = data.Airports.Where(x => x.IsPublic && publishedApts.Contains(x.Icao)).ToList();
             // APP: solo non remotizzati (Standalone) e pubblicati (non nascosti), con collasso d'albero (solo l'antenato).
             var apps = StandaloneApps(data.Sectors, managed, _acc.Code);
+            // vLOA: solo quelle con release AIRAC effettiva e non nascoste (stessa regola di aeroporti/APP, doc 10 §3f).
+            var publishedVloas = managed
+                .Where(m => m.Kind == ManagedDocKind.Vloa && m.HasEffectiveRelease && !m.IsHidden && m.DocumentId is not null)
+                .Select(m => m.DocumentId!.Value)
+                .ToHashSet();
+            var vloas = data.Vloas.Where(v => publishedVloas.Contains(v.DocId)).ToList();
             _airportsTotal = airports.Count;
             _appsTotal = apps.Count;
-            _vloasTotal = data.Vloas.Count;
+            _vloasTotal = vloas.Count;
             _airports = airports
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Icao)
                 .Take(3).ToList();
             _apps = apps
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Callsign)
                 .Take(3).ToList();
-            _vloas = data.Vloas
+            _vloas = vloas
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Title)
                 .Take(3).ToList();
         }

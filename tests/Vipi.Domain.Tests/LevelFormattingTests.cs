@@ -9,20 +9,34 @@ public class LevelFormattingTests
     [Fact]
     public void Any_parity_has_no_suffix()
     {
-        Assert.Equal("FL130↓",
+        // Il vincolo ≤ è reso col segno «-» (NON con una freccia: la freccia ora indica lo stato verticale).
+        Assert.Equal("FL130-",
             LevelFormatting.Format(130, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Any));
-        // default del parametro = Any (compatibilità chiamate a 4 argomenti).
-        Assert.Equal("FL130↓",
+        // default dei parametri = Any/Unspecified (compatibilità chiamate a 4 argomenti).
+        Assert.Equal("FL130-",
             LevelFormatting.Format(130, LevelUnit.Fl, LevelConstraint.AtOrBelow, null));
     }
 
     [Theory]
-    [InlineData(LevelParity.Even, "FL290↑ (pari)")]
-    [InlineData(LevelParity.Odd, "FL290↑ (dispari)")]
+    [InlineData(LevelParity.Even, "FL290+ (pari)")]
+    [InlineData(LevelParity.Odd, "FL290+ (dispari)")]
     public void Even_odd_append_suffix(LevelParity parity, string expected)
     {
+        // ≥ → segno «+».
         Assert.Equal(expected,
             LevelFormatting.Format(290, LevelUnit.Fl, LevelConstraint.AtOrAbove, null, parity));
+    }
+
+    [Theory]
+    [InlineData(TransferVerticalState.Descending, "FL130- ↓")]
+    [InlineData(TransferVerticalState.Climbing, "FL130- ↑")]
+    [InlineData(TransferVerticalState.Level, "FL130-")]        // stabile: nessuna freccia
+    [InlineData(TransferVerticalState.Unspecified, "FL130-")]  // non specificato: nessuna freccia
+    public void Vertical_state_appends_arrow_independent_of_constraint(TransferVerticalState state, string expected)
+    {
+        // Vincolo ≤ (→ «-») + stato verticale (→ freccia): due dimensioni indipendenti, entrambe nel testo.
+        Assert.Equal(expected,
+            LevelFormatting.Format(130, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Any, state));
     }
 
     [Fact]

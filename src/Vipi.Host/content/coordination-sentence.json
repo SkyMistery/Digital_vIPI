@@ -7,10 +7,9 @@
     "airportArrival": "con destinazione {name} {icao}",
     "airportDeparture": "in partenza da {name} {icao}",
     "stato": {
-      "atOrBelow": "in discesa",
-      "atOrAbove": "in salita",
-      "exact": "stabile",
-      "special": ""
+      "descending": "in discesa",
+      "climbing": "in salita",
+      "level": "stabile"
     },
     "fallbackMissingPoint": "—"
   }

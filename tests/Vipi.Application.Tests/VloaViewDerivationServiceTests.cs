@@ -63,8 +63,5 @@ public class VloaViewDerivationServiceTests
         public Task<VloaCoordination> DeriveCoordinationAsync(int docId, CancellationToken ct = default) => Task.FromResult(VloaCoordination.Empty);
         public Task ToggleAorSectorAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
         public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
-        public Task ToggleSectionAsync(int docId, string sectionTitle, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<IReadOnlyList<string>> GetHiddenSectionsAsync(int docId, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
     }
 }

@@ -2,17 +2,21 @@
    aver reso stantii FREQUENZE/AoR/CONFIGURAZIONI: si mostra il motivo e un pulsante per sciogliere la revisione una
    volta rivisto. Componente autonomo: passa il DocumentId, interroga lo stato e lo scioglie da sé. *@
 @using Vipi.Application.Content
-@inject IDocumentReviewService Review
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
+@inject IStringLocalizer<SharedResource> L
+@* Review risolto dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second operation"
+   quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. Vedi [[EditLockBar]]. *@
 
 @if (_state?.NeedsReviewUtc is not null)
 {
     <div class="callout warning" style="align-items:center">
         <span class="cic">⚠️</span>
         <div style="flex:1">
-            <p class="ct">Revisione consigliata</p>
-            @(_state.ReviewReason ?? "Contenuti derivati potenzialmente stantii.")
+            <p class="ct">@L["Review_Recommended"]</p>
+            @(_state.ReviewReason ?? L["Review_DefaultReason"].Value)
         </div>
-        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="Segna il documento come rivisto">✓ Segna come rivista</button>
+        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="@L["Review_MarkTitle"]">✓ @L["Review_MarkReviewed"]</button>
     </div>
 }
 
@@ -25,6 +29,11 @@
     private DocumentReviewState? _state;
     private int? _loadedFor;
     private bool _busy;
+
+    // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
+    private IDocumentReviewService Review = default!;
+    protected override void OnInitialized()
+        => Review = ScopedServices.GetRequiredService<IDocumentReviewService>();
 
     protected override async Task OnParametersSetAsync()
     {

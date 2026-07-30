@@ -15,6 +15,10 @@ public interface IAirportSectorService
     /// <summary>Importa/aggiorna dalla sorgente i settori ATC dell'aeroporto (incl. APP). ACC-gated.</summary>
     Task<AirportSectorImportResult> ImportFromSourceAsync(string icao, CancellationToken ct = default);
 
+    /// <summary>Applica alle TWR dell'aeroporto senza poligono le shape REALI da GitHub (twrs.tfl). ACC-gated;
+    /// riproietta. Ritorna il numero di shape applicate.</summary>
+    Task<int> ApplyGithubTwrShapesAsync(string icao, CancellationToken ct = default);
+
     /// <summary>Mostra/nasconde un settore ATC d'aeroporto. ACC-gated.</summary>
     Task SetHiddenAsync(int id, bool hidden, CancellationToken ct = default);
 

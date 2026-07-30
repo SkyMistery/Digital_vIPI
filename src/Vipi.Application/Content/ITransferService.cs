@@ -21,4 +21,7 @@ public interface ITransferService
 
     /// <summary>Sposta un punto su/giù nel suo flusso (scambio Order col vicino). No-op agli estremi.</summary>
     Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default);
+
+    /// <summary>Sposta un punto in cima o in fondo al suo flusso (ricompattando gli Order).</summary>
+    Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default);
 }

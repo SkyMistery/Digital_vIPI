@@ -41,7 +41,7 @@ public sealed class SidImportHostedService : BackgroundService
         var icaos = await repo.ListAirportIcaosAsync(ct);
         if (icaos.Count == 0) return false;   // aeroporti non ancora importati: non "consumare" il gate, riprova a breve
 
-        int airports = 0, sids = 0;
+        int airports = 0, sids = 0, failed = 0;
         foreach (var icao in icaos)
         {
             try
@@ -49,9 +49,21 @@ public sealed class SidImportHostedService : BackgroundService
                 var n = await importer.ImportAsync(icao, ct);
                 if (n > 0) { airports++; sids += n; }
             }
-            catch (Exception ex) { _log.LogDebug(ex, "Import SID {Icao} saltato.", icao); }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                // Warning, non Debug: a Debug un fallimento per-aeroporto era invisibile in produzione, e ha
+                // tenuto nascosto per cicli interi un import rotto sugli scali principali (vedi la nota in
+                // EfAirportRepository.ReplaceImportedSidsAsync sulle revisioni con StableKey condivisa).
+                failed++;
+                _log.LogWarning(ex, "Import SID {Icao} fallito; gli altri aeroporti proseguono.", icao);
+            }
         }
-        _log.LogInformation("Import SID automatico: {Airports} aeroporti, {Sids} SID.", airports, sids);
+        if (failed > 0)
+            _log.LogWarning("Import SID automatico: {Airports} aeroporti, {Sids} SID, {Failed} FALLITI su {Total}.",
+                airports, sids, failed, icaos.Count);
+        else
+            _log.LogInformation("Import SID automatico: {Airports} aeroporti, {Sids} SID.", airports, sids);
         return true;
     }
 }

@@ -15,6 +15,10 @@ public sealed record NeighbourCandidateUpsert(
 /// <summary>Catalogo di un ACC estero confinante da persistire (Acc + subcenter confinanti), per l'import.</summary>
 public sealed record ForeignAccImport(string Code, string Name, IReadOnlyList<SourceSubcenter> Subcenters);
 
+/// <summary>Proprietario catalogato di un callsign (ACC di appartenenza + se nascosto), per il guard anti-collisione
+/// dell'aggiunta manuale di settori esteri: un callsign non può essere spostato sotto un altro ACC.</summary>
+public sealed record SectorOwner(string AccCode, bool IsHidden);
+
 /// <summary>
 /// Persistenza dei candidati vLOA confinanti: legge i settori ACC domestici (con poligono) per l'adiacenza,
 /// fa staging delle coppie proposte, e — alla conferma — materializza ACC/settore esteri e genera la vLOA.
@@ -42,6 +46,10 @@ public interface INeighbourRepository
 
     /// <summary>Aggiunge a mano una coppia confinante (fallback: IVAO senza dati/poligono). Chiave (Home,Foreign) unica.</summary>
     Task<int> AddManualAsync(NeighbourCandidateUpsert item, CancellationToken ct = default);
+
+    /// <summary>Trova l'ACC proprietario di un callsign già catalogato (cerca in <c>AccSector</c> e <c>AirportSector</c>);
+    /// null se il callsign è libero. Usato dal guard dell'aggiunta manuale di settori esteri (no hijack/duplicati).</summary>
+    Task<SectorOwner?> FindSectorOwnerAsync(string callsign, CancellationToken ct = default);
 
     /// <summary>Materializza ACC+settore esteri e crea la vLOA bilaterale (Home=settore radice domestico,
     /// Neighbour=settore estero). Idempotente: se la coppia ha già una vLOA, ritorna quella. Ritorna l'Id doc.</summary>

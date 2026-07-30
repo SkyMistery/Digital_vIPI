@@ -30,8 +30,10 @@ public interface IAirportRepository
     /// Priority e ForcePublished per StableKey. Le righe manuali restano intatte.</summary>
     Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default);
 
-    /// <summary>Aggiorna i campi editabili di UNA riga SID importata (priorità, forzatura pubblicazione, fix risolto a mano).</summary>
-    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix, CancellationToken ct = default);
+    /// <summary>Aggiorna i campi editabili di UNA riga SID importata: priorità, forzatura pubblicazione, fix risolto a
+    /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.</summary>
+    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
     Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
@@ -45,6 +47,9 @@ public interface IAirportRepository
 
     /// <summary>Rigenera in-place le sezioni gestite del documento dell'aeroporto dalle entità, preservando le altre. Ritorna l'id documento.</summary>
     Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>Id del Document proiettato dell'aeroporto (via settori d'aeroporto con <c>DocumentId</c>), o null se non ancora generato.</summary>
+    Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
 
     /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c). Default <see cref="RenderMode.Live"/>
     /// se il documento/sezione non esistono ancora.</summary>

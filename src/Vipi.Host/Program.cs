@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.ResponseCompression;
+﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
+using Vipi.Host;
+using Vipi.Host.Auth;
 using Vipi.Host.Components;
 using Vipi.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// File editabile (default globale) della frase di coordinamento. reloadOnChange: l'autore edita senza restart.
-builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: true);
+// File (default globale) della frase di coordinamento. reloadOnChange:false — il FileSystemWatcher esaurirebbe
+// le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).
+builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: false);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -20,16 +24,45 @@ builder.Services.AddResponseCompression(o =>
     o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
 });
 
+// Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
+// Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
+var authEnabled = builder.AddVipiStandaloneAuth();
+
+// Persistenza chiavi Data Protection su DB (solo Postgres): antiforgery/cookie sopravvivono ai redeploy
+// sul container effimero di Render. No-op in dev (SQLite → file-store di default). Vedi VipiDataProtection.cs.
+builder.AddVipiDataProtection();
+
 // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
 // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
-builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.Environment.IsDevelopment());
+// Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).
+var useDevIdentity = builder.Environment.IsDevelopment() && !authEnabled;
+// Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development.
+Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
+builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
 var app = builder.Build();
 
+// Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
+// UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownNetworks/Proxies
+// svuotati perché l'IP del proxy non è fisso. Innocuo in locale (gli header non arrivano).
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
+// Crea la tabella delle chiavi Data Protection se manca (idempotente; no-op se il modulo non è attivo).
+app.UseVipiDataProtection();
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
 app.MigrateVipiDatabase();
+// Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
+app.ReconcileVipiDocuments();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
 app.BackfillVipiReleases();
+// Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
+app.PruneVipiReleases();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -52,6 +85,15 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseAntiforgery();
 
+// Auth standalone (scenario C): serve il ClaimsPrincipal alle richieste. Prima di UseVipiModule,
+// così lo StaffLoginTrackingMiddleware vede già l'utente autenticato. Montato solo se attivo.
+if (authEnabled)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapVipiStandaloneAuth();
+}
+
 // Middleware del modulo (registrazione login staff nel roster).
 app.UseVipiModule();
 
@@ -71,3 +113,7 @@ app.MapRazorComponents<App>()
 app.MapVipiModule();
 
 app.Run();
+
+// Punto d'ingresso esposto per i test d'integrazione in-process (WebApplicationFactory<Program>).
+// I top-level statement generano una classe Program internal: questa partial la rende raggiungibile dai test.
+public partial class Program { }

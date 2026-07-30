@@ -24,17 +24,18 @@
             }
         </nav>
         <form class="top-search" action="/vsop/search" method="get" role="search">
-            <span class="ico">🔍</span>
+            <span class="ico"><Icon Name="search" /></span>
             <input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze…" aria-label="Cerca" />
         </form>
         <div class="right">
+            <a class="editor-btn icon-only" href="/vsop/guida" title="Guida" aria-label="Guida"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {
-                <div class="staff-badge" title="Posizione staff">🎖️ @_staff</div>
+                <div class="staff-badge" title="Posizione staff"><Icon Name="award" /> @_staff</div>
             }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
                 <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
-                <span id="vipiZoomPct" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
+                <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="Zoom pagina" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
                 <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
             </div>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
@@ -46,22 +47,30 @@
             }
             else
             {
-                <div class="live-badge" style="background:#eceef5;color:#5b6072;border-color:#d7d7dc">
-                    <span class="dot" style="background:#c3c7d4;animation:none"></span> @L["Chrome_LiveDisconnected"]
+                <div class="live-badge off">
+                    <span class="dot"></span> @L["Chrome_LiveDisconnected"]
                 </div>
             }
             @if (_canEdit)
             {
-                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]">✏️ @L["Chrome_Editor"]</a>
-                <a class="editor-btn" href="/vsop/tasks" title="I miei incarichi">📋 Incarichi</a>
+                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
+                <a class="editor-btn" href="/vsop/tasks" title="I miei incarichi"><Icon Name="clipboard" /> Incarichi</a>
             }
             @if (_isAdmin)
             {
-                <a class="editor-btn icon-only" href="/vsop/admin/permessi" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]">🔑</a>
+                <a class="editor-btn icon-only" href="/vsop/admin/permessi" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]"><Icon Name="key" /></a>
             }
             @if (_user is { } u)
             {
-                <div class="user-chip"><span class="avatar" title="@u.Name">@Initials(u.Name)</span></div>
+                <div class="user-chip">
+                    <span class="avatar" title="@u.Name">@Initials(u.Name)</span>
+                    @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
+                    <a class="editor-btn icon-only" href="/vsop/auth/logout" title="Logout" aria-label="Logout"><Icon Name="log-out" /></a>
+                </div>
+            }
+            else
+            {
+                <a class="editor-btn" href="/vsop/auth/login?returnUrl=/vsop" title="Login IVAO"><Icon Name="log-in" /> Login</a>
             }
         </div>
     </header>

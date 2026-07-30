@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -7,6 +8,16 @@ namespace Vipi.Application.Content;
 /// <inheritdoc cref="ISidImporter"/>
 public sealed class SidImporter : ISidImporter
 {
+    // Serializza gli import sullo stesso aeroporto (job periodico + bottone editor): ReplaceImportedSidsAsync fa
+    // delete+add, quindi due run concorrenti tenterebbero di scrivere due volte le stesse righe.
+    //
+    // ATTENZIONE: è un lock DI PROCESSO, e copre il deploy attuale (Render, istanza singola) ma non due repliche.
+    // Non si può rafforzare con un indice unico su (AirportId, StableKey): quella chiave esclude di proposito la
+    // cifra della revisione ed è legittimamente ripetuta quando il file .sid contiene due revisioni della stessa
+    // SID. Se si passerà a più istanze servirà un lock condiviso (advisory lock DB), non un vincolo di unicità.
+    // Il dizionario è limitato dal numero di aeroporti in catalogo (decine), quindi non richiede sfoltimento.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly ISidProvider _provider;
     private readonly IAirportRepository _repo;
     private readonly IImportPolicyStore _policy;
@@ -34,7 +45,12 @@ public sealed class SidImporter : ISidImporter
             Runway: s.Runway, Fix: s.Fix, Name: s.Name, Transition: s.Transition,
             Type: s.Type, StableKey: s.StableKey, NeedsFixReview: s.NeedsFixReview)).ToList();
 
-        await _repo.ReplaceImportedSidsAsync(icao, rows, cycle, ct);
+        // Solo la scrittura DB è serializzata (il fetch di rete resta concorrente): due run finiscono per riscrivere
+        // gli stessi dati in sequenza (idempotente), senza duplicare righe.
+        var gate = _locks.GetOrAdd(icao, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try { await _repo.ReplaceImportedSidsAsync(icao, rows, cycle, ct); }
+        finally { gate.Release(); }
         return rows.Count;
     }
 }

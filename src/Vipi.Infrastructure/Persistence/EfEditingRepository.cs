@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -111,6 +111,8 @@ public sealed class EfEditingRepository : IEditingRepository
             Depth = s.Depth,
             Order = s.Order,
             RenderMode = s.RenderMode,
+            IsHidden = s.IsHidden,
+            BeforeParentBody = s.BeforeParentBody,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
                 {
@@ -181,6 +183,9 @@ public sealed class EfEditingRepository : IEditingRepository
                     DocumentVersion = draft,
                     ParentSection = s.ParentSectionId is int pid ? map[pid] : null,
                     Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
+                    // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
+                    // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
+                    RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
                     RowVersion = Guid.NewGuid().ToByteArray(),
                 };
                 map[s.Id] = ns;
@@ -262,7 +267,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = "Scopo e validità",
             Order = 1,
             Depth = 0,
-            SectionKey = "custom",
+            SectionKey = SectionKeys.NewCustom(),
             RowVersion = Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync(ct);
@@ -655,6 +660,24 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.BeforeParentBody = before;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.IsHidden = hidden;
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default)
     {
         var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
@@ -691,7 +714,9 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = string.IsNullOrWhiteSpace(title) ? "Nuova sezione" : title.Trim(),
             Order = nextOrder,
             Depth = depth,
-            SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
+            // Sezione libera ⇒ chiave UNIVOCA (doc 11 §3a): con la vecchia costante "custom" due sezioni libere
+            // dello stesso documento collidevano per chi indicizza per chiave (viewer ACC, nascondi APP, anchor).
+            SectionKey = SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(),
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         _db.DocumentSections.Add(section);
@@ -806,6 +831,45 @@ public sealed class EfEditingRepository : IEditingRepository
         });
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> PruneArchivedVersionsAsync(int documentId, int keepN, CancellationToken ct = default)
+    {
+        // Le Archived più recenti prima; salta le keepN da tenere, pota le rimanenti. Current (Published) e Draft escluse.
+        var archivedIds = await _db.DocumentVersions
+            .Where(v => v.DocumentId == documentId && v.Status == DocumentStatus.Archived)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => v.Id)
+            .ToListAsync(ct);
+        var toDelete = archivedIds.Skip(Math.Max(0, keepN)).ToList();
+        if (toDelete.Count == 0) return 0;
+
+        foreach (var versionId in toDelete)
+        {
+            // Ordine esplicito per i FK Restrict (Block→Section, Section→ParentSection self-ref): non affidarsi al
+            // cascade DB. Blocchi → sezioni figli-prima-dei-genitori → versione (stesso pattern di DeleteSectionAsync).
+            var blocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == versionId).ToListAsync(ct);
+            _db.ContentBlocks.RemoveRange(blocks);
+
+            var sections = await _db.DocumentSections.Where(s => s.DocumentVersionId == versionId).ToListAsync(ct);
+            var childrenByParent = sections.Where(s => s.ParentSectionId != null)
+                .GroupBy(s => s.ParentSectionId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var ordered = new List<DocumentSection>();
+            void Collect(DocumentSection s)
+            {
+                if (childrenByParent.TryGetValue(s.Id, out var kids))
+                    foreach (var k in kids) Collect(k);
+                ordered.Add(s); // post-order: figli prima dei genitori
+            }
+            foreach (var root in sections.Where(s => s.ParentSectionId == null)) Collect(root);
+            _db.DocumentSections.RemoveRange(ordered);
+
+            var ver = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == versionId, ct);
+            if (ver is not null) _db.DocumentVersions.Remove(ver);
+            await _db.SaveChangesAsync(ct);
+        }
+        return toDelete.Count;
     }
 
     public async Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default)

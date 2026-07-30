@@ -1,5 +1,10 @@
 # Editor vIPI — APP non remotizzati (mockup 3c)
 
+> ⚠️ **Piano di progetto storico, non descrizione del codice attuale.** Il componente `SectionShell` previsto
+> qui (§ "Componenti", "Resa WYSIWYG") è stato realizzato e poi **abbandonato**: gli editor hanno finito per
+> portare il chrome di sezione al proprio interno, e il file è stato rimosso perché orfano nel cleanup del
+> 2026-07-30. Il drag-and-drop e la toolbar di sezione vivono ora dentro i singoli editor.
+
 ## Context
 Gli APP non remotizzati hanno una vIPI propria. Oggi `AppnPage.razor` (`/vsop/{acc}/apps/vipi`) è un **mockup statico hardcoded** (LIRP) e non esiste un editor dedicato: gli APPn ricadrebbero nell'editor generico per blocchi. Serve un **editor dedicato** (sul modello di `AeroportoEditorPage`) che produca esattamente la schermata 3c del `mockups/vipi-ui-mockup-v2.html`, con 6 sezioni fisse (sempre presenti, riordinabili) + sezioni custom libere. Alcune sezioni sono **derivate live** (si aggiornano da sole quando cambia l'albero/i transfer), altre editoriali.
 

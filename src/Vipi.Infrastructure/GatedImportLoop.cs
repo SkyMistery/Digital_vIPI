@@ -54,7 +54,19 @@ public static class GatedImportLoop
                         .MarkSuccessAsync(category, DateTime.UtcNow, ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
-            catch (Exception ex) { log.LogWarning(ex, "Import {Category} fallito; retry tra {Retry}.", category, retryDelay); }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "Import {Category} fallito; retry tra {Retry}.", category, retryDelay);
+                // Osservabilità: registra il fallimento (scope nuovo, quello del run è già disposto). Best-effort:
+                // se anche la scrittura di stato fallisce, non deve abbattere il loop.
+                try
+                {
+                    using var failScope = scopes.CreateScope();
+                    await failScope.ServiceProvider.GetRequiredService<IImportStateStore>()
+                        .MarkFailureAsync(category, DateTime.UtcNow, ex.Message, ct);
+                }
+                catch (Exception logEx) { log.LogDebug(logEx, "Registrazione fallimento import {Category} non riuscita.", category); }
+            }
 
             var wait = success ? period : retryDelay;
             try { await Task.Delay(wait, ct); }

@@ -4,21 +4,23 @@
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
 @inject IStructureEditingService Struct
+@inject IAirportEditingService AptEdit
 @inject IAirportDirectory AirportDir
 @inject IEditAuthorizationService Authz
 @inject ILogger<AeroportiPage> Logger
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Aeroporti · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Apt_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <a href="/vsop/admin/sectorstructure">Struttura</a> › <b>Aeroporti</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Apt_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Aeroporti</h2><span class="muted">Assegnazione aeroporti IVAO alle ACC, ACC di competenza e gerarchia di settori</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Apt_Title"]</h2><span class="muted">@L["Apt_Subtitle"]</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div>Pagina riservata agli amministratori.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
     else
     {
@@ -28,7 +30,7 @@
         }
         @if (_ok is not null)
         {
-            <div class="callout"><span class="cic">✅</span><div>@_ok</div></div>
+            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
         }
 
         <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
@@ -36,50 +38,58 @@
         <div class="topo-layout">
             @* --- SINISTRA: aeroporti assegnati a una ACC --- *@
             <div class="panel">
-                <div class="section-title"><h3>Assegnati a una ACC <span class="pill blue">@_assigned.Count</span></h3><span class="ln"></span></div>
+                <div class="section-title"><h3>@L["Apt_AssignedTitle"] <span class="pill blue">@_assigned.Count</span></h3><span class="ln"></span>
+                    @if (_assigned.Count > 0)
+                    {
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportAll" title="@L["Apt_ReimportTitle"]">@if (_busy) { <span class="spin"></span> }↻ @L["Apt_ReimportBtn"]</button>
+                    }
+                </div>
                 <div class="block">
                     <div class="se-row">
-                        <input style="flex:1" placeholder="🔎 filtra per ICAO o nome…" @bind="_qAssigned" @bind:event="oninput" />
-                        <select @bind="_filterAcc" title="Filtra per ACC">
-                            <option value="">tutte le ACC</option>
+                        <input style="flex:1" placeholder="@L["Apt_FilterIcaoName"]" @bind="_qAssigned" @bind:event="oninput" />
+                        <select @bind="_filterAcc" title="@L["Apt_FilterAccTitle"]">
+                            <option value="">@L["Apt_AllAccs"]</option>
                             @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                         </select>
                     </div>
                     @if (_assigned.Count == 0)
                     {
-                        <p class="help">Nessun aeroporto assegnato. Assegnane dalla tabella a destra.</p>
+                        <p class="help">@L["Apt_NoAssigned"]</p>
                     }
                     else if (ShownAssigned().Count == 0)
                     {
-                        <p class="help">Nessun risultato@(string.IsNullOrEmpty(_filterAcc) ? "" : $" per ACC {_filterAcc}")@(string.IsNullOrWhiteSpace(_qAssigned) ? "" : $" «{_qAssigned}»").</p>
+                        <p class="help">@NoAssignedResults()</p>
                     }
                     else
                     {
                         @if (_selAssigned.Count > 0)
                         {
                             <div class="bulk-bar">
-                                <b>@_selAssigned.Count selez.</b>
+                                <b>@string.Format(L["Apt_NSelected"].Value, _selAssigned.Count)</b>
                                 <select @bind="_bulkMoveAcc">
-                                    <option value="">sposta in ACC…</option>
+                                    <option value="">@L["Apt_MoveToAcc"]</option>
                                     @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                 </select>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">Sposta</button>
-                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="GenerateDocs" title="Crea i settori DEL/GND/TWR da IVAO e la vIPI aeroporto">@if (_busy) { <span class="spin"></span> }📄 Genera documenti</button>
-                                <button class="btn ghost danger" disabled="@(_busy || !_canEdit)" @onclick="BulkDeleteAssigned">🗑 Elimina selezionati</button>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selAssigned.Clear()">deseleziona</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">@L["Apt_Move"]</button>
+                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="GenerateDocs" title="@L["Apt_GenDocsTitle"]">@if (_busy) { <span class="spin"></span> }<Icon Name="file" /> @L["Apt_GenDocs"]</button>
+                                <InlineConfirm TriggerClass="btn ghost danger" AriaLabel="@L["Apt_DeleteSelectedAria"]"
+                                               Prompt="@(string.Format(L["Apt_DeleteSelectedPrompt"].Value, _selAssigned.Count))" Disabled="@(_busy || !_canEdit)" OnConfirm="BulkDeleteAssigned">
+                                    <Trigger><Icon Name="trash" /> @L["Apt_DeleteSelected"]</Trigger>
+                                </InlineConfirm>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selAssigned.Clear()">@L["Apt_Deselect"]</button>
                             </div>
                         }
                         <table class="res-table">
                             <thead><tr>
                                 <th class="col-chk"><input type="checkbox" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
-                                <th class="col-icao">ICAO</th><th>ACC</th><th>Settori</th><th>Stato</th><th></th>
+                                <th class="col-icao">ICAO</th><th>ACC</th><th>@L["Apt_ColSectors"]</th><th>@L["Common_State"]</th><th></th>
                             </tr></thead>
                             <tbody>
                                 @foreach (var a in ShownAssigned())
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
                                         <td class="col-chk"><input type="checkbox" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
-                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Apri editor aeroporto @a.Icao"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
+                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
                                         <td>
                                             <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
@@ -92,30 +102,31 @@
                                             @a.Sectors
                                             @if (!a.HasTower)
                                             {
-                                                <span class="pill" style="background:#ffe9c7;color:#9a6700;margin-left:6px" title="Ogni aeroporto deve avere almeno una torre (TWR o I_TWR). Genera i documenti o aggiungi la torre dalla pagina Struttura.">⚠ no TWR</span>
+                                                <span class="pill" style="background:#ffe9c7;color:#9a6700;margin-left:6px" title="@L["Apt_NoTwrTitle"]">⚠ @L["Apt_NoTwr"]</span>
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
                                             @if (a.Sectors == 0)
                                             {
-                                                <span class="pill" style="background:#eee;color:#666" title="Nascosto di default: l'aeroporto non ha nemmeno un settore, la pagina pubblica resta inaccessibile finché non genera i documenti.">🚫 nascosto (no settori)</span>
+                                                <span class="pill" style="background:#eee;color:#666" title="@L["Apt_HiddenNoSectorsTitle"]">🚫 @L["Apt_HiddenNoSectors"]</span>
                                             }
                                             else if (a.IsHidden)
                                             {
-                                                <span class="pill" style="background:#ffe0e0;color:#b42318" title="Nascosto dall'admin: pagina pubblica inaccessibile.">🙈 nascosto</span>
+                                                <span class="pill" style="background:#ffe0e0;color:#b42318" title="@L["Apt_HiddenAdminTitle"]">🙈 @L["Apt_HiddenState"]</span>
                                             }
                                             else
                                             {
-                                                <span class="pill" style="background:#dafbe7;color:#1a7f37" title="Visibile al pubblico.">👁 visibile</span>
+                                                <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["Apt_VisibleTitle"]">👁 @L["Apt_Visible"]</span>
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
-                                            <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="Editor profilo aeroporto">✎</a>
+                                            <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@L["Apt_EditorProfileTitle"]">✎</a>
                                             @if (a.Sectors > 0)
                                             {
-                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? "Mostra l'aeroporto al pubblico" : "Nascondi l'aeroporto: la sua pagina diventa inaccessibile al pubblico")">@(a.IsHidden ? "👁 Mostra" : "🙈 Nascondi")</button>
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? L["Apt_ShowTitle"] : L["Apt_HideTitle"])"><Icon Name="@(a.IsHidden ? "eye" : "eye-off")" /> @(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button>
                                             }
-                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => Remove(a.Id, a.AccCode)" title="Solo se senza settori">🗑</button>
+                                            <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Apt_DeleteAria"]" TriggerTitle="@L["Apt_DeleteTriggerTitle"]"
+                                                           Disabled="@(_busy || !_canEdit)" OnConfirm="() => Remove(a.Id, a.AccCode)"><Trigger><Icon Name="trash" /></Trigger></InlineConfirm>
                                         </td>
                                     </tr>
                                 }
@@ -127,47 +138,47 @@
 
             @* --- DESTRA: anagrafica aeroporti IVAO (DB) --- *@
             <div class="panel">
-                <div class="section-title"><h3>Anagrafica IVAO <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
+                <div class="section-title"><h3>@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
                     @if (_ivao is not null)
                     {
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="AutoAssign" title="Assegna gli aeroporti IVAO alla ACC di competenza già esistente e importa i loro settori dalla sorgente">@if (_busy) { <span class="spin"></span> }⟳ Auto-assegna noti</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="AutoAssign" title="@L["Apt_AutoAssignTitle"]">@if (_busy) { <span class="spin"></span> }⟳ @L["Apt_AutoAssignBtn"]</button>
                     }
                 </div>
                 <div class="block">
                     @if (_ivaoErr is not null)
                     {
-                        <div class="callout warning" style="margin-top:0"><span class="cic">🔒</span><div>Anagrafica IVAO non disponibile: @_ivaoErr</div></div>
+                        <div class="callout warning" style="margin-top:0"><span class="cic">🔒</span><div>@L["Apt_IvaoUnavailable"] @_ivaoErr</div></div>
                     }
                     else if (_ivao is null)
                     {
-                        <p class="help">Carico l'anagrafica aeroporti da IVAO…</p>
+                        <p class="help">@L["Apt_LoadingIvao"]</p>
                     }
                     else
                     {
-                        <p class="muted" style="font-size:11.5px;margin:0 0 8px">In <span style="color:#1a7f37;font-weight:700">verde</span> gli aeroporti già assegnati. «Auto-assegna noti» crea quelli con ACC di competenza già presente nel DB; per gli altri scegli la ACC e premi «assegna».</p>
-                        <div class="field"><input placeholder="🔎 filtra per ICAO o nome…" @bind="_qIvao" @bind:event="oninput" /></div>
+                        <p class="muted" style="font-size:11.5px;margin:0 0 8px">@((MarkupString)L["Apt_IvaoIntro"].Value)</p>
+                        <div class="field"><input placeholder="@L["Apt_FilterIcaoName"]" @bind="_qIvao" @bind:event="oninput" /></div>
                         @if (!_ivao.Any(a => Match(a.Icao, a.Name, _qIvao)))
                         {
-                            <p class="help">Nessun risultato per «@_qIvao».</p>
+                            <p class="help">@(string.Format(L["Apt_NoResultsFor"].Value, _qIvao))</p>
                         }
                         else
                         {
                             @if (_selIvao.Count > 0)
                             {
                                 <div class="bulk-bar">
-                                    <b>@_selIvao.Count selez.</b>
+                                    <b>@string.Format(L["Apt_NSelected"].Value, _selIvao.Count)</b>
                                     <select @bind="_bulkAssignAcc">
-                                        <option value="">assegna a ACC…</option>
+                                        <option value="">@L["Apt_AssignToAcc"]</option>
                                         @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                     </select>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">Assegna selezionati</button>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selIvao.Clear()">deseleziona</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">@L["Apt_AssignSelected"]</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selIvao.Clear()">@L["Apt_Deselect"]</button>
                                 </div>
                             }
                             <table class="res-table">
                                 <thead><tr>
                                     <th class="col-chk"><input type="checkbox" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
-                                    <th class="col-icao">ICAO</th><th>ACC da DB</th><th>Assegnazione</th>
+                                    <th class="col-icao">ICAO</th><th>@L["Apt_ColAccFromDb"]</th><th>@L["Apt_ColAssignment"]</th>
                                 </tr></thead>
                                 <tbody>
                                     @foreach (var ap in ShownIvao())
@@ -193,10 +204,10 @@
                                                     var pick = _assignAcc.GetValueOrDefault(ap.Icao, "");
                                                     <div class="assign-cell">
                                                         <select disabled="@(_busy || !_canEdit)" value="@pick" @onchange="e => SetAssignAcc(ap.Icao, e.Value?.ToString())">
-                                                            <option value="">ACC…</option>
+                                                            <option value="">@L["Apt_AccOption"]</option>
                                                             @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
                                                         </select>
-                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">assegna</button>
+                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">@L["Apt_Assign"]</button>
                                                     </div>
                                                 }
                                             </td>
@@ -280,6 +291,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private string NoAssignedResults() =>
+        L["Apt_NoResults"].Value
+        + (string.IsNullOrEmpty(_filterAcc) ? "" : string.Format(L["Apt_NoResultsAccPart"].Value, _filterAcc))
+        + (string.IsNullOrWhiteSpace(_qAssigned) ? "" : string.Format(L["Apt_NoResultsQPart"].Value, _qAssigned))
+        + ".";
+
     private static bool Match(string icao, string name, string q) =>
         string.IsNullOrWhiteSpace(q)
         || icao.Contains(q, StringComparison.OrdinalIgnoreCase)
@@ -314,9 +331,9 @@
         foreach (var f in r.Failures)
             Logger.LogWarning(f.Error, "Import settori aeroporto {Icao} saltato in auto-assegnazione.", f.Icao);
         _ok = r.Assigned == 0
-            ? "Nessun aeroporto da assegnare (già tutti presenti o ACC non create)."
-            : $"Assegnati {r.Assigned} aeroporti alla ACC di competenza (settori importati dalla sorgente)."
-              + (r.Failures.Count > 0 ? $" {r.Failures.Count} aeroporti saltati (dettaglio nei log)." : "");
+            ? L["Apt_AutoAssignNone"].Value
+            : L["Apt_AutoAssignOk", r.Assigned].Value
+              + (r.Failures.Count > 0 ? L["Apt_AutoAssignSkipped", r.Failures.Count].Value : "");
     });
 
     private Task ChangeAcc(int id, string fromAcc, string? toAcc) =>
@@ -339,7 +356,7 @@
 
     private Task BulkMoveAssigned() => RunBulk(async () =>
     {
-        if (string.IsNullOrEmpty(_bulkMoveAcc)) { _msg = "Scegli la ACC di destinazione."; return; }
+        if (string.IsNullOrEmpty(_bulkMoveAcc)) { _msg = L["Apt_ChooseTargetAcc"]; return; }
         var target = _bulkMoveAcc;
         int ok = 0, fail = 0;
         foreach (var id in _selAssigned.ToList())
@@ -350,7 +367,7 @@
             catch { fail++; }
         }
         _selAssigned.Clear(); _bulkMoveAcc = "";
-        _ok = $"Spostati {ok} aeroporti in {target}" + (fail > 0 ? $", {fail} non spostati." : ".");
+        _ok = L["Apt_MovedOk", ok, target].Value + (fail > 0 ? L["Apt_MovedFail", fail].Value : ".");
     });
 
     private Task GenerateDocs() => RunBulk(async () =>
@@ -368,9 +385,22 @@
             catch { fail++; }
         }
         _selAssigned.Clear();
-        _ok = $"Documenti aeroporto generati: {created} (settori creati {sectors})"
-            + (skipped > 0 ? $", {skipped} già esistenti" : "")
-            + (fail > 0 ? $", {fail} falliti" : "") + ".";
+        _ok = L["Apt_DocsGenerated", created, sectors].Value
+            + (skipped > 0 ? L["Apt_DocsSkipped", skipped].Value : "")
+            + (fail > 0 ? L["Apt_DocsFailed", fail].Value : "") + ".";
+    });
+
+    // Re-import da IVAO (piste + Transition Altitude) per TUTTI gli aeroporti assegnati: una chiamata sorgente per
+    // aeroporto (best-effort, prosegue oltre i fallimenti). Rispetta la policy import (categorie escluse = nessun tocco).
+    private Task ReimportAll() => RunBulk(async () =>
+    {
+        int ok = 0, fail = 0;
+        foreach (var a in _assigned.ToList())
+        {
+            try { await AptEdit.ReimportFromSourceAsync(a.Icao); ok++; }
+            catch { fail++; }
+        }
+        _ok = L["Apt_ReimportOk", ok].Value + (fail > 0 ? L["Apt_ReimportFail", fail].Value : ".");
     });
 
     private Task BulkDeleteAssigned() => RunBulk(async () =>
@@ -384,12 +414,12 @@
             catch { fail++; }
         }
         _selAssigned.Clear();
-        _ok = $"Eliminati {ok} aeroporti" + (fail > 0 ? $", {fail} non eliminati (settori collegati)." : ".");
+        _ok = L["Apt_DeletedOk", ok].Value + (fail > 0 ? L["Apt_DeletedFail", fail].Value : ".");
     });
 
     private Task BulkAssignIvao() => RunBulk(async () =>
     {
-        if (string.IsNullOrEmpty(_bulkAssignAcc)) { _msg = "Scegli la ACC."; return; }
+        if (string.IsNullOrEmpty(_bulkAssignAcc)) { _msg = L["Apt_ChooseAcc"]; return; }
         var target = _bulkAssignAcc;
         int ok = 0, fail = 0;
         foreach (var icao in _selIvao.ToList())
@@ -400,6 +430,6 @@
             catch { fail++; }
         }
         _selIvao.Clear(); _bulkAssignAcc = "";
-        _ok = $"Assegnati {ok} aeroporti a {target}" + (fail > 0 ? $", {fail} non assegnati." : ".");
+        _ok = L["Apt_AssignedOk", ok, target].Value + (fail > 0 ? L["Apt_AssignedFail", fail].Value : ".");
     });
 }

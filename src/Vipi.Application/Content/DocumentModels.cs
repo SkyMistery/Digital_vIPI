@@ -24,6 +24,13 @@ public sealed class RawSection
     /// congelare/leggere-frozen (Frozen) o derivare live (Live). Default Frozen per retro-compat degli snapshot vecchi.</summary>
     public RenderMode RenderMode { get; init; } = RenderMode.Frozen;
 
+    /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c): viaggia nello snapshot, così la release
+    /// congela anche la scelta di nascondere.</summary>
+    public bool IsHidden { get; init; }
+
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g). Viaggia nello snapshot con gli altri flag.</summary>
+    public bool BeforeParentBody { get; init; }
+
     public List<RawBlock> Blocks { get; init; } = new();
     public List<RawSection> Children { get; init; } = new();
 }
@@ -57,6 +64,14 @@ public sealed class SectionView
     public required string Title { get; init; }
     public required int Depth { get; init; }
     public required string SectionKey { get; init; }
+
+    /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c). I viewer la omettono in pubblica/release e la
+    /// marcano in anteprima bozza.</summary>
+    public bool IsHidden { get; init; }
+
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g).</summary>
+    public bool BeforeParentBody { get; init; }
+
     public required IReadOnlyList<BlockView> Blocks { get; init; }
     public required IReadOnlyList<SectionView> Children { get; init; }
 }

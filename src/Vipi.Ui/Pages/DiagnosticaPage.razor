@@ -1,0 +1,71 @@
+@page "/vsop/admin/diagnostica"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Diagnostics
+@using Vipi.Application.Auth
+@inject IConsistencyReportService Consistency
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Diag_Title"] · IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <b>@L["Diag_Title"]</b></div>
+    <div class="doc-head">
+        <div><h2 style="margin-bottom:2px">@L["Diag_Title"]</h2><span class="muted">@L["Diag_Subtitle"]</span></div>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
+    }
+    else if (_loading)
+    {
+        <div class="help">@L["Diag_Analyzing"]</div>
+    }
+    else if (_findings.Count == 0)
+    {
+        <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@L["Diag_NoIssues"]</div></div>
+    }
+    else
+    {
+        <div class="callout warning">
+            <span class="cic">⚠️</span>
+            <div>@((MarkupString)string.Format(L["Diag_IssuesFound"], _findings.Count, _findings.Count(f => f.Severity == ConsistencySeverity.Error)))</div>
+        </div>
+
+        <table class="res-table" style="max-width:1000px">
+            <thead><tr><th>@L["Diag_Severity"]</th><th>@L["Diag_Category"]</th><th>@L["Diag_Entity"]</th><th>@L["Diag_Detail"]</th></tr></thead>
+            <tbody>
+                @foreach (var f in _findings)
+                {
+                    <tr>
+                        <td>
+                            @if (f.Severity == ConsistencySeverity.Error)
+                            { <span class="node-badge danger">@L["Diag_Severe"]</span> }
+                            else
+                            { <span class="node-badge">@L["Diag_Warning"]</span> }
+                        </td>
+                        <td><b>@f.Category</b></td>
+                        <td>@f.Entity</td>
+                        <td class="muted">@f.Detail</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<ConsistencyFinding> _findings = Array.Empty<ConsistencyFinding>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) { _loading = false; return; }
+        // Grave prima, poi per categoria: la lista più urgente in cima.
+        var all = await Consistency.RunAsync();
+        _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
+        _loading = false;
+    }
+}

@@ -406,3 +406,353 @@ confermati a mano dall'owner). Carta: `docs/refactor/10-snapshot-totale-e-render
 - **S6** **visibilità pubblica = release effettiva** (rimosso il fallback live alla versione pubblicata su tutte e 4 le famiglie; ACC senza guscio sintetico) + **migrazione A** (`BackfillMissingReleasesAsync`, al boot dopo `MigrateVipiDatabase`): copia statica per i Published senza release, idempotente → nessun buco pubblico.
 - **Gate liste pubbliche** (AccLanding/AeroportoPage/AccOperativaPage): da `Status==Published` a `HasEffectiveRelease && !IsHidden` (nuovo `ManagedDoc.HasEffectiveRelease`, batch in `EfDocumentAdminRepository.ListAsync`) = stesso predicato del viewer.
 - **Note:** overlay runtime (online settori, meteo/pista) sempre live sopra il congelato. Caveat accettato: AIRAC misto in pagina (sezione Live di ciclo diverso).
+
+## Feature: retention pubblicazione (anti-bloat) (2026-07-20)
+Il flusso di pubblicazione (doc 09/10) non potava mai nulla → crescita illimitata del DB su cicli AIRAC ricorrenti.
+Due vettori: (1) ogni publish inserisce una riga `DocRelease` con lo snapshot JSON totale (post doc 10) e le vecchie
+diventano solo `Superseded`, mai cancellate; (2) ogni publish archivia la versione pubblicata precedente
+(`DocumentVersion` `Archived`) con tutte le sezioni/blocchi, tenute per sempre (ridondanti: la release porta già la
+fotografia). Retention additiva, nessun cambio schema. Segue `FEATURE-PROCESS.md`.
+- **`ReleaseRetentionOptions`** (sezione `ReleaseRetention` di appsettings, in `Vipi.Application`): `KeepSupersededWithinCycles`
+  (default 13 ≈ 1 anno AIRAC), `KeepArchivedVersionsPerDocument` (default 3). Registrata in `VipiModuleExtensions`.
+- **`IReleaseRepository.PruneReleasesAsync(type,key,keepFromUtc)`**: elimina le release `Superseded` con
+  `ReleaseEffectiveUtc < keepFromUtc`. `Effective`/`Scheduled` mai toccate (stato diverso). La soglia la calcola
+  `ReleaseService` via `IAiracService` (data efficace del ciclo corrente − N cicli), non il repo.
+- **`IEditingRepository.PruneArchivedVersionsAsync(documentId,keepN)`**: pota le versioni `Archived` oltre le più recenti
+  `keepN`, cancellando blocchi → sezioni (post-order) → versione in ordine esplicito per i FK `Restrict`
+  (`Section`/`ParentSection` self-ref); `Current` (Published) e `Draft` intatte. Vedi memoria `ef-executedelete-tracker-constraint`.
+- **Orchestrazione** in `ReleaseService`: potatura **per-publish** del bersaglio (in `SnapshotAndSaveAsync`, dopo lo snapshot)
+  + `PruneAllAsync` (system op, enumera `IDocumentAdminRepository.ListAsync`). **Sweep al boot** `PruneVipiReleases`
+  (`VipiModuleExtensions`/`Program.cs`, dopo `BackfillVipiReleases`): contiene l'accumulo storico, poi il per-publish lo mantiene.
+- **Bonifica propagazione**: rimosso il testo bugiardo «il pubblico vede lo stato pubblicato/live corrente (fallback)»
+  (rimosso in doc 10 §S6) da `AeroportoEditorPage`/`AppEditorPage`/`VersioniPage`/`ReleasePanel` → «il documento non è
+  ancora visibile al pubblico. Pubblica per renderlo visibile.».
+- Test: retention confini keep/delete per ciclo + versioni (cancellazione ordinata figli, Current/Draft preservati,
+  idempotenza). Suite 356 verde.
+- **Verifica live (2026-07-21) + fix off-by-one cap Archived.** Verify su DB reale: prune release Superseded oltre soglia
+  (backdate + boot sweep, idempotente), visibilità pubblica = release effettiva (doc 10 S6, tutte 4 famiglie),
+  freeze/ripubblica. **Trovato**: il cap versioni `Archived` restava a **N+1**. Due cause distinte:
+  (1) *release-publish* (`ReleaseService.PublishNowAsync`) potava in `SnapshotAndSaveAsync` **prima** di
+  `PublishWorkingVersionAsync` (che archivia la precedente); (2) *version-publish* (`EditingService.PublishAsync`, pulsante
+  «Pubblica versione» di `VersioniPage`) **non potava affatto** (retention agganciata solo al release-publish).
+  **Fix**: prune `Archived` spostato/aggiunto **dopo** l'archiviazione in **entrambi** i path
+  (`ReleaseService.PruneArchivedVersionsForTargetAsync` dopo la promozione; `EditingService.PublishAsync` dopo
+  `_repo.PublishAsync`, iniettando `ReleaseRetentionOptions`). In `SnapshotAndSaveAsync` resta solo il prune release
+  Superseded (vale anche per lo schedulato, che non promuove). Sicuro: le release portano la fotografia, non referenziano
+  le versioni. Test regressione `ReleaseGenericFlowTests.PublishNow_EnforcesArchivedCap_...` +
+  `EditingRepositoryTests.EditingService_Publish_EnforcesArchivedCap_...` (rosso→verde). Suite **358** verde.
+
+## Feature: rimozione frase di coordinamento editabile per-documento (2026-07-21)
+Rimosso completamente l'**override per-documento** della frase di coordinamento (introdotto con la riga 75). Il template
+**globale** content-su-file (`content/coordination-sentence.json`, `ICoordinationSentenceTemplate`/`CoordinationSentenceTemplate`,
+incl. `English` per le vLOA) resta la **fonte unica**: i coordinamenti si compongono sempre da `_sentence.Current`.
+- **UI**: tolto il campo «Frase di coordinamento — template» dalla sezione Coordinamenti in `AccEditorPage`/`AppEditorPage`
+  (ora viewer-only). Rimosso anche il codice morto lato App (`SaveCoordTemplate`/`PreviewCoordTemplate`, anteprima live + debounce).
+- **Backend/dati**: rimossi `DocumentProfile.CoordinationSentenceTemplate` (colonna DB, migrazione `DropCoordinationSentenceTemplate`),
+  i gemelli `AccBlockMeta`/`AccBlock`/`DocumentProfileData.CoordinationSentenceTemplate`,
+  `IDocumentProfileRepository.SaveCoordinationTemplateAsync`, `IAppDocumentService.SaveCoordinationTemplateAsync` +
+  il parametro `templateOverride` di `DeriveCoordinationAsync`, e il metodo `CoordinationSentenceTemplate.WithTemplate`.
+- Test aggiornati (round-trip override, assembler blockmeta, fake `IAppDocumentService`). Suite verde (174 app + 164 infra).
+
+## Feature: aree regolamentate — proprio ACC automatico + extra altri-ACC (2026-07-21)
+Nell'editor vIPI ACC la sezione **Aree regolamentate** del blocco **Aerovia** pre-seleziona **tutte le aree del proprio ACC
+in automatico** (dinamico: seguono gli import) finché lo staff non personalizza; si possono aggiungere **aree di altri ACC**.
+- **Modello**: nuovo `RegulatedSelection { OwnAuto, OwnIds, ExtraIds }` (in `AccVipiModels.cs`); `AccBlock.AttachedSpecialAreaIds`
+  (`List<string>`) **rinominato** in `AccBlock.Regulated` (semantica cambiata → nome cambiato). `OwnAuto` (tutte le aree del
+  proprio ACC) vale solo per Aerovia; `ExtraIds` = aree di altri ACC (indipendenti dal modo auto/manuale). Deselezionare
+  un'area propria → passa a Manuale; toggle **«Torna ad automatico»** ripristina il dinamico. Aggiungere aree extra non tocca l'automatico.
+- **Persistenza**: il `regulated` BodyJson passa da array a **oggetto** `RegulatedSelection`; «puro automatico senza extra»
+  azzera il BodyJson (resta dinamico). Back-compat lettura in `AccDocumentAssembler.ParseRegulated`: `null`=automatico,
+  array legacy=`{OwnAuto:false, OwnIds:[...]}`, oggetto=nativo. Nessun cambio schema DB.
+- **Derivazione/viewer**: `GetAttachedSpecialAreasAsync(accCode, block)` (firma con accCode) risolve own (auto=tutte del proprio
+  ACC / manuale=sottoinsieme) + extra in coda; nuova `ListSpecialAreasExcludingAccAsync`/`ListOtherAccSpecialAreasAsync` +
+  `SpecialAreaPick.CenterId` per il picker cross-ACC. `AccVipiPage` passa `Acc`.
+- **Editor** (`AccEditorPage`): toggle Automatico/Manuale + picker proprio ACC + sezione «Aree di altri ACC». Gruppi APP invariati.
+- Test: assembler (array legacy/oggetto/unset), derivazione (auto→tutte, manuale→sottoinsieme+extra, gruppo APP→OwnIds,
+  esclusione cross-ACC). Suite verde (175 app + 168 infra).
+
+## Fix: AeroportoEditorPage.DisposeAsync — JS interop in prerender (2026-07-21)
+Log Kestrel sporcati da `InvalidOperationException` («JavaScript interop calls cannot be issued at this time … statically
+rendered») a fine richiesta. Causa: la pagina è **prerenderizzata staticamente** e dismessa prima del render interattivo →
+`vipiAirportEditorInit` non parte, ma `DisposeAsync` chiama comunque `vipiSetDirty`; il catch copriva solo
+`JSDisconnectedException`, non l'`InvalidOperationException` del prerender. Fix: flag `_jsReady` (settato in
+`OnAfterRenderAsync(firstRender)`), `DisposeAsync` salta il JS se `!_jsReady` e cattura anche `InvalidOperationException`.
+Innocuo (dispose) ma rumoroso. Le altre pagine con JS in `DisposeAsync` (`AccOperativaPage`/`AppOperativaPage`/`RidottaPage`)
+erano già immuni (`catch { }` totale).
+
+## Uniformare l'editor aeroporto agli altri editor (2026-07-21)
+`AeroportoEditorPage` era l'unico editor divergente (tab + toast custom + timeline release duplicata). Reso uniforme
+alla famiglia App/ACC/vLOA, **senza cambiare il modello di editing** (resta edit diretto ACC-gated + «Salva» per sezione).
+- **Chrome**: header `editor-bar`/`doc-head` + badge `save-badge` (Salvataggio/Salvato) + pill stato (Pubblicata/Bozza da
+  `_hasEffectiveRelease`) + `DocReviewBar` (nuovo `IAirportEditingService.GetDocumentIdAsync(icao)` → id del Document
+  proiettato via settori). Toast di successo rimosso (ora nel badge); resta il callout d'errore.
+- **Corpo**: da tab (`_panel`/`SelectPanel`/`?panel`) a **scroll unico** di sezioni **collassabili** (`<details.ed-sec>` +
+  `<summary.ed-sec-head>`, default aperte, freccia ▸ che ruota) con **mini-nav** a chip-àncora (`#sec-…`, `Anchor()`) +
+  pulsanti **⊞ Espandi / ⊟ Comprimi tutte**. Stato aperto/chiuso nativo del browser (nessuno stato C# da sincronizzare);
+  il pallino dirty resta nel summary anche a sezione chiusa. JS: `vipiEditorSections(open)` espande/comprime tutte, e un
+  listener `hashchange` apre la sezione target quando salti dalla mini-nav. Dirty per-sezione: `_dirtyPanel` (string) →
+  `_dirtySections` (set); guardia beforeunload attiva se ≥1 sezione sporca; Ctrl+S (`SaveAllDirty`, era `SaveCurrentPanel`)
+  salva tutte le sporche valide.
+- **Guarded non ricarica più**: in scroll-unico un reload totale cancellerebbe gli edit non salvati di ALTRE sezioni. I
+  save-sezione puliscono solo il proprio dirty (repo = replace totale → buffer già coerenti); le op che servono fresh
+  ricaricano mirato (`ReloadSectorsAsync`, `IsPublicNow` locale per la SID importata). `Reimport`/`ReimportSids` fanno
+  `LoadAsync` totale (azione deliberata).
+- **Release consolidata**: `ReleasePanel` esteso con parametri **opt-in** (`BeforePublishAsync`, `ShowDiff`, `AllowCancel`,
+  `PreviewUrlFactory`) — default invariati (ACC intatto). L'aeroporto usa il componente (BeforePublish = warning dirty +
+  conferma + `RebuildDocument`), eliminando la timeline/diff/cancel duplicati nel code-behind.
+- Nessun cambio schema/rotta (solo il query `?panel` non documentato sparisce). Suite verde (19 dom + 178 app + 168 infra).
+  Verifica live da guidare dopo riavvio host.
+
+## Feature: aggiunta manuale di settori esteri a una coppia confinante (2026-07-21)
+Un ACC può passare **direttamente a un settore estero** non catturato dall'import automatico (es. un avvicinamento
+`LGKR_APP`). In `/vsop/admin/confinanti`, sulle righe **confermate**, un bottone «➕ Settore» apre un input: si digita
+il callsign, il sistema lo **verifica sulla sorgente (IVAO)** e — se esiste — lo materializza come `AccSector` sotto
+l'ACC estero della coppia (`CenterId = ForeignAccCode`) e **riproietta** come per gli altri settori. Da lì compare tra
+i settori dell'ACC estero e nei picker dei coordinamenti.
+- **Modello invariato**: il settore estero resta un `AccSector` proiettato in `Sector` da `SyncFromCatalogsAsync`
+  (nessun modello gemello). Riuso di `PersistForeignCatalogAsync` (solo-upsert → sopravvive ai re-import) + proiezione,
+  atomico via `IUnitOfWork`.
+- **Verifica sorgente** in `ForeignSectorResolver` (isolato come `ForeignAccFetcher`), dispatch per natura del callsign:
+  APP/DEP/TWR/GND/DEL → `IAirportDetailProvider` (`/v2/airports/{ICAO}/ATCPositions` + dettaglio per poligono/freq);
+  CTR/FSS → `IAccDirectory.GetSubcentersAsync`. Parsing puro in `ForeignSectorCallsign.Parse` (ICAO+suffisso+natura).
+- **Guard anti-collisione** (`INeighbourRepository.FindSectorOwnerAsync`): callsign già sotto lo stesso ACC → idempotente
+  (solo avviso, con nota se nascosto → riattivalo da `/vsop/admin/acc`); già sotto un altro ACC (estero o italiano) →
+  `ValidationException` (niente hijack/righe fantasma). Coppia non confermata → errore.
+- API: `INeighbourImportService.AddForeignSectorAsync(candidateId, callsign)` → `AddForeignSectorResult`.
+- Nessun cambio schema/rotta. Test: `ForeignSectorCallsignTests`, `ForeignSectorResolverTests`, `FindSectorOwnerTests`.
+  Suite verde (19 dom + 194 app + 171 infra). **Verificato live** (2026-07-21): flusso su `/vsop/admin/confinanti` funzionante.
+
+## QoL: editor trasferimenti — feedback, clona, batch, tastiera (2026-07-21/22)
+Rifiniture UX su `/vsop/admin/trasferimenti` (solo UI, `AdminTrasferimentiPage.razor`; nessun cambio schema/service).
+- **Descrizione gruppo** spostata nell'header accanto al tipo (troncata, `title` pieno) invece che sotto all'espansione.
+- **Warning UNICOM azionabile**: la pill «⚠ nessun ricevente» apre l'edit del 1° punto (`FixUnicom`).
+- **Submit da tastiera**: Invio nei campi liberi conferma nuovo gruppo / nuova riga / **edit riga in-place** (guardato dai
+  picker aperti).
+- **Lookup IVAO automatico** on-blur dell'ICAO fuori DB con nome vuoto (guard anti-doppione per ICAO; bottone 🔍 resta).
+- **Toast fisso** (bottom-right) per il feedback, sempre visibile a ogni scroll (rimpiazza i banner in cima).
+- **Batch multi-CoP**: il campo CoP accetta una lista (`VALMA, ELB, TOP`) → N righe stessi parametri (dedup case-insensitive).
+- **Clona**: riga (form precompilato) e gruppo con **righe incluse** su un altro settore mittente (`AddFlowAsync` +
+  loop `AddPointAsync`). Suite verde invariata (build + 384 test).
+
+## Feature: condizione operativa sui trasferimenti — livello variabile per pista/area (2026-07-22)
+Per molti aeroporti i **livelli di trasferimento variano con la pista in uso o le aree attive**. Modello **editoriale**
+(deciso su carta, `FEATURE-PROCESS`): le varianti sono più righe con la **stessa CoP** e livelli diversi, ognuna
+etichettata dalla condizione; il controllore legge quella attiva (nessuna deduzione live da METAR — la pista in uso è
+scelta del controllore).
+- **Modello additivo** su `TransferPoint` (nessun gemello): `ConditionKind {None,Runway,Area,Custom}` +
+  `ConditionLabel` (max 80, **verità per il display**, denormalizzata → sopravvive a rename/rimozione config e agli
+  snapshot pubblicati) + `ConditionRefId` (**soft-ref** a `AirportRunwayRule`/`SpecialArea`, **no FK**). Migrazione
+  `AddTransferPointCondition` (backfill `ConditionKind='None'`). Sorgente etichetta **ibrida**: datalist delle config
+  pista dell'aeroporto + testo libero. Dettaglio: `spec/modello-dati.md` §9.20, `refactor/07-trasferimenti.md` §7.
+- **Frase**: slot `Condition` del template (`CoordinationSentenceComposer`, IT «con pista {label} in uso»/«con {label}
+  attiva»/«in condizione {label}», EN equivalenti), appesa a fine frase prima del punto — appesa dal composer (non via
+  placeholder) così vale anche per i template custom da file. `AppCoordRow.ConditionLabel` → colonna condizionale nelle
+  sezioni ACC/APP/vLOA e pill nella vista Ridotta.
+- **Editor** (`AdminTrasferimentiPage`): selettore condizione (kind + label con datalist config pista via
+  `IAirportEditingService.LoadForViewAsync`) nel form riga; batch multi-CoP e clona (riga/gruppo) propagano la
+  condizione. Validazione soft: kind ≠ None richiede una label.
+- Slice verticali (0 test-net → 1 domain/migration → 2 DTO/repo → 3 composer/derivation → 4 viste → 5 editor →
+  6 doc). Additivo, nessun rename. Test: composer clausola (IT/EN), derivation (label su riga+frase), EF round-trip
+  (`TransferRepositoryTests`: condizione/None-azzera/Custom-drop-ref). Suite verde (19 dom + 200 app + 174 infra).
+  **Verifica live UI da guidare** (binding Blazor dell'editor): richiede sessione admin + lock struttura su `localhost:5034`.
+
+### Follow-up condizione trasferimenti + import piste (2026-07-22, stessa sessione)
+Iterazione sull'editor trasferimenti + comprensione dell'import piste, guidata da uso reale (LIBD).
+- **Picker condizione vincolato al DB**: «Pista» e «Area» diventano **tendine** (niente più testo libero + datalist).
+  Area = `SpecialArea` dell'ACC (`IAccDerivationService.ListSpecialAreasByAccAsync`).
+- **Fix sorgente piste**: la condizione «Pista» leggeva le **config** `AirportRunwayRule` (`d.Rules`, editoriali,
+  spesso 0) → per LIBD «nessuna pista» pur avendo piste. Ora legge le **piste reali** `AirportRunways` (`d.Runways`).
+- **Come si prelevano le piste** (indagine): IVAO `GET /v2/airports/{ICAO}/runways` → `IvaoAirportDetailClient.GetRunwaysAsync`
+  → `AirportRunways`. Import **per-aeroporto, non bulk**: solo via «Genera documenti»/«Re-importa» dell'editor. In
+  `vipi.db` solo LIRN aveva piste → gli altri (LIBD…) 0 perché mai re-importati. Distinzione: **piste** (`AirportRunways`,
+  importate) ≠ **regole pista** (`AirportRunwayRule`, editoriali). Vedi memoria [[transfer-condition-model]].
+- **Bottone bulk** `/vsop/admin/airports` → «↻ Re-importa da IVAO (tutti)»: itera gli aeroporti assegnati chiamando
+  `IAirportEditingService.ReimportFromSourceAsync` (best-effort, rispetta la policy import). NB: fa merge nella bozza,
+  **non** rigenera il documento pubblicato.
+- **Estensione modello condizione** (dettaglio: `spec/modello-dati.md` §9.20, `refactor/07-trasferimenti.md` §7.1):
+  - **Multi-pista in una riga**: `ConditionLabel` con Runway elenca più piste («16R / 16L»); editor multi-select.
+  - **Pista + area in AND**: nuovo `ConditionAreaLabel` (overlay solo con Kind=Runway) → frase «con pista X in uso e
+    Y attiva» (slot `RunwayAndArea` IT/EN). Migrazione `AddTransferPointConditionArea`. Etichetta combinata display via
+    `TransferConditionText.Display` (`TransferPointRow.ConditionDisplay`). `VloaDerivationService` ora include la condizione.
+- **Condizioni indipendenti + area ricercabile** (redesign su richiesta, stessa sessione): pista/area/personalizzata
+  diventano **tre dimensioni INDIPENDENTI** (una riga può averle tutte). **Rimosso `ConditionKind` + enum
+  `TransferConditionKind`**; aggiunta colonna `ConditionCustomLabel` (migrazione `SplitTransferConditionColumns`, con
+  backfill Area/Custom → colonne). Editor: la colonna «Condizione» → **tre colonne** (Pista multi-select · Area · Personalizzata);
+  l'**area** è un **picker con ricerca a digitazione** (typeahead). Composer: unisce le clausole presenti con `Condition.Join`
+  («e»/«and»), pista+area con la forma dedicata. Dettaglio: `spec/modello-dati.md` §9.20, `refactor/07-trasferimenti.md` §7.1-7.2.
+  Suite verde (**19 dom + 205 app + 174 infra**). **Verifica live pendente**: riavvio Host (applica migrazioni) + prova su LIBD.
+
+## Audit full-stack + Fase 1 «rete di sicurezza» (22 lug 2026)
+Revisione senior dell'intero sito (back/front/DB) → `history/audit-2026-07-22-criticita-full-stack.md` (15 criticità, 4 ALTE). Avviata la **Fase 1 (osservabilità + rete di test)**, nessun cambio di comportamento del prodotto:
+- **Health-check migrazioni pendenti** (`VipiHealthCheck`): `GetPendingMigrations()` non vuoto ⇒ **Unhealthy** (schema drift ⇒ 503 su `/vsop/health`).
+- **Osservabilità import**: `ImportState` +`LastAttemptUtc`/`LastError` (migrazione `AddImportStateLastError`); `IImportStateStore.MarkFailureAsync`/`GetAllAsync`; `GatedImportLoop` registra i fallimenti nel choke point; report read-only in `/vsop/admin/sorgenti`.
+- **Rete di test UI/E2E** (colmato il gap «regressioni Blazor silenziose coi test verdi»): nuovo progetto **bUnit `Vipi.Ui.Tests`** (dispatch `BlockRenderer`, classe/icona dinamica `CalloutBlock`, encode XSS — **dimostrati mordaci** rompendo `@Kind`); nuovo progetto **`Vipi.E2E.Tests`** (WebApplicationFactory in-process: boot + `/vsop/health` 200 + landing 200 + DB migrato + grafo di scrittura risolvibile, DB in file temp isolato). `Program` reso partial per l'entry-point dei test.
+- Suite: **19 dom + 205 app + 177 infra + 7 ui + 3 e2e = 411 verde**, build 0 warning. **Verifica live:** boot in-process verde (E2E) → `/vsop` 200. Resta Fase 2 (consistenza soft-ref, encode MarkupString) e Fase 3 (auth prod, Postgres/scala).
+
+## Audit Fase 2 «correttezza dati» (22 lug 2026)
+Nessun cambio di schema (sola lettura), nessun auto-fix.
+- **B1 — report consistenza soft-ref** in **`/vsop/admin/diagnostica`** (admin): rileva **pista orfana** (`ConditionRefId` senza pista), **label pista divergente** (ident cambiato dopo il salvataggio), **area fantasma** (`ConditionAreaLabel` non tra le `SpecialArea`), **gerarchia dangling** (`ParentCallsign` non risolve nei cataloghi). Architettura: `IConsistencyReportRepository`/`EfConsistencyReportRepository` (fotografia read-only) + `IConsistencyReportService.Analyze` (**logica pura testabile**). Se ci sono finding, `/vsop/health` → **Degraded**. Voce nella dashboard admin (`AdminGrantsPage`). *Rileva, non vincola* — coerente con la scelta soft-ref (sopravvive agli snapshot pubblicati).
+- **C1 — XSS**: `System.Net.WebUtility.HtmlEncode` sui valori dinamici interpolati in `MarkupString` (`StrutturaPage` callsign/label/AccCode, `AeroportoPage` `FreqName`), pattern gemello già corretto in `SearchPage.Highlight`/`MarkdownLite`.
+- Test: 5 unit su `Analyze` (i 4 controlli + dataset pulito, **dimostrati mordaci**) + E2E su `/vsop/admin/diagnostica` 200. Suite **19 dom + 210 app + 177 infra + 7 ui + 4 e2e = 417 verde**, build 0 warning.
+
+## Audit Fase 3 «produzione» (22 lug 2026)
+Parte code attuata; cutover Postgres + scala Blazor pianificati in **ADR-0007** (`docs/adr/adr-0007-produzione-persistenza-e-scala.md`), non attuati.
+- **A1 — tampone concorrenza SQLite**: `SqliteTuningInterceptor` (`DbConnectionInterceptor`) abilita **WAL** + **`busy_timeout=5000ms`** a ogni apertura, registrato nel path `UseSqlite` di `AddVipiInfrastructure`. Mitiga `database is locked`; il cutover a Postgres resta pianificato (migrations dedicate + istanza di validazione).
+- **D1 — guardia identità prod**: `ProductionIdentityGuard.EnsureSafe(isDev, useDevIdentity)` in `Program` fa **hard-fail** all'avvio se l'identità dev fittizia (admin onnipotente) è attiva fuori da Development. Path di produzione `HostIdentityCurrentUserProvider` ora **coperto da test** (mappatura claim: semplici, array/oggetti JSON, `sub` fallback, no-staff⇒no-edit) nel nuovo progetto **`Vipi.Hosting.Tests`**.
+- **A2 — scala Blazor**: direzione (viewer read-only statici/WASM + backplane) registrata in ADR-0007, nessun cambio render mode ora.
+- Test: 1 Infra (pragma WAL applicato) + 13 Hosting (4 guard + 9 mappatura claim). Suite **19 dom + 210 app + 178 infra + 13 hosting + 7 ui + 4 e2e = 431 verde**, build 0 warning.
+- **Esterni residui (non code):** montaggio RCL nel sito host + config `HostIdentity`/staff-code reali; esecuzione cutover Postgres; provisioning backplane.
+
+## Audit — minori B3/B4/C3/C4 (22 lug 2026)
+- **C4** — estratti da `StrutturaPage` i due `RenderFragment` che costruivano HTML a mano (`RenderCoverage`/`RenderChain`) in **componenti dichiarativi** `StructureCoverage`/`StructureFallbackChain` (dati calcolati dalla pagina, markup con `@` auto-encoded): **chiude C1 alla radice** (niente più `MarkupString`+`HtmlEncode` manuale). 6 bUnit inclusi 2 di regressione XSS (`<script>`/`<img>` escaped).
+- **B4** — `modello-dati.md` §3: header **[SUPERATO]** su §3.2/§3.3/§3.5/§3.6/§3.9 (modello pre-Round 5/13) per non implementare su modello morto (§9 resta autorevole).
+- **B3** — nuovo `docs/guide/dev-bootstrap.md`: checklist unica «da DB vuoto a sito popolato» (prima sparsa in note HANDOFF). Coerente con la scelta **«Nessun seed»** (nessun codice di seed aggiunto).
+- **C3** — **chiuso come non-issue**: `/aor3d` già disabilitata (Round 12); `AorBlock`/`AreaMapBlock` sono contenuto **editoriale schematico** (poligoni da `BodyJson`), non stub finti; la mappa live è Leaflet negli APP. Nessun badge aggiunto (sarebbe fuorviante).
+- Suite **19 dom + 210 app + 178 infra + 13 hosting + 13 ui + 4 e2e = 437 verde**, build 0 warning. Chiude l'asse audit 22 lug (Fasi 1→3 + minori); restano solo gli **esterni** (host mount / Postgres / backplane).
+
+## Scaffolding provider persistenza (22 lug 2026)
+Primo passo del cutover Postgres (ADR-0007 D1, step 1/4), senza istanza reale:
+- `Persistence:Provider` (config) risolto da `PersistenceProviderResolver` (puro): default **`Sqlite`** (path operativo intatto: file + WAL/busy_timeout). Branch in `AddVipiInfrastructure`.
+- `Postgres` selezionabile ma **fallisce all'avvio** con rimando all'ADR (cutover non attuato: servono pacchetto Npgsql + assembly migrazioni dedicato + validazione istanza). Nessun path silenziosamente rotto, nessuna dipendenza Npgsql non validabile aggiunta.
+- Test: resolver (default/case-insensitive/sconosciuto→errore) + branch reale (`AddVipiInfrastructure`: Sqlite registra il DbContext, Postgres lancia con «adr-0007»). Config documentata in `guide/config.md` §1c. Suite **19 dom + 210 app + 188 infra + 13 hosting + 13 ui + 4 e2e = 447 verde**, build 0 warning.
+
+## U4 i18n IT+EN — rollout completo (23 lug 2026)
+Chiusura di **U4** della carta `design/piano-ux-hardening.md` (decisione owner: «completa l'adozione» IT+EN). Solo la **chrome dell'app** (etichette/pulsanti/stati/messaggi) è localizzata; il **contenuto editoriale** (vIPI/vLOA/aeroporti dal DB) resta IT by-design, i **termini ATC standard** (Delivery/Ground/Tower/Approach) restano EN.
+- **Infra** (già presente da giri precedenti): `IStringLocalizer<SharedResource>` + `Resources/SharedResource.resx` (it) / `.en.resx`, `AddLocalization` + `UseRequestLocalization` (it default / en), switch runtime `?culture=en` (o cookie / Accept-Language).
+- **Copertura completa**: nav pubblica (4) + viewer (10) + **admin 12/12** + **editor 12/12**. Ultimi lotti: **admin restanti (5)** `AccAdminPage`(+nazioni `Country_*`)/`SorgentiAdminPage`/`ConfinantiAdminPage`/`AeroportiPage`/`AdminTrasferimentiPage`; **editor (12)** componenti condivisi (`PreviewBanner`/`EditLockBar`/`DocReviewBar`/`ReleasePanel`) + `NewDocumentPage`/`VersioniPage`/`DocumentSectionsEditor`/`VloaEditor`+`VloaEditorPage`/`AppEditorPage`/`AccEditorPage`/`AeroportoEditorPage` (~1082 righe).
+- **Pattern**: chiavi `Common_*` (riusabili) + `Pagina_*` (specifiche); chrome editor condivisa in `Ed_*`, timeline release in `Rel_*`; interpolazione `L["Key", arg]` con `{0}`; plurali IT via chiavi `_1`/`_N` + helper.
+- **Gotcha (registrati)**: (1) MAI `L["x"]` annidato in `$"..."` → calcolare in `@code`; (2) `RenderFragment`/enum-label che usano `L` NON `static` né field-initializer → property `=>`/metodo istanza (CS0236); (3) `L["x"]` è `LocalizedString` → serve `.Value` per array `string[]`; (4) le **stringhe usate come chiavi di logica** (`_dirtySections`/`_panels`/switch) restano IT stabili, display via helper `PanelLabel(key)` — non localizzare gli identificatori; (5) HTML nei valori resx XML-escaped + reso con `(MarkupString)`.
+- **Verifica**: **1071 chiavi IT+EN allineate** (diff nomi vuoto), build 0 warning, `Vipi.Ui.Tests` **13/13 verde**; **verify live IT↔EN OK** su tutte le rotte admin + editor (HTTP 200, corpo commuta: «Editor vIPI»↔«vIPI editor», «Regole scelta pista»↔«Runway selection rules», ecc.). `RidottaPage`/`RidottaAppPage` **saltate** (disabilitate).
+- **Follow-up aperto** (fuori scope i18n): `Release()` inline di `AppEditorPage` non ancora migrato a `ReleasePanel` (dedup, annotato in memoria [[editor-uniform-pattern]]); revisione EN madrelingua consigliata.
+
+## Stato verticale trasferimenti disaccoppiato dal vincolo (24 lug 2026)
+Su richiesta owner: la parola «in discesa/salita/stabile» nella frase di coordinamento **derivava dal `LevelConstraint`**
+(≤→discesa, ≥→salita). Errato: `≥` è un **bound di livello** («a 130 o superiore»), non una salita. Ora lo stato verticale
+è una **dimensione indipendente** scelta a mano.
+- Nuovo enum `TransferVerticalState { Unspecified, Level, Descending, Climbing }` + campo `TransferPoint.VerticalState`.
+  Composer: `{stato}` da questo campo (non dal constraint), `Unspecified`→nessuna parola; `{fl}` (bound «o livello inferiore»)
+  resta dal constraint. Rinomina `CoordinationSentenceState`→{Descending,Climbing,Level} + chiavi JSON `stato.*`.
+- Migrazione `AddTransferPointVerticalState` con **backfill da constraint** (le frasi esistenti restano identiche); seed idem.
+  Editor: nuova `<select>` «Stato verticale» (form add/edit, risorse `Xfer_VState*`). Dettaglio: `refactor/07-trasferimenti.md` §7.3.
+- Suite **450 verde**, build 0 warning. Verify live frase Brindisi (PISIP) **pendente**.
+
+## Editor trasferimenti — QoL (24 lug 2026)
+Migliorie di quality-of-life su `/vsop/admin/trasferimenti` (richiesta owner dopo studio della pagina):
+- **Anteprima frase live**: nuovo `CoordinationPreviewContext` (mappe types/name/code/airport/atc + template, stesse fonti di
+  `DeriveCoordinationAsync` → l'anteprima combacia con l'output) via `IAccDerivationService.GetPreviewContextAsync`. Composizione
+  in locale (funzione pura, nessun round-trip per tasto). Mostrata sotto ogni riga in lettura (toggle «Anteprima frasi») e live
+  nei form add/edit.
+- **Espandi/comprimi tutto** in toolbar + **auto-espansione** del percorso al gruppo dopo add/clona (`ExpandTo`).
+- **«Salva e aggiungi»** (bottone + Ctrl+Invio): il form nuova riga resta aperto e conserva livello/ricevente/condizioni, azzera
+  solo il CoP (inserimento in serie).
+- **Esc** annulla add/edit inline; **Ctrl+Invio** salva l'edit riga (anche col picker aperto).
+- **Sposta in cima/fondo** (`⤒`/`⤓`): nuovo `MovePointToEndAsync` (repo/service) che ricompatta gli `Order`.
+- Fix propagazione: `ConfirmCloneFlow` (clona gruppo) ora copia anche `VerticalState` (prima lo perdeva).
+- Test: `TransferRepositoryTests.MovePointToEnd_Reorders_To_Top_And_Bottom`. Progetti core verdi (Domain 23 · App 211 · Infra 191 · Ui 13; +Hosting 13 +E2E 4 = **455 tot**), chiavi i18n IT/EN allineate (1088). Verify live pendente.
+
+## Audit import SID — idempotenza + parser (24 lug 2026)
+Rifiniture di correttezza sull'import SID (sectorfile Aurora), dettaglio in memoria `sid-import-mechanism` e `refactor/04-import-github.md` §6.
+- **Gate AIRAC = PRIMO prelievo**: `ReplaceImportedSidsAsync` conserva `SourceAiracCycle` originale se il contenuto è invariato (`ContentUnchanged` per `StableKey`); solo una revisione riparte dal ciclo corrente. Prima ri-timbrava a ogni run 24h → `IsPublicAt` mai vero → SID sempre nascoste.
+- **Fix manuale conservato** tra reimport (snapshot `PriorSid`): se la sorgente ripropone il grezzo `NeedsFixReview` ma era già risolto a mano, ri-applica la risoluzione.
+- **Lock per-ICAO** (`SemaphoreSlim` statico in `SidImporter`): nessun indice unico su `StableKey` → serializza job 24h + bottone editor (no righe duplicate da delete+add concorrenti). ⚠️ **Completato il 30 lug:** l'indice unico non è solo assente, **non si può aggiungere** (la `StableKey` esclude la cifra di revisione ed è legittimamente ripetuta), e lo snapshot `PriorSid` costruito con `ToDictionaryAsync` faceva **fallire ogni reimport** sugli aeroporti con due revisioni della stessa SID. Vedi `audit-2026-07-30-concorrenza-e-ridondanze.md` §2.
+- **Parser navaid = solo NOMI** (`IReadOnlySet<string>`): coordinate non necessarie alla completion fix, rimossi `ParseCoord`/`ParseNavaidLines`; `ResolveFix` match esatto O(1) → alias → prefisso unico.
+- Test: `SidImportRepositoryTests` (re-import ciclo invariato + fix manuale), `AuroraSectorfileParserTests` (nome-based). Infra **191 verde**.
+
+## Audit concorrenza, codice morto e ridondanze (30 lug 2026)
+Revisione senior su race condition / codice morto / duplicazioni, a build già **0 warning** (quindi tutto invisibile al compilatore). Documento completo: `audit-2026-07-30-concorrenza-e-ridondanze.md`. Suite **505 → 631 verde**.
+- **8 fix di concorrenza.** I due che contano: `EfUnitOfWork` non azzerava il change-tracker fra i tentativi dell'execution strategy (al retry su Neon le entità del tentativo fallito venivano riemesse → doppi insert); e le cache dei provider Aurora stavano in campi d'istanza di servizi **transient** (`AddHttpClient<I,T>`) → cache per-risoluzione e `SemaphoreSlim` che non sincronizzava nulla, estratte nel singleton `SectorfileCache`. Poi: ABA sul CTS dell'heartbeat in `EditLockBar`, TOCTOU in `StaffLoginThrottle`, stampede + TTL sui vuoti nel meteo NOAA, snapshot atomici in `IvaoTokenProvider`/`IvaoAirportCache`, advisory lock + reconcile **indici** nell'init schema Postgres.
+- **Import SID rotto in silenzio** su LIRF/LIMC/LIME/LIBG/LIED/LIEO/LIPQ: `ReplaceImportedSidsAsync` indicizzava le righe precedenti con `ToDictionaryAsync(StableKey)`, che lancia sugli aeroporti con due revisioni della stessa SID → **ogni reimport falliva**, e il job logga il fallimento per-ICAO a `LogDebug`. Ora indicizzazione first-wins e log a `LogWarning`. ⚠️ **La `StableKey` non è unica per design: non aggiungere un indice unico.**
+- **450 righe di codice morto** rimosse: verticali `IEditAuditWriter`/`EfEditAuditWriter` e `IDivisionMembersProvider`/`IvaoDivisionClient`, `SectionShell.razor` orfano, `AccConfigAor`, `AccRegulatedArea`+`RegulatedAreas`, `AorPalette`, `UndoHistory<T>`, 7 metodi d'interfaccia senza chiamanti, `SourceAirport.Latitude/Longitude`.
+- **Ridondanze estratte**: `FrequencyPositions` (era triplicata e **già divergente**: cella bianca invece del trattino nel documento aeroporto), `AirportViewFormat`, `ReleaseDiffTable`, `SectionCatalog.IsRenderModeToggleable`; `AppEditorPage` passa al `ReleasePanel` condiviso. Catch-all aggiunta nei guard dei 4 editor (prima un'eccezione non di dominio abbatteva il circuito col badge fermo su «Salvataggio»). **Lezione: confrontare i corpi, non le firme** — `IsMandatory`/`IsHidden`/`IsDerived` condividono il nome ma sono regole di dominio diverse per tipo, e restano separate.
+- **Verifica live** (nuova skill `.claude/skills/verifica-live/`): trovato `rel. v@r.VersionNumber` **letterale** a schermo — in Razor una `@` fra due caratteri non-spazio è letta come indirizzo email e non apre un'espressione, senza alcun warning. Corretto in 4 punti con la forma `v@(...)`.
+- **Aperto (non codice)**: la SID `BANA8A` di LIBD ha `InitialClimb = "90"` → resa «90 ft», implausibile (le altre BANAV hanno `9000` → «FL90»): errore di contenuto da correggere nell'editor.
+
+## Stampa dei documenti + fix pubblicazione (30 lug 2026, seconda sessione)
+Schede complete: `../feature/2026-07-30-stampa-documenti.md` e `../feature/2026-07-30-pill-stato-dopo-publish.md`.
+Suite **631 → 640 verde**, build 0 warning, 14 commit.
+- **La stampa era rotta da sempre, in silenzio.** Il blocco `@media print` in `vipi-theme.css` faceva
+  `body *{visibility:hidden}` mostrando solo `.printable` — classe che **nessun markup applicava**: Ctrl+P dava un
+  foglio bianco su qualunque pagina, e nessun test lo vedeva. Nuovo foglio dedicato **`vipi-print.css`**: nasconde il
+  chrome e lascia il contenuto nel flusso (niente opt-in per pagina), A4 verticale, `thead` ripetuto, colori
+  informativi preservati, zoom inline azzerato. Più `PrintMeta` (intestazione di sola stampa) e tasto **Stampa** nei
+  quattro viewer documento. Nessun endpoint di export: la stampa del browser copre RNF-6 (piano §10, §22.7).
+- **Due trappole browser, entrambe trovate solo guidando il flusso.** Un `<details>` chiuso **non si apre col solo
+  CSS** (Chrome lo nasconde da user-agent con `content-visibility` su `::details-content`) → serve l'hook
+  `beforeprint`; e **Chrome segnala la stampa due volte** (`beforeprint` + cambio media `print`), quindi gli handler
+  di stampa vanno resi **idempotenti** o il ripristino post-stampa non avviene. Leaflet, allo stesso modo, tiene la
+  propria dimensione in memoria: ridurre l'altezza da CSS **ritaglia** la mappa invece di riadattarla.
+- **Spazio recuperato sull'A4**: scala tipografica da carta (il tema parte da 16px con `h2` 32px — misure da monitor,
+  enormi su A4), mappe AoR rimpicciolite e **inquadrate con le proporzioni dell'area** (`fitBounds` sceglie lo zoom
+  che fa stare i bounds in *entrambe* le dimensioni: in una cornice larga e bassa un AoR alto e stretto usciva
+  minuscolo e non centrato), separazioni radar compatte. Documento aeroporto 3 → 2 pagine, vIPI ACC 36 → 28.
+- **Dati live fuori dalla carta** per decisione: blocco METAR/TAF e vista Ridotta (piano §22.7). Regola: su carta
+  sarebbero un'istantanea già scaduta.
+- **Tabelle dei coordinamenti**: le colonne cambiavano larghezza da una tabella all'altra (misurate **19**
+  combinazioni su LIBB) perché senza larghezze `table-layout:auto` dimensiona ognuna sul proprio contenuto. Fissate
+  per colonna **semantica** (classi `c-*`, non per posizione: «Flusso» e «Condizione» sono opzionali e la stessa
+  colonna cade in posti diversi). Poi «Livello» 13% → 21%, misurando a runtime quante celle andavano a capo.
+- **«Bozza vN» dopo «Pubblica ora»**: la pubblicazione funzionava (release `Effective`, audit, documento promosso) —
+  era la pill, letta all'apertura dell'editor. `ReleasePanel` ricaricava solo le proprie release senza avvisare
+  l'host: nuovo `EventCallback Published`, agganciato dai tre editor. E «rel. v12» non era la versione del documento
+  ma il **progressivo della release** → ora «rilascio #N». ⚠️ `string.Format(L["chiave"].Value, n)` **non
+  interpola**: serve l'overload `L["chiave", n]`.
+- **Chiave di release ACC**: `AccVipiReleaseTarget.ResolveDocumentIdAsync` **scartava la parte `root`** di
+  `"{acc}|{root}"` e prendeva il primo CTR radice per `CoverageOrder`. Innocuo sui dati attuali (una sola radice con
+  documento), ma su una ACC **multi-albero** «Pubblica ora» avrebbe promosso la bozza del documento sbagliato, in
+  silenzio. Ora risolve per callsign, **senza fallback** quando il root non risolve. Test-first con i due criteri
+  deliberatamente in conflitto, così un fallback su uno dei due sbaglierebbe comunque.
+- **Refuso di render**: la legenda piste usciva «recommended**from** the METAR wind». Razor **scarta il testo di sola
+  spaziatura che precede un blocco di codice** — anche dentro `<text>`: lo spazio va scritto come entità `&#32;`.
+  Stessa famiglia della trappola `v@r.Proprietà`.
+
+## 2026-07-30 — Uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA) — doc [refactor/11](../refactor/11-uniformita-tre-documenti.md)
+
+Audit dei tre documenti su viewer pubblico / editor / anteprima bozza (app reale su copia del `vipi.db`,
+browser guidato): il modello è unico e l'editor è condiviso, ma **ogni famiglia rileggeva quel modello a modo
+suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
+
+- **Chiave di sezione univoca** (`custom:{guid8}`): la costante `"custom"` faceva collidere tutte le sezioni
+  libere di un documento. Nella vIPI ACC dalla seconda in poi **non compariva**; nell'APP «Nascondi» su una
+  le nascondeva **tutte**. Riconciliazione idempotente al boot (`IDocumentMaintenance`).
+- **Fallback a pubblica con derivate frozen**: `_useFrozen` era impostato solo nel ramo `default:`, quindi un
+  `?as=draft` non autorizzato o un `?as=rel:{id}` sbagliato serviva la pubblica **con dati live** — il
+  congelamento AIRAC era bypassabile dall'URL (vLOA LIBB↔LDZO: 3 tabelle in pubblica, 9 con `?as=rel:` altrui).
+- **Contenuto editoriale condiviso**: la vIPI ACC appiattiva le sezioni libere a sola prosa
+  (`AppCustomSection`, rimossa) — tabelle perse, callout senza riquadro, sotto-sezioni mai rese. Ora tutte e
+  tre passano da `SectionNode`/**`SectionBody`** (nuovo). Le sotto-sezioni delle sezioni derivate si rendono
+  ovunque; `VipiViewService.Map` non scarta più le sezioni vuote.
+- **`DocumentSection.IsHidden`** (migrazione `AddSectionIsHidden`), gemello di `RenderMode`: uno stato solo,
+  versionato, dentro lo snapshot di release. Prima stava in tre storage diversi e due non erano versionati:
+  un click su «Nascondi» toglieva la sezione dalla **pagina pubblica senza pubblicare nulla**. Nascondi/mostra
+  è ora interno a `DocumentSectionsEditor`; i tre viewer marcano allo stesso modo.
+  ⚠️ Trovato di sponda: `CreateDraftAsync` **non copiava `RenderMode`** — aprire una bozza riportava a `Frozen`
+  ogni sezione `Live` di doc 10 (le SID d'aeroporto smettevano di aggiornarsi, in silenzio).
+- **Superficie APP = non remotizzati**: l'editor apriva e creava documenti anche per un APP `Remotized`
+  (`LIBD_CS0_APP`, doc 16) che nessun viewer sa rendere. `EnsureAsync` ora autorizza **prima** dell'uscita
+  anticipata. L'elenco APP usa lo stesso gate della pagina (release effettiva, non `Document.Status`).
+- **Superficie uniforme**: `ReleasePanel` anche nell'editor vLOA (era l'unico senza, e l'unico con un
+  «Pubblica» di versione); la sezione padre «Coordination» è derivata anche in editing; **una sola rotta
+  viewer per la vLOA** (`apps/vipi?vloa=` rimossa, era pure quella linkata dall'editor).
+- **P7 (§3g, richiesta owner in verifica live)**: le sotto-sezioni si rendevano **sempre dopo** il corpo della
+  sezione. In «Aree regolamentate» significava leggere prima le mappe e poi le premesse. Nuova colonna
+  `DocumentSection.BeforeParentBody` (migrazione `AddSectionBeforeParentBody`) — terzo flag per-sezione con
+  `RenderMode` e `IsHidden`: il corpo diventa una **posizione in una sequenza di tre slot** (*figlie «prima» →
+  corpo → figlie «dopo»*), resa identica nei tre viewer e nell'editor condiviso (`SectionBody` accetta lo slot;
+  gli host che producono il corpo da sé lo invocano due volte). Toggle «⤒ Prima del contenuto / ⤓ Dopo il
+  contenuto» sull'intestazione della sotto-sezione. Default `false` ⇒ nessuna migrazione dati.
+- **P8 (§3h, richiesta owner in verifica live)**: i **coordinamenti** nascevano aperti a ogni livello. Su LIBB
+  significava 34 sottolivelli espansi sotto l'unico settore «ES», col resto del documento seppellito. Ora è
+  espanso il solo primo livello (settore per vIPI ACC/vLOA, gruppo per l'APP) e dentro tutto è compresso;
+  «Espandi tutto» e la stampa (`beforeprint`) restano invariati. `CoordinationCollapseTests` (bUnit) presidia
+  gli `open` del markup, che nessun altro test guardava.
+- **P9 (§3i, richiesta owner in verifica live)**: «Aree regolamentate» nasce **collassata** nel documento (65 aree
+  con mappa su LIBB). Quali sezioni si aprono chiuse lo dice `SectionCatalog.IsInitiallyCollapsed` — il catalogo è
+  già la fonte unica della natura delle sezioni, così la regola vale per le tre famiglie senza ripeterla. Nessuno
+  stato persistito: è una proprietà del tipo di sezione, non una scelta editoriale. Vale **ovunque, viewer ed
+  editor** (11 contesti verificati): un primo giro aveva escluso gli editor, ma la regola a metà rendeva quella
+  sezione l'unica a comportarsi in modo diverso fra documento ed editing.
+- **Fix a valle della verifica live (P6)**: rendere `coordination` derivata *a qualsiasi profondità* aveva un
+  effetto collaterale nell'editor vLOA — la sezione **padre** «Coordination» finiva a rendere una direzione
+  (sempre `ForeignToHome`, perché il titolo non inizia col codice Home), quindi l'albero del vicino compariva
+  **fuori** dalle sotto-sezioni *e* dentro «LDZO → LIBB». Ora il padre non ha corpo proprio: le direzioni sono
+  le sue sotto-sezioni. Nel viewer la sequenza è opposta (il padre rende entrambe, le figlie no) ed era corretta.

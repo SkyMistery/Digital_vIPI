@@ -5,7 +5,7 @@ using Vipi.Infrastructure.Persistence;
 
 namespace Vipi.Infrastructure;
 
-/// <summary>Registra la persistenza SQLite e i servizi infrastrutturali della vIPI.</summary>
+/// <summary>Registra la persistenza (provider selezionabile via <c>Persistence:Provider</c>, default SQLite) e i servizi infrastrutturali della vIPI.</summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString)
@@ -14,12 +14,44 @@ public static class DependencyInjection
     public static IServiceCollection AddVipiInfrastructure(this IServiceCollection services, string connectionString,
         Microsoft.Extensions.Configuration.IConfiguration? configuration)
     {
-        services.AddDbContext<VipiDbContext>(o => o.UseSqlite(connectionString));
+        // Selezione provider di persistenza (ADR-0007): default SQLite; Postgres pianificato (cutover non attuato).
+        var provider = Persistence.PersistenceProviderResolver.Resolve(
+            configuration?[Persistence.PersistenceProviderResolver.ProviderConfigKey]);
+
+        switch (provider)
+        {
+            case Persistence.PersistenceProvider.Sqlite:
+                // Tampone concorrenza SQLite (A1): WAL + busy_timeout a ogni apertura connessione. Vedi SqliteTuningInterceptor.
+                services.AddDbContext<VipiDbContext>(o => o
+                    // Query con >1 Include di collection: split in più SELECT (default consigliato MS) invece del
+                    // JOIN cartesiano di SingleQuery. Toglie il warning EF 20504 e migliora la perf su tali query.
+                    .UseSqlite(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+                    .AddInterceptors(new Persistence.SqliteTuningInterceptor()));
+                break;
+
+            case Persistence.PersistenceProvider.Postgres:
+                // Deploy hostato (Render + Neon): le 60 migrazioni sono SQLite-flavored e non girano su Postgres,
+                // quindi lo schema si crea via EnsureCreated in MigrateVipiDatabase (no cronologia migrazioni).
+                // Adeguato a un DB test/fresco; NON usare EnsureCreated e Migrate insieme sullo stesso DB.
+                services.AddDbContext<VipiDbContext>(o => o
+                    .UseNpgsql(connectionString, npg => npg
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                        // Neon (serverless) sospende il compute e chiude le connessioni idle: la prima query
+                        // dopo l'inattività fallisce "transient". Ritenta in automatico (execution strategy).
+                        // Retry-safe: EfUnitOfWork avvolge le transazioni in CreateExecutionStrategy() E azzera il
+                        // change-tracker a ogni tentativo (il rollback non lo ripulisce). Vedi EfUnitOfWork.
+                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
+                break;
+
+            default:
+                throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");
+        }
         services.AddScoped<Vipi.Application.Abstractions.IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.ITopologyProvider, TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.IContentRepository, EfContentRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
+        services.AddScoped<Vipi.Application.Content.IDocumentMaintenance, EfDocumentMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IResourceLockRepository, EfResourceLockRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();
@@ -30,11 +62,11 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
-        services.AddScoped<Vipi.Application.Abstractions.IEditAuditWriter, EfEditAuditWriter>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IConsistencyReportRepository, EfConsistencyReportRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IVloaDerivationRepository, EfVloaDerivationRepository>();
@@ -66,12 +98,23 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
         if (configuration is not null)
             services.Configure<Sectorfile.SectorfileOptions>(configuration.GetSection("Sectorfile"));
+        // Cache dei file di sectorfile indipendenti dall'aeroporto (navaid, poligoni TWR). DEVE essere singleton:
+        // gli adapter sotto sono transient (AddHttpClient<,>), quindi una cache in campo d'istanza sarebbe
+        // per-risoluzione e il suo lock non sincronizzerebbe nulla. Vedi SectorfileCache.
+        services.AddSingleton<Sectorfile.SectorfileCache>();
         services.AddHttpClient<Vipi.Application.Abstractions.ISidProvider, Sectorfile.AuroraSidProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
         services.AddHostedService<Sectorfile.SidImportHostedService>();
+
+        // Shape TWR reali dal file poligoni Aurora (twrs.tfl) su GitHub: stesso repo raw pubblico dell'import SID.
+        services.AddHttpClient<Vipi.Application.Abstractions.ITowerShapeSource, Sectorfile.AuroraTowerShapeProvider>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
         return services;
     }
 }

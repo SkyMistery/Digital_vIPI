@@ -1,0 +1,61 @@
+@* Corpo di una sezione documentale CONDIVISO (doc 11 §3b). Il corpo è una posizione in una sequenza di tre slot
+   (doc 11 §3g): sotto-sezioni «prima» → blocchi → sotto-sezioni «dopo». Lo usa SectionNode (che aggiunge la card
+   o il <details>) e lo usano i viewer che l'involucro se lo fanno da sé — le sezioni DERIVATE di vIPI ACC/APP/vLOA,
+   il cui corpo lo produce la pagina: quelle chiamano due volte, Slot="Before" e Slot="After", con ShowBlocks="false"
+   (il blocco della sezione derivata porta il payload JSON, non contenuto). *@
+
+@if (Slot != SectionSlot.After)
+{
+    @foreach (var child in Section.Children.Where(c => c.BeforeParentBody))
+    {
+        <SectionNode Section="child" DepthOffset="DepthOffset" />
+    }
+}
+
+@if (ShowBlocks)
+{
+    @foreach (var block in Section.Blocks)
+    {
+        @if (block.State == RenderState.Collapsed)
+        {
+            <details class="collapsed-strip">
+                <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
+                <BlockRenderer Block="block" />
+            </details>
+        }
+        else
+        {
+            <BlockRenderer Block="block" />
+        }
+    }
+}
+
+@if (Slot != SectionSlot.Before)
+{
+    @foreach (var child in Section.Children.Where(c => !c.BeforeParentBody))
+    {
+        <SectionNode Section="child" DepthOffset="DepthOffset" />
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
+
+    /// <summary>Rende i blocchi della sezione. False per le sezioni derivate (blocco = payload, non contenuto).</summary>
+    [Parameter] public bool ShowBlocks { get; set; } = true;
+
+    /// <summary>Quali sotto-sezioni rendere rispetto al corpo (doc 11 §3g).</summary>
+    [Parameter] public SectionSlot Slot { get; set; } = SectionSlot.All;
+
+    /// <summary>Scostamento di profondità per la resa delle sotto-sezioni: la vIPI ACC ospita le sezioni a
+    /// <c>Depth 1</c> (figlie della sezione-blocco) ma le mostra come sezioni di primo livello, quindi passa -1.</summary>
+    [Parameter] public int DepthOffset { get; set; }
+
+    /// <summary>Vero se la sezione ha sotto-sezioni per lo slot dato: gli host lo usano per non emettere markup vuoto.</summary>
+    public static bool HasChildren(SectionView s, SectionSlot slot) => slot switch
+    {
+        SectionSlot.Before => s.Children.Any(c => c.BeforeParentBody),
+        SectionSlot.After => s.Children.Any(c => !c.BeforeParentBody),
+        _ => s.Children.Count > 0,
+    };
+}

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -124,9 +124,9 @@ public static class RomaContentSeed
         var neDest = b.Section("Traffico Dest LIRF", BlockSection.Coordination, 1, ne);
         b.Prose(neDest, BlockTier.Extended,
             "**Roma NE trasferisce** il traffico in arrivo su LIRF agli avvicinamenti, in discesa per i CoP pubblicati. **Roma NE riceve** dai settori confinanti il traffico in salita coordinato per livello.");
-        b.CopTable(neDest, Cop("VALMA", "FL130↓", "LIRF_APP"), Cop("ELKAP", "FL150↓", "LIRF_APP"));
+        b.CopTable(neDest, Cop("VALMA", "FL130-", "LIRF_APP"), Cop("ELKAP", "FL150-", "LIRF_APP"));
         var neDep = b.Section("Traffico DEP LIRF", BlockSection.Coordination, 2, ne);
-        b.CopTable(neDep, Cop("VALMA", "FL280↑", "LIMM_WS2"), Cop("TARQ", "FL250↑", "LIRR_EW"));
+        b.CopTable(neDep, Cop("VALMA", "FL280+", "LIMM_WS2"), Cop("TARQ", "FL250+", "LIRR_EW"));
         var neOvf = b.Section("Traffico OVF (sorvoli)", BlockSection.Coordination, 3, ne);
         b.CopTable(neOvf, Cop("ELB", "per aerovia", "LIMM_WS2"));
 
@@ -134,7 +134,7 @@ public static class RomaContentSeed
         var ewDest = b.Section("Traffico Dest LIRN (Napoli)", BlockSection.Coordination, 1, ew);
         b.Prose(ewDest, BlockTier.Extended,
             "**Roma EW trasferisce** gli arrivi LIRN all'avvicinamento, in discesa per i CoP costieri.");
-        b.CopTable(ewDest, Cop("PESET", "FL120↓", "LIRN_APP"), Cop("TEANO", "FL150↓", "LIRN_APP"));
+        b.CopTable(ewDest, Cop("PESET", "FL120-", "LIRN_APP"), Cop("TEANO", "FL150-", "LIRN_APP"));
         b.Callout(ewDest, CalloutKind.Info, "Nota", BlockTier.Extended,
             "In presenza di militare attivo (vedi Aree regolamentate) instradare via TEANO.");
 
@@ -226,7 +226,7 @@ public static class RomaContentSeed
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = parent, Title = title, Order = order,
-                Depth = parent is null ? 0 : parent.Depth + 1, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
+                Depth = parent is null ? 0 : parent.Depth + 1, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(),
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

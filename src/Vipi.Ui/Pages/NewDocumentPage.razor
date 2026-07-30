@@ -6,13 +6,14 @@
 @inject IEditAuthorizationService Authz
 @inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Nuovo documento · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Nd_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Nuovo documento</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/versioni">@L["Nd_Drafts"]</a> › <b>@L["Nd_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Nuovo documento</h2><span class="muted">Scegli il tipo, poi il bersaglio: si apre l'editor che crea il documento.</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Nd_Title"]</h2><span class="muted">@L["Nd_Subtitle"]</span></div>
     </div>
 
     @if (_msg is not null)
@@ -22,124 +23,124 @@
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout warning"><span class="cic">⚠️</span><div>La creazione di documenti richiede i permessi di staff/admin.</div></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div>@L["Nd_StaffRequired"]</div></div>
     }
     else
     {
         <EditLockBar ResourceKey="@ResourceLockKeys.NewDoc" LockChanged="OnLockChanged" />
 
         <div class="seg" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px">
-            <button class="btn @(_kind == Kind.Vloa ? "primary" : "ghost")" @onclick="() => _kind = Kind.Vloa">📄 vLOA</button>
-            <button class="btn @(_kind == Kind.Acc ? "primary" : "ghost")" @onclick="() => _kind = Kind.Acc">🗺 vIPI ACC</button>
-            <button class="btn @(_kind == Kind.App ? "primary" : "ghost")" @onclick="() => _kind = Kind.App">🛬 vIPI APP (non remotizzato)</button>
-            <button class="btn @(_kind == Kind.Airport ? "primary" : "ghost")" @onclick="() => _kind = Kind.Airport">🛫 vIPI Aeroporto</button>
+            <button class="btn @(_kind == Kind.Vloa ? "primary" : "ghost")" @onclick="() => _kind = Kind.Vloa"><Icon Name="file" /> vLOA</button>
+            <button class="btn @(_kind == Kind.Acc ? "primary" : "ghost")" @onclick="() => _kind = Kind.Acc"><Icon Name="map" /> @L["Nd_KindAcc"]</button>
+            <button class="btn @(_kind == Kind.App ? "primary" : "ghost")" @onclick="() => _kind = Kind.App"><Icon Name="plane-landing" /> @L["Nd_KindApp"]</button>
+            <button class="btn @(_kind == Kind.Airport ? "primary" : "ghost")" @onclick="() => _kind = Kind.Airport"><Icon Name="plane-takeoff" /> @L["Nd_KindAirport"]</button>
         </div>
 
         @if (_kind == Kind.Vloa)
         {
             <div class="block">
-                <p class="muted" style="font-size:12px;margin:0 0 8px">Una vLOA si stipula tra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour), es. Roma ↔ Marsiglia. Le vLOA con ACC confinanti si generano anche in blocco da <a href="/vsop/admin/confinanti">Confinanti</a>.</p>
+                <p class="muted" style="font-size:12px;margin:0 0 8px">@((MarkupString)L["Nd_VloaIntro"].Value)</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                    <div class="field"><label>Titolo</label><input placeholder="es. vLOA Roma–Marsiglia" @bind="_docTitle" /></div>
-                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="CreateVloa">Crea e apri editor</button>
+                    <div class="field"><label>@L["Nd_LblTitle"]</label><input placeholder="@L["Nd_TitlePh"]" @bind="_docTitle" /></div>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="CreateVloa">@L["Nd_CreateOpen"]</button>
                 </div>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:12px">
-                    <div class="field"><label>ACC italiano (Home)</label>
+                    <div class="field"><label>@L["Nd_HomeAcc"]</label>
                         <select value="@_homeAcc" @onchange="OnHomeAccChanged">
-                            <option value="">ACC…</option>
+                            <option value="">@L["Nd_AccOption"]</option>
                             @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
                         </select>
                     </div>
-                    <div class="field"><label>Settore Home</label>
+                    <div class="field"><label>@L["Nd_HomeSector"]</label>
                         <select @bind="_docHome" disabled="@(string.IsNullOrEmpty(_homeAcc))">
-                            <option value="0">settore…</option>
+                            <option value="0">@L["Nd_SectorOption"]</option>
                             @foreach (var s in AreaSectorsOf(_homeAcc)) { <option value="@s.Id">@s.Callsign</option> }
                         </select>
                     </div>
                 </div>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:6px">
-                    <div class="field"><label>ACC estero (Neighbour)</label>
+                    <div class="field"><label>@L["Nd_NeighAcc"]</label>
                         <select value="@_neighAcc" @onchange="OnNeighAccChanged">
-                            <option value="">ACC…</option>
+                            <option value="">@L["Nd_AccOption"]</option>
                             @foreach (var a in ForeignAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
                         </select>
                     </div>
-                    <div class="field"><label>Settore Neighbour</label>
+                    <div class="field"><label>@L["Nd_NeighSector"]</label>
                         <select @bind="_docNeighbour" disabled="@(string.IsNullOrEmpty(_neighAcc))">
-                            <option value="0">settore…</option>
+                            <option value="0">@L["Nd_SectorOption"]</option>
                             @foreach (var s in AreaSectorsOf(_neighAcc)) { <option value="@s.Id">@s.Callsign</option> }
                         </select>
                     </div>
                 </div>
                 @if (ForeignAccs().Count == 0)
                 {
-                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun ACC estero nel DB. Vengono importati automaticamente dalla sorgente IVAO insieme agli altri centri.</p>
+                    <p class="muted" style="font-size:11px;margin-top:6px">@L["Nd_NoForeignAcc"]</p>
                 }
-                <p class="muted" style="font-size:12px;margin:12px 0 0">La vLOA nasce vuota (una sezione iniziale); poi la riempi nell'editor.</p>
+                <p class="muted" style="font-size:12px;margin:12px 0 0">@L["Nd_VloaEmptyNote"]</p>
             </div>
         }
         else if (_kind == Kind.Acc)
         {
             <div class="block">
-                <p class="muted" style="font-size:12px;margin:0 0 8px">La vIPI di ACC è <b>una per ACC</b> (ACC-wide). L'editor la crea alla prima apertura, keyed sul settore CTR radice.</p>
+                <p class="muted" style="font-size:12px;margin:0 0 8px">@((MarkupString)L["Nd_AccIntro"].Value)</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                    <div class="field"><label>ACC italiano</label>
+                    <div class="field"><label>@L["Nd_ItalianAcc"]</label>
                         <select @bind="_selAcc">
-                            <option value="">ACC…</option>
+                            <option value="">@L["Nd_AccOption"]</option>
                             @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
                         </select>
                     </div>
-                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selAcc))" @onclick="OpenAcc">Apri editor →</button>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selAcc))" @onclick="OpenAcc">@L["Nd_OpenEditor"]</button>
                 </div>
             </div>
         }
         else if (_kind == Kind.App)
         {
             <div class="block">
-                <p class="muted" style="font-size:12px;margin:0 0 8px">Solo APP <b>non remotizzati</b> (standalone). L'editor crea il documento alla prima apertura.</p>
+                <p class="muted" style="font-size:12px;margin:0 0 8px">@((MarkupString)L["Nd_AppIntro"].Value)</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                    <div class="field"><label>ACC</label>
+                    <div class="field"><label>@L["Nd_Acc"]</label>
                         <select value="@_selAcc" @onchange="OnAppAccChanged">
-                            <option value="">ACC…</option>
+                            <option value="">@L["Nd_AccOption"]</option>
                             @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
                         </select>
                     </div>
-                    <div class="field"><label>APP non remotizzato</label>
+                    <div class="field"><label>@L["Nd_StandaloneApp"]</label>
                         <select @bind="_selCallsign" disabled="@(string.IsNullOrEmpty(_selAcc))">
-                            <option value="">APP…</option>
+                            <option value="">@L["Nd_AppOption"]</option>
                             @foreach (var s in StandaloneAppsOf(_selAcc)) { <option value="@s.Callsign">@s.Callsign</option> }
                         </select>
                     </div>
-                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selCallsign))" @onclick="OpenApp">Apri editor →</button>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selCallsign))" @onclick="OpenApp">@L["Nd_OpenEditor"]</button>
                 </div>
                 @if (!string.IsNullOrEmpty(_selAcc) && StandaloneAppsOf(_selAcc).Count == 0)
                 {
-                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun APP standalone in @_selAcc. Gli APP «non remotizzati» derivano dalla gerarchia dei settori (pagina <a href="/vsop/admin/sectorstructure">Struttura</a>).</p>
+                    <p class="muted" style="font-size:11px;margin-top:6px">@((MarkupString)string.Format(L["Nd_NoStandalone"].Value, _selAcc))</p>
                 }
             </div>
         }
         else if (_kind == Kind.Airport)
         {
             <div class="block">
-                <p class="muted" style="font-size:12px;margin:0 0 8px">La vIPI di aeroporto si genera dalle entità strutturate (piste/SID/regole). L'editor la crea/rigenera all'apertura.</p>
+                <p class="muted" style="font-size:12px;margin:0 0 8px">@L["Nd_AirportIntro"]</p>
                 <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
-                    <div class="field"><label>ACC</label>
+                    <div class="field"><label>@L["Nd_Acc"]</label>
                         <select value="@_selAcc" @onchange="OnAirportAccChanged">
-                            <option value="">ACC…</option>
+                            <option value="">@L["Nd_AccOption"]</option>
                             @foreach (var a in ItalianAccs()) { <option value="@a.Code">@a.Code · @a.Name</option> }
                         </select>
                     </div>
-                    <div class="field"><label>Aeroporto</label>
+                    <div class="field"><label>@L["Nd_Airport"]</label>
                         <select @bind="_selIcao" disabled="@(string.IsNullOrEmpty(_selAcc))">
-                            <option value="">ICAO…</option>
+                            <option value="">@L["Nd_IcaoOption"]</option>
                             @foreach (var a in AirportsOf(_selAcc)) { <option value="@a.Icao">@a.Icao · @a.Name</option> }
                         </select>
                     </div>
-                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selIcao))" @onclick="OpenAirport">Apri editor →</button>
+                    <button class="btn primary" disabled="@(string.IsNullOrEmpty(_selIcao))" @onclick="OpenAirport">@L["Nd_OpenEditor"]</button>
                 </div>
                 @if (!string.IsNullOrEmpty(_selAcc) && AirportsOf(_selAcc).Count == 0)
                 {
-                    <p class="muted" style="font-size:11px;margin-top:6px">Nessun aeroporto assegnato a @_selAcc. Assegnali dalla <a href="/vsop/admin/airports">Gestione aeroporti</a>.</p>
+                    <p class="muted" style="font-size:11px;margin-top:6px">@((MarkupString)string.Format(L["Nd_NoAirports"].Value, _selAcc))</p>
                 }
             </div>
         }
@@ -252,12 +253,12 @@
         _busy = true; _msg = null;
         try
         {
-            if (_docHome == 0 || _docNeighbour == 0) { _msg = "Seleziona il settore Home e il settore Neighbour."; return; }
+            if (_docHome == 0 || _docNeighbour == 0) { _msg = L["Nd_SelectHomeNeigh"]; return; }
 
             await Editing.CreateDocumentAsync(DocumentType.Vloa, _docTitle,
                 scopeSectorIds: null, primarySectorId: null, homeSectorId: _docHome, neighbourSectorId: _docNeighbour);
 
-            if (string.IsNullOrEmpty(_homeAcc)) { _msg = "Impossibile risolvere l'ACC Home della vLOA."; return; }
+            if (string.IsNullOrEmpty(_homeAcc)) { _msg = L["Nd_CannotResolveHome"]; return; }
             // La vLOA si edita dall'editor per coppia (keyed sull'ACC estero). forceLoad: versione appena creata.
             var neigh = _neighAcc?.ToUpperInvariant();
             Nav.NavigateTo($"/vsop/{_homeAcc.ToLowerInvariant()}/vloa/editor?acc={neigh}", forceLoad: true);

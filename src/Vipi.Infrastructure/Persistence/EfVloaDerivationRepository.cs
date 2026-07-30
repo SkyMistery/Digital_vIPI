@@ -54,8 +54,7 @@ public sealed class EfVloaDerivationRepository : IVloaDerivationRepository
     public async Task<VloaEditorialState> LoadEditorialAsync(int docId, CancellationToken ct = default)
     {
         var p = await _db.DocumentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.DocumentId == docId, ct);
-        return new VloaEditorialState(Deserialize(p?.HiddenAorSectorsJson), Deserialize(p?.HiddenFrequenciesJson),
-            Deserialize(p?.HiddenSectionsJson));
+        return new VloaEditorialState(Deserialize(p?.HiddenAorSectorsJson), Deserialize(p?.HiddenFrequenciesJson));
     }
 
     public async Task SaveEditorialAsync(int docId, VloaEditorialState state, CancellationToken ct = default)
@@ -68,7 +67,6 @@ public sealed class EfVloaDerivationRepository : IVloaDerivationRepository
         }
         p.HiddenAorSectorsJson = JsonSerializer.Serialize(state.HiddenAorSectors);
         p.HiddenFrequenciesJson = JsonSerializer.Serialize(state.HiddenFrequencies);
-        p.HiddenSectionsJson = JsonSerializer.Serialize(state.HiddenSections);
         await _db.SaveChangesAsync(ct);
     }
 

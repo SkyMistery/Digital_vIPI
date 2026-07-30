@@ -1,0 +1,26 @@
+@* HelpHint — piccolo "?" di aiuto contestuale accanto a un controllo. Popover nativo <details>/<summary>:
+   niente circuito Blazor, niente JS → funziona sia in static SSR sia in InteractiveServer, come CollapsibleBlock.
+   Testo breve (ChildContent) + link opzionale alla pagina Guida (Href, apre in nuova scheda).
+   Uso: <HelpHint Href="/vsop/guida#editor-release">Testo breve.</HelpHint> *@
+<details class="help-hint @ExtraClass">
+    <summary aria-label="@(AriaLabel ?? "Aiuto")"><Icon Name="help-circle" Size="@Size" /></summary>
+    <div class="help-pop">
+        <div class="help-pop-body">@ChildContent</div>
+        @if (Href is not null)
+        {
+            <a class="help-more" href="@Href" target="_blank" rel="noopener"><Icon Name="book-open" Size="13" /> Apri la Guida</a>
+        }
+    </div>
+</details>
+
+@code {
+    /// <summary>Testo breve del popover.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Link opzionale alla sezione della Guida (es. <c>/vsop/guida#editor-release</c>).</summary>
+    [Parameter] public string? Href { get; set; }
+    /// <summary>Etichetta accessibile del pulsante "?" (default "Aiuto").</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+    /// <summary>Classe extra sul contenitore (es. per allineamento).</summary>
+    [Parameter] public string? ExtraClass { get; set; }
+    [Parameter] public int Size { get; set; } = 15;
+}

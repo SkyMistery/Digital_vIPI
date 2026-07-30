@@ -11,33 +11,34 @@
 @inject ITransferService Transfers
 @inject ICurrentUserProvider Users
 @inject Microsoft.JSInterop.IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 @implements IAsyncDisposable
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic">⛔</span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_app.Length == 0)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Posizione APP mancante</p>Specifica <code>?app=CALLSIGN</code>.</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AppOp_MissingPosTitle"]</p>@((MarkupString)L["AppOp_MissingPosBody"].Value)</div></div></div>
 }
 else if (!_standalone && _remBlock is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Operativa · APP</b></div>
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">APP non trovato</p>Nessun documento (proprio o remotizzato nella vIPI di ACC) per <code>@_app</code>.</div></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["AppOp_OpsApp"]</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotFoundTitle"]</p>@((MarkupString)string.Format(L["AppOp_NotFoundBody"], _app))</div></div>
     </div>
 }
 else
 {
-    <PageTitle>@_displayName — Operativa · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@_displayName — @L["Operativa_Tab"] · vIPI IVAO Italia</PageTitle>
     <div class="wrap">
         <div class="breadcrumb">
-            <a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Operativa · @_app</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Operativa_Tab"] · @_app</b>
         </div>
 
         <div class="reduced-top">
-            <h2 style="margin:0">@_displayName — Operativa</h2>
+            <h2 style="margin:0">@_displayName — @L["Operativa_Tab"]</h2>
             <span class="live-badge" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700">
                 <span class="dot" style="width:8px;height:8px;border-radius:50%;background:#1a7f37;display:inline-block"></span>
                 Live · @_app
@@ -48,20 +49,20 @@ else
             @if (_myCallsign is not null)
             {
                 <span class="xo-chip on" style="background:#dafbe7;color:#1a7f37;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700"
-                      title="Rilevato dalla tua connessione IVAO">🟢 Connesso come @_myCallsign</span>
+                      title="@L["Operativa_DetectedFromIvao"]">🟢 @L["Common_ConnectedAsN", _myCallsign]</span>
             }
             <span class="muted" style="font-size:13px">
-                @_snapshot.Callsigns.Count ATC online ·
-                aggiornato @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))
+                @L["Operativa_AtcOnlineN", _snapshot.Callsigns.Count] ·
+                @L["AppOp_UpdatedAt", (_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))]
             </span>
-            <a class="btn ghost" href="@_extendedHref" style="margin-left:auto">← Documento esteso</a>
+            <a class="btn ghost" href="@_extendedHref" style="margin-left:auto">@L["Operativa_ExtendedDoc"]</a>
         </div>
 
-        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">Operativa per posizione APP</p>L'avvicinamento vede frequenze, coordinamenti e i trasferimenti verso ACC e torri. @(_standalone ? "APP non remotizzato (documento proprio)." : "APP remotizzato (contenuto dalla vIPI di ACC).")</div></div>
+        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["AppOp_InfoTitle"]</p>@L["AppOp_InfoBody"] @(_standalone ? L["AppOp_Standalone"] : L["AppOp_Remotized"])</div></div>
 
         <div class="red-top-grid">
             <details class="acc-item" open>
-                <summary><span>📻 Frequenze</span><span class="tag-state tag-covered">aperto</span></summary>
+                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
                 <div class="body">
                     @if (_standalone)
                     {
@@ -77,17 +78,17 @@ else
             @if (_airportIcao is not null)
             {
                 <details class="acc-item" open>
-                    <summary><span>🛬 Vista rapida aeroporto</span><span class="tag-state tag-covered">aperto</span></summary>
+                    <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
                     <div class="body">
-                        <p class="muted" style="font-size:13px;margin-top:0">Documento aeroporto (torre): TA/TL, piste, SID.</p>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_airportIcao">Apri vIPI @_airportIcao →</a>
+                        <p class="muted" style="font-size:13px;margin-top:0">@L["AppOp_AptDocHint"]</p>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_airportIcao">@L["AppOp_OpenAptVipi", _airportIcao]</a>
                     </div>
                 </details>
             }
         </div>
 
         <details class="acc-item" open>
-            <summary><span>🤝 Coordinamenti</span><span class="tag-state tag-covered">aperto</span></summary>
+            <summary><span>🤝 @L["Common_Coordination"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
             <div class="body">
                 @if (_standalone)
                 {
@@ -101,8 +102,8 @@ else
         </details>
 
         <div class="block">
-            <h3 style="margin-top:0">🔄 Trasferimenti · dove passo il traffico</h3>
-            <TransfersLive Flows="_resolved" EmptyText="Nessun coordinamento verso questa posizione." />
+            <h3 style="margin-top:0"><Icon Name="refresh" /> @L["Operativa_TransfersTitle"]</h3>
+            <TransfersLive Flows="_resolved" EmptyText="@L["AppOp_NoCoordToPos"]" />
         </div>
     </div>
 }

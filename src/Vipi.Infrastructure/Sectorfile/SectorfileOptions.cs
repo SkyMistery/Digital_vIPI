@@ -9,6 +9,8 @@ public sealed class SectorfileOptions
     public string FixPath { get; set; } = "NAVAIDS/itfix.fix";
     /// <summary>Path del file VOR relativo a <see cref="RawBaseUrl"/>.</summary>
     public string VorPath { get; set; } = "NAVAIDS/itvor.vor";
+    /// <summary>Path del file poligoni TWR (twrs.tfl) relativo a <see cref="RawBaseUrl"/>.</summary>
+    public string TwrShapePath { get; set; } = "DYNAMIC_SEC/twrs.tfl";
     /// <summary>Ogni quante ore rilanciare l'import automatico.</summary>
     public int ImportHours { get; set; } = 24;
 }

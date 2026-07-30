@@ -22,7 +22,8 @@ public sealed record RunwayRuleRow(int Id, string DepRunways, string ArrRunways,
 public sealed record SidRow(int Id, string? Runway, string Fix, string Name, string? Transition,
     string? InitialClimb, string? Type, string? Cat, string? Wtc, string? Condition,
     bool IsImported = false, int? Priority = null, string? StableKey = null,
-    string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false)
+    string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false,
+    bool InitialClimbByApp = false)
 {
     /// <summary>La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate solo se forzate o dal ciclo successivo al prelievo.</summary>
     public bool IsPublicAt(string currentCycle, Vipi.Domain.Services.IAiracService airac)
@@ -45,7 +46,7 @@ public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, 
 public sealed record ExtraSectionRow(int Id, string Title, string? Body);
 
 /// <summary>Settore selezionabile dal picker (qualunque settore con frequenza nel DB).</summary>
-public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz);
+public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz, string? AtcCallsign = null);
 
 /// <summary>Profilo completo dell'aeroporto per editor e viewer.</summary>
 public sealed class AirportData

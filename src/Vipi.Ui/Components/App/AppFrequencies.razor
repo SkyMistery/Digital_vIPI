@@ -1,5 +1,6 @@
 @* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link.
    Con GroupOf (Aerovia ACC): colonna "Settore unico" con rowspan che accorpa le CTR per ramo dell'albero (#5). *@
+@inject IStringLocalizer<SharedResource> L
 @{
     var rowsList = Rows as IReadOnlyList<AppFreqRow> ?? Rows.ToList();
     var grouped = GroupOf is not null;
@@ -25,9 +26,9 @@
 <table class="@(grouped ? "cfg-table" : null)">
     <thead>
         <tr>
-            @if (grouped) { <th>Settore unico</th> }
-            <th>Nome</th><th>Callsign</th><th>Frequenza</th>
-            @if (Editing) { <th style="width:120px">Ordine</th> }
+            @if (grouped) { <th>@L["AppFreq_UniSector"]</th> }
+            <th>Callsign</th><th>Position</th><th>@L["Airport_Frequency"]</th>
+            @if (Editing) { <th style="width:120px">@L["Common_Order"]</th> }
         </tr>
     </thead>
     <tbody>
@@ -45,20 +46,20 @@
                 <td>
                     @if (Editing)
                     {
-                        <span class="app-drag" title="Trascina per riordinare" draggable="true" @ondragstart="() => OnDragStart.InvokeAsync(idx)">⠿</span>
+                        <span class="app-drag" title="@L["Common_DragReorder"]" draggable="true" @ondragstart="() => OnDragStart.InvokeAsync(idx)">⠿</span>
                     }
-                    @row.Name @(row.IsLink ? "🔗" : null)
+                    @row.Name @if (row.IsLink) { <Icon Name="link" /> }
                 </td>
                 <td>@row.Callsign</td>
                 <td>@row.FrequencyMhz @(row.IsPrimary ? (MarkupString)"<span class=\"freq-key\">★</span>" : (MarkupString)"")</td>
                 @if (Editing)
                 {
                     <td>
-                        <button class="btn ghost" disabled="@(idx == 0)" title="Su" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
-                        <button class="btn ghost" disabled="@(idx == rowsList.Count - 1)" title="Giù" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
+                        <button class="btn ghost" disabled="@(idx == 0)" title="@L["Common_Up"]" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
+                        <button class="btn ghost" disabled="@(idx == rowsList.Count - 1)" title="@L["Common_Down"]" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
                         @if (row.IsLink && row.SourceSectorId is int sid)
                         {
-                            <button class="btn ghost" title="Rimuovi link" @onclick="() => OnRemoveLink.InvokeAsync(sid)">✕</button>
+                            <button class="btn ghost" title="@L["Common_RemoveLink"]" @onclick="() => OnRemoveLink.InvokeAsync(sid)">✕</button>
                         }
                     </td>
                 }
@@ -66,13 +67,13 @@
         }
         @if (rowsList.Count == 0)
         {
-            <tr><td colspan="@cols" class="muted">Nessuna frequenza nel sottoalbero.</td></tr>
+            <tr><td colspan="@cols" class="muted">@L["AppFreq_NoneInSubtree"]</td></tr>
         }
     </tbody>
 </table>
 @if (Editing)
 {
-    <p class="help" style="margin:8px 0 0">Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina trascinando ⠿ o con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</p>
+    <p class="help" style="margin:8px 0 0">@L["AppFreq_EditHelp"]</p>
 }
 
 @code {

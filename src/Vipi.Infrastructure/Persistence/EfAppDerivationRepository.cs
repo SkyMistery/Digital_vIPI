@@ -22,8 +22,13 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
 
     public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
     {
+        // Stessa superficie del viewer (doc 11 §3e): SOLO gli APP non remotizzati hanno un documento proprio.
+        // Prima bastava Type == App, quindi l'editor apriva (e creava un Document per) un APP REMOTIZZATO: documento
+        // che nessun viewer sa rendere («APP not found» in pubblica e in bozza). NON si filtra su IsPrimary: quel
+        // flag lo mette la creazione del documento, quindi pretenderlo qui bloccherebbe il primo documento.
         var s = await _db.Sectors.AsNoTracking().Include(x => x.Acc)
-            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App, ct);
+            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App
+                                      && x.ApproachKind == ApproachKind.Standalone, ct);
         if (s is null || s.Acc is null) return null;
 
         // Titolo = nome IVAO (AtcCallsign, es. "Palermo Approach") dal catalogo, fallback al nome settore, poi callsign.
@@ -44,51 +49,27 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
             if (byId.TryGetValue(id, out var s))
                 rows.Add(new AppFreqRow(id, s.Callsign, s.Callsign, s.DefaultFrequency!,
                     s.Type.ToString().ToUpperInvariant(), false, true));
-        return rows;
+        return await ApplyAtcNamesAsync(rows, ct);
     }
 
     public async Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.AirportSectors.AsNoTracking().Where(s => s.ComposePosition == appCallsign)
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);
 
-    public async Task<IReadOnlyList<string>> GetTowerPolygonsRawAsync(string appCallsign, CancellationToken ct = default)
-    {
-        // Aeroporto dell'APP (dal catalogo), poi le sue TWR visibili con poligono.
-        var icao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign)
-            .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (icao is null) return Array.Empty<string>();
+    public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
 
-        var polys = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.AirportIcao == icao && s.Position == "TWR" && !s.IsHidden
-                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .OrderBy(s => s.ComposePosition)
-            .Select(s => s.RegionMapPolygon!)
-            .ToListAsync(ct);
-        return polys;
-    }
+    public Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
+        EfAccDerivationRepository.SectorLimitsByCallsignAsync(_db, callsigns, ct);
 
-    public async Task<IReadOnlyList<(string Callsign, string Poly)>> GetTowerPolygonsWithCallsignRawAsync(string appCallsign, CancellationToken ct = default)
-    {
-        var icao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign)
-            .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (icao is null) return Array.Empty<(string, string)>();
-
-        var rows = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.AirportIcao == icao && s.Position == "TWR" && !s.IsHidden
-                        && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .OrderBy(s => s.ComposePosition)
-            .Select(s => new { s.ComposePosition, Poly = s.RegionMapPolygon! })
-            .ToListAsync(ct);
-        return rows.Select(r => (r.ComposePosition, r.Poly)).ToList();
-    }
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        EfAccDerivationRepository.SelectableSectorShapesAsync(_db, ct);
 
     public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()
             .Where(s => s.DefaultFrequency != null)
             .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
-            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!))
+            .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!, null))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyDictionary<string, SectorType>> GetSectorTypeMapAsync(CancellationToken ct = default)
@@ -186,38 +167,26 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
                 }
         }
 
-        return ordered;
+        // Nome visualizzato reale (IVAO atcCallsign, es. "Palermo Approach") dal catalogo: sovrascrive il nome-posizione dove disponibile.
+        return await ApplyAtcNamesAsync(ordered, ct);
+    }
+
+    /// <summary>Sostituisce <see cref="AppFreqRow.Name"/> con l'atcCallsign IVAO (dal catalogo) dove presente; altrimenti lascia il nome-posizione.</summary>
+    private async Task<IReadOnlyList<AppFreqRow>> ApplyAtcNamesAsync(IReadOnlyList<AppFreqRow> rows, CancellationToken ct)
+    {
+        if (rows.Count == 0) return rows;
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        if (atc.Count == 0) return rows;
+        return rows.Select(r => atc.TryGetValue(r.Callsign, out var n) ? r with { Name = n } : r).ToList();
     }
 
     // ---- helper ----
+    // Ordine, nome e sigla-da-tipo vengono da FrequencyPositions (Application). Vedi la nota lì sulla divergenza
+    // che le tre copie precedenti avevano accumulato.
 
-    private static readonly string[] FreqTypeOrder = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
-    private static int PositionOrder(string position)
-    {
-        var i = Array.IndexOf(FreqTypeOrder, position.Trim().ToUpperInvariant());
-        return i < 0 ? 99 : i;
-    }
+    private static int PositionOrder(string position) => FrequencyPositions.OrderOf(position);
 
-    private static string PositionFromType(SectorType t) => t switch
-    {
-        SectorType.Del => "DEL",
-        SectorType.Gnd => "GND",
-        SectorType.Twr or SectorType.ITwr => "TWR",
-        SectorType.App => "APP",
-        SectorType.Ctr => "CTR",
-        _ => t.ToString().ToUpperInvariant(),
-    };
+    private static string PositionFromType(SectorType t) => FrequencyPositions.FromSectorType(t);
 
-    private static string FreqNameForPosition(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => string.IsNullOrWhiteSpace(position) ? "—" : position!,
-    };
+    private static string FreqNameForPosition(string? position) => FrequencyPositions.NameOf(position);
 }

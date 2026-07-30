@@ -47,7 +47,8 @@ public class AuthLockTests : IAsyncLifetime
         var authz = new EditAuthorizationService(provider, grants,
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.Auth.AuthOptions()),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
-        var editing = new EditingService(new EfEditingRepository(_db, new AiracService()), authz);
+        var editing = new EditingService(new EfEditingRepository(_db, new AiracService()), authz,
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
         return (editing, authz, grants);
     }
 

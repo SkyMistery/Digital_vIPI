@@ -5,27 +5,26 @@
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>vIPI · IVAO Italia</PageTitle>
 
 <div class="wrap">
     <div class="hero">
-        <span class="airac">📅 AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
-        <h1>Documentazione operativa</h1>
-        <p>Seleziona un ACC per consultare le vIPI, gli aeroporti e gli avvicinamenti. Oppure cerca direttamente una postazione dalla barra in alto.</p>
+        <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
+        <h1>@L["Home_Heading"]</h1>
+        <p>@L["Home_Intro"]</p>
     </div>
 
     <div class="section-title"><h3>Virtual Area Control Center</h3><span class="ln"></span></div>
     @if (Stations.Accs.Count == 0)
     {
-        <div class="callout info"><span class="cic">📭</span><div>
-            <p class="ct">Nessuna ACC ancora</p>
-            Il database è vuoto. @(Authz.IsAdmin
-                ? "Crea la prima ACC per iniziare a inserire posizioni, topologia e documenti."
-                : "Lo staff non ha ancora creato ACC: torna più tardi.")
+        <div class="callout info"><span class="cic"><Icon Name="inbox" Size="18" /></span><div>
+            <p class="ct">@L["Home_NoAccTitle"]</p>
+            @L["Home_DbEmpty"] @(Authz.IsAdmin ? L["Home_CreateFirstAdmin"] : L["Home_CreateFirstUser"])
             @if (Authz.IsAdmin)
             {
-                <div style="margin-top:10px"><a class="btn primary" href="/vsop/admin/sectorstructure">+ Crea ACC / struttura</a></div>
+                <div style="margin-top:10px"><a class="btn primary" href="/vsop/admin/sectorstructure">@L["Home_CreateAccBtn"]</a></div>
             }
         </div></div>
     }
@@ -36,7 +35,7 @@
             {
                 var n = OnlineCount(acc.Code);
                 <a class="acc-card @(n > 0 ? "on" : "off")" href="/vsop/@acc.Code.ToLowerInvariant()" style="text-decoration:none">
-                    <div class="onl"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</div>
+                    <div class="onl"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</div>
                     <div class="code">@acc.Code</div>
                     <div class="name">@acc.Name</div>
                 </a>
@@ -45,26 +44,31 @@
     }
 
     <div class="choice-grid" style="margin-top:22px">
-        <a class="choice" href="/vsop/changed" style="text-decoration:none;color:inherit"><h4><span class="ic">🆕</span> Cosa è cambiato dall'ultimo ciclo AIRAC</h4><p class="muted">Documenti modificati nel ciclo corrente.</p></a>
+        <a class="choice" href="/vsop/changed"><h4><span class="ic"><Icon Name="sparkles" Size="18" /></span> @L["Home_ChangedTitle"]</h4><p class="muted">@L["Home_ChangedDesc"]</p></a>
     </div>
 
     @if (Authz.IsAdmin)
     {
         <details class="staff-sec" data-persist="vsop-staff" open>
-        <summary class="section-title"><h3>Staff <span class="chev">▸</span></h3><span class="ln"></span></summary>
+        <summary class="section-title"><h3>@L["Home_StaffSection"] <span class="chev">▸</span></h3><span class="ln"></span></summary>
         <div class="choice-grid">
-            <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Documenti · Bozze &amp; versioni</h4><p class="muted">Crea/modifica documenti, stato, storico e pubblicazioni programmate.</p></a>
-            <a class="choice" href="/vsop/screens" style="text-decoration:none;color:inherit"><h4><span class="ic">🧩</span> Tutte le schermate</h4><p class="muted">Indice di navigazione di tutte le pagine accessibili.</p></a>
-            <a class="choice" href="/vsop/admin/acc" style="text-decoration:none;color:inherit"><h4><span class="ic">🛰️</span> ACC</h4><p class="muted">Importa gli ACC dalla sorgente e nascondi quelli non operativi.</p></a>
-            <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura settori</h4><p class="muted">Gestisci settori, contenimento, frequenze e documenti.</p></a>
-            <a class="choice" href="/vsop/admin/trasferimenti" style="text-decoration:none;color:inherit"><h4><span class="ic">🔄</span> Trasferimenti</h4><p class="muted">Flussi e punti di coordinamento tra settori, per ACC.</p></a>
-            <a class="choice" href="/vsop/admin/permessi" style="text-decoration:none;color:inherit"><h4><span class="ic">🔑</span> Permessi editing</h4><p class="muted">Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</p></a>
+            <a class="choice" href="/vsop/versioni"><h4><span class="ic"><Icon Name="file" Size="18" /></span> @L["Home_DocsTitle"]</h4><p class="muted">@L["Home_DocsDesc"]</p></a>
+            <a class="choice" href="/vsop/screens"><h4><span class="ic"><Icon Name="grid" Size="18" /></span> @L["Home_ScreensTitle"]</h4><p class="muted">@L["Home_ScreensDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/acc"><h4><span class="ic"><Icon Name="radio" Size="18" /></span> @L["Home_AccTitle"]</h4><p class="muted">@L["Home_AccDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/sectorstructure"><h4><span class="ic"><Icon Name="building" Size="18" /></span> @L["Home_StructTitle"]</h4><p class="muted">@L["Home_StructDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/trasferimenti"><h4><span class="ic"><Icon Name="refresh" Size="18" /></span> @L["Home_TransfersTitle"]</h4><p class="muted">@L["Home_TransfersDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/permessi"><h4><span class="ic"><Icon Name="key" Size="18" /></span> @L["Home_PermsTitle"]</h4><p class="muted">@L["Home_PermsDesc"]</p></a>
         </div>
         </details>
     }
 </div>
 
 @code {
+    // Scalda le cache del resolver (ACC + mappa aeroporti) prima del render: la home itera tutte le ACC e per
+    // ognuna chiama OnlineCount()→ResolveByCallsign. Senza prewarm il lazy-load colpirebbe il DbContext condiviso
+    // durante il render → crash "second operation" su Postgres.
+    protected override void OnInitialized() => Stations.Prewarm();
+
     // Conteggio one-shot al render: ATC online del dato ACC. Include sia i settori d'area (es. LIRR_NE_CTR)
     // sia le postazioni d'aeroporto sotto quell'ACC (es. LIRP_TWR / LIEO_EW0_APP → l'ACC dell'aeroporto).
     private int OnlineCount(string accCode)

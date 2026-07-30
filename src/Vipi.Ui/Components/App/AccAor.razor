@@ -3,6 +3,11 @@
 @using System.Text.Json
 @if (View.Sectors is { Count: > 0 })
 {
+    <div class="aor-viewmode" data-aor-view>
+        <button type="button" class="aor-vm-btn on" data-view="2d">Mappa 2D</button>
+        <button type="button" class="aor-vm-btn" data-view="3d">Vista 3D</button>
+    </div>
+    <div class="aor-view aor-view-2d">
     <div class="aor-block" data-aor="@Id">
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
@@ -14,7 +19,7 @@
             <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
         </div>
 
-        <div class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
+        <div @key="MapSignature()" class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
             <svg viewBox="@View.Sectors[0].Polygons[0].ViewBox" width="100%" height="100%" style="background:#f7f9ff">
                 @foreach (var s in View.Sectors)
                 {
@@ -37,13 +42,18 @@
                 <a class="cfg-clear" data-rows="">azzera</a>
             </div>
         }
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</p>
+        <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</p>
+    </div>
+    </div>
+    <div class="aor-view aor-view-3d" hidden>
+        <AccAor3d View="View" Id="@($"{Id}-3d")" FullPageUrl="@Aor3dPageUrl" />
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</p>
     </div>
 }
 else
 {
     <div class="callout warning" style="margin:0">
-        <span class="cic">🗺️</span>
+        <span class="cic"><Icon Name="map" Size="18" /></span>
         <div>
             <p class="ct">Shape AOR non disponibile</p>
             Nessun poligono per i settori del blocco (non ancora importati o non leggibili).
@@ -54,6 +64,13 @@ else
 @code {
     [Parameter, EditorRequired] public AccAorView View { get; set; } = AccAorView.Empty;
     [Parameter] public string? Id { get; set; }
+    /// <summary>URL della pagina 3D dedicata (instradato ad AccAor3d): mostra il link «Apri pagina» nel tab 3D. null = nessun link.</summary>
+    [Parameter] public string? Aor3dPageUrl { get; set; }
+
+    // Firma del contenuto mappa (callsign + colore per settore): cambia il @key del contenitore Leaflet così Blazor
+    // sostituisce il nodo quando cambiano colori/settori → vipi-aor.js re-inizializza la mappa (altrimenti l'init è
+    // idempotente e la mappa non rileggerebbe i nuovi data-sectors fino a un reset del nodo).
+    private string MapSignature() => string.Join("|", View.Sectors.Select(s => s.Callsign + ":" + s.Color));
 
     private string SectorsJson() => JsonSerializer.Serialize(
         View.Sectors.Select(s => new

@@ -52,21 +52,35 @@ public class CoordinationSentenceComposerTests
 
     private static string? Compose(string owner, string target, string? icao, LevelConstraint c,
         int? value, string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
-        LevelParity parity = LevelParity.Any, string? special = null, LevelUnit unit = LevelUnit.Fl)
+        LevelParity parity = LevelParity.Any, string? special = null, LevelUnit unit = LevelUnit.Fl,
+        TransferVerticalState vstate = TransferVerticalState.Unspecified)
         => CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc, owner, target, icao,
-            c, value, unit, special, parity, cop, kind);
+            c, value, unit, special, parity, cop, kind, verticalState: vstate);
 
     [Fact]
     public void Ctr_target_includes_code_and_descent()
     {
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, "VALMA");
+        // Stato verticale «in discesa» scelto a mano: dimensione indipendente dal vincolo di livello (≤).
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, "VALMA",
+            vstate: TransferVerticalState.Descending);
         Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico con destinazione Fiumicino LIRF in discesa a livello 130 o livello inferiore su VALMA.", s);
+    }
+
+    [Fact]
+    public void Constraint_alone_has_no_vertical_state_word()
+    {
+        // Regressione: il vincolo di livello (≤/≥) NON implica più «in discesa/salita». Senza stato verticale scelto,
+        // la frase riporta solo il bound di livello. (Richiesta operativa: «a 130 o inferiore» non è una discesa.)
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, "PISIP");
+        Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico con destinazione Fiumicino LIRF a livello 130 o livello inferiore su PISIP.", s);
+        Assert.DoesNotContain("in discesa", s);
     }
 
     [Fact]
     public void Departure_uses_origin_wording_not_destination()
     {
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA", TransferFlowKind.Departure);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA", TransferFlowKind.Departure,
+            vstate: TransferVerticalState.Climbing);
         Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico in partenza da Fiumicino LIRF in salita a livello 280 o livello superiore su VALMA.", s);
         Assert.DoesNotContain("destinazione", s);
     }
@@ -76,7 +90,8 @@ public class CoordinationSentenceComposerTests
     {
         // APP consolidato (fornito dall'ACC) con MiddleIdentifier di posizione (es. US0): l'identifier va mostrato
         // per disambiguare dal nome generico. L'omissione del codice vale solo per i terminali SENZA identifier.
-        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, "MAREL");
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, "MAREL",
+            vstate: TransferVerticalState.Descending);
         Assert.Equal("Roma Radar NE trasferisce a Pisa Approach US0 il traffico con destinazione Pisa - San Giusto LIRP in discesa a livello 120 o livello inferiore su MAREL.", s);
     }
 
@@ -86,23 +101,27 @@ public class CoordinationSentenceComposerTests
         // Stesso APP ma senza MiddleIdentifier noto: nessun codice nella frase.
         var codes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) { ["LIRR_NE_CTR"] = "NE" };
         var s = CoordinationSentences.Compose(Tpl, Types, Names, codes, Airports, Atc,
-            "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, LevelUnit.Fl, null, LevelParity.Any, "MAREL");
+            "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, LevelUnit.Fl, null, LevelParity.Any, "MAREL",
+            verticalState: TransferVerticalState.Descending);
         Assert.Equal("Roma Radar NE trasferisce a Pisa Approach il traffico con destinazione Pisa - San Giusto LIRP in discesa a livello 120 o livello inferiore su MAREL.", s);
     }
 
     [Fact]
     public void Climb_and_level_state_words()
     {
-        var up = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA");
+        var up = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrAbove, 280, "VALMA",
+            vstate: TransferVerticalState.Climbing);
         Assert.Contains("in salita a livello 280 o livello superiore", up);
-        var lvl = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 240, "VALMA");
+        var lvl = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 240, "VALMA",
+            vstate: TransferVerticalState.Level);
         Assert.Contains("stabile a livello 240 su", lvl);
     }
 
     [Fact]
     public void Parity_appended_as_word_with_value()
     {
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, "TIGRA", parity: LevelParity.Odd);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, "TIGRA", parity: LevelParity.Odd,
+            vstate: TransferVerticalState.Descending);
         Assert.Contains("in discesa a livello 150 o livello inferiore dispari su TIGRA.", s);
     }
 
@@ -111,7 +130,7 @@ public class CoordinationSentenceComposerTests
     {
         // Sorvolo «stabile» senza valore numerico ma con parità → «per un livello dispari».
         var s = Compose("LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.Exact, null, "TIGRA",
-            TransferFlowKind.Overflight, parity: LevelParity.Odd);
+            TransferFlowKind.Overflight, parity: LevelParity.Odd, vstate: TransferVerticalState.Level);
         Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico stabile per un livello dispari su TIGRA.", s);
     }
 
@@ -132,7 +151,8 @@ public class CoordinationSentenceComposerTests
     public void Cop_all_toward_reads_all_points_toward_dest(string cop, string tail)
     {
         // «stabile a livello 260 pari su tutti i punti verso X»: ALL to X → tutti i punti verso una nazione/FIR.
-        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 260, cop, parity: LevelParity.Even);
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 260, cop, parity: LevelParity.Even,
+            vstate: TransferVerticalState.Level);
         Assert.Contains("stabile a livello 260 pari su tutti i punti " + tail + ".", s);
     }
 
@@ -154,7 +174,8 @@ public class CoordinationSentenceComposerTests
     {
         // Template inglese (vLOA): stato/livello/parità/punto tutti in EN.
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
-            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, LevelUnit.Fl, null, LevelParity.Odd, "ALL");
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, LevelUnit.Fl, null, LevelParity.Odd, "ALL",
+            verticalState: TransferVerticalState.Descending);
         Assert.Equal("Roma Radar NE transfers to Milano Radar WS2 the traffic inbound to Fiumicino LIRF descending at level 150 or below odd over all points.", s);
     }
 
@@ -201,5 +222,88 @@ public class CoordinationSentenceComposerTests
         var s = Compose("LFOO_CTR", "LFBB_XX", "LFPG", LevelConstraint.AtOrBelow, 130, "ABC");
         Assert.Contains("LFOO_CTR trasferisce a LFBB_XX", s);   // niente codice noto → solo callsign
         Assert.Contains("destinazione LFPG LFPG", s);            // ICAO come nome di fallback
+    }
+
+    private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null) =>
+        CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, runway, area, custom);
+
+    [Fact]
+    public void Runway_condition_appends_clause_before_period()
+    {
+        // Variante editoriale: clausola condizione appesa a fine frase, prima del punto.
+        var s = ComposeCond(runway: "RWY 16");
+        Assert.EndsWith("su VALMA con pista RWY 16 in uso.", s);
+    }
+
+    [Fact]
+    public void Area_condition_uses_active_wording()
+    {
+        var s = ComposeCond(area: "R41");
+        Assert.EndsWith("su VALMA con R41 attiva.", s);
+    }
+
+    [Fact]
+    public void Custom_condition_uses_generic_wording()
+    {
+        var s = ComposeCond(custom: "traffico intenso");
+        Assert.EndsWith("su VALMA in condizione traffico intenso.", s);
+    }
+
+    [Fact]
+    public void No_condition_appends_no_clause()
+    {
+        Assert.EndsWith("su VALMA.", ComposeCond());
+        Assert.EndsWith("su VALMA.", ComposeCond(runway: "  "));   // label vuota → niente clausola
+    }
+
+    [Fact]
+    public void English_template_composes_english_condition_clause()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, "RWY 16");
+        Assert.EndsWith("over VALMA with runway RWY 16 in use.", s);
+    }
+
+    [Fact]
+    public void Multi_runway_label_lists_runways_in_one_clause()
+    {
+        // Stessa condizione su più piste: l'etichetta le elenca, una sola clausola.
+        var s = ComposeCond(runway: "16R / 16L");
+        Assert.EndsWith("su VALMA con pista 16R / 16L in uso.", s);
+    }
+
+    [Fact]
+    public void Runway_and_area_combine_with_and_wording()
+    {
+        // Pista + area insieme: forma dedicata «con pista X in uso e Y attiva».
+        var s = ComposeCond(runway: "16R", area: "R41");
+        Assert.EndsWith("su VALMA con pista 16R in uso e R41 attiva.", s);
+    }
+
+    [Fact]
+    public void Runway_and_area_english_wording()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, "16R", "R41");
+        Assert.EndsWith("over VALMA with runway 16R in use and R41 active.", s);
+    }
+
+    [Fact]
+    public void All_three_conditions_joined_with_e()
+    {
+        // Tre dimensioni indipendenti insieme: pista+area (forma dedicata) « e » personalizzata.
+        var s = ComposeCond(runway: "16R", area: "R41", custom: "traffico intenso");
+        Assert.EndsWith("su VALMA con pista 16R in uso e R41 attiva e in condizione traffico intenso.", s);
+    }
+
+    [Fact]
+    public void Area_and_custom_without_runway_joined()
+    {
+        var s = ComposeCond(area: "R41", custom: "notte");
+        Assert.EndsWith("su VALMA con R41 attiva e in condizione notte.", s);
     }
 }

@@ -31,16 +31,17 @@ public sealed class EfContentRepository : IContentRepository
             ignoreRelease: false, preferWorking: false, ct);
     }
 
-    public Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, CancellationToken ct = default)
+    public Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
-        // ignoreRelease (anteprima bozza, gated all'editor): mostra anche i documenti/aeroporti nascosti dall'admin.
+        // ignoreRelease/preferWorking (anteprima bozza, gated all'editor): mostra anche i documenti/aeroporti nascosti
+        // dall'admin e la versione di lavorazione più recente, anche se il documento non è ancora stato pubblicato.
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
-                 && (ignoreRelease || !d.IsHidden)
+                 && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao)
                  // Aeroporto nascosto dall'admin ⇒ pagina pubblica inaccessibile (ma visibile in anteprima bozza).
-                 && (ignoreRelease || !_db.Airports.Any(a => a.Icao == icao && a.IsHidden)),
-            ignoreRelease, preferWorking: false, ct);
+                 && (preferWorking || ignoreRelease || !_db.Airports.Any(a => a.Icao == icao && a.IsHidden)),
+            ignoreRelease, preferWorking, ct);
     }
 
     public Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
@@ -52,15 +53,6 @@ public sealed class EfContentRepository : IContentRepository
                  && d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
                         && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app),
             ignoreRelease, preferWorking, ct);
-    }
-
-    public Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default)
-    {
-        return LoadVipiAsync(
-            d => d.Type == DocumentType.Vloa
-                 && !d.IsHidden
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == accCode),
-            ignoreRelease: false, preferWorking: false, ct);
     }
 
     public Task<RawDocument?> LoadVloaByIdAsync(int docId, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
@@ -158,6 +150,8 @@ public sealed class EfContentRepository : IContentRepository
             SectionKey = s.SectionKey,
             Order = s.Order,
             RenderMode = s.RenderMode,
+            IsHidden = s.IsHidden,
+            BeforeParentBody = s.BeforeParentBody,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new())
@@ -232,7 +226,7 @@ public sealed class EfContentRepository : IContentRepository
         RawSection Build(DocumentSection s) => new()
         {
             Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, Order = s.Order,
-            RenderMode = s.RenderMode,
+            RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new()).Select(MapBlock).ToList(),
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new()).Select(Build).ToList(),
         };

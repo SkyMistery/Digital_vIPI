@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -57,6 +57,7 @@ public static class VipiModuleExtensions
         services.Configure<VipiChromeOptions>(configuration.GetSection(VipiChromeOptions.SectionName));
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
+        services.Configure<Vipi.Application.ReleaseRetentionOptions>(configuration.GetSection(Vipi.Application.ReleaseRetentionOptions.SectionName));
         services.Configure<HostIdentityOptions>(configuration.GetSection(HostIdentityOptions.SectionName));
 
         // Template (default globale) della frase di coordinamento: file editabile «content/coordination-sentence.json».
@@ -155,11 +156,45 @@ public static class VipiModuleExtensions
         return endpoints;
     }
 
-    /// <summary>Crea/migra il database del modulo all'avvio.</summary>
+    /// <summary>Crea/migra il database del modulo all'avvio. SQLite: migrazioni versionate (Migrate). Postgres
+    /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato e allineato al modello da
+    /// <see cref="PostgresSchemaReconciler.InitializeSchema"/>, che serializza l'operazione fra istanze e aggiunge
+    /// colonne e indici nuovi (EnsureCreated non altera le tabelle esistenti).</summary>
     public static IHost MigrateVipiDatabase(this IHost host)
     {
         using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<VipiDbContext>().Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<VipiDbContext>();
+        // ProviderName evita di referenziare Npgsql da Vipi.Hosting (lo conosce solo Infrastructure).
+        if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+                ?.CreateLogger(typeof(PostgresSchemaReconciler).FullName!);
+            PostgresSchemaReconciler.InitializeSchema(db, log);
+        }
+        else
+            db.Database.Migrate();
+        return host;
+    }
+
+    /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la
+    /// chiave storica <c>"custom"</c>. Idempotente: sicuro a ogni avvio.</summary>
+    public static IHost ReconcileVipiDocuments(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        var maintenance = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IDocumentMaintenance>();
+        var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.DocumentMaintenance");
+
+        var keys = maintenance.ReconcileCustomSectionKeysAsync().GetAwaiter().GetResult();
+        if (keys > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliate {Count} sezioni libere con chiave storica «custom».", keys);
+
+        // DOPO la riconciliazione delle chiavi: le voci storiche "custom" non identificano più una sola sezione.
+        var hidden = maintenance.MigrateHiddenSectionsAsync().GetAwaiter().GetResult();
+        if (hidden > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
         return host;
     }
 
@@ -170,6 +205,16 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
             .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
+        return host;
+    }
+
+    /// <summary>Retention pubblicazione: pota una volta all'avvio release Superseded oltre soglia e versioni Archived
+    /// oltre N (contiene l'accumulo storico; poi il per-publish lo mantiene limitato). Idempotente.</summary>
+    public static IHost PruneVipiReleases(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
+            .PruneAllAsync().GetAwaiter().GetResult();
         return host;
     }
 }

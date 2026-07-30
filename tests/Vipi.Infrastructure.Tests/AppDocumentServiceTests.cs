@@ -222,18 +222,69 @@ public class AppDocumentServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAorView_Includes_Child_App_Polygons()
+    public async Task GetAorView_Includes_Child_App_Polygons_But_Not_Towers_Automatically()
     {
-        // Il primario ha un poligono; aggiungo un APP figlio (E) con poligono proprio.
+        // Il primario ha un poligono; aggiungo un APP figlio (E) con poligono proprio. La TWR ha shape ma NON deve
+        // più comparire in automatico (l'overlay torri è stato sostituito dalle shape extra scelte a mano).
         (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
             "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_TWR")).RegionMapPolygon =
+            "[[10.45,43.62],[10.46,43.62],[10.46,43.63],[10.45,43.63]]";
         await _db.SaveChangesAsync();
         await AddChildAppAsync("LIRP_E_APP", "[[10.5,43.6],[10.6,43.6],[10.6,43.7],[10.5,43.7]]");
 
         var view = await _service.GetAorViewAsync(App);
 
-        Assert.Contains(view.Sectors, s => s.Callsign == App);           // primario
-        Assert.Contains(view.Sectors, s => s.Callsign == "LIRP_E_APP");  // figlio nel dominio
+        Assert.Contains(view.Sectors, s => s.Callsign == App);              // primario
+        Assert.Contains(view.Sectors, s => s.Callsign == "LIRP_E_APP");     // figlio nel dominio
+        Assert.DoesNotContain(view.Sectors, s => s.Callsign == "LIRP_TWR"); // torre NON automatica
+    }
+
+    [Fact]
+    public async Task AorExtras_Roundtrip_And_Appended_As_Toggleable_Ring()
+    {
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_TWR")).RegionMapPolygon =
+            "[[10.45,43.62],[10.46,43.62],[10.46,43.63],[10.45,43.63]]";
+        await _db.SaveChangesAsync();
+
+        // La torre è nel catalogo delle shape selezionabili; aggiungila a mano come shape extra.
+        var catalog = await _service.ListSelectableSectorShapesAsync();
+        Assert.Contains(catalog, c => c.Callsign == "LIRP_TWR");
+
+        await _service.SaveAorCustomizationAsync(App, new AorExtraShapes { Callsigns = { "LIRP_TWR", "LIRP_TWR" } });   // dedup atteso
+
+        var custom = await _service.GetAorCustomizationAsync(App);
+        Assert.Equal(new[] { "LIRP_TWR" }, custom.Callsigns.ToArray());
+
+        var view = await _service.GetAorViewAsync(App);
+        Assert.Contains(view.Sectors, s => s.Callsign == App);        // primario
+        Assert.Contains(view.Sectors, s => s.Callsign == "LIRP_TWR"); // shape extra appesa come anello
+    }
+
+    [Fact]
+    public async Task AorView_Colors_Default_By_Type_And_Honor_Override()
+    {
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_TWR")).RegionMapPolygon =
+            "[[10.45,43.62],[10.46,43.62],[10.46,43.63],[10.45,43.63]]";
+        await _db.SaveChangesAsync();
+
+        // La TWR come shape extra + un override colore sul primario (APP).
+        await _service.SaveAorCustomizationAsync(App, new AorExtraShapes
+        {
+            Callsigns = { "LIRP_TWR" },
+            Colors = { ["LIRP_APP"] = "#123456" },
+        });
+
+        var view = await _service.GetAorViewAsync(App);
+        var app = view.Sectors.Single(s => s.Callsign == App);
+        var twr = view.Sectors.Single(s => s.Callsign == "LIRP_TWR");
+
+        Assert.Equal("#123456", app.Color);                                       // override manuale
+        Assert.Equal(Vipi.Application.Aor.AorColorScheme.Defaults["TWR"], twr.Color);  // default per tipo (_TWR rosso)
     }
 
     [Fact]

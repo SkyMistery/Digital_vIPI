@@ -1,0 +1,33 @@
+# Deploy vIPI su Render (web service free, Docker) con DB Postgres esterno su Neon.
+# Render legge questo file dalla root del repo (Blueprint). Segreti reali: impostati nella dashboard, NON qui.
+services:
+  - type: web
+    name: vipi
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: frankfurt             # EU, vicino all'Italia + stessa regione di Neon (round-trip DB e SignalR bassi)
+    plan: free                    # dorme dopo 15min inattività; cold start ~1min al risveglio
+    healthCheckPath: /vsop
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://+:8080      # 8080 = porta del Dockerfile
+      - key: PORT
+        value: "8080"             # dice a Render di instradare su 8080 (default sarebbe 10000)
+      - key: Persistence__Provider
+        value: Postgres           # attiva UseNpgsql + schema via EnsureCreated
+      # Stringa di connessione Neon (.NET/Npgsql). NON committare: valore nella dashboard (sync:false).
+      - key: ConnectionStrings__Vipi
+        sync: false
+      # Login IVAO acceso + segreti OIDC (dashboard).
+      - key: VipiAuth__Enabled
+        value: "true"
+      - key: VipiAuth__ClientId
+        sync: false
+      - key: VipiAuth__ClientSecret
+        sync: false
+      - key: Ivao__ClientId
+        sync: false
+      - key: Ivao__ClientSecret
+        sync: false
+      - key: Auth__AdminStaffCodes__0
+        value: "IT-.*"            # chi può editare (regex sui codici staff)

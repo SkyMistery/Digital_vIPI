@@ -98,6 +98,12 @@ public sealed class TransferService : ITransferService
         await _repo.MovePointAsync(accCode, pointId, up, ct);
     }
 
+    public async Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.MovePointToEndAsync(accCode, pointId, top, ct);
+    }
+
     // Validazione SOFT: solo i campi strutturali indispensabili. Il CoP fuori whitelist è un warning di UI, non un blocco.
     private static void ValidateFlow(TransferFlowInput i)
     {
@@ -112,5 +118,6 @@ public sealed class TransferService : ITransferService
     {
         if (i.LevelConstraint != Domain.LevelConstraint.Special && i.LevelValue is null && string.IsNullOrWhiteSpace(i.Cop))
             throw new ValidationException("Indica almeno il CoP o un livello.");
+        // Le tre dimensioni condizione (pista/area/personalizzata) sono tutte opzionali e indipendenti: nessun vincolo.
     }
 }

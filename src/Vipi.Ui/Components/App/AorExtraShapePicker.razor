@@ -1,0 +1,91 @@
+@* Picker delle shape AoR extra: settori DB (anche esteri/torri) aggiunti a mano come anelli toggleabili sulla mappa.
+   Chip dei selezionati + campo cerca (ente/callsign) + lista filtrata. Emette l'intera lista aggiornata (l'host salva). *@
+
+<div class="aor-extra">
+    @if (Selected.Count > 0)
+    {
+        <div class="aor-extra-chips">
+            @foreach (var cs in Selected)
+            {
+                var name = _byCallsign.TryGetValue(cs, out var p) ? p.Name : cs;
+                <span class="aor-extra-chip" title="@name">
+                    <b>@cs</b>
+                    @if (Editing)
+                    {
+                        <button type="button" class="x" title="Rimuovi" @onclick="() => Remove(cs)">✕</button>
+                    }
+                </span>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="muted" style="font-size:12.5px;margin:0 0 6px">Nessuna shape extra. Cerca un ente qui sotto per aggiungerne.</p>
+    }
+
+    @if (Editing)
+    {
+        <div class="app-linkpick">
+            <input class="app-in" placeholder="Cerca ente (callsign o nome IVAO)…" value="@_search"
+                   @oninput="e => _search = (e.Value as string ?? string.Empty)" />
+            @if (!string.IsNullOrWhiteSpace(_search))
+            {
+                <div class="sector-pick">
+                    @foreach (var row in Filtered().Take(10))
+                    {
+                        var r = row;
+                        <button type="button" class="sp-item" @onclick="() => Add(r.Callsign)">
+                            <b>@r.Callsign</b> <span class="muted">@r.Name</span>
+                            @if (!string.IsNullOrWhiteSpace(r.AccCode)) { <span class="muted"> · @r.AccCode</span> }
+                        </button>
+                    }
+                    @if (!Filtered().Any())
+                    {
+                        <span class="sp-empty muted">Nessun settore con shape corrisponde.</span>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Callsign delle shape extra selezionate (stato posseduto dall'host).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<string> Selected { get; set; } = Array.Empty<string>();
+
+    /// <summary>Catalogo globale dei settori con shape selezionabili.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<SectorShapePick> Catalog { get; set; } = Array.Empty<SectorShapePick>();
+
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Emette l'intera lista aggiornata dei callsign selezionati.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>> SelectedChanged { get; set; }
+
+    private string _search = string.Empty;
+    private Dictionary<string, SectorShapePick> _byCallsign = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet() =>
+        _byCallsign = Catalog.GroupBy(c => c.Callsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+    private IEnumerable<SectorShapePick> Filtered()
+    {
+        var q = _search.Trim();
+        var sel = new HashSet<string>(Selected, StringComparer.OrdinalIgnoreCase);
+        return Catalog
+            .Where(c => !sel.Contains(c.Callsign))
+            .Where(c => c.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
+                     || c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                     || (c.AccCode ?? "").Contains(q, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private Task Add(string callsign)
+    {
+        if (Selected.Any(c => string.Equals(c, callsign, StringComparison.OrdinalIgnoreCase))) return Task.CompletedTask;
+        _search = string.Empty;
+        return SelectedChanged.InvokeAsync(Selected.Append(callsign).ToList());
+    }
+
+    private Task Remove(string callsign) =>
+        SelectedChanged.InvokeAsync(Selected.Where(c => !string.Equals(c, callsign, StringComparison.OrdinalIgnoreCase)).ToList());
+}

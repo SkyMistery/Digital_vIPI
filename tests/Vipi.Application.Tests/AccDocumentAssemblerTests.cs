@@ -47,10 +47,8 @@ public class AccDocumentAssemblerTests
         {
             Key = "grp:abc", Kind = AccBlockKind.AppGroup,
             MemberCallsigns = new() { "LIRP_APP" },
-            HiddenSections = new() { "vfr" },
             FreqOrder = new() { new AppFreqOrderOverride("LIRP_APP", 0) },
             FreqLinkCallsigns = new() { "LIRR_CTR" },
-            CoordinationSentenceTemplate = "tpl",
         };
         var configs = new List<AccConfiguration>
         {
@@ -86,26 +84,34 @@ public class AccDocumentAssemblerTests
         Assert.Equal("aerovia", aerovia.Block.Key);
         Assert.Single(aerovia.Block.Configurations);
         Assert.Equal("Conf 1", aerovia.Block.Configurations[0].Name);
-        Assert.Equal(new[] { "area-42" }, aerovia.Block.AttachedSpecialAreaIds);
-        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique" }, aerovia.Block.SectionOrder);
+        // regulated array legacy ["area-42"] → manuale (OwnAuto=false) con quegli id (back-compat).
+        Assert.False(aerovia.Block.Regulated.OwnAuto);
+        Assert.Equal(new[] { "area-42" }, aerovia.Block.Regulated.OwnIds);
+        Assert.Empty(aerovia.Block.Regulated.ExtraIds);
+        // Ordine del documento, poi le sezioni-catalogo mancanti accodate al loro posto (doc 11 §3b).
+        Assert.Equal(
+            new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique", "frequencies", "minima", "coordination", "validity" },
+            aerovia.Block.Sections.Select(s => s.Key).ToArray());
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
         Assert.Equal("1000 ft", Assert.Single(aerovia.Block.Separations).Vertical);
         Assert.Contains("intro", aerovia.Block.VfrJson);
 
-        // Editoriale generico: la figlia non-strutturata diventa una CustomSection con prosa.
-        var custom = Assert.Single(aerovia.Block.CustomSections);
-        Assert.Equal("operationaltechnique", custom.Key);
-        Assert.Equal("testo procedura", Assert.Single(custom.Blocks).Text);
+        // Editoriale generico: la figlia porta la vista di resa condivisa (blocchi veri, non prosa appiattita).
+        var custom = Assert.Single(aerovia.Block.Sections, s => s.Key == "operationaltechnique");
+        Assert.Equal(16, custom.SectionId);
+        Assert.Equal("Procedure generali", custom.Title);
+        Assert.Equal("testo procedura", Assert.Single(custom.Editorial!.Blocks).Body);
+
+        // Le sezioni-catalogo assenti dal documento sono accodate senza vista editoriale (nessuna sezione reale).
+        Assert.Null(Assert.Single(aerovia.Block.Sections, s => s.Key == "minima").Editorial);
 
         // Gruppo APP: tutti i campi dal blockmeta.
         var grp = blocks[1];
         Assert.Equal(AccBlockKind.AppGroup, grp.Block.Kind);
         Assert.Equal("grp:abc", grp.Block.Key);
         Assert.Equal(new[] { "LIRP_APP" }, grp.Block.MemberCallsigns);
-        Assert.Equal(new[] { "vfr" }, grp.Block.HiddenSections);
         Assert.Equal("LIRR_CTR", Assert.Single(grp.Block.FreqLinkCallsigns));
-        Assert.Equal("tpl", grp.Block.CoordinationSentenceTemplate);
         Assert.Equal(0, Assert.Single(grp.Block.FreqOrder).Order);
     }
 
@@ -118,7 +124,61 @@ public class AccDocumentAssemblerTests
         Assert.Equal(AccBlockKind.Aerovia, block.Kind);
         Assert.Empty(block.MemberCallsigns);
         Assert.Empty(block.Configurations);
-        Assert.Empty(block.AttachedSpecialAreaIds);
-        Assert.Empty(block.SectionOrder);
+        // Nessuna figlia regulated → aree del proprio ACC in automatico (default dinamico), nessuna esplicita.
+        Assert.True(block.Regulated.OwnAuto);
+        Assert.Empty(block.Regulated.OwnIds);
+        Assert.Empty(block.Regulated.ExtraIds);
+        Assert.Empty(block.ExtraAorCallsigns);
+        // Nessuna figlia nel documento ⇒ solo le sezioni-catalogo del profilo, tutte senza vista editoriale.
+        Assert.Equal(SectionCatalog.For(SectionProfile.AccAerovia).Count, block.Sections.Count);
+        Assert.All(block.Sections, s => Assert.Null(s.Editorial));
+    }
+
+    [Fact]
+    public void ExtraAorCallsigns_And_Colors_Read_From_Aor_Section_BodyJson()
+    {
+        var extras = new AorExtraShapes
+        {
+            Callsigns = new() { "LGKR_APP", "LIRP_TWR" },
+            Colors = new() { ["LIRP_TWR"] = "#b0413e" },
+        };
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "aor", "AOR", 1, ownJson: JsonSerializer.Serialize(extras)),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.Equal(new[] { "LGKR_APP", "LIRP_TWR" }, block.ExtraAorCallsigns);
+        Assert.Equal("#b0413e", block.AorColorOverrides["LIRP_TWR"]);
+    }
+
+    [Fact]
+    public void Frozen_AccAorView_In_Aor_Section_Does_Not_Leak_Into_ExtraAorCallsigns()
+    {
+        // Negli snapshot frozen il BodyJson di "aor" contiene l'AccAorView renderizzato, non AorExtraShapes:
+        // la deserializzazione tollerante deve produrre una lista vuota (nessun campo "callsigns").
+        var frozen = JsonSerializer.Serialize(AccAorView.Empty);
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "aor", "AOR", 1, ownJson: frozen),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.Empty(block.ExtraAorCallsigns);
+    }
+
+    [Fact]
+    public void Regulated_Object_Schema_RoundTrips()
+    {
+        var sel = new RegulatedSelection { OwnAuto = false, OwnIds = new() { "a1" }, ExtraIds = new() { "x9" } };
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "regulated", "Aree", 1, ownJson: JsonSerializer.Serialize(sel)),
+        }));
+        var block = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block;
+
+        Assert.False(block.Regulated.OwnAuto);
+        Assert.Equal(new[] { "a1" }, block.Regulated.OwnIds);
+        Assert.Equal(new[] { "x9" }, block.Regulated.ExtraIds);
     }
 }

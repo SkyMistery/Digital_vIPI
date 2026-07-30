@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -61,4 +61,1115 @@
   <data name="Chrome_Editor" xml:space="preserve"><value>Editor</value></data>
   <data name="Chrome_Permissions" xml:space="preserve"><value>Editing permissions</value></data>
   <data name="Chrome_ConnectedAs" xml:space="preserve"><value>You are connected as this callsign</value></data>
+  <!-- Common (reusable across pages) -->
+  <data name="Common_OnlineN" xml:space="preserve"><value>{0} online</value></data>
+  <data name="Common_Offline" xml:space="preserve"><value>offline</value></data>
+  <data name="Common_Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Common_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Common_SeeAll" xml:space="preserve"><value>See all</value></data>
+  <data name="Common_SeeAllF" xml:space="preserve"><value>See all</value></data>
+  <data name="Common_UnknownAcc" xml:space="preserve"><value>Unknown ACC</value></data>
+  <data name="Common_NoAirport" xml:space="preserve"><value>No airport</value></data>
+  <data name="Common_NoApp" xml:space="preserve"><value>No standalone APP</value></data>
+  <data name="Common_NoVloa" xml:space="preserve"><value>No vLoA</value></data>
+  <data name="Common_All" xml:space="preserve"><value>All</value></data>
+  <data name="Common_OpenArrow" xml:space="preserve"><value>Open →</value></data>
+  <!-- What changed (/vsop/changed) -->
+  <data name="Changed_Title" xml:space="preserve"><value>What changed</value></data>
+  <data name="Changed_Subtitle" xml:space="preserve"><value>Documents published in the current AIRAC cycle</value></data>
+  <data name="Changed_NoChanges" xml:space="preserve"><value>No changes</value></data>
+  <data name="Changed_NoChangesBody" xml:space="preserve"><value>No document published in cycle {0}</value></data>
+  <data name="Changed_ForAcc" xml:space="preserve"><value>for {0}</value></data>
+  <data name="Changed_New" xml:space="preserve"><value>New</value></data>
+  <data name="Changed_Updated" xml:space="preserve"><value>Updated</value></data>
+  <data name="Changed_Sections" xml:space="preserve"><value>sections</value></data>
+  <data name="Changed_Blocks" xml:space="preserve"><value>blocks</value></data>
+  <!-- Search (/vsop/search) -->
+  <data name="Search_Title" xml:space="preserve"><value>Search</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Search CoP, FIX, callsign, frequencies…</value></data>
+  <data name="Search_MinChars" xml:space="preserve"><value>Type at least 2 characters.</value></data>
+  <data name="Search_ResultsFor" xml:space="preserve"><value>{0} results for</value></data>
+  <data name="Search_NoResults" xml:space="preserve"><value>No results.</value></data>
+  <data name="Search_ScopeVipi" xml:space="preserve"><value>vIPI</value></data>
+  <data name="Search_ScopeVloa" xml:space="preserve"><value>vLOA</value></data>
+  <data name="Search_ScopeAirports" xml:space="preserve"><value>Airports</value></data>
+  <!-- Common viewer -->
+  <data name="Common_Navigation" xml:space="preserve"><value>Navigation</value></data>
+  <data name="Common_Contents" xml:space="preserve"><value>Contents</value></data>
+  <data name="Common_Operational" xml:space="preserve"><value>⚡ Operational</value></data>
+  <data name="Common_Editor" xml:space="preserve"><value>✎ Editor</value></data>
+  <data name="Common_Summary" xml:space="preserve"><value>Summary</value></data>
+  <data name="Common_Links" xml:space="preserve"><value>Links</value></data>
+  <data name="Common_AiracCycle" xml:space="preserve"><value>AIRAC cycle</value></data>
+  <data name="Common_AtcOnline" xml:space="preserve"><value>ATC online</value></data>
+  <data name="Common_HiddenNotPublic" xml:space="preserve"><value>🚫 hidden (not public)</value></data>
+  <data name="Common_DraftTag" xml:space="preserve"><value>[Draft]</value></data>
+  <data name="Common_PreviewTag" xml:space="preserve"><value>[Preview]</value></data>
+  <!-- Viewer vIPI ACC (/vsop/{acc}/vipi) -->
+  <data name="AccVipi_NotAvailTitle" xml:space="preserve"><value>vIPI not available</value></data>
+  <data name="AccVipi_NotAvailBody" xml:space="preserve"><value>No vIPI published for &lt;b&gt;{0}&lt;/b&gt;. If you're preparing it, open the &lt;a href="{1}"&gt;editor&lt;/a&gt; and publish it.</value></data>
+  <data name="AccVipi_AirwaySectors" xml:space="preserve"><value>Airway sectors</value></data>
+  <data name="AccVipi_Subtitle" xml:space="preserve"><value>Position instructions · airway sectors and approaches</value></data>
+  <!-- Viewer standalone APP (/vsop/{acc}/apps/vipi) -->
+  <data name="Appn_VloaNotAvailTitle" xml:space="preserve"><value>vLOA not available</value></data>
+  <data name="Appn_VloaNotAvailBody" xml:space="preserve"><value>No vLOA published for the pair &lt;b&gt;{0}&lt;/b&gt;. Generate it from the &lt;a href="/vsop/admin/confinanti"&gt;Neighbouring ACCs&lt;/a&gt; page.</value></data>
+  <data name="Appn_AppNotFoundTitle" xml:space="preserve"><value>APP not found</value></data>
+  <data name="Appn_AppNotFoundBody" xml:space="preserve"><value>No standalone approach published for &lt;code&gt;{0}&lt;/code&gt;. If you're preparing it, open the &lt;a href="{1}"&gt;editor&lt;/a&gt; and publish it.</value></data>
+  <data name="Appn_Subtitle" xml:space="preserve"><value>Standalone approach · own document</value></data>
+  <data name="Appn_InfoTitle" xml:space="preserve"><value>APP with its own documentation</value></data>
+  <data name="Appn_InfoBody" xml:space="preserve"><value>Not remotized under the ACC: it has a dedicated vIPI. Remotized ones stay in the ACC vIPI.</value></data>
+  <data name="Common_Frequencies" xml:space="preserve"><value>Frequencies</value></data>
+  <data name="Common_TagOpen" xml:space="preserve"><value>open</value></data>
+  <data name="Common_TagOnline" xml:space="preserve"><value>online</value></data>
+  <data name="Common_TagCovered" xml:space="preserve"><value>covered</value></data>
+  <!-- Operational view ACC (/vsop/{acc}/operativa) -->
+  <data name="Operativa_Tab" xml:space="preserve"><value>Operational</value></data>
+  <data name="Operativa_Position" xml:space="preserve"><value>Position</value></data>
+  <data name="Operativa_DetectedFromIvao" xml:space="preserve"><value>Detected from your IVAO connection</value></data>
+  <data name="Operativa_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
+  <data name="Operativa_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>
+  <data name="Operativa_ReducedLiveTitle" xml:space="preserve"><value>Reduced + live mode</value></data>
+  <data name="Operativa_ReducedLiveBody" xml:space="preserve"><value>See only the essentials for position &lt;b&gt;{0}&lt;/b&gt;. Sections are independent: you can keep more than one open (e.g. Frequencies and Transfers together). For everything else open the extended document.</value></data>
+  <data name="Operativa_QuickView" xml:space="preserve"><value>Quick view — my sector or an airport under direct control</value></data>
+  <data name="Operativa_MySector" xml:space="preserve"><value>My sector</value></data>
+  <data name="Operativa_AptDelegatedTip" xml:space="preserve"><value>controlled by another online position</value></data>
+  <data name="Operativa_AptQuickTip" xml:space="preserve"><value>airport quick view</value></data>
+  <data name="Operativa_AptOtherTip" xml:space="preserve"><value>handled by another sector</value></data>
+  <data name="Operativa_DelegSuffix" xml:space="preserve"><value> ·delegated</value></data>
+  <data name="Operativa_NoFreqDerived" xml:space="preserve"><value>No derived frequency.</value></data>
+  <data name="Operativa_Delegated" xml:space="preserve"><value>delegated</value></data>
+  <data name="Operativa_CollapsedBody" xml:space="preserve"><value>Collapsed because a sector of &lt;b&gt;{0}&lt;/b&gt; is online (soft collapse). Frequencies for the handoff remain below.</value></data>
+  <data name="Operativa_TransfersTitle" xml:space="preserve"><value>Transfers · where I hand off traffic</value></data>
+  <data name="Operativa_OnlineAround" xml:space="preserve"><value>Online around you:</value></data>
+  <data name="Operativa_NoNeighbourOnline" xml:space="preserve"><value>no adjacent unit online</value></data>
+  <data name="Operativa_TransfersHint" xml:space="preserve"><value>— internal only if someone is there; external always (release at the right level)</value></data>
+  <data name="Operativa_NoCoord" xml:space="preserve"><value>No coordination for this ACC.</value></data>
+  <data name="Operativa_NotAvailTitle" xml:space="preserve"><value>Operational view not available</value></data>
+  <data name="Operativa_NotAvailBody" xml:space="preserve"><value>No vIPI published for &lt;b&gt;{0}&lt;/b&gt;. The operational view derives from the published document: open the &lt;a href="{1}"&gt;vIPI&lt;/a&gt; and publish it.</value></data>
+  <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connected as {0}</value></data>
+  <data name="Common_Coordination" xml:space="preserve"><value>Coordination</value></data>
+  <data name="Common_AptQuickView" xml:space="preserve"><value>Airport quick view</value></data>
+  <!-- Operational view APP (/vsop/{acc}/operativa-app) -->
+  <data name="AppOp_MissingPosTitle" xml:space="preserve"><value>Missing APP position</value></data>
+  <data name="AppOp_MissingPosBody" xml:space="preserve"><value>Specify &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
+  <data name="AppOp_OpsApp" xml:space="preserve"><value>Operational · APP</value></data>
+  <data name="AppOp_NotFoundBody" xml:space="preserve"><value>No document (own or remotized in the ACC vIPI) for &lt;code&gt;{0}&lt;/code&gt;.</value></data>
+  <data name="AppOp_UpdatedAt" xml:space="preserve"><value>updated {0}</value></data>
+  <data name="AppOp_InfoTitle" xml:space="preserve"><value>Operational view for APP position</value></data>
+  <data name="AppOp_InfoBody" xml:space="preserve"><value>The approach sees frequencies, coordination and transfers towards ACC and towers.</value></data>
+  <data name="AppOp_Standalone" xml:space="preserve"><value>Standalone APP (own document).</value></data>
+  <data name="AppOp_Remotized" xml:space="preserve"><value>Remotized APP (content from the ACC vIPI).</value></data>
+  <data name="AppOp_AptDocHint" xml:space="preserve"><value>Airport (tower) document: TA/TL, runways, SID.</value></data>
+  <data name="AppOp_OpenAptVipi" xml:space="preserve"><value>Open vIPI {0} →</value></data>
+  <data name="AppOp_NoCoordToPos" xml:space="preserve"><value>No coordination towards this position.</value></data>
+  <!-- Airport (/vsop/{acc}/airports) -->
+  <data name="Airport_NoneBody" xml:space="preserve"><value>No airport with a published document under this ACC.</value></data>
+  <data name="Airport_Wind" xml:space="preserve"><value>Wind</value></data>
+  <data name="Airport_Departures" xml:space="preserve"><value>Departures</value></data>
+  <data name="Airport_Arrivals" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="Airport_WxLoading" xml:space="preserve"><value>Loading weather…</value></data>
+  <data name="Airport_DocNotAvailTitle" xml:space="preserve"><value>Document not available</value></data>
+  <data name="Airport_DocNotAvailBody" xml:space="preserve"><value>No airport vIPI published for {0}.</value></data>
+  <data name="Airport_SubtitlePrefix" xml:space="preserve"><value>Airport</value></data>
+  <data name="Airport_LiveNoaa" xml:space="preserve"><value>(live · NOAA)</value></data>
+  <data name="Airport_Visibility" xml:space="preserve"><value>Visibility</value></data>
+  <data name="Airport_Clouds" xml:space="preserve"><value>Clouds</value></data>
+  <data name="Airport_Weather" xml:space="preserve"><value>Weather</value></data>
+  <data name="Airport_Trend" xml:space="preserve"><value>Trend</value></data>
+  <data name="Airport_Gusts" xml:space="preserve"><value>Gusts</value></data>
+  <data name="Airport_MetarNA" xml:space="preserve"><value>METAR not available for {0}</value></data>
+  <data name="Airport_WxNA" xml:space="preserve"><value>METAR/TAF not available for {0}</value></data>
+  <data name="Airport_WxNAHint" xml:space="preserve"><value>Weather service unreachable or ICAO without a bulletin. Try again later.</value></data>
+  <data name="Airport_Validity" xml:space="preserve"><value>Validity</value></data>
+  <data name="Airport_FromValidityStart" xml:space="preserve"><value>from validity start</value></data>
+  <data name="Airport_TransLevelByQnh" xml:space="preserve"><value>Transition Level based on QNH</value></data>
+  <data name="Airport_QnhCurrent" xml:space="preserve"><value> (current {0} hPa)</value></data>
+  <data name="Airport_QnhNow" xml:space="preserve"><value>current QNH</value></data>
+  <data name="Airport_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Airport_Frequency" xml:space="preserve"><value>Frequency</value></data>
+  <data name="Airport_Runways" xml:space="preserve"><value>Runways</value></data>
+  <data name="Airport_Runway" xml:space="preserve"><value>Runway</value></data>
+  <data name="Airport_Use" xml:space="preserve"><value>Use</value></data>
+  <data name="Airport_LengthM" xml:space="preserve"><value>Length (m)</value></data>
+  <data name="Airport_RwyLegend" xml:space="preserve"><value>&lt;span class="rwy-key arr"&gt;green for arrivals&lt;/span&gt; and &lt;span class="rwy-key dep"&gt;blue for departures&lt;/span&gt; recommended</value></data>
+  <data name="Airport_RwyByRule" xml:space="preserve"><value>by the active rule «{0}»</value></data>
+  <data name="Airport_RwyByWind" xml:space="preserve"><value>from the METAR wind</value></data>
+  <data name="Airport_WindVal" xml:space="preserve"><value>Wind {0}° / {1} kt.</value></data>
+  <data name="Airport_Rain" xml:space="preserve"><value>rain</value></data>
+  <data name="Airport_Snow" xml:space="preserve"><value>snow</value></data>
+  <data name="Airport_RwyDepTip" xml:space="preserve"><value>Recommended for departures</value></data>
+  <data name="Airport_RwyArrTip" xml:space="preserve"><value>Recommended for arrivals</value></data>
+  <data name="Airport_RwyInUse" xml:space="preserve"><value>Runway in use</value></data>
+  <data name="Airport_NoSidsTitle" xml:space="preserve"><value>SIDs not entered yet</value></data>
+  <data name="Airport_NoSidsBody" xml:space="preserve"><value>Add them from the airport editor or import them from the sectorfile.</value></data>
+  <!-- Common editor/tables -->
+  <data name="Common_Order" xml:space="preserve"><value>Order</value></data>
+  <data name="Common_Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Common_Down" xml:space="preserve"><value>Down</value></data>
+  <data name="Common_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Common_RemoveLink" xml:space="preserve"><value>Remove link</value></data>
+  <data name="Common_AddRow" xml:space="preserve"><value>+ Add row</value></data>
+  <data name="Common_DragReorder" xml:space="preserve"><value>Drag to reorder</value></data>
+  <data name="Common_ExpandAll" xml:space="preserve"><value>⊕ Expand all</value></data>
+  <data name="Common_CollapseAll" xml:space="preserve"><value>⊖ Collapse all</value></data>
+  <!-- vLOA document view -->
+  <data name="Vloa_ListLink" xml:space="preserve"><value>vLoA list</value></data>
+  <data name="Vloa_NoFreqAvail" xml:space="preserve"><value>No frequency available.</value></data>
+  <data name="Vloa_NoFreq" xml:space="preserve"><value>No frequency.</value></data>
+  <!-- App/* shared sections -->
+  <data name="AppFreq_UniSector" xml:space="preserve"><value>Unified sector</value></data>
+  <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>No frequency in the subtree.</value></data>
+  <data name="AppFreq_EditHelp" xml:space="preserve"><value>Frequencies derive from the sector tree: change the hierarchy and they change here. Reorder by dragging ⠿ or with ↑/↓; add external frequencies with «Link frequency».</value></data>
+  <data name="AppMinima_Title" xml:space="preserve"><value>MVA charts from GitHub</value></data>
+  <data name="AppMinima_Body" xml:space="preserve"><value>Minimum vectoring altitudes (MVA charts) will be imported from the division sectorfile. Feature in development.</value></data>
+  <data name="AppCoord_Intro" xml:space="preserve"><value>Approach sector transfers: towards ACCs and towards the tower(s). Derived from the configured flows.</value></data>
+  <data name="AppCoord_None" xml:space="preserve"><value>No coordination configured for this APP.</value></data>
+  <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Transfers towards ACC</value></data>
+  <data name="AppCoord_TowardTowers" xml:space="preserve"><value>Transfers towards towers</value></data>
+  <data name="AppCoord_Overflights" xml:space="preserve"><value>Overflights and VFR</value></data>
+  <data name="AppCoord_Flow" xml:space="preserve"><value>Flow</value></data>
+  <data name="AppCoord_Level" xml:space="preserve"><value>Level</value></data>
+  <data name="AppCoord_Condition" xml:space="preserve"><value>Condition</value></data>
+  <data name="AppVfr_IntroLabel" xml:space="preserve"><value>Introduction (markdown)</value></data>
+  <data name="AppVfr_Situation" xml:space="preserve"><value>Situation</value></data>
+  <data name="AppVfr_Procedure" xml:space="preserve"><value>Procedure</value></data>
+  <data name="AppVfr_NoContent" xml:space="preserve"><value>No VFR content.</value></data>
+  <data name="AppSep_ApplicPlaceholder" xml:space="preserve"><value>Applicability: e.g. between IFR and special VFR, in TMA…</value></data>
+  <data name="AppSep_Default" xml:space="preserve"><value>Default separation</value></data>
+  <data name="AppSep_Vertical" xml:space="preserve"><value>Vertical</value></data>
+  <data name="AppSep_Lateral" xml:space="preserve"><value>Lateral</value></data>
+  <data name="AppSep_Remove" xml:space="preserve"><value>Remove separation</value></data>
+  <data name="AppSep_Add" xml:space="preserve"><value>+ Add separation</value></data>
+  <data name="AppSep_None" xml:space="preserve"><value>No separation specified.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Create a configuration, name it and choose the open sectors. The system computes the merging.</value></data>
+  <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Configuration name</value></data>
+  <data name="AppCfg_Remove" xml:space="preserve"><value>Remove configuration</value></data>
+  <data name="AppCfg_OpenSectors" xml:space="preserve"><value>Open sectors</value></data>
+  <data name="AppCfg_UnifiedSector" xml:space="preserve"><value>Unified sector</value></data>
+  <data name="AppCfg_Absorbs" xml:space="preserve"><value>Absorbs</value></data>
+  <data name="AppCfg_Add" xml:space="preserve"><value>+ Add configuration</value></data>
+  <data name="AppCfg_None" xml:space="preserve"><value>No operational configuration.</value></data>
+  <data name="AppCfg_NewName" xml:space="preserve"><value>New configuration</value></data>
+  <!-- Common admin -->
+  <data name="Common_StaffArea" xml:space="preserve"><value>Staff Area</value></data>
+  <data name="Common_AccessReserved" xml:space="preserve"><value>Access reserved</value></data>
+  <data name="Common_AdminOnly" xml:space="preserve"><value>Page reserved to administrators.</value></data>
+  <data name="Common_Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Common_Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common_Unsaved" xml:space="preserve"><value>unsaved change</value></data>
+  <data name="Common_NoChange" xml:space="preserve"><value>no change</value></data>
+  <!-- Audit log (/vsop/admin/audit) -->
+  <data name="Audit_Title" xml:space="preserve"><value>Audit log</value></data>
+  <data name="Audit_Subtitle" xml:space="preserve"><value>Latest recorded actions (publications, permissions, structure)</value></data>
+  <data name="Audit_StaffOnly" xml:space="preserve"><value>Only staff can view the audit.</value></data>
+  <data name="Audit_NoEvents" xml:space="preserve"><value>No event recorded.</value></data>
+  <data name="Audit_When" xml:space="preserve"><value>When (UTC)</value></data>
+  <data name="Audit_Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Audit_Entity" xml:space="preserve"><value>Entity</value></data>
+  <data name="Audit_Details" xml:space="preserve"><value>Details</value></data>
+  <!-- Diagnostics (/vsop/admin/diagnostica) -->
+  <data name="Diag_Title" xml:space="preserve"><value>Data diagnostics</value></data>
+  <data name="Diag_Subtitle" xml:space="preserve"><value>Inconsistencies in «soft» references (soft-ref): denormalized labels and per-callsign parents that may diverge from the source</value></data>
+  <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
+  <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>
+  <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
+  <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>
+  <data name="Diag_Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Diag_Entity" xml:space="preserve"><value>Entity</value></data>
+  <data name="Diag_Detail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Diag_Severe" xml:space="preserve"><value>severe</value></data>
+  <data name="Diag_Warning" xml:space="preserve"><value>warning</value></data>
+  <!-- All screens (/vsop/screens) -->
+  <data name="Screens_Subtitle" xml:space="preserve"><value>Navigation index — all implemented pages of mockup v2</value></data>
+  <!-- Structure (/vsop/admin/sectorstructure) -->
+  <data name="Struct_PageTitle" xml:space="preserve"><value>Structure (ACC, sectors)</value></data>
+  <data name="Struct_Title" xml:space="preserve"><value>Structure</value></data>
+  <data name="Struct_Subtitle" xml:space="preserve"><value>Global coverage hierarchy + documents</value></data>
+  <data name="Struct_NavNewDoc" xml:space="preserve"><value>New document</value></data>
+  <data name="Struct_NavAcc" xml:space="preserve"><value>Manage ACC</value></data>
+  <data name="Struct_NavAirports" xml:space="preserve"><value>Manage airports</value></data>
+  <data name="Struct_NavNeighbours" xml:space="preserve"><value>Neighbouring ACCs (vLOA)</value></data>
+  <data name="Struct_NavSources" xml:space="preserve"><value>Data sources</value></data>
+  <data name="Struct_CoverageHierarchy" xml:space="preserve"><value>Coverage hierarchy</value></data>
+  <data name="Struct_Division" xml:space="preserve"><value>division</value></data>
+  <data name="Struct_HierarchyHelp" xml:space="preserve"><value>Single fallback tree for the whole division (&lt;b&gt;cross-ACC&lt;/b&gt;): &lt;b&gt;Airport → APP → ACC sector&lt;/b&gt;. The airport is the leaf (DEL/GND/TWR share its quick view). Sectors are imported/edited from the &lt;a href="/vsop/admin/acc"&gt;ACC page&lt;/a&gt;; here you only set the &lt;b&gt;parents&lt;/b&gt; (the immediate fallback), also across different ACCs.</value></data>
+  <data name="Struct_TreesByAcc" xml:space="preserve"><value>Trees by ACC</value></data>
+  <data name="Struct_Expand" xml:space="preserve"><value>⊞ expand</value></data>
+  <data name="Struct_Collapse" xml:space="preserve"><value>⊟ collapse</value></data>
+  <data name="Struct_ExpandAllTitle" xml:space="preserve"><value>Expand all</value></data>
+  <data name="Struct_CollapseAllTitle" xml:space="preserve"><value>Collapse all cards</value></data>
+  <data name="Struct_Complete" xml:space="preserve"><value>✓ structure complete: every airport and APP has a parent</value></data>
+  <data name="Struct_ShowUnassignedTitle" xml:space="preserve"><value>Show only nodes to attach</value></data>
+  <data name="Struct_AptToAssign1" xml:space="preserve"><value>{0} airport to assign</value></data>
+  <data name="Struct_AptToAssignN" xml:space="preserve"><value>{0} airports to assign</value></data>
+  <data name="Struct_AppOrphan1" xml:space="preserve"><value>{0} orphan APP</value></data>
+  <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} orphan APPs</value></data>
+  <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} ACC roots</value></data>
+  <data name="Struct_AccRootsTitle" xml:space="preserve"><value>ACC roots (no parent — top-down coverage)</value></data>
+  <data name="Struct_ShowAll" xml:space="preserve"><value>↺ show all</value></data>
+  <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>search callsign / ACC…</value></data>
+  <data name="Struct_FilterCountry" xml:space="preserve"><value>Filter by country</value></data>
+  <data name="Struct_AllCountries" xml:space="preserve"><value>all countries</value></data>
+  <data name="Struct_ResultsN" xml:space="preserve"><value>{0} results</value></data>
+  <data name="Struct_NoSectorMatch" xml:space="preserve"><value>No sector matches «{0}».</value></data>
+  <data name="Struct_NoSectorCatalog" xml:space="preserve"><value>No sector in the catalog. Import them from the &lt;a href="/vsop/admin/acc"&gt;ACC page&lt;/a&gt;.</value></data>
+  <data name="Struct_SectorsN" xml:space="preserve"><value>{0} sectors</value></data>
+  <data name="Struct_OnlineNow" xml:space="preserve"><value>online now</value></data>
+  <data name="Struct_Hidden" xml:space="preserve"><value>(hidden)</value></data>
+  <data name="Struct_ToAssign" xml:space="preserve"><value>⚠ to assign</value></data>
+  <data name="Struct_Root" xml:space="preserve"><value>root</value></data>
+  <data name="Struct_Detail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Struct_SelectHint" xml:space="preserve"><value>Select a sector to see its fallback chain and set its parent.</value></data>
+  <data name="Struct_LeafHint" xml:space="preserve"><value>DEL · GND · TWR share the same quick view (the airport is the leaf).</value></data>
+  <data name="Struct_ParentLabel" xml:space="preserve"><value>Parent (immediate fallback)</value></data>
+  <data name="Struct_FilterCallsign" xml:space="preserve"><value>filter callsign…</value></data>
+  <data name="Struct_OptRoot" xml:space="preserve"><value>— root —</value></data>
+  <data name="Struct_OptToAssign" xml:space="preserve"><value>— to assign —</value></data>
+  <data name="Struct_DropInvalid" xml:space="preserve"><value>You can't attach {0} under {1} (itself/descendant or different country).</value></data>
+  <!-- Staff Area / Grants (/vsop/admin/permessi) -->
+  <data name="Grants_Subtitle" xml:space="preserve"><value>All staff-reserved functions</value></data>
+  <data name="Grants_StaffOnly" xml:space="preserve"><value>Only staff can access this area.</value></data>
+  <data name="Grants_StructDesc" xml:space="preserve"><value>ACC, positions, sectors, ownership, frequencies and topology.</value></data>
+  <data name="Grants_DocsDesc" xml:space="preserve"><value>Create, edit, hide/delete and publish: vIPI, airports, vLOA. History and AIRAC releases.</value></data>
+  <data name="Grants_AuditDesc" xml:space="preserve"><value>Who did what: publications and permission changes.</value></data>
+  <data name="Grants_TasksTitle" xml:space="preserve"><value>Editor tasks</value></data>
+  <data name="Grants_TasksDesc" xml:space="preserve"><value>Assign and monitor editor tasks, with progress and delays.</value></data>
+  <data name="Grants_DiagDesc" xml:space="preserve"><value>Inconsistencies in soft references: orphan runways, diverging labels, phantom areas, broken hierarchy.</value></data>
+  <data name="Grants_GrantByVid" xml:space="preserve"><value>Grant by VID</value></data>
+  <data name="Grants_GrantHint" xml:space="preserve"><value>Select a staffer from the list (IT staff who logged in at least once) or enter a VID manually.</value></data>
+  <data name="Grants_ActiveGrants" xml:space="preserve"><value>Active grants</value></data>
+  <data name="Grants_NoneGranted" xml:space="preserve"><value>No permission granted.</value></data>
+  <data name="Grants_GrantedBy" xml:space="preserve"><value>Granted by</value></data>
+  <data name="Grants_When" xml:space="preserve"><value>When</value></data>
+  <data name="Grants_Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="Grants_GrantPermission" xml:space="preserve"><value>Grant permission</value></data>
+  <data name="Grants_ItStaffer" xml:space="preserve"><value>IT staffer</value></data>
+  <data name="Grants_Select" xml:space="preserve"><value>— select —</value></data>
+  <data name="Grants_NoStaffer" xml:space="preserve"><value>No staffer in the list: they appear after first login. Enter the VID manually.</value></data>
+  <data name="Grants_NameOptional" xml:space="preserve"><value>Name (optional)</value></data>
+  <data name="Grants_GrantBtn" xml:space="preserve"><value>+ Grant</value></data>
+  <data name="Grants_GrantedMsg" xml:space="preserve"><value>Permission granted.</value></data>
+  <data name="Grants_RevokedMsg" xml:space="preserve"><value>Permission revoked.</value></data>
+  <data name="Common_State" xml:space="preserve"><value>Status</value></data>
+  <!-- Task states/priorities (shared) -->
+  <data name="TaskStatus_Todo" xml:space="preserve"><value>To do</value></data>
+  <data name="TaskStatus_InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="TaskStatus_InReview" xml:space="preserve"><value>In review</value></data>
+  <data name="TaskStatus_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="TaskStatus_Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="TaskPrio_Low" xml:space="preserve"><value>Low</value></data>
+  <data name="TaskPrio_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="TaskPrio_High" xml:space="preserve"><value>High</value></data>
+  <!-- Editor tasks admin (/vsop/admin/tasks) -->
+  <data name="AdminTasks_Subtitle" xml:space="preserve"><value>Assign and monitor editorial work · AIRAC cycle {0}</value></data>
+  <data name="AdminTasks_StaffOnly" xml:space="preserve"><value>Only staff can manage tasks.</value></data>
+  <data name="AdminTasks_NewTask" xml:space="preserve"><value>New task</value></data>
+  <data name="AdminTasks_TitleLabel" xml:space="preserve"><value>Title</value></data>
+  <data name="AdminTasks_TitlePlaceholder" xml:space="preserve"><value>e.g. Update LIRF procedures</value></data>
+  <data name="AdminTasks_AssignTo" xml:space="preserve"><value>Assign to (staffer)</value></data>
+  <data name="AdminTasks_Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="AdminTasks_DueAirac" xml:space="preserve"><value>AIRAC due</value></data>
+  <data name="AdminTasks_None" xml:space="preserve"><value>None</value></data>
+  <data name="AdminTasks_DocOptional" xml:space="preserve"><value>Document (optional)</value></data>
+  <data name="AdminTasks_FreeTask" xml:space="preserve"><value>— free task —</value></data>
+  <data name="AdminTasks_DescOptional" xml:space="preserve"><value>Description (optional)</value></data>
+  <data name="AdminTasks_DescPlaceholder" xml:space="preserve"><value>Task details…</value></data>
+  <data name="AdminTasks_CreateBtn" xml:space="preserve"><value>+ Create task</value></data>
+  <data name="AdminTasks_AllTasks" xml:space="preserve"><value>All tasks</value></data>
+  <data name="AdminTasks_NoneCreated" xml:space="preserve"><value>No task created.</value></data>
+  <data name="AdminTasks_Assignee" xml:space="preserve"><value>Assignee</value></data>
+  <data name="AdminTasks_Due" xml:space="preserve"><value>Due</value></data>
+  <data name="AdminTasks_Document" xml:space="preserve"><value>Document</value></data>
+  <data name="AdminTasks_DeleteTask" xml:space="preserve"><value>Delete task</value></data>
+  <data name="AdminTasks_ProgressByEditor" xml:space="preserve"><value>Progress by editor</value></data>
+  <data name="AdminTasks_DoneCount" xml:space="preserve"><value>{0}/{1} completed</value></data>
+  <data name="AdminTasks_LateCount" xml:space="preserve"><value> · {0} late ⚠</value></data>
+  <data name="AdminTasks_CreatedMsg" xml:space="preserve"><value>Task created.</value></data>
+  <data name="AdminTasks_DeletedMsg" xml:space="preserve"><value>Task deleted.</value></data>
+  <!-- My tasks (/vsop/tasks) -->
+  <data name="Tasks_MyTasks" xml:space="preserve"><value>My tasks</value></data>
+  <data name="Tasks_Subtitle" xml:space="preserve"><value>Current AIRAC cycle {0} · drag the status to update progress</value></data>
+  <data name="Tasks_NotAuth" xml:space="preserve"><value>Not authenticated</value></data>
+  <data name="Tasks_NotAuthBody" xml:space="preserve"><value>Sign in to see your tasks.</value></data>
+  <data name="Tasks_NewPersonal" xml:space="preserve"><value>New personal task</value></data>
+  <data name="Tasks_TitlePlaceholder" xml:space="preserve"><value>Task title…</value></data>
+  <data name="Tasks_NoDue" xml:space="preserve"><value>No due date</value></data>
+  <data name="Tasks_ByAirac" xml:space="preserve"><value>By AIRAC {0}</value></data>
+  <data name="Tasks_AddToMe" xml:space="preserve"><value>+ Add to me</value></data>
+  <data name="Tasks_FreeHint" xml:space="preserve"><value>Free task (not tied to a document). Document tasks are assigned by an admin from the dashboard.</value></data>
+  <data name="Tasks_NoneAssigned" xml:space="preserve"><value>No task assigned.</value></data>
+  <data name="Tasks_DueAiracTitle" xml:space="preserve"><value>AIRAC due</value></data>
+  <data name="Tasks_Late" xml:space="preserve"><value>⚠ late</value></data>
+  <data name="Tasks_OpenDoc" xml:space="preserve"><value>Open document →</value></data>
+  <data name="Tasks_AddedMsg" xml:space="preserve"><value>Task added.</value></data>
+  <!-- ACC landing (/vsop/{acc}) -->
+  <data name="AccLanding_Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="AccLanding_MainDoc" xml:space="preserve"><value>Main document</value></data>
+  <data name="AccLanding_VipiOf" xml:space="preserve"><value>vIPI of {0}</value></data>
+  <data name="AccLanding_VipiDesc" xml:space="preserve"><value>ACC document: separations, AoR, configurations, frequencies, minima and coordination. Includes remotized APPs.</value></data>
+  <data name="AccLanding_Airports" xml:space="preserve"><value>Airports</value></data>
+  <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI of individual airports under the ACC.</value></data>
+  <data name="AccLanding_Apps" xml:space="preserve"><value>Standalone approaches</value></data>
+  <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APPs with their own documentation.</value></data>
+  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Letters of agreement with neighbouring centres.</value></data>
+  <data name="AccLanding_OpsView" xml:space="preserve"><value>Operational view</value></data>
+  <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Operational view of {0}</value></data>
+  <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Live projection for your position: soft collapse of what is delegated to an online unit, plus transfers resolved in real time.</value></data>
+  <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Flows and coordination points (admin page).</value></data>
+  <!-- Home / landing (/vsop) -->
+  <data name="Home_Heading" xml:space="preserve"><value>Operational documentation</value></data>
+  <data name="Home_Intro" xml:space="preserve"><value>Pick an ACC to browse its vIPI, airports and approaches. Or search a position directly from the top bar.</value></data>
+  <data name="Home_NoAccTitle" xml:space="preserve"><value>No ACC yet</value></data>
+  <data name="Home_DbEmpty" xml:space="preserve"><value>The database is empty.</value></data>
+  <data name="Home_CreateFirstAdmin" xml:space="preserve"><value>Create the first ACC to start adding positions, topology and documents.</value></data>
+  <data name="Home_CreateFirstUser" xml:space="preserve"><value>Staff hasn't created any ACC yet: check back later.</value></data>
+  <data name="Home_CreateAccBtn" xml:space="preserve"><value>+ Create ACC / structure</value></data>
+  <data name="Home_ChangedTitle" xml:space="preserve"><value>What changed since the last AIRAC cycle</value></data>
+  <data name="Home_ChangedDesc" xml:space="preserve"><value>Documents modified in the current cycle.</value></data>
+  <data name="Home_StaffSection" xml:space="preserve"><value>Staff</value></data>
+  <data name="Home_DocsTitle" xml:space="preserve"><value>Documents · Drafts &amp; versions</value></data>
+  <data name="Home_DocsDesc" xml:space="preserve"><value>Create/edit documents, status, history and scheduled publications.</value></data>
+  <data name="Home_ScreensTitle" xml:space="preserve"><value>All screens</value></data>
+  <data name="Home_ScreensDesc" xml:space="preserve"><value>Navigation index of all accessible pages.</value></data>
+  <data name="Home_AccTitle" xml:space="preserve"><value>ACC</value></data>
+  <data name="Home_AccDesc" xml:space="preserve"><value>Import ACCs from the source and hide the non-operational ones.</value></data>
+  <data name="Home_StructTitle" xml:space="preserve"><value>Sector structure</value></data>
+  <data name="Home_StructDesc" xml:space="preserve"><value>Manage sectors, containment, frequencies and documents.</value></data>
+  <data name="Home_TransfersTitle" xml:space="preserve"><value>Transfers</value></data>
+  <data name="Home_TransfersDesc" xml:space="preserve"><value>Flows and coordination points between sectors, per ACC.</value></data>
+  <data name="Home_PermsTitle" xml:space="preserve"><value>Editing permissions</value></data>
+  <data name="Home_PermsDesc" xml:space="preserve"><value>Grant a VID (CH or not) the right to edit documents per ACC.</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>yes</value></data>
+  <data name="Common_UnexpectedError" xml:space="preserve"><value>Unexpected error: </value></data>
+  <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
+  <data name="Country_LF" xml:space="preserve"><value>France</value></data>
+  <data name="Country_LS" xml:space="preserve"><value>Switzerland</value></data>
+  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
+  <data name="Country_LD" xml:space="preserve"><value>Croatia</value></data>
+  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
+  <data name="Country_LG" xml:space="preserve"><value>Greece</value></data>
+  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
+  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
+  <data name="Country_LQ" xml:space="preserve"><value>Bosnia</value></data>
+  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
+  <data name="Country_LW" xml:space="preserve"><value>North Macedonia</value></data>
+  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
+  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Centers imported from the source. All active: hide some if needed.</value></data>
+  <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Import/update ACCs and ACC sectors from the data source</value></data>
+  <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Import from source</value></data>
+  <data name="AccAdmin_FilterAcc" xml:space="preserve"><value>🔎 filter by code or name…</value></data>
+  <data name="AccAdmin_FilterSub" xml:space="preserve"><value>🔎 filter by callsign, ACC, position…</value></data>
+  <data name="AccAdmin_FilterCountryTitle" xml:space="preserve"><value>Filter by country (applies to both tables)</value></data>
+  <data name="AccAdmin_AllCountries" xml:space="preserve"><value>all countries</value></data>
+  <data name="AccAdmin_NoAcc" xml:space="preserve"><value>No ACC. Press «Import from source» to populate the list.</value></data>
+  <data name="AccAdmin_NoSubs" xml:space="preserve"><value>No ACC sector. Press «Import from source».</value></data>
+  <data name="AccAdmin_NoResults" xml:space="preserve"><value>No results with the active filters.</value></data>
+  <data name="AccAdmin_NoResultsFor" xml:space="preserve"><value>No results for «{0}» with the active filters.</value></data>
+  <data name="AccAdmin_ColCode" xml:space="preserve"><value>Code</value></data>
+  <data name="AccAdmin_ColMilitary" xml:space="preserve"><value>Military</value></data>
+  <data name="AccAdmin_Hidden" xml:space="preserve"><value>hidden</value></data>
+  <data name="AccAdmin_HiddenAcc" xml:space="preserve"><value>hidden (ACC)</value></data>
+  <data name="AccAdmin_Active" xml:space="preserve"><value>active</value></data>
+  <data name="AccAdmin_Show" xml:space="preserve"><value>Show</value></data>
+  <data name="AccAdmin_Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="AccAdmin_SubsTitle" xml:space="preserve"><value>ACC sectors</value></data>
+  <data name="AccAdmin_SubsNote" xml:space="preserve"><value>Subcenters imported from the source (callsign · ACC · position · middle id · freq · shape). You set the altitude limits. Sectors of a hidden ACC are hidden.</value></data>
+  <data name="AccAdmin_LowerLimit" xml:space="preserve"><value>Lower lim.</value></data>
+  <data name="AccAdmin_UpperLimit" xml:space="preserve"><value>Upper lim.</value></data>
+  <data name="AccAdmin_Unlimited" xml:space="preserve"><value>unl.</value></data>
+  <data name="AccAdmin_LowerHint" xml:space="preserve"><value>GND or altitude in ft</value></data>
+  <data name="AccAdmin_UpperHint" xml:space="preserve"><value>UNL or altitude in ft</value></data>
+  <data name="AccAdmin_AccHiddenTitle" xml:space="preserve"><value>The ACC is hidden</value></data>
+  <data name="AccAdmin_SaveLimits" xml:space="preserve"><value>Save limits</value></data>
+  <data name="AccAdmin_ShowAccFirst" xml:space="preserve"><value>The ACC is hidden: show the ACC first</value></data>
+  <data name="AccAdmin_ToggleHide" xml:space="preserve"><value>Show/hide</value></data>
+  <data name="AccAdmin_ImportOk" xml:space="preserve"><value>Import completed. ACC: {0} created, {1} updated · ACC sectors: {2} created, {3} updated.</value></data>
+  <data name="AccAdmin_ImportSpecialFailures" xml:space="preserve"><value> · {0} ACC with special areas skipped (details in logs).</value></data>
+  <data name="AccAdmin_LimitsSaved" xml:space="preserve"><value>Limits saved.</value></data>
+  <data name="Common_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common_OpAdminOnly" xml:space="preserve"><value>Operation reserved to administrators.</value></data>
+  <data name="Sorg_Title" xml:space="preserve"><value>Data sources</value></data>
+  <data name="Sorg_Subtitle" xml:space="preserve"><value>Decide which data comes from the source (today IVAO) and which is managed manually</value></data>
+  <data name="Sorg_Intro" xml:space="preserve"><value>Categories &lt;b&gt;imported&lt;/b&gt; from the source are &lt;b&gt;authoritative and read-only&lt;/b&gt; for users: they are overwritten on re-imports and cannot be changed in the editors. Excluding a category makes it &lt;b&gt;manual&lt;/b&gt;: the import no longer touches it and the editors leave it editable.</value></data>
+  <data name="Sorg_ColCategory" xml:space="preserve"><value>Category</value></data>
+  <data name="Sorg_ColProvenance" xml:space="preserve"><value>Provenance</value></data>
+  <data name="Sorg_ImportFromSource" xml:space="preserve"><value>import from source</value></data>
+  <data name="Sorg_TaDesc" xml:space="preserve"><value>Airport transition altitude</value></data>
+  <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Runways</value></data>
+  <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Runway ident, length and bearing</value></data>
+  <data name="Sorg_SectorsLabel" xml:space="preserve"><value>Sectors</value></data>
+  <data name="Sorg_SectorsDesc" xml:space="preserve"><value>Airport sectors (callsign/type/frequency)</value></data>
+  <data name="Sorg_SidDesc" xml:space="preserve"><value>SIDs from the Aurora sectorfile (GitHub)</value></data>
+  <data name="Sorg_StatesTitle" xml:space="preserve"><value>Periodic import status</value></data>
+  <data name="Sorg_StatesHelp" xml:space="preserve"><value>Outcome of the last automatic run of each gated import. An error here means potentially stale data until the retry succeeds.</value></data>
+  <data name="Sorg_NoStates" xml:space="preserve"><value>No import run yet (new DB or jobs not started).</value></data>
+  <data name="Sorg_ColLastSuccess" xml:space="preserve"><value>Last success</value></data>
+  <data name="Sorg_ColLastAttempt" xml:space="preserve"><value>Last attempt</value></data>
+  <data name="Sorg_ErrorBadge" xml:space="preserve"><value>error</value></data>
+  <data name="Sorg_OkBadge" xml:space="preserve"><value>ok</value></data>
+  <data name="Sorg_ProvSource" xml:space="preserve"><value>from source (read-only)</value></data>
+  <data name="Sorg_ProvManual" xml:space="preserve"><value>manual</value></data>
+  <data name="Sorg_Saved" xml:space="preserve"><value>Data source policy saved.</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common_Error" xml:space="preserve"><value>Error: </value></data>
+  <data name="Conf_Title" xml:space="preserve"><value>Neighbouring ACCs</value></data>
+  <data name="Conf_Heading" xml:space="preserve"><value>Neighbouring ACCs → vLOA</value></data>
+  <data name="Conf_Subtitle" xml:space="preserve"><value>Import foreign ACCs from neighbouring countries, compute geometric adjacency, generate a vLOA per pair.</value></data>
+  <data name="Conf_ImportWarnings" xml:space="preserve"><value>Import warnings:</value></data>
+  <data name="Conf_PairsTitle" xml:space="preserve"><value>Neighbouring pairs</value></data>
+  <data name="Conf_ImportTitle" xml:space="preserve"><value>Download the neighbouring countries' ACCs and compute sector adjacency</value></data>
+  <data name="Conf_ImportBtn" xml:space="preserve"><value>Import &amp; compute</value></data>
+  <data name="Conf_Intro" xml:space="preserve"><value>Neighbouring countries from &lt;code&gt;Neighbours:CountryIds&lt;/code&gt;. Sectors are neighbours when the minimum edge distance is below threshold (&lt;code&gt;AdjacencyThresholdNm&lt;/code&gt;). Non-neighbours are not saved. Confirm a pair and generate the vLOA (Home = editable Italian ACC, Neighbour = read-only foreign).</value></data>
+  <data name="Conf_NoPairs" xml:space="preserve"><value>No pair. Press «Import &amp; compute» (or add a pair manually below).</value></data>
+  <data name="Conf_SearchPlaceholder" xml:space="preserve"><value>Search ACC (Home/Foreign), foreign name or country…</value></data>
+  <data name="Conf_Pending" xml:space="preserve"><value>To review</value></data>
+  <data name="Conf_Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="Conf_Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Conf_ClearTitle" xml:space="preserve"><value>Clear search and filters</value></data>
+  <data name="Conf_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Conf_NoMatch" xml:space="preserve"><value>No pair matches the filter.</value></data>
+  <data name="Conf_ClearFilters" xml:space="preserve"><value>Clear the filters</value></data>
+  <data name="Conf_ColHome" xml:space="preserve"><value>Home (IT)</value></data>
+  <data name="Conf_ColForeign" xml:space="preserve"><value>Foreign</value></data>
+  <data name="Conf_ColCountry" xml:space="preserve"><value>Country</value></data>
+  <data name="Conf_ColMinDist" xml:space="preserve"><value>Min dist</value></data>
+  <data name="Conf_ColAdjSectors" xml:space="preserve"><value>Adj sectors</value></data>
+  <data name="Conf_StatusConfirmed" xml:space="preserve"><value>confirmed</value></data>
+  <data name="Conf_StatusRejected" xml:space="preserve"><value>rejected</value></data>
+  <data name="Conf_StatusPending" xml:space="preserve"><value>to review</value></data>
+  <data name="Conf_OpenVloaTitle" xml:space="preserve"><value>Open the vLOA (read)</value></data>
+  <data name="Conf_OpenVloaEditorTitle" xml:space="preserve"><value>Open the vLOA in the editor</value></data>
+  <data name="Conf_VerifyTitle" xml:space="preserve"><value>See the adjacent sectors and the map to verify the border</value></data>
+  <data name="Conf_Verify" xml:space="preserve"><value>Verify</value></data>
+  <data name="Conf_ConfirmTitle" xml:space="preserve"><value>Confirm the pair</value></data>
+  <data name="Conf_Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Conf_RejectTitle" xml:space="preserve"><value>False positive</value></data>
+  <data name="Conf_Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="Conf_GenerateTitle" xml:space="preserve"><value>Materialize the foreign ACC and create the vLOA</value></data>
+  <data name="Conf_GenerateVloa" xml:space="preserve"><value>Generate vLOA</value></data>
+  <data name="Conf_AddSectorTitle" xml:space="preserve"><value>Manually add a sector to the foreign ACC (verified on IVAO)</value></data>
+  <data name="Conf_Sector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Conf_PolygonTitle" xml:space="preserve"><value>Paste the foreign polygon (IVAO does not expose it)</value></data>
+  <data name="Conf_Polygon" xml:space="preserve"><value>Polygon</value></data>
+  <data name="Conf_PolyLabel" xml:space="preserve"><value>Foreign shape polygon (JSON: &lt;code&gt;[[lng,lat],…]&lt;/code&gt; or &lt;code&gt;[{ "lat":.., "lng":.. },…]&lt;/code&gt;)</value></data>
+  <data name="Conf_SavePolygon" xml:space="preserve"><value>Save polygon</value></data>
+  <data name="Conf_SectorLabel" xml:space="preserve"><value>Foreign sector callsign to add to &lt;b&gt;{0}&lt;/b&gt; (verified on IVAO)</value></data>
+  <data name="Conf_AddSector" xml:space="preserve"><value>Add sector</value></data>
+  <data name="Conf_SectorHint" xml:space="preserve"><value>Airport (APP/DEP/TWR/GND/DEL) or center (CTR/FSS). If it does not exist on IVAO it is rejected. It then appears among the foreign ACC sectors and in the coordination pickers.</value></data>
+  <data name="Conf_ComputingAdj" xml:space="preserve"><value>Computing adjacency (re-downloading foreign sectors from IVAO)…</value></data>
+  <data name="Conf_AdjSectors" xml:space="preserve"><value>Adjacent sectors</value></data>
+  <data name="Conf_NoAdjBelow" xml:space="preserve"><value>No sector pair below threshold: the border may be a false positive.</value></data>
+  <data name="Conf_SectorOf" xml:space="preserve"><value>{0} sector</value></data>
+  <data name="Conf_EdgeDist" xml:space="preserve"><value>Edge dist</value></data>
+  <data name="Conf_Home" xml:space="preserve"><value>home</value></data>
+  <data name="Conf_Foreign" xml:space="preserve"><value>foreign</value></data>
+  <data name="Conf_MapHint" xml:space="preserve"><value>Hover a shape for the callsign. Equirectangular projection (uniform scale).</value></data>
+  <data name="Conf_NoShape" xml:space="preserve"><value>No shape available for the map (foreign polygons missing).</value></data>
+  <data name="Conf_AllShapes" xml:space="preserve"><value>All</value></data>
+  <data name="Conf_NoneShapes" xml:space="preserve"><value>None</value></data>
+  <data name="Conf_GeoMapHint" xml:space="preserve"><value>Real geographic map (CartoDB). Toggle the sectors with the chips above.</value></data>
+  <data name="Conf_AddManualTitle" xml:space="preserve"><value>Add a pair manually</value></data>
+  <data name="Conf_AddManualHint" xml:space="preserve"><value>Fallback when IVAO does not provide the foreign ACC data/polygon. The polygon is optional.</value></data>
+  <data name="Conf_LblHome" xml:space="preserve"><value>Home ACC (IT)</value></data>
+  <data name="Conf_LblForeign" xml:space="preserve"><value>Foreign ACC</value></data>
+  <data name="Conf_LblForeignName" xml:space="preserve"><value>Foreign name</value></data>
+  <data name="Conf_LblCountry" xml:space="preserve"><value>Country (countryId)</value></data>
+  <data name="Conf_LblRootCallsign" xml:space="preserve"><value>Foreign root callsign</value></data>
+  <data name="Conf_LblPolyOptional" xml:space="preserve"><value>Polygon (optional)</value></data>
+  <data name="Conf_AddPair" xml:space="preserve"><value>Add pair</value></data>
+  <data name="Conf_LoadError" xml:space="preserve"><value>Load error: </value></data>
+  <data name="Conf_ImportOk" xml:space="preserve"><value>Import completed. Countries: {0} · foreign ACCs read: {1} · pairs: {2} new, {3} updated.</value></data>
+  <data name="Conf_ImportError" xml:space="preserve"><value>Import error: </value></data>
+  <data name="Conf_VloaGenerated" xml:space="preserve"><value>vLOA generated.</value></data>
+  <data name="Conf_SectorAlreadyPresent" xml:space="preserve"><value>Sector {0} already present on {1}</value></data>
+  <data name="Conf_SectorHiddenSuffix" xml:space="preserve"><value> (hidden — re-enable it from /vsop/admin/acc).</value></data>
+  <data name="Conf_SectorAdded" xml:space="preserve"><value>Sector {0} added to {1}.</value></data>
+  <data name="Conf_VerifyError" xml:space="preserve"><value>Verify error: </value></data>
+  <data name="Conf_PolygonSaved" xml:space="preserve"><value>Polygon saved.</value></data>
+  <data name="Conf_PairAdded" xml:space="preserve"><value>Pair added.</value></data>
+  <data name="Apt_Title" xml:space="preserve"><value>Airports</value></data>
+  <data name="Apt_Subtitle" xml:space="preserve"><value>Assignment of IVAO airports to ACCs, owning ACC and sector hierarchy</value></data>
+  <data name="Apt_AssignedTitle" xml:space="preserve"><value>Assigned to an ACC</value></data>
+  <data name="Apt_ReimportTitle" xml:space="preserve"><value>Re-fetch runways and Transition Altitude from IVAO for ALL assigned airports (respects the /vsop/admin/sorgenti policy)</value></data>
+  <data name="Apt_ReimportBtn" xml:space="preserve"><value>Re-import from IVAO (all)</value></data>
+  <data name="Apt_FilterIcaoName" xml:space="preserve"><value>🔎 filter by ICAO or name…</value></data>
+  <data name="Apt_FilterAccTitle" xml:space="preserve"><value>Filter by ACC</value></data>
+  <data name="Apt_AllAccs" xml:space="preserve"><value>all ACCs</value></data>
+  <data name="Apt_NoAssigned" xml:space="preserve"><value>No airport assigned. Assign some from the table on the right.</value></data>
+  <data name="Apt_NoResults" xml:space="preserve"><value>No results</value></data>
+  <data name="Apt_NoResultsAccPart" xml:space="preserve"><value> for ACC {0}</value></data>
+  <data name="Apt_NoResultsQPart" xml:space="preserve"><value> «{0}»</value></data>
+  <data name="Apt_NSelected" xml:space="preserve"><value>{0} selected</value></data>
+  <data name="Apt_MoveToAcc" xml:space="preserve"><value>move to ACC…</value></data>
+  <data name="Apt_Move" xml:space="preserve"><value>Move</value></data>
+  <data name="Apt_GenDocsTitle" xml:space="preserve"><value>Create the DEL/GND/TWR sectors from IVAO and the airport vIPI</value></data>
+  <data name="Apt_GenDocs" xml:space="preserve"><value>Generate documents</value></data>
+  <data name="Apt_DeleteSelectedAria" xml:space="preserve"><value>Delete selected airports</value></data>
+  <data name="Apt_DeleteSelectedPrompt" xml:space="preserve"><value>Delete {0} selected?</value></data>
+  <data name="Apt_DeleteSelected" xml:space="preserve"><value>Delete selected</value></data>
+  <data name="Apt_Deselect" xml:space="preserve"><value>deselect</value></data>
+  <data name="Apt_ColSectors" xml:space="preserve"><value>Sectors</value></data>
+  <data name="Apt_OpenEditorTitle" xml:space="preserve"><value>Open airport editor {0}</value></data>
+  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Every airport must have at least one tower (TWR or I_TWR). Generate the documents or add the tower from the Structure page.</value></data>
+  <data name="Apt_NoTwr" xml:space="preserve"><value>no TWR</value></data>
+  <data name="Apt_HiddenNoSectorsTitle" xml:space="preserve"><value>Hidden by default: the airport has no sector at all, the public page stays inaccessible until it generates the documents.</value></data>
+  <data name="Apt_HiddenNoSectors" xml:space="preserve"><value>hidden (no sectors)</value></data>
+  <data name="Apt_HiddenAdminTitle" xml:space="preserve"><value>Hidden by the admin: public page inaccessible.</value></data>
+  <data name="Apt_HiddenState" xml:space="preserve"><value>hidden</value></data>
+  <data name="Apt_VisibleTitle" xml:space="preserve"><value>Visible to the public.</value></data>
+  <data name="Apt_Visible" xml:space="preserve"><value>visible</value></data>
+  <data name="Apt_EditorProfileTitle" xml:space="preserve"><value>Airport profile editor</value></data>
+  <data name="Apt_ShowTitle" xml:space="preserve"><value>Show the airport to the public</value></data>
+  <data name="Apt_HideTitle" xml:space="preserve"><value>Hide the airport: its page becomes inaccessible to the public</value></data>
+  <data name="Apt_DeleteAria" xml:space="preserve"><value>Delete airport</value></data>
+  <data name="Apt_DeleteTriggerTitle" xml:space="preserve"><value>Only if without sectors</value></data>
+  <data name="Apt_IvaoDirTitle" xml:space="preserve"><value>IVAO directory</value></data>
+  <data name="Apt_AutoAssignTitle" xml:space="preserve"><value>Assign IVAO airports to the already existing owning ACC and import their sectors from the source</value></data>
+  <data name="Apt_AutoAssignBtn" xml:space="preserve"><value>Auto-assign known</value></data>
+  <data name="Apt_IvaoUnavailable" xml:space="preserve"><value>IVAO directory unavailable:</value></data>
+  <data name="Apt_LoadingIvao" xml:space="preserve"><value>Loading the airport directory from IVAO…</value></data>
+  <data name="Apt_IvaoIntro" xml:space="preserve"><value>In &lt;span style="color:#1a7f37;font-weight:700"&gt;green&lt;/span&gt; the already assigned airports. «Auto-assign known» creates those whose owning ACC is already present in the DB; for the others pick the ACC and press «assign».</value></data>
+  <data name="Apt_NoResultsFor" xml:space="preserve"><value>No results for «{0}».</value></data>
+  <data name="Apt_AssignToAcc" xml:space="preserve"><value>assign to ACC…</value></data>
+  <data name="Apt_AssignSelected" xml:space="preserve"><value>Assign selected</value></data>
+  <data name="Apt_ColAccFromDb" xml:space="preserve"><value>ACC from DB</value></data>
+  <data name="Apt_ColAssignment" xml:space="preserve"><value>Assignment</value></data>
+  <data name="Apt_AccOption" xml:space="preserve"><value>ACC…</value></data>
+  <data name="Apt_Assign" xml:space="preserve"><value>assign</value></data>
+  <data name="Apt_AutoAssignNone" xml:space="preserve"><value>No airport to assign (all already present or ACCs not created).</value></data>
+  <data name="Apt_AutoAssignOk" xml:space="preserve"><value>Assigned {0} airports to the owning ACC (sectors imported from the source).</value></data>
+  <data name="Apt_AutoAssignSkipped" xml:space="preserve"><value> {0} airports skipped (details in logs).</value></data>
+  <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Choose the target ACC.</value></data>
+  <data name="Apt_MovedOk" xml:space="preserve"><value>Moved {0} airports to {1}</value></data>
+  <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} not moved.</value></data>
+  <data name="Apt_DocsGenerated" xml:space="preserve"><value>Airport documents generated: {0} (sectors created {1})</value></data>
+  <data name="Apt_DocsSkipped" xml:space="preserve"><value>, {0} already existing</value></data>
+  <data name="Apt_DocsFailed" xml:space="preserve"><value>, {0} failed</value></data>
+  <data name="Apt_ReimportOk" xml:space="preserve"><value>Re-import from IVAO completed for {0} airports</value></data>
+  <data name="Apt_ReimportFail" xml:space="preserve"><value>, {0} failed (details in logs).</value></data>
+  <data name="Apt_DeletedOk" xml:space="preserve"><value>Deleted {0} airports</value></data>
+  <data name="Apt_DeletedFail" xml:space="preserve"><value>, {0} not deleted (linked sectors).</value></data>
+  <data name="Apt_ChooseAcc" xml:space="preserve"><value>Choose the ACC.</value></data>
+  <data name="Apt_AssignedOk" xml:space="preserve"><value>Assigned {0} airports to {1}</value></data>
+  <data name="Apt_AssignedFail" xml:space="preserve"><value>, {0} not assigned.</value></data>
+  <data name="Xfer_Title" xml:space="preserve"><value>Transfers</value></data>
+  <data name="Xfer_Heading" xml:space="preserve"><value>Sector-to-sector transfers</value></data>
+  <data name="Xfer_Subtitle" xml:space="preserve"><value>For each &lt;b&gt;sector&lt;/b&gt; the transfers are grouped by &lt;b&gt;airport&lt;/b&gt; and by &lt;b&gt;kind&lt;/b&gt; (arrivals/departures); each row shows the &lt;b&gt;point&lt;/b&gt;, the &lt;b&gt;level&lt;/b&gt; and the &lt;b&gt;receiving sector&lt;/b&gt;. In the operational view, if a sector is closed the hierarchy is climbed up to the first online one (otherwise UNICOM).</value></data>
+  <data name="Xfer_NoAccImport" xml:space="preserve"><value>No ACC. Import from the &lt;a href="/vsop/admin/acc"&gt;ACC page&lt;/a&gt;.</value></data>
+  <data name="Xfer_ChooseAcc" xml:space="preserve"><value>Choose an ACC to manage its transfers.</value></data>
+  <data name="Xfer_NewGroup" xml:space="preserve"><value>New transfer group</value></data>
+  <data name="Xfer_SenderSector" xml:space="preserve"><value>Sender sector</value></data>
+  <data name="Xfer_SearchCallsign" xml:space="preserve"><value>search callsign…</value></data>
+  <data name="Xfer_Foreign" xml:space="preserve"><value>foreign</value></data>
+  <data name="Xfer_NoSector" xml:space="preserve"><value>no sector</value></data>
+  <data name="Xfer_Airport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Xfer_AirportNewForeign" xml:space="preserve"><value>(also new/foreign)</value></data>
+  <data name="Xfer_IcaoForeignTitle" xml:space="preserve"><value>ICAO, foreign too</value></data>
+  <data name="Xfer_UseNewApt" xml:space="preserve"><value>use «{0}» (new airport)</value></data>
+  <data name="Xfer_AptName" xml:space="preserve"><value>Airport name</value></data>
+  <data name="Xfer_OutOfDb" xml:space="preserve"><value>(out of DB)</value></data>
+  <data name="Xfer_AptNamePh" xml:space="preserve"><value>e.g. Paris Charles de Gaulle</value></data>
+  <data name="Xfer_AptNameTitle" xml:space="preserve"><value>Shown next to the ICAO in the transfer sections</value></data>
+  <data name="Xfer_LookupTitle" xml:space="preserve"><value>Look up the name on IVAO (does not add the airport to the catalog)</value></data>
+  <data name="Xfer_Kind" xml:space="preserve"><value>Kind</value></data>
+  <data name="Xfer_KindArrival" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="Xfer_KindDeparture" xml:space="preserve"><value>Departures</value></data>
+  <data name="Xfer_KindOverflight" xml:space="preserve"><value>Overflights</value></data>
+  <data name="Xfer_KindVfr" xml:space="preserve"><value>VFR</value></data>
+  <data name="Xfer_KindOther" xml:space="preserve"><value>Other</value></data>
+  <data name="Xfer_DescOpt" xml:space="preserve"><value>Description (opt.)</value></data>
+  <data name="Xfer_DescPh" xml:space="preserve"><value>Rome NE transfers…</value></data>
+  <data name="Xfer_Group" xml:space="preserve"><value>Group</value></data>
+  <data name="Xfer_SelectSenderHint" xml:space="preserve"><value>Select the sender sector to enable</value></data>
+  <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivals/Departures require an airport</value></data>
+  <data name="Xfer_AptNeedsName" xml:space="preserve"><value>Airport out of DB: provide the name</value></data>
+  <data name="Xfer_NewGroupHelp" xml:space="preserve"><value>The airport may belong to a foreign state (free ICAO). Overflights/VFR can stay without an airport: in that case it is the &lt;b&gt;receiving sector&lt;/b&gt; of each row (internal or neighbouring foreign) that makes them appear in the coordinations — without a receiver the row stays UNICOM and is not derived.</value></data>
+  <data name="Xfer_NoFlows" xml:space="preserve"><value>No transfer for this ACC. Add a group above.</value></data>
+  <data name="Xfer_FilterPh" xml:space="preserve"><value>filter: sector / airport / CoP / receiver…</value></data>
+  <data name="Xfer_AllKinds" xml:space="preserve"><value>All kinds</value></data>
+  <data name="Xfer_RowsCount" xml:space="preserve"><value>{0} rows</value></data>
+  <data name="Xfer_Reset" xml:space="preserve"><value>reset</value></data>
+  <data name="Xfer_NoFilterMatch" xml:space="preserve"><value>No transfer matches the filter.</value></data>
+  <data name="Xfer_GroupsN" xml:space="preserve"><value>{0} groups</value></data>
+  <data name="Xfer_GroupsN_1" xml:space="preserve"><value>{0} group</value></data>
+  <data name="Xfer_UnicomTitle" xml:space="preserve"><value>Every row is UNICOM: without a receiving sector the flow does not appear in the derived coordinations. Click to assign a receiver.</value></data>
+  <data name="Xfer_NoReceiver" xml:space="preserve"><value>no receiver</value></data>
+  <data name="Xfer_CloneGroupTitle" xml:space="preserve"><value>Clone group (rows included) to another sender sector</value></data>
+  <data name="Xfer_DeleteGroupAria" xml:space="preserve"><value>Delete group</value></data>
+  <data name="Xfer_DeleteGroupPrompt" xml:space="preserve"><value>Delete? {0} rows</value></data>
+  <data name="Xfer_CloneToSender" xml:space="preserve"><value>Clone to sender sector</value></data>
+  <data name="Xfer_Copy" xml:space="preserve"><value>copy</value></data>
+  <data name="Xfer_WithRows" xml:space="preserve"><value>with {0} rows</value></data>
+  <data name="Xfer_CloneHere" xml:space="preserve"><value>Clone here</value></data>
+  <data name="Xfer_ColCop" xml:space="preserve"><value>CoP (point)</value></data>
+  <data name="Xfer_ColLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="Xfer_ColReceiver" xml:space="preserve"><value>Receiving sector</value></data>
+  <data name="Xfer_ColRunway" xml:space="preserve"><value>Runway</value></data>
+  <data name="Xfer_ColArea" xml:space="preserve"><value>Area</value></data>
+  <data name="Xfer_ColCustom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Xfer_Exact" xml:space="preserve"><value>exact</value></data>
+  <data name="Xfer_Special" xml:space="preserve"><value>special</value></data>
+  <data name="Xfer_PerAirway" xml:space="preserve"><value>per airway</value></data>
+  <data name="Xfer_SemicircLevels" xml:space="preserve"><value>Semicircular levels</value></data>
+  <data name="Xfer_ParityAny" xml:space="preserve"><value>All</value></data>
+  <data name="Xfer_ParityEven" xml:space="preserve"><value>Even</value></data>
+  <data name="Xfer_ParityOdd" xml:space="preserve"><value>Odd</value></data>
+  <data name="Xfer_VState" xml:space="preserve"><value>Vertical state</value></data>
+  <data name="Xfer_VStateNone" xml:space="preserve"><value>—</value></data>
+  <data name="Xfer_VStateLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="Xfer_VStateDescending" xml:space="preserve"><value>↓ Descending</value></data>
+  <data name="Xfer_VStateClimbing" xml:space="preserve"><value>↑ Climbing</value></data>
+  <data name="Xfer_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
+  <data name="Xfer_CollapseAll" xml:space="preserve"><value>Collapse all</value></data>
+  <data name="Xfer_ShowPreviews" xml:space="preserve"><value>Sentence preview</value></data>
+  <data name="Xfer_ShowPreviewsTitle" xml:space="preserve"><value>Show the resulting coordination sentence under each row</value></data>
+  <data name="Xfer_MoveTop" xml:space="preserve"><value>Move to top</value></data>
+  <data name="Xfer_MoveBottom" xml:space="preserve"><value>Move to bottom</value></data>
+  <data name="Xfer_AddRowContinue" xml:space="preserve"><value>Save &amp; add</value></data>
+  <data name="Xfer_AddRowContinueTitle" xml:space="preserve"><value>Save the row and keep the form open for the next one (Ctrl+Enter)</value></data>
+  <data name="Xfer_PreviewLabel" xml:space="preserve"><value>Preview</value></data>
+  <data name="Xfer_PreviewIncomplete" xml:space="preserve"><value>(incomplete row or toward UNICOM: no sentence)</value></data>
+  <data name="Xfer_SaveRowTitle" xml:space="preserve"><value>Save (Enter / Ctrl+Enter)</value></data>
+  <data name="Xfer_CancelEsc" xml:space="preserve"><value>Cancel (Esc)</value></data>
+  <data name="Xfer_RunwaysInUseTitle" xml:space="preserve"><value>Runway(s) in use (multi-select: Ctrl/⌘)</value></data>
+  <data name="Xfer_NoRunway" xml:space="preserve"><value>no runway</value></data>
+  <data name="Xfer_SearchArea" xml:space="preserve"><value>search area…</value></data>
+  <data name="Xfer_AreaNone" xml:space="preserve"><value>— none —</value></data>
+  <data name="Xfer_NoArea" xml:space="preserve"><value>no area</value></data>
+  <data name="Xfer_Custom" xml:space="preserve"><value>custom</value></data>
+  <data name="Xfer_RunwayInUse" xml:space="preserve"><value>Runway in use</value></data>
+  <data name="Xfer_ActiveArea" xml:space="preserve"><value>Active area</value></data>
+  <data name="Xfer_CustomCond" xml:space="preserve"><value>Custom condition</value></data>
+  <data name="Xfer_MoveUp" xml:space="preserve"><value>Move up</value></data>
+  <data name="Xfer_MoveDown" xml:space="preserve"><value>Move down</value></data>
+  <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Duplicate row (pre-filled form)</value></data>
+  <data name="Xfer_CopListHint" xml:space="preserve"><value>(also a list: VALMA, ELB)</value></data>
+  <data name="Xfer_Constraint" xml:space="preserve"><value>Constraint</value></data>
+  <data name="Xfer_LevelText" xml:space="preserve"><value>Level text</value></data>
+  <data name="Xfer_Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Xfer_Unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="Xfer_Levels" xml:space="preserve"><value>Levels</value></data>
+  <data name="Xfer_SemicircHint" xml:space="preserve"><value>(semicircular)</value></data>
+  <data name="Xfer_EmptyUnicom" xml:space="preserve"><value>(empty = UNICOM)</value></data>
+  <data name="Xfer_RunwaysInUse" xml:space="preserve"><value>Runway(s) in use</value></data>
+  <data name="Xfer_MultiSelectHint" xml:space="preserve"><value>(multi-select: Ctrl/⌘)</value></data>
+  <data name="Xfer_NoRunwaysForApt" xml:space="preserve"><value>No runway for this airport (out of DB or not yet imported from IVAO).</value></data>
+  <data name="Xfer_SearchHint" xml:space="preserve"><value>(search)</value></data>
+  <data name="Xfer_FreeTextHint" xml:space="preserve"><value>(free text)</value></data>
+  <data name="Xfer_CustomPh" xml:space="preserve"><value>e.g. night / VFR traffic</value></data>
+  <data name="Xfer_AddRow" xml:space="preserve"><value>Add row</value></data>
+  <data name="Xfer_AddRowFull" xml:space="preserve"><value>Row (CoP/level/receiver/condition)</value></data>
+  <data name="Xfer_TypeIcaoFirst" xml:space="preserve"><value>Type the ICAO first.</value></data>
+  <data name="Xfer_SearchingIvao" xml:space="preserve"><value>Searching on IVAO…</value></data>
+  <data name="Xfer_NotFoundIvao" xml:space="preserve"><value>«{0}» not found on IVAO.</value></data>
+  <data name="Xfer_NoAirportHdr" xml:space="preserve"><value>Without airport</value></data>
+  <data name="Xfer_GroupAdded" xml:space="preserve"><value>Group added.</value></data>
+  <data name="Xfer_GroupDeleted" xml:space="preserve"><value>Group deleted.</value></data>
+  <data name="Xfer_GroupUpdated" xml:space="preserve"><value>Group updated.</value></data>
+  <data name="Xfer_GroupCloned" xml:space="preserve"><value>Group cloned ({0} rows).</value></data>
+  <data name="Xfer_RowUpdated" xml:space="preserve"><value>Row updated.</value></data>
+  <data name="Xfer_RowsAdded" xml:space="preserve"><value>{0} rows added.</value></data>
+  <data name="Xfer_RowAdded" xml:space="preserve"><value>Row added.</value></data>
+  <data name="Xfer_RowDeleted" xml:space="preserve"><value>Row deleted.</value></data>
+  <data name="Preview_DraftTitle" xml:space="preserve"><value>Live draft preview</value></data>
+  <data name="Preview_DraftBody" xml:space="preserve"><value>You are viewing the &lt;b&gt;current&lt;/b&gt; editorial state (not the public version). Derived data (frequencies/coordinations/AoR) use the current catalogs.</value></data>
+  <data name="Preview_OpenPublic" xml:space="preserve"><value>Open the public version →</value></data>
+  <data name="Preview_ReleaseTitle" xml:space="preserve"><value>AIRAC {0} release preview</value></data>
+  <data name="Preview_ReleaseBody" xml:space="preserve"><value>How the document will look when this release comes into effect. Derived data use the current catalogs.</value></data>
+  <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>
+  <data name="Preview_Draft" xml:space="preserve"><value>[Draft]</value></data>
+  <data name="Lock_Editing" xml:space="preserve"><value>You are editing</value></data>
+  <data name="Lock_UntilSuffix" xml:space="preserve"><value> · lock until {0}</value></data>
+  <data name="Lock_ReleaseTitle" xml:space="preserve"><value>Release the lock so another editor can edit</value></data>
+  <data name="Lock_FinishEdit" xml:space="preserve"><value>Finish editing</value></data>
+  <data name="Lock_LockedByPrefix" xml:space="preserve"><value>Being edited by</value></data>
+  <data name="Lock_AnotherEditor" xml:space="preserve"><value>another editor</value></data>
+  <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (until {0})</value></data>
+  <data name="Lock_ForceTitle" xml:space="preserve"><value>Unlock anyway and take control (admin)</value></data>
+  <data name="Lock_ForceUnlock" xml:space="preserve"><value>Force unlock</value></data>
+  <data name="Lock_ReadOnly" xml:space="preserve"><value>Read-only. Take the lock to edit (one person at a time).</value></data>
+  <data name="Lock_StartEdit" xml:space="preserve"><value>Start editing</value></data>
+  <data name="Review_Recommended" xml:space="preserve"><value>Review recommended</value></data>
+  <data name="Review_DefaultReason" xml:space="preserve"><value>Derived content potentially stale.</value></data>
+  <data name="Review_MarkTitle" xml:space="preserve"><value>Mark the document as reviewed</value></data>
+  <data name="Review_MarkReviewed" xml:space="preserve"><value>Mark as reviewed</value></data>
+  <data name="Rel_AiracRelease" xml:space="preserve"><value>AIRAC release</value></data>
+  <data name="Rel_HeaderNote" xml:space="preserve"><value>the public sees the release effective at the current cycle ({0}); the editor always works on the live draft</value></data>
+  <data name="Rel_NoRelease" xml:space="preserve"><value>No release: the document is not yet visible to the public. Publish to make it visible.</value></data>
+  <data name="Rel_EffectiveFrom" xml:space="preserve"><value>effective from</value></data>
+  <data name="Rel_PreviewTitle" xml:space="preserve"><value>Preview of the document as it will be at this cycle</value></data>
+  <data name="Rel_Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="Rel_DiffTitle" xml:space="preserve"><value>What changes compared to the effective one</value></data>
+  <data name="Rel_Diff" xml:space="preserve"><value>Differences</value></data>
+  <data name="Rel_CancelTitle" xml:space="preserve"><value>Cancel this release</value></data>
+  <data name="Rel_From" xml:space="preserve"><value>from</value></data>
+  <data name="Rel_NotePh" xml:space="preserve"><value>Note (optional)…</value></data>
+  <data name="Rel_PublishNowTitle" xml:space="preserve"><value>Publish and make visible to the public right away</value></data>
+  <data name="Rel_PublishNow" xml:space="preserve"><value>Publish now</value></data>
+  <data name="Rel_ScheduleTitle" xml:space="preserve"><value>Schedule the publication at a future AIRAC cycle</value></data>
+  <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Schedule at cycle</value></data>
+  <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release published at AIRAC cycle {0}.</value></data>
+  <data name="Rel_PublishedNow" xml:space="preserve"><value>Release published now (review).</value></data>
+  <data name="Rel_CancelConfirm" xml:space="preserve"><value>Cancel this release? The public will revert to the previous effective one.</value></data>
+  <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
+  <data name="Rel_Effective" xml:space="preserve"><value>Effective</value></data>
+  <data name="Rel_Scheduled" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="Rel_Superseded" xml:space="preserve"><value>Superseded</value></data>
+  <data name="Rel_ChangeAdded" xml:space="preserve"><value>Added</value></data>
+  <data name="Rel_ChangeRemoved" xml:space="preserve"><value>Removed</value></data>
+  <data name="Rel_ChangeModified" xml:space="preserve"><value>Modified</value></data>
+  <data name="Rel_ComparedWith" xml:space="preserve"><value>Compared with:</value></data>
+  <data name="Rel_NoDiff" xml:space="preserve"><value>No structural difference detected.</value></data>
+  <data name="Rel_ColItem" xml:space="preserve"><value>Item</value></data>
+  <data name="Rel_ColChange" xml:space="preserve"><value>Change</value></data>
+  <data name="Rel_ColDetail" xml:space="preserve"><value>Detail</value></data>
+  <data name="Rel_LoadingDiff" xml:space="preserve"><value>Loading differences…</value></data>
+  <data name="Nd_Title" xml:space="preserve"><value>New document</value></data>
+  <data name="Nd_Drafts" xml:space="preserve"><value>Drafts &amp; versions</value></data>
+  <data name="Nd_Subtitle" xml:space="preserve"><value>Choose the kind, then the target: the editor that creates the document opens.</value></data>
+  <data name="Nd_StaffRequired" xml:space="preserve"><value>Creating documents requires staff/admin permissions.</value></data>
+  <data name="Nd_KindAcc" xml:space="preserve"><value>ACC vIPI</value></data>
+  <data name="Nd_KindApp" xml:space="preserve"><value>APP vIPI (non-remotized)</value></data>
+  <data name="Nd_KindAirport" xml:space="preserve"><value>Airport vIPI</value></data>
+  <data name="Nd_VloaIntro" xml:space="preserve"><value>A vLOA is agreed between an &lt;b&gt;Italian&lt;/b&gt; ACC (Home) and a &lt;b&gt;foreign&lt;/b&gt; one (Neighbour), e.g. Rome ↔ Marseille. vLOAs with neighbouring ACCs can also be generated in bulk from &lt;a href="/vsop/admin/confinanti"&gt;Neighbours&lt;/a&gt;.</value></data>
+  <data name="Nd_LblTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="Nd_TitlePh" xml:space="preserve"><value>e.g. vLOA Rome–Marseille</value></data>
+  <data name="Nd_CreateOpen" xml:space="preserve"><value>Create and open editor</value></data>
+  <data name="Nd_HomeAcc" xml:space="preserve"><value>Italian ACC (Home)</value></data>
+  <data name="Nd_AccOption" xml:space="preserve"><value>ACC…</value></data>
+  <data name="Nd_HomeSector" xml:space="preserve"><value>Home sector</value></data>
+  <data name="Nd_SectorOption" xml:space="preserve"><value>sector…</value></data>
+  <data name="Nd_NeighAcc" xml:space="preserve"><value>Foreign ACC (Neighbour)</value></data>
+  <data name="Nd_NeighSector" xml:space="preserve"><value>Neighbour sector</value></data>
+  <data name="Nd_NoForeignAcc" xml:space="preserve"><value>No foreign ACC in the DB. They are imported automatically from the IVAO source together with the other centers.</value></data>
+  <data name="Nd_VloaEmptyNote" xml:space="preserve"><value>The vLOA starts empty (one initial section); then you fill it in the editor.</value></data>
+  <data name="Nd_AccIntro" xml:space="preserve"><value>The ACC vIPI is &lt;b&gt;one per ACC&lt;/b&gt; (ACC-wide). The editor creates it on first open, keyed on the root CTR sector.</value></data>
+  <data name="Nd_ItalianAcc" xml:space="preserve"><value>Italian ACC</value></data>
+  <data name="Nd_OpenEditor" xml:space="preserve"><value>Open editor →</value></data>
+  <data name="Nd_AppIntro" xml:space="preserve"><value>Only &lt;b&gt;non-remotized&lt;/b&gt; (standalone) APPs. The editor creates the document on first open.</value></data>
+  <data name="Nd_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Nd_StandaloneApp" xml:space="preserve"><value>Non-remotized APP</value></data>
+  <data name="Nd_AppOption" xml:space="preserve"><value>APP…</value></data>
+  <data name="Nd_NoStandalone" xml:space="preserve"><value>No standalone APP in {0}. «Non-remotized» APPs derive from the sector hierarchy (&lt;a href="/vsop/admin/sectorstructure"&gt;Structure&lt;/a&gt; page).</value></data>
+  <data name="Nd_AirportIntro" xml:space="preserve"><value>The airport vIPI is generated from the structured entities (runways/SIDs/rules). The editor creates/regenerates it on open.</value></data>
+  <data name="Nd_Airport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Nd_IcaoOption" xml:space="preserve"><value>ICAO…</value></data>
+  <data name="Nd_NoAirports" xml:space="preserve"><value>No airport assigned to {0}. Assign them from &lt;a href="/vsop/admin/airports"&gt;Airport management&lt;/a&gt;.</value></data>
+  <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Select the Home sector and the Neighbour sector.</value></data>
+  <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Cannot resolve the vLOA Home ACC.</value></data>
+  <data name="Ver_Subtitle" xml:space="preserve"><value>Documents, version history and AIRAC releases · current cycle {0}</value></data>
+  <data name="Ver_CollapseAll" xml:space="preserve"><value>Collapse all</value></data>
+  <data name="Ver_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
+  <data name="Ver_NotAllowed" xml:space="preserve"><value>Operation not allowed</value></data>
+  <data name="Ver_CurrentCycle" xml:space="preserve"><value>Current cycle {0}</value></data>
+  <data name="Ver_NDocs" xml:space="preserve"><value>{0} documents</value></data>
+  <data name="Ver_EffectiveTitle" xml:space="preserve"><value>With a release effective now</value></data>
+  <data name="Ver_NEffective" xml:space="preserve"><value>{0} effective</value></data>
+  <data name="Ver_ScheduledTitle" xml:space="preserve"><value>With a future scheduled release</value></data>
+  <data name="Ver_NScheduled" xml:space="preserve"><value>{0} scheduled</value></data>
+  <data name="Ver_NoReleaseTitle" xml:space="preserve"><value>Without release: the public sees the live state</value></data>
+  <data name="Ver_NNoRelease" xml:space="preserve"><value>{0} without release</value></data>
+  <data name="Ver_SearchPh" xml:space="preserve"><value>search title / scope / ACC…</value></data>
+  <data name="Ver_KindLabel" xml:space="preserve"><value>Kind:</value></data>
+  <data name="Ver_StatusLabel" xml:space="preserve"><value>Status:</value></data>
+  <data name="Ver_ReleaseLabel" xml:space="preserve"><value>Release:</value></data>
+  <data name="Ver_OfTotal" xml:space="preserve"><value>of {0}</value></data>
+  <data name="Ver_DocsWord" xml:space="preserve"><value>documents</value></data>
+  <data name="Ver_FilteredSuffix" xml:space="preserve"><value> (filtered)</value></data>
+  <data name="Ver_NoDoc" xml:space="preserve"><value>No document</value></data>
+  <data name="Ver_NoDocMatch" xml:space="preserve"><value>No document matches the filters.</value></data>
+  <data name="Ver_Hidden" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Ver_DraftOpen" xml:space="preserve"><value>Draft open</value></data>
+  <data name="Ver_Public" xml:space="preserve"><value>Public</value></data>
+  <data name="Ver_EffectiveNowTitle" xml:space="preserve"><value>Release effective now</value></data>
+  <data name="Ver_ScheduledFutureTitle" xml:space="preserve"><value>Release scheduled for a future cycle</value></data>
+  <data name="Ver_NoReleaseBadge" xml:space="preserve"><value>No release</value></data>
+  <data name="Ver_ShowPublicTitle" xml:space="preserve"><value>Show to the public</value></data>
+  <data name="Ver_HidePublicTitle" xml:space="preserve"><value>Hide from the public</value></data>
+  <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Delete permanently</value></data>
+  <data name="Ver_DeleteDocAria" xml:space="preserve"><value>Delete document</value></data>
+  <data name="Ver_DeletePrompt" xml:space="preserve"><value>Delete permanently?</value></data>
+  <data name="Ver_Current" xml:space="preserve"><value>current</value></data>
+  <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Author = who created the draft</value></data>
+  <data name="Ver_PublishVersion" xml:space="preserve"><value>Publish version</value></data>
+  <data name="Ver_HistoryTitle" xml:space="preserve"><value>Change history</value></data>
+  <data name="Ver_HistorySubtitle" xml:space="preserve"><value>who edited and when (profiles have no versions: tracking only)</value></data>
+  <data name="Ver_NoHistory" xml:space="preserve"><value>No change recorded.</value></data>
+  <data name="Ver_ReleaseSubtitle" xml:space="preserve"><value>the public sees the release effective at the current cycle ({0})</value></data>
+  <data name="Ver_AuthorReleaseTitle" xml:space="preserve"><value>Author = who published this release</value></data>
+  <data name="Ver_PublishAtCycle" xml:space="preserve"><value>Publish at cycle</value></data>
+  <data name="Ver_PublishNowTitle" xml:space="preserve"><value>Comes into effect now (review on the current cycle)</value></data>
+  <data name="Ver_PublishNowReview" xml:space="preserve"><value>Publish now (review)</value></data>
+  <data name="Ver_FilterAll_M" xml:space="preserve"><value>All</value></data>
+  <data name="Ver_FilterAll_F" xml:space="preserve"><value>All</value></data>
+  <data name="Ver_FilterPublic" xml:space="preserve"><value>Public</value></data>
+  <data name="Ver_FilterDraft" xml:space="preserve"><value>Draft only</value></data>
+  <data name="Ver_FilterHidden" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Ver_FilterScheduled" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="Ver_FilterNoRelease" xml:space="preserve"><value>Without release</value></data>
+  <data name="Ver_SavesSuffix" xml:space="preserve"><value> · {0} saves</value></data>
+  <data name="Ver_StBozza" xml:space="preserve"><value>Draft</value></data>
+  <data name="Ver_StPubblicata" xml:space="preserve"><value>Published</value></data>
+  <data name="Ver_StArchiviata" xml:space="preserve"><value>Archived</value></data>
+  <data name="Ver_VersionPublished" xml:space="preserve"><value>Version published.</value></data>
+  <data name="Ver_ReleasePublishedCycle" xml:space="preserve"><value>Release published at cycle {0}.</value></data>
+  <data name="Ver_DocShown" xml:space="preserve"><value>Document shown.</value></data>
+  <data name="Ver_DocHidden" xml:space="preserve"><value>Document hidden.</value></data>
+  <data name="Ver_DeleteConfirm" xml:space="preserve"><value>Permanently delete «{0}»? The operation is irreversible (removes versions and releases).</value></data>
+  <data name="Ver_DocDeleted" xml:space="preserve"><value>Document deleted.</value></data>
+  <data name="Dse_AddSection" xml:space="preserve"><value>+ Add section</value></data>
+  <data name="Dse_AddSubsectionTitle" xml:space="preserve"><value>Add subsection</value></data>
+  <data name="Dse_AddSubsectionExtraTitle" xml:space="preserve"><value>Add subsection (extra)</value></data>
+  <data name="Dse_Subsection" xml:space="preserve"><value>subsection</value></data>
+  <data name="Dse_DeleteSection" xml:space="preserve"><value>Delete section</value></data>
+  <data name="Dse_DeleteSectionPrompt" xml:space="preserve"><value>Delete the section and its blocks?</value></data>
+  <data name="Dse_Mandatory" xml:space="preserve"><value>mandatory</value></data>
+  <data name="Dse_MandatoryTitle" xml:space="preserve"><value>Mandatory section</value></data>
+  <data name="Dse_Live" xml:space="preserve"><value>Live</value></data>
+  <data name="Dse_Frozen" xml:space="preserve"><value>Frozen</value></data>
+  <data name="Dse_LiveTitle" xml:space="preserve"><value>Live: always updated from the catalogs on public view</value></data>
+  <data name="Dse_FrozenTitle" xml:space="preserve"><value>Frozen: snapshotted at publication time</value></data>
+  <data name="Dse_Freeze" xml:space="preserve"><value>Freeze</value></data>
+  <data name="Dse_MakeLive" xml:space="preserve"><value>Make live</value></data>
+  <data name="Dse_FreezeTitle" xml:space="preserve"><value>Freeze: snapshot at publish</value></data>
+  <data name="Dse_MakeLiveTitle" xml:space="preserve"><value>Make live: always updated</value></data>
+  <data name="Dse_HiddenState" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Dse_BeforeBody" xml:space="preserve"><value>Before the content</value></data>
+  <data name="Dse_AfterBody" xml:space="preserve"><value>After the content</value></data>
+  <data name="Dse_MoveBeforeBodyTitle" xml:space="preserve"><value>Move this subsection BEFORE the section content (currently after)</value></data>
+  <data name="Dse_MoveAfterBodyTitle" xml:space="preserve"><value>Move this subsection AFTER the section content (currently before)</value></data>
+  <data name="Dse_Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Show in the published document</value></data>
+  <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Hide from the published document</value></data>
+  <data name="Dse_Paragraph" xml:space="preserve"><value>Paragraph</value></data>
+  <data name="Dse_Table" xml:space="preserve"><value>Table</value></data>
+  <data name="Dse_TextMarkdownPh" xml:space="preserve"><value>Text (light markdown)…</value></data>
+  <data name="Dse_TypeLabel" xml:space="preserve"><value>Type:</value></data>
+  <data name="Dse_CalloutTextPh" xml:space="preserve"><value>Callout text…</value></data>
+  <data name="Dse_BlockNotEditable" xml:space="preserve"><value>Block {0} (not editable here).</value></data>
+  <data name="Dse_DeleteBlock" xml:space="preserve"><value>Delete block</value></data>
+  <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Delete the block?</value></data>
+  <data name="Dse_RemoveColumn" xml:space="preserve"><value>Remove column</value></data>
+  <data name="Dse_AddColumn" xml:space="preserve"><value>Add column</value></data>
+  <data name="Dse_RemoveRow" xml:space="preserve"><value>Remove row</value></data>
+  <data name="Dse_Row" xml:space="preserve"><value>Row</value></data>
+  <data name="Ed_Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="Ed_Saved" xml:space="preserve"><value>Saved</value></data>
+  <data name="Ed_DraftVN" xml:space="preserve"><value>Draft v{0}</value></data>
+  <data name="Ed_PublishedVN" xml:space="preserve"><value>Published v{0}</value></data>
+  <data name="Ed_PreviewDraftTitle" xml:space="preserve"><value>Preview draft in a new tab (not the public version)</value></data>
+  <data name="Ed_PreviewDraft" xml:space="preserve"><value>Preview draft</value></data>
+  <data name="Ed_PublishTitle" xml:space="preserve"><value>Publish the current draft</value></data>
+  <data name="Ed_Publish" xml:space="preserve"><value>Publish</value></data>
+  <data name="Ed_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Ed_LockedByOther" xml:space="preserve"><value>Being edited by another editor</value></data>
+  <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}. You cannot save while the lock is active.</value></data>
+  <data name="Vle_UnknownAcc" xml:space="preserve"><value>Unknown ACC</value></data>
+  <data name="Vle_EditorTitle" xml:space="preserve"><value>vLOA editor</value></data>
+  <data name="Vle_EditorVloa" xml:space="preserve"><value>vLOA editor</value></data>
+  <data name="Vle_ChooseLoa" xml:space="preserve"><value>Choose the letter of agreement to edit ({0} ↔ neighbour pair).</value></data>
+  <data name="Vle_NoVloa" xml:space="preserve"><value>No vLOA</value></data>
+  <data name="Vle_NoVloaBody" xml:space="preserve"><value>There are no letters of agreement for this ACC. Generate one from the &lt;a href="/vsop/admin/confinanti"&gt;Neighbouring ACCs&lt;/a&gt; page.</value></data>
+  <data name="Vle_BilateralLoa" xml:space="preserve"><value>Bilateral letter of agreement</value></data>
+  <data name="Vle_NotExist" xml:space="preserve"><value>vLOA does not exist</value></data>
+  <data name="Vle_NotExistBody" xml:space="preserve"><value>No vLOA for the &lt;b&gt;{0} ↔ {1}&lt;/b&gt; pair. Generate it from the &lt;a href="/vsop/admin/confinanti"&gt;Neighbouring ACCs&lt;/a&gt; page.</value></data>
+  <data name="Vle_Unauthorized" xml:space="preserve"><value>Not authorized</value></data>
+  <data name="Vle_UnauthorizedBody" xml:space="preserve"><value>You do not have permission to edit the {0} vLOA. A grant on the ACC or the admin role is required.</value></data>
+  <data name="Vle_LoadingEditor" xml:space="preserve"><value>Loading vLOA editor…</value></data>
+  <data name="Vle_Chrome" xml:space="preserve"><value>Letter of Agreement · Home side ({0}) editable · Neighbour ({1}) read-only</value></data>
+  <data name="Vle_BilateralTitle" xml:space="preserve"><value>Bilateral document — Italian side editable</value></data>
+  <data name="Vle_BilateralBody" xml:space="preserve"><value>Only the &lt;b&gt;Italian staff&lt;/b&gt; edits the &lt;b&gt;Home ({0})&lt;/b&gt; part. The &lt;b&gt;Neighbour ({1})&lt;/b&gt; part is agreed outside the tool.</value></data>
+  <data name="Vle_Empty" xml:space="preserve"><value>Empty vLOA</value></data>
+  <data name="Vle_EmptyEditing" xml:space="preserve"><value>Add the first section below.</value></data>
+  <data name="Vle_EmptyReadonly" xml:space="preserve"><value>Press «✎ Edit» to start composing the letter of agreement.</value></data>
+  <data name="Vle_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this vLOA.</value></data>
+  <data name="Vle_AorToggleHint" xml:space="preserve"><value>Hide/show the sectors on the map (persisted in the document):</value></data>
+  <data name="Vle_NoDerivedFreq" xml:space="preserve"><value>No derived frequency (project the sectors of the two ACCs).</value></data>
+  <data name="Vle_NoFreq" xml:space="preserve"><value>No frequency.</value></data>
+  <data name="Vle_Frequency" xml:space="preserve"><value>Frequency</value></data>
+  <data name="App_EditorTitle" xml:space="preserve"><value>APP editor</value></data>
+  <data name="App_NonRemotized" xml:space="preserve"><value>Non-remotized approaches</value></data>
+  <data name="App_NotFound" xml:space="preserve"><value>APP not found. Check that the callsign is a non-remotized approach (e.g. &lt;code&gt;LIRP_APP&lt;/code&gt;).</value></data>
+  <data name="App_DeniedBody" xml:space="preserve"><value>You do not have permission to edit ACC {0}.</value></data>
+  <data name="App_LoadingEditor" xml:space="preserve"><value>Loading APP editor…</value></data>
+  <data name="App_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this APP.</value></data>
+  <data name="App_RemoveConfigConfirm" xml:space="preserve"><value>Remove the «{0}» configuration?</value></data>
+  <data name="App_LinkFreqPh" xml:space="preserve"><value>Link frequency (search callsign/ICAO)…</value></data>
+  <data name="App_VersionsReleases" xml:space="preserve"><value>Versions &amp; AIRAC releases</value></data>
+  <data name="App_ReleaseHelp" xml:space="preserve"><value>Publish the current editorial state &lt;b&gt;now&lt;/b&gt; (review on the current cycle) or &lt;b&gt;schedule it&lt;/b&gt; to a future AIRAC cycle. The public sees the release effective at the current cycle ({0}).</value></data>
+  <data name="Acc_EditorTitle" xml:space="preserve"><value>vIPI editor</value></data>
+  <data name="Acc_DeniedBody" xml:space="preserve"><value>You do not have permission for ACC {0}.</value></data>
+  <data name="Acc_LoadingEditor" xml:space="preserve"><value>Loading vIPI editor…</value></data>
+  <data name="Acc_Subtitle" xml:space="preserve"><value>Airway sectors + APP groups</value></data>
+  <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Open the live draft in a new tab</value></data>
+  <data name="Acc_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}.</value></data>
+  <data name="Acc_RemoveGroupTitle" xml:space="preserve"><value>Remove group</value></data>
+  <data name="Acc_AirwaySectors" xml:space="preserve"><value>Airway sectors</value></data>
+  <data name="Acc_GroupAppSectors" xml:space="preserve"><value>Group APP sectors</value></data>
+  <data name="Acc_AddCustomSection" xml:space="preserve"><value>Add custom section</value></data>
+  <data name="Acc_AddAppGroup" xml:space="preserve"><value>Add APP group</value></data>
+  <data name="Acc_RemoveGroupConfirm" xml:space="preserve"><value>Remove the group? The action cannot be undone.</value></data>
+  <data name="Acc_NoPerm" xml:space="preserve"><value>You do not have permission.</value></data>
+  <data name="Acc_LinkedFreqs" xml:space="preserve"><value>Linked frequencies</value></data>
+  <data name="Acc_LinkedFreqsHint" xml:space="preserve"><value>(live reference to another sector)</value></data>
+  <data name="Acc_RemoveLink" xml:space="preserve"><value>Remove link</value></data>
+  <data name="Acc_OwnAreas" xml:space="preserve"><value>Own ACC areas</value></data>
+  <data name="Acc_Automatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Acc_Manual" xml:space="preserve"><value>Manual</value></data>
+  <data name="Acc_AllAreasAuto" xml:space="preserve"><value>All the ACC areas, automatically including those imported in the future.</value></data>
+  <data name="Acc_RemoveToManual" xml:space="preserve"><value>Remove one to switch to manual.</value></data>
+  <data name="Acc_NoOwnAreaSelected" xml:space="preserve"><value>No own ACC area selected.</value></data>
+  <data name="Acc_BackToAuto" xml:space="preserve"><value>Back to automatic</value></data>
+  <data name="Acc_SearchOwnArea" xml:space="preserve"><value>Search own ACC area (name/type)…</value></data>
+  <data name="Acc_NoIvaoArea" xml:space="preserve"><value>No area imported from IVAO for this ACC.</value></data>
+  <data name="Acc_OtherAccAreas" xml:space="preserve"><value>Other ACCs' areas</value></data>
+  <data name="Acc_AddedManually" xml:space="preserve"><value>(added manually)</value></data>
+  <data name="Acc_None" xml:space="preserve"><value>None.</value></data>
+  <data name="Acc_SearchOtherArea" xml:space="preserve"><value>Search another ACC's area (name/ACC/type)…</value></data>
+  <data name="Ape_EditorTitle" xml:space="preserve"><value>Airport editor</value></data>
+  <data name="Ape_PublishedTitle" xml:space="preserve"><value>A release is effective: the document is public</value></data>
+  <data name="Ape_DraftTitle" xml:space="preserve"><value>No release effective: publish from the «Versions» section</value></data>
+  <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
+  <data name="Ape_NotFound" xml:space="preserve"><value>Airport not found or no profile. Generate the document first from «Airport management».</value></data>
+  <data name="Ape_ReadOnly" xml:space="preserve"><value>Read-only: you do not have permission to edit ACC {0}.</value></data>
+  <data name="Ape_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Ape_ExpandAllTitle" xml:space="preserve"><value>Expand all sections</value></data>
+  <data name="Ape_CollapseAllTitle" xml:space="preserve"><value>Collapse all sections</value></data>
+  <data name="Ape_PanelRules" xml:space="preserve"><value>Runway rules</value></data>
+  <data name="Ape_PanelTl" xml:space="preserve"><value>Transition levels</value></data>
+  <data name="Ape_PanelExtra" xml:space="preserve"><value>Extra sections</value></data>
+  <data name="Ape_PanelSectors" xml:space="preserve"><value>Sectors</value></data>
+  <data name="Ape_PanelVersions" xml:space="preserve"><value>Versions</value></data>
+  <data name="Ape_RwRulesTitle" xml:space="preserve"><value>Runway selection rules</value></data>
+  <data name="Ape_RwRulesHelp" xml:space="preserve"><value>Each rule: when the indicated runways have &lt;b&gt;tailwind ≤&lt;/b&gt; the threshold, &lt;b&gt;crosswind ≤&lt;/b&gt; the threshold (optional) and the &lt;b&gt;surface&lt;/b&gt; matches, they become preferential for departures/arrivals. Tailwind and crosswind are computed from the current wind. They are evaluated in &lt;b&gt;order&lt;/b&gt;: the first that applies wins (put the more specific ones on top). If none applies, the runway with the best headwind is used.</value></data>
+  <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>The DEP/ARR chips list the runways of the «Runways» panel in memory: a runway just added there appears immediately, but becomes final only after «Save runways».</value></data>
+  <data name="Ape_NoRwDefined" xml:space="preserve"><value>no runway defined</value></data>
+  <data name="Ape_MaxTail" xml:space="preserve"><value>Max tail (kt)</value></data>
+  <data name="Ape_MaxCross" xml:space="preserve"><value>Max cross (kt, opt.)</value></data>
+  <data name="Ape_Surface" xml:space="preserve"><value>Surface</value></data>
+  <data name="Ape_SurfAny" xml:space="preserve"><value>any</value></data>
+  <data name="Ape_SurfDry" xml:space="preserve"><value>dry</value></data>
+  <data name="Ape_SurfWet" xml:space="preserve"><value>wet</value></data>
+  <data name="Ape_RuleNamePh" xml:space="preserve"><value>e.g. 35 dry</value></data>
+  <data name="Ape_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Ape_FreeText" xml:space="preserve"><value>free text</value></data>
+  <data name="Ape_Advanced" xml:space="preserve"><value>Advanced — time · days · parity · validity (optional)</value></data>
+  <data name="Ape_TimeFrom" xml:space="preserve"><value>Time from (LT)</value></data>
+  <data name="Ape_TimeTo" xml:space="preserve"><value>to (LT)</value></data>
+  <data name="Ape_DayParity" xml:space="preserve"><value>Day parity</value></data>
+  <data name="Ape_Even" xml:space="preserve"><value>even</value></data>
+  <data name="Ape_Odd" xml:space="preserve"><value>odd</value></data>
+  <data name="Ape_ValidFrom" xml:space="preserve"><value>Valid from (day/month)</value></data>
+  <data name="Ape_ValidTo" xml:space="preserve"><value>to (day/month)</value></data>
+  <data name="Ape_SeasonalHelp" xml:space="preserve"><value>&lt;b&gt;Recurring seasonal&lt;/b&gt; validity window: only day and month (no year, repeats every year). E.g. from 1 Jan to 31 Mar. Leave empty = always valid.</value></data>
+  <data name="Ape_Days" xml:space="preserve"><value>Days:</value></data>
+  <data name="Ape_Rule" xml:space="preserve"><value>Rule</value></data>
+  <data name="Ape_SaveRules" xml:space="preserve"><value>Save rules</value></data>
+  <data name="Ape_TlTitle" xml:space="preserve"><value>Transition levels</value></data>
+  <data name="Ape_TlHelp" xml:space="preserve"><value>Default table &lt;b&gt;TL = TA + margin&lt;/b&gt; per QNH band (QNH&amp;lt;977 → +2500 ft; 977–994 → +2000; 995–1012 → +1500; QNH≥1013 → +1000), rounded to the upper FL. Saving the TA recomputes the default rows; you can still edit bands and levels by hand.</value></data>
+  <data name="Ape_TaFromSourceTitle" xml:space="preserve"><value>Field imported from the source: read-only. Editable only if an administrator excludes «TA» in /vsop/admin/sorgenti</value></data>
+  <data name="Ape_FromSource" xml:space="preserve"><value>from source</value></data>
+  <data name="Ape_TaFromSource" xml:space="preserve"><value>The Transition Altitude is imported from the source (read-only).</value></data>
+  <data name="Ape_TaLabel" xml:space="preserve"><value>Transition Altitude (ft)</value></data>
+  <data name="Ape_SaveTa" xml:space="preserve"><value>Save TA</value></data>
+  <data name="Ape_QnhFrom" xml:space="preserve"><value>QNH from (hPa)</value></data>
+  <data name="Ape_QnhTo" xml:space="preserve"><value>QNH to (hPa)</value></data>
+  <data name="Ape_Open" xml:space="preserve"><value>open</value></data>
+  <data name="Ape_SaveTable" xml:space="preserve"><value>Save table</value></data>
+  <data name="Ape_FreqHelp" xml:space="preserve"><value>Own frequencies come from the sector catalog («Sectors» panel): ATIS · Delivery · Ground · TWR · APP. The primary (★) is chosen there. Here you can add links to frequencies already in the DB (live reference).</value></data>
+  <data name="Ape_Origin" xml:space="preserve"><value>Origin</value></data>
+  <data name="Ape_Catalog" xml:space="preserve"><value>catalog</value></data>
+  <data name="Ape_SearchCallsignFreq" xml:space="preserve"><value>search callsign/freq…</value></data>
+  <data name="Ape_PickFreq" xml:space="preserve"><value>— choose frequency —</value></data>
+  <data name="Ape_SaveLinks" xml:space="preserve"><value>Save links</value></data>
+  <data name="Ape_RwFromSourceTitle" xml:space="preserve"><value>Imported from the source: ident/length/bearing and the set of runways are read-only. Editable only by excluding «Runways» in /vsop/admin/sorgenti</value></data>
+  <data name="Ape_RwFromSource" xml:space="preserve"><value>Runway, length and bearing are imported from the source (read-only). Only the TORA/LDA/APP/Patterns/Circling columns stay editable.</value></data>
+  <data name="Ape_RwEditorial" xml:space="preserve"><value>Ident / length / bearing come from the source (re-import overwrites them). The other columns are editorial.</value></data>
+  <data name="Ape_Runway" xml:space="preserve"><value>Runway</value></data>
+  <data name="Ape_LengthM" xml:space="preserve"><value>Length (m)</value></data>
+  <data name="Ape_SaveRunways" xml:space="preserve"><value>Save runways</value></data>
+  <data name="Ape_SidRenderTitle" xml:space="preserve"><value>Public rendering of the SID section</value></data>
+  <data name="Ape_FreezeAtPublish" xml:space="preserve"><value>Freeze at publish</value></data>
+  <data name="Ape_MakeAlwaysLive" xml:space="preserve"><value>Make always live</value></data>
+  <data name="Ape_SidRenderHelp" xml:space="preserve"><value>&lt;b&gt;Live&lt;/b&gt; (default): public SIDs always update from the data (imports included), even without republishing — useful for IVAO reference data. &lt;b&gt;Frozen&lt;/b&gt;: the section is snapshotted at publication time, like the rest of the document (no mixed AIRAC on the page).</value></data>
+  <data name="Ape_SidImportedTitle" xml:space="preserve"><value>SIDs imported from the sectorfile</value></data>
+  <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Re-fetch the SIDs from the GitHub sectorfile</value></data>
+  <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-import SIDs</value></data>
+  <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: not editable in the data, but you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the cycle after the fetch).</value></data>
+  <data name="Ape_PointFix" xml:space="preserve"><value>Point (FIX)</value></data>
+  <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
+  <data name="Ape_Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="Ape_Publication" xml:space="preserve"><value>Publication</value></data>
+  <data name="Ape_FixToVerify" xml:space="preserve"><value>fix to verify</value></data>
+  <data name="Ape_AliasTitle" xml:space="preserve"><value>Add the alias {0} → for future imports</value></data>
+  <data name="Ape_Public" xml:space="preserve"><value>public</value></data>
+  <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>publishes automatically from cycle {0}</value></data>
+  <data name="Ape_Now" xml:space="preserve"><value>now</value></data>
+  <data name="Ape_SidManualTitle" xml:space="preserve"><value>Manual SIDs</value></data>
+  <data name="Ape_SidManualHelp" xml:space="preserve"><value>Rows added by hand by the staff: preserved from imports. Fields not present in the sectorfile (Initial climb / Cat / WTC / Condition) go here.</value></data>
+  <data name="Ape_SaveManualSids" xml:space="preserve"><value>Save manual SIDs</value></data>
+  <data name="Ape_ExtraTitle" xml:space="preserve"><value>Extra sections</value></data>
+  <data name="Ape_ExtraHelp" xml:space="preserve"><value>Free editorial sections (title + text). In the document they appear in the &lt;b&gt;free right column&lt;/b&gt; on desktop and &lt;b&gt;below the SIDs&lt;/b&gt; on narrow/mobile screens. They are evaluated in the order you put them.</value></data>
+  <data name="Ape_ExtraTitlePh" xml:space="preserve"><value>e.g. Operational notes</value></data>
+  <data name="Ape_TextLabel" xml:space="preserve"><value>Text</value></data>
+  <data name="Ape_ExtraBodyPh" xml:space="preserve"><value>Free text (line breaks are preserved)</value></data>
+  <data name="Ape_PreviewLabel" xml:space="preserve"><value>Preview (line breaks preserved):</value></data>
+  <data name="Ape_Section" xml:space="preserve"><value>Section</value></data>
+  <data name="Ape_SaveSections" xml:space="preserve"><value>Save sections</value></data>
+  <data name="Ape_AtcSectors" xml:space="preserve"><value>ATC sectors</value></data>
+  <data name="Ape_ImportSectorsTitle" xml:space="preserve"><value>Import/update the ATC sectors (incl. APP) from the source</value></data>
+  <data name="Ape_ImportSectors" xml:space="preserve"><value>Import sectors from source</value></data>
+  <data name="Ape_ImportTwrShapes" xml:space="preserve"><value>TWR shapes from GitHub</value></data>
+  <data name="Ape_ImportTwrShapesTitle" xml:space="preserve"><value>Apply the real shapes from the Aurora sectorfile (GitHub twrs.tfl) to TWRs without a polygon</value></data>
+  <data name="Ape_ImportTwrShapesDone" xml:space="preserve"><value>Applied {0} TWR shapes from GitHub.</value></data>
+  <data name="Ape_ImportTwrShapesNone" xml:space="preserve"><value>No TWR shape to apply (already present or not on GitHub).</value></data>
+  <data name="Ape_SectorsNote" xml:space="preserve"><value>ATC sectors imported from the source (callsign · ACC · position · middle id · freq · shape), including the APPs. You set the altitude limits; you can hide the sectors you do not want to show.</value></data>
+  <data name="Ape_NoSectors" xml:space="preserve"><value>No sector imported. Press «Import sectors from source».</value></data>
+  <data name="Ape_AccQTitle" xml:space="preserve"><value>APP only: of ACC (remotized) or own approach (dedicated doc)</value></data>
+  <data name="Ape_PrimaryCol" xml:space="preserve"><value>Prim.</value></data>
+  <data name="Ape_AccAppTitle" xml:space="preserve"><value>ACC approach (remotized). Deselect if it is the airport's own APP (dedicated document).</value></data>
+  <data name="Ape_PrimaryFreqTitle" xml:space="preserve"><value>Primary frequency for this type</value></data>
+  <data name="Ape_LimitsFromSourceTitle" xml:space="preserve"><value>Limits imported from the source (IVAO): read-only.</value></data>
+  <data name="Ape_VersionsHelp" xml:space="preserve"><value>Publication happens &lt;b&gt;only from here&lt;/b&gt;. Publishing &lt;b&gt;regenerates the document from the current draft&lt;/b&gt; (rules, TL, runways, SIDs, sections, sectors) and then freezes a snapshot. &lt;b&gt;Publish now&lt;/b&gt; = effective immediately (review on the current cycle); &lt;b&gt;Schedule at cycle&lt;/b&gt; = planned to a future AIRAC cycle, comes into effect automatically at that date.</value></data>
+  <data name="Ape_ReadOnlyPublish" xml:space="preserve"><value>Read-only: you do not have permission to publish releases for {0}.</value></data>
+  <data name="Ape_RemoveRuleConfirm" xml:space="preserve"><value>Remove this rule?</value></data>
+  <data name="Ape_RemoveRowConfirm" xml:space="preserve"><value>Remove this row?</value></data>
+  <data name="Ape_RemoveRwConfirm" xml:space="preserve"><value>Remove this runway?</value></data>
+  <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Remove this SID?</value></data>
+  <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
+  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import from IVAO? The fields imported from the source will be overwritten.</value></data>
+  <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Unsaved changes in: {0}. They will not enter the release. Continue?</value></data>
+  <data name="Ape_RebuildConfirm" xml:space="preserve"><value>Regenerate the document from the current draft before publishing?</value></data>
+  <data name="Ape_Month" xml:space="preserve"><value>month</value></data>
+  <data name="Ape_Mon" xml:space="preserve"><value>Mon</value></data>
+  <data name="Ape_Tue" xml:space="preserve"><value>Tue</value></data>
+  <data name="Ape_Wed" xml:space="preserve"><value>Wed</value></data>
+  <data name="Ape_Thu" xml:space="preserve"><value>Thu</value></data>
+  <data name="Ape_Fri" xml:space="preserve"><value>Fri</value></data>
+  <data name="Ape_Sat" xml:space="preserve"><value>Sat</value></data>
+  <data name="Ape_Sun" xml:space="preserve"><value>Sun</value></data>
+  <data name="Ape_Jan" xml:space="preserve"><value>January</value></data>
+  <data name="Ape_Feb" xml:space="preserve"><value>February</value></data>
+  <data name="Ape_Mar" xml:space="preserve"><value>March</value></data>
+  <data name="Ape_Apr" xml:space="preserve"><value>April</value></data>
+  <data name="Ape_May" xml:space="preserve"><value>May</value></data>
+  <data name="Ape_Jun" xml:space="preserve"><value>June</value></data>
+  <data name="Ape_Jul" xml:space="preserve"><value>July</value></data>
+  <data name="Ape_Aug" xml:space="preserve"><value>August</value></data>
+  <data name="Ape_Sep" xml:space="preserve"><value>September</value></data>
+  <data name="Ape_Oct" xml:space="preserve"><value>October</value></data>
+  <data name="Ape_Nov" xml:space="preserve"><value>November</value></data>
+  <data name="Ape_Dec" xml:space="preserve"><value>December</value></data>
+  <data name="Ape_IssueTlMissing" xml:space="preserve"><value>Row #{0}: Transition Level missing.</value></data>
+  <data name="Ape_IssueQnhOrder" xml:space="preserve"><value>Row #{0}: «QNH from» greater than «QNH to».</value></data>
+  <data name="Ape_IssueQnhOverlap" xml:space="preserve"><value>Overlapping QNH bands between row #{0} and #{1}.</value></data>
+  <data name="Ape_IssueRwDup" xml:space="preserve"><value>Runway «{0}» duplicated: use a unique ident.</value></data>
+  <data name="Ape_IssueRuleNoRw" xml:space="preserve"><value>Rule #{0}: select at least one DEP or ARR runway.</value></data>
+  <data name="Ape_IssueRuleUnknownRw" xml:space="preserve"><value>Rule #{0}: runway «{1}» is not among the airport's runways.</value></data>
+  <data name="Ape_IssueRuleTimeWin" xml:space="preserve"><value>Rule #{0}: incomplete time window (start or end missing).</value></data>
+  <data name="Common_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Printed on</value></data>
+  <data name="Rel_VersionLabel" xml:space="preserve"><value>release #{0}</value></data>
 </root>

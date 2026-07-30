@@ -77,7 +77,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         // Le figlie corrispondono alle sezioni del catalogo AccAerovia (stesse chiavi, stesso ordine).
         var expected = SectionCatalog.For(SectionProfile.AccAerovia).Select(d => d.Key).ToArray();
-        Assert.Equal(expected, block.Block.SectionOrder.ToArray());
+        Assert.Equal(expected, block.Block.Sections.Select(s => s.Key).ToArray());
 
         // La mappa chiave-figlia → Id copre le sezioni live (per i salvataggi by-section).
         Assert.True(block.ChildSectionIdsByKey.ContainsKey("aor"));
@@ -120,7 +120,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.Equal("Gruppo Pisa", grp.Block.Title);
         // Sezioni-catalogo del profilo AccAppBlock (include vfr, assente in Aerovia).
         var expected = SectionCatalog.For(SectionProfile.AccAppBlock).Select(d => d.Key).ToArray();
-        Assert.Equal(expected, grp.Block.SectionOrder.ToArray());
+        Assert.Equal(expected, grp.Block.Sections.Select(s => s.Key).ToArray());
 
         await _service.RemoveGroupAsync(Acc, groupId);
         Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks);

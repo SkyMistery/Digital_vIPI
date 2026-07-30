@@ -268,7 +268,8 @@ Il token che hai incollato è un **access token a scadenza breve** (campo `exp` 
 
 - **Razor Pages** per il rendering. CSS minimale brand-compliant (un solo file di tema, vedi §15), senza framework SPA pesanti.
 - **JavaScript**: solo per (a) autocomplete della ricerca, (b) toggle ridotta/estesa, (c) client SSE per il live. Nessun bundler obbligatorio; eventualmente un piccolo `app.js`.
-- **Stampa/PDF**: CSS `@media print` + endpoint export.
+- **Stampa/PDF**: CSS `@media print` (foglio `vipi-print.css`), **senza** endpoint di export: il PDF è quello
+  di «Salva come PDF» del browser. Realizzato il 30 lug 2026, vedi `../feature/2026-07-30-stampa-documenti.md`.
 - **Mobile-friendly** per consultazione da tablet in sessione.
 
 ### 10.1 Riferimento di stile UI
@@ -535,6 +536,10 @@ Deep-link a sezione/blocco; ricerca full-text trasversale; pannello "chi è onli
 ### 22.7 Export PDF
 
 Modifica della proposta §13: è esportabile in PDF **solo la versione Estesa** (niente export della ridotta/kneeboard).
+
+Realizzato il 30 lug 2026 come **stampa del browser**, non come endpoint: foglio `vipi-print.css` + tasto
+«Stampa» sui viewer documento (aeroporto, vIPI ACC, APP non remotizzato, vLOA) + intestazione di stampa
+`PrintMeta`. Dettaglio e limiti noti in `../feature/2026-07-30-stampa-documenti.md`.
 
 ### 22.8 Minime di vettoramento — **implementazione FUTURE**
 

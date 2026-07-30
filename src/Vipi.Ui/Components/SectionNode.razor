@@ -1,56 +1,30 @@
-@* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup). *@
-@if (Section.Depth == 0)
+@* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup).
+   Il corpo (blocchi + sotto-sezioni) è condiviso con i viewer che si fanno l'involucro da sé: SectionBody. *@
+@{
+    var depth = Section.Depth + DepthOffset;
+}
+@if (depth <= 0)
 {
-    <CollapsibleBlock Id="@Section.Id">
+    @* Alcune sezioni nascono collassate nel documento (doc 11 §3i): il catalogo sa quali. *@
+    <CollapsibleBlock Id="@Section.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))">
         <Header><h3 style="margin-top:0">@Section.Title</h3></Header>
-        <ChildContent>
-            @Blocks
-            @Children
-        </ChildContent>
+        <ChildContent><SectionBody Section="Section" DepthOffset="DepthOffset" /></ChildContent>
     </CollapsibleBlock>
 }
 else
 {
-    <details class="@SubClass" id="@Section.Id" open>
+    <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open>
         <summary>
             <span>@Section.Title</span>
             <span class="sum-right"><span class="chev">▸</span></span>
         </summary>
-        <div class="body">
-            @Blocks
-            @Children
-        </div>
+        <div class="body"><SectionBody Section="Section" DepthOffset="DepthOffset" /></div>
     </details>
 }
 
 @code {
     [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
 
-    private string SubClass => Section.Depth == 1 ? "coord-sub" : "coord-sub2";
-
-    private RenderFragment Blocks => __builder =>
-    {
-        foreach (var block in Section.Blocks)
-        {
-            if (block.State == RenderState.Collapsed)
-            {
-                <details class="collapsed-strip">
-                    <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
-                    <BlockRenderer Block="block" />
-                </details>
-            }
-            else
-            {
-                <BlockRenderer Block="block" />
-            }
-        }
-    };
-
-    private RenderFragment Children => __builder =>
-    {
-        foreach (var child in Section.Children)
-        {
-            <SectionNode Section="child" />
-        }
-    };
+    /// <summary>Scostamento di profondità (vedi <see cref="SectionBody.DepthOffset"/>).</summary>
+    [Parameter] public int DepthOffset { get; set; }
 }

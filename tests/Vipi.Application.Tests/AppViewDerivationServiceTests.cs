@@ -62,26 +62,25 @@ public class AppViewDerivationServiceTests
 
         public Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<AppFreqRow>>(LiveFreqs);
-        public Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, string? templateOverride = null, CancellationToken ct = default) =>
+        public Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AppCoordination.Empty);
         public Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AccAorView.Empty);
 
         // Resto non usato dal resolver.
         public Task<int> EnsureAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<AppAorPolygon?> GetAorPolygonAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<AorExtraShapes> GetAorCustomizationAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task SaveAorCustomizationAsync(string a, AorExtraShapes d, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveSeparationsAsync(string a, IReadOnlyList<AppSeparationRow> r, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<AppVfrContent> GetVfrAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveVfrAsync(string a, AppVfrContent c, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<AppDocumentIdentity?> GetIdentityAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<DocumentProfileData> GetOverridesAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task SaveHiddenSectionsAsync(string a, IReadOnlyList<string> k, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyOrderAsync(string a, IReadOnlyList<AppFreqOrderOverride> o, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task SaveCoordinationTemplateAsync(string a, string? t, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveConfigurationsAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotImplementedException();

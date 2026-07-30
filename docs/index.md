@@ -12,6 +12,12 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 5. `spec/mappa-pagine.md` — rotte del sito.
 6. `adr/` — decisioni architetturali (in ordine 0001 → 0006).
 
+## Processo (anti-vibecoding) 🟢
+| File | Scopo |
+|---|---|
+| [FEATURE-PROCESS.md](FEATURE-PROCESS.md) | Runbook per feature nuove: pre-flight 4 domande (modello / dispatch «Regola del 2» / ingressi+verifica / **propagazione**) + DoD. |
+| [refactor/REFACTOR-PROCESS.md](refactor/REFACTOR-PROCESS.md) | Runbook per refactor: ciclo Fase 0→4, gate «carta prima di codice». |
+
 ## Specifiche tecniche — `spec/` 🟢
 | File | Scopo |
 |---|---|
@@ -25,6 +31,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 |---|---|
 | [guide/integration.md](guide/integration.md) | Come agganciare il modulo (RCL) a un sito host ASP.NET Core. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
+| [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
 
 ## Reference — `reference/` 🔵
 | File | Scopo |
@@ -35,6 +42,17 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | File | Scopo |
 |---|---|
 | [design/piano-vipi-tool.md](design/piano-vipi-tool.md) | Documento di design strategico di base (requisiti, roadmap). Parti superate dai round successivi. |
+| [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
+| [design/piano-ux-hardening.md](design/piano-ux-hardening.md) | UX hardening (audit 2026-07-22): U1 conferma delete (`InlineConfirm`), U2 icone SVG (`Icon`), U3 zoom a11y, U5–U12 refactor tema (token colori/font, dedup CSS, `.choice`/`.pill.neutral`, `LoadingState`/`EmptyState`, `.live-badge.off`, touch target). **U4 i18n IT+EN COMPLETO (2026-07-23):** chrome app tutta localizzata (nav+viewer+admin 12/12+editor 12/12), 1071 chiavi `SharedResource.resx`/`.en.resx`, switch runtime `?culture=en`. Contenuto editoriale dal DB resta IT. |
+
+## Feature — `feature/` 🔵
+Una scheda per feature/fix non banale: stato di partenza rilevato, design, passi, **verifica live** ed esito.
+Le lezioni riusabili finiscono anche nelle memorie; qui resta il perché delle scelte.
+| File | Scopo |
+|---|---|
+| [feature/2026-07-29-toc-editor.md](feature/2026-07-29-toc-editor.md) | TOC laterale sezioni negli editor (menu di navigazione sticky, rail azioni, UX lock). |
+| [feature/2026-07-30-stampa-documenti.md](feature/2026-07-30-stampa-documenti.md) | **Stampa dei documenti** (`@media print`): foglio `vipi-print.css`, `PrintMeta`, tasto Stampa, apertura dei `<details>`, scala tipografica da carta, mappe AoR ridimensionate, dati live esclusi. Include il fix delle larghezze di colonna dei coordinamenti (schermo **e** stampa). |
+| [feature/2026-07-30-pill-stato-dopo-publish.md](feature/2026-07-30-pill-stato-dopo-publish.md) | «Bozza vN» dopo «Pubblica ora»: callback `Published` di `ReleasePanel` + etichetta «rilascio #N»; in coda il fix della **chiave di release ACC** che ignorava la radice dell'albero. |
 
 ## Decisioni architetturali — `adr/` 🟢
 | File | Scopo |
@@ -45,21 +63,38 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [adr/adr-0004-configurazione-divisione-e-admin.md](adr/adr-0004-configurazione-divisione-e-admin.md) | Configurazione divisione + derivazione codici admin. |
 | [adr/adr-0005-superficie-modulo-e-isolamento.md](adr/adr-0005-superficie-modulo-e-isolamento.md) | Superficie del modulo + isolamento CSS/JS. |
 | [adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md](adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) | Indipendenza dalla sorgente + policy di import (+ nota Round 20: fonte unica). |
+| [adr/adr-0007-produzione-persistenza-e-scala.md](adr/adr-0007-produzione-persistenza-e-scala.md) | Produzione: tampone WAL SQLite ora + cutover Postgres pianificato + scala Blazor + guardia identità dev. |
 
-## Refactor — `refactor/` 🟣
+## Refactor — `refactor/` 🟢
+Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti eseguiti**). Ordine di studio bottom-up.
 | File | Scopo |
 |---|---|
-| [refactor/00-overview.md](refactor/00-overview.md) | Piano di revisione strutturale post round ~23-34: DAG dipendenze, principi, indice dei 9 doc di area, ordine di studio bottom-up. |
+| [refactor/00-overview.md](refactor/00-overview.md) | Piano: DAG dipendenze, principi, indice dei doc di area, ordine di studio. |
+| [refactor/REFACTOR-PROCESS.md](refactor/REFACTOR-PROCESS.md) | Runbook anti-vibecoding per i refactor (ciclo Fase 0→4, gate «carta prima di codice»). |
+| [refactor/01-import-infra-condivisa.md](refactor/01-import-infra-condivisa.md) | Infrastruttura di import condivisa. |
+| [refactor/02-import-acc-e-settori.md](refactor/02-import-acc-e-settori.md) | Import ACC e settori. |
+| [refactor/03-import-aeroporti-e-settori.md](refactor/03-import-aeroporti-e-settori.md) | Import aeroporti e settori. |
+| [refactor/04-import-github.md](refactor/04-import-github.md) | Import da GitHub (sectorfile Aurora: SID, ecc.). |
+| [refactor/05-import-confinanti.md](refactor/05-import-confinanti.md) | Import ACC confinanti/esteri. |
+| [refactor/06-gerarchia.md](refactor/06-gerarchia.md) | Gerarchia di copertura (padri per callsign, cross-ACC). |
+| [refactor/07-trasferimenti.md](refactor/07-trasferimenti.md) | Coordinamenti/trasferimenti (sorvoli, vLOA in stile ACC+EN). |
+| [refactor/08-modello-documento-ed-editing.md](refactor/08-modello-documento-ed-editing.md) | Modello `Document`+`DocumentVersion` unificato per tutti e 4 i tipi + editing. |
+| [refactor/09-flusso-pubblicazione.md](refactor/09-flusso-pubblicazione.md) | Flusso di pubblicazione generico (registry `IReleaseTarget`/`IDocKindRoutes`). |
+| [refactor/10-snapshot-totale-e-rendermode.md](refactor/10-snapshot-totale-e-rendermode.md) | Snapshot totale al publish + `RenderMode` per sezione; visibilità pubblica = release effettiva. **Merged.** |
+| [refactor/11-uniformita-tre-documenti.md](refactor/11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (audit 2026-07-30, P1→P9): chiave di sezione univoca, resa editoriale condivisa, `DocumentSection.IsHidden` e `BeforeParentBody` versionati, fallback a pubblica frozen, superficie APP = non remotizzati, stato iniziale di apertura delle sezioni. Include **§3bis: non-problemi verificati**, da non «aggiustare». |
 
 ## Storia — `history/` ⚪
 | File | Scopo |
 |---|---|
-| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R30). |
+| [history/rounds.md](history/rounds.md) | **Changelog cronologico** dei round (R5→R34) + asse refactor 01→10, retention/fix pubblicazione e feature 2026-07 (confinanti, QoL editor trasferimenti, condizione operativa pista/area). |
 | [history/handoff-round5.md](history/handoff-round5.md) | Handoff di chiusura del Round 5 (fusione Settore/Posizione). |
 | [history/handoff-round22.md](history/handoff-round22.md) | Handoff di sessione Round 22 (shape tonda TWR + coord aeroporto + rifiniture trasferimenti/AOR). |
+| [history/handoff-coordinamenti-fasi-3-4.md](history/handoff-coordinamenti-fasi-3-4.md) | Handoff coordinamenti/trasferimenti (fasi 3-4, refactor 07). |
 | [history/piano-round20.md](history/piano-round20.md) | Piano esecutivo del Round 20 (fonte unica cataloghi). |
 | [history/review-flusso-gap.md](history/review-flusso-gap.md) | Analisi flusso vs documenti (decisioni round 4). |
 | [history/audit-2026-07-14-correttezza-fonti-dati.md](history/audit-2026-07-14-correttezza-fonti-dati.md) | Audit senior correttezza + fonti-dati multiple: findings A1–A4/B1–B5, falsi positivi, fix. |
+| [history/audit-2026-07-22-criticita-full-stack.md](history/audit-2026-07-22-criticita-full-stack.md) | Audit full-stack (back/front/DB): 15 criticità con severità + piano a fasi + Fase 1 (health-check migrazioni, osservabilità import, rete test bUnit/E2E). |
+| [history/audit-2026-07-30-concorrenza-e-ridondanze.md](history/audit-2026-07-30-concorrenza-e-ridondanze.md) | Audit concorrenza/codice morto/ridondanze: 8 fix di race condition, import SID rotto in silenzio, 450 righe morte, 4 estrazioni + bug Razor `v@r.…` trovato in verifica live. |
 
 ---
 **Nota:** i commenti nel codice sorgente (`.cs`/`.razor`) citano i documenti per **nome e sezione** in forma informale (es. «modello-dati §9.12», «ADR-0001 D5»), non come link a percorso.

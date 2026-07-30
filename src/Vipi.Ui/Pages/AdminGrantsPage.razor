@@ -1,48 +1,50 @@
-﻿@page "/vsop/admin/permessi"
+@page "/vsop/admin/permessi"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
 @inject IStationResolver Stations
 @inject IStaffRosterService Roster
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Area Staff · IVAO Italia</PageTitle>
+<PageTitle>@L["Common_StaffArea"] · IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>Area Staff</b></div>
+    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Common_StaffArea"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Area Staff</h2><span class="muted">Tutte le funzioni riservate allo staff</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Common_StaffArea"]</h2><span class="muted">@L["Grants_Subtitle"]</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
     {
-        <div class="callout danger"><span class="cic">⛔</span><div><p class="ct">Accesso riservato</p>Solo lo staff può accedere a quest'area.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["Grants_StaffOnly"]</div></div>
     }
     else
     {
         <div class="section-title"><h3>Dashboard</h3><span class="ln"></span></div>
         <div class="choice-grid">
-            <a class="choice" href="/vsop/admin/sectorstructure" style="text-decoration:none;color:inherit"><h4><span class="ic">🏗️</span> Struttura</h4><p class="muted">ACC, posizioni, settori, ownership, frequenze e topologia.</p></a>
-            <a class="choice" href="/vsop/admin/trasferimenti" style="text-decoration:none;color:inherit"><h4><span class="ic">🔄</span> Trasferimenti</h4><p class="muted">Flussi e punti di coordinamento tra settori, per ACC.</p></a>
-            <a class="choice" href="/vsop/versioni" style="text-decoration:none;color:inherit"><h4><span class="ic">🗂️</span> Documenti · Bozze &amp; versioni</h4><p class="muted">Crea, modifica, nascondi/elimina e pubblica: vIPI, aeroporti, vLOA. Storico e release AIRAC.</p></a>
-            <a class="choice" href="/vsop/admin/audit" style="text-decoration:none;color:inherit"><h4><span class="ic">📜</span> Audit log</h4><p class="muted">Chi ha fatto cosa: pubblicazioni e modifiche permessi.</p></a>
-            <a class="choice" href="/vsop/admin/tasks" style="text-decoration:none;color:inherit"><h4><span class="ic">📋</span> Incarichi editor</h4><p class="muted">Assegna e monitora i task degli editor, con avanzamento e ritardi.</p></a>
+            <a class="choice" href="/vsop/admin/sectorstructure"><h4><span class="ic"><Icon Name="building" Size="18" /></span> @L["Struct_Title"]</h4><p class="muted">@L["Grants_StructDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/trasferimenti"><h4><span class="ic"><Icon Name="refresh" Size="18" /></span> @L["Home_TransfersTitle"]</h4><p class="muted">@L["Home_TransfersDesc"]</p></a>
+            <a class="choice" href="/vsop/versioni"><h4><span class="ic"><Icon Name="file" Size="18" /></span> @L["Home_DocsTitle"]</h4><p class="muted">@L["Grants_DocsDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/audit"><h4><span class="ic"><Icon Name="scroll" Size="18" /></span> @L["Audit_Title"]</h4><p class="muted">@L["Grants_AuditDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/tasks"><h4><span class="ic"><Icon Name="clipboard" Size="18" /></span> @L["Grants_TasksTitle"]</h4><p class="muted">@L["Grants_TasksDesc"]</p></a>
+            <a class="choice" href="/vsop/admin/diagnostica"><h4><span class="ic"><Icon Name="activity" Size="18" /></span> @L["Diag_Title"]</h4><p class="muted">@L["Grants_DiagDesc"]</p></a>
         </div>
 
-        <div class="section-title"><h3>Permessi editing</h3><span class="ln"></span></div>
-        <div class="callout info"><span class="cic">ℹ️</span><div><p class="ct">Grant per VID</p>Seleziona uno staffista dall'elenco (staff IT che si è loggato almeno una volta) oppure inserisci un VID a mano.</div></div>
+        <div class="section-title"><h3>@L["Home_PermsTitle"]</h3><span class="ln"></span></div>
+        <div class="callout info"><span class="cic"><Icon Name="info" Size="18" /></span><div><p class="ct">@L["Grants_GrantByVid"]</p>@L["Grants_GrantHint"]</div></div>
 
-        @if (_error is not null) { <div class="callout danger"><span class="cic">⛔</span><div>@_error</div></div> }
+        @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
         @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
 
         <div class="apt-2col" style="margin-top:14px">
             <div>
-                <h4>Permessi attivi</h4>
-                @if (_grants is null) { <p class="help">Caricamento…</p> }
-                else if (_grants.Count == 0) { <p class="help">Nessun permesso concesso.</p> }
+                <h4>@L["Grants_ActiveGrants"]</h4>
+                @if (_grants is null) { <LoadingState /> }
+                else if (_grants.Count == 0) { <p class="help">@L["Grants_NoneGranted"]</p> }
                 else
                 {
                     <table>
-                        <thead><tr><th>VID</th><th>Nome</th><th>ACC</th><th>Concesso da</th><th>Quando</th><th></th></tr></thead>
+                        <thead><tr><th>VID</th><th>@L["Airport_Name"]</th><th>ACC</th><th>@L["Grants_GrantedBy"]</th><th>@L["Grants_When"]</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var g in _grants)
                             {
@@ -52,7 +54,7 @@
                                     <td>@g.AccCode</td>
                                     <td>@g.GrantedByUserId</td>
                                     <td>@g.GrantedAtUtc.ToString("dd MMM yyyy HH:mm")</td>
-                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => Revoke(g.Id)">Revoca</button></td>
+                                    <td><button class="btn ghost" disabled="@_busy" @onclick="() => Revoke(g.Id)">@L["Grants_Revoke"]</button></td>
                                 </tr>
                             }
                         </tbody>
@@ -61,12 +63,12 @@
             </div>
 
             <div class="xfe-form">
-                <h4>Concedi permesso</h4>
+                <h4>@L["Grants_GrantPermission"]</h4>
                 @if (_members is { Count: > 0 })
                 {
-                    <div class="field"><label>Staffista IT</label>
+                    <div class="field"><label>@L["Grants_ItStaffer"]</label>
                         <select @bind="_selectedUserId" @bind:after="OnMemberPicked">
-                            <option value="0">— seleziona —</option>
+                            <option value="0">@L["Grants_Select"]</option>
                             @foreach (var m in _members)
                             {
                                 <option value="@m.UserId">@m.UserId@(string.IsNullOrWhiteSpace(m.DisplayName) ? "" : $" — {m.DisplayName}") (@string.Join(", ", m.StaffPositions))</option>
@@ -76,16 +78,16 @@
                 }
                 else
                 {
-                    <p class="help">Nessuno staffista nell'elenco: comparirà dopo il primo login. Inserisci il VID a mano.</p>
+                    <p class="help">@L["Grants_NoStaffer"]</p>
                 }
                 <div class="field"><label>VID</label><input type="number" placeholder="es. 123456" @bind="_userId" /></div>
-                <div class="field"><label>Nome (opzionale)</label><input placeholder="es. Mario Rossi" @bind="_name" /></div>
+                <div class="field"><label>@L["Grants_NameOptional"]</label><input placeholder="es. Mario Rossi" @bind="_name" /></div>
                 <div class="field"><label>ACC</label>
                     <select @bind="_accCode">
                         @foreach (var acc in Stations.Accs) { <option value="@acc.Code">@acc.Code — @acc.Name</option> }
                     </select>
                 </div>
-                <button class="btn primary" style="width:100%;margin-top:4px" disabled="@_busy" @onclick="Add">+ Concedi</button>
+                <button class="btn primary" style="width:100%;margin-top:4px" disabled="@_busy" @onclick="Add">@L["Grants_GrantBtn"]</button>
             </div>
         </div>
     }
@@ -133,7 +135,7 @@
             await Authz.AddGrantAsync(_userId, string.IsNullOrWhiteSpace(_name) ? null : _name.Trim(), _accCode);
             _userId = 0; _name = "";
             await LoadAsync();
-            _status = "Permesso concesso.";
+            _status = L["Grants_GrantedMsg"];
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }
@@ -143,7 +145,7 @@
     private async Task Revoke(int id)
     {
         _busy = true; _status = null; _error = null;
-        try { await Authz.RevokeGrantAsync(id); await LoadAsync(); _status = "Permesso revocato."; }
+        try { await Authz.RevokeGrantAsync(id); await LoadAsync(); _status = L["Grants_RevokedMsg"]; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         finally { _busy = false; }
     }

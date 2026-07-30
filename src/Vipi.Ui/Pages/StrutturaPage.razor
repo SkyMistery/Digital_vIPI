@@ -6,22 +6,23 @@
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject Microsoft.JSInterop.IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Struttura (ACC, settori) · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Struct_PageTitle"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/admin/permessi">Area Staff</a> › <b>Struttura</b></div>
+    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <b>@L["Struct_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">Struttura</h2><span class="muted">Gerarchia di copertura globale + documenti</span></div>
+        <div><h2 style="margin-bottom:2px">@L["Struct_Title"]</h2><span class="muted">@L["Struct_Subtitle"]</span></div>
         @if (Authz.IsAdmin)
         {
             <nav class="struct-nav">
-                <a class="btn ghost" href="/vsop/editor/newdoc">📄 Nuovo documento</a>
-                <a class="btn ghost" href="/vsop/admin/acc">🗺 Gestione ACC</a>
-                <a class="btn ghost" href="/vsop/admin/airports">🛫 Gestione aeroporti</a>
-                <a class="btn ghost" href="/vsop/admin/confinanti">🌍 ACC confinanti (vLOA)</a>
-                <a class="btn ghost" href="/vsop/admin/trasferimenti">↔ Trasferimenti</a>
-                <a class="btn ghost" href="/vsop/admin/sorgenti">🔌 Sorgenti dati</a>
+                <a class="btn ghost" href="/vsop/editor/newdoc"><Icon Name="file" /> @L["Struct_NavNewDoc"]</a>
+                <a class="btn ghost" href="/vsop/admin/acc"><Icon Name="map" /> @L["Struct_NavAcc"]</a>
+                <a class="btn ghost" href="/vsop/admin/airports"><Icon Name="plane-takeoff" /> @L["Struct_NavAirports"]</a>
+                <a class="btn ghost" href="/vsop/admin/confinanti"><Icon Name="globe" /> @L["Struct_NavNeighbours"]</a>
+                <a class="btn ghost" href="/vsop/admin/trasferimenti"><Icon Name="refresh" /> @L["Home_TransfersTitle"]</a>
+                <a class="btn ghost" href="/vsop/admin/sorgenti"><Icon Name="plug" /> @L["Struct_NavSources"]</a>
             </nav>
         }
     </div>
@@ -36,55 +37,55 @@
         <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
     }
 
-    <div class="section-title"><h3>Gerarchia di copertura <span class="pill blue">divisione</span></h3><span class="ln"></span></div>
-    <p class="help" style="margin-top:0">Albero di fallback unico per tutta la divisione (<b>cross-ACC</b>): <b>Aeroporto → APP → settore ACC</b>. L'aeroporto è la foglia (DEL/GND/TWR condividono la sua vista rapida). I settori si importano/editano dalla <a href="/vsop/admin/acc">pagina ACC</a>; qui imposti solo i <b>padri</b> (il fallback immediato), anche tra ACC diversi.</p>
+    <div class="section-title"><h3>@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h3><span class="ln"></span></div>
+    <p class="help" style="margin-top:0">@((MarkupString)L["Struct_HierarchyHelp"].Value)</p>
 
     <div class="gerarchia-2col">
         @* --- Settori per ACC (card con alberi) --- *@
         <div class="panel">
-            <div class="sub-h">Alberi per ACC<span class="ln" style="flex:1"></span>
-                <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="Espandi tutto">⊞ espandi</button>
-                <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="Comprimi tutte le card">⊟ comprimi</button>
+            <div class="sub-h">@L["Struct_TreesByAcc"]<span class="ln" style="flex:1"></span>
+                <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="@L["Struct_ExpandAllTitle"]">@L["Struct_Expand"]</button>
+                <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="@L["Struct_CollapseAllTitle"]">@L["Struct_Collapse"]</button>
             </div>
             @{ var aptOrphans = OrphanAirports().Count; var appOrphans = OrphanApps().Count; var accRoots = AccRoots().Count; }
             <div class="struct-health @(aptOrphans == 0 && appOrphans == 0 ? "ok" : "")">
                 @if (aptOrphans == 0 && appOrphans == 0)
                 {
-                    <span class="sh-ok">✓ struttura completa: ogni aeroporto e APP ha un padre</span>
+                    <span class="sh-ok">@L["Struct_Complete"]</span>
                 }
                 else
                 {
-                    <button class="sh-chip warn @(_orphansOnly ? "on" : "")" @onclick="ToggleOrphans" title="Mostra solo i nodi da agganciare">
-                        ⚠ @aptOrphans aeroport@(aptOrphans == 1 ? "o" : "i") da assegnare@(appOrphans > 0 ? $" · {appOrphans} APP orfan{(appOrphans == 1 ? "o" : "i")}" : "")
+                    <button class="sh-chip warn @(_orphansOnly ? "on" : "")" @onclick="ToggleOrphans" title="@L["Struct_ShowUnassignedTitle"]">
+                        ⚠ @OrphansLabel(aptOrphans, appOrphans)
                     </button>
                 }
-                <span class="sh-chip" title="Radici ACC (nessun padre — copertura top-down)">@accRoots radici ACC</span>
+                <span class="sh-chip" title="@L["Struct_AccRootsTitle"]">@L["Struct_AccRootsN", accRoots]</span>
                 @if (_orphansOnly)
                 {
-                    <button class="lnk-mini" @onclick="() => _orphansOnly = false">↺ mostra tutti</button>
+                    <button class="lnk-mini" @onclick="() => _orphansOnly = false">@L["Struct_ShowAll"]</button>
                 }
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-                <input class="htree-search" placeholder="cerca callsign / ACC…" value="@_treeFilter" @oninput="OnSearchInput" style="flex:1" />
-                <select class="htree-select" @bind="_countryFilter" title="Filtra per nazione">
-                    <option value="">tutte le nazioni</option>
+                <input class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" value="@_treeFilter" @oninput="OnSearchInput" style="flex:1" />
+                <select class="htree-select" @bind="_countryFilter" title="@L["Struct_FilterCountry"]">
+                    <option value="">@L["Struct_AllCountries"]</option>
                     @foreach (var c in CountryOptions())
                     {
                         <option value="@c.Prefix">@c.Name</option>
                     }
                 </select>
-                @if (_searching) { <span class="muted" style="font-size:12px;white-space:nowrap">@_tree.Count(Matches) risultati</span> }
+                @if (_searching) { <span class="muted" style="font-size:12px;white-space:nowrap">@L["Struct_ResultsN", _tree.Count(Matches)]</span> }
             </div>
             @{ var groups = RootGroups(); }
             @if (groups.Count == 0)
             {
                 @if (_searching)
                 {
-                    <p class="help">Nessun settore corrisponde a «@_treeFilter».</p>
+                    <p class="help">@string.Format(L["Struct_NoSectorMatch"], _treeFilter)</p>
                 }
                 else
                 {
-                    <p class="help">Nessun settore nel catalogo. Importali dalla <a href="/vsop/admin/acc">pagina ACC</a>.</p>
+                    <p class="help">@((MarkupString)L["Struct_NoSectorCatalog"].Value)</p>
                 }
             }
             else
@@ -98,7 +99,7 @@
                         <div class="acc-grp-h" @onclick="() => ToggleCard(g.Code)">
                             <span class="grp-chev">@(cardOpen ? "▾" : "▸")</span>
                             <span class="acc-grp-code">@g.Code</span> @g.Name
-                            <span class="muted" style="font-weight:500">· @ForestCount(g.Roots) settori</span>
+                            <span class="muted" style="font-weight:500">· @L["Struct_SectorsN", ForestCount(g.Roots)]</span>
                         </div>
                         @if (cardOpen)
                         {
@@ -124,18 +125,18 @@
                                     {
                                         <span class="htree-toggle empty"></span>
                                     }
-                                    @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="online adesso"></span> }
+                                    @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                                     <span class="node-badge @FacilityClass(n.Kind, n.Callsign)">@FacilityBadge(n.Kind, n.Callsign)</span>
                                     <span class="acc-row-label">@n.Label</span>
                                     @if (n.AccCode != g.Code) { <span class="acc-tag" title="cross-ACC">@n.AccCode</span> }
-                                    @if (n.IsHidden) { <span class="muted" style="font-size:11px">(nascosto)</span> }
+                                    @if (n.IsHidden) { <span class="muted" style="font-size:11px">@L["Struct_Hidden"]</span> }
                                     @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_filtering)
                                     {
                                         <span class="acc-row-parent">@(ChildrenOf(n.Callsign!).Count()) ⋯</span>
                                     }
                                     else if (string.IsNullOrWhiteSpace(n.ParentCallsign))
                                     {
-                                        <span class="acc-row-parent">@(n.Kind == HierarchyNodeKind.Airport ? "⚠ da assegnare" : "radice")</span>
+                                        <span class="acc-row-parent">@(n.Kind == HierarchyNodeKind.Airport ? L["Struct_ToAssign"].Value : L["Struct_Root"].Value)</span>
                                     }
                                 </div>
                             }
@@ -147,10 +148,10 @@
 
         @* --- Dettaglio nodo --- *@
         <div class="panel detail-sticky">
-            <div class="sub-h">Dettaglio</div>
+            <div class="sub-h">@L["Struct_Detail"]</div>
             @if (Selected() is not HierarchyNode sel)
             {
-                <p class="help">Seleziona un settore per vederne la catena di fallback e impostarne il padre.</p>
+                <p class="help">@L["Struct_SelectHint"]</p>
             }
             else
             {
@@ -160,30 +161,30 @@
                 </p>
                 @if (sel.Kind == HierarchyNodeKind.Airport)
                 {
-                    <p class="muted" style="font-size:12px;margin:0 0 10px">DEL · GND · TWR condividono la stessa vista rapida (l'aeroporto è la foglia).</p>
+                    <p class="muted" style="font-size:12px;margin:0 0 10px">@L["Struct_LeafHint"]</p>
                 }
-                @RenderChain(sel)
-                @RenderCoverage(sel)
+                <StructureFallbackChain Rows="ChainRows(sel)" />
+                <StructureCoverage IsLeaf="sel.Callsign is null" Rows="CoverageRows(sel)" AirportsCovered="AirportsCovered(sel)" />
                 <div class="field" style="margin-top:10px">
-                    <label>Padre (fallback immediato)</label>
-                    <input placeholder="filtra callsign…" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" style="margin-bottom:6px" />
+                    <label>@L["Struct_ParentLabel"]</label>
+                    <input placeholder="@L["Struct_FilterCallsign"]" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" style="margin-bottom:6px" />
                     <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
-                        <option value="">@(sel.Kind == HierarchyNodeKind.Acc ? "— radice —" : "— da assegnare —")</option>
+                        <option value="">@(sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value)</option>
                         @foreach (var p in EligibleParents(sel))
                         {
                             <option value="@p.Callsign">@p.Callsign (@BadgeOf(p.Kind)) · @p.AccCode</option>
                         }
                     </select>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-                        <button class="btn primary" disabled="@(!Authz.IsAdmin || !_canEdit || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">Applica</button>
+                        <button class="btn primary" disabled="@(!Authz.IsAdmin || !_canEdit || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">@L["Common_Apply"]</button>
                         @if (IsDirty(sel))
                         {
-                            <button class="btn ghost" disabled="@_busy" @onclick="() => _pendingParent = sel.ParentCallsign">Annulla</button>
-                            <span class="muted" style="font-size:12px">modifica non salvata</span>
+                            <button class="btn ghost" disabled="@_busy" @onclick="() => _pendingParent = sel.ParentCallsign">@L["Common_Cancel"]</button>
+                            <span class="muted" style="font-size:12px">@L["Common_Unsaved"]</span>
                         }
                         else
                         {
-                            <span class="muted" style="font-size:12px">nessuna modifica</span>
+                            <span class="muted" style="font-size:12px">@L["Common_NoChange"]</span>
                         }
                     </div>
                 </div>
@@ -221,6 +222,15 @@
     private bool _canEdit;         // true = questa sessione tiene il lock di struttura (EditLockBar)
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    // Etichetta orfani con pluralizzazione IT/EN gestita via chiavi singolare/plurale.
+    private string OrphansLabel(int apt, int app)
+    {
+        var aptPart = string.Format(apt == 1 ? L["Struct_AptToAssign1"] : L["Struct_AptToAssignN"], apt);
+        if (app <= 0) return aptPart;
+        var appPart = string.Format(app == 1 ? L["Struct_AppOrphan1"] : L["Struct_AppOrphanN"], app);
+        return $"{aptPart} · {appPart}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -529,7 +539,7 @@
         if (!Authz.IsAdmin || !_canEdit) { _dragKind = null; return; }
         if (!IsEligibleParent(child, target))
         {
-            _msg = $"Non puoi agganciare {child.Callsign ?? child.Label} sotto {target.Callsign} (sé stesso/discendente o nazione diversa).";
+            _msg = string.Format(L["Struct_DropInvalid"], child.Callsign ?? child.Label, target.Callsign);
             _dragKind = null;
             return;
         }
@@ -538,38 +548,21 @@
         await Guarded(() => Hierarchy.SetParentAsync(kind, id, parentCs));
     }
 
-    // --- Anteprima copertura (dominio GIÙ) del nodo selezionato ---
-    private RenderFragment RenderCoverage(HierarchyNode sel) => builder =>
+    // --- Anteprima copertura (dominio GIÙ) del nodo selezionato: dati per <StructureCoverage>. ---
+    private IReadOnlyList<CoverageChildRow> CoverageRows(HierarchyNode sel)
     {
-        var seq = 0;
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "fallback-chain");
-        builder.AddContent(seq++, (MarkupString)"<div class=\"muted\" style=\"font-size:12px;margin:8px 0 4px\">Copre (dominio):</div>");
-        if (sel.Callsign is null)
-        {
-            builder.AddContent(seq++, (MarkupString)"<div class=\"help\">L'aeroporto è una foglia: nessun sottoalbero.</div>");
-        }
-        else
-        {
-            var children = ChildrenOf(sel.Callsign).ToList();
-            if (children.Count == 0)
-            {
-                builder.AddContent(seq++, (MarkupString)"<div class=\"help\">Nessun sottoalbero (copre solo sé stesso).</div>");
-            }
-            else
-            {
-                foreach (var c in children)
-                {
-                    var descCount = c.Callsign is null ? 0 : DescendantNodes(c.Callsign).Count;
-                    var extra = descCount > 0 ? $" <span class=\"muted\" style=\"font-size:11px\">+{descCount}</span>" : "";
-                    builder.AddContent(seq++, (MarkupString)$"<div>↳ <b>{(c.Callsign ?? c.Label)}</b> <span class=\"node-badge {FacilityClass(c.Kind, c.Callsign)}\">{FacilityBadge(c.Kind, c.Callsign)}</span>{extra}</div>");
-                }
-                var apts = DescendantNodes(sel.Callsign).Count(d => d.Kind == HierarchyNodeKind.Airport);
-                builder.AddContent(seq++, (MarkupString)$"<div style=\"margin-top:6px;font-family:'Nunito Sans';font-weight:700;color:var(--ivao-blue)\">{apts} aeroport{(apts == 1 ? "o" : "i")} copert{(apts == 1 ? "o" : "i")}</div>");
-            }
-        }
-        builder.CloseElement();
-    };
+        if (sel.Callsign is null) return Array.Empty<CoverageChildRow>();
+        return ChildrenOf(sel.Callsign)
+            .Select(c => new CoverageChildRow(
+                c.Callsign ?? c.Label,
+                FacilityBadge(c.Kind, c.Callsign),
+                FacilityClass(c.Kind, c.Callsign),
+                c.Callsign is null ? 0 : DescendantNodes(c.Callsign).Count))
+            .ToList();
+    }
+
+    private int AirportsCovered(HierarchyNode sel) =>
+        sel.Callsign is null ? 0 : DescendantNodes(sel.Callsign).Count(d => d.Kind == HierarchyNodeKind.Airport);
 
     private Dictionary<string, HierarchyNode> NodesByCallsign() =>
         _tree.Where(n => n.Callsign is not null)
@@ -617,27 +610,18 @@
         return result;
     }
 
-    /// <summary>Catena di fallback del nodo selezionato (antenati per callsign fino alla radice).</summary>
-    private RenderFragment RenderChain(HierarchyNode sel) => builder =>
+    /// <summary>Catena di fallback del nodo selezionato (antenati per callsign fino alla radice): dati per &lt;StructureFallbackChain&gt;.</summary>
+    private IReadOnlyList<FallbackChainRow> ChainRows(HierarchyNode sel)
     {
         var byCs = NodesByCallsign();
-        var chain = new List<HierarchyNode>();
+        var rows = new List<FallbackChainRow>();
         var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pcs = sel.ParentCallsign;
         while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
         {
-            chain.Add(p);
+            rows.Add(new FallbackChainRow(p.Callsign ?? "", BadgeOf(p.Kind), BadgeOf(p.Kind).ToLowerInvariant(), p.AccCode));
             pcs = p.ParentCallsign;
         }
-        var seq = 0;
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "fallback-chain");
-        builder.AddContent(seq++, (MarkupString)"<div class=\"muted\" style=\"font-size:12px;margin-bottom:4px\">Catena di fallback:</div>");
-        if (chain.Count == 0)
-            builder.AddContent(seq++, (MarkupString)"<div class=\"help\">Radice (nessun padre): copre sé stesso top-down.</div>");
-        else
-            foreach (var s in chain)
-                builder.AddContent(seq++, (MarkupString)$"<div>→ <b>{s.Callsign}</b> <span class=\"node-badge {BadgeOf(s.Kind).ToLowerInvariant()}\">{BadgeOf(s.Kind)}</span> <span class=\"acc-tag\">{s.AccCode}</span></div>");
-        builder.CloseElement();
-    };
+        return rows;
+    }
 }

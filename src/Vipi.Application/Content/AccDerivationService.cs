@@ -27,11 +27,12 @@ public interface IAccDerivationService
     /// <summary>Frequenze derivate del blocco (membri + link), con override d'ordine applicato e accorpamento per ramo (Aerovia).</summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
-    /// <summary>Mappa callsign CTR → nome ramo di appartenenza (accorpamento freq #5). Vuota per blocchi non-Aerovia.</summary>
-    Task<IReadOnlyDictionary<string, string>> GetFreqGroupMapAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
-
     /// <summary>Coordinamenti derivati del blocco (flussi posseduti dai membri + entranti): verso ACC/APP/torri.</summary>
     Task<AccCoordination> DeriveCoordinationAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
+
+    /// <summary>Mappe di risoluzione + template per l'anteprima live delle frasi nell'editor trasferimenti.
+    /// Stesse mappe della derivazione reale → l'anteprima combacia con l'output pubblicato.</summary>
+    Task<CoordinationPreviewContext> GetPreviewContextAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>Vista AoR del blocco: anelli per-settore (toggleabili) + configurazioni selezionabili. Una sola mappa.</summary>
     Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
@@ -41,11 +42,19 @@ public interface IAccDerivationService
 
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
-    /// <summary>Aree speciali dell'ACC (picker editor #8).</summary>
+    /// <summary>Tutti i settori DB con poligono AoR, selezionabili come shape extra (picker globale, cerca per ente).</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
+
+    /// <summary>Aree speciali del proprio ACC (picker editor #8).</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Aree speciali attaccate al blocco, risolte per il viewer (metadati + shape proiettata), nell'ordine scelto.</summary>
-    Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(AccBlock block, CancellationToken ct = default);
+    /// <summary>Aree speciali di altri ACC (picker editor aree extra #8).</summary>
+    Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>Aree regolamentate del blocco risolte per il viewer (metadati + shape), in ordine (proprie poi extra).
+    /// Aerovia in automatico = tutte le aree del proprio <paramref name="accCode"/> (dinamico); altrimenti il sottoinsieme
+    /// scelto. Sempre in coda le aree extra di altri ACC.</summary>
+    Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(string accCode, AccBlock block, CancellationToken ct = default);
 
 }
 
@@ -117,9 +126,7 @@ public sealed class AccDerivationService : IAccDerivationService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
         var accNameMap = await _repo.GetSectorAccNameMapAsync(ct);
-        var tpl = string.IsNullOrWhiteSpace(block.CoordinationSentenceTemplate)
-            ? _sentence.Current
-            : _sentence.Current.WithTemplate(block.CoordinationSentenceTemplate!);
+        var tpl = _sentence.Current;
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var entries = CoordinationDerivation.Build(flows, owners, types, nameMap, codeMap, airportMap, atcMap, tpl);
@@ -127,6 +134,19 @@ public sealed class AccDerivationService : IAccDerivationService
         // Un'unica gerarchia (condivisa con la vLOA): Settore → ACC → Aeroporto(arrivi/partenze) + Sorvoli/VFR/altro.
         var sectors = CoordinationDerivation.BuildAccTree(entries, codeMap, atcMap, airportMap, accNameMap, TransferFlowKindLabels.Label);
         return new AccCoordination { Sectors = sectors };
+    }
+
+    public async Task<CoordinationPreviewContext> GetPreviewContextAsync(string accCode, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+        // Stesse fonti di DeriveCoordinationAsync: così l'anteprima editor combacia con la derivazione reale.
+        var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
+        var types = await _repo.GetSectorTypeMapAsync(ct);
+        var nameMap = await NameMapAsync(accCode, ct);
+        var codeMap = await _repo.GetSectorCodeMapAsync(ct);
+        var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
+        var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
+        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap, _sentence.Current);
     }
 
     public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
@@ -143,20 +163,56 @@ public sealed class AccDerivationService : IAccDerivationService
         if (callsigns.Count == 0) callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).ToList();
 
         var rawByCs = await _repo.GetSectorPolygonsRawByCallsignAsync(callsigns, ct);
+        var limits = await _repo.GetSectorLimitsByCallsignAsync(callsigns, ct);
         var names = await NameMapAsync(accCode, ct);
 
         var sectors = new List<AccSectorAor>();
-        var i = 0;
         foreach (var cs in callsigns)
         {
             if (!rawByCs.TryGetValue(cs, out var raw)) continue;
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }, lo, hi));
         }
+
+        // Shape extra scelte a mano (settori DB, anche esteri): appese come anelli toggleabili dopo i settori
+        // principali, dedup su quanto già presente. Nome = da NameMap se noto, altrimenti il callsign.
+        if (block.ExtraAorCallsigns.Count > 0)
+        {
+            var extraRaw = await _repo.GetSectorPolygonsRawByCallsignAsync(block.ExtraAorCallsigns, ct);
+            var extraLimits = await _repo.GetSectorLimitsByCallsignAsync(block.ExtraAorCallsigns, ct);
+            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extraRaw, extraLimits, names, block.AorColorOverrides);
+        }
+
         return new AccAorView(sectors, configs);
+    }
+
+    // Banda FL (Lower/Upper) di un settore per l'estrusione 3D, normalizzata; assente = default GND/UNL.
+    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
+    {
+        if (!limits.TryGetValue(cs, out var l)) return (null, null);
+        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
+        return (bottom, top);
+    }
+
+    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override; banda FL.
+    private static void AppendExtraShapes(List<AccSectorAor> sectors, IReadOnlyList<string> extra,
+        IReadOnlyDictionary<string, string> rawByCs, IReadOnlyDictionary<string, SectorFlLimits> limits,
+        IReadOnlyDictionary<string, string> names, IReadOnlyDictionary<string, string> colorOverrides)
+    {
+        var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+        foreach (var cs in extra.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
+            var poly = Aor.AorPolygonProjector.Project(raw);
+            if (poly is null) continue;
+            var name = names.TryGetValue(cs, out var n) ? n : cs;
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides), new[] { poly }, lo, hi));
+            present.Add(cs);
+        }
     }
 
     public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
@@ -191,19 +247,6 @@ public sealed class AccDerivationService : IAccDerivationService
         return ConfigTableProjector.Build(_aor, topo, roots, pool, block.Configurations);
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> GetFreqGroupMapAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
-    {
-        accCode = Norm(accCode);
-        if (block.Kind != AccBlockKind.Aerovia) return new Dictionary<string, string>();
-        // ACC-wide: unione delle mappe di ramo di tutti gli alberi CTR dell'ACC.
-        var roots = (await _repo.ListTreeRootsAsync(accCode, ct)).Select(r => r.Callsign).ToList();
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in roots)
-            foreach (var kv in await _repo.GetCtrBranchMapAsync(accCode, root, ct))
-                result[kv.Key] = kv.Value.Name;
-        return result;
-    }
-
     private async Task<IReadOnlyDictionary<string, string>> NameMapAsync(string accCode, CancellationToken ct)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -215,17 +258,29 @@ public sealed class AccDerivationService : IAccDerivationService
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _repo.ListLinkableFrequenciesAsync(ct);
 
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        _repo.ListSelectableSectorShapesAsync(ct);
+
     public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct);
 
-    public async Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(AccBlock block, CancellationToken ct = default)
+    public Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string accCode, CancellationToken ct = default) =>
+        _repo.ListSpecialAreasExcludingAccAsync(Norm(accCode), ct);
+
+    public async Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(string accCode, AccBlock block, CancellationToken ct = default)
     {
-        if (block.AttachedSpecialAreaIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
-        var details = await _repo.GetSpecialAreasByIdsAsync(block.AttachedSpecialAreaIds, ct);
+        // Aree del proprio ACC: automatico (Aerovia) = tutte; altrimenti il sottoinsieme scelto. Poi le extra di altri ACC.
+        IReadOnlyList<string> ownIds = block.Kind == AccBlockKind.Aerovia && block.Regulated.OwnAuto
+            ? (await _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct)).Select(p => p.IvaoId).ToList()
+            : block.Regulated.OwnIds;
+        var orderedIds = ownIds.Concat(block.Regulated.ExtraIds).ToList();
+        if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
+
+        var details = await _repo.GetSpecialAreasByIdsAsync(orderedIds, ct);
         var byId = details.ToDictionary(d => d.IvaoId, StringComparer.OrdinalIgnoreCase);
 
         var result = new List<AccSpecialAreaView>();
-        foreach (var id in block.AttachedSpecialAreaIds)   // preserva l'ordine scelto dallo staff
+        foreach (var id in orderedIds)   // preserva l'ordine (proprie poi extra)
         {
             if (!byId.TryGetValue(id, out var d)) continue;
             var shape = string.IsNullOrWhiteSpace(d.RegionMapPolygon) ? null : Aor.AorPolygonProjector.Project(d.RegionMapPolygon);

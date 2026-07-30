@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
+<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -6,9 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <!-- Font self-hosted dal modulo (nessuna chiamata esterna a Google Fonts). -->
-    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css" />
-    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css" />
-    <link rel="stylesheet" href="Vipi.Host.styles.css" />
+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-aor3d.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-print.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="Vipi.Host.styles.css?v=@AssetVersion" />
     <!-- Leaflet (mappa AOR minimal). -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -43,11 +46,15 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="_content/Vipi.Ui/vipi-ui.js"></script>
-    <script src="_content/Vipi.Ui/vipi-screens.js"></script>
-    <script src="_content/Vipi.Ui/vipi-live.js"></script>
-    <script src="_content/Vipi.Ui/vipi-aor.js"></script>
-    <script src="_content/Vipi.Ui/vipi-editor.js"></script>
+    <script src="_content/Vipi.Ui/vipi-ui.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-screens.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-live.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-aor.js?v=@AssetVersion"></script>
+    <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). -->
+    <script src="_content/Vipi.Ui/vendor/three.min.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-aor3d.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-editor.js?v=@AssetVersion"></script>
+    <script src="_content/Vipi.Ui/vipi-tour.js?v=@AssetVersion"></script>
     <script>
         // Ri-applica zoom e ricollega l'interattività dopo ogni navigazione "enhanced" di Blazor
         // (che rimpiazza il DOM e perderebbe lo stile zoom inline e gli handler).
@@ -56,8 +63,48 @@
             window.vipiWireUi && window.vipiWireUi();
             window.vipiInitScreens && window.vipiInitScreens();
             window.vipiInitAor && window.vipiInitAor();
+            window.vipiInitAor3d && window.vipiInitAor3d();
+            window.vipiMaybeTour && window.vipiMaybeTour();
         });
     </script>
 </body>
 
 </html>
+
+@code {
+    // Token di cache-busting per gli asset statici LOCALI (CSS/JS del modulo + bundle scoped dell'host): derivato dal
+    // timestamp piu recente dei file. Cambia a ogni build/deploy (anche per modifiche solo-CSS), resta stabile per
+    // l'intero deploy → il browser/CDN rifetcha gli asset dopo un aggiornamento invece di servire la versione vecchia.
+    // Non applicato a Leaflet (CDN con integrity) ne a blazor.web.js (versionato dal framework). Calcolato una volta.
+    private static string? _assetVersion;
+    private string AssetVersion => _assetVersion ??= ComputeAssetVersion(Env);
+
+    private static readonly string[] VersionedAssets =
+    {
+        "_content/Vipi.Ui/vipi-fonts.css", "_content/Vipi.Ui/vipi-theme.css", "_content/Vipi.Ui/vipi-aor3d.css",
+        "_content/Vipi.Ui/vipi-print.css", "Vipi.Host.styles.css",
+        "_content/Vipi.Ui/vipi-ui.js", "_content/Vipi.Ui/vipi-screens.js", "_content/Vipi.Ui/vipi-live.js",
+        "_content/Vipi.Ui/vipi-aor.js", "_content/Vipi.Ui/vipi-aor3d.js", "_content/Vipi.Ui/vipi-editor.js", "_content/Vipi.Ui/vipi-tour.js",
+    };
+
+    private static string ComputeAssetVersion(Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
+    {
+        try
+        {
+            var root = env.WebRootPath;
+            if (string.IsNullOrEmpty(root)) return "1";
+            long ticks = 0;
+            foreach (var rel in VersionedAssets)
+            {
+                var path = System.IO.Path.Combine(root, rel.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                if (System.IO.File.Exists(path))
+                {
+                    var t = System.IO.File.GetLastWriteTimeUtc(path).Ticks;
+                    if (t > ticks) ticks = t;
+                }
+            }
+            return ticks == 0 ? "1" : ticks.ToString("x");
+        }
+        catch { return "1"; }
+    }
+}

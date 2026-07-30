@@ -18,4 +18,7 @@ public interface ITransferRepository
 
     /// <summary>Sposta un punto su/giù scambiando l'<c>Order</c> col punto adiacente nello stesso flusso. No-op agli estremi.</summary>
     Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default);
+
+    /// <summary>Sposta un punto in cima (<paramref name="top"/>=true) o in fondo al suo flusso, ricompattando gli <c>Order</c>. No-op se già all'estremo.</summary>
+    Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default);
 }

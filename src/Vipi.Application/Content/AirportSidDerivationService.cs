@@ -51,11 +51,20 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
             .OrderBy(s => s.Fix, StringComparer.OrdinalIgnoreCase)
             .ThenBy(s => s.Priority ?? int.MaxValue)
             .Select(s => new AirportSidRowView(
-                Dash(s.Runway), s.Fix, s.Name, Dash(s.Transition), Dash(s.InitialClimb),
+                Dash(s.Runway), s.Fix, s.Name, Dash(s.Transition), Climb(s.InitialClimb, s.InitialClimbByApp),
                 Dash(s.Type), Dash(s.Cat), Dash(s.Wtc), Dash(s.Condition)))
             .ToList();
         return new AirportSidView(rows);
     }
 
     private static string Dash(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!.Trim();
+
+    // Initial climb: se la quota è "da concordare con APP" lo si annota accanto al valore (o al posto del "—").
+    // Testo in inglese come il resto del documento (Transition Altitude/Level, Initial climb, ...).
+    private static string Climb(string? v, bool byApp)
+    {
+        var q = (v ?? "").Trim();
+        if (!byApp) return q.Length == 0 ? "—" : q;
+        return q.Length == 0 ? "to be coordinated with APP" : $"{q} (to be coordinated with APP)";
+    }
 }

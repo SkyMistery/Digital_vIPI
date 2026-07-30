@@ -7,4 +7,4 @@ namespace Vipi.Application.Content;
 public sealed record AirportSectorRow(
     int Id, string ComposePosition, string AirportIcao, string AccCode, string? Position,
     string? MiddleIdentifier, string? Frequency, int? LowerLimit, int? UpperLimit, bool IsHidden, bool HasPolygon, bool IsPrimary,
-    bool IsAccApp, bool LimitsFromSource = false);
+    bool IsAccApp, bool LimitsFromSource = false, string? AtcCallsign = null, System.DateTime? ImportedAtUtc = null);

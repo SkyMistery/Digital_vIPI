@@ -21,16 +21,22 @@ public interface IAppDocumentService
     /// <summary>Frequenze finali ordinate: catalogo del sottoalbero + link extra (da DocumentProfile), con override d'ordine.</summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Coordinamenti derivati dai trasferimenti del settore APP. <paramref name="templateOverride"/> non
-    /// nullo/whitespace = usa quel template SENZA salvarlo (anteprima live); altrimenti l'override salvato o il default.</summary>
-    Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, string? templateOverride = null, CancellationToken ct = default);
+    /// <summary>Coordinamenti derivati dai trasferimenti del settore APP (frase dal template globale).</summary>
+    Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Vista AoR come mappa a settori (APP + torri dello stesso aeroporto). Riusa il modello di AccAorView.</summary>
+    /// <summary>Vista AoR come mappa a settori (APP del dominio + shape extra scelte a mano). Riusa il modello di AccAorView.</summary>
     Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default);
 
-    Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default);
-    Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string appCallsign, CancellationToken ct = default);
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
+
+    /// <summary>Personalizzazione AoR salvata (shape extra + override colore per settore), sezione <c>aor</c>. Vuota se assente.</summary>
+    Task<AorExtraShapes> GetAorCustomizationAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva la personalizzazione AoR (shape extra + colori) nella sezione <c>aor</c> (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveAorCustomizationAsync(string appCallsign, AorExtraShapes data, CancellationToken ct = default);
+
+    /// <summary>Tutti i settori DB con poligono AoR, selezionabili come shape extra (picker globale, cerca per ente).</summary>
+    Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default);
 
     /// <summary>Righe della sezione Separazioni (editoriale-strutturata), lette dal blocco keyed del Document. Vuoto se non migrato/assente.</summary>
     Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string appCallsign, CancellationToken ct = default);
@@ -50,17 +56,11 @@ public interface IAppDocumentService
     /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
     Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Salva le chiavi delle sezioni nascoste dal pubblico (ACC-gated).</summary>
-    Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default);
-
     /// <summary>Salva l'override d'ordine delle frequenze per callsign (ACC-gated).</summary>
     Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
 
     /// <summary>Salva i settori sorgente dei link frequenza extra (ACC-gated).</summary>
     Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
-
-    /// <summary>Salva l'override per-documento del template della frase di coordinamento (null/vuoto = default; ACC-gated).</summary>
-    Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default);
 
     /// <summary>Settori APP selezionabili nelle configurazioni (i settori APP del dominio di copertura, primario incluso).</summary>
     Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default);
@@ -111,10 +111,10 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
         var id = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct)
-            ?? throw new Aor.ValidationException($"APP {Norm(appCallsign)} inesistente.");
-        if (id.DocumentId is int existing) return existing;   // già migrato
-
+            ?? throw new Aor.ValidationException($"{Norm(appCallsign)} non è un APP non remotizzato.");
+        // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         await _authz.EnsureCanEditAccAsync(id.AccCode, ct);
+        if (id.DocumentId is int existing) return existing;   // già migrato
         var sections = SectionCatalog.For(SectionProfile.App).Select(d => (d.Key, d.Title)).ToList();
         return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, sections,
             _authz.CurrentUserId ?? 0, LiveKeys, ct);
@@ -143,7 +143,7 @@ public sealed class AppDocumentService : IAppDocumentService
         return FrequencyOrdering.ApplyOrder(all, order);
     }
 
-    public async Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, string? templateOverride = null, CancellationToken ct = default)
+    public async Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default)
     {
         appCallsign = Norm(appCallsign);
         var accCode = await _apps.GetAccCodeByAppAsync(appCallsign, ct);
@@ -160,9 +160,7 @@ public sealed class AppDocumentService : IAppDocumentService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _apps.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _apps.GetSectorAtcNameMapAsync(ct);
 
-        var saved = (await LoadOverridesAsync(appCallsign, ct)).CoordinationSentenceTemplate;
-        var overrideTpl = string.IsNullOrWhiteSpace(templateOverride) ? saved : templateOverride;
-        var tpl = string.IsNullOrWhiteSpace(overrideTpl) ? _sentence.Current : _sentence.Current.WithTemplate(overrideTpl!);
+        var tpl = _sentence.Current;
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var domainSet = domain as IReadOnlySet<string> ?? new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);
@@ -199,7 +197,7 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         var app = Norm(appCallsign);
         var sectors = new List<AccSectorAor>();
-        var i = 0;
+        var custom = await GetAorCustomizationAsync(app, ct);   // shape extra + override colore
 
         // Settori APP del dominio di copertura (primario + figli standalone), coerente con le frequenze che usano DomainOf.
         var topo = await _topology.BuildGlobalAsync(ct);
@@ -210,21 +208,33 @@ public sealed class AppDocumentService : IAppDocumentService
             .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var cs in appCallsigns)
+        var appCsList = appCallsigns.ToList();
+        var limits = await _apps.GetSectorLimitsByCallsignAsync(appCsList, ct);
+        foreach (var cs in appCsList)
         {
             var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
             if (poly is null) continue;
-            sectors.Add(new AccSectorAor(cs, cs, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            var (lo, hi) = FlBandOf(cs, limits);
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
         }
 
-        var towers = await _apps.GetTowerPolygonsWithCallsignRawAsync(app, ct);
-        foreach (var (callsign, raw) in towers)
+        // Shape extra scelte a mano (settori DB, anche torri/esteri): sostituiscono l'overlay torri automatico.
+        // Appese come anelli toggleabili dopo i settori APP, dedup su quanto già presente.
+        if (custom.Callsigns.Count > 0)
         {
-            var poly = Aor.AorPolygonProjector.Project(raw);
-            if (poly is null) continue;
-            sectors.Add(new AccSectorAor(callsign, callsign, Aor.AorPalette.ColorAt(i), new[] { poly }));
-            i++;
+            var rawByCs = await _apps.GetSectorPolygonsRawByCallsignAsync(custom.Callsigns, ct);
+            var extraLimits = await _apps.GetSectorLimitsByCallsignAsync(custom.Callsigns, ct);
+            var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+            var names = await _apps.GetSectorNameMapAsync(ct);
+            foreach (var cs in custom.Callsigns.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
+                var poly = Aor.AorPolygonProjector.Project(raw);
+                if (poly is null) continue;
+                var (lo, hi) = FlBandOf(cs, extraLimits);
+                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs), Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
+                present.Add(cs);
+            }
         }
 
         // Configurazioni selezionabili sulla mappa: le salvate (settori aperti = APP aperti), altrimenti «tutti».
@@ -235,17 +245,35 @@ public sealed class AppDocumentService : IAppDocumentService
         return new AccAorView(sectors, selections);
     }
 
-    public async Task<AppAorPolygon?> GetAorPolygonAsync(string appCallsign, CancellationToken ct = default) =>
-        Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(Norm(appCallsign), ct));
-
-    public async Task<IReadOnlyList<AppAorPolygon>> GetTowerPolygonsAsync(string appCallsign, CancellationToken ct = default)
+    // Banda FL (Lower/Upper) normalizzata per l'estrusione 3D; callsign assente dai limiti = default GND/UNL.
+    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
     {
-        var raws = await _apps.GetTowerPolygonsRawAsync(Norm(appCallsign), ct);
-        return raws.Select(Aor.AorPolygonProjector.Project).Where(p => p is not null).Select(p => p!).ToList();
+        if (!limits.TryGetValue(cs, out var l)) return (null, null);
+        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
+        return (bottom, top);
     }
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _apps.ListLinkableFrequenciesAsync(ct);
+
+    public Task<IReadOnlyList<SectorShapePick>> ListSelectableSectorShapesAsync(CancellationToken ct = default) =>
+        _apps.ListSelectableSectorShapesAsync(ct);
+
+    public async Task<AorExtraShapes> GetAorCustomizationAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return new AorExtraShapes();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "aor", ct);
+        return Deserialize<AorExtraShapes>(json) ?? new AorExtraShapes();
+    }
+
+    public async Task SaveAorCustomizationAsync(string appCallsign, AorExtraShapes data, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var clean = AorCustomizationCleaner.Clean(data);
+        var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
+        var json = empty ? null : JsonSerializer.Serialize(clean);
+        await _editing.SaveSectionBlockJsonAsync(docId, "aor", json, _authz.CurrentUserId ?? 0, ct);
+    }
 
     // --- Sezioni editoriali-strutturate su Document (doc 08e f3b-iii): separations/vfr in ContentBlock.BodyJson. ---
 
@@ -341,17 +369,11 @@ public sealed class AppDocumentService : IAppDocumentService
     public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
         LoadOverridesAsync(appCallsign, ct);
 
-    public Task SaveHiddenSectionsAsync(string appCallsign, IReadOnlyList<string> sectionKeys, CancellationToken ct = default) =>
-        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveHiddenSectionsAsync(docId, sectionKeys ?? Array.Empty<string>(), c), ct);
-
     public Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), c), ct);
 
     public Task SaveFrequencyLinksAsync(string appCallsign, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default) =>
         WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqLinksAsync(docId, sourceSectorIds ?? Array.Empty<int>(), c), ct);
-
-    public Task SaveCoordinationTemplateAsync(string appCallsign, string? template, CancellationToken ct = default) =>
-        WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveCoordinationTemplateAsync(docId, template, c), ct);
 
     // Garantisce il Document (ACC-gated via EnsureAsync) poi esegue l'azione sull'override, per documentId.
     private async Task WithDocumentAsync(string appCallsign, Func<int, CancellationToken, Task> action, CancellationToken ct)

@@ -16,10 +16,20 @@ public sealed class SearchService : ISearchService
 
     public SearchService(ISearchRepository repo) => _repo = repo;
 
-    public Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope = SearchScope.All, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope = SearchScope.All, CancellationToken ct = default)
     {
         query = query?.Trim() ?? "";
-        if (query.Length < 2) return Task.FromResult<IReadOnlyList<SearchHit>>(System.Array.Empty<SearchHit>());
-        return _repo.SearchAsync(query, scope, Limit, ct);
+        if (query.Length < 2) return System.Array.Empty<SearchHit>();
+
+        var docs = await _repo.SearchAsync(query, scope, Limit, ct);
+
+        // Le sezioni della Guida non sono documenti (nessuno scope doc): compaiono solo nel filtro "Tutti", in cima,
+        // perché rispondono all'intento "come si fa X". Vedi GuideSearchCatalog.
+        if (scope != SearchScope.All) return docs;
+
+        var guide = GuideSearchCatalog.Match(query).Select(GuideSearchCatalog.ToHit).ToList();
+        if (guide.Count == 0) return docs;
+
+        return guide.Concat(docs).Take(Limit).ToList();
     }
 }

@@ -11,52 +11,32 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// </summary>
 public static class AuroraSectorfileParser
 {
-    /// <summary>Indice unico NOME→(lat,lon) unendo itfix (coord col 1-2) e itvor (coord col 2-3). I fix vincono sui VOR.</summary>
-    public static IReadOnlyDictionary<string, (double Lat, double Lon)> ParseNavaids(string? fixText, string? vorText)
+    /// <summary>Insieme dei NOMI navaid (fix + VOR) unendo itfix e itvor. Le coordinate non servono alla completion
+    /// dei fix SID (solo i nomi), quindi non vengono parsate.</summary>
+    public static IReadOnlySet<string> ParseNavaids(string? fixText, string? vorText)
     {
-        var map = new Dictionary<string, (double, double)>(StringComparer.OrdinalIgnoreCase);
-        // VOR prima, così i fix (aggiunti dopo) hanno precedenza sui nomi omonimi.
-        foreach (var (name, lat, lon) in ParseNavaidLines(vorText, latCol: 2, lonCol: 3)) map[name] = (lat, lon);
-        foreach (var (name, lat, lon) in ParseNavaidLines(fixText, latCol: 1, lonCol: 2)) map[name] = (lat, lon);
-        return map;
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in ParseNavaidNames(vorText)) names.Add(name);
+        foreach (var name in ParseNavaidNames(fixText)) names.Add(name);
+        return names;
     }
 
-    private static IEnumerable<(string Name, double Lat, double Lon)> ParseNavaidLines(string? text, int latCol, int lonCol)
+    private static IEnumerable<string> ParseNavaidNames(string? text)
     {
         if (string.IsNullOrEmpty(text)) yield break;
         foreach (var raw in text.Split('\n'))
         {
             var line = raw.Trim();
             if (line.Length == 0) continue;
-            var c = line.Split(';');
-            if (c.Length <= lonCol) continue;
-            var name = c[0].Trim();
-            if (name.Length == 0) continue;
-            yield return (name, ParseCoord(c[latCol]), ParseCoord(c[lonCol]));
+            var name = line.Split(';', 2)[0].Trim();
+            if (name.Length != 0) yield return name;
         }
-    }
-
-    /// <summary>Coord Aurora "N046.02.37.000" / "E011.07.48.000" → gradi decimali. 0 se non parsabile.</summary>
-    private static double ParseCoord(string? s)
-    {
-        s = s?.Trim();
-        if (string.IsNullOrEmpty(s) || s.Length < 2) return 0;
-        var hemi = char.ToUpperInvariant(s[0]);
-        var body = s[1..].Split('.');
-        if (body.Length < 3) return 0;
-        if (!int.TryParse(body[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return 0;
-        int.TryParse(body[1], out var min);
-        double sec = 0;
-        if (body.Length >= 4) double.TryParse(body[2] + "." + body[3], NumberStyles.Float, CultureInfo.InvariantCulture, out sec);
-        else double.TryParse(body[2], NumberStyles.Float, CultureInfo.InvariantCulture, out sec);
-        var val = deg + min / 60.0 + sec / 3600.0;
-        return hemi is 'S' or 'W' ? -val : val;
     }
 
     /// <summary>Parsa un file <c>&lt;icao&gt;.sid</c> in una lista di <see cref="SourceSid"/> risolti.</summary>
     public static IReadOnlyList<SourceSid> ParseSids(
         string icao, string? sidFile,
-        IReadOnlyDictionary<string, (double Lat, double Lon)> navIndex,
+        IReadOnlySet<string> navNames,
         IReadOnlyDictionary<string, string> aliasMap)
     {
         var result = new List<SourceSid>();
@@ -79,7 +59,7 @@ public static class AuroraSectorfileParser
             // Codice = SID o SID-TRANS: il fix di partenza si estrae dalla sola parte SID.
             var sidPart = code.Split('-')[0].Trim();
             var (prefix, letter) = SplitDesignator(sidPart);
-            var (fix, needsReview) = ResolveFix(prefix, navIndex, aliasMap);
+            var (fix, needsReview) = ResolveFix(prefix, navNames, aliasMap);
 
             var runways = runwaysField.Length == 0
                 ? new List<string?> { null }
@@ -110,14 +90,14 @@ public static class AuroraSectorfileParser
     // nessuno) grezzo + NeedsFixReview. L'ambiguità (più candidati) NON si indovina: va risolta con un alias.
     private static (string Fix, bool NeedsReview) ResolveFix(
         string prefix,
-        IReadOnlyDictionary<string, (double, double)> navIndex,
+        IReadOnlySet<string> navNames,
         IReadOnlyDictionary<string, string> aliasMap)
     {
         if (prefix.Length == 0) return (prefix, true);
 
-        // (1) match esatto (il prefisso È già un fix/VOR, es. OST).
-        foreach (var name in navIndex.Keys)
-            if (string.Equals(name, prefix, StringComparison.OrdinalIgnoreCase)) return (name, false);
+        // (1) match esatto O(1) (il prefisso È già un fix/VOR, es. OST). Set case-insensitive: i nomi Aurora sono
+        // maiuscoli come i codici SID, quindi il prefisso porta già la grafia canonica.
+        if (navNames.Contains(prefix)) return (prefix, false);
 
         // (2) alias autoritativo (scavalca l'ambiguità).
         if (aliasMap.TryGetValue(prefix, out var aliased) && !string.IsNullOrWhiteSpace(aliased))
@@ -126,7 +106,7 @@ public static class AuroraSectorfileParser
         // (3) UNICO nome che inizia col prefisso (il fix reale è più lungo del troncato). Se più di uno → ambiguo.
         string? only = null;
         var multiple = false;
-        foreach (var name in navIndex.Keys)
+        foreach (var name in navNames)
             if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
                 if (only is null) only = name;
@@ -139,4 +119,70 @@ public static class AuroraSectorfileParser
     }
 
     private static string? Blank(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    // --- TWR shape (DYNAMIC_SEC/twrs.tfl) ---
+
+    /// <summary>
+    /// Parsa il file <c>twrs.tfl</c> (poligoni TWR di Aurora) in una mappa callsign → anello di punti (Lat, Lon).
+    /// Formato a blocchi: riga intestazione <c>CALLSIGN;TWR;1;TWR;1;</c> seguita da righe coordinata
+    /// <c>N041.37.28.965;E015.43.18.960;</c> (DMS, un vertice per riga), il blocco chiude su riga vuota o sull'header
+    /// successivo. Anelli con &lt; 3 punti scartati. Puro, deterministico. Chiave callsign in MAIUSCOLO.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<(double Lat, double Lon)>> ParseTowerShapes(string? tfl)
+    {
+        var result = new Dictionary<string, IReadOnlyList<(double, double)>>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(tfl)) return result;
+
+        string? current = null;
+        List<(double, double)>? ring = null;
+
+        void Flush()
+        {
+            if (current is not null && ring is { Count: >= 3 }) result[current] = ring;
+            current = null; ring = null;
+        }
+
+        foreach (var raw in tfl.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0) { Flush(); continue; }   // riga vuota = fine blocco
+
+            var fields = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
+            {
+                ring?.Add((lat, lon));   // vertice (ignorato se non siamo dentro un blocco)
+            }
+            else if (fields.Length >= 1 && fields[0].Length != 0)
+            {
+                Flush();                 // nuova intestazione: chiude il blocco precedente
+                current = fields[0].ToUpperInvariant();
+                ring = new List<(double, double)>();
+            }
+        }
+        Flush();
+        return result;
+    }
+
+    /// <summary>Converte una coordinata DMS Aurora (<c>N041.37.28.965</c> / <c>E015.43.18.960</c>) in gradi decimali
+    /// con segno (S/W negativi). False se malformata.</summary>
+    public static bool TryParseDms(string? token, out double degrees)
+    {
+        degrees = 0;
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        token = token.Trim();
+        var hemi = char.ToUpperInvariant(token[0]);
+        if (hemi is not ('N' or 'S' or 'E' or 'W')) return false;
+
+        var parts = token[1..].Split('.');
+        if (parts.Length < 3) return false;
+        // Secondi = "SS.sss": parts[2] interi + eventuale parts[3] frazione.
+        var secText = parts.Length >= 4 ? parts[2] + "." + parts[3] : parts[2];
+        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return false;
+        if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var min)) return false;
+        if (!double.TryParse(secText, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return false;
+
+        var value = deg + min / 60.0 + sec / 3600.0;
+        degrees = hemi is 'S' or 'W' ? -value : value;
+        return true;
+    }
 }
