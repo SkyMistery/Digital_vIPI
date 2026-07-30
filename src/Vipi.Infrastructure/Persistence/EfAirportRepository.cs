@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -685,7 +685,7 @@ public sealed class EfAirportRepository : IAirportRepository
         public DocBuilder(VipiDbContext db, DocumentVersion ver) { _db = db; _ver = ver; }
 
         public DocumentSection Section(string title, BlockSection kind, int order) =>
-            Section(title, SectionCatalogBridge.KeyFor(kind) ?? "custom", order);
+            Section(title, SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(), order);
 
         public DocumentSection Section(string title, string sectionKey, int order)
         {

@@ -176,6 +176,22 @@ public static class VipiModuleExtensions
         return host;
     }
 
+    /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la
+    /// chiave storica <c>"custom"</c>. Idempotente: sicuro a ogni avvio.</summary>
+    public static IHost ReconcileVipiDocuments(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        var maintenance = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IDocumentMaintenance>();
+        var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.DocumentMaintenance");
+
+        var keys = maintenance.ReconcileCustomSectionKeysAsync().GetAwaiter().GetResult();
+        if (keys > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliate {Count} sezioni libere con chiave storica «custom».", keys);
+        return host;
+    }
+
     /// <summary>Migrazione A (doc 10 §3f): backfilla una release effettiva per ogni documento pubblicato senza copia
     /// congelata, così la visibilità pubblica = release effettiva non lascia buchi. Idempotente: sicuro a ogni avvio.</summary>
     public static IHost BackfillVipiReleases(this IHost host)

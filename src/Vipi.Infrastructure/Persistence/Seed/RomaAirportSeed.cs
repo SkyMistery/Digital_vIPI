@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -129,7 +129,7 @@ public static class RomaAirportSeed
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = null, Title = title, Order = order,
-                Depth = 0, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
+                Depth = 0, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(),
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

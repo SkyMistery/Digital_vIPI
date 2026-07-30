@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ITopologyProvider, TopologyBuilder>();
         services.AddScoped<Vipi.Application.Abstractions.IContentRepository, EfContentRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
+        services.AddScoped<Vipi.Application.Content.IDocumentMaintenance, EfDocumentMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IResourceLockRepository, EfResourceLockRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();

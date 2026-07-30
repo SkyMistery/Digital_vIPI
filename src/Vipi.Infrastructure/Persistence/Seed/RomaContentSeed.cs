@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -226,7 +226,7 @@ public static class RomaContentSeed
             var s = new DocumentSection
             {
                 DocumentVersion = _ver, ParentSection = parent, Title = title, Order = order,
-                Depth = parent is null ? 0 : parent.Depth + 1, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
+                Depth = parent is null ? 0 : parent.Depth + 1, SectionKey = SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(),
             };
             _ver.Sections.Add(s);
             _db.DocumentSections.Add(s);

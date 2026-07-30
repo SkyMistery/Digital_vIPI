@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence.Seed;
@@ -26,7 +26,7 @@ public static class VloaStructureSeeder
             Title = spec.Title,
             Order = order,
             Depth = parent is null ? 0 : parent.Depth + 1,
-            SectionKey = SectionCatalogBridge.KeyFor(spec.Kind) ?? "custom",
+            SectionKey = SectionCatalogBridge.KeyFor(spec.Kind) ?? SectionKeys.NewCustom(),
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         ver.Sections.Add(section);

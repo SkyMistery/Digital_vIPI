@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -262,7 +262,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = "Scopo e validità",
             Order = 1,
             Depth = 0,
-            SectionKey = "custom",
+            SectionKey = SectionKeys.NewCustom(),
             RowVersion = Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync(ct);
@@ -691,7 +691,9 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = string.IsNullOrWhiteSpace(title) ? "Nuova sezione" : title.Trim(),
             Order = nextOrder,
             Depth = depth,
-            SectionKey = SectionCatalogBridge.KeyFor(kind) ?? "custom",
+            // Sezione libera ⇒ chiave UNIVOCA (doc 11 §3a): con la vecchia costante "custom" due sezioni libere
+            // dello stesso documento collidevano per chi indicizza per chiave (viewer ACC, nascondi APP, anchor).
+            SectionKey = SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(),
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         _db.DocumentSections.Add(section);

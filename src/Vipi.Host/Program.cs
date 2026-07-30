@@ -57,6 +57,8 @@ app.UseForwardedHeaders(forwardedOptions);
 app.UseVipiDataProtection();
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
 app.MigrateVipiDatabase();
+// Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
+app.ReconcileVipiDocuments();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
 app.BackfillVipiReleases();
 // Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
