@@ -72,11 +72,15 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
                 ["ConnectionStrings:Vipi"] = $"Data Source={_dbPath}",
             }));
             // E2E: niente OIDC reale in CI (nessun ClientId) → disattiva l'auth standalone; i test usano l'identità dev.
-            // ConfigureAppConfiguration (non Host) così vince su appsettings.Development.json, che ha VipiAuth:Enabled=true.
-            builder.ConfigureAppConfiguration(cfg => cfg.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["VipiAuth:Enabled"] = "false",
-            }));
+            //
+            // Perché una variabile d'ambiente e non ConfigureAppConfiguration: `Program.cs` chiama
+            // AddVipiStandaloneAuth alla REGISTRAZIONE, prima di builder.Build(), mentre i callback di
+            // ConfigureAppConfiguration vengono applicati solo alla costruzione dell'host. La sorgente
+            // in-memory arrivava quindi troppo tardi e l'app tirava «ClientId mancante» (rosso solo in CI,
+            // perché in locale i user-secrets forniscono un ClientId vero e la guardia non scatta).
+            // Le variabili d'ambiente sono invece già nella configurazione di default del builder, dopo
+            // appsettings.Development.json — che porta VipiAuth:Enabled=true — quindi vincono su di esso.
+            Environment.SetEnvironmentVariable("VipiAuth__Enabled", "false");
             return base.CreateHost(builder);
         }
 
