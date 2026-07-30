@@ -12,6 +12,9 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
+    <!-- Stesso pin di Vipi.Infrastructure (CVE-2025-6965): qui SQLite arriva per conto suo, non via
+         ProjectReference, quindi la 2.1.11 rientrerebbe dalla finestra. -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
