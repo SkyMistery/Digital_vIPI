@@ -32,8 +32,14 @@ Vincoli del contesto già presenti:
   più), quindi *ogni* pagina `/vsop` è stampabile e la paginazione è quella naturale del browser.
 - Regole confinate in `.vipi-root`; globali solo `@page` e il reset dello zoom, che per natura non sono
   scopabili.
-- **A4 verticale** con tabelle a corpo 9,5pt e `overflow-wrap`: SID (9 colonne) e Piste (8) stanno nei 186 mm
+- **A4 verticale** con tabelle a corpo 8,5pt e `overflow-wrap`: SID (9 colonne) e Piste (8) stanno nei 186 mm
   utili senza landscape (scelta esplicita: la prosa in landscape si legge male).
+- **Scala tipografica di stampa**: a schermo il tema parte da 16px con `h2` 32px e `h3` 28px — misure da
+  monitor, enormi su A4 (28px ≈ 21pt). In stampa: base 9,5pt, `h1` 15 / `h2` 13 / `h3` 11,5 / `h4` 10pt,
+  tabelle 8,5pt, pill 7,5pt, card `.block` più compatte. **Non basta ridurre la base** su `.vipi-root`: gli
+  elementi del tema hanno `font-size` espliciti in px e non erediterebbero, quindi i portatori di testo sono
+  elencati uno per uno. I titoli del tema usano `:where()` (specificità 0) → nessun `!important` necessario.
+  Effetto: documento aeroporto **3 → 2 pagine**, vIPI ACC 36 → 34.
 - `thead { display: table-header-group }` → l'intestazione della tabella si ripete a ogni pagina.
 - `print-color-adjust: exact`: le tinte **portano informazione** (piste ARR/DEP, riga TL col QNH corrente,
   callout, pill) e i browser di default le scartano.

@@ -67,8 +67,8 @@
   .print-only { display: block !important; }
   .vipi-root .print-meta + .doc-head { display: none !important; }
   .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
-  .vipi-root .print-meta .pm-title { margin: 0; font-size: 17pt; color: var(--ivao-blue); }
-  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 10pt; color: #444; }
+  .vipi-root .print-meta .pm-title { margin: 0; font-size: 13pt; color: var(--ivao-blue); }
+  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: #444; }
   .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: #555; }
   .vipi-root .print-meta .pm-url { word-break: break-all; }
 
@@ -100,10 +100,32 @@
   .vipi-root tr { break-inside: avoid; }
   .vipi-root p { orphans: 3; widows: 3; }
 
+  /* ── Scala tipografica della carta ─────────────────────────────────────────────
+     A schermo il tema parte da 16px con h2 32px e h3 28px: misure giuste per un monitor, enormi su A4 (28px
+     ≈ 21pt). Qui si riscala tutto in punti. Non basta ridurre la base su `.vipi-root`: gli elementi del tema
+     hanno font-size espliciti in px, che non erediterebbero — quindi i portatori di testo sono elencati.
+     I titoli del tema usano `:where()` (specificità 0), quindi queste regole vincono senza !important. */
+  .vipi-root { font-size: 9.5pt; line-height: 1.42; }
+  .vipi-root h1 { font-size: 15pt; }
+  .vipi-root h2 { font-size: 13pt; }
+  .vipi-root h3 { font-size: 11.5pt; }
+  .vipi-root h4 { font-size: 10pt; }
+  .vipi-root h5, .vipi-root h6 { font-size: 9.5pt; }
+  .vipi-root p, .vipi-root li, .vipi-root .muted, .vipi-root .help,
+  .vipi-root .callout, .vipi-root .callout .ct, .vipi-root .rail-line { font-size: 9.5pt; }
+  .vipi-root .metar, .vipi-root .mp, .vipi-root .rap-box { font-size: 9pt; }
+  .vipi-root .ta-badge { padding: 5px 12px; }
+  .vipi-root .ta-badge b { font-size: 11pt; }
+  .vipi-root .ta-badge .muted { font-size: 8pt; }
+  .vipi-root .pill, .vipi-root .rwy-key, .vipi-root .st-pill,
+  .vipi-root .pref-tag, .vipi-root .aor-chip { font-size: 7.5pt; }
+  /* Card più compatte: il riquadro serve a separare le sezioni, non a fare aria. */
+  .vipi-root .block { padding: 9px 11px; margin-bottom: 9px; }
+
   /* ── Tabelle: dentro i 186 mm utili dell'A4 verticale ──────────────────────────
      Le tabelle larghe (SID 9 colonne, Piste 8) a schermo scorrono; su carta si stringono con corpo minore
      e testo che va a capo. `thead` ripetuto a ogni pagina per le tabelle lunghe (SID). */
-  .vipi-root table { font-size: 9.5pt; width: 100% !important; }
+  .vipi-root table { font-size: 8.5pt; width: 100% !important; }
   .vipi-root .sid-table { min-width: 0 !important; }
   .vipi-root thead { display: table-header-group; }
   .vipi-root th, .vipi-root td { padding: 3px 5px !important; overflow-wrap: break-word; }
