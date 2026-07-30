@@ -53,9 +53,19 @@ Vincoli del contesto già presenti:
   tiene la propria dimensione in memoria, quindi cambiare l'altezza da foglio di stile **ritaglia** la mappa
   invece di riadattarla. Serve `invalidateSize(false)` + il refit sui settori accesi, esposto da `vipi-aor.js`
   su `_leafletMap` / `_aorRefit` (il refit è stato aggiunto anche al percorso mappa-singola, così il contratto
-  è uniforme fra i due tipi). Due misure e **solo verso il basso**: AoR principale 340 → 200px (≈53 mm),
-  miniature per-area (`.area-map`, decine su una ACC) 190 → 130px (≈34 mm). L'altezza da ripristinare vive
-  sull'elemento (`_printPrevH`), non in un array indicizzato che si disallineerebbe a un re-render Blazor.
+  è uniforme fra i due tipi). Le miniature per-area (`.area-map`, decine su una ACC, in griglia accanto al
+  testo) si toccano **solo in altezza** e solo verso il basso: 190 → 130px (≈34 mm).
+- **Cornice dell'AoR con le proporzioni dell'area** (`frameWidth`): `fitBounds` sceglie lo zoom che fa stare i
+  bounds in **entrambe** le dimensioni, quindi in una cornice larga e bassa (703 × 200) un AoR alto e stretto
+  come LIBB è limitato dall'altezza → zoom basso, mezzo Mediterraneo attorno a un poligono minuscolo. In stampa
+  la cornice prende la forma dell'AoR: altezza 260px e larghezza dedotta dal rapporto fra le due proiezioni
+  Mercator dei bounds (`map.project(nw, z)` / `project(se, z)`, lo zoom è irrilevante perché serve solo il
+  rapporto), con `margin: 0 auto` che la centra nel foglio. I bounds inquadrati sono esposti da `vipi-aor.js`
+  come `el._aorBounds`. Le misure da ripristinare vivono sull'elemento (`_printPrevH`, `_printPrevW`), non in un
+  array indicizzato che si disallineerebbe a un re-render Blazor.
+- **Separazioni radar compatte**: a schermo sono un riquadro bordato 2px con griglia a 3 colonne (la terza
+  vuota, le separazioni sono due) e valori a 16px — mezza pagina per dire «1000 ft / 5 NM». In stampa diventano
+  due targhette in fila con etichetta e valore sulla stessa riga.
 - **`wirePrint()` in `vipi-ui.js`**: apre i `<details>` su `beforeprint` e li richiude su `afterprint`, con la
   persistenza sospesa (le preferenze di collasso dell'utente non cambiano). Il CSS non basta: in Chrome il
   contenuto di un `<details>` chiuso è nascosto dallo user-agent (`content-visibility` su

@@ -208,25 +208,58 @@
         // Solo verso il BASSO: una vIPI ACC ha mappe-area già a 190px e portarle alla misura della principale
         // le ingrandirebbe, allungando il documento invece di accorciarlo (preso in questo modo alla prima
         // verifica: 34 pagine prima, 34 dopo).
-        var PRINT_MAP_H = 200, PRINT_AREA_MAP_H = 130;
+        var PRINT_MAP_H = 260, PRINT_AREA_MAP_H = 130;
+
+        // Larghezza della cornice della mappa AoR principale, dedotta dalle PROPORZIONI dell'area inquadrata.
+        // Perché serve: `fitBounds` sceglie lo zoom che fa stare i bounds in ENTRAMBE le dimensioni. In una
+        // cornice larga e bassa (703 × 200) un AoR alto e stretto come LIBB è limitato dall'altezza, quindi lo
+        // zoom scende e il foglio esce con mezzo Mediterraneo attorno a un poligono minuscolo. Dando alla
+        // cornice la forma dell'AoR, il poligono la riempie; il margine auto la centra nel foglio.
+        function frameWidth(el, m, h) {
+            var b = el._aorBounds;
+            if (!b || !m.project) return null;
+            var z = 6;   // zoom qualsiasi: serve solo il RAPPORTO fra le due proiezioni Mercator
+            var nw = m.project(b.getNorthWest(), z), se = m.project(b.getSouthEast(), z);
+            var dy = Math.abs(se.y - nw.y);
+            if (dy < 1) return null;
+            var w = Math.round(h * (Math.abs(se.x - nw.x) / dy)) + 30;   // +30 = margine attorno al poligono
+            var max = el.parentElement ? el.parentElement.clientWidth : w;
+            return Math.max(170, Math.min(w, max || w));
+        }
 
         function resizeMaps(toPrint) {
             document.querySelectorAll('.aor-leaflet').forEach(function (el) {
                 var m = el._leafletMap;
                 if (!m) return;   // fallback SVG (nessun Leaflet): scala già da sé
+                var isArea = el.classList.contains('area-map');
                 if (toPrint) {
                     // Altezza calcolata, non il rettangolo: con lo zoom di pagina attivo il rect è scalato, e
                     // 'beforeprint' scatta prima che il media passi a print (quindi prima del reset dello zoom).
-                    var target = el.classList.contains('area-map') ? PRINT_AREA_MAP_H : PRINT_MAP_H;
-                    if ((parseFloat(getComputedStyle(el).height) || 0) <= target) return;
-                    // L'altezza da ripristinare vive SULL'elemento: un indice di posizione si disallineerebbe
+                    var target = isArea ? PRINT_AREA_MAP_H : PRINT_MAP_H;
+                    var now = parseFloat(getComputedStyle(el).height) || 0;
+                    // Le miniature per-area vivono in una griglia accanto al testo: si toccano solo in altezza.
+                    if (isArea && now <= target) return;
+                    // Misure da ripristinare sull'elemento, non in un array indicizzato che si disallineerebbe
                     // se Blazor rirenderizzasse la pagina fra apertura e ripristino.
                     el._printPrevH = el.style.height;
                     el.style.height = target + 'px';
+                    if (!isArea) {
+                        var w = frameWidth(el, m, target);
+                        if (w) {
+                            el._printPrevW = [el.style.width, el.style.margin];
+                            el.style.width = w + 'px';
+                            el.style.margin = '0 auto';
+                        }
+                    }
                 } else {
                     if (el._printPrevH === undefined) return;
                     el.style.height = el._printPrevH;
                     el._printPrevH = undefined;
+                    if (el._printPrevW) {
+                        el.style.width = el._printPrevW[0];
+                        el.style.margin = el._printPrevW[1];
+                        el._printPrevW = undefined;
+                    }
                 }
                 m.invalidateSize(false);
                 if (el._aorRefit) el._aorRefit();

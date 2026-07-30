@@ -122,6 +122,15 @@
   /* Card più compatte: il riquadro serve a separare le sezioni, non a fare aria. */
   .vipi-root .block { padding: 9px 11px; margin-bottom: 9px; }
 
+  /* Separazioni radar: a schermo sono un riquadro bordato 2px con una griglia a 3 colonne (la terza vuota,
+     perché le separazioni sono due) e valori a 16px — su carta è mezza pagina per dire «1000 ft / 5 NM».
+     In stampa diventano due targhette in fila, etichetta e valore sulla stessa riga. */
+  .vipi-root .sep-box { border-width: 1px; padding: 5px 7px; margin-bottom: 4px; }
+  .vipi-root .sep-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .vipi-root .sep-grid .it { display: flex; align-items: baseline; gap: 6px; padding: 3px 8px; }
+  .vipi-root .sep-grid .it b { display: inline; font-size: 10pt; }
+  .vipi-root .app-sep-item { margin-bottom: 6px; }
+
   /* ── Tabelle: dentro i 186 mm utili dell'A4 verticale ──────────────────────────
      Le tabelle larghe (SID 9 colonne, Piste 8) a schermo scorrono; su carta si stringono con corpo minore
      e testo che va a capo. `thead` ripetuto a ogni pagina per le tabelle lunghe (SID). */
