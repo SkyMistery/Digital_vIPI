@@ -1,0 +1,55 @@
+@* Tabella delle differenze di una release rispetto alla baseline. Condivisa da ReleasePanel (editor, un solo
+   bersaglio) e da VersioniPage (admin, molti documenti): entrambe caricano il diff a richiesta e lo passano qui,
+   quindi Diff nullo = caricamento in corso. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (Diff is null)
+{
+    <p class="help" style="margin:0">@L["Rel_LoadingDiff"]</p>
+}
+else
+{
+    <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @Diff.BaselineLabel</div>
+    @if (Diff.Rows.Count == 0)
+    {
+        <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
+    }
+    else
+    {
+        <table class="cfg-table">
+            <thead><tr><th>@L["Rel_ColItem"]</th><th>@L["Rel_ColChange"]</th><th>@L["Rel_ColDetail"]</th></tr></thead>
+            <tbody>
+                @foreach (var r in Diff.Rows)
+                {
+                    <tr>
+                        <td>@r.Label</td>
+                        <td><span class="pill @Pill(r.Change)">@ChangeLabel(r.Change)</span></td>
+                        <td class="muted" style="font-size:12px">@r.Detail</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    /// <summary>Diff da mostrare. Null = ancora in caricamento (il chiamante lo risolve in modo asincrono).</summary>
+    [Parameter] public ReleaseDiff? Diff { get; set; }
+
+    // Colore della pill per tipo di modifica. I valori grezzi arrivano dal service in italiano e non sono
+    // localizzati: restano la chiave di dispatch, l'etichetta mostrata invece è tradotta.
+    private static string Pill(string change) => change switch
+    {
+        "Aggiunta" => "green",
+        "Rimossa" => "grey",
+        _ => "blue",
+    };
+
+    private string ChangeLabel(string change) => change switch
+    {
+        "Aggiunta" => L["Rel_ChangeAdded"],
+        "Rimossa" => L["Rel_ChangeRemoved"],
+        "Modificata" => L["Rel_ChangeModified"],
+        _ => change,
+    };
+}

@@ -54,7 +54,9 @@
             </div>
             @if (ShowDiff && _diffOpen.Contains(r.Id))
             {
-                <div class="block" style="margin:2px 0 8px 24px">@DiffBlock(r.Id)</div>
+                <div class="block" style="margin:2px 0 8px 24px">
+                    <ReleaseDiffTable Diff="@(_diffs.TryGetValue(r.Id, out var d) ? d : null)" />
+                </div>
             }
         }
     }
@@ -159,46 +161,6 @@
     private string Label(ReleaseInfo r) => r.IsEffectiveNow
         ? "🟢 " + L["Rel_Effective"]
         : r.Status == ReleaseStatus.Scheduled ? "🕒 " + L["Rel_Scheduled"] : L["Rel_Superseded"];
-
-    private static string DiffPill(string change) => change switch { "Aggiunta" => "green", "Rimossa" => "grey", _ => "blue" };
-
-    // Etichetta localizzata del tipo di modifica diff (i valori grezzi dal service restano in IT per il DiffPill).
-    private string ChangeLabel(string change) => change switch
-    {
-        "Aggiunta" => L["Rel_ChangeAdded"],
-        "Rimossa" => L["Rel_ChangeRemoved"],
-        "Modificata" => L["Rel_ChangeModified"],
-        _ => change,
-    };
-
-    private RenderFragment DiffBlock(int releaseId) => __builder =>
-    {
-        @if (_diffs.TryGetValue(releaseId, out var diff))
-        {
-            <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @diff.BaselineLabel</div>
-            @if (diff.Rows.Count == 0)
-            {
-                <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
-            }
-            else
-            {
-                <table class="cfg-table">
-                    <thead><tr><th>@L["Rel_ColItem"]</th><th>@L["Rel_ColChange"]</th><th>@L["Rel_ColDetail"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var row in diff.Rows)
-                        {
-                            <tr>
-                                <td>@row.Label</td>
-                                <td><span class="pill @DiffPill(row.Change)">@ChangeLabel(row.Change)</span></td>
-                                <td class="muted" style="font-size:12px">@row.Detail</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else { <p class="help" style="margin:0">@L["Rel_LoadingDiff"]</p> }
-    };
 
     // URL anteprima: factory dell'host se presente, altrimenti default per-target.
     private string? PreviewFor(int releaseId) => PreviewUrlFactory is not null
