@@ -45,6 +45,15 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
 | [design/piano-ux-hardening.md](design/piano-ux-hardening.md) | UX hardening (audit 2026-07-22): U1 conferma delete (`InlineConfirm`), U2 icone SVG (`Icon`), U3 zoom a11y, U5–U12 refactor tema (token colori/font, dedup CSS, `.choice`/`.pill.neutral`, `LoadingState`/`EmptyState`, `.live-badge.off`, touch target). **U4 i18n IT+EN COMPLETO (2026-07-23):** chrome app tutta localizzata (nav+viewer+admin 12/12+editor 12/12), 1071 chiavi `SharedResource.resx`/`.en.resx`, switch runtime `?culture=en`. Contenuto editoriale dal DB resta IT. |
 
+## Feature — `feature/` 🔵
+Una scheda per feature/fix non banale: stato di partenza rilevato, design, passi, **verifica live** ed esito.
+Le lezioni riusabili finiscono anche nelle memorie; qui resta il perché delle scelte.
+| File | Scopo |
+|---|---|
+| [feature/2026-07-29-toc-editor.md](feature/2026-07-29-toc-editor.md) | TOC laterale sezioni negli editor (menu di navigazione sticky, rail azioni, UX lock). |
+| [feature/2026-07-30-stampa-documenti.md](feature/2026-07-30-stampa-documenti.md) | **Stampa dei documenti** (`@media print`): foglio `vipi-print.css`, `PrintMeta`, tasto Stampa, apertura dei `<details>`, scala tipografica da carta, mappe AoR ridimensionate, dati live esclusi. Include il fix delle larghezze di colonna dei coordinamenti (schermo **e** stampa). |
+| [feature/2026-07-30-pill-stato-dopo-publish.md](feature/2026-07-30-pill-stato-dopo-publish.md) | «Bozza vN» dopo «Pubblica ora»: callback `Published` di `ReleasePanel` + etichetta «rilascio #N»; in coda il fix della **chiave di release ACC** che ignorava la radice dell'albero. |
+
 ## Decisioni architetturali — `adr/` 🟢
 | File | Scopo |
 |---|---|

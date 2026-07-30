@@ -1,6 +1,7 @@
 # Fix — La pill di stato resta «Bozza vN» dopo «Pubblica ora»
 
-Data: 2026-07-30 · Stato: FATTO (build 0 warning, 635 test verdi, verificato live su `/vsop/libb/editor`).
+Data: 2026-07-30 · Stato: FATTO (build 0 warning, suite **640** verde a fine sessione — 635 dopo questo fix, 640
+col seguito sulla chiave di release in coda al documento; verificato live su `/vsop/libb/editor`).
 
 ## Sintomo
 Su `/vsop/libb/editor`, dopo «Pubblica ora», la pill del rail continuava a mostrare «Bozza v13». Sembrava che la

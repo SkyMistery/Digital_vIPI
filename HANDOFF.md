@@ -3,17 +3,32 @@
 **Ultimo aggiornamento:** 30 luglio 2026 (stampa documenti; audit concorrenza + codice morto + ridondanze; verifica live)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> **🖨️ Sessione 2026-07-30 (2) — stampa dei documenti.** Branch `fix/audit-race-deadcode-redundancy`, 4 commit,
-> suite **633 verde**. Documento: `docs/feature/2026-07-30-stampa-documenti.md`. Da sapere:
+> **🖨️ Sessione 2026-07-30 (2) — stampa dei documenti + fix pubblicazione.** Branch
+> `fix/audit-race-deadcode-redundancy`, 14 commit, suite **631 → 640 verde**, build 0 warning. Schede complete:
+> `docs/feature/2026-07-30-stampa-documenti.md` e `docs/feature/2026-07-30-pill-stato-dopo-publish.md`.
+> Le cose da sapere subito:
 > - **La stampa era rotta da sempre e in silenzio**: il blocco `@media print` in `vipi-theme.css` nascondeva
 >   tutto e mostrava solo `.printable`, classe che **nessun markup applicava** → Ctrl+P dava un foglio bianco su
 >   qualunque pagina. Ora c'è il foglio dedicato **`vipi-print.css`** (nasconde il chrome, contenuto nel flusso
->   normale, A4 verticale, `thead` ripetuto, colori informativi preservati) + `PrintMeta` + tasto «Stampa».
-> - **Un `<details>` chiuso non si apre col solo CSS** (Chrome lo nasconde da user-agent con
->   `content-visibility` su `::details-content`): serve l'hook `beforeprint` (`wirePrint` in `vipi-ui.js`).
->   E **Chrome segnala la stampa due volte** (`beforeprint` + cambio media `print`) → gli handler di stampa
->   vanno resi **idempotenti**, altrimenti il ripristino post-stampa non avviene.
-> - Nessun endpoint di export PDF: la stampa del browser copre RNF-6 (piano §10, §22.7 aggiornati).
+>   normale, A4 verticale, `thead` ripetuto, colori informativi preservati, scala tipografica da carta) +
+>   `PrintMeta` + tasto «Stampa» sui quattro viewer. Nessun endpoint di export: la stampa del browser copre
+>   RNF-6 (piano §10, §22.7 aggiornati). **Dati live fuori dalla carta** per decisione: METAR/TAF e Ridotta.
+> - **Tre trappole del browser, tutte invisibili ai test.** Un `<details>` chiuso **non si apre col solo CSS**
+>   (Chrome lo nasconde da user-agent con `content-visibility` su `::details-content`) → serve l'hook
+>   `beforeprint` (`wirePrint` in `vipi-ui.js`). **Chrome segnala la stampa due volte** (`beforeprint` + cambio
+>   media `print`) → gli handler di stampa vanno resi **idempotenti**, o il ripristino post-stampa non avviene.
+>   **Leaflet** tiene la propria dimensione in memoria: ridurre l'altezza da CSS **ritaglia** la mappa invece di
+>   riadattarla (serve `invalidateSize` + refit).
+> - **«Bozza vN» dopo «Pubblica ora» era solo la pill**, non la pubblicazione (release `Effective`, audit e
+>   documento promosso erano corretti): `ReleasePanel` ricaricava solo le proprie release senza avvisare l'host.
+>   Ora ha un `EventCallback Published` che i tre editor agganciano al proprio `LoadAsync`. ⚠️
+>   `string.Format(L["chiave"].Value, n)` **non interpola** — serve l'overload `L["chiave", n]`.
+> - **⚠️ Chiave di release ACC**: `"{acc}|{root}"` — la parte `root` sceglie *quale* albero/documento si
+>   pubblica e **va rispettata**. `AccVipiReleaseTarget` la scartava (primo CTR radice per `CoverageOrder`): su
+>   una ACC multi-albero avrebbe promosso la bozza del documento sbagliato, in silenzio. Corretto.
+> - **Razor scarta il testo di sola spaziatura che precede un blocco di codice**, anche dentro `<text>`: la
+>   legenda piste usciva «recommended**from** the METAR wind». Lo spazio va scritto come entità `&#32;`.
+>   Stessa famiglia della trappola `v@r.Proprietà` (sessione precedente).
 
 > **⚠️ Sessione 2026-07-30 — audit concorrenza / codice morto / ridondanze.** Branch
 > `fix/audit-race-deadcode-redundancy`, 14 commit, suite **505 → 631 verde**, build 0 warning. Documento completo:

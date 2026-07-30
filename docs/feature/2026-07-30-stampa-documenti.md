@@ -1,7 +1,13 @@
 # Feature — Stampa dei documenti (CSS `@media print`)
 
-Data: 2026-07-30 · Stato: FATTO (build 0 warning, 633 test verdi, verifica live con printToPDF su aeroporto
-LIBD, vIPI ACC LIBB, vLOA LIBB↔LDZO). Copre RNF-6 del piano (§10, §22.7): consultazione **offline in cabina**.
+Data: 2026-07-30 · Stato: FATTO (build 0 warning, suite **640** verde a fine sessione, verifica live con
+`printToPDF` su aeroporto LIBD, vIPI ACC LIBB, vLOA LIBB↔LDZO). Copre RNF-6 del piano (§10, §22.7):
+consultazione **offline in cabina**.
+
+Il documento è cresciuto per aggiunte successive nella stessa sessione, nell'ordine in cui sono state chieste:
+impianto della stampa → esclusione dei dati live → scala tipografica → mappe AoR (dimensione, poi inquadratura)
+e separazioni compatte → tabelle dei coordinamenti (fix di **tema**, vale anche a schermo). Le sezioni sotto
+seguono quest'ordine; l'esito in pagine A4 è cumulativo: aeroporto **3 → 2**, vIPI ACC **36 → 28/29**.
 
 ## Obiettivo
 Rendere stampabili i documenti pubblici (`/vsop`) con la sola stampa del browser — nessun endpoint di export
@@ -54,7 +60,9 @@ Vincoli del contesto già presenti:
   invece di riadattarla. Serve `invalidateSize(false)` + il refit sui settori accesi, esposto da `vipi-aor.js`
   su `_leafletMap` / `_aorRefit` (il refit è stato aggiunto anche al percorso mappa-singola, così il contratto
   è uniforme fra i due tipi). Le miniature per-area (`.area-map`, decine su una ACC, in griglia accanto al
-  testo) si toccano **solo in altezza** e solo verso il basso: 190 → 130px (≈34 mm).
+  testo) si toccano **solo in altezza** e solo verso il basso: 190 → 130px (≈34 mm). L'AoR principale è passata
+  da 340 a 200px, poi a **260px** con l'inquadratura del punto successivo (`PRINT_MAP_H` in `vipi-ui.js`): più
+  alta ma molto più stretta, quindi il saldo in pagine resta a favore.
 - **Cornice dell'AoR con le proporzioni dell'area** (`frameWidth`): `fitBounds` sceglie lo zoom che fa stare i
   bounds in **entrambe** le dimensioni, quindi in una cornice larga e bassa (703 × 200) un AoR alto e stretto
   come LIBB è limitato dall'altezza → zoom basso, mezzo Mediterraneo attorno a un poligono minuscolo. In stampa

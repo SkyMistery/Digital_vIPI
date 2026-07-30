@@ -666,3 +666,41 @@ Revisione senior su race condition / codice morto / duplicazioni, a build già *
 - **Ridondanze estratte**: `FrequencyPositions` (era triplicata e **già divergente**: cella bianca invece del trattino nel documento aeroporto), `AirportViewFormat`, `ReleaseDiffTable`, `SectionCatalog.IsRenderModeToggleable`; `AppEditorPage` passa al `ReleasePanel` condiviso. Catch-all aggiunta nei guard dei 4 editor (prima un'eccezione non di dominio abbatteva il circuito col badge fermo su «Salvataggio»). **Lezione: confrontare i corpi, non le firme** — `IsMandatory`/`IsHidden`/`IsDerived` condividono il nome ma sono regole di dominio diverse per tipo, e restano separate.
 - **Verifica live** (nuova skill `.claude/skills/verifica-live/`): trovato `rel. v@r.VersionNumber` **letterale** a schermo — in Razor una `@` fra due caratteri non-spazio è letta come indirizzo email e non apre un'espressione, senza alcun warning. Corretto in 4 punti con la forma `v@(...)`.
 - **Aperto (non codice)**: la SID `BANA8A` di LIBD ha `InitialClimb = "90"` → resa «90 ft», implausibile (le altre BANAV hanno `9000` → «FL90»): errore di contenuto da correggere nell'editor.
+
+## Stampa dei documenti + fix pubblicazione (30 lug 2026, seconda sessione)
+Schede complete: `../feature/2026-07-30-stampa-documenti.md` e `../feature/2026-07-30-pill-stato-dopo-publish.md`.
+Suite **631 → 640 verde**, build 0 warning, 14 commit.
+- **La stampa era rotta da sempre, in silenzio.** Il blocco `@media print` in `vipi-theme.css` faceva
+  `body *{visibility:hidden}` mostrando solo `.printable` — classe che **nessun markup applicava**: Ctrl+P dava un
+  foglio bianco su qualunque pagina, e nessun test lo vedeva. Nuovo foglio dedicato **`vipi-print.css`**: nasconde il
+  chrome e lascia il contenuto nel flusso (niente opt-in per pagina), A4 verticale, `thead` ripetuto, colori
+  informativi preservati, zoom inline azzerato. Più `PrintMeta` (intestazione di sola stampa) e tasto **Stampa** nei
+  quattro viewer documento. Nessun endpoint di export: la stampa del browser copre RNF-6 (piano §10, §22.7).
+- **Due trappole browser, entrambe trovate solo guidando il flusso.** Un `<details>` chiuso **non si apre col solo
+  CSS** (Chrome lo nasconde da user-agent con `content-visibility` su `::details-content`) → serve l'hook
+  `beforeprint`; e **Chrome segnala la stampa due volte** (`beforeprint` + cambio media `print`), quindi gli handler
+  di stampa vanno resi **idempotenti** o il ripristino post-stampa non avviene. Leaflet, allo stesso modo, tiene la
+  propria dimensione in memoria: ridurre l'altezza da CSS **ritaglia** la mappa invece di riadattarla.
+- **Spazio recuperato sull'A4**: scala tipografica da carta (il tema parte da 16px con `h2` 32px — misure da monitor,
+  enormi su A4), mappe AoR rimpicciolite e **inquadrate con le proporzioni dell'area** (`fitBounds` sceglie lo zoom
+  che fa stare i bounds in *entrambe* le dimensioni: in una cornice larga e bassa un AoR alto e stretto usciva
+  minuscolo e non centrato), separazioni radar compatte. Documento aeroporto 3 → 2 pagine, vIPI ACC 36 → 28.
+- **Dati live fuori dalla carta** per decisione: blocco METAR/TAF e vista Ridotta (piano §22.7). Regola: su carta
+  sarebbero un'istantanea già scaduta.
+- **Tabelle dei coordinamenti**: le colonne cambiavano larghezza da una tabella all'altra (misurate **19**
+  combinazioni su LIBB) perché senza larghezze `table-layout:auto` dimensiona ognuna sul proprio contenuto. Fissate
+  per colonna **semantica** (classi `c-*`, non per posizione: «Flusso» e «Condizione» sono opzionali e la stessa
+  colonna cade in posti diversi). Poi «Livello» 13% → 21%, misurando a runtime quante celle andavano a capo.
+- **«Bozza vN» dopo «Pubblica ora»**: la pubblicazione funzionava (release `Effective`, audit, documento promosso) —
+  era la pill, letta all'apertura dell'editor. `ReleasePanel` ricaricava solo le proprie release senza avvisare
+  l'host: nuovo `EventCallback Published`, agganciato dai tre editor. E «rel. v12» non era la versione del documento
+  ma il **progressivo della release** → ora «rilascio #N». ⚠️ `string.Format(L["chiave"].Value, n)` **non
+  interpola**: serve l'overload `L["chiave", n]`.
+- **Chiave di release ACC**: `AccVipiReleaseTarget.ResolveDocumentIdAsync` **scartava la parte `root`** di
+  `"{acc}|{root}"` e prendeva il primo CTR radice per `CoverageOrder`. Innocuo sui dati attuali (una sola radice con
+  documento), ma su una ACC **multi-albero** «Pubblica ora» avrebbe promosso la bozza del documento sbagliato, in
+  silenzio. Ora risolve per callsign, **senza fallback** quando il root non risolve. Test-first con i due criteri
+  deliberatamente in conflitto, così un fallback su uno dei due sbaglierebbe comunque.
+- **Refuso di render**: la legenda piste usciva «recommended**from** the METAR wind». Razor **scarta il testo di sola
+  spaziatura che precede un blocco di codice** — anche dentro `<text>`: lo spazio va scritto come entità `&#32;`.
+  Stessa famiglia della trappola `v@r.Proprietà`.
