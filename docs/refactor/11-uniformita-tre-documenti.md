@@ -6,9 +6,10 @@
 > che sta **fra** editor e viewer: chiave di sezione, resa del contenuto editoriale, stato «nascosta»,
 > e i fallback della vista pubblica.
 >
-> **Stato: carta approvata, esecuzione in corso 🟡 (P1→P6, dal 2026-07-30).**
-> Branch `fix/uniformita-tre-documenti`. Baseline suite **640 verde**. Verifica live prevista su
-> LIBB (ACC), LIBP_APP (APP), LIBB↔LDZO (vLOA) con Edge/puppeteer. Dipende da: doc 08, 09, 10.
+> **Stato: eseguito ✅ (P1→P6, 2026-07-30).** Branch `fix/uniformita-tre-documenti`, 7 commit.
+> Suite **640 → 657 verde**. **Verifica live 20/20** su copia del `vipi.db` reale (LIBB per l'ACC,
+> LIBP_APP e LIBD_CS0_APP per l'APP, LIBB↔LDZO per la vLOA), Edge/puppeteer — vedi §5.
+> Dipende da: doc 08, 09, 10.
 
 ## 1. Stato rilevato (audit 2026-07-30, verificato live)
 
@@ -69,6 +70,11 @@ contenuto identico alla bozza, nessun banner. Il congelamento AIRAC è bypassabi
 punta il tasto «Anteprima bozza» dell'editor.
 Collaterale: `AppDocumentService.EnsureAsync` fa l'early-return sui documenti già migrati **prima**
 di `EnsureCanEditAccAsync`.
+
+### P-A7 — la copia bozza perdeva i flag per-sezione
+`EfEditingRepository.CreateDraftAsync` copiava titolo/ordine/chiave ma **non** `RenderMode`: aprire una bozza
+riportava a `Frozen` ogni sezione messa `Live` (doc 10 §3a) — la sezione `sids` dell'aeroporto smetteva
+silenziosamente di aggiornarsi. Trovato leggendo il codice per P4; lo stesso punto avrebbe azzerato `IsHidden`.
 
 ### P-B — disallineamenti minori (stessa radice)
 - **B1** sotto-sezioni sotto una sezione derivata: invisibili in tutte e tre le famiglie (prova: sezione
@@ -176,16 +182,26 @@ Ogni passo: commit proprio, `dotnet build` verde, test aggiunti dove il comporta
 - `DocumentSection.IsHidden`: round-trip editing → snapshot di release → viewer.
 - `LoadAppVipiAsync`/`ResolveForDocumentAsync`: un APP `Remotized` non ha identità documentale.
 
-**Verifica live (rifare gli esperimenti dell'audit, esito atteso):**
-1. ACC: sezione libera con tabella + callout + sotto-sezione → **tutto** visibile in bozza, callout con
-   riquadro; due sezioni libere → **entrambe** in bozza e in pubblica dopo publish.
-2. APP: nascondere una sezione libera **non** tocca le altre; la pubblica **non** cambia finché non si
-   ripubblica.
-3. vLOA: sezione nascosta appare in bozza con pill `🚫 nascosta`; la pubblica non cambia senza publish.
-4. `?as=rel:{id}` forgiata → pagina identica alla pubblica (stesso numero di tabelle/righe).
-5. `/vsop/{acc}/apps/editor?app=<remotizzato>` → messaggio d'errore, nessun documento creato.
-6. Editor vLOA: pannello release presente, «Pubblica ora» funziona; «Anteprima bozza» apre
-   `/vsop/{acc}/vloa?acc=…&as=draft`.
+**Esito test:** baseline 640 → **657 verde** (nuovi: `SectionKeysTests`, `AccEditorialFidelityTests`,
+`DocumentMaintenanceTests`, `AppDocumentSurfaceTests`, `CreateDraft_Preserves_Per_Section_Flags`).
+
+**Esito verifica live (2026-07-30, copia del `vipi.db` reale, Edge/puppeteer): 20/20.**
+Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"` residue),
+`DocumentProfiles.HiddenSectionsJson` azzerata, 14 sezioni marcate nascoste (12 sulla vIPI ACC di LIBB,
+2 sull'APP LIBP).
+
+**Verifica live (esperimenti dell'audit, esito osservato = atteso):**
+1. ✅ ACC: sezione libera con tabella + callout + sotto-sezione → **tutto** visibile in bozza, callout con
+   riquadro; due sezioni libere → **entrambe**. Dopo «Pubblica ora» arrivano identiche in pubblica
+   (`CELLA-ZZ`, `SOTTO-ZZ`, callout in `.callout`), e le nascoste restano fuori.
+2. ✅ APP: nascosta `ZZAPPA` → `ZZAPPB` resta visibile (prima si nascondevano insieme); la bozza la marca
+   «🚫 nascosta»; la pubblica **non** cambia finché non si ripubblica.
+3. ✅ vLOA: «Purpose» nascosta appare in bozza con la pill; la pubblica resta invariata; dopo «Pubblica ora»
+   dal nuovo pannello release sparisce dalla pubblica.
+4. ✅ `?as=rel:22` (release di un'altra vLOA) → 3 tabelle / 11 righe, identiche alla pubblica (prima 9/31).
+5. ✅ `/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
+6. ✅ Editor vLOA: `#p-release` con Differenze / Pubblica ora / Programma al ciclo; nessun pulsante di blocco
+   sulla sezione padre «Coordination»; la vecchia rotta `apps/vipi?vloa=` non serve più il documento.
 
 **Propagazione (domanda 4 del pre-flight):** questo giro **rimuove** `AppCustomSection`/`AppCustomBlock`,
 i campi `HiddenSections` dei tre storage e la rotta `apps/vipi?vloa=` → vanno aggiornati nello stesso

@@ -704,3 +704,32 @@ Suite **631 → 640 verde**, build 0 warning, 14 commit.
 - **Refuso di render**: la legenda piste usciva «recommended**from** the METAR wind». Razor **scarta il testo di sola
   spaziatura che precede un blocco di codice** — anche dentro `<text>`: lo spazio va scritto come entità `&#32;`.
   Stessa famiglia della trappola `v@r.Proprietà`.
+
+## 2026-07-30 — Uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA) — doc [refactor/11](../refactor/11-uniformita-tre-documenti.md)
+
+Audit dei tre documenti su viewer pubblico / editor / anteprima bozza (app reale su copia del `vipi.db`,
+browser guidato): il modello è unico e l'editor è condiviso, ma **ogni famiglia rileggeva quel modello a modo
+suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
+
+- **Chiave di sezione univoca** (`custom:{guid8}`): la costante `"custom"` faceva collidere tutte le sezioni
+  libere di un documento. Nella vIPI ACC dalla seconda in poi **non compariva**; nell'APP «Nascondi» su una
+  le nascondeva **tutte**. Riconciliazione idempotente al boot (`IDocumentMaintenance`).
+- **Fallback a pubblica con derivate frozen**: `_useFrozen` era impostato solo nel ramo `default:`, quindi un
+  `?as=draft` non autorizzato o un `?as=rel:{id}` sbagliato serviva la pubblica **con dati live** — il
+  congelamento AIRAC era bypassabile dall'URL (vLOA LIBB↔LDZO: 3 tabelle in pubblica, 9 con `?as=rel:` altrui).
+- **Contenuto editoriale condiviso**: la vIPI ACC appiattiva le sezioni libere a sola prosa
+  (`AppCustomSection`, rimossa) — tabelle perse, callout senza riquadro, sotto-sezioni mai rese. Ora tutte e
+  tre passano da `SectionNode`/**`SectionBody`** (nuovo). Le sotto-sezioni delle sezioni derivate si rendono
+  ovunque; `VipiViewService.Map` non scarta più le sezioni vuote.
+- **`DocumentSection.IsHidden`** (migrazione `AddSectionIsHidden`), gemello di `RenderMode`: uno stato solo,
+  versionato, dentro lo snapshot di release. Prima stava in tre storage diversi e due non erano versionati:
+  un click su «Nascondi» toglieva la sezione dalla **pagina pubblica senza pubblicare nulla**. Nascondi/mostra
+  è ora interno a `DocumentSectionsEditor`; i tre viewer marcano allo stesso modo.
+  ⚠️ Trovato di sponda: `CreateDraftAsync` **non copiava `RenderMode`** — aprire una bozza riportava a `Frozen`
+  ogni sezione `Live` di doc 10 (le SID d'aeroporto smettevano di aggiornarsi, in silenzio).
+- **Superficie APP = non remotizzati**: l'editor apriva e creava documenti anche per un APP `Remotized`
+  (`LIBD_CS0_APP`, doc 16) che nessun viewer sa rendere. `EnsureAsync` ora autorizza **prima** dell'uscita
+  anticipata. L'elenco APP usa lo stesso gate della pagina (release effettiva, non `Document.Status`).
+- **Superficie uniforme**: `ReleasePanel` anche nell'editor vLOA (era l'unico senza, e l'unico con un
+  «Pubblica» di versione); la sezione padre «Coordination» è derivata anche in editing; **una sola rotta
+  viewer per la vLOA** (`apps/vipi?vloa=` rimossa, era pure quella linkata dall'editor).
