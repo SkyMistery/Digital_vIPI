@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,36 +9,38 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// <summary>
 /// Adapter GitHub del file poligoni TWR di Aurora IT (<c>DYNAMIC_SEC/twrs.tfl</c>): scarica il file (repo pubblico
 /// raw, no auth), delega il parsing DMS a <see cref="AuroraSectorfileParser.ParseTowerShapes"/> e converte ogni
-/// anello nel JSON <c>RegionMapPolygon</c> (coppie <c>[lng, lat]</c>, stile GeoJSON). Cache per processo.
+/// anello nel JSON <c>RegionMapPolygon</c> (coppie <c>[lng, lat]</c>, stile GeoJSON). Il risultato è messo in cache
+/// di processo da <see cref="SectorfileCache"/>. Lifetime transient (registrato con <c>AddHttpClient&lt;,&gt;</c>):
+/// nessuno stato condiviso qui dentro.
 /// </summary>
 public sealed class AuroraTowerShapeProvider : ITowerShapeSource
 {
     private readonly HttpClient _http;
     private readonly SectorfileOptions _opt;
+    private readonly SectorfileCache _cache;
     private readonly ILogger<AuroraTowerShapeProvider> _log;
 
-    private IReadOnlyDictionary<string, string>? _cache;
-    private readonly SemaphoreSlim _lock = new(1, 1);
-
-    public AuroraTowerShapeProvider(HttpClient http, IOptions<SectorfileOptions> opt, ILogger<AuroraTowerShapeProvider> log)
+    public AuroraTowerShapeProvider(HttpClient http, IOptions<SectorfileOptions> opt, SectorfileCache cache,
+        ILogger<AuroraTowerShapeProvider> log)
     {
         _http = http;
         _opt = opt.Value;
+        _cache = cache;
         _log = log;
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> GetTowerPolygonsAsync(CancellationToken ct = default)
+    public Task<IReadOnlyDictionary<string, string>> GetTowerPolygonsAsync(CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_opt.RawBaseUrl)) return EmptyMap;
-        if (_cache is not null) return _cache;
+        if (string.IsNullOrWhiteSpace(_opt.RawBaseUrl)) return Task.FromResult(EmptyMap);
 
-        await _lock.WaitAsync(ct);
-        try
+        return _cache.GetTowerPolygonsAsync(async token =>
         {
-            if (_cache is not null) return _cache;
-
-            var text = await GetTextOrNullAsync(_opt.TwrShapePath, ct);
-            if (text is null) { _log.LogWarning("Shape TWR: {Path} non trovato (404).", _opt.TwrShapePath); return _cache = EmptyMap; }
+            var text = await SectorfileRaw.GetTextOrNullAsync(_http, _opt.RawBaseUrl, _opt.TwrShapePath, token);
+            if (text is null)
+            {
+                _log.LogWarning("Shape TWR: {Path} non trovato (404).", _opt.TwrShapePath);
+                return EmptyMap;
+            }
 
             var rings = AuroraSectorfileParser.ParseTowerShapes(text);
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -47,9 +48,8 @@ public sealed class AuroraTowerShapeProvider : ITowerShapeSource
                 map[callsign] = ToPolygonJson(ring);
 
             _log.LogInformation("Shape TWR da GitHub: {Count} poligoni parsati da {Path}.", map.Count, _opt.TwrShapePath);
-            return _cache = map;
-        }
-        finally { _lock.Release(); }
+            return map;
+        }, ct);
     }
 
     private static readonly IReadOnlyDictionary<string, string> EmptyMap =
@@ -69,14 +69,5 @@ public sealed class AuroraTowerShapeProvider : ITowerShapeSource
               .Append(']');
         }
         return sb.Append(']').ToString();
-    }
-
-    private async Task<string?> GetTextOrNullAsync(string relative, CancellationToken ct)
-    {
-        var url = _opt.RawBaseUrl.TrimEnd('/') + "/" + relative.TrimStart('/');
-        using var resp = await _http.GetAsync(url, ct);
-        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
-        resp.EnsureSuccessStatusCode();
-        return await resp.Content.ReadAsStringAsync(ct);
     }
 }

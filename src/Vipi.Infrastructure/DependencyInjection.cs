@@ -98,6 +98,10 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
         if (configuration is not null)
             services.Configure<Sectorfile.SectorfileOptions>(configuration.GetSection("Sectorfile"));
+        // Cache dei file di sectorfile indipendenti dall'aeroporto (navaid, poligoni TWR). DEVE essere singleton:
+        // gli adapter sotto sono transient (AddHttpClient<,>), quindi una cache in campo d'istanza sarebbe
+        // per-risoluzione e il suo lock non sincronizzerebbe nulla. Vedi SectorfileCache.
+        services.AddSingleton<Sectorfile.SectorfileCache>();
         services.AddHttpClient<Vipi.Application.Abstractions.ISidProvider, Sectorfile.AuroraSidProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
