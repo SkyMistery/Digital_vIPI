@@ -55,15 +55,6 @@ public sealed class EfContentRepository : IContentRepository
             ignoreRelease, preferWorking, ct);
     }
 
-    public Task<RawDocument?> LoadVloaAsync(string accCode, CancellationToken ct = default)
-    {
-        return LoadVipiAsync(
-            d => d.Type == DocumentType.Vloa
-                 && !d.IsHidden
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == accCode),
-            ignoreRelease: false, preferWorking: false, ct);
-    }
-
     public Task<RawDocument?> LoadVloaByIdAsync(int docId, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
         // ignoreRelease/preferWorking (anteprima bozza, gated all'editor): mostra anche vLOA nascoste e non pubblicate,

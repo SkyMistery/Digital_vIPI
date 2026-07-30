@@ -3,8 +3,8 @@ namespace Vipi.Application.Aor;
 /// <summary>
 /// Colori di default degli anelli AoR per <b>tipo di ente</b>, dedotti dal suffisso del callsign (l'ultimo token dopo
 /// l'ultimo <c>_</c>: es. <c>LIRP_TWR</c> → <c>TWR</c>). Tutti gli enti dello stesso tipo condividono il colore
-/// (es. ogni <c>_TWR</c> è rosso), salvo override manuale per singolo settore. Rimpiazza la ciclatura per indice di
-/// <see cref="AorPalette"/> come default; la palette resta per usi che vogliono colori distinti a prescindere dal tipo.
+/// (es. ogni <c>_TWR</c> è rosso), salvo override manuale per singolo settore. Ha sostituito la vecchia ciclatura
+/// per indice su una palette fissa, rimossa perché senza più consumatori.
 /// </summary>
 public static class AorColorScheme
 {

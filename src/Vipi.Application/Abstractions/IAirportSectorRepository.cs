@@ -46,9 +46,6 @@ public interface IAirportSectorRepository
     /// Il chiamante decide quali sono "vuoti/degeneri" (es. null, "[]") provando a proiettarli.</summary>
     Task<IReadOnlyList<TwrShapeRow>> ListTwrShapesAsync(CancellationToken ct = default);
 
-    /// <summary>Salva le coordinate del riferimento aeroporto (backfill dalla sorgente). No-op se l'aeroporto non esiste.</summary>
-    Task SetAirportCoordsAsync(string icao, double latitude, double longitude, CancellationToken ct = default);
-
     /// <summary>Scrive una shape SINTETICA (IsShapeSynthetic=true) su un settore. Mai chiamare su shape reali.</summary>
     Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
 

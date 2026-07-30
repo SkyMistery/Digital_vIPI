@@ -52,8 +52,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
             var pageDto = await res.Content.ReadFromJsonAsync<AirportsPageDto>(cancellationToken: ct);
             foreach (var a in pageDto?.Items ?? new List<AirportDto>())
                 if (!string.IsNullOrWhiteSpace(a.Icao))
-                    all.Add(new SourceAirport(a.Icao!, a.Name ?? a.Icao!, a.CenterId, a.City, a.TransitionAltitude,
-                        a.Latitude, a.Longitude));
+                    all.Add(new SourceAirport(a.Icao!, a.Name ?? a.Icao!, a.CenterId, a.City, a.TransitionAltitude));
 
             if (pageDto is null || page >= pageDto.Pages) break;
         }
@@ -75,8 +74,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
         var dto = await _http.GetJsonAsync<AirportDto>($"{_opt.AirportsPath}/{Uri.EscapeDataString(icao)}", ct);
         if (dto is null || string.IsNullOrWhiteSpace(dto.Icao)) return null;
 
-        var result = new SourceAirport(dto.Icao!, dto.Name ?? dto.Icao!, dto.CenterId, dto.City,
-            dto.TransitionAltitude, dto.Latitude, dto.Longitude);
+        var result = new SourceAirport(dto.Icao!, dto.Name ?? dto.Icao!, dto.CenterId, dto.City, dto.TransitionAltitude);
         _airportCache.PutSingle(icao, result);
         return result;
     }

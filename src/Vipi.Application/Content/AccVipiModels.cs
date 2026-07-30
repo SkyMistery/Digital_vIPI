@@ -24,13 +24,6 @@ public sealed class AccConfiguration
     public IEnumerable<string> OpenCallsigns => Open.Select(o => o.Callsign);
 }
 
-/// <summary>Area regolamentata (editoriale strutturato): nome + dettaglio markdown. Es. «R-64 · CUNEO».</summary>
-public sealed class AccRegulatedArea
-{
-    public string Name { get; set; } = "";
-    public string? Detail { get; set; }
-}
-
 /// <summary>
 /// Un blocco della vIPI ACC: Aerovia (settori CTR, pool implicito) o gruppo-APP (settori APP scelti).
 /// Contiene lo stato editoriale (sezioni/override) + le configurazioni che guidano l'AoR.
@@ -60,7 +53,6 @@ public sealed class AccBlock
     // editoriale
     public List<AppSeparationRow> Separations { get; set; } = new();
     public string? VfrJson { get; set; }
-    public List<AccRegulatedArea> RegulatedAreas { get; set; } = new();          // legacy (deprecato): sostituito da Regulated
     public RegulatedSelection Regulated { get; set; } = new();                    // #8: aree speciali (proprio ACC auto/manuale + extra altri-ACC)
 
     // frequenze
@@ -164,9 +156,6 @@ public sealed class AccCoordination
 
     public static AccCoordination Empty { get; } = new() { Sectors = Array.Empty<AccSectorApps>() };
 }
-
-/// <summary>AoR di una configurazione: nome config + i poligoni (unione) dei suoi settori aperti.</summary>
-public sealed record AccConfigAor(string ConfigKey, string ConfigName, IReadOnlyList<AppAorPolygon> Polygons);
 
 /// <summary>AoR di un singolo settore del blocco: callsign + nome + colore + poligoni. Anello toggleabile in mappa.
 /// <paramref name="LowerFl"/>/<paramref name="UpperFl"/> = banda FL per l'estrusione 3D (normalizzata via

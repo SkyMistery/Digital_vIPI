@@ -16,9 +16,6 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
     private readonly VipiDbContext _db;
     public EfAccDerivationRepository(VipiDbContext db) => _db = db;
 
-    public async Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default) =>
-        await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => a.Name).FirstOrDefaultAsync(ct);
-
     public async Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default)
     {
         var accName = await _db.Accs.AsNoTracking().Where(a => a.Code == accCode).Select(a => a.Name).FirstOrDefaultAsync(ct);
@@ -39,31 +36,6 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
             .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
             .Select(s => new AccTreeRoot(s.Callsign, s.Name))
             .ToListAsync(ct);
-
-    public async Task<IReadOnlyList<string>> ListSubtreeCtrCallsignsAsync(string accCode, string rootCallsign, CancellationToken ct = default)
-    {
-        var all = await _db.Sectors.AsNoTracking()
-            .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.IsActive)
-            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
-
-        var root = all.FirstOrDefault(s => string.Equals(s.Callsign, rootCallsign, StringComparison.OrdinalIgnoreCase));
-        if (root is null) return Array.Empty<string>();
-
-        var byParent = all.ToLookup(s => s.ParentSectorId);
-        var result = new List<string> { root.Callsign };
-        var queue = new Queue<int>();
-        queue.Enqueue(root.Id);
-        while (queue.Count > 0)
-        {
-            var pid = queue.Dequeue();
-            foreach (var child in byParent[pid])
-            {
-                result.Add(child.Callsign);
-                queue.Enqueue(child.Id);
-            }
-        }
-        return result;
-    }
 
     public async Task<IReadOnlyDictionary<string, (string Name, int Order)>> GetCtrBranchMapAsync(string accCode, string rootCallsign, CancellationToken ct = default)
     {
@@ -120,22 +92,6 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
             .OrderBy(s => s.Callsign)
             .Select(s => new AccSectorPick(s.Callsign, s.Name))
             .ToListAsync(ct);
-
-    public async Task<IReadOnlyList<string>> GetAorPolygonsRawAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default)
-    {
-        if (callsigns.Count == 0) return Array.Empty<string>();
-        var set = callsigns.ToList();
-
-        var ctr = await _db.AccSectors.AsNoTracking()
-            .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .Select(s => s.RegionMapPolygon!).ToListAsync(ct);
-
-        var app = await _db.AirportSectors.AsNoTracking()
-            .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .Select(s => s.RegionMapPolygon!).ToListAsync(ct);
-
-        return ctr.Concat(app).ToList();
-    }
 
     public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
         SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);

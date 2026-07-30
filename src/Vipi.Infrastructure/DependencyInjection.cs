@@ -61,7 +61,6 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
-        services.AddScoped<Vipi.Application.Abstractions.IEditAuditWriter, EfEditAuditWriter>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();

@@ -14,18 +14,12 @@ public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, stri
 /// </summary>
 public interface IAccDerivationRepository
 {
-    /// <summary>Nome dell'ACC dal codice; null se l'ACC non esiste.</summary>
-    Task<string?> GetAccNameByCodeAsync(string accCode, CancellationToken ct = default);
-
     /// <summary>Risolve l'identità del Document vIPI ACC: settore CTR radice primario (che lo chiavizza) + eventuale
     /// DocumentId. Null se l'ACC non esiste o non ha radici CTR. Doc refactor 08e-acc.</summary>
     Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>Radici degli alberi CTR dell'ACC (settori CTR senza genitore, attivi). Una vIPI per radice.</summary>
     Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Callsign dei CTR del sottoalbero della radice indicata (radice inclusa). Vuoto se radice inesistente.</summary>
-    Task<IReadOnlyList<string>> ListSubtreeCtrCallsignsAsync(string accCode, string rootCallsign, CancellationToken ct = default);
 
     /// <summary>Mappa CTR del sottoalbero → ramo di appartenenza (nome + ordine): radice o suo figlio diretto. Per l'accorpamento freq (#5).</summary>
     Task<IReadOnlyDictionary<string, (string Name, int Order)>> GetCtrBranchMapAsync(string accCode, string rootCallsign, CancellationToken ct = default);
@@ -35,9 +29,6 @@ public interface IAccDerivationRepository
 
     /// <summary>Settori APP dell'ACC: candidati per i gruppi APP. (Callsign, Name).</summary>
     Task<IReadOnlyList<AccSectorPick>> ListAppSectorsAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Poligoni grezzi (JSON) dei settori indicati: cerca sia nel catalogo CTR (AccSector) sia APP (AirportSector).</summary>
-    Task<IReadOnlyList<string>> GetAorPolygonsRawAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);
 
     /// <summary>Poligoni grezzi mappati per callsign (per anelli AoR toggleabili singolarmente). Chiave case-insensitive.</summary>
     Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default);

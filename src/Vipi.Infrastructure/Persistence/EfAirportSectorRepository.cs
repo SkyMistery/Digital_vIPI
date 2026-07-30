@@ -105,16 +105,6 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                 (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude, s.RegionMapPolygon, s.IsShapeSynthetic))
             .ToListAsync(ct);
 
-    public async Task SetAirportCoordsAsync(string icao, double latitude, double longitude, CancellationToken ct = default)
-    {
-        icao = Norm(icao);
-        var a = await _db.Airports.FirstOrDefaultAsync(x => x.Icao == icao, ct);
-        if (a is null) return;
-        a.Latitude = latitude;
-        a.Longitude = longitude;
-        await _db.SaveChangesAsync(ct);
-    }
-
     public async Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)

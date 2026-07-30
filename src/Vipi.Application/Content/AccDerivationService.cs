@@ -27,9 +27,6 @@ public interface IAccDerivationService
     /// <summary>Frequenze derivate del blocco (membri + link), con override d'ordine applicato e accorpamento per ramo (Aerovia).</summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
-    /// <summary>Mappa callsign CTR → nome ramo di appartenenza (accorpamento freq #5). Vuota per blocchi non-Aerovia.</summary>
-    Task<IReadOnlyDictionary<string, string>> GetFreqGroupMapAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
-
     /// <summary>Coordinamenti derivati del blocco (flussi posseduti dai membri + entranti): verso ACC/APP/torri.</summary>
     Task<AccCoordination> DeriveCoordinationAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
@@ -248,19 +245,6 @@ public sealed class AccDerivationService : IAccDerivationService
         }
 
         return ConfigTableProjector.Build(_aor, topo, roots, pool, block.Configurations);
-    }
-
-    public async Task<IReadOnlyDictionary<string, string>> GetFreqGroupMapAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
-    {
-        accCode = Norm(accCode);
-        if (block.Kind != AccBlockKind.Aerovia) return new Dictionary<string, string>();
-        // ACC-wide: unione delle mappe di ramo di tutti gli alberi CTR dell'ACC.
-        var roots = (await _repo.ListTreeRootsAsync(accCode, ct)).Select(r => r.Callsign).ToList();
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in roots)
-            foreach (var kv in await _repo.GetCtrBranchMapAsync(accCode, root, ct))
-                result[kv.Key] = kv.Value.Name;
-        return result;
     }
 
     private async Task<IReadOnlyDictionary<string, string>> NameMapAsync(string accCode, CancellationToken ct)

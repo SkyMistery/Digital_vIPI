@@ -72,6 +72,11 @@
 | `Vipi.Ui/Pages/AccEditorPage.razor:1,101,357` | route `/vsop/{Acc}/editor` | Editor ACC; `AccSections.For(b.Kind)`; render via `SectionShell`; "Nuova sezione". |
 | `Vipi.Ui/Components/VloaEditor.razor:199` | `AddSection` → `BlockSection.Other` | Editor vLOA; lock sezioni mandatory; AoR/Freq/Coord derivati per `SectionKind`. |
 
+> ⚠️ **Inventario storico (stato al 2026-07-10), non mappa del codice attuale.** Alcuni simboli citati qui
+> sopra sono stati poi **rimossi** dal cleanup del 2026-07-30: `SectionShell.razor` (era rimasto orfano — gli
+> editor ACC/APP non lo usavano più: le righe 70 e 72 descrivono un uso che non esiste nel codice odierno) e
+> `AccConfigAor` (righe 68, 79). Per lo stato corrente si guardi il codice, non questa tabella.
+
 ### AoR (derivata, mai salvata)
 Definita come entry di sezione in ogni registry (`AppSections` key `"aor"`, `AccSections`
 key `"aor"`, `BlockSection.Aor` per vLOA). Derivazione/render: `Vipi.Application/Aor/AorService.cs`,

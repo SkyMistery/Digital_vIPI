@@ -556,6 +556,13 @@ Quattro interventi indipendenti.
 - **Trasferimenti editabili** (`AdminTrasferimentiPage`): edit in-place di flusso (tipo/aeroporto/descrizione) e punto (CoP/vincolo+valore+unità/Next) via `ITransferService.UpdateFlowAsync`/`UpdatePointAsync` (già esistenti). **Coordinamenti APP — verso ACC**: la sezione «Trasferimenti verso ACC» di `AppCoordinationView` è suddivisa in due sottosezioni **Partenze**/**Arrivi** (split per `TransferFlowKind` lato view, colonne CoP·Livello·Next); «verso le torri» invariata.
 
 ### 9.15 `AccProfile` — vIPI ACC data-driven a blocchi (round 23, sessione 2 lug 2026)
+
+> 🛑 **[SUPERATO — non implementare da qui].** Lo **storage** `AccProfile` è stato eliminato dal doc refactor 08
+> (migrazione `DropAccProfile`): lo stato editoriale ACC vive su `Document`+`DocumentSection`. Il **modello a
+> blocchi** descritto sotto (`AccBlock`, `AccConfiguration`, derivazioni) resta valido come forma del payload,
+> ma va letto in quel contesto. Nota di dettaglio: `RegulatedAreas`/`AccRegulatedArea` erano già stati sostituiti
+> da `Regulated` (`RegulatedSelection`) e sono stati **rimossi dal codice** nel cleanup del 2026-07-30.
+
 La vIPI a livello **ACC** diventa **data-driven**, specchio dell'editor APP (§9.13). Documento a **blocchi** ancorato **1:1 all'`Acc`**; solo lo **stato editoriale a blocchi** è persistito (serializzato JSON), le derivate (AoR per configurazione, frequenze dei membri, coordinamenti) si calcolano **live**. Migrazione additiva **`AddAccProfile`**.
 - **`AccProfile`** (entità): `Id`, `AccId` (FK→`Acc`, cascade, **unique** — 1:1), `BlocksJson` (TEXT). Repository `EfAccProfileRepository`, profilo creato **on-demand** al primo salvataggio.
 - **Blocchi** (`AccBlock`, in `BlocksJson`): due tipi (`AccBlockKind`) — **Aerovia** (settori CTR dell'ACC, pool implicito = tutti i CTR se `MemberCallsigns` vuoto) e **gruppo-APP** (settori APP scelti). Il blocco Aerovia è **obbligatorio** e sempre primo (garantito in load e save). Ogni blocco porta: `MemberCallsigns`, `SectionOrder`/`HiddenSections`/`CustomSections` (registry `AccSections`, riconciliazione pura), `Separations`, `VfrJson`, `RegulatedAreas` (`AccRegulatedArea`: nome + dettaglio markdown, es. «R-64 · CUNEO»), `FreqOrder` (override d'ordine per callsign), **`FreqLinkCallsigns`** (link freq extra per callsign, riferimento vivo), `Configurations`.

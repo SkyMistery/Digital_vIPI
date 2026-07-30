@@ -10,7 +10,7 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 | File | Ex-rotta | Funzione | Perché disabilitata |
 |---|---|---|---|
 | `RidottaPage.razor` | `/vsop/{acc}/ridotta` | Vista ridotta live (F3): frequenze + trasferimenti per la postazione, refresh SSE. | Era nella sezione "Strumenti" rimossa dalla nuova landing ACC. Cuore del live F3: candidata a rientrare presto. |
-| `RidottaAppPage.razor` | `/vsop/{acc}/ridotta-app` | Vista ridotta per APP. | Idem (Strumenti). |
+| `RidottaAppPage.razor` | `/vsop/{acc}/ridotta-app` | Vista ridotta per APP. | Idem (Strumenti). ⚠️ **Non riattivabile rimettendo `@page`**: a differenza di `RidottaPage`, il contenuto è un **mockup hardcoded** («LIRP Pisa APP» in markup, nessun binding ai dati). Riattivarla richiede di scriverla, non di scommentarla. |
 
 > 🗑️ **Eliminate (pulizia)**: `Aor3dPage`, `ExportPage`, `StatiPage` (disabilitate e morte), più le legacy
 > `VipiDocument.razor` (sostituita da `AccVipiPage` su `/vipi`) e `EditorPage.razor` (dispatcher generico orfano;
