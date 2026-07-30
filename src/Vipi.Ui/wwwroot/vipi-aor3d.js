@@ -4,8 +4,7 @@
 // Idempotente: ogni .aor3d-stage[data-sectors3d] è inizializzato una sola volta (data-init). Fallback se manca WebGL/THREE.
 // Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top]}].
 (function () {
-    var FLZ = 0.135;        // fattore z per FL → unità scena (FL660 ≈ 89 unità, ~span orizzontale)
-    var TARGET = 150;       // il lato orizzontale maggiore riempie ~questo numero di unità
+    var TARGET = 150;       // il lato orizzontale maggiore riempie ~questo numero di unità (z adattivo in build)
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
     var hex = function (c) { return (c && c[0] === '#') ? c : ('#' + String(c || '3C55AC')); };
 
@@ -112,8 +111,8 @@
         renderer.setPixelRatio(window.devicePixelRatio || 1); renderer.setSize(w, h);
         stage.insertBefore(renderer.domElement, stage.firstChild);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        var dl = new THREE.DirectionalLight(0xffffff, 0.55); dl.position.set(60, 40, 140); scene.add(dl);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+        var dl = new THREE.DirectionalLight(0xffffff, 0.45); dl.position.set(80, 60, 200); scene.add(dl);
         var grid = new THREE.GridHelper(TARGET * 1.3, 18, 0xc3cdf0, 0xe0e5f6); grid.rotation.x = Math.PI / 2;
         grid.visible = false; scene.add(grid);   // nascosta di default: si mostra se la basemap non c'è / è spenta
 
@@ -123,13 +122,26 @@
             if (onBasemap) onBasemap(plane);
         });
 
+        // Scala verticale ADATTIVA: l'altezza max dei prismi ≈ 55% del lato orizzontale, così non diventano torri
+        // (con dati FL piatti GND→UNL restano leggibili). maxHeight torna alla camera per inquadrare a metà.
+        var maxTop = 1;
+        sectors.forEach(function (s) { var b = s.fl || [0, 660]; if ((b[1] || 660) > maxTop) maxTop = b[1] || 660; });
+        var flz = (TARGET * 0.55) / maxTop;
+        var maxHeight = maxTop * flz;
+
+        // Disegno prima i settori con footprint più grande: i più piccoli (interni) restano visibili sopra.
+        var order = sectors.map(function (s, i) { return i; }).sort(function (a, b) { return ringArea(sectors[b]) - ringArea(sectors[a]); });
+        var seenLabels = {};
+
         var group = new THREE.Group(); scene.add(group);
-        sectors.forEach(function (s, idx) {
+        order.forEach(function (idx) {
+            var s = sectors[idx];
             var band = s.fl || [0, 660];
             var bottom = band[0] || 0, top = band[1] || 660;
-            var depth = Math.max(1, (top - bottom)) * FLZ;
+            var depth = Math.max(1, (top - bottom)) * flz;
             var col = new THREE.Color(hex(s.color));
-            var secGroup = new THREE.Group(); secGroup.position.z = bottom * FLZ;
+            var edgeCol = col.clone().multiplyScalar(0.72);   // spigolo più scuro = stacco netto sulla mappa chiara
+            var secGroup = new THREE.Group(); secGroup.position.z = bottom * flz;
 
             var cxSum = 0, cySum = 0, n = 0;
             (s.rings || []).forEach(function (r) {
@@ -139,20 +151,32 @@
                 pts.forEach(function (p, i) { i ? shape.lineTo(p[0], p[1]) : shape.moveTo(p[0], p[1]); });
                 shape.closePath();
                 var geo = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
-                var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.42, depthWrite: false }));
-                var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: col }));
+                var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.16, depthWrite: false }));
+                var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.9 }));
                 secGroup.add(mesh); secGroup.add(edges);
                 pts.forEach(function (p) { cxSum += p[0]; cySum += p[1]; n++; });
             });
             if (n === 0) return;
-            var lab = makeLabel(THREE, s.name || s.sec || '', hex(s.color));
-            lab.position.set(cxSum / n, cySum / n, depth + 5);
-            secGroup.add(lab);
+            // Etichetta: una sola per nome (evita doppioni tipo due "Brindisi Radar"); z scalato per ridurre l'accavallamento.
+            var name = s.name || s.sec || '';
+            if (!seenLabels[name]) {
+                seenLabels[name] = true;
+                var lab = makeLabel(THREE, name, '#' + edgeCol.getHexString());
+                lab.position.set(cxSum / n, cySum / n, depth + 4 + (idx % 4) * (maxHeight * 0.06));
+                secGroup.add(lab);
+            }
             s._g = secGroup;
             group.add(secGroup);
         });
 
-        return { scene: scene, camera: camera, renderer: renderer, group: group, grid: grid, getBasemap: function () { return basemap; } };
+        return { scene: scene, camera: camera, renderer: renderer, group: group, grid: grid, maxHeight: maxHeight, getBasemap: function () { return basemap; } };
+    }
+
+    // Area (relativa) del primo anello di un settore, per ordinare i prismi dal più grande al più piccolo (shoelace su XY grezzi).
+    function ringArea(s) {
+        var r = s && s.rings && s.rings[0]; if (!r || r.length < 3) return 0;
+        var a = 0; for (var i = 0, j = r.length - 1; i < r.length; j = i++) { a += (r[j][1] + r[i][1]) * (r[j][0] - r[i][0]); }
+        return Math.abs(a / 2);
     }
 
     function initOne(stage) {
@@ -172,14 +196,16 @@
         if (!ctx) return;
         stage.dataset.init = '1';
 
-        var theta = 0.78, phi = 0.92, radius = 260;
+        var lookZ = (ctx.maxHeight || 80) * 0.4;                 // mira a ~40% dell'altezza dei prismi
+        var DEF = { theta: 0.78, phi: 1.02, radius: 300 };       // vista un po' più alta e arretrata di prima
+        var theta = DEF.theta, phi = DEF.phi, radius = DEF.radius;
         function render() { if (ctx) ctx.renderer.render(ctx.scene, ctx.camera); }
         function updateCam() {
             ctx.camera.position.set(
                 radius * Math.sin(phi) * Math.cos(theta),
                 radius * Math.sin(phi) * Math.sin(theta),
-                radius * Math.cos(phi));
-            ctx.camera.lookAt(0, 0, 28); render();
+                radius * Math.cos(phi) + lookZ);
+            ctx.camera.lookAt(0, 0, lookZ); render();
         }
         function resize() {
             var w = stage.clientWidth, h = stage.clientHeight;
@@ -213,7 +239,7 @@
         stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false });
 
         var rst = stage.parentElement && stage.parentElement.querySelector('.aor3d-reset');
-        if (rst) rst.addEventListener('click', function () { theta = 0.78; phi = 0.92; radius = 260; updateCam(); });
+        if (rst) rst.addEventListener('click', function () { theta = DEF.theta; phi = DEF.phi; radius = DEF.radius; updateCam(); });
 
         // Schermo intero (Fullscreen API sullo stage): il canvas riempie il viewport; resize al cambio stato.
         var full = stage.parentElement && stage.parentElement.querySelector('.aor3d-full');
