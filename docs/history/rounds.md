@@ -740,3 +740,8 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
   corpo → figlie «dopo»*), resa identica nei tre viewer e nell'editor condiviso (`SectionBody` accetta lo slot;
   gli host che producono il corpo da sé lo invocano due volte). Toggle «⤒ Prima del contenuto / ⤓ Dopo il
   contenuto» sull'intestazione della sotto-sezione. Default `false` ⇒ nessuna migrazione dati.
+- **P8 (§3h, richiesta owner in verifica live)**: i **coordinamenti** nascevano aperti a ogni livello. Su LIBB
+  significava 34 sottolivelli espansi sotto l'unico settore «ES», col resto del documento seppellito. Ora è
+  espanso il solo primo livello (settore per vIPI ACC/vLOA, gruppo per l'APP) e dentro tutto è compresso;
+  «Espandi tutto» e la stampa (`beforeprint`) restano invariati. `CoordinationCollapseTests` (bUnit) presidia
+  gli `open` del markup, che nessun altro test guardava.

@@ -6,7 +6,7 @@
 > che sta **fra** editor e viewer: chiave di sezione, resa del contenuto editoriale, stato «nascosta»,
 > e i fallback della vista pubblica.
 >
-> **Stato: eseguito ✅ (P1→P7, 2026-07-30).** Branch `fix/uniformita-tre-documenti`.
+> **Stato: eseguito ✅ (P1→P8, 2026-07-30).** Branch `fix/uniformita-tre-documenti`.
 > Suite **640 → 657 verde**. **Verifica live 20/20** su copia del `vipi.db` reale (LIBB per l'ACC,
 > LIBP_APP e LIBD_CS0_APP per l'APP, LIBB↔LDZO per la vLOA), Edge/puppeteer — vedi §5.
 > Dipende da: doc 08, 09, 10.
@@ -159,6 +159,16 @@ dell'early-return.
 - La rotta `/vsop/{acc}/apps/vipi?vloa=` viene **rimossa**: la vLOA ha una rotta sola,
   `/vsop/{acc}/vloa?acc=`. Link dell'editor e `PreviewBanner` puntano lì.
 
+### 3h. Coordinamenti: aperto il solo primo livello (richiesta owner, verifica live 2026-07-30)
+I coordinamenti nascevano **tutti aperti** a ogni livello (`<details … open>` scritto a mano). Su una ACC reale
+sono decine di nodi: la vIPI di Brindisi apriva 34 sottolivelli sotto l'unico settore «ES», seppellendo il resto
+del documento. Ora è espanso il **solo primo livello** — il settore nella vIPI ACC e nella vLOA, il gruppo
+(verso ACC / verso torri / sorvoli) nell'APP — e tutto ciò che sta dentro nasce compresso.
+
+Nessun modello nuovo: sono gli `open` del markup. I comandi «Espandi tutto / Comprimi tutto» restano il modo per
+aprire in blocco, e la stampa apre comunque tutto da sé (`beforeprint` in `vipi-ui.js`, doc feature stampa).
+Presidiato da `CoordinationCollapseTests` (bUnit): un `open` rimesso per sbaglio non lo vedrebbe nessun altro test.
+
 ### 3g. Sotto-sezioni collocabili prima del corpo (richiesta owner, verifica live 2026-07-30)
 Le sotto-sezioni si rendevano **sempre dopo** il corpo della sezione: dopo i blocchi in una sezione
 editoriale, dopo la resa derivata in una strutturata. In «Aree regolamentate» questo obbliga a leggere
@@ -187,6 +197,7 @@ Default `false` ⇒ nessuna migrazione dati: i documenti esistenti restano come 
 | **P5** | Gate standalone APP + authz prima dell'early-return + gate elenco su release effettiva | `EfAppDerivationRepository`, `AppDocumentService`, `AppsListPage`, `AppEditorPage` |
 | **P6** | Coordination vLOA derivata, `ReleasePanel` nell'editor vLOA, rotta vLOA unica | `VloaEditor`, `AppnPage`, `VloaEditorPage`, `mappa-pagine.md` |
 | **P7** | `DocumentSection.BeforeParentBody` + slot di resa nei tre viewer e nell'editor | migrazione EF, `DocumentSection`, `RawSection`/`SectionView`/`EditableSection`, `IEditingService`, `DocumentSectionsEditor`, `SectionBody`, `AccSectionBody`, `AppnPage`, `VloaDocumentView` |
+| **P8** | Coordinamenti: espanso il solo primo livello | `AccCoordinationView`, `AppCoordinationView` |
 
 Ogni passo: commit proprio, `dotnet build` verde, test aggiunti dove il comportamento è deterministico.
 
@@ -200,9 +211,10 @@ Ogni passo: commit proprio, `dotnet build` verde, test aggiunti dove il comporta
 - `DocumentSection.IsHidden`: round-trip editing → snapshot di release → viewer.
 - `LoadAppVipiAsync`/`ResolveForDocumentAsync`: un APP `Remotized` non ha identità documentale.
 
-**Esito test:** baseline 640 → **658 verde** (nuovi: `SectionKeysTests`, `AccEditorialFidelityTests`,
+**Esito test:** baseline 640 → **660 verde** (nuovi: `SectionKeysTests`, `AccEditorialFidelityTests`,
 `DocumentMaintenanceTests`, `AppDocumentSurfaceTests`, `CreateDraft_Preserves_Per_Section_Flags`,
-`Subsection_Position_Relative_To_The_Body_Survives_Assembly`, `SetSectionBeforeParentBody_Requires_A_Draft`).
+`Subsection_Position_Relative_To_The_Body_Survives_Assembly`, `SetSectionBeforeParentBody_Requires_A_Draft`,
+`CoordinationCollapseTests`).
 
 **Esito verifica live (2026-07-30, copia del `vipi.db` reale, Edge/puppeteer): 20/20.**
 Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"` residue),
@@ -221,6 +233,9 @@ Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"`
 5. ✅ `/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
 6. ✅ Editor vLOA: `#p-release` con Differenze / Pubblica ora / Programma al ciclo; nessun pulsante di blocco
    sulla sezione padre «Coordination»; la vecchia rotta `apps/vipi?vloa=` non serve più il documento.
+8. ✅ **P8** (§3h): vIPI ACC di LIBB → «Coordinamenti»: «ES» aperto, i 6 ACC sotto (Beograd, Brindisi, Greece,
+   Roma, Tirana, Zagreb) chiusi, 0/34 sottolivelli aperti; idem la vLOA in bozza («ES» e «Zagreb Radar» aperti,
+   0/8 interni). «Espandi tutto» continua ad aprire tutti e 34. Confermato anche sul ritaglio della sezione.
 7. ✅ **P7** (§3g): sotto-sezione «PREMESSA-ZZ» in «Aree regolamentate» del blocco Aerovia di LIBB — di default
    dopo il corpo; col comando «⤒ Prima del contenuto» passa sopra il pannello aree nell'**editor**, sopra la
    mappa/elenco in **bozza** e, dopo «Pubblica ora», anche in **pubblica** (lo snapshot conserva la posizione);

@@ -1,5 +1,8 @@
 @* Coordinamenti ACC: un'unica gerarchia Settore(NE) → ACC → Aeroporto → Arrivi/Partenze. *@
 @* English=true → stessa struttura con etichette in inglese (usato dalle vLOA, documenti bilaterali). *@
+@* All'apertura del documento è espanso il SOLO livello settore: dentro, un ACC ha decine di aeroporti e ognuno
+   arrivi+partenze, quindi tutto aperto seppelliva il resto del documento. I livelli interni si aprono a richiesta
+   (o in blocco con «Espandi tutto»); la stampa li apre comunque da sé (beforeprint in vipi-ui.js). *@
 <p class="muted" style="margin-top:0;font-size:13.5px">@Intro</p>
 
 @if (Coord.Sectors.Count == 0)
@@ -20,13 +23,13 @@
             @CoordTools()
             @foreach (var acc in s.Accs)
             {
-                <details class="coord-sub2" open>
+                <details class="coord-sub2">
                     <summary><span>@acc.AccLabel</span><span class="chev">▸</span></summary>
                     <div class="body">
                         @CoordTools()
                         @foreach (var ap in acc.Airports)
                         {
-                            <details class="coord-sub2" open>
+                            <details class="coord-sub2">
                                 <summary><span>@ap.AirportLabel</span><span class="chev">▸</span></summary>
                                 <div class="body">
                                     @if (ap.Arrivals.Count > 0)
@@ -44,7 +47,7 @@
                         }
                         @foreach (var ex in acc.Extras)
                         {
-                            <details class="coord-sub2" open>
+                            <details class="coord-sub2">
                                 <summary><span>@ex.KindLabel</span><span class="chev">▸</span></summary>
                                 <div class="body">
                                     @RenderTable(ex.Rows)

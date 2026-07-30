@@ -1,5 +1,6 @@
 @* Sezione Coordinamenti (derivata dai trasferimenti del settore APP): verso ACC (partenze+arrivi) · verso torri (solo arrivi). *@
 @* Nome del componente diverso dal DTO AppCoordination per evitare il mascheramento del tipo. *@
+@* Come nella vIPI ACC: aperto il solo primo livello (verso ACC / verso torri / sorvoli), dentro compresso. *@
 @inject IStringLocalizer<SharedResource> L
 <p class="muted" style="margin-top:0;font-size:13.5px">@L["AppCoord_Intro"]</p>
 
@@ -25,14 +26,14 @@
             @CoordTools
             @if (partenze.Count > 0)
             {
-                <details class="coord-sub2" open>
+                <details class="coord-sub2">
                     <summary><span>@L["Airport_Departures"]</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(partenze, showKind: false)</div>
                 </details>
             }
             @if (arrivi.Count > 0)
             {
-                <details class="coord-sub2" open>
+                <details class="coord-sub2">
                     <summary><span>@L["Airport_Arrivals"]</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(arrivi, showKind: false, lastCol: "From")</div>
                 </details>
@@ -49,7 +50,7 @@
             @CoordTools
             @foreach (var g in Coord.TowardTowers)
             {
-                <details class="coord-sub2" open>
+                <details class="coord-sub2">
                     <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(g.Rows, showKind: false)</div>
                 </details>
@@ -66,7 +67,7 @@
             @CoordTools
             @foreach (var g in Coord.Overflights)
             {
-                <details class="coord-sub2" open>
+                <details class="coord-sub2">
                     <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
                     <div class="body">@RenderTable(g.Rows, showKind: false)</div>
                 </details>
