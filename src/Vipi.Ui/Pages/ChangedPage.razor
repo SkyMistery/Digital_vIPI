@@ -37,7 +37,8 @@
                 <div class="chg-row">
                     <span class="chg-tag @(r.IsNew ? "add" : "mod")">@(r.IsNew ? L["Changed_New"] : L["Changed_Updated"])</span>
                     <div style="flex:1">
-                        <b>@r.DocTitle</b> <span class="muted">· @r.AccCode · v@r.VersionNumber</span>
+                        @* v@(...) con parentesi: «v@r.…» sarebbe letto da Razor come email ed emesso letterale. *@
+                        <b>@r.DocTitle</b> <span class="muted">· @r.AccCode · v@(r.VersionNumber)</span>
                         @if (!string.IsNullOrWhiteSpace(r.Note)) { <div class="muted">@r.Note</div> }
                         <div class="diff">
                             <span>@L["Changed_Sections"] @r.PrevSections → <b>@r.CurrSections</b></span> ·

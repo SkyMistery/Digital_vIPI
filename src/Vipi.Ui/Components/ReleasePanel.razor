@@ -34,7 +34,9 @@
                 <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                 <div style="flex:1">
                     <b>@Label(r)</b>
-                    <div class="vmeta">rel. v@r.VersionNumber · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                    @* v@(...) con parentesi: senza, Razor legge «v@r.VersionNumber» come indirizzo email e lo
+                       emette LETTERALE (la @ fra due caratteri non-spazio non apre un'espressione). *@
+                    <div class="vmeta">rel. v@(r.VersionNumber) · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                 </div>
                 <span class="vact">
                     @{ var previewUrl = PreviewFor(r.Id); }

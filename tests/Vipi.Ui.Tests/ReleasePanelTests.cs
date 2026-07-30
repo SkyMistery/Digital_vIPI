@@ -136,6 +136,20 @@ public class ReleasePanelTests : TestContext
     }
 
     [Fact]
+    public void Il_Numero_Di_Versione_Viene_Valutato_Non_Stampato_Come_Testo()
+    {
+        // Trovato guidando l'app: scritto «v@r.VersionNumber», Razor legge «v@r.…» come indirizzo email (la @ fra
+        // due caratteri non-spazio non apre un'espressione) e lo emette LETTERALE — a schermo compariva
+        // «rel. v@r.VersionNumber». Serve la forma con parentesi «v@(r.VersionNumber)».
+        Arrange(Rel(1));
+
+        var cut = Render();
+
+        Assert.DoesNotContain("@r.VersionNumber", cut.Markup);
+        Assert.Contains("rel. v3", cut.Markup);   // VersionNumber = 3 in Rel()
+    }
+
+    [Fact]
     public void Diff_E_Annulla_Sono_Opt_In()
     {
         Arrange(Rel(1));

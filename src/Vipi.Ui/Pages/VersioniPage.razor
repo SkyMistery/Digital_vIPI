@@ -406,7 +406,8 @@
             foreach (var v in vers)
             {
                 <div class="ver-row @(v.IsCurrent ? "current" : "")">
-                    <span class="vb">v@v.VersionNumber</span>
+                    @* v@(...) con parentesi: «v@v.…» sarebbe letto da Razor come email ed emesso letterale. *@
+                    <span class="vb">v@(v.VersionNumber)</span>
                     <div>
                         <b>@StatusLabel(v.Status)</b>
                         @if (v.IsCurrent) { <span class="pill green">@L["Ver_Current"]</span> }
@@ -463,7 +464,7 @@
                         <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
                         <div>
                             <b>@ReleaseLabel(r)</b>
-                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">rel. v@r.VersionNumber · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">rel. v@(r.VersionNumber) · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                         </div>
                         <span class="vact">
                             <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
