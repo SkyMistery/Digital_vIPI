@@ -22,8 +22,13 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
 
     public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
     {
+        // Stessa superficie del viewer (doc 11 §3e): SOLO gli APP non remotizzati hanno un documento proprio.
+        // Prima bastava Type == App, quindi l'editor apriva (e creava un Document per) un APP REMOTIZZATO: documento
+        // che nessun viewer sa rendere («APP not found» in pubblica e in bozza). NON si filtra su IsPrimary: quel
+        // flag lo mette la creazione del documento, quindi pretenderlo qui bloccherebbe il primo documento.
         var s = await _db.Sectors.AsNoTracking().Include(x => x.Acc)
-            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App, ct);
+            .FirstOrDefaultAsync(x => x.Callsign == appCallsign && x.Type == SectorType.App
+                                      && x.ApproachKind == ApproachKind.Standalone, ct);
         if (s is null || s.Acc is null) return null;
 
         // Titolo = nome IVAO (AtcCallsign, es. "Palermo Approach") dal catalogo, fallback al nome settore, poi callsign.

@@ -111,10 +111,10 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
         var id = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct)
-            ?? throw new Aor.ValidationException($"APP {Norm(appCallsign)} inesistente.");
-        if (id.DocumentId is int existing) return existing;   // già migrato
-
+            ?? throw new Aor.ValidationException($"{Norm(appCallsign)} non è un APP non remotizzato.");
+        // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         await _authz.EnsureCanEditAccAsync(id.AccCode, ct);
+        if (id.DocumentId is int existing) return existing;   // già migrato
         var sections = SectionCatalog.For(SectionProfile.App).Select(d => (d.Key, d.Title)).ToList();
         return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, sections,
             _authz.CurrentUserId ?? 0, LiveKeys, ct);

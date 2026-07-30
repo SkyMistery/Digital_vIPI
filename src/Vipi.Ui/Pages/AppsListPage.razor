@@ -90,7 +90,10 @@ else
             .ToDictionary(g => g.Key, g =>
             {
                 var m = g.First();
-                return m.IsHidden ? AppState.Hidden : m.IsPublished ? AppState.Published : AppState.Draft;
+                // Visibilità pubblica = release AIRAC effettiva (doc 10 §3f, doc 11 §3e), la stessa regola della
+                // pagina: prima l'elenco guardava lo stato del Document, quindi un APP servito al pubblico poteva
+                // comparire qui come bozza e linkare all'editor invece che al documento.
+                return m.IsHidden ? AppState.Hidden : m.HasEffectiveRelease ? AppState.Published : AppState.Draft;
             }, StringComparer.OrdinalIgnoreCase);
 
         // APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC).
