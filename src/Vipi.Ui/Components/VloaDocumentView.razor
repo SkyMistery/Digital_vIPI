@@ -20,15 +20,20 @@
     </aside>
 
     <div>
+        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle"
+                   Subtitle="@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)" />
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
                 <span class="muted">@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)</span>
             </div>
-            @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
-            {
-                <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">@L["Common_Editor"]</a>
-            }
+            <div style="display:flex;align-items:center;gap:10px">
+                <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
+                @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
+                {
+                    <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">@L["Common_Editor"]</a>
+                }
+            </div>
         </div>
         <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
 

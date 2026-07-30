@@ -57,7 +57,16 @@
   /* PreviewBanner (bozza / anteprima release) e DocReviewBar restano stampati: una copia cartacea non deve
      poter passare per pubblicata. Sono `.callout`, che non nascondiamo. */
 
+  /* ── Intestazione di stampa (PrintMeta) ────────────────────────────────────────
+     Rimpiazza il chrome nascosto: dà al foglio titolo, ambito, ciclo AIRAC, ora e indirizzo. Il `.doc-head`
+     che la segue si nasconde per non ripetere il titolo (PrintMeta va sempre subito prima). */
   .print-only { display: block !important; }
+  .vipi-root .print-meta + .doc-head { display: none !important; }
+  .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
+  .vipi-root .print-meta .pm-title { margin: 0; font-size: 17pt; color: var(--ivao-blue); }
+  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 10pt; color: #444; }
+  .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: #555; }
+  .vipi-root .print-meta .pm-url { word-break: break-all; }
 
   /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
   .vipi-root .wrap { max-width: none !important; padding: 0 !important; }

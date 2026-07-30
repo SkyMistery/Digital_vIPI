@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -1165,4 +1165,6 @@
   <data name="Ape_IssueRuleNoRw" xml:space="preserve"><value>Regola #{0}: seleziona almeno una pista DEP o ARR.</value></data>
   <data name="Ape_IssueRuleUnknownRw" xml:space="preserve"><value>Regola #{0}: pista «{1}» non è tra le piste dell'aeroporto.</value></data>
   <data name="Ape_IssueRuleTimeWin" xml:space="preserve"><value>Regola #{0}: finestra orario incompleta (manca inizio o fine).</value></data>
+  <data name="Common_Print" xml:space="preserve"><value>Stampa</value></data>
+  <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Stampato il</value></data>
 </root>

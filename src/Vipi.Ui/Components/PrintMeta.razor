@@ -1,0 +1,38 @@
+@* Intestazione di SOLA STAMPA (classe .print-only, vedi vipi-print.css): a schermo non esiste, sul foglio dà
+   al documento l'identità che il chrome nascosto (topbar, briciole, riepilogo del rail) non può più dare —
+   titolo, ambito, ciclo AIRAC, quando è stato stampato e da quale indirizzo.
+
+   Compare solo sulla PRIMA pagina: un'intestazione ripetuta a ogni foglio non è ottenibile in CSS puro in modo
+   uniforme tra i browser. Numero di pagina e totale li aggiunge il browser stesso.
+
+   L'ora è quella di render lato server (UTC): `vipi-ui.js` la riscrive col momento reale della stampa su
+   'beforeprint' (span [data-print-time]), così una pagina rimasta aperta a lungo non stampa un orario vecchio. *@
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+
+<div class="print-only print-meta">
+    <h1 class="pm-title">@Title</h1>
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+        <p class="pm-sub">@Subtitle</p>
+    }
+    <p class="pm-line">
+        @if (!string.IsNullOrWhiteSpace(AiracCycle))
+        {
+            <span>@L["Common_AiracCycle"]: <b>@AiracCycle</b></span>
+        }
+        <span>@L["Print_PrintedAtLabel"] <span data-print-time>@DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm'Z'")</span></span>
+        <span class="pm-url">@Nav.Uri</span>
+    </p>
+</div>
+
+@code {
+    /// <summary>Titolo del documento (es. «LIRF — Roma Fiumicino», «vIPI — Roma»).</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+
+    /// <summary>Riga di contesto sotto il titolo (ACC, tipo di documento).</summary>
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Ciclo AIRAC del documento stampato; omesso se sconosciuto.</summary>
+    [Parameter] public string? AiracCycle { get; set; }
+}

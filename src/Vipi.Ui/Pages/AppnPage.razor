@@ -59,9 +59,12 @@ else
                 </ul>
             </aside>
             <div>
+                <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {L["Appn_Subtitle"]}")"
+                           AiracCycle="@(_relCycle ?? Airac.GetCycle(DateTime.UtcNow))" />
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
+                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                         <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa-app?app=@_app">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {

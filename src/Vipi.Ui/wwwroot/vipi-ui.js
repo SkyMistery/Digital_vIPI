@@ -186,7 +186,17 @@
         printWired = true;
         var closed = [];
 
+        function stampTime() {
+            // L'intestazione PrintMeta porta l'ora di render lato server: qui la sostituiamo con quella reale di
+            // stampa (UTC, stesso formato), così una pagina rimasta aperta a lungo non stampa un orario vecchio.
+            var now = new Date().toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+            document.querySelectorAll('.print-meta [data-print-time]').forEach(function (el) {
+                el.textContent = now;
+            });
+        }
+
         function expand() {
+            stampTime();
             closed = [];
             suppressPersist = true;
             document.querySelectorAll('details:not([open])').forEach(function (d) {

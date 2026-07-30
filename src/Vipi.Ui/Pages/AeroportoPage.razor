@@ -94,12 +94,17 @@ else
             </aside>
 
             <div>
+                <PrintMeta Title="@_view.Title" Subtitle="@($"{L["Airport_SubtitlePrefix"]} · {_acc.Name}")"
+                           AiracCycle="@(_relCycle ?? _view.AiracCycle)" />
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">@L["Airport_SubtitlePrefix"] · @_acc.Name</span></div>
-                    @if (_canEdit)
-                    {
-                        <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">@L["Common_Editor"]</a>
-                    }
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
+                        @if (_canEdit)
+                        {
+                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">@L["Common_Editor"]</a>
+                        }
+                    </div>
                 </div>
 
                 @if (_mode.IsPreview)
