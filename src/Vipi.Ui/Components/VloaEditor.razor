@@ -272,6 +272,12 @@ else
                 @FreqView()
                 break;
             case "coordination":
+                // La sezione PADRE non porta una direzione: le due direzioni sono le sue SOTTO-sezioni, rese qui
+                // sotto dall'editor condiviso. Renderla come se fosse una direzione duplicava l'albero — e per
+                // giunta quello sbagliato: il titolo «Coordination» non inizia col codice Home, quindi cadeva
+                // sempre su ForeignToHome. (Nel viewer è il padre a rendere ENTRAMBE le direzioni e le figlie non
+                // si rendono: là la sequenza è un'altra.)
+                if (s.Depth == 0) break;
                 var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
                 <AccCoordinationView Coord="@(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
                 break;

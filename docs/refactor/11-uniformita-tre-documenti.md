@@ -155,6 +155,11 @@ dell'early-return.
 ### 3f. Uniformità di superficie (B3, B5, B6)
 - La sezione padre «Coordination» della vLOA è **derivata** (come nel viewer): l'editor non offre più
   blocchi lì (`IsDerived` include `coordination` a qualsiasi profondità).
+  ⚠️ La sezione padre resta però **senza corpo proprio** nell'editor: le due direzioni sono le sue *sotto-sezioni*.
+  Renderla come se fosse una direzione duplica l'albero — e per giunta quello sbagliato, perché il titolo
+  «Coordination» non inizia col codice Home e il confronto cade sempre su `ForeignToHome`. Regressione introdotta
+  qui e corretta a valle della verifica live (l'albero «Zagreb Radar» compariva fuori *e* dentro «LDZO → LIBB»).
+  Nel **viewer** la sequenza è opposta: è il padre a rendere entrambe le direzioni e le figlie non si rendono.
 - `ReleasePanel` (target `Vloa`, chiave = `docId`) entra in `VloaEditor`, come negli altri due editor.
 - La rotta `/vsop/{acc}/apps/vipi?vloa=` viene **rimossa**: la vLOA ha una rotta sola,
   `/vsop/{acc}/vloa?acc=`. Link dell'editor e `PreviewBanner` puntano lì.

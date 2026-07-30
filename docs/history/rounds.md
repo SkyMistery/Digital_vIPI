@@ -751,3 +751,8 @@ suo**. Sei passi, suite 640 → **657 verde**, verifica live **20/20**.
   stato persistito: è una proprietà del tipo di sezione, non una scelta editoriale. Vale **ovunque, viewer ed
   editor** (11 contesti verificati): un primo giro aveva escluso gli editor, ma la regola a metà rendeva quella
   sezione l'unica a comportarsi in modo diverso fra documento ed editing.
+- **Fix a valle della verifica live (P6)**: rendere `coordination` derivata *a qualsiasi profondità* aveva un
+  effetto collaterale nell'editor vLOA — la sezione **padre** «Coordination» finiva a rendere una direzione
+  (sempre `ForeignToHome`, perché il titolo non inizia col codice Home), quindi l'albero del vicino compariva
+  **fuori** dalle sotto-sezioni *e* dentro «LDZO → LIBB». Ora il padre non ha corpo proprio: le direzioni sono
+  le sue sotto-sezioni. Nel viewer la sequenza è opposta (il padre rende entrambe, le figlie no) ed era corretta.
