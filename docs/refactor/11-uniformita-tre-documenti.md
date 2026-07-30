@@ -200,6 +200,22 @@ L'editor espone il toggle sull'intestazione della sotto-sezione, accanto ai cont
 
 Default `false` ⇒ nessuna migrazione dati: i documenti esistenti restano come sono.
 
+## 3bis. Non-problemi verificati (per non "aggiustarli" in futuro)
+
+In verifica live sono emerse due apparenti duplicazioni nei **coordinamenti**. Nessuna delle due è un difetto:
+verificate sul DB reale il 2026-07-30 e lasciate come sono (decisione owner).
+
+1. **Righe identiche sotto aeroporti diversi nella vLOA.** In `LYBA → LIBB` la riga `CRAYE / FL190 /
+   LIBB_ES_CTR` compare due volte: sono **due `TransferFlow` distinti** di `LYTV_APP`, uno per gli arrivi a
+   **LIBD** e uno per quelli a **LIBR**. L'albero *Settore → ACC → Aeroporto* li mostra separati, com'è
+   progettato. Stesso schema su LGGG e LDZO. Accorpare le righe o togliere il livello aeroporto nella vLOA è
+   stato **valutato e scartato**: sono coordinamenti distinti e il documento li deve distinguere.
+2. **Due punti con lo stesso CoP nello stesso flusso.** Il flusso 45 (`LIBB_ES_CTR`, arrivi a LIBD) ha due punti
+   `BIRSU`: uno **≤ FL150, pari, livellato, pista 07**; l'altro **≤ FL130, in discesa, pista 25 + area LI R403B**.
+   Sono le due configurazioni di pista di Bari — il modello di condizione multi-pista+area, non un doppione.
+   ⚠️ Una query che raggruppa per `(FlowId, Cop, NextSectorId)` **ignorando livello e condizione** li segnala
+   come duplicati: è un falso positivo, capitato durante questa stessa verifica.
+
 ## 4. Passi di migrazione
 
 | # | Passo | Tocca |
