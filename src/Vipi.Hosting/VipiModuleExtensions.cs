@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,12 @@ public static class VipiModuleExtensions
 {
     /// <summary>Assembly della RCL vIPI: passarlo a <c>AddAdditionalAssemblies(...)</c> nell'host.</summary>
     public static Assembly UiAssembly => typeof(Vipi.Ui.Pages.SopHome).Assembly;
+
+    /// <summary>Tag della sonda economica (<c>/vsop/health/ready</c>): solo le condizioni critiche.</summary>
+    public const string ReadinessTag = "ready";
+
+    /// <summary>Tag del quadro completo (<c>/vsop/health</c>): include il report di consistenza, che costa.</summary>
+    public const string FullTag = "full";
 
     /// <summary>
     /// Registra tutti i servizi del modulo (Application, Infrastructure/EF, polling IVAO, opzioni,
@@ -85,8 +92,13 @@ public static class VipiModuleExtensions
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
 
-        // Health check del modulo (DB + freschezza cache ATC).
-        services.AddHealthChecks().AddCheck<VipiHealthCheck>("vipi");
+        // Health check del modulo, in due tagli. «ready» è la sonda economica per l'orchestratore (due query);
+        // «full» aggiunge il report di consistenza, che fa scansioni complete → solo su richiesta di un umano.
+        // VipiReadinessCheck è anche un servizio a sé perché VipiHealthCheck lo riusa per le condizioni critiche.
+        services.AddScoped<VipiReadinessCheck>();
+        services.AddHealthChecks()
+            .AddCheck<VipiReadinessCheck>("vipi-ready", tags: new[] { ReadinessTag })
+            .AddCheck<VipiHealthCheck>("vipi", tags: new[] { FullTag });
 
         // Localizzazione: risorse condivise in Vipi.Ui/Resources (it default, en). Incrementale.
         services.AddLocalization(o => o.ResourcesPath = "Resources");
@@ -111,7 +123,17 @@ public static class VipiModuleExtensions
     /// <summary>Endpoint del modulo: stream live SSE dell'ATC online (read-only).</summary>
     public static IEndpointRouteBuilder MapVipiModule(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapHealthChecks("/vsop/health");
+        // Quadro completo (DB + schema + consistenza dati + freschezza ATC): lo apre un umano.
+        endpoints.MapHealthChecks("/vsop/health", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains(FullTag),
+        });
+        // Sonda per l'orchestratore (healthCheckPath di Render): solo le condizioni critiche, due query.
+        // Ripetuta di continuo, quindi NON deve tirarsi dietro il report di consistenza.
+        endpoints.MapHealthChecks("/vsop/health/ready", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains(ReadinessTag),
+        });
 
         // F3: transport live SSE. Emette un evento a ogni cambio della cache ATC (+ heartbeat anti-timeout).
         // ADR-0003. Read-only, nessun dato sensibile.

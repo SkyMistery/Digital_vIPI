@@ -29,6 +29,19 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
+    /// <summary>
+    /// La sonda economica per l'orchestratore (healthCheckPath di Render). Deve esistere ed essere Healthy: a
+    /// differenza di /vsop/health non guarda la cache ATC, che nei test è vuota e degraderebbe l'esito.
+    /// </summary>
+    [Fact]
+    public async Task Readiness_endpoint_is_healthy()
+    {
+        var client = _factory.CreateClient();
+        var res = await client.GetAsync("/vsop/health/ready");
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        Assert.Equal("Healthy", await res.Content.ReadAsStringAsync());
+    }
+
     [Fact]
     public async Task Landing_page_renders()
     {

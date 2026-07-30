@@ -18,6 +18,16 @@ public class VipiHealthCheckTests
     [InlineData(null, true)]                                        // provider ignoto: si controlla, meglio un falso allarme che un buco
     public void UsesEfMigrations_only_outside_postgres(string? providerName, bool expected)
     {
-        Assert.Equal(expected, VipiHealthCheck.UsesEfMigrations(providerName));
+        Assert.Equal(expected, VipiReadinessCheck.UsesEfMigrations(providerName));
+    }
+
+    /// <summary>
+    /// I due endpoint devono restare distinti: se i tag coincidessero, /vsop/health/ready si tirerebbe dietro il
+    /// report di consistenza e la sonda dell'orchestratore tornerebbe a costare scansioni complete.
+    /// </summary>
+    [Fact]
+    public void Readiness_and_full_are_distinct_tags()
+    {
+        Assert.NotEqual(VipiModuleExtensions.ReadinessTag, VipiModuleExtensions.FullTag);
     }
 }

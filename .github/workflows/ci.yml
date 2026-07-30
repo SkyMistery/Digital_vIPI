@@ -31,10 +31,11 @@ jobs:
             -e VipiAuth__Enabled=false \
             -e ConnectionStrings__Vipi="Data Source=/tmp/vipi.db" \
             vipi:ci
-          # /vsop/health risponde 200 su Healthy e Degraded, 503 su Unhealthy (DB irraggiungibile o
-          # migrazioni pendenti): -f rende il curl il vero criterio di successo.
+          # Stesso endpoint che sonda Render: 200 se il DB risponde e lo schema è allineato, 503 altrimenti.
+          # -f rende il curl il vero criterio di successo. Non si usa /vsop/health perché degraderebbe per la
+          # cache ATC vuota (nessuna credenziale IVAO in CI), che qui non è un difetto.
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/vsop/health; then echo; echo "container su"; exit 0; fi
+            if curl -fsS http://localhost:8080/vsop/health/ready; then echo; echo "container su"; exit 0; fi
             sleep 2
           done
           echo "il container non ha risposto in 60s"
