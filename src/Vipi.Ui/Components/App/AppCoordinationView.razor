@@ -96,11 +96,14 @@
             <p class="coord-sentence">@r.Sentence</p>
         }
         var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
-        <table>
+        @* Le classi c-* sulle intestazioni fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel
+           tema): «Flusso» e «Condizione» sono opzionali, quindi la stessa colonna cade in posizioni diverse da
+           una tabella all'altra e larghezze per posizione non allineerebbero nulla. *@
+        <table class="coord-table">
             <thead>
                 <tr>
-                    @if (showKind) { <th>@L["AppCoord_Flow"]</th> }
-                    <th>CoP</th><th>@L["AppCoord_Level"]</th><th>@lastCol</th>@if (hasCond) { <th>@L["AppCoord_Condition"]</th> }
+                    @if (showKind) { <th class="c-flow">@L["AppCoord_Flow"]</th> }
+                    <th class="c-cop">CoP</th><th class="c-level">@L["AppCoord_Level"]</th><th class="c-next">@lastCol</th>@if (hasCond) { <th class="c-cond">@L["AppCoord_Condition"]</th> }
                 </tr>
             </thead>
             <tbody>

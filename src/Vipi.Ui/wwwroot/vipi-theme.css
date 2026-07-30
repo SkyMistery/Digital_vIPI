@@ -366,6 +366,17 @@
 /* frase di coordinamento (una per riga CoP), sopra la tabella */
 .coord-sentence{font-size:14px;line-height:1.45;margin:0 0 8px;color:var(--ink)}
 .coord-sentence+table{margin-top:4px}
+/* Tabelle dei coordinamenti: sono decine (una per aeroporto/flusso) e con set di colonne variabile — «Flusso» e
+   «Condizione» compaiono solo se ci sono dati. Con table-layout:auto ognuna si dimensionava sul proprio
+   contenuto, quindi le stesse colonne uscivano larghe in modo diverso da una tabella all'altra (a schermo e in
+   stampa). Larghezze fisse per colonna SEMANTICA (classe c-* sul th, non la posizione): «Prossimo» non ha
+   larghezza e prende il resto. */
+.coord-table{table-layout:fixed}
+.coord-table th.c-flow{width:13%}
+.coord-table th.c-cop{width:17%}
+.coord-table th.c-level{width:13%}
+.coord-table th.c-cond{width:27%}
+.coord-table th,.coord-table td{overflow-wrap:break-word}
 /* tip operativo (stile riquadro centrato) */
 .tip{background:#0a1f6b;color:#cdd6ff;border-radius:12px;padding:18px 22px;margin:16px 0;text-align:center;font-style:italic;font-size:13.5px;line-height:1.5}
 .tip p{margin:8px 0}

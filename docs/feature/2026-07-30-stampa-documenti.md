@@ -128,6 +128,18 @@ Tre correzioni nate dalla verifica:
   `Components/App/AccSectionBody.razor`, `Components/Blocks/AorBlock.razor`,
   `src/Vipi.Ui/Resources/SharedResource{,.en}.resx`, `docs/design/piano-vipi-tool.md`, `HANDOFF.md`.
 
+## Tabelle dei coordinamenti: larghezze uniformi (schermo **e** stampa)
+Le colonne cambiavano larghezza da una tabella all'altra. Causa: `<table>` senza larghezze specificate →
+`table-layout: auto`, quindi ogni tabella si dimensiona sul **proprio** contenuto, e i coordinamenti di una ACC
+sono decine di tabelle (una per aeroporto/flusso). Misurato su LIBB: **19 combinazioni** di larghezze diverse.
+
+Fix: classi per colonna **semantica** sulle intestazioni (`c-flow`, `c-cop`, `c-level`, `c-next`, `c-cond`) +
+`.coord-table { table-layout: fixed }` con larghezze fisse in percentuale; «Prossimo» non ha larghezza e prende
+il resto. Le classi servono perché «Flusso» e «Condizione» compaiono solo se ci sono dati: la stessa colonna
+cade in **posizioni diverse** da una tabella all'altra, quindi regole per posizione non allineerebbero nulla.
+Verificato live: 31 tabelle, **1 sola** combinazione di larghezze (schermo 124/95/510, stampa 114/87/469); +1
+pagina sul vIPI ACC (28 → 29) perché le colonne fisse mandano a capo qualche cella in più.
+
 ## Refuso corretto strada facendo
 La legenda piste usciva «recommended**from** the METAR wind» / «consigliati**dal** vento METAR», a schermo e in
 stampa: **Razor scarta il testo di sola spaziatura che precede un blocco di codice** — e lo scarta anche se lo
