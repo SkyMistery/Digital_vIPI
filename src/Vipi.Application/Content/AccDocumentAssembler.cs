@@ -56,7 +56,6 @@ public static class AccDocumentAssembler
             // BodyJson contiene invece l'AccAorView renderizzato: Deserialize<AorExtraShapes> ignora i campi estranei →
             // liste vuote (ok: la vista frozen usa lo snapshot congelato, non ri-deriva).
             var aorCustom = Deserialize<AorExtraShapes>(ChildBodyJson(blockSection, "aor")) ?? new();
-            var customs = CustomSectionsOf(blockSection);
 
             var block = new AccBlock
             {
@@ -73,29 +72,52 @@ public static class AccDocumentAssembler
                 Regulated = regulated,
                 Separations = separations,
                 VfrJson = vfrJson,
-                CustomSections = customs,
-                SectionOrder = blockSection.Children.OrderBy(c => c.Order).Select(c => c.SectionKey).ToList(),
+                Sections = SectionsOf(blockSection, kind),
             };
             result.Add(new AccAssembledBlock(blockSection.Id, block, childIds));
         }
         return result;
     }
 
-    // Chiavi rese in modo speciale (derivate o editoriali-strutturate): NON sono sezioni custom editoriali generiche.
-    private static readonly HashSet<string> StructuredKeys = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
-
-    // Sezioni editoriali generiche del blocco (operationaltechnique/validity/custom:*): figli con chiave non-strutturata,
-    // rese come AppCustomSection (prosa dai blocchi). Preserva l'ordine; la chiave = SectionKey del figlio.
-    private static List<AppCustomSection> CustomSectionsOf(EditableSection blockSection) =>
-        blockSection.Children.OrderBy(c => c.Order)
-            .Where(c => !StructuredKeys.Contains(c.SectionKey))
-            .Select(c => new AppCustomSection(c.SectionKey, c.Title,
-                c.Blocks.OrderBy(b => b.Order)
-                    .Where(b => !string.IsNullOrWhiteSpace(b.Body))
-                    .Select(b => new AppCustomBlock(AppCustomBlockType.Prose, b.Body, null, null))
-                    .ToList()))
+    // Sezioni del blocco nell'ordine del documento (doc 11 §3b). Ogni voce porta anche la vista editoriale
+    // (blocchi + sotto-sezioni) per la resa condivisa: prima le sezioni libere erano appiattite a sola prosa —
+    // tabelle, callout e sotto-sezioni sparivano dal documento pubblicato.
+    private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind)
+    {
+        var sections = blockSection.Children.OrderBy(c => c.Order)
+            .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, ToSectionView(c)))
             .ToList();
+
+        // Documenti vecchi (o snapshot) senza una sezione-catalogo: la si accoda comunque, così le derivate
+        // (frequenze/AoR/coordinamenti) restano visibili come prima della riconciliazione d'ordine.
+        var profile = kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
+        var present = sections.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
+            if (!present.Contains(desc.Key))
+                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, null));
+
+        return sections;
+    }
+
+    /// <summary>Vista di resa (blocchi + sotto-sezioni ricorsive) di una sezione del documento. Nessun filtro per
+    /// Tier: la vIPI ACC non ha mai avuto una vista ridotta per blocco, quindi tutti i blocchi sono in stato pieno.</summary>
+    private static SectionView ToSectionView(EditableSection s) => new()
+    {
+        Id = $"s-{s.Id}",
+        Title = s.Title,
+        Depth = s.Depth,
+        SectionKey = s.SectionKey,
+        Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new BlockView
+        {
+            Id = b.Id,
+            Format = b.Format,
+            State = RenderState.Expanded,
+            Body = b.Body,
+            BodyJson = b.BodyJson,
+            CalloutKind = b.CalloutKind,
+        }).ToList(),
+        Children = s.Children.OrderBy(c => c.Order).Select(ToSectionView).ToList(),
+    };
 
     // BodyJson del blocco proprio della sezione (blockmeta): primo blocco della sezione-blocco stessa.
     private static string? OwnBodyJson(EditableSection s) => s.Blocks.OrderBy(b => b.Order).FirstOrDefault()?.BodyJson;

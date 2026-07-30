@@ -108,7 +108,6 @@ public sealed class VipiViewService : IVipiViewService
 
         var sections = raw.Roots
             .Select(s => Map(s, renders))
-            .OfType<SectionView>()
             .ToList();
 
         return new DocumentView { Title = raw.Title, AiracCycle = raw.AiracCycle, Sections = sections };
@@ -122,11 +121,11 @@ public sealed class VipiViewService : IVipiViewService
                 yield return d;
     }
 
-    /// <summary>Mappa una sezione grezza in SectionView; ritorna null se vuota (nessun blocco tenuto, nessun figlio) —
-    /// SALVO le sezioni DERIVATE (es. <c>sids</c>), che per contratto hanno Blocks/figli vuoti nello snapshot e il cui
-    /// contenuto è materializzato a view-time dalla pagina per SectionKey: vanno preservate come àncora, altrimenti la
-    /// pagina non le trova e la sezione (con le SID derivate) sparisce del tutto.</summary>
-    private static SectionView? Map(RawSection s, IReadOnlyDictionary<int, BlockRender> renders)
+    /// <summary>Mappa una sezione grezza in SectionView. Nessuna sezione viene scartata: una sezione esiste perché
+    /// l'editore l'ha creata, quindi deve comparire anche vuota (doc 11 §3b) — prima le sezioni senza blocchi né figli
+    /// sparivano dalla bozza subito dopo essere state create, e le DERIVATE (es. <c>sids</c>) erano l'unica eccezione
+    /// esplicita. Restano filtrati solo i blocchi fuori Tier.</summary>
+    private static SectionView Map(RawSection s, IReadOnlyDictionary<int, BlockRender> renders)
     {
         var blocks = s.Blocks
             .Where(b => renders.ContainsKey(b.Id))         // filtrati per Tier
@@ -150,11 +149,7 @@ public sealed class VipiViewService : IVipiViewService
         var children = s.Children
             .OrderBy(c => c.Order)
             .Select(c => Map(c, renders))
-            .OfType<SectionView>()
             .ToList();
-
-        if (blocks.Count == 0 && children.Count == 0 && SectionCatalog.KindOf(s.SectionKey) != SectionKind.Derived)
-            return null;
 
         return new SectionView
         {

@@ -1,7 +1,7 @@
 namespace Vipi.Application.Content;
 
 // Modelli della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Riusa i record editoriali/derivati
-// dell'APP (AppSeparationRow, AppCustomSection, AppFreqOrderOverride, AppFreqRow, AppCoordination, AppAorPolygon).
+// dell'APP (AppSeparationRow, AppFreqOrderOverride, AppFreqRow, AppCoordination, AppAorPolygon).
 
 /// <summary>Tipo di blocco della vIPI ACC.</summary>
 public enum AccBlockKind { Aerovia, AppGroup }
@@ -25,6 +25,13 @@ public sealed class AccConfiguration
 }
 
 /// <summary>
+/// Una sezione di un blocco vIPI ACC, nell'ordine del documento (doc 11 §3b). <see cref="Editorial"/> porta i
+/// blocchi e le sotto-sezioni già pronti per la resa condivisa (<c>SectionNode</c>/<c>SectionBody</c>): per le
+/// sezioni strutturate (aor/frequenze/…) il corpo lo produce la pagina, ma le sotto-sezioni restano qui.
+/// </summary>
+public sealed record AccBlockSection(int SectionId, string Key, string Title, SectionView? Editorial);
+
+/// <summary>
 /// Un blocco della vIPI ACC: Aerovia (settori CTR, pool implicito) o gruppo-APP (settori APP scelti).
 /// Contiene lo stato editoriale (sezioni/override) + le configurazioni che guidano l'AoR.
 /// </summary>
@@ -37,9 +44,12 @@ public sealed class AccBlock
     /// <summary>Settori membri (callsign). Aerovia: vuoto = tutti i CTR dell'ACC. Gruppo-APP: gli APP scelti.</summary>
     public List<string> MemberCallsigns { get; set; } = new();
 
-    public List<string> SectionOrder { get; set; } = new();
+    /// <summary>Sezioni del blocco NELL'ORDINE del documento (doc 11 §3b): il viewer itera questa lista, non un
+    /// elenco di chiavi. Le sezioni-catalogo eventualmente assenti dai documenti vecchi sono accodate al loro posto
+    /// con <c>SectionId = 0</c>.</summary>
+    public List<AccBlockSection> Sections { get; set; } = new();
+
     public List<string> HiddenSections { get; set; } = new();
-    public List<AppCustomSection> CustomSections { get; set; } = new();
     public List<AccConfiguration> Configurations { get; set; } = new();
 
     /// <summary>Callsign di settori DB (anche esteri) aggiunti a mano come shape AoR extra: appesi come anelli

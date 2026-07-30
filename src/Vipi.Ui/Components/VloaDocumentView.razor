@@ -45,11 +45,11 @@
             }
             else if (_derive && s.SectionKey == "aor")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadAor()</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadAor()@SubSections(s)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "frequencies")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadFreq()</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@ReadFreq()@SubSections(s)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "coordination")
             {
@@ -66,6 +66,7 @@
                             <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
                             <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                         }
+                        @SubSections(s)
                     </ChildContent>
                 </CollapsibleBlock>
             }
@@ -136,6 +137,14 @@
     }
 
     private bool IsHidden(SectionView s) => _hidden.Contains(s.Title);
+
+    // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
+    // pur essendo creabili dall'editor con «+ sotto-sez». I blocchi della sezione derivata NON si rendono
+    // (portano il payload, non contenuto).
+    private RenderFragment SubSections(SectionView s) => __builder =>
+    {
+        @if (s.Children.Count > 0) { <SectionBody Section="s" ShowBlocks="false" /> }
+    };
 
     // ATC online di un ACC (testa callsign = codice ACC, es. LIMM_CTR / LFMM_N_CTR).
     private int OnlineOf(string code) =>

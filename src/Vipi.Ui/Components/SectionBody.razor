@@ -1,0 +1,38 @@
+@* Corpo di una sezione documentale CONDIVISO (doc 11 §3b): blocchi (con strip «compresso») + sotto-sezioni
+   ricorsive. Lo usa SectionNode (che aggiunge la card/il <details>) e lo usano i viewer che l'involucro se lo
+   fanno da sé — la vIPI ACC, che apre già una CollapsibleBlock per ogni sezione. Con ShowBlocks="false" rende
+   SOLO le sotto-sezioni: serve alle sezioni DERIVATE, il cui blocco porta il payload JSON e non è contenuto. *@
+
+@if (ShowBlocks)
+{
+    @foreach (var block in Section.Blocks)
+    {
+        @if (block.State == RenderState.Collapsed)
+        {
+            <details class="collapsed-strip">
+                <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
+                <BlockRenderer Block="block" />
+            </details>
+        }
+        else
+        {
+            <BlockRenderer Block="block" />
+        }
+    }
+}
+
+@foreach (var child in Section.Children)
+{
+    <SectionNode Section="child" DepthOffset="DepthOffset" />
+}
+
+@code {
+    [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
+
+    /// <summary>Rende i blocchi della sezione. False per le sezioni derivate (blocco = payload, non contenuto).</summary>
+    [Parameter] public bool ShowBlocks { get; set; } = true;
+
+    /// <summary>Scostamento di profondità per la resa delle sotto-sezioni: la vIPI ACC ospita le sezioni a
+    /// <c>Depth 1</c> (figlie della sezione-blocco) ma le mostra come sezioni di primo livello, quindi passa -1.</summary>
+    [Parameter] public int DepthOffset { get; set; }
+}

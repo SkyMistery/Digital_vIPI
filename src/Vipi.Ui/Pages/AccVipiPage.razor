@@ -33,9 +33,9 @@ else
                 {
                     <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</p>
                     <ul>
-                        @foreach (var key in OrderOf(block))
+                        @foreach (var s in VisibleSections(block))
                         {
-                            <li><a class="lvl2" href="#p-@(block.Key)-@key">@TitleOf(block, key)</a></li>
+                            <li><a class="lvl2" href="#p-@(block.Key)-@s.Key">@s.Title</a></li>
                         }
                     </ul>
                 }
@@ -66,13 +66,13 @@ else
                 @foreach (var block in _data.Blocks)
                 {
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
-                    @foreach (var key in OrderOf(block))
+                    @foreach (var s in VisibleSections(block))
                     {
-                        var isHidden = IsHiddenSection(block, key);
-                        <CollapsibleBlock Id="@($"p-{block.Key}-{key}")" Style="@(isHidden ? "opacity:.65" : null)">
-                            <Header><h3>@TitleOf(block, key) @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
+                        var isHidden = IsHiddenSection(block, s.Key);
+                        <CollapsibleBlock Id="@($"p-{block.Key}-{s.Key}")" Style="@(isHidden ? "opacity:.65" : null)">
+                            <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
-                                <AccSectionBody Block="block" Key="@key" Root="@_root"
+                                <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Editorial="s.Editorial"
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"
@@ -235,23 +235,15 @@ else
         return roots.Count > 0 ? roots[0].Callsign : null;
     }
 
-    // Blocco ACC → profilo del catalogo: Aerovia = settori CTR, AppGroup = gruppo APP. Doc 08d-acc §4(2).
-    private static SectionProfile ProfileOf(AccBlockKind kind) =>
-        kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
-
-    private IReadOnlyList<string> OrderOf(AccBlock b)
+    // Sezioni da mostrare, NELL'ORDINE del documento (doc 11 §3b: si itera la lista di sezioni, non un elenco di
+    // chiavi riconciliato a view-time). Anteprima BOZZA: mostra anche le nascoste (stato editoriale in lavorazione);
+    // pubblica/release: filtrate.
+    private IReadOnlyList<AccBlockSection> VisibleSections(AccBlock b)
     {
-        var customKeys = b.CustomSections.Select(c => c.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var hidden = b.HiddenSections.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // Anteprima BOZZA: mostra anche le sezioni nascoste (stato editoriale in lavorazione). Pubblica/release: filtrate.
-        return SectionCatalog.Reconcile(ProfileOf(b.Kind), b.SectionOrder, customKeys)
-            .Where(k => _mode.Kind == PreviewKind.Draft || !hidden.Contains(k)).ToList();
+        return b.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !hidden.Contains(s.Key)).ToList();
     }
 
     private bool IsHiddenSection(AccBlock b, string key) =>
         _mode.Kind == PreviewKind.Draft && b.HiddenSections.Contains(key, StringComparer.OrdinalIgnoreCase);
-
-    private static string TitleOf(AccBlock b, string key) =>
-        SectionCatalog.Find(ProfileOf(b.Kind), key)?.Title ?? b.CustomSections.FirstOrDefault(c => c.Key == key)?.Title ?? key;
-
 }

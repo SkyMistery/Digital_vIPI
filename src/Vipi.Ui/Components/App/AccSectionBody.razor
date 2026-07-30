@@ -15,13 +15,30 @@
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" /> break;
     case "regulated": @RegulatedBody() break;
     default:
-        @if (Block.CustomSections.FirstOrDefault(c => c.Key == Key) is { } sec) { @CustomBody(sec) }
+        @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
+        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" /> }
         break;
+}
+
+@* Le sotto-sezioni di una sezione strutturata restano contenuto del documento: si rendono dopo il corpo derivato
+   (prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez»). *@
+@if (IsStructured(Key) && Editorial is { Children.Count: > 0 })
+{
+    <SectionBody Section="Editorial" ShowBlocks="false" DepthOffset="-1" />
 }
 
 @code {
     [Parameter, EditorRequired] public AccBlock Block { get; set; } = default!;
     [Parameter, EditorRequired] public string Key { get; set; } = default!;
+
+    /// <summary>Vista editoriale della sezione (blocchi + sotto-sezioni) dal documento: corpo delle sezioni libere,
+    /// e sotto-sezioni delle strutturate. Null = nessun contenuto documentale (es. uso parziale in Operativa).</summary>
+    [Parameter] public SectionView? Editorial { get; set; }
+
+    private static readonly HashSet<string> Structured = new(StringComparer.OrdinalIgnoreCase)
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+
+    private static bool IsStructured(string key) => Structured.Contains(key);
     [Parameter] public string? Root { get; set; }
     /// <summary>URL della pagina 3D dedicata, instradato ad AccAor per il link «Apri pagina» nel tab 3D. null = nessun link.</summary>
     [Parameter] public string? Aor3dPageUrl { get; set; }
@@ -109,24 +126,6 @@
     private static string AltText(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
 
     private static string PointsJson(AppAorPolygon p) => System.Text.Json.JsonSerializer.Serialize(p.Points);
-
-    private RenderFragment CustomBody(AppCustomSection sec) => __builder =>
-    {
-        @foreach (var block in sec.Blocks)
-        {
-            if (block.Type == AppCustomBlockType.Prose)
-            {
-                @if (!string.IsNullOrWhiteSpace(block.Text)) { @MarkdownLite.Render(block.Text!) }
-            }
-            else
-            {
-                <table>
-                    <thead><tr>@foreach (var c in block.Columns ?? Array.Empty<string>()) { <th>@c</th> }</tr></thead>
-                    <tbody>@foreach (var r in block.Rows ?? Array.Empty<IReadOnlyList<string>>()) { <tr>@foreach (var cell in r) { <td>@cell</td> }</tr> }</tbody>
-                </table>
-            }
-        }
-    };
 
     private static AppVfrContent ParseVfr(string? json)
     {

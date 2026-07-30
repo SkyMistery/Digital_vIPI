@@ -89,16 +89,23 @@ public class AccDocumentAssemblerTests
         Assert.False(aerovia.Block.Regulated.OwnAuto);
         Assert.Equal(new[] { "area-42" }, aerovia.Block.Regulated.OwnIds);
         Assert.Empty(aerovia.Block.Regulated.ExtraIds);
-        Assert.Equal(new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique" }, aerovia.Block.SectionOrder);
+        // Ordine del documento, poi le sezioni-catalogo mancanti accodate al loro posto (doc 11 §3b).
+        Assert.Equal(
+            new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique", "frequencies", "minima", "coordination", "validity" },
+            aerovia.Block.Sections.Select(s => s.Key).ToArray());
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
         Assert.Equal("1000 ft", Assert.Single(aerovia.Block.Separations).Vertical);
         Assert.Contains("intro", aerovia.Block.VfrJson);
 
-        // Editoriale generico: la figlia non-strutturata diventa una CustomSection con prosa.
-        var custom = Assert.Single(aerovia.Block.CustomSections);
-        Assert.Equal("operationaltechnique", custom.Key);
-        Assert.Equal("testo procedura", Assert.Single(custom.Blocks).Text);
+        // Editoriale generico: la figlia porta la vista di resa condivisa (blocchi veri, non prosa appiattita).
+        var custom = Assert.Single(aerovia.Block.Sections, s => s.Key == "operationaltechnique");
+        Assert.Equal(16, custom.SectionId);
+        Assert.Equal("Procedure generali", custom.Title);
+        Assert.Equal("testo procedura", Assert.Single(custom.Editorial!.Blocks).Body);
+
+        // Le sezioni-catalogo assenti dal documento sono accodate senza vista editoriale (nessuna sezione reale).
+        Assert.Null(Assert.Single(aerovia.Block.Sections, s => s.Key == "minima").Editorial);
 
         // Gruppo APP: tutti i campi dal blockmeta.
         var grp = blocks[1];
@@ -124,7 +131,9 @@ public class AccDocumentAssemblerTests
         Assert.Empty(block.Regulated.OwnIds);
         Assert.Empty(block.Regulated.ExtraIds);
         Assert.Empty(block.ExtraAorCallsigns);
-        Assert.Empty(block.SectionOrder);
+        // Nessuna figlia nel documento ⇒ solo le sezioni-catalogo del profilo, tutte senza vista editoriale.
+        Assert.Equal(SectionCatalog.For(SectionProfile.AccAerovia).Count, block.Sections.Count);
+        Assert.All(block.Sections, s => Assert.Null(s.Editorial));
     }
 
     [Fact]

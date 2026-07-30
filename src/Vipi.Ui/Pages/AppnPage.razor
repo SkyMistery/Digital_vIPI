@@ -102,6 +102,9 @@ else
                                     case "minima": <AppMinima />; break;
                                     case "coordination": <AppCoordinationView Coord="_coord" />; break;
                                 }
+                                @* Le sotto-sezioni di una sezione speciale restano contenuto del documento (doc 11 §3b):
+                                   prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez». *@
+                                @if (s.Children.Count > 0) { <SectionBody Section="s" ShowBlocks="false" /> }
                             </ChildContent>
                         </CollapsibleBlock>
                     }
