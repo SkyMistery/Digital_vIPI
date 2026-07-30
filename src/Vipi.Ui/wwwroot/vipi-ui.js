@@ -155,6 +155,10 @@
         }, true);
     }
 
+    // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
+    // dell'utente (vedi wirePrint).
+    var suppressPersist = false;
+
     function wireCollapse() {
         // <details data-persist="key">: ricorda aperto/chiuso in localStorage tra le navigazioni.
         document.querySelectorAll('details[data-persist]').forEach(function (d) {
@@ -165,9 +169,49 @@
             try { saved = localStorage.getItem(key); } catch (e) { }
             if (saved !== null) d.open = saved === '1';
             d.addEventListener('toggle', function () {
+                if (suppressPersist) return;
                 try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { }
             });
         });
+    }
+
+    var printWired = false;
+    function wirePrint() {
+        // Stampa: una sezione collassata (CollapsibleBlock, collasso persistito) resterebbe fuori dal foglio.
+        // Apriamo tutti i <details> prima di stampare e ripristiniamo esattamente quelli che erano chiusi.
+        // Il CSS d'autore da solo non basta: in Chrome il contenuto di un <details> chiuso è nascosto dallo
+        // user-agent (content-visibility su ::details-content). Il foglio vipi-print.css tiene comunque le
+        // regole di ripiego per i browser che non segnalano la stampa.
+        if (printWired) return;
+        printWired = true;
+        var closed = [];
+
+        function expand() {
+            closed = [];
+            suppressPersist = true;
+            document.querySelectorAll('details:not([open])').forEach(function (d) {
+                // Il `?` di aiuto e il tour non vanno in stampa: aprirli sposterebbe il layout per nulla.
+                if (d.classList.contains('help-hint')) return;
+                closed.push(d);
+                d.open = true;
+            });
+            suppressPersist = false;
+        }
+
+        function restore() {
+            suppressPersist = true;
+            closed.forEach(function (d) { d.open = false; });
+            closed = [];
+            suppressPersist = false;
+        }
+
+        window.addEventListener('beforeprint', expand);
+        window.addEventListener('afterprint', restore);
+        // Safari non emette beforeprint/afterprint: il cambio di media 'print' è l'equivalente.
+        var mq = window.matchMedia && window.matchMedia('print');
+        if (mq && mq.addEventListener) {
+            mq.addEventListener('change', function (e) { if (e.matches) { expand(); } else { restore(); } });
+        }
     }
 
     // Espandi/comprimi tutti i <details> di uno scope. Bottone dentro un <details> → agisce sui discendenti di
@@ -214,6 +258,7 @@
         wireAnchors();
         wireCollapse();
         wireSearchKey();
+        wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
     };
 
