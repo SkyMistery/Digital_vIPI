@@ -1,0 +1,64 @@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IOnlineAtcProvider Online
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@* Badge «connesso come …» della topbar. È un'isola interattiva dentro un layout che è SSR statico
+   (<Routes /> non ha render mode): senza circuito proprio il badge si aggiornerebbe solo ricaricando
+   la pagina, che è il baco che questo componente risolve. Si aggancia allo stesso transport SSE della
+   pagina /vsop/live, quindi il ritardo massimo è quello del poller IVAO (Ivao:PollSeconds, 60s). *@
+@* Sempre un link a /vsop/live, anche da disconnesso: la vista live è la pagina della tua postazione e
+   dev'essere raggiungibile anche prima di collegarsi (senza callsign si racconta da sé). *@
+@if (_callsign is not null)
+{
+    <a class="live-badge" href="/vsop/live" title="@L["Chrome_ConnectedAs"]">
+        <span class="dot"></span> @_callsign
+    </a>
+}
+else
+{
+    <a class="live-badge off" href="/vsop/live" title="@L["Chrome_OpenLive"]">
+        <span class="dot"></span> @L["Chrome_LiveDisconnected"]
+    </a>
+}
+
+@code {
+    /// <summary>VID dell'utente loggato, letto dal layout. Non lo ricava da sé: <c>ICurrentUserProvider</c>
+    /// legge l'<c>HttpContext</c>, che in un circuito interattivo non c'è più.</summary>
+    [Parameter] public int? UserId { get; set; }
+
+    private string? _callsign;
+    private DotNetObjectReference<LiveBadge>? _ref;
+    private int? _subId;
+
+    protected override void OnParametersSet() => Resolve();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        _subId = await JS.InvokeAsync<int>("vipiLive.subscribe", _ref);
+    }
+
+    /// <summary>Chiamato dal browser (SSE) a ogni aggiornamento della cache ATC.</summary>
+    [JSInvokable]
+    public Task OnLiveUpdate()
+    {
+        var before = _callsign;
+        Resolve();
+        // Il poller notifica a ogni giro, anche quando nulla è cambiato: ridisegna solo se serve davvero.
+        return before == _callsign ? Task.CompletedTask : InvokeAsync(StateHasChanged);
+    }
+
+    private void Resolve() =>
+        _callsign = UserId is { } vid
+            ? Online.GetCurrent().Details.FirstOrDefault(d => d.UserId == vid)?.Callsign
+            : null;
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _subId); } catch { /* circuito chiuso */ }
+        _ref?.Dispose();
+    }
+}

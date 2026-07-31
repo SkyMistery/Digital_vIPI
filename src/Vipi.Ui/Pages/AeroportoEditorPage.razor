@@ -513,7 +513,10 @@ else
                         <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3><span class="ln"></span>
                         @if (LastImport() is DateTime lastImp)
                         {
-                            <span class="muted" style="font-size:11.5px" title="Ultimo import da IVAO">↧ @lastImp.ToString("dd/MM/yyyy HH:mm")</span>
+                            @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
+                               che il bottone non abbia fatto nulla — è esattamente l'equivoco da cui è nata
+                               questa modifica. Stessa convenzione della vista live (orari in Z). *@
+                            <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
                         }
                         <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
                         @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
@@ -638,10 +641,10 @@ else
                     Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
                     <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
                 </HelpHint>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport">↻ @L["Ape_ReimportIvao"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]">↻ @L["Ape_ReimportIvao"]</button>
                 @if (LastImport() is DateTime li)
                 {
-                    <span class="ed-rail-meta" title="Ultimo import settori da IVAO">↧ @li.ToString("dd/MM HH:mm")</span>
+                    <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
                 }
             </aside>
             </div>
@@ -1015,11 +1018,28 @@ else
     private Task SaveExtras() => SaveSection("Sezioni extra", () => Profile.SaveExtraSectionsAsync(_icao,
         _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", ExtraBlocks.Serialize(s.Blocks))).ToList()));
 
+    /// <summary>«Re-import from IVAO»: tutto quello che l'aeroporto prende dalla sorgente, in un colpo —
+    /// piste + Transition Altitude (secondo la policy «Sorgenti dati») E catalogo settori. Prima faceva solo
+    /// le prime due e non lasciava traccia: il ↧ accanto al bottone è la data d'import dei SETTORI, quindi
+    /// non si muoveva mai e sembrava che il bottone non facesse niente. L'esito ora è scritto nel callout.</summary>
     private async Task Reimport()
     {
         if (!await Confirm(L["Ape_ReimportConfirm"].Value))
             return;
-        if (await Guarded(() => Profile.ReimportFromSourceAsync(_icao))) await LoadAsync();
+
+        AirportSectorImportResult? sectors = null;
+        var ok = await Guarded(async () =>
+        {
+            await Profile.ReimportFromSourceAsync(_icao);
+            sectors = await Sectors.ImportFromSourceAsync(_icao);
+        });
+        if (!ok) return;
+
+        await LoadAsync();
+        _saveInfo = L["Ape_ReimportDone", _rwys.Count, sectors?.Created ?? 0, sectors?.Updated ?? 0].Value;
+        _saveInfoWarn = false;
+        var tick = ++_infoTick;
+        _ = DismissInfoAsync(tick);
     }
 
     // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---

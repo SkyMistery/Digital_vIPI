@@ -64,7 +64,11 @@
 .tier-toggle{display:flex;background:rgba(255,255,255,.12);border-radius:9px;padding:3px}
 .tier-toggle button{border:0;background:transparent;color:#cdd6ff;padding:6px 13px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px}
 .tier-toggle button.on{background:#fff;color:var(--ivao-blue);font-weight:600}
-.live-badge{display:flex;align-items:center;gap:7px;font-size:13px;background:rgba(46,198,98,.16);color:#d6ffe6;padding:6px 12px;border-radius:20px;border:1px solid rgba(46,198,98,.4)}
+/* È un link alla vista live: il colore del testo lo tiene .live-badge, che batte la regola generica sugli
+   <a> (quella sta in :where(), specificità zero). Serve solo l'affordance al passaggio del mouse. */
+.live-badge{display:flex;align-items:center;gap:7px;font-size:13px;background:rgba(46,198,98,.16);color:#d6ffe6;padding:6px 12px;border-radius:20px;border:1px solid rgba(46,198,98,.4);cursor:pointer;transition:.15s}
+.live-badge:hover{background:rgba(46,198,98,.3);border-color:rgba(46,198,98,.75)}
+.live-badge.off:hover{background:#e0e3ee;border-color:#aeb4c6}
 .live-badge .dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);box-shadow:0 0 0 0 rgba(46,198,98,.6);animation:pulse 2s infinite}
 /* variante "disconnesso" (U7): prima era override inline nel SopLayout */
 .live-badge.off{background:#eceef5;color:var(--ink-soft);border-color:var(--ivao-grey)}
@@ -746,6 +750,30 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 /* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
 .tbl-scroll{overflow-x:auto;max-width:100%}
 .sid-table{font-size:13px;min-width:720px}
+/* Viewer aeroporto: tabella SID a 9 colonne. Larghezze FISSE, altrimenti cambiando pista cambia il disegno
+   della tabella: con table-layout:auto una colonna tutta «—» (Condition su una pista, piena sull'altra)
+   collassa e regala il suo spazio alle vicine. Per CLASSE semantica, non per nth-child, come in .sid-quick.
+   Le percentuali sono MISURATE: per ogni colonna la larghezza minima che non spezza nessuna parola —
+   intestazione compresa — su LIBD/LIBC/LIBR/LIRN, tutte le piste. Somma 76%: il resto va quasi tutto a
+   Condition, l'unica colonna con testo in prosa. Attenzione a quali colonne sono davvero larghe per il
+   dato: RWY contiene 2-3 caratteri e Type solo CONV/RNAV, il minimo lì lo detta l'INTESTAZIONE (per
+   questo la colonna pista si intitola RWY e non «Runway»/«Pista»: per esteso costava il doppio).
+   Il min-width serve allo stesso vincolo: sotto ~810px FIX, SID e Cat. andrebbero a capo a metà parola,
+   quindi la tabella scorre nel suo contenitore invece di stringersi. */
+.sid-view{table-layout:fixed;min-width:820px}
+/* Gronde più strette delle altre tabelle: qui i 10-12px per lato sono un quinto di una colonna stretta
+   come RWY o Type, e vanno via a Condition. La doppia classe serve a battere `.res-table td{padding:…}`,
+   che sta più in basso nel foglio e a parità di specificità vincerebbe (per giunta con lo shorthand). */
+.res-table.sid-view th,.res-table.sid-view td{padding-left:8px;padding-right:8px;overflow-wrap:anywhere}
+.sid-view .col-rwy{width:5.5%}
+.sid-view .col-fix{width:7.9%}
+.sid-view .col-sid{width:8.9%}
+.sid-view .col-trans{width:10.8%}
+.sid-view .col-climb{width:14.5%}
+.sid-view .col-type{width:6.8%}
+.sid-view .col-cat{width:7%}
+.sid-view .col-wtc{width:5.5%}
+.sid-view .col-cond{width:33.1%}
 /* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
    come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
    Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.

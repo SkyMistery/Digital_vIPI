@@ -338,12 +338,15 @@ else
                                 </div>
                             }
                             <div style="overflow:auto">
-                            <table class="res-table sid-table">
-                                <thead><tr><th>@L["Airport_Runway"]</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th></tr></thead>
+                            @* Larghezze di colonna cablate in CSS (.sid-view): con table-layout:auto la tabella si
+                               ridisegnava a ogni cambio pista, perché le colonne quasi vuote (Condition tutta «—»
+                               su una pista, piena sull'altra) si afflosciavano e le altre si allargavano. *@
+                            <table class="res-table sid-table sid-view">
+                                <thead><tr><th class="col-rwy">@L["Airport_RunwayAbbr"]</th><th class="col-fix">FIX</th><th class="col-sid">SID</th><th class="col-trans">Transition</th><th class="col-climb">Initial climb</th><th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th></tr></thead>
                                 <tbody>
                                     @foreach (var r in ShownSids())
                                     {
-                                        <tr><td>@r.Runway</td><td>@r.Fix</td><td>@r.Name</td><td>@r.Transition</td><td>@FormatInitialClimb(r.InitialClimb)</td><td>@r.Type</td><td>@r.Cat</td><td>@r.Wtc</td><td>@r.Condition</td></tr>
+                                        <tr><td class="col-rwy">@r.Runway</td><td class="col-fix">@r.Fix</td><td class="col-sid">@r.Name</td><td class="col-trans">@r.Transition</td><td class="col-climb">@FormatInitialClimb(r.InitialClimb)</td><td class="col-type">@r.Type</td><td class="col-cat">@r.Cat</td><td class="col-wtc">@r.Wtc</td><td class="col-cond">@r.Condition</td></tr>
                                     }
                                 </tbody>
                             </table>
