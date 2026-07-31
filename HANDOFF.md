@@ -82,8 +82,8 @@
 > **⚠️ Stato corrente (2026-07-21) — leggere prima.** Dopo il Round 34 il progetto è passato per l'**asse di refactor strutturale `docs/refactor/01→10` (tutti eseguiti)**: modello **`Document`+`DocumentVersion` unificato** per tutti e 4 i tipi (vIPI ACC / APP / Airport / vLOA), editing e storage su documento (doc 08); **flusso di pubblicazione generico** via registry `IReleaseTarget`/`IDocKindRoutes` (doc 09); **snapshot totale al publish + `RenderMode` per sezione** con **visibilità pubblica = release effettiva** (doc 10, merged). Aggiunta **retention pubblicazione** (anti-bloat: pota release `Superseded` oltre 13 cicli e versioni `Archived` oltre 3/documento; per-publish + boot sweep `PruneVipiReleases`). **Fix 2026-07-21:** off-by-one del cap `Archived` su **entrambi** i path publish (release-publish `ReleaseService.PublishNowAsync` e version-publish `EditingService.PublishAsync`) — ora il prune gira dopo l'archiviazione. Suite **358 verde**. Dettagli in `docs/history/rounds.md` (in coda), `docs/refactor/00-overview.md` e memoria `publication-retention-plan`. **NB:** le sezioni §4→§8 qui sotto descrivono lo stato a Round 34 e NON riflettono ancora l'asse 08→10 (modello/pubblicazione): in caso di conflitto valgono i doc `refactor/` + `spec/modello-dati.md`.
 **Stato:** progetto **in sviluppo attivo**. Solution .NET 10 a 4 layer + Host Blazor Server, consultazione+editing+sicurezza dal DB. **Import SID da GitHub** (sectorfile Aurora `ivao-italy/it-aurora-sector`): parser + completion fix/VOR + alias, merge preserva-manuali, priorità per punto persistente (StableKey), pubblicazione differita al ciclo AIRAC N+1 (round 34, `AddSidImport`). **Import periodici gated** (`ImportState`, `AddImportState`): niente più fetch-all a ogni riavvio (round 34). **Vista live UNIFICATA** (`/vsop/live[/{callsign}]`, doc refactor 12): una pagina per callsign, descrittori per tipo di ente (CTR/APP/**TWR/GND/DEL**), postazione dalla connessione IVAO senza selettore, **non richiede una vIPI pubblicata** (è legata all'ente, non al documento) + vista rapida aeroporto inline (`AirportQuickPanel`); QoL admin `sectorstructure`/`trasferimenti` (round 34). **Versioning AIRAC**: release schedulate per ciclo su TUTTI i tipi (`DocRelease`; round 29, §9.17) + **task management editor**. **Anteprime unificate `?as=`** nei viewer tipizzati (round 33). **vLOA data-driven** + **ACC esteri confinanti** (round 27-28, §9.16). **vIPI ACC/APP data-driven a blocchi** (round 21/23). **Live IVAO** (polling + cache + SSE). **Sorgente dati disaccoppiata** + **policy di import opt-out** (categorie: TA/Runways/Sectors/**Sids**). Pagine su prefisso **`/vsop`**. **Fonte unica = cataloghi**: i `Sector` sono una proiezione, gerarchia per callsign cross-ACC (Round 20).
 
-> **📡 Sessione 2026-07-31 — vista live.** Branch `feat/vista-live`, 14 commit, suite **631 → 702 verde**,
-> verifica live su 12 postazioni. Carta: `docs/refactor/12-vista-live-unificata.md`. Da sapere subito:
+> **📡 Sessione 2026-07-31 — vista live.** Branch `feat/vista-live`, 23 commit, suite **631 → 718 verde**,
+> verifica live guidata su copia del DB reale. Carta: `docs/refactor/12-vista-live-unificata.md`. Da sapere subito:
 > - **Una pagina sola, keyed sul callsign**: `/vsop/live` (la tua postazione, dalla connessione IVAO —
 >   **nessun selettore**) e `/vsop/live/{callsign}` (consultazione). Via `AccLivePage`/`AppLivePage` e le due
 >   `Ridotta*` morte. Le rotte storiche fanno **301 a un salto solo**.
@@ -93,8 +93,15 @@
 >   vista live** che prima non esisteva. Un test verifica che ogni `SectorType` abbia un descrittore.
 > - ⚠️ `/vsop/live/{callsign}` ricade sul prefisso dello stream SSE `/vsop/live/atc`: vince il segmento
 >   letterale, ma è una proprietà del routing che si rompe cambiando le rotte → smoke dedicato.
+> - **L'avvicinamento è reso come l'area**: chip degli aeroporti (un APP ne copre spesso più d'uno), frequenze,
+>   trasferimenti. Pannello fisso solo per torri/ground/delivery, che sono di un aeroporto solo.
+> - **Un punto verso un proprio discendente si mostra solo se quel settore è APERTO**: se è chiuso lo stai
+>   coprendo tu, e il punto diceva «passa a te stesso». Vale solo per i discendenti — verso l'esterno la
+>   risalita fino a UNICOM resta informazione utile.
 > - ⚠️ In verifica: `innerText` su un `<details>` **chiuso** torna stringa vuota — un'asserzione ingenua la
 >   legge come «elemento assente».
+> - ⚠️ In verifica: un `dotnet run` che fallisce per **DLL bloccate** da un'istanza precedente lascia in ascolto
+>   il binario VECCHIO, e si finisce per misurare la build sbagliata. Killare, `dotnet build`, poi `--no-build`.
 >
 > - **Il padre dell'aeroporto non arrivava alle sue posizioni** (segnalato dall'owner, fixato): la proiezione
 >   leggeva solo `AirportSector.ParentCallsign` (solo APP) e ignorava `Airport.ParentCallsign`, che è il campo
@@ -106,9 +113,14 @@
 >   sei APP di LIRF pendono da `LIRF_TW1_APP`), poi il callsign senza infisso (`LIRF_TWR` vs `LIRF_E_TWR`), e se
 >   resta ambiguo si **sale** invece di tirare a sorte.
 >
-> Aperto, **di dato**: 33 torri di aeroporti senza APP e senza padre configurato in Struttura. Aperto, **di UI**:
-> TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure` (lo sono ACC, APP e Aeroporto), quindi i
-> gradini ambigui — due ground entrambi sdoppiati, come a Malpensa — non si correggono a mano.
+> - **Torri, ground e delivery sono nodi editabili** in `/vsop/admin/sectorstructure` (§8 del doc 12): erano
+>   esclusi da un filtro `Position == "APP"`, non da una scelta di modello. La scaletta è un servizio di dominio
+>   condiviso (`AirportPositionLadder`) e i nodi senza padre scritto mostrano quello **ereditato** invece di un
+>   «da assegnare» che contraddirebbe la vista live. Guardia: nessun padre più in basso nella scaletta.
+>
+> Aperto, **di dato**: 33 torri di aeroporti senza APP e senza padre configurato in Struttura, più LIRF stesso
+> (senza padre l'aeroporto non compare fra i chip di nessuno). Ora si sistemano dalla pagina: il filtro «solo da
+> agganciare» li raccoglie.
 
 > **Storia dei round:** `docs/history/rounds.md` (changelog R5→R34). **Indice doc:** `docs/index.md`. Ultimo round: **34** — vista operativa + QoL admin + import SID GitHub + gating import; modello in `docs/spec/modello-dati.md` §9.8 (migrazioni). (R33: anteprime `?as=`; R30: QoL Bozze & versioni §9.18; R29: versioning AIRAC + task §9.17.)
 
