@@ -885,3 +885,46 @@ mostra un campo vuoto. Un errore in faccia sarebbe stato meglio di un dato sbagl
 a mano su Neon. Accettabile finché i casi sono rari (finora zero). Il passo successivo, se diventassero
 ricorrenti, sono script `.sql` versionati eseguiti all'avvio — non le migrazioni EF per-provider, il cui punto
 duro non è il lavoro corrente ma il baseline da riprodurre esattamente sullo schema che c'è già.
+
+## 2026-07-31 — La vista operativa diventa `/vsop/{acc}/live` e smette di dipendere dal documento
+
+Revisione della pagina che un controllore tiene aperta **mentre controlla**. Tre richieste esplicite
+(path in inglese, sezioni collassate, tabella SID illeggibile) più un giro di QoL scelto insieme.
+
+- **Rotta**: `/vsop/{acc}/operativa` → **`/vsop/{acc}/live`**, `/operativa-app` → `/live-app`
+  (`AccLivePage`/`AppLivePage`, chiavi resx `Live_*`/`AppLive_*`). Redirect **301** con query preservata in
+  `Program.cs`: sono pagine che finiscono nei preferiti. Le due rotte **non erano nella mappa pagine**: aggiunte.
+  L'etichetta a schermo resta «Operativa» — cambia l'URL, non la lingua della UI.
+- **Il documento non è più un prerequisito.** La pagina è legata all'**ente** che apri: trasferimenti e AoR non
+  toccano il documento e le frequenze escono dai cataloghi (il blocco porta solo raggruppamento e ordine). Eppure
+  senza vIPI pubblicata rispondeva «vista operativa non disponibile» e nascondeva anche le informazioni di
+  handoff che nel DB c'erano. Ora è un banner: si rende tutto, e le frequenze usano **blocchi sintetici**
+  (Aerovia a membri vuoti = tutti i CTR, più un gruppo con tutti gli APP) passati alla derivazione normale —
+  nessun secondo percorso di calcolo. Stessa cosa per un APP remotizzato non ancora messo in un gruppo.
+  Verificato su LIRR (nessuna vIPI): 86 frequenze e i trasferimenti resi, prima non si vedeva niente.
+- **Sezioni collassate + memoria.** Frequenze e Trasferimenti partivano `open`: la vista si apriva su due muri di
+  tabelle. Ora partono chiuse e `data-persist` ricorda la scelta. *Gotcha*: `wireCollapse` gira solo a
+  load/enhancedload, ma la pagina è `InteractiveServer` e ricostruisce i `<details>` a ogni tick → esposto
+  `window.vipiWireCollapse` (solo la persistenza; `vipiWireUi` rifarebbe `wireHashLanding`, che riscorre la pagina)
+  e richiamato a ogni `OnAfterRenderAsync`. Il tag «aperto» in intestazione mentiva su una sezione chiusa:
+  sostituito dal conteggio.
+- **Tabella SID schiacciata**: `AirportQuickPanel` usava `sid-table cfg-table`, ma `.cfg-table` è la tabella
+  *Configurazioni operative* — `table-layout:fixed` con larghezze cablate su **quattro** colonne (26/38/18/18).
+  La tabella SID ne ha sei: **Cat. e WTC finivano a larghezza ~0**. Ora `res-table sid-table sid-quick` dentro un
+  `.tbl-scroll`, larghezze **per classe semantica** (le colonne opzionali si nascondono: `nth-child` sarebbe
+  sbagliato) e Transition/Cat./WTC omesse se vuote su tutte le righe mostrate.
+- **QoL**: la postazione **segue la connessione IVAO** (prima `_myCallsign` si calcolava una volta sola: chi
+  apriva la pagina e si connetteva dopo non veniva mai agganciato), con override manuale in `?p=CALLSIGN`;
+  **striscia dei cambi** online/offline + evidenza sulle righe toccate (prima la pagina si riscriveva in
+  silenzio a ogni tick SSE); testata **sticky**; orari in **Z** + orologio UTC lato browser; **modalità compatta**
+  persistita fuori dal circuito (classe su `<html>`, come lo zoom); **rilasci a UNICOM nascosti di default** con
+  tasto per mostrarli; **vento** accanto alla pista suggerita nella vista rapida.
+
+Suite **686** verde. Verifica live su copia del DB (LIBB con documento, LIRR senza, gemella APP): redirect 301,
+sezioni chiuse e ricordate dopo reload, tabella SID a colonne reali senza sfondare la pagina, compatta persistita,
+`?p=` scritto dal selettore. **Non esercitata live** la striscia dei cambi: serve una transizione online/offline
+fra due tick e il feed IVAO era a zero ATC.
+
+> **Trappola nuova per la verifica**: `innerText` su un `<details>` **chiuso** torna stringa vuota (è
+> layout-dependent). Un'asserzione che legge il testo di una sezione collassata sembra dire «elemento assente»
+> mentre l'elemento c'è: interrogare il DOM (`querySelector`, conteggi) o aprire prima la sezione.
