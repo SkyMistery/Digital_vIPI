@@ -7,7 +7,12 @@ services:
     dockerfilePath: ./Dockerfile
     region: frankfurt             # EU, vicino all'Italia + stessa regione di Neon (round-trip DB e SignalR bassi)
     plan: free                    # dorme dopo 15min inattività; cold start ~1min al risveglio
-    healthCheckPath: /vsop
+    # Sonda economica (due query, niente report di consistenza): serve soprattutto in fase di deploy — un
+    # rilascio con lo schema disallineato o il DB irraggiungibile non sostituisce la versione che gira.
+    # /vsop risponderebbe 200 anche in quel caso, perché la pagina si rende comunque.
+    # Se dovessero comparire riavvii in serie mentre Neon si risveglia, tornare a `/vsop`: qui si perde solo
+    # il gate sul deploy, non il funzionamento.
+    healthCheckPath: /vsop/health/ready
     envVars:
       - key: ASPNETCORE_URLS
         value: http://+:8080      # 8080 = porta del Dockerfile

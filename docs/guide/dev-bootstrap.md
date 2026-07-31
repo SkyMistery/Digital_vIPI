@@ -45,5 +45,11 @@ Edge+puppeteer-core, bersagli utili nel DB e trappole già pagate. Due cose che 
 
 ## Note
 - Le fixture Roma (`*Seed.cs`) esistono **solo come dati dei test**, non vengono seminate all'avvio.
-- Salute dell'istanza: **`/vsop/health`** (Unhealthy se migrazioni pendenti; Degraded se incongruenze dati o
-  cache ATC stantia — vedi audit Fasi 1–2).
+- Salute dell'istanza, due tagli:
+  - **`/vsop/health`** — quadro completo, da aprire a mano: Unhealthy se il DB non risponde o ci sono migrazioni
+    pendenti; Degraded se incongruenze dati o cache ATC stantia (vedi audit Fasi 1–2).
+  - **`/vsop/health/ready`** — sonda economica (due query), è quella che interroga Render (`healthCheckPath`) e
+    lo smoke del container in CI. Non tocca il report di consistenza, che fa scansioni complete: va tenuta fuori
+    da ciò che viene sondato di continuo.
+  - Su Postgres il probe sulle migrazioni è saltato di proposito: lì lo schema lo fa `PostgresSchemaReconciler`
+    (EnsureCreated), che non scrive in `__EFMigrationsHistory` — le riporterebbe tutte come pendenti.
