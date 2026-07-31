@@ -83,8 +83,10 @@ else
                 .OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
 
         <div class="red-top-grid">
-            <details class="acc-item" open>
-                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+            @* Chiuse alla prima apertura (data-persist ricorda poi la scelta): la vista si apre su una
+               mappa leggibile della postazione, non su due muri di tabelle da scorrere. *@
+            <details class="acc-item" data-persist="live-freq">
+                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@freqRows.Count</span></summary>
                 <div class="body">
                     @if (freqRows.Count > 0) { <AppFrequencies Rows="freqRows" /> }
                     else { <p class="muted" style="font-size:13px;margin:0">@L["Live_NoFreqDerived"]</p> }
@@ -93,7 +95,7 @@ else
 
             @foreach (var block in appGroups.Where(b => IsDelegated(b)))
             {
-                <details class="acc-item collapsed-strip">
+                <details class="acc-item collapsed-strip" data-persist="@($"live-blk-{block.Key}")">
                     <summary><span>🔇 @block.Title — @L["Live_Delegated"]</span><span class="tag-state tag-online">@L["Common_TagOnline"]</span></summary>
                     <div class="body">
                         <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Live_CollapsedBody"], block.Title))</p>
@@ -104,7 +106,7 @@ else
 
             @foreach (var block in appGroups.Where(b => !IsDelegated(b)))
             {
-                <details class="acc-item" open>
+                <details class="acc-item" open data-persist="@($"live-blk-{block.Key}")">
                     <summary><span>📡 @block.Title</span><span class="tag-state tag-covered">@L["Common_TagCovered"]</span></summary>
                     <div class="body">
                         <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
@@ -113,8 +115,8 @@ else
             }
         </div>
 
-        <details class="acc-item" open>
-            <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+        <details class="acc-item" data-persist="live-xfer">
+            <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_resolved.Count</span></summary>
             <div class="body">
                 <div class="xfer-online">
                     <span class="xo-label">@L["Live_OnlineAround"]</span>
@@ -251,6 +253,10 @@ else
             _ref = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("vipiLive.subscribe", _ref);
         }
+
+        // A ogni render, non solo il primo: cambiando chip aeroporto o a un tick live i <details> vengono
+        // ricreati e perderebbero la persistenza del collasso (wireCollapse gira solo a load/enhancedload).
+        try { await JS.InvokeVoidAsync("vipiWireCollapse"); } catch (JSDisconnectedException) { /* circuito chiuso */ }
     }
 
     /// <summary>Chiamato dal browser (SSE) a ogni cambio della cache ATC.</summary>

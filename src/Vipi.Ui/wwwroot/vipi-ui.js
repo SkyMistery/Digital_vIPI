@@ -341,6 +341,12 @@
         });
     }
 
+    // Riaggancia SOLO la persistenza del collasso. Serve alle pagine InteractiveServer (vista live) che
+    // ricostruiscono i <details> a ogni tick: senza questo, dopo il primo aggiornamento il collasso non
+    // verrebbe più ricordato. Idempotente (wireCollapse salta quelli già agganciati); non si chiama
+    // vipiWireUi perché wireHashLanding riscorrerebbe la pagina a ogni render.
+    window.vipiWireCollapse = wireCollapse;
+
     window.vipiWireUi = function () {
         document.querySelectorAll('.aor-block').forEach(wireAor);
         wireExpand();

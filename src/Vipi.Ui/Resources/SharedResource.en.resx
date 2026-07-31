@@ -119,7 +119,6 @@
   <data name="Appn_InfoTitle" xml:space="preserve"><value>APP with its own documentation</value></data>
   <data name="Appn_InfoBody" xml:space="preserve"><value>Not remotized under the ACC: it has a dedicated vIPI. Remotized ones stay in the ACC vIPI.</value></data>
   <data name="Common_Frequencies" xml:space="preserve"><value>Frequencies</value></data>
-  <data name="Common_TagOpen" xml:space="preserve"><value>open</value></data>
   <data name="Common_TagOnline" xml:space="preserve"><value>online</value></data>
   <data name="Common_TagCovered" xml:space="preserve"><value>covered</value></data>
   <!-- Operational view ACC (/vsop/{acc}/live) -->
@@ -129,7 +128,7 @@
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>
   <data name="Live_ReducedLiveTitle" xml:space="preserve"><value>Reduced + live mode</value></data>
-  <data name="Live_ReducedLiveBody" xml:space="preserve"><value>See only the essentials for position &lt;b&gt;{0}&lt;/b&gt;. Sections are independent: you can keep more than one open (e.g. Frequencies and Transfers together). For everything else open the extended document.</value></data>
+  <data name="Live_ReducedLiveBody" xml:space="preserve"><value>See only the essentials for position &lt;b&gt;{0}&lt;/b&gt;. Sections start collapsed and remember your choice: you can keep more than one open. For everything else open the extended document.</value></data>
   <data name="Live_QuickView" xml:space="preserve"><value>Quick view — my sector or an airport under direct control</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>My sector</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controlled by another online position</value></data>

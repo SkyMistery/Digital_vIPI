@@ -61,8 +61,9 @@ else
         <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["AppLive_InfoTitle"]</p>@L["AppLive_InfoBody"] @(_standalone ? L["AppLive_Standalone"] : L["AppLive_Remotized"])</div></div>
 
         <div class="red-top-grid">
-            <details class="acc-item" open>
-                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+            @* Chiuse alla prima apertura, poi data-persist ricorda la scelta (come sulla vista live ACC). *@
+            <details class="acc-item" data-persist="live-app-freq">
+                <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@(_standalone ? _freqs.Count : _remFreqs?.Count ?? 0)</span></summary>
                 <div class="body">
                     @if (_standalone)
                     {
@@ -77,8 +78,8 @@ else
 
             @if (_airportIcao is not null)
             {
-                <details class="acc-item" open>
-                    <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+                <details class="acc-item" open data-persist="live-app-apt">
+                    <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@_airportIcao</span></summary>
                     <div class="body">
                         <p class="muted" style="font-size:13px;margin-top:0">@L["AppLive_AptDocHint"]</p>
                         <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_airportIcao">@L["AppLive_OpenAptVipi", _airportIcao]</a>
@@ -87,8 +88,8 @@ else
             }
         </div>
 
-        <details class="acc-item" open>
-            <summary><span>🤝 @L["Common_Coordination"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+        <details class="acc-item" data-persist="live-app-coord">
+            <summary><span>🤝 @L["Common_Coordination"]</span></summary>
             <div class="body">
                 @if (_standalone)
                 {
@@ -210,6 +211,9 @@ else
             _ref = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("vipiLive.subscribe", _ref);
         }
+
+        // Vedi AccLivePage: i <details> ricreati a un tick live perderebbero la persistenza del collasso.
+        try { await JS.InvokeVoidAsync("vipiWireCollapse"); } catch (JSDisconnectedException) { /* circuito chiuso */ }
     }
 
     [JSInvokable]
