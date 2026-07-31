@@ -312,6 +312,11 @@
   <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} orphan APPs</value></data>
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} ACC roots</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>ACC roots (no parent — top-down coverage)</value></data>
+  <data name="Struct_Inherited" xml:space="preserve"><value>inherited</value></data>
+  <data name="Struct_InheritedTitle" xml:space="preserve"><value>No parent set: derived from the airport ladder (DEL → GND → TWR → APP). Assign one to pin it.</value></data>
+  <data name="Struct_OptInherit" xml:space="preserve"><value>inherit from the ladder ({0})</value></data>
+  <data name="Struct_ShowPositions" xml:space="preserve"><value>Airport positions</value></data>
+  <data name="Struct_ShowPositionsTitle" xml:space="preserve"><value>Also show towers, ground and delivery in the tree</value></data>
   <data name="Struct_ShowAll" xml:space="preserve"><value>↺ show all</value></data>
   <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>search callsign / ACC…</value></data>
   <data name="Struct_FilterCountry" xml:space="preserve"><value>Filter by country</value></data>

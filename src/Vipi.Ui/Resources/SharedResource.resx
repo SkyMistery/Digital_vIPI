@@ -312,6 +312,11 @@
   <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} APP orfani</value></data>
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} radici ACC</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>Radici ACC (nessun padre — copertura top-down)</value></data>
+  <data name="Struct_Inherited" xml:space="preserve"><value>ereditato</value></data>
+  <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
+  <data name="Struct_OptInherit" xml:space="preserve"><value>eredita dalla scaletta ({0})</value></data>
+  <data name="Struct_ShowPositions" xml:space="preserve"><value>Posizioni d'aeroporto</value></data>
+  <data name="Struct_ShowPositionsTitle" xml:space="preserve"><value>Mostra anche torri, ground e delivery nell'albero</value></data>
   <data name="Struct_ShowAll" xml:space="preserve"><value>↺ mostra tutti</value></data>
   <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>cerca callsign / ACC…</value></data>
   <data name="Struct_FilterCountry" xml:space="preserve"><value>Filtra per nazione</value></data>

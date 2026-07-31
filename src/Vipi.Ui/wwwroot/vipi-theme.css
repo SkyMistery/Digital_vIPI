@@ -884,6 +884,12 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .acc-row.match.sel{background:#e2e8ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .acc-row-label{font-weight:600;color:var(--ink)}
 .acc-row-parent{margin-left:auto;font-size:11.5px;color:var(--ink-soft);font-family:var(--font-head);white-space:nowrap}
+/* Padre dedotto dalla scaletta, non scritto: si distingue da un legame vero senza gridare «errore» — non lo è. */
+.acc-row-parent.inherited{font-style:italic;opacity:.8}
+/* Badge delle posizioni d'aeroporto: stessa famiglia dell'APP, tono più tenue scendendo la scaletta. */
+.node-badge.twr{background:#eef1fb;color:var(--ivao-lightblue)}
+.node-badge.gnd{background:#f2f4f8;color:var(--ink-soft)}
+.node-badge.del{background:#f7f8fa;color:var(--ink-soft)}
 .node-badge{font-size:10px;background:#eceef5;color:#666;border-radius:5px;padding:1px 6px;font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .node-badge.app{background:#eaf3ff;color:var(--info-ink)}
 .node-badge.acc{background:#e2e8ff;color:var(--ivao-blue)}

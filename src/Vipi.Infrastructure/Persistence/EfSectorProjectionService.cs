@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -62,7 +63,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Airport, Frequency: s.Frequency,
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
-                ParentCallsign: s.ParentCallsign ?? AirportLadderParent(s, visibleByIcao, airportParentByIcao),
+                ParentCallsign: s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao),
                 IsAccApp: s.IsAccApp,
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
@@ -117,7 +118,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         // Stesso padre derivato usato in `desired`: se la mappa usasse il ParentCallsign grezzo, la risalita
         // verso un antenato visibile ripartirebbe da null proprio per le posizioni che il fix aggancia.
         foreach (var s in airportSectors)
-            parentOf[s.ComposePosition] = s.ParentCallsign ?? AirportLadderParent(s, visibleByIcao, airportParentByIcao);
+            parentOf[s.ComposePosition] = s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao);
 
         foreach (var d in desired.Values)
         {
@@ -182,6 +183,24 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp,
         string? AtcCallsign, string? Position);
 
+    /// <summary>Adatta le righe di catalogo al modello puro della scaletta (<see cref="AirportPositionLadder"/>).</summary>
+    private static string? LadderParent(
+        AirportSector sector,
+        IReadOnlyDictionary<string, List<AirportSector>> visibleByIcao,
+        IReadOnlyDictionary<string, string> airportParentByIcao)
+    {
+        var positions = visibleByIcao.TryGetValue(sector.AirportIcao, out var rows)
+            ? rows.Select(ToLadder).ToList()
+            : new List<LadderPosition>();
+
+        return AirportPositionLadder.ParentOf(
+            ToLadder(sector), positions,
+            airportParentByIcao.GetValueOrDefault(sector.AirportIcao), sector.AirportIcao);
+    }
+
+    private static LadderPosition ToLadder(AirportSector s) =>
+        new(s.ComposePosition, MapType(s.Position), s.ParentCallsign);
+
     private static bool IsAtis(string? position) =>
         string.Equals(position, "ATIS", StringComparison.OrdinalIgnoreCase);
 
@@ -236,90 +255,6 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         return i == 4 ? callsign[..4].ToUpperInvariant() : null;
     }
 
-    /// <summary>
-    /// Padre di una posizione d'aeroporto che non ne ha uno proprio nel catalogo (nei dati reali: tutte tranne
-    /// gli APP). Sale la <b>scaletta interna</b> dell'aeroporto — DEL → GND → TWR → APP — fermandosi alla prima
-    /// posizione davvero presente, e in cima esce sul <c>ParentCallsign</c> dell'AEROPORTO, cioè il legame che
-    /// l'admin compila su `/vsop/admin/sectorstructure`.
-    ///
-    /// Prima questo legame non veniva letto da nessuno: la proiezione guardava solo
-    /// <c>AirportSector.ParentCallsign</c>, popolato per i soli APP. Torri, ground e delivery restavano quindi
-    /// <b>orfani</b> nonostante l'aeroporto avesse un padre configurato — con due conseguenze silenziose:
-    /// catena di copertura vuota nella vista live, e risalita dei trasferimenti che terminava su UNICOM invece
-    /// di salire all'avvicinamento.
-    ///
-    /// La scaletta è dedotta da <see cref="CoverageFor"/> (più basso = più in alto), non da un dato scritto:
-    /// è la sequenza operativa standard di un aeroporto, non una gerarchia che l'admin debba compilare.
-    /// </summary>
-    private static string? AirportLadderParent(
-        AirportSector sector,
-        IReadOnlyDictionary<string, List<AirportSector>> visibleByIcao,
-        IReadOnlyDictionary<string, string> airportParentByIcao)
-    {
-        var mine = CoverageFor(MapType(sector.Position));
-
-        if (visibleByIcao.TryGetValue(sector.AirportIcao, out var all))
-        {
-            var siblings = all
-                .Where(x => !string.Equals(x.ComposePosition, sector.ComposePosition, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            // Gradini sopra di me, dal più vicino al più lontano: fermarsi al primo che dà UNA risposta sola.
-            // Se un gradino è ambiguo si sale, invece di tirare a sorte fra pari grado.
-            foreach (var rung in siblings.Select(x => CoverageFor(MapType(x.Position)))
-                         .Where(o => o < mine).Distinct().OrderByDescending(o => o))
-            {
-                var candidates = siblings.Where(x => CoverageFor(MapType(x.Position)) == rung).ToList();
-                var pick = PickOnRung(candidates, sector.AirportIcao);
-                if (pick is not null) return pick;
-            }
-        }
-
-        // In cima alla scaletta (o aeroporto senza altre posizioni): esce sul padre dell'AEROPORTO.
-        return airportParentByIcao.GetValueOrDefault(sector.AirportIcao);
-    }
-
-    /// <summary>
-    /// La posizione di riferimento fra quelle di pari grado di un aeroporto. Null = gradino ambiguo (si sale).
-    /// <list type="number">
-    /// <item>Una sola candidata: è quella.</item>
-    /// <item><b>Radice del sottoalbero</b>: se le candidate hanno una gerarchia configurata fra loro (è il caso
-    /// degli APP, che in <c>/vsop/admin/sectorstructure</c> sono nodi editabili), vale quella scritta dall'admin —
-    /// la radice è l'unica il cui padre sta fuori dal gruppo. Su LIRF le sei APP pendono da <c>LIRF_TW1_APP</c>:
-    /// è lì che va agganciata la torre, non a una scelta alfabetica.</item>
-    /// <item><b>Callsign senza infisso</b> (<c>LIRF_TWR</c> vs <c>LIRF_E_TWR</c>): convenzione di divisione per la
-    /// posizione principale, usata dove non esiste gerarchia scritta (torri e ground non sono nodi editabili).</item>
-    /// </list>
-    /// </summary>
-    private static string? PickOnRung(IReadOnlyList<AirportSector> candidates, string icao)
-    {
-        if (candidates.Count == 0) return null;
-        if (candidates.Count == 1) return candidates[0].ComposePosition;
-
-        var names = candidates.Select(c => c.ComposePosition).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var roots = candidates
-            .Where(c => c.ParentCallsign is null || !names.Contains(c.ParentCallsign))
-            .ToList();
-        if (roots.Count == 1) return roots[0].ComposePosition;
-
-        // Nessuna gerarchia scritta fra pari grado: la principale è quella senza infisso ({ICAO}_{TIPO}).
-        var pool = roots.Count > 1 ? roots : candidates;
-        var plain = pool.Where(c => IsPlainCallsign(c.ComposePosition, icao)).ToList();
-        return plain.Count == 1 ? plain[0].ComposePosition : null;
-    }
-
-    /// <summary>Callsign a due soli pezzi, <c>{ICAO}_{TIPO}</c>: la posizione principale, non uno split
-    /// (<c>LIRF_TWR</c> sì, <c>LIRF_E_TWR</c> no).</summary>
-    private static bool IsPlainCallsign(string callsign, string icao) =>
-        callsign.StartsWith(icao + "_", StringComparison.OrdinalIgnoreCase)
-        && callsign.Count(ch => ch == '_') == 1;
-
-    private static int CoverageFor(SectorType type) => type switch
-    {
-        SectorType.App => 5,
-        SectorType.Twr or SectorType.ITwr => 10,
-        SectorType.Gnd => 20,
-        SectorType.Del => 30,
-        _ => 0,   // CTR/area = radice
-    };
+    /// <summary>Posto nella scaletta d'aeroporto (condiviso con l'editor gerarchia): più basso = più in alto.</summary>
+    private static int CoverageFor(SectorType type) => AirportPositionLadder.Rung(type);
 }

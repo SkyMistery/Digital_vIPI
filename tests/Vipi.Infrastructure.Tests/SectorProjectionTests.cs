@@ -231,16 +231,93 @@ public class SectorProjectionTests : IAsyncLifetime
         Assert.Null((await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_APP")).ParentSectorId);
     }
 
+    /// <summary>
+    /// Dal 2026-07-31 TWR/GND/DEL SONO nodi della gerarchia: hanno un padre di copertura come gli altri e
+    /// l'admin deve poterlo correggere sugli scali a posizioni sdoppiate. Prima erano esclusi da un filtro
+    /// <c>Position == "APP"</c>. L'ATIS resta fuori: non è una posizione di controllo.
+    /// </summary>
     [Fact]
-    public async Task LoadTree_Includes_Acc_App_Airport_But_Not_Del_Gnd_Twr()
+    public async Task LoadTree_Includes_Acc_AirportPositions_And_Airport()
     {
         var tree = await _hier.LoadTreeAsync();
 
         Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.Acc && n.Callsign == "LIRR_NE_CTR");
-        Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.App && n.Callsign == "LIRP_APP");
+        Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.AirportPosition && n.Callsign == "LIRP_APP");
+        Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.AirportPosition && n.Callsign == "LIRP_TWR");
+        Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.AirportPosition && n.Callsign == "LIRP_GND");
         Assert.Contains(tree, n => n.Kind == HierarchyNodeKind.Airport && n.Label.StartsWith("LIRP"));
-        // TWR/GND non sono nodi della gerarchia.
-        Assert.DoesNotContain(tree, n => n.Callsign == "LIRP_TWR" || n.Callsign == "LIRP_GND");
+    }
+
+    /// <summary>
+    /// Le posizioni senza padre scritto NON sono orfane: portano il padre ereditato dalla scaletta, lo stesso che
+    /// la proiezione scrive davvero. Senza, l'editor direbbe «da assegnare» su nodi che il sistema aggancia — due
+    /// schermate in contraddizione sullo stesso nodo.
+    /// </summary>
+    [Fact]
+    public async Task LoadTree_Espone_Il_Padre_Ereditato_Dalla_Scaletta()
+    {
+        var tree = await _hier.LoadTreeAsync();
+
+        var twr = tree.First(n => n.Callsign == "LIRP_TWR");
+        Assert.Null(twr.ParentCallsign);              // non scritto sul catalogo
+        Assert.True(twr.IsInherited);
+        Assert.Equal("LIRP_APP", twr.EffectiveParentCallsign);
+
+        var gnd = tree.First(n => n.Callsign == "LIRP_GND");
+        Assert.Equal("LIRP_TWR", gnd.EffectiveParentCallsign);
+
+        // Un padre scritto non è «ereditato».
+        var app = tree.First(n => n.Callsign == "LIRP_APP");
+        Assert.False(app.IsInherited);
+        Assert.Equal("LIRR_NE_CTR", app.EffectiveParentCallsign);
+    }
+
+    /// <summary>Il padre non può stare più in basso nella scaletta: un ground non copre una torre.</summary>
+    [Fact]
+    public async Task SetParent_Rifiuta_Un_Padre_Piu_In_Basso_Nella_Scaletta()
+    {
+        var twr = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_TWR");
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, twr.Id, "LIRP_GND"));
+
+        Assert.Contains("scaletta", ex.Message);
+    }
+
+    /// <summary>Pari grado ammesso: è il caso degli split (LIRF_E_TWR sotto LIRF_TWR).</summary>
+    [Fact]
+    public async Task SetParent_Ammette_Il_Pari_Grado_Fra_Posizioni_Sdoppiate()
+    {
+        _db.AirportSectors.Add(new AirportSector
+        {
+            ComposePosition = "LIRP_E_TWR", AirportIcao = "LIRP", AccCode = "LIRR", Position = "TWR",
+        });
+        await _db.SaveChangesAsync();
+        var split = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_E_TWR");
+
+        await _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, split.Id, "LIRP_TWR");
+
+        var after = await _db.AirportSectors.AsNoTracking().FirstAsync(s => s.Id == split.Id);
+        Assert.Equal("LIRP_TWR", after.ParentCallsign);
+    }
+
+    /// <summary>Il padre scritto a mano vince sulla scaletta, e la proiezione lo applica.</summary>
+    [Fact]
+    public async Task SetParent_Su_Una_Posizione_Vince_Sulla_Scaletta()
+    {
+        var gnd = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_GND");
+
+        // Di default il ground eredita la torre; qui lo si aggancia direttamente all'avvicinamento.
+        await _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, gnd.Id, "LIRP_APP");
+
+        var tree = await _hier.LoadTreeAsync();
+        var node = tree.First(n => n.Callsign == "LIRP_GND");
+        Assert.False(node.IsInherited);
+        Assert.Equal("LIRP_APP", node.EffectiveParentCallsign);
+
+        var projected = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_GND");
+        var app = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRP_APP");
+        Assert.Equal(app.Id, projected.ParentSectorId);
     }
 
     [Fact]
