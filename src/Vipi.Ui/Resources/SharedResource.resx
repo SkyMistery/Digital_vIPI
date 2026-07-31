@@ -1204,4 +1204,19 @@
   <data name="Img_CaptionLabel" xml:space="preserve"><value>Didascalia</value></data>
   <data name="Img_CaptionPh" xml:space="preserve"><value>Testo sotto l'immagine (facoltativo)</value></data>
   <data name="Img_Remove" xml:space="preserve"><value>Rimuovi immagine</value></data>
+  <data name="MediaClean_Title" xml:space="preserve"><value>Immagini dei documenti</value></data>
+  <data name="MediaClean_Intro" xml:space="preserve"><value>Le immagini restano nel database anche quando togli il blocco che le mostrava: una versione pubblicata potrebbe ancora citarle. Qui vedi quelle che non serve piu' tenere e puoi liberarne lo spazio.</value></data>
+  <data name="MediaClean_Analyze" xml:space="preserve"><value>Analizza</value></data>
+  <data name="MediaClean_Working" xml:space="preserve"><value>Analisi in corso...</value></data>
+  <data name="MediaClean_Total" xml:space="preserve"><value>{0} immagini, {1} in tutto</value></data>
+  <data name="MediaClean_NoneUnused" xml:space="preserve"><value>Nessuna immagine da rimuovere: sono tutte citate da un documento o da una versione pubblicata.</value></data>
+  <data name="MediaClean_FoundUnused" xml:space="preserve"><value>{0} immagini non sono citate da nessun documento ne' da alcuna versione pubblicata: {1} recuperabili.</value></data>
+  <data name="MediaClean_ColFile" xml:space="preserve"><value>File</value></data>
+  <data name="MediaClean_ColSize" xml:space="preserve"><value>Dimensione</value></data>
+  <data name="MediaClean_ColUploaded" xml:space="preserve"><value>Caricata il</value></data>
+  <data name="MediaClean_ColBy" xml:space="preserve"><value>Da (VID)</value></data>
+  <data name="MediaClean_Delete" xml:space="preserve"><value>Elimina definitivamente</value></data>
+  <data name="MediaClean_DeleteTitle" xml:space="preserve"><value>Cancella dal database le immagini non usate</value></data>
+  <data name="MediaClean_DeletePrompt" xml:space="preserve"><value>Eliminare {0} immagini?</value></data>
+  <data name="MediaClean_Deleted" xml:space="preserve"><value>Eliminate {0} immagini.</value></data>
 </root>

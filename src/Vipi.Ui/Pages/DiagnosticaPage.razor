@@ -54,6 +54,14 @@
             </tbody>
         </table>
     }
+
+    @* Manutenzione del deposito immagini: sta qui perché è la pagina delle azioni di manutenzione ed è già
+       riservata agli admin. Fuori dal ramo del report: il quadro di consistenza può essere pulito e lo spazio
+       da recuperare esserci lo stesso. *@
+    @if (Authz.IsAdmin)
+    {
+        <MediaCleanupCard />
+    }
 </div>
 
 @code {

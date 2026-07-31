@@ -1198,4 +1198,19 @@
   <data name="Img_CaptionLabel" xml:space="preserve"><value>Caption</value></data>
   <data name="Img_CaptionPh" xml:space="preserve"><value>Text below the image (optional)</value></data>
   <data name="Img_Remove" xml:space="preserve"><value>Remove image</value></data>
+  <data name="MediaClean_Title" xml:space="preserve"><value>Document images</value></data>
+  <data name="MediaClean_Intro" xml:space="preserve"><value>Images stay in the database even after you remove the block that showed them: a published version may still refer to them. Here you can see the ones no longer needed and free up their space.</value></data>
+  <data name="MediaClean_Analyze" xml:space="preserve"><value>Analyse</value></data>
+  <data name="MediaClean_Working" xml:space="preserve"><value>Analysing...</value></data>
+  <data name="MediaClean_Total" xml:space="preserve"><value>{0} images, {1} in total</value></data>
+  <data name="MediaClean_NoneUnused" xml:space="preserve"><value>Nothing to remove: every image is referenced by a document or a published version.</value></data>
+  <data name="MediaClean_FoundUnused" xml:space="preserve"><value>{0} images are not referenced by any document or published version: {1} reclaimable.</value></data>
+  <data name="MediaClean_ColFile" xml:space="preserve"><value>File</value></data>
+  <data name="MediaClean_ColSize" xml:space="preserve"><value>Size</value></data>
+  <data name="MediaClean_ColUploaded" xml:space="preserve"><value>Uploaded on</value></data>
+  <data name="MediaClean_ColBy" xml:space="preserve"><value>By (VID)</value></data>
+  <data name="MediaClean_Delete" xml:space="preserve"><value>Delete permanently</value></data>
+  <data name="MediaClean_DeleteTitle" xml:space="preserve"><value>Delete unused images from the database</value></data>
+  <data name="MediaClean_DeletePrompt" xml:space="preserve"><value>Delete {0} images?</value></data>
+  <data name="MediaClean_Deleted" xml:space="preserve"><value>Deleted {0} images.</value></data>
 </root>
