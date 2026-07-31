@@ -9,10 +9,6 @@
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
             <button class="btn ghost aor3d-basemap on" type="button">🗺 Mappa base</button>
             <button class="btn ghost aor3d-full" type="button">⛶ Schermo intero</button>
-            @if (!string.IsNullOrWhiteSpace(FullPageUrl))
-            {
-                <a class="btn ghost" href="@FullPageUrl">🗗 Apri pagina</a>
-            }
         </div>
         <div @key="Signature()" class="aor3d-stage" data-sectors3d="@SectorsJson()" style="@StageStyle">
             <div class="aor3d-legend"><div class="lgt">Settori</div><div class="aor3d-legrows"></div></div>
@@ -27,8 +23,6 @@
     [Parameter] public string? Id { get; set; }
     /// <summary>Stile inline dello stage (es. altezza custom nella pagina fullscreen). Default: altezza da CSS.</summary>
     [Parameter] public string? StageStyle { get; set; }
-    /// <summary>URL della pagina 3D dedicata: se valorizzato, mostra il link «Apri pagina». null nella pagina stessa.</summary>
-    [Parameter] public string? FullPageUrl { get; set; }
 
     // Firma (callsign+colore+banda) per il @key: cambia → Blazor sostituisce il nodo → vipi-aor3d.js re-inizializza.
     private string Signature() => string.Join("|", View.Sectors.Select(s => $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}"));

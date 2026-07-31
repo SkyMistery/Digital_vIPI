@@ -9,7 +9,11 @@
 
 @* Pagina 3D dedicata dell'AoR (schermo quasi intero). Sorgente-neutra: risolve l'AccAorView dal discriminatore Kind
    (acc = intera ACC unendo i blocchi · app = APP standalone · vloa = coppia vLOA) e la rende con AccAor3d.
-   Raggiunta dal link «Apri pagina» nel tab 3D del blocco AoR (AccAor). *@
+
+   ⚠ SENZA INGRESSO UI dal 2026-07-31: il link «Apri pagina» del tab 3D è stato rimosso (parametro `FullPageUrl` di
+   AccAor3d e `Aor3dPageUrl` di AccAor/AccSectionBody con esso) in attesa di rilavorare questa pagina. La rotta
+   risponde ancora, quindi ci si arriva a URL diretto: /vsop/aor3d/acc/{codice} · /app/{icao} · /vloa/{docId}.
+   Per rimettere il link: revert del commit «AoR 3D: rimosso il link Apri pagina». *@
 
 <div class="wrap">
     <div class="breadcrumb"><a href="/vsop">Home</a> › <b>AoR 3D</b> › @_title</div>
