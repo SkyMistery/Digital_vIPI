@@ -206,6 +206,134 @@ public class MediaMaintenanceTests : IAsyncLifetime
         Assert.Equal(1, await _db.MediaAssets.CountAsync());
     }
 
+    // --- pulizia automatica alla cancellazione + quota per documento ---
+
+    private EfEditingRepository Editing() =>
+        new(_db, new Vipi.Domain.Services.AiracService(), _manutenzione);
+
+    [Fact]
+    public async Task Cancellare_il_blocco_immagine_libera_subito_la_foto()
+    {
+        var sha = await CaricaAsync(1);
+        await BloccoImmagineAsync(sha);
+        var blocco = await _db.ContentBlocks.FirstAsync();
+
+        await Editing().DeleteBlockAsync(blocco.Id);
+
+        Assert.Equal(0, await _db.MediaAssets.CountAsync());
+    }
+
+    [Fact]
+    public async Task Cancellare_il_blocco_NON_tocca_una_foto_usata_anche_altrove()
+    {
+        // Il caso che rende pericolosa la cancellazione automatica: due blocchi, stessa foto.
+        var sha = await CaricaAsync(1);
+        await BloccoImmagineAsync(sha);
+        await BloccoImmagineAsync(sha);
+        var primo = await _db.ContentBlocks.OrderBy(b => b.Id).FirstAsync();
+
+        await Editing().DeleteBlockAsync(primo.Id);
+
+        Assert.Equal(1, await _db.MediaAssets.CountAsync());
+    }
+
+    [Fact]
+    public async Task Cancellare_il_blocco_NON_tocca_una_foto_citata_da_una_release()
+    {
+        // Nel documento di lavoro sparisce, ma la vIPI gia' pubblicata continua a mostrarla.
+        var sha = await CaricaAsync(1);
+        await BloccoImmagineAsync(sha);
+        _db.DocReleases.Add(new DocRelease
+        {
+            TargetType = ReleaseTargetType.AccVipi, TargetKey = "LIBB", VersionNumber = 1,
+            ReleaseAiracCycle = "2606", ReleaseEffectiveUtc = DateTime.UtcNow.AddDays(-30),
+            Status = ReleaseStatus.Effective, CreatedByUserId = 1, CreatedUtc = DateTime.UtcNow.AddDays(-30),
+            PayloadJson = MediaRef.Serialize(new MediaRef(sha)),
+        });
+        await _db.SaveChangesAsync();
+        var blocco = await _db.ContentBlocks.FirstAsync();
+
+        await Editing().DeleteBlockAsync(blocco.Id);
+
+        Assert.Equal(1, await _db.MediaAssets.CountAsync());
+    }
+
+    [Fact]
+    public async Task Cancellare_la_sezione_libera_le_foto_dell_intero_sottoalbero()
+    {
+        var shaPadre = await CaricaAsync(1);
+        var shaFiglia = await CaricaAsync(2);
+        await BloccoImmagineAsync(shaPadre);
+
+        var figlia = new DocumentSection
+        {
+            DocumentVersion = _ver, ParentSectionId = _sec.Id, Title = "Sotto-sezione", Order = 1, Depth = 1,
+            SectionKey = "custom", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(figlia);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersion = _ver, Section = figlia, Order = 1, Format = BlockFormat.Image,
+            Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            BodyJson = MediaRef.Serialize(new MediaRef(shaFiglia)), RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        await Editing().DeleteSectionAsync(_sec.Id);
+
+        Assert.Equal(0, await _db.MediaAssets.CountAsync());
+    }
+
+    [Fact]
+    public async Task Togliere_l_immagine_da_una_sezione_extra_la_libera_e_lascia_le_altre()
+    {
+        // Negli extra d'aeroporto la rimozione e' una RISCRITTURA: l'editor rimanda tutte le sezioni e chi toglie un
+        // blocco semplicemente non lo rispedisce. Si riconoscono confrontando il prima col dopo.
+        var restaSha = await CaricaAsync(1);
+        var viaSha = await CaricaAsync(2);
+        var acc = new Acc { Code = "LIBB", Name = "Brindisi", CountryPrefix = "LI" };
+        var apt = new Airport { Acc = acc, Icao = "LIBD", Name = "Bari" };
+        _db.Accs.Add(acc); _db.Airports.Add(apt);
+        await _db.SaveChangesAsync();
+
+        var repo = new EfAirportRepository(_db, _manutenzione);
+        string Corpo(params string[] sha) => ExtraBlocks.Serialize(
+            sha.Select(x => new ExtraBlock { Format = BlockFormat.Image, ImageJson = MediaRef.Serialize(new MediaRef(x)) }).ToList())!;
+
+        await repo.SaveExtraSectionsAsync("LIBD", new[] { new ExtraSectionRow(0, "Hot spot", Corpo(restaSha, viaSha)) });
+        Assert.Equal(2, await _db.MediaAssets.CountAsync());
+
+        await repo.SaveExtraSectionsAsync("LIBD", new[] { new ExtraSectionRow(0, "Hot spot", Corpo(restaSha)) });
+
+        Assert.Equal(new[] { restaSha }, await _db.MediaAssets.Select(m => m.Sha256).ToListAsync());
+    }
+
+    [Fact]
+    public async Task La_quota_conta_i_byte_delle_immagini_del_documento()
+    {
+        var sha = await CaricaAsync(1);
+        await BloccoImmagineAsync(sha);
+
+        var documentId = await _db.DocumentVersions.Where(v => v.Id == _ver.Id).Select(v => v.DocumentId).FirstAsync();
+
+        Assert.Equal(25, await _manutenzione.DocumentImageBytesAsync(documentId));
+        Assert.Equal(0, await _manutenzione.DocumentImageBytesAsync(documentId + 999));   // documento inesistente
+    }
+
+    [Fact]
+    public async Task La_stessa_foto_in_due_blocchi_pesa_una_volta_sola()
+    {
+        // La quota misura lo SPAZIO occupato, non quante volte la si mostra: nel deposito e' una riga sola.
+        var sha = await CaricaAsync(1);
+        await BloccoImmagineAsync(sha);
+        await BloccoImmagineAsync(sha);
+
+        var documentId = await _db.DocumentVersions.Where(v => v.Id == _ver.Id).Select(v => v.DocumentId).FirstAsync();
+
+        Assert.Equal(25, await _manutenzione.DocumentImageBytesAsync(documentId));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("non-uno-sha")]

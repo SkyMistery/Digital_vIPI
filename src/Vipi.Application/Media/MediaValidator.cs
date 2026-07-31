@@ -41,6 +41,14 @@ public static class MediaValidator
     /// il deposito veda i byte, e quel che si stava inviando può essere la copia già rimpicciolita dal browser —
     /// citare la dimensione del file scelto direbbe un numero che non è quello rifiutato.
     /// </summary>
+    /// <summary>
+    /// Quota del documento esaurita. Dice quanto pesa gia' e quanto e' il tetto: senza i due numeri chi scrive non
+    /// sa se deve togliere un'immagine o dieci.
+    /// </summary>
+    public static string QuotaMessage(long usati, MediaOptions options) =>
+        $"Le immagini di questo documento occupano gia' {MediaOptions.Human(usati)} sui {options.MaxBytesPerDocumentLabel} disponibili: " +
+        "rimuovi un'immagine che non serve piu' prima di aggiungerne altre.";
+
     public static string TooBigMessage(MediaOptions options) =>
         $"L'immagine supera il limite di {options.MaxUploadLabel}.";
 }

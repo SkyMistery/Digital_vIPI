@@ -37,7 +37,7 @@
                         @TableEditor(blk)
                         break;
                     case BlockFormat.Image:
-                        <ImageBlockEditor ImageJson="@blk.ImageJson" ImageJsonChanged="j => SetImage(blk, j)"
+                        <ImageBlockEditor DocumentId="DocumentId" ImageJson="@blk.ImageJson" ImageJsonChanged="j => SetImage(blk, j)"
                                           Caption="@blk.Text" CaptionChanged="c => SetText(blk, c ?? string.Empty)" />
                         break;
                 }
@@ -70,6 +70,8 @@
     /// <summary>Blocchi editati in loco. L'host la possiede e la persiste su <see cref="OnChanged"/>.</summary>
     [Parameter, EditorRequired] public List<ExtraBlock> Blocks { get; set; } = new();
     [Parameter] public bool Editing { get; set; }
+    /// <summary>Documento di destinazione, per la quota immagini. Null = quota non applicabile.</summary>
+    [Parameter] public int? DocumentId { get; set; }
     /// <summary>Invocato dopo ogni mutazione (aggiunta/modifica/spostamento/rimozione).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 

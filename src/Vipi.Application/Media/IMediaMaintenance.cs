@@ -25,6 +25,18 @@ public interface IMediaMaintenance
     /// <summary>
     /// Cancella gli sha indicati, ma solo quelli ancora orfani: fra l'analisi e il clic possono passare minuti, e in
     /// mezzo qualcuno può aver pubblicato o incollato quell'immagine in una bozza. Ritorna quanti ne ha cancellati.
+    /// <para>
+    /// È anche il gancio della pulizia <b>automatica</b>: chi cancella un blocco o una sezione raccoglie gli sha che
+    /// vi erano citati e passa di qui <i>dopo</i> la cancellazione. Il ricontrollo su tutte le sorgenti è ciò che
+    /// rende sicuro l'automatismo — una foto ancora citata da un altro blocco, da un'altra versione o da una release
+    /// pubblicata non viene toccata.
+    /// </para>
     /// </summary>
     Task<int> DeleteOrphansAsync(IReadOnlyList<string> sha256, CancellationToken ct = default);
+
+    /// <summary>
+    /// Byte occupati dalle immagini citate da un documento (tutte le sue versioni). Serve alla quota per documento:
+    /// un'immagine usata due volte pesa una volta sola, perché nel deposito è una riga sola.
+    /// </summary>
+    Task<long> DocumentImageBytesAsync(int documentId, CancellationToken ct = default);
 }

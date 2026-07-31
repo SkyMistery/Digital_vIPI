@@ -18,6 +18,13 @@ public sealed class MediaOptions
     /// <summary>Lato massimo in pixel accettato: guardia contro le immagini-bomba (dimensioni enormi, file piccolo).</summary>
     public int MaxImagePixels { get; set; } = 12000;
 
+    /// <summary>
+    /// Spazio massimo che le immagini di UN documento possono occupare, in byte. <c>0</c> = nessun limite.
+    /// Default 25 MB: con foto gia' rimpicciolite dal browser sono decine di immagini per documento, ma impedisce
+    /// che un solo documento si mangi il database condiviso.
+    /// </summary>
+    public int MaxBytesPerDocument { get; set; } = 25 * 1024 * 1024;
+
     /// <summary>Lato lungo a cui il browser rimpicciolisce l'immagine PRIMA di caricarla (0 = nessun ridimensionamento).</summary>
     public int ClientDownscaleLongestSidePx { get; set; } = 2000;
 
@@ -27,6 +34,9 @@ public sealed class MediaOptions
     /// <summary>Il limite come lo legge un umano ("3 MB"): un solo posto anche per il testo, così UI e messaggi
     /// d'errore non possono dire due numeri diversi.</summary>
     public string MaxUploadLabel => Human(MaxUploadBytes);
+
+    /// <summary>La quota per documento come la legge un umano.</summary>
+    public string MaxBytesPerDocumentLabel => Human(MaxBytesPerDocument);
 
     internal static string Human(long bytes) => bytes switch
     {

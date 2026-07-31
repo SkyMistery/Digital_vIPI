@@ -1217,4 +1217,5 @@
   <data name="MediaClean_FoundUnused_One" xml:space="preserve"><value>1 image is not referenced by any document or published version: {1} reclaimable.</value></data>
   <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Delete the image?</value></data>
   <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Deleted 1 image.</value></data>
+  <data name="MediaClean_ColPreview" xml:space="preserve"><value>Preview</value></data>
 </root>

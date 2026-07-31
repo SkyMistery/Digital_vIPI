@@ -61,6 +61,12 @@
     [Parameter] public string? ImageJson { get; set; }
     [Parameter] public EventCallback<string?> ImageJsonChanged { get; set; }
 
+    /// <summary>
+    /// Documento a cui appartiene il blocco, per la quota per documento (<c>Media:MaxBytesPerDocument</c>).
+    /// Null = quota non applicabile: e' il caso dei blocchi che vivono in memoria prima di finire in un documento.
+    /// </summary>
+    [Parameter] public int? DocumentId { get; set; }
+
     /// <summary>Didascalia (markdown leggero, come la prosa).</summary>
     [Parameter] public string? Caption { get; set; }
     [Parameter] public EventCallback<string?> CaptionChanged { get; set; }
@@ -71,7 +77,13 @@
     private string? _error;
 
     private IMediaStore _store = default!;
-    protected override void OnInitialized() => _store = ScopedServices.GetRequiredService<IMediaStore>();
+    private IMediaMaintenance _media = default!;
+
+    protected override void OnInitialized()
+    {
+        _store = ScopedServices.GetRequiredService<IMediaStore>();
+        _media = ScopedServices.GetRequiredService<IMediaMaintenance>();
+    }
 
     // Aggancia al file input il rimpicciolimento nel browser: intercetta il file scelto e, se serve, lo sostituisce
     // con una copia più leggera PRIMA che Blazor lo legga (il perché sta in cima a vipi-media.js). Da qui in poi il
@@ -114,6 +126,8 @@
         try
         {
             var max = MediaOptions.Value.MaxUploadBytes;
+            await GuardQuotaAsync(file);
+
             // Un byte oltre il limite: basta a far scattare il rifiuto senza tirarsi in casa il resto del file.
             await using var stream = file.OpenReadStream(max + 1);
             var saved = await _store.SaveAsync(stream, file.Name);
@@ -137,6 +151,23 @@
         {
             _busy = false;
         }
+    }
+
+    /// <summary>
+    /// Rifiuta il caricamento se il documento ha gia' esaurito la sua quota. Il controllo sta PRIMA del salvataggio:
+    /// accettare i byte per poi scartarli lascerebbe nel deposito un asset che nessuno cita.
+    /// <para>La dimensione e' quella del file che parte davvero — il browser lo ha gia' rimpicciolito — quindi il
+    /// conto e' onesto. Una foto gia' presente nel documento verrebbe contata due volte da questa stima: succede
+    /// solo a ridosso del tetto, e il prezzo e' un rifiuto in piu', mai una cancellazione.</para>
+    /// </summary>
+    private async Task GuardQuotaAsync(IBrowserFile file)
+    {
+        var quota = MediaOptions.Value.MaxBytesPerDocument;
+        if (quota <= 0 || DocumentId is not { } docId) return;
+
+        var usati = await _media.DocumentImageBytesAsync(docId);
+        if (usati + file.Size > quota)
+            throw new ValidationException(MediaValidator.QuotaMessage(usati, MediaOptions.Value));
     }
 
     private Task SetAltAsync(string alt)

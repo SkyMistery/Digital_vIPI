@@ -28,7 +28,7 @@ public class EditingRepositoryTests : IAsyncLifetime
         await RomaStructureSeed.SeedAsync(_db);
         await RomaContentSeed.SeedAsync(_db);
         await RomaVloaSeed.SeedAsync(_db);
-        _repo = new EfEditingRepository(_db, new AiracService());
+        _repo = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
     }
 
     public async Task DisposeAsync()

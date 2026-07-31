@@ -50,13 +50,27 @@ public class ImageBlockEditorTests : TestContext
             Task.FromResult<MediaContent?>(null);
     }
 
+    private sealed class FakeMaintenance : IMediaMaintenance
+    {
+        public long DocumentBytes { get; set; }
+        public Task<MediaUsageReport> AnalyzeAsync(CancellationToken ct = default) =>
+            Task.FromResult(new MediaUsageReport(0, 0, Array.Empty<OrphanMedia>()));
+        public Task<int> DeleteOrphansAsync(IReadOnlyList<string> sha256, CancellationToken ct = default) =>
+            Task.FromResult(0);
+        public Task<long> DocumentImageBytesAsync(int documentId, CancellationToken ct = default) =>
+            Task.FromResult(DocumentBytes);
+    }
+
     private readonly FakeMediaStore _store = new();
+    private readonly FakeMaintenance _manutenzione = new();
 
     public ImageBlockEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IMediaStore>(_ => _store);
-        Services.AddSingleton<IOptions<MediaOptions>>(Options.Create(new MediaOptions { MaxUploadBytes = 3 * 1024 * 1024 }));
+        Services.AddScoped<IMediaMaintenance>(_ => _manutenzione);
+        Services.AddSingleton<IOptions<MediaOptions>>(Options.Create(
+            new MediaOptions { MaxUploadBytes = 3 * 1024 * 1024, MaxBytesPerDocument = 1024 }));
         // Niente browser: vipiMedia.osserva non aggancia nulla e il file arriva a .NET come l'ha scelto l'utente.
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
@@ -150,5 +164,39 @@ public class ImageBlockEditorTests : TestContext
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("nuovo contenuto", "nuova.png"));
 
         Assert.Null(MediaRef.Parse(json)!.Alt);
+    }
+
+    // --- quota per documento ---
+
+    [Fact]
+    public void Con_la_quota_esaurita_il_caricamento_viene_rifiutato_con_i_due_numeri()
+    {
+        _manutenzione.DocumentBytes = 1000;                       // quota 1024: resta quasi niente
+        string? json = null;
+        var cut = RenderComponent<ImageBlockEditor>(p => p
+            .Add(x => x.DocumentId, 42)
+            .Add(x => x.ImageJsonChanged, j => json = j));
+
+        cut.FindComponent<InputFile>().UploadFiles(
+            InputFileContent.CreateFromText(new string('x', 500), "foto.png"));
+
+        Assert.Contains("occupano gia", cut.Markup);
+        Assert.Contains("1 KB", cut.Markup);                      // il tetto, letto dall'opzione
+        Assert.Null(json);                                        // niente riferimento salvato
+        Assert.Equal(0, _store.Saves);                            // e niente asset orfano nel deposito
+    }
+
+    [Fact]
+    public void Senza_documento_la_quota_non_si_applica()
+    {
+        // Blocchi che vivono in memoria prima di finire in un documento: non c'e' quota a cui riferirsi.
+        _manutenzione.DocumentBytes = 999999;
+        string? json = null;
+        var cut = RenderComponent<ImageBlockEditor>(p => p.Add(x => x.ImageJsonChanged, j => json = j));
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("piccola", "foto.png"));
+
+        Assert.Equal(1, _store.Saves);
+        Assert.NotNull(json);
     }
 }

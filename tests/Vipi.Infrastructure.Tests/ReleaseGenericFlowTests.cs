@@ -78,7 +78,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var repo = new EfReleaseRepository(_db, Registry());
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
-            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
@@ -101,7 +101,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var repo = new EfReleaseRepository(_db, Registry());
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
-            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
 
         // Il doc fittizio è Published SENZA release → il backfill ne genera una effettiva ora.
@@ -124,7 +124,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         // promozione della bozza, conta una versione in meno e ne lascia N+1.
         var svc = new ReleaseService(new EfReleaseRepository(_db, Registry()), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
-            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService()), Registry(),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }));
 
         // Publish #1: promuove v2, archivia v1 → 1 Archived (al cap).

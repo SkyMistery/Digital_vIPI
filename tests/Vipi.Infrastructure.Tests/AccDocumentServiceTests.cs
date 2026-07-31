@@ -31,7 +31,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
         await RomaStructureSeed.SeedAsync(_db);
 
         var repo = new EfAccDerivationRepository(_db);
-        var editing = new EfEditingRepository(_db, new AiracService());
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         _service = new AccDocumentService(repo, editing, new AllowAuthz(), TestReleaseTargets.ReleaseRepo(_db));
     }
 
@@ -136,7 +136,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         // Anche dopo aver pubblicato la VERSIONE (senza release effettiva) resta invisibile: serve una release.
         var docId = await _service.EnsureAsync(Acc);
-        var editing = new EfEditingRepository(_db, new AiracService());
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var draftVer = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
         await editing.PublishAsync(draftVer, actorUserId: 1, note: "pub");
         Assert.Null(await _service.LoadForViewAsync(Acc));
@@ -146,7 +146,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
     public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
     {
         var releases = TestReleaseTargets.ReleaseRepo(_db);
-        var editing = new EfEditingRepository(_db, new AiracService());
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
 
         // Migra + edita (config "Conf A") + pubblica.
         var model = await _service.LoadForEditAsync(Acc);

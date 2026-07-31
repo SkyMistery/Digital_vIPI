@@ -1223,4 +1223,5 @@
   <data name="MediaClean_FoundUnused_One" xml:space="preserve"><value>1 immagine non e' citata da nessun documento ne' da alcuna versione pubblicata: {1} recuperabili.</value></data>
   <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Eliminare l'immagine?</value></data>
   <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Eliminata 1 immagine.</value></data>
+  <data name="MediaClean_ColPreview" xml:space="preserve"><value>Anteprima</value></data>
 </root>

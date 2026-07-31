@@ -44,6 +44,7 @@
             <table class="res-table" style="margin-top:10px">
                 <thead>
                     <tr>
+                        <th style="width:96px">@L["MediaClean_ColPreview"]</th>
                         <th>@L["MediaClean_ColFile"]</th>
                         <th>@L["MediaClean_ColSize"]</th>
                         <th>@L["MediaClean_ColUploaded"]</th>
@@ -54,6 +55,9 @@
                     @foreach (var o in _report.Orphans)
                     {
                         <tr>
+                            @* L'anteprima e' il motivo per cui l'elenco esiste: davanti a un nome come «immagine1.png»
+                               nessuno sa se quella foto serviva. La miniatura la si riconosce a colpo d'occhio. *@
+                            <td><img class="img-thumb" src="@(MediaRef.UrlPrefix + o.Sha256)" alt="" loading="lazy" /></td>
                             <td>@(string.IsNullOrWhiteSpace(o.FileName) ? o.Sha256[..12] + "…" : o.FileName)</td>
                             <td>@Human(o.ByteSize)</td>
                             <td class="muted">@o.CreatedUtc.ToString("dd/MM/yyyy")</td>

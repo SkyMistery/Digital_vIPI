@@ -68,7 +68,7 @@ public class ImportPolicyTests : IAsyncLifetime
         var provider = new FakeUser { User = new CurrentUser(1, "Admin", "LIRR", new[] { "IT-AOC" }) };
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
             Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
-        return new AirportEditingService(new EfAirportRepository(_db), authz,
+        return new AirportEditingService(new EfAirportRepository(_db, new EfMediaMaintenance(_db)), authz,
             dir ?? new FakeDirectory(), det ?? new FakeDetails(), _store);
     }
 
@@ -103,7 +103,7 @@ public class ImportPolicyTests : IAsyncLifetime
     [Fact]
     public async Task Runways_Locked_Rejects_Geometry_Change_But_Allows_Editorial()
     {
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await profile.MergeFromSourceAsync("LIRF", null, new[] { ("16L", (int?)3902, (int?)160) });
         var svc = BuildService();
         var stored = (await profile.LoadAsync("LIRF"))!.Runways.Single();
@@ -122,7 +122,7 @@ public class ImportPolicyTests : IAsyncLifetime
     [Fact]
     public async Task Reimport_Skips_Excluded_Categories()
     {
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         // Stato iniziale editoriale dell'utente: TA 4000 + pista 16L lunga 3902.
         await profile.MergeFromSourceAsync("LIRF", 4000, new[] { ("16L", (int?)3902, (int?)160) });
 

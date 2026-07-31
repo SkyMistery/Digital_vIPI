@@ -6,8 +6,9 @@ namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
 /// Pulizia del deposito immagini su EF. Sa UNA cosa che nessun altro sa: <b>dove</b> può comparire il riferimento a
-/// un'immagine. Sono tre posti, e vanno guardati tutti e tre — saltarne uno significa cancellare una foto ancora in
-/// uso (docs/feature/2026-07-31-pulizia-immagini-orfane.md §1).
+/// un'immagine. Sono quattro posti, e vanno guardati tutti — saltarne uno significa cancellare una foto ancora in
+/// uso (docs/feature/2026-07-31-pulizia-immagini-orfane.md §1). Da qui passa anche la pulizia automatica alla
+/// cancellazione di un blocco o di una sezione: e' lo stesso controllo, quindi eredita le stesse garanzie.
 /// </summary>
 public sealed class EfMediaMaintenance : IMediaMaintenance
 {
@@ -50,6 +51,30 @@ public sealed class EfMediaMaintenance : IMediaMaintenance
         _db.MediaAssets.RemoveRange(daTogliere);
         await _db.SaveChangesAsync(ct);
         return daTogliere.Count;
+    }
+
+    public async Task<long> DocumentImageBytesAsync(int documentId, CancellationToken ct = default)
+    {
+        // Tutte le versioni del documento, non solo quella di lavoro: anche una versione archiviata tiene occupati
+        // i suoi byte, e la quota deve dire la verita' su quanto pesa il documento nel suo insieme.
+        var versioni = await _db.DocumentVersions.AsNoTracking()
+            .Where(v => v.DocumentId == documentId)
+            .Select(v => v.Id)
+            .ToListAsync(ct);
+        if (versioni.Count == 0) return 0;
+
+        var json = await _db.ContentBlocks.AsNoTracking()
+            .Where(b => versioni.Contains(b.DocumentVersionId) && b.Format == BlockFormat.Image && b.BodyJson != null)
+            .Select(b => b.BodyJson)
+            .ToListAsync(ct);
+
+        var citati = MediaReferenceScanner.ScanAll(json);
+        if (citati.Count == 0) return 0;
+
+        // Somma sulle RIGHE, non sui riferimenti: la stessa foto usata in due blocchi occupa lo spazio una volta.
+        return await _db.MediaAssets.AsNoTracking()
+            .Where(m => citati.Contains(m.Sha256))
+            .SumAsync(m => (long)m.ByteSize, ct);
     }
 
     /// <summary>Tutti gli sha citati da qualche parte. Un asset non elencato qui non serve più a nessuno.</summary>

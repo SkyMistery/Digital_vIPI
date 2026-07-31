@@ -42,6 +42,10 @@ public class MediaCleanupCardTests : TestContext
             return Task.FromResult(new MediaUsageReport(TotalCount, TotalBytes, Orphans.ToList()));
         }
 
+        public long DocumentBytes { get; set; }
+        public Task<long> DocumentImageBytesAsync(int documentId, CancellationToken ct = default) =>
+            Task.FromResult(DocumentBytes);
+
         public Task<int> DeleteOrphansAsync(IReadOnlyList<string> sha256, CancellationToken ct = default)
         {
             if (RifiutaCancellazione) return Task.FromResult(0);
@@ -120,6 +124,21 @@ public class MediaCleanupCardTests : TestContext
         Assert.Contains("MediaClean_DeletePrompt_One", cut.Markup);
         cut.Find("span.inline-confirm button.danger").Click();
         Assert.Contains("MediaClean_Deleted_One", cut.Markup);
+    }
+
+    [Fact]
+    public void Ogni_riga_mostra_l_anteprima_della_foto()
+    {
+        // Davanti a un nome come «immagine1.png» nessuno sa se quella foto serviva: la miniatura e' il motivo per
+        // cui l'elenco si guarda prima di cancellare.
+        _servizio.Orphans.Add(Orfana(Sha, "foto-torre.png"));
+        var cut = RenderComponent<MediaCleanupCard>();
+
+        cut.Find("button").Click();
+
+        var img = cut.Find("tbody tr img.img-thumb");
+        Assert.Equal("/vsop/media/" + Sha, img.GetAttribute("src"));
+        Assert.Equal("", img.GetAttribute("alt"));   // decorativa: il nome del file e' gia' nella colonna accanto
     }
 
     [Fact]

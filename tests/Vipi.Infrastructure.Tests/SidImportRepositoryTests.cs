@@ -23,7 +23,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         _db.Accs.Add(acc);
         _db.Airports.Add(new Airport { Icao = "LIRF", Name = "Fiumicino", Acc = acc });
         await _db.SaveChangesAsync();
-        _repo = new EfAirportRepository(_db);
+        _repo = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }

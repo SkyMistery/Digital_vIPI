@@ -15,7 +15,13 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAirportRepository : IAirportRepository
 {
     private readonly VipiDbContext _db;
-    public EfAirportRepository(VipiDbContext db) => _db = db;
+    private readonly Vipi.Application.Media.IMediaMaintenance _media;
+
+    public EfAirportRepository(VipiDbContext db, Vipi.Application.Media.IMediaMaintenance media)
+    {
+        _db = db;
+        _media = media;
+    }
 
     /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate. Include sia i
     /// titoli EN correnti sia quelli IT legacy, così un rebuild di un documento vecchio rimuove le sezioni italiane
@@ -269,7 +275,14 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        _db.AirportExtraSections.RemoveRange(_db.AirportExtraSections.Where(x => x.AirportId == id));
+
+        // Qui la rimozione di una foto e' una RISCRITTURA: l'editor rimanda tutte le sezioni, e chi tolga un blocco
+        // immagine lo fa semplicemente non rispedendolo. Per sapere quali foto hanno perso il loro blocco si
+        // confronta il prima col dopo; a decidere se cancellarle resta comunque DeleteOrphansAsync.
+        var precedenti = await _db.AirportExtraSections.Where(x => x.AirportId == id).ToListAsync(ct);
+        var shaPrima = Vipi.Application.Media.MediaReferenceScanner.ScanAll(precedenti.Select(x => x.Body));
+
+        _db.AirportExtraSections.RemoveRange(precedenti);
         var order = 0;
         foreach (var r in rows.Where(r => !string.IsNullOrWhiteSpace(r.Title)))
             _db.AirportExtraSections.Add(new AirportExtraSection
@@ -278,6 +291,9 @@ public sealed class EfAirportRepository : IAirportRepository
                 Body = string.IsNullOrWhiteSpace(r.Body) ? null : r.Body!.Trim(),
             });
         await _db.SaveChangesAsync(ct);
+
+        shaPrima.ExceptWith(Vipi.Application.Media.MediaReferenceScanner.ScanAll(rows.Select(r => r.Body)));
+        if (shaPrima.Count > 0) await _media.DeleteOrphansAsync(shaPrima.ToList(), ct);
     }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
