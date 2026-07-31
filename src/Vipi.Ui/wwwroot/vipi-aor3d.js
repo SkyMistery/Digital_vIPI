@@ -31,6 +31,7 @@
     }
 
     var TARGET = 150;       // il lato orizzontale maggiore riempie ~questo numero di unità (z adattivo in build)
+    var ZDEF = 0.5;         // fattore «Altezza» iniziale: i prismi a piena scala erano torri illeggibili
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
     var hex = function (c) { return (c && c[0] === '#') ? c : ('#' + String(c || '3C55AC')); };
     // Nomi/callsign finiscono in innerHTML (legenda): arrivano dal DB, quindi passano da qui.
@@ -137,8 +138,10 @@
             if (onBasemap) onBasemap(plane);
         });
 
-        // Scala verticale ADATTIVA: l'altezza max dei prismi ≈ 55% del lato orizzontale, così non diventano torri
-        // (con dati FL piatti GND→UNL restano leggibili). maxHeight torna alla camera per inquadrare a metà.
+        // Scala verticale ADATTIVA di RIFERIMENTO (= fattore ×1 del selettore «Altezza»): l'altezza max dei prismi
+        // ≈ 55% del lato orizzontale. Il fattore scelto dall'utente si applica dopo, come group.scale.z (vedi
+        // build3d): scala insieme geometrie, quote di base e ancore delle etichette senza ricostruire nulla.
+        // maxHeight torna alla camera per inquadrare a metà.
         var maxTop = 1;
         sectors.forEach(function (s) { var b = s.fl || [0, 660]; if ((b[1] || 660) > maxTop) maxTop = b[1] || 660; });
         var flz = (TARGET * 0.55) / maxTop;
@@ -306,7 +309,9 @@
         if (!ctx) return;
         stage.dataset.init = '1';
 
-        var lookZ = (ctx.maxHeight || 80) * 0.4;                 // mira a ~40% dell'altezza dei prismi
+        var zf = ZDEF;                                           // fattore «Altezza» corrente (selettore in barra)
+        ctx.group.scale.z = zf;
+        var lookZ = (ctx.maxHeight || 80) * zf * 0.4;            // mira a ~40% dell'altezza dei prismi
         var DEF = { theta: 0.78, phi: 1.02, radius: 300 };       // vista un po' più alta e arretrata di prima
         var theta = DEF.theta, phi = DEF.phi, radius = DEF.radius;
         var box = stage.querySelector('.aor3d-legrows');
@@ -371,7 +376,20 @@
         stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false });
 
         var rst = stage.parentElement && stage.parentElement.querySelector('.aor3d-reset');
-        if (rst) rst.addEventListener('click', function () { theta = DEF.theta; phi = DEF.phi; radius = DEF.radius; updateCam(); });
+        if (rst) rst.addEventListener('click', function () { theta = DEF.theta; phi = DEF.phi; radius = DEF.radius; setZ(ZDEF); });
+
+        // Selettore «Altezza» (esagerazione verticale): scala il gruppo dei prismi sull'asse Z, niente ricostruzione.
+        // La camera rimira a metà della nuova altezza, altrimenti a ×2 i settori escono dall'inquadratura.
+        var zBtns = stage.parentElement ? stage.parentElement.querySelectorAll('.aor3d-z') : [];
+        function setZ(v) {
+            zf = v;
+            ctx.group.scale.z = zf;
+            lookZ = (ctx.maxHeight || 80) * zf * 0.4;
+            zBtns.forEach(function (b) { b.classList.toggle('on', parseFloat(b.dataset.z) === zf); });
+            updateCam();
+        }
+        zBtns.forEach(function (b) { b.addEventListener('click', function () { setZ(parseFloat(b.dataset.z) || 1); }); });
+        setZ(zf);
 
         // Schermo intero (Fullscreen API sullo stage): il canvas riempie il viewport; resize al cambio stato.
         var full = stage.parentElement && stage.parentElement.querySelector('.aor3d-full');

@@ -9,6 +9,14 @@
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
             <button class="btn ghost aor3d-basemap on" type="button">🗺 Mappa base</button>
             <button class="btn ghost aor3d-full" type="button">⛶ Schermo intero</button>
+            @* Esagerazione verticale: scala solo la vista (group.scale.z in vipi-aor3d.js), i dati FL non cambiano. *@
+            <span class="aor3d-zsel" title="Esagerazione verticale della vista (non cambia i livelli)">
+                <span class="zlab">Altezza</span>
+                @foreach (var z in ZSteps)
+                {
+                    <button class="btn ghost aor3d-z @(z == ZDefault ? "on" : null)" type="button" data-z="@z.ToString(Inv)">×@z.ToString("0.##", Inv)</button>
+                }
+            </span>
         </div>
         <div @key="Signature()" class="aor3d-stage" data-sectors3d="@SectorsJson()" style="@StageStyle">
             <div class="aor3d-legend"><div class="lgt">Settori</div><div class="aor3d-legrows"></div></div>
@@ -23,6 +31,12 @@
     [Parameter] public string? Id { get; set; }
     /// <summary>Stile inline dello stage (es. altezza custom nella pagina fullscreen). Default: altezza da CSS.</summary>
     [Parameter] public string? StageStyle { get; set; }
+
+    // Passi del selettore «Altezza». Il default deve restare allineato a ZDEF in vipi-aor3d.js (che è chi applica
+    // davvero la scala): qui serve solo a marcare il pulsante acceso alla prima resa, prima che il JS parta.
+    private static readonly double[] ZSteps = { 0.25, 0.5, 0.75, 1, 1.5, 2 };
+    private const double ZDefault = 0.5;
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     // Firma (callsign+colore+banda) per il @key: cambia → Blazor sostituisce il nodo → vipi-aor3d.js re-inizializza.
     private string Signature() => string.Join("|", View.Sectors.Select(s => $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}"));

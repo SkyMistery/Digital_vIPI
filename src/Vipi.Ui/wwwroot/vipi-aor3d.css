@@ -9,6 +9,11 @@
 .aor3d-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .aor3d-bar .btn.ghost.on { background: var(--ivao-blue); color: #fff; }
 
+/* Selettore «Altezza» (esagerazione verticale): gruppo compatto, un pulsante per fattore. */
+.aor3d-zsel { display: inline-flex; align-items: center; gap: 4px; }
+.aor3d-zsel .zlab { font-size: 12px; color: var(--ink-soft); margin-right: 2px; }
+.aor3d-zsel .aor3d-z { padding: 5px 9px; font-size: 12px; }
+
 .aor3d-stage {
     height: 540px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
     background: linear-gradient(180deg, #e9eeff, #f7f9ff); position: relative; cursor: grab; touch-action: none;
