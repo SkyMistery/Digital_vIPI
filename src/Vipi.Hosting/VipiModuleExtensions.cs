@@ -176,13 +176,28 @@ public static class VipiModuleExtensions
             finally { cache.Changed -= OnChanged; }
         });
 
+        // Immagini dei blocchi editoriali. L'URL È il contenuto (sha256), quindi la risposta si può dichiarare
+        // «immutable» senza rischio di stantio: cambiare immagine significa cambiare URL, non aggiornare questa.
+        // Pubblico come i documenti che la citano; il tipo servito è quello dedotto dai byte al caricamento, con
+        // nosniff perché il browser non provi a interpretarlo diversamente.
+        endpoints.MapGet("/vsop/media/{sha}", async (string sha, IMediaStore store, HttpContext ctx, CancellationToken ct) =>
+        {
+            var media = await store.GetAsync(sha, ct);
+            if (media is null) return Results.NotFound();
+
+            ctx.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(media.Bytes, media.ContentType,
+                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{media.Sha256}\""));
+        });
+
         return endpoints;
     }
 
     /// <summary>Crea/migra il database del modulo all'avvio. SQLite: migrazioni versionate (Migrate). Postgres
     /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato e allineato al modello da
     /// <see cref="PostgresSchemaReconciler.InitializeSchema"/>, che serializza l'operazione fra istanze e aggiunge
-    /// colonne e indici nuovi (EnsureCreated non altera le tabelle esistenti).</summary>
+    /// tabelle, colonne e indici nuovi (EnsureCreated da solo non tocca un database che ha già tabelle).</summary>
     public static IHost MigrateVipiDatabase(this IHost host)
     {
         using var scope = host.Services.CreateScope();
