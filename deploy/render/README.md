@@ -24,12 +24,15 @@ Caratteristiche/limiti del piano free:
 
 ## 2. Web service su Render
 
-Usa **New → Web Service** (NON Blueprint: `render.yaml` è sul branch di lavoro, non su `main`, e il Blueprint
-di default guarda `main`).
+Usa **New → Web Service**. Il servizio esistente è stato creato così, non da Blueprint: di conseguenza
+`render.yaml` nel repo **documenta** la configurazione ma non la applica — i valori che contano (branch,
+health check path, variabili) stanno nella dashboard, e un cambio nel file va replicato lì a mano.
 
 1. Registrati su https://render.com (login GitHub, no carta).
 2. **New → Web Service** → repo `SkyMistery/Digital_vIPI`.
-3. **Branch**: `fix/airport-weather-tl-draft-preview` (dove vive il codice del deploy; NON `main`).
+3. **Branch**: `main`. Dal 2026-07-30 la produzione segue `main`: prima puntava a un branch di lavoro
+   (`fix/airport-weather-tl-draft-preview`, ora cancellato) perché `main` era indietro di decine di commit.
+   Con tutto mergiato quella deviazione non serve più, e faceva divergere «cosa è online» da «cosa è mergiato».
 4. **Runtime**: Docker (usa il `Dockerfile` in root).
 5. **Region**: **Frankfurt (EU Central)** ← selezionabile SOLO alla creazione (immutabile dopo; se sbagli
    devi ricreare il servizio). Oregon/USA = ~1s di latenza per-click dall'Italia.
@@ -81,7 +84,8 @@ Devono combaciare esatti. Se cambi URL (es. ricreando il servizio) vanno aggiorn
 | Sintomo | Causa | Fix |
 |---------|-------|-----|
 | Build fallisce: `MSB4068 <Solution> unrecognized` su `Vipi.slnx` | Era l'immagine `sdk:8.0`, che non supportava il formato `.slnx`. Con `sdk:10.0` il formato è supportato | Dockerfile fa comunque `dotnet restore` del **csproj di Host**, non della soluzione: evita di scaricare i pacchetti dei progetti di test |
-| Servizio buildato da `main` senza i fix | Il nuovo Web Service punta a `main` di default | Settings → Build & Deploy → **Branch** = `fix/airport-weather-tl-draft-preview` |
+| Deploy senza le ultime modifiche | Il servizio punta a un branch diverso da quello atteso | Settings → Build & Deploy → **Branch** = `main` (fino al 2026-07-30 puntava a un branch di lavoro, vedi §2.3) |
+| Cambio in `render.yaml` che non ha effetto | Il servizio non nasce da Blueprint: il file documenta, la dashboard decide | Replicare il valore a mano in Settings. È successo con `healthCheckPath` quando è passato a `/vsop/health/ready` |
 | Gira su SQLite (log con `AUTOINCREMENT`/`PRAGMA`), dati persi al redeploy | Manca `Persistence__Provider=Postgres` (+ connection string) | Aggiungi gli env var (§2.7) |
 | Latenza ~1s per click | Regione Oregon/USA (Blazor Server = round-trip a ogni azione) | Ricrea il servizio in **Frankfurt** |
 | 500 `A second operation was started on this context instance` | Blazor Server: DbContext del circuito condiviso + render intermedio che monta figli DB-driven; latenza Postgres apre la finestra di overlap | Componenti figli DB-driven ereditano `OwningComponentBase` e risolvono i service DB dal proprio scope (EditLockBar, DocReviewBar, VloaEditor, VloaDocumentView, DocumentSectionsEditor, AirportQuickPanel). **Eccezione ReleasePanel**: NON isolato (publish composto col `BeforePublishAsync` della pagina → deve condividere il context) |
