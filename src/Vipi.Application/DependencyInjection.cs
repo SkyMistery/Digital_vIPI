@@ -33,6 +33,14 @@ public static class DependencyInjection
         services.AddScoped<IAccDerivationService, AccDerivationService>();
         services.AddScoped<IAccDocumentService, AccDocumentService>();
         services.AddScoped<IVloaDerivationService, VloaDerivationService>();
+        // Vista live: un descrittore per tipo di ente, il registry li consulta in ordine di Priority
+        // (FEATURE-PROCESS §2). Aggiungere un tipo = registrare qui, nessuno switch da toccare.
+        services.AddScoped<Live.LiveStationParts>();
+        services.AddScoped<Live.ILiveStationKind, Live.AreaLiveStation>();
+        services.AddScoped<Live.ILiveStationKind, Live.ApproachLiveStation>();
+        services.AddScoped<Live.ILiveStationKind, Live.AirportLiveStation>();
+        services.AddScoped<Live.ILiveStationRegistry, Live.LiveStationRegistry>();
+        services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
         // doc 10 §3b: cattura Frozen delle sezioni derivate. Un provider per famiglia; il registry li risolve per tipo.
         services.AddScoped<IFrozenSectionProvider, VloaFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AppFrozenSectionProvider>();
