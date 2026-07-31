@@ -699,7 +699,21 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .rs-note{font-size:13px;flex:1;min-width:160px}
 .rwy-table .yes{color:var(--ok-ink);font-weight:600}
 .rwy-table .no{color:var(--danger-ink)}
+/* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
+.tbl-scroll{overflow-x:auto;max-width:100%}
 .sid-table{font-size:13px;min-width:720px}
+/* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
+   come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
+   Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.
+   (Prima ereditava .cfg-table, che ha larghezze cablate su 4 colonne: Cat. e WTC finivano a larghezza ~0.) */
+.sid-quick{width:100%;min-width:440px;table-layout:fixed}
+.sid-quick th,.sid-quick td{overflow-wrap:anywhere}
+.sid-quick .col-fix{width:20%}
+.sid-quick .col-sid{width:26%}
+.sid-quick .col-trans{width:18%}
+.sid-quick .col-climb{width:20%}
+.sid-quick .col-cat{width:8%}
+.sid-quick .col-wtc{width:8%}
 .sid-table .star{color:var(--ivao-yellow);font-size:14px}
 .sid-table tr.sid-pref td{background:#fffaf0}
 .sid-table tr.sid-pref td:nth-child(2){box-shadow:inset 3px 0 0 var(--ivao-yellow)}

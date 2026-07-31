@@ -50,25 +50,43 @@ else
             </div>
         }
 
-        @{ var sids = FilteredSids().ToList(); }
+        @{
+            var sids = FilteredSids().ToList();
+            // Nel pannello rapido lo spazio è poco: una colonna vuota su TUTTE le righe mostrate ruba
+            // larghezza a Punto/SID senza dire nulla. Fix/SID/Salita restano sempre (sono il motivo della tabella).
+            var showTrans = sids.Any(s => !string.IsNullOrWhiteSpace(s.Transition));
+            var showCat = sids.Any(s => !string.IsNullOrWhiteSpace(s.Cat));
+            var showWtc = sids.Any(s => !string.IsNullOrWhiteSpace(s.Wtc));
+        }
         @if (sids.Count > 0)
         {
-            <table class="sid-table cfg-table">
-                <thead><tr><th>Punto</th><th>SID</th><th>Transition</th><th>Salita iniz.</th><th>Cat.</th><th>WTC</th></tr></thead>
+            <div class="tbl-scroll">
+            <table class="res-table sid-table sid-quick">
+                <thead>
+                    <tr>
+                        <th class="col-fix">Punto</th>
+                        <th class="col-sid">SID</th>
+                        @if (showTrans) { <th class="col-trans">Transition</th> }
+                        <th class="col-climb">Salita iniz.</th>
+                        @if (showCat) { <th class="col-cat">Cat.</th> }
+                        @if (showWtc) { <th class="col-wtc">WTC</th> }
+                    </tr>
+                </thead>
                 <tbody>
                     @foreach (var s in sids)
                     {
                         <tr>
-                            <td><b>@s.Fix</b></td>
-                            <td>@s.Name</td>
-                            <td>@(string.IsNullOrWhiteSpace(s.Transition) ? "—" : s.Transition)</td>
-                            <td>@FormatInitialClimb(s.InitialClimb)</td>
-                            <td>@(string.IsNullOrWhiteSpace(s.Cat) ? "—" : s.Cat)</td>
-                            <td>@(string.IsNullOrWhiteSpace(s.Wtc) ? "—" : s.Wtc)</td>
+                            <td class="col-fix"><b>@s.Fix</b></td>
+                            <td class="col-sid">@s.Name</td>
+                            @if (showTrans) { <td class="col-trans">@(string.IsNullOrWhiteSpace(s.Transition) ? "—" : s.Transition)</td> }
+                            <td class="col-climb">@FormatInitialClimb(s.InitialClimb)</td>
+                            @if (showCat) { <td class="col-cat">@(string.IsNullOrWhiteSpace(s.Cat) ? "—" : s.Cat)</td> }
+                            @if (showWtc) { <td class="col-wtc">@(string.IsNullOrWhiteSpace(s.Wtc) ? "—" : s.Wtc)</td> }
                         </tr>
                     }
                 </tbody>
             </table>
+            </div>
         }
         else if (_runways.Count > 0)
         {
