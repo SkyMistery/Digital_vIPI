@@ -67,6 +67,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.IConsistencyReportRepository, EfConsistencyReportRepository>();
+        // Drift di schema: registrato sempre, si disattiva da sé fuori da Npgsql (dove le migrazioni EF girano
+        // davvero e il drift non si accumula). Confluisce nel report di consistenza. Vedi ADR-0007.
+        services.AddScoped<Vipi.Application.Diagnostics.ISchemaDriftProbe, Persistence.PostgresSchemaDriftProbe>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IVloaDerivationRepository, EfVloaDerivationRepository>();

@@ -87,3 +87,37 @@ Tre cose che l'ADR non poteva sapere a luglio e che cambiano la lettura di **D1*
 
 **Cosa resta vero senza modifiche:** D2 (scala Blazor Server, backplane, separazione viewer/editor) e D3
 (guardia identità). Il punto aperto (b) resta aperto, con la precisazione sopra su quando diventerà bloccante.
+
+### D1-bis — Il drift non correggibile va almeno *visto* (attuato)
+
+Riformulando il rischio residuo di (a): il pericolo non è che l'app si rompa, è che **taccia**. Rinominando una
+colonna nel modello, il reconciler crea la nuova (vuota) e lascia la vecchia coi dati dentro; l'app non lancia
+nulla e mostra un campo vuoto. Un `42703` in faccia sarebbe stato meglio. Stesso schema per un cambio di tipo:
+`ADD COLUMN IF NOT EXISTS` non scatta, la colonna resta com'era, il conto arriva dopo e altrove.
+
+**Attuato:** `ISchemaDriftProbe` (porta in Application, implementata da `PostgresSchemaDriftProbe`) confronta il
+modello EF con `information_schema` **nel verso opposto** al reconciler e produce finding:
+
+| Rilevato | Severità | Significato |
+|---|---|---|
+| Colonna orfana nello schema | Warning | Nel DB ma non nel modello → rinomina/rimozione mai applicata. **I dati sono lì.** |
+| Tipo colonna divergente | Warning | Il reconciler non cambia i tipi: serve un `ALTER` a mano |
+| Colonna mancante nello schema | Error | Attesa dal modello e assente: il reconcile è best-effort, può aver fallito |
+
+I finding confluiscono nel report di consistenza esistente, quindi si vedono in `/vsop/admin/diagnostica` e
+mandano `/vsop/health` a **Degraded** senza modifiche a valle. Fuori da Npgsql è un no-op: dove le migrazioni EF
+girano davvero il drift non si accumula. Non sta in `/vsop/health/ready`, che l'orchestratore ripete di continuo.
+
+**Cosa deliberatamente NON fa: correggere.** Guardando solo modello e schema, una rinomina è indistinguibile da
+«togli la vecchia, aggiungi la nuova»: automatizzarla significherebbe autorizzare un `DROP COLUMN` deciso da
+un'euristica sul database di produzione. Il probe segnala, la correzione la applica una persona.
+
+**Come si applica la correzione, quando il probe segnala.** Non c'è ancora un runner di script versionati: la
+DDL si esegue a mano su Neon (`ALTER TABLE ... RENAME COLUMN`, o `ADD` + `UPDATE` di travaso + `DROP`). Va bene
+finché i casi sono rari — finora **zero**, tutte le modifiche sono state additive. Se dovessero diventare
+ricorrenti, il passo successivo è una cartella di `.sql` ordinati con una tabella che traccia quelli applicati,
+eseguiti all'avvio dopo il reconciler (l'advisory lock c'è già): copre rinomine e cambi di tipo a una frazione
+del costo di (b). Le migrazioni EF per-provider di (b) restano la risposta completa, ma il loro punto duro non è
+il lavoro corrente — è il **baseline**: lo schema su Neon oggi è il prodotto di `EnsureCreated` più le toppe del
+reconciler, e va riprodotto esattamente in uno snapshot iniziale da timbrare come applicato, altrimenti la prima
+migrazione vera fallisce in produzione.
