@@ -34,7 +34,7 @@ public class LiveStationRegistryTests
     /// <summary>I descrittori reali, senza dipendenze: qui si interroga solo <c>Matches</c>.</summary>
     private static IReadOnlyList<ILiveStationKind> Kinds() => new ILiveStationKind[]
     {
-        new AreaLiveStation(null!, null!, null!, null!),
+        new AreaLiveStation(null!, null!, null!),
         new ApproachLiveStation(null!, null!, null!, null!),
         new AirportLiveStation(null!, null!),
     };

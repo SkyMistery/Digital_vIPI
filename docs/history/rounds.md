@@ -989,3 +989,19 @@ padre più in basso nella scaletta (un ground non copre una torre) — pari grad
 Interruttore «Posizioni d'aeroporto» spento di default (+186 righe nell'albero). Suite **715**.
 
 **Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato in Struttura.
+
+
+### Coda: avvicinamento reso come l'area + trasferimenti verso figli chiusi (2026-07-31)
+
+Due correzioni chieste dall'owner sulla vista live.
+
+- **L'APP ora ha i chip degli aeroporti** come i tipi d'area: un avvicinamento ne copre spesso più d'uno
+  (`LIBD_CS0_APP` tiene LIBD e LIBR) e il pannello fisso rendeva gli altri irraggiungibili. La funzione dei chip
+  si sposta in `LiveStationParts`: una regola per due descrittori. Torri/ground/delivery tengono il pannello
+  fisso — sono di un aeroporto solo.
+- **I punti verso un proprio discendente CHIUSO non si mostrano più.** Se il figlio è chiuso lo sto coprendo io:
+  non c'è niente da passare. Prima il punto restava con il destinatario risolto risalendo la gerarchia, che per
+  un figlio chiuso è la postazione stessa — «passa a te stesso». Vale solo per i discendenti: verso un ente
+  esterno la risalita resta informazione utile. Caso reale: `LIBB_ES_CTR` → `LIBD_CS0_APP`, 4 punti.
+
+Suite **715 → 718**, verifica live su entrambi.

@@ -24,7 +24,7 @@ public class LiveStationPartsTests
     };
 
     private static LiveStationParts Parts(FakeTransfers transfers) =>
-        new(null!, transfers, new AorService());
+        new(null!, transfers, new AorService(), null!);
 
     [Fact]
     public async Task Prende_solo_i_flussi_di_cui_e_mittente_effettivo()
@@ -35,7 +35,7 @@ public class LiveStationPartsTests
             Flow("LIRF_APP", "LIRF_APP"));          // figlio online: se li tiene
 
         var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" });
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" }, Topo());
 
         Assert.Equal(2, mine.Count);
         Assert.All(mine, f => Assert.Equal("LIRR_NE_CTR", f.ResolvedOwnerCallsign));
@@ -49,9 +49,46 @@ public class LiveStationPartsTests
         var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR"));
 
         await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
 
         Assert.Contains("LIRR_NE_CTR", transfers.LastOnline!, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Non_mostra_i_punti_verso_un_mio_figlio_CHIUSO()
+    {
+        // Se il figlio è chiuso lo sto coprendo io: non c'è niente da passare, e il punto sparisce invece di
+        // dire «passa a te stesso».
+        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_APP"));
+
+        var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
+
+        Assert.Empty(mine);
+    }
+
+    [Fact]
+    public async Task Mostra_i_punti_verso_un_mio_figlio_APERTO()
+    {
+        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_APP"));
+
+        var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" }, Topo());
+
+        Assert.Single(mine);
+        Assert.Equal("LIRF_APP", mine[0].Points[0].Point.NextSectorCallsign);
+    }
+
+    [Fact]
+    public async Task Un_ente_FUORI_dal_mio_dominio_resta_anche_se_chiuso()
+    {
+        // Fuori dal mio dominio la risalita è informazione utile: chi prende il traffico adesso, fino a UNICOM.
+        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIMM_CTR"));
+
+        var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
+
+        Assert.Single(mine);
     }
 
     [Fact]
@@ -82,7 +119,8 @@ public class LiveStationPartsTests
         Assert.Equal(new[] { "B" }, LiveStationParts.CoverageChain(malata, "A"));
     }
 
-    private static ResolvedTransferFlow Flow(string owning, string resolvedOwner) => new()
+    /// <summary>Flusso con un punto: <paramref name="next"/> è il settore ricevente configurato.</summary>
+    private static ResolvedTransferFlow Flow(string owning, string resolvedOwner, string next = "LIMM_CTR") => new()
     {
         Flow = new TransferFlowRow
         {
@@ -91,7 +129,18 @@ public class LiveStationPartsTests
         },
         ResolvedOwnerCallsign = resolvedOwner,
         OwnerOnline = true,
-        Points = Array.Empty<ResolvedTransferPoint>(),
+        Points = new[] { Point(next) },
+    };
+
+    private static ResolvedTransferPoint Point(string next) => new()
+    {
+        Point = new TransferPointRow
+        {
+            Id = 1, Cop = "ABCDE", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            LevelText = "FL240", NextSectorCallsign = next, Order = 0,
+        },
+        ResolvedHandler = next,
+        IsOnline = true,
     };
 
     /// <summary>Registra l'insieme online ricevuto: è ciò che il secondo test deve poter osservare.</summary>

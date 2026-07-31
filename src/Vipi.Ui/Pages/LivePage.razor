@@ -229,7 +229,12 @@
         var result = await Live.BuildAsync(wanted);
         _view = result.View;
         _requested = result.Found ? null : wanted;
-        if (!result.Found) _selectedApt = null;
+
+        // Cambiando postazione i chip cambiano: un aeroporto selezionato che non è più fra i suoi lascerebbe
+        // aperto il pannello di uno scalo che questa postazione non controlla.
+        if (_selectedApt is { } sel && _view?.AirportChips.Any(c =>
+                string.Equals(c.Icao, sel, StringComparison.OrdinalIgnoreCase)) != true)
+            _selectedApt = null;
 
         TrackChanges();
     }

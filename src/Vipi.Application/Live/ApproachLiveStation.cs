@@ -7,6 +7,10 @@ namespace Vipi.Application.Live;
 /// Postazioni di avvicinamento. Due nature, stessa resa: <b>standalone</b> (documento proprio) e
 /// <b>remotizzato</b> (contenuto in un gruppo-APP della vIPI di ACC). Cambia solo da dove escono frequenze e
 /// titolo, e quale documento esteso si linka — per questo è UN descrittore, non due.
+///
+/// Resa uguale a quella d'area: <b>chip</b> degli aeroporti (un avvicinamento ne copre spesso più d'uno —
+/// LIBD_CS0_APP tiene LIBD e LIBR), frequenze utili, trasferimenti. Prima mostrava un pannello fisso sul solo
+/// aeroporto dedotto dal callsign, quindi gli altri scali del suo dominio non erano raggiungibili.
 /// </summary>
 public sealed class ApproachLiveStation : ILiveStationKind
 {
@@ -38,8 +42,8 @@ public sealed class ApproachLiveStation : ILiveStationKind
             Title = ctx.Callsign,
             AccCode = ctx.Acc.Code,
             Type = LiveStationType.Approach,
-            AirportIcao = ctx.Sector.AirportIcao ?? IcaoFromCallsign(ctx.Callsign),
-            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
+            AirportChips = await _parts.AirportChipsAsync(ctx, ct),
+            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
         };
@@ -79,7 +83,4 @@ public sealed class ApproachLiveStation : ILiveStationKind
             NoDocument = block is null,
         };
     }
-
-    private static string? IcaoFromCallsign(string callsign) =>
-        callsign.Contains('_') ? callsign.Split('_', 2)[0] : null;
 }

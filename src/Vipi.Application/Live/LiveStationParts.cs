@@ -1,5 +1,6 @@
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
+using Vipi.Domain;
 
 namespace Vipi.Application.Live;
 
@@ -13,12 +14,15 @@ public sealed class LiveStationParts
     private readonly IAccDerivationService _acc;
     private readonly ITransferService _transfers;
     private readonly IAorService _aor;
+    private readonly IDocumentAdminService _docs;
 
-    public LiveStationParts(IAccDerivationService acc, ITransferService transfers, IAorService aor)
+    public LiveStationParts(IAccDerivationService acc, ITransferService transfers, IAorService aor,
+        IDocumentAdminService docs)
     {
         _acc = acc;
         _transfers = transfers;
         _aor = aor;
+        _docs = docs;
     }
 
     /// <summary>
@@ -54,13 +58,73 @@ public sealed class LiveStationParts
     /// risulterebbe vuota proprio quando serve.
     /// </summary>
     public async Task<IReadOnlyList<ResolvedTransferFlow>> TransfersAsync(
-        string accCode, string callsign, IReadOnlySet<string> online, CancellationToken ct = default)
+        string accCode, string callsign, IReadOnlySet<string> online, Topology topology,
+        CancellationToken ct = default)
     {
         var asIfOnline = new HashSet<string>(online, StringComparer.OrdinalIgnoreCase) { callsign };
         var all = await _transfers.ResolveForAccAsync(accCode, asIfOnline, ct);
-        return all.Where(r => string.Equals(r.ResolvedOwnerCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+
+        // Discendenti: il traffico verso un settore che sto già coprendo non si passa a nessuno.
+        var below = new HashSet<string>(topology.DomainOf(callsign), StringComparer.OrdinalIgnoreCase);
+        below.Remove(callsign);
+
+        return all
+            .Where(r => string.Equals(r.ResolvedOwnerCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+            .Select(r => new ResolvedTransferFlow
+            {
+                Flow = r.Flow,
+                ResolvedOwnerCallsign = r.ResolvedOwnerCallsign,
+                OwnerOnline = r.OwnerOnline,
+                Points = r.Points.Where(p => IsRealHandoff(p, below, online)).ToList(),
+            })
+            .Where(r => r.Points.Count > 0)
             .ToList();
     }
+
+    /// <summary>
+    /// Un punto verso un MIO discendente è un handoff solo se quel settore è davvero aperto: se è chiuso lo sto
+    /// coprendo io, quindi non c'è niente da passare.
+    ///
+    /// Senza questo filtro il punto restava a schermo con il destinatario risolto risalendo la gerarchia — che
+    /// per un figlio chiuso è la postazione stessa che sta guardando: «passa a te stesso», un'istruzione che non
+    /// significa nulla e che sporca l'elenco proprio dove servono i trasferimenti veri.
+    ///
+    /// Vale SOLO per i discendenti: verso un ente fuori dal mio dominio la risalita è informazione utile
+    /// (chi prende il traffico adesso, fino a UNICOM) e il punto resta.
+    /// </summary>
+    private static bool IsRealHandoff(ResolvedTransferPoint point, IReadOnlySet<string> below, IReadOnlySet<string> online)
+    {
+        var next = point.Point.NextSectorCallsign;
+        if (string.IsNullOrWhiteSpace(next) || !below.Contains(next)) return true;
+        return online.Contains(next);
+    }
+
+    /// <summary>
+    /// Chip «vista rapida aeroporto»: gli aeroporti PUBBLICATI appesi a un settore del dominio della postazione.
+    /// Vale per ogni tipo che copre più di uno scalo — un'area, ma anche un avvicinamento (LIBD_CS0_APP tiene
+    /// LIBD e LIBR). In coda i «delegati»: una posizione del loro ICAO è online, quindi li controlla qualcun altro.
+    /// </summary>
+    public async Task<IReadOnlyList<LiveAirportChip>> AirportChipsAsync(LiveStationContext ctx, CancellationToken ct = default)
+    {
+        var published = (await _docs.ListAsync(ct))
+            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
+                        && string.Equals(m.AccCode, ctx.Acc.Code, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var domain = ctx.Topology.DomainOf(ctx.Callsign);
+
+        return ctx.Structure.Airports
+            .Where(a => a.IsPublic && published.Contains(a.Icao))
+            .Where(a => a.ParentCallsign is { } pc && domain.Contains(pc))
+            .Select(a => new LiveAirportChip(a.Icao, IsDelegated(ctx, a.Icao)))
+            .OrderByDescending(c => !c.Delegated)
+            .ThenBy(c => c.Icao, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>Aeroporto «delegato»: un callsign col primo token = ICAO è online (lo controlla qualcun altro).</summary>
+    private static bool IsDelegated(LiveStationContext ctx, string icao) =>
+        ctx.Online.Any(cs => cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>AoR della postazione: chi copro io, chi è gestito da un subordinato online.</summary>
     public AorResult Aor(Topology topology, string callsign, IReadOnlySet<string> online) =>

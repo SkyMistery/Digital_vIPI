@@ -13,15 +13,11 @@ public sealed class AreaLiveStation : ILiveStationKind
     private readonly LiveStationParts _parts;
     private readonly IAccDocumentService _accDoc;
     private readonly IAccDerivationService _deriv;
-    private readonly IDocumentAdminService _docs;
-
-    public AreaLiveStation(LiveStationParts parts, IAccDocumentService accDoc,
-        IAccDerivationService deriv, IDocumentAdminService docs)
+    public AreaLiveStation(LiveStationParts parts, IAccDocumentService accDoc, IAccDerivationService deriv)
     {
         _parts = parts;
         _accDoc = accDoc;
         _deriv = deriv;
-        _docs = docs;
     }
 
     public int Priority => 10;
@@ -65,10 +61,10 @@ public sealed class AreaLiveStation : ILiveStationKind
             Title = Title(ctx),
             AccCode = ctx.Acc.Code,
             Type = LiveStationType.Area,
-            AirportChips = await ChipsAsync(ctx, ct),
+            AirportChips = await _parts.AirportChipsAsync(ctx, ct),
             Frequencies = Dedup(rows),
             Groups = groups,
-            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
+            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
             Aor = aor,
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
             TreeRoot = root,
@@ -84,29 +80,4 @@ public sealed class AreaLiveStation : ILiveStationKind
     private static IReadOnlyList<AppFreqRow> Dedup(IEnumerable<AppFreqRow> rows) => rows
         .GroupBy(r => r.Callsign, StringComparer.OrdinalIgnoreCase)
         .Select(g => g.First()).ToList();
-
-    /// <summary>
-    /// Chip: SOLO gli aeroporti pubblicati appesi a un settore del dominio della postazione. In coda quelli
-    /// «delegati» (una posizione del loro ICAO è online): li controlla qualcun altro, non tu.
-    /// </summary>
-    private async Task<IReadOnlyList<LiveAirportChip>> ChipsAsync(LiveStationContext ctx, CancellationToken ct)
-    {
-        var published = (await _docs.ListAsync(ct))
-            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
-                        && string.Equals(m.AccCode, ctx.Acc.Code, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var domain = ctx.Topology.DomainOf(ctx.Callsign);
-
-        return ctx.Structure.Airports
-            .Where(a => a.IsPublic && published.Contains(a.Icao))
-            .Where(a => a.ParentCallsign is { } pc && domain.Contains(pc))
-            .Select(a => new LiveAirportChip(a.Icao, IsDelegated(ctx, a.Icao)))
-            .OrderByDescending(c => !c.Delegated)
-            .ThenBy(c => c.Icao, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static bool IsDelegated(LiveStationContext ctx, string icao) =>
-        ctx.Online.Any(cs => cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
 }

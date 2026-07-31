@@ -40,7 +40,7 @@ L'ACC si deriva dal callsign (`IStationResolver.ResolveByCallsign`). Il document
 | Descrittore | Tipi | Frequenze (membri passati) | Aeroporto | Documento esteso |
 |---|---|---|---|---|
 | `AreaLiveStation` | `Ctr` (e gli FSS, tipizzati Ctr) | area + gruppi-APP del documento | chip del dominio | vIPI ACC |
-| `ApproachLiveStation` | `App` standalone e remotizzato | documento APP / blocco gruppo-APP | fisso | vIPI APP o ACC |
+| `ApproachLiveStation` | `App` standalone e remotizzato | documento APP / blocco gruppo-APP | chip del dominio | vIPI APP o ACC |
 | `AirportLiveStation` | `Twr` `ITwr` `Gnd` `Del` | sé → catalogo dell'aeroporto | fisso | vIPI aeroporto |
 
 Il motore condiviso sta in `LiveStationParts`: i descrittori decidono **cosa** passare, non **come** si calcola.
@@ -65,6 +65,13 @@ Non è `Topology.DomainOf` — quello include anche i figli online, che invece i
 La risoluzione gira sull'insieme online **più la postazione guardata**: senza, consultare una posizione offline
 (o la propria prima di collegarsi) farebbe risalire i suoi flussi a un antenato e la pagina risulterebbe vuota
 proprio quando serve. Coperto da `LiveStationPartsTests`.
+
+**Un punto verso un mio discendente si mostra solo se quel settore è APERTO.** Se è chiuso lo sto coprendo io:
+non c'è niente da passare. Senza il filtro il punto restava a schermo col destinatario risolto risalendo la
+gerarchia — che per un figlio chiuso è **la postazione stessa**: «passa a te stesso», un'istruzione che non
+significa nulla e che sporca l'elenco proprio dove servono i trasferimenti veri. Vale **solo** per i discendenti:
+verso un ente fuori dal proprio dominio la risalita è informazione utile (chi prende il traffico adesso, fino a
+UNICOM) e il punto resta.
 
 > **Cambio di comportamento visibile**: la vecchia pagina ACC mostrava i flussi di *tutta* l'ACC. Per un CTR
 > radice non cambia nulla; per un sotto-settore l'elenco si stringe a ciò che è davvero suo.
@@ -241,3 +248,25 @@ proiezione e **catena nella vista live** allineati (`LIRF_GND → LIRF_E_TWR →
 Guardia provata a schermo: «*«LIRF_GND» non può coprire «LIRF_TWR»: sta più in basso nella scaletta*».
 Interruttore: 266 righe spento (badge CTR/FSS/ACC/APP/APT) → 452 acceso (+TWR/GND/DEL), 154 nodi «ereditato».
 Suite **715**.
+
+
+## 9. L'avvicinamento reso come l'area (2026-07-31)
+
+Un APP copre spesso **più di un aeroporto** (`LIBD_CS0_APP` tiene LIBD e LIBR), ma la sua vista mostrava un
+pannello **fisso** sul solo scalo dedotto dal callsign: gli altri del suo dominio non erano raggiungibili.
+
+Ora rende **chip** come i tipi d'area — stessa funzione (`LiveStationParts.AirportChipsAsync`, spostata lì da
+`AreaLiveStation`: una regola per due descrittori, non una copia). Torri, ground e delivery tengono il pannello
+fisso: sono per definizione di un aeroporto solo.
+
+Verificato live: `/vsop/live/libd_cs0_app` → chip `LIBD` · `LIBR`, frequenze e trasferimenti come su un CTR.
+`/vsop/live/libd_twr` → pannello fisso LIBD, invariato.
+
+> **Nota di dato**: `/vsop/live/lirf_tw1_app` non mostra chip perché l'aeroporto LIRF non ha un padre configurato
+> in Struttura, quindi non risulta appeso al dominio di nessuno. È lo stesso buco delle 33 torri orfane (§7).
+
+### Verifica del filtro sui figli chiusi
+
+Caso reale nel DB: `LIBB_ES_CTR` ha **4 punti** verso `LIBD_CS0_APP`, che è un suo figlio. Col figlio chiuso i
+quattro punti non compaiono più; gli altri (verso enti fuori dal dominio) restano, risolti fino a UNICOM.
+Suite **715 → 718**.
