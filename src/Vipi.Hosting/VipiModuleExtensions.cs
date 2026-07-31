@@ -180,7 +180,7 @@ public static class VipiModuleExtensions
         // «immutable» senza rischio di stantio: cambiare immagine significa cambiare URL, non aggiornare questa.
         // Pubblico come i documenti che la citano; il tipo servito è quello dedotto dai byte al caricamento, con
         // nosniff perché il browser non provi a interpretarlo diversamente.
-        endpoints.MapGet("/vsop/media/{sha}", async (string sha, IMediaStore store, HttpContext ctx, CancellationToken ct) =>
+        endpoints.MapGet(Vipi.Application.Content.MediaRef.UrlPrefix + "{sha}", async (string sha, IMediaStore store, HttpContext ctx, CancellationToken ct) =>
         {
             var media = await store.GetAsync(sha, ct);
             if (media is null) return Results.NotFound();
