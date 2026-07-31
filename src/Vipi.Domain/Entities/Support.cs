@@ -82,7 +82,7 @@ public class AuditLog
 /// <summary>
 /// Flusso di traffico di un settore proprio nei coordinamenti (SPEC §7.4): es. «Roma NE · Traffico Dest LIRF».
 /// Raggruppa una serie di punti di trasferimento (CoP/livello/ricevente). Reso nella sezione Coordinamenti
-/// del documento (settore proprio → flusso → tabella) e nella vista Ridotta (risoluzione live del ricevente).
+/// del documento (settore proprio → flusso → tabella) e nella vista live (risoluzione live del ricevente).
 /// </summary>
 public class TransferFlow
 {

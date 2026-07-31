@@ -56,7 +56,13 @@
   .vipi-root .chev,
   .vipi-root .onl-badge,
   .vipi-root .noprint,
+  /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */
+  .vipi-root .utc-clock,
+  .vipi-root [data-dense-toggle],
   .vt-overlay, .vt-spot, .vt-card { display: none !important; }
+
+  /* La testata della vista live è appiccicata sotto la topbar a schermo: su carta si stampa dov'è. */
+  .vipi-root .reduced-top { position: static !important; border-bottom: 0; padding: 0; }
 
   /* PreviewBanner (bozza / anteprima release) e DocReviewBar restano stampati: una copia cartacea non deve
      poter passare per pubblicata. Sono `.callout`, che non nascondiamo. */
@@ -136,6 +142,9 @@
      e testo che va a capo. `thead` ripetuto a ogni pagina per le tabelle lunghe (SID). */
   .vipi-root table { font-size: 8.5pt; width: 100% !important; }
   .vipi-root .sid-table { min-width: 0 !important; }
+  /* Il contenitore che a schermo fa scorrere la tabella su carta non deve tagliarla: qui la tabella
+     si stringe da sé (width 100% + corpo minore), quindi niente overflow. */
+  .vipi-root .tbl-scroll { overflow: visible !important; }
   .vipi-root thead { display: table-header-group; }
   .vipi-root th, .vipi-root td { padding: 3px 5px !important; overflow-wrap: break-word; }
 

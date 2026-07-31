@@ -1,7 +1,7 @@
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Risolve il ricevente "primo online" di un punto di trasferimento (vista operativa/Ridotta). Puro/testabile.
+/// Risolve il ricevente "primo online" di un punto di trasferimento (vista live). Puro/testabile.
 ///
 /// I <paramref name="candidates"/> sono callsign in ordine di priorità: [ricevente nominale, suoi antenati
 /// di copertura] (risalita gerarchia <c>ParentCallsign</c>, cross-ACC, costruita dal chiamante).

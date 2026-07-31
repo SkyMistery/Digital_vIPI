@@ -60,6 +60,8 @@
                     </button>
                 }
                 <span class="sh-chip" title="@L["Struct_AccRootsTitle"]">@L["Struct_AccRootsN", accRoots]</span>
+                <button class="sh-chip @(_showAirportPositions ? "on" : "")" title="@L["Struct_ShowPositionsTitle"]"
+                        @onclick="() => _showAirportPositions = !_showAirportPositions">@L["Struct_ShowPositions"]</button>
                 @if (_orphansOnly)
                 {
                     <button class="lnk-mini" @onclick="() => _orphansOnly = false">@L["Struct_ShowAll"]</button>
@@ -134,6 +136,10 @@
                                     {
                                         <span class="acc-row-parent">@(ChildrenOf(n.Callsign!).Count()) ⋯</span>
                                     }
+                                    else if (n.IsInherited)
+                                    {
+                                        <span class="acc-row-parent inherited" title="@L["Struct_InheritedTitle"]">@L["Struct_Inherited"]</span>
+                                    }
                                     else if (string.IsNullOrWhiteSpace(n.ParentCallsign))
                                     {
                                         <span class="acc-row-parent">@(n.Kind == HierarchyNodeKind.Airport ? L["Struct_ToAssign"].Value : L["Struct_Root"].Value)</span>
@@ -169,10 +175,10 @@
                     <label>@L["Struct_ParentLabel"]</label>
                     <input placeholder="@L["Struct_FilterCallsign"]" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" style="margin-bottom:6px" />
                     <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
-                        <option value="">@(sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value)</option>
+                        <option value="">@InheritOptionLabel(sel)</option>
                         @foreach (var p in EligibleParents(sel))
                         {
-                            <option value="@p.Callsign">@p.Callsign (@BadgeOf(p.Kind)) · @p.AccCode</option>
+                            <option value="@p.Callsign">@p.Callsign (@FacilityBadge(p.Kind, p.Callsign)) · @p.AccCode</option>
                         }
                     </select>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
@@ -212,6 +218,9 @@
 
     private HashSet<string> _online = new(StringComparer.OrdinalIgnoreCase);   // callsign ATC online adesso
     private bool _orphansOnly;                                                  // filtro "solo nodi da agganciare"
+    // Torri, ground e delivery sono ~110 nodi su ~250: spenti di default, così chi lavora sulla struttura d'area
+    // non se li trova fra i piedi. Chi deve sistemare uno scalo sdoppiato li accende.
+    private bool _showAirportPositions;
 
     // Drag&drop re-parent: nodo trascinato + target correntemente sotto il cursore.
     private HierarchyNodeKind? _dragKind;
@@ -314,7 +323,7 @@
 
     // --- Alberi raggruppati per ACC della radice ---
     private sealed record RootGroup(string Code, string Name, List<HierarchyNode> Roots);
-    private sealed record FlatNode(HierarchyNodeKind Kind, int Id, string Label, string AccCode, bool IsHidden, string? ParentCallsign, int Depth, string? Callsign, bool HasChildren);
+    private sealed record FlatNode(HierarchyNodeKind Kind, int Id, string Label, string AccCode, bool IsHidden, string? ParentCallsign, int Depth, string? Callsign, bool HasChildren, bool IsInherited);
 
     /// <summary>Radici (nodi senza padre risolvibile), raggruppate per ACC della radice. Con la ricerca attiva tiene solo le radici che hanno almeno un nodo visibile nel proprio albero.</summary>
     private List<RootGroup> RootGroups()
@@ -356,9 +365,10 @@
 
         void Walk(HierarchyNode n, int depth)
         {
-            var hasChildren = n.Callsign is not null && ChildrenOf(n.Callsign).Any();
+            if (IsCollapsedPosition(n)) return;
+            var hasChildren = n.Callsign is not null && ChildrenOf(n.Callsign).Any(c => !IsCollapsedPosition(c));
             if (vis is null || vis.Contains(NodeKey(n.Kind, n.Id)))
-                list.Add(new FlatNode(n.Kind, n.Id, n.Label, n.AccCode, n.IsHidden, n.ParentCallsign, depth, n.Callsign, hasChildren));
+                list.Add(new FlatNode(n.Kind, n.Id, n.Label, n.AccCode, n.IsHidden, n.ParentCallsign, depth, n.Callsign, hasChildren, n.IsInherited));
             if (n.Callsign is null || !guard.Add(n.Callsign)) return;
             if (vis is null && _collapsed.Contains(n.Callsign)) return;   // ramo compresso (ignorato in ricerca)
             foreach (var c in ChildrenOf(n.Callsign)) Walk(c, depth + 1);
@@ -379,7 +389,7 @@
         {
             vis.Add(NodeKey(m.Kind, m.Id));
             // antenati (catena ParentCallsign fino alla radice)
-            var pcs = m.ParentCallsign;
+            var pcs = m.EffectiveParentCallsign;
             var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
             {
@@ -407,12 +417,6 @@
     }
 
     // --- Helpers albero ---
-    private static string BadgeOf(HierarchyNodeKind k) => k switch
-    {
-        HierarchyNodeKind.Acc => "ACC",
-        HierarchyNodeKind.App => "APP",
-        _ => "APT",
-    };
 
     // --- Nazioni presenti nell'albero (prefisso ICAO → nome), per il filtro ---
     private sealed record CountryOption(string Prefix, string Name);
@@ -451,15 +455,18 @@
     }
 
     // --- Completezza / orfani ---
+    // Padre EFFETTIVO ovunque nell'albero: quello scritto, altrimenti quello ereditato dalla scaletta
+    // d'aeroporto. Usare solo ParentCallsign mostrerebbe come «da assegnare» posizioni che il sistema aggancia
+    // davvero — due schermate che dicono cose diverse sullo stesso nodo.
     private bool IsRooted(HierarchyNode n)   // ha un padre effettivamente risolvibile nell'albero
     {
-        if (string.IsNullOrWhiteSpace(n.ParentCallsign)) return false;
-        return NodesByCallsign().ContainsKey(n.ParentCallsign);
+        if (string.IsNullOrWhiteSpace(n.EffectiveParentCallsign)) return false;
+        return NodesByCallsign().ContainsKey(n.EffectiveParentCallsign);
     }
     private List<HierarchyNode> OrphanAirports() =>
         _tree.Where(n => n.Kind == HierarchyNodeKind.Airport && !IsRooted(n)).ToList();
     private List<HierarchyNode> OrphanApps() =>
-        _tree.Where(n => n.Kind == HierarchyNodeKind.App && !IsRooted(n)).ToList();
+        _tree.Where(n => n.Kind == HierarchyNodeKind.AirportPosition && !IsRooted(n)).ToList();
     private List<HierarchyNode> AccRoots() =>
         _tree.Where(n => n.Kind == HierarchyNodeKind.Acc && !IsRooted(n)).ToList();
 
@@ -477,7 +484,7 @@
         foreach (var m in OrphanAirports().Concat(OrphanApps()))
         {
             vis.Add(NodeKey(m.Kind, m.Id));
-            var pcs = m.ParentCallsign;
+            var pcs = m.EffectiveParentCallsign;
             var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
             {
@@ -488,12 +495,13 @@
         return vis;
     }
 
-    // --- Badge facility (CTR/FSS/APP/APT) dal suffisso callsign ---
+    // --- Badge facility (CTR/FSS/APP/TWR/GND/DEL/APT) dal suffisso callsign ---
     private static string FacilityBadge(HierarchyNodeKind kind, string? callsign)
     {
         if (kind == HierarchyNodeKind.Airport) return "APT";
-        if (kind == HierarchyNodeKind.App) return "APP";
         var last = callsign?.Split('_').LastOrDefault()?.ToUpperInvariant();
+        if (kind == HierarchyNodeKind.AirportPosition)
+            return last switch { "TWR" => "TWR", "GND" => "GND", "DEL" => "DEL", _ => "APP" };
         return last switch { "CTR" => "CTR", "FSS" => "FSS", _ => "ACC" };
     }
     private static string FacilityClass(HierarchyNodeKind kind, string? callsign) => FacilityBadge(kind, callsign).ToLowerInvariant();
@@ -569,9 +577,33 @@
              .GroupBy(n => n.Callsign!, StringComparer.OrdinalIgnoreCase)
              .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Torre/ground/delivery nascoste dall'interruttore. Restano visibili quando si sta cercando (una ricerca per
+    /// callsign deve trovarle), quando sono selezionate, e quando sono orfane in modalità «solo da agganciare» —
+    /// altrimenti il filtro nasconderebbe proprio i nodi che chiedono un intervento.
+    /// </summary>
+    private bool IsCollapsedPosition(HierarchyNode n)
+    {
+        if (_showAirportPositions || _filtering) return false;
+        if (n.Kind != HierarchyNodeKind.AirportPosition) return false;
+        if (IsSelected(n.Kind, n.Id)) return false;
+        return !string.Equals(BadgeOfCallsign(n.Callsign), "APP", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BadgeOfCallsign(string? callsign) =>
+        callsign?.Split('_').LastOrDefault()?.ToUpperInvariant() ?? "";
+
     private IEnumerable<HierarchyNode> ChildrenOf(string callsign) =>
-        _tree.Where(n => string.Equals(n.ParentCallsign, callsign, StringComparison.OrdinalIgnoreCase))
+        _tree.Where(n => string.Equals(n.EffectiveParentCallsign, callsign, StringComparison.OrdinalIgnoreCase))
              .OrderBy(n => n.Kind).ThenBy(n => n.Label);
+
+    /// <summary>Etichetta dell'opzione «nessun padre scritto»: se la scaletta ne deriva uno, va detto quale —
+    /// altrimenti l'admin crede di staccare il nodo mentre resta agganciato.</summary>
+    private string InheritOptionLabel(HierarchyNode sel)
+    {
+        if (sel.DerivedParentCallsign is { Length: > 0 } d) return L["Struct_OptInherit", d];
+        return sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value;
+    }
 
     private void Select(HierarchyNodeKind kind, int id)
     {
@@ -616,11 +648,14 @@
         var byCs = NodesByCallsign();
         var rows = new List<FallbackChainRow>();
         var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var pcs = sel.ParentCallsign;
+        // Padre EFFETTIVO, come l'albero: con quello scritto la catena direbbe «radice» su una posizione che il
+        // sistema aggancia davvero — e il pannello contraddirebbe la riga che l'ha appena selezionata.
+        var pcs = sel.EffectiveParentCallsign;
         while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
         {
-            rows.Add(new FallbackChainRow(p.Callsign ?? "", BadgeOf(p.Kind), BadgeOf(p.Kind).ToLowerInvariant(), p.AccCode));
-            pcs = p.ParentCallsign;
+            rows.Add(new FallbackChainRow(p.Callsign ?? "", FacilityBadge(p.Kind, p.Callsign),
+                FacilityClass(p.Kind, p.Callsign), p.AccCode));
+            pcs = p.EffectiveParentCallsign;
         }
         return rows;
     }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -38,7 +39,20 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
+        // Padre impostato sul nodo AEROPORTO in /vsop/admin/sectorstructure (`Airport.ParentCallsign`): è il
+        // legame che l'admin vede e compila, e vale per TUTTE le posizioni di quell'aeroporto.
+        var airportParentByIcao = await _db.Airports
+            .Where(a => a.ParentCallsign != null)
+            .ToDictionaryAsync(a => a.Icao, a => a.ParentCallsign!, StringComparer.OrdinalIgnoreCase, ct);
+
         var airportSectors = await _db.AirportSectors.AsNoTracking().ToListAsync(ct);
+
+        // Posizioni visibili per aeroporto, per la scaletta interna (sotto).
+        var visibleByIcao = airportSectors
+            .Where(s => !s.IsHidden && !hiddenAcc.Contains(s.AccCode) && !IsAtis(s.Position))
+            .GroupBy(s => s.AirportIcao, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
         foreach (var s in airportSectors)
         {
             if (s.IsHidden || hiddenAcc.Contains(s.AccCode)) continue;
@@ -49,7 +63,8 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Airport, Frequency: s.Frequency,
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
-                ParentCallsign: s.ParentCallsign, IsAccApp: s.IsAccApp,
+                ParentCallsign: s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao),
+                IsAccApp: s.IsAccApp,
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
@@ -100,7 +115,10 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         //    solo a callsign confermati in `desired` (tutti upsertati IsActive=true), mai a un settore disattivato.
         var parentOf = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in accSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
-        foreach (var s in airportSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
+        // Stesso padre derivato usato in `desired`: se la mappa usasse il ParentCallsign grezzo, la risalita
+        // verso un antenato visibile ripartirebbe da null proprio per le posizioni che il fix aggancia.
+        foreach (var s in airportSectors)
+            parentOf[s.ComposePosition] = s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao);
 
         foreach (var d in desired.Values)
         {
@@ -165,6 +183,24 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp,
         string? AtcCallsign, string? Position);
 
+    /// <summary>Adatta le righe di catalogo al modello puro della scaletta (<see cref="AirportPositionLadder"/>).</summary>
+    private static string? LadderParent(
+        AirportSector sector,
+        IReadOnlyDictionary<string, List<AirportSector>> visibleByIcao,
+        IReadOnlyDictionary<string, string> airportParentByIcao)
+    {
+        var positions = visibleByIcao.TryGetValue(sector.AirportIcao, out var rows)
+            ? rows.Select(ToLadder).ToList()
+            : new List<LadderPosition>();
+
+        return AirportPositionLadder.ParentOf(
+            ToLadder(sector), positions,
+            airportParentByIcao.GetValueOrDefault(sector.AirportIcao), sector.AirportIcao);
+    }
+
+    private static LadderPosition ToLadder(AirportSector s) =>
+        new(s.ComposePosition, MapType(s.Position), s.ParentCallsign);
+
     private static bool IsAtis(string? position) =>
         string.Equals(position, "ATIS", StringComparison.OrdinalIgnoreCase);
 
@@ -219,12 +255,6 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         return i == 4 ? callsign[..4].ToUpperInvariant() : null;
     }
 
-    private static int CoverageFor(SectorType type) => type switch
-    {
-        SectorType.App => 5,
-        SectorType.Twr or SectorType.ITwr => 10,
-        SectorType.Gnd => 20,
-        SectorType.Del => 30,
-        _ => 0,   // CTR/area = radice
-    };
+    /// <summary>Posto nella scaletta d'aeroporto (condiviso con l'editor gerarchia): più basso = più in alto.</summary>
+    private static int CoverageFor(SectorType type) => AirportPositionLadder.Rung(type);
 }

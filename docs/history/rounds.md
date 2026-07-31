@@ -885,3 +885,123 @@ mostra un campo vuoto. Un errore in faccia sarebbe stato meglio di un dato sbagl
 a mano su Neon. Accettabile finché i casi sono rari (finora zero). Il passo successivo, se diventassero
 ricorrenti, sono script `.sql` versionati eseguiti all'avvio — non le migrazioni EF per-provider, il cui punto
 duro non è il lavoro corrente ma il baseline da riprodurre esattamente sullo schema che c'è già.
+
+## 2026-07-31 — La vista operativa diventa `/vsop/{acc}/live` e smette di dipendere dal documento
+
+Revisione della pagina che un controllore tiene aperta **mentre controlla**. Tre richieste esplicite
+(path in inglese, sezioni collassate, tabella SID illeggibile) più un giro di QoL scelto insieme.
+
+- **Rotta**: `/vsop/{acc}/operativa` → **`/vsop/{acc}/live`**, `/operativa-app` → `/live-app`
+  (`AccLivePage`/`AppLivePage`, chiavi resx `Live_*`/`AppLive_*`). Redirect **301** con query preservata in
+  `Program.cs`: sono pagine che finiscono nei preferiti. Le due rotte **non erano nella mappa pagine**: aggiunte.
+  L'etichetta a schermo resta «Operativa» — cambia l'URL, non la lingua della UI.
+- **Il documento non è più un prerequisito.** La pagina è legata all'**ente** che apri: trasferimenti e AoR non
+  toccano il documento e le frequenze escono dai cataloghi (il blocco porta solo raggruppamento e ordine). Eppure
+  senza vIPI pubblicata rispondeva «vista operativa non disponibile» e nascondeva anche le informazioni di
+  handoff che nel DB c'erano. Ora è un banner: si rende tutto, e le frequenze usano **blocchi sintetici**
+  (Aerovia a membri vuoti = tutti i CTR, più un gruppo con tutti gli APP) passati alla derivazione normale —
+  nessun secondo percorso di calcolo. Stessa cosa per un APP remotizzato non ancora messo in un gruppo.
+  Verificato su LIRR (nessuna vIPI): 86 frequenze e i trasferimenti resi, prima non si vedeva niente.
+- **Sezioni collassate + memoria.** Frequenze e Trasferimenti partivano `open`: la vista si apriva su due muri di
+  tabelle. Ora partono chiuse e `data-persist` ricorda la scelta. *Gotcha*: `wireCollapse` gira solo a
+  load/enhancedload, ma la pagina è `InteractiveServer` e ricostruisce i `<details>` a ogni tick → esposto
+  `window.vipiWireCollapse` (solo la persistenza; `vipiWireUi` rifarebbe `wireHashLanding`, che riscorre la pagina)
+  e richiamato a ogni `OnAfterRenderAsync`. Il tag «aperto» in intestazione mentiva su una sezione chiusa:
+  sostituito dal conteggio.
+- **Tabella SID schiacciata**: `AirportQuickPanel` usava `sid-table cfg-table`, ma `.cfg-table` è la tabella
+  *Configurazioni operative* — `table-layout:fixed` con larghezze cablate su **quattro** colonne (26/38/18/18).
+  La tabella SID ne ha sei: **Cat. e WTC finivano a larghezza ~0**. Ora `res-table sid-table sid-quick` dentro un
+  `.tbl-scroll`, larghezze **per classe semantica** (le colonne opzionali si nascondono: `nth-child` sarebbe
+  sbagliato) e Transition/Cat./WTC omesse se vuote su tutte le righe mostrate.
+- **QoL**: la postazione **segue la connessione IVAO** (prima `_myCallsign` si calcolava una volta sola: chi
+  apriva la pagina e si connetteva dopo non veniva mai agganciato), con override manuale in `?p=CALLSIGN`;
+  **striscia dei cambi** online/offline + evidenza sulle righe toccate (prima la pagina si riscriveva in
+  silenzio a ogni tick SSE); testata **sticky**; orari in **Z** + orologio UTC lato browser; **modalità compatta**
+  persistita fuori dal circuito (classe su `<html>`, come lo zoom); **rilasci a UNICOM nascosti di default** con
+  tasto per mostrarli; **vento** accanto alla pista suggerita nella vista rapida.
+
+Suite **686** verde. Verifica live su copia del DB (LIBB con documento, LIRR senza, gemella APP): redirect 301,
+sezioni chiuse e ricordate dopo reload, tabella SID a colonne reali senza sfondare la pagina, compatta persistita,
+`?p=` scritto dal selettore. **Non esercitata live** la striscia dei cambi: serve una transizione online/offline
+fra due tick e il feed IVAO era a zero ATC.
+
+> **Trappola nuova per la verifica**: `innerText` su un `<details>` **chiuso** torna stringa vuota (è
+> layout-dependent). Un'asserzione che legge il testo di una sezione collassata sembra dire «elemento assente»
+> mentre l'elemento c'è: interrogare il DOM (`querySelector`, conteggi) o aprire prima la sezione.
+
+## 2026-07-31 — Vista live unificata per callsign — doc [refactor/12](../refactor/12-vista-live-unificata.md)
+
+Secondo giro della stessa giornata: chiuso l'ultimo doppione strutturale dell'asse refactor.
+
+- **Una pagina sola, keyed sul callsign**: `/vsop/live` (la tua postazione) e `/vsop/live/{callsign}`
+  (consultazione). Sparisce `{acc}` dal path — era derivabile dal callsign, e tenerlo significava due fonti
+  per la stessa informazione libere di contraddirsi.
+- **Descrittore + registry** (`ILiveStationKind`), stessa tecnica di `IReleaseTarget`/`IDocKindRoutes` (doc 09):
+  `AreaLiveStation` · `ApproachLiveStation` · `AirportLiveStation`. **Le torri, i ground e i delivery hanno una
+  vista live** che prima non esisteva. Un test verifica che ogni `SectorType` abbia esattamente un descrittore.
+- **Selettore postazione rimosso** (richiesta esplicita): la pagina dipende dalla postazione che hai aperto.
+  Non connesso ⇒ stato d'attesa con gli ATC online cliccabili e **aggancio automatico** al tick SSE, senza
+  reload; postazione altrui ⇒ banner esplicito.
+- **Trasferimenti**: «i miei più quelli dei figli **chiusi**» = `ResolvedOwnerCallsign == postazione`, non
+  `DomainOf` (un figlio online se li tiene). La vecchia pagina ACC mostrava i flussi di *tutta* l'ACC: per un
+  sotto-settore l'elenco ora si stringe a ciò che è davvero suo.
+- **Codice morto**: via `AccLivePage`, `AppLivePage` e le due `Ridotta*` spente dal Round 12 (mai riattivate;
+  `RidottaAppPage` era per metà un mockup hardcoded), più 16 chiavi resx orfane.
+
+Suite 686 → **702**. Verifica live su 12 postazioni.
+
+> **Due trappole pagate.** (1) `/vsop/live/{callsign}` ricade sul prefisso dello stream SSE `/vsop/live/atc`:
+> vince il segmento letterale, ma è una proprietà del routing che si rompe cambiando le rotte → uno smoke la
+> verifica. (2) `DeriveFrequenciesForMembersAsync` espandeva **già** il catalogo d'aeroporto per qualsiasi membro,
+> non solo per gli APP come diceva il commento: è ciò che ha reso i tipi nuovi quasi gratuiti.
+
+**Follow-up di dato, non di codice:** nessun settore `Twr`/`Gnd`/`Del` ha un padre nella gerarchia (solo `App` e
+`Ctr`), quindi proprio le postazioni per cui la catena di copertura è l'informazione principale non ne hanno una.
+La pagina lo dichiara invece di lasciare un vuoto muto; l'aggancio va fatto in `/vsop/admin/sectorstructure`.
+
+### Coda della stessa sessione — il padre dell'aeroporto non arrivava alle sue posizioni
+
+Segnalazione dell'owner («nelle gerarchie gli aeroporti hanno dei padri, e tutte le postazioni di quell'aeroporto
+riferiscono a quel padre»): la catena vuota di TWR/GND/DEL non era un dato mancante ma **un legame che nessuno
+leggeva**. `Airport.ParentCallsign` (29 popolati, compilato dall'admin sul nodo Aeroporto in Struttura) non veniva
+mai letto dalla proiezione, che guardava solo `AirportSector.ParentCallsign` — popolato per i soli APP.
+
+Fix in `EfSectorProjectionService` (fonte unica, quindi vale per **tutti** i consumatori): scaletta interna
+**DEL → GND → TWR → APP** e uscita sul padre dell'aeroporto; il `ParentCallsign` esplicito vince. Riproiezione
+all'avvio (`ProjectVipiSectors`), altrimenti la nuova regola sarebbe entrata in vigore solo al prossimo import.
+Sul DB reale: `Del` 0→5/5, `Gnd` 0→20/20, `Twr` 0→51/84. Suite **702 → 708**.
+
+Toccava anche la **risoluzione dei trasferimenti** (stessa gerarchia): un punto verso una torre offline terminava
+su UNICOM invece di salire all'avvicinamento. Latente (0 punti simili nel DB), ma stessa classe di errore.
+
+**Scelta fra pari grado, coi dati e non a sorte** (secondo giro, su indicazione dell'owner: «se ha più APP si
+deve vedere in sectorstructure qual è la gerarchia di questi APP»): la gerarchia fra le APP di un aeroporto **è
+già configurata e visibile** in quella pagina, quindi la torre si aggancia alla **radice del sottoalbero APP**
+(LIRF: `LIRF_TW1_APP`, non l'alfabetico `LIRF_AEM_APP`). Dove una gerarchia scritta non c'è — torri e ground non
+sono nodi editabili — vale il **callsign senza infisso** (`LIRF_TWR` batte `LIRF_E_TWR`); se resta ambiguo si
+**sale** di un gradino (a Malpensa i due ground sono entrambi sdoppiati e il delivery va alla torre).
+
+**Torri, ground e delivery diventano nodi editabili** in `/vsop/admin/sectorstructure` (§8 del doc 12): erano
+esclusi da un filtro `Position == "APP"`, non da una scelta di modello — sono già la stessa entità degli APP.
+La scaletta diventa un servizio di dominio condiviso fra proiezione ed editor, e i nodi senza padre scritto
+mostrano quello **ereditato** invece di un «da assegnare» che contraddirebbe la vista live. Guardia nuova: nessun
+padre più in basso nella scaletta (un ground non copre una torre) — pari grado ammesso, che è il caso degli split.
+Interruttore «Posizioni d'aeroporto» spento di default (+186 righe nell'albero). Suite **715**.
+
+**Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato in Struttura.
+
+
+### Coda: avvicinamento reso come l'area + trasferimenti verso figli chiusi (2026-07-31)
+
+Due correzioni chieste dall'owner sulla vista live.
+
+- **L'APP ora ha i chip degli aeroporti** come i tipi d'area: un avvicinamento ne copre spesso più d'uno
+  (`LIBD_CS0_APP` tiene LIBD e LIBR) e il pannello fisso rendeva gli altri irraggiungibili. La funzione dei chip
+  si sposta in `LiveStationParts`: una regola per due descrittori. Torri/ground/delivery tengono il pannello
+  fisso — sono di un aeroporto solo.
+- **I punti verso un proprio discendente CHIUSO non si mostrano più.** Se il figlio è chiuso lo sto coprendo io:
+  non c'è niente da passare. Prima il punto restava con il destinatario risolto risalendo la gerarchia, che per
+  un figlio chiuso è la postazione stessa — «passa a te stesso». Vale solo per i discendenti: verso un ente
+  esterno la risalita resta informazione utile. Caso reale: `LIBB_ES_CTR` → `LIBD_CS0_APP`, 4 punti.
+
+Suite **715 → 718**, verifica live su entrambi.

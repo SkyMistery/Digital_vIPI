@@ -23,6 +23,14 @@ Questo documento definisce le entità persistite, i campi, i tipi, le enumerazio
 
 Principi:
 
+- **Gerarchia delle posizioni d'aeroporto (2026-07-31).** Il padre si imposta sul nodo **Aeroporto** in
+  `/vsop/admin/sectorstructure` → `Airport.ParentCallsign`, e vale per tutte le sue posizioni. La proiezione
+  (`EfSectorProjectionService`) lo applica a chi non ha un `AirportSector.ParentCallsign` proprio, salendo la
+  scaletta **DEL → GND → TWR → APP** e uscendo in cima sul padre dell'aeroporto. Fra pari grado sceglie la radice
+  del sottoalbero (gerarchia scritta, es. le APP di LIRF) poi il callsign senza infisso; se resta ambiguo sale.
+  Un `ParentCallsign` esplicito del catalogo vince sempre, e **tutte** le posizioni sono modificabili in
+  `/vsop/admin/sectorstructure`. Regola pura in `Vipi.Domain.Services.AirportPositionLadder`, condivisa fra
+  proiezione ed editor. Vedi `refactor/12-vista-live-unificata.md` §7-8.
 - **Anagrafica importata vs struttura manuale.** Le posizioni e i settori di base si importano dalle API IVAO (anagrafica piatta + ACC + shape). La **gerarchia operativa**, l'**ownership dei settori** e le **regole di unificazione** sono dato manuale curato dagli editor.
 - **Versionamento dei documenti.** Ogni documento ha versioni immutabili (audit + diff). I `ContentBlock` appartengono a una **versione**, non al documento direttamente.
 - **Concorrenza ottimistica.** Le entità editabili portano un token `RowVersion`.

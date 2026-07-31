@@ -1,0 +1,336 @@
+@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
+   un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
+   /vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
+   /vsop/live/{callsign} = quella postazione, in consultazione *@
+@page "/vsop/live"
+@page "/vsop/live/{Callsign}"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Live
+@using Vipi.Ui.Shared.Routing
+@inject ILiveViewService Live
+@inject IDocRoutesRegistry DocRoutes
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+@implements IAsyncDisposable
+
+<PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap">
+    <div class="breadcrumb">
+        <a href="/vsop">@L["Common_Home"]</a>
+        @if (_view is not null)
+        {
+            <text> › </text><a href="/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
+        }
+        <text> › </text><b>@L["Live_Tab"]</b>
+    </div>
+
+    <div class="reduced-top">
+        <h2 style="margin:0">@(_view?.Title ?? L["Live_Tab"].Value)</h2>
+        @if (_view is not null)
+        {
+            <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_view.Callsign</span>
+        }
+        <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
+        <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
+        <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" data-dense-toggle aria-pressed="false"
+                onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
+        @if (ExtendedDocHref() is { } href)
+        {
+            <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
+        }
+    </div>
+
+    @if (_view is null)
+    {
+        @* Nessuna postazione: non è un errore, è lo stato normale di chi apre la pagina prima di collegarsi.
+           Il tick live la aggancia da sola, senza ricaricare. *@
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
+            <div>
+                <p class="ct">@(_requested is null ? L["Live_NotConnectedTitle"] : L["Live_UnknownStationTitle", _requested])</p>
+                @(_requested is null ? L["Live_NotConnectedBody"] : L["Live_UnknownStationBody"])
+            </div>
+        </div>
+
+        <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_OnlineNow", FeedAge()]</p>
+        <div class="apt-quick" style="margin-bottom:22px">
+            @if (_snapshot.Callsigns.Count == 0)
+            {
+                <span class="muted" style="font-size:13px">@L["Live_NobodyOnline"]</span>
+            }
+            else
+            {
+                @foreach (var cs in _snapshot.Callsigns.OrderBy(c => c, StringComparer.OrdinalIgnoreCase))
+                {
+                    <a class="ch sw" href="/vsop/live/@cs.ToLowerInvariant()">@cs</a>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        @if (_myCallsign is not null && !string.Equals(_myCallsign, _view.Callsign, StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="callout info"><span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["Live_NotYoursTitle", _view.Callsign]</p>
+                    @L["Live_NotYoursBody", _myCallsign]
+                    <a class="btn ghost" style="margin-left:8px;padding:3px 10px;font-size:12.5px" href="/vsop/live">↺ @L["Live_FollowMe", _myCallsign]</a>
+                </div>
+            </div>
+        }
+        else if (_view.NoDocument)
+        {
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@((MarkupString)string.Format(L["Live_NoDocBody"], ExtendedDocHref() ?? "#"))</div>
+            </div>
+        }
+
+        @if (_changes.Count > 0)
+        {
+            <div class="live-changes" role="status" aria-live="polite">
+                <span class="lc-lab">@L["Live_ChangesLabel"]</span>
+                @foreach (var ch in Enumerable.Reverse(_changes))
+                {
+                    <span class="lc-chip @(ch.Online ? "on" : "off")">@(ch.Online ? "▲" : "▼") @ch.Callsign <span class="lc-t">@Z(ch.At)</span></span>
+                }
+                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()">@L["Live_ChangesClear"]</button>
+            </div>
+        }
+
+        @* Catena di copertura: per ground e delivery, che di trasferimenti propri non ne hanno, è
+           l'informazione principale — quindi sta in alto e per esteso, non in coda. *@
+        @if (_view.CoverageChain.Count > 0)
+        {
+            <div class="live-chain @(IsAirportSide() ? "lead" : "")">
+                <span class="lc-lab">@L["Live_CoveredBy"]</span>
+                @foreach (var cs in _view.CoverageChain)
+                {
+                    var online = _snapshot.Callsigns.Contains(cs);
+                    <a class="xo-chip @(online ? "on" : "")" href="/vsop/live/@cs.ToLowerInvariant()">@cs@(online ? "" : " ·" + L["Live_Offline"].Value)</a>
+                }
+                <span class="muted xo-hint">@L["Live_CoveredByHint"]</span>
+            </div>
+        }
+        else if (IsAirportSide())
+        {
+            @* Silenzio ingannevole: per una posizione d'aeroporto «nessuno sopra» non è un fatto operativo, è
+               una gerarchia non ancora compilata in /vsop/admin/sectorstructure. Dirlo evita che il controllore
+               concluda di non avere nessuno a cui passare il traffico. *@
+            <div class="live-chain lead">
+                <span class="lc-lab">@L["Live_CoveredBy"]</span>
+                <span class="muted">@L["Live_NoChainConfigured"]</span>
+            </div>
+        }
+
+        @if (_view.AirportIcao is { } icao)
+        {
+            <details class="acc-item" open data-persist="live-apt">
+                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@icao</span></summary>
+                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" /></div>
+            </details>
+        }
+        else if (_view.AirportChips.Count > 0)
+        {
+            <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
+            <div class="apt-quick" style="margin-bottom:22px">
+                <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Live_MySector"]</span>
+                @foreach (var chip in _view.AirportChips)
+                {
+                    var ic = chip.Icao;
+                    <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
+                          title="@(chip.Delegated ? L["Live_AptDelegatedTip"] : L["Live_AptQuickTip"])"
+                          @onclick="() => _selectedApt = ic">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
+                }
+            </div>
+        }
+
+        @if (_selectedApt is { } sel)
+        {
+            <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" />
+        }
+        else
+        {
+            <div class="red-top-grid">
+                <details class="acc-item" data-persist="live-freq">
+                    <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@_view.Frequencies.Count</span></summary>
+                    <div class="body">
+                        @if (_view.Frequencies.Count > 0) { <AppFrequencies Rows="_view.Frequencies" /> }
+                        else { <p class="muted" style="font-size:13px;margin:0">@L["Live_NoFreqDerived"]</p> }
+                    </div>
+                </details>
+
+                @foreach (var g in _view.Groups)
+                {
+                    <details class="acc-item @(g.Delegated ? "collapsed-strip" : "")" open="@(!g.Delegated)" data-persist="@($"live-blk-{g.Block.Key}")">
+                        <summary>
+                            <span>@(g.Delegated ? "🔇" : "📡") @g.Block.Title@(g.Delegated ? $" — {L["Live_Delegated"]}" : "")</span>
+                            <span class="tag-state @(g.Delegated ? "tag-online" : "tag-covered")">@(g.Delegated ? L["Common_TagOnline"] : L["Common_TagCovered"])</span>
+                        </summary>
+                        <div class="body">
+                            @if (g.Delegated)
+                            {
+                                <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Live_CollapsedBody"], g.Block.Title))</p>
+                            }
+                            <AccSectionBody Block="g.Block" Key="frequencies" Root="@_view.TreeRoot" Freqs="g.Freqs" />
+                        </div>
+                    </details>
+                }
+            </div>
+
+            <details class="acc-item" data-persist="live-xfer">
+                <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Count</span></summary>
+                <div class="body">
+                    <div class="xfer-online">
+                        <span class="xo-label">@L["Live_OnlineAround"]</span>
+                        @if (OnlineAround().Count > 0)
+                        {
+                            @foreach (var cs in OnlineAround()) { <span class="xo-chip on">@cs</span> }
+                        }
+                        else { <span class="muted xo-hint">@L["Live_NoNeighbourOnline"]</span> }
+                        <span class="muted xo-hint">@L["Live_TransfersHint"]</span>
+                    </div>
+                    <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" />
+                </div>
+            </details>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Postazione richiesta esplicitamente. Assente = la propria, dalla connessione IVAO.</summary>
+    [Parameter] public string? Callsign { get; set; }
+
+    private LiveView? _view;
+    private string? _requested;              // callsign chiesto ma non trovato (per distinguere i due stati vuoti)
+    private string? _myCallsign;
+    private string? _selectedApt;
+    private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
+
+    private sealed record LiveChange(string Callsign, bool Online, DateTimeOffset At);
+    private const int MaxChanges = 6;
+    private readonly List<LiveChange> _changes = new();
+    private HashSet<string>? _prevOnline;
+
+    private DotNetObjectReference<LivePage>? _ref;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _snapshot = Live.Snapshot();
+        _myCallsign = Live.MyCallsign();
+
+        // Senza callsign nell'URL la pagina È la tua postazione: nessun selettore, nessun default arbitrario.
+        var wanted = string.IsNullOrWhiteSpace(Callsign) ? _myCallsign : Callsign.Trim().ToUpperInvariant();
+        if (wanted is null) { _view = null; _requested = null; TrackChanges(); return; }
+
+        var result = await Live.BuildAsync(wanted);
+        _view = result.View;
+        _requested = result.Found ? null : wanted;
+
+        // Cambiando postazione i chip cambiano: un aeroporto selezionato che non è più fra i suoi lascerebbe
+        // aperto il pannello di uno scalo che questa postazione non controlla.
+        if (_selectedApt is { } sel && _view?.AirportChips.Any(c =>
+                string.Equals(c.Icao, sel, StringComparison.OrdinalIgnoreCase)) != true)
+            _selectedApt = null;
+
+        TrackChanges();
+    }
+
+    /// <summary>Enti che contano per questa postazione: la sua AoR, la catena di copertura e chiunque compaia
+    /// nei suoi trasferimenti — ancorati al callsign CONFIGURATO, così anche chi va offline resta osservato.</summary>
+    private HashSet<string> RelevantCallsigns()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_view is null) return set;
+
+        foreach (var cs in _view.Aor?.State.Keys ?? Enumerable.Empty<string>()) set.Add(cs);
+        foreach (var cs in _view.CoverageChain) set.Add(cs);
+        foreach (var r in _view.Transfers)
+        {
+            set.Add(r.Flow.OwningSectorCallsign);
+            set.Add(r.ResolvedOwnerCallsign);
+            foreach (var pt in r.Points)
+            {
+                if (!string.IsNullOrWhiteSpace(pt.Point.NextSectorCallsign)) set.Add(pt.Point.NextSectorCallsign!);
+                set.Add(pt.ResolvedHandler);
+            }
+        }
+        set.Remove("UNICOM");
+        return set;
+    }
+
+    /// <summary>Diff dell'insieme online fra due tick: un cambio di destinatario non deve passare in silenzio.</summary>
+    private void TrackChanges()
+    {
+        var relevant = RelevantCallsigns();
+        var now = new HashSet<string>(_snapshot.Callsigns.Where(relevant.Contains), StringComparer.OrdinalIgnoreCase);
+        if (_prevOnline is null) { _prevOnline = now; return; }
+
+        var at = _snapshot.AsOf == DateTimeOffset.MinValue ? DateTimeOffset.UtcNow : _snapshot.AsOf;
+        foreach (var cs in now.Except(_prevOnline, StringComparer.OrdinalIgnoreCase)) _changes.Add(new(cs, true, at));
+        foreach (var cs in _prevOnline.Except(now, StringComparer.OrdinalIgnoreCase)) _changes.Add(new(cs, false, at));
+
+        _prevOnline = now;
+        if (_changes.Count > MaxChanges) _changes.RemoveRange(0, _changes.Count - MaxChanges);
+    }
+
+    /// <summary>Postazione d'aeroporto (torre, ground, delivery): è quella per cui la catena di copertura
+    /// conta più dei trasferimenti propri, che di norma non ha.</summary>
+    private bool IsAirportSide() => _view?.Type is LiveStationType.Tower or LiveStationType.Ground;
+
+    private IReadOnlySet<string> ChangedCallsigns() =>
+        _changes.Select(c => c.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private IReadOnlyList<string> OnlineAround() => _view is null
+        ? Array.Empty<string>()
+        : _view.Transfers
+            .SelectMany(r => r.Points.Where(p => p.IsOnline).Select(p => p.ResolvedHandler)
+                .Append(r.OwnerOnline ? r.ResolvedOwnerCallsign : null))
+            .Where(cs => !string.IsNullOrWhiteSpace(cs)).Select(cs => cs!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>La rotta del documento esteso la sa il registry per-tipo (doc 09), non questa pagina.</summary>
+    private string? ExtendedDocHref() => _view?.ExtendedDoc is { } d
+        ? DocRoutes.For(d.Kind).PublicUrl(d.AccCode.ToLowerInvariant(), d.Scope ?? "", null)
+        : null;
+
+    // Orari in UTC: un controllore ragiona in Z, non nel fuso del suo PC.
+    private static string Z(DateTimeOffset at) => at.UtcDateTime.ToString("HH:mm") + "Z";
+
+    /// <summary>Età del dato ATC. Detta esplicitamente: se il feed è fermo, «non risulti connesso» non deve
+    /// far credere all'utente di essere offline quando è la sorgente a essere vecchia.</summary>
+    private string FeedAge() => _snapshot.AsOf == DateTimeOffset.MinValue
+        ? L["Live_FeedNever"].Value
+        : _snapshot.AsOf.UtcDateTime.ToString("HH:mm:ss") + "Z";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ref = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("vipiLive.subscribe", _ref);
+        }
+
+        // A ogni render: i <details> ricreati a un tick live perderebbero la persistenza del collasso.
+        try { await JS.InvokeVoidAsync("vipiWireCollapse"); } catch (JSDisconnectedException) { /* circuito chiuso */ }
+    }
+
+    /// <summary>Chiamato dal browser (SSE) a ogni cambio della cache ATC. Qui la vista si aggancia da sola
+    /// alla postazione appena ti colleghi, senza ricaricare la pagina.</summary>
+    [JSInvokable]
+    public async Task OnLiveUpdate()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe"); } catch { /* circuito chiuso */ }
+        _ref?.Dispose();
+    }
+}

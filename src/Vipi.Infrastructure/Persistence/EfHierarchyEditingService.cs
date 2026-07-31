@@ -4,6 +4,9 @@ using Vipi.Application;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
+using Vipi.Domain;
+using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -50,16 +53,39 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden, IsForeign: f, CountryPrefix: p));
         }
 
-        var apps = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.Position != null && s.Position.ToUpper() == "APP")
+        // TUTTE le posizioni d'aeroporto, non solo gli APP: torre, ground e delivery hanno un padre di copertura
+        // come gli altri e vanno modificabili qui. L'ATIS resta fuori (non è una posizione di controllo: la
+        // proiezione lo esclude, quindi non è né un nodo né un padre possibile).
+        var positions = await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.Position == null || s.Position.ToUpper() != "ATIS")
             .OrderBy(s => s.AccCode).ThenBy(s => s.ComposePosition).ToListAsync(ct);
-        foreach (var s in apps)
+
+        var airportParentByIcao = await _db.Airports.AsNoTracking()
+            .Where(a => a.ParentCallsign != null)
+            .ToDictionaryAsync(a => a.Icao, a => a.ParentCallsign!, StringComparer.OrdinalIgnoreCase, ct);
+
+        // Stessa scaletta della proiezione (servizio di dominio condiviso): l'editor deve mostrare il padre che
+        // il sistema usa davvero, non «da assegnare».
+        var ladderByIcao = positions
+            .Where(s => !s.IsHidden)
+            .GroupBy(s => s.AirportIcao, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Select(ToLadder).ToList(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var s in positions)
         {
             var (f, p) = Meta(s.AccCode);
+            var derived = s.ParentCallsign is null
+                ? AirportPositionLadder.ParentOf(
+                    ToLadder(s),
+                    ladderByIcao.GetValueOrDefault(s.AirportIcao) ?? new List<LadderPosition>(),
+                    airportParentByIcao.GetValueOrDefault(s.AirportIcao), s.AirportIcao)
+                : null;
+
             nodes.Add(new HierarchyNode(
-                HierarchyNodeKind.App, s.Id, s.ComposePosition,
+                HierarchyNodeKind.AirportPosition, s.Id, s.ComposePosition,
                 Label: s.ComposePosition, AccCode: s.AccCode,
-                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden, IsForeign: f, CountryPrefix: p));
+                ParentCallsign: s.ParentCallsign, IsHidden: s.IsHidden, IsForeign: f, CountryPrefix: p,
+                DerivedParentCallsign: derived));
         }
 
         var airports = await _db.Airports.AsNoTracking().Include(a => a.Acc)
@@ -126,7 +152,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 childAccCode = e.CenterId; childCallsign = e.ComposePosition;
                 break;
             }
-            case HierarchyNodeKind.App:
+            case HierarchyNodeKind.AirportPosition:
             {
                 var e = await _db.AirportSectors.FirstOrDefaultAsync(s => s.Id == nodeId, ct)
                     ?? throw new ValidationException("Posizione APP inesistente.");
@@ -163,6 +189,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 if (string.Equals(parentCallsign, childCallsign, StringComparison.OrdinalIgnoreCase))
                     throw new ValidationException("Un nodo non può essere padre di sé stesso.");
                 HierarchyRules.EnsureNoCycle(childCallsign, parentCallsign, internalParents);
+                await EnsureParentIsNotLowerAsync(childCallsign, parentCallsign, ct);
             }
         }
 
@@ -172,7 +199,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             case HierarchyNodeKind.Acc:
                 (await _db.AccSectors.FirstAsync(s => s.Id == nodeId, ct)).ParentCallsign = parentCallsign;
                 break;
-            case HierarchyNodeKind.App:
+            case HierarchyNodeKind.AirportPosition:
                 (await _db.AirportSectors.FirstAsync(s => s.Id == nodeId, ct)).ParentCallsign = parentCallsign;
                 break;
             case HierarchyNodeKind.Airport:
@@ -187,7 +214,49 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         await _projection.SyncFromCatalogsAsync(ct);
     }
 
-    /// <summary>Mappa callsign → ParentCallsign per i soli nodi interni (settori ACC + posizioni APP).</summary>
+    /// <summary>
+    /// Il padre non può stare più IN BASSO del figlio nella scaletta d'aeroporto: un ground non copre una torre.
+    /// Nella gerarchia il padre è chi ti assorbe quando chiudi, quindi al livello di un ground finirebbe traffico
+    /// che quel ground non può gestire — e la vIPI direbbe a un controllore di rilasciare alla posizione sbagliata.
+    /// Il picker del padre è un elenco lungo e piatto: è un errore da click, non da intenzione.
+    ///
+    /// Pari grado ammesso (<c>LIRF_E_TWR</c> sotto <c>LIRF_TWR</c>, gli split) e ogni salita.
+    /// I settori d'area (CTR/FSS) stanno fuori dalla scaletta (gradino 0), quindi restano padri validi di tutto.
+    /// </summary>
+    private async Task EnsureParentIsNotLowerAsync(string childCallsign, string parentCallsign, CancellationToken ct)
+    {
+        var rungs = await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.ComposePosition == childCallsign || s.ComposePosition == parentCallsign)
+            .Select(s => new { s.ComposePosition, s.Position })
+            .ToListAsync(ct);
+
+        int RungOf(string callsign) => rungs
+            .Where(r => string.Equals(r.ComposePosition, callsign, StringComparison.OrdinalIgnoreCase))
+            .Select(r => AirportPositionLadder.Rung(MapPositionType(r.Position)))
+            .DefaultIfEmpty(0)   // non è una posizione d'aeroporto ⇒ settore d'area, in cima
+            .First();
+
+        var childRung = RungOf(childCallsign);
+        var parentRung = RungOf(parentCallsign);
+        if (parentRung > childRung)
+            throw new ValidationException(
+                $"«{parentCallsign}» non può coprire «{childCallsign}»: sta più in basso nella scaletta " +
+                "dell'aeroporto (DEL → GND → TWR → APP).");
+    }
+
+    private static LadderPosition ToLadder(AirportSector s) =>
+        new(s.ComposePosition, MapPositionType(s.Position), s.ParentCallsign);
+
+    /// <summary>Suffisso di catalogo → tipo, per il solo calcolo della scaletta.</summary>
+    private static SectorType MapPositionType(string? position) => (position?.Trim().ToUpperInvariant()) switch
+    {
+        "DEL" => SectorType.Del,
+        "GND" => SectorType.Gnd,
+        "TWR" => SectorType.Twr,
+        _ => SectorType.App,
+    };
+
+    /// <summary>Mappa callsign → ParentCallsign per i nodi interni (settori ACC + posizioni d'aeroporto).</summary>
     private async Task<Dictionary<string, string?>> InternalNodeParentMapAsync(CancellationToken ct)
     {
         var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -195,7 +264,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                      .Select(s => new { s.ComposePosition, s.ParentCallsign }).ToListAsync(ct))
             map[s.ComposePosition] = s.ParentCallsign;
         foreach (var s in await _db.AirportSectors.AsNoTracking()
-                     .Where(s => s.Position != null && s.Position.ToUpper() == "APP")
+                     .Where(s => s.Position == null || s.Position.ToUpper() != "ATIS")
                      .Select(s => new { s.ComposePosition, s.ParentCallsign }).ToListAsync(ct))
             map[s.ComposePosition] = s.ParentCallsign;
         return map;

@@ -60,6 +60,30 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     }
 
     [Fact]
+    public async Task Live_page_renders()
+    {
+        // Senza callsign nell'URL: nessuna connessione IVAO nei test ⇒ stato d'attesa, che è una pagina valida.
+        var client = _factory.CreateClient();
+        var res = await client.GetAsync("/vsop/live");
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+    }
+
+    /// <summary>
+    /// La vista live ha una rotta a parametro <c>/vsop/live/{callsign}</c> che ricade sullo stesso prefisso
+    /// dello stream SSE <c>/vsop/live/atc</c>. La precedenza del routing (segmento letterale &gt; parametro)
+    /// deve continuare a mandare quell'URL allo stream, non alla pagina: se qualcuno cambia le rotte, qui si vede.
+    /// </summary>
+    [Fact]
+    public async Task Sse_endpoint_wins_over_the_live_page_route()
+    {
+        var client = _factory.CreateClient();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var res = await client.GetAsync("/vsop/live/atc", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+
+        Assert.Equal("text/event-stream", res.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
     public void Database_migrated_and_write_pipeline_resolves()
     {
         using var scope = _factory.Services.CreateScope();

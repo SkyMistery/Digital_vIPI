@@ -12,6 +12,8 @@ public sealed class AccVipiDocRoutes : IDocKindRoutes
     public string? ViewerUrl(string acc, string key, string? neighbourCode, int releaseId) =>
         $"/vsop/{acc}/vipi?as=rel:{releaseId}";
 
+    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/vsop/{acc}/vipi";
+
     public string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId) =>
         $"/vsop/{acc}/editor";
 }

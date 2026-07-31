@@ -1,18 +1,36 @@
-@* Resa live dei trasferimenti risolti (vista operativa/Ridotta) — masonry come mockup #reduced.
+@* Resa live dei trasferimenti risolti (vista live) — masonry come mockup #reduced.
    Un riquadro (.xpair) per mittente EFFETTIVO: se un settore è chiuso, i suoi trasferimenti compaiono
    sotto il primo antenato online che lo assorbe (già risolto in ResolvedOwnerCallsign). Dentro: per tipo
    di flusso (Arrivi/Partenze/…) → una card per aeroporto coi suoi CoP, livello e ricevente risolto. *@
 
-@if (Flows.Count == 0)
+@inject IStringLocalizer<SharedResource> L
+
+@{
+    var shown = Shown();
+    var hidden = UnicomCount();
+}
+
+@if (hidden > 0)
 {
-    <p class="help">@EmptyText</p>
+    @* Un rilascio a UNICOM non è un handoff: sotto non c'è nessuno. Di default sta fuori dai piedi, ma resta
+       a un click — serve quando devi dire al pilota a chi (non) passarlo. *@
+    <div class="xt-unicom-bar">
+        <button type="button" class="btn ghost" @onclick="() => _showUnicom = !_showUnicom">
+            @(_showUnicom ? L["Live_HideUnicom"] : L["Live_ShowUnicom", hidden])
+        </button>
+    </div>
+}
+
+@if (shown.Count == 0)
+{
+    <p class="help">@(Flows.Count == 0 ? EmptyText : L["Live_OnlyUnicom"])</p>
 }
 else
 {
     <div id="xfer-pairs">
-        @foreach (var owner in Flows.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
+        @foreach (var owner in shown.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
         {
-            <div class="xpair">
+            <div class="xpair @(IsChanged(owner.Key) ? "xt-changed" : "")">
                 <div class="xpair-h">@owner.Key @(owner.First().OwnerOnline ? "" : "· offline")</div>
                 <div class="xpair-body">
                     @foreach (var kind in owner.GroupBy(r => r.Flow.Kind).OrderBy(g => g.Key))
@@ -31,7 +49,7 @@ else
                                     </div>
                                     @foreach (var p in points)
                                     {
-                                        <div class="xt-pt">
+                                        <div class="xt-pt @(IsChanged(p.ResolvedHandler) ? "xt-changed" : "")">
                                             <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
                                             <b class="fl">@p.Point.LevelText</b>
                                             @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
@@ -55,4 +73,35 @@ else
     [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
     [Parameter] public string EmptyText { get; set; } = "Nessun coordinamento.";
 
+    /// <summary>Callsign appena passati online/offline: le righe che li riguardano si evidenziano, così un
+    /// cambio di destinatario non passa inosservato mentre stai guardando altrove.</summary>
+    [Parameter] public IReadOnlySet<string>? Changed { get; set; }
+
+    private bool IsChanged(string? callsign) =>
+        Changed is { Count: > 0 } && !string.IsNullOrWhiteSpace(callsign) && Changed.Contains(callsign);
+
+    private const string Unicom = "UNICOM";
+    private bool _showUnicom;
+
+    private static bool IsUnicom(ResolvedTransferPoint p) =>
+        string.Equals(p.ResolvedHandler, Unicom, StringComparison.OrdinalIgnoreCase);
+
+    private int UnicomCount() => Flows.Sum(f => f.Points.Count(IsUnicom));
+
+    /// <summary>Flussi da rendere: filtrati dei punti che finiscono a UNICOM, salvo richiesta esplicita.
+    /// Si filtra qui, una volta, così tutti i raggruppamenti a valle restano invariati.</summary>
+    private IReadOnlyList<ResolvedTransferFlow> Shown()
+    {
+        if (_showUnicom) return Flows;
+        return Flows
+            .Select(f => new ResolvedTransferFlow
+            {
+                Flow = f.Flow,
+                ResolvedOwnerCallsign = f.ResolvedOwnerCallsign,
+                OwnerOnline = f.OwnerOnline,
+                Points = f.Points.Where(p => !IsUnicom(p)).ToList(),
+            })
+            .Where(f => f.Points.Count > 0)
+            .ToList();
+    }
 }

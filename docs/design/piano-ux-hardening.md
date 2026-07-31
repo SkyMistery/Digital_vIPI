@@ -195,7 +195,9 @@ Giro «pulizia tema» completato, salvo U4 (decisione owner):
    **Convertite (verify live EN 2026-07-22, entrambe le direzioni):** fronte pubblico di navigazione
    `SopHome` (/vsop), `AccLanding` (/vsop/{acc}), `ChangedPage` (/vsop/changed), `SearchPage`
    (/vsop/search) + viewer `AccVipiPage` (/vsop/{acc}/vipi), `AppnPage` (/vsop/{acc}/apps/vipi),
-   `AccOperativaPage` (/vsop/{acc}/operativa), `AppOperativaPage` (/vsop/{acc}/operativa-app).
+   `AccOperativaPage` (/vsop/{acc}/operativa), `AppOperativaPage` (/vsop/{acc}/operativa-app)
+   — *dal 2026-07-31 sono `AccLivePage` (/vsop/{acc}/live) e `AppLivePage` (/vsop/{acc}/live-app),
+   chiavi resx `Live_*`/`AppLive_*`; i nomi qui sopra restano come record storico della sessione*.
    **8 pagine, ~145 chiavi IT+EN.** Test 13/13 verdi. `RidottaPage`/`RidottaAppPage` **saltate**:
    disabilitate (nessun `@page`, rotta rimossa Round 12 — `spec/pagine-disabilitate.md`), non user-facing.
    > **Bug pre-esistente trovato e RISOLTO (2026-07-22):** `AccOperativaPage.razor` faceva

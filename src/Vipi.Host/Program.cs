@@ -59,6 +59,9 @@ app.UseVipiDataProtection();
 app.MigrateVipiDatabase();
 // Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
 app.ReconcileVipiDocuments();
+// Riallinea i settori proiettati ai cataloghi: fa entrare in vigore i cambi alla regola di derivazione della
+// gerarchia senza aspettare il prossimo import (idempotente).
+app.ProjectVipiSectors();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
 app.BackfillVipiReleases();
 // Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
@@ -119,6 +122,23 @@ app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"
 
 // Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
 app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
+
+// Compat: le due viste operative per-ACC sono diventate UNA vista per callsign (doc refactor 12).
+//   /vsop/{acc}/operativa · /vsop/{acc}/live               → /vsop/live            (o /vsop/live/{p} se c'era ?p=)
+//   /vsop/{acc}/operativa-app · /vsop/{acc}/live-app?app=X → /vsop/live/x
+// Un solo salto per ciascun URL storico: sono pagine che finiscono nei preferiti di chi controlla, e una
+// catena di redirect si paga a ogni apertura.
+static IResult LiveRedirect(HttpContext ctx, string? callsign)
+{
+    var cs = (callsign ?? "").Trim().ToLowerInvariant();
+    return Results.Redirect(cs.Length > 0 ? $"/vsop/live/{Uri.EscapeDataString(cs)}" : "/vsop/live", permanent: true);
+}
+
+foreach (var legacy in new[] { "operativa", "live" })
+    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["p"]));
+
+foreach (var legacy in new[] { "operativa-app", "live-app" })
+    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["app"]));
 
 // File statici (wwwroot dell'host + wwwroot della RCL vIPI). Sostituisce UseStaticFiles: gli asset sono
 // impronta-per-contenuto (`@Assets[...]` in App.razor) e serviti con `immutable`, quindi un deploy rifà

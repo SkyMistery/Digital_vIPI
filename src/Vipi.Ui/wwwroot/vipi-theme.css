@@ -396,9 +396,53 @@
 
 /* ---------- Screen 4: ridotta ---------- */
 /* la vista ridotta sfrutta tutta la larghezza; sezioni piccole affiancate */
+/* Vista live: cambi di stato ATC dall'ultimo tick. Restano scritti finché non li scarti — un handoff che
+   cambia destinatario non deve poter passare inosservato mentre guardi un'altra parte della pagina. */
+.live-changes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:8px 12px;
+  border:1px solid #f2d9a0;background:#fffaf0;border-radius:10px}
+.live-changes .lc-lab{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--warn-ink)}
+.live-changes .lc-chip{font-size:12.5px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid}
+.live-changes .lc-chip.on{background:#dafbe7;color:#0f7a37;border-color:#a7e9c1}
+.live-changes .lc-chip.off{background:#ffeef0;color:#a40e26;border-color:#f5c2c7}
+.live-changes .lc-chip .lc-t{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
+  color:var(--ink-soft);text-decoration:underline;padding:0}
+.live-changes .lc-clear:hover{color:var(--ivao-blue)}
+/* Riga/riquadro trasferimento toccato da un cambio: evidenza che sopravvive al re-render (non un lampo). */
+.xt-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:#fffaf0}
+/* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
+   trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
+.live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
+.live-chain .lc-lab{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft)}
+.live-chain .xo-chip{text-decoration:none}
+.live-chain.lead{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f7f9ff}
+.live-chain.lead .lc-lab{color:var(--ivao-blue)}
+
+.xt-unicom-bar{margin:0 0 10px}
+.xt-unicom-bar .btn{padding:3px 10px;font-size:12.5px}
+
 .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
 .red-top-grid .acc-item{margin-bottom:0}
-.reduced-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+/* Testata della vista live appiccicata sotto la topbar (62px): postazione, ATC online e orario Z restano
+   leggibili mentre si scorre. Sfondo pieno perché ci passa sotto il contenuto. */
+.reduced-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+  position:sticky;top:62px;z-index:30;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
+.reduced-top .utc-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ivao-blue)}
+
+/* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
+   più righe a schermo che aria. Tocca solo densità, mai contenuto. */
+.vipi-dense .vipi-root{font-size:14px}
+.vipi-dense .vipi-root h2{font-size:23px}
+.vipi-dense .vipi-root table{font-size:12.5px}
+.vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
+.vipi-dense .acc-item>summary{padding:8px 12px}
+.vipi-dense .acc-item .body{padding:2px 12px 10px}
+.vipi-dense .rap-box{padding:5px 10px}
+.vipi-dense .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
+.vipi-dense .callout{padding:8px 12px}
+.vipi-dense .apt-quick{margin-bottom:12px !important}
 .apt-quick{display:flex;gap:8px;flex-wrap:wrap}
 .apt-quick .ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:.12s}
 .apt-quick .ch:hover{border-color:var(--ivao-lightblue);color:var(--ivao-blue)}
@@ -699,7 +743,21 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .rs-note{font-size:13px;flex:1;min-width:160px}
 .rwy-table .yes{color:var(--ok-ink);font-weight:600}
 .rwy-table .no{color:var(--danger-ink)}
+/* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
+.tbl-scroll{overflow-x:auto;max-width:100%}
 .sid-table{font-size:13px;min-width:720px}
+/* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
+   come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
+   Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.
+   (Prima ereditava .cfg-table, che ha larghezze cablate su 4 colonne: Cat. e WTC finivano a larghezza ~0.) */
+.sid-quick{width:100%;min-width:440px;table-layout:fixed}
+.sid-quick th,.sid-quick td{overflow-wrap:anywhere}
+.sid-quick .col-fix{width:20%}
+.sid-quick .col-sid{width:26%}
+.sid-quick .col-trans{width:18%}
+.sid-quick .col-climb{width:20%}
+.sid-quick .col-cat{width:8%}
+.sid-quick .col-wtc{width:8%}
 .sid-table .star{color:var(--ivao-yellow);font-size:14px}
 .sid-table tr.sid-pref td{background:#fffaf0}
 .sid-table tr.sid-pref td:nth-child(2){box-shadow:inset 3px 0 0 var(--ivao-yellow)}
@@ -826,6 +884,12 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .acc-row.match.sel{background:#e2e8ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .acc-row-label{font-weight:600;color:var(--ink)}
 .acc-row-parent{margin-left:auto;font-size:11.5px;color:var(--ink-soft);font-family:var(--font-head);white-space:nowrap}
+/* Padre dedotto dalla scaletta, non scritto: si distingue da un legame vero senza gridare «errore» — non lo è. */
+.acc-row-parent.inherited{font-style:italic;opacity:.8}
+/* Badge delle posizioni d'aeroporto: stessa famiglia dell'APP, tono più tenue scendendo la scaletta. */
+.node-badge.twr{background:#eef1fb;color:var(--ivao-lightblue)}
+.node-badge.gnd{background:#f2f4f8;color:var(--ink-soft)}
+.node-badge.del{background:#f7f8fa;color:var(--ink-soft)}
 .node-badge{font-size:10px;background:#eceef5;color:#666;border-radius:5px;padding:1px 6px;font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .node-badge.app{background:#eaf3ff;color:var(--info-ink)}
 .node-badge.acc{background:#e2e8ff;color:var(--ivao-blue)}

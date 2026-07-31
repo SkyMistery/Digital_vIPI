@@ -119,49 +119,54 @@
   <data name="Appn_InfoTitle" xml:space="preserve"><value>APP con documentazione propria</value></data>
   <data name="Appn_InfoBody" xml:space="preserve"><value>Non remotizzato sotto l'ACC: ha vIPI dedicata. I remotizzati restano nella vIPI di ACC.</value></data>
   <data name="Common_Frequencies" xml:space="preserve"><value>Frequenze</value></data>
-  <data name="Common_TagOpen" xml:space="preserve"><value>aperto</value></data>
   <data name="Common_TagOnline" xml:space="preserve"><value>online</value></data>
   <data name="Common_TagCovered" xml:space="preserve"><value>coperto</value></data>
-  <!-- Vista operativa ACC (/vsop/{acc}/operativa) -->
-  <data name="Operativa_Tab" xml:space="preserve"><value>Operativa</value></data>
-  <data name="Operativa_Position" xml:space="preserve"><value>Postazione</value></data>
-  <data name="Operativa_DetectedFromIvao" xml:space="preserve"><value>Rilevato dalla tua connessione IVAO</value></data>
-  <data name="Operativa_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
-  <data name="Operativa_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
-  <data name="Operativa_ReducedLiveTitle" xml:space="preserve"><value>Modalità ridotta + live</value></data>
-  <data name="Operativa_ReducedLiveBody" xml:space="preserve"><value>Vedi solo l'essenziale per la postazione &lt;b&gt;{0}&lt;/b&gt;. Le sezioni sono indipendenti: puoi tenerne aperte più di una (es. Frequenze e Trasferimenti insieme). Per tutto il resto apri il documento esteso.</value></data>
-  <data name="Operativa_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
-  <data name="Operativa_MySector" xml:space="preserve"><value>Il mio settore</value></data>
-  <data name="Operativa_AptDelegatedTip" xml:space="preserve"><value>controllato da un'altra posizione online</value></data>
-  <data name="Operativa_AptQuickTip" xml:space="preserve"><value>vista rapida aeroporto</value></data>
-  <data name="Operativa_AptOtherTip" xml:space="preserve"><value>gestito da un altro settore</value></data>
-  <data name="Operativa_DelegSuffix" xml:space="preserve"><value> ·delegato</value></data>
-  <data name="Operativa_NoFreqDerived" xml:space="preserve"><value>Nessuna frequenza derivata.</value></data>
-  <data name="Operativa_Delegated" xml:space="preserve"><value>delegati</value></data>
-  <data name="Operativa_CollapsedBody" xml:space="preserve"><value>Compresso perché un settore di &lt;b&gt;{0}&lt;/b&gt; è online (collasso morbido). Sotto restano le frequenze per l'handoff.</value></data>
-  <data name="Operativa_TransfersTitle" xml:space="preserve"><value>Trasferimenti · dove passo il traffico</value></data>
-  <data name="Operativa_OnlineAround" xml:space="preserve"><value>Online nel tuo intorno:</value></data>
-  <data name="Operativa_NoNeighbourOnline" xml:space="preserve"><value>nessun ente adiacente online</value></data>
-  <data name="Operativa_TransfersHint" xml:space="preserve"><value>— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</value></data>
-  <data name="Operativa_NoCoord" xml:space="preserve"><value>Nessun coordinamento per questa ACC.</value></data>
-  <data name="Operativa_NotAvailTitle" xml:space="preserve"><value>Vista operativa non disponibile</value></data>
-  <data name="Operativa_NotAvailBody" xml:space="preserve"><value>Nessuna vIPI pubblicata per &lt;b&gt;{0}&lt;/b&gt;. La vista operativa deriva dal documento pubblicato: aprila dalla &lt;a href="{1}"&gt;vIPI&lt;/a&gt; e pubblicala.</value></data>
+  <!-- Vista live ACC (/vsop/{acc}/live) -->
+  <data name="Live_Tab" xml:space="preserve"><value>Operativa</value></data>
+  <data name="Live_FollowMe" xml:space="preserve"><value>segui {0}</value></data>
+  <data name="Live_ChangesLabel" xml:space="preserve"><value>Cambi</value></data>
+  <data name="Live_ChangesClear" xml:space="preserve"><value>scarta</value></data>
+  <data name="Live_UtcNow" xml:space="preserve"><value>Ora corrente UTC (Z)</value></data>
+  <data name="Live_Dense" xml:space="preserve"><value>Compatta</value></data>
+  <data name="Live_DenseTip" xml:space="preserve"><value>Vista più densa: più righe a schermo su monitor piccoli. La scelta viene ricordata.</value></data>
+  <data name="Live_ShowUnicom" xml:space="preserve"><value>mostra i {0} rilasci a UNICOM</value></data>
+  <data name="Live_HideUnicom" xml:space="preserve"><value>nascondi i rilasci a UNICOM</value></data>
+  <data name="Live_OnlyUnicom" xml:space="preserve"><value>Nessun trasferimento verso un ente online: tutti i punti rilasciano a UNICOM.</value></data>
+  <data name="Live_NotConnectedTitle" xml:space="preserve"><value>Non risulti connesso a nessuna posizione ATC</value></data>
+  <data name="Live_NotConnectedBody" xml:space="preserve"><value>La vista si apre da sola sulla tua postazione appena ti colleghi: non serve ricaricare. Intanto puoi consultare una delle posizioni online.</value></data>
+  <data name="Live_UnknownStationTitle" xml:space="preserve"><value>Postazione sconosciuta: {0}</value></data>
+  <data name="Live_UnknownStationBody" xml:space="preserve"><value>Questo callsign non è nei cataloghi della divisione.</value></data>
+  <data name="Live_OnlineNow" xml:space="preserve"><value>Online adesso — dato aggiornato alle {0}</value></data>
+  <data name="Live_NobodyOnline" xml:space="preserve"><value>Nessun ATC online in questo momento.</value></data>
+  <data name="Live_FeedNever" xml:space="preserve"><value>mai aggiornato</value></data>
+  <data name="Live_NotYoursTitle" xml:space="preserve"><value>Stai guardando {0}</value></data>
+  <data name="Live_NotYoursBody" xml:space="preserve"><value>Non è la postazione con cui sei connesso ({0}): questa vista è in sola consultazione e non ti segue.</value></data>
+  <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>
+  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, e a chi passi salendo</value></data>
+  <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
+  <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
+  <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
+  <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
+  <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
+  <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
+  <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controllato da un'altra posizione online</value></data>
+  <data name="Live_AptQuickTip" xml:space="preserve"><value>vista rapida aeroporto</value></data>
+  <data name="Live_DelegSuffix" xml:space="preserve"><value> ·delegato</value></data>
+  <data name="Live_NoFreqDerived" xml:space="preserve"><value>Nessuna frequenza derivata.</value></data>
+  <data name="Live_Delegated" xml:space="preserve"><value>delegati</value></data>
+  <data name="Live_CollapsedBody" xml:space="preserve"><value>Compresso perché un settore di &lt;b&gt;{0}&lt;/b&gt; è online (collasso morbido). Sotto restano le frequenze per l'handoff.</value></data>
+  <data name="Live_TransfersTitle" xml:space="preserve"><value>Trasferimenti · dove passo il traffico</value></data>
+  <data name="Live_OnlineAround" xml:space="preserve"><value>Online nel tuo intorno:</value></data>
+  <data name="Live_NoNeighbourOnline" xml:space="preserve"><value>nessun ente adiacente online</value></data>
+  <data name="Live_TransfersHint" xml:space="preserve"><value>— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</value></data>
+  <data name="Live_NoCoord" xml:space="preserve"><value>Nessun coordinamento per questa ACC.</value></data>
+  <data name="Live_NoDocTitle" xml:space="preserve"><value>Nessuna vIPI pubblicata per {0}</value></data>
+  <data name="Live_NoDocBody" xml:space="preserve"><value>Trasferimenti, aree di responsabilità e frequenze qui sotto vengono dai cataloghi e restano validi. Dal documento manca solo il raggruppamento editoriale delle frequenze: &lt;a href="{0}"&gt;apri la vIPI&lt;/a&gt; e pubblicala.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connesso come {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordinamenti</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Vista rapida aeroporto</value></data>
-  <!-- Vista operativa APP (/vsop/{acc}/operativa-app) -->
-  <data name="AppOp_MissingPosTitle" xml:space="preserve"><value>Posizione APP mancante</value></data>
-  <data name="AppOp_MissingPosBody" xml:space="preserve"><value>Specifica &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
-  <data name="AppOp_OpsApp" xml:space="preserve"><value>Operativa · APP</value></data>
-  <data name="AppOp_NotFoundBody" xml:space="preserve"><value>Nessun documento (proprio o remotizzato nella vIPI di ACC) per &lt;code&gt;{0}&lt;/code&gt;.</value></data>
-  <data name="AppOp_UpdatedAt" xml:space="preserve"><value>aggiornato {0}</value></data>
-  <data name="AppOp_InfoTitle" xml:space="preserve"><value>Operativa per posizione APP</value></data>
-  <data name="AppOp_InfoBody" xml:space="preserve"><value>L'avvicinamento vede frequenze, coordinamenti e i trasferimenti verso ACC e torri.</value></data>
-  <data name="AppOp_Standalone" xml:space="preserve"><value>APP non remotizzato (documento proprio).</value></data>
-  <data name="AppOp_Remotized" xml:space="preserve"><value>APP remotizzato (contenuto dalla vIPI di ACC).</value></data>
-  <data name="AppOp_AptDocHint" xml:space="preserve"><value>Documento aeroporto (torre): TA/TL, piste, SID.</value></data>
-  <data name="AppOp_OpenAptVipi" xml:space="preserve"><value>Apri vIPI {0} →</value></data>
-  <data name="AppOp_NoCoordToPos" xml:space="preserve"><value>Nessun coordinamento verso questa posizione.</value></data>
+  <!-- Vista live APP (/vsop/{acc}/live-app) -->
+  <data name="AppLive_UpdatedAt" xml:space="preserve"><value>aggiornato {0}</value></data>
   <!-- Aeroporto (/vsop/{acc}/airports) -->
   <data name="Airport_NoneBody" xml:space="preserve"><value>Nessun aeroporto con documento pubblicato sotto questa ACC.</value></data>
   <data name="Airport_Wind" xml:space="preserve"><value>Vento</value></data>
@@ -307,6 +312,11 @@
   <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} APP orfani</value></data>
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} radici ACC</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>Radici ACC (nessun padre — copertura top-down)</value></data>
+  <data name="Struct_Inherited" xml:space="preserve"><value>ereditato</value></data>
+  <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
+  <data name="Struct_OptInherit" xml:space="preserve"><value>eredita dalla scaletta ({0})</value></data>
+  <data name="Struct_ShowPositions" xml:space="preserve"><value>Posizioni d'aeroporto</value></data>
+  <data name="Struct_ShowPositionsTitle" xml:space="preserve"><value>Mostra anche torri, ground e delivery nell'albero</value></data>
   <data name="Struct_ShowAll" xml:space="preserve"><value>↺ mostra tutti</value></data>
   <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>cerca callsign / ACC…</value></data>
   <data name="Struct_FilterCountry" xml:space="preserve"><value>Filtra per nazione</value></data>
