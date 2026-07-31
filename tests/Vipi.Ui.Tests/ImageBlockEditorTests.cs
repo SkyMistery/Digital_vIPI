@@ -57,7 +57,7 @@ public class ImageBlockEditorTests : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IMediaStore>(_ => _store);
         Services.AddSingleton<IOptions<MediaOptions>>(Options.Create(new MediaOptions { MaxUploadBytes = 3 * 1024 * 1024 }));
-        // Niente browser: la chiamata a vipiMedia.downscale torna null e si carica il file originale.
+        // Niente browser: vipiMedia.osserva non aggancia nulla e il file arriva a .NET come l'ha scelto l'utente.
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

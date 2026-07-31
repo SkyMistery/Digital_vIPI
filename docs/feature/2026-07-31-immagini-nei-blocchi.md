@@ -116,12 +116,15 @@ le cattura → crash del circuito):
   **click** (scelta dal dispositivo) e **drop** funzionano entrambi nativamente; gli eventi Blazor
   `@ondragenter/@ondragleave/@ondrop` servono solo per lo stato visivo «rilascia qui».
   *Punto fragile, da provare live su Edge/Chrome/Firefox* (§7).
-- **Ridimensionamento nel browser** (`wwwroot/vipi-media.js`): canvas → lato lungo ≤
-  `Media:ClientDownscaleLongestSidePx`, ricodifica JPEG/WebP a `Media:JpegQuality`, e restituisce un
-  `IJSStreamReference` che .NET legge con `OpenReadStreamAsync(maxAllowedSize)`. Così una foto da telefono da
-  8 MB **passa** (arriva già ridotta), l'upload viaggia dentro il circuito già autenticato (nessun endpoint di
-  scrittura, nessun antiforgery da gestire) e **non serve nessuna libreria di imaging server-side**.
-  Fallback se il browser non decodifica il file: `InputFile.OpenReadStream(max)` sull'originale.
+- **Ridimensionamento nel browser** (`wwwroot/vipi-media.js`): il file scelto viene intercettato sul `change` in
+  **fase di cattura**, ridisegnato su canvas al lato lungo ≤ `Media:ClientDownscaleLongestSidePx`, ricodificato a
+  `Media:JpegQuality`, e l'evento viene **ri-emesso con il file rimpicciolito al posto dell'originale**. Blazor vede
+  quindi un solo `change`, con dentro già il file giusto, e il C# non sa nulla di tutto questo. Così una foto da
+  telefono da 8 MB **passa** (arriva già ridotta), l'upload viaggia dentro il circuito già autenticato (nessun
+  endpoint di scrittura, nessun antiforgery da gestire) e **non serve nessuna libreria di imaging server-side**.
+  Se il browser non sa decodificare il file, l'evento passa intatto e si carica l'originale.
+  > Il primo disegno restituiva i byte a .NET come `IJSStreamReference`. Non funziona qui, per due motivi
+  > indipendenti scoperti solo dal vivo: vedi «Esito della verifica live» §1.
 - Dopo l'upload: anteprima, campo **alt** (accessibilità e stampa) e **didascalia**, pulsanti
   *Sostituisci* / *Rimuovi*. ↑/↓ ed elimina-blocco restano quelli dell'host.
 - Messaggio d'errore che **cita il limite corrente** letto dall'opzione, non un numero scritto a mano.
