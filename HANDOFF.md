@@ -96,8 +96,15 @@
 > - ⚠️ In verifica: `innerText` su un `<details>` **chiuso** torna stringa vuota — un'asserzione ingenua la
 >   legge come «elemento assente».
 >
-> Aperto, **non di codice**: nessun settore `Twr`/`Gnd`/`Del` ha un padre nella gerarchia (solo `App` e `Ctr`),
-> quindi la catena di copertura di quelle postazioni è vuota. Da compilare in `/vsop/admin/sectorstructure`.
+> - **Il padre dell'aeroporto non arrivava alle sue posizioni** (segnalato dall'owner, fixato): la proiezione
+>   leggeva solo `AirportSector.ParentCallsign` (solo APP) e ignorava `Airport.ParentCallsign`, che è il campo
+>   che l'admin compila in Struttura → torri/ground/delivery orfani. Ora scaletta **DEL→GND→TWR→APP** + uscita
+>   sul padre dell'aeroporto, riproiettata all'avvio (`ProjectVipiSectors`). Reggeva anche la risalita dei
+>   trasferimenti: un punto verso una torre offline finiva su UNICOM invece che all'APP.
+>
+> Aperto, **di dato**: 33 torri di aeroporti senza APP e senza padre configurato; e sugli aeroporti a posizioni
+> sdoppiate (LIRF, LIMC, +7) la scaletta sceglie fra pari grado in ordine **alfabetico** — arbitrario e non
+> correggibile dalla UI, perché TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure`.
 
 > **Storia dei round:** `docs/history/rounds.md` (changelog R5→R34). **Indice doc:** `docs/index.md`. Ultimo round: **34** — vista operativa + QoL admin + import SID GitHub + gating import; modello in `docs/spec/modello-dati.md` §9.8 (migrazioni). (R33: anteprime `?as=`; R30: QoL Bozze & versioni §9.18; R29: versioning AIRAC + task §9.17.)
 
