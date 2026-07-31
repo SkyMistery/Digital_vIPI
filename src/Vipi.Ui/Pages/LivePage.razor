@@ -103,7 +103,7 @@
            l'informazione principale — quindi sta in alto e per esteso, non in coda. *@
         @if (_view.CoverageChain.Count > 0)
         {
-            <div class="live-chain @(_view.Type == LiveStationType.Ground ? "lead" : "")">
+            <div class="live-chain @(IsAirportSide() ? "lead" : "")">
                 <span class="lc-lab">@L["Live_CoveredBy"]</span>
                 @foreach (var cs in _view.CoverageChain)
                 {
@@ -111,6 +111,16 @@
                     <a class="xo-chip @(online ? "on" : "")" href="/vsop/live/@cs.ToLowerInvariant()">@cs@(online ? "" : " ·" + L["Live_Offline"].Value)</a>
                 }
                 <span class="muted xo-hint">@L["Live_CoveredByHint"]</span>
+            </div>
+        }
+        else if (IsAirportSide())
+        {
+            @* Silenzio ingannevole: per una posizione d'aeroporto «nessuno sopra» non è un fatto operativo, è
+               una gerarchia non ancora compilata in /vsop/admin/sectorstructure. Dirlo evita che il controllore
+               concluda di non avere nessuno a cui passare il traffico. *@
+            <div class="live-chain lead">
+                <span class="lc-lab">@L["Live_CoveredBy"]</span>
+                <span class="muted">@L["Live_NoChainConfigured"]</span>
             </div>
         }
 
@@ -261,6 +271,10 @@
         _prevOnline = now;
         if (_changes.Count > MaxChanges) _changes.RemoveRange(0, _changes.Count - MaxChanges);
     }
+
+    /// <summary>Postazione d'aeroporto (torre, ground, delivery): è quella per cui la catena di copertura
+    /// conta più dei trasferimenti propri, che di norma non ha.</summary>
+    private bool IsAirportSide() => _view?.Type is LiveStationType.Tower or LiveStationType.Ground;
 
     private IReadOnlySet<string> ChangedCallsigns() =>
         _changes.Select(c => c.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);

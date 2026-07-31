@@ -107,3 +107,33 @@ una catena di redirect si paga a ogni apertura:
 Il callout «Modalità ridotta + live» **non** è stato riportato nella pagina unica: su una vista tenuta aperta
 tutti i giorni valeva soprattutto al primo accesso, e la pagina ha già due banner di stato. L'onboarding sta
 nella Guida.
+
+## 6. Verifica live (2026-07-31)
+
+Guidata su copia del DB reale, 12 postazioni. Rotte finali 200, redirect **a un salto** verificati
+(`/vsop/lirr/operativa` → `/vsop/live`; `…/live?p=LIRR_NE_CTR` → `/vsop/live/lirr_ne_ctr`;
+`…/live-app?app=LIBD_CS0_APP` → `/vsop/live/libd_cs0_app`), stream SSE ancora `text/event-stream`.
+Selettore postazione assente su **tutte** le pagine. Nessun errore di circuito, nessuno scroll orizzontale.
+
+| Postazione | Esito |
+|---|---|
+| `LIBB_ES_CTR` (CTR) | titolo dal settore, 6 frequenze, gruppo-APP aperto, chip LIBD/LIBR, doc → `/vsop/libb/vipi` |
+| `LIBD_CS0_APP` (APP remotizzato) | pannello aeroporto + SID, catena «sopra di te: LIBB_ES_CTR ·chiuso» |
+| `LIBD_TWR`, `LIRF_TWR` (torre) | 3 e 12 frequenze dal catalogo dell'aeroporto, doc → `/vsop/{acc}/airports?icao=` |
+| `LIRF_GND`, `LIRF_DEL` | idem, pagina piena senza essere un CTR |
+| `LIRR_NE_CTR` (ACC senza vIPI) | banner + 86 frequenze dai cataloghi |
+| `/vsop/live` senza connessione | stato d'attesa con gli ATC online cliccabili |
+| `ZZZZ_CTR`, `LIBB_CTR`, `LIRF_APP` | «postazione sconosciuta» — non sono nei cataloghi (i due callsign «ovvi» semplicemente non esistono nel DB) |
+
+### Ritrovamento: la catena di copertura è vuota per i tipi che più ne avrebbero bisogno
+
+Interrogando il DB: **nessun** settore `Twr`/`Gnd`/`Del` ha un `ParentSectorId`. Solo `App` (59) e `Ctr` (18)
+sono agganciati alla gerarchia. Quindi proprio le postazioni per cui la catena doveva essere l'informazione
+principale non ne hanno una.
+
+Un vuoto silenzioso qui è **ingannevole**: «nessuno sopra di me» si legge come un fatto operativo (non ho a chi
+passare il traffico) mentre è un dato non ancora compilato in `/vsop/admin/sectorstructure`. La pagina ora lo
+dice a parole per le postazioni d'aeroporto — non nasconde la riga.
+
+**Follow-up aperto (dato, non codice):** agganciare TWR/GND/DEL alla gerarchia di copertura. Finché non è fatto,
+la vista live di quelle postazioni resta corretta ma monca del pezzo che più le riguarda.

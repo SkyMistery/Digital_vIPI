@@ -144,6 +144,7 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, e a chi passi salendo</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
+  <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
   <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
