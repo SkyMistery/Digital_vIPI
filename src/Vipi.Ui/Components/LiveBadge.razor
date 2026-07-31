@@ -8,17 +8,19 @@
    (<Routes /> non ha render mode): senza circuito proprio il badge si aggiornerebbe solo ricaricando
    la pagina, che è il baco che questo componente risolve. Si aggancia allo stesso transport SSE della
    pagina /vsop/live, quindi il ritardo massimo è quello del poller IVAO (Ivao:PollSeconds, 60s). *@
+@* Sempre un link a /vsop/live, anche da disconnesso: la vista live è la pagina della tua postazione e
+   dev'essere raggiungibile anche prima di collegarsi (senza callsign si racconta da sé). *@
 @if (_callsign is not null)
 {
-    <div class="live-badge" title="@L["Chrome_ConnectedAs"]">
+    <a class="live-badge" href="/vsop/live" title="@L["Chrome_ConnectedAs"]">
         <span class="dot"></span> @_callsign
-    </div>
+    </a>
 }
 else
 {
-    <div class="live-badge off">
+    <a class="live-badge off" href="/vsop/live" title="@L["Chrome_OpenLive"]">
         <span class="dot"></span> @L["Chrome_LiveDisconnected"]
-    </div>
+    </a>
 }
 
 @code {

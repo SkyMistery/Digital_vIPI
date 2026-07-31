@@ -60,7 +60,8 @@
   <data name="Chrome_OpenEditor" xml:space="preserve"><value>Open editor</value></data>
   <data name="Chrome_Editor" xml:space="preserve"><value>Editor</value></data>
   <data name="Chrome_Permissions" xml:space="preserve"><value>Editing permissions</value></data>
-  <data name="Chrome_ConnectedAs" xml:space="preserve"><value>You are connected as this callsign</value></data>
+  <data name="Chrome_ConnectedAs" xml:space="preserve"><value>You are connected as this callsign · open the live view</value></data>
+  <data name="Chrome_OpenLive" xml:space="preserve"><value>Open the live view</value></data>
   <!-- Common (reusable across pages) -->
   <data name="Common_OnlineN" xml:space="preserve"><value>{0} online</value></data>
   <data name="Common_Offline" xml:space="preserve"><value>offline</value></data>

@@ -64,7 +64,11 @@
 .tier-toggle{display:flex;background:rgba(255,255,255,.12);border-radius:9px;padding:3px}
 .tier-toggle button{border:0;background:transparent;color:#cdd6ff;padding:6px 13px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px}
 .tier-toggle button.on{background:#fff;color:var(--ivao-blue);font-weight:600}
-.live-badge{display:flex;align-items:center;gap:7px;font-size:13px;background:rgba(46,198,98,.16);color:#d6ffe6;padding:6px 12px;border-radius:20px;border:1px solid rgba(46,198,98,.4)}
+/* È un link alla vista live: il colore del testo lo tiene .live-badge, che batte la regola generica sugli
+   <a> (quella sta in :where(), specificità zero). Serve solo l'affordance al passaggio del mouse. */
+.live-badge{display:flex;align-items:center;gap:7px;font-size:13px;background:rgba(46,198,98,.16);color:#d6ffe6;padding:6px 12px;border-radius:20px;border:1px solid rgba(46,198,98,.4);cursor:pointer;transition:.15s}
+.live-badge:hover{background:rgba(46,198,98,.3);border-color:rgba(46,198,98,.75)}
+.live-badge.off:hover{background:#e0e3ee;border-color:#aeb4c6}
 .live-badge .dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);box-shadow:0 0 0 0 rgba(46,198,98,.6);animation:pulse 2s infinite}
 /* variante "disconnesso" (U7): prima era override inline nel SopLayout */
 .live-badge.off{background:#eceef5;color:var(--ink-soft);border-color:var(--ivao-grey)}

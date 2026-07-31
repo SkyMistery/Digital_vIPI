@@ -60,7 +60,8 @@
   <data name="Chrome_OpenEditor" xml:space="preserve"><value>Apri editor</value></data>
   <data name="Chrome_Editor" xml:space="preserve"><value>Editor</value></data>
   <data name="Chrome_Permissions" xml:space="preserve"><value>Permessi editing</value></data>
-  <data name="Chrome_ConnectedAs" xml:space="preserve"><value>Sei connesso come questo callsign</value></data>
+  <data name="Chrome_ConnectedAs" xml:space="preserve"><value>Sei connesso come questo callsign · apri la vista live</value></data>
+  <data name="Chrome_OpenLive" xml:space="preserve"><value>Apri la vista live</value></data>
   <!-- Comuni (riusabili tra pagine) -->
   <data name="Common_OnlineN" xml:space="preserve"><value>{0} online</value></data>
   <data name="Common_Offline" xml:space="preserve"><value>offline</value></data>

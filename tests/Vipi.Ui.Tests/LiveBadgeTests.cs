@@ -70,6 +70,21 @@ public class LiveBadgeTests : TestContext
         Assert.NotNull(RenderComponent<LiveBadge>(p => p.Add(x => x.UserId, (int?)null)).Find(".live-badge.off"));
     }
 
+    /// <summary>Il badge porta alla vista live in ENTRAMBI gli stati: da disconnesso è il solo modo per
+    /// arrivarci dal chrome, ed è proprio quando serve (la pagina spiega perché non risulti connesso).</summary>
+    [Fact]
+    public void Badge_links_to_the_live_view_connected_or_not()
+    {
+        var online = Arrange();
+
+        var off = RenderComponent<LiveBadge>(p => p.Add(x => x.UserId, 704798));
+        Assert.Equal("/vsop/live", off.Find("a.live-badge.off").GetAttribute("href"));
+
+        online.SetOnline(("LIBB_ES_CTR", 704798));
+        var on = RenderComponent<LiveBadge>(p => p.Add(x => x.UserId, 704798));
+        Assert.Equal("/vsop/live", on.Find("a.live-badge").GetAttribute("href"));
+    }
+
     [Fact]
     public async Task Badge_switches_to_connected_on_a_live_update_without_reload()
     {
