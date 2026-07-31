@@ -17,8 +17,7 @@ public static class MediaValidator
             throw new ValidationException("Il file è vuoto.");
 
         if (bytes.Length > options.MaxUploadBytes)
-            throw new ValidationException(
-                $"L'immagine pesa {MediaOptions.Human(bytes.Length)}: il limite è {options.MaxUploadLabel}.");
+            throw new ValidationException(TooBigMessage(bytes.Length, options));
 
         var info = ImageProbe.Inspect(bytes.Span)
             ?? throw new ValidationException("Il file non è un'immagine in un formato supportato (PNG, JPEG, WebP, GIF).");
@@ -32,4 +31,16 @@ public static class MediaValidator
 
         return info;
     }
+
+    /// <summary>Il messaggio di «troppo grande» quando la dimensione reale è nota.</summary>
+    public static string TooBigMessage(long bytes, MediaOptions options) =>
+        $"L'immagine pesa {MediaOptions.Human(bytes)}: il limite è {options.MaxUploadLabel}.";
+
+    /// <summary>
+    /// Variante senza la dimensione, per quando il limite scatta sul TRASPORTO: lo stream si interrompe prima che
+    /// il deposito veda i byte, e quel che si stava inviando può essere la copia già rimpicciolita dal browser —
+    /// citare la dimensione del file scelto direbbe un numero che non è quello rifiutato.
+    /// </summary>
+    public static string TooBigMessage(MediaOptions options) =>
+        $"L'immagine supera il limite di {options.MaxUploadLabel}.";
 }

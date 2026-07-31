@@ -42,13 +42,13 @@
         <div class="img-fields">
             <label class="img-field">
                 <span class="muted">@L["Img_AltLabel"]</span>
-                <input class="app-in" value="@Media.Alt" placeholder="@L["Img_AltPh"]"
+                <input class="app-in" value="@_alt" placeholder="@L["Img_AltPh"]"
                        @onchange="e => SetAltAsync(e.Value as string ?? string.Empty)" />
             </label>
             <label class="img-field">
                 <span class="muted">@L["Img_CaptionLabel"]</span>
-                <input class="app-in" value="@Caption" placeholder="@L["Img_CaptionPh"]"
-                       @onchange="e => CaptionChanged.InvokeAsync(e.Value as string)" />
+                <input class="app-in" value="@_caption" placeholder="@L["Img_CaptionPh"]"
+                       @onchange="e => SetCaptionAsync(e.Value as string ?? string.Empty)" />
             </label>
             <button class="btn ghost" type="button" @onclick="RemoveAsync">@L["Img_Remove"]</button>
         </div>
@@ -73,7 +73,36 @@
     private IMediaStore _store = default!;
     protected override void OnInitialized() => _store = ScopedServices.GetRequiredService<IMediaStore>();
 
+    // Aggancia al file input il rimpicciolimento nel browser: intercetta il file scelto e, se serve, lo sostituisce
+    // con una copia più leggera PRIMA che Blazor lo legga (il perché sta in cima a vipi-media.js). Da qui in poi il
+    // codice C# non sa nulla di tutto ciò: riceve un file e basta. Idempotente lato JS, si può chiamare a ogni render.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_input?.Element is not { } element) return;
+        var o = MediaOptions.Value;
+        try { await JS.InvokeVoidAsync("vipiMedia.osserva", element, o.ClientDownscaleLongestSidePx, o.JpegQuality, o.MaxUploadBytes); }
+        catch (JSDisconnectedException) { /* circuito chiuso */ }
+        catch (JSException) { /* script non caricato: si carica il file originale, e il limite lo fa il server */ }
+    }
+
     private MediaRef? Media => MediaRef.Parse(ImageJson);
+
+    // Testo dei due campi tenuto QUI mentre l'immagine resta la stessa.
+    // Perché non legarli direttamente ai parametri: salvare un campo fa ricaricare il documento all'host, e il
+    // render che ne segue riscriverebbe nel campo il valore com'era PRIMA — sovrascrivendo quel che si sta
+    // digitando nell'altro campo. Visto dal vivo il 2026-07-31: la didascalia usciva duplicata a metà parola.
+    // Nessuno scrive alt e didascalia di questo blocco all'infuori di questo componente, quindi ri-seminare i
+    // campi solo al cambio di immagine è sufficiente e toglie di mezzo la corsa.
+    private string? _alt, _caption, _seededFor;
+
+    protected override void OnParametersSet()
+    {
+        var id = Media?.MediaId;
+        if (id == _seededFor) return;
+        _seededFor = id;
+        _alt = Media?.Alt;
+        _caption = Caption;
+    }
 
     private async Task OnFileAsync(InputFileChangeEventArgs e)
     {
@@ -85,7 +114,8 @@
         try
         {
             var max = MediaOptions.Value.MaxUploadBytes;
-            await using var stream = await OpenAsync(file, max);
+            // Un byte oltre il limite: basta a far scattare il rifiuto senza tirarsi in casa il resto del file.
+            await using var stream = file.OpenReadStream(max + 1);
             var saved = await _store.SaveAsync(stream, file.Name);
 
             // L'alt scritto per l'immagine precedente non si eredita: descriveva un'altra foto.
@@ -98,8 +128,10 @@
         }
         catch (IOException)
         {
-            // Il limite dello stream lato Blazor scatta prima del nostro controllo: stesso messaggio, un solo numero.
-            _error = L["Img_TooBig", MediaOptions.Value.MaxUploadLabel];
+            // Il limite scatta sul trasporto: lo stream si interrompe prima che il deposito veda i byte. Il testo
+            // arriva dallo stesso posto del rifiuto lato server, o l'utente leggerebbe due frasi diverse per lo
+            // stesso motivo (verifica live 2026-07-31: una in italiano e una in inglese).
+            _error = MediaValidator.TooBigMessage(MediaOptions.Value);
         }
         finally
         {
@@ -107,35 +139,18 @@
         }
     }
 
-    /// <summary>
-    /// Stream dei byte da caricare: prima si prova a farli rimpicciolire dal browser (una foto da telefono passa
-    /// così sotto il limite senza che nessuno la ritocchi a mano); se non si può, si carica il file originale e il
-    /// limite lo fa valere il server.
-    /// </summary>
-    private async Task<Stream> OpenAsync(IBrowserFile file, int max)
-    {
-        var side = MediaOptions.Value.ClientDownscaleLongestSidePx;
-        if (side > 0 && _input?.Element is { } element)
-        {
-            try
-            {
-                var reduced = await JS.InvokeAsync<IJSStreamReference?>(
-                    "vipiMedia.downscale", element, side, MediaOptions.Value.JpegQuality);
-                if (reduced is not null) return await reduced.OpenReadStreamAsync(max + 1);
-            }
-            catch (JSException) { /* browser senza canvas/createImageBitmap: si carica l'originale */ }
-            catch (JSDisconnectedException) { /* circuito chiuso mentre si caricava */ }
-        }
-
-        return file.OpenReadStream(max + 1);
-    }
-
     private Task SetAltAsync(string alt)
     {
         if (Media is null) return Task.CompletedTask;
         var trimmed = alt.Trim();
-        return ImageJsonChanged.InvokeAsync(MediaRef.Serialize(
-            Media with { Alt = trimmed.Length == 0 ? null : trimmed }));
+        _alt = trimmed.Length == 0 ? null : trimmed;
+        return ImageJsonChanged.InvokeAsync(MediaRef.Serialize(Media with { Alt = _alt }));
+    }
+
+    private Task SetCaptionAsync(string caption)
+    {
+        _caption = caption;
+        return CaptionChanged.InvokeAsync(caption);
     }
 
     // Stringa vuota, non null: l'host distingue "non toccare" (null) da "togli l'immagine" (vuoto). I byte restano

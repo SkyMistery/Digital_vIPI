@@ -279,6 +279,13 @@
                 d.open = true;
             });
             suppressPersist = false;
+            // Le immagini editoriali nascono `loading=lazy`: quelle sotto la piega non sono ancora state scaricate
+            // e in stampa uscirebbero come riquadri vuoti (visto misurando: 2x2 px). Si passa a eager prima che il
+            // browser fotografi la pagina. Idempotente: al secondo giro non c'è più nessun lazy da convertire.
+            document.querySelectorAll('.doc-img img[loading="lazy"]').forEach(function (img) {
+                img.loading = 'eager';
+                if (!img.complete && img.decode) { img.decode().catch(function () { }); }
+            });
             // Dopo l'apertura: una mappa dentro un <details> chiuso ha dimensione zero e invalidateSize() non
             // avrebbe niente da misurare.
             resizeMaps(true);

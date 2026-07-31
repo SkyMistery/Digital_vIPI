@@ -1192,7 +1192,6 @@
   <data name="Img_Replace" xml:space="preserve"><value>Replace image</value></data>
   <data name="Img_ChooseAria" xml:space="preserve"><value>Choose an image</value></data>
   <data name="Img_MaxSize" xml:space="preserve"><value>max {0}</value></data>
-  <data name="Img_TooBig" xml:space="preserve"><value>The image exceeds the {0} limit.</value></data>
   <data name="Img_Uploading" xml:space="preserve"><value>Uploading…</value></data>
   <data name="Img_AltLabel" xml:space="preserve"><value>Alternative text</value></data>
   <data name="Img_AltPh" xml:space="preserve"><value>What the image shows (for those who can't see it)</value></data>
