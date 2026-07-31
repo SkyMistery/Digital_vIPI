@@ -13,6 +13,7 @@
 @inject ICurrentUserProvider Users
 @inject IAiracService Airac
 @inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @implements IAsyncDisposable
 
@@ -32,13 +33,17 @@ else
             <h2 style="margin:0">@_data.AccName — @L["Live_Tab"]</h2>
             <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_p</span>
             <label class="muted" style="font-size:13px;margin-left:auto">@L["Live_Position"]
-                <select @bind="_p" @bind:after="LoadAsync" style="margin-left:6px;padding:4px 8px">
+                <select value="@_p" @onchange="OnPositionPicked" style="margin-left:6px;padding:4px 8px">
                     @foreach (var pos in _positions) { <option value="@pos">@pos</option> }
                 </select>
             </label>
             @if (_myCallsign is not null)
             {
-                <span class="xo-chip on" title="@L["Live_DetectedFromIvao"]">@_myCallsign</span>
+                <span class="xo-chip on" title="@(_followMe ? L["Live_DetectedFromIvao"] : L["Live_FollowOffTip"])">@_myCallsign</span>
+                @if (!_followMe && _positions.Contains(_myCallsign) && _myCallsign != _p)
+                {
+                    <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" @onclick="FollowMeAgain">↺ @L["Live_FollowMe", _myCallsign]</button>
+                }
             }
             <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
             <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Live_ExtendedDoc"]</a>
@@ -139,6 +144,9 @@ else
 @code {
     [Parameter] public string Acc { get; set; } = default!;
 
+    /// <summary>Postazione scelta a mano (?p=CALLSIGN). Assente = la vista segue la tua connessione IVAO.</summary>
+    [SupplyParameterFromQuery(Name = "p")] public string? PositionParam { get; set; }
+
     private AccInfo? _acc;
     private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
     private Topology? _topo;
@@ -152,6 +160,7 @@ else
     private IReadOnlyList<AirportRow> _apts = Array.Empty<AirportRow>();
     private string? _selectedApt;
     private bool _noDoc;          // ACC senza vIPI pubblicata: la pagina resta viva, con banner + frequenze di ripiego
+    private bool _followMe = true; // la postazione segue la connessione IVAO finché non la scegli a mano
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
 
@@ -186,17 +195,26 @@ else
             ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
 
         _snapshot = Online.GetCurrent();
-        _myCallsign = Users.Get() is { } u
-            ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign
-            : null;
+        _myCallsign = MyCallsign();
 
-        // Default P = posizione connessa (se CTR di questa ACC), altrimenti il CTR primario, altrimenti un CTR radice.
-        if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
+        // ?p= è una scelta esplicita (link salvato tra i preferiti, o il selettore): vince e sgancia
+        // l'aggancio alla connessione, altrimenti la pagina te la riporterebbe via al primo tick.
+        var wanted = (PositionParam ?? "").Trim().ToUpperInvariant();
+        if (wanted.Length > 0 && _positions.Contains(wanted))
+        {
+            _p = wanted;
+            _followMe = false;
+        }
+        else if (string.IsNullOrEmpty(_p) || !_positions.Contains(_p))
+        {
+            // Default P = posizione connessa (se CTR di questa ACC), altrimenti il CTR primario, altrimenti un CTR radice.
+            _followMe = true;
             _p = (_myCallsign is not null && _positions.Contains(_myCallsign))
                 ? _myCallsign
                 : primary
                   ?? _positions.FirstOrDefault(c => _topo is not null && !_topo.Parent.ContainsKey(c))
                   ?? _positions.FirstOrDefault() ?? "";
+        }
 
         await LoadAsync();
     }
@@ -212,6 +230,7 @@ else
         _noDoc = model is null;
         _data = model?.Data ?? new AccVipiData { AccCode = _acc.Code, AccName = _acc.Name, Blocks = new() };
         _snapshot = Online.GetCurrent();
+        SyncPosition();
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;
         _resolved = await Transfers.ResolveForAccAsync(_acc.Code, online);
@@ -219,6 +238,38 @@ else
         _freqs.Clear();
         foreach (var b in _noDoc ? await FallbackBlocksAsync() : _data.Blocks)
             _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(_acc.Code, b, _root)).ToList();
+    }
+
+    private string? MyCallsign() => Users.Get() is { } u
+        ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign
+        : null;
+
+    /// <summary>
+    /// Riaggancia la postazione alla tua connessione IVAO a ogni tick live. Prima <c>_myCallsign</c> si
+    /// calcolava una volta sola all'apertura: chi apriva la pagina e si connetteva dopo non veniva mai
+    /// agganciato, e restava a guardare il settore sbagliato. Il selettore manuale sgancia (<c>_followMe</c>).
+    /// </summary>
+    private void SyncPosition()
+    {
+        _myCallsign = MyCallsign();
+        if (!_followMe || _myCallsign is null || !_positions.Contains(_myCallsign)) return;
+        _p = _myCallsign;
+    }
+
+    /// <summary>Scelta manuale: sgancia il follow e finisce in ?p=, così il tab è ricaricabile e salvabile.</summary>
+    private void OnPositionPicked(ChangeEventArgs e)
+    {
+        var picked = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(picked)) return;
+        _followMe = false;
+        Nav.NavigateTo(Nav.GetUriWithQueryParameter("p", picked), replace: true);
+    }
+
+    /// <summary>Torna a seguire la connessione (toglie ?p=).</summary>
+    private void FollowMeAgain()
+    {
+        _followMe = true;
+        Nav.NavigateTo(Nav.GetUriWithQueryParameter("p", (string?)null), replace: true);
     }
 
     /// <summary>
