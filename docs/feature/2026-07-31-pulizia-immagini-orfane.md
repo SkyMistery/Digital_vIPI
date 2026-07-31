@@ -1,6 +1,7 @@
 # Feature — Pulizia delle immagini non più usate (spazio recuperabile)
 
-Data: 2026-07-31 · Stato: **FATTO** (suite 804 verde, verificato live) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
+Data: 2026-07-31 · Stato: **FATTO** (suite 814 verde, verificato live) — esteso in giornata con anteprima,
+quota per documento e pulizia alla cancellazione · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue: [immagini nei blocchi](2026-07-31-immagini-nei-blocchi.md) §R2, dove la pulizia era un non-obiettivo.
 
 ## Obiettivo
@@ -122,25 +123,56 @@ Stesso motivo per cui il probe di drift dello schema **segnala** e non corregge 
   (`ReleaseRepositoryTests.Snapshot_Carries_The_Image_Sha...`): è l'anello fra pubblicazione e pulizia, e se
   si spezzasse la pulizia cancellerebbe le foto delle vIPI già pubblicate.
 
-## Non-obiettivi
+## Estensione: anteprima, quota, pulizia alla cancellazione (stesso giorno)
 
-Quota per documento; cancellazione automatica; anteprima delle immagini nell'elenco (si mostra il nome del file,
-non la foto: l'elenco è una lista di candidati alla cancellazione, non una galleria).
+I tre non-obiettivi della prima stesura sono stati chiesti subito dopo e implementati.
 
-## Esito della verifica live (2026-07-31)
+### Anteprima nell'elenco
+Ogni riga mostra la miniatura (`.img-thumb`, `object-fit: contain` per non ritagliare le verticali proprio dove si
+riconoscono). È il motivo per cui l'elenco si guarda: davanti a un nome come «immagine1.png» nessuno sa se quella
+foto serviva.
 
-Guidata su Edge+puppeteer con una copia del `vipi.db` reale, sull'editor vIPI ACC di Brindisi:
+### Quota per documento
+`Media:MaxBytesPerDocument` (25 MB, `0` = nessun limite). Controllata **prima** di salvare: accettare i byte per poi
+scartarli lascerebbe nel deposito un asset che nessuno cita. Conta le **righe**, non i riferimenti — la stessa foto
+usata in due blocchi occupa lo spazio una volta sola. Il documento lo passa l'editor ospite
+(`Doc.DocumentId`, o `_docDbId` per l'aeroporto); dove non c'è un documento la quota non si applica.
 
-| Passo | Esito |
+Costo accettato: una foto **già presente** nel documento viene contata due volta dalla stima, quindi a ridosso del
+tetto può esserci un rifiuto di troppo. Il prezzo di un rifiuto in più è minore di quello di un asset orfano.
+
+### Pulizia alla cancellazione
+Quando una foto perde il suo blocco, si guarda subito se la cita ancora qualcuno; se no, la riga sparisce. Coperti
+**tutti e quattro** i modi in cui questo può succedere:
+
+| Percorso | Come si riconosce che cosa liberare |
 |---|---|
-| partenza | 1 immagine gia' nel DB, *in uso*: «Nothing to remove» |
-| due foto caricate in due blocchi | 3 immagini, 725,7 KB, nessuna orfana |
-| **cancellato un blocco immagine** | 1 orfana trovata: `gradiente.png`, 67,5 KB |
-| «Elimina definitivamente» + conferma | 2 immagini, 658,2 KB (**-67,5 KB esatti**), elenco vuoto |
-| l'altra immagine nel documento | ancora visibile, `/vsop/media/...` risponde 200 |
+| `DeleteBlockAsync` | lo sha del blocco, letto **prima** di cancellarlo |
+| `DeleteSectionAsync` | gli sha di tutto il sottoalbero (sotto-sezioni comprese) |
+| `SaveExtraSectionsAsync` (aeroporto) | lì si toglie **non rispedendo**: si confronta il prima col dopo |
+| `PruneArchivedVersionsAsync` (retention) | gli sha delle versioni potate, raccolti e valutati **alla fine** — una foto può essere citata da due delle versioni in potatura |
 
-Nessun errore di console, nessuna risposta HTTP >= 400.
+**Non decide nulla da sé**: ripassa da `DeleteOrphansAsync`, lo stesso controllo su tutte e quattro le sorgenti che
+governa la pulizia manuale. Quindi una foto ancora citata da un altro blocco, da un'altra versione o da una
+**release pubblicata** resta dov'è — e i test lo fissano caso per caso.
 
-Difetto trovato guardando lo screenshot: si leggeva «**1 images** are not referenced». Corretto con chiavi
-dedicate al singolare per tutti e quattro i messaggi che portano un numero, e riverificato live
-(«1 image is not referenced...»).
+La pulizia manuale resta, e serve: le foto rimaste indietro da prima, quelle liberate dalla retention, e quelle
+caricate senza mai salvare il riferimento (succede negli extra d'aeroporto, che sono in memoria fino al salvataggio).
+
+### Verifica live dell'estensione
+
+- **quota**: seconda foto rifiutata con «Le immagini di questo documento occupano già 658.2 KB sui 683.6 KB
+  disponibili…» — i due numeri vengono dall'opzione, non da un letterale;
+- **cancellazione**: tolto il blocco con la foto, il deposito passa da «2 immagini, 658,2 KB» a «1 immagine,
+  175,1 KB» senza toccare la pulizia manuale;
+- **anteprima**: caricata una foto negli extra senza salvare, la diagnostica la elenca con la miniatura
+  effettivamente scaricata (`naturalWidth` 1200 × 800, non un'icona rotta).
+
+Un falso allarme lungo la strada, annotato perché può ripetersi: al primo giro la cancellazione sembrava non
+liberare nulla. Era il driver, che cancellava il blocco immagine **vuoto** lasciato dal caricamento rifiutato,
+invece di quello con la foto.
+
+## Non-obiettivi (rimasti)
+
+Galleria per riusare un'immagine già caricata; crop/rotazione; immagini dentro le celle di tabella;
+cancellazione automatica **a tempo** (un lavoro periodico che gira mentre nessuno guarda).

@@ -1043,3 +1043,20 @@ Carta: `docs/feature/2026-07-31-pulizia-immagini-orfane.md`.
 - `DeleteOrphansAsync` **ricontrolla** al momento della cancellazione: fra l'elenco e il clic passano minuti.
 
 Suite **801 → 804** verde, verifica live con traccia (67,5 KB recuperati, l'immagine rimasta ancora servita).
+
+
+### Immagini: anteprima, quota per documento, pulizia alla cancellazione (2026-07-31)
+
+Estensione chiesta subito dopo la pulizia manuale: i suoi tre non-obiettivi diventano funzioni.
+
+- **Anteprima** nell'elenco di pulizia: davanti a un nome come «immagine1.png» nessuno sa se quella foto serviva.
+- **Quota per documento** (`Media:MaxBytesPerDocument`, 25 MB, 0 = illimitata), controllata prima di salvare per non
+  lasciare nel deposito un asset che nessuno cita. Conta le righe: la stessa foto in due blocchi pesa una volta.
+- **Pulizia alla cancellazione** su tutti e quattro i percorsi in cui una foto perde il suo blocco (blocco, sezione
+  col sottoalbero, riscrittura degli extra d'aeroporto, potatura delle versioni archiviate). Non decide da sé:
+  ripassa da `DeleteOrphansAsync`, quindi una foto citata altrove — o da una release pubblicata — resta dov'è.
+
+I repository hanno un parametro in più: i call site dei test passano l'implementazione vera, così la suite
+esistente esercita il percorso nuovo invece di aggirarlo.
+
+Suite **804 → 814** verde, verifica live sui tre comportamenti.
