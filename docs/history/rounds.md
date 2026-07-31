@@ -958,3 +958,23 @@ Suite 686 → **702**. Verifica live su 12 postazioni.
 **Follow-up di dato, non di codice:** nessun settore `Twr`/`Gnd`/`Del` ha un padre nella gerarchia (solo `App` e
 `Ctr`), quindi proprio le postazioni per cui la catena di copertura è l'informazione principale non ne hanno una.
 La pagina lo dichiara invece di lasciare un vuoto muto; l'aggancio va fatto in `/vsop/admin/sectorstructure`.
+
+### Coda della stessa sessione — il padre dell'aeroporto non arrivava alle sue posizioni
+
+Segnalazione dell'owner («nelle gerarchie gli aeroporti hanno dei padri, e tutte le postazioni di quell'aeroporto
+riferiscono a quel padre»): la catena vuota di TWR/GND/DEL non era un dato mancante ma **un legame che nessuno
+leggeva**. `Airport.ParentCallsign` (29 popolati, compilato dall'admin sul nodo Aeroporto in Struttura) non veniva
+mai letto dalla proiezione, che guardava solo `AirportSector.ParentCallsign` — popolato per i soli APP.
+
+Fix in `EfSectorProjectionService` (fonte unica, quindi vale per **tutti** i consumatori): scaletta interna
+**DEL → GND → TWR → APP** e uscita sul padre dell'aeroporto; il `ParentCallsign` esplicito vince. Riproiezione
+all'avvio (`ProjectVipiSectors`), altrimenti la nuova regola sarebbe entrata in vigore solo al prossimo import.
+Sul DB reale: `Del` 0→5/5, `Gnd` 0→20/20, `Twr` 0→51/84. Suite **702 → 708**.
+
+Toccava anche la **risoluzione dei trasferimenti** (stessa gerarchia): un punto verso una torre offline terminava
+su UNICOM invece di salire all'avvicinamento. Latente (0 punti simili nel DB), ma stessa classe di errore.
+
+**Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato; e sugli aeroporti a
+posizioni sdoppiate (LIRF 6 APP + 2 TWR, LIMC 4+2, altri 7) la scaletta sceglie fra pari grado in ordine
+alfabetico — arbitrario, e **non correggibile dalla UI** perché TWR/GND/DEL non sono nodi editabili in
+`/vsop/admin/sectorstructure`. Dettagli in `docs/refactor/12-vista-live-unificata.md` §7.
