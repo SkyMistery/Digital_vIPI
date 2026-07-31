@@ -1,6 +1,6 @@
 # Feature — Immagini come blocco editoriale (upload da dispositivo e drag & drop)
 
-Data: 2026-07-31 · Stato: **CARTA (da approvare)** · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
+Data: 2026-07-31 · Stato: **FATTO** (10 slice, suite 774 verde, verificato live) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
 
 ## Obiettivo
 
@@ -208,6 +208,30 @@ client tiene i file veri sotto i ~300–500 KB; la porta `IMediaStore` è la via
   4. **Pubblica** → la vista pubblica e l'anteprima release mostrano l'immagine; poi **Stampa** (anteprima);
   5. file da **oltre il limite** → rifiuto con messaggio che cita il limite; `.txt` rinominato `.png` → rifiuto;
   6. cancellare il blocco **non** rompe la release già pubblicata.
+
+## Esito della verifica live (2026-07-31)
+
+Guidata su Edge+puppeteer sull'editor vIPI ACC di Brindisi, con una copia del `vipi.db` reale. Quattro difetti
+trovati **con la suite verde**, tutti corretti nello stesso giro (commit `b5da9a3`):
+
+1. **Il ridimensionamento nel browser non partiva mai, in silenzio.** Il disegno iniziale (JS che restituisce i
+   byte a .NET come `IJSStreamReference`) non funziona qui per due motivi indipendenti: quando .NET richiama il
+   JS, `input.files` è **già stato svuotato** da `InputFile`; e uno stream creato dentro una funzione `async`
+   arriva a Blazor senza il blob dietro (`Supplied value is not a typed array or blob`). Riscritto: si intercetta
+   il `change` in fase di **cattura**, si ricodifica, si ri-emette l'evento col file già rimpicciolito. Blazor ne
+   vede uno solo, col file giusto, e il C# non tocca più JS per l'upload.
+   *Provato*: 4000×3000 → 2000×1500; un PNG rumoroso da 20 MB entra come WebP invece di essere rifiutato.
+2. **Alt e didascalia uscivano duplicati a metà parola**: salvare un campo fa ricaricare il documento all'host, e
+   il render successivo riscriveva nell'altro campo il valore di prima. I due campi ora vivono nel componente.
+3. **Due frasi diverse per lo stesso rifiuto** (una localizzata, una no) a seconda che il limite scattasse sul
+   server o sul trasporto. Ora è una sola, e non cita una dimensione che non è quella rifiutata.
+4. **In stampa le immagini sotto la piega uscivano vuote** (2×2 px): sono `loading=lazy` e nessuno le caricava.
+   Il gestore `beforeprint` che apre i `<details>` ora le passa a `eager`. Misurato: 416 px = il tetto di 110 mm.
+
+Verificato inoltre: immagine in una sezione **e** in una sotto-sezione; scelta da file **e** rilascio sull'area;
+rifiuto di un file oltre il limite e di un `.txt` rinominato `.png`; `/vsop/media/{sha}` con
+`public,max-age=31536000,immutable` e il tipo dedotto dai byte (`image/png`, `image/webp`); nessun errore di
+console o di circuito.
 
 ## Non-obiettivi (dichiarati)
 

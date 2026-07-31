@@ -1005,3 +1005,21 @@ Due correzioni chieste dall'owner sulla vista live.
   esterno la risalita resta informazione utile. Caso reale: `LIBB_ES_CTR` → `LIBD_CS0_APP`, 4 punti.
 
 Suite **715 → 718**, verifica live su entrambi.
+
+
+### Immagini nei blocchi editoriali (2026-07-31)
+
+Ovunque si potesse aggiungere paragrafo, callout o tabella si può ora aggiungere un'**immagine**: scelta dal
+dispositivo o trascinata sull'area. Carta: `docs/feature/2026-07-31-immagini-nei-blocchi.md`.
+
+- `BlockFormat.Image` **esisteva già** dal principio e il viewer ne mostrava un segnaposto: la feature l'ha
+  implementato, non aggiunto un tipo. Il riferimento sta nel `BodyJson` (`MediaRef`, fonte unica del formato),
+  la didascalia nel `Body`; i byte in `MediaAssets`, content-addressed per sha256 e dietro la porta `IMediaStore`.
+- Le righe media **non si cancellano mai** dall'editing: uno snapshot di release pubblicato cita lo sha.
+- `Media:MaxUploadBytes` (3 MB) è il limite chiesto: un solo numero, letto da UI, stream, controllo e messaggio.
+- Il reconciler Postgres ora crea anche le **tabelle** mancanti: `EnsureCreated` non tocca un DB che ha già
+  tabelle, quindi `MediaAssets` non sarebbe mai nata su Neon. Vale per ogni entità futura.
+- Verifica live: quattro difetti invisibili ai test (ridimensionamento mai eseguito, campi che si sovrascrivevano,
+  due messaggi per lo stesso rifiuto, immagini vuote in stampa). Dettaglio nella carta.
+
+Suite **774** verde.
