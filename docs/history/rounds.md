@@ -928,3 +928,33 @@ fra due tick e il feed IVAO era a zero ATC.
 > **Trappola nuova per la verifica**: `innerText` su un `<details>` **chiuso** torna stringa vuota (è
 > layout-dependent). Un'asserzione che legge il testo di una sezione collassata sembra dire «elemento assente»
 > mentre l'elemento c'è: interrogare il DOM (`querySelector`, conteggi) o aprire prima la sezione.
+
+## 2026-07-31 — Vista live unificata per callsign — doc [refactor/12](../refactor/12-vista-live-unificata.md)
+
+Secondo giro della stessa giornata: chiuso l'ultimo doppione strutturale dell'asse refactor.
+
+- **Una pagina sola, keyed sul callsign**: `/vsop/live` (la tua postazione) e `/vsop/live/{callsign}`
+  (consultazione). Sparisce `{acc}` dal path — era derivabile dal callsign, e tenerlo significava due fonti
+  per la stessa informazione libere di contraddirsi.
+- **Descrittore + registry** (`ILiveStationKind`), stessa tecnica di `IReleaseTarget`/`IDocKindRoutes` (doc 09):
+  `AreaLiveStation` · `ApproachLiveStation` · `AirportLiveStation`. **Le torri, i ground e i delivery hanno una
+  vista live** che prima non esisteva. Un test verifica che ogni `SectorType` abbia esattamente un descrittore.
+- **Selettore postazione rimosso** (richiesta esplicita): la pagina dipende dalla postazione che hai aperto.
+  Non connesso ⇒ stato d'attesa con gli ATC online cliccabili e **aggancio automatico** al tick SSE, senza
+  reload; postazione altrui ⇒ banner esplicito.
+- **Trasferimenti**: «i miei più quelli dei figli **chiusi**» = `ResolvedOwnerCallsign == postazione`, non
+  `DomainOf` (un figlio online se li tiene). La vecchia pagina ACC mostrava i flussi di *tutta* l'ACC: per un
+  sotto-settore l'elenco ora si stringe a ciò che è davvero suo.
+- **Codice morto**: via `AccLivePage`, `AppLivePage` e le due `Ridotta*` spente dal Round 12 (mai riattivate;
+  `RidottaAppPage` era per metà un mockup hardcoded), più 16 chiavi resx orfane.
+
+Suite 686 → **702**. Verifica live su 12 postazioni.
+
+> **Due trappole pagate.** (1) `/vsop/live/{callsign}` ricade sul prefisso dello stream SSE `/vsop/live/atc`:
+> vince il segmento letterale, ma è una proprietà del routing che si rompe cambiando le rotte → uno smoke la
+> verifica. (2) `DeriveFrequenciesForMembersAsync` espandeva **già** il catalogo d'aeroporto per qualsiasi membro,
+> non solo per gli APP come diceva il commento: è ciò che ha reso i tipi nuovi quasi gratuiti.
+
+**Follow-up di dato, non di codice:** nessun settore `Twr`/`Gnd`/`Del` ha un padre nella gerarchia (solo `App` e
+`Ctr`), quindi proprio le postazioni per cui la catena di copertura è l'informazione principale non ne hanno una.
+La pagina lo dichiara invece di lasciare un vuoto muto; l'aggancio va fatto in `/vsop/admin/sectorstructure`.

@@ -82,6 +82,7 @@ Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti es
 | [refactor/09-flusso-pubblicazione.md](refactor/09-flusso-pubblicazione.md) | Flusso di pubblicazione generico (registry `IReleaseTarget`/`IDocKindRoutes`). |
 | [refactor/10-snapshot-totale-e-rendermode.md](refactor/10-snapshot-totale-e-rendermode.md) | Snapshot totale al publish + `RenderMode` per sezione; visibilità pubblica = release effettiva. **Merged.** |
 | [refactor/11-uniformita-tre-documenti.md](refactor/11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (audit 2026-07-30, P1→P9): chiave di sezione univoca, resa editoriale condivisa, `DocumentSection.IsHidden` e `BeforeParentBody` versionati, fallback a pubblica frozen, superficie APP = non remotizzati, stato iniziale di apertura delle sezioni. Include **§3bis: non-problemi verificati**, da non «aggiustare». |
+| [refactor/12-vista-live-unificata.md](refactor/12-vista-live-unificata.md) | **Vista live unificata per callsign** (2026-07-31): una pagina sola `/vsop/live[/{callsign}]` al posto di `AccLivePage`/`AppLivePage`, descrittori per tipo di ente (`ILiveStationKind`) con **TWR/GND/DEL** finalmente coperti, postazione dalla connessione IVAO senza selettore, trasferimenti per mittente effettivo. Rimosse anche le `Ridotta*` morte. |
 
 ## Storia — `history/` ⚪
 | File | Scopo |
