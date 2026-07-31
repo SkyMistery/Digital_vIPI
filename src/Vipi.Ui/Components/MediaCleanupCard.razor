@@ -24,7 +24,7 @@
     else if (_report is { } r)
     {
         <p style="margin:10px 0 0">
-            <b>@L["MediaClean_Total", r.TotalCount, Human(r.TotalBytes)]</b>
+            <b>@Plurale("MediaClean_Total", r.TotalCount, r.TotalCount, Human(r.TotalBytes))</b>
         </p>
 
         @if (r.Orphans.Count == 0)
@@ -38,7 +38,7 @@
         {
             <div class="callout warning" style="margin-top:8px">
                 <span class="cic">⚠️</span>
-                <div>@L["MediaClean_FoundUnused", r.Orphans.Count, Human(r.ReclaimableBytes)]</div>
+                <div>@Plurale("MediaClean_FoundUnused", r.Orphans.Count, r.Orphans.Count, Human(r.ReclaimableBytes))</div>
             </div>
 
             <table class="res-table" style="margin-top:10px">
@@ -65,7 +65,7 @@
 
             <div style="margin-top:10px">
                 <InlineConfirm TriggerClass="btn danger" TriggerTitle="@L["MediaClean_DeleteTitle"]"
-                               Prompt="@L["MediaClean_DeletePrompt", _report.Orphans.Count]"
+                               Prompt="@Plurale("MediaClean_DeletePrompt", _report.Orphans.Count, _report.Orphans.Count)"
                                Disabled="@_busy" OnConfirm="DeleteAsync">
                     <Trigger>@L["MediaClean_Delete"]</Trigger>
                 </InlineConfirm>
@@ -109,10 +109,15 @@
             // Rianalizza invece di svuotare l'elenco a mano: se qualcuna nel frattempo è tornata in uso il servizio
             // non l'ha cancellata, e l'elenco deve dirlo — non fingere che sia sparita.
             _report = await _media.AnalyzeAsync();
-            _done = L["MediaClean_Deleted", quante];
+            _done = Plurale("MediaClean_Deleted", quante, quante);
         }
         finally { _busy = false; }
     }
+
+    // «1 images are not referenced» si vedeva a schermo. Il singolare non e' un dettaglio in una pagina che
+    // qualcuno legge prima di cancellare per sempre: chiave dedicata quando il conto e' uno.
+    private string Plurale(string chiave, int quanti, params object[] argomenti) =>
+        L[quanti == 1 ? chiave + "_One" : chiave, argomenti].Value;
 
     private static string Human(long bytes) => bytes switch
     {

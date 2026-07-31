@@ -1213,4 +1213,8 @@
   <data name="MediaClean_DeleteTitle" xml:space="preserve"><value>Delete unused images from the database</value></data>
   <data name="MediaClean_DeletePrompt" xml:space="preserve"><value>Delete {0} images?</value></data>
   <data name="MediaClean_Deleted" xml:space="preserve"><value>Deleted {0} images.</value></data>
+  <data name="MediaClean_Total_One" xml:space="preserve"><value>1 image, {1} in total</value></data>
+  <data name="MediaClean_FoundUnused_One" xml:space="preserve"><value>1 image is not referenced by any document or published version: {1} reclaimable.</value></data>
+  <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Delete the image?</value></data>
+  <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Deleted 1 image.</value></data>
 </root>

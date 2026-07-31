@@ -103,6 +103,26 @@ public class MediaCleanupCardTests : TestContext
     }
 
     [Fact]
+    public void Con_una_sola_immagine_il_testo_va_al_singolare()
+    {
+        // A schermo si leggeva «1 images are not referenced». In una pagina che qualcuno guarda prima di
+        // cancellare per sempre, la frase deve essere scritta bene.
+        _servizio.TotalCount = 1;
+        _servizio.Orphans.Add(Orfana(Sha, "foto-torre.png"));
+        var cut = RenderComponent<MediaCleanupCard>();
+
+        cut.Find("button").Click();
+
+        Assert.Contains("MediaClean_Total_One", cut.Markup);
+        Assert.Contains("MediaClean_FoundUnused_One", cut.Markup);
+
+        cut.Find("button.danger").Click();
+        Assert.Contains("MediaClean_DeletePrompt_One", cut.Markup);
+        cut.Find("span.inline-confirm button.danger").Click();
+        Assert.Contains("MediaClean_Deleted_One", cut.Markup);
+    }
+
+    [Fact]
     public void Un_asset_senza_nome_file_si_riconosce_dallo_sha()
     {
         _servizio.Orphans.Add(Orfana(Sha, nome: null!));
@@ -123,11 +143,11 @@ public class MediaCleanupCardTests : TestContext
         // Il primo click apre la domanda: niente è ancora stato cancellato.
         cut.Find("button.danger").Click();
         Assert.Empty(_servizio.Cancellati);
-        Assert.Contains("MediaClean_DeletePrompt 1", cut.Markup);
+        Assert.Contains("MediaClean_DeletePrompt_One", cut.Markup);
 
         cut.Find("span.inline-confirm button.danger").Click();
         Assert.Equal(new[] { Sha }, _servizio.Cancellati);
-        Assert.Contains("MediaClean_Deleted 1", cut.Markup);
+        Assert.Contains("MediaClean_Deleted_One", cut.Markup);
     }
 
     [Fact]

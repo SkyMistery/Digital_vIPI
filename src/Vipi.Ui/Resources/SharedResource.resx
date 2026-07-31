@@ -1219,4 +1219,8 @@
   <data name="MediaClean_DeleteTitle" xml:space="preserve"><value>Cancella dal database le immagini non usate</value></data>
   <data name="MediaClean_DeletePrompt" xml:space="preserve"><value>Eliminare {0} immagini?</value></data>
   <data name="MediaClean_Deleted" xml:space="preserve"><value>Eliminate {0} immagini.</value></data>
+  <data name="MediaClean_Total_One" xml:space="preserve"><value>1 immagine, {1} in tutto</value></data>
+  <data name="MediaClean_FoundUnused_One" xml:space="preserve"><value>1 immagine non e' citata da nessun documento ne' da alcuna versione pubblicata: {1} recuperabili.</value></data>
+  <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Eliminare l'immagine?</value></data>
+  <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Eliminata 1 immagine.</value></data>
 </root>
