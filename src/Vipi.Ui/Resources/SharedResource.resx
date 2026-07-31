@@ -1193,4 +1193,16 @@
   <data name="Common_Print" xml:space="preserve"><value>Stampa</value></data>
   <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Stampato il</value></data>
   <data name="Rel_VersionLabel" xml:space="preserve"><value>rilascio #{0}</value></data>
+  <data name="Dse_Image" xml:space="preserve"><value>Immagine</value></data>
+  <data name="Img_DropHere" xml:space="preserve"><value>Trascina qui una foto o scegli dal dispositivo</value></data>
+  <data name="Img_Replace" xml:space="preserve"><value>Sostituisci immagine</value></data>
+  <data name="Img_ChooseAria" xml:space="preserve"><value>Scegli un'immagine</value></data>
+  <data name="Img_MaxSize" xml:space="preserve"><value>max {0}</value></data>
+  <data name="Img_TooBig" xml:space="preserve"><value>L'immagine supera il limite di {0}.</value></data>
+  <data name="Img_Uploading" xml:space="preserve"><value>Caricamento…</value></data>
+  <data name="Img_AltLabel" xml:space="preserve"><value>Testo alternativo</value></data>
+  <data name="Img_AltPh" xml:space="preserve"><value>Cosa mostra l'immagine (per chi non la vede)</value></data>
+  <data name="Img_CaptionLabel" xml:space="preserve"><value>Didascalia</value></data>
+  <data name="Img_CaptionPh" xml:space="preserve"><value>Testo sotto l'immagine (facoltativo)</value></data>
+  <data name="Img_Remove" xml:space="preserve"><value>Rimuovi immagine</value></data>
 </root>

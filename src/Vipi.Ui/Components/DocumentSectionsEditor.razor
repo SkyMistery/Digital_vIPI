@@ -290,6 +290,7 @@ else
                     <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
                     <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
                     <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ @L["Dse_Table"]</button>
+                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Image)">+ @L["Dse_Image"]</button>
                 </div>
             }
         }
@@ -332,6 +333,11 @@ else
                     case BlockFormat.Table:
                         @TableEditor(b)
                         break;
+                    case BlockFormat.Image:
+                        @* Stringa vuota = "togli l'immagine": SaveBlock lascia intatto ciò che riceve null. *@
+                        <ImageBlockEditor ImageJson="@b.BodyJson" ImageJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
+                                          Caption="@b.Body" CaptionChanged="c => SaveBlock(b, body: c ?? string.Empty)" />
+                        break;
                     default:
                         <p class="muted">@(string.Format(L["Dse_BlockNotEditable"].Value, b.Format))</p>
                         break;
@@ -359,6 +365,9 @@ else
                 break;
             case BlockFormat.Table:
                 @RenderTablePreview(b)
+                break;
+            case BlockFormat.Image:
+                <ImageFigure Media="MediaRef.Parse(b.BodyJson)" Caption="@b.Body" />
                 break;
             default:
                 @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(b.Body)</div> }

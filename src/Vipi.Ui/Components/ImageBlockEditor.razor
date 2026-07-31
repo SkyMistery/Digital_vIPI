@@ -1,0 +1,144 @@
+@* Editor di UN blocco immagine, condiviso dai due editor di blocchi (DocumentSectionsEditor sul documento,
+   DocumentBlocksEditor sulle sezioni extra dell'aeroporto): il codice nuovo di questa feature vive qui una volta sola.
+   L'host possiede la persistenza — riceve il JSON del riferimento e la didascalia via callback e li salva come sa.
+
+   Caricamento: click sull'area (scelta dal dispositivo) o trascinamento del file sopra di essa. Entrambi li serve lo
+   stesso <InputFile>, reso trasparente sopra l'area: il drop su un file input è comportamento nativo del browser,
+   quindi non c'è codice di drag&drop da mantenere — gli handler qui sotto servono SOLO all'evidenziazione. *@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Media
+@inherits OwningComponentBase
+@inject IJSRuntime JS
+@inject IOptions<MediaOptions> MediaOptions
+@inject IStringLocalizer<SharedResource> L
+@* IMediaStore risolto dallo scope PROPRIO (OwningComponentBase): il salvataggio non deve passare per il DbContext
+   condiviso del circuito, o due operazioni concorrenti lo fanno esplodere. Vedi memoria blazor-dbcontext-concurrency. *@
+
+<div class="img-edit">
+    <label class="img-drop @(_dragging ? "over" : null)"
+           @ondragenter="() => _dragging = true" @ondragleave="() => _dragging = false" @ondrop="() => _dragging = false">
+        <InputFile @ref="_input" OnChange="OnFileAsync" accept="@ImageProbe.AcceptAttribute" class="img-drop-input"
+                   disabled="@_busy" aria-label="@L["Img_ChooseAria"]" />
+        <ImageFigure Media="Media" Caption="@Caption" EmptyLabel="@L["Img_DropHere"]" />
+        <span class="img-drop-hint">
+            @(Media is null ? L["Img_DropHere"] : L["Img_Replace"]) · @L["Img_MaxSize", MediaOptions.Value.MaxUploadLabel]
+        </span>
+    </label>
+
+    @if (_busy)
+    {
+        <p class="muted" style="margin:6px 0 0">@L["Img_Uploading"]</p>
+    }
+    @if (_error is not null)
+    {
+        <div class="callout danger" style="margin-top:8px">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div>@_error</div>
+        </div>
+    }
+
+    @if (Media is not null)
+    {
+        <div class="img-fields">
+            <label class="img-field">
+                <span class="muted">@L["Img_AltLabel"]</span>
+                <input class="app-in" value="@Media.Alt" placeholder="@L["Img_AltPh"]"
+                       @onchange="e => SetAltAsync(e.Value as string ?? string.Empty)" />
+            </label>
+            <label class="img-field">
+                <span class="muted">@L["Img_CaptionLabel"]</span>
+                <input class="app-in" value="@Caption" placeholder="@L["Img_CaptionPh"]"
+                       @onchange="e => CaptionChanged.InvokeAsync(e.Value as string)" />
+            </label>
+            <button class="btn ghost" type="button" @onclick="RemoveAsync">@L["Img_Remove"]</button>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>JSON del riferimento (<see cref="MediaRef"/>): sta in <c>BodyJson</c> nel documento e in
+    /// <c>ExtraBlock.ImageJson</c> negli extra dell'aeroporto — stessa stringa.</summary>
+    [Parameter] public string? ImageJson { get; set; }
+    [Parameter] public EventCallback<string?> ImageJsonChanged { get; set; }
+
+    /// <summary>Didascalia (markdown leggero, come la prosa).</summary>
+    [Parameter] public string? Caption { get; set; }
+    [Parameter] public EventCallback<string?> CaptionChanged { get; set; }
+
+    private InputFile? _input;
+    private bool _busy;
+    private bool _dragging;
+    private string? _error;
+
+    private IMediaStore _store = default!;
+    protected override void OnInitialized() => _store = ScopedServices.GetRequiredService<IMediaStore>();
+
+    private MediaRef? Media => MediaRef.Parse(ImageJson);
+
+    private async Task OnFileAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var max = MediaOptions.Value.MaxUploadBytes;
+            await using var stream = await OpenAsync(file, max);
+            var saved = await _store.SaveAsync(stream, file.Name);
+
+            // L'alt scritto per l'immagine precedente non si eredita: descriveva un'altra foto.
+            await ImageJsonChanged.InvokeAsync(MediaRef.Serialize(
+                new MediaRef(saved.Sha256, null, saved.Width, saved.Height)));
+        }
+        catch (ValidationException ex)
+        {
+            _error = ex.Message;                       // limite superato, formato non ammesso, misure fuori scala
+        }
+        catch (IOException)
+        {
+            // Il limite dello stream lato Blazor scatta prima del nostro controllo: stesso messaggio, un solo numero.
+            _error = L["Img_TooBig", MediaOptions.Value.MaxUploadLabel];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// Stream dei byte da caricare: prima si prova a farli rimpicciolire dal browser (una foto da telefono passa
+    /// così sotto il limite senza che nessuno la ritocchi a mano); se non si può, si carica il file originale e il
+    /// limite lo fa valere il server.
+    /// </summary>
+    private async Task<Stream> OpenAsync(IBrowserFile file, int max)
+    {
+        var side = MediaOptions.Value.ClientDownscaleLongestSidePx;
+        if (side > 0 && _input?.Element is { } element)
+        {
+            try
+            {
+                var reduced = await JS.InvokeAsync<IJSStreamReference?>(
+                    "vipiMedia.downscale", element, side, MediaOptions.Value.JpegQuality);
+                if (reduced is not null) return await reduced.OpenReadStreamAsync(max + 1);
+            }
+            catch (JSException) { /* browser senza canvas/createImageBitmap: si carica l'originale */ }
+            catch (JSDisconnectedException) { /* circuito chiuso mentre si caricava */ }
+        }
+
+        return file.OpenReadStream(max + 1);
+    }
+
+    private Task SetAltAsync(string alt)
+    {
+        if (Media is null) return Task.CompletedTask;
+        var trimmed = alt.Trim();
+        return ImageJsonChanged.InvokeAsync(MediaRef.Serialize(
+            Media with { Alt = trimmed.Length == 0 ? null : trimmed }));
+    }
+
+    // Stringa vuota, non null: l'host distingue "non toccare" (null) da "togli l'immagine" (vuoto). I byte restano
+    // nel deposito — una release già pubblicata continua a citarne lo sha.
+    private Task RemoveAsync() => ImageJsonChanged.InvokeAsync("");
+}

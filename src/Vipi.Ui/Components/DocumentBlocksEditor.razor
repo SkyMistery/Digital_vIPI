@@ -36,6 +36,10 @@
                     case BlockFormat.Table:
                         @TableEditor(blk)
                         break;
+                    case BlockFormat.Image:
+                        <ImageBlockEditor ImageJson="@blk.ImageJson" ImageJsonChanged="j => SetImage(blk, j)"
+                                          Caption="@blk.Text" CaptionChanged="c => SetText(blk, c ?? string.Empty)" />
+                        break;
                 }
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
@@ -53,9 +57,11 @@
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Callout)">+ Callout</button>
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Table)">+ @L["Dse_Table"]</button>
+        <button class="btn ghost" @onclick="() => Add(BlockFormat.Image)">+ @L["Dse_Image"]</button>
         <HelpHint Href="/vsop/guida#editor-blocchi" AriaLabel="Aiuto sui tipi di blocco">
             Aggiungi un blocco: <b>Paragrafo</b> (testo), <b>Callout</b> (riquadro nota/attenzione),
-            <b>Tabella</b> (righe/colonne). Riordina con ↑/↓. Tutto va poi <b>salvato</b> e <b>pubblicato</b>.
+            <b>Tabella</b> (righe/colonne), <b>Immagine</b> (foto dal dispositivo o trascinata).
+            Riordina con ↑/↓. Tutto va poi <b>salvato</b> e <b>pubblicato</b>.
         </HelpHint>
     </div>
 }
@@ -74,6 +80,7 @@
     // ---- mutazioni blocco ----
     private Task SetText(ExtraBlock b, string v) { b.Text = v; return Changed(); }
     private Task SetKind(ExtraBlock b, CalloutKind k) { b.CalloutKind = k; return Changed(); }
+    private Task SetImage(ExtraBlock b, string? json) { b.ImageJson = json; return Changed(); }
 
     private Task Add(BlockFormat format)
     {
@@ -107,6 +114,9 @@
                 break;
             case BlockFormat.Table:
                 @RenderTablePreview(b);
+                break;
+            case BlockFormat.Image:
+                <ImageFigure Media="MediaRef.Parse(b.ImageJson)" Caption="@b.Text" />
                 break;
             default:
                 @if (!string.IsNullOrWhiteSpace(b.Text)) { <div class="prose">@MarkdownLite.Render(b.Text)</div> }
