@@ -36,6 +36,38 @@ public class AccAor3dTests : TestContext
         Assert.Contains("\"fl\":[245,355]", payload);         // banda FL estrusione
     }
 
+    /// <summary>Le chip settore del 3D sono le stesse del 2D (le pilota onAorClick in vipi-aor.js): servono il
+    /// contenitore .aor-block, le .aor-chip col callsign e le azioni Tutti/Nessuno. Niente chip configurazione.</summary>
+    [Fact]
+    public void Renders_sector_chips_like_2d_without_config_chips()
+    {
+        var view = new AccAorView(
+            new[] { new AccSectorAor("LIBB_ES_CTR", "Brindisi Radar", "#0D2C99", new[] { Poly() }, 245, 355) },
+            new[] { new AccConfigSelection("cfg1", "Configurazione 1", new[] { "LIBB_ES_CTR" }) });
+
+        var cut = RenderComponent<AccAor3d>(p => p.Add(x => x.View, view));
+
+        Assert.NotNull(cut.Find(".aor-block .aor3d-stage"));            // stage raggiungibile dalle chip del blocco
+        Assert.Equal("LIBB_ES_CTR", cut.Find(".aor-chip").GetAttribute("data-sec"));
+        Assert.Equal(2, cut.FindAll(".aor-chip-actions .aor-all").Count);   // Tutti / Nessuno
+        Assert.Empty(cut.FindAll(".cfg-btn"));                          // le configurazioni restano al 2D
+    }
+
+    /// <summary>Selettore «Altezza»: 6 fattori, ×0.5 acceso alla prima resa (allineato a ZDEF in vipi-aor3d.js).</summary>
+    [Fact]
+    public void Height_selector_defaults_to_half_scale()
+    {
+        var view = new AccAorView(
+            new[] { new AccSectorAor("LIRR_NE_CTR", "NE", "#0D2C99", new[] { Poly() }, 245, 355) },
+            System.Array.Empty<AccConfigSelection>());
+
+        var cut = RenderComponent<AccAor3d>(p => p.Add(x => x.View, view));
+
+        Assert.Equal(6, cut.FindAll(".aor3d-z").Count);
+        Assert.Equal("0.5", cut.Find(".aor3d-z.on").GetAttribute("data-z"));
+        Assert.DoesNotContain("aor3d/", cut.Markup);                    // link «Apri pagina» rimosso (rotta senza ingresso)
+    }
+
     [Fact]
     public void Null_band_defaults_to_ground_and_unlimited()
     {

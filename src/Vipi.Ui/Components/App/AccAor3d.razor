@@ -1,10 +1,23 @@
 @* Viewer 3D dell'AoR: ogni settore = prisma estruso (base = shape reale, altezza = banda FL). L'interattività
    (orbita/zoom/legenda) è client-side (vipi-aor3d.js); data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[b,t]}].
-   Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL. *@
+   Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL.
+
+   Le chip settore sono le STESSE del 2D (.aor-block > .aor-toggles > .aor-chip): le pilota `onAorClick` in
+   vipi-aor.js, che applica lo stato allo stage 3D via `_aorSetSec` esattamente come fa col layer Leaflet.
+   Niente chip «configurazione» qui: nel 3D si accendono i singoli settori. *@
 @using System.Text.Json
 @if (View.Sectors is { Count: > 0 })
 {
-    <div class="aor3d-wrap" data-aor3d="@Id">
+    <div class="aor3d-wrap aor-block" data-aor3d="@Id" data-aor="@Id">
+        <div class="aor-toggles">
+            @foreach (var s in View.Sectors)
+            {
+                <span class="aor-chip on" data-sec="@s.Callsign" title="@s.Name">
+                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
+                </span>
+            }
+            <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+        </div>
         <div class="aor3d-bar">
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
             <button class="btn ghost aor3d-basemap on" type="button">🗺 Mappa base</button>

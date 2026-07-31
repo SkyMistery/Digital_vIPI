@@ -316,17 +316,31 @@
         var theta = DEF.theta, phi = DEF.phi, radius = DEF.radius;
         var box = stage.querySelector('.aor3d-legrows');
 
-        // Verità dello stato acceso/spento: il gruppo del settore. Legenda ed etichette sono due viste della stessa cosa.
+        // Verità dello stato acceso/spento: `secMap` (gemello di quello del layer Leaflet in vipi-aor.js, che lo
+        // legge per sapere se una chip è accesa). Legenda, chip ed etichette sono tre viste della stessa cosa.
+        var secMap = {};
+        sectors.forEach(function (s) { secMap[(s.sec || '').toUpperCase()] = { on: true }; });
+        stage._secMap = secMap;
+
         function setSec(sec, on) {
             var key = (sec || '').toUpperCase();
+            var e = secMap[key];
+            if (!e) return;
+            e.on = on;
             sectors.forEach(function (s, i) {
                 if ((s.sec || '').toUpperCase() !== key || !s._g) return;
                 s._g.visible = on;
                 var row = box && box.querySelector('.lg-row[data-i="' + i + '"]');
                 if (row) row.classList.toggle('off', !on);
             });
+            var blk = stage.closest('.aor-block');
+            if (blk) blk.querySelectorAll('.aor-chip').forEach(function (c) {
+                if ((c.dataset.sec || '').toUpperCase() === key) c.classList.toggle('on', on);
+            });
             render();
         }
+        // Stessa interfaccia del contenitore Leaflet: così le chip del 2D pilotano anche il 3D senza logica duplicata.
+        stage._aorSetSec = setSec;
         // Le etichette si posizionano DOPO il render (matrici mondo fresche) e solo lì: render() è on-demand
         // (drag, zoom, toggle), non un loop raf, quindi il costo del declutter è trascurabile.
         var labels = buildLabels(stage, sectors, function (s) { if (!moved) setSec(s.sec, !(s._g && s._g.visible)); });
