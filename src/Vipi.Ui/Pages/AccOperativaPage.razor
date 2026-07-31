@@ -23,45 +23,45 @@
 else if (_notAvailable)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Operativa_Tab"]</b></div>
-        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Operativa_NotAvailTitle"]</p>@((MarkupString)string.Format(L["Operativa_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/vipi"))</div></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Live_Tab"]</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Live_NotAvailTitle"]</p>@((MarkupString)string.Format(L["Live_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/vipi"))</div></div>
     </div>
 }
 else
 {
-    <PageTitle>@_data.AccName — @L["Operativa_Tab"] · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@_data.AccName — @L["Live_Tab"] · vIPI IVAO Italia</PageTitle>
     <div class="wrap">
         <div class="breadcrumb">
-            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>@L["Operativa_Tab"]</b>
+            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>@L["Live_Tab"]</b>
         </div>
 
         <div class="reduced-top">
-            <h2 style="margin:0">@_data.AccName — @L["Operativa_Tab"]</h2>
+            <h2 style="margin:0">@_data.AccName — @L["Live_Tab"]</h2>
             <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_p</span>
-            <label class="muted" style="font-size:13px;margin-left:auto">@L["Operativa_Position"]
+            <label class="muted" style="font-size:13px;margin-left:auto">@L["Live_Position"]
                 <select @bind="_p" @bind:after="LoadAsync" style="margin-left:6px;padding:4px 8px">
                     @foreach (var pos in _positions) { <option value="@pos">@pos</option> }
                 </select>
             </label>
             @if (_myCallsign is not null)
             {
-                <span class="xo-chip on" title="@L["Operativa_DetectedFromIvao"]">@_myCallsign</span>
+                <span class="xo-chip on" title="@L["Live_DetectedFromIvao"]">@_myCallsign</span>
             }
-            <span class="muted" style="font-size:13px">@L["Operativa_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
-            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Operativa_ExtendedDoc"]</a>
+            <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
+            <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Live_ExtendedDoc"]</a>
         </div>
 
-        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Operativa_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Operativa_ReducedLiveBody"], _p))</div></div>
+        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Live_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Live_ReducedLiveBody"], _p))</div></div>
 
-        <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Operativa_QuickView"]</p>
+        <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
         <div class="apt-quick" style="margin-bottom:22px">
-            <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Operativa_MySector"]</span>
+            <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Live_MySector"]</span>
             @foreach (var (ap, direct, deleg) in OrderedApts())
             {
                 var icao = ap.Icao;
                 <span class="ch sw @(direct && !deleg ? "" : "ch-deleg") @(_selectedApt == icao ? "on" : "")"
-                      title="@(deleg ? L["Operativa_AptDelegatedTip"] : direct ? L["Operativa_AptQuickTip"] : L["Operativa_AptOtherTip"])"
-                      @onclick="() => _selectedApt = icao">@icao@(deleg ? L["Operativa_DelegSuffix"] : "")</span>
+                      title="@(deleg ? L["Live_AptDelegatedTip"] : direct ? L["Live_AptQuickTip"] : L["Live_AptOtherTip"])"
+                      @onclick="() => _selectedApt = icao">@icao@(deleg ? L["Live_DelegSuffix"] : "")</span>
             }
         </div>
 
@@ -87,16 +87,16 @@ else
                 <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
                 <div class="body">
                     @if (freqRows.Count > 0) { <AppFrequencies Rows="freqRows" /> }
-                    else { <p class="muted" style="font-size:13px;margin:0">@L["Operativa_NoFreqDerived"]</p> }
+                    else { <p class="muted" style="font-size:13px;margin:0">@L["Live_NoFreqDerived"]</p> }
                 </div>
             </details>
 
             @foreach (var block in appGroups.Where(b => IsDelegated(b)))
             {
                 <details class="acc-item collapsed-strip">
-                    <summary><span>🔇 @block.Title — @L["Operativa_Delegated"]</span><span class="tag-state tag-online">@L["Common_TagOnline"]</span></summary>
+                    <summary><span>🔇 @block.Title — @L["Live_Delegated"]</span><span class="tag-state tag-online">@L["Common_TagOnline"]</span></summary>
                     <div class="body">
-                        <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Operativa_CollapsedBody"], block.Title))</p>
+                        <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Live_CollapsedBody"], block.Title))</p>
                         <AccSectionBody Block="block" Key="frequencies" Root="@_root" Freqs="_freqs.GetValueOrDefault(block.Key)" />
                     </div>
                 </details>
@@ -114,18 +114,18 @@ else
         </div>
 
         <details class="acc-item" open>
-            <summary><span><Icon Name="refresh" /> @L["Operativa_TransfersTitle"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
+            <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@L["Common_TagOpen"]</span></summary>
             <div class="body">
                 <div class="xfer-online">
-                    <span class="xo-label">@L["Operativa_OnlineAround"]</span>
+                    <span class="xo-label">@L["Live_OnlineAround"]</span>
                     @if (onlineAround.Count > 0)
                     {
                         @foreach (var cs in onlineAround) { <span class="xo-chip on">@cs</span> }
                     }
-                    else { <span class="muted xo-hint">@L["Operativa_NoNeighbourOnline"]</span> }
-                    <span class="muted xo-hint">@L["Operativa_TransfersHint"]</span>
+                    else { <span class="muted xo-hint">@L["Live_NoNeighbourOnline"]</span> }
+                    <span class="muted xo-hint">@L["Live_TransfersHint"]</span>
                 </div>
-                <TransfersLive Flows="_resolved" EmptyText="@L["Operativa_NoCoord"]" />
+                <TransfersLive Flows="_resolved" EmptyText="@L["Live_NoCoord"]" />
             </div>
         </details>
         }
