@@ -299,6 +299,42 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Single(await _db.DocumentSections.Where(s => s.Title == "Frequencies").ToListAsync());
     }
 
+    /// <summary>
+    /// Il viewer dell'aeroporto legge il documento «cotto», non gli extra del profilo: un blocco immagine che il
+    /// rebuild non emette esiste nell'editor e sparisce in silenzio dal documento pubblicato.
+    /// </summary>
+    [Fact]
+    public async Task Rebuild_Emits_Image_Blocks_Of_Extra_Sections()
+    {
+        const string sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        var profile = new EfAirportRepository(_db);
+        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
+
+        var body = Vipi.Application.Content.ExtraBlocks.Serialize(new List<Vipi.Application.Content.ExtraBlock>
+        {
+            new() { Format = BlockFormat.Prose, Text = "Vedi la foto." },
+            new()
+            {
+                Format = BlockFormat.Image, Text = "Stand 401",
+                ImageJson = Vipi.Application.Content.MediaRef.Serialize(
+                    new Vipi.Application.Content.MediaRef(sha, "Piazzale nord", 1600, 900)),
+            },
+            new() { Format = BlockFormat.Image, Text = "didascalia orfana" },   // senza riferimento: non deve entrare
+        });
+        await profile.SaveExtraSectionsAsync("LIRF", new[] { new Vipi.Application.Content.ExtraSectionRow(0, "Hot spot", body) });
+        await profile.RebuildDocumentAsync("LIRF");
+
+        var section = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "airportextra");
+        var blocks = await _db.ContentBlocks.Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).ToListAsync();
+
+        var image = Assert.Single(blocks, b => b.Format == BlockFormat.Image);
+        Assert.Equal("Stand 401", image.Body);
+        Assert.Equal(sha, Vipi.Application.Content.MediaRef.Parse(image.BodyJson)!.MediaId);
+        Assert.Equal(2, blocks.Count);   // prosa + immagine: il blocco immagine senza foto resta fuori
+    }
+
     [Fact]
     public async Task Default_Transition_Levels_Follow_Ta()
     {
