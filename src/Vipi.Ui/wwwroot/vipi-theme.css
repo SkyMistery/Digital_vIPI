@@ -414,7 +414,24 @@
 
 .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
 .red-top-grid .acc-item{margin-bottom:0}
-.reduced-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+/* Testata della vista live appiccicata sotto la topbar (62px): postazione, ATC online e orario Z restano
+   leggibili mentre si scorre. Sfondo pieno perché ci passa sotto il contenuto. */
+.reduced-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+  position:sticky;top:62px;z-index:30;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
+.reduced-top .utc-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ivao-blue)}
+
+/* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
+   più righe a schermo che aria. Tocca solo densità, mai contenuto. */
+.vipi-dense .vipi-root{font-size:14px}
+.vipi-dense .vipi-root h2{font-size:23px}
+.vipi-dense .vipi-root table{font-size:12.5px}
+.vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
+.vipi-dense .acc-item>summary{padding:8px 12px}
+.vipi-dense .acc-item .body{padding:2px 12px 10px}
+.vipi-dense .rap-box{padding:5px 10px}
+.vipi-dense .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
+.vipi-dense .callout{padding:8px 12px}
+.vipi-dense .apt-quick{margin-bottom:12px !important}
 .apt-quick{display:flex;gap:8px;flex-wrap:wrap}
 .apt-quick .ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:.12s}
 .apt-quick .ch:hover{border-color:var(--ivao-lightblue);color:var(--ivao-blue)}

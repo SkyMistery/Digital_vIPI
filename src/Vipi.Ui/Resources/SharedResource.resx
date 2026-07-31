@@ -128,6 +128,9 @@
   <data name="Live_FollowMe" xml:space="preserve"><value>segui {0}</value></data>
   <data name="Live_ChangesLabel" xml:space="preserve"><value>Cambi</value></data>
   <data name="Live_ChangesClear" xml:space="preserve"><value>scarta</value></data>
+  <data name="Live_UtcNow" xml:space="preserve"><value>Ora corrente UTC (Z)</value></data>
+  <data name="Live_Dense" xml:space="preserve"><value>Compatta</value></data>
+  <data name="Live_DenseTip" xml:space="preserve"><value>Vista più densa: più righe a schermo su monitor piccoli. La scelta viene ricordata.</value></data>
   <data name="Live_FollowOffTip" xml:space="preserve"><value>Sei connesso qui, ma stai guardando un'altra postazione (scelta a mano)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>

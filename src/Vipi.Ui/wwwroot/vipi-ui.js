@@ -341,6 +341,36 @@
         });
     }
 
+    // Modalità compatta: classe su <html> (non su .vipi-root, che Blazor ricostruisce) + localStorage.
+    // Fuori dal circuito Blazor come lo zoom: sopravvive a re-render e navigazioni senza round-trip.
+    function applyDense() {
+        var on = false;
+        try { on = localStorage.getItem('vipiDense') === '1'; } catch (e) { }
+        document.documentElement.classList.toggle('vipi-dense', on);
+        document.querySelectorAll('[data-dense-toggle]').forEach(function (b) {
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+    }
+    window.vipiToggleDense = function () {
+        var on = document.documentElement.classList.contains('vipi-dense');
+        try { localStorage.setItem('vipiDense', on ? '0' : '1'); } catch (e) { }
+        applyDense();
+    };
+
+    // Orologio UTC: i controllori ragionano in Z. Aggiornato dal browser, non dal server (nessun tick sul circuito).
+    var clockTimer = null;
+    function wireUtcClock() {
+        function tick() {
+            var now = new Date();
+            var t = ('0' + now.getUTCHours()).slice(-2) + ':' + ('0' + now.getUTCMinutes()).slice(-2) + ':'
+                  + ('0' + now.getUTCSeconds()).slice(-2) + 'Z';
+            document.querySelectorAll('[data-utc-clock]').forEach(function (el) { el.textContent = t; });
+        }
+        tick();
+        if (clockTimer) return;
+        clockTimer = setInterval(tick, 1000);
+    }
+
     // Riaggancia SOLO la persistenza del collasso. Serve alle pagine InteractiveServer (vista live) che
     // ricostruiscono i <details> a ogni tick: senza questo, dopo il primo aggiornamento il collasso non
     // verrebbe più ricordato. Idempotente (wireCollapse salta quelli già agganciati); non si chiama
@@ -352,6 +382,8 @@
         wireExpand();
         wireAnchors();
         wireCollapse();
+        applyDense();
+        wireUtcClock();
         wireSearchKey();
         wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri

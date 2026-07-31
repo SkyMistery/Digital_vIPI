@@ -46,8 +46,11 @@ else
             }
             <span class="muted" style="font-size:13px">
                 @L["Live_AtcOnlineN", _snapshot.Callsigns.Count] ·
-                @L["AppLive_UpdatedAt", (_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))]
+                @L["AppLive_UpdatedAt", (_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.UtcDateTime.ToString("HH:mm:ss") + "Z")]
             </span>
+            <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
+            <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" data-dense-toggle aria-pressed="false"
+                    onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
             <a class="btn ghost" href="@_extendedHref" style="margin-left:auto">@L["Live_ExtendedDoc"]</a>
         </div>
 

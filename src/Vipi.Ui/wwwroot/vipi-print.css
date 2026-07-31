@@ -56,7 +56,13 @@
   .vipi-root .chev,
   .vipi-root .onl-badge,
   .vipi-root .noprint,
+  /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */
+  .vipi-root .utc-clock,
+  .vipi-root [data-dense-toggle],
   .vt-overlay, .vt-spot, .vt-card { display: none !important; }
+
+  /* La testata della vista live è appiccicata sotto la topbar a schermo: su carta si stampa dov'è. */
+  .vipi-root .reduced-top { position: static !important; border-bottom: 0; padding: 0; }
 
   /* PreviewBanner (bozza / anteprima release) e DocReviewBar restano stampati: una copia cartacea non deve
      poter passare per pubblicata. Sono `.callout`, che non nascondiamo. */

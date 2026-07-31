@@ -45,7 +45,10 @@ else
                     <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" @onclick="FollowMeAgain">↺ @L["Live_FollowMe", _myCallsign]</button>
                 }
             }
-            <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : _snapshot.AsOf.ToLocalTime().ToString("HH:mm:ss"))</span>
+            <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @(_snapshot.AsOf == DateTimeOffset.MinValue ? "—" : Zs(_snapshot.AsOf))</span>
+            <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
+            <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" data-dense-toggle aria-pressed="false"
+                    onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
             <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Live_ExtendedDoc"]</a>
         </div>
 
@@ -305,8 +308,9 @@ else
         if (_changes.Count > MaxChanges) _changes.RemoveRange(0, _changes.Count - MaxChanges);
     }
 
-    /// <summary>Orario in UTC: un controllore ragiona in Z, non nel fuso del suo PC.</summary>
+    // Orari in UTC: un controllore ragiona in Z, non nel fuso orario del suo PC.
     private static string Z(DateTimeOffset at) => at.UtcDateTime.ToString("HH:mm") + "Z";
+    private static string Zs(DateTimeOffset at) => at.UtcDateTime.ToString("HH:mm:ss") + "Z";
 
     private IReadOnlySet<string> ChangedCallsigns() =>
         _changes.Select(c => c.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
