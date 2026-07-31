@@ -53,6 +53,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IEditingRepository, EfEditingRepository>();
         services.AddScoped<Vipi.Application.Content.IDocumentMaintenance, EfDocumentMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IResourceLockRepository, EfResourceLockRepository>();
+        // Immagini dei blocchi: i byte stanno nel DB. Spostarli altrove (object storage) = cambiare questa riga.
+        services.AddScoped<Vipi.Application.Abstractions.IMediaStore, EfMediaStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();

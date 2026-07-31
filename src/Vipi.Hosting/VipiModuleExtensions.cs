@@ -64,6 +64,7 @@ public static class VipiModuleExtensions
         services.Configure<VipiChromeOptions>(configuration.GetSection(VipiChromeOptions.SectionName));
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
+        services.Configure<Vipi.Application.Media.MediaOptions>(configuration.GetSection(Vipi.Application.Media.MediaOptions.SectionName));
         services.Configure<Vipi.Application.ReleaseRetentionOptions>(configuration.GetSection(Vipi.Application.ReleaseRetentionOptions.SectionName));
         services.Configure<HostIdentityOptions>(configuration.GetSection(HostIdentityOptions.SectionName));
 
