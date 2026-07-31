@@ -1,16 +1,23 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
 /// Crea e allinea lo schema Postgres quando si usa <c>EnsureCreated</c> (deploy Render+Neon + tool DbSeed):
-/// <c>EnsureCreated</c> crea le tabelle mancanti ma NON tocca le tabelle già esistenti, così ogni colonna o indice
-/// aggiunto al modello dopo il primo deploy manda il DB in drift (es. <c>42703 column ... does not exist</c>).
-/// Per ogni colonna del modello assente emette un <c>ADD COLUMN IF NOT EXISTS</c> col tipo store del modello (le NOT
+/// <c>EnsureCreated</c> crea lo schema solo su un database VUOTO — su un database che ha già tabelle non fa nulla,
+/// così ogni tabella, colonna o indice aggiunto al modello dopo il primo deploy manda il DB in drift
+/// (es. <c>42P01 relation ... does not exist</c>, <c>42703 column ... does not exist</c>).
+/// Per ogni tabella del modello assente emette il <c>CREATE TABLE</c> generato da EF (PK, FK e vincoli inclusi);
+/// per ogni colonna assente un <c>ADD COLUMN IF NOT EXISTS</c> col tipo store del modello (le NOT
 /// NULL ricevono un default sicuro per non violare le righe esistenti, poi il default viene rimosso); per ogni indice
-/// del modello assente emette un <c>CREATE INDEX IF NOT EXISTS</c>. Idempotente e best-effort: un errore su un
+/// del modello assente un <c>CREATE INDEX IF NOT EXISTS</c>. Idempotente e best-effort: un errore su un
 /// singolo oggetto non blocca il chiamante. No-op sui provider non-Npgsql. Vedi ADR-0007.
 /// </summary>
 public static class PostgresSchemaReconciler
@@ -45,6 +52,9 @@ public static class PostgresSchemaReconciler
             try
             {
                 db.Database.EnsureCreated();
+                // Prima le tabelle: colonne e indici di una tabella appena creata sono già dentro il CREATE TABLE,
+                // e i due passi successivi la trovano allineata.
+                EnsureModelTables(db, conn, log);
                 EnsureModelColumns(db, conn, log);
                 EnsureModelIndexes(db, conn, log);
             }
@@ -65,6 +75,62 @@ public static class PostgresSchemaReconciler
 
     private static bool IsNpgsql(DbContext db) =>
         db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
+
+    // --- Tabelle ---
+
+    /// <summary>
+    /// Crea le tabelle del modello che nel database non esistono. Serve perché <c>EnsureCreated</c> crea lo schema
+    /// solo se il database è VUOTO: su Neon, che di tabelle ne ha già, un'entità nuova non nascerebbe mai e il primo
+    /// uso fallirebbe con <c>42P01 relation "..." does not exist</c>.
+    /// </summary>
+    private static void EnsureModelTables(DbContext db, IDbConnection conn, ILogger? log)
+    {
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+        using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+            using var r = read.ExecuteReader();
+            while (r.Read()) actual.Add(r.GetString(0));
+        }
+
+        foreach (var sql in CreateTableStatements(db, actual))
+        {
+            try
+            {
+#pragma warning disable EF1002 // DDL generata da EF dal proprio modello, non input utente → nessuna SQL injection
+                db.Database.ExecuteSqlRaw(sql);
+#pragma warning restore EF1002
+            }
+            catch (Exception ex)
+            {
+                Warn(log, "creazione tabella fallita: {Message}", ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// DDL di creazione per le sole tabelle del modello assenti da <paramref name="existingTables"/>, generata da EF
+    /// (quindi con PK, FK, vincoli e tipi store esatti del provider). Funzione pura: non tocca il database — è il
+    /// pezzo verificabile senza un Postgres vivo, ed è per questo che è pubblica.
+    /// </summary>
+    public static IReadOnlyList<string> CreateTableStatements(DbContext db, ISet<string> existingTables)
+    {
+        var model = db.GetService<IDesignTimeModel>().Model;
+        var differ = db.GetService<IMigrationsModelDiffer>();
+        var generator = db.GetService<IMigrationsSqlGenerator>();
+
+        // Diff dal "niente" al modello: dà le operazioni di creazione di TUTTO lo schema; qui interessano solo le
+        // CreateTable delle tabelle assenti. Gli indici li completa comunque EnsureModelIndexes subito dopo.
+        var operations = differ.GetDifferences(null, model.GetRelationalModel())
+            .OfType<CreateTableOperation>()
+            .Where(op => !existingTables.Contains(op.Name))
+            .Cast<MigrationOperation>()
+            .ToList();
+
+        if (operations.Count == 0) return Array.Empty<string>();
+
+        return generator.Generate(operations, model).Select(c => c.CommandText).ToList();
+    }
 
     // --- Colonne ---
 
