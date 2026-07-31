@@ -218,6 +218,10 @@
             var nm = document.createElement('b'); nm.textContent = s.sec || s.name || '';
             var fl = document.createElement('i'); fl.textContent = 'FL' + (b[0] || 0) + '–' + (b[1] || 660);
             el.appendChild(nm); el.appendChild(fl);
+            // Il pointerdown NON deve arrivare allo stage: là parte l'orbita e con essa setPointerCapture, che
+            // ridirige il pointerup sullo stage — il click finirebbe sull'antenato comune e l'etichetta non lo
+            // vedrebbe mai. Fermandolo qui il click arriva, e trascinare da un'etichetta semplicemente non ruota.
+            el.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); });
             el.addEventListener('click', function (ev) { ev.stopPropagation(); if (onToggle) onToggle(s); });
             layer.appendChild(el);
             items.push({ s: s, el: el, w: 0, h: 0 });
@@ -343,7 +347,7 @@
         stage._aorSetSec = setSec;
         // Le etichette si posizionano DOPO il render (matrici mondo fresche) e solo lì: render() è on-demand
         // (drag, zoom, toggle), non un loop raf, quindi il costo del declutter è trascurabile.
-        var labels = buildLabels(stage, sectors, function (s) { if (!moved) setSec(s.sec, !(s._g && s._g.visible)); });
+        var labels = buildLabels(stage, sectors, function (s) { setSec(s.sec, !(s._g && s._g.visible)); });
         function render() {
             if (!ctx) return;
             ctx.renderer.render(ctx.scene, ctx.camera);
@@ -366,6 +370,10 @@
         // Legenda (toggle visibilità settore). Etichetta = callsign col nome esteso nel title, come le chip del 2D.
         // Resta anche a schermo intero, dove le chip fuori dallo stage non si vedono.
         if (box) {
+            // Stessa ragione delle etichette: senza fermare il pointerdown lo stage cattura il puntatore e il click
+            // sulla riga non arriva mai (la legenda, per giunta, deve poter scorrere senza far ruotare la scena).
+            var legend = stage.querySelector('.aor3d-legend');
+            if (legend) legend.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); });
             box.innerHTML = sectors.map(function (s, i) {
                 var b = s.fl || [0, 660];
                 return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || '') + '"><span class="sw" style="background:' + hex(s.color) +
@@ -374,17 +382,15 @@
             box.querySelectorAll('.lg-row').forEach(function (r) {
                 r.addEventListener('click', function () {
                     var s = sectors[+r.dataset.i];
-                    if (s && s._g && !moved) setSec(s.sec, !s._g.visible);
+                    if (s && s._g) setSec(s.sec, !s._g.visible);
                 });
             });
         }
 
         // Orbita manuale + zoom.
-        // `moved` distingue l'orbita dal click: trascinando a partire da un'etichetta o da una riga di legenda
-        // (che stanno dentro lo stage) partirebbe comunque il click finale, spegnendo il settore per sbaglio.
-        var dragging = false, lx = 0, ly = 0, moved = false;
-        stage.addEventListener('pointerdown', function (e) { dragging = true; moved = false; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } });
-        stage.addEventListener('pointermove', function (e) { if (!dragging) return; if (Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly) > 2) moved = true; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); });
+        var dragging = false, lx = 0, ly = 0;
+        stage.addEventListener('pointerdown', function (e) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } });
+        stage.addEventListener('pointermove', function (e) { if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); });
         stage.addEventListener('pointerup', function () { dragging = false; stage.classList.remove('grabbing'); });
         stage.addEventListener('pointerleave', function () { dragging = false; stage.classList.remove('grabbing'); });
         stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false });
@@ -399,6 +405,9 @@
             zf = v;
             ctx.group.scale.z = zf;
             lookZ = (ctx.maxHeight || 80) * zf * 0.4;
+            // Anche la distanza segue il fattore: a ×2 i prismi sfondavano l'inquadratura. Cambiare l'altezza è
+            // un'azione di inquadratura, quindi ricalcolare lo zoom qui è coerente (la rotella resta libera dopo).
+            radius = clamp(DEF.radius * (0.8 + 0.5 * zf), 110, 620);
             zBtns.forEach(function (b) { b.classList.toggle('on', parseFloat(b.dataset.z) === zf); });
             updateCam();
         }
