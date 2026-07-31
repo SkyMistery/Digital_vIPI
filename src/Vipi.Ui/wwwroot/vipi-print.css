@@ -103,8 +103,17 @@
   .vipi-root .rule-card,
   .vipi-root .mp,
   .vipi-root .taf-row,
+  .vipi-root .doc-img,
   .vipi-root tr { break-inside: avoid; }
   .vipi-root p { orphans: 3; widows: 3; }
+
+  /* Immagini editoriali: sulla carta il vincolo non è la larghezza (già al 100%) ma l'ALTEZZA — una foto
+     verticale da sola occuperebbe la pagina intera spingendo il testo oltre. Il tetto in mm la tiene dentro
+     il flusso; la didascalia resta attaccata alla sua figura grazie al break-inside sopra. */
+  .vipi-root .doc-img img { max-height: 110mm !important; width: auto !important; }
+  .vipi-root .doc-img figcaption { font-size: 8.5pt; }
+  /* Il segnaposto «nessuna immagine» è un fatto dell'editor: sulla carta non significa niente. */
+  .vipi-root .img-ph { display: none !important; }
 
   /* ── Scala tipografica della carta ─────────────────────────────────────────────
      A schermo il tema parte da 16px con h2 32px e h3 28px: misure giuste per un monitor, enormi su A4 (28px

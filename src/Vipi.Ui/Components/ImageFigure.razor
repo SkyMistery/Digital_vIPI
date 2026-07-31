@@ -1,0 +1,32 @@
+@* Resa CONDIVISA di un'immagine editoriale: viewer (BlockRenderer), anteprime read-only dei due editor e viewer
+   aeroporto passano tutti di qui, così documento, editor, anteprima di release e stampa non possono divergere.
+   Senza riferimento valido si mostra il segnaposto: un blocco immagine appena creato esiste prima della sua foto. *@
+
+@if (Media is null)
+{
+    <figure class="img-ph"><span>@(EmptyLabel ?? "Nessuna immagine")</span></figure>
+}
+else
+{
+    <figure class="doc-img">
+        @* width/height nativi: il posto dell'immagine è già riservato prima che arrivi, quindi il testo non salta.
+           loading=lazy perché un documento può averne molte e stanno quasi tutte sotto la piega. *@
+        <img src="@Media.Url" alt="@(Media.Alt ?? "")" loading="lazy"
+             width="@(Media.Width > 0 ? Media.Width.ToString() : null)"
+             height="@(Media.Height > 0 ? Media.Height.ToString() : null)" />
+        @if (!string.IsNullOrWhiteSpace(Caption))
+        {
+            <figcaption>@MarkdownLite.Render(Caption)</figcaption>
+        }
+    </figure>
+}
+
+@code {
+    [Parameter] public MediaRef? Media { get; set; }
+
+    /// <summary>Didascalia (markdown come la prosa).</summary>
+    [Parameter] public string? Caption { get; set; }
+
+    /// <summary>Testo del segnaposto quando l'immagine non c'è ancora (l'editor ne mette uno più esplicito).</summary>
+    [Parameter] public string? EmptyLabel { get; set; }
+}
