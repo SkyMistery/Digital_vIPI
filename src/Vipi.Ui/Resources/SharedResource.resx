@@ -1047,6 +1047,12 @@
   <data name="Ape_PublishedTitle" xml:space="preserve"><value>Una release è in vigore: il documento è pubblico</value></data>
   <data name="Ape_DraftTitle" xml:space="preserve"><value>Nessuna release in vigore: pubblica dalla sezione «Versioni»</value></data>
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-importa da IVAO</value></data>
+  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude e catalogo settori (rispetta la policy in «Sorgenti dati»)</value></data>
+  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import da IVAO completato: {0} piste, settori {1} nuovi / {2} aggiornati.</value></data>
+  <!-- Il ↧ è la data d'import del CATALOGO SETTORI (il più recente): è l'unico pezzo di sorgente che porta
+       un timestamp per riga. Prima l'etichetta diceva solo «ultimo import da IVAO» e sembrava riferita al
+       bottone accanto, che allora non toccava i settori — ora li importa, quindi la data si muove davvero. -->
+  <data name="Ape_LastImportTitle" xml:space="preserve"><value>Ultimo import del catalogo settori da IVAO</value></data>
   <data name="Ape_NotFound" xml:space="preserve"><value>Aeroporto non trovato o nessun profilo. Genera prima il documento da «Gestione aeroporti».</value></data>
   <data name="Ape_ReadOnly" xml:space="preserve"><value>Sola lettura: non hai i permessi per editare la ACC {0}.</value></data>
   <data name="Ape_Unsaved" xml:space="preserve"><value>Modifiche non salvate</value></data>
@@ -1154,7 +1160,7 @@
   <data name="Ape_RemoveRwConfirm" xml:space="preserve"><value>Rimuovere questa pista?</value></data>
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Rimuovere questa SID?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Rimuovere questa sezione?</value></data>
-  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO? I campi importati dalla sorgente verranno sovrascritti.</value></data>
+  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude e settori? I campi importati dalla sorgente verranno sovrascritti.</value></data>
   <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Modifiche non salvate in: {0}. Non entreranno nella release. Continuare?</value></data>
   <data name="Ape_RebuildConfirm" xml:space="preserve"><value>Rigenerare il documento dalla bozza corrente prima di pubblicare?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>mese</value></data>

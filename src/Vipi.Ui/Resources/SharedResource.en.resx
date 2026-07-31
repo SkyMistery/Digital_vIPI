@@ -1044,6 +1044,9 @@
   <data name="Ape_PublishedTitle" xml:space="preserve"><value>A release is effective: the document is public</value></data>
   <data name="Ape_DraftTitle" xml:space="preserve"><value>No release effective: publish from the «Versions» section</value></data>
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
+  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude and the ATC sector catalogue (respects the «Data sources» policy)</value></data>
+  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import from IVAO completed: {0} runways, sectors {1} new / {2} updated.</value></data>
+  <data name="Ape_LastImportTitle" xml:space="preserve"><value>Last import of the ATC sector catalogue from IVAO</value></data>
   <data name="Ape_NotFound" xml:space="preserve"><value>Airport not found or no profile. Generate the document first from «Airport management».</value></data>
   <data name="Ape_ReadOnly" xml:space="preserve"><value>Read-only: you do not have permission to edit ACC {0}.</value></data>
   <data name="Ape_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
@@ -1151,7 +1154,7 @@
   <data name="Ape_RemoveRwConfirm" xml:space="preserve"><value>Remove this runway?</value></data>
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Remove this SID?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
-  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import from IVAO? The fields imported from the source will be overwritten.</value></data>
+  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude and sectors from IVAO? The fields imported from the source will be overwritten.</value></data>
   <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Unsaved changes in: {0}. They will not enter the release. Continue?</value></data>
   <data name="Ape_RebuildConfirm" xml:space="preserve"><value>Regenerate the document from the current draft before publishing?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>month</value></data>
