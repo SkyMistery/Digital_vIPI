@@ -396,6 +396,22 @@
 
 /* ---------- Screen 4: ridotta ---------- */
 /* la vista ridotta sfrutta tutta la larghezza; sezioni piccole affiancate */
+/* Vista live: cambi di stato ATC dall'ultimo tick. Restano scritti finché non li scarti — un handoff che
+   cambia destinatario non deve poter passare inosservato mentre guardi un'altra parte della pagina. */
+.live-changes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:8px 12px;
+  border:1px solid #f2d9a0;background:#fffaf0;border-radius:10px}
+.live-changes .lc-lab{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--warn-ink)}
+.live-changes .lc-chip{font-size:12.5px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid}
+.live-changes .lc-chip.on{background:#dafbe7;color:#0f7a37;border-color:#a7e9c1}
+.live-changes .lc-chip.off{background:#ffeef0;color:#a40e26;border-color:#f5c2c7}
+.live-changes .lc-chip .lc-t{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
+  color:var(--ink-soft);text-decoration:underline;padding:0}
+.live-changes .lc-clear:hover{color:var(--ivao-blue)}
+/* Riga/riquadro trasferimento toccato da un cambio: evidenza che sopravvive al re-render (non un lampo). */
+.xt-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:#fffaf0}
+
 .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
 .red-top-grid .acc-item{margin-bottom:0}
 .reduced-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}

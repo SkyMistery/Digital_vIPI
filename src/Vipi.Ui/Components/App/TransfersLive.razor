@@ -12,7 +12,7 @@ else
     <div id="xfer-pairs">
         @foreach (var owner in Flows.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
         {
-            <div class="xpair">
+            <div class="xpair @(IsChanged(owner.Key) ? "xt-changed" : "")">
                 <div class="xpair-h">@owner.Key @(owner.First().OwnerOnline ? "" : "· offline")</div>
                 <div class="xpair-body">
                     @foreach (var kind in owner.GroupBy(r => r.Flow.Kind).OrderBy(g => g.Key))
@@ -31,7 +31,7 @@ else
                                     </div>
                                     @foreach (var p in points)
                                     {
-                                        <div class="xt-pt">
+                                        <div class="xt-pt @(IsChanged(p.ResolvedHandler) ? "xt-changed" : "")">
                                             <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
                                             <b class="fl">@p.Point.LevelText</b>
                                             @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
@@ -55,4 +55,10 @@ else
     [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
     [Parameter] public string EmptyText { get; set; } = "Nessun coordinamento.";
 
+    /// <summary>Callsign appena passati online/offline: le righe che li riguardano si evidenziano, così un
+    /// cambio di destinatario non passa inosservato mentre stai guardando altrove.</summary>
+    [Parameter] public IReadOnlySet<string>? Changed { get; set; }
+
+    private bool IsChanged(string? callsign) =>
+        Changed is { Count: > 0 } && !string.IsNullOrWhiteSpace(callsign) && Changed.Contains(callsign);
 }

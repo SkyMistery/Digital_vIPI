@@ -60,6 +60,19 @@ else
             <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Live_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Live_ReducedLiveBody"], _p))</div></div>
         }
 
+        @if (_changes.Count > 0)
+        {
+            @* La pagina si riscriveva in silenzio a ogni tick: qui i cambi restano scritti finché non li scarti. *@
+            <div class="live-changes" role="status" aria-live="polite">
+                <span class="lc-lab">@L["Live_ChangesLabel"]</span>
+                @foreach (var ch in Enumerable.Reverse(_changes))
+                {
+                    <span class="lc-chip @(ch.Online ? "on" : "off")">@(ch.Online ? "▲" : "▼") @ch.Callsign <span class="lc-t">@Z(ch.At)</span></span>
+                }
+                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()">@L["Live_ChangesClear"]</button>
+            </div>
+        }
+
         <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
         <div class="apt-quick" style="margin-bottom:22px">
             <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Live_MySector"]</span>
@@ -134,7 +147,7 @@ else
                     else { <span class="muted xo-hint">@L["Live_NoNeighbourOnline"]</span> }
                     <span class="muted xo-hint">@L["Live_TransfersHint"]</span>
                 </div>
-                <TransfersLive Flows="_resolved" EmptyText="@L["Live_NoCoord"]" />
+                <TransfersLive Flows="_resolved" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" />
             </div>
         </details>
         }
@@ -163,6 +176,13 @@ else
     private bool _followMe = true; // la postazione segue la connessione IVAO finché non la scegli a mano
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
+
+    /// <summary>Un ente rilevante è passato online/offline mentre la pagina era aperta.</summary>
+    private sealed record LiveChange(string Callsign, bool Online, DateTimeOffset At);
+
+    private const int MaxChanges = 6;
+    private readonly List<LiveChange> _changes = new();
+    private HashSet<string>? _prevOnline;   // null = primo caricamento: lo stato iniziale non è un cambio
 
     private DotNetObjectReference<AccLivePage>? _ref;
 
@@ -234,11 +254,62 @@ else
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;
         _resolved = await Transfers.ResolveForAccAsync(_acc.Code, online);
+        TrackChanges(online);
 
         _freqs.Clear();
         foreach (var b in _noDoc ? await FallbackBlocksAsync() : _data.Blocks)
             _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(_acc.Code, b, _root)).ToList();
     }
+
+    /// <summary>
+    /// Enti che contano per questa postazione: il dominio topologico di P (chi copro / chi mi copre) e chiunque
+    /// compaia nei miei trasferimenti. Ancorata al callsign CONFIGURATO (<c>NextSectorCallsign</c>) e non solo a
+    /// quello risolto: altrimenti chi va offline uscirebbe dall'insieme e il suo cambio non verrebbe mai visto.
+    /// </summary>
+    private HashSet<string> RelevantCallsigns()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_topo is not null && !string.IsNullOrEmpty(_p))
+            foreach (var cs in _topo.DomainOf(_p)) set.Add(cs);
+
+        foreach (var r in _resolved)
+        {
+            set.Add(r.Flow.OwningSectorCallsign);
+            set.Add(r.ResolvedOwnerCallsign);
+            foreach (var pt in r.Points)
+            {
+                if (!string.IsNullOrWhiteSpace(pt.Point.NextSectorCallsign)) set.Add(pt.Point.NextSectorCallsign!);
+                set.Add(pt.ResolvedHandler);
+            }
+        }
+
+        set.Remove("UNICOM");   // non è un ente che va online o offline
+        return set;
+    }
+
+    /// <summary>
+    /// Diff dell'insieme online fra due tick. Senza questo la pagina si riscriveva in silenzio: un punto di
+    /// trasferimento poteva cambiare destinatario sotto gli occhi di chi stava guardando altrove.
+    /// </summary>
+    private void TrackChanges(HashSet<string> online)
+    {
+        var relevant = RelevantCallsigns();
+        var now = new HashSet<string>(online.Where(relevant.Contains), StringComparer.OrdinalIgnoreCase);
+        if (_prevOnline is null) { _prevOnline = now; return; }
+
+        var at = _snapshot.AsOf == DateTimeOffset.MinValue ? DateTimeOffset.UtcNow : _snapshot.AsOf;
+        foreach (var cs in now.Except(_prevOnline, StringComparer.OrdinalIgnoreCase)) _changes.Add(new(cs, true, at));
+        foreach (var cs in _prevOnline.Except(now, StringComparer.OrdinalIgnoreCase)) _changes.Add(new(cs, false, at));
+
+        _prevOnline = now;
+        if (_changes.Count > MaxChanges) _changes.RemoveRange(0, _changes.Count - MaxChanges);
+    }
+
+    /// <summary>Orario in UTC: un controllore ragiona in Z, non nel fuso del suo PC.</summary>
+    private static string Z(DateTimeOffset at) => at.UtcDateTime.ToString("HH:mm") + "Z";
+
+    private IReadOnlySet<string> ChangedCallsigns() =>
+        _changes.Select(c => c.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private string? MyCallsign() => Users.Get() is { } u
         ? _snapshot.Details.FirstOrDefault(d => d.UserId == u.UserId)?.Callsign

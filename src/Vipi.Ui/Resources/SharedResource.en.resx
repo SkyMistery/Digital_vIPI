@@ -126,6 +126,8 @@
   <data name="Live_Position" xml:space="preserve"><value>Position</value></data>
   <data name="Live_DetectedFromIvao" xml:space="preserve"><value>Detected from your IVAO connection</value></data>
   <data name="Live_FollowMe" xml:space="preserve"><value>follow {0}</value></data>
+  <data name="Live_ChangesLabel" xml:space="preserve"><value>Changes</value></data>
+  <data name="Live_ChangesClear" xml:space="preserve"><value>dismiss</value></data>
   <data name="Live_FollowOffTip" xml:space="preserve"><value>You are connected here, but you are viewing another position (picked manually)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>
