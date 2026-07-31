@@ -38,7 +38,20 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
+        // Padre impostato sul nodo AEROPORTO in /vsop/admin/sectorstructure (`Airport.ParentCallsign`): è il
+        // legame che l'admin vede e compila, e vale per TUTTE le posizioni di quell'aeroporto.
+        var airportParentByIcao = await _db.Airports
+            .Where(a => a.ParentCallsign != null)
+            .ToDictionaryAsync(a => a.Icao, a => a.ParentCallsign!, StringComparer.OrdinalIgnoreCase, ct);
+
         var airportSectors = await _db.AirportSectors.AsNoTracking().ToListAsync(ct);
+
+        // Posizioni visibili per aeroporto, per la scaletta interna (sotto).
+        var visibleByIcao = airportSectors
+            .Where(s => !s.IsHidden && !hiddenAcc.Contains(s.AccCode) && !IsAtis(s.Position))
+            .GroupBy(s => s.AirportIcao, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
         foreach (var s in airportSectors)
         {
             if (s.IsHidden || hiddenAcc.Contains(s.AccCode)) continue;
@@ -49,7 +62,8 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Airport, Frequency: s.Frequency,
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
-                ParentCallsign: s.ParentCallsign, IsAccApp: s.IsAccApp,
+                ParentCallsign: s.ParentCallsign ?? AirportLadderParent(s, visibleByIcao, airportParentByIcao),
+                IsAccApp: s.IsAccApp,
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
@@ -100,7 +114,10 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         //    solo a callsign confermati in `desired` (tutti upsertati IsActive=true), mai a un settore disattivato.
         var parentOf = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in accSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
-        foreach (var s in airportSectors) parentOf[s.ComposePosition] = s.ParentCallsign;
+        // Stesso padre derivato usato in `desired`: se la mappa usasse il ParentCallsign grezzo, la risalita
+        // verso un antenato visibile ripartirebbe da null proprio per le posizioni che il fix aggancia.
+        foreach (var s in airportSectors)
+            parentOf[s.ComposePosition] = s.ParentCallsign ?? AirportLadderParent(s, visibleByIcao, airportParentByIcao);
 
         foreach (var d in desired.Values)
         {
@@ -217,6 +234,46 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
     {
         var i = callsign.IndexOf('_');
         return i == 4 ? callsign[..4].ToUpperInvariant() : null;
+    }
+
+    /// <summary>
+    /// Padre di una posizione d'aeroporto che non ne ha uno proprio nel catalogo (nei dati reali: tutte tranne
+    /// gli APP). Sale la <b>scaletta interna</b> dell'aeroporto — DEL → GND → TWR → APP — fermandosi alla prima
+    /// posizione davvero presente, e in cima esce sul <c>ParentCallsign</c> dell'AEROPORTO, cioè il legame che
+    /// l'admin compila su `/vsop/admin/sectorstructure`.
+    ///
+    /// Prima questo legame non veniva letto da nessuno: la proiezione guardava solo
+    /// <c>AirportSector.ParentCallsign</c>, popolato per i soli APP. Torri, ground e delivery restavano quindi
+    /// <b>orfani</b> nonostante l'aeroporto avesse un padre configurato — con due conseguenze silenziose:
+    /// catena di copertura vuota nella vista live, e risalita dei trasferimenti che terminava su UNICOM invece
+    /// di salire all'avvicinamento.
+    ///
+    /// La scaletta è dedotta da <see cref="CoverageFor"/> (più basso = più in alto), non da un dato scritto:
+    /// è la sequenza operativa standard di un aeroporto, non una gerarchia che l'admin debba compilare.
+    /// </summary>
+    private static string? AirportLadderParent(
+        AirportSector sector,
+        IReadOnlyDictionary<string, List<AirportSector>> visibleByIcao,
+        IReadOnlyDictionary<string, string> airportParentByIcao)
+    {
+        var mine = CoverageFor(MapType(sector.Position));
+
+        if (visibleByIcao.TryGetValue(sector.AirportIcao, out var siblings))
+        {
+            // La posizione immediatamente sopra nella scaletta: il CoverageOrder più alto fra quelli minori del mio.
+            var above = siblings
+                .Where(x => !string.Equals(x.ComposePosition, sector.ComposePosition, StringComparison.OrdinalIgnoreCase))
+                .Select(x => (x.ComposePosition, Order: CoverageFor(MapType(x.Position))))
+                .Where(x => x.Order < mine)
+                .OrderByDescending(x => x.Order)
+                .ThenBy(x => x.ComposePosition, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+
+            if (above.ComposePosition is not null) return above.ComposePosition;
+        }
+
+        // In cima alla scaletta (o aeroporto con una sola posizione): esce sul padre dell'aeroporto.
+        return airportParentByIcao.GetValueOrDefault(sector.AirportIcao);
     }
 
     private static int CoverageFor(SectorType type) => type switch

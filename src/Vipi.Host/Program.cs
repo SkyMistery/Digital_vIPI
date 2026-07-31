@@ -59,6 +59,9 @@ app.UseVipiDataProtection();
 app.MigrateVipiDatabase();
 // Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
 app.ReconcileVipiDocuments();
+// Riallinea i settori proiettati ai cataloghi: fa entrare in vigore i cambi alla regola di derivazione della
+// gerarchia senza aspettare il prossimo import (idempotente).
+app.ProjectVipiSectors();
 // Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
 app.BackfillVipiReleases();
 // Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).

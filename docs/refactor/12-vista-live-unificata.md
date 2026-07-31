@@ -137,3 +137,54 @@ dice a parole per le postazioni d'aeroporto — non nasconde la riga.
 
 **Follow-up aperto (dato, non codice):** agganciare TWR/GND/DEL alla gerarchia di copertura. Finché non è fatto,
 la vista live di quelle postazioni resta corretta ma monca del pezzo che più le riguarda.
+
+## 7. Il padre dell'aeroporto non arrivava alle sue posizioni (fix del 2026-07-31)
+
+La catena vuota del §6 **non** era un dato mancante: era un legame che nessuno leggeva.
+
+`/vsop/admin/sectorstructure` espone tre generi di nodo — ACC, APP e **Aeroporto** — e il padre impostato sul
+nodo Aeroporto finisce in `Airport.ParentCallsign` (29 aeroporti popolati, es. `LIBD → LIBD_CS0_APP`).
+La proiezione `EfSectorProjectionService` però derivava `Sector.ParentSectorId` **solo** da
+`AirportSector.ParentCallsign`, popolato per i soli APP (58/58) e **mai** per TWR/GND/DEL (0 su 109).
+
+Risultato: l'admin compilava il padre nella UI e per torri, ground e delivery non aveva **alcun** effetto.
+
+### Regola scelta: scaletta interna, poi il padre dell'aeroporto
+
+Una posizione d'aeroporto senza padre proprio sale la scaletta **DEL → GND → TWR → APP**, fermandosi alla prima
+posizione davvero presente; in cima esce sul `ParentCallsign` dell'aeroporto.
+
+```
+LIBD_TWR → LIBD_CS0_APP → LIBB_ES_CTR          (aeroporto con APP)
+LIRL_GND → LIRL_TWR → LIRR_NE_CTR              (aeroporto senza APP: la torre esce sul padre dell'aeroporto)
+```
+
+La scaletta è dedotta da `CoverageFor` (sequenza operativa standard), non da un dato scritto. Un
+`AirportSector.ParentCallsign` esplicito **vince sempre** sulla scaletta.
+
+**Portata oltre la vista live.** La stessa gerarchia regge la risoluzione dei trasferimenti
+(`TransferOnlineResolver` risale `ParentSectorId`): un punto verso una torre offline terminava su **UNICOM**
+invece di salire all'avvicinamento — cioè la vIPI avrebbe detto «rilascia a UNICOM» con l'APP online che quel
+traffico lo possiede. Nel DB attuale i punti verso TWR/GND/DEL sono **0**, quindi era latente, non un danno in
+corso; ma è la stessa classe di errore.
+
+**Riproiezione all'avvio** (`ProjectVipiSectors`, idempotente come le altre riconciliazioni di boot): senza,
+il cambio di regola sarebbe entrato in vigore solo al prossimo import, cioè un giorno dopo.
+
+Effetto misurato sul DB reale — `Del` 0→**5/5**, `Gnd` 0→**20/20**, `Twr` 0→**51/84**:
+
+```
+LIBD_TWR → LIBD_CS0_APP → LIBB_ES_CTR
+LIRF_DEL → LIRF_GND → LIRF_E_TWR → LIRF_AEM_APP → LIRF_TW1_APP → LIRR_TS_CTR → LIRR_NE_CTR
+```
+
+### ⚠️ Due limiti che restano, entrambi di dato
+
+1. **33 torri ancora orfane**: aeroporti senza APP **e** senza `ParentCallsign` compilato (LICB, LICZ, LIEA,
+   i vari `*_I_TWR`…). La scaletta non ha nulla su cui uscire — e non inventa: la pagina lo dichiara.
+   Si risolve compilando il nodo Aeroporto in Struttura.
+2. **Aeroporti con posizioni sdoppiate** (LIRF 6 APP + 2 TWR, LIMC 4+2, e altri 7): la scaletta deve *scegliere*
+   fra pari grado e lo fa in ordine alfabetico — `LIRF_GND → LIRF_E_TWR` e `LIRF_TWR → LIRF_AEM_APP` sono
+   **arbitrari**, non un dato. Peggio: TWR/GND/DEL **non sono nodi editabili** in `/vsop/admin/sectorstructure`
+   (solo ACC, APP e Aeroporto lo sono), quindi oggi quella scelta non è correggibile dalla UI.
+   Per gli aeroporti a posizione singola — la maggioranza — la scaletta è invece esatta.

@@ -220,6 +220,21 @@ public static class VipiModuleExtensions
         return host;
     }
 
+    /// <summary>
+    /// Riallinea i <c>Sector</c> proiettati ai cataloghi all'avvio. La proiezione è idempotente e gira già dopo
+    /// ogni import e ogni modifica alla gerarchia; qui serve a far entrare in vigore i cambi alla REGOLA di
+    /// derivazione senza aspettare il prossimo import (es. 2026-07-31: la scaletta DEL→GND→TWR→APP che aggancia
+    /// le posizioni d'aeroporto al padre dell'aeroporto — senza questa passata i settori già proiettati
+    /// resterebbero orfani fino all'import automatico del giorno dopo).
+    /// </summary>
+    public static IHost ProjectVipiSectors(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.ISectorProjectionService>()
+            .SyncFromCatalogsAsync().GetAwaiter().GetResult();
+        return host;
+    }
+
     /// <summary>Migrazione A (doc 10 §3f): backfilla una release effettiva per ogni documento pubblicato senza copia
     /// congelata, così la visibilità pubblica = release effettiva non lascia buchi. Idempotente: sicuro a ogni avvio.</summary>
     public static IHost BackfillVipiReleases(this IHost host)
