@@ -48,7 +48,7 @@ else
                     <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">@L["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/operativa">@L["Common_Operational"]</a>
+                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/live">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
                             <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@L["Common_Editor"]</a>

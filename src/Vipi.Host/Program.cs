@@ -120,6 +120,11 @@ app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"
 // Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
 app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
 
+// Compat: le due viste operative sono passate a un path inglese (/operativa → /live, /operativa-app → /live-app).
+// Sono le pagine che un controllore tiene aperte e mette tra i preferiti: i vecchi link devono continuare a funzionare.
+app.MapGet("/vsop/{acc}/operativa", (HttpContext ctx, string acc) => Results.Redirect($"/vsop/{acc}/live{ctx.Request.QueryString}", permanent: true));
+app.MapGet("/vsop/{acc}/operativa-app", (HttpContext ctx, string acc) => Results.Redirect($"/vsop/{acc}/live-app{ctx.Request.QueryString}", permanent: true));
+
 // File statici (wwwroot dell'host + wwwroot della RCL vIPI). Sostituisce UseStaticFiles: gli asset sono
 // impronta-per-contenuto (`@Assets[...]` in App.razor) e serviti con `immutable`, quindi un deploy rifà
 // scaricare solo i file davvero cambiati; le varianti brotli/gzip sono precompilate a build-time.

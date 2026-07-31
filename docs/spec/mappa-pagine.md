@@ -27,6 +27,8 @@
 │        voce   → /vsop/{acc}/vloa?acc=YYYY        (documento · vicino YYYY · editor: /vloa/editor?acc=)
 └─ [Admin CH/AOD] Editor vIPI · Editor vLOA  (Trasferimenti → /vsop/admin/trasferimenti · Gerarchia → /vsop/admin/sectorstructure)
 
+/vsop/{acc}/live          Vista live ACC (ex /operativa)  .......... AccLivePage.razor
+/vsop/{acc}/live-app      Vista live APP (ex /operativa-app)  ...... AppLivePage.razor
 /vsop/{acc}/vipi          vIPI ACC (data-driven, multi-albero)  .... AccVipiPage.razor
 /vsop/{acc}/airports      Elenco aeroporti (no ?icao)  ............. AeroportoPage.razor
 /vsop/{acc}/airports?icao=XXXX   vIPI aeroporto (con ?icao)  ....... AeroportoPage.razor
@@ -53,6 +55,8 @@
 | `/vsop/{acc}/apps` | `AppsListPage.razor` | Elenco APP non remot. | tutti |
 | `/vsop/{acc}/apps/vipi` | `AppnPage.razor` | Documento APP non remot. (`?app=CALLSIGN`, **data-driven** dal profilo; tasto **✎ Editor** se autorizzato). Solo `ApproachKind.Standalone`: su un callsign remotizzato non esiste documento (doc 11 §3e). Il vecchio ramo `?vloa=` (seconda rotta della vLOA) è **rimosso**: la vLOA ha una rotta sola | tutti (edit: AOD/DIR) |
 | `/vsop/{acc}/apps/editor` | `AppEditorPage.razor` | **Editor dedicato APP non remotizzato** (`?app=CALLSIGN`): WYSIWYG, 6 sezioni fisse (Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti) + sezioni custom, riordino drag-and-drop + tasti, nascondi sezioni. Freq/coord/AOR **derivate live**. I doc APPn instradano qui (non all'editor generico/aeroporto) via `DocumentSummary.IsStandaloneApp` | admin/grant ACC |
+| `/vsop/{acc}/live` | `AccLivePage.razor` | **Vista live ACC** (ex `/operativa`, redirect 301): la pagina che il controllore tiene aperta mentre controlla. Postazione `?p=CALLSIGN` (default = la posizione con cui sei connesso su IVAO, seguita live), frequenze derivate, AoR/collasso morbido dei gruppi APP, trasferimenti risolti live, chip vista rapida aeroporto | tutti |
+| `/vsop/{acc}/live-app` | `AppLivePage.razor` | **Vista live APP** (ex `/operativa-app`, redirect 301): come sopra per una posizione di avvicinamento (`?app=CALLSIGN`), sia standalone sia remotizzata sulla vIPI di ACC | tutti |
 | `/vsop/{acc}/vloa` | `VloaListPage.razor` | Elenco vLOA della ACC (no `?acc`); con `?acc=YYYY` mostra il **documento** della coppia acc↔YYYY (una rotta che ramifica per query, come aeroporti). Chiave = **codice ACC vicino** (`VloaRow.NeighbourCode`), non più docId | tutti (edit: AOD/DIR) |
 | `/vsop/changed` | `ChangedPage.razor` | Cosa è cambiato | tutti |
 | `/vsop/search` | `SearchPage.razor` | Ricerca full-text | tutti |
@@ -74,7 +78,8 @@
 
 ## Note tecniche
 - **Prefisso:** tutte le rotte sono sotto `/vsop`. I vecchi URL `/sop*` fanno **redirect 301** a `/vsop*`
-  (preservando la query string) — middleware in `src/Vipi.Host/Program.cs`.
+  (preservando la query string) — middleware in `src/Vipi.Host/Program.cs`. Stesso middleware:
+  `/vsop/{acc}/operativa` → `/vsop/{acc}/live` e `/vsop/{acc}/operativa-app` → `/vsop/{acc}/live-app`.
 - **"3 in evidenza":** campo `FeaturedRank` (1..3) su `Airport` e `Sector` (`Domain/Entities/Anagrafica.cs`,
   migrazione `AddFeaturedRank`) e su `Document` per le vLOA (`Documents.cs`, migrazione `AddVloaFeaturedRank`).
   Si imposta dall'**Editor vIPI ACC** (pannello "In evidenza nella landing ACC", colonne Aeroporti/APP/vLOA).

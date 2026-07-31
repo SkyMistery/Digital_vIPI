@@ -122,7 +122,7 @@
   <data name="Common_TagOpen" xml:space="preserve"><value>aperto</value></data>
   <data name="Common_TagOnline" xml:space="preserve"><value>online</value></data>
   <data name="Common_TagCovered" xml:space="preserve"><value>coperto</value></data>
-  <!-- Vista operativa ACC (/vsop/{acc}/operativa) -->
+  <!-- Vista live ACC (/vsop/{acc}/live) -->
   <data name="Live_Tab" xml:space="preserve"><value>Operativa</value></data>
   <data name="Live_Position" xml:space="preserve"><value>Postazione</value></data>
   <data name="Live_DetectedFromIvao" xml:space="preserve"><value>Rilevato dalla tua connessione IVAO</value></data>
@@ -149,7 +149,7 @@
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connesso come {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordinamenti</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Vista rapida aeroporto</value></data>
-  <!-- Vista operativa APP (/vsop/{acc}/operativa-app) -->
+  <!-- Vista live APP (/vsop/{acc}/live-app) -->
   <data name="AppLive_MissingPosTitle" xml:space="preserve"><value>Posizione APP mancante</value></data>
   <data name="AppLive_MissingPosBody" xml:space="preserve"><value>Specifica &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
   <data name="AppLive_OpsApp" xml:space="preserve"><value>Operativa · APP</value></data>

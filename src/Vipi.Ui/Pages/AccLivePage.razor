@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/operativa"
+@page "/vsop/{Acc}/live"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -151,7 +151,7 @@ else
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
 
-    private DotNetObjectReference<AccOperativaPage>? _ref;
+    private DotNetObjectReference<AccLivePage>? _ref;
 
     protected override async Task OnParametersSetAsync()
     {

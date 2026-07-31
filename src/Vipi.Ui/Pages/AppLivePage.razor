@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/operativa-app"
+@page "/vsop/{Acc}/live-app"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -134,7 +134,7 @@ else
     private IReadOnlyList<ResolvedTransferFlow> _resolved = Array.Empty<ResolvedTransferFlow>();
     private string? _myCallsign;
 
-    private DotNetObjectReference<AppOperativaPage>? _ref;
+    private DotNetObjectReference<AppLivePage>? _ref;
 
     protected override async Task OnParametersSetAsync()
     {
