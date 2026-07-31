@@ -74,6 +74,17 @@ public sealed class EfMediaMaintenance : IMediaMaintenance
             .Select(r => r.PayloadJson)
             .ToListAsync(ct);
 
-        return MediaReferenceScanner.ScanAll(daiBlocchi.Concat(dagliExtra).Concat(dalleRelease));
+        // 4) blocchi condivisi: oggi NESSUNO li crea, ma il modello li prevede (ContentBlock.SharedBlockId) e hanno
+        //    Format + BodyJson come i blocchi normali. Sono esattamente il «quarto posto» che rende pericolosa una
+        //    pulizia automatica: costa una query guardarli adesso, costerebbe una foto persa scoprirli dopo.
+        var daiCondivisi = await _db.SharedBlocks.AsNoTracking()
+            .Where(s => s.BodyJson != null)
+            .Select(s => s.BodyJson)
+            .ToListAsync(ct);
+
+        // NON si guarda l'audit log: registra che cosa è successo, non che cosa si mostra. Se citasse uno sha
+        // cancellato resterebbe una traccia storica con un riferimento morto — nessun documento si rompe.
+        return MediaReferenceScanner.ScanAll(
+            daiBlocchi.Concat(dagliExtra).Concat(dalleRelease).Concat(daiCondivisi));
     }
 }

@@ -59,6 +59,33 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Contains("Testo di prova", json);
     }
 
+    /// <summary>
+    /// Anello fra pubblicazione e pulizia immagini: la pulizia considera «in uso» un'immagine il cui sha compare nel
+    /// payload di una release. Se lo snapshot non lo portasse — o lo scrivesse in una forma che lo scanner non sa
+    /// leggere — la foto di una vIPI gia' pubblicata risulterebbe orfana e verrebbe cancellata. Qui si verifica
+    /// sullo snapshot VERO, non su un payload scritto a mano.
+    /// </summary>
+    [Fact]
+    public async Task Snapshot_Carries_The_Image_Sha_So_Cleanup_Sees_It_As_In_Use()
+    {
+        const string sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        var sec = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = sec.DocumentVersionId, SectionId = sec.Id, Order = 9,
+            Format = BlockFormat.Image, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            Body = "Didascalia", BodyJson = Vipi.Application.Content.MediaRef.Serialize(
+                new Vipi.Application.Content.MediaRef(sha, "Torre", 800, 600)),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        var payload = await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, _docId.ToString(), "2606");
+
+        Assert.NotNull(payload);
+        Assert.Contains(sha, Vipi.Application.Media.MediaReferenceScanner.Scan(payload));
+    }
+
     [Fact]
     public async Task ScheduledFuture_NotEffectiveNow_ButBecomesEffectiveAtCycle()
     {

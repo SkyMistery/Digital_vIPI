@@ -14,7 +14,7 @@ namespace Vipi.Infrastructure.Tests;
 /// <summary>
 /// Pulizia delle immagini non più usate. Il rischio di questa funzione non è lasciare spazzatura, è
 /// <b>cancellare una foto ancora in uso</b>: succederebbe in silenzio e si vedrebbe solo aprendo un documento
-/// pubblicato mesi dopo. Qui si fissano i tre posti da cui un riferimento può arrivare, e il ricontrollo al
+/// pubblicato mesi dopo. Qui si fissano i quattro posti da cui un riferimento può arrivare, e il ricontrollo al
 /// momento della cancellazione.
 /// </summary>
 public class MediaMaintenanceTests : IAsyncLifetime
@@ -142,6 +142,23 @@ public class MediaMaintenanceTests : IAsyncLifetime
             Status = ReleaseStatus.Effective, CreatedByUserId = 1, CreatedUtc = DateTime.UtcNow.AddDays(-30),
             // forma reale: il BodyJson del blocco è una stringa dentro il payload
             PayloadJson = $"{{\"Doc\":{{\"Blocks\":[{{\"BodyJson\":\"{{\\\"mediaId\\\":\\\"{sha}\\\"}}\"}}]}}}}",
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await OrfaniAsync());
+    }
+
+    [Fact]
+    public async Task Immagine_citata_da_un_blocco_condiviso_non_e_orfana()
+    {
+        // Oggi nessuno crea SharedBlock, ma il modello li prevede (ContentBlock.SharedBlockId) e portano
+        // Format + BodyJson come i blocchi normali: se un domani si usassero, senza questa sorgente la pulizia
+        // cancellerebbe la foto di un contenuto condiviso ancora in uso.
+        var sha = await CaricaAsync(1);
+        _db.SharedBlocks.Add(new SharedBlock
+        {
+            Key = "logo-divisione", Title = "Logo", Format = BlockFormat.Image,
+            BodyJson = MediaRef.Serialize(new MediaRef(sha, "Logo", 200, 200)),
         });
         await _db.SaveChangesAsync();
 

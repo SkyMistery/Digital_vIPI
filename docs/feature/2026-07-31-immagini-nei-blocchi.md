@@ -162,8 +162,8 @@ does not exist`. **Passo 1 obbligatorio**: `EnsureModelTables` nel reconciler (d
 Vale per **ogni entità futura**, non solo questa.
 
 **R2 — Immutabilità verso le release.** Il payload di release cita lo sha: se un asset sparisse, una release
-pubblicata mostrerebbe un buco. Regola: l'editing non cancella mai un `MediaAsset`. Un'eventuale GC (scansione
-di documenti + payload release) è **fuori scope**, annotata come possibile azione admin futura.
+pubblicata mostrerebbe un buco. Regola: l'editing non cancella mai un `MediaAsset`. La GC è arrivata subito dopo come **azione admin esplicita**:
+vedi [pulizia delle immagini non più usate](2026-07-31-pulizia-immagini-orfane.md).
 
 **R3 — Ricerca inquinata.** `EfSearchRepository` indicizza `BodyJson` grezzo quando `Body` è vuoto: un blocco
 immagine finirebbe nei risultati come stringa JSON. Fix **nello stesso giro**: per `Format=Image` si indicizzano
@@ -236,4 +236,4 @@ console o di circuito.
 ## Non-obiettivi (dichiarati)
 
 SVG; galleria/carousel; crop/rotazione/annotazioni; immagini **dentro le celle** di tabella; picker per
-riusare un'immagine già caricata (il dedupe c'è, la libreria media no); quota per documento; GC degli asset orfani.
+riusare un'immagine già caricata (il dedupe c'è, la libreria media no); quota per documento.
