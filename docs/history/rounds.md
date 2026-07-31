@@ -851,3 +851,37 @@ sugli asset. Ognuno sul suo branch, nessuno tocca il comportamento dei documenti
 non richiesto» su tutte le rotte provate, ma perché nessuna conteneva uno stage 3D — le rotte erano sbagliate
 (`/vsop/{acc}/vipi`, non `/vsop/{acc}`). Un risultato negativo va sempre letto insieme alla prova che il caso
 positivo sarebbe stato osservabile: qui, che gli stage ci fossero (2) e i bottoni pure.
+
+## 2026-07-31 — Il drift di schema Postgres non correggibile diventa visibile
+
+`PostgresSchemaReconciler` è additivo per scelta: aggiunge colonne e indici mancanti, non tocca il resto. Il buco
+non era «mancano le migrazioni incrementali» — era che **il caso peggiore è silenzioso**. Rinominando una colonna
+nel modello, il reconciler crea la nuova (vuota) e lascia la vecchia coi dati dentro: l'app non lancia niente e
+mostra un campo vuoto. Un errore in faccia sarebbe stato meglio di un dato sbagliato che passa inosservato.
+
+- **Diff nel verso opposto.** `ISchemaDriftProbe` (Application) / `PostgresSchemaDriftProbe` (Infrastructure)
+  confronta `information_schema` col modello EF e segnala: colonna orfana nello schema (Warning, «i dati sono
+  ancora QUI»), tipo divergente (Warning), colonna attesa e assente (Error — il reconcile è best-effort e può
+  aver fallito in silenzio).
+- **Nessun canale nuovo.** I finding entrano nel report di consistenza già esistente, quindi compaiono in
+  `/vsop/admin/diagnostica` e mandano `/vsop/health` a Degraded **senza toccare né la pagina né l'health check**.
+  L'aggancio sta in `ConsistencyReportService.RunAsync` — non in `Analyze`, che resta una funzione pura sul
+  dataset di dominio: il drift è incongruenza di *schema*, non di *dati*.
+- **Non corregge, di proposito.** Guardando solo modello e schema una rinomina è indistinguibile da «togli la
+  vecchia, aggiungi la nuova»: automatizzarla vorrebbe dire autorizzare un `DROP COLUMN` deciso da un'euristica
+  sul DB di produzione.
+- **Il falso allarme era il rischio della feature**, non il bug che cerca: una diagnostica rumorosa non la legge
+  più nessuno. Due difese. La normalizzazione dei tipi copre gli alias (`varchar` ↔ `character varying`,
+  `timestamptz` ↔ `timestamp with time zone`, precisione ignorata). E un test costruisce il modello **con
+  provider Npgsql** (senza connettersi: il model building non ha bisogno di un DB) ed elenca i tipi store
+  realmente usati — oggi otto: `bigint, boolean, bytea, character varying, double precision, integer, text,
+  timestamp with time zone`. Sono già i nomi che usa `information_schema`, quindi la mappa alias è
+  un'assicurazione, non un'ipotesi su cui poggia tutto. Se qualcuno introduce un tipo esotico il test fallisce
+  **prima** che la diagnostica si riempia di falsi positivi.
+- Suite 670 → **686**. Verifica live su SQLite: `health` Degraded come prima, `ready` Healthy, diagnostica 200 e
+  nessuna riga di drift — il probe è davvero no-op fuori da Npgsql.
+
+**Quello che resta da fare a mano**, ed è scritto in ADR-0007 §D1-bis: quando il probe segnala, la DDL si esegue
+a mano su Neon. Accettabile finché i casi sono rari (finora zero). Il passo successivo, se diventassero
+ricorrenti, sono script `.sql` versionati eseguiti all'avvio — non le migrazioni EF per-provider, il cui punto
+duro non è il lavoro corrente ma il baseline da riprodurre esattamente sullo schema che c'è già.

@@ -16,10 +16,28 @@ public interface IConsistencyReportService
 public sealed class ConsistencyReportService : IConsistencyReportService
 {
     private readonly IConsistencyReportRepository _repo;
-    public ConsistencyReportService(IConsistencyReportRepository repo) => _repo = repo;
+    private readonly ISchemaDriftProbe? _schema;
 
-    public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default) =>
-        Analyze(await _repo.LoadAsync(ct));
+    /// <param name="schema">
+    /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
+    /// <see cref="Analyze"/> perché non è un'incongruenza di <i>dati</i> ma di <i>schema</i>, e perché Analyze deve
+    /// restare una funzione pura sul dataset di dominio. Agganciandolo in questo punto — l'unico consumato sia da
+    /// <c>/vsop/admin/diagnostica</c> sia dall'health check — entrambi lo mostrano senza modifiche a valle.
+    /// </param>
+    public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null)
+    {
+        _repo = repo;
+        _schema = schema;
+    }
+
+    public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
+    {
+        var findings = Analyze(await _repo.LoadAsync(ct));
+        if (_schema is null) return findings;
+
+        var drift = await _schema.RunAsync(ct);
+        return drift.Count == 0 ? findings : findings.Concat(drift).ToList();
+    }
 
     // Logica pura (nessuna dipendenza da EF): il dataset è già in memoria ⇒ testabile con fixture.
     public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d)
