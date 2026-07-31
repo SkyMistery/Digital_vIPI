@@ -194,6 +194,7 @@
   <data name="Airport_Frequency" xml:space="preserve"><value>Frequency</value></data>
   <data name="Airport_Runways" xml:space="preserve"><value>Runways</value></data>
   <data name="Airport_Runway" xml:space="preserve"><value>Runway</value></data>
+  <data name="Airport_RunwayAbbr" xml:space="preserve"><value>RWY</value></data>
   <data name="Airport_Use" xml:space="preserve"><value>Use</value></data>
   <data name="Airport_LengthM" xml:space="preserve"><value>Length (m)</value></data>
   <data name="Airport_RwyLegend" xml:space="preserve"><value>&lt;span class="rwy-key arr"&gt;green for arrivals&lt;/span&gt; and &lt;span class="rwy-key dep"&gt;blue for departures&lt;/span&gt; recommended</value></data>

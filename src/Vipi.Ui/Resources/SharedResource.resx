@@ -194,6 +194,10 @@
   <data name="Airport_Frequency" xml:space="preserve"><value>Frequenza</value></data>
   <data name="Airport_Runways" xml:space="preserve"><value>Piste</value></data>
   <data name="Airport_Runway" xml:space="preserve"><value>Pista</value></data>
+  <!-- Intestazione della colonna pista nella tabella SID: la colonna contiene 2-3 caratteri («07»), ma
+       l'etichetta per esteso la terrebbe larga il doppio, a scapito di Condition. RWY è l'abbreviazione
+       ICAO, uguale nelle due lingue. -->
+  <data name="Airport_RunwayAbbr" xml:space="preserve"><value>RWY</value></data>
   <data name="Airport_Use" xml:space="preserve"><value>Uso</value></data>
   <data name="Airport_LengthM" xml:space="preserve"><value>Lung. (m)</value></data>
   <data name="Airport_RwyLegend" xml:space="preserve"><value>In &lt;span class="rwy-key arr"&gt;verde gli arrivi&lt;/span&gt; e &lt;span class="rwy-key dep"&gt;blu le partenze&lt;/span&gt; consigliati</value></data>
