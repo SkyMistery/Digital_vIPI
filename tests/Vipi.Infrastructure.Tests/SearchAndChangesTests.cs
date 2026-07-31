@@ -59,6 +59,39 @@ public class SearchAndChangesTests : IAsyncLifetime
         Assert.Empty(hits);
     }
 
+    /// <summary>
+    /// Un blocco immagine ha per testo il suo alternativo e la didascalia. Il BodyJson porta lo sha: se finisse
+    /// nell'indice, cercare una sequenza qualsiasi pescherebbe immagini a caso e il risultato mostrerebbe JSON.
+    /// </summary>
+    [Fact]
+    public async Task Search_Indexes_Image_Alt_And_Caption_Not_The_Json()
+    {
+        const string sha = "beef56789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+        var section = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId,
+            SectionId = section.Id,
+            Order = 99,
+            Format = Vipi.Domain.BlockFormat.Image,
+            Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always,
+            Body = "Vista del piazzale",
+            BodyJson = MediaRef.Serialize(new MediaRef(sha, "Hangar sud", 1600, 900)),
+        });
+        await _db.SaveChangesAsync();
+
+        var perAlt = await _search.SearchAsync("Hangar sud", SearchScope.All, 50);
+        Assert.Contains(perAlt, h => h.Snippet.Contains("Hangar sud"));
+        Assert.DoesNotContain(perAlt, h => h.Snippet.Contains("mediaId"));
+
+        var perDidascalia = await _search.SearchAsync("piazzale", SearchScope.All, 50);
+        Assert.Contains(perDidascalia, h => h.Snippet.Contains("Vista del piazzale"));
+
+        // Lo sha non è testo: cercarne un pezzo non deve pescare l'immagine.
+        Assert.Empty(await _search.SearchAsync("beef5678", SearchScope.All, 50));
+    }
+
     [Fact]
     public async Task Changed_Lists_Documents_In_Current_Cycle()
     {

@@ -494,6 +494,11 @@ public sealed class EfAirportRepository : IAirportRepository
                     case BlockFormat.Table when !string.IsNullOrWhiteSpace(blk.TableJson):
                         b.TableRaw(sec, BlockTier.Extended, blk.TableJson!);
                         break;
+                    case BlockFormat.Image when MediaRef.Parse(blk.ImageJson) is not null:
+                        // Senza questo ramo l'immagine resterebbe nel profilo e sparirebbe dal documento pubblicato:
+                        // il viewer legge il documento «cotto», non gli extra.
+                        b.Image(sec, BlockTier.Extended, blk.ImageJson!, blk.Text);
+                        break;
                     case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
                         b.Prose(sec, BlockTier.Extended, blk.Text!);
                         break;
@@ -712,6 +717,10 @@ public sealed class EfAirportRepository : IAirportRepository
         /// <summary>Tabella con BodyJson già serializzato (columns/rows) — usato dai blocchi extra a formato condiviso.</summary>
         public void TableRaw(DocumentSection s, BlockTier tier, string bodyJson) =>
             Add(s, BlockFormat.Table, tier, bodyJson: bodyJson);
+
+        /// <summary>Immagine: <paramref name="imageJson"/> è il riferimento (<see cref="MediaRef"/>), il corpo la didascalia.</summary>
+        public void Image(DocumentSection s, BlockTier tier, string imageJson, string? caption) =>
+            Add(s, BlockFormat.Image, tier, body: caption, bodyJson: imageJson);
 
         private void Add(DocumentSection s, BlockFormat format, BlockTier tier,
             string? body = null, string? bodyJson = null, CalloutKind? callout = null)

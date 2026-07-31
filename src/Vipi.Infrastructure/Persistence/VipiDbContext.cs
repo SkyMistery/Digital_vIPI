@@ -49,6 +49,7 @@ public class VipiDbContext : DbContext
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
+    public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -285,6 +286,17 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.DocumentId).IsUnique();
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.RowVersion).IsConcurrencyToken();
+        });
+
+        // --- Immagini dei documenti (blocchi Image). Content-addressed: lo sha256 È l'identità, quindi unico. ---
+        // Nessuna FK verso blocchi o documenti: un asset sopravvive al blocco che lo cita, perché una release
+        // pubblicata continua a citarne lo sha (docs/feature/2026-07-31-immagini-nei-blocchi §R2).
+        b.Entity<MediaAsset>(e =>
+        {
+            e.HasIndex(x => x.Sha256).IsUnique();
+            e.Property(x => x.Sha256).HasMaxLength(64);
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.Property(x => x.OriginalFileName).HasMaxLength(200);
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente, legate all'ACC via Acc.Code. ---

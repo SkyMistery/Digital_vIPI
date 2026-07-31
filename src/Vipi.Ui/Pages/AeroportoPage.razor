@@ -633,7 +633,11 @@ else
                 Id: s.Id, s.Title,
                 Blocks: s.Blocks.Select(b => new ExtraBlock
                 {
-                    Format = b.Format, Text = b.Body, TableJson = b.BodyJson,
+                    Format = b.Format, Text = b.Body,
+                    // Il BodyJson del blocco vuole il campo giusto per formato: la tabella e l'immagine hanno
+                    // payload diversi, e infilare l'uno nell'altro fa sparire la figura dall'anteprima di release.
+                    TableJson = b.Format == BlockFormat.Table ? b.BodyJson : null,
+                    ImageJson = b.Format == BlockFormat.Image ? b.BodyJson : null,
                     CalloutKind = b.CalloutKind ?? CalloutKind.Info,
                 }).ToList())).ToList()
             : (_profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>())

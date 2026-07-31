@@ -73,4 +73,48 @@ public class BlockRenderingTests : TestContext
         Assert.DoesNotContain("<script>", cut.Markup);          // MarkdownLite encoda
         Assert.Contains("&lt;script&gt;", cut.Markup);
     }
+
+    // --- Blocco immagine ---
+
+    private const string Sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    [Fact]
+    public void BlockRenderer_routes_image_to_the_figure()
+    {
+        var json = MediaRef.Serialize(new MediaRef(Sha, "Torre di controllo", 1600, 900));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Image, body: "Vista da nord", bodyJson: json)));
+
+        var img = cut.Find("figure.doc-img img");
+        Assert.Equal("/vsop/media/" + Sha, img.GetAttribute("src"));
+        Assert.Equal("Torre di controllo", img.GetAttribute("alt"));
+        // width/height nativi: senza, il testo salta mentre l'immagine arriva.
+        Assert.Equal("1600", img.GetAttribute("width"));
+        Assert.Equal("900", img.GetAttribute("height"));
+        Assert.Contains("Vista da nord", cut.Markup);
+    }
+
+    [Fact]
+    public void Image_block_without_reference_shows_the_placeholder_not_a_broken_image()
+    {
+        // Blocco appena creato (o JSON rotto): esiste prima della sua foto.
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(BlockFormat.Image, bodyJson: "{oops")));
+
+        Assert.Empty(cut.FindAll("img"));
+        Assert.Single(cut.FindAll("figure.img-ph"));
+    }
+
+    [Fact]
+    public void Image_caption_is_html_encoded_no_xss()
+    {
+        var json = MediaRef.Serialize(new MediaRef(Sha, "<img onerror=alert(1)>"));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Image, body: "<script>alert(1)</script>", bodyJson: json)));
+
+        Assert.DoesNotContain("<script>", cut.Markup);
+        // L'alt arriva da chi carica: dev'essere un attributo, non markup interpretato.
+        Assert.Single(cut.FindAll("figure.doc-img img"));
+    }
 }

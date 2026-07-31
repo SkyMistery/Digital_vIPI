@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
@@ -81,6 +82,50 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         using var res = await client.GetAsync("/vsop/live/atc", HttpCompletionOption.ResponseHeadersRead, cts.Token);
 
         Assert.Equal("text/event-stream", res.Content.Headers.ContentType?.MediaType);
+    }
+
+    /// <summary>
+    /// L'immagine di un blocco si serve per sha256: l'URL È il contenuto, quindi la risposta va dichiarata
+    /// <c>immutable</c> (un'immagine diversa è un URL diverso) e con <c>nosniff</c>, perché il tipo è quello dedotto
+    /// dai byte al caricamento e il browser non deve provare a interpretarlo altrimenti.
+    /// </summary>
+    [Fact]
+    public async Task Media_endpoint_serves_the_uploaded_image()
+    {
+        string sha;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var store = scope.ServiceProvider.GetRequiredService<IMediaStore>();
+            sha = (await store.SaveAsync(new MemoryStream(MinimalPng()), "prova.png")).Sha256;
+        }
+
+        var res = await _factory.CreateClient().GetAsync($"/vsop/media/{sha}");
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        Assert.Equal("image/png", res.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("immutable", res.Headers.CacheControl?.ToString() ?? "");
+        Assert.Equal("nosniff", res.Headers.GetValues("X-Content-Type-Options").Single());
+    }
+
+    [Fact]
+    public async Task Media_endpoint_answers_404_for_an_unknown_sha()
+    {
+        // Una release vecchia può citare uno sha non più risolvibile: dev'essere una figura mancante, non un 500.
+        var res = await _factory.CreateClient().GetAsync("/vsop/media/" + new string('a', 64));
+
+        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    /// PNG minimo valido: qui conta l'intestazione (formato e dimensioni), non i pixel.
+    private static byte[] MinimalPng()
+    {
+        var b = new byte[24];
+        new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }.CopyTo(b, 0);
+        b[11] = 0x0D;
+        "IHDR"u8.ToArray().CopyTo(b, 12);
+        b[18] = 0x03; b[19] = 0x20;   // 800
+        b[22] = 0x02; b[23] = 0x58;   // 600
+        return b;
     }
 
     [Fact]

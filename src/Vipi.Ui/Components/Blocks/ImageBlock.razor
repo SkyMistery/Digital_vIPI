@@ -1,0 +1,10 @@
+@* Blocco immagine del documento: legge il riferimento dal BodyJson e delega la resa a ImageFigure, che è la stessa
+   usata dalle anteprime degli editor e dal viewer aeroporto. *@
+
+<ImageFigure Media="Media" Caption="@Block.Body" />
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private MediaRef? Media => MediaRef.Parse(Block.BodyJson);
+}

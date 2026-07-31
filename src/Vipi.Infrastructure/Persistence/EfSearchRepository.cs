@@ -87,9 +87,13 @@ public sealed class EfSearchRepository : ISearchRepository
             foreach (var b in blocks.Where(b => b.DocumentVersionId == m.VersionId))
             {
                 if (hits.Count >= limit) break;
-                var text = Has(b.Body) ? b.Body : Has(b.BodyJson) ? b.BodyJson : null;
-                if (text is not null)
-                    hits.Add(Hit(m, secById, b.SectionId, Snippet(text!, query), $"{url}#s-{b.SectionId}"));
+                // Un blocco immagine ha per testo il suo alternativo e la didascalia: il BodyJson porta lo sha, e
+                // cercare "abc" non deve pescare un'immagine il cui sha contiene "abc" né mostrare JSON nel risultato.
+                var searchable = b.Format == BlockFormat.Image
+                    ? MediaRef.TextOf(b.BodyJson, b.Body)
+                    : Has(b.Body) ? b.Body : Has(b.BodyJson) ? b.BodyJson : null;
+                if (Has(searchable))
+                    hits.Add(Hit(m, secById, b.SectionId, Snippet(searchable!, query), $"{url}#s-{b.SectionId}"));
             }
         }
 
