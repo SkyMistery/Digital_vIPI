@@ -43,7 +43,7 @@ else
                     <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/live-app?app=@_app">@L["Common_Operational"]</a>
+                        <a class="btn ghost" href="/vsop/live/@_app.ToLowerInvariant()">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
                             <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@L["Common_Editor"]</a>

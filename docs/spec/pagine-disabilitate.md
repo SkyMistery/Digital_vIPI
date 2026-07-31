@@ -9,8 +9,14 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 
 | File | Ex-rotta | Funzione | Perché disabilitata |
 |---|---|---|---|
-| `RidottaPage.razor` | `/vsop/{acc}/ridotta` | Vista ridotta live (F3): frequenze + trasferimenti per la postazione, refresh SSE. | Era nella sezione "Strumenti" rimossa dalla nuova landing ACC. Cuore del live F3: candidata a rientrare presto. |
-| `RidottaAppPage.razor` | `/vsop/{acc}/ridotta-app` | Vista ridotta per APP. | Idem (Strumenti). ⚠️ **Non riattivabile rimettendo `@page`**: a differenza di `RidottaPage`, il contenuto è un **mockup hardcoded** («LIRP Pisa APP» in markup, nessun binding ai dati). Riattivarla richiede di scriverla, non di scommentarla. |
+| _(nessuna: l'elenco si è svuotato — vedi sotto)_ | | | |
+
+> 🗑️ **`RidottaPage` e `RidottaAppPage` ELIMINATE (2026-07-31, doc [refactor/12](../refactor/12-vista-live-unificata.md)).**
+> Spente dal Round 12 e mai riattivate: quello che dovevano fare — frequenze e trasferimenti della postazione,
+> refresh SSE — lo fa la **vista live** `/vsop/live[/{callsign}]`, che oltretutto la risolve dal callsign connesso
+> invece che da un selettore. `RidottaAppPage` era per metà un mockup hardcoded, quindi non era comunque
+> riattivabile scommentando l'`@page`. Nello stesso giro sono sparite `AccLivePage`/`AppLivePage`, fuse in
+> `LivePage.razor`.
 
 > 🗑️ **Eliminate (pulizia)**: `Aor3dPage`, `ExportPage`, `StatiPage` (disabilitate e morte), più le legacy
 > `VipiDocument.razor` (sostituita da `AccVipiPage` su `/vipi`) e `EditorPage.razor` (dispatcher generico orfano;

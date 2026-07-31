@@ -1,0 +1,109 @@
+# 12 — Vista live unificata per callsign ✅
+
+> Chiude l'ultimo doppione strutturale dell'asse: due pagine gemelle che switchavano sullo stesso tipo di ente.
+> Gemello di [09](09-registri-per-tipo.md) come tecnica (descrittore + registry) e di
+> [11](11-uniformita-tre-documenti.md) come intento (un comportamento solo per cose che sono la stessa cosa).
+>
+> **Fatto il 2026-07-31**, subito dopo la revisione della vista operativa dello stesso giorno.
+
+## 1. Il problema
+
+`AccLivePage` e `AppLivePage` rendevano la stessa pagina — frequenze, AoR, trasferimenti, aeroporto — con lo
+stesso identico impianto, differendo solo su tre punti: da dove escono le frequenze, se l'aeroporto è uno solo
+o è un elenco di chip, quale documento esteso si linka. È la **«regola del 2»** del `FEATURE-PROCESS`: lo stesso
+switch per-tipo in ≥2 posti va estratto in un descrittore + registry.
+
+Conseguenze concrete che si pagavano:
+
+- **Le torri non avevano vista live.** Nessuna delle due pagine le contemplava, e aggiungerle avrebbe voluto
+  dire una terza pagina gemella.
+- **La chiave era sbagliata.** Le rotte erano `/vsop/{acc}/live` e `/vsop/{acc}/live-app?app=`: l'ACC nel path
+  più il callsign nella query, cioè due fonti per la stessa informazione, libere di contraddirsi.
+- Un fix a una pagina non arrivava all'altra se non lo si ricordava a mano.
+
+## 2. La decisione
+
+**La vista live è keyed sul callsign.** Non sull'ACC, non su un documento.
+
+```
+/vsop/live              → la postazione con cui l'utente è connesso su IVAO
+/vsop/live/{callsign}   → quella postazione, in sola consultazione
+```
+
+L'ACC si deriva dal callsign (`IStationResolver.ResolveByCallsign`). Il documento non entra nella decisione di
+*esistere*: entra solo nella presentazione (vedi doc del 2026-07-31 e memoria `live-view-design`).
+
+### 2a. Descrittore + registry
+
+`ILiveStationKind` — una implementazione per tipo, consultate per `Priority`, prima corrispondenza vince:
+
+| Descrittore | Tipi | Frequenze (membri passati) | Aeroporto | Documento esteso |
+|---|---|---|---|---|
+| `AreaLiveStation` | `Ctr` (e gli FSS, tipizzati Ctr) | area + gruppi-APP del documento | chip del dominio | vIPI ACC |
+| `ApproachLiveStation` | `App` standalone e remotizzato | documento APP / blocco gruppo-APP | fisso | vIPI APP o ACC |
+| `AirportLiveStation` | `Twr` `ITwr` `Gnd` `Del` | sé → catalogo dell'aeroporto | fisso | vIPI aeroporto |
+
+Il motore condiviso sta in `LiveStationParts`: i descrittori decidono **cosa** passare, non **come** si calcola.
+Aggiungere un tipo = registrare un descrittore in `AddVipiApplication`, zero switch toccati. Un test
+(`LiveStationRegistryTests`) verifica che **ogni** `SectorType` del catalogo abbia esattamente un descrittore:
+se qualcuno aggiunge un tipo, fallisce lì e non in pagina.
+
+### 2b. Il ritrovamento che rende gratis i tipi nuovi
+
+`EfAccDerivationRepository.DeriveFrequenciesForMembersAsync` espandeva già l'intero catalogo dell'aeroporto
+(ATIS · DEL · GND · TWR · APP) per **qualsiasi** membro che sia un settore d'aeroporto — non solo per gli APP,
+com'era scritto nel commento. Passare `LIRF_TWR` produce quindi l'elenco che serve a una torre, dalla delivery
+all'avvicinamento, senza una riga di derivazione nuova.
+
+### 2c. Trasferimenti: mittente effettivo, non dominio
+
+Regola operativa richiesta: «solo i trasferimenti di quel settore, o dei suoi figli **se chiusi**».
+
+Non è `Topology.DomainOf` — quello include anche i figli online, che invece i propri trasferimenti se li tengono.
+È il **mittente effettivo** dopo la risalita della gerarchia, cioè `ResolvedOwnerCallsign == postazione`.
+
+La risoluzione gira sull'insieme online **più la postazione guardata**: senza, consultare una posizione offline
+(o la propria prima di collegarsi) farebbe risalire i suoi flussi a un antenato e la pagina risulterebbe vuota
+proprio quando serve. Coperto da `LiveStationPartsTests`.
+
+> **Cambio di comportamento visibile**: la vecchia pagina ACC mostrava i flussi di *tutta* l'ACC. Per un CTR
+> radice non cambia nulla; per un sotto-settore l'elenco si stringe a ciò che è davvero suo.
+
+## 3. La postazione: nessun selettore
+
+Il selettore in alto a destra è **rimosso**. La pagina dipende dalla postazione che l'utente ha aperto su IVAO,
+risolta a ogni tick SSE.
+
+- **Non connesso** non è un errore: è lo stato normale di chi apre la vista *prima* di collegarsi. Si mostra
+  l'elenco degli ATC online (cliccabili, in consultazione) e la vista si aggancia da sola appena si va online,
+  **senza ricaricare**.
+- L'**età del dato ATC** è scritta accanto al conteggio: se il feed è fermo, «non risulti connesso» non deve
+  far credere all'utente di essere offline quando è la sorgente a essere vecchia.
+- Guardando una posizione altrui compare un banner esplicito, con il ritorno alla propria.
+
+## 4. Rotte e compatibilità
+
+Redirect **301 a un salto solo** (`Program.cs`) — sono pagine che finiscono nei preferiti di chi controlla, e
+una catena di redirect si paga a ogni apertura:
+
+| URL storico | Destinazione |
+|---|---|
+| `/vsop/{acc}/operativa`, `/vsop/{acc}/live` | `/vsop/live` |
+| `…?p=LIRR_NE_CTR` | `/vsop/live/lirr_ne_ctr` |
+| `/vsop/{acc}/operativa-app?app=X`, `/vsop/{acc}/live-app?app=X` | `/vsop/live/x` |
+
+> **Trappola di routing, bloccata da un test.** `/vsop/live/{callsign}` è una rotta a parametro che ricade sul
+> prefisso dello stream SSE `/vsop/live/atc`. La precedenza del routing ASP.NET (segmento **letterale** >
+> parametro) manda quell'URL allo stream, non alla pagina — ma è una proprietà che si può rompere cambiando le
+> rotte, quindi `SmokeTests.Sse_endpoint_wins_over_the_live_page_route` la verifica.
+
+## 5. Codice morto rimosso nello stesso giro
+
+- `AccLivePage.razor`, `AppLivePage.razor` — sostituite da `LivePage.razor`.
+- `RidottaPage.razor`, `RidottaAppPage.razor` — già spente dal Round 12 (`spec/pagine-disabilitate.md`) e mai
+  riattivate. La seconda era per metà un mockup hardcoded, quindi non riattivabile comunque.
+- 16 chiavi resx orfane (`Live_Position`, `Live_DetectedFromIvao`, la famiglia `AppLive_*` della pagina APP…).
+
+Il callout «Modalità ridotta + live» **non** è stato riportato nella pagina unica: su una vista tenuta aperta
+tutti i giorni valeva soprattutto al primo accesso, e la pagina ha già due banner di stato. L'onboarding sta
+nella Guida.

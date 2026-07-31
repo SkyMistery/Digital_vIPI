@@ -120,10 +120,22 @@ app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"
 // Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
 app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
 
-// Compat: le due viste operative sono passate a un path inglese (/operativa → /live, /operativa-app → /live-app).
-// Sono le pagine che un controllore tiene aperte e mette tra i preferiti: i vecchi link devono continuare a funzionare.
-app.MapGet("/vsop/{acc}/operativa", (HttpContext ctx, string acc) => Results.Redirect($"/vsop/{acc}/live{ctx.Request.QueryString}", permanent: true));
-app.MapGet("/vsop/{acc}/operativa-app", (HttpContext ctx, string acc) => Results.Redirect($"/vsop/{acc}/live-app{ctx.Request.QueryString}", permanent: true));
+// Compat: le due viste operative per-ACC sono diventate UNA vista per callsign (doc refactor 12).
+//   /vsop/{acc}/operativa · /vsop/{acc}/live               → /vsop/live            (o /vsop/live/{p} se c'era ?p=)
+//   /vsop/{acc}/operativa-app · /vsop/{acc}/live-app?app=X → /vsop/live/x
+// Un solo salto per ciascun URL storico: sono pagine che finiscono nei preferiti di chi controlla, e una
+// catena di redirect si paga a ogni apertura.
+static IResult LiveRedirect(HttpContext ctx, string? callsign)
+{
+    var cs = (callsign ?? "").Trim().ToLowerInvariant();
+    return Results.Redirect(cs.Length > 0 ? $"/vsop/live/{Uri.EscapeDataString(cs)}" : "/vsop/live", permanent: true);
+}
+
+foreach (var legacy in new[] { "operativa", "live" })
+    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["p"]));
+
+foreach (var legacy in new[] { "operativa-app", "live-app" })
+    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["app"]));
 
 // File statici (wwwroot dell'host + wwwroot della RCL vIPI). Sostituisce UseStaticFiles: gli asset sono
 // impronta-per-contenuto (`@Assets[...]` in App.razor) e serviti con `immutable`, quindi un deploy rifà

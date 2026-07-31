@@ -1,6 +1,6 @@
 namespace Vipi.Application.Content;
 
-/// <summary>Flusso risolto live (vista operativa/Ridotta): il mittente è risolto risalendo la gerarchia
+/// <summary>Flusso risolto live (vista live): il mittente è risolto risalendo la gerarchia
 /// (se il settore proprio è chiuso, lo «assorbe» il primo antenato online), e ogni punto ha il ricevente risolto.</summary>
 public sealed class ResolvedTransferFlow
 {

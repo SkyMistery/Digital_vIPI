@@ -123,8 +123,6 @@
   <data name="Common_TagCovered" xml:space="preserve"><value>covered</value></data>
   <!-- Operational view ACC (/vsop/{acc}/live) -->
   <data name="Live_Tab" xml:space="preserve"><value>Operational</value></data>
-  <data name="Live_Position" xml:space="preserve"><value>Position</value></data>
-  <data name="Live_DetectedFromIvao" xml:space="preserve"><value>Detected from your IVAO connection</value></data>
   <data name="Live_FollowMe" xml:space="preserve"><value>follow {0}</value></data>
   <data name="Live_ChangesLabel" xml:space="preserve"><value>Changes</value></data>
   <data name="Live_ChangesClear" xml:space="preserve"><value>dismiss</value></data>
@@ -146,16 +144,12 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Above you:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you when you close, and who you hand up to</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
-  <data name="Live_FollowOffTip" xml:space="preserve"><value>You are connected here, but you are viewing another position (picked manually)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>
-  <data name="Live_ReducedLiveTitle" xml:space="preserve"><value>Reduced + live mode</value></data>
-  <data name="Live_ReducedLiveBody" xml:space="preserve"><value>See only the essentials for position &lt;b&gt;{0}&lt;/b&gt;. Sections start collapsed and remember your choice: you can keep more than one open. For everything else open the extended document.</value></data>
   <data name="Live_QuickView" xml:space="preserve"><value>Quick view — my sector or an airport under direct control</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>My sector</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controlled by another online position</value></data>
   <data name="Live_AptQuickTip" xml:space="preserve"><value>airport quick view</value></data>
-  <data name="Live_AptOtherTip" xml:space="preserve"><value>handled by another sector</value></data>
   <data name="Live_DelegSuffix" xml:space="preserve"><value> ·delegated</value></data>
   <data name="Live_NoFreqDerived" xml:space="preserve"><value>No derived frequency.</value></data>
   <data name="Live_Delegated" xml:space="preserve"><value>delegated</value></data>
@@ -171,17 +165,7 @@
   <data name="Common_Coordination" xml:space="preserve"><value>Coordination</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Airport quick view</value></data>
   <!-- Operational view APP (/vsop/{acc}/live-app) -->
-  <data name="AppLive_MissingPosTitle" xml:space="preserve"><value>Missing APP position</value></data>
-  <data name="AppLive_MissingPosBody" xml:space="preserve"><value>Specify &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
-  <data name="AppLive_NoDocBody" xml:space="preserve"><value>No document (own or remotized in the ACC vIPI) for &lt;code&gt;{0}&lt;/code&gt;: transfers and the position frequency below are still derived from the catalogues.</value></data>
   <data name="AppLive_UpdatedAt" xml:space="preserve"><value>updated {0}</value></data>
-  <data name="AppLive_InfoTitle" xml:space="preserve"><value>Operational view for APP position</value></data>
-  <data name="AppLive_InfoBody" xml:space="preserve"><value>The approach sees frequencies, coordination and transfers towards ACC and towers.</value></data>
-  <data name="AppLive_Standalone" xml:space="preserve"><value>Standalone APP (own document).</value></data>
-  <data name="AppLive_Remotized" xml:space="preserve"><value>Remotized APP (content from the ACC vIPI).</value></data>
-  <data name="AppLive_AptDocHint" xml:space="preserve"><value>Airport (tower) document: TA/TL, runways, SID.</value></data>
-  <data name="AppLive_OpenAptVipi" xml:space="preserve"><value>Open vIPI {0} →</value></data>
-  <data name="AppLive_NoCoordToPos" xml:space="preserve"><value>No coordination towards this position.</value></data>
   <!-- Airport (/vsop/{acc}/airports) -->
   <data name="Airport_NoneBody" xml:space="preserve"><value>No airport with a published document under this ACC.</value></data>
   <data name="Airport_Wind" xml:space="preserve"><value>Wind</value></data>

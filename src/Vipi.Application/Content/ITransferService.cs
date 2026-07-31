@@ -6,7 +6,7 @@ public interface ITransferService
     /// <summary>Flussi (coi punti) di una ACC.</summary>
     Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Flussi della ACC risolti live (vista operativa): mittente e ricevente risalgono la gerarchia
+    /// <summary>Flussi della ACC risolti live (vista live): mittente e ricevente risalgono la gerarchia
     /// di copertura globale in base a chi è <paramref name="online"/>; terminale = UNICOM.</summary>
     Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
         string accCode, IReadOnlySet<string> online, CancellationToken ct = default);
