@@ -809,3 +809,45 @@ prendeva l'mtime più recente fra 12 file e lo appiccicava a tutti, quindi una r
 **Non toccato, ma emerso**: `three.min.js` (592 KB) è caricato in `App.razor` su **ogni** pagina, anche
 quelle senza mappa 3D. Vale più di tutto il fingerprinting messo insieme ed è un lavoro diverso
 (caricamento condizionale sulle rotte AoR).
+
+## 2026-07-30 — Rifiniture post-migrazione (quinta sessione)
+
+Tre interventi piccoli e indipendenti, emersi leggendo la CI e i due punti lasciati aperti dalla sessione
+sugli asset. Ognuno sul suo branch, nessuno tocca il comportamento dei documenti.
+
+- **Smoke E2E: VipiAuth non si spegneva davvero.** I 4 smoke fallivano in CI con «VipiAuth:Enabled=true ma
+  ClientId mancante». La factory *provava* già a spegnere l'auth, ma con `ConfigureAppConfiguration`:
+  `Program.cs` chiama `AddVipiStandaloneAuth` alla **registrazione**, prima di `builder.Build()`, mentre quei
+  callback si applicano solo alla costruzione dell'host — la sorgente in-memory arrivava troppo tardi. Ora è
+  una **variabile d'ambiente**, che sta già nella configurazione di default del builder e vince su
+  `appsettings.Development.json`. **Non era una regressione di .NET 10**: verificato che lo stesso repro
+  fallisce identico sul commit pre-migrazione. Restava verde in locale perché i user-secrets forniscono un
+  ClientId vero e la guardia non scatta: il repro fedele è `VipiAuth__ClientId="" dotnet test tests/Vipi.E2E.Tests`.
+- **Health check sdoppiato.** `/vsop/health` chiama anche il report di consistenza, che fa **7 scansioni
+  complete** materializzate in memoria. Va bene per una pagina che apre un umano, non per una sonda che
+  l'orchestratore ripete di continuo: su Neon (Postgres serverless) lo terrebbe sveglio a bruciare compute.
+  Ora due endpoint distinti per tag: `/vsop/health/ready` (CanConnect + migrazioni, due query) e `/vsop/health`
+  (la sonda **+** consistenza e freschezza ATC). `VipiHealthCheck` **riusa** `VipiReadinessCheck` invece di
+  ripetere i controlli critici: una sola definizione di «critico». `render.yaml` e lo smoke del container in CI
+  passano su `ready` — il beneficio vero non è il riavvio ma il **gate sul deploy**, perché `/vsop` rispondeva
+  200 anche con lo schema disallineato.
+  - Prima ancora: su Postgres il probe delle migrazioni dava **sempre** Unhealthy, perché lì lo schema lo fa
+    `PostgresSchemaReconciler` (EnsureCreated) e `__EFMigrationsHistory` resta vuota. Nessuno l'aveva notato
+    perché `healthCheckPath` puntava a `/vsop`, non a `/vsop/health`.
+- **three.js caricato su richiesta.** 589 KB (118 in brotli) partivano da `App.razor` su **ogni** pagina, per
+  servire il solo tab «Vista 3D». Ora l'URL — con l'impronta di `MapStaticAssets`, che non si perde — passa
+  come `data-three-src` sul tag di `vipi-aor3d.js`, e `loadThree()` lo carica alla prima costruzione di uno
+  stage. Il codice tollerava già l'assenza di `THREE`, quindi non è stato riscritto: è cambiato *quando*
+  three.js arriva. `initOne` ha un terzo stato `pending`, altrimenti un secondo evento durante il caricamento
+  costruirebbe due volte lo stesso stage.
+  - Chiuso nello stesso punto un buco vecchio: l'intestazione del file prometteva un fallback «se manca
+    WebGL/THREE» ma il codice copriva solo THREE — senza WebGL `new THREE.WebGLRenderer` lanciava e lo stage
+    restava vuoto.
+- **CI: `checkout` e `setup-dotnet` alla v5** (node24). Le v4 girano su Node 20, deprecato sui runner: già
+  forzate su Node 24 e segnalate a ogni run. Verificato che le v5 dichiarino `using: node24` nel loro
+  `action.yml`, così l'avviso sparisce invece di essere solo rimandato.
+
+**Nota di metodo.** La prima verifica del lazy-load di three.js era **verde per il motivo sbagliato**: «three
+non richiesto» su tutte le rotte provate, ma perché nessuna conteneva uno stage 3D — le rotte erano sbagliate
+(`/vsop/{acc}/vipi`, non `/vsop/{acc}`). Un risultato negativo va sempre letto insieme alla prova che il caso
+positivo sarebbe stato osservabile: qui, che gli stage ci fossero (2) e i bottoni pure.
