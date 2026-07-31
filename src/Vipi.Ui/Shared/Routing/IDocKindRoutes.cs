@@ -18,6 +18,10 @@ public interface IDocKindRoutes
     /// null se non risolvibile (es. vLOA senza vicino): il chiamante applica il proprio fallback.</summary>
     string? ViewerUrl(string acc, string key, string? neighbourCode, int releaseId);
 
+    /// <summary>URL del viewer PUBBLICO (nessuna anteprima): il documento come lo vede chiunque.
+    /// Stessi parametri di <see cref="ViewerUrl"/> senza la release. null se non risolvibile.</summary>
+    string? PublicUrl(string acc, string key, string? neighbourCode);
+
     /// <summary>URL dell'editor del tipo. null se non risolvibile; il chiamante applica il proprio fallback.</summary>
     string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId);
 }

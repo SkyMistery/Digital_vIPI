@@ -411,6 +411,15 @@
 .live-changes .lc-clear:hover{color:var(--ivao-blue)}
 /* Riga/riquadro trasferimento toccato da un cambio: evidenza che sopravvive al re-render (non un lampo). */
 .xt-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:#fffaf0}
+/* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
+   trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
+.live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
+.live-chain .lc-lab{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft)}
+.live-chain .xo-chip{text-decoration:none}
+.live-chain.lead{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f7f9ff}
+.live-chain.lead .lc-lab{color:var(--ivao-blue)}
+
 .xt-unicom-bar{margin:0 0 10px}
 .xt-unicom-bar .btn{padding:3px 10px;font-size:12.5px}
 

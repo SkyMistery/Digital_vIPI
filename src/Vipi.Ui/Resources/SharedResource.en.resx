@@ -134,6 +134,18 @@
   <data name="Live_ShowUnicom" xml:space="preserve"><value>show the {0} releases to UNICOM</value></data>
   <data name="Live_HideUnicom" xml:space="preserve"><value>hide releases to UNICOM</value></data>
   <data name="Live_OnlyUnicom" xml:space="preserve"><value>No transfer to an online station: every point releases to UNICOM.</value></data>
+  <data name="Live_NotConnectedTitle" xml:space="preserve"><value>You are not connected to any ATC position</value></data>
+  <data name="Live_NotConnectedBody" xml:space="preserve"><value>The view opens on your position by itself as soon as you connect: no need to reload. Meanwhile you can consult one of the online positions.</value></data>
+  <data name="Live_UnknownStationTitle" xml:space="preserve"><value>Unknown position: {0}</value></data>
+  <data name="Live_UnknownStationBody" xml:space="preserve"><value>This callsign is not in the division catalogues.</value></data>
+  <data name="Live_OnlineNow" xml:space="preserve"><value>Online now — data updated at {0}</value></data>
+  <data name="Live_NobodyOnline" xml:space="preserve"><value>No ATC online right now.</value></data>
+  <data name="Live_FeedNever" xml:space="preserve"><value>never updated</value></data>
+  <data name="Live_NotYoursTitle" xml:space="preserve"><value>You are viewing {0}</value></data>
+  <data name="Live_NotYoursBody" xml:space="preserve"><value>This is not the position you are connected on ({0}): this view is read-only and does not follow you.</value></data>
+  <data name="Live_CoveredBy" xml:space="preserve"><value>Above you:</value></data>
+  <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you when you close, and who you hand up to</value></data>
+  <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
   <data name="Live_FollowOffTip" xml:space="preserve"><value>You are connected here, but you are viewing another position (picked manually)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>

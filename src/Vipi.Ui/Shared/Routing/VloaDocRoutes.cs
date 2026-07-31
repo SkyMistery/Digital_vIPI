@@ -14,6 +14,9 @@ public sealed class VloaDocRoutes : IDocKindRoutes
             ? $"/vsop/{acc}/vloa?acc={n.ToUpperInvariant()}&as=rel:{releaseId}"
             : null;
 
+    public string? PublicUrl(string acc, string key, string? neighbourCode) =>
+        neighbourCode is { Length: > 0 } n ? $"/vsop/{acc}/vloa?acc={n.ToUpperInvariant()}" : null;
+
     public string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId) =>
         neighbourCode is { Length: > 0 } n
             ? $"/vsop/{acc}/vloa/editor?acc={n.ToUpperInvariant()}"

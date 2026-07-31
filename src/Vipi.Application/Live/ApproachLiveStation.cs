@@ -74,6 +74,7 @@ public sealed class ApproachLiveStation : ILiveStationKind
             Title = block?.Title ?? ctx.Callsign,
             Frequencies = freqs,
             Groups = block is null ? Array.Empty<LiveGroup>() : new[] { new LiveGroup(block, freqs.ToList(), false) },
+            TreeRoot = root,
             ExtendedDoc = new LiveDocRef(ManagedDocKind.AccVipi, ctx.Acc.Code, null),
             NoDocument = block is null,
         };

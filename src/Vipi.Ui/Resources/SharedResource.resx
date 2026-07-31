@@ -134,6 +134,18 @@
   <data name="Live_ShowUnicom" xml:space="preserve"><value>mostra i {0} rilasci a UNICOM</value></data>
   <data name="Live_HideUnicom" xml:space="preserve"><value>nascondi i rilasci a UNICOM</value></data>
   <data name="Live_OnlyUnicom" xml:space="preserve"><value>Nessun trasferimento verso un ente online: tutti i punti rilasciano a UNICOM.</value></data>
+  <data name="Live_NotConnectedTitle" xml:space="preserve"><value>Non risulti connesso a nessuna posizione ATC</value></data>
+  <data name="Live_NotConnectedBody" xml:space="preserve"><value>La vista si apre da sola sulla tua postazione appena ti colleghi: non serve ricaricare. Intanto puoi consultare una delle posizioni online.</value></data>
+  <data name="Live_UnknownStationTitle" xml:space="preserve"><value>Postazione sconosciuta: {0}</value></data>
+  <data name="Live_UnknownStationBody" xml:space="preserve"><value>Questo callsign non è nei cataloghi della divisione.</value></data>
+  <data name="Live_OnlineNow" xml:space="preserve"><value>Online adesso — dato aggiornato alle {0}</value></data>
+  <data name="Live_NobodyOnline" xml:space="preserve"><value>Nessun ATC online in questo momento.</value></data>
+  <data name="Live_FeedNever" xml:space="preserve"><value>mai aggiornato</value></data>
+  <data name="Live_NotYoursTitle" xml:space="preserve"><value>Stai guardando {0}</value></data>
+  <data name="Live_NotYoursBody" xml:space="preserve"><value>Non è la postazione con cui sei connesso ({0}): questa vista è in sola consultazione e non ti segue.</value></data>
+  <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>
+  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, e a chi passi salendo</value></data>
+  <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
   <data name="Live_FollowOffTip" xml:space="preserve"><value>Sei connesso qui, ma stai guardando un'altra postazione (scelta a mano)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>

@@ -12,6 +12,8 @@ public sealed class AirportDocRoutes : IDocKindRoutes
     public string? ViewerUrl(string acc, string key, string? neighbourCode, int releaseId) =>
         $"/vsop/{acc}/airports?icao={key}&as=rel:{releaseId}";
 
+    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/vsop/{acc}/airports?icao={key}";
+
     public string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId) =>
         $"/vsop/{acc}/airports/editor?icao={key}";
 }

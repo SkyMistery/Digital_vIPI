@@ -58,6 +58,10 @@ public sealed record LiveView
     /// con pochi trasferimenti propri (ground, delivery) è l'informazione principale della pagina.</summary>
     public IReadOnlyList<string> CoverageChain { get; init; } = Array.Empty<string>();
 
+    /// <summary>Radice dell'albero ACC di riferimento: serve ai componenti che rendono le sezioni del
+    /// documento (chiave di render dell'AoR). Null per i tipi che non hanno un albero documentale.</summary>
+    public string? TreeRoot { get; init; }
+
     public LiveDocRef? ExtendedDoc { get; init; }
 
     /// <summary>Il documento di riferimento non è pubblicato: la vista resta valida (deriva dai cataloghi),

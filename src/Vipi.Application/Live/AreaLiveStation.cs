@@ -71,6 +71,7 @@ public sealed class AreaLiveStation : ILiveStationKind
             Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
             Aor = aor,
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
+            TreeRoot = root,
             ExtendedDoc = new LiveDocRef(ManagedDocKind.AccVipi, ctx.Acc.Code, null),
             NoDocument = model is null,
         };
