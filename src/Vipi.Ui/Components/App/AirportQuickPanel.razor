@@ -34,6 +34,9 @@ else
         <div class="rap-quick">
             <div class="rap-box"><span class="muted">TA</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
             <div class="rap-box"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@TlNow()</b></div>
+            @* Il vento accanto alla pista suggerita: la pista si sceglie per il vento, e senza vederlo la
+               riga «piste suggerite» e' un numero da prendere per buono. *@
+            <div class="rap-box"><span class="muted">Vento</span><b>@WindText()</b></div>
             <div class="rap-box"><span class="muted">Piste suggerite</span><b>@SuggText()</b></div>
         </div>
 
@@ -104,6 +107,7 @@ else
     private int? _ta;
     private List<(string Range, string Level)> _tlRows = new();
     private int? _qnh;
+    private ParsedWind? _wind;
     private (string? Dep, string? Arr) _sugg;
     private List<string> _runways = new();
     private string _selRwy = "all";
@@ -124,7 +128,7 @@ else
         _loadedIcao = Icao;
 
         _view = null; _profile = null; _ta = null; _tlRows = new();
-        _qnh = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
+        _qnh = null; _wind = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
 
         // Documento pubblico dell'aeroporto (rispetta la release effettiva del ciclo, come /airports).
         _view = await ViewService.BuildAirportVipiAsync(Icao, BlockTier.Extended, live: false);
@@ -138,6 +142,7 @@ else
         var wx = await Weather.GetAsync(Icao);
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
         _qnh = metar?.QnhHpa;
+        _wind = metar?.Wind;
         _sugg = SuggestRwy(metar);
         _selRwy = _sugg.Dep is string dep && _runways.Contains(dep) ? dep : "all";
     }
@@ -191,6 +196,13 @@ else
             if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
         }
         return (null, null);
+    }
+
+    /// <summary>Vento del METAR corrente, con la raffica se c'è (es. «160° / 12 kt G24»).</summary>
+    private string WindText()
+    {
+        if (_wind is null) return "—";
+        return _wind.GustKt is int g ? $"{_wind.Label} G{g}" : _wind.Label;
     }
 
     private string SuggText()

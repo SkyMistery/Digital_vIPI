@@ -131,6 +131,9 @@
   <data name="Live_UtcNow" xml:space="preserve"><value>Current UTC time (Z)</value></data>
   <data name="Live_Dense" xml:space="preserve"><value>Compact</value></data>
   <data name="Live_DenseTip" xml:space="preserve"><value>Denser layout: more rows on small screens. Your choice is remembered.</value></data>
+  <data name="Live_ShowUnicom" xml:space="preserve"><value>show the {0} releases to UNICOM</value></data>
+  <data name="Live_HideUnicom" xml:space="preserve"><value>hide releases to UNICOM</value></data>
+  <data name="Live_OnlyUnicom" xml:space="preserve"><value>No transfer to an online station: every point releases to UNICOM.</value></data>
   <data name="Live_FollowOffTip" xml:space="preserve"><value>You are connected here, but you are viewing another position (picked manually)</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Extended document</value></data>

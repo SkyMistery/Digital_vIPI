@@ -411,6 +411,8 @@
 .live-changes .lc-clear:hover{color:var(--ivao-blue)}
 /* Riga/riquadro trasferimento toccato da un cambio: evidenza che sopravvive al re-render (non un lampo). */
 .xt-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:#fffaf0}
+.xt-unicom-bar{margin:0 0 10px}
+.xt-unicom-bar .btn{padding:3px 10px;font-size:12.5px}
 
 .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
 .red-top-grid .acc-item{margin-bottom:0}
