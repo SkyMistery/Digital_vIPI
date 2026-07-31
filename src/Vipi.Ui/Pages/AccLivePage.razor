@@ -20,13 +20,6 @@
 {
     <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
-else if (_notAvailable)
-{
-    <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Live_Tab"]</b></div>
-        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Live_NotAvailTitle"]</p>@((MarkupString)string.Format(L["Live_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/vipi"))</div></div>
-    </div>
-}
 else
 {
     <PageTitle>@_data.AccName — @L["Live_Tab"] · vIPI IVAO Italia</PageTitle>
@@ -51,7 +44,16 @@ else
             <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/vipi">@L["Live_ExtendedDoc"]</a>
         </div>
 
-        <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Live_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Live_ReducedLiveBody"], _p))</div></div>
+        @if (_noDoc)
+        {
+            @* Il documento porta il raggruppamento, non il dato: senza vIPI pubblicata la pagina resta
+               utilizzabile (trasferimenti, AoR, frequenze dai cataloghi) e lo dice, invece di sparire. *@
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Live_NoDocTitle", _acc.Code]</p>@((MarkupString)string.Format(L["Live_NoDocBody"], $"/vsop/{Acc.ToLowerInvariant()}/vipi"))</div></div>
+        }
+        else
+        {
+            <div class="callout info"><span class="cic">⚡</span><div><p class="ct">@L["Live_ReducedLiveTitle"]</p>@((MarkupString)string.Format(L["Live_ReducedLiveBody"], _p))</div></div>
+        }
 
         <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
         <div class="apt-quick" style="margin-bottom:22px">
@@ -149,7 +151,7 @@ else
     private string? _myCallsign;
     private IReadOnlyList<AirportRow> _apts = Array.Empty<AirportRow>();
     private string? _selectedApt;
-    private bool _notAvailable;   // ACC senza vIPI pubblicata (LoadForViewAsync null) → stato "non disponibile"
+    private bool _noDoc;          // ACC senza vIPI pubblicata: la pagina resta viva, con banner + frequenze di ripiego
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
 
@@ -203,20 +205,35 @@ else
     {
         if (_acc is null) return;
 
-        // Visibilità pubblica = release effettiva (doc 10 §3f): senza vIPI pubblicata LoadForViewAsync torna null
-        // → "operativa non disponibile" invece di NRE (era `!.Data` su null).
+        // La vista live è legata all'ENTE che apri, non al documento: trasferimenti e AoR non toccano il
+        // documento, e le frequenze escono dai cataloghi (il blocco porta solo raggruppamento e ordine).
+        // Senza vIPI pubblicata (LoadForViewAsync null, doc 10 §3f) la pagina resta quindi utilizzabile.
         var model = await AccDoc.LoadForViewAsync(_acc.Code);
-        if (model is null) { _notAvailable = true; return; }
-        _notAvailable = false;
-        _data = model.Data;
+        _noDoc = model is null;
+        _data = model?.Data ?? new AccVipiData { AccCode = _acc.Code, AccName = _acc.Name, Blocks = new() };
         _snapshot = Online.GetCurrent();
         var online = new HashSet<string>(_snapshot.Callsigns, StringComparer.OrdinalIgnoreCase);
         _aor = _topo is not null && !string.IsNullOrEmpty(_p) ? Aor.Resolve(_topo, _p, online) : null;
         _resolved = await Transfers.ResolveForAccAsync(_acc.Code, online);
 
         _freqs.Clear();
-        foreach (var b in _data.Blocks)
+        foreach (var b in _noDoc ? await FallbackBlocksAsync() : _data.Blocks)
             _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(_acc.Code, b, _root)).ToList();
+    }
+
+    /// <summary>
+    /// Blocchi sintetici usati quando l'ACC non ha vIPI pubblicata: stessa derivazione dei blocchi veri, ma il
+    /// raggruppamento lo fa il catalogo invece dell'editore — tutti i CTR dell'ACC (Aerovia a membri vuoti) e
+    /// tutti i suoi APP. Non finiscono in <c>_data.Blocks</c>: servono solo a riempire l'elenco frequenze.
+    /// </summary>
+    private async Task<IReadOnlyList<AccBlock>> FallbackBlocksAsync()
+    {
+        var apps = await Profile.ListAppSectorsAsync(_acc!.Code);
+        return new[]
+        {
+            new AccBlock { Key = "fallback:ctr", Kind = AccBlockKind.Aerovia },
+            new AccBlock { Key = "fallback:app", Kind = AccBlockKind.AppGroup, MemberCallsigns = apps.Select(a => a.Callsign).ToList() },
+        };
     }
 
     // Un gruppo-APP è "delegato" (collassato) quando un suo settore membro è gestito da un subordinato online (≠ P).

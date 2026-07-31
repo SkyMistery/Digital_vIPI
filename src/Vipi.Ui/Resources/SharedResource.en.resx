@@ -143,16 +143,15 @@
   <data name="Live_NoNeighbourOnline" xml:space="preserve"><value>no adjacent unit online</value></data>
   <data name="Live_TransfersHint" xml:space="preserve"><value>— internal only if someone is there; external always (release at the right level)</value></data>
   <data name="Live_NoCoord" xml:space="preserve"><value>No coordination for this ACC.</value></data>
-  <data name="Live_NotAvailTitle" xml:space="preserve"><value>Operational view not available</value></data>
-  <data name="Live_NotAvailBody" xml:space="preserve"><value>No vIPI published for &lt;b&gt;{0}&lt;/b&gt;. The operational view derives from the published document: open the &lt;a href="{1}"&gt;vIPI&lt;/a&gt; and publish it.</value></data>
+  <data name="Live_NoDocTitle" xml:space="preserve"><value>No vIPI published for {0}</value></data>
+  <data name="Live_NoDocBody" xml:space="preserve"><value>Transfers, areas of responsibility and the frequencies below come from the catalogues and are still valid. Only the editorial grouping of frequencies is missing: &lt;a href="{0}"&gt;open the vIPI&lt;/a&gt; and publish it.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connected as {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordination</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Airport quick view</value></data>
   <!-- Operational view APP (/vsop/{acc}/live-app) -->
   <data name="AppLive_MissingPosTitle" xml:space="preserve"><value>Missing APP position</value></data>
   <data name="AppLive_MissingPosBody" xml:space="preserve"><value>Specify &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
-  <data name="AppLive_OpsApp" xml:space="preserve"><value>Operational · APP</value></data>
-  <data name="AppLive_NotFoundBody" xml:space="preserve"><value>No document (own or remotized in the ACC vIPI) for &lt;code&gt;{0}&lt;/code&gt;.</value></data>
+  <data name="AppLive_NoDocBody" xml:space="preserve"><value>No document (own or remotized in the ACC vIPI) for &lt;code&gt;{0}&lt;/code&gt;: transfers and the position frequency below are still derived from the catalogues.</value></data>
   <data name="AppLive_UpdatedAt" xml:space="preserve"><value>updated {0}</value></data>
   <data name="AppLive_InfoTitle" xml:space="preserve"><value>Operational view for APP position</value></data>
   <data name="AppLive_InfoBody" xml:space="preserve"><value>The approach sees frequencies, coordination and transfers towards ACC and towers.</value></data>

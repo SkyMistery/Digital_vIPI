@@ -143,16 +143,15 @@
   <data name="Live_NoNeighbourOnline" xml:space="preserve"><value>nessun ente adiacente online</value></data>
   <data name="Live_TransfersHint" xml:space="preserve"><value>— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</value></data>
   <data name="Live_NoCoord" xml:space="preserve"><value>Nessun coordinamento per questa ACC.</value></data>
-  <data name="Live_NotAvailTitle" xml:space="preserve"><value>Vista operativa non disponibile</value></data>
-  <data name="Live_NotAvailBody" xml:space="preserve"><value>Nessuna vIPI pubblicata per &lt;b&gt;{0}&lt;/b&gt;. La vista operativa deriva dal documento pubblicato: aprila dalla &lt;a href="{1}"&gt;vIPI&lt;/a&gt; e pubblicala.</value></data>
+  <data name="Live_NoDocTitle" xml:space="preserve"><value>Nessuna vIPI pubblicata per {0}</value></data>
+  <data name="Live_NoDocBody" xml:space="preserve"><value>Trasferimenti, aree di responsabilità e frequenze qui sotto vengono dai cataloghi e restano validi. Dal documento manca solo il raggruppamento editoriale delle frequenze: &lt;a href="{0}"&gt;apri la vIPI&lt;/a&gt; e pubblicala.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connesso come {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordinamenti</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Vista rapida aeroporto</value></data>
   <!-- Vista live APP (/vsop/{acc}/live-app) -->
   <data name="AppLive_MissingPosTitle" xml:space="preserve"><value>Posizione APP mancante</value></data>
   <data name="AppLive_MissingPosBody" xml:space="preserve"><value>Specifica &lt;code&gt;?app=CALLSIGN&lt;/code&gt;.</value></data>
-  <data name="AppLive_OpsApp" xml:space="preserve"><value>Operativa · APP</value></data>
-  <data name="AppLive_NotFoundBody" xml:space="preserve"><value>Nessun documento (proprio o remotizzato nella vIPI di ACC) per &lt;code&gt;{0}&lt;/code&gt;.</value></data>
+  <data name="AppLive_NoDocBody" xml:space="preserve"><value>Nessun documento (proprio o remotizzato nella vIPI di ACC) per &lt;code&gt;{0}&lt;/code&gt;: sotto restano i trasferimenti e la frequenza della posizione, derivati dai cataloghi.</value></data>
   <data name="AppLive_UpdatedAt" xml:space="preserve"><value>aggiornato {0}</value></data>
   <data name="AppLive_InfoTitle" xml:space="preserve"><value>Operativa per posizione APP</value></data>
   <data name="AppLive_InfoBody" xml:space="preserve"><value>L'avvicinamento vede frequenze, coordinamenti e i trasferimenti verso ACC e torri.</value></data>
