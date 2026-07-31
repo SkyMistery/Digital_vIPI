@@ -1,5 +1,5 @@
 // Viewer 3D dell'AoR (Three.js, orbita manuale — nessun OrbitControls).
-// Ogni settore è un prisma estruso: base = poligono shape reale proiettato su piano XY (equirettangolare centrata
+// Ogni settore è un prisma estruso: base = poligono shape reale proiettato su piano XY (Web Mercator centrato
 // sul bbox), altezza = banda FL (bottom→top). Legenda toggle, orbita drag, zoom rotella, reset.
 // Idempotente: ogni .aor3d-stage[data-sectors3d] è inizializzato una sola volta (data-init). Fallback se manca WebGL/THREE.
 // Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top]}].
@@ -33,19 +33,8 @@
     var TARGET = 150;       // il lato orizzontale maggiore riempie ~questo numero di unità (z adattivo in build)
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
     var hex = function (c) { return (c && c[0] === '#') ? c : ('#' + String(c || '3C55AC')); };
-
-    // Etichetta testuale come sprite (sempre rivolta alla camera).
-    function makeLabel(THREE, text, col) {
-        var c = document.createElement('canvas'); c.width = 256; c.height = 64;
-        var x = c.getContext('2d');
-        x.font = 'bold 40px "Nunito Sans",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-        x.lineWidth = 7; x.strokeStyle = 'rgba(255,255,255,.92)'; x.strokeText(text, 128, 34);
-        x.fillStyle = col; x.fillText(text, 128, 34);
-        var t = new THREE.CanvasTexture(c);
-        var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
-        s.scale.set(26, 6.5, 1);
-        return s;
-    }
+    // Nomi/callsign finiscono in innerHTML (legenda): arrivano dal DB, quindi passano da qui.
+    var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
 
     // --- Web Mercator + tile helpers (per allineare le tile della basemap ai poligoni proiettati) ---
     var D2R = Math.PI / 180, R2D = 180 / Math.PI;
@@ -157,7 +146,6 @@
 
         // Disegno prima i settori con footprint più grande: i più piccoli (interni) restano visibili sopra.
         var order = sectors.map(function (s, i) { return i; }).sort(function (a, b) { return ringArea(sectors[b]) - ringArea(sectors[a]); });
-        var seenLabels = {};
 
         var group = new THREE.Group(); scene.add(group);
         order.forEach(function (idx) {
@@ -183,14 +171,14 @@
                 pts.forEach(function (p) { cxSum += p[0]; cySum += p[1]; n++; });
             });
             if (n === 0) return;
-            // Etichetta: una sola per nome (evita doppioni tipo due "Brindisi Radar"); z scalato per ridurre l'accavallamento.
-            var name = s.name || s.sec || '';
-            if (!seenLabels[name]) {
-                seenLabels[name] = true;
-                var lab = makeLabel(THREE, name, '#' + edgeCol.getHexString());
-                lab.position.set(cxSum / n, cySum / n, depth + 4 + (idx % 4) * (maxHeight * 0.06));
-                secGroup.add(lab);
-            }
+            // Ancora dell'etichetta HTML (vedi layoutLabels): oggetto vuoto sul centroide, in cima al prisma. Sta DENTRO
+            // secGroup, quindi segue la scala verticale del gruppo; il testo è HTML e non si deforma con essa.
+            var anchor = new THREE.Object3D();
+            anchor.position.set(cxSum / n, cySum / n, depth);
+            secGroup.add(anchor);
+            s._anchor = anchor;
+            s._ink = '#' + edgeCol.getHexString();
+            s._area = ringArea(s);
             s._g = secGroup;
             group.add(secGroup);
         });
@@ -203,6 +191,84 @@
         var r = s && s.rings && s.rings[0]; if (!r || r.length < 3) return 0;
         var a = 0; for (var i = 0, j = r.length - 1; i < r.length; j = i++) { a += (r[j][1] + r[i][1]) * (r[j][0] - r[i][0]); }
         return Math.abs(a / 2);
+    }
+
+    // --- Etichette = overlay HTML sopra il canvas (prima erano sprite su canvas 256×64: i nomi lunghi venivano
+    // tagliati e i doppioni per nome saltati). Una .aor3d-lab per settore, riposizionata a ogni render proiettando
+    // l'ancora 3D in coordinate schermo. Declutter greedy: priorità al footprint più grande, chi collide prova
+    // qualche offset verticale e poi sparisce — meglio nessuna etichetta che una pila illeggibile.
+    // Testo = callsign (come le chip del 2D), sotto la banda FL; il nome esteso è nel title.
+    function buildLabels(stage, sectors, onToggle) {
+        var THREE = window.THREE;
+        var layer = document.createElement('div');
+        layer.className = 'aor3d-labels';
+        stage.appendChild(layer);
+
+        var items = [];
+        sectors.forEach(function (s) {
+            if (!s._anchor) return;
+            var b = s.fl || [0, 660];
+            var el = document.createElement('div');
+            el.className = 'aor3d-lab';
+            el.style.color = s._ink || '';
+            el.title = s.name || s.sec || '';
+            var nm = document.createElement('b'); nm.textContent = s.sec || s.name || '';
+            var fl = document.createElement('i'); fl.textContent = 'FL' + (b[0] || 0) + '–' + (b[1] || 660);
+            el.appendChild(nm); el.appendChild(fl);
+            el.addEventListener('click', function (ev) { ev.stopPropagation(); if (onToggle) onToggle(s); });
+            layer.appendChild(el);
+            items.push({ s: s, el: el, w: 0, h: 0 });
+        });
+        // Priorità di piazzamento: footprint grande prima (le etichette dei settori piccoli cedono per prime).
+        items.sort(function (a, b) { return (b.s._area || 0) - (a.s._area || 0); });
+
+        var OFFS = [0, -22, 22, -44, 44];      // px: tentativi verticali prima di rinunciare
+        var PAD = 4;
+        var v = new THREE.Vector3();
+
+        function hits(x, y, w, h, boxes) {
+            for (var i = 0; i < boxes.length; i++) {
+                var b = boxes[i];
+                if (x < b[0] + b[2] + PAD && x + w + PAD > b[0] && y < b[1] + b[3] + PAD && y + h + PAD > b[1]) return true;
+            }
+            return false;
+        }
+        // Legenda e suggerimento sono UI fissa: le etichette le trattano come ostacoli invece di finirci sotto.
+        function chrome() {
+            var out = [], r0 = stage.getBoundingClientRect();
+            stage.querySelectorAll('.aor3d-legend, .aor3d-hint').forEach(function (el) {
+                if (!el.offsetParent) return;
+                var r = el.getBoundingClientRect();
+                out.push([r.left - r0.left, r.top - r0.top, r.width, r.height]);
+            });
+            return out;
+        }
+
+        function layout(camera) {
+            var W = stage.clientWidth, H = stage.clientHeight;
+            if (!W || !H) return;
+            var placed = chrome();
+            items.forEach(function (it) {
+                var el = it.el;
+                if (!it.s._g || !it.s._g.visible) { el.style.display = 'none'; return; }
+                el.style.display = '';                                   // deve essere reso per misurarlo
+                if (!it.w) { it.w = el.offsetWidth; it.h = el.offsetHeight; }
+                it.s._anchor.getWorldPosition(v).project(camera);
+                if (v.z > 1) { el.style.display = 'none'; return; }      // dietro la camera
+                var x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
+                var bx = 0, by = 0, ok = false;
+                for (var i = 0; i < OFFS.length && !ok; i++) {
+                    bx = x - it.w / 2; by = y - it.h - 8 + OFFS[i];
+                    if (bx < 2 || bx + it.w > W - 2 || by < 2 || by + it.h > H - 2) continue;
+                    if (!hits(bx, by, it.w, it.h, placed)) ok = true;
+                }
+                if (!ok) { el.style.display = 'none'; return; }
+                placed.push([bx, by, it.w, it.h]);
+                el.style.transform = 'translate(' + Math.round(bx) + 'px,' + Math.round(by) + 'px)';
+            });
+        }
+
+        return { layout: layout };
     }
 
     /// Punto d'ingresso: garantisce three.js, poi costruisce. Tutti i chiamanti (tab 3D, <details>, initAll,
@@ -243,7 +309,27 @@
         var lookZ = (ctx.maxHeight || 80) * 0.4;                 // mira a ~40% dell'altezza dei prismi
         var DEF = { theta: 0.78, phi: 1.02, radius: 300 };       // vista un po' più alta e arretrata di prima
         var theta = DEF.theta, phi = DEF.phi, radius = DEF.radius;
-        function render() { if (ctx) ctx.renderer.render(ctx.scene, ctx.camera); }
+        var box = stage.querySelector('.aor3d-legrows');
+
+        // Verità dello stato acceso/spento: il gruppo del settore. Legenda ed etichette sono due viste della stessa cosa.
+        function setSec(sec, on) {
+            var key = (sec || '').toUpperCase();
+            sectors.forEach(function (s, i) {
+                if ((s.sec || '').toUpperCase() !== key || !s._g) return;
+                s._g.visible = on;
+                var row = box && box.querySelector('.lg-row[data-i="' + i + '"]');
+                if (row) row.classList.toggle('off', !on);
+            });
+            render();
+        }
+        // Le etichette si posizionano DOPO il render (matrici mondo fresche) e solo lì: render() è on-demand
+        // (drag, zoom, toggle), non un loop raf, quindi il costo del declutter è trascurabile.
+        var labels = buildLabels(stage, sectors, function (s) { if (!moved) setSec(s.sec, !(s._g && s._g.visible)); });
+        function render() {
+            if (!ctx) return;
+            ctx.renderer.render(ctx.scene, ctx.camera);
+            labels.layout(ctx.camera);
+        }
         function updateCam() {
             ctx.camera.position.set(
                 radius * Math.sin(phi) * Math.cos(theta),
@@ -258,26 +344,28 @@
         stage._aor3dResize = resize;
         updateCam();
 
-        // Legenda (toggle visibilità settore).
-        var box = stage.querySelector('.aor3d-legrows');
+        // Legenda (toggle visibilità settore). Etichetta = callsign col nome esteso nel title, come le chip del 2D.
+        // Resta anche a schermo intero, dove le chip fuori dallo stage non si vedono.
         if (box) {
             box.innerHTML = sectors.map(function (s, i) {
                 var b = s.fl || [0, 660];
-                return '<div class="lg-row" data-i="' + i + '"><span class="sw" style="background:' + hex(s.color) +
-                    '"></span>' + (s.name || s.sec || '') + '<span class="fl">FL' + (b[0] || 0) + '–' + (b[1] || 660) + '</span></div>';
+                return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || '') + '"><span class="sw" style="background:' + hex(s.color) +
+                    '"></span>' + esc(s.sec || s.name || '') + '<span class="fl">FL' + (b[0] || 0) + '–' + (b[1] || 660) + '</span></div>';
             }).join('');
             box.querySelectorAll('.lg-row').forEach(function (r) {
                 r.addEventListener('click', function () {
                     var s = sectors[+r.dataset.i];
-                    if (s && s._g) { s._g.visible = !s._g.visible; r.classList.toggle('off', !s._g.visible); render(); }
+                    if (s && s._g && !moved) setSec(s.sec, !s._g.visible);
                 });
             });
         }
 
         // Orbita manuale + zoom.
-        var dragging = false, lx = 0, ly = 0;
-        stage.addEventListener('pointerdown', function (e) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } });
-        stage.addEventListener('pointermove', function (e) { if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); });
+        // `moved` distingue l'orbita dal click: trascinando a partire da un'etichetta o da una riga di legenda
+        // (che stanno dentro lo stage) partirebbe comunque il click finale, spegnendo il settore per sbaglio.
+        var dragging = false, lx = 0, ly = 0, moved = false;
+        stage.addEventListener('pointerdown', function (e) { dragging = true; moved = false; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } });
+        stage.addEventListener('pointermove', function (e) { if (!dragging) return; if (Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly) > 2) moved = true; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); });
         stage.addEventListener('pointerup', function () { dragging = false; stage.classList.remove('grabbing'); });
         stage.addEventListener('pointerleave', function () { dragging = false; stage.classList.remove('grabbing'); });
         stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false });
