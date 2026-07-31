@@ -54,7 +54,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        var editing = new EfEditingRepository(_db, new AiracService());
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
         _service = new AppDocumentService(repo, editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService());

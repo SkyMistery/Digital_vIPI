@@ -116,12 +116,15 @@ le cattura → crash del circuito):
   **click** (scelta dal dispositivo) e **drop** funzionano entrambi nativamente; gli eventi Blazor
   `@ondragenter/@ondragleave/@ondrop` servono solo per lo stato visivo «rilascia qui».
   *Punto fragile, da provare live su Edge/Chrome/Firefox* (§7).
-- **Ridimensionamento nel browser** (`wwwroot/vipi-media.js`): canvas → lato lungo ≤
-  `Media:ClientDownscaleLongestSidePx`, ricodifica JPEG/WebP a `Media:JpegQuality`, e restituisce un
-  `IJSStreamReference` che .NET legge con `OpenReadStreamAsync(maxAllowedSize)`. Così una foto da telefono da
-  8 MB **passa** (arriva già ridotta), l'upload viaggia dentro il circuito già autenticato (nessun endpoint di
-  scrittura, nessun antiforgery da gestire) e **non serve nessuna libreria di imaging server-side**.
-  Fallback se il browser non decodifica il file: `InputFile.OpenReadStream(max)` sull'originale.
+- **Ridimensionamento nel browser** (`wwwroot/vipi-media.js`): il file scelto viene intercettato sul `change` in
+  **fase di cattura**, ridisegnato su canvas al lato lungo ≤ `Media:ClientDownscaleLongestSidePx`, ricodificato a
+  `Media:JpegQuality`, e l'evento viene **ri-emesso con il file rimpicciolito al posto dell'originale**. Blazor vede
+  quindi un solo `change`, con dentro già il file giusto, e il C# non sa nulla di tutto questo. Così una foto da
+  telefono da 8 MB **passa** (arriva già ridotta), l'upload viaggia dentro il circuito già autenticato (nessun
+  endpoint di scrittura, nessun antiforgery da gestire) e **non serve nessuna libreria di imaging server-side**.
+  Se il browser non sa decodificare il file, l'evento passa intatto e si carica l'originale.
+  > Il primo disegno restituiva i byte a .NET come `IJSStreamReference`. Non funziona qui, per due motivi
+  > indipendenti scoperti solo dal vivo: vedi «Esito della verifica live» §1.
 - Dopo l'upload: anteprima, campo **alt** (accessibilità e stampa) e **didascalia**, pulsanti
   *Sostituisci* / *Rimuovi*. ↑/↓ ed elimina-blocco restano quelli dell'host.
 - Messaggio d'errore che **cita il limite corrente** letto dall'opzione, non un numero scritto a mano.
@@ -162,8 +165,8 @@ does not exist`. **Passo 1 obbligatorio**: `EnsureModelTables` nel reconciler (d
 Vale per **ogni entità futura**, non solo questa.
 
 **R2 — Immutabilità verso le release.** Il payload di release cita lo sha: se un asset sparisse, una release
-pubblicata mostrerebbe un buco. Regola: l'editing non cancella mai un `MediaAsset`. Un'eventuale GC (scansione
-di documenti + payload release) è **fuori scope**, annotata come possibile azione admin futura.
+pubblicata mostrerebbe un buco. Regola: l'editing non cancella mai un `MediaAsset`. La GC è arrivata subito dopo come **azione admin esplicita**:
+vedi [pulizia delle immagini non più usate](2026-07-31-pulizia-immagini-orfane.md).
 
 **R3 — Ricerca inquinata.** `EfSearchRepository` indicizza `BodyJson` grezzo quando `Body` è vuoto: un blocco
 immagine finirebbe nei risultati come stringa JSON. Fix **nello stesso giro**: per `Format=Image` si indicizzano
@@ -236,4 +239,4 @@ console o di circuito.
 ## Non-obiettivi (dichiarati)
 
 SVG; galleria/carousel; crop/rotazione/annotazioni; immagini **dentro le celle** di tabella; picker per
-riusare un'immagine già caricata (il dedupe c'è, la libreria media no); quota per documento; GC degli asset orfani.
+riusare un'immagine già caricata (il dedupe c'è, la libreria media no); quota per documento.

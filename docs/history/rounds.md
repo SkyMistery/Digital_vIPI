@@ -1023,3 +1023,40 @@ dispositivo o trascinata sull'area. Carta: `docs/feature/2026-07-31-immagini-nei
   due messaggi per lo stesso rifiuto, immagini vuote in stampa). Dettaglio nella carta.
 
 Suite **774** verde.
+
+
+### Pulizia delle immagini non più usate (2026-07-31)
+
+Seguito immediato della feature immagini: togliere un blocco non libera lo spazio (di proposito — una release
+pubblicata cita lo sha), quindi serviva un modo esplicito per recuperarlo.
+Carta: `docs/feature/2026-07-31-pulizia-immagini-orfane.md`.
+
+- Card in `/vsop/admin/diagnostica`, **due tempi**: «Analizza» mostra l'elenco e lo spazio recuperabile, solo
+  allora compare «Elimina definitivamente». Mai automatica: un lavoro notturno farebbe il danno mentre nessuno
+  guarda.
+- «Non usata» = lo sha non compare in **quattro** posti: blocchi di ogni versione (bozze comprese), sezioni extra
+  d'aeroporto, payload delle release, blocchi condivisi. L'ultimo (`SharedBlock`) è emerso rileggendo il modello a
+  feature finita: nessuno li crea oggi, ma portano `Format`+`BodyJson` come i blocchi normali.
+- Due difetti presi dai test prima che dal vivo: gli **escape JSON** nascondevano il riferimento dentro le sezioni
+  extra (due cifre esadecimali incollate allo sha); e serviva l'anello esplicito fra **snapshot di release** e
+  scanner, senza il quale la pulizia avrebbe cancellato le foto delle vIPI già pubblicate.
+- `DeleteOrphansAsync` **ricontrolla** al momento della cancellazione: fra l'elenco e il clic passano minuti.
+
+Suite **801 → 804** verde, verifica live con traccia (67,5 KB recuperati, l'immagine rimasta ancora servita).
+
+
+### Immagini: anteprima, quota per documento, pulizia alla cancellazione (2026-07-31)
+
+Estensione chiesta subito dopo la pulizia manuale: i suoi tre non-obiettivi diventano funzioni.
+
+- **Anteprima** nell'elenco di pulizia: davanti a un nome come «immagine1.png» nessuno sa se quella foto serviva.
+- **Quota per documento** (`Media:MaxBytesPerDocument`, 25 MB, 0 = illimitata), controllata prima di salvare per non
+  lasciare nel deposito un asset che nessuno cita. Conta le righe: la stessa foto in due blocchi pesa una volta.
+- **Pulizia alla cancellazione** su tutti e quattro i percorsi in cui una foto perde il suo blocco (blocco, sezione
+  col sottoalbero, riscrittura degli extra d'aeroporto, potatura delle versioni archiviate). Non decide da sé:
+  ripassa da `DeleteOrphansAsync`, quindi una foto citata altrove — o da una release pubblicata — resta dov'è.
+
+I repository hanno un parametro in più: i call site dei test passano l'implementazione vera, così la suite
+esistente esercita il percorso nuovo invece di aggirarlo.
+
+Suite **804 → 814** verde, verifica live sui tre comportamenti.

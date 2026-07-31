@@ -1,0 +1,132 @@
+@* Pulizia delle immagini non più usate (docs/feature/2026-07-31-pulizia-immagini-orfane.md).
+   Due tempi: prima si guarda l'elenco, poi si cancella. Mai in un colpo solo, e mai in automatico: se un domani
+   nascesse un quarto posto in cui un'immagine può essere citata e ci si dimenticasse di includerlo nella ricerca,
+   un lavoro automatico cancellerebbe foto ancora in uso di notte, senza che nessuno veda. *@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Media
+@inherits OwningComponentBase
+@inject IStringLocalizer<SharedResource> L
+@* IMediaMaintenance dallo scope PROPRIO: legge tabelle grosse e non deve passare per il DbContext del circuito. *@
+
+<div class="block" style="margin-top:18px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <h3 style="margin:0;flex:1">@L["MediaClean_Title"]</h3>
+        <button class="btn ghost" disabled="@_busy" @onclick="AnalyzeAsync">
+            <Icon Name="refresh" /> @L["MediaClean_Analyze"]
+        </button>
+    </div>
+    <p class="muted" style="margin:6px 0 0">@L["MediaClean_Intro"]</p>
+
+    @if (_busy)
+    {
+        <p class="help" style="margin-top:10px">@L["MediaClean_Working"]</p>
+    }
+    else if (_report is { } r)
+    {
+        <p style="margin:10px 0 0">
+            <b>@Plurale("MediaClean_Total", r.TotalCount, r.TotalCount, Human(r.TotalBytes))</b>
+        </p>
+
+        @if (r.Orphans.Count == 0)
+        {
+            <div class="callout" style="margin-top:8px">
+                <span class="cic"><Icon Name="check-circle" Size="18" /></span>
+                <div>@L["MediaClean_NoneUnused"]</div>
+            </div>
+        }
+        else
+        {
+            <div class="callout warning" style="margin-top:8px">
+                <span class="cic">⚠️</span>
+                <div>@Plurale("MediaClean_FoundUnused", r.Orphans.Count, r.Orphans.Count, Human(r.ReclaimableBytes))</div>
+            </div>
+
+            <table class="res-table" style="margin-top:10px">
+                <thead>
+                    <tr>
+                        <th style="width:96px">@L["MediaClean_ColPreview"]</th>
+                        <th>@L["MediaClean_ColFile"]</th>
+                        <th>@L["MediaClean_ColSize"]</th>
+                        <th>@L["MediaClean_ColUploaded"]</th>
+                        <th>@L["MediaClean_ColBy"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _report.Orphans)
+                    {
+                        <tr>
+                            @* L'anteprima e' il motivo per cui l'elenco esiste: davanti a un nome come «immagine1.png»
+                               nessuno sa se quella foto serviva. La miniatura la si riconosce a colpo d'occhio. *@
+                            <td><img class="img-thumb" src="@(MediaRef.UrlPrefix + o.Sha256)" alt="" loading="lazy" /></td>
+                            <td>@(string.IsNullOrWhiteSpace(o.FileName) ? o.Sha256[..12] + "…" : o.FileName)</td>
+                            <td>@Human(o.ByteSize)</td>
+                            <td class="muted">@o.CreatedUtc.ToString("dd/MM/yyyy")</td>
+                            <td class="muted">@(o.CreatedByUserId > 0 ? o.CreatedByUserId.ToString() : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div style="margin-top:10px">
+                <InlineConfirm TriggerClass="btn danger" TriggerTitle="@L["MediaClean_DeleteTitle"]"
+                               Prompt="@Plurale("MediaClean_DeletePrompt", _report.Orphans.Count, _report.Orphans.Count)"
+                               Disabled="@_busy" OnConfirm="DeleteAsync">
+                    <Trigger>@L["MediaClean_Delete"]</Trigger>
+                </InlineConfirm>
+            </div>
+        }
+    }
+
+    @if (_done is { } messaggio)
+    {
+        <div class="callout" style="margin-top:8px">
+            <span class="cic"><Icon Name="check-circle" Size="18" /></span>
+            <div>@messaggio</div>
+        </div>
+    }
+</div>
+
+@code {
+    private IMediaMaintenance _media = default!;
+    protected override void OnInitialized() => _media = ScopedServices.GetRequiredService<IMediaMaintenance>();
+
+    private MediaUsageReport? _report;
+    private bool _busy;
+    private string? _done;
+
+    private async Task AnalyzeAsync()
+    {
+        _busy = true;
+        _done = null;
+        try { _report = await _media.AnalyzeAsync(); }
+        finally { _busy = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_report is null) return;
+        _busy = true;
+        try
+        {
+            var sha = _report.Orphans.Select(o => o.Sha256).ToList();
+            var quante = await _media.DeleteOrphansAsync(sha);
+            // Rianalizza invece di svuotare l'elenco a mano: se qualcuna nel frattempo è tornata in uso il servizio
+            // non l'ha cancellata, e l'elenco deve dirlo — non fingere che sia sparita.
+            _report = await _media.AnalyzeAsync();
+            _done = Plurale("MediaClean_Deleted", quante, quante);
+        }
+        finally { _busy = false; }
+    }
+
+    // «1 images are not referenced» si vedeva a schermo. Il singolare non e' un dettaglio in una pagina che
+    // qualcuno legge prima di cancellare per sempre: chiave dedicata quando il conto e' uno.
+    private string Plurale(string chiave, int quanti, params object[] argomenti) =>
+        L[quanti == 1 ? chiave + "_One" : chiave, argomenti].Value;
+
+    private static string Human(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{bytes / (double)(1024 * 1024):0.#} MB",
+        >= 1024 => $"{bytes / 1024d:0.#} KB",
+        _ => $"{bytes} byte",
+    };
+}

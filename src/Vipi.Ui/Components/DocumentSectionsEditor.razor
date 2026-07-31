@@ -335,7 +335,7 @@ else
                         break;
                     case BlockFormat.Image:
                         @* Stringa vuota = "togli l'immagine": SaveBlock lascia intatto ciò che riceve null. *@
-                        <ImageBlockEditor ImageJson="@b.BodyJson" ImageJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
+                        <ImageBlockEditor DocumentId="Doc.DocumentId" ImageJson="@b.BodyJson" ImageJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
                                           Caption="@b.Body" CaptionChanged="c => SaveBlock(b, body: c ?? string.Empty)" />
                         break;
                     default:

@@ -495,7 +495,7 @@ else
                                     <button class="btn ghost" @onclick="() => RemoveExtra(s)" title="@L["Common_Remove"]"><Icon Name="x" /></button>
                                 </div>
                             </div>
-                            <DocumentBlocksEditor Blocks="s.Blocks" Editing="_canEdit" OnChanged='() => MarkDirty("Sezioni extra")' />
+                            <DocumentBlocksEditor Blocks="s.Blocks" Editing="_canEdit" DocumentId="_docDbId" OnChanged='() => MarkDirty("Sezioni extra")' />
                         </div>
                     }
                     <div style="margin-top:10px;display:flex;gap:8px">

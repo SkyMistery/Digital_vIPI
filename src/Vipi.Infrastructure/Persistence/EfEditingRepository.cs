@@ -13,11 +13,31 @@ public sealed class EfEditingRepository : IEditingRepository
 {
     private readonly VipiDbContext _db;
     private readonly IAiracService _airac;
+    private readonly Vipi.Application.Media.IMediaMaintenance _media;
 
-    public EfEditingRepository(VipiDbContext db, IAiracService airac)
+    public EfEditingRepository(VipiDbContext db, IAiracService airac, Vipi.Application.Media.IMediaMaintenance media)
     {
         _db = db;
         _airac = airac;
+        _media = media;
+    }
+
+    /// <summary>
+    /// Sha citati dai blocchi che stanno per sparire. Vanno letti PRIMA della cancellazione: dopo, il riferimento
+    /// non esiste piu' e non si saprebbe piu' quale foto controllare.
+    /// </summary>
+    private static List<string> ShaCitati(IEnumerable<ContentBlock> blocchi) =>
+        Vipi.Application.Media.MediaReferenceScanner.ScanAll(
+            blocchi.Where(b => b.Format == BlockFormat.Image).Select(b => b.BodyJson)).ToList();
+
+    /// <summary>
+    /// Libera le immagini rimaste senza padroni dopo una cancellazione. Non decide nulla da se': ripassa da
+    /// <c>DeleteOrphansAsync</c>, che ricontrolla TUTTE le sorgenti — quindi una foto ancora citata da un altro
+    /// blocco, da un'altra versione o da una release pubblicata resta dov'e'.
+    /// </summary>
+    private async Task LiberaImmaginiAsync(IReadOnlyList<string> sha, CancellationToken ct)
+    {
+        if (sha.Count > 0) await _media.DeleteOrphansAsync(sha, ct);
     }
 
     public Task<int?> FindVloaIdByPairAsync(string homeAccCode, string foreignAccCode, CancellationToken ct = default) =>
@@ -647,8 +667,10 @@ public sealed class EfEditingRepository : IEditingRepository
         var block = await _db.ContentBlocks.FirstOrDefaultAsync(b => b.Id == blockId, ct);
         if (block is null) return;
         await RequireDraftAsync(block.DocumentVersionId, ct);
+        var sha = ShaCitati(new[] { block });
         _db.ContentBlocks.Remove(block);
         await _db.SaveChangesAsync(ct);
+        await LiberaImmaginiAsync(sha, ct);
     }
 
     public async Task RenameSectionAsync(int sectionId, string title, CancellationToken ct = default)
@@ -748,9 +770,11 @@ public sealed class EfEditingRepository : IEditingRepository
 
         var ids = subtree.Select(s => s.Id).ToHashSet();
         var blocks = await _db.ContentBlocks.Where(b => ids.Contains(b.SectionId)).ToListAsync(ct);
+        var sha = ShaCitati(blocks);          // include le sotto-sezioni: sparisce l'albero, spariscono le loro foto
         _db.ContentBlocks.RemoveRange(blocks);
         _db.DocumentSections.RemoveRange(subtree);
         await _db.SaveChangesAsync(ct);
+        await LiberaImmaginiAsync(sha, ct);
     }
 
     public async Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default)
@@ -844,11 +868,14 @@ public sealed class EfEditingRepository : IEditingRepository
         var toDelete = archivedIds.Skip(Math.Max(0, keepN)).ToList();
         if (toDelete.Count == 0) return 0;
 
+        var shaPotati = new List<string>();
+
         foreach (var versionId in toDelete)
         {
             // Ordine esplicito per i FK Restrict (Block→Section, Section→ParentSection self-ref): non affidarsi al
             // cascade DB. Blocchi → sezioni figli-prima-dei-genitori → versione (stesso pattern di DeleteSectionAsync).
             var blocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == versionId).ToListAsync(ct);
+            shaPotati.AddRange(ShaCitati(blocks));   // la retention porta via anche le foto di quelle versioni
             _db.ContentBlocks.RemoveRange(blocks);
 
             var sections = await _db.DocumentSections.Where(s => s.DocumentVersionId == versionId).ToListAsync(ct);
@@ -869,6 +896,10 @@ public sealed class EfEditingRepository : IEditingRepository
             if (ver is not null) _db.DocumentVersions.Remove(ver);
             await _db.SaveChangesAsync(ct);
         }
+
+        // Dopo TUTTE le versioni potate, non a ogni giro: una foto puo' essere citata da due delle versioni in
+        // potatura, e chiedersi se e' orfana a meta' lavoro darebbe la risposta sbagliata.
+        await LiberaImmaginiAsync(shaPotati, ct);
         return toDelete.Count;
     }
 

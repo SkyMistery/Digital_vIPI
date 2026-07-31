@@ -120,7 +120,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
 
         var (created, found) = await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         Assert.True(found);
@@ -180,7 +180,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
 
@@ -204,7 +204,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
 
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
@@ -231,7 +231,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
@@ -268,7 +268,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");
@@ -309,7 +309,7 @@ public class StructureEditingTests : IAsyncLifetime
         const string sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
 
         var body = Vipi.Application.Content.ExtraBlocks.Serialize(new List<Vipi.Application.Content.ExtraBlock>
@@ -340,7 +340,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
 
         // TA ignota: la tabella di default mostra la formula TA + offset.
         await profile.MergeFromSourceAsync("LIRF", null, Array.Empty<(string, int?, int?)>());
@@ -427,7 +427,7 @@ public class StructureEditingTests : IAsyncLifetime
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         var apId = await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db);
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
         await profile.RebuildDocumentAsync("LIRF");

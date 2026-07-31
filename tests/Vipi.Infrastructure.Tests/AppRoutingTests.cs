@@ -47,7 +47,7 @@ public class AppRoutingTests : IAsyncLifetime
         app.IsPrimary = true;
         await _db.SaveChangesAsync();
 
-        var repo = new EfEditingRepository(_db, new AiracService());
+        var repo = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var summaries = await repo.ListDocumentsAsync();
         var s = summaries.First(x => x.Id == doc.Id);
 
