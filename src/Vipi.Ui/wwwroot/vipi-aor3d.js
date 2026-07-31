@@ -3,7 +3,33 @@
 // sul bbox), altezza = banda FL (bottom→top). Legenda toggle, orbita drag, zoom rotella, reset.
 // Idempotente: ogni .aor3d-stage[data-sectors3d] è inizializzato una sola volta (data-init). Fallback se manca WebGL/THREE.
 // Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top]}].
+// three.js NON è nel <head>: sono 592 KB per il solo tab 3D. Lo carica loadThree() alla prima apertura di uno stage.
 (function () {
+    // URL di three.js (con l'impronta di MapStaticAssets) dal data attribute sul nostro <script>.
+    // document.currentScript va letto QUI: dentro una funzione chiamata dopo varrebbe null.
+    var SELF = document.currentScript;
+    var THREE_SRC = (SELF && SELF.getAttribute('data-three-src')) || '';
+    var threePromise = null;
+
+    /// Carica three.js una sola volta. La promise è memorizzata anche se fallisce: niente tempeste di retry,
+    /// coerente con il comportamento di prima (fallback mostrato una volta, nessun secondo tentativo).
+    function loadThree() {
+        if (window.THREE) return Promise.resolve();
+        if (threePromise) return threePromise;
+        threePromise = new Promise(function (resolve, reject) {
+            if (!THREE_SRC) { reject(new Error('data-three-src assente sul tag di vipi-aor3d.js')); return; }
+            var s = document.createElement('script');
+            s.src = THREE_SRC;
+            s.onload = function () {
+                if (window.THREE) resolve();
+                else reject(new Error('three.js caricato ma THREE non è globale'));
+            };
+            s.onerror = function () { reject(new Error('three.js non caricato: ' + THREE_SRC)); };
+            document.head.appendChild(s);
+        });
+        return threePromise;
+    }
+
     var TARGET = 150;       // il lato orizzontale maggiore riempie ~questo numero di unità (z adattivo in build)
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
     var hex = function (c) { return (c && c[0] === '#') ? c : ('#' + String(c || '3C55AC')); };
@@ -179,20 +205,38 @@
         return Math.abs(a / 2);
     }
 
+    /// Punto d'ingresso: garantisce three.js, poi costruisce. Tutti i chiamanti (tab 3D, <details>, initAll,
+    /// MutationObserver) passano di qui e ignorano il valore di ritorno, quindi l'attesa resta interna.
     function initOne(stage) {
-        if (stage.dataset.init === '1') return;
+        // 'pending' = caricamento di three.js in corso per questo stage: senza, un secondo evento (resize,
+        // re-render di Blazor) rientrerebbe e costruirebbe due volte lo stesso stage.
+        if (stage.dataset.init === '1' || stage.dataset.init === 'pending') return;
         var sectors;
         try { sectors = JSON.parse(stage.dataset.sectors3d || '[]') || []; } catch (e) { return; }
         if (!sectors.length) return;
 
-        // Nessun WebGL/THREE: mostra il fallback testuale, non ritentare.
-        if (typeof window.THREE === 'undefined') {
+        if (window.THREE) { build3d(stage, sectors); return; }
+
+        stage.dataset.init = 'pending';
+        loadThree().then(
+            function () { stage.dataset.init = ''; build3d(stage, sectors); },
+            function () {
+                // three.js non disponibile (rete, blocco, file mancante): fallback testuale, nessun ritentativo.
+                stage.dataset.init = '1';
+                var fb = stage.querySelector('.aor3d-fallback'); if (fb) fb.style.display = 'flex';
+            });
+    }
+
+    function build3d(stage, sectors) {
+        var ctx;
+        // WebGL assente/disabilitato: `new THREE.WebGLRenderer` lancia. Prima l'eccezione usciva e lo stage
+        // restava vuoto, nonostante il fallback previsto in cima al file — qui viene mostrato davvero.
+        try { ctx = build(stage, sectors, function () { render(); }); }   // re-render quando la basemap è pronta
+        catch (e) {
             stage.dataset.init = '1';
-            var fb = stage.querySelector('.aor3d-fallback'); if (fb) fb.style.display = 'flex';
+            var fbw = stage.querySelector('.aor3d-fallback'); if (fbw) fbw.style.display = 'flex';
             return;
         }
-
-        var ctx = build(stage, sectors, function () { render(); });   // re-render quando la basemap è pronta
         if (!ctx) return;
         stage.dataset.init = '1';
 
