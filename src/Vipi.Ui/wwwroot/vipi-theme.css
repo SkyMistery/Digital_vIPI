@@ -746,6 +746,26 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 /* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
 .tbl-scroll{overflow-x:auto;max-width:100%}
 .sid-table{font-size:13px;min-width:720px}
+/* Viewer aeroporto: tabella SID a 9 colonne. Larghezze FISSE, altrimenti cambiando pista cambia il disegno
+   della tabella: con table-layout:auto una colonna tutta «—» (Condition su una pista, piena sull'altra)
+   collassa e regala il suo spazio alle vicine. Per CLASSE semantica, non per nth-child, come in .sid-quick.
+   Le percentuali sono MISURATE, in due passaggi: (1) per ogni colonna la larghezza minima che non spezza
+   nessuna parola — intestazione compresa, «TRANSITION» è la più larga — su LIBD/LIBC/LIBR/LIRN, tutte le
+   piste: somma 82%; (2) il 18% avanzato diviso fra Initial climb e Condition nella proporzione della pista
+   25 di LIBD, presa come riferimento perché è il caso pieno (Condition lunga E climb «to be coordinated
+   with APP»). Il min-width serve a quel primo vincolo: sotto ~810px le intestazioni andrebbero a capo a
+   metà parola, quindi la tabella scorre nel suo contenitore invece di stringersi. */
+.sid-view{table-layout:fixed;min-width:820px}
+.sid-view th,.sid-view td{overflow-wrap:anywhere}
+.sid-view .col-rwy{width:9.6%}
+.sid-view .col-fix{width:8.4%}
+.sid-view .col-sid{width:9.5%}
+.sid-view .col-trans{width:11.8%}
+.sid-view .col-climb{width:15.8%}
+.sid-view .col-type{width:7.3%}
+.sid-view .col-cat{width:7.5%}
+.sid-view .col-wtc{width:6.5%}
+.sid-view .col-cond{width:23.6%}
 /* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
    come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
    Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.
