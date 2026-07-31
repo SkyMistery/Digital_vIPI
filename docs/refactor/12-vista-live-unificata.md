@@ -196,6 +196,48 @@ LIMC_DEL → LIMC_TWR → LIMC_ANE_APP → LIMM_WS2_CTR                (gradino 
 1. **33 torri ancora orfane**: aeroporti senza APP **e** senza `ParentCallsign` compilato (LICB, LICZ, LIEA,
    i vari `*_I_TWR`…). La scaletta non ha nulla su cui uscire — e non inventa: la pagina lo dichiara.
    Si risolve compilando il nodo Aeroporto in Struttura.
-2. **Torri e ground non sono nodi editabili** in `/vsop/admin/sectorstructure` (lo sono ACC, APP e Aeroporto):
-   dove la regola 3 non basta — due ground entrambi sdoppiati, come a Malpensa — il gradino si salta e non è
-   correggibile dalla UI. Si risolverebbe esponendo anche quelle posizioni come nodi.
+2. ~~Torri e ground non sono nodi editabili~~ → **risolto**, vedi §8.
+
+
+## 8. Torri, ground e delivery editabili in Struttura
+
+La scaletta è un buon default ma resta una deduzione: sugli scali a posizioni sdoppiate deve *scegliere*, e dove
+una gerarchia scritta non c'è la scelta non era correggibile perché quelle posizioni non erano nodi dell'editor.
+
+**Il modello non è cambiato**: APP e TWR/GND/DEL sono già la stessa entità (`AirportSector`), separate solo da un
+filtro `Position == "APP"` in due punti — `LoadTreeAsync` (cosa si vede) e `InternalNodeParentMapAsync` (cosa può
+fare da padre). Caduto il filtro, si riusa il percorso di scrittura esistente. L'ATIS resta fuori: non è una
+posizione di controllo. `HierarchyNodeKind.App` → **`AirportPosition`**, perché il nome diceva meno del nodo.
+
+### 8a. Il padre ereditato, o due schermate che si contraddicono
+
+Il punto delicato. La scaletta assegna un padre alle posizioni senza `ParentCallsign`: esponendole così com'erano,
+l'editor avrebbe detto «da assegnare» su nodi che la vista live mostra già agganciati.
+
+- La scaletta esce dalla proiezione e diventa un **servizio di dominio puro**
+  (`Vipi.Domain.Services.AirportPositionLadder`), condiviso da proiezione ed editor: **una** regola, non due copie
+  libere di divergere.
+- `HierarchyNode` espone `DerivedParentCallsign` / `EffectiveParentCallsign` / `IsInherited`. L'albero appende i
+  nodi al padre **effettivo**, la riga mostra «ereditato» in corsivo, la catena di fallback del pannello segue lo
+  stesso padre, e l'opzione vuota del picker dice **quale** padre erediteresti — invece di far credere che stacchi
+  il nodo.
+
+### 8b. Guardia: nessun padre più in basso nella scaletta
+
+Un ground non copre una torre. Nel picker — un elenco lungo e piatto di callsign — è un errore da **click**, e
+passerebbe silenzioso fino a mandare un controllore sulla posizione sbagliata. Rifiutato con messaggio esplicito;
+**pari grado ammesso** (`LIRF_E_TWR` sotto `LIRF_TWR`), che è proprio il caso da sistemare.
+
+### 8c. Rumore
+
++186 righe nell'albero (266 → 452). Interruttore **«Posizioni d'aeroporto»**, spento di default. Restano comunque
+visibili quando si cerca, quando sono selezionate e in modalità «solo da agganciare»: nascondere i nodi che
+chiedono un intervento sarebbe il modo peggiore di ridurre il rumore.
+
+### 8d. Verifica live
+
+Giro completo su copia del DB: `LIRF_GND` da ereditato (`LIRF_TWR`) a scritto su `LIRF_E_TWR` → catalogo,
+proiezione e **catena nella vista live** allineati (`LIRF_GND → LIRF_E_TWR → LIRF_TW1_APP → LIRR_TS_CTR`).
+Guardia provata a schermo: «*«LIRF_GND» non può coprire «LIRF_TWR»: sta più in basso nella scaletta*».
+Interruttore: 266 righe spento (badge CTR/FSS/ACC/APP/APT) → 452 acceso (+TWR/GND/DEL), 154 nodi «ereditato».
+Suite **715**.

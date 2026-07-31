@@ -981,6 +981,11 @@ già configurata e visibile** in quella pagina, quindi la torre si aggancia alla
 sono nodi editabili — vale il **callsign senza infisso** (`LIRF_TWR` batte `LIRF_E_TWR`); se resta ambiguo si
 **sale** di un gradino (a Malpensa i due ground sono entrambi sdoppiati e il delivery va alla torre).
 
+**Torri, ground e delivery diventano nodi editabili** in `/vsop/admin/sectorstructure` (§8 del doc 12): erano
+esclusi da un filtro `Position == "APP"`, non da una scelta di modello — sono già la stessa entità degli APP.
+La scaletta diventa un servizio di dominio condiviso fra proiezione ed editor, e i nodi senza padre scritto
+mostrano quello **ereditato** invece di un «da assegnare» che contraddirebbe la vista live. Guardia nuova: nessun
+padre più in basso nella scaletta (un ground non copre una torre) — pari grado ammesso, che è il caso degli split.
+Interruttore «Posizioni d'aeroporto» spento di default (+186 righe nell'albero). Suite **715**.
+
 **Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato in Struttura.
-**Di UI:** TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure`, quindi i gradini ambigui non si
-correggono a mano. Dettagli in `docs/refactor/12-vista-live-unificata.md` §7.

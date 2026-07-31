@@ -178,7 +178,7 @@
                         <option value="">@InheritOptionLabel(sel)</option>
                         @foreach (var p in EligibleParents(sel))
                         {
-                            <option value="@p.Callsign">@p.Callsign (@BadgeOf(p.Kind)) · @p.AccCode</option>
+                            <option value="@p.Callsign">@p.Callsign (@FacilityBadge(p.Kind, p.Callsign)) · @p.AccCode</option>
                         }
                     </select>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
@@ -417,12 +417,6 @@
     }
 
     // --- Helpers albero ---
-    private static string BadgeOf(HierarchyNodeKind k) => k switch
-    {
-        HierarchyNodeKind.Acc => "ACC",
-        HierarchyNodeKind.AirportPosition => "POS",
-        _ => "APT",
-    };
 
     // --- Nazioni presenti nell'albero (prefisso ICAO → nome), per il filtro ---
     private sealed record CountryOption(string Prefix, string Name);
@@ -654,11 +648,14 @@
         var byCs = NodesByCallsign();
         var rows = new List<FallbackChainRow>();
         var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var pcs = sel.ParentCallsign;
+        // Padre EFFETTIVO, come l'albero: con quello scritto la catena direbbe «radice» su una posizione che il
+        // sistema aggancia davvero — e il pannello contraddirebbe la riga che l'ha appena selezionata.
+        var pcs = sel.EffectiveParentCallsign;
         while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
         {
-            rows.Add(new FallbackChainRow(p.Callsign ?? "", BadgeOf(p.Kind), BadgeOf(p.Kind).ToLowerInvariant(), p.AccCode));
-            pcs = p.ParentCallsign;
+            rows.Add(new FallbackChainRow(p.Callsign ?? "", FacilityBadge(p.Kind, p.Callsign),
+                FacilityClass(p.Kind, p.Callsign), p.AccCode));
+            pcs = p.EffectiveParentCallsign;
         }
         return rows;
     }
