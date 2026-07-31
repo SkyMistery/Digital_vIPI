@@ -162,6 +162,18 @@ LIRL_GND → LIRL_TWR → LIRR_NE_CTR              (aeroporto senza APP: la torr
 La scaletta è dedotta da `CoverageFor` (sequenza operativa standard), non da un dato scritto. Un
 `AirportSector.ParentCallsign` esplicito **vince sempre** sulla scaletta.
 
+**Fra posizioni di pari grado si sceglie con i dati, non a sorte** (`PickOnRung`), in quest'ordine:
+
+1. **Una sola candidata** → è quella.
+2. **Radice del sottoalbero**: se le candidate hanno una gerarchia configurata fra loro — è il caso degli APP,
+   che in `/vsop/admin/sectorstructure` **sono nodi editabili** — vale quella scritta dall'admin. La radice è
+   l'unica il cui padre sta fuori dal gruppo. Su LIRF le sei APP pendono da `LIRF_TW1_APP`: la torre si aggancia
+   **lì**, non a una scelta alfabetica.
+3. **Callsign senza infisso** (`LIRF_TWR` vs `LIRF_E_TWR`): convenzione di divisione per la posizione principale.
+   Serve dove una gerarchia scritta non c'è — torri e ground non sono nodi editabili.
+4. **Ancora ambiguo → si sale**, invece di tirare a sorte. A Malpensa i due ground sono entrambi sdoppiati
+   (`LIMC_N_GND`, `LIMC_W_GND`): il delivery salta il gradino e va alla torre.
+
 **Portata oltre la vista live.** La stessa gerarchia regge la risoluzione dei trasferimenti
 (`TransferOnlineResolver` risale `ParentSectorId`): un punto verso una torre offline terminava su **UNICOM**
 invece di salire all'avvicinamento — cioè la vIPI avrebbe detto «rilascia a UNICOM» con l'APP online che quel
@@ -175,7 +187,8 @@ Effetto misurato sul DB reale — `Del` 0→**5/5**, `Gnd` 0→**20/20**, `Twr` 
 
 ```
 LIBD_TWR → LIBD_CS0_APP → LIBB_ES_CTR
-LIRF_DEL → LIRF_GND → LIRF_E_TWR → LIRF_AEM_APP → LIRF_TW1_APP → LIRR_TS_CTR → LIRR_NE_CTR
+LIRF_DEL → LIRF_GND → LIRF_TWR → LIRF_TW1_APP → LIRR_TS_CTR      (radice APP + callsign senza infisso)
+LIMC_DEL → LIMC_TWR → LIMC_ANE_APP → LIMM_WS2_CTR                (gradino GND ambiguo: saltato)
 ```
 
 ### ⚠️ Due limiti che restano, entrambi di dato
@@ -183,8 +196,6 @@ LIRF_DEL → LIRF_GND → LIRF_E_TWR → LIRF_AEM_APP → LIRF_TW1_APP → LIRR_
 1. **33 torri ancora orfane**: aeroporti senza APP **e** senza `ParentCallsign` compilato (LICB, LICZ, LIEA,
    i vari `*_I_TWR`…). La scaletta non ha nulla su cui uscire — e non inventa: la pagina lo dichiara.
    Si risolve compilando il nodo Aeroporto in Struttura.
-2. **Aeroporti con posizioni sdoppiate** (LIRF 6 APP + 2 TWR, LIMC 4+2, e altri 7): la scaletta deve *scegliere*
-   fra pari grado e lo fa in ordine alfabetico — `LIRF_GND → LIRF_E_TWR` e `LIRF_TWR → LIRF_AEM_APP` sono
-   **arbitrari**, non un dato. Peggio: TWR/GND/DEL **non sono nodi editabili** in `/vsop/admin/sectorstructure`
-   (solo ACC, APP e Aeroporto lo sono), quindi oggi quella scelta non è correggibile dalla UI.
-   Per gli aeroporti a posizione singola — la maggioranza — la scaletta è invece esatta.
+2. **Torri e ground non sono nodi editabili** in `/vsop/admin/sectorstructure` (lo sono ACC, APP e Aeroporto):
+   dove la regola 3 non basta — due ground entrambi sdoppiati, come a Malpensa — il gradino si salta e non è
+   correggibile dalla UI. Si risolverebbe esponendo anche quelle posizioni come nodi.

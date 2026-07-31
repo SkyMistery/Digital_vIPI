@@ -974,7 +974,13 @@ Sul DB reale: `Del` 0→5/5, `Gnd` 0→20/20, `Twr` 0→51/84. Suite **702 → 7
 Toccava anche la **risoluzione dei trasferimenti** (stessa gerarchia): un punto verso una torre offline terminava
 su UNICOM invece di salire all'avvicinamento. Latente (0 punti simili nel DB), ma stessa classe di errore.
 
-**Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato; e sugli aeroporti a
-posizioni sdoppiate (LIRF 6 APP + 2 TWR, LIMC 4+2, altri 7) la scaletta sceglie fra pari grado in ordine
-alfabetico — arbitrario, e **non correggibile dalla UI** perché TWR/GND/DEL non sono nodi editabili in
-`/vsop/admin/sectorstructure`. Dettagli in `docs/refactor/12-vista-live-unificata.md` §7.
+**Scelta fra pari grado, coi dati e non a sorte** (secondo giro, su indicazione dell'owner: «se ha più APP si
+deve vedere in sectorstructure qual è la gerarchia di questi APP»): la gerarchia fra le APP di un aeroporto **è
+già configurata e visibile** in quella pagina, quindi la torre si aggancia alla **radice del sottoalbero APP**
+(LIRF: `LIRF_TW1_APP`, non l'alfabetico `LIRF_AEM_APP`). Dove una gerarchia scritta non c'è — torri e ground non
+sono nodi editabili — vale il **callsign senza infisso** (`LIRF_TWR` batte `LIRF_E_TWR`); se resta ambiguo si
+**sale** di un gradino (a Malpensa i due ground sono entrambi sdoppiati e il delivery va alla torre).
+
+**Resta aperto, di dato:** 33 torri di aeroporti senza APP e senza padre configurato in Struttura.
+**Di UI:** TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure`, quindi i gradini ambigui non si
+correggono a mano. Dettagli in `docs/refactor/12-vista-live-unificata.md` §7.

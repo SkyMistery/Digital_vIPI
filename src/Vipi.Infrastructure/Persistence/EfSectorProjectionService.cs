@@ -258,23 +258,61 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
     {
         var mine = CoverageFor(MapType(sector.Position));
 
-        if (visibleByIcao.TryGetValue(sector.AirportIcao, out var siblings))
+        if (visibleByIcao.TryGetValue(sector.AirportIcao, out var all))
         {
-            // La posizione immediatamente sopra nella scaletta: il CoverageOrder più alto fra quelli minori del mio.
-            var above = siblings
+            var siblings = all
                 .Where(x => !string.Equals(x.ComposePosition, sector.ComposePosition, StringComparison.OrdinalIgnoreCase))
-                .Select(x => (x.ComposePosition, Order: CoverageFor(MapType(x.Position))))
-                .Where(x => x.Order < mine)
-                .OrderByDescending(x => x.Order)
-                .ThenBy(x => x.ComposePosition, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
+                .ToList();
 
-            if (above.ComposePosition is not null) return above.ComposePosition;
+            // Gradini sopra di me, dal più vicino al più lontano: fermarsi al primo che dà UNA risposta sola.
+            // Se un gradino è ambiguo si sale, invece di tirare a sorte fra pari grado.
+            foreach (var rung in siblings.Select(x => CoverageFor(MapType(x.Position)))
+                         .Where(o => o < mine).Distinct().OrderByDescending(o => o))
+            {
+                var candidates = siblings.Where(x => CoverageFor(MapType(x.Position)) == rung).ToList();
+                var pick = PickOnRung(candidates, sector.AirportIcao);
+                if (pick is not null) return pick;
+            }
         }
 
-        // In cima alla scaletta (o aeroporto con una sola posizione): esce sul padre dell'aeroporto.
+        // In cima alla scaletta (o aeroporto senza altre posizioni): esce sul padre dell'AEROPORTO.
         return airportParentByIcao.GetValueOrDefault(sector.AirportIcao);
     }
+
+    /// <summary>
+    /// La posizione di riferimento fra quelle di pari grado di un aeroporto. Null = gradino ambiguo (si sale).
+    /// <list type="number">
+    /// <item>Una sola candidata: è quella.</item>
+    /// <item><b>Radice del sottoalbero</b>: se le candidate hanno una gerarchia configurata fra loro (è il caso
+    /// degli APP, che in <c>/vsop/admin/sectorstructure</c> sono nodi editabili), vale quella scritta dall'admin —
+    /// la radice è l'unica il cui padre sta fuori dal gruppo. Su LIRF le sei APP pendono da <c>LIRF_TW1_APP</c>:
+    /// è lì che va agganciata la torre, non a una scelta alfabetica.</item>
+    /// <item><b>Callsign senza infisso</b> (<c>LIRF_TWR</c> vs <c>LIRF_E_TWR</c>): convenzione di divisione per la
+    /// posizione principale, usata dove non esiste gerarchia scritta (torri e ground non sono nodi editabili).</item>
+    /// </list>
+    /// </summary>
+    private static string? PickOnRung(IReadOnlyList<AirportSector> candidates, string icao)
+    {
+        if (candidates.Count == 0) return null;
+        if (candidates.Count == 1) return candidates[0].ComposePosition;
+
+        var names = candidates.Select(c => c.ComposePosition).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var roots = candidates
+            .Where(c => c.ParentCallsign is null || !names.Contains(c.ParentCallsign))
+            .ToList();
+        if (roots.Count == 1) return roots[0].ComposePosition;
+
+        // Nessuna gerarchia scritta fra pari grado: la principale è quella senza infisso ({ICAO}_{TIPO}).
+        var pool = roots.Count > 1 ? roots : candidates;
+        var plain = pool.Where(c => IsPlainCallsign(c.ComposePosition, icao)).ToList();
+        return plain.Count == 1 ? plain[0].ComposePosition : null;
+    }
+
+    /// <summary>Callsign a due soli pezzi, <c>{ICAO}_{TIPO}</c>: la posizione principale, non uno split
+    /// (<c>LIRF_TWR</c> sì, <c>LIRF_E_TWR</c> no).</summary>
+    private static bool IsPlainCallsign(string callsign, string icao) =>
+        callsign.StartsWith(icao + "_", StringComparison.OrdinalIgnoreCase)
+        && callsign.Count(ch => ch == '_') == 1;
 
     private static int CoverageFor(SectorType type) => type switch
     {

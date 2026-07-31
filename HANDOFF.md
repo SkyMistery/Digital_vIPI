@@ -102,9 +102,13 @@
 >   sul padre dell'aeroporto, riproiettata all'avvio (`ProjectVipiSectors`). Reggeva anche la risalita dei
 >   trasferimenti: un punto verso una torre offline finiva su UNICOM invece che all'APP.
 >
-> Aperto, **di dato**: 33 torri di aeroporti senza APP e senza padre configurato; e sugli aeroporti a posizioni
-> sdoppiate (LIRF, LIMC, +7) la scaletta sceglie fra pari grado in ordine **alfabetico** — arbitrario e non
-> correggibile dalla UI, perché TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure`.
+>   Fra pari grado si sceglie **coi dati**: la radice del sottoalbero APP (gerarchia scritta dall'admin, es. le
+>   sei APP di LIRF pendono da `LIRF_TW1_APP`), poi il callsign senza infisso (`LIRF_TWR` vs `LIRF_E_TWR`), e se
+>   resta ambiguo si **sale** invece di tirare a sorte.
+>
+> Aperto, **di dato**: 33 torri di aeroporti senza APP e senza padre configurato in Struttura. Aperto, **di UI**:
+> TWR/GND/DEL non sono nodi editabili in `/vsop/admin/sectorstructure` (lo sono ACC, APP e Aeroporto), quindi i
+> gradini ambigui — due ground entrambi sdoppiati, come a Malpensa — non si correggono a mano.
 
 > **Storia dei round:** `docs/history/rounds.md` (changelog R5→R34). **Indice doc:** `docs/index.md`. Ultimo round: **34** — vista operativa + QoL admin + import SID GitHub + gating import; modello in `docs/spec/modello-dati.md` §9.8 (migrazioni). (R33: anteprime `?as=`; R30: QoL Bozze & versioni §9.18; R29: versioning AIRAC + task §9.17.)
 
