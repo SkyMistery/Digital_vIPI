@@ -135,6 +135,28 @@ Reso nella vIPI aeroporto (`AeroportoPage`). In errore/servizio irraggiungibile 
 
 ---
 
+## 2d. `Media` — immagini dei blocchi editoriali
+
+Mappata su `MediaOptions` (`src/Vipi.Application/Media/MediaOptions.cs`). Governa il caricamento delle immagini
+nei blocchi (docs/feature/2026-07-31-immagini-nei-blocchi.md). I byte finiscono nella tabella `MediaAssets` dello
+stesso database, indirizzati per **sha256**, e si servono da `/vsop/media/{sha}`.
+
+| Chiave | Tipo | Default | Significato |
+|---|---|---|---|
+| `Media:MaxUploadBytes` | int | `3145728` (3 MB) | Dimensione massima del singolo file. **È il numero da cambiare** per alzare o abbassare il limite: lo leggono il testo d'aiuto sotto l'area di caricamento, il controllo lato server e il messaggio di rifiuto. |
+| `Media:MaxImagePixels` | int | `12000` | Lato massimo in pixel accettato: guardia contro le immagini-bomba (dimensioni enormi, file piccolo). |
+| `Media:ClientDownscaleLongestSidePx` | int | `2000` | Lato lungo a cui il **browser** rimpicciolisce la foto prima di spedirla (`0` = nessun ridimensionamento: allora una foto da telefono sopra il limite viene rifiutata). |
+| `Media:JpegQuality` | double | `0.85` | Qualità della ricodifica fatta dal browser (0..1). |
+
+Formati accettati: PNG, JPEG, WebP, GIF — riconosciuti dai **byte**, non dall'estensione né dal `Content-Type`
+dichiarato. L'SVG è escluso di proposito (è markup: potrebbe eseguire script servito dal nostro dominio).
+
+Su Render si cambia il limite dalla dashboard con la variabile `Media__MaxUploadBytes` (riavvio del servizio,
+nessun rebuild). Le righe di `MediaAssets` non vengono mai cancellate dall'editing: una release pubblicata cita
+lo sha dell'immagine e deve continuare a risolverlo.
+
+---
+
 ## 3. `Auth` — override codici admin (opzionale)
 
 Mappata su `AuthOptions` (`src/Vipi.Application/Auth/AuthOptions.cs`).
