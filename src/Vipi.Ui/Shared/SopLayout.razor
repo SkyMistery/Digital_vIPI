@@ -4,7 +4,6 @@
 @inject ICurrentUserProvider Users
 @inject IEditAuthorizationService Authz
 @inject IEditingService Editing
-@inject IOnlineAtcProvider Online
 @inject IOptions<VipiChromeOptions> Chrome
 @inject IStringLocalizer<SharedResource> L
 
@@ -39,18 +38,9 @@
                 <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
             </div>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
-            @if (_myCallsign is not null)
-            {
-                <div class="live-badge" title="@L["Chrome_ConnectedAs"]">
-                    <span class="dot"></span> @_myCallsign
-                </div>
-            }
-            else
-            {
-                <div class="live-badge off">
-                    <span class="dot"></span> @L["Chrome_LiveDisconnected"]
-                </div>
-            }
+            @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
+               da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
+            <LiveBadge UserId="_user?.UserId" />
             @if (_canEdit)
             {
                 <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
@@ -84,7 +74,6 @@
     private CurrentUser? _user;
     private bool _isAdmin;
     private bool _canEdit;
-    private string? _myCallsign;
     private string? _staff;
 
     protected override async Task OnParametersSetAsync()
@@ -92,10 +81,6 @@
         _user = Users.Get();
         _staff = _user is { StaffPositions.Count: > 0 } su ? string.Join(" · ", su.StaffPositions) : null;
 
-        // Se l'utente loggato è online come ATC (stesso UserId), mostra il suo callsign nel badge live.
-        _myCallsign = _user is { } cu
-            ? Online.GetCurrent().Details.FirstOrDefault(d => d.UserId == cu.UserId)?.Callsign
-            : null;
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
         // /vsop/{acc}/{vipi?}
