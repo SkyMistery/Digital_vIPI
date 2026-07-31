@@ -60,3 +60,30 @@ L'audit full-stack del 22 lug ha fissato il **target di prodotto: pubblico di di
 - Montaggio della RCL vIPI nel sito host + configurazione `HostIdentity` coi claim reali IVAO e `Auth:AdminStaffCodes` / ruoli divisione confermati.
 - Esecuzione e validazione del **cutover Postgres di produzione** (migrazioni dedicate) su istanza reale — il path preview `EnsureCreated` (Render+Neon) è attuato ma non copre l'evoluzione incrementale dello schema.
 - Provisioning backplane + topologia di deploy; stima utenti concorrenti.
+
+---
+
+## Aggiornamento (30 luglio 2026)
+
+Tre cose che l'ADR non poteva sapere a luglio e che cambiano la lettura di **D1**, non la decisione.
+
+- **Il limite del path (a) è più stretto di come è scritto.** L'ADR dice che con `EnsureCreated` «un cambio di
+  modello richiede drop schema + riavvio». Dal 29 luglio non è più così: `PostgresSchemaReconciler`
+  (`Vipi.Infrastructure.Persistence`, chiamato da `MigrateVipiDatabase` dopo `EnsureCreated` e dal tool
+  `Vipi.DbSeed` prima del TRUNCATE) confronta il modello relazionale EF con `information_schema.columns` e fa
+  `ADD COLUMN IF NOT EXISTS`. Idempotente, no-op fuori da Npgsql.
+  **Copre solo le aggiunte**: rename, drop e cambi di tipo restano scoperti e richiedono ancora un intervento
+  manuale sullo schema. È la ragione per cui (b) resta aperto — ma la soglia di dolore si è spostata: finora le
+  modifiche sono state additive e il reconciler ha retto.
+- **«Anteprima» e «produzione» sono la stessa istanza.** L'ADR conclude che «la produzione resta su SQLite+WAL
+  finché il cutover (b) non è eseguito». Descrive una produzione che non è mai esistita: non c'è nessun deploy
+  SQLite pubblico, e l'istanza Render+Neon del path (a) è ciò che i controllori usano davvero. Dal 30 luglio
+  segue `main` (vedi `deploy/render/README.md`). La distinzione utile oggi non è «test vs produzione» ma
+  **«schema additivo, coperto dal reconciler» vs «schema che evolve, che richiede (b)»**.
+- **Piattaforma: .NET 10.** Solution e deploy migrati da `net8.0` a `net10.0` (EF Core 10, Npgsql 10). Non
+  cambia nulla di questo ADR — le migrazioni restano SQLite-flavored e su Postgres continua a girare
+  `EnsureCreated` — ma il contesto tecnico citato nel testo è quello di .NET 8. Vedi `docs/history/rounds.md`,
+  sessioni del 30 luglio.
+
+**Cosa resta vero senza modifiche:** D2 (scala Blazor Server, backplane, separazione viewer/editor) e D3
+(guardia identità). Il punto aperto (b) resta aperto, con la precisazione sopra su quando diventerà bloccante.
