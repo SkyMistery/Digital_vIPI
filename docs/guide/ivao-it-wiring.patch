@@ -1,4 +1,4 @@
-From 15d691e8d88232cd891077c583e6e6afefc5af67 Mon Sep 17 00:00:00 2001
+From 5841bf07bd6f6435323117efe5380cc6ad7f792e Mon Sep 17 00:00:00 2001
 From: Carmine Granato <cgranatojr@gmail.com>
 Date: Sat, 1 Aug 2026 02:48:26 +0200
 Subject: [PATCH] Aggancia il modulo vIPI/vLOA (pagine /vsop)
@@ -29,21 +29,22 @@ file, adatto a provarlo ma da decidere per la produzione (sezione 3).
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
- INTEGRAZIONE-VIPI.md                        | 107 ++++++++++++++++++++
- src/Frontend/Website/Features/App.razor     |  41 +++++++-
- src/Frontend/Website/Features/Routes.razor  |   7 +-
- src/Frontend/Website/Ivao.It.Website.csproj |  10 ++
- src/Frontend/Website/Program.cs             |  23 ++++-
- src/Frontend/Website/appsettings.json       |  26 ++++-
- 6 files changed, 210 insertions(+), 4 deletions(-)
+ INTEGRAZIONE-VIPI.md                          | 153 ++++++++++++++++++
+ src/Frontend/Website/Features/App.razor       |  41 ++++-
+ src/Frontend/Website/Features/Routes.razor    |   7 +-
+ src/Frontend/Website/Ivao.It.Website.csproj   |  10 ++
+ src/Frontend/Website/Program.cs               |  23 ++-
+ src/Frontend/Website/appsettings.json         |  26 ++-
+ .../Website/appsettings.production.json       |   6 +-
+ 7 files changed, 261 insertions(+), 5 deletions(-)
  create mode 100644 INTEGRAZIONE-VIPI.md
 
 diff --git a/INTEGRAZIONE-VIPI.md b/INTEGRAZIONE-VIPI.md
 new file mode 100644
-index 0000000..1b19e2e
+index 0000000..e6f9e7a
 --- /dev/null
 +++ b/INTEGRAZIONE-VIPI.md
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,153 @@
 +# Modulo vIPI/vLOA — integrazione nel sito
 +
 +Il modulo vIPI/vLOA Interactive (documentazione operativa ATC: vIPI ACC, vIPI APP, aeroporti, vLOA,
@@ -76,7 +77,8 @@ index 0000000..1b19e2e
 +| `src/Frontend/Website/Program.cs` | `AddVipiModule` · `MigrateVipiDatabase` · `UseVipiModule` · `MapVipiModule` · `AddAdditionalAssemblies` |
 +| `src/Frontend/Website/Features/Routes.razor` | `AdditionalAssemblies` sul `<Router>` |
 +| `src/Frontend/Website/Features/App.razor` | CSS/JS del modulo + hook `enhancedload` |
-+| `src/Frontend/Website/appsettings.json` | sezioni `Division`, `HostIdentity`, `Vipi`, `Persistence`, `DataSource`, connection string `Vipi` |
++| `src/Frontend/Website/appsettings.json` | sezioni `Division`, `HostIdentity`, `Vipi`, `Persistence`, `DataSource`, connection string `Vipi` (SQLite) |
++| `src/Frontend/Website/appsettings.production.json` | variante **PostgreSQL**: `Persistence:Provider` + connection string `Vipi` da riempire (vedi §3) |
 +
 +Le pagine della RCL vanno registrate in **due** posti — `AddAdditionalAssemblies` per il routing SSR
 +statico e `AdditionalAssemblies` sul `<Router>` per quello interattivo. Se se ne aggiorna uno solo, le
@@ -89,15 +91,60 @@ index 0000000..1b19e2e
 +## 3. Database — il punto che richiede una decisione
 +
 +Il modulo ha **DbContext e connection string propri** (`ConnectionStrings:Vipi`), separati dal MySQL
-+del sito. Supporta **SQLite** e **PostgreSQL**, non MySQL. La patch imposta SQLite su file, che va
-+bene per provarlo; per la produzione decidete voi fra:
++del sito. Supporta **SQLite** e **PostgreSQL**. Entrambe le forme sono già scritte in questa patch:
++`appsettings.json` monta SQLite (funziona subito, adatto a dev e a provare il modulo),
++`appsettings.production.json` monta PostgreSQL con connection string da riempire.
 +
-+- **PostgreSQL dedicato** — `"Persistence": { "Provider": "Postgres" }` + connection string. È la
-+  configurazione su cui il modulo gira oggi in test (Render + Neon).
-+- **SQLite su volume persistente** — semplice, ma richiede storage scrivibile e non regge più istanze.
++**La domanda che decide non è «quale DB preferite», ma:** il sito gira su **una sola istanza** con
++**disco persistente**, e potete affiancare un **PostgreSQL** al MySQL? Le risposte scelgono da sole.
 +
-+Aggiungere un provider MySQL è fattibile ma non è fatto: servirebbe un ramo nel resolver di
-+persistenza e la rigenerazione delle migration, che oggi sono SQLite-flavored.
++### PostgreSQL dedicato — consigliato se potete provisionarlo
++
++```json
++"ConnectionStrings": { "Vipi": "Host=…;Port=5432;Database=vipi;Username=…;Password=…;SSL Mode=Require" },
++"Persistence": { "Provider": "Postgres" }
++```
++
++È la configurazione su cui il modulo gira già in test (Render + Neon): nessun codice nuovo, nessun
++vincolo di istanza singola, backup con gli strumenti standard. Lo schema si crea e si allinea al primo
++avvio (`PostgresSchemaReconciler`), serializzato fra processi con un advisory lock — quindi regge
++anche un rolling deploy in cui vecchia e nuova istanza coesistono.
++
++### SQLite su file — nessun lavoro, ma tre condizioni
++
++```json
++"ConnectionStrings": { "Vipi": "Data Source=/var/lib/ivaoit/vipi.db" },
++"Persistence": { "Provider": "Sqlite" }
++```
++
++Concorrenza già gestita dal modulo: **WAL** e **busy_timeout** vengono impostati a ogni apertura di
++connessione, quindi i lettori non bloccano lo scrittore e uno scrittore aspetta il lock invece di
++fallire. Il profilo d'uso è lettura-pesante con scritture rare (staff che edita), che SQLite regge
++senza problemi. Le tre condizioni:
++
++1. **Una sola istanza dell'app.** Più repliche sullo stesso file non sono supportate.
++2. **Directory scrivibile e persistente.** Su filesystem effimero il DB sparisce al redeploy.
++3. **Backup a parte.** Il dump del MySQL non tocca `vipi.db`.
++
++**Partire da SQLite non chiude nessuna porta:** il modulo ha già un tool di travaso verso PostgreSQL
++(`tools/Vipi.DbSeed` nel repository del modulo), quindi si può migrare dopo senza rifare niente.
++
++> ⚠️ **Verificate che `appsettings.production.json` venga davvero caricato.** Il nome è **minuscolo**,
++> mentre `appsettings.Development.json` è maiuscolo. ASP.NET cerca `appsettings.{ASPNETCORE_ENVIRONMENT}.json`
++> con **match esatto**: con `ASPNETCORE_ENVIRONMENT=Production` su Linux quel file **non viene letto**, e
++> il modulo ricadrebbe silenziosamente sullo SQLite di `appsettings.json`. Vale già oggi per la vostra
++> connection string `IvaoItDb`, quindi probabilmente l'ambiente si chiama davvero `production` — ma
++> conviene confermarlo prima di metterci il DB del modulo.
++
++### E MySQL?
++
++Non è supportato e **non è un flag**. `Pomelo.EntityFrameworkCore.MySql`, il provider che usate, è
++fermo alla 9.0.0 (EF Core 9): non esiste una build per EF Core 10, quindi non è agganciabile al ramo
++net10 del modulo. Resterebbe il provider Oracle `MySql.EntityFrameworkCore` 10.0.9, che copre sia net8
++sia net10, ma servirebbero comunque: un ramo nel resolver di persistenza, la creazione dello schema
++(le migration sono SQLite-flavored) e una revisione della **collation** — MySQL è case-insensitive di
++default sulle stringhe, e il modulo ha indici unici e confronti su callsign e hash. È un progetto, non
++una configurazione.
 +
 +## 4. Identità e permessi
 +
@@ -338,6 +385,23 @@ index 10f68b8..60d48df 100644
 +    "RenderTopbar": false
 +  }
  }
+diff --git a/src/Frontend/Website/appsettings.production.json b/src/Frontend/Website/appsettings.production.json
+index cb460a4..f25db59 100644
+--- a/src/Frontend/Website/appsettings.production.json
++++ b/src/Frontend/Website/appsettings.production.json
+@@ -10,7 +10,11 @@
+   "ConnectionStrings": {
+     "ApiContents": "http://localhost:5100",
+     "ApiEvents": "http://localhost:5101",
+-    "IvaoItDb": "server=;user=;password=;database="
++    "IvaoItDb": "server=;user=;password=;database=",
++    "Vipi": "Host=;Port=5432;Database=vipi;Username=;Password=;SSL Mode=Require;Trust Server Certificate=true"
++  },
++  "Persistence": {
++    "Provider": "Postgres"
+   },
+   "Authentication": {
+     "Ivao": {
 -- 
 2.54.0.windows.1
 

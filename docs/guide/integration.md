@@ -18,10 +18,12 @@ Referenziare i progetti del modulo (o i futuri pacchetti NuGet):
 `Vipi.Hosting`, `Vipi.Ui`, `Vipi.Infrastructure`, `Vipi.Application`, `Vipi.Domain`.
 
 > **Per il sito Ivao.It il wiring è già scritto:** `ivao-it-wiring.patch` in questa cartella si applica
-> con `git am` sul loro repository e tocca sei file (csproj, `Program.cs`, `Routes.razor`, `App.razor`,
-> `appsettings.json`, più un `INTEGRAZIONE-VIPI.md` di istruzioni). Verificato compilando davvero il loro
-> `Ivao.It.Website` col modulo agganciato: 0 warning, 0 errori. Il submodule non può stare in una patch e
-> va aggiunto con un comando, documentato nel file stesso.
+> con `git am` sul loro repository e tocca sette file (csproj, `Program.cs`, `Routes.razor`, `App.razor`,
+> `appsettings.json` e `appsettings.production.json`, più un `INTEGRAZIONE-VIPI.md` di istruzioni).
+> Verificato compilando davvero il loro `Ivao.It.Website` col modulo agganciato: 0 warning, 0 errori. Il
+> submodule non può stare in una patch e va aggiunto con un comando, documentato nel file stesso.
+> Le due configurazioni di persistenza sono **entrambe** già pronte: SQLite in `appsettings.json`,
+> PostgreSQL in `appsettings.production.json` con connection string da riempire.
 
 ### Target framework
 I cinque progetti del modulo sono **multi-target `net8.0;net10.0`**: un host net8 consuma il ramo
