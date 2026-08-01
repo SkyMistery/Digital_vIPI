@@ -16,6 +16,25 @@ jobs:
       - run: dotnet build Vipi.slnx --no-restore -c Release
       - run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal
 
+  # Il ramo net8.0 delle librerie (embedding nel sito Ivao.It) NON è coperto dalla suite: i test girano
+  # tutti su net10. Senza questo job, un'API .NET 9+ o una sintassi C# 13+ entrerebbe con la CI verde e si
+  # scoprirebbe solo il giorno dell'integrazione. Vedi docs/guide/integration.md §Target framework.
+  build-net8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          # Il SDK 10 sa già compilare per net8.0 (scarica i targeting pack da NuGet), ma installare anche
+          # l'8 toglie di mezzo una classe di fallimenti se quel comportamento cambia.
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      # Vipi.Hosting tira gli altri quattro progetti del modulo: basta lui per coprire tutto il ramo net8.
+      # Non si compila la solution: Vipi.Host e i progetti di test sono net10.0 soli, per scelta.
+      - run: dotnet restore src/Vipi.Hosting/Vipi.Hosting.csproj -p:TargetFramework=net8.0
+      - run: dotnet build src/Vipi.Hosting/Vipi.Hosting.csproj -f net8.0 --no-restore -c Release -warnaserror
+
   # L'immagine è ciò che gira davvero su Render: se il Dockerfile si rompe, i test verdi non se ne accorgono.
   docker-image:
     runs-on: ubuntu-latest
