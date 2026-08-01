@@ -50,3 +50,11 @@ Solution .NET 10 a 4 layer + Host Blazor Server, **663 test verdi**. Consultazio
 live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/vsop`; **fonte unica = cataloghi**
 (i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). Dettaglio completo
 e prossimi passi in **`HANDOFF.md`**; storia in **`docs/history/rounds.md`**.
+
+## Licenza
+**Apache License 2.0** — vedi `LICENSE` e `NOTICE`. Stessa licenza del sito `Ivao.It`, così il prodotto
+combinato resta sotto un regime unico quando il modulo viene embeddato (vedi `docs/guide/integration.md`).
+
+I componenti di terzi ridistribuiti nel repository (three.js, i font Nunito Sans e Poppins) restano sotto la
+propria licenza: elenco e testi in **`THIRD-PARTY-NOTICES.md`**. «IVAO» e il logo IVAO sono marchi
+dell'International Virtual Aviation Organisation e la licenza non ne concede l'uso (§6 Apache 2.0).
