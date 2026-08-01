@@ -46,7 +46,7 @@
     </div>
     </div>
     <div class="aor-view aor-view-3d" hidden>
-        <AccAor3d View="View" Id="@($"{Id}-3d")" FullPageUrl="@Aor3dPageUrl" />
+        <AccAor3d View="View" Id="@($"{Id}-3d")" />
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</p>
     </div>
 }
@@ -64,8 +64,6 @@ else
 @code {
     [Parameter, EditorRequired] public AccAorView View { get; set; } = AccAorView.Empty;
     [Parameter] public string? Id { get; set; }
-    /// <summary>URL della pagina 3D dedicata (instradato ad AccAor3d): mostra il link «Apri pagina» nel tab 3D. null = nessun link.</summary>
-    [Parameter] public string? Aor3dPageUrl { get; set; }
 
     // Firma del contenuto mappa (callsign + colore per settore): cambia il @key del contenitore Leaflet così Blazor
     // sostituisce il nodo quando cambiano colori/settori → vipi-aor.js re-inizializza la mappa (altrimenti l'init è

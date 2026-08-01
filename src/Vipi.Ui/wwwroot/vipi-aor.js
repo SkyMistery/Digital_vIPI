@@ -65,7 +65,9 @@
         if (!t) return;
         var block = t.closest('.aor-block');
         if (!block) return;
-        var lf = block.querySelector('.aor-leaflet');
+        // Bersaglio delle chip: la mappa 2D (Leaflet) o lo stage 3D — espongono la stessa interfaccia
+        // (`_aorSetSec` + `_secMap`), quindi la logica chip/Tutti/Nessuno/configurazione qui sotto vale per entrambi.
+        var lf = block.querySelector('.aor-leaflet, .aor3d-stage');
 
         function setSec(sec, on) {
             if (lf && lf._aorSetSec) { lf._aorSetSec(sec, on); return; }

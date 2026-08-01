@@ -1,18 +1,35 @@
 @* Viewer 3D dell'AoR: ogni settore = prisma estruso (base = shape reale, altezza = banda FL). L'interattività
    (orbita/zoom/legenda) è client-side (vipi-aor3d.js); data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[b,t]}].
-   Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL. *@
+   Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL.
+
+   Le chip settore sono le STESSE del 2D (.aor-block > .aor-toggles > .aor-chip): le pilota `onAorClick` in
+   vipi-aor.js, che applica lo stato allo stage 3D via `_aorSetSec` esattamente come fa col layer Leaflet.
+   Niente chip «configurazione» qui: nel 3D si accendono i singoli settori. *@
 @using System.Text.Json
 @if (View.Sectors is { Count: > 0 })
 {
-    <div class="aor3d-wrap" data-aor3d="@Id">
+    <div class="aor3d-wrap aor-block" data-aor3d="@Id" data-aor="@Id">
+        <div class="aor-toggles">
+            @foreach (var s in View.Sectors)
+            {
+                <span class="aor-chip on" data-sec="@s.Callsign" title="@s.Name">
+                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
+                </span>
+            }
+            <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+        </div>
         <div class="aor3d-bar">
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
             <button class="btn ghost aor3d-basemap on" type="button">🗺 Mappa base</button>
             <button class="btn ghost aor3d-full" type="button">⛶ Schermo intero</button>
-            @if (!string.IsNullOrWhiteSpace(FullPageUrl))
-            {
-                <a class="btn ghost" href="@FullPageUrl">🗗 Apri pagina</a>
-            }
+            @* Esagerazione verticale: scala solo la vista (group.scale.z in vipi-aor3d.js), i dati FL non cambiano. *@
+            <span class="aor3d-zsel" title="Esagerazione verticale della vista (non cambia i livelli)">
+                <span class="zlab">Altezza</span>
+                @foreach (var z in ZSteps)
+                {
+                    <button class="btn ghost aor3d-z @(z == ZDefault ? "on" : null)" type="button" data-z="@z.ToString(Inv)">×@z.ToString("0.##", Inv)</button>
+                }
+            </span>
         </div>
         <div @key="Signature()" class="aor3d-stage" data-sectors3d="@SectorsJson()" style="@StageStyle">
             <div class="aor3d-legend"><div class="lgt">Settori</div><div class="aor3d-legrows"></div></div>
@@ -27,8 +44,12 @@
     [Parameter] public string? Id { get; set; }
     /// <summary>Stile inline dello stage (es. altezza custom nella pagina fullscreen). Default: altezza da CSS.</summary>
     [Parameter] public string? StageStyle { get; set; }
-    /// <summary>URL della pagina 3D dedicata: se valorizzato, mostra il link «Apri pagina». null nella pagina stessa.</summary>
-    [Parameter] public string? FullPageUrl { get; set; }
+
+    // Passi del selettore «Altezza». Il default deve restare allineato a ZDEF in vipi-aor3d.js (che è chi applica
+    // davvero la scala): qui serve solo a marcare il pulsante acceso alla prima resa, prima che il JS parta.
+    private static readonly double[] ZSteps = { 0.25, 0.5, 0.75, 1, 1.5, 2 };
+    private const double ZDefault = 0.5;
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     // Firma (callsign+colore+banda) per il @key: cambia → Blazor sostituisce il nodo → vipi-aor3d.js re-inizializza.
     private string Signature() => string.Join("|", View.Sectors.Select(s => $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}"));
