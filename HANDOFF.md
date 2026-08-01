@@ -1,7 +1,35 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 31 luglio 2026 (vista live: revisione + **unificazione per callsign** — doc 12)
+**Ultimo aggiornamento:** 1 agosto 2026 (integrazione nel sito Ivao.It — branch `integrazione/ivao-it`, tag `embed-v1.0`)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> ## ▶️ DA FARE — prossimo passo, già istruito
+>
+> **Eseguire il modulo dentro un host net8 e guidarlo.** È il punto 3 del piano in
+> [`docs/guide/integrazione-ivao-it-da-fare.md`](docs/guide/integrazione-ivao-it-da-fare.md) §5, e chiude
+> **tre** voci aperte in una sessione sola:
+> - **§2.1** — il modulo su net8 è stato solo **compilato, mai eseguito**. Restano non verificati i
+>   comportamenti runtime di **EF Core 8** (sviluppato e testato solo su EF 10), il rendering della RCL
+>   sotto **ASP.NET Core 8**, lo **stream SSE** `/vsop/live/atc` dietro la pipeline dell'host, e la
+>   collisione di rotta fra `/vsop/live/{callsign}` e il prefisso SSE.
+> - **§2.2** — **doppia localizzazione**: il modulo registra `AddLocalization` + `UseRequestLocalization`
+>   dentro `AddVipiModule`/`UseVipiModule`, il sito registra `AddIvaoItLocalization` + `UseIvaoItLocalization`
+>   che gira **dopo**. Chi vince decide la lingua di `/vsop`. Sintomo atteso: il `CultureSelector` del
+>   sito non ha effetto sulle pagine del modulo, o entrare in `/vsop` cambia lingua al sito. Probabile
+>   esito: un flag per non registrare la localizzazione del modulo quando l'host ne ha già una.
+> - **§2.4** — **CSS**: il sito carica Bootstrap 5.3.3 e animate.css **globalmente**. Gli stili del modulo
+>   sono confinati sotto `.vipi-root`, quindi il rischio è il contrario del solito: sono i loro a poter
+>   sbavare dentro il nostro contenitore. Va guardato con gli occhi, non con i test.
+>
+> **Punto di partenza già pronto:** l'albero `Ivao.It-master` col modulo montato **compila** (0 warning,
+> 0 errori). Per rifarlo da zero: copiare l'albero, `git am` di `docs/guide/ivao-it-wiring.patch`,
+> materializzare il modulo in `external/vipi`, e — solo per compilare in locale — sostituire il
+> `PackageReference` `Ivao.It.Logging` (feed privato loro, non su nuget.org) con il `ProjectReference` a
+> `src/Common/Logging/Ivao.It.Logging.csproj`, che è già nel loro albero. Poi guidare con la skill
+> `verifica-live`.
+>
+> ⚠️ Serve `VipiAuth`/identità: in embedded l'identità viene dall'host, quindi per la prova o si monta un
+> `ClaimsPrincipal` finto sull'host di test, o si usa `useDevIdentity: true` in `AddVipiModule`.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
