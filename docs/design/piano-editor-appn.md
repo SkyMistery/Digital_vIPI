@@ -6,7 +6,7 @@
 > 2026-07-30. Il drag-and-drop e la toolbar di sezione vivono ora dentro i singoli editor.
 
 ## Context
-Gli APP non remotizzati hanno una vIPI propria. Oggi `AppnPage.razor` (`/vsop/{acc}/apps/vipi`) è un **mockup statico hardcoded** (LIRP) e non esiste un editor dedicato: gli APPn ricadrebbero nell'editor generico per blocchi. Serve un **editor dedicato** (sul modello di `AeroportoEditorPage`) che produca esattamente la schermata 3c del `mockups/vipi-ui-mockup-v2.html`, con 6 sezioni fisse (sempre presenti, riordinabili) + sezioni custom libere. Alcune sezioni sono **derivate live** (si aggiornano da sole quando cambia l'albero/i transfer), altre editoriali.
+Gli APP non remotizzati hanno una vIPI propria. Oggi `AppnPage.razor` (`/vsop/{acc}/apps/vipi`) è un **mockup statico hardcoded** (LIRP) e non esiste un editor dedicato: gli APPn ricadrebbero nell'editor generico per blocchi. Serve un **editor dedicato** (sul modello di `AeroportoEditorPage`) che produca esattamente la schermata 3c del mockup v2 (file eliminato il 2026-08-01, vedi HANDOFF §8), con 6 sezioni fisse (sempre presenti, riordinabili) + sezioni custom libere. Alcune sezioni sono **derivate live** (si aggiornano da sole quando cambia l'albero/i transfer), altre editoriali.
 
 Decisioni prese: **shape AoR reale** (parsing `RegionMapPolygon` IVAO ora) · **editor dedicato + sezioni derivate live** (no snapshot) · custom sezioni riusano il modello sezioni/blocchi generico · **editor in stile WYSIWYG** (sezioni rese come nel documento) · **riordino drag-and-drop + tasti** · **sezioni fisse definite via codice** (registry, facile aggiungerne di nuove obbligatorie).
 

@@ -236,4 +236,6 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 ---
 
 ## 8. Mockup v2 — storico UI
-Il mockup `mockups/vipi-ui-mockup-v2.html` (17 schermate) resta il riferimento visivo. Le schermate sono state derivate in componenti Blazor reali (vedi §4). Note: SCCAM e Aree regolamentate sono sezioni top-level; la vLOA ha due AoR e due tabelle frequenze; gli APP non remotizzati separano i trasferimenti verso ACC e verso torre.
+🗑️ **`mockups/vipi-ui-mockup-v2.html` ELIMINATO il 2026-08-01**, insieme alla cartella `Esempi documenti/` (i .docx di partenza). Le 17 schermate del mockup sono ormai **tutte** derivate in componenti Blazor reali (vedi §4) e il prodotto ha superato il prototipo: il riferimento visivo oggi è l'app. Chi cerca l'originale lo trova nella storia git (`git show 8d661c4:mockups/vipi-ui-mockup-v2.html`); i doc più vecchi che lo citano per path sono record di sessioni passate, non istruzioni.
+
+Note ereditate dal mockup, ancora valide: SCCAM e Aree regolamentate sono sezioni top-level; la vLOA ha due AoR e due tabelle frequenze; gli APP non remotizzati separano i trasferimenti verso ACC e verso torre.

@@ -15,7 +15,7 @@ Contesto minimo per riprendere. Fasi 1-2 DONE (modello+editor, build+test verdi)
 - Repo `EfTransferRepository`, seed `Seed/RomaTransferSeed.cs` (flussi NE arrivi/partenze + EW sorvoli su settori seedati). Editor `Pages/XferEditorPage.razor` (DONE, funzionante).
 - Vista globale settori per i picker: `IStructureEditingService.ListSectorNodesAsync()` → `GlobalSectorRow{Id,Callsign,AccCode,CountryPrefix,Type,Kind,ApproachKind?,ParentSectorId?,DocumentId?}` — **ATTENZIONE: admin-gated** (`EnsureAdmin`), non usabile da pagine pubbliche (vedi Fase 4).
 
-## Target visuale (mockup `mockups/vipi-ui-mockup-v2.html`)
+## Target visuale (mockup v2 — file eliminato dal repo il 2026-08-01, vedi HANDOFF §8)
 
 - Estesa ACC, righe ~970-1115 (`#doc`/`#s-coord`): **Coordinamenti** = gruppi (`Settori ACC` / `Settori APP` / `vLOA estere` / Aree) → per **settore proprio** (NE,EW,TW1,ASW) `details.coord-sub` → per **flusso** (`Traffico Dest LIRF`/`DEP LIRF`/`OVF`/`VFR`) `details.coord-sub2` → **prosa** + tabella `CoP|FL|Next` (+ immagine/tip opzionali). Stessa struttura per APP non remot. (screen `#appn`, righe ~1437+ no — vedi `Pages/AppnPage.razor` reale: già ha sezioni "Trasferimenti verso ACC/torri" hardcoded).
 - Ridotta, righe ~1213-1276 (`#reduced`): blocco "🔄 Trasferimenti · dove passo il traffico": chip "Online nel tuo intorno" + per relazione una card con CoP/FL/**Next risolto live** (settore nominale se online, altrimenti chi lo copre).
