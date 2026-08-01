@@ -30,6 +30,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | File | Scopo |
 |---|---|
 | [guide/integration.md](guide/integration.md) | Come agganciare il modulo (RCL) a un sito host ASP.NET Core. |
+| [guide/integrazione-ivao-it-da-fare.md](guide/integrazione-ivao-it-da-fare.md) | **Lavoro aperto** per far girare il modulo dentro Ivao.It: bloccanti, verifiche mai eseguite, decisioni loro. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
 | [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
 
