@@ -17,6 +17,12 @@ chiamate. Vedi anche `../adr/adr-0002-integrazione-e-autenticazione-portabile.md
 Referenziare i progetti del modulo (o i futuri pacchetti NuGet):
 `Vipi.Hosting`, `Vipi.Ui`, `Vipi.Infrastructure`, `Vipi.Application`, `Vipi.Domain`.
 
+> **Per il sito Ivao.It il wiring è già scritto:** `ivao-it-wiring.patch` in questa cartella si applica
+> con `git am` sul loro repository e tocca sei file (csproj, `Program.cs`, `Routes.razor`, `App.razor`,
+> `appsettings.json`, più un `INTEGRAZIONE-VIPI.md` di istruzioni). Verificato compilando davvero il loro
+> `Ivao.It.Website` col modulo agganciato: 0 warning, 0 errori. Il submodule non può stare in una patch e
+> va aggiunto con un comando, documentato nel file stesso.
+
 ### Target framework
 I cinque progetti del modulo sono **multi-target `net8.0;net10.0`**: un host net8 consuma il ramo
 net8 (stack EF Core 8 / ASP.NET Core 8), un host net10 il ramo net10. Nessuna differenza di API o di

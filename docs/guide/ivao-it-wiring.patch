@@ -1,0 +1,343 @@
+From 15d691e8d88232cd891077c583e6e6afefc5af67 Mon Sep 17 00:00:00 2001
+From: Carmine Granato <cgranatojr@gmail.com>
+Date: Sat, 1 Aug 2026 02:48:26 +0200
+Subject: [PATCH] Aggancia il modulo vIPI/vLOA (pagine /vsop)
+
+Il modulo e' una Razor Class Library Blazor + le sue librerie di logica, gira
+in-process, riusa il login IVAO gia' presente e non espone endpoint nuovi sul
+sito. Repository: github.com/SkyMistery/Digital_vIPI, tag embed-v1.0.
+
+Le sue librerie sono multi-target net8.0;net10.0 proprio per questo host: qui
+si aggancia il ramo net8.0, senza che il sito debba salire di framework.
+
+Il submodule NON e' in questo commit: va aggiunto con un comando, vedi
+INTEGRAZIONE-VIPI.md sezione 1. Senza quello il build non risolve i
+ProjectReference.
+
+Nota sul routing: le pagine della RCL vanno registrate in DUE posti,
+AddAdditionalAssemblies su MapRazorComponents per il routing SSR statico e
+AdditionalAssemblies sul <Router> per quello interattivo. Aggiornarne uno
+solo produce 404 al primo caricamento con la navigazione interna
+funzionante: sintomo fuorviante.
+
+L'hook enhancedload in App.razor non e' cosmetico: la navigazione enhanced
+rimpiazza il DOM e perde gli handler del modulo.
+
+Il modulo usa DbContext e connection string propri, separati dal MySQL del
+sito. Supporta SQLite e PostgreSQL, non MySQL: qui e' impostato SQLite su
+file, adatto a provarlo ma da decidere per la produzione (sezione 3).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ INTEGRAZIONE-VIPI.md                        | 107 ++++++++++++++++++++
+ src/Frontend/Website/Features/App.razor     |  41 +++++++-
+ src/Frontend/Website/Features/Routes.razor  |   7 +-
+ src/Frontend/Website/Ivao.It.Website.csproj |  10 ++
+ src/Frontend/Website/Program.cs             |  23 ++++-
+ src/Frontend/Website/appsettings.json       |  26 ++++-
+ 6 files changed, 210 insertions(+), 4 deletions(-)
+ create mode 100644 INTEGRAZIONE-VIPI.md
+
+diff --git a/INTEGRAZIONE-VIPI.md b/INTEGRAZIONE-VIPI.md
+new file mode 100644
+index 0000000..1b19e2e
+--- /dev/null
++++ b/INTEGRAZIONE-VIPI.md
+@@ -0,0 +1,107 @@
++# Modulo vIPI/vLOA — integrazione nel sito
++
++Il modulo vIPI/vLOA Interactive (documentazione operativa ATC: vIPI ACC, vIPI APP, aeroporti, vLOA,
++vista live) è una **Razor Class Library Blazor** più le sue librerie di logica. Gira **in-process**
++dentro `Ivao.It.Website`, riusa il login IVAO già presente e **non espone alcun endpoint nuovo** sul
++sito. Le sue pagine vivono sotto il prefisso **`/vsop`**.
++
++Repository: <https://github.com/SkyMistery/Digital_vIPI> — tag **`embed-v1.0`**.
++
++## 1. Agganciare il modulo
++
++Questa patch non può portare con sé il submodule: va aggiunto con un comando, una volta sola.
++
++```bash
++git submodule add https://github.com/SkyMistery/Digital_vIPI.git external/vipi
++cd external/vipi && git checkout embed-v1.0 && cd ../..
++git add .gitmodules external/vipi && git commit -m "Aggiunto il modulo vIPI come submodule"
++```
++
++Chi clona il repo dopo, e la CI, hanno bisogno di `git submodule update --init --recursive`.
++
++**Pinnare il tag, non il branch.** `integrazione/ivao-it` continua a muoversi; `embed-v1.0` no. Per
++salire di versione si fa `git checkout <nuovo-tag>` dentro `external/vipi` e si committa il gitlink.
++
++## 2. Cosa tocca la patch
++
++| File | Modifica |
++|---|---|
++| `src/Frontend/Website/Ivao.It.Website.csproj` | 5 `ProjectReference` verso `external/vipi` |
++| `src/Frontend/Website/Program.cs` | `AddVipiModule` · `MigrateVipiDatabase` · `UseVipiModule` · `MapVipiModule` · `AddAdditionalAssemblies` |
++| `src/Frontend/Website/Features/Routes.razor` | `AdditionalAssemblies` sul `<Router>` |
++| `src/Frontend/Website/Features/App.razor` | CSS/JS del modulo + hook `enhancedload` |
++| `src/Frontend/Website/appsettings.json` | sezioni `Division`, `HostIdentity`, `Vipi`, `Persistence`, `DataSource`, connection string `Vipi` |
++
++Le pagine della RCL vanno registrate in **due** posti — `AddAdditionalAssemblies` per il routing SSR
++statico e `AdditionalAssemblies` sul `<Router>` per quello interattivo. Se se ne aggiorna uno solo, le
++pagine `/vsop` danno 404 al primo caricamento ma funzionano navigando internamente: sintomo tipico e
++fuorviante.
++
++La solution `Ivao.It.Frontend.sln` **non** è stata toccata: il build passa dai `ProjectReference`.
++Se volete i progetti del modulo visibili in Visual Studio, vanno aggiunti a mano.
++
++## 3. Database — il punto che richiede una decisione
++
++Il modulo ha **DbContext e connection string propri** (`ConnectionStrings:Vipi`), separati dal MySQL
++del sito. Supporta **SQLite** e **PostgreSQL**, non MySQL. La patch imposta SQLite su file, che va
++bene per provarlo; per la produzione decidete voi fra:
++
++- **PostgreSQL dedicato** — `"Persistence": { "Provider": "Postgres" }` + connection string. È la
++  configurazione su cui il modulo gira oggi in test (Render + Neon).
++- **SQLite su volume persistente** — semplice, ma richiede storage scrivibile e non regge più istanze.
++
++Aggiungere un provider MySQL è fattibile ma non è fatto: servirebbe un ramo nel resolver di
++persistenza e la rigenerazione delle migration, che oggi sono SQLite-flavored.
++
++## 4. Identità e permessi
++
++`AddVipiModule(..., useDevIdentity: false)` legge l'identità dal `ClaimsPrincipal` che `AddIvaoAuth`
++ha già popolato: **nessun secondo login**. La mappa dei claim in `appsettings.json` (`HostIdentity`)
++è impostata sui nomi dei claim IVAO che il sito usa già — `id`, `centerId`, `userStaffPositions` —
++ma **va verificata** contro `ClaimsPrincipalIvaoExtensions`: se un nome non combacia, l'utente entra
++come non-staff senza alcun errore visibile.
++
++Admin = staff position che matcha `^IT-<ruolo>$`. I permessi per-ACC si concedono da
++`/vsop/admin/permessi`, e l'elenco si popola con gli staffisti che hanno fatto login almeno una volta.
++
++## 5. Segreti
++
++Credenziali app IVAO (roster staff e live ATC), **mai** in `appsettings.json`:
++
++```
++Ivao__ClientId
++Ivao__ClientSecret
++```
++
++L'app IVAO deve avere il grant `client_credentials` e gli scope `tracker` e `configuration`. Senza
++credenziali il modulo parte lo stesso: perde live ATC e verifica del roster.
++
++## 6. Verifica
++
++```bash
++dotnet build Ivao.It.Frontend.sln
++```
++
++Poi, ad app avviata:
++
++- `GET /vsop/health/ready` → 200 (DB raggiungibile, schema allineato).
++- `/vsop` da loggati: in alto compare l'utente; se admin, i tasti **Editor** e **Permessi**.
++- Navigare dal sito a `/vsop` e ritorno: se la mappa AoR smette di funzionare dopo la prima
++  navigazione, manca l'hook `enhancedload` in `App.razor`.
++
++## 7. Vincoli noti
++
++- **Prefisso `/vsop` fisso** nelle direttive `@page`. Per montarlo altrove serve un reverse proxy.
++- **`Vipi:RenderTopbar=false`** nella patch: il sito ha già la propria header, e senza questo flag ne
++  comparirebbero due.
++- **Stili confinati sotto `.vipi-root`**: il modulo non tocca `body`/reset del sito.
++- **Leaflet da CDN unpkg** — verificate che la vostra CSP lo consenta. Self-hostandolo, l'obbligo di
++  notice BSD-2-Clause passa a voi.
++- **Nessun `MapStaticAssets`**: è .NET 9+, quindi su net8 gli asset della RCL sono referenziati con
++  path nudi sotto `UseStaticFiles()`, senza cache-busting per impronta.
++
++## 8. Licenza
++
++Il modulo è **Apache License 2.0**, la stessa del sito: il prodotto combinato resta sotto un regime
++unico. `LICENSE`, `NOTICE` e `THIRD-PARTY-NOTICES.md` sono nel repository del modulo — quest'ultimo
++elenca three.js (MIT) e i font Nunito Sans e Poppins (SIL OFL 1.1), che il modulo ridistribuisce.
+diff --git a/src/Frontend/Website/Features/App.razor b/src/Frontend/Website/Features/App.razor
+index 84cd65f..46c7547 100644
+--- a/src/Frontend/Website/Features/App.razor
++++ b/src/Frontend/Website/Features/App.razor
+@@ -27,6 +27,17 @@
+     <link href="css/ivao-it/ivao-it.min.css" rel="stylesheet" />
+     <link href="Ivao.It.Website.styles.css" rel="stylesheet" />
+ 
++    <!--Modulo vIPI/vLOA (pagine /vsop). Gli stili sono confinati sotto .vipi-root: non toccano
++        body/reset del sito. Vedi INTEGRAZIONE-VIPI.md.-->
++    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css" />
++    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css" />
++    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-aor3d.css" />
++    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-print.css" />
++    <!--Leaflet (mappe AoR). Dipendenza da CDN esterna: se la CSP del sito non la consente, va
++        self-hostata e in quel caso scatta l'obbligo di notice BSD-2-Clause.-->
++    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
++          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
++
+     <!--Icons-->
+     <link rel="apple-touch-icon-precomposed" sizes="57x57" href="favicon/apple-touch-icon-57x57.png" />
+     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="favicon/apple-touch-icon-114x114.png" />
+@@ -83,7 +94,35 @@
+ 
+     <link rel="stylesheet" type="text/css" href="/" media="print" />
+     <script src="_framework/blazor.web.js"></script>
+-    
++
++    <!--Modulo vIPI/vLOA. Le funzioni sono tutte sotto il prefisso vipi*, non collidono.-->
++    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
++            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
++    <script src="_content/Vipi.Ui/vipi-ui.js"></script>
++    <script src="_content/Vipi.Ui/vipi-screens.js"></script>
++    <script src="_content/Vipi.Ui/vipi-live.js"></script>
++    <script src="_content/Vipi.Ui/vipi-aor.js"></script>
++    <!--three.js (r128 UMD, 592 KB) NON va caricato qui: serve al solo tab 3D dell'AoR, mentre questo head
++        vale per ogni pagina del sito. L'URL passa a vipi-aor3d.js via data-three-src, che lo carica alla
++        prima apertura di uno stage 3D.-->
++    <script src="_content/Vipi.Ui/vipi-aor3d.js"
++            data-three-src="_content/Vipi.Ui/vendor/three.min.js"></script>
++    <script src="_content/Vipi.Ui/vipi-editor.js"></script>
++    <script src="_content/Vipi.Ui/vipi-tour.js"></script>
++    <script src="_content/Vipi.Ui/vipi-media.js"></script>
++    <script>
++        // Obbligatorio, non cosmetico: la navigazione "enhanced" di Blazor rimpiazza il DOM e perde gli
++        // handler del modulo. Senza questo hook mappe, live e editor smettono di funzionare dopo la prima
++        // navigazione interna, e la pagina sembra rotta solo a volte.
++        Blazor.addEventListener('enhancedload', function () {
++            window.vipiWireUi && window.vipiWireUi();
++            window.vipiInitScreens && window.vipiInitScreens();
++            window.vipiInitAor && window.vipiInitAor();
++            window.vipiInitAor3d && window.vipiInitAor3d();
++            window.vipiMaybeTour && window.vipiMaybeTour();
++        });
++    </script>
++
+     <script>
+         //Get current user agent for stats
+         window.getUserAgent = () => {
+diff --git a/src/Frontend/Website/Features/Routes.razor b/src/Frontend/Website/Features/Routes.razor
+index 98b9fd1..5daea24 100644
+--- a/src/Frontend/Website/Features/Routes.razor
++++ b/src/Frontend/Website/Features/Routes.razor
+@@ -2,7 +2,12 @@
+ 
+ <Fluxor.Blazor.Web.StoreInitializer />
+ 
+-<Router AppAssembly="typeof(Program).Assembly">
++@* AdditionalAssemblies serve al routing INTERATTIVO (questo Router). Il routing SSR statico passa invece
++   da AddAdditionalAssemblies() su MapRazorComponents in Program.cs: vanno tenuti allineati, o le pagine
++   /vsop rispondono solo in uno dei due percorsi (sintomo tipico: 404 al primo caricamento, ma la
++   navigazione interna funziona). *@
++<Router AppAssembly="typeof(Program).Assembly"
++        AdditionalAssemblies="new[] { Vipi.Hosting.VipiModuleExtensions.UiAssembly }">
+     <Found Context="routeData">
+         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+             <NotAuthorized>
+diff --git a/src/Frontend/Website/Ivao.It.Website.csproj b/src/Frontend/Website/Ivao.It.Website.csproj
+index 26fe65c..a839194 100644
+--- a/src/Frontend/Website/Ivao.It.Website.csproj
++++ b/src/Frontend/Website/Ivao.It.Website.csproj
+@@ -28,4 +28,14 @@
+     <ProjectReference Include="..\Ivao.OpenIdConnect\Ivao.AspNetCore.Authentication.OpenIdConnect.csproj" />
+   </ItemGroup>
+ 
++  <!-- Modulo vIPI/vLOA: submodule in external/vipi (vedi INTEGRAZIONE-VIPI.md).
++       Le librerie sono multi-target net8.0;net10.0, quindi qui si aggancia il ramo net8.0. -->
++  <ItemGroup>
++    <ProjectReference Include="..\..\..\external\vipi\src\Vipi.Hosting\Vipi.Hosting.csproj" />
++    <ProjectReference Include="..\..\..\external\vipi\src\Vipi.Ui\Vipi.Ui.csproj" />
++    <ProjectReference Include="..\..\..\external\vipi\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
++    <ProjectReference Include="..\..\..\external\vipi\src\Vipi.Application\Vipi.Application.csproj" />
++    <ProjectReference Include="..\..\..\external\vipi\src\Vipi.Domain\Vipi.Domain.csproj" />
++  </ItemGroup>
++
+ </Project>
+diff --git a/src/Frontend/Website/Program.cs b/src/Frontend/Website/Program.cs
+index 53970c8..2214d66 100644
+--- a/src/Frontend/Website/Program.cs
++++ b/src/Frontend/Website/Program.cs
+@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
+ using Ivao.It.Website.Auth;
+ using Ivao.It.Logging;
+ using Microsoft.AspNetCore.HttpOverrides;
++using Vipi.Hosting;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+ 
+@@ -41,9 +42,18 @@ builder.Services.AddIvaoItLegacyUserData(builder.Configuration);
+ builder.Services.AddContentsApi(builder.Configuration)
+                 .AddEventsApi(builder.Configuration);
+ 
++// Modulo vIPI/vLOA (pagine sotto /vsop). Registra Application, EF, polling IVAO, opzioni e identita'.
++// useDevIdentity:false => l'identita' e' letta dal ClaimsPrincipal gia' autenticato da AddIvaoAuth:
++// nessun secondo login, nessun endpoint nuovo esposto. Mappa dei claim in appsettings, sezione HostIdentity.
++// Il modulo usa un DbContext e una connection string PROPRI ("Vipi"), separati dal MySQL del sito.
++builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: false);
++
+ 
+ var app = builder.Build();
+ 
++// Crea/migra il DB del modulo (SQLite o PostgreSQL secondo Persistence:Provider).
++app.MigrateVipiDatabase();
++
+ // Configure the HTTP request pipeline.
+ if (app.Environment.IsStaging() || app.Environment.IsProduction())
+ {
+@@ -65,12 +75,23 @@ app.UseHttpsRedirection();
+ app.UseAntiforgery();
+ app.UseStaticFiles();
+ 
++// Middleware del modulo (tracciamento roster staff al login). Va dopo l'autenticazione: qui lo e' gia',
++// perche' in .NET 8 WebApplication inserisce UseAuthentication/UseAuthorization da se' quando i servizi
++// sono registrati, e AddIvaoAuth li registra.
++app.UseVipiModule();
++
+ app.MapRazorComponents<App>()
+-    .AddInteractiveServerRenderMode();
++    .AddInteractiveServerRenderMode()
++    // Routing SSR statico delle pagine della RCL. Il gemello interattivo e' AdditionalAssemblies
++    // sul <Router> in Features/Routes.razor: vanno tenuti allineati.
++    .AddAdditionalAssemblies(Vipi.Hosting.VipiModuleExtensions.UiAssembly);
+ 
+ app.MapControllers();
+ app.UseIvaoItLocalization();
+ 
++// Endpoint del modulo: stream SSE /vsop/live/atc, health /vsop/health e /vsop/health/ready, media /vsop/media.
++app.MapVipiModule();
++
+ // Add additional endpoints required by the Identity /Account Razor components.
+ app.MapAdditionalIdentityEndpoints();
+ 
+diff --git a/src/Frontend/Website/appsettings.json b/src/Frontend/Website/appsettings.json
+index 10f68b8..60d48df 100644
+--- a/src/Frontend/Website/appsettings.json
++++ b/src/Frontend/Website/appsettings.json
+@@ -5,5 +5,29 @@
+       "Microsoft.AspNetCore": "Warning"
+     }
+   },
+-  "AllowedHosts": "*"
++  "AllowedHosts": "*",
++
++  "ConnectionStrings": {
++    "Vipi": "Data Source=vipi.db"
++  },
++  "Persistence": {
++    "Provider": "Sqlite"
++  },
++  "DataSource": {
++    "Provider": "Ivao"
++  },
++  "Division": {
++    "Code": "IT",
++    "Name": "Italy",
++    "IcaoPrefixes": [ "LI" ]
++  },
++  "HostIdentity": {
++    "UserIdClaim": "id",
++    "NameClaims": [ "name", "given_name", "preferred_username" ],
++    "AccClaim": "centerId",
++    "StaffPositionsClaim": "userStaffPositions"
++  },
++  "Vipi": {
++    "RenderTopbar": false
++  }
+ }
+-- 
+2.54.0.windows.1
+
