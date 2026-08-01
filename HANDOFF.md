@@ -31,6 +31,30 @@
 > ⚠️ Serve `VipiAuth`/identità: in embedded l'identità viene dall'host, quindi per la prova o si monta un
 > `ClaimsPrincipal` finto sull'host di test, o si usa `useDevIdentity: true` in `AddVipiModule`.
 
+> ## ⏸️ IN ATTESA DI LORO — supporto MySQL (piano scritto, esecuzione non avviata)
+>
+> **Ivao.It ha risposto: solo MySQL.** Niente PostgreSQL affiancato, niente disco persistente per SQLite.
+> Il supporto MySQL passa da opzionale a strada obbligata per l'integrazione (resta irrilevante per il
+> deploy Render+Neon, che non cambia).
+>
+> **Piano completo: [`docs/design/piano-supporto-mysql.md`](docs/design/piano-supporto-mysql.md)** —
+> slice, rischi, stime (4-5 sessioni), e in appendice il messaggio pronto da inviare a loro.
+> Decisione registrata in ADR-0007 §D4.
+>
+> - **Gate:** serve la **versione del loro server MySQL** (8.0+ / 5.7 / MariaDB). Decide la strategia di
+>   collation, che decide lo schema. È l'unica risposta bloccante.
+> - **MySQL sarà supportato solo sul TFM `net8.0`.** Verificato l'1-ago-2026: `Pomelo.EntityFrameworkCore.MySql`
+>   è fermo alla 9.0.0 (EF Core 9, ago-2025), `main` senza commit da allora, quattro tentativi di porting a
+>   EF Core 10 fra aperti da mesi (#2007, #2019) e chiusi senza merge (#2031, #2032, #2042). Per net8 si usa
+>   la **8.0.3**. Limite duraturo, non temporaneo.
+> - **Fattibile subito, senza aspettarli:** `HasMaxLength` su tutte le colonne stringa indicizzate (oggi ne
+>   ha **6** in tutto il modello; InnoDB non indicizza `longtext`) + un test guardia che cammina il modello
+>   EF. Vale per tutti e tre i provider, non si butta se MySQL cambiasse.
+> - **Bug latente già in `main`,** trovato scrivendo il piano: `MigrateVipiDatabase`
+>   (`VipiModuleExtensions.cs:201`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
+>   «SQLite». Con MySQL configurato tenterebbe di applicare le 65 migration SQLite-flavored. Da sistemare
+>   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
+
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
 > Carta completa: `docs/refactor/11-uniformita-tre-documenti.md`. Le cose da sapere subito:

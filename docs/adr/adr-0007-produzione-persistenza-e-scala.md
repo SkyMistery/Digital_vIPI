@@ -112,7 +112,7 @@ girano davvero il drift non si accumula. Non sta in `/vsop/health/ready`, che l'
 «togli la vecchia, aggiungi la nuova»: automatizzarla significherebbe autorizzare un `DROP COLUMN` deciso da
 un'euristica sul database di produzione. Il probe segnala, la correzione la applica una persona.
 
-**Come si applica la correzione, quando il probe segnala.** Non c'è ancora un runner di script versionati: la
+**Come si applica la correzione, quando il probe segnala (D1-bis).** Non c'è ancora un runner di script versionati: la
 DDL si esegue a mano su Neon (`ALTER TABLE ... RENAME COLUMN`, o `ADD` + `UPDATE` di travaso + `DROP`). Va bene
 finché i casi sono rari — finora **zero**, tutte le modifiche sono state additive. Se dovessero diventare
 ricorrenti, il passo successivo è una cartella di `.sql` ordinati con una tabella che traccia quelli applicati,
@@ -121,3 +121,55 @@ del costo di (b). Le migrazioni EF per-provider di (b) restano la risposta compl
 il lavoro corrente — è il **baseline**: lo schema su Neon oggi è il prodotto di `EnsureCreated` più le toppe del
 reconciler, e va riprodotto esattamente in uno snapshot iniziale da timbrare come applicato, altrimenti la prima
 migrazione vera fallisce in produzione.
+
+---
+
+## Aggiornamento (1 agosto 2026) — D4: MySQL entra, ma solo sul TFM net8
+
+**Contesto nuovo.** L'embedding nel sito `Ivao.It.Website` (net8, Blazor Server) ha chiuso la domanda sul
+database: la divisione può offrire **solo MySQL**. Cadono entrambe le opzioni previste per l'host
+(PostgreSQL affiancato, o SQLite su disco persistente), quindi il supporto MySQL passa da *opzionale* a
+*strada obbligata* per l'integrazione — restando **irrilevante per il deploy autonomo**, che continua su
+Render+Neon.
+
+### Decisione
+
+**MySQL è supportato solo sul target `net8.0`.** Il ramo `net10.0` resta SQLite + PostgreSQL.
+
+Non è una scelta di gusto, è una constatazione verificata l'1 agosto 2026:
+`Pomelo.EntityFrameworkCore.MySql` è fermo alla **9.0.0** (EF Core 9, pubblicata 17-ago-2025); il repo non
+ha commit su `main` da quella data; l'issue «EF Core 10 support» (#2007) e la PR #2019 sono aperte da mesi,
+mentre le PR #2031, #2032 e #2042 — tutte tentativi di porting a EF Core 10 — sono state **chiuse senza
+merge**. Non esiste alcun pacchetto EF Core 10, nemmeno in preview. Per net8 serve la **8.0.3**, che è
+stabile ed è il connector che il sito già usa.
+
+L'alternativa `MySql.EntityFrameworkCore` di Oracle (10.0.9, copre entrambi i TFM) resta la scelta di
+ripiego, non la prima: introdurrebbe un secondo connector ADO (`MySql.Data`) nello stesso processo del
+sito, che usa `MySqlConnector`.
+
+**Questo è un limite noto e duraturo, non temporaneo.** Se e quando porteremo l'embedding a EF Core 10, il
+ramo MySQL non seguirà finché Pomelo non riprende. Va riletto qui prima di pianificare quel salto.
+
+### Conseguenza su D1
+
+D1 diceva «SQLite ora, Postgres come cutover pianificato», con i due path (a) `EnsureCreated` + reconciler
+e (b) migrazioni versionate. MySQL **non riusa (a)**: per il database di produzione di un partner scegliamo
+migrazioni dedicate, cioè la forma (b), che il piano dettaglia. Ragione: il reconciler copre **solo le
+aggiunte di colonna**, e la DDL di MySQL **non è transazionale** — un reconcile interrotto lascerebbe uno
+schema parziale senza rollback. Il compromesso che accettiamo su Neon, che è casa nostra, non lo esportiamo
+da loro.
+
+### Rimane aperto (e ora ha un costo misurabile)
+
+Il modello ha `HasMaxLength` su **6 sole** colonne. Su SQLite e Postgres le stringhe diventano `text`,
+indicizzabile senza limiti; su MySQL diventano `longtext`, che InnoDB **non indicizza** senza prefix
+length. Circa venti colonne indicizzate — inclusi gli **enum salvati come stringa** — vanno dimensionate.
+È lavoro dovuto a MySQL ma **valido su tutti i provider**, e va fatto attenzione a un dettaglio che ricade
+proprio su D1-bis: applicare le lunghezze anche a Postgres sarebbe un **cambio di tipo colonna**, che il
+reconciler non sa fare e che il drift probe segnalerebbe. Per questo il piano mappa le lunghezze **solo
+quando il provider è MySQL**, lasciando Neon intatto.
+
+**Piano operativo completo, slice e stime:** [`../design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md).
+Esecuzione non avviata: attende la **versione del server MySQL** di Ivao.It, che decide la strategia di
+collation (MySQL è case-insensitive di default sulle stringhe, e il modulo ha ~10 indici unici su stringa
+più identità content-addressed su hash).

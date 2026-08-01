@@ -1,12 +1,20 @@
 namespace Vipi.Infrastructure.Persistence;
 
-/// <summary>Provider di persistenza selezionabile (ADR-0007). Oggi solo <see cref="Sqlite"/> è operativo.</summary>
+/// <summary>
+/// Provider di persistenza selezionabile (ADR-0007). Entrambi i valori sono operativi.
+/// MySQL non c'è: è la strada scelta per l'embedding in Ivao.It ma non è ancora implementata —
+/// piano in <c>docs/design/piano-supporto-mysql.md</c>, decisione in ADR-0007 §D4 (sarà solo su net8).
+/// </summary>
 public enum PersistenceProvider
 {
-    /// <summary>SQLite su file (default): operativo. Tampone concorrenza via <see cref="SqliteTuningInterceptor"/>.</summary>
+    /// <summary>SQLite su file (default): operativo, con le migrazioni versionate. Tampone concorrenza via <see cref="SqliteTuningInterceptor"/>.</summary>
     Sqlite,
 
-    /// <summary>PostgreSQL (cutover pianificato ADR-0007): non ancora operativo — servono migrazioni dedicate + validazione istanza.</summary>
+    /// <summary>
+    /// PostgreSQL: operativo — è il deploy Render+Neon. Schema creato via <c>EnsureCreated</c> +
+    /// <see cref="PostgresSchemaReconciler"/>, non dalle migrazioni (SQLite-flavored). Il cutover con
+    /// migrazioni dedicate — ADR-0007 punto (b) — resta aperto: il reconciler copre solo le aggiunte di colonna.
+    /// </summary>
     Postgres,
 }
 

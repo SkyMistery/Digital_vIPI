@@ -37,15 +37,19 @@ La PR non è aperta: `gh` non è installato sulla macchina di sviluppo, quindi f
 sono stati creati. Loro ricevono `docs/guide/ivao-it-wiring.patch` e la applicano con `git am`.
 **A carico nostro** decidere se aprire la PR a mano dall'interfaccia GitHub.
 
-### 1.3 Scelta del database
-Il modulo non supporta MySQL. Entrambe le alternative sono già configurate nella patch, ma la scelta è
-loro. **La domanda da porre non è «quale DB», ma:** il sito gira su **una sola istanza** con **disco
-persistente**, e potete affiancare un **PostgreSQL** al MySQL?
+### 1.3 Scelta del database — **risposto: solo MySQL**
+Il modulo oggi supporta SQLite e PostgreSQL, non MySQL. La domanda posta non era «quale DB preferite» ma:
+il sito gira su **una sola istanza** con **disco persistente**, e potete affiancare un **PostgreSQL** al
+MySQL?
 
-- Sì al Postgres → Postgres, nessun lavoro.
-- No, ma istanza singola e disco persistente → SQLite, nessun lavoro. Migrabile dopo con
-  `tools/Vipi.DbSeed`.
-- Né l'uno né l'altro → si apre il progetto MySQL (§4.1).
+**Risposta di Ivao.It (1 agosto 2026): solo MySQL**, con il consiglio di usare il connector Pomelo.
+Quindi cade sia la strada Postgres sia quella SQLite, e si apre il progetto MySQL: vedi
+[`docs/design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md) e §4.1 qui sotto.
+
+**Gate:** il piano è scritto ma non eseguibile finché non sappiamo la **versione del loro server MySQL**
+(8.0+ / 5.7 / MariaDB). È l'unica risposta che blocca: decide la strategia di collation, che decide lo
+schema. Le altre tre domande (database dedicato con DDL, libertà sulla collation, backup) stanno nel §1
+del piano, con un messaggio già pronto da inviare in appendice.
 
 ### 1.4 Credenziali app IVAO — c'è un problema aperto **nostro**
 Servono `Ivao__ClientId` / `Ivao__ClientSecret` con grant `client_credentials` e scope `tracker` +
@@ -123,13 +127,22 @@ fermi per sempre o inseguono un branch che si muove.
 
 ## 4. Opzionali — da aprire solo se lo chiedono
 
-### 4.1 Supporto MySQL
-Non è una configurazione, è un progetto, ed è **bloccato a monte** sul ramo net10: `Pomelo.EntityFrameworkCore.MySql`
-è fermo alla 9.0.0 (EF Core 9), senza build per EF Core 10. Resterebbe il provider Oracle
-`MySql.EntityFrameworkCore` 10.0.9 (copre net8 e net10), più: ramo nel resolver di persistenza,
-creazione dello schema (le migration sono SQLite-flavored) e **revisione della collation** — MySQL è
-case-insensitive di default sulle stringhe e il modulo ha indici unici e confronti su callsign e hash.
-Più un secondo provider MySQL nello stesso processo accanto a Pomelo.
+### 4.1 Supporto MySQL — **non più opzionale: è la strada scelta** (§1.3)
+Non è una configurazione, è un progetto. Piano completo, slice e stime:
+[`docs/design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md). In sintesi:
+
+- **MySQL sarà supportato solo sul TFM net8**, quello dell'embedding. Verificato l'1 agosto 2026:
+  `Pomelo.EntityFrameworkCore.MySql` è fermo alla **9.0.0** (EF Core 9, pubblicata ago-2025), il repo non
+  ha commit su `main` da allora, e i quattro tentativi di porting a EF Core 10 sono o aperti da mesi
+  (#2007, #2019) o **chiusi senza merge** (#2031, #2032, #2042). Per net8 serve la **8.0.3**, stabile.
+  Il ramo net10 (deploy Render+Neon) resta Postgres + SQLite.
+- Il lavoro vero non è il provider: è **collation** (MySQL è case-insensitive di default e il modulo ha
+  ~10 indici unici su stringa, più hash content-addressed), **`HasMaxLength`** su tutte le colonne
+  indicizzate (oggi 6 in tutto il modello; senza, InnoDB non indicizza `longtext`) e un **set di migration
+  dedicato** (le 65 esistenti sono SQLite-flavored).
+- Due slice sono **indipendenti dal provider e fattibili subito** (lunghezze + test guardia sul modello):
+  migliorano il modello anche per SQLite e Postgres e non si buttano se MySQL cambiasse.
+- Stima: **4-5 sessioni**, di cui l'ultima è la verifica live, non stimabile con precisione.
 
 ### 4.2 Pacchetti NuGet al posto del submodule
 Più pulito per loro (niente `git submodule update --init` in CI), ma richiede una pipeline di publish
@@ -151,5 +164,8 @@ BSD-2-Clause passa a loro**. Noi abbiamo già self-hostato i font, il precedente
 2. Risolvere il token app IVAO (§1.4) — è nostro, è aperto, e dimezza il prodotto.
 3. **Eseguire** il modulo su un host net8 (§2.1) e guardare localizzazione (§2.2) e CSS (§2.4) mentre
    gira. Tre voci chiuse in una sessione sola.
-4. Consegnare (patch + tag) e porre le domande su DB (§1.3) e menu (§3.1).
-5. Il resto quando risponde il loro lato.
+4. Consegnare (patch + tag) e porre le domande su **versione MySQL** (§1.3 — è il gate del piano
+   `design/piano-supporto-mysql.md`) e menu (§3.1).
+5. In parallelo, senza aspettarli: le due slice indipendenti dal provider del piano MySQL (`HasMaxLength`
+   sulle colonne indicizzate + test guardia sul modello). Valgono per tutti e tre i provider.
+6. Il resto quando risponde il loro lato.
