@@ -34,7 +34,9 @@ public sealed class EfMediaStore : IMediaStore
         var bytes = await ReadCappedAsync(content, ct);
         var info = MediaValidator.Validate(bytes, _options);
 
-        var sha = Convert.ToHexStringLower(SHA256.HashData(bytes.Span));
+        // ToHexString+ToLowerInvariant e non ToHexStringLower: quest'ultimo è .NET 9+ e il modulo
+        // multi-targetta net8.0 per l'embedding nel sito Ivao.It. Stesso output, stesso sha in DB.
+        var sha = Convert.ToHexString(SHA256.HashData(bytes.Span)).ToLowerInvariant();
 
         // Già presente: nessuna riga nuova, nessun byte riscritto. Il contenuto è l'identità.
         var existing = await _db.MediaAssets.AsNoTracking()
