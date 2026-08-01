@@ -107,12 +107,27 @@
     private readonly HashSet<int> _diffOpen = new();
     private readonly Dictionary<int, ReleaseDiff> _diffs = new();
 
+    // Bersaglio già caricato: OnParametersSetAsync scatta a OGNI re-render del genitore, non solo quando
+    // Target/Key cambiano. Ricaricare sempre significava una query DB per re-render, e — condividendo il
+    // context del circuito con la pagina (vedi nota in cima) — una collisione: il render intermedio di
+    // un'azione della pagina ancora in volo (es. StartEditing → CreateDraftAsync) faceva partire ListAsync
+    // sullo stesso context. Su Postgres/Neon, con la latenza di rete, le due si sovrappongono davvero:
+    // eccezione nel ciclo di vita del componente → renderer in errore → CIRCUITO TERMINATO (l'editor APP su
+    // Render moriva al primo click su «Modifica»). In locale su SQLite le query finiscono prima e non collidono.
+    private (ReleaseTargetType Target, string Key)? _loaded;
+
     protected override async Task OnParametersSetAsync()
     {
         _currentCycle = Releases.CurrentCycle();
         _upcoming = Releases.UpcomingCycles(14);
         _cycle ??= _upcoming.FirstOrDefault()?.Cycle;
-        await Reload();
+
+        if (_loaded is { } l && l.Target == Target && string.Equals(l.Key, Key, StringComparison.Ordinal)) return;
+        _loaded = (Target, Key);
+        // Rete di sicurezza: un'eccezione qui NON è catturabile dall'host (è ciclo di vita, non evento) e
+        // abbatterebbe il circuito. Meglio il pannello con un errore visibile che la pagina morta.
+        try { await Reload(); }
+        catch (Exception ex) { _error = ex.Message; }
     }
 
     private async Task Reload()
