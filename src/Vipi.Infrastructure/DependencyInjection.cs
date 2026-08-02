@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccDerivationRepository, EfAccDerivationRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.ISpecialAreaRepository, EfSpecialAreaRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();
         services.AddScoped<Vipi.Application.Abstractions.ITransferRepository, EfTransferRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();

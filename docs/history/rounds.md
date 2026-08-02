@@ -1060,3 +1060,25 @@ I repository hanno un parametro in più: i call site dei test passano l'implemen
 esistente esercita il percorso nuovo invece di aggirarlo.
 
 Suite **804 → 814** verde, verifica live sui tre comportamenti.
+
+
+### Aree regolamentate anche sull'APP non remotizzato (2026-08-02)
+
+La sezione «Aree regolamentate» esisteva nel catalogo dell'APP ma era una sezione libera: si scriveva a mano ciò
+che sulla vIPI ACC è un **picker** di aree importate da IVAO. Ora è la stessa sezione strutturata dell'ACC —
+**senza aree di default**: sull'ACC il blocco Aerovia parte in automatico con tutte le aree del proprio ACC,
+mentre un singolo avvicinamento ne tocca due o tre, quindi qui si scelgono a mano (proprie + extra di altri ACC).
+
+- Picker e corpo del viewer erano scritti dentro `AccEditorPage`/`AccSectionBody`: estratti nei componenti
+  condivisi **`RegulatedAreasEditor`** (parametri `AllowAuto`/`ShowExtra`) e **`RegulatedAreas`**. Il secondo uso
+  li avrebbe duplicati (regola del 2 del runbook feature).
+- Le tre query EF sulle aree speciali stavano in `IAccDerivationRepository`: spostate in **`ISpecialAreaRepository`**
+  (`EfSpecialAreaRepository`), perché il dato è per-ACC ma il consumatore non è più solo l'ACC. Proiezione id →
+  vista con shape condivisa in `SpecialAreaProjection`.
+- Sull'APP `OwnAuto` è **sempre falso**, normalizzato in scrittura e in lettura: un JSON che lo portasse (copiato
+  da un blocco ACC) farebbe comparire decine di aree mai scelte.
+- Il viewer legge gli id dalla **versione che sta mostrando** (pubblica/bozza/release) e risolve dettagli e shape
+  sui cataloghi correnti, come la vIPI ACC.
+
+Suite **816 → 819** verde; verifica live su `LIPE_W_APP` (scelta di un'area LIPP + una extra LIRR, ricomparsa dopo
+reload, rese nel viewer bozza con mappa, banda quota e note).

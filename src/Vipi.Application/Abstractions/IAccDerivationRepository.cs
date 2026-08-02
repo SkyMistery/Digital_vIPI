@@ -62,12 +62,5 @@ public interface IAccDerivationRepository
     /// <summary>Tutte le frequenze linkabili (per il picker dei link extra).</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
-    /// <summary>Aree speciali dell'ACC (picker editor), ordinate per nome.</summary>
-    Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Aree speciali di TUTTI gli altri ACC (picker editor aree extra), ordinate per ACC poi nome.</summary>
-    Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasExcludingAccAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Aree speciali per IvaoId (per il viewer), con shape grezza.</summary>
-    Task<IReadOnlyList<SpecialAreaDetail>> GetSpecialAreasByIdsAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default);
+    // Le aree speciali/regolamentate stanno in ISpecialAreaRepository: le usa anche l'APP non remotizzata.
 }

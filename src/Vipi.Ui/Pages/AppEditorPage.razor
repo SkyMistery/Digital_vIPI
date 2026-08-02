@@ -126,6 +126,12 @@ else
     private List<AccConfiguration> _configs = new();
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
+    // Aree regolamentate: selezione salvata + cataloghi del picker (aree dell'ACC dell'APP, aree di altri ACC).
+    // Nessuna area di default (a differenza del blocco Aerovia ACC): si scelgono tutte a mano.
+    private RegulatedSelection _regulated = new() { OwnAuto = false };
+    private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
+    private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();
+
     // Shape AoR extra (settori DB scelti a mano) + override colore per settore + catalogo globale del picker.
     private List<string> _aorExtras = new();
     private Dictionary<string, string> _aorColors = new(StringComparer.OrdinalIgnoreCase);
@@ -171,6 +177,8 @@ else
         _linkable = await AppDoc.ListLinkableFrequenciesAsync();
         _sectorPool = await AppDoc.ListSectorsAsync(_app);
         _shapeCatalog = await AppDoc.ListSelectableSectorShapesAsync();
+        _areaPicks = await AppDoc.ListSpecialAreasAsync(_app);
+        _otherAreaPicks = await AppDoc.ListOtherAccSpecialAreasAsync(_app);
         await LoadAsync();
     }
 
@@ -186,6 +194,7 @@ else
 
             _separations = (await AppDoc.GetSeparationsAsync(_app)).ToList();
             _vfr = await AppDoc.GetVfrAsync(_app);
+            _regulated = await AppDoc.GetRegulatedAsync(_app);
             var overrides = await AppDoc.GetOverridesAsync(_app);
             _linkIds = overrides.FreqLinkSectorIds.ToList();
             await RefreshDerivedAsync();
@@ -231,7 +240,7 @@ else
 
     // ---- sezioni derivate / editoriali-strutturate ----
     private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination" };
+        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination", "regulated" };
 
     private static bool IsDerived(EditableSection s) => s.Depth == 0 && Special.Contains(s.SectionKey);
 
@@ -259,6 +268,13 @@ else
         await AppDoc.SaveConfigurationsAsync(_app, _configs);
         _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // ri-deriva l'accorpamento
         _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
+    });
+
+    // ---- aree regolamentate (picker condiviso con la vIPI ACC, senza modo automatico) ----
+    private Task SaveRegulated(RegulatedSelection sel) => Guard(async () =>
+    {
+        await AppDoc.SaveRegulatedAsync(_app, sel);
+        _regulated = await AppDoc.GetRegulatedAsync(_app);
     });
 
     // ---- shape AoR extra + colori ----
@@ -404,6 +420,12 @@ else
                 break;
             case "coordination":
                 <AppCoordinationView Coord="_coord" />
+                break;
+            case "regulated":
+                @* Come la vIPI ACC ma senza aree di default: AllowAuto=false, si scelgono tutte a mano. *@
+                <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_editing" AllowAuto="false" ShowExtra="true"
+                                      SelectionChanged="SaveRegulated" />
                 break;
         }
     };

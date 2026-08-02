@@ -305,31 +305,6 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
             .Select(s => new LinkableFrequencyRow(s.Id, s.AirportIcao, s.Callsign, s.DefaultFrequency!, null))
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>
-        await _db.SpecialAreas.AsNoTracking()
-            .Where(s => s.CenterId == accCode)
-            .OrderBy(s => s.Name)
-            .Select(s => new SpecialAreaPick(s.IvaoId, s.Name, s.Type, s.MinimumAlt, s.MaximumAlt, s.CenterId))
-            .ToListAsync(ct);
-
-    public async Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasExcludingAccAsync(string accCode, CancellationToken ct = default) =>
-        await _db.SpecialAreas.AsNoTracking()
-            .Where(s => s.CenterId != accCode)
-            .OrderBy(s => s.CenterId).ThenBy(s => s.Name)
-            .Select(s => new SpecialAreaPick(s.IvaoId, s.Name, s.Type, s.MinimumAlt, s.MaximumAlt, s.CenterId))
-            .ToListAsync(ct);
-
-    public async Task<IReadOnlyList<SpecialAreaDetail>> GetSpecialAreasByIdsAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default)
-    {
-        if (ivaoIds.Count == 0) return Array.Empty<SpecialAreaDetail>();
-        var ids = ivaoIds.ToList();
-        return await _db.SpecialAreas.AsNoTracking()
-            .Where(s => ids.Contains(s.IvaoId))
-            .Select(s => new SpecialAreaDetail(s.IvaoId, s.Name, s.Type, s.Description, s.ActivationDetails,
-                s.MinimumAlt, s.MaximumAlt, s.RegionMapPolygon))
-            .ToListAsync(ct);
-    }
-
     // ---- helper ----
     // Ordine, nome e sigla-da-tipo vengono da FrequencyPositions (Application): erano triplicati qui, in
     // EfAppDerivationRepository e in EfAirportRepository, e le copie avevano già divergiato.

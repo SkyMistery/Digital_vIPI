@@ -56,7 +56,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
-        _service = new AppDocumentService(repo, editing, authz, topo, transfers,
+        _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService());
     }
 
@@ -303,6 +303,68 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.Equal("LIRR_NE_CTR", acc.TargetCallsign);
         Assert.Contains(acc.Rows, r => r.OwnerCallsign == "LIRP_E_APP");   // riga del figlio, non solo del primario
     }
+
+    // ---- aree regolamentate: come la vIPI ACC ma senza aree di default (nessun modo automatico) ----
+
+    [Fact]
+    public async Task Regulated_Is_Empty_By_Default()
+    {
+        _db.SpecialAreas.AddRange(Area("a1", "LIRR", "R14A"), Area("a2", "LIRR", "R99"));
+        await _db.SaveChangesAsync();
+        await _service.EnsureAsync(App);
+
+        var sel = await _service.GetRegulatedAsync(App);
+
+        Assert.False(sel.OwnAuto);          // l'APP non ha il modo automatico del blocco Aerovia
+        Assert.Empty(sel.OwnIds);
+        Assert.Empty(sel.ExtraIds);
+        Assert.Empty(await _service.ResolveRegulatedAreasAsync(sel));   // nessuna area, benché l'ACC ne abbia
+    }
+
+    [Fact]
+    public async Task Regulated_Roundtrips_Own_And_Extra_In_Order()
+    {
+        _db.Accs.Add(new Acc { Code = "LIMM", Name = "Milano" });
+        _db.SpecialAreas.AddRange(
+            Area("a1", "LIRR", "AAA"), Area("a2", "LIRR", "BBB"), Area("x1", "LIMM", "XXX"));
+        await _db.SaveChangesAsync();
+        await _service.EnsureAsync(App);
+
+        await _service.SaveRegulatedAsync(App, new RegulatedSelection
+        {
+            OwnAuto = true,   // ignorato: sull'APP la selezione è sempre manuale
+            OwnIds = { "a2" },
+            ExtraIds = { "x1" },
+        });
+
+        var sel = await _service.GetRegulatedAsync(App);
+        Assert.False(sel.OwnAuto);
+        Assert.Equal(new[] { "a2" }, sel.OwnIds);
+        Assert.Equal(new[] { "x1" }, sel.ExtraIds);
+
+        var views = await _service.ResolveRegulatedAreasAsync(sel);
+        Assert.Equal(new[] { "BBB", "XXX" }, views.Select(v => v.Name));   // proprie poi extra
+    }
+
+    [Fact]
+    public async Task Regulated_Pickers_Split_Own_Acc_From_The_Others()
+    {
+        _db.Accs.AddRange(new Acc { Code = "LIMM", Name = "Milano" }, new Acc { Code = "LIBB", Name = "Brindisi" });
+        _db.SpecialAreas.AddRange(
+            Area("a1", "LIRR", "AAA"), Area("x1", "LIMM", "XXX"), Area("x2", "LIBB", "YYY"));
+        await _db.SaveChangesAsync();
+
+        var own = await _service.ListSpecialAreasAsync(App);
+        var others = await _service.ListOtherAccSpecialAreasAsync(App);
+
+        Assert.Equal(new[] { "AAA" }, own.Select(p => p.Name));
+        Assert.Equal(new[] { "YYY", "XXX" }, others.Select(p => p.Name));   // ordinate per ACC (LIBB, LIMM)
+    }
+
+    private static SpecialArea Area(string ivaoId, string acc, string name) => new()
+    {
+        IvaoId = ivaoId, CenterId = acc, Name = name,
+    };
 
     private static AirportSector Pos(string compose, string position, string freq) => new()
     {

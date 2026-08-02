@@ -73,12 +73,31 @@ public interface IAppDocumentService
 
     /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero APP.</summary>
     Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Selezione salvata delle aree regolamentate (sezione <c>regulated</c>). Vuota se assente: l'APP non ha
+    /// aree di default (<c>OwnAuto</c> è sempre falso, a differenza del blocco Aerovia della vIPI ACC).</summary>
+    Task<RegulatedSelection> GetRegulatedAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Salva la selezione aree regolamentate nella sezione <c>regulated</c> (garantisce prima il documento; ACC-gated).</summary>
+    Task SaveRegulatedAsync(string appCallsign, RegulatedSelection selection, CancellationToken ct = default);
+
+    /// <summary>Aree speciali dell'ACC a cui appartiene l'APP (picker editor).</summary>
+    Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Aree speciali di TUTTI gli altri ACC (picker editor aree extra).</summary>
+    Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Risolve una selezione di aree regolamentate per il viewer (metadati + shape), in ordine (proprie poi
+    /// extra). Prende la selezione invece del callsign perché il viewer la legge dalla VERSIONE che sta mostrando
+    /// (pubblica/bozza/release), mentre i dettagli e le shape restano quelli correnti dei cataloghi.</summary>
+    Task<IReadOnlyList<AccSpecialAreaView>> ResolveRegulatedAreasAsync(RegulatedSelection selection, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAppDocumentService"/>
 public sealed class AppDocumentService : IAppDocumentService
 {
     private readonly IAppDerivationRepository _apps;
+    private readonly ISpecialAreaRepository _areas;
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
@@ -87,11 +106,12 @@ public sealed class AppDocumentService : IAppDocumentService
     private readonly IDocumentProfileRepository _docProfiles;
     private readonly Aor.IAorService _aor;
 
-    public AppDocumentService(IAppDerivationRepository apps, IEditingRepository editing, IEditAuthorizationService authz,
-        ITopologyProvider topology, ITransferService transfers, ICoordinationSentenceTemplate sentence,
-        IDocumentProfileRepository docProfiles, Aor.IAorService aor)
+    public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
+        IEditAuthorizationService authz, ITopologyProvider topology, ITransferService transfers,
+        ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor)
     {
         _apps = apps;
+        _areas = areas;
         _editing = editing;
         _authz = authz;
         _topology = topology;
@@ -106,7 +126,7 @@ public sealed class AppDocumentService : IAppDocumentService
     // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
     // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
     private static readonly string[] LiveKeys =
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination" };
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
 
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
@@ -311,6 +331,55 @@ public sealed class AppDocumentService : IAppDocumentService
         var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
         var json = empty ? null : JsonSerializer.Serialize(content);
         await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    // --- Aree regolamentate (blocco keyed "regulated"): stessa selezione della vIPI ACC, senza il modo automatico.
+    // Sull'APP non esistono aree di default: l'ACC di appartenenza ne ha decine e quasi nessuna tocca un singolo
+    // avvicinamento, quindi si scelgono tutte a mano (OwnIds) più le eventuali extra di altri ACC (ExtraIds). ---
+
+    public async Task<RegulatedSelection> GetRegulatedAsync(string appCallsign, CancellationToken ct = default)
+    {
+        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return NoAuto(null);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct);
+        return NoAuto(Deserialize<RegulatedSelection>(json));
+    }
+
+    public async Task SaveRegulatedAsync(string appCallsign, RegulatedSelection selection, CancellationToken ct = default)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var clean = NoAuto(selection);
+        var empty = clean.OwnIds.Count == 0 && clean.ExtraIds.Count == 0;
+        var json = empty ? null : JsonSerializer.Serialize(clean);
+        await _editing.SaveSectionBlockJsonAsync(docId, "regulated", json, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    // Normalizza a selezione MANUALE (OwnAuto sempre falso): il modo automatico è del solo blocco Aerovia ACC, e un
+    // JSON che lo portasse (scritto a mano, o copiato da un blocco ACC) farebbe comparire aree mai scelte.
+    private static RegulatedSelection NoAuto(RegulatedSelection? sel) => new()
+    {
+        OwnAuto = false,
+        OwnIds = sel?.OwnIds ?? new List<string>(),
+        ExtraIds = sel?.ExtraIds ?? new List<string>(),
+    };
+
+    public async Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var acc = await _apps.GetAccCodeByAppAsync(Norm(appCallsign), ct);
+        return acc is null ? Array.Empty<SpecialAreaPick>() : await _areas.ListSpecialAreasByAccAsync(acc, ct);
+    }
+
+    public async Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string appCallsign, CancellationToken ct = default)
+    {
+        var acc = await _apps.GetAccCodeByAppAsync(Norm(appCallsign), ct);
+        return acc is null ? Array.Empty<SpecialAreaPick>() : await _areas.ListSpecialAreasExcludingAccAsync(acc, ct);
+    }
+
+    public async Task<IReadOnlyList<AccSpecialAreaView>> ResolveRegulatedAreasAsync(RegulatedSelection selection, CancellationToken ct = default)
+    {
+        var sel = NoAuto(selection);
+        var orderedIds = sel.OwnIds.Concat(sel.ExtraIds).ToList();
+        if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
+        return SpecialAreaProjection.Build(await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds);
     }
 
     // --- Configurazioni (blocco keyed "configurations"): storage editoriale + accorpamento derivato. ---

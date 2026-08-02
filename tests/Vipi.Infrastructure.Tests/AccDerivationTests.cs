@@ -44,7 +44,8 @@ public class AccProfileTests : IAsyncLifetime
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
         var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
-        _service = new AccDerivationService(_repo, transfers, topo, new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
+        _service = new AccDerivationService(_repo, new EfSpecialAreaRepository(_db), transfers, topo,
+            new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
     }
 
     public async Task DisposeAsync()

@@ -62,15 +62,17 @@ public interface IAccDerivationService
 public sealed class AccDerivationService : IAccDerivationService
 {
     private readonly IAccDerivationRepository _repo;
+    private readonly ISpecialAreaRepository _areas;
     private readonly ITransferService _transfers;
     private readonly ITopologyProvider _topology;
     private readonly Aor.IAorService _aor;
     private readonly ICoordinationSentenceTemplate _sentence;
 
-    public AccDerivationService(IAccDerivationRepository repo, ITransferService transfers,
+    public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, ITransferService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence)
     {
         _repo = repo;
+        _areas = areas;
         _transfers = transfers;
         _topology = topology;
         _aor = aor;
@@ -262,31 +264,22 @@ public sealed class AccDerivationService : IAccDerivationService
         _repo.ListSelectableSectorShapesAsync(ct);
 
     public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default) =>
-        _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct);
+        _areas.ListSpecialAreasByAccAsync(Norm(accCode), ct);
 
     public Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string accCode, CancellationToken ct = default) =>
-        _repo.ListSpecialAreasExcludingAccAsync(Norm(accCode), ct);
+        _areas.ListSpecialAreasExcludingAccAsync(Norm(accCode), ct);
 
     public async Task<IReadOnlyList<AccSpecialAreaView>> GetAttachedSpecialAreasAsync(string accCode, AccBlock block, CancellationToken ct = default)
     {
         // Aree del proprio ACC: automatico (Aerovia) = tutte; altrimenti il sottoinsieme scelto. Poi le extra di altri ACC.
         IReadOnlyList<string> ownIds = block.Kind == AccBlockKind.Aerovia && block.Regulated.OwnAuto
-            ? (await _repo.ListSpecialAreasByAccAsync(Norm(accCode), ct)).Select(p => p.IvaoId).ToList()
+            ? (await _areas.ListSpecialAreasByAccAsync(Norm(accCode), ct)).Select(p => p.IvaoId).ToList()
             : block.Regulated.OwnIds;
         var orderedIds = ownIds.Concat(block.Regulated.ExtraIds).ToList();
         if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
 
-        var details = await _repo.GetSpecialAreasByIdsAsync(orderedIds, ct);
-        var byId = details.ToDictionary(d => d.IvaoId, StringComparer.OrdinalIgnoreCase);
-
-        var result = new List<AccSpecialAreaView>();
-        foreach (var id in orderedIds)   // preserva l'ordine (proprie poi extra)
-        {
-            if (!byId.TryGetValue(id, out var d)) continue;
-            var shape = string.IsNullOrWhiteSpace(d.RegionMapPolygon) ? null : Aor.AorPolygonProjector.Project(d.RegionMapPolygon);
-            result.Add(new AccSpecialAreaView(d.IvaoId, d.Name, d.Type, d.Description, d.ActivationDetails, d.MinimumAlt, d.MaximumAlt, shape));
-        }
-        return result;
+        // Ordine preservato (proprie poi extra) dal proiettore condiviso con l'APP non remotizzata.
+        return SpecialAreaProjection.Build(await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds);
     }
 
     /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = TUTTI i CTR dell'ACC (una vIPI per ACC, tutti

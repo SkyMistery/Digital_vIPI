@@ -196,8 +196,6 @@ else
     private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();     // aree di altri ACC (extra)
     private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();       // settori con shape (picker shape extra AoR)
     private readonly Dictionary<int, string> _freqSearch = new();   // per blocco (BlockSectionId)
-    private readonly Dictionary<int, string> _areaSearch = new();   // ricerca aree proprio ACC (manuale)
-    private readonly Dictionary<int, string> _extraSearch = new();  // ricerca aree altri ACC (extra)
     private (int Block, int Index)? _freqDrag;
 
     protected override async Task OnParametersSetAsync()
@@ -413,50 +411,12 @@ else
         await LoadAsync();
     }
 
-    // ---- aree regolamentate ----
-    // Id delle aree del proprio ACC effettivamente selezionate: automatico (Aerovia) = tutte; altrimenti il sottoinsieme.
-    private List<string> EffectiveOwnIds(AccAssembledBlock blk) =>
-        blk.Block.Kind == AccBlockKind.Aerovia && blk.Block.Regulated.OwnAuto
-            ? _specialAreaPicks.Select(p => p.IvaoId).ToList()
-            : new List<string>(blk.Block.Regulated.OwnIds);
-
+    // ---- aree regolamentate (picker condiviso RegulatedAreasEditor: qui resta solo il salvataggio) ----
     private Task SaveRegulated(AccAssembledBlock blk, RegulatedSelection sel) => Guard(async () =>
     {
         await AccDoc.SaveRegulatedAsync(Acc, ChildId(blk, "regulated"), sel);
         await LoadAsync();
     });
-
-    // Toggle automatico/manuale delle aree del proprio ACC (solo Aerovia). Manuale materializza le attuali (tutte).
-    private Task SetOwnAuto(AccAssembledBlock blk, bool auto) => SaveRegulated(blk, new RegulatedSelection
-    {
-        OwnAuto = auto,
-        OwnIds = auto ? new() : EffectiveOwnIds(blk),
-        ExtraIds = new List<string>(blk.Block.Regulated.ExtraIds),
-    });
-
-    // Seleziona/deseleziona un'area del PROPRIO ACC. In automatico passa a manuale materializzando le attuali.
-    private Task ToggleOwnArea(AccAssembledBlock blk, string areaId) => SaveRegulated(blk, BuildToggleOwn(blk, areaId));
-
-    private RegulatedSelection BuildToggleOwn(AccAssembledBlock blk, string areaId)
-    {
-        var own = EffectiveOwnIds(blk);
-        if (own.Contains(areaId, StringComparer.OrdinalIgnoreCase))
-            own.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
-        else own.Add(areaId);
-        return new RegulatedSelection { OwnAuto = false, OwnIds = own, ExtraIds = new List<string>(blk.Block.Regulated.ExtraIds) };
-    }
-
-    // Aggiunge/rimuove un'area di ALTRO ACC (extra): non tocca il modo auto/manuale delle proprie.
-    private Task ToggleExtraArea(AccAssembledBlock blk, string areaId) => SaveRegulated(blk, BuildToggleExtra(blk, areaId));
-
-    private RegulatedSelection BuildToggleExtra(AccAssembledBlock blk, string areaId)
-    {
-        var extra = new List<string>(blk.Block.Regulated.ExtraIds);
-        if (extra.Contains(areaId, StringComparer.OrdinalIgnoreCase))
-            extra.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
-        else extra.Add(areaId);
-        return new RegulatedSelection { OwnAuto = blk.Block.Regulated.OwnAuto, OwnIds = new List<string>(blk.Block.Regulated.OwnIds), ExtraIds = extra };
-    }
 
     private IReadOnlyList<AccSectorPick> PoolOf(AccAssembledBlock blk) =>
         blk.Block.Kind == AccBlockKind.Aerovia ? _ctrSectors
@@ -550,7 +510,12 @@ else
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />
                 break;
             case "regulated":
-                @RegulatedEditor(blk)
+                @* Aerovia: modo automatico + aree di altri ACC. Gruppo APP: sole aree proprie, scelte a mano. *@
+                var isAerovia = blk.Block.Kind == AccBlockKind.Aerovia;
+                <RegulatedAreasEditor @key="@($"reg-{bsId}")" Selection="blk.Block.Regulated"
+                                      OwnPicks="_specialAreaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_editing" AllowAuto="isAerovia" ShowExtra="isAerovia"
+                                      SelectionChanged="sel => SaveRegulated(blk, sel)" />
                 break;
         }
     };
@@ -586,130 +551,6 @@ else
                 </div>
             }
         </div>
-    };
-
-    private RenderFragment RegulatedEditor(AccAssembledBlock blk) => __builder =>
-    {
-        var isAerovia = blk.Block.Kind == AccBlockKind.Aerovia;
-        var reg = blk.Block.Regulated;
-        var ownIds = EffectiveOwnIds(blk);   // aree del proprio ACC effettivamente mostrate
-
-        // --- Aree del proprio ACC (automatico/manuale, solo Aerovia) ---
-        <div class="block" style="border-style:dashed">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-                <p class="app-lbl" style="margin:0">@L["Acc_OwnAreas"]</p>
-                @if (isAerovia && _editing)
-                {
-                    <div class="sector-pick" style="margin:0">
-                        <button type="button" class="sp-item @(reg.OwnAuto ? "on" : "")" @onclick="() => SetOwnAuto(blk, true)">@L["Acc_Automatic"]</button>
-                        <button type="button" class="sp-item @(!reg.OwnAuto ? "on" : "")" @onclick="() => SetOwnAuto(blk, false)">@L["Acc_Manual"]</button>
-                    </div>
-                }
-                else if (isAerovia)
-                {
-                    <span class="pill @(reg.OwnAuto ? "green" : "grey")">@(reg.OwnAuto ? L["Acc_Automatic"] : L["Acc_Manual"])</span>
-                }
-            </div>
-
-            @if (isAerovia && reg.OwnAuto)
-            {
-                <p class="help" style="margin:0 0 6px">@L["Acc_AllAreasAuto"]@(_editing ? " " + L["Acc_RemoveToManual"].Value : "")</p>
-            }
-
-            @if (ownIds.Count > 0)
-            {
-                <div class="sector-pick" style="margin-bottom:6px">
-                    @foreach (var id in ownIds)
-                    {
-                        var areaId = id;
-                        var name = _specialAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase))?.Name ?? areaId;
-                        @if (_editing)
-                        {
-                            <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleOwnArea(blk, areaId)">✓ <b>@name</b> ✕</button>
-                        }
-                        else { <span class="sp-item on">✓ <b>@name</b></span> }
-                    }
-                </div>
-            }
-            else { <p class="muted">@L["Acc_NoOwnAreaSelected"]</p> }
-
-            @if (_editing && (!isAerovia || !reg.OwnAuto))
-            {
-                var search = _areaSearch.GetValueOrDefault(blk.BlockSectionId, "");
-                @if (isAerovia)
-                {
-                    <button type="button" class="btn ghost" style="margin-bottom:6px" @onclick="() => SetOwnAuto(blk, true)">↺ @L["Acc_BackToAuto"]</button>
-                }
-                <input class="app-in" placeholder="@L["Acc_SearchOwnArea"]" value="@search"
-                       @oninput="e => _areaSearch[blk.BlockSectionId] = AsString(e.Value)" />
-                @if (_specialAreaPicks.Count == 0)
-                {
-                    <p class="muted" style="margin-top:6px">@L["Acc_NoIvaoArea"]</p>
-                }
-                else
-                {
-                    <div class="sector-pick" style="margin-top:6px">
-                        @foreach (var p in _specialAreaPicks
-                            .Where(p => !ownIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                            .Where(p => string.IsNullOrWhiteSpace(search) || p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
-                            .Take(12))
-                        {
-                            var pick = p;
-                            <button type="button" class="sp-item" @onclick="() => ToggleOwnArea(blk, pick.IvaoId)">
-                                <b>@pick.Name</b> @if (!string.IsNullOrWhiteSpace(pick.Type)) { <span class="muted">@pick.Type</span> }
-                            </button>
-                        }
-                    </div>
-                }
-            }
-        </div>
-
-        // --- Aree di altri ACC (extra) — solo Aerovia ---
-        @if (isAerovia)
-        {
-            <div class="block" style="border-style:dashed;margin-top:8px">
-                <p class="app-lbl" style="margin:0 0 4px">@L["Acc_OtherAccAreas"] <span class="muted">@L["Acc_AddedManually"]</span></p>
-                @if (reg.ExtraIds.Count > 0)
-                {
-                    <div class="sector-pick" style="margin-bottom:6px">
-                        @foreach (var id in reg.ExtraIds)
-                        {
-                            var areaId = id;
-                            var pk = _otherAreaPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase));
-                            var name = pk?.Name ?? areaId;
-                            @if (_editing)
-                            {
-                                <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(blk, areaId)">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span> ✕</button>
-                            }
-                            else { <span class="sp-item on">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span></span> }
-                        }
-                    </div>
-                }
-                else if (!_editing) { <p class="muted">@L["Acc_None"]</p> }
-
-                @if (_editing)
-                {
-                    var esearch = _extraSearch.GetValueOrDefault(blk.BlockSectionId, "");
-                    <input class="app-in" placeholder="@L["Acc_SearchOtherArea"]" value="@esearch"
-                           @oninput="e => _extraSearch[blk.BlockSectionId] = AsString(e.Value)" />
-                    @if (!string.IsNullOrWhiteSpace(esearch))
-                    {
-                        <div class="sector-pick" style="margin-top:6px">
-                            @foreach (var p in _otherAreaPicks
-                                .Where(p => !reg.ExtraIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                                .Where(p => p.Name.Contains(esearch, StringComparison.OrdinalIgnoreCase) || p.CenterId.Contains(esearch, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(esearch, StringComparison.OrdinalIgnoreCase))
-                                .Take(12))
-                            {
-                                var pick = p;
-                                <button type="button" class="sp-item" @onclick="() => ToggleExtraArea(blk, pick.IvaoId)">
-                                    <b>@pick.Name</b> <span class="muted">@pick.CenterId</span>
-                                </button>
-                            }
-                        </div>
-                    }
-                }
-            </div>
-        }
     };
 
     private static AppVfrContent ParseVfr(string? json)
