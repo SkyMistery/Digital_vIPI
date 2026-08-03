@@ -3,7 +3,35 @@
 **Ultimo aggiornamento:** 3 agosto 2026 (aree regolamentate: policy di import, shape incrementale, dangling — branch `feature/aree-speciali-hardening`)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## ▶️ DA FARE — prossimo passo, già istruito
+> ## 🔴 PRIMA COSA DELLA PROSSIMA SESSIONE — verifica live delle aree regolamentate
+>
+> Il branch **`feature/aree-speciali-hardening`** è chiuso come codice (9 commit, suite 951 verde, build 0
+> warning, due migration provate su copia del `vipi.db` reale) ma **non verificato sull'app vera**, ed è l'unica
+> casella non spuntata del gate. Carta completa con i dettagli:
+> [`docs/feature/2026-08-03-aree-regolamentate-hardening.md`](docs/feature/2026-08-03-aree-regolamentate-hardening.md).
+> **Non fondere su `main` prima di questa verifica.**
+>
+> Con la skill `verifica-live`, quattro punti in quest'ordine:
+> 1. `/vsop/admin/sorgenti` → togli «Aree regolamentate», lancia l'import: le aree devono **restare** (nessun
+>    prune). Rimettila e controlla che riprenda.
+> 2. Editor di un documento con un'area cancellata a mano dal DB → «⚠ non più disponibile» nel picker e il
+>    rilievo «Area regolamentata dangling» in `/vsop/admin/diagnostica`.
+> 3. Dopo un import: la **R49 «Zita»** (id 8870) deve stare fra le aree **proprie** sia di LIRR sia di LIZZ.
+> 4. `/vsop/admin/accs` → «Importa aree» su un ACC estero lo accende e ne mostra il conteggio; «Escludi aree»
+>    torna a «non importate» e libera l'archivio.
+>
+> **Due cose da sapere prima di avviare l'app:**
+> - al **primo boot** una riconciliazione one-shot spegne gli ACC esteri e libera le loro aree (763 legami su
+>   993; restano le 230 italiane). Un documento che ne citava una la vedrà come dangling — è atteso, si recupera
+>   riaccendendo quell'ACC con «Importa aree»;
+> - dopo il deploy conviene premere **«Importa da sorgente»**: il backfill dei legami ne recupera **uno solo**
+>   per area, gli altri li riporta il primo import.
+>
+> ⚠️ **Da controllare in produzione, indipendente da tutto il resto:** in `/vsop/admin/sorgenti`, se la spunta
+> **SID** è vuota senza che tu l'abbia tolta, è la migration dell'8 luglio che nasceva `false` — vedi la memoria
+> `bool-column-default-trap`. Va rimessa a mano: `false` è indistinguibile da una scelta dell'admin.
+
+> ## ▶️ POI — prossimo passo, già istruito
 >
 > **Eseguire il modulo dentro un host net8 e guidarlo.** È il punto 3 del piano in
 > [`docs/guide/integrazione-ivao-it-da-fare.md`](docs/guide/integrazione-ivao-it-da-fare.md) §5, e chiude
