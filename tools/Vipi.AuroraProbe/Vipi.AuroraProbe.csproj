@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Spike F0 del piano docs/design/piano-aurora-bridge.md: interroga il server 3rd-party di Aurora
+         (TCP 1130) per accertare la semantica reale del protocollo prima di scrivere il tool.
+         One-shot, fuori dal deploy: il client definitivo vivrà in src/Vipi.AuroraBridge.Core. -->
+  </PropertyGroup>
+
+</Project>
