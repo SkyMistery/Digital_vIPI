@@ -9,7 +9,43 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfSpecialAreaMaintenance : ISpecialAreaMaintenance
 {
     private readonly VipiDbContext _db;
-    public EfSpecialAreaMaintenance(VipiDbContext db) => _db = db;
+    private readonly Vipi.Application.Abstractions.IImportStateStore _states;
+
+    public EfSpecialAreaMaintenance(VipiDbContext db, Vipi.Application.Abstractions.IImportStateStore states)
+    {
+        _db = db;
+        _states = states;
+    }
+
+    public async Task<int> OptOutForeignAreasAsync(CancellationToken ct = default)
+    {
+        var category = Vipi.Application.Abstractions.ImportCategories.SpecialAreaForeignOptOut;
+        if (await _states.GetLastSuccessAsync(category, ct) is not null) return 0;   // già fatto: non ripetere
+
+        var foreign = await _db.Accs.Where(a => a.IsForeign).ToListAsync(ct);
+        foreach (var acc in foreign) acc.SpecialAreasEnabled = false;
+        await _db.SaveChangesAsync(ct);
+
+        var codes = foreign.Select(a => a.Code).ToList();
+        var links = await _db.SpecialAreaCenters.Where(l => codes.Contains(l.CenterId)).ToListAsync(ct);
+        if (links.Count > 0)
+        {
+            _db.SpecialAreaCenters.RemoveRange(links);
+            await _db.SaveChangesAsync(ct);
+
+            // Le aree rimaste senza alcun ente non servono più a nessuno: quelle condivise con un ACC domestico
+            // (es. una R nazionale elencata anche dal militare italiano) hanno ancora il loro legame e restano.
+            var orphans = await _db.SpecialAreas.Where(a => !a.Centers.Any()).ToListAsync(ct);
+            if (orphans.Count > 0)
+            {
+                _db.SpecialAreas.RemoveRange(orphans);
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
+        await _states.MarkSuccessAsync(category, DateTime.UtcNow, ct);
+        return links.Count;
+    }
 
     public async Task<int> BackfillAreaCentersAsync(CancellationToken ct = default)
     {

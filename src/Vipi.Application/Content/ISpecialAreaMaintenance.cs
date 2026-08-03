@@ -18,4 +18,14 @@ public interface ISpecialAreaMaintenance
     /// </para>
     /// </summary>
     Task<int> BackfillAreaCentersAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Una tantum: spegne l'import delle aree per tutti gli ACC <b>esteri</b> e libera l'archivio dalle loro aree
+    /// (restano quelle che un ente abilitato elenca ancora). Ritorna quanti legami ha tolto.
+    /// <para>
+    /// Gira una volta sola — il «già fatto» è una riga di <c>ImportState</c> — altrimenti a ogni riavvio
+    /// cancellerebbe le aree di un ACC estero appena abilitato a mano dall'admin.
+    /// </para>
+    /// </summary>
+    Task<int> OptOutForeignAreasAsync(CancellationToken ct = default);
 }

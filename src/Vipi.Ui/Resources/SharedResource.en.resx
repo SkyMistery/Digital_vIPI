@@ -499,6 +499,18 @@
   <data name="AccAdmin_ToggleHide" xml:space="preserve"><value>Show/hide</value></data>
   <data name="AccAdmin_ImportOk" xml:space="preserve"><value>Import completed. ACC: {0} created, {1} updated · ACC sectors: {2} created, {3} updated.</value></data>
   <data name="AccAdmin_ImportSpecialFailures" xml:space="preserve"><value> · {0} ACC with special areas skipped (details in logs).</value></data>
+  <data name="AccAdmin_ColAreas" xml:space="preserve"><value>Regulated areas</value></data>
+  <data name="AccAdmin_AreasOn" xml:space="preserve"><value>{0} areas</value></data>
+  <data name="AccAdmin_AreasOnHint" xml:space="preserve"><value>Areas refreshed by the automatic import every 24 hours.</value></data>
+  <data name="AccAdmin_AreasOff" xml:space="preserve"><value>not imported</value></data>
+  <data name="AccAdmin_AreasOffHint" xml:space="preserve"><value>This ACC takes no part in the area import: use «Import areas» to fetch them once and enable it.</value></data>
+  <data name="AccAdmin_ImportAreas" xml:space="preserve"><value>Import areas</value></data>
+  <data name="AccAdmin_ImportAreasTitle" xml:space="preserve"><value>Fetch this ACC's regulated areas now; if any are found, it joins the automatic refresh.</value></data>
+  <data name="AccAdmin_AreasImportOk" xml:space="preserve"><value>Areas of {0}: {1} created, {2} updated, {3} links removed.</value></data>
+  <data name="AccAdmin_AreasImportFailed" xml:space="preserve"><value>Area import for {0} failed: the ACC is left as it was (details in logs).</value></data>
+  <data name="AccAdmin_AreasDisable" xml:space="preserve"><value>Exclude areas</value></data>
+  <data name="AccAdmin_AreasDisableTitle" xml:space="preserve"><value>Stop importing this ACC's areas and free them from the archive (those also listed by another enabled ACC are kept).</value></data>
+  <data name="AccAdmin_AreasDisabled" xml:space="preserve"><value>Areas excluded: {0} links removed from the archive.</value></data>
   <data name="AccAdmin_LimitsSaved" xml:space="preserve"><value>Limits saved.</value></data>
   <data name="Common_Save" xml:space="preserve"><value>Save</value></data>
   <data name="Common_OpAdminOnly" xml:space="preserve"><value>Operation reserved to administrators.</value></data>

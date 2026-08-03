@@ -143,6 +143,60 @@ public class SpecialAreaImportTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Periodic_run_skips_accs_with_areas_disabled()
+    {
+        await _repo.ImportAsync(new[] { new SourceCenter("LFMM_CTR", "LFMM", "Marseille", false, "128.100") });
+        var lfmm = (await _repo.ListAccsAsync()).Single(a => a.Code == "LFMM");
+        await _repo.SetSpecialAreasEnabledAsync(lfmm.Id, false);          // com'è per gli esteri dopo la riconciliazione
+
+        var dir = new FakeAccDirectory
+        {
+            Areas = { ["LIRR"] = new() { Area("1") }, ["LFMM"] = new() { Area("2", "LF R 66") with { CenterId = "LFMM" } } },
+        };
+        await new SpecialAreaImportUseCase(_repo, dir, _policy).RunAsync();
+
+        Assert.Equal(1, dir.Calls);                                        // solo LIRR: l'estero non si interroga
+        Assert.Equal(1, await _db.SpecialAreas.CountAsync());
+    }
+
+    [Fact]
+    public async Task Manual_per_acc_import_enables_the_acc()
+    {
+        await _repo.ImportAsync(new[] { new SourceCenter("LFMM_CTR", "LFMM", "Marseille", false, "128.100") });
+        var id = (await _repo.ListAccsAsync()).Single(a => a.Code == "LFMM").Id;
+        await _repo.SetSpecialAreasEnabledAsync(id, false);
+
+        var dir = new FakeAccDirectory
+        {
+            Areas = { ["LFMM"] = new() { Area("2", "LF R 66") with { CenterId = "LFMM" } } },
+        };
+        var sut = new SpecialAreaImportUseCase(_repo, dir, _policy);
+
+        // Il primo scarico ignora il flag: è l'atto con cui l'admin accende l'ente.
+        var r = await sut.RunForAccAsync("LFMM");
+
+        Assert.Equal(1, r.Created);
+        Assert.Single(await _db.SpecialAreas.ToListAsync());
+        Assert.False((await _repo.ListAccsAsync()).Single(a => a.Code == "LFMM").SpecialAreasEnabled);   // lo abilita il service
+    }
+
+    [Fact]
+    public async Task Disabling_an_acc_frees_its_areas_but_keeps_the_shared_ones()
+    {
+        await _repo.ImportAsync(new[] { new SourceCenter("LFMM_CTR", "LFMM", "Marseille", false, "128.100") });
+        await _repo.ImportSpecialAreasAsync(new[] { Area("solo-lfmm", "LF R 66") with { CenterId = "LFMM" } });
+        await _repo.ImportSpecialAreasAsync(new[] { Area("condivisa") });                                  // LIRR
+        await _repo.ImportSpecialAreasAsync(new[] { Area("condivisa") with { CenterId = "LFMM" } });       // e anche LFMM
+
+        var id = (await _repo.ListAccsAsync()).Single(a => a.Code == "LFMM").Id;
+        var freed = await _repo.SetSpecialAreasEnabledAsync(id, false);
+
+        Assert.Equal(2, freed);                                            // due legami tolti a LFMM
+        var left = await _db.SpecialAreas.Select(a => a.IvaoId).ToListAsync();
+        Assert.Equal(new[] { "condivisa" }, left);                         // la sua resta: LIRR la elenca ancora
+    }
+
+    [Fact]
     public async Task Failed_acc_does_not_prune_its_areas()
     {
         await _repo.ImportSpecialAreasAsync(new[] { Area("1") });

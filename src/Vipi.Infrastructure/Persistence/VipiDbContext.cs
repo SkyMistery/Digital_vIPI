@@ -64,7 +64,14 @@ public class VipiDbContext : DbContext
                 if (t.IsEnum) prop.SetProviderClrType(typeof(string));
             }
 
-        b.Entity<Acc>().HasIndex(x => x.Code).IsUnique();
+        b.Entity<Acc>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            // Default nel modello e non solo nella migration: su Postgres la colonna la aggiunge
+            // PostgresSchemaReconciler, che legge di qui il valore con cui backfillare le righe esistenti.
+            // Senza, gli ACC già in tabella — italiani compresi — nascerebbero con le aree spente.
+            e.Property(x => x.SpecialAreasEnabled).HasDefaultValue(true);
+        });
 
         b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import

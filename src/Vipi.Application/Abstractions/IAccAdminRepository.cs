@@ -38,6 +38,10 @@ public interface IAccAdminRepository
     /// <summary>Mostra/nasconde un ACC dalla navigazione pubblica.</summary>
     Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default);
 
+    /// <summary>Accende/spegne l'import periodico delle aree regolamentate di un ACC. Spegnendolo ne pota anche i
+    /// legami (le aree che nessun altro ente elenca spariscono): ritorna quanti legami ha tolto.</summary>
+    Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default);
+
     /// <summary>Mostra/nasconde un settore ATC.</summary>
     Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default);
 

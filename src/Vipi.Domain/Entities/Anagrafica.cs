@@ -18,6 +18,14 @@ public class Acc
     /// <summary>Nascosto dall'admin: resta nel DB ma non compare nella navigazione pubblica (home/landing). Default false = attivo.</summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>
+    /// Vero se l'import periodico scarica le AREE REGOLAMENTATE di questo ACC. Gli ACC esteri nascono spenti: sono
+    /// la grande maggioranza delle aree in archivio (centinaia) e quasi nessuna serve a un documento italiano.
+    /// L'admin accende quelli che gli servono da <c>/vsop/admin/accs</c>, dove il primo import è manuale; da lì in
+    /// poi l'ACC entra nel giro delle 24h come i domestici. Spegnerlo cancella le aree che nessun altro ente elenca.
+    /// </summary>
+    public bool SpecialAreasEnabled { get; set; } = true;
+
     /// <summary>Istante dell'ultimo import dalla sorgente.</summary>
     public DateTime? ImportedAtUtc { get; set; }
 

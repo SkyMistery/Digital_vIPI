@@ -39,6 +39,29 @@ public sealed class AccAdminService : IAccAdminService
         return new AccImportOutcome(result, special.Failures);
     }
 
+    public async Task<SpecialAreaImportResult> ImportSpecialAreasAsync(string accCode, CancellationToken ct = default)
+    {
+        _authz.EnsureAdmin();
+        var result = await _specialAreas.RunForAccAsync(accCode, ct);
+
+        // Abilita solo se ha davvero portato a casa qualcosa: un ACC acceso ma con la fetch fallita entrerebbe nel
+        // giro periodico senza aree, e il prossimo import lo ritenterebbe in silenzio.
+        if (result.Failures.Count == 0 && (result.Created + result.Updated) > 0)
+        {
+            var acc = (await _repo.ListAccsAsync(ct))
+                .FirstOrDefault(a => string.Equals(a.Code, accCode, StringComparison.OrdinalIgnoreCase));
+            if (acc is not null && !acc.SpecialAreasEnabled)
+                await _repo.SetSpecialAreasEnabledAsync(acc.Id, true, ct);
+        }
+        return result;
+    }
+
+    public Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
+    {
+        _authz.EnsureAdmin();
+        return _repo.SetSpecialAreasEnabledAsync(accId, enabled, ct);
+    }
+
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();

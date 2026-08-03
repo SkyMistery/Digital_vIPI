@@ -502,6 +502,18 @@
   <data name="AccAdmin_ToggleHide" xml:space="preserve"><value>Mostra/nascondi</value></data>
   <data name="AccAdmin_ImportOk" xml:space="preserve"><value>Import completato. ACC: {0} creati, {1} aggiornati · Settori ACC: {2} creati, {3} aggiornati.</value></data>
   <data name="AccAdmin_ImportSpecialFailures" xml:space="preserve"><value> · {0} ACC con aree speciali saltate (dettaglio nei log).</value></data>
+  <data name="AccAdmin_ColAreas" xml:space="preserve"><value>Aree regolamentate</value></data>
+  <data name="AccAdmin_AreasOn" xml:space="preserve"><value>{0} aree</value></data>
+  <data name="AccAdmin_AreasOnHint" xml:space="preserve"><value>Aree aggiornate dall'import automatico ogni 24 ore.</value></data>
+  <data name="AccAdmin_AreasOff" xml:space="preserve"><value>non importate</value></data>
+  <data name="AccAdmin_AreasOffHint" xml:space="preserve"><value>Questo ACC non partecipa all'import delle aree: usa «Importa aree» per scaricarle la prima volta e abilitarlo.</value></data>
+  <data name="AccAdmin_ImportAreas" xml:space="preserve"><value>Importa aree</value></data>
+  <data name="AccAdmin_ImportAreasTitle" xml:space="preserve"><value>Scarica ora le aree regolamentate di questo ACC; se ne trova, lo abilita all'aggiornamento automatico.</value></data>
+  <data name="AccAdmin_AreasImportOk" xml:space="preserve"><value>Aree di {0}: {1} create, {2} aggiornate, {3} legami rimossi.</value></data>
+  <data name="AccAdmin_AreasImportFailed" xml:space="preserve"><value>Import delle aree di {0} fallito: l'ACC resta com'era (dettaglio nei log).</value></data>
+  <data name="AccAdmin_AreasDisable" xml:space="preserve"><value>Escludi aree</value></data>
+  <data name="AccAdmin_AreasDisableTitle" xml:space="preserve"><value>Smetti di importare le aree di questo ACC e liberale dall'archivio (restano quelle elencate anche da un altro ACC abilitato).</value></data>
+  <data name="AccAdmin_AreasDisabled" xml:space="preserve"><value>Aree escluse: {0} legami rimossi dall'archivio.</value></data>
   <data name="AccAdmin_LimitsSaved" xml:space="preserve"><value>Limiti salvati.</value></data>
   <data name="Common_Save" xml:space="preserve"><value>Salva</value></data>
   <data name="Common_OpAdminOnly" xml:space="preserve"><value>Operazione riservata agli amministratori.</value></data>

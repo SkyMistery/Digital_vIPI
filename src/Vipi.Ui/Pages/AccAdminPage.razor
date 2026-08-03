@@ -56,7 +56,7 @@
             else
             {
                 <table class="res-table">
-                    <thead><tr><th>@L["AccAdmin_ColCode"]</th><th>@L["Airport_Name"]</th><th>@L["AccAdmin_ColMilitary"]</th><th>@L["Common_State"]</th><th></th></tr></thead>
+                    <thead><tr><th>@L["AccAdmin_ColCode"]</th><th>@L["Airport_Name"]</th><th>@L["AccAdmin_ColMilitary"]</th><th>@L["Common_State"]</th><th>@L["AccAdmin_ColAreas"]</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var a in ShownAccs())
                         {
@@ -74,7 +74,26 @@
                                         <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
                                     }
                                 </td>
+                                @* Aree regolamentate: gli ACC esteri nascono spenti (sono centinaia di aree che
+                                   quasi nessun documento italiano usa). Il primo scarico è manuale e li accende. *@
                                 <td style="white-space:nowrap">
+                                    @if (a.SpecialAreasEnabled)
+                                    {
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["AccAdmin_AreasOnHint"]">@L["AccAdmin_AreasOn", a.SpecialAreaCount]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill neutral" title="@L["AccAdmin_AreasOffHint"]">@L["AccAdmin_AreasOff"]</span>
+                                    }
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ImportAreas(a.Code)"
+                                            title="@L["AccAdmin_ImportAreasTitle"]">⟳ @L["AccAdmin_ImportAreas"]</button>
+                                    @if (a.SpecialAreasEnabled)
+                                    {
+                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetAreasEnabled(a.Id, false)"
+                                                title="@L["AccAdmin_AreasDisableTitle"]">🚫 @L["AccAdmin_AreasDisable"]</button>
+                                    }
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
                                         @(a.IsHidden ? "👁 " + L["AccAdmin_Show"] : "🚫 " + L["AccAdmin_Hide"])
                                     </button>
@@ -264,6 +283,38 @@
             await ReloadAsync();
             _ok = L["AccAdmin_ImportOk", r.Acc.AccsCreated, r.Acc.AccsUpdated, r.Acc.SubcentersCreated, r.Acc.SubcentersUpdated]
                   + (r.SpecialAreaFailures.Count > 0 ? L["AccAdmin_ImportSpecialFailures", r.SpecialAreaFailures.Count].Value : "");
+        }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // Primo scarico manuale delle aree di un ACC: se porta a casa qualcosa, il service lo abilita al giro periodico.
+    private async Task ImportAreas(string accCode)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try
+        {
+            var r = await Acc.ImportSpecialAreasAsync(accCode);
+            foreach (var f in r.Failures)
+                Logger.LogWarning(f.Error, "Import aree speciali {Acc} fallito (import per-ACC).", f.AccCode);
+            await ReloadAsync();
+            _msg = r.Failures.Count > 0 ? L["AccAdmin_AreasImportFailed", accCode] : null;
+            if (_msg is null) _ok = L["AccAdmin_AreasImportOk", accCode, r.Created, r.Updated, r.Removed];
+        }
+        catch (EditNotAllowedException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }   // credenziali sorgente assenti
+        finally { _busy = false; }
+    }
+
+    private async Task SetAreasEnabled(int accId, bool enabled)
+    {
+        _busy = true; _msg = null; _ok = null;
+        try
+        {
+            var freed = await Acc.SetSpecialAreasEnabledAsync(accId, enabled);
+            await ReloadAsync();
+            if (!enabled) _ok = L["AccAdmin_AreasDisabled", freed];
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }

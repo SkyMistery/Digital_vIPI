@@ -23,8 +23,22 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
     public async Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking()
             .OrderBy(a => a.Code)
-            .Select(a => new AccAdminRow(a.Id, a.Code, a.Name, a.IsMilitary, a.IsHidden))
+            .Select(a => new AccAdminRow(a.Id, a.Code, a.Name, a.IsMilitary, a.IsHidden,
+                a.IsForeign, a.SpecialAreasEnabled,
+                _db.SpecialAreaCenters.Count(c => c.CenterId == a.Code)))
             .ToListAsync(ct);
+
+    public async Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
+    {
+        var acc = await _db.Accs.FirstOrDefaultAsync(a => a.Id == accId, ct)
+                  ?? throw new InvalidOperationException($"ACC id {accId} inesistente.");
+        acc.SpecialAreasEnabled = enabled;
+        await _db.SaveChangesAsync(ct);
+
+        // Spegnere significa anche liberare l'archivio: senza questo le aree resterebbero lì per sempre, ferme e
+        // selezionabili. Chi le condivide con un altro ente abilitato le conserva (si toglie solo il legame).
+        return enabled ? 0 : await PruneSpecialAreasNotInAsync(acc.Code, Array.Empty<string>(), ct);
+    }
 
     public async Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) =>
         await _db.AccSectors.AsNoTracking()

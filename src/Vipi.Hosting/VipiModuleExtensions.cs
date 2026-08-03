@@ -279,6 +279,12 @@ public static class VipiModuleExtensions
         if (links > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Ricostruiti {Count} legami area regolamentata→ACC dalla colonna storica.", links);
+
+        // DOPO il backfill: la potatura degli esteri lavora sui legami, che prima non esistevano.
+        var dropped = areas.OptOutForeignAreasAsync().GetAwaiter().GetResult();
+        if (dropped > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Aree regolamentate: spenti gli ACC esteri e liberati {Count} legami (riabilitabili a mano).", dropped);
         return host;
     }
 
