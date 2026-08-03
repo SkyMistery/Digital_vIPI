@@ -37,8 +37,16 @@
             @foreach (var id in ownIds)
             {
                 var areaId = id;
-                var name = OwnPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase))?.Name ?? areaId;
-                @if (Editing)
+                var pk = OwnPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase));
+                var name = pk?.Name ?? areaId;
+                @if (pk is null)
+                {
+                    @* Area sparita dai cataloghi (potata da un import): il viewer la salta in silenzio, qui si vede. *@
+                    <span class="sp-item on" title="@L["Acc_AreaGoneHint"]">⚠ <b>@name</b> <span class="muted">@L["Acc_AreaGone"]</span>
+                        @if (Editing) { <button type="button" class="btn ghost" style="padding:0 4px" @onclick="() => ToggleOwnArea(areaId)">✕</button> }
+                    </span>
+                }
+                else if (Editing)
                 {
                     <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleOwnArea(areaId)">✓ <b>@name</b> ✕</button>
                 }
@@ -91,7 +99,13 @@
                     var areaId = id;
                     var pk = OtherPicks.FirstOrDefault(p => string.Equals(p.IvaoId, areaId, StringComparison.OrdinalIgnoreCase));
                     var name = pk?.Name ?? areaId;
-                    @if (Editing)
+                    @if (pk is null)
+                    {
+                        <span class="sp-item on" title="@L["Acc_AreaGoneHint"]">⚠ <b>@name</b> <span class="muted">@L["Acc_AreaGone"]</span>
+                            @if (Editing) { <button type="button" class="btn ghost" style="padding:0 4px" @onclick="() => ToggleExtraArea(areaId)">✕</button> }
+                        </span>
+                    }
+                    else if (Editing)
                     {
                         <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(areaId)">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span> ✕</button>
                     }

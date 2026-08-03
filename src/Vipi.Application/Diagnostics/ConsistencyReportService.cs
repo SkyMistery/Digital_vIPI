@@ -83,6 +83,25 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             }
         }
 
+        // 5) Area regolamentata dangling: un id salvato in una sezione «regulated» che non è più nei cataloghi.
+        //    Il prune dell'import cancella le aree sparite dalla sorgente, ma la selezione salvata nel documento le
+        //    cita ancora: il viewer le salta in silenzio (SpecialAreaProjection) e l'area sparisce senza dirlo.
+        foreach (var r in d.RegulatedRefs)
+        {
+            var sel = Content.RegulatedSelectionJson.Parse(r.Json);
+            // Le aree del proprio ACC in automatico non sono id salvati ma la lista viva: non possono essere dangling.
+            var missing = sel.OwnIds.Concat(sel.ExtraIds)
+                .Where(id => !string.IsNullOrWhiteSpace(id) && !d.SpecialAreaIds.Contains(id.Trim()))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (missing.Count == 0) continue;
+
+            findings.Add(new ConsistencyFinding("Area regolamentata dangling", ConsistencySeverity.Warning,
+                $"{r.Kind} {r.Reference}",
+                $"Aree selezionate non più presenti: {string.Join(", ", missing)}. Rimosse dalla sorgente e potate " +
+                "dall'import; nel documento restano citate ma non vengono mostrate."));
+        }
+
         return findings;
     }
 }

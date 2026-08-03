@@ -1043,6 +1043,8 @@
   <data name="Acc_SearchOwnArea" xml:space="preserve"><value>Cerca area del proprio ACC (nome/tipo)…</value></data>
   <data name="Acc_NoIvaoArea" xml:space="preserve"><value>Nessuna area importata da IVAO per questa ACC.</value></data>
   <data name="Acc_OtherAccAreas" xml:space="preserve"><value>Aree di altri ACC</value></data>
+  <data name="Acc_AreaGone" xml:space="preserve"><value>non più disponibile</value></data>
+  <data name="Acc_AreaGoneHint" xml:space="preserve"><value>Quest'area non esiste più nei dati importati: non viene mostrata nel documento. Rimuovila dalla selezione.</value></data>
   <data name="Acc_AddedManually" xml:space="preserve"><value>(aggiunte a mano)</value></data>
   <data name="Acc_None" xml:space="preserve"><value>Nessuna.</value></data>
   <data name="Acc_SearchOtherArea" xml:space="preserve"><value>Cerca area di un altro ACC (nome/ACC/tipo)…</value></data>

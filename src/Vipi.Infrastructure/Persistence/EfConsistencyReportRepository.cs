@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Diagnostics;
+using Vipi.Domain;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -52,6 +53,59 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             AreaNames = areaNames,
             ParentRefs = parentRefs,
             ValidCallsigns = valid,
+            RegulatedRefs = await LoadRegulatedRefsAsync(ct),
+            SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase),
         };
+    }
+
+    /// <summary>
+    /// Sezioni <c>regulated</c> (vIPI ACC: figlia di un blocco; vIPI APP non remotizzata: di primo livello) con il
+    /// JSON della selezione. Solo la <b>versione di lavoro</b> di ogni documento — bozza più recente, altrimenti la
+    /// pubblicata corrente, altrimenti l'ultima: le versioni storiche sono congelate per definizione e segnalarle
+    /// sarebbe rumore su qualcosa che nessuno può più correggere.
+    /// </summary>
+    private async Task<IReadOnlyList<RegulatedRefRow>> LoadRegulatedRefsAsync(CancellationToken ct)
+    {
+        var docs = await _db.Documents.AsNoTracking()
+            .Select(d => new { d.Id, d.Title, d.Type, d.CurrentVersionId })
+            .ToListAsync(ct);
+        if (docs.Count == 0) return Array.Empty<RegulatedRefRow>();
+
+        var versions = await _db.DocumentVersions.AsNoTracking()
+            .Select(v => new { v.Id, v.DocumentId, v.VersionNumber, v.Status })
+            .ToListAsync(ct);
+
+        var working = new Dictionary<int, int>();   // versionId → documentId
+        foreach (var d in docs)
+        {
+            var draft = versions.Where(v => v.DocumentId == d.Id && v.Status == DocumentStatus.Draft)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefault();
+            var last = versions.Where(v => v.DocumentId == d.Id)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefault();
+            if ((draft ?? d.CurrentVersionId ?? last) is int id) working[id] = d.Id;
+        }
+        if (working.Count == 0) return Array.Empty<RegulatedRefRow>();
+
+        var versionIds = working.Keys.ToList();
+        var rows = await (
+            from s in _db.DocumentSections.AsNoTracking()
+            where s.SectionKey == "regulated" && versionIds.Contains(s.DocumentVersionId)
+            select new
+            {
+                s.DocumentVersionId,
+                Json = _db.ContentBlocks.AsNoTracking()
+                    .Where(b => b.SectionId == s.Id).OrderBy(b => b.Order).Select(b => b.BodyJson).FirstOrDefault(),
+            }).ToListAsync(ct);
+
+        var byId = docs.ToDictionary(d => d.Id);
+        return rows
+            .Where(r => r.Json != null)
+            .Select(r =>
+            {
+                var doc = byId[working[r.DocumentVersionId]];
+                return new RegulatedRefRow(doc.Type == DocumentType.Vloa ? "vLOA" : "vIPI", doc.Title, r.Json);
+            })
+            .ToList();
     }
 }

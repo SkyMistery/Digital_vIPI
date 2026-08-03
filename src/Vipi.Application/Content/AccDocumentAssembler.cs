@@ -50,7 +50,7 @@ public static class AccDocumentAssembler
                 childIds.TryAdd(c.SectionKey, c.Id);
 
             var configs = Deserialize<List<AccConfiguration>>(ChildBodyJson(blockSection, "configurations")) ?? new();
-            var regulated = ParseRegulated(ChildBodyJson(blockSection, "regulated"));
+            var regulated = RegulatedSelectionJson.Parse(ChildBodyJson(blockSection, "regulated"));
             var separations = Deserialize<List<AppSeparationRow>>(ChildBodyJson(blockSection, "separations")) ?? new();
             var vfrJson = ChildBodyJson(blockSection, "vfr");   // AppVfrContent grezzo (AccBlock.VfrJson è stringa)
             // Shape AoR extra + override colore dalla sezione figlia "aor" (editoriale). Negli snapshot frozen quel
@@ -137,20 +137,5 @@ public static class AccDocumentAssembler
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<T>(json); }
         catch (JsonException) { return null; }
-    }
-
-    // Aree regolamentate: back-compat. null/vuoto = automatico (unset); array legacy ["id",…] = manuale con quegli id
-    // (conservativo: preserva l'insieme mostrato prima); oggetto = RegulatedSelection nativo.
-    private static RegulatedSelection ParseRegulated(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return new RegulatedSelection { OwnAuto = true };
-        var trimmed = json.TrimStart();
-        try
-        {
-            if (trimmed.StartsWith("["))
-                return new RegulatedSelection { OwnAuto = false, OwnIds = JsonSerializer.Deserialize<List<string>>(json) ?? new() };
-            return JsonSerializer.Deserialize<RegulatedSelection>(json) ?? new RegulatedSelection { OwnAuto = true };
-        }
-        catch (JsonException) { return new RegulatedSelection { OwnAuto = true }; }
     }
 }
