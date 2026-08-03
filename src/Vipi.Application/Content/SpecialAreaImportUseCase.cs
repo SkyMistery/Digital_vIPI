@@ -16,6 +16,13 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
         _policy = policy;
     }
 
+    /// <summary>
+    /// Ogni quanto ri-scaricare la shape di un'area già in archivio. La geometria di un'area regolamentata cambia
+    /// con l'AIP, non con l'import giornaliero: un giro al mese basta, e nel frattempo l'import costa una chiamata
+    /// per pagina invece di una per area.
+    /// </summary>
+    private static readonly TimeSpan ShapeRefreshPeriod = TimeSpan.FromDays(30);
+
     public async Task<SpecialAreaImportResult> RunAsync(CancellationToken ct = default)
     {
         // Policy opt-out: categoria esclusa → si esce PRIMA della fetch e soprattutto prima del prune, così le aree
@@ -24,6 +31,7 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
         if (!(await _policy.GetAsync(ct)).SpecialAreas) return SpecialAreaImportResult.Empty;
 
         var accs = await _repo.ListAccsAsync(ct);
+        var shapeCutoff = DateTime.UtcNow - ShapeRefreshPeriod;
         int created = 0, updated = 0, removed = 0;
         var failures = new List<SpecialAreaImportFailure>();
         foreach (var a in accs)
@@ -31,7 +39,9 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
             // Per-ACC: se la fetch fallisce non facciamo il prune di quell'ACC (evita cancellazioni su errori transitori).
             try
             {
-                var areas = await _directory.GetSpecialAreasAsync(a.Code, ct);
+                // Aree la cui shape è già in archivio e recente: alla sorgente si chiede solo l'elenco, non il dettaglio.
+                var fresh = await _repo.ListAreasWithFreshShapeAsync(a.Code, shapeCutoff, ct);
+                var areas = await _directory.GetSpecialAreasAsync(a.Code, fresh, ct);
                 var (c, u) = await _repo.ImportSpecialAreasAsync(areas, ct);
                 var r = await _repo.PruneSpecialAreasNotInAsync(a.Code, areas.Select(x => x.IvaoId).ToList(), ct);
                 created += c; updated += u; removed += r;

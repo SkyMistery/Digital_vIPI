@@ -65,6 +65,37 @@ public class SpecialAreaImportTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Second_run_skips_the_detail_of_areas_with_a_fresh_shape()
+    {
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("1"), Area("2", "LI R14B") } } };
+        var sut = new SpecialAreaImportUseCase(_repo, dir, _policy);
+
+        await sut.RunAsync();                    // primo giro: shape assenti → dettaglio per tutte
+        Assert.Empty(dir.SkippedDetails);
+
+        dir.SkippedDetails.Clear();
+        await sut.RunAsync();                    // secondo giro: shape in archivio e fresche → dettaglio saltato
+
+        Assert.Equal(new[] { "1", "2" }, dir.SkippedDetails.OrderBy(x => x));
+        // La shape salvata sopravvive al giro senza dettaglio (l'upsert non azzera su null).
+        Assert.All(await _db.SpecialAreas.AsNoTracking().ToListAsync(), s => Assert.Equal("[[41,12]]", s.RegionMapPolygon));
+    }
+
+    [Fact]
+    public async Task Area_without_shape_is_not_skipped()
+    {
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("1", polygon: null), Area("2", "LI R14B") } } };
+        var sut = new SpecialAreaImportUseCase(_repo, dir, _policy);
+
+        await sut.RunAsync();
+        dir.SkippedDetails.Clear();
+        await sut.RunAsync();
+
+        // Solo la 2 ha una shape in archivio: la 1 va ri-chiesta finché non arriva.
+        Assert.Equal(new[] { "2" }, dir.SkippedDetails);
+    }
+
+    [Fact]
     public async Task Failed_acc_does_not_prune_its_areas()
     {
         await _repo.ImportSpecialAreasAsync(new[] { Area("1") });
@@ -82,11 +113,20 @@ public class SpecialAreaImportTests : IAsyncLifetime
         public HashSet<string> Throw { get; } = new(StringComparer.OrdinalIgnoreCase);
         public int Calls { get; private set; }
 
-        public Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default)
+        /// <summary>Id per cui il chiamante ha detto di saltare il dettaglio, come li ha visti il client.</summary>
+        public List<string> SkippedDetails { get; } = new();
+
+        public Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(
+            string accIcao, IReadOnlySet<string> skipDetailIds, CancellationToken ct = default)
         {
             Calls++;
+            SkippedDetails.AddRange(skipDetailIds);
             if (Throw.Contains(accIcao)) throw new HttpRequestException($"specialAreas: nessuna risposta per {accIcao}.");
-            return Task.FromResult<IReadOnlyList<SourceSpecialArea>>(Areas.TryGetValue(accIcao, out var a) ? a : new());
+
+            // Come il client reale: per le aree in skip il dettaglio non si chiama, quindi la shape torna null.
+            var all = Areas.TryGetValue(accIcao, out var a) ? a : new();
+            return Task.FromResult<IReadOnlyList<SourceSpecialArea>>(
+                all.Select(x => skipDetailIds.Contains(x.IvaoId) ? x with { RegionMapPolygon = null } : x).ToList());
         }
 
         public Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default) => throw new NotImplementedException();

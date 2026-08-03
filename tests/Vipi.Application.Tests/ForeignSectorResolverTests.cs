@@ -72,7 +72,7 @@ public class ForeignSectorResolverTests
             Task.FromResult<IReadOnlyList<SourceSubcenter>>(Subs.TryGetValue(accIcao, out var s) ? s : new());
         public Task<IReadOnlyList<SourceCenter>> GetCentersAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SourceCenter>> GetCentersByCountryAsync(string countryId, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, IReadOnlySet<string> skipDetailIds, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     private sealed class FakeDetails : IAirportDetailProvider

@@ -136,6 +136,17 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         return (created, updated);
     }
 
+    public async Task<IReadOnlySet<string>> ListAreasWithFreshShapeAsync(string accCode, DateTime importedAfterUtc, CancellationToken ct = default)
+    {
+        accCode = accCode.Trim().ToUpperInvariant();
+        var ids = await _db.SpecialAreas.AsNoTracking()
+            .Where(s => s.CenterId == accCode && s.RegionMapPolygon != null
+                        && s.ImportedAtUtc != null && s.ImportedAtUtc > importedAfterUtc)
+            .Select(s => s.IvaoId)
+            .ToListAsync(ct);
+        return ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
     {
         accCode = accCode.Trim().ToUpperInvariant();

@@ -18,6 +18,12 @@ public interface IAccAdminRepository
     /// <summary>Upsert aree speciali/regolamentate per IvaoId (chiave naturale). Ritorna (creati, aggiornati).</summary>
     Task<(int Created, int Updated)> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default);
 
+    /// <summary>
+    /// IvaoId delle aree di un ACC che hanno già una shape importata dopo <paramref name="importedAfterUtc"/>:
+    /// per queste il dettaglio sorgente si può saltare (i metadati arrivano comunque dall'elenco).
+    /// </summary>
+    Task<IReadOnlySet<string>> ListAreasWithFreshShapeAsync(string accCode, DateTime importedAfterUtc, CancellationToken ct = default);
+
     /// <summary>Cancella le aree speciali di un ACC il cui IvaoId non è più presente sulla sorgente. Ritorna il numero rimosse.</summary>
     Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default);
 
