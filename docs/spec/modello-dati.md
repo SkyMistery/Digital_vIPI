@@ -655,3 +655,16 @@ L'appartenenza area→ACC esce dalla riga dell'area: **`SpecialArea.CenterId` RI
 - **Picker**: «proprie» = aree con un legame verso l'ACC (una condivisa è propria per **entrambi**), «altri ACC» = quelle senza. `SpecialAreaPick.Centers` è una lista (`CentersText` per la riga).
 - **Backfill doppio**: nella migration per SQLite (`INSERT … SELECT` **prima** del drop della colonna), e al boot in `ISpecialAreaMaintenance.BackfillAreaCentersAsync` per Postgres, dove lo schema lo allinea `PostgresSchemaReconciler` e le migration del repo non girano. Su Postgres la manutenzione **droppa** anche la colonna storica: NOT NULL e fuori dal modello, bloccherebbe ogni inserimento. Recupera **una sola** appartenenza per area (l'unica che il vecchio modello sapeva); le altre le riporta il primo import.
 - Verifica su copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana, shape intatte.
+
+### 9.24 `Acc.SpecialAreasEnabled` — aree estere solo su richiesta (sessione 3 ago 2026)
+
+Nuova colonna su `Acc` (bool, **default `true`** nel modello e nella migrazione **`AccSpecialAreasEnabled`**): dice se l'import periodico scarica le aree regolamentate di quell'ACC.
+
+**Perché.** Le aree estere erano **763 legami su 993** — gli ACC esteri li materializzano le vLOA, e ognuno si portava dietro il proprio catalogo (LFZZ 359, LYBA 145, DAAA 70…) ri-scaricato ogni 24h per servire quasi nulla.
+
+- **Giro periodico**: `SpecialAreaImportUseCase.RunAsync` cicla solo gli ACC con flag `true`.
+- **Primo scarico manuale**: `RunForAccAsync(accCode)` **ignora** il flag — è l'atto con cui l'admin accende un ente. `AccAdminService.ImportSpecialAreasAsync` (gated `EnsureAdmin`) lo abilita **solo se la fetch ha prodotto qualcosa**: un ACC acceso con la fetch fallita entrerebbe nel giro periodico senza aree.
+- **Spegnere pota**: `SetSpecialAreasEnabledAsync(id, false)` toglie i legami di quell'ACC; restano le aree che un altro ente abilitato elenca.
+- **UI**: colonna «Aree regolamentate» in `/vsop/admin/accs` (`N aree` / `non importate`) + «Importa aree» e «Escludi aree» per riga.
+- **Riconciliazione one-shot** `ISpecialAreaMaintenance.OptOutForeignAreasAsync` al boot: spegne tutti gli `Acc.IsForeign` e libera le loro aree. Gira **una volta sola**, con segnaposto in `ImportState` (categoria `SpecialAreaForeignOptOut`, che non è un import periodico): senza, ogni riavvio ricancellerebbe le aree di un estero appena riabilitato a mano.
+- Verifica su copia del `vipi.db` reale: **993 aree → 230** (le italiane, invariate: LIRR 99, LIBB 65, LIMM 27, LIPP 24, LIZZ 15), 763 legami liberati, nessuna orfana, seconda esecuzione a 0.

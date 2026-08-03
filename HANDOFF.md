@@ -56,7 +56,7 @@
 >   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
 
 > **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling, appartenenza
-> multi-ACC.** Branch `feature/aree-speciali-hardening`, 6 commit, suite **946 verde** (+19), build 0 warning. Carta completa:
+> multi-ACC.** Branch `feature/aree-speciali-hardening`, 8 commit, suite **951 verde** (+24), build 0 warning. Carta completa:
 > `docs/feature/2026-08-03-aree-regolamentate-hardening.md`. Le cose da sapere subito:
 > - ⚠️ **`ImportSids` può essere spento in produzione senza che nessuno l'abbia deciso.** La migration dell'8 lug
 >   aggiunse la colonna con `defaultValue: false`, e su Postgres `PostgresSchemaReconciler` backfillava a `false`
@@ -79,8 +79,12 @@
 > - ⚠️ **Dopo il deploy premere «Importa da sorgente»**: il backfill recupera una sola appartenenza per area (era
 >   l'unica che il vecchio modello sapeva); le altre le riporta il primo import. Su Postgres il travaso e il drop
 >   della colonna storica li fa `ISpecialAreaMaintenance` al boot, non la migration — che lì non gira.
-> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import), editor con un'area rimossa a mano, e
->   la Zita che dopo l'import compare fra le aree proprie sia di LIRR sia di LIZZ.
+> - ⚠️ **Le aree estere spariscono dall'archivio al primo avvio** (763 legami su 993): `Acc.SpecialAreasEnabled`
+>   nasce spento per gli `IsForeign`, e una riconciliazione one-shot al boot le libera. Restano le 230 italiane.
+>   Se ne serve una, si riaccende quell'ACC con «Importa aree» in `/vsop/admin/accs` e torna. I documenti che ne
+>   citavano una la vedono come dangling (diagnostica + marcatura nell'editor).
+> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import), editor con un'area rimossa a mano,
+>   la Zita che dopo l'import compare fra le aree proprie sia di LIRR sia di LIZZ, e «Importa aree» su un estero.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.

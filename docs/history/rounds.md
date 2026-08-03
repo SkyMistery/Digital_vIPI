@@ -1119,7 +1119,7 @@ rifinitura), branch `feature/aurora-bridge`, **suite 819 → 930 verde**.
 Superficie nuova: `POST /vsop/api/v1/transfers/resolve` (anonimo, read-only, tetto per IP) ·
 [guida utente](../guide/aurora-bridge.md) · [contratto API](../reference/api-aurora-bridge.md).
 
-## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 946 test)
+## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 951 test)
 Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
 ([carta](../feature/2026-08-03-aree-regolamentate-hardening.md), SPEC §9.21-9.22).
 - **Categoria di import `SpecialAreas`** (`ImportPolicy.ImportSpecialAreas`, default true): erano l'unico dato di
@@ -1153,3 +1153,9 @@ Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
   dal modello, che bloccherebbe gli inserimenti. Recupera una sola appartenenza per area: le altre le riporta il
   primo import, quindi dopo il deploy conviene premere «Importa da sorgente».
 - Migration provata su copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana.
+- **Aree estere solo su richiesta** (`Acc.SpecialAreasEnabled`, default true): erano **763 legami su 993**, scaricati
+  ogni 24h per gli ACC esteri materializzati dalle vLOA e usati quasi da nessuno. Il giro periodico tocca solo gli
+  abilitati; «Importa aree» nella riga di `/vsop/admin/accs` fa il primo scarico e accende l'ente (solo se la fetch
+  produce qualcosa), «Escludi aree» pota. Riconciliazione one-shot al boot per gli esteri già in archivio, con
+  segnaposto in `ImportState` perché non si ripeta su un ente riabilitato a mano. Sul DB reale: **993 aree → 230**,
+  le italiane invariate.

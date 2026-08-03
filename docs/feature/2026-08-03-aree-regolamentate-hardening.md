@@ -1,7 +1,8 @@
 # Feature — Aree regolamentate: interruttore, import incrementale, riferimenti dangling
 
-Data: 2026-08-03 · Stato: **FATTO** (suite 946 verde) — verifica live da fare · esteso in giornata con il picker
-scopribile e l'appartenenza multi-ACC (§4-5) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
+Data: 2026-08-03 · Stato: **FATTO** (suite 951 verde) — verifica live da fare · esteso in giornata con il picker
+scopribile, l'appartenenza multi-ACC e l'opt-in per ACC delle aree estere (§4-6) ·
+Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Contesto: [refactor 02](../refactor/02-import-acc-e-settori.md) (il use-case di import), [ADR-0006](../adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) (policy opt-out).
 
 ## Obiettivo
@@ -179,6 +180,32 @@ sparita.
 
 Test aggiunti: area elencata da due ACC → una riga e due legami, propria per entrambi e in «altri ACC» per
 nessuno; prune di un ente lascia l'area all'altro; quando la molla anche l'ultimo, l'area sparisce.
+
+### 6. Le aree estere si importano solo se le chiedi
+
+Ultimo pezzo, chiesto per **alleggerire**: in archivio c'erano 993 aree, di cui **763 estere**. Gli ACC esteri li
+materializzano le vLOA (`Acc.IsForeign`), e l'import ciclava su tutti — LFZZ 359 aree, LYBA 145, DAAA 70 —
+ri-scaricandole ogni 24h per servire quasi nulla.
+
+**`Acc.SpecialAreasEnabled`** (default `true`): il giro periodico tocca solo gli ACC abilitati. Per un ente spento
+c'è **«Importa aree»** nella sua riga di `/vsop/admin/accs`: scarica subito (`RunForAccAsync` ignora il flag — è
+l'atto con cui lo accendi) e, se trova qualcosa, lo abilita. Da lì in poi si aggiorna ogni 24h come gli italiani.
+
+L'abilitazione avviene **solo se la fetch ha prodotto qualcosa**: un ACC acceso con la fetch fallita entrerebbe nel
+giro periodico senza aree, e nessuno saprebbe perché.
+
+**«Escludi aree»** fa il contrario e libera l'archivio: toglie i legami di quell'ACC, e le aree che nessun altro
+ente elenca spariscono. Quelle condivise (es. una R nazionale che sta anche sul militare italiano) restano.
+
+**Riconciliazione one-shot** al boot per lo stato esistente: spegne tutti gli esteri e libera le loro aree. Gira
+**una volta sola**, con segnaposto in `ImportState` — senza, ogni riavvio ricancellerebbe le aree di un ente estero
+appena riabilitato a mano, e sarebbe un bug fastidioso da diagnosticare.
+
+Provato sulla copia del `vipi.db` reale: **993 aree → 230**, tutte italiane e invariate (LIRR 99, LIBB 65, LIMM 27,
+LIPP 24, LIZZ 15), 763 legami liberati, nessuna area orfana, seconda esecuzione a 0.
+
+> ⚠️ Le aree estere che un documento citava diventano **dangling**: la diagnostica le segnala e l'editor le marca
+> (§3). Se serviva davvero un'area francese, si riaccende LFMM con «Importa aree» e torna al suo posto.
 
 ## Non-obiettivi
 
