@@ -5,6 +5,8 @@ namespace Vipi.Application.Content;
 /// manual (con authz, via <see cref="AccAdminService.ImportFromSourceAsync"/>) e auto (hosted service).
 /// Upsert per IvaoId + prune per-ACC; isolamento errori per-ACC (un ACC fallito non blocca gli altri).
 /// Doc refactor 02 §4.2. Nessun controllo di autorizzazione qui: lo applica solo il chiamante manual.
+/// Rispetta la policy di import globale (<c>ImportCategory.SpecialAreas</c>): categoria esclusa = nessuna fetch
+/// e nessun prune, le aree già in archivio restano. Il gate è qui perché questo corpo è condiviso auto/manual.
 /// </summary>
 public interface ISpecialAreaImportUseCase
 {

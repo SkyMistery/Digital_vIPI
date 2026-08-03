@@ -6,10 +6,11 @@ namespace Vipi.Application.Abstractions;
 /// Stato immutabile della policy di import globale. <c>true</c> = la categoria è importata dalla sorgente
 /// e bloccata (sola lettura); <c>false</c> = esclusa (manuale, l'import non la tocca).
 /// </summary>
-public sealed record ImportPolicySnapshot(bool TransitionAltitude, bool Runways, bool Sectors, bool Sids = true)
+public sealed record ImportPolicySnapshot(
+    bool TransitionAltitude, bool Runways, bool Sectors, bool Sids = true, bool SpecialAreas = true)
 {
     /// <summary>Tutto importato e bloccato: default opt-out.</summary>
-    public static ImportPolicySnapshot AllImported { get; } = new(true, true, true, true);
+    public static ImportPolicySnapshot AllImported { get; } = new(true, true, true, true, true);
 
     /// <summary>Vero se la categoria è importata dalla sorgente (quindi sola lettura per l'utente).</summary>
     public bool IsImported(ImportCategory category) => category switch
@@ -18,6 +19,7 @@ public sealed record ImportPolicySnapshot(bool TransitionAltitude, bool Runways,
         ImportCategory.Runways => Runways,
         ImportCategory.Sectors => Sectors,
         ImportCategory.Sids => Sids,
+        ImportCategory.SpecialAreas => SpecialAreas,
         _ => true,
     };
 }

@@ -517,6 +517,9 @@
   <data name="Sorg_SectorsLabel" xml:space="preserve"><value>Settori</value></data>
   <data name="Sorg_SectorsDesc" xml:space="preserve"><value>Settori d'aeroporto (callsign/tipo/frequenza)</value></data>
   <data name="Sorg_SidDesc" xml:space="preserve"><value>SID dal sectorfile Aurora (GitHub)</value></data>
+  <data name="Sorg_SpecialAreasLabel" xml:space="preserve"><value>Aree regolamentate</value></data>
+  <data name="Sorg_SpecialAreasDesc" xml:space="preserve"><value>Aree speciali per ACC (nome, tipo, quote, shape)</value></data>
+  <data name="Sorg_SpecialAreasFrozen" xml:space="preserve"><value>Congelate: restano quelle già in archivio</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Stato import periodici</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Esito dell'ultima esecuzione automatica di ogni import gated. Un errore qui significa dati potenzialmente stantii finché il retry non riesce.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>Nessun import ancora eseguito (DB nuovo o job non ancora partiti).</value></data>

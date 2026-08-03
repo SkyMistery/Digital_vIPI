@@ -160,7 +160,7 @@ public static class PostgresSchemaReconciler
                     else
                     {
                         // NOT NULL su tabella con righe: aggiungi con default sicuro (backfilla le righe), poi togli il default.
-                        db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table.Name}\" ADD COLUMN IF NOT EXISTS \"{col.Name}\" {col.StoreType} NOT NULL DEFAULT {DefaultLiteral(col.StoreType)}");
+                        db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table.Name}\" ADD COLUMN IF NOT EXISTS \"{col.Name}\" {col.StoreType} NOT NULL DEFAULT {BackfillLiteral(col)}");
                         db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table.Name}\" ALTER COLUMN \"{col.Name}\" DROP DEFAULT");
                     }
 #pragma warning restore EF1002
@@ -211,6 +211,34 @@ public static class PostgresSchemaReconciler
     private static IEnumerable<Microsoft.EntityFrameworkCore.Metadata.ITable> PublicTables(DbContext db) =>
         db.Model.GetRelationalModel().Tables
             .Where(t => string.IsNullOrEmpty(t.Schema) || string.Equals(t.Schema, "public", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Valore con cui backfillare le righe esistenti quando si aggiunge una colonna NOT NULL. Se il modello dichiara
+    /// un default per quella proprietà (<c>HasDefaultValue</c>) vince quello: senza, un flag opt-out aggiunto dopo il
+    /// primo deploy nascerebbe <c>false</c> e spegnerebbe in silenzio la categoria (caso reale:
+    /// <c>ImportPolicy.ImportSids</c>). Altrimenti il default neutro per tipo store.
+    /// </summary>
+    public static string BackfillLiteral(Microsoft.EntityFrameworkCore.Metadata.IColumn col)
+    {
+        foreach (var mapping in col.PropertyMappings)
+        {
+            var declared = mapping.Property.GetDefaultValue();
+            if (declared is not null) return Literal(declared, col.StoreType);
+        }
+        return DefaultLiteral(col.StoreType);
+    }
+
+    // Valore .NET del modello → letterale SQL. Solo i tipi che un default dichiarato può avere (bool/numeri/stringhe);
+    // per gli altri si ricade sul default neutro del tipo store, che è comunque valido per la colonna.
+    private static string Literal(object value, string storeType) => value switch
+    {
+        bool b => b ? "true" : "false",
+        string s => "'" + s.Replace("'", "''") + "'",
+        Enum e => "'" + e.ToString().Replace("'", "''") + "'",
+        sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal =>
+            Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? DefaultLiteral(storeType),
+        _ => DefaultLiteral(storeType),
+    };
 
     // Default sicuro per una colonna NOT NULL aggiunta a una tabella con righe esistenti, in base al tipo store Postgres.
     private static string DefaultLiteral(string storeType)

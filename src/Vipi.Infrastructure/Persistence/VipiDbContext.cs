@@ -68,6 +68,16 @@ public class VipiDbContext : DbContext
         b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import
 
+        // Policy di import: i flag aggiunti DOPO la creazione della tabella devono nascere a `true`, altrimenti
+        // la riga di policy già esistente si ritrova la categoria spenta (opt-out ribaltato). Il default sta nel
+        // modello e non solo nella migration perché su Postgres lo schema si allinea con PostgresSchemaReconciler,
+        // che legge i default da qui (deploy Render+Neon con EnsureCreated, ADR-0007).
+        b.Entity<ImportPolicy>(e =>
+        {
+            e.Property(x => x.ImportSids).HasDefaultValue(true);
+            e.Property(x => x.ImportSpecialAreas).HasDefaultValue(true);
+        });
+
         b.Entity<AccSector>(e =>
         {
             e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
