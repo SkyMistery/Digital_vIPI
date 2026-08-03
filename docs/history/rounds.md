@@ -1082,3 +1082,39 @@ mentre un singolo avvicinamento ne tocca due o tre, quindi qui si scelgono a man
 
 Suite **816 → 819** verde; verifica live su `LIPE_W_APP` (scelta di un'area LIPP + una extra LIRR, ricomparsa dopo
 reload, rese nel viewer bozza con mappa, banda quota e note).
+
+---
+
+## 2026-08-03 — Bridge Aurora: dal tag di Aurora alla vIPI e ritorno — piano [design/piano-aurora-bridge.md](../design/piano-aurora-bridge.md)
+
+Nuovo prodotto accanto al portale: un tool desktop che, selezionato un aeromobile in Aurora, legge la vIPI e
+propone **a che livello va ceduto al prossimo ente**, scrivendolo nell'etichetta quota del tag su richiesta
+dell'utente. Cinque fasi in una sessione (F0 sonda protocollo → F1 matching+API → F2 client → F3 UI → F4
+rifinitura), branch `feature/aurora-bridge`, **suite 819 → 930 verde**.
+
+- **F0 ha riscritto le premesse.** La sonda contro Aurora reale ha smentito la wiki IVAO in cinque punti; il più
+  pesante: l'**XFL non è scrivibile** (`#LBXFL`/`#XFL`/`#TRXFL`/`#SETXFL` → `Unknown command`, mentre `#LBALT`
+  nudo → `Incomplete data`: la sonda discrimina). Si scrive l'**etichetta quota**, e **solo su traffico assunto**
+  — vincolo non documentato. In compenso `#LBALT` accetta **testo libero**, quindi la convenzione del tag è una
+  scelta, non un limite. Regalo inatteso: `#TRPATHL` dà la rotta **già risolta da Aurora** con gli ETO, molto
+  meglio del parsing della rotta del piano di volo.
+- **Il matching è puro e motivato.** `TransferMatcher` non scarta mai in silenzio: ciò che non torna abbassa il
+  punteggio e lascia una ragione leggibile («CoP ASPIR in rotta (ETO 0925)», «riga per livelli pari, il volo è a
+  FL350»). Il punteggio si **normalizza** invece di essere troncato a 1, altrimenti due candidati forti finivano
+  appaiati proprio dove serviva distinguerli. La copertura top-down non ha richiesto nuove API sulla topologia:
+  un flusso è mio se `FirstOnline([proprietario, …antenati], online + me) == me`.
+- **Un modello solo.** `Vipi.AuroraBridge.Contracts` è referenziato sia dall'host sia dal tool: niente DTO
+  gemelli ricopiati nell'endpoint (FEATURE-PROCESS §1). Il limitatore per IP è scritto in casa perché il modulo
+  gira anche **embedded** in Ivao.It e non deve toccare la pipeline dell'host.
+- **Il tool non scrive mai da solo.** `RefreshAsync` non manda mai `#LBALT`; esiste solo `WriteAsync`, che
+  rifiuta prima ancora di parlare con Aurora se il traffico non è assunto o il livello non è scrivibile. Anche
+  la scorciatoia globale **non ripiega** su un altro candidato: se il primo non è scrivibile si ferma e spiega.
+- **Cosa hanno trovato le verifiche live, e i test no:** che l'assunzione va confrontata col callsign
+  **connesso** e non con l'override delle regole (il tool rifiutava scritture legittime), e che la finestra
+  moriva all'avvio perché `InitializeComponent` riscritto a mano non popola i campi `x:Name`. Nessun test
+  poteva vederle: la prima richiede Aurora vera, la seconda una finestra vera.
+- **Scoperta sui dati, non sul codice:** 30 punti di sorvolo su 33 in LIBB hanno il vincolo ma **non il
+  livello**. Deciso: è una lacuna redazionale, il tool si limita a non scrivere nulla e a dirlo.
+
+Superficie nuova: `POST /vsop/api/v1/transfers/resolve` (anonimo, read-only, tetto per IP) ·
+[guida utente](../guide/aurora-bridge.md) · [contratto API](../reference/api-aurora-bridge.md).

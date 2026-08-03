@@ -400,9 +400,13 @@ Conseguenza progettuale: serve una **UI dedicata di gestione gerarchia** (drag&d
 
 ---
 
-## 18. API pubblica read-only (documentata, non implementata)
+## 18. API pubblica read-only ~~(documentata, non implementata)~~ → **realizzata il 3 ago 2026, ristretta ai trasferimenti**
 
-Predisporre l'astrazione ma **non** implementarla ora. Idea: endpoint JSON di sola lettura (es. `/api/v1/positions/{callsign}/view?tier=reduced`) per integrazioni future (EuroScope/Aurora). Il layer Application è già separato dalle viste, quindi in futuro basterà aggiungere un controller API che riusa gli stessi servizi. Documentato qui come decisione architetturale per non precludere l'estensione.
+L'idea originale era predisporre l'astrazione senza implementarla: endpoint JSON di sola lettura per integrazioni future (EuroScope/Aurora), contando sul fatto che il layer Application è già separato dalle viste.
+
+**È andata proprio così, e il primo consumatore è arrivato:** `POST /vsop/api/v1/transfers/resolve` (in `MapVipiModule`) riusa `ITransferRepository`/`ITopologyProvider`/`IOnlineAtcProvider` senza toccare la logica esistente, e alimenta il tool desktop del bridge Aurora. La superficie è **volutamente stretta** — un solo endpoint, il caso d'uso «a che livello cedo questo volo» — invece della vista documentale generica ipotizzata qui: una vista `?tier=reduced` avrebbe dovuto versionare l'intero modello dei contenuti, questo versiona solo un contratto di trasferimenti.
+
+Dettaglio: [`piano-aurora-bridge.md`](piano-aurora-bridge.md) · contratto: [`../reference/api-aurora-bridge.md`](../reference/api-aurora-bridge.md).
 
 ---
 

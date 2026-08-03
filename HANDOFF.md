@@ -206,7 +206,7 @@ dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vs
 ## 3. Mappa documenti
 Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sintesi:
 - `README.md` (cos'è + architettura + build) · **questo `HANDOFF.md`** (leggere per primo per riprendere).
-- `docs/history/rounds.md` (changelog dei round) · `docs/spec/` (modello dati, logica AoR, mappa pagine) · `docs/guide/` (config, integrazione) · `docs/adr/` (decisioni) · `docs/design/` (piano) · `docs/reference/sector-map.md`.
+- `docs/history/rounds.md` (changelog dei round) · `docs/spec/` (modello dati, logica AoR, mappa pagine) · `docs/guide/` (config, integrazione, **guida utente del bridge Aurora**) · `docs/adr/` (decisioni) · `docs/design/` (piano, **piano+verbali del bridge Aurora**) · `docs/reference/` (`sector-map.md`, **`api-aurora-bridge.md`**).
 
 ---
 
@@ -246,9 +246,30 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 
 **Shape tonda TWR + coord aeroporto (✅ Round 22):** le TWR senza poligono reale (IVAO le espone come `"[]"`) ricevono una **shape circolare 5 NM** sintetica così da poterle disegnare. `CircleShapeBuilder` (puro, formato `[[lng,lat],…]`), `TowerShapeFallbackService` (genera solo sulle vuote — decise col `AorPolygonProjector` —, marca `IsShapeSynthetic=true`, mai sovrascrive shape reali). Centro = `Airport.Latitude/Longitude`, popolate all'import dal blocco `airport` del dettaglio `/v2/ATCPositions/{compose}` (`SourceAtcPosition.AirportLatitude/Longitude`); ripiego = centro del poligono di un settore fratello. Job in `AirportSectorImportHostedService` (import isolato in try: il fallback gira anche senza credenziali). **TODO futuro:** shape reali TWR dal **sectorfile GitHub** via `DataSource:Provider` → rimpiazzano solo le sintetiche. Dettagli: `docs/spec/modello-dati.md` §9.14.
 
+**Bridge Aurora (✅ 3 ago 2026, branch `feature/aurora-bridge`, NON ancora in `main`):** tool desktop che
+scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
+- **Lato sito:** `TransferMatcher` (puro, `Application/Content/`) + `ITransferMatchService` + endpoint
+  **`POST /vsop/api/v1/transfers/resolve`** (in `MapVipiModule`, anonimo e read-only, tetto per IP via
+  `RequestRateLimiter`, sezione di config `AuroraBridge`). Il matching valuta CoP (fix da `#TRPATHL`, poi
+  rotta; jolly `ALL`/`ALL to GR`, range aerovie `Y01-Y12`), parità semicircolare, condizione pista contro
+  `#CTRLRWY`, next ATC già impostato — e restituisce candidati **motivati in italiano**.
+- **Lato tool:** `Vipi.AuroraBridge.Contracts` (contratto), `.Core` (protocollo TCP 1130, client HTTP con
+  cache su disco, orchestratore, ViewModel), `Vipi.AuroraBridge` (shell Avalonia), `tools/Vipi.AuroraBridge.Cli`
+  (verifica end-to-end), `tools/Vipi.AuroraProbe` (sonda del protocollo).
+- **Vincoli di Aurora accertati sul campo:** l'**XFL non è scrivibile** (nessun comando esiste, si scrive
+  l'etichetta quota con `#LBALT`), si scrive **solo sul traffico assunto**, e la porta 1130 si apre solo
+  riapplicando *3rd Party Software Access* **nella sessione in corso**. Cinque inesattezze della wiki IVAO
+  documentate in `docs/design/piano-aurora-bridge.md` §11.
+- Guida utente: `docs/guide/aurora-bridge.md`. Contratto: `docs/reference/api-aurora-bridge.md`.
+
 ---
 
 ## 5. PROSSIMI PASSI (ordinati per valore)
+
+0. **Bridge Aurora — portarlo in produzione:** il branch `feature/aurora-bridge` va rivisto e unito; finché
+   l'endpoint non è rilasciato su `it.ivao.aero`, il tool funziona **solo** contro un host locale.
+   Chiuse per decisione: i sorvoli LIBB senza livello sono lacuna redazionale (il tool non deve indovinare),
+   e il pacchetto macOS lo farà chi ha una macchina Apple.
 
 1. **Live IVAO — rifiniture aperte:**
    - **Identità "P"** legata al callsign connesso del CH loggato (oggi selettore manuale in Ridotta).
