@@ -33,17 +33,20 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [guide/integrazione-ivao-it-da-fare.md](guide/integrazione-ivao-it-da-fare.md) | **Lavoro aperto** per far girare il modulo dentro Ivao.It: bloccanti, verifiche mai eseguite, decisioni loro. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
 | [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
+| [guide/aurora-bridge.md](guide/aurora-bridge.md) | **Guida per il controllore** al tool desktop Aurora: prerequisiti, scrittura del livello, scorciatoia, limiti, dove guardare quando non va. |
 
 ## Reference — `reference/` 🔵
 | File | Scopo |
 |---|---|
 | [reference/sector-map.md](reference/sector-map.md) | Mappa settori della ACC pilota Roma (seed di test/fixture). |
+| [reference/api-aurora-bridge.md](reference/api-aurora-bridge.md) | Contratto di `POST /vsop/api/v1/transfers/resolve` (bridge Aurora): richiesta, risposta, configurazione `AuroraBridge`, tetti. |
 
 ## Design — `design/` 🟣
 | File | Scopo |
 |---|---|
 | [design/piano-vipi-tool.md](design/piano-vipi-tool.md) | Documento di design strategico di base (requisiti, roadmap). Parti superate dai round successivi. |
 | [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
+| [design/piano-aurora-bridge.md](design/piano-aurora-bridge.md) | **Tool desktop Aurora ↔ vIPI**: propone il livello di trasferimento al prossimo ente e lo scrive nell'etichetta quota del tag. Endpoint `/vsop/api/v1/transfers/resolve` + app Avalonia. **Codice non iniziato**: prima lo spike F0 sul protocollo Aurora. |
 | [design/piano-supporto-mysql.md](design/piano-supporto-mysql.md) | **Supporto MySQL per l'embedding in Ivao.It** (solo TFM net8: Pomelo non ha build EF Core 10). Slice, rischi, stime. **Esecuzione non avviata**: attende la versione del loro server MySQL, che decide la collation. |
 | [design/piano-ux-hardening.md](design/piano-ux-hardening.md) | UX hardening (audit 2026-07-22): U1 conferma delete (`InlineConfirm`), U2 icone SVG (`Icon`), U3 zoom a11y, U5–U12 refactor tema (token colori/font, dedup CSS, `.choice`/`.pill.neutral`, `LoadingState`/`EmptyState`, `.live-badge.off`, touch target). **U4 i18n IT+EN COMPLETO (2026-07-23):** chrome app tutta localizzata (nav+viewer+admin 12/12+editor 12/12), 1071 chiavi `SharedResource.resx`/`.en.resx`, switch runtime `?culture=en`. Contenuto editoriale dal DB resta IT. |
 
