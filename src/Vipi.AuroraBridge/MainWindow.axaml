@@ -1,0 +1,115 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:Vipi.AuroraBridge.Core;assembly=Vipi.AuroraBridge.Core"
+        x:Class="Vipi.AuroraBridge.MainWindow"
+        x:DataType="core:BridgeViewModel"
+        Title="vIPI Aurora Bridge"
+        Icon="/Assets/icon.ico"
+        Width="620" MinWidth="480" Height="520" MinHeight="360"
+        Background="{StaticResource Surface}"
+        FontFamily="Segoe UI, Inter, sans-serif">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="Foreground" Value="{StaticResource Muted}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource SurfaceRaised}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel LastChildFill="True">
+
+    <!-- Intestazione: stato di Aurora e postazione -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource IvaoBlue}" Padding="12,8">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel>
+          <TextBlock Text="{Binding Status}" FontWeight="SemiBold" Foreground="White" />
+          <TextBlock Text="{Binding OwnerLine}" Foreground="#D7D7DC" FontSize="12" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Button Content="Aggiorna" Click="OnRefresh" IsEnabled="{Binding !Busy}" />
+          <Button Content="Pulisci tag" Click="OnClear" />
+          <ToggleButton x:Name="PinButton" Content="📌" Click="OnTogglePin" ToolTip.Tip="Sempre in primo piano" />
+          <Button Content="⚙" Click="OnToggleSettings" ToolTip.Tip="Impostazioni" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Impostazioni, normalmente chiuse -->
+    <Border x:Name="SettingsPanel" DockPanel.Dock="Top" IsVisible="False"
+            Background="{StaticResource SurfaceRaised}" Padding="12,10">
+      <Grid ColumnDefinitions="Auto,*,Auto,150,Auto" RowDefinitions="Auto,Auto,Auto">
+        <TextBlock Text="Sito" Classes="label" VerticalAlignment="Center" Margin="0,0,8,6" />
+        <TextBox Grid.Column="1" x:Name="SiteBox" Watermark="https://it.ivao.aero" Margin="0,0,8,6" />
+        <TextBlock Grid.Column="2" Text="Postazione" Classes="label" VerticalAlignment="Center" Margin="0,0,8,6" />
+        <TextBox Grid.Column="3" x:Name="OwnerBox" Watermark="da #CONN" Margin="0,0,8,6"
+                 ToolTip.Tip="Forza la postazione di cui applicare le regole. Vuoto = quella connessa in Aurora." />
+        <Button Grid.Column="4" Content="Salva" Click="OnSaveSettings" Margin="0,0,0,6" />
+
+        <TextBlock Grid.Row="1" Text="Scorciatoia" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBox Grid.Row="1" Grid.Column="1" x:Name="HotkeyBox" Watermark="Ctrl+Alt+L" Margin="0,0,8,0"
+                 ToolTip.Tip="Combinazione globale che scrive il candidato migliore. Serve almeno un modificatore." />
+        <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" x:Name="HotkeyEnabledBox" Content="attiva"
+                  Foreground="{StaticResource Muted}" />
+
+        <TextBlock Grid.Row="2" Grid.ColumnSpan="5" Classes="label" TextWrapping="Wrap" Margin="0,6,0,0"
+                   Text="Sito e postazione si applicano al riavvio del tool. La scorciatoia scrive solo il primo candidato, e solo se è scrivibile." />
+      </Grid>
+    </Border>
+
+    <!-- Contesto del volo selezionato -->
+    <Border DockPanel.Dock="Top" Classes="card" Margin="12,12,12,0">
+      <StackPanel Spacing="2">
+        <TextBlock Text="Traffico selezionato" Classes="label" />
+        <TextBlock Text="{Binding FlightLine}" FontSize="14" Foreground="White" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <!-- Avvisi -->
+    <Border DockPanel.Dock="Top" Margin="12,8,12,0" Padding="10,8" CornerRadius="6"
+            Background="#2A2410" BorderBrush="{StaticResource IvaoYellow}" BorderThickness="1"
+            IsVisible="{Binding HasWarning}">
+      <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="{StaticResource IvaoYellow}" FontSize="12" />
+    </Border>
+
+    <!-- Candidati -->
+    <ScrollViewer Margin="12">
+      <ItemsControl ItemsSource="{Binding Candidates}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="core:CandidateRow">
+            <Border Classes="card" Margin="0,0,0,8">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="{Binding Cop}" FontWeight="Bold" Foreground="White" FontSize="15" />
+                  <TextBlock Text="{Binding Level}" Foreground="{StaticResource IvaoInfo}" FontSize="15" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                  <TextBlock Text="→" Foreground="{StaticResource Muted}" />
+                  <TextBlock Text="{Binding Handler}" Foreground="#D7D7DC" FontSize="12" />
+                  <TextBlock Text="{Binding HandlerNote}" Foreground="{StaticResource IvaoRed}" FontSize="12" />
+                  <TextBlock Text="{Binding ConditionBadge}" Foreground="{StaticResource Muted}" FontSize="12" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="2" Text="{Binding Reasons}" Classes="label"
+                           TextWrapping="Wrap" Margin="0,4,0,0" />
+
+                <!-- Il testo va a capo: quando il pulsante è spento contiene la RAGIONE, e una ragione
+                     troncata a metà ("Livello non scrivibile: manca il…") non serve a nessuno. -->
+                <Button Grid.Column="1" Grid.RowSpan="3" VerticalAlignment="Center" Margin="10,0,0,0"
+                        Width="190" IsEnabled="{Binding CanWrite}" Click="OnWrite" Tag="{Binding}">
+                  <TextBlock Text="{Binding WriteHint}" TextWrapping="Wrap" TextAlignment="Center" />
+                </Button>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
