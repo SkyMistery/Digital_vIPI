@@ -93,6 +93,16 @@ public static class VipiModuleExtensions
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
 
+        // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
+        services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
+        services.AddSingleton<RequestRateLimiter>();
+        services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp => new Vipi.Application.Content.TransferMatchService(
+            sp.GetRequiredService<Vipi.Application.Abstractions.ITransferRepository>(),
+            sp.GetRequiredService<Vipi.Application.Abstractions.ITopologyProvider>(),
+            sp.GetRequiredService<Vipi.Application.Content.IStationResolver>(),
+            sp.GetRequiredService<Vipi.Application.Abstractions.IOnlineAtcProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions>>().Value.ToMatchOptions()));
+
         // Health check del modulo, in due tagli. «ready» è la sonda economica per l'orchestratore (due query);
         // «full» aggiunge il report di consistenza, che fa scansioni complete → solo su richiesta di un umano.
         // VipiReadinessCheck è anche un servizio a sé perché VipiHealthCheck lo riusa per le condizioni critiche.
@@ -175,6 +185,35 @@ public static class VipiModuleExtensions
             catch (OperationCanceledException) { /* client disconnesso */ }
             finally { cache.Changed -= OnChanged; }
         });
+
+        // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in
+        // Aurora, restituisce i punti di trasferimento candidati col livello pronto da scrivere. Read-only e
+        // anonimo come i documenti da cui deriva, quindi con tetto per IP e sul corpo. Nessuna scrittura: è il
+        // tool desktop, non il server, a toccare Aurora — e solo su azione esplicita dell'utente.
+        endpoints.MapPost("/vsop/api/v1/transfers/resolve", async (
+            Vipi.AuroraBridge.Contracts.TransferResolveRequest request,
+            HttpContext ctx,
+            Vipi.Application.Content.ITransferMatchService service,
+            RequestRateLimiter limiter,
+            Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions> options,
+            CancellationToken ct) =>
+        {
+            var opt = options.Value;
+
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+            if (!limiter.TryAcquire(ip, opt.RequestsPerMinutePerIp))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
+            if (request is null || string.IsNullOrWhiteSpace(request.OwnerCallsign))
+                return Results.BadRequest(new { error = "ownerCallsign obbligatorio" });
+
+            var result = await service.ResolveAsync(request, ct);
+            return Results.Json(result);
+        })
+        .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(64 * 1024));
 
         // Immagini dei blocchi editoriali. L'URL È il contenuto (sha256), quindi la risposta si può dichiarare
         // «immutable» senza rischio di stantio: cambiare immagine significa cambiare URL, non aggiornare questa.

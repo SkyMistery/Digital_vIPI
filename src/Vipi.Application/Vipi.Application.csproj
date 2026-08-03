@@ -2,6 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
+    <!-- Contratto del bridge Aurora: POCO senza dipendenze. L'Application lo usa DIRETTAMENTE come input/output
+         del matching invece di avere DTO propri poi ricopiati nell'endpoint: un modello solo (FEATURE-PROCESS §1). -->
+    <ProjectReference Include="..\Vipi.AuroraBridge.Contracts\Vipi.AuroraBridge.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
