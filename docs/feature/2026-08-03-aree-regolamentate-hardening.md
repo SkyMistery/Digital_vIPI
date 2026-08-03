@@ -1,7 +1,8 @@
-# Feature — Aree regolamentate: interruttore, import incrementale, riferimenti dangling
+# Feature — Aree regolamentate: interruttore, import incrementale, dangling, appartenenza e opt-in per ACC
 
-Data: 2026-08-03 · Stato: **FATTO** (suite 951 verde) — verifica live da fare · esteso in giornata con il picker
-scopribile, l'appartenenza multi-ACC e l'opt-in per ACC delle aree estere (§4-6) ·
+Data: 2026-08-03 · Stato: **FATTO — codice chiuso, ⏳ verifica live da fare** (suite 951 verde, build 0 warning) ·
+Branch `feature/aree-speciali-hardening`, 9 commit · Nato da un'analisi in tre punti (§1-3), esteso in giornata con
+il picker scopribile, l'appartenenza multi-ACC e l'opt-in per ACC delle aree estere (§4-6) ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Contesto: [refactor 02](../refactor/02-import-acc-e-settori.md) (il use-case di import), [ADR-0006](../adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) (policy opt-out).
 
@@ -206,6 +207,27 @@ LIPP 24, LIZZ 15), 763 legami liberati, nessuna area orfana, seconda esecuzione 
 
 > ⚠️ Le aree estere che un documento citava diventano **dangling**: la diagnostica le segnala e l'editor le marca
 > (§3). Se serviva davvero un'area francese, si riaccende LFMM con «Importa aree» e torna al suo posto.
+
+## Stato alla chiusura
+
+| Passo | Esito |
+|---|---|
+| §1 Interruttore di categoria | fatto — riga in `/vsop/admin/sorgenti`, gate nel use-case |
+| §2 Shape incrementale | fatto — dettaglio saltato se la shape è in archivio da meno di 30 giorni |
+| §3 Riferimenti dangling | fatto — rilievo in diagnostica + marcatura nell'editor |
+| §4 Picker scopribile | fatto — filtro per ACC, conteggio, elenco scorrevole (forma singolare compresa) |
+| §5 Appartenenza multi-ACC | fatto — `SpecialAreaCenter`, migration provata su copia del DB reale |
+| §6 Aree estere su richiesta | fatto — `Acc.SpecialAreasEnabled`, one-shot al boot, 993 → 230 aree |
+| Verifica live | **da fare** — quattro punti qui sotto |
+
+**Verifica live, cosa guardare:**
+1. `/vsop/admin/sorgenti`: togliere «Aree regolamentate», lanciare l'import, controllare che le aree **restino**
+   (non deve potare); rimetterla e verificare che riprenda.
+2. Editor di un documento con un'area cancellata a mano dal DB: deve comparire «⚠ non più disponibile» e il
+   rilievo in `/vsop/admin/diagnostica`.
+3. Dopo un import: la **R49 «Zita»** deve stare fra le aree *proprie* sia di LIRR sia di LIZZ.
+4. `/vsop/admin/accs`: «Importa aree» su un ACC estero → lo accende e ne mostra il conteggio; «Escludi aree» →
+   torna a «non importate» e libera l'archivio.
 
 ## Non-obiettivi
 

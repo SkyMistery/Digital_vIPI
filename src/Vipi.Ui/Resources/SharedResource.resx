@@ -504,6 +504,7 @@
   <data name="AccAdmin_ImportSpecialFailures" xml:space="preserve"><value> · {0} ACC con aree speciali saltate (dettaglio nei log).</value></data>
   <data name="AccAdmin_ColAreas" xml:space="preserve"><value>Aree regolamentate</value></data>
   <data name="AccAdmin_AreasOn" xml:space="preserve"><value>{0} aree</value></data>
+  <data name="AccAdmin_AreasOne" xml:space="preserve"><value>1 area</value></data>
   <data name="AccAdmin_AreasOnHint" xml:space="preserve"><value>Aree aggiornate dall'import automatico ogni 24 ore.</value></data>
   <data name="AccAdmin_AreasOff" xml:space="preserve"><value>non importate</value></data>
   <data name="AccAdmin_AreasOffHint" xml:space="preserve"><value>Questo ACC non partecipa all'import delle aree: usa «Importa aree» per scaricarle la prima volta e abilitarlo.</value></data>
@@ -1059,6 +1060,7 @@
   <data name="Acc_AllAccs" xml:space="preserve"><value>Tutti gli ACC</value></data>
   <data name="Acc_NoAreaFound" xml:space="preserve"><value>Nessuna area trovata con questi filtri.</value></data>
   <data name="Acc_AreaCount" xml:space="preserve"><value>{0} aree disponibili.</value></data>
+  <data name="Acc_AreaCountOne" xml:space="preserve"><value>1 area disponibile.</value></data>
   <data name="Acc_AreaCountTruncated" xml:space="preserve"><value>Mostrate {0} di {1}: restringi con l'ACC o la ricerca.</value></data>
   <data name="Acc_AreaGoneHint" xml:space="preserve"><value>Quest'area non esiste più nei dati importati: non viene mostrata nel documento. Rimuovila dalla selezione.</value></data>
   <data name="Acc_AddedManually" xml:space="preserve"><value>(aggiunte a mano)</value></data>

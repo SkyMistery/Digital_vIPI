@@ -65,6 +65,12 @@ public class RegulatedAreasEditorTests : TestContext
         Assert.Contains("LOMBARDIA 001", cut.Markup);
         Assert.DoesNotContain("PUGLIA 001", cut.Markup);   // filtro per ente, non solo ricerca testuale
         Assert.Contains("Acc_AreaCount 5", cut.Markup);
+
+        cut.Find("select").Change("LIBB");
+        // Il campo delle aree extra (col localizzatore di test il placeholder è la chiave stessa).
+        cut.Find("input[placeholder='Acc_SearchOtherArea']").Input("PUGLIA 001");
+        Assert.Contains("Acc_AreaCountOne", cut.Markup);
+        Assert.DoesNotContain("Acc_AreaCount 1", cut.Markup);
     }
 
     [Fact]

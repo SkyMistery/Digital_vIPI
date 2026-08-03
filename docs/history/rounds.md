@@ -1159,3 +1159,6 @@ Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
   produce qualcosa), «Escludi aree» pota. Riconciliazione one-shot al boot per gli esteri già in archivio, con
   segnaposto in `ImportState` perché non si ripeta su un ente riabilitato a mano. Sul DB reale: **993 aree → 230**,
   le italiane invariate.
+
+Chiusura: 9 commit sul branch `feature/aree-speciali-hardening`, suite 951 verde, build 0 warning, due migration
+provate su copia del `vipi.db` reale. Resta la **verifica live** (quattro punti elencati in fondo alla carta).

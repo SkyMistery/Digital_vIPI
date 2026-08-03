@@ -501,6 +501,7 @@
   <data name="AccAdmin_ImportSpecialFailures" xml:space="preserve"><value> · {0} ACC with special areas skipped (details in logs).</value></data>
   <data name="AccAdmin_ColAreas" xml:space="preserve"><value>Regulated areas</value></data>
   <data name="AccAdmin_AreasOn" xml:space="preserve"><value>{0} areas</value></data>
+  <data name="AccAdmin_AreasOne" xml:space="preserve"><value>1 area</value></data>
   <data name="AccAdmin_AreasOnHint" xml:space="preserve"><value>Areas refreshed by the automatic import every 24 hours.</value></data>
   <data name="AccAdmin_AreasOff" xml:space="preserve"><value>not imported</value></data>
   <data name="AccAdmin_AreasOffHint" xml:space="preserve"><value>This ACC takes no part in the area import: use «Import areas» to fetch them once and enable it.</value></data>
@@ -1056,6 +1057,7 @@
   <data name="Acc_AllAccs" xml:space="preserve"><value>All ACCs</value></data>
   <data name="Acc_NoAreaFound" xml:space="preserve"><value>No area matches these filters.</value></data>
   <data name="Acc_AreaCount" xml:space="preserve"><value>{0} areas available.</value></data>
+  <data name="Acc_AreaCountOne" xml:space="preserve"><value>1 area available.</value></data>
   <data name="Acc_AreaCountTruncated" xml:space="preserve"><value>Showing {0} of {1}: narrow it down by ACC or search.</value></data>
   <data name="Acc_AreaGoneHint" xml:space="preserve"><value>This area no longer exists in the imported data: it is not shown in the document. Remove it from the selection.</value></data>
   <data name="Acc_AddedManually" xml:space="preserve"><value>(added manually)</value></data>

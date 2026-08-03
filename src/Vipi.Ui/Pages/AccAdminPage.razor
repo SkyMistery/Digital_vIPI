@@ -79,7 +79,7 @@
                                 <td style="white-space:nowrap">
                                     @if (a.SpecialAreasEnabled)
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["AccAdmin_AreasOnHint"]">@L["AccAdmin_AreasOn", a.SpecialAreaCount]</span>
+                                        <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["AccAdmin_AreasOnHint"]">@(a.SpecialAreaCount == 1 ? L["AccAdmin_AreasOne"].Value : L["AccAdmin_AreasOn", a.SpecialAreaCount].Value)</span>
                                     }
                                     else
                                     {
@@ -299,8 +299,8 @@
             foreach (var f in r.Failures)
                 Logger.LogWarning(f.Error, "Import aree speciali {Acc} fallito (import per-ACC).", f.AccCode);
             await ReloadAsync();
-            _msg = r.Failures.Count > 0 ? L["AccAdmin_AreasImportFailed", accCode] : null;
-            if (_msg is null) _ok = L["AccAdmin_AreasImportOk", accCode, r.Created, r.Updated, r.Removed];
+            _msg = r.Failures.Count > 0 ? L["AccAdmin_AreasImportFailed", accCode].Value : null;
+            if (_msg is null) _ok = L["AccAdmin_AreasImportOk", accCode, r.Created, r.Updated, r.Removed].Value;
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }   // credenziali sorgente assenti

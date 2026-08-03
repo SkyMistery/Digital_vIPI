@@ -205,9 +205,13 @@
     private IEnumerable<string> OtherAccCodes() =>
         OtherPicks.SelectMany(p => p.Centers).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
 
-    private string CountHint(int total) => total == 0
-        ? L["Acc_NoAreaFound"].Value
-        : (total <= PageSize ? L["Acc_AreaCount", total].Value : L["Acc_AreaCountTruncated", PageSize, total].Value);
+    private string CountHint(int total) => total switch
+    {
+        0 => L["Acc_NoAreaFound"].Value,
+        1 => L["Acc_AreaCountOne"].Value,
+        _ when total <= PageSize => L["Acc_AreaCount", total].Value,
+        _ => L["Acc_AreaCountTruncated", PageSize, total].Value,
+    };
 
     // Aree proprie effettivamente selezionate: in automatico sono tutte quelle dell'ACC, sennò il sottoinsieme scelto.
     private List<string> EffectiveOwnIds() =>
