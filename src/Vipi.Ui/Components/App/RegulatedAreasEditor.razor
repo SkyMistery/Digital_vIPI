@@ -70,11 +70,13 @@
         }
         else
         {
-            <div class="sector-pick" style="margin-top:6px">
-                @foreach (var p in OwnPicks
-                    .Where(p => !ownIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                    .Where(p => string.IsNullOrWhiteSpace(_ownSearch) || p.Name.Contains(_ownSearch, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(_ownSearch, StringComparison.OrdinalIgnoreCase))
-                    .Take(12))
+            var ownMatches = OwnPicks
+                .Where(p => !ownIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
+                .Where(p => Matches(p, _ownSearch, null))
+                .ToList();
+
+            <div class="sector-pick area-pick-list" style="margin-top:6px">
+                @foreach (var p in ownMatches.Take(PageSize))
                 {
                     var pick = p;
                     <button type="button" class="sp-item" @onclick="() => ToggleOwnArea(pick.IvaoId)">
@@ -82,6 +84,8 @@
                     </button>
                 }
             </div>
+            @* Senza il conteggio l'elenco tagliato sembra «non c'è»: su un ACC con 99 aree se ne vedevano 12 mute. *@
+            <p class="help" style="margin:4px 0 0">@CountHint(ownMatches.Count)</p>
         }
     }
 </div>
@@ -117,15 +121,31 @@
 
         @if (Editing)
         {
-            <input class="app-in" placeholder="@L["Acc_SearchOtherArea"]" value="@_extraSearch"
-                   @oninput="e => _extraSearch = AsString(e.Value)" />
-            @if (!string.IsNullOrWhiteSpace(_extraSearch))
+            @* Le aree di altri ACC sono centinaia: senza il filtro per ente la ricerca libera è l'unico modo di
+               trovarne una, e l'elenco tagliato non dice quante ne sta nascondendo. *@
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select style="width:auto;flex:none;min-width:150px" value="@_extraAcc"
+                        @onchange="e => _extraAcc = AsString(e.Value)">
+                    <option value="">@L["Acc_AllAccs"]</option>
+                    @foreach (var accCode in OtherAccCodes())
+                    {
+                        var n = OtherPicks.Count(p => string.Equals(p.CenterId, accCode, StringComparison.OrdinalIgnoreCase));
+                        <option value="@accCode">@accCode (@n)</option>
+                    }
+                </select>
+                <input class="app-in" style="flex:1;min-width:160px" placeholder="@L["Acc_SearchOtherArea"]" value="@_extraSearch"
+                       @oninput="e => _extraSearch = AsString(e.Value)" />
+            </div>
+
+            var extraMatches = OtherPicks
+                .Where(p => !Selection.ExtraIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
+                .Where(p => Matches(p, _extraSearch, _extraAcc))
+                .ToList();
+
+            @if (!string.IsNullOrWhiteSpace(_extraSearch) || !string.IsNullOrWhiteSpace(_extraAcc))
             {
-                <div class="sector-pick" style="margin-top:6px">
-                    @foreach (var p in OtherPicks
-                        .Where(p => !Selection.ExtraIds.Contains(p.IvaoId, StringComparer.OrdinalIgnoreCase))
-                        .Where(p => p.Name.Contains(_extraSearch, StringComparison.OrdinalIgnoreCase) || p.CenterId.Contains(_extraSearch, StringComparison.OrdinalIgnoreCase) || (p.Type ?? "").Contains(_extraSearch, StringComparison.OrdinalIgnoreCase))
-                        .Take(12))
+                <div class="sector-pick area-pick-list" style="margin-top:6px">
+                    @foreach (var p in extraMatches.Take(PageSize))
                     {
                         var pick = p;
                         <button type="button" class="sp-item" @onclick="() => ToggleExtraArea(pick.IvaoId)">
@@ -133,6 +153,7 @@
                         </button>
                     }
                 </div>
+                <p class="help" style="margin:4px 0 0">@CountHint(extraMatches.Count)</p>
             }
         }
     </div>
@@ -161,6 +182,30 @@
 
     private string _ownSearch = "";
     private string _extraSearch = "";
+    private string _extraAcc = "";      // filtro per ente delle aree extra ("" = tutti)
+
+    /// <summary>Quante voci mostrare per volta. L'elenco è affiancato dal conteggio dei risultati totali.</summary>
+    private const int PageSize = 20;
+
+    // Filtro comune ai due picker: testo su nome/tipo/ACC (i tre modi in cui uno cerca un'area) + ente opzionale.
+    private static bool Matches(SpecialAreaPick p, string? search, string? accCode)
+    {
+        if (!string.IsNullOrWhiteSpace(accCode) && !string.Equals(p.CenterId, accCode, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.IsNullOrWhiteSpace(search)) return true;
+        var s = search.Trim();
+        return p.Name.Contains(s, StringComparison.OrdinalIgnoreCase)
+               || (p.Type ?? "").Contains(s, StringComparison.OrdinalIgnoreCase)
+               || p.CenterId.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ACC presenti fra le aree extra, col loro conteggio nella tendina: dice subito dove c'è qualcosa da pescare.
+    private IEnumerable<string> OtherAccCodes() =>
+        OtherPicks.Select(p => p.CenterId).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+
+    private string CountHint(int total) => total == 0
+        ? L["Acc_NoAreaFound"].Value
+        : (total <= PageSize ? L["Acc_AreaCount", total].Value : L["Acc_AreaCountTruncated", PageSize, total].Value);
 
     // Aree proprie effettivamente selezionate: in automatico sono tutte quelle dell'ACC, sennò il sottoinsieme scelto.
     private List<string> EffectiveOwnIds() =>

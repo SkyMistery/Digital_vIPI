@@ -1041,6 +1041,10 @@
   <data name="Acc_NoIvaoArea" xml:space="preserve"><value>No area imported from IVAO for this ACC.</value></data>
   <data name="Acc_OtherAccAreas" xml:space="preserve"><value>Other ACCs' areas</value></data>
   <data name="Acc_AreaGone" xml:space="preserve"><value>no longer available</value></data>
+  <data name="Acc_AllAccs" xml:space="preserve"><value>All ACCs</value></data>
+  <data name="Acc_NoAreaFound" xml:space="preserve"><value>No area matches these filters.</value></data>
+  <data name="Acc_AreaCount" xml:space="preserve"><value>{0} areas available.</value></data>
+  <data name="Acc_AreaCountTruncated" xml:space="preserve"><value>Showing {0} of {1}: narrow it down by ACC or search.</value></data>
   <data name="Acc_AreaGoneHint" xml:space="preserve"><value>This area no longer exists in the imported data: it is not shown in the document. Remove it from the selection.</value></data>
   <data name="Acc_AddedManually" xml:space="preserve"><value>(added manually)</value></data>
   <data name="Acc_None" xml:space="preserve"><value>None.</value></data>
