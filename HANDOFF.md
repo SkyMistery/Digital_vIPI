@@ -55,8 +55,8 @@
 >   «SQLite». Con MySQL configurato tenterebbe di applicare le 65 migration SQLite-flavored. Da sistemare
 >   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
 
-> **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling.** Branch
-> `feature/aree-speciali-hardening`, 3 commit, suite **940 verde** (+13), build 0 warning. Carta completa:
+> **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling, appartenenza
+> multi-ACC.** Branch `feature/aree-speciali-hardening`, 6 commit, suite **946 verde** (+19), build 0 warning. Carta completa:
 > `docs/feature/2026-08-03-aree-regolamentate-hardening.md`. Le cose da sapere subito:
 > - ⚠️ **`ImportSids` può essere spento in produzione senza che nessuno l'abbia deciso.** La migration dell'8 lug
 >   aggiunse la colonna con `defaultValue: false`, e su Postgres `PostgresSchemaReconciler` backfillava a `false`
@@ -71,7 +71,16 @@
 > - **Le aree selezionate in un documento possono sparire in silenzio**: gli id sono soft-ref senza FK e il prune li
 >   può cancellare. Ora la diagnostica le segnala («Area regolamentata dangling», sola versione di lavoro) e
 >   l'editor le marca «⚠ non più disponibile». Il prune resta libero di potare: si rileva, non si vincola.
-> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import) ed editor con un'area rimossa a mano.
+> - **Un'area regolamentata può appartenere a PIÙ ACC** e prima ne tenevamo uno solo: `IvaoId` è unico e
+>   `CenterId` era una colonna, quindi vinceva l'ultimo ACC in ordine alfabetico. La R49 «Zita» (id 8870), che su
+>   IVAO è di LIRR e del militare LIZZ, risultava solo di LIZZ — ente nascosto — e spariva dalle aree proprie di
+>   Roma. Ora c'è l'entità di legame `SpecialAreaCenter` (SPEC §9.23): import additivo, prune per legame, area
+>   cancellata solo quando resta senza enti.
+> - ⚠️ **Dopo il deploy premere «Importa da sorgente»**: il backfill recupera una sola appartenenza per area (era
+>   l'unica che il vecchio modello sapeva); le altre le riporta il primo import. Su Postgres il travaso e il drop
+>   della colonna storica li fa `ISpecialAreaMaintenance` al boot, non la migration — che lì non gira.
+> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import), editor con un'area rimossa a mano, e
+>   la Zita che dopo l'import compare fra le aree proprie sia di LIRR sia di LIZZ.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.

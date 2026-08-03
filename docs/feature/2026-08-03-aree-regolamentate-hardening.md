@@ -1,6 +1,7 @@
 # Feature — Aree regolamentate: interruttore, import incrementale, riferimenti dangling
 
-Data: 2026-08-03 · Stato: **FATTO** (suite 940 verde) — verifica live da fare · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
+Data: 2026-08-03 · Stato: **FATTO** (suite 946 verde) — verifica live da fare · esteso in giornata con il picker
+scopribile e l'appartenenza multi-ACC (§4-5) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Contesto: [refactor 02](../refactor/02-import-acc-e-settori.md) (il use-case di import), [ADR-0006](../adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) (policy opt-out).
 
 ## Obiettivo
@@ -135,7 +136,53 @@ nomina significa servire dato morto. La linea del progetto sui soft-ref è *rile
 - selezione in **formato array legacy** → letta come manuale (prima l'APP la leggeva vuota);
 - documento con bozza e versione pubblicata → si legge la **bozza**.
 
+## Seguito, stesso giorno: il picker non pescava, e l'appartenenza era sbagliata
+
+Provando la selezione cross-ACC su una vIPI di APP sono venute fuori altre due cose, una di forma e una di sostanza.
+
+### 4. Il picker nascondeva ciò che aveva
+
+Le aree di altri ACC si potevano già scegliere (`ExtraIds`), ma i candidati comparivano **solo digitando** ed erano
+tagliati a 12 senza dirlo. Con ~800 aree in archivio, qualunque ricerca mostrava dodici righe qualsiasi e sembrava
+che la propria non ci fosse.
+
+Aggiunti: **tendina per ACC** col conteggio per ente, elenco visibile anche senza cercare, **contatore**
+(«Mostrate 20 di 99: restringi con l'ACC o la ricerca»), elenco scorrevole. Vale per entrambi gli editor, ACC e
+APP: il componente è condiviso.
+
+### 5. Un'area può appartenere a più ACC — e noi ne tenevamo uno solo
+
+Il caso che l'ha svelato: **id 8870, «LI R49A/B/C/D/E/F - Zita»**, che su IVAO sta nell'elenco di LIRR *e* in
+quello del militare LIZZ. Da noi risultava solo di LIZZ.
+
+Il motivo: `IvaoId` è unico e `CenterId` era una colonna sola, quindi ogni ACC che elencava l'area **riscriveva**
+l'appartenenza — vinceva l'ultimo in ordine alfabetico (`ListAccsAsync` ordina per codice). LIZZ viene dopo LIRR,
+ed è pure un ente nascosto: l'area spariva dalle «aree proprie» di Roma senza che nulla lo segnalasse.
+
+Le 15 aree di LIZZ sono tutte di questa specie: R21 Sara, R49 Zita, STAR1-10, Donald, Eolia, East/West Sardinia.
+
+**Modello nuovo** (SPEC §9.23): entità di legame `SpecialAreaCenter (IvaoId, CenterId)`, `SpecialArea.CenterId`
+rimossa. Import additivo, prune per legame, area cancellata solo quando resta senza enti. Nei picker «proprie» e
+«di altri ACC» si decidono sui legami, e la riga mostra tutti gli enti.
+
+**Backfill doppio, e non è pignoleria**: la migration serve SQLite, ma in produzione lo schema lo allinea
+`PostgresSchemaReconciler`, che le migration non le esegue. Quindi il travaso vive anche in
+`ISpecialAreaMaintenance`, al boot — e lì tocca pure **droppare** la colonna storica: NOT NULL e ormai fuori dal
+modello, farebbe fallire ogni inserimento di area nuova.
+
+Il backfill recupera **una sola** appartenenza per area, l'unica che il vecchio modello sapeva tenere. Le altre
+tornano col primo import: dopo il deploy conviene premere «Importa da sorgente» invece di aspettare il giro
+automatico.
+
+Verificato sulla copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana, shape intatte, colonna storica
+sparita.
+
+Test aggiunti: area elencata da due ACC → una riga e due legami, propria per entrambi e in «altri ACC» per
+nessuno; prune di un ente lascia l'area all'altro; quando la molla anche l'ultimo, l'area sparisce.
+
 ## Non-obiettivi
 
 Rimozione della colonna `Range`; parallelismo sulle chiamate di dettaglio (da valutare solo se il primo import a
-freddo risulta lento); auto-correzione dei riferimenti dangling; policy per-ACC invece che globale.
+freddo risulta lento); auto-correzione dei riferimenti dangling; policy per-ACC invece che globale; **fusione delle
+aree che la sorgente duplica** con id diversi sotto due centri (8 casi, tutti francesi: `LF R 55 A` su LFXV e
+LFZZ…) — lì è IVAO a tenerne due schede, e unirle sarebbe una nostra invenzione.

@@ -1119,7 +1119,7 @@ rifinitura), branch `feature/aurora-bridge`, **suite 819 → 930 verde**.
 Superficie nuova: `POST /vsop/api/v1/transfers/resolve` (anonimo, read-only, tetto per IP) ·
 [guida utente](../guide/aurora-bridge.md) · [contratto API](../reference/api-aurora-bridge.md).
 
-## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 940 test)
+## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 946 test)
 Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
 ([carta](../feature/2026-08-03-aree-regolamentate-hardening.md), SPEC §9.21-9.22).
 - **Categoria di import `SpecialAreas`** (`ImportPolicy.ImportSpecialAreas`, default true): erano l'unico dato di
@@ -1138,3 +1138,18 @@ Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
   cancellarne una e il viewer la saltava in silenzio. Nuovo rilievo «Area regolamentata dangling» in diagnostica
   (sola versione di lavoro) + «⚠ non più disponibile» nell'editor. Nessun guard nel prune: si rileva, non si vincola.
 - Estratto `RegulatedSelectionJson`, unico lettore del `BodyJson` `regulated` (l'APP non leggeva l'array legacy).
+
+**Seguito in giornata, partendo da «non trovo le aree di altri ACC» su una vIPI di APP:**
+- **Il picker nascondeva ciò che aveva**: candidati solo digitando e taglio muto a 12 su ~800 aree. Ora tendina per
+  ACC col conteggio, elenco anche senza cercare, contatore «Mostrate 20 di 99», lista scorrevole.
+- **Un'area può appartenere a più ACC.** Caso rivelatore: `8870` «LI R49 Zita», su IVAO in LIRR *e* nel militare
+  LIZZ; da noi risultava solo di LIZZ perché `IvaoId` è unico e `CenterId` era una colonna sola — ogni ACC che la
+  elencava riscriveva l'appartenenza e **vinceva l'ultimo in ordine alfabetico**. Le 15 aree di LIZZ erano tutte
+  così (R21 Sara, STAR1-10, Donald, Eolia, Sardinia). Nuova entità di legame `SpecialAreaCenter`, `CenterId`
+  rimossa da `SpecialArea`, import additivo, prune per legame, area cancellata solo quando resta senza enti
+  (SPEC §9.23).
+- **Backfill doppio**: migration per SQLite + `ISpecialAreaMaintenance` al boot per Postgres (dove lo schema lo
+  allinea il reconciler, che le migration non le esegue) — lì droppa anche la colonna storica, NOT NULL e fuori
+  dal modello, che bloccherebbe gli inserimenti. Recupera una sola appartenenza per area: le altre le riporta il
+  primo import, quindi dopo il deploy conviene premere «Importa da sorgente».
+- Migration provata su copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana.

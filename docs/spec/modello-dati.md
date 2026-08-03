@@ -637,3 +637,21 @@ Nessun cambio di schema; due comportamenti sui dati di `SpecialArea`.
 - **Dettaglio saltato quando la shape c'è già.** L'elenco paginato `/v2/centers/{ACC}/specialAreas` porta tutti i metadati; `/v2/specialAreas/{id}` serve solo per `RegionMapPolygon`. `IAccDirectory.GetSpecialAreasAsync` riceve ora `skipDetailIds` e per quegli id non chiama il dettaglio (shape `null` → l'upsert preserva quella salvata, comportamento già esistente). Il set arriva da `IAccAdminRepository.ListAreasWithFreshShapeAsync` (shape presente **e** `ImportedAtUtc` entro 30 giorni): il client resta senza dipendenze dalla persistenza.
 - **Riferimenti dangling.** La selezione di aree di un documento (`RegulatedSelection` nel `BodyJson` della sezione `regulated`) è un **soft-ref per IvaoId, senza FK**: il prune per-ACC può cancellare un'area ancora citata. Nuovo check di consistenza **«Area regolamentata dangling»** (Warning) su `ConsistencyDataset.RegulatedRefs`/`SpecialAreaIds`, letti dalla sola **versione di lavoro** di ogni documento (bozza > pubblicata corrente > ultima). L'editor marca le aree non più risolvibili con «⚠ non più disponibile».
 - **`RegulatedSelectionJson`** è l'unico lettore di quel `BodyJson` (formato nativo + array legacy `["id",…]`), condiviso da `AccDocumentAssembler`, `AppDocumentService` e diagnostica.
+
+### 9.23 `SpecialAreaCenter` — un'area appartiene a **più ACC** (sessione 3 ago 2026)
+
+L'appartenenza area→ACC esce dalla riga dell'area: **`SpecialArea.CenterId` RIMOSSA**, nuova entità di legame. Migrazione **`SpecialAreaCenters`**.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `IvaoId` | string | PK composta; FK → `SpecialArea.IvaoId` (chiave alternata `AK_SpecialAreas_IvaoId`), cascade |
+| `CenterId` | string | PK composta; FK → `Acc.Code`, cascade; indice |
+| `ImportedAtUtc` | datetime? | ultimo import che ha visto l'area in quell'elenco |
+
+**Perché.** La sorgente espone la stessa area sotto più centri: la R49 «Zita» (`IvaoId` 8870) sta nell'elenco di LIRR **e** in quello del militare LIZZ. Con un `CenterId` singolo ogni ACC che la elencava riscriveva l'appartenenza e vinceva l'**ultimo in ordine alfabetico** (`ListAccsAsync` → `ORDER BY Code`): Zita risultava solo di LIZZ — ente per giunta `IsHidden` — e spariva dalle «aree proprie» di Roma. Stabile ma arbitrario, e invisibile a posteriori.
+
+- **Import additivo**: `ImportSpecialAreasAsync` fa upsert del legame dell'ACC interrogato senza toccare quelli degli altri. Il dedup `handled` resta per-batch, e un batch = un ACC.
+- **Prune per legame**: `PruneSpecialAreasNotInAsync` toglie i legami di quell'ACC (ritorna quanti); l'area si cancella **solo** quando resta senza alcun ente.
+- **Picker**: «proprie» = aree con un legame verso l'ACC (una condivisa è propria per **entrambi**), «altri ACC» = quelle senza. `SpecialAreaPick.Centers` è una lista (`CentersText` per la riga).
+- **Backfill doppio**: nella migration per SQLite (`INSERT … SELECT` **prima** del drop della colonna), e al boot in `ISpecialAreaMaintenance.BackfillAreaCentersAsync` per Postgres, dove lo schema lo allinea `PostgresSchemaReconciler` e le migration del repo non girano. Su Postgres la manutenzione **droppa** anche la colonna storica: NOT NULL e fuori dal modello, bloccherebbe ogni inserimento. Recupera **una sola** appartenenza per area (l'unica che il vecchio modello sapeva); le altre le riporta il primo import.
+- Verifica su copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana, shape intatte.
