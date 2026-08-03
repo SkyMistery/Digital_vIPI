@@ -29,7 +29,7 @@ public class RegulatedAreasEditorTests : TestContext
 
     private static IReadOnlyList<SpecialAreaPick> Areas(string acc, int count, string prefix) =>
         Enumerable.Range(1, count)
-            .Select(i => new SpecialAreaPick($"{acc}-{i}", $"{prefix} {i:000}", "R", 0, 5000, acc))
+            .Select(i => new SpecialAreaPick($"{acc}-{i}", $"{prefix} {i:000}", "R", 0, 5000, new[] { acc }))
             .ToList();
 
     [Fact]

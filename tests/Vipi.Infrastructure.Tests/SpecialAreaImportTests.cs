@@ -96,6 +96,53 @@ public class SpecialAreaImportTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Area_listed_by_two_accs_belongs_to_both()
+    {
+        // Caso reale: la R49 «Zita» compare sia nell'elenco di LIRR sia in quello del militare LIZZ. Prima vinceva
+        // l'ultimo ACC in ordine alfabetico e spariva dalle aree proprie dell'altro.
+        await _repo.ImportAsync(new[] { new SourceCenter("LIZZ_CTR", "LIZZ", "Legion", true, "130.000") });
+        var dir = new FakeAccDirectory
+        {
+            Areas =
+            {
+                ["LIRR"] = new() { Area("8870", "LI R49 - Zita") },
+                ["LIZZ"] = new() { Area("8870", "LI R49 - Zita") with { CenterId = "LIZZ" } },
+            },
+        };
+
+        await new SpecialAreaImportUseCase(_repo, dir, _policy).RunAsync();
+
+        Assert.Equal(1, await _db.SpecialAreas.CountAsync());                 // una sola area…
+        Assert.Equal(2, await _db.SpecialAreaCenters.CountAsync());           // …elencata da due enti
+        var areas = new EfSpecialAreaRepository(_db);
+        Assert.Contains(await areas.ListSpecialAreasByAccAsync("LIRR"), p => p.IvaoId == "8870");
+        Assert.Contains(await areas.ListSpecialAreasByAccAsync("LIZZ"), p => p.IvaoId == "8870");
+        Assert.Empty(await areas.ListSpecialAreasExcludingAccAsync("LIRR"));
+    }
+
+    [Fact]
+    public async Task Prune_of_one_acc_leaves_the_area_to_the_other()
+    {
+        await _repo.ImportAsync(new[] { new SourceCenter("LIZZ_CTR", "LIZZ", "Legion", true, "130.000") });
+        // Una chiamata per ACC, come fa il use-case: dentro un batch la stessa area si tratta una volta sola.
+        await _repo.ImportSpecialAreasAsync(new[] { Area("8870") });
+        await _repo.ImportSpecialAreasAsync(new[] { Area("8870") with { CenterId = "LIZZ" } });
+
+        // LIRR non la elenca più; LIZZ sì.
+        var removed = await _repo.PruneSpecialAreasNotInAsync("LIRR", Array.Empty<string>());
+
+        Assert.Equal(1, removed);                                   // un legame, non l'area
+        Assert.Equal(1, await _db.SpecialAreas.CountAsync());
+        var areas = new EfSpecialAreaRepository(_db);
+        Assert.Empty(await areas.ListSpecialAreasByAccAsync("LIRR"));
+        Assert.Single(await areas.ListSpecialAreasByAccAsync("LIZZ"));
+
+        // Quando anche l'ultimo ente la molla, l'area sparisce (e la diagnostica segnalerà i documenti che la citano).
+        await _repo.PruneSpecialAreasNotInAsync("LIZZ", Array.Empty<string>());
+        Assert.Equal(0, await _db.SpecialAreas.CountAsync());
+    }
+
+    [Fact]
     public async Task Failed_acc_does_not_prune_its_areas()
     {
         await _repo.ImportSpecialAreasAsync(new[] { Area("1") });

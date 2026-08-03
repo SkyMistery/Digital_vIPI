@@ -111,9 +111,9 @@
                     }
                     else if (Editing)
                     {
-                        <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(areaId)">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span> ✕</button>
+                        <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(areaId)">✓ <b>@name</b> <span class="muted">@pk?.CentersText</span> ✕</button>
                     }
-                    else { <span class="sp-item on">✓ <b>@name</b> <span class="muted">@pk?.CenterId</span></span> }
+                    else { <span class="sp-item on">✓ <b>@name</b> <span class="muted">@pk?.CentersText</span></span> }
                 }
             </div>
         }
@@ -129,7 +129,7 @@
                     <option value="">@L["Acc_AllAccs"]</option>
                     @foreach (var accCode in OtherAccCodes())
                     {
-                        var n = OtherPicks.Count(p => string.Equals(p.CenterId, accCode, StringComparison.OrdinalIgnoreCase));
+                        var n = OtherPicks.Count(p => p.Centers.Contains(accCode, StringComparer.OrdinalIgnoreCase));
                         <option value="@accCode">@accCode (@n)</option>
                     }
                 </select>
@@ -149,7 +149,7 @@
                     {
                         var pick = p;
                         <button type="button" class="sp-item" @onclick="() => ToggleExtraArea(pick.IvaoId)">
-                            <b>@pick.Name</b> <span class="muted">@pick.CenterId</span>
+                            <b>@pick.Name</b> <span class="muted">@pick.CentersText</span>
                         </button>
                     }
                 </div>
@@ -190,18 +190,20 @@
     // Filtro comune ai due picker: testo su nome/tipo/ACC (i tre modi in cui uno cerca un'area) + ente opzionale.
     private static bool Matches(SpecialAreaPick p, string? search, string? accCode)
     {
-        if (!string.IsNullOrWhiteSpace(accCode) && !string.Equals(p.CenterId, accCode, StringComparison.OrdinalIgnoreCase))
+        // Un'area può essere elencata da più enti (es. una R nazionale è dell'ACC civile e del militare): basta
+        // che uno combaci col filtro.
+        if (!string.IsNullOrWhiteSpace(accCode) && !p.Centers.Contains(accCode, StringComparer.OrdinalIgnoreCase))
             return false;
         if (string.IsNullOrWhiteSpace(search)) return true;
         var s = search.Trim();
         return p.Name.Contains(s, StringComparison.OrdinalIgnoreCase)
                || (p.Type ?? "").Contains(s, StringComparison.OrdinalIgnoreCase)
-               || p.CenterId.Contains(s, StringComparison.OrdinalIgnoreCase);
+               || p.Centers.Any(c => c.Contains(s, StringComparison.OrdinalIgnoreCase));
     }
 
     // ACC presenti fra le aree extra, col loro conteggio nella tendina: dice subito dove c'è qualcosa da pescare.
     private IEnumerable<string> OtherAccCodes() =>
-        OtherPicks.Select(p => p.CenterId).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+        OtherPicks.SelectMany(p => p.Centers).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
 
     private string CountHint(int total) => total == 0
         ? L["Acc_NoAreaFound"].Value

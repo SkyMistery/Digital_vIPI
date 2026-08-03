@@ -44,6 +44,7 @@ public class VipiDbContext : DbContext
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
+    public DbSet<SpecialAreaCenter> SpecialAreaCenters => Set<SpecialAreaCenter>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
@@ -309,11 +310,20 @@ public class VipiDbContext : DbContext
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
         });
 
-        // --- Aree speciali/regolamentate importate dalla sorgente, legate all'ACC via Acc.Code. ---
+        // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti
+        //     (la sorgente espone la stessa area sotto più centri): vive in SpecialAreaCenters. ---
         b.Entity<SpecialArea>(e =>
         {
             e.HasIndex(x => x.IvaoId).IsUnique();             // chiave naturale (reference update)
+        });
+
+        b.Entity<SpecialAreaCenter>(e =>
+        {
+            e.HasKey(x => new { x.IvaoId, x.CenterId });
             e.HasIndex(x => x.CenterId);
+            e.HasOne(x => x.Area).WithMany(a => a.Centers)
+                .HasForeignKey(x => x.IvaoId).HasPrincipalKey(a => a.IvaoId)
+                .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Acc).WithMany()
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
                 .OnDelete(DeleteBehavior.Cascade);

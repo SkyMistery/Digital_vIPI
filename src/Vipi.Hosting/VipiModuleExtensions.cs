@@ -272,6 +272,13 @@ public static class VipiModuleExtensions
         if (hidden > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
+
+        // Aree regolamentate: appartenenza agli ACC dalla vecchia colonna singola alla tabella dei legami.
+        var areas = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISpecialAreaMaintenance>();
+        var links = areas.BackfillAreaCentersAsync().GetAwaiter().GetResult();
+        if (links > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Ricostruiti {Count} legami area regolamentata→ACC dalla colonna storica.", links);
         return host;
     }
 

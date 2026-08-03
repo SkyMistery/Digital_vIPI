@@ -384,16 +384,22 @@ public class AirportFrequencyLink
 // =========================================================================================
 
 /// <summary>
-/// Area speciale/regolamentata importata dalla sorgente (IVAO), legata a un ACC via <see cref="CenterId"/>.
-/// <see cref="IvaoId"/> è la chiave naturale (reference per gli update). La shape (<see cref="RegionMapPolygon"/>)
-/// è il JSON grezzo dal dettaglio: proiettabile con AorPolygonProjector.
+/// Area speciale/regolamentata importata dalla sorgente (IVAO). <see cref="IvaoId"/> è la chiave naturale
+/// (reference per gli update). La shape (<see cref="RegionMapPolygon"/>) è il JSON grezzo dal dettaglio:
+/// proiettabile con AorPolygonProjector.
+/// <para>
+/// L'appartenenza agli ACC vive in <see cref="Centers"/>, non qui: la sorgente espone la stessa area sotto PIÙ
+/// centri (es. la R49 «Zita» è di LIRR e del militare LIZZ) e con un solo <c>CenterId</c> l'ultimo import in ordine
+/// alfabetico se la portava via agli altri, facendola sparire dalle loro «aree proprie».
+/// </para>
 /// </summary>
 public class SpecialArea
 {
     public int Id { get; set; }
     public string IvaoId { get; set; } = default!;           // univoco, id IVAO (reference update)
-    public string CenterId { get; set; } = default!;         // FK → Acc.Code
-    public Acc? Acc { get; set; }
+
+    /// <summary>ACC che la elencano (uno o più). Vuoto = nessuno la elenca più: l'import la cancella.</summary>
+    public ICollection<SpecialAreaCenter> Centers { get; set; } = new List<SpecialAreaCenter>();
 
     public string? Type { get; set; }                        // es. "R"
     public string Name { get; set; } = default!;             // es. "LI R14A - S.Severa"
@@ -405,4 +411,18 @@ public class SpecialArea
 
     public string? RegionMapPolygon { get; set; }            // shape (JSON grezzo), da /v2/specialAreas/{id}
     public DateTime? ImportedAtUtc { get; set; }
+}
+
+/// <summary>
+/// Legame area↔ACC: «questo centro elenca quest'area». Chiave composta (<see cref="IvaoId"/>, <see cref="CenterId"/>);
+/// una riga per ogni elenco in cui l'area compare. L'import fa upsert del legame per l'ACC che sta interrogando e
+/// pota SOLO i legami di quell'ACC: un centro che smette di elencarla non la toglie agli altri.
+/// </summary>
+public class SpecialAreaCenter
+{
+    public string IvaoId { get; set; } = default!;           // FK → SpecialArea.IvaoId (chiave alternata)
+    public SpecialArea? Area { get; set; }
+    public string CenterId { get; set; } = default!;         // FK → Acc.Code
+    public Acc? Acc { get; set; }
+    public DateTime? ImportedAtUtc { get; set; }             // ultimo import che ha visto l'area in questo elenco
 }

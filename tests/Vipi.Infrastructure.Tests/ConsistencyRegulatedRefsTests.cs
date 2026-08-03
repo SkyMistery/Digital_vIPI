@@ -61,7 +61,11 @@ public class ConsistencyRegulatedRefsTests : IAsyncLifetime
     {
         _db.Accs.Add(new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI" });
         await _db.SaveChangesAsync();
-        _db.SpecialAreas.Add(new SpecialArea { IvaoId = "8963", CenterId = "LIRR", Name = "LI R14A" });
+        _db.SpecialAreas.Add(new SpecialArea
+        {
+            IvaoId = "8963", Name = "LI R14A",
+            Centers = new List<SpecialAreaCenter> { new() { IvaoId = "8963", CenterId = "LIRR" } },
+        });
         await _db.SaveChangesAsync();
 
         var d = await _repo.LoadAsync();
