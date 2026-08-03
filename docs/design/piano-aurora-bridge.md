@@ -469,7 +469,10 @@ I sorvoli di LIBB hanno vincolo (`AtOrBelow`, `Exact`) e stato verticale, ma **n
 «a o sotto … cosa?». Il tool si comporta correttamente (candidato mostrato, `writable: false`, avviso
 esplicito), ma finché quei livelli non vengono inseriti il bridge non ha nulla da scrivere sui sorvoli.
 È una lacuna redazionale da colmare nell'editor, non un difetto del bridge.
-Comportamento confermato dal committente: **se il sorvolo è senza quota, non si scrive nulla.**
+
+> **Chiuso (3 ago 2026).** Il committente conferma: **se il sorvolo è senza quota, il tool non scrive nulla**,
+> e colmare quei livelli **non è compito del bridge**. Nessuna euristica per indovinare il livello mancante:
+> il comportamento corretto è quello attuale — candidato mostrato, `writable: false`, motivo scritto.
 
 ---
 
@@ -569,7 +572,12 @@ mai eccezioni: un tool in cabina non deve morire perché il disco è pieno.
 `tools/publish-aurora-bridge.ps1` → eseguibile **autonomo, file unico**: `artifacts/bridge/win-x64/VipiAuroraBridge.exe`,
 **73,7 MB**, avviato e verificato. Autonomo di proposito: gira sul PC di un controllore, e pretendere che
 installi prima .NET è un costo che si paga in supporto. Lo script accetta `-Runtime osx-arm64`, **non provato**
-da qui (manca la macchina): il bundle `.app` di macOS resta da fare quando servirà davvero.
+da qui (manca la macchina).
+
+> **Deciso (3 ago 2026):** il pacchetto macOS (bundle `.app` e prova sul campo) lo farà **chi ha una macchina
+> Apple**. Non è un lavoro da fare al buio da qui: senza poter avviare il risultato, un `.app` costruito a
+> tentoni è solo un file che nessuno ha visto funzionare. Resta aperta §10.5 (permessi accessibilità per la
+> scorciatoia globale), che si risolve sulla stessa macchina.
 
 ### 15.5 Guida utente
 
