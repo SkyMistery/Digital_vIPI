@@ -1,6 +1,6 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 1 agosto 2026 (integrazione nel sito Ivao.It — branch `integrazione/ivao-it`, tag `embed-v1.0`)
+**Ultimo aggiornamento:** 3 agosto 2026 (aree regolamentate: policy di import, shape incrementale, dangling — branch `feature/aree-speciali-hardening`)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## ▶️ DA FARE — prossimo passo, già istruito
@@ -54,6 +54,24 @@
 >   (`VipiModuleExtensions.cs:201`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
 >   «SQLite». Con MySQL configurato tenterebbe di applicare le 65 migration SQLite-flavored. Da sistemare
 >   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
+
+> **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling.** Branch
+> `feature/aree-speciali-hardening`, 3 commit, suite **940 verde** (+13), build 0 warning. Carta completa:
+> `docs/feature/2026-08-03-aree-regolamentate-hardening.md`. Le cose da sapere subito:
+> - ⚠️ **`ImportSids` può essere spento in produzione senza che nessuno l'abbia deciso.** La migration dell'8 lug
+>   aggiunse la colonna con `defaultValue: false`, e su Postgres `PostgresSchemaReconciler` backfillava a `false`
+>   ogni bool NOT NULL nuovo: su un DB dove la riga `ImportPolicies` esisteva già, la categoria è nata spenta.
+>   **Da guardare in `/vsop/admin/sorgenti`.** Non è ribaltabile da codice: `false` è indistinguibile da una scelta
+>   dell'admin. Per il futuro il default sta nel modello (`HasDefaultValue`) e il reconciler lo legge.
+> - **Le aree regolamentate ora hanno un interruttore** (categoria `SpecialAreas`): escluderle **congela** quelle in
+>   archivio — l'import non le aggiorna e soprattutto non le pota. Gate in `SpecialAreaImportUseCase`, non
+>   nell'hosted service, sennò il bottone di `/vsop/admin/accs` lo scavalca.
+> - **L'import non riscarica più la shape** delle aree che ce l'hanno già (rinfresco a 30 giorni): era una chiamata
+>   per area per ACC a ogni giro, solo per rileggere lo stesso poligono.
+> - **Le aree selezionate in un documento possono sparire in silenzio**: gli id sono soft-ref senza FK e il prune li
+>   può cancellare. Ora la diagnostica le segnala («Area regolamentata dangling», sola versione di lavoro) e
+>   l'editor le marca «⚠ non più disponibile». Il prune resta libero di potare: si rileva, non si vincola.
+> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import) ed editor con un'area rimossa a mano.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.

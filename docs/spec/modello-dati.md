@@ -619,3 +619,21 @@ Migrazioni: `AddTransferPointCondition` (impianto iniziale, poi rimosso `Conditi
 Frase (`CoordinationSentenceComposer`): compone la clausola di ciascuna dimensione presente e le unisce con `Condition.Join` («e»/EN «and»). Pista+area insieme usano la forma dedicata `Condition.RunwayAndArea` («con pista X in uso e Y attiva»); poi eventuale «e in condizione Z». Template IT/EN.
 
 Propagazione: `TransferPointRow` (+ prop calcolata `ConditionDisplay` = «pista · area · personalizzata», in `TransferConditionText`)/`TransferPointInput` + `EfTransferRepository` (ogni campo trim→null; il ref pista è tenuto solo se c'è una pista); `AppCoordRow.ConditionLabel` = `ConditionDisplay` (colonna nelle sezioni coordinamento ACC/APP/vLOA + pill Ridotta). Editor `AdminTrasferimentiPage`: **tre colonne indipendenti** — Pista = multi-select delle **piste reali** (`AirportRunways`, non le config) del flusso; Area = **picker con ricerca a digitazione** (`SpecialArea` dell'ACC); Personalizzata = testo libero. Nessuna validazione (tutte opzionali).
+
+### 9.21 `ImportPolicy` — categoria **Aree regolamentate** (sessione 3 ago 2026)
+
+`enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas }`; `ImportPolicy` guadagna **`ImportSpecialAreas`** (bool, default `true`). Migrazione **`AddImportPolicySpecialAreas`**, che dà il **default `true` anche a `ImportSids`** (prima la colonna nasceva `false`: su un DB con la riga di policy già creata la categoria si spegneva da sola).
+
+- Semantica particolare: le aree regolamentate **non sono editabili** da nessuna pagina, quindi `false` non vuol dire «manuali» ma **congelate** — l'import non le aggiorna e, soprattutto, non le **pota**. Serve a fermare la sorgente quando restituisce dati sbagliati.
+- **Enforcement** in `SpecialAreaImportUseCase.RunAsync` (corpo condiviso auto/manual): esce prima della fetch e prima del prune. Non nell'hosted service, che coprirebbe solo il giro automatico.
+- I **default dei flag stanno anche nel modello** (`VipiDbContext`, `HasDefaultValue(true)`) e non solo nella migration: su Postgres lo schema si allinea con `PostgresSchemaReconciler`, che ora legge il default dichiarato (`BackfillLiteral`) invece di backfillare ogni bool NOT NULL nuovo a `false`.
+
+Supera §8.3 e §9.6 sull'elenco delle categorie.
+
+### 9.22 Aree speciali — import incrementale della shape + riferimenti dangling (sessione 3 ago 2026)
+
+Nessun cambio di schema; due comportamenti sui dati di `SpecialArea`.
+
+- **Dettaglio saltato quando la shape c'è già.** L'elenco paginato `/v2/centers/{ACC}/specialAreas` porta tutti i metadati; `/v2/specialAreas/{id}` serve solo per `RegionMapPolygon`. `IAccDirectory.GetSpecialAreasAsync` riceve ora `skipDetailIds` e per quegli id non chiama il dettaglio (shape `null` → l'upsert preserva quella salvata, comportamento già esistente). Il set arriva da `IAccAdminRepository.ListAreasWithFreshShapeAsync` (shape presente **e** `ImportedAtUtc` entro 30 giorni): il client resta senza dipendenze dalla persistenza.
+- **Riferimenti dangling.** La selezione di aree di un documento (`RegulatedSelection` nel `BodyJson` della sezione `regulated`) è un **soft-ref per IvaoId, senza FK**: il prune per-ACC può cancellare un'area ancora citata. Nuovo check di consistenza **«Area regolamentata dangling»** (Warning) su `ConsistencyDataset.RegulatedRefs`/`SpecialAreaIds`, letti dalla sola **versione di lavoro** di ogni documento (bozza > pubblicata corrente > ultima). L'editor marca le aree non più risolvibili con «⚠ non più disponibile».
+- **`RegulatedSelectionJson`** è l'unico lettore di quel `BodyJson` (formato nativo + array legacy `["id",…]`), condiviso da `AccDocumentAssembler`, `AppDocumentService` e diagnostica.

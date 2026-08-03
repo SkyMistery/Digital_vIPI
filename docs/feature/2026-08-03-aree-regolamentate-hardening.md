@@ -1,0 +1,141 @@
+# Feature — Aree regolamentate: interruttore, import incrementale, riferimenti dangling
+
+Data: 2026-08-03 · Stato: **FATTO** (suite 940 verde) — verifica live da fare · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
+Contesto: [refactor 02](../refactor/02-import-acc-e-settori.md) (il use-case di import), [ADR-0006](../adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) (policy opt-out).
+
+## Obiettivo
+
+Un'analisi del percorso «aree speciali» (sorgente → DB → documento → viewer) ha lasciato tre punti aperti. Sono
+indipendenti fra loro e si chiudono insieme perché toccano lo stesso pezzo di dominio.
+
+1. **Nessun interruttore.** Le aree regolamentate erano l'unica categoria di dati di sorgente fuori dalla
+   `ImportPolicy`: si importavano sempre. Un giro con dati sbagliati **pota** le righe buone (il prune per-ACC
+   cancella ciò che la sorgente non espone più) e l'admin non aveva modo di fermarlo.
+2. **N+1 a ogni giro.** Per ogni area di ogni ACC si scaricava il dettaglio, solo per rileggere una shape identica.
+3. **Riferimenti che spariscono in silenzio.** La selezione salvata in un documento cita le aree per `IvaoId` senza
+   FK. Se il prune ne cancella una, `SpecialAreaProjection` la salta (`continue`) e l'area sparisce dal documento:
+   nessun errore, nessuna segnalazione, e chi apre l'editor vede solo un id nudo.
+
+Fuori scopo, deciso: il campo **`SpecialArea.Range`** è importato e mai letto. Lasciato com'è — toglierlo è una
+rimozione di colonna, con la sua propagazione; qui si stava aggiungendo, non potando.
+
+## Pre-flight — 4 domande
+
+**1. Modello.** Nessuna entità nuova. Una colonna sulla `ImportPolicy` che già esiste ed è il posto unico della
+provenienza dati (estendere, non affiancare). Il legame documento↔area resta dov'è — dentro il `BodyJson` della
+sezione `regulated`, non una tabella di join: sopravvive agli snapshot pubblicati, che è il motivo per cui i
+soft-ref del progetto sono soft (audit 22 lug, Fase 2).
+
+**2. Dispatch.** Nessuno `switch` nuovo. Al contrario: i lettori del `BodyJson` `regulated` erano **due** con
+comportamenti diversi (l'assembler ACC leggeva anche l'array legacy, l'APP no) e diventano uno,
+`RegulatedSelectionJson`.
+
+**3. Ingressi + verifica.** Ingressi già esistenti: `/vsop/admin/sorgenti` per l'interruttore,
+`/vsop/admin/diagnostica` (e health check) per il nuovo rilievo, l'editor del documento per le aree sparite.
+Nessun catch-22: non si crea niente di nuovo da raggiungere. Verifica: test sui casi elencati sotto + giro reale
+sull'editor e sulla pagina sorgenti.
+
+**4. Propagazione.** `IAccDirectory.GetSpecialAreasAsync` cambia firma (parametro `skipDetailIds`): aggiornati
+client reale e i tre fake nei test. `AccDocumentAssembler.ParseRegulated` **sparisce**, sostituito dal lettore
+condiviso — nessun commento o `<see cref>` lo cita più. Doc autorevoli: `spec/modello-dati.md` §9.21-9.22,
+ADR-0006 (elenco categorie), `rounds.md`.
+
+## Design
+
+### 1. Interruttore — categoria `SpecialAreas` nella policy
+
+`ImportCategory.SpecialAreas` + `ImportPolicy.ImportSpecialAreas` (default `true`, opt-out come le altre).
+
+Il gate sta in **`SpecialAreaImportUseCase.RunAsync`**, non nell'hosted service: quel use-case è il corpo condiviso
+fra job automatico e bottone «Importa da sorgente» di `/vsop/admin/accs` (decisione D2 del doc refactor 02, «manual
+= auto, stesso stato DB»). Nell'hosted service il bottone lo scavalcherebbe.
+
+Esce **prima della fetch e prima del prune** — è il punto che conta: categoria esclusa significa *congelamento*,
+non «importa a vuoto e cancella tutto».
+
+Sfumatura di semantica, scritta anche nel commento dell'entità: per le altre categorie `false` = «lo gestisco a
+mano», ma le aree regolamentate non sono editabili da nessuna pagina. Qui `false` = «tieni quelle che hai». La
+pagina lo dice a video: provenienza «❄ Congelate: restano quelle già in archivio» invece di «✎ Manuale».
+
+#### La trappola del default (trovata strada facendo)
+
+`dotnet ef migrations add` genera `defaultValue: false` per un bool nuovo. Per un flag **opt-out** è il valore
+sbagliato: su un DB dove la riga di policy esiste già, la categoria nasce **spenta**. E su Postgres non basta
+correggere la migration — lo schema di Neon si allinea con `PostgresSchemaReconciler` (EnsureCreated, ADR-0007),
+che aggiungeva ogni colonna NOT NULL con un default neutro per tipo store, cioè `false`.
+
+Quindi il default sta **nel modello** (`HasDefaultValue(true)`) e il reconciler lo legge (`BackfillLiteral`) invece
+di indovinarlo. Lo stesso difetto era già in casa: **`ImportSids`**, aggiunto l'8 luglio con `defaultValue: false`.
+La migration nuova gli rimette il default corretto per il futuro.
+
+> ⚠ **Da controllare in produzione**: se la riga `ImportPolicies` esisteva prima dell'8 luglio, `ImportSids` può
+> essere rimasto a `false` — cioè l'import SID è fermo da allora. Non lo si può ribaltare da codice: `false` è
+> indistinguibile da una scelta deliberata dell'admin. Si guarda in `/vsop/admin/sorgenti`.
+
+### 2. Import incrementale della shape
+
+L'elenco paginato porta già tutti i metadati (nome, tipo, quote, attivazione). Il dettaglio serve **solo** per
+`regionMapPolygon`, che è la parte più stabile del dato: la geometria di un'area cambia con l'AIP, non col giro
+giornaliero.
+
+```
+GetSpecialAreasAsync(accIcao, skipDetailIds, ct)
+        ▲
+        └── ListAreasWithFreshShapeAsync(acc, now-30gg)   // shape presente E importata di recente
+```
+
+Per gli id in `skipDetailIds` il client non chiama il dettaglio e restituisce shape `null`; l'upsert
+(`if (a.RegionMapPolygon is not null)`) la legge come «tieni quella che hai» — comportamento che c'era già, qui
+diventa il caso normale. Il client **non conosce il DB**: il set glielo passa il use-case (invariante #6, porte).
+
+Un'area **senza** shape resta richiesta a ogni giro finché la shape non arriva: è il caso che si vuole risolvere,
+non uno da mettere a riposo.
+
+Scartato: `ETag`/`If-None-Match`. `IvaoHttp.GetStringAsync` butta via la response, servirebbe uno store per URL, e
+non è dato che l'API IVAO emetta quegli header — costo certo, beneficio da verificare.
+
+### 3. Riferimenti dangling — rilevare, non vincolare
+
+Due segnalazioni, nessun vincolo nuovo.
+
+**Diagnostica.** Nuovo rilievo «Area regolamentata dangling» (Warning) in `ConsistencyReportService.Analyze`, che
+resta una **funzione pura**: il repository carica il JSON grezzo (`RegulatedRefRow`) e il parse avviene
+nell'analisi. Il dataset porta anche `SpecialAreaIds`, gli id realmente esistenti.
+
+Si guarda la sola **versione di lavoro** di ogni documento (bozza più recente > pubblicata corrente > ultima): le
+versioni storiche sono congelate per definizione, segnalarle sarebbe rumore su qualcosa che nessuno può correggere.
+
+Le aree del proprio ACC in **automatico** non possono essere dangling: lì non ci sono id salvati, c'è la lista viva.
+
+**Editor.** `RegulatedAreasEditor` marca «⚠ non più disponibile» le aree che il picker non risolve più, con la ✕
+per toglierle. Prima mostrava l'id nudo come se fosse un nome.
+
+**Nessun guard nel prune**, deliberatamente: se l'area non esiste più a monte, tenerla in DB perché un documento la
+nomina significa servire dato morto. La linea del progetto sui soft-ref è *rileva, non vincolare*
+(`ConsistencyReportService`, commento di testa).
+
+## Passi
+
+1. Policy: enum + colonna + migration + store + gate nel use-case + riga in `/vsop/admin/sorgenti` (+ it/en).
+   Default nel modello e `BackfillLiteral` nel reconciler.
+2. Import incrementale: firma della porta, client, metodo di repository, use-case; fake dei test allineati.
+3. Dangling: `RegulatedSelectionJson` condiviso, dataset + `Analyze`, caricamento EF della versione di lavoro,
+   marcatura nell'editor.
+4. Doc: questa carta, `spec/modello-dati.md` §9.21-9.22, ADR-0006, `rounds.md`, memoria.
+
+## Casi che i test fissano
+
+- policy di default → le aree si importano (`Default_policy_imports_areas`);
+- categoria esclusa → **zero fetch** e l'area già in archivio **resta**, benché la sorgente non la esponga più;
+- ACC la cui fetch fallisce → nessun prune di quell'ACC (regressione già coperta, ri-fissata qui);
+- secondo giro con shape fresche → il dettaglio è saltato per tutte, e la shape salvata sopravvive;
+- area **senza** shape → non viene saltata;
+- id selezionato che non sta più nei cataloghi → un rilievo con quell'id, e senza quelli buoni;
+- selezione in automatico → nessun rilievo, anche a catalogo vuoto;
+- selezione in **formato array legacy** → letta come manuale (prima l'APP la leggeva vuota);
+- documento con bozza e versione pubblicata → si legge la **bozza**.
+
+## Non-obiettivi
+
+Rimozione della colonna `Range`; parallelismo sulle chiamate di dettaglio (da valutare solo se il primo import a
+freddo risulta lento); auto-correzione dei riferimenti dangling; policy per-ACC invece che globale.

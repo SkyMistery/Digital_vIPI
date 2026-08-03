@@ -34,6 +34,14 @@ Una entità `ImportPolicy` (riga singola, default tutto importato) decide, per c
 
 > 📝 **Aggiornamento round 16.** La categoria **`Atis`** è stata **rimossa**. Con la semplificazione del modello la **frequenza è un attributo del settore** (`Sector.DefaultFrequency`, una per settore) e l'ATIS è un `AirportSector` come gli altri (non più `Airport.AtisFrequency`, eliminato): la sua frequenza ricade quindi nella categoria `Sectors`. Migrazione `SimplifyDataModel`. L'enum attuale è `ImportCategory { TransitionAltitude, Runways, Sectors }`.
 
+> 📝 **Aggiornamento 3 ago 2026 — categoria `SpecialAreas`.** Aggiunta la categoria per le **aree regolamentate**
+> (`ImportPolicy.ImportSpecialAreas`, default true): erano l'unico dato di sorgente senza interruttore.
+> `ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas }`.
+> Sfumatura rispetto a D4: le aree **non sono editabili** da nessuna UI, quindi `false` non significa «manuale» ma
+> **congelata** — l'import non le aggiorna e non le pota. Enforcement in `SpecialAreaImportUseCase` (corpo condiviso
+> auto/manual), prima della fetch e prima del prune. Vedi `../feature/2026-08-03-aree-regolamentate-hardening.md`
+> e SPEC §9.21.
+
 > 🪵 **Aggiornamento round 20 — fonte unica.** Coerente con D2: i **cataloghi importati** (`AccSector`/`AirportSector`) sono la **fonte autoritativa unica** dei settori. I `Sector` operativi sono una **proiezione** rigenerata dai cataloghi (`ISectorProjectionService.SyncFromCatalogsAsync`, idempotente, invocata dopo ogni import e modifica gerarchia): upsert per callsign che preserva i legami documento, deriva tipo/kind/frequenza/`ParentSectorId` (dal `ParentCallsign` del catalogo) e disattiva i settori spariti/nascosti (`Sector.IsProjected`). I settori non si creano più a mano; resta una sola fonte (i cataloghi) da cui tutto deriva. SPEC §9.12.
 
 ### D5 — Enforcement a difesa in profondità

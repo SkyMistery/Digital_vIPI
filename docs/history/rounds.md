@@ -1118,3 +1118,23 @@ rifinitura), branch `feature/aurora-bridge`, **suite 819 → 930 verde**.
 
 Superficie nuova: `POST /vsop/api/v1/transfers/resolve` (anonimo, read-only, tetto per IP) ·
 [guida utente](../guide/aurora-bridge.md) · [contratto API](../reference/api-aurora-bridge.md).
+
+## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 940 test)
+Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
+([carta](../feature/2026-08-03-aree-regolamentate-hardening.md), SPEC §9.21-9.22).
+- **Categoria di import `SpecialAreas`** (`ImportPolicy.ImportSpecialAreas`, default true): erano l'unico dato di
+  sorgente senza interruttore, e il prune per-ACC cancellava le righe buone senza che l'admin potesse fermarlo. Gate
+  in `SpecialAreaImportUseCase` (corpo condiviso auto/manual), **prima della fetch e del prune** → esclusa =
+  congelata. Riga in `/vsop/admin/sorgenti`.
+- **Trappola del default trovata strada facendo**: `migrations add` genera `defaultValue: false` per un bool nuovo, e
+  `PostgresSchemaReconciler` backfillava a `false` ogni colonna NOT NULL — per un flag opt-out significa spegnere la
+  categoria in silenzio sul DB già popolato. Ora il default sta nel modello (`HasDefaultValue`) e il reconciler lo
+  legge (`BackfillLiteral`). ⚠ **`ImportSids` ne era già vittima** (8 lug): da controllare in produzione, non è
+  ribaltabile da codice perché `false` è indistinguibile da una scelta dell'admin.
+- **Import incrementale della shape**: il dettaglio `/v2/specialAreas/{id}` si salta per le aree con shape già in
+  archivio e recente (30 gg) — `skipDetailIds` dal DB via use-case, il client resta senza persistenza. Da N+1 per
+  ACC a una chiamata per pagina.
+- **Riferimenti dangling**: la selezione di aree di un documento cita gli `IvaoId` senza FK; il prune poteva
+  cancellarne una e il viewer la saltava in silenzio. Nuovo rilievo «Area regolamentata dangling» in diagnostica
+  (sola versione di lavoro) + «⚠ non più disponibile» nell'editor. Nessun guard nel prune: si rileva, non si vincola.
+- Estratto `RegulatedSelectionJson`, unico lettore del `BodyJson` `regulated` (l'APP non leggeva l'array legacy).
