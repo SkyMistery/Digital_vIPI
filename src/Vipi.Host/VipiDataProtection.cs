@@ -26,7 +26,15 @@ public static class VipiDataProtection
         var connectionString = builder.Configuration.GetConnectionString("Vipi");
         if (string.IsNullOrWhiteSpace(connectionString)) return false;
 
-        builder.Services.AddDbContext<DataProtectionKeysDbContext>(o => o.UseNpgsql(connectionString));
+        // Stessa resilienza di VipiDbContext (vedi DependencyInjection): Neon sospende il compute e chiude le
+        // connessioni idle, quindi la prima query dopo l'inattività fallisce "transient". Senza retry qui, un
+        // transient sul key-ring si propaga a tutto ciò che passa da Data Protection — antiforgery, cookie di
+        // auth e lo state OIDC — e il login muore con «Correlation failed» invece di riprovare. Copre anche
+        // UseVipiDataProtection: ExecuteSqlRaw passa dall'execution strategy, quindi il CREATE TABLE all'avvio
+        // non fa più fallire il boot se Neon si sta risvegliando.
+        builder.Services.AddDbContext<DataProtectionKeysDbContext>(o => o
+            .UseNpgsql(connectionString, npg => npg
+                .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
 
         // SetApplicationName fissa il discriminatore di scopo: instanze/redeploy diversi condividono lo stesso
         // key-ring (senza, ogni deploy userebbe uno scopo diverso e i vecchi token resterebbero comunque invalidi).
