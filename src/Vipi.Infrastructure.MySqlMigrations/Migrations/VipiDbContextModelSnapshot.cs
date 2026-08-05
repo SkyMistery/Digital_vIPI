@@ -923,7 +923,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<string>("RenderMode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("longtext")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
                         .HasDefaultValue("Frozen")
                         .UseCollation("utf8mb4_0900_as_cs");
 

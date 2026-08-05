@@ -73,6 +73,11 @@ public static class MySqlStringLengths
             // il motivo per cui il test guarda il tipo provider e non quello CLR.
             [("Document", "Type")] = 32,                   // misurato 4 (`Vipi`)
             [("Document", "Status")] = 32,                 // misurato 9 (`Published`)
+            // Non è indicizzata: sta qui perché ha un DEFAULT. In MySQL una colonna BLOB/TEXT non può
+            // averlo — «BLOB, TEXT, GEOMETRY or JSON column 'RenderMode' can't have a default value» —
+            // quindi senza lunghezza non diventa varchar e la migrazione si ferma. Scoperto applicando
+            // le migrazioni a un MySQL vero, non generando la DDL.
+            [("DocumentSection", "RenderMode")] = 32,
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
             [("ImportState", "Category")] = 32,            // chiave primaria; misurato 13 (`AirportSector`)

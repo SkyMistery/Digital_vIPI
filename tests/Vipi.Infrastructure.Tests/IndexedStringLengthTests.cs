@@ -8,12 +8,19 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Presidia la copertura di <see cref="MySqlStringLengths"/>: ogni proprietà stringa che partecipa a un
-/// indice, a una chiave o a una foreign key deve avere una lunghezza dichiarata, e non oltre il tetto
-/// indicizzabile di InnoDB.
+/// indice, a una chiave o a una foreign key — <b>o che ha un valore di default</b> — deve avere una
+/// lunghezza dichiarata, e non oltre il tetto indicizzabile di InnoDB.
 ///
-/// <para>Il rischio vero non è oggi — è la colonna indicizzata che qualcuno aggiungerà fra tre mesi senza
-/// sapere che esiste un provider a cui la lunghezza serve. Su MySQL quella colonna nasce <c>longtext</c>
-/// e fa fallire il <c>CREATE TABLE</c>, ma il fallimento arriverebbe solo al deploy. Questo test lo
+/// <para>Le due condizioni hanno cause diverse e la seconda è meno intuitiva. Una stringa senza lunghezza
+/// diventa <c>longtext</c>, e <c>longtext</c> non si può <b>indicizzare</b> (limite di 3072 byte) ma
+/// nemmeno gli si può dare un <b>default</b>: MySQL risponde «BLOB, TEXT, GEOMETRY or JSON column X can't
+/// have a default value» e la migrazione si ferma. Il caso concreto è <c>DocumentSection.RenderMode</c>,
+/// un enum salvato come stringa con <c>HasDefaultValue(Frozen)</c> che non è indicizzato: la prima
+/// versione di questo test non lo copriva, e infatti è saltato fuori applicando le migrazioni a un MySQL
+/// vero, non generando la DDL.</para>
+///
+/// <para>Il rischio vero non è oggi — è la colonna che qualcuno aggiungerà fra tre mesi senza sapere che
+/// esiste un provider a cui la lunghezza serve. Quel fallimento arriverebbe al deploy; questo test lo
 /// anticipa in CI su net10, cioè dove il ramo MySQL non viene nemmeno costruito.</para>
 ///
 /// <para>Il modello si costruisce con SQLite perché le lunghezze qui non si leggono dai metadati EF (sono
@@ -144,6 +151,17 @@ public class IndexedStringLengthTests
             // FK: MySQL crea da sé un indice sulla colonna dipendente, quindi vale la stessa regola.
             foreach (var fk in et.GetForeignKeys())
                 Aggiungi(fk.Properties, "foreign key");
+
+            // Colonne con un DEFAULT: non è una questione di indici ma di tipo. In MySQL una colonna
+            // BLOB/TEXT non può avere un valore di default — «BLOB, TEXT, GEOMETRY or JSON column X can't
+            // have a default value» — e una stringa senza lunghezza è longtext. Quindi anche queste vanno
+            // dimensionate, o la migrazione si ferma al CREATE TABLE.
+            //
+            // Si guardano le ANNOTAZIONI e non GetDefaultValue(): quest'ultimo risponde anche per gli enum
+            // salvati come stringa, dove il sentinella è il valore zero convertito, e segnalerebbe 21
+            // colonne che nessuno ha configurato e per cui EF non emette alcun DEFAULT nella DDL.
+            foreach (var p in et.GetProperties().Where(HaUnDefaultDichiarato))
+                Aggiungi([p], "valore di default");
         }
 
         return trovate.Values.OrderBy(c => c.Entity).ThenBy(c => c.Property).ToList();
@@ -154,6 +172,14 @@ public class IndexedStringLengthTests
     /// quindi sono colonne stringa indicizzate senza sembrarlo guardando il tipo CLR. È la trappola che il
     /// piano segnala per <c>Document.Type</c>/<c>Status</c>, <c>DocRelease.TargetType</c>, <c>EditorTask.Status</c>.
     /// </summary>
+    /// <summary>
+    /// Un default <b>dichiarato</b> da qualcuno (<c>HasDefaultValue</c> / <c>HasDefaultValueSql</c>), che è
+    /// l'unico che EF traduce in una clausola <c>DEFAULT</c> nella DDL.
+    /// </summary>
+    private static bool HaUnDefaultDichiarato(IProperty p) =>
+        p.FindAnnotation(RelationalAnnotationNames.DefaultValue) is not null ||
+        p.FindAnnotation(RelationalAnnotationNames.DefaultValueSql) is not null;
+
     private static bool EStringa(IProperty p)
     {
         if (p.GetProviderClrType() == typeof(string)) return true;

@@ -11,7 +11,7 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    [Migration("20260805190445_InitialCreate")]
+    [Migration("20260805194206_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -926,7 +926,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<string>("RenderMode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("longtext")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
                         .HasDefaultValue("Frozen")
                         .UseCollation("utf8mb4_0900_as_cs");
 

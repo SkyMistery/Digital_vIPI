@@ -847,7 +847,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     Order = table.Column<int>(type: "int", nullable: false),
                     Depth = table.Column<int>(type: "int", nullable: false),
                     SectionKey = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    RenderMode = table.Column<string>(type: "longtext", nullable: false, defaultValue: "Frozen", collation: "utf8mb4_0900_as_cs"),
+                    RenderMode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, defaultValue: "Frozen", collation: "utf8mb4_0900_as_cs"),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     BeforeParentBody = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
