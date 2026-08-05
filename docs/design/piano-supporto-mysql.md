@@ -436,6 +436,8 @@ tre tipi di documento, lock di editing (`EditResourceLock`, heartbeat 60s/TTL 3m
 | Rischio | Sintomo | Dove si vede |
 |---|---|---|
 | **Facet del modello che il provider non emette** | il modello è giusto, la DDL no — e i test sui metadati passano | già capitato con la collation (§S4). Verificare **sempre** sulla DDL generata |
+| **`dotnet ef migrations script --idempotent`** | genera `IF NOT EXISTS(...) BEGIN … END;`, che è **T-SQL**: MySQL lo rifiuta alla prima riga | non usarlo. Lo script buono è quello semplice, su database vuoto |
+| **`Migrate()` all'avvio** | `GET_LOCK('EFMigrationsLock',-1)` → se il server torna NULL, `InvalidCastException` prima ancora di migrare | dipende dal server: su MySQL 8.4.9 torna 1. Se torna NULL, quel server non è un MySQL 8 |
 | **Migrazioni MySQL indietro rispetto al modello** | colonna mancante a runtime in produzione | test di allineamento snapshot↔modello in `MySqlMigrationsTests` |
 | Collation case-insensitive non corretta | violazione di unique in import su dati legali; hash fusi | S4, test integrazione |
 | `longtext` indicizzato | `CREATE TABLE` fallisce | S1, subito al primo avvio |
