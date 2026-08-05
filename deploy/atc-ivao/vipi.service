@@ -1,0 +1,27 @@
+[Unit]
+Description=vIPI - istruzioni operative ATC IVAO Italia
+After=network.target mysql.service
+
+[Service]
+# La cartella scompattata dello zip. Deve contenere Vipi.Host (eseguibile) e appsettings.Production.json.
+WorkingDirectory=/opt/vipi
+ExecStart=/opt/vipi/Vipi.Host
+
+# Senza questo l'app NON legge appsettings.Production.json.
+Environment=ASPNETCORE_ENVIRONMENT=Production
+# Ascolta solo in locale: il TLS e il pubblico li gestisce nginx.
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+
+Restart=always
+RestartSec=10
+User=vipi
+Group=vipi
+
+# Il processo non ha motivo di scrivere fuori dalla propria cartella.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
