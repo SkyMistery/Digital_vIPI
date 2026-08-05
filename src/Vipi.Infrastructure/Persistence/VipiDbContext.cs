@@ -308,5 +308,11 @@ public class VipiDbContext : DbContext
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // Lunghezze delle colonne stringa indicizzate: solo su MySQL, dove senza di esse il CREATE TABLE
+        // fallisce (InnoDB non indicizza longtext). Su SQLite sarebbero ignorate, su Postgres sarebbero un
+        // cambio di tipo colonna che il reconciler non sa applicare. Vedi MySqlStringLengths.
+        if (Database.ProviderName?.Contains("MySql", StringComparison.OrdinalIgnoreCase) == true)
+            MySqlStringLengths.Apply(b);
     }
 }
