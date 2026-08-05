@@ -1,6 +1,6 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
-using MySql.EntityFrameworkCore.Metadata;
 
 #nullable disable
 
@@ -12,29 +12,21 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // ── Aggiunto a mano, e va rimesso se qualcuno rigenera questa migrazione. ───────────────────
-            // Deve stare PRIMA di ogni CreateTable: in MySQL una tabella senza charset esplicito eredita
-            // quello del database e una colonna quello della tabella, quindi questa riga decide la
-            // semantica dei confronti per tutto lo schema — comprese le tabelle delle migrazioni future.
-            //
-            // Non è ridondante con la AlterDatabase() qui sotto, che EF genera da sé: quella porta
-            // l'annotazione MySQL:Charset e il provider 10.0.9 la ignora, producendo ZERO statement SQL.
-            // Verificato leggendo lo script generato, non per ipotesi. Stessa sorte tocca alla collation
-            // dichiarata per colonna. I due tentativi falliti sono raccontati in MySqlCollation.
-            migrationBuilder.Sql(Vipi.Infrastructure.Persistence.MySqlCollation.AlterDatabaseSql);
-
             migrationBuilder.AlterDatabase()
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Accs",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Code = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    CountryPrefix = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Code = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CountryPrefix = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsMilitary = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsForeign = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -45,83 +37,105 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     table.PrimaryKey("PK_Accs", x => x.Id);
                     table.UniqueConstraint("AK_Accs_Code", x => x.Code);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AuditLogs",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    Action = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    EntityType = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    EntityId = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Action = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    EntityType = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    EntityId = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     TimestampUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    DetailsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    DetailsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AuditLogs", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "CoordinationPoints",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Ident = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Ident = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_CoordinationPoints", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DocReleases",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    TargetType = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    TargetKey = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    TargetType = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TargetKey = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     VersionNumber = table.Column<int>(type: "int", nullable: false),
-                    ReleaseAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    ReleaseAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ReleaseEffectiveUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    PayloadJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PayloadJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false),
                     CreatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DocReleases", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "EditorTasks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AssigneeUserId = table.Column<int>(type: "int", nullable: false),
-                    AssigneeName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    AssigneeName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Priority = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    DueAiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    TargetType = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    TargetKey = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    TargetLabel = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Status = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Priority = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DueAiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TargetType = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TargetKey = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TargetLabel = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CompletedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
@@ -130,17 +144,19 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_EditorTasks", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "EditResourceLocks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    ResourceKey = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ResourceKey = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LockedByUserId = table.Column<int>(type: "int", nullable: false),
-                    LockedByName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    LockedByName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LockedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     LockExpiresUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
@@ -148,14 +164,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_EditResourceLocks", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ImportPolicies",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ImportTransitionAltitude = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ImportRunways = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ImportSectors = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -167,36 +183,41 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_ImportPolicies", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ImportStates",
                 columns: table => new
                 {
-                    Category = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Category = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LastSuccessUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     LastAttemptUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    LastError = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    LastError = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ImportStates", x => x.Category);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "MediaAssets",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Sha256 = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ContentType = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Sha256 = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ContentType = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ByteSize = table.Column<int>(type: "int", nullable: false),
                     Width = table.Column<int>(type: "int", nullable: false),
                     Height = table.Column<int>(type: "int", nullable: false),
                     Bytes = table.Column<byte[]>(type: "longblob", nullable: false),
-                    OriginalFileName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    OriginalFileName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -204,41 +225,53 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_MediaAssets", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "NavReferences",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Type = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Ident = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AiracCycle = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs")
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Type = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Ident = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AiracCycle = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_NavReferences", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "NeighbourCandidates",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    HomeAccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ForeignAccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ForeignAccName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    CountryId = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ForeignRootCallsign = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    HomeAccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ForeignAccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ForeignAccName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CountryId = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ForeignRootCallsign = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     MinDistanceNm = table.Column<double>(type: "double", nullable: true),
                     AdjacentSectorCount = table.Column<int>(type: "int", nullable: false),
-                    AdjacentHomeCallsigns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AdjacentForeignCallsigns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    AdjacentHomeCallsigns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AdjacentForeignCallsigns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     VloaDocumentId = table.Column<int>(type: "int", nullable: true),
                     CreatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
@@ -247,50 +280,60 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_NeighbourCandidates", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SharedBlocks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Key = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Format = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    BodyJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Key = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Format = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BodyJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SharedBlocks", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SidFixAliases",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Prefix = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    FixName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs")
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Prefix = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FixName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SidFixAliases", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "StaffMembers",
                 columns: table => new
                 {
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    DisplayName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AtcRating = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    StaffPositionsCsv = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    DisplayName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AtcRating = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    StaffPositionsCsv = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     FirstSeenUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     LastLoginUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
@@ -300,22 +343,30 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_StaffMembers", x => x.UserId);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AccSectors",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    ComposePosition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    CenterId = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Position = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    MiddleIdentifier = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AtcCallsign = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Frequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ComposePosition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CenterId = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Position = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MiddleIdentifier = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AtcCallsign = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Frequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LowerLimit = table.Column<int>(type: "int", nullable: true),
                     UpperLimit = table.Column<int>(type: "int", nullable: true),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -331,23 +382,26 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Code",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Airports",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Icao = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Icao = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AccId = table.Column<int>(type: "int", nullable: false),
                     TransitionAltitudeFt = table.Column<int>(type: "int", nullable: true),
                     Latitude = table.Column<double>(type: "double", nullable: true),
                     Longitude = table.Column<double>(type: "double", nullable: true),
                     FeaturedRank = table.Column<int>(type: "int", nullable: true),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_0900_as_cs")
+                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -360,16 +414,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "EditGrants",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    DisplayName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    DisplayName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AccId = table.Column<int>(type: "int", nullable: false),
                     GrantedByUserId = table.Column<int>(type: "int", nullable: false),
                     GrantedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -384,24 +439,31 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SpecialAreas",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    IvaoId = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    CenterId = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Type = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    ActivationDetails = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    IvaoId = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CenterId = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Type = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ActivationDetails = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     MinimumAlt = table.Column<int>(type: "int", nullable: true),
                     MaximumAlt = table.Column<int>(type: "int", nullable: true),
                     Range = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ImportedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
@@ -414,19 +476,22 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Code",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "UnificationRules",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Priority = table.Column<int>(type: "int", nullable: false),
-                    ConditionJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AssignmentJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    ConditionJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AssignmentJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
                 },
@@ -440,18 +505,20 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportExtraSections",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -463,27 +530,33 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportRunwayRules",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    DepRunways = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ArrRunways = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Name = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DepRunways = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ArrRunways = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     MaxTailwindKt = table.Column<int>(type: "int", nullable: false),
                     MaxCrosswindKt = table.Column<int>(type: "int", nullable: true),
-                    Surface = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Surface = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     TimeFromLocalMin = table.Column<int>(type: "int", nullable: true),
                     TimeToLocalMin = table.Column<int>(type: "int", nullable: true),
                     DaysOfWeekMask = table.Column<int>(type: "int", nullable: true),
-                    DateParity = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    DateParity = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     DateFromMonthDay = table.Column<int>(type: "int", nullable: true),
                     DateToMonthDay = table.Column<int>(type: "int", nullable: true)
                 },
@@ -497,24 +570,30 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportRunways",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
-                    Ident = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Ident = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LengthM = table.Column<int>(type: "int", nullable: true),
                     Bearing = table.Column<int>(type: "int", nullable: true),
-                    ToraM = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    LdaM = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AppProcedures = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Patterns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Circling = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    ToraM = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    LdaM = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AppProcedures = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Patterns = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Circling = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -526,23 +605,32 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportSectors",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    ComposePosition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AirportIcao = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Position = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    MiddleIdentifier = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AtcCallsign = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Frequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ComposePosition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AirportIcao = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AccCode = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Position = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MiddleIdentifier = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AtcCallsign = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Frequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RegionMapPolygon = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ParentCallsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LowerLimit = table.Column<int>(type: "int", nullable: true),
                     UpperLimit = table.Column<int>(type: "int", nullable: true),
                     LimitsFromSource = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -568,30 +656,41 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Icao",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportSids",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
-                    Runway = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Fix = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Transition = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    InitialClimb = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Runway = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Fix = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Transition = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    InitialClimb = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     InitialClimbByApp = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Type = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Cat = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Wtc = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Condition = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Type = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Cat = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Wtc = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Condition = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsImported = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Priority = table.Column<int>(type: "int", nullable: true),
-                    StableKey = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    SourceAiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    StableKey = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SourceAiracCycle = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ForcePublished = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NeedsFixReview = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
@@ -605,19 +704,20 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportTransitionLevels",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
                     QnhFrom = table.Column<int>(type: "int", nullable: true),
                     QnhTo = table.Column<int>(type: "int", nullable: true),
-                    Level = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs")
+                    Level = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -629,18 +729,19 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AirportFrequencyLinks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AirportId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
                     SourceSectorId = table.Column<int>(type: "int", nullable: false),
-                    LabelOverride = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    LabelOverride = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -652,28 +753,34 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ContentBlocks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     DocumentVersionId = table.Column<int>(type: "int", nullable: false),
                     SectionId = table.Column<int>(type: "int", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
-                    Tier = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Format = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Visibility = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Tier = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Format = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Visibility = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CollapsedByDefault = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    CalloutKind = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    CalloutKind = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ScopeSectorId = table.Column<int>(type: "int", nullable: true),
                     FromSectorId = table.Column<int>(type: "int", nullable: true),
                     ToSectorId = table.Column<int>(type: "int", nullable: true),
                     SharedBlockId = table.Column<int>(type: "int", nullable: true),
-                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    BodyJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Body = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BodyJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
                 },
                 constraints: table =>
@@ -686,64 +793,77 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DocumentParties",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
                     SectorId = table.Column<int>(type: "int", nullable: false),
-                    Role = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs")
+                    Role = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DocumentParties", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DocumentProfiles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
-                    HiddenAorSectorsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    HiddenFrequenciesJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    HiddenSectionsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    FreqOrderJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    FreqLinksJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    HiddenAorSectorsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    HiddenFrequenciesJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    HiddenSectionsJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FreqOrderJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FreqLinksJson = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DocumentProfiles", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Documents",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Type = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Language = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Status = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Type = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Language = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Status = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CurrentVersionId = table.Column<int>(type: "int", nullable: true),
                     LastUpdatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    LastUpdatedAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    LastUpdatedAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     FeaturedRank = table.Column<int>(type: "int", nullable: true),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NeedsReviewUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ReviewReason = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    ReviewReason = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true),
                     LockedByUserId = table.Column<int>(type: "int", nullable: true),
-                    LockedByName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    LockedByName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LockedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LockExpiresUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
@@ -751,21 +871,24 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     table.PrimaryKey("PK_Documents", x => x.Id);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DocumentVersions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
                     VersionNumber = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Status = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false),
                     CreatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    AiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    AiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -777,29 +900,37 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Sectors",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Callsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Callsign = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AccId = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    ApproachKind = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Type = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ApproachKind = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AirportId = table.Column<int>(type: "int", nullable: true),
-                    AirportIcao = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    AirportIcao = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     FacilityId = table.Column<int>(type: "int", nullable: true),
-                    DefaultFrequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    DefaultFrequency = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CoverageOrder = table.Column<int>(type: "int", nullable: false),
                     FeaturedRank = table.Column<int>(type: "int", nullable: true),
                     ImportedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsProjected = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ParentSectorId = table.Column<int>(type: "int", nullable: true),
                     DocumentId = table.Column<int>(type: "int", nullable: true),
@@ -833,21 +964,24 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DocumentSections",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     DocumentVersionId = table.Column<int>(type: "int", nullable: false),
                     ParentSectionId = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Title = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Order = table.Column<int>(type: "int", nullable: false),
                     Depth = table.Column<int>(type: "int", nullable: false),
-                    SectionKey = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    RenderMode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, defaultValue: "Frozen", collation: "utf8mb4_0900_as_cs"),
+                    SectionKey = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RenderMode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, defaultValue: "Frozen", collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsHidden = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     BeforeParentBody = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
@@ -868,20 +1002,24 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "TransferFlows",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccId = table.Column<int>(type: "int", nullable: false),
                     OwningSectorId = table.Column<int>(type: "int", nullable: false),
-                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    AirportIcao = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    AirportName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Kind = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AirportIcao = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AirportName = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Order = table.Column<int>(type: "int", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "longblob", nullable: true)
                 },
@@ -901,18 +1039,21 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "VectoringMinimaSets",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ScopeSectorId = table.Column<int>(type: "int", nullable: true),
-                    Source = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    SourceAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    SourceCommit = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    Source = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SourceAiracCycle = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SourceCommit = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ImportedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
@@ -925,27 +1066,36 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "TransferPoints",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     FlowId = table.Column<int>(type: "int", nullable: false),
-                    Cop = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    Cop = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     LevelValue = table.Column<int>(type: "int", nullable: true),
-                    LevelUnit = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    LevelConstraint = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    LevelSpecial = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    Parity = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
-                    VerticalState = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    LevelUnit = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    LevelConstraint = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    LevelSpecial = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Parity = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    VerticalState = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     NextSectorId = table.Column<int>(type: "int", nullable: true),
-                    ConditionLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    ConditionLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ConditionRefId = table.Column<int>(type: "int", nullable: true),
-                    ConditionAreaLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_0900_as_cs"),
-                    ConditionCustomLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_0900_as_cs"),
+                    ConditionAreaLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ConditionCustomLabel = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Order = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -964,18 +1114,20 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "VectoringMinimaRows",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     SetId = table.Column<int>(type: "int", nullable: false),
-                    AreaName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_0900_as_cs"),
+                    AreaName = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     MinimaFt = table.Column<int>(type: "int", nullable: false),
-                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_0900_as_cs")
+                    Note = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_uca1400_as_cs")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -987,7 +1139,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
-                .Annotation("MySQL:Charset", "utf8mb4");
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Accs_Code",

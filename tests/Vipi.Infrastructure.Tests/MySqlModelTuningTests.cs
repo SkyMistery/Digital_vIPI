@@ -1,3 +1,4 @@
+#if NET8_0
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -28,7 +29,7 @@ public class MySqlModelTuningTests
     }
 
     private static IModel MySql() =>
-        Modello(b => b.UseMySQL("Server=nowhere;Database=x;User Id=u;Password=p"));
+        Modello(b => b.UseMySql("Server=nowhere;Database=x;User Id=u;Password=p", MySqlSchema.ResolveServerVersion(null)));
 
     private static IModel PerNome(string provider) => provider switch
     {
@@ -121,3 +122,4 @@ public class MySqlModelTuningTests
         Assert.Null(sha.GetCollation());
     }
 }
+#endif

@@ -35,11 +35,33 @@ public class PersistenceProviderWiringTests
         Assert.Contains(services, d => d.ServiceType == typeof(Vipi.Infrastructure.Persistence.VipiDbContext));
     }
 
+    private const string ConnessioneMySql = "Server=localhost;Port=3306;Database=itivao_atc;User Id=u;Password=p";
+
+#if NET8_0
     [Fact]
     public void MySql_selection_registers_dbcontext()
     {
         var services = new ServiceCollection();
-        services.AddVipiInfrastructure("Server=localhost;Port=3306;Database=itivao_atc;User Id=u;Password=p", Config("MySql"));
+        services.AddVipiInfrastructure(ConnessioneMySql, Config("MySql"));
         Assert.Contains(services, d => d.ServiceType == typeof(Vipi.Infrastructure.Persistence.VipiDbContext));
     }
+#else
+    /// <summary>
+    /// Su net10 il provider MariaDB non esiste — Pomelo non ha una build per EF Core 10 — e il ramo deve
+    /// fallire con un messaggio che lo dice. Non è un dettaglio di cortesia: senza, chi imposta
+    /// <c>Persistence:Provider=MySql</c> su un host net10 andrebbe a cercare un errore di battitura nella
+    /// configurazione invece di leggere che quel target non è quello giusto.
+    /// </summary>
+    [Fact]
+    public void MySql_selection_su_net10_fallisce_spiegando_perche()
+    {
+        var services = new ServiceCollection();
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddVipiInfrastructure(ConnessioneMySql, Config("MySql")));
+
+        Assert.Contains("net8.0", ex.Message);
+        Assert.Contains("Pomelo", ex.Message);
+    }
+#endif
 }

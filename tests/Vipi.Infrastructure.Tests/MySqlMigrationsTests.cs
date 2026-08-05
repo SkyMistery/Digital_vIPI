@@ -1,3 +1,4 @@
+#if NET8_0
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -74,28 +75,29 @@ public class MySqlMigrationsTests
     }
 
     /// <summary>
-    /// La collation non si legge dal modello, si legge dalla DDL: il provider la dichiara nelle operazioni
-    /// di migrazione ma non la emette in SQL. L'unica cosa che la porta davvero nel database è lo statement
-    /// <c>ALTER DATABASE</c>, aggiunto a mano nella migrazione iniziale — quindi il test verifica proprio
-    /// quello, e non che il modello «abbia la collation», che è vero anche quando il database non ce l'ha.
+    /// La collation si verifica sulla <b>DDL</b>, non sui metadati EF. Non è pedanteria: con il provider
+    /// Oracle usato fino al 5 agosto 2026 la collation risultava presente nel modello e <b>assente</b> nel
+    /// <c>CREATE TABLE</c>, e un test sui metadati passava tranquillo mentre il database nasceva
+    /// case-insensitive. Pomelo la emette su ogni colonna stringa; questo test presidia che continui a farlo.
     /// </summary>
     [Fact]
-    public void Lo_script_imposta_la_collation_prima_di_creare_le_tabelle()
+    public void Ogni_colonna_stringa_della_ddl_dichiara_la_collation_sensibile()
     {
         using var db = Contesto();
         var sql = db.GetService<IMigrator>().GenerateScript();
 
-        var posizioneAlter = sql.IndexOf(MySqlCollation.AlterDatabaseSql, StringComparison.OrdinalIgnoreCase);
-        Assert.True(posizioneAlter >= 0,
-            $"lo script non contiene «{MySqlCollation.AlterDatabaseSql}»: senza, ogni tabella nasce con la " +
-            "collation di default del server, che è case- e accent-INsensitive");
+        // Le righe di definizione colonna di tipo stringa: `nome` varchar(n)… oppure `nome` longtext…
+        var senzaCollation = sql.Split('\n')
+            .Select(r => r.Trim())
+            .Where(r => r.StartsWith('`') && (r.Contains("varchar(") || r.Contains("longtext")))
+            .Where(r => !r.Contains(MySqlCollation.Name, StringComparison.OrdinalIgnoreCase))
+            // La tabella di storia delle migrazioni la crea EF, non il nostro modello: non la governiamo.
+            .Where(r => !r.Contains("MigrationId") && !r.Contains("ProductVersion"))
+            .ToList();
 
-        // Deve precedere la prima tabella del modello: in MySQL l'ereditarietà del charset si decide al
-        // CREATE TABLE, quindi arrivare dopo non avrebbe alcun effetto su quelle già create.
-        var posizionePrimaTabella = sql.IndexOf("CREATE TABLE `Accs`", StringComparison.OrdinalIgnoreCase);
-        Assert.True(posizionePrimaTabella > 0, "lo script non crea le tabelle del modello");
-        Assert.True(posizioneAlter < posizionePrimaTabella,
-            "l'ALTER DATABASE arriva dopo la prima CREATE TABLE: le tabelle create prima non ereditano la collation");
+        Assert.True(senzaCollation.Count == 0,
+            $"{senzaCollation.Count} colonne stringa senza «{MySqlCollation.Name}» nella DDL: erediterebbero " +
+            "il default del server, che è case- e accent-INsensitive.\n  " + string.Join("\n  ", senzaCollation));
     }
 
     /// <summary>
@@ -133,10 +135,13 @@ public class MySqlMigrationsTests
         var inizio = sql.IndexOf($"CREATE TABLE `{tabella}` (", StringComparison.Ordinal);
         if (inizio < 0) return null;
 
-        var fine = sql.IndexOf("\n);", inizio, StringComparison.Ordinal);
+        // Il blocco finisce dove comincia il prossimo statement, non su una chiusura fissa: Pomelo chiude
+        // le tabelle con «) CHARACTER SET=utf8mb4;», non con un «);» secco.
+        var fine = sql.IndexOf("\nCREATE ", inizio + 1, StringComparison.Ordinal);
         if (fine < 0) fine = sql.Length;
 
         return sql[inizio..fine].Split('\n')
             .FirstOrDefault(r => r.TrimStart().StartsWith($"`{colonna}` ", StringComparison.Ordinal));
     }
 }
+#endif

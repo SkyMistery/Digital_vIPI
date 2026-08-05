@@ -13,7 +13,12 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net8 e non net10 per una ragione sola: il database di produzione è MariaDB (ADR-0007 §D4-ter) e
+         l'unico provider EF che la supporta davvero è Pomelo, che non ha una build per EF Core 10. Le
+         cinque librerie erano già multi-target, quindi qui cambia solo l'host.
+         Costo pagato: MapStaticAssets e @Assets sono .NET 9+, e sono stati sostituiti — vedi Program.cs
+         e Components/App.razor. -->
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
@@ -27,9 +32,9 @@
   <ItemGroup>
     <!-- Modulo login IVAO OIDC (scenario C, standalone). STACCABILE: rimuovi questo pacchetto + i file
          Auth\*.cs quando vIPI va embedded in un host con auth propria. Il core resta invariato. -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.*" />
     <!-- Key-ring Data Protection su DB (antiforgery/cookie persistenti tra redeploy su Render). Vedi VipiDataProtection.cs. -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
   </ItemGroup>
 
 </Project>

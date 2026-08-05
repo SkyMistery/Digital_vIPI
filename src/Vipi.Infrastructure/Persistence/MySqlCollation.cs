@@ -18,17 +18,21 @@ namespace Vipi.Infrastructure.Persistence;
 ///   comportamento diverso da quello provato su SQLite.</description></item>
 /// </list>
 ///
-/// <para><b>Come si ottiene.</b> Il piano prevedeva <c>UseCollation</c> sul modello, contando sul fatto
-/// che finisse nella <c>CREATE DATABASE</c>. Non regge: il database <c>itivao_atc</c> <b>esiste già</b>,
-/// l'hanno creato loro, e quella istruzione non la eseguiamo mai. Né funziona la dichiarazione per
-/// colonna, che il provider scarta (vedi <see cref="Apply"/>).</para>
+/// <para><b>Come si ottiene.</b> Dichiarandola sulle proprietà del modello: Pomelo la porta fino in fondo,
+/// emettendo <c>CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_as_cs</c> su ogni colonna stringa (163 nella
+/// nostra DDL) più il charset sulla tabella. Non serve nient'altro.</para>
 ///
-/// <para>Quello che funziona è un <c>ALTER DATABASE … COLLATE</c> eseguito <b>prima</b> di creare le
-/// tabelle (<see cref="AlterDatabaseSql"/>): da lì in poi ogni tabella e ogni colonna ereditano, incluse
-/// quelle delle migrazioni future. Chiude la §1.3 del piano — «possiamo impostare la collation?» — invece
-/// di lasciarla appesa a una loro configurazione, ma dipende da un permesso: l'utente deve poter fare
-/// <c>ALTER</c> sul proprio database. Se non lo avesse, la migrazione iniziale fallisce a voce alta al
-/// primo avvio, che è il modo giusto di scoprirlo.</para>
+/// <para>⚠️ <b>Con il provider Oracle non funzionava</b>, e vale la pena saperlo perché è la ragione per
+/// cui siamo su Pomelo. Quello portava la collation fino alle <i>operazioni</i> di migrazione ma la
+/// scartava generando SQL; scartava anche l'annotazione charset della propria <c>AlterDatabase()</c>; e
+/// nemmeno il ripiego di infilarla nel tipo di colonna reggeva, perché ricostruiva il tipo come
+/// <c>varchar(n)</c> dalla lunghezza buttando il resto — fallendo esattamente sulle colonne indicizzate.
+/// L'unica strada rimasta era un <c>ALTER DATABASE … COLLATE</c> innestato a mano nella migrazione
+/// iniziale, che per giunta richiedeva il permesso <c>ALTER</c> sul database. Con Pomelo quel giro sparisce,
+/// e con esso il permesso.</para>
+///
+/// <para>Il che è anche <b>più forte</b> di prima: la collation dichiarata sulla colonna sopravvive a un
+/// cambio di default del database, che invece sarebbe passato inosservato.</para>
 ///
 /// <para>⚠️ Da verificare guidando l'app, non per ispezione (§S10 del piano): un confronto
 /// case-insensitive <b>voluto</b> — la ricerca globale, il lookup di un ICAO digitato dall'utente — qui
@@ -38,48 +42,22 @@ namespace Vipi.Infrastructure.Persistence;
 public static class MySqlCollation
 {
     /// <summary>
-    /// Accent-sensitive, case-sensitive, Unicode 9.0 — l'equivalente MySQL 8.0 del comportamento che
-    /// SQLite e PostgreSQL hanno già. Esiste solo da MySQL 8.0: su 5.7 il ripiego sarebbe
-    /// <c>utf8mb4_bin</c>, che però è <i>binary</i> e cambierebbe anche l'ordinamento.
+    /// Accent-sensitive, case-sensitive — il comportamento che SQLite e PostgreSQL hanno già.
+    ///
+    /// <para>È la collation <b>MariaDB</b> (UCA 14.0.0, disponibile da MariaDB 10.10), non quella MySQL:
+    /// il server di produzione è MariaDB 11.4, e <c>utf8mb4_0900_as_cs</c> — che è il nome MySQL, usato
+    /// qui fino al 5 agosto 2026 — su MariaDB <b>non esiste affatto</b>. Cambiare questa costante per
+    /// tornare a MySQL non basterebbe: cambiano anche il lock di migrazione e il provider.</para>
     /// </summary>
-    public const string Name = "utf8mb4_0900_as_cs";
+    public const string Name = "utf8mb4_uca1400_as_cs";
 
     /// <summary>
-    /// Charset e collation del database, da eseguire <b>prima</b> di creare qualunque tabella: in MySQL una
-    /// tabella senza charset esplicito eredita quello del database, e una colonna quello della tabella.
-    /// Applicato una volta sola nella migrazione iniziale — è una proprietà del database, non delle singole
-    /// tabelle, quindi vale anche per tutte quelle che verranno dopo.
+    /// Dichiara la collation su ogni colonna stringa del modello. Da chiamare <b>solo</b> quando il
+    /// provider è MySQL/MariaDB: sugli altri due questo nome non esiste e la DDL non sarebbe eseguibile.
     ///
-    /// <para>Il nome del database è omesso di proposito: MySQL applica l'istruzione a quello corrente,
-    /// cioè quello della connection string. Così la migrazione non contiene <c>itivao_atc</c> cablato e
-    /// funziona identica sul container di prova.</para>
-    /// </summary>
-    public const string AlterDatabaseSql = $"ALTER DATABASE CHARACTER SET utf8mb4 COLLATE {Name};";
-
-    /// <summary>
-    /// Dichiara la collation sulle colonne stringa del modello. Da chiamare <b>solo</b> quando il provider
-    /// è MySQL.
-    ///
-    /// <para>⚠️ <b>Da sola non basta, ed è la scoperta che è costata più tempo in questa slice.</b>
-    /// Verificato generando la DDL il 5 agosto 2026: <c>MySql.EntityFrameworkCore</c> 10.0.9 porta la
-    /// collation fino alle <i>operazioni</i> di migrazione — il file <c>.cs</c> generato contiene
-    /// <c>collation: "utf8mb4_0900_as_cs"</c> su 163 colonne — ma il suo generatore SQL la <b>scarta</b>:
-    /// nel <c>CREATE TABLE</c> non compare. Scarta anche l'annotazione <c>MySQL:Charset</c> della
-    /// <c>AlterDatabase</c>, che infatti non produce alcuno statement.</para>
-    ///
-    /// <para>Provato anche a farla viaggiare dentro il <b>tipo di colonna</b>, che è l'unica cosa che il
-    /// generatore emette alla lettera: funziona per le colonne senza lunghezza (<c>longtext COLLATE …</c>)
-    /// ma <b>non</b> per quelle con una, perché il provider ricostruisce il tipo come <c>varchar(n)</c>
-    /// dalla dimensione e butta il resto — cioè fallisce esattamente sulle colonne indicizzate, che sono
-    /// quelle per cui la collation serve. Da qui la strada del <see cref="AlterDatabaseSql"/>.</para>
-    ///
-    /// <para>Questa chiamata resta per due motivi: rende il modello leggibile a chi ci guarda dentro, e se
-    /// una versione futura del provider imparasse a emettere la collation, il valore è già quello giusto.
-    /// Ma la garanzia vera viene dal database, non da qui.</para>
-    ///
-    /// <para>È il primo conto della debolezza del provider messa in preventivo in ADR-0007 §D4-bis, e
-    /// sarebbe passato inosservato con una verifica sul modello: lì la collation risultava presente. Per
-    /// questo i test guardano la <b>DDL generata</b>.</para>
+    /// <para>Che poi arrivi davvero nel database non si dà per scontato: lo verifica un test sulla
+    /// <b>DDL generata</b>, non sui metadati EF. Con il provider precedente la collation risultava
+    /// presente nel modello e assente nella DDL, e un test sui metadati passava tranquillo.</para>
     /// </summary>
     public static void Apply(ModelBuilder b)
     {

@@ -7,11 +7,11 @@
     <base href="/" />
     <!-- Font self-hosted dal modulo (nessuna chiamata esterna a Google Fonts). I .woff2 sono referenziati
          da dentro vipi-fonts.css, quindi non passano da @@Assets: restano serviti col nome originale. -->
-    <link rel="stylesheet" href="@Assets["_content/Vipi.Ui/vipi-fonts.css"]" />
-    <link rel="stylesheet" href="@Assets["_content/Vipi.Ui/vipi-theme.css"]" />
-    <link rel="stylesheet" href="@Assets["_content/Vipi.Ui/vipi-aor3d.css"]" />
-    <link rel="stylesheet" href="@Assets["_content/Vipi.Ui/vipi-print.css"]" />
-    <link rel="stylesheet" href="@Assets["Vipi.Host.styles.css"]" />
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-fonts.css")" />
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-theme.css")" />
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")" />
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-print.css")" />
+    <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
     <!-- Leaflet (mappa AOR minimal). -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -46,18 +46,18 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-ui.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-screens.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-live.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-aor.js"]"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-screens.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-live.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor.js")"></script>
     <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). NON caricato qui:
          sono 592 KB che servono al solo tab 3D, mentre questo <head> vale per ogni pagina. L'URL (con l'impronta
          di MapStaticAssets) passa a vipi-aor3d.js, che lo carica alla prima apertura di uno stage 3D. -->
-    <script src="@Assets["_content/Vipi.Ui/vipi-aor3d.js"]"
-            data-three-src="@Assets["_content/Vipi.Ui/vendor/three.min.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-editor.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-tour.js"]"></script>
-    <script src="@Assets["_content/Vipi.Ui/vipi-media.js"]"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.js")"
+            data-three-src="@AssetVersion.Url("_content/Vipi.Ui/vendor/three.min.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-editor.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-media.js")"></script>
     <script>
         // Ri-applica zoom e ricollega l'interattività dopo ogni navigazione "enhanced" di Blazor
         // (che rimpiazza il DOM e perderebbe lo stile zoom inline e gli handler).

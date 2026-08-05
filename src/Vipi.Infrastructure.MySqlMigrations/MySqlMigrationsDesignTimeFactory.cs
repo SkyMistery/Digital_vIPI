@@ -31,7 +31,7 @@ public sealed class MySqlMigrationsDesignTimeFactory : IDesignTimeDbContextFacto
     public VipiDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<VipiDbContext>()
-            .UseMySQL(ConnessioneFittizia, my => my
+            .UseMySql(ConnessioneFittizia, MySqlSchema.ResolveServerVersion(null), my => my
                 // Senza questo le migrazioni finirebbero in Vipi.Infrastructure, insieme a quelle
                 // SQLite-flavored, ed EF le applicherebbe tutte insieme sul primo provider che incontra.
                 .MigrationsAssembly(typeof(MySqlMigrationsDesignTimeFactory).Assembly.GetName().Name))

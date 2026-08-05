@@ -58,7 +58,9 @@ var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
 };
-forwardedOptions.KnownIPNetworks.Clear();
+// Su net8 la collezione si chiama KnownNetworks (KnownIPNetworks è .NET 9+): stesso scopo, svuotarla
+// significa «fidati dell'header da qualunque proxy», che è quel che serve dietro un proxy dall'IP non fisso.
+forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
@@ -84,30 +86,32 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Compressione delle risposte dinamiche (HTML del prerender, JSON, SignalR). I file statici NON passano
-// più di qui: MapStaticAssets serve i .br/.gz precompilati a build-time, senza spendere CPU per richiesta.
+// Compressione delle risposte. Su net8 ci passano ANCHE i file statici, perché UseStaticFiles serve i file
+// così come sono: niente varianti .br/.gz precompilate a build-time, quelle le faceva MapStaticAssets (.NET 9+).
+// Costo: la compressione di CSS e JS si paga a ogni richiesta invece che una volta in build.
 app.UseResponseCompression();
 
-// I .woff2 sono referenziati da DENTRO vipi-fonts.css, quindi non passano da @Assets: MapStaticAssets li
-// serve col profilo non-impronta (max-age 1h + must-revalidate), più corto dei 7 giorni di prima. I nomi
-// arrivano da Google Fonts, sono già content-addressed e i file non cambiano: si riporta la cache lunga.
-// Va fatto riscrivendo l'header e non con UseStaticFiles: il font lo serve un ENDPOINT di MapStaticAssets, e
-// StaticFileMiddleware si tira indietro quando il routing ha già selezionato un endpoint (non servirebbe nulla).
-app.Use(async (ctx, next) =>
+// File statici: wwwroot dell'host + wwwroot della RCL vIPI (_content/Vipi.Ui/...).
+// Rimpiazza MapStaticAssets, che è .NET 9+ (ADR-0007 §D4-ter). La differenza che si sente è il
+// cache-busting: qui l'invalidazione viene dal suffisso ?v= di AssetVersion, uno per tutti gli asset,
+// non dall'impronta del singolo file. Vedi AssetVersion per cosa comporta.
+app.UseStaticFiles(new StaticFileOptions
 {
-    if (ctx.Request.Path.Value?.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase) == true)
+    OnPrepareResponse = ctx =>
     {
-        // OnStarting: l'header va riscritto dopo che l'endpoint ha impostato il suo, ma prima del flush.
-        ctx.Response.OnStarting(() =>
-        {
-            ctx.Response.Headers.CacheControl = app.Environment.IsDevelopment()
-                ? "no-cache, no-store, must-revalidate"
-                : "public,max-age=604800"; // 7 giorni, invariato rispetto a prima di MapStaticAssets
-            return Task.CompletedTask;
-        });
-    }
+        var dev = app.Environment.IsDevelopment();
+        var percorso = ctx.File.Name;
 
-    await next();
+        // I .woff2 sono referenziati da DENTRO vipi-fonts.css, quindi NON passano da AssetVersion e il
+        // loro URL non cambia mai. I nomi però arrivano da Google Fonts, sono già content-addressed e i
+        // file non cambiano: la cache lunga è sicura ed evita di riscaricarli a ogni deploy.
+        var lunga = percorso.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase);
+
+        ctx.Context.Response.Headers.CacheControl = dev
+            ? "no-cache, no-store, must-revalidate"
+            : lunga ? "public,max-age=604800"    // 7 giorni
+                    : "public,max-age=86400";    // 1 giorno: l'URL cambia col ?v= a ogni deploy
+    },
 });
 
 app.UseAntiforgery();
@@ -149,15 +153,12 @@ foreach (var legacy in new[] { "operativa", "live" })
 foreach (var legacy in new[] { "operativa-app", "live-app" })
     app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["app"]));
 
-// File statici (wwwroot dell'host + wwwroot della RCL vIPI). Sostituisce UseStaticFiles: gli asset sono
-// impronta-per-contenuto (`@Assets[...]` in App.razor) e serviti con `immutable`, quindi un deploy rifà
-// scaricare solo i file davvero cambiati; le varianti brotli/gzip sono precompilate a build-time.
-app.MapStaticAssets();
+// (I file statici li serve UseStaticFiles, più in alto: su net8 non esistono né MapStaticAssets né
+//  WithStaticAssets, che sono .NET 9+.)
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly)    // monta la RCL vIPI
-    .WithStaticAssets();
+    .AddAdditionalAssemblies(VipiModuleExtensions.UiAssembly);   // monta la RCL vIPI
 
 // Endpoint del modulo (SSE live ATC).
 app.MapVipiModule();

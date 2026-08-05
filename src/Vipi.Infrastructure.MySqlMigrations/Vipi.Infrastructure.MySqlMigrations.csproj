@@ -17,15 +17,9 @@
   <ItemGroup>
     <!-- Serve al design-time (dotnet ef migrations add) E a runtime: la factory qui sotto la usa per
          costruire il contesto senza dipendere dalla configurazione dell'host. -->
-    <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.9" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
@@ -35,9 +29,9 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- Multi-target come le cinque librerie: le migrazioni si generano con gli strumenti EF 10 ma devono
-         restare applicabili sotto EF Core 8, per quando l'embedding riprenderà. -->
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- net8 soltanto, a differenza delle cinque librerie: Pomelo non ha una build per EF Core 10, quindi
+         su net10 questo progetto non avrebbe nemmeno un provider con cui generare le migrazioni. -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
