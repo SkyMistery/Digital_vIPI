@@ -4,6 +4,10 @@
     <ProjectReference Include="..\Vipi.Hosting\Vipi.Hosting.csproj" />
     <ProjectReference Include="..\Vipi.Ui\Vipi.Ui.csproj" />
     <ProjectReference Include="..\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+    <!-- Migrazioni MySQL. Serve solo perché l'assembly finisca nell'output: EF lo carica per NOME
+         (MySqlSchema.MigrationsAssemblyName), non c'è alcun tipo referenziato da qui. Senza, con
+         Persistence:Provider=MySql l'avvio fallisce cercando le migrazioni. -->
+    <ProjectReference Include="..\Vipi.Infrastructure.MySqlMigrations\Vipi.Infrastructure.MySqlMigrations.csproj" />
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
     <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
   </ItemGroup>

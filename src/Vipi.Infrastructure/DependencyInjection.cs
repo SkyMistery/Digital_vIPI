@@ -51,7 +51,11 @@ public static class DependencyInjection
                 // nessun auto-detect che aprirebbe una connessione al momento di costruire le opzioni.
                 services.AddDbContext<VipiDbContext>(o => o
                     .UseMySQL(connectionString, my => my
-                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                        // Senza questa riga EF cercherebbe le migrazioni in Vipi.Infrastructure e ci
+                        // troverebbe le 68 SQLite-flavored, applicandole a MySQL. È il modo silenzioso in
+                        // cui questa configurazione può sbagliare: non manca niente, c'è la cosa sbagliata.
+                        .MigrationsAssembly(Persistence.MySqlSchema.MigrationsAssemblyName)));
                 break;
 
             default:

@@ -194,23 +194,55 @@ public static class VipiModuleExtensions
         return endpoints;
     }
 
-    /// <summary>Crea/migra il database del modulo all'avvio. SQLite: migrazioni versionate (Migrate). Postgres
-    /// (deploy hostato Render+Neon): le migrazioni sono SQLite-flavored ⇒ schema creato e allineato al modello da
-    /// <see cref="PostgresSchemaReconciler.InitializeSchema"/>, che serializza l'operazione fra istanze e aggiunge
-    /// tabelle, colonne e indici nuovi (EnsureCreated da solo non tocca un database che ha già tabelle).</summary>
+    /// <summary>
+    /// Crea/migra il database del modulo all'avvio. Ogni provider ha una strategia diversa e non
+    /// intercambiabile:
+    /// <list type="bullet">
+    ///   <item><description><b>SQLite</b> — migrazioni versionate del repo (<c>Migrate</c>).</description></item>
+    ///   <item><description><b>PostgreSQL</b> (Render+Neon) — quelle migrazioni sono SQLite-flavored e non
+    ///   girano, quindi lo schema lo crea e lo allinea <see cref="PostgresSchemaReconciler.InitializeSchema"/>,
+    ///   che serializza l'operazione fra istanze e aggiunge tabelle, colonne e indici nuovi (<c>EnsureCreated</c>
+    ///   da solo non tocca un database che ha già tabelle).</description></item>
+    ///   <item><description><b>MySQL</b> (produzione) — set di migrazioni dedicato, indicato alla DI con
+    ///   <c>MigrationsAssembly</c>: <c>Migrate</c> applica quelle, non le SQLite.</description></item>
+    /// </list>
+    ///
+    /// <para>⚠️ <b>Il dispatch è esplicito sui tre provider e il ramo sconosciuto lancia.</b> Prima era
+    /// <c>if (Npgsql) reconcile else Migrate()</c>, dove l'<c>else</c> significava «SQLite» per convenzione
+    /// non scritta. Con MySQL configurato quel ramo avrebbe applicato le 68 migrazioni SQLite-flavored a
+    /// MySQL — cioè la cosa peggiore possibile su un database di produzione, e senza che nulla lo
+    /// annunciasse. Un provider nuovo deve fermare l'avvio, non ereditare la strategia di un altro.</para>
+    /// </summary>
     public static IHost MigrateVipiDatabase(this IHost host)
     {
         using var scope = host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<VipiDbContext>();
-        // ProviderName evita di referenziare Npgsql da Vipi.Hosting (lo conosce solo Infrastructure).
-        if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+
+        // Si guarda il ProviderName invece di rileggere la configurazione: evita di referenziare Npgsql e
+        // MySql da Vipi.Hosting, che li conosce solo Infrastructure, e descrive il contesto REALE — se la
+        // DI e la config divergessero, qui conta come il DbContext è stato costruito davvero.
+        var provider = db.Database.ProviderName ?? "";
+
+        if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
         {
             var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
                 ?.CreateLogger(typeof(PostgresSchemaReconciler).FullName!);
             PostgresSchemaReconciler.InitializeSchema(db, log);
         }
-        else
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ||
+                 provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
             db.Database.Migrate();
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"Provider di persistenza '{provider}' senza una strategia di creazione dello schema. " +
+                "Aggiungerne una esplicita in MigrateVipiDatabase: le migrazioni del repo sono " +
+                "SQLite-flavored e applicarle a un provider diverso corrompe lo schema. " +
+                "Vedi docs/adr/adr-0007-produzione-persistenza-e-scala.md.");
+        }
+
         return host;
     }
 

@@ -18,16 +18,17 @@ namespace Vipi.Infrastructure.Persistence;
 ///   comportamento diverso da quello provato su SQLite.</description></item>
 /// </list>
 ///
-/// <para><b>Perché per colonna e non per database.</b> Il piano prevedeva una riga sola,
-/// <c>UseCollation</c> a livello di modello, contando sul fatto che il database ereditasse il default.
-/// Non funziona nel nostro caso: il database <c>itivao_atc</c> <b>esiste già</b>, creato da loro, e noi
-/// non eseguiamo la <c>CREATE DATABASE</c> in cui quella clausola finirebbe. Restare su quella strada
-/// significherebbe dipendere da una loro configurazione — la §1.3 del piano, «libertà sulla collation» —
-/// che non controlliamo e che nessun test può verificare da qui.</para>
+/// <para><b>Come si ottiene.</b> Il piano prevedeva <c>UseCollation</c> sul modello, contando sul fatto
+/// che finisse nella <c>CREATE DATABASE</c>. Non regge: il database <c>itivao_atc</c> <b>esiste già</b>,
+/// l'hanno creato loro, e quella istruzione non la eseguiamo mai. Né funziona la dichiarazione per
+/// colonna, che il provider scarta (vedi <see cref="Apply"/>).</para>
 ///
-/// <para>Dichiararla <b>su ogni colonna stringa</b> costa qualche parola in più nella DDL generata e in
-/// cambio rende la semantica indipendente dal server: qualunque sia il default del database, i confronti
-/// sono quelli che ci aspettiamo. Questo chiude la §1.3 invece di lasciarla aperta.</para>
+/// <para>Quello che funziona è un <c>ALTER DATABASE … COLLATE</c> eseguito <b>prima</b> di creare le
+/// tabelle (<see cref="AlterDatabaseSql"/>): da lì in poi ogni tabella e ogni colonna ereditano, incluse
+/// quelle delle migrazioni future. Chiude la §1.3 del piano — «possiamo impostare la collation?» — invece
+/// di lasciarla appesa a una loro configurazione, ma dipende da un permesso: l'utente deve poter fare
+/// <c>ALTER</c> sul proprio database. Se non lo avesse, la migrazione iniziale fallisce a voce alta al
+/// primo avvio, che è il modo giusto di scoprirlo.</para>
 ///
 /// <para>⚠️ Da verificare guidando l'app, non per ispezione (§S10 del piano): un confronto
 /// case-insensitive <b>voluto</b> — la ricerca globale, il lookup di un ICAO digitato dall'utente — qui
@@ -44,8 +45,41 @@ public static class MySqlCollation
     public const string Name = "utf8mb4_0900_as_cs";
 
     /// <summary>
-    /// Applica la collation a ogni colonna stringa del modello. Da chiamare <b>solo</b> quando il provider
-    /// è MySQL: sugli altri due il nome non esiste e la DDL non sarebbe eseguibile.
+    /// Charset e collation del database, da eseguire <b>prima</b> di creare qualunque tabella: in MySQL una
+    /// tabella senza charset esplicito eredita quello del database, e una colonna quello della tabella.
+    /// Applicato una volta sola nella migrazione iniziale — è una proprietà del database, non delle singole
+    /// tabelle, quindi vale anche per tutte quelle che verranno dopo.
+    ///
+    /// <para>Il nome del database è omesso di proposito: MySQL applica l'istruzione a quello corrente,
+    /// cioè quello della connection string. Così la migrazione non contiene <c>itivao_atc</c> cablato e
+    /// funziona identica sul container di prova.</para>
+    /// </summary>
+    public const string AlterDatabaseSql = $"ALTER DATABASE CHARACTER SET utf8mb4 COLLATE {Name};";
+
+    /// <summary>
+    /// Dichiara la collation sulle colonne stringa del modello. Da chiamare <b>solo</b> quando il provider
+    /// è MySQL.
+    ///
+    /// <para>⚠️ <b>Da sola non basta, ed è la scoperta che è costata più tempo in questa slice.</b>
+    /// Verificato generando la DDL il 5 agosto 2026: <c>MySql.EntityFrameworkCore</c> 10.0.9 porta la
+    /// collation fino alle <i>operazioni</i> di migrazione — il file <c>.cs</c> generato contiene
+    /// <c>collation: "utf8mb4_0900_as_cs"</c> su 163 colonne — ma il suo generatore SQL la <b>scarta</b>:
+    /// nel <c>CREATE TABLE</c> non compare. Scarta anche l'annotazione <c>MySQL:Charset</c> della
+    /// <c>AlterDatabase</c>, che infatti non produce alcuno statement.</para>
+    ///
+    /// <para>Provato anche a farla viaggiare dentro il <b>tipo di colonna</b>, che è l'unica cosa che il
+    /// generatore emette alla lettera: funziona per le colonne senza lunghezza (<c>longtext COLLATE …</c>)
+    /// ma <b>non</b> per quelle con una, perché il provider ricostruisce il tipo come <c>varchar(n)</c>
+    /// dalla dimensione e butta il resto — cioè fallisce esattamente sulle colonne indicizzate, che sono
+    /// quelle per cui la collation serve. Da qui la strada del <see cref="AlterDatabaseSql"/>.</para>
+    ///
+    /// <para>Questa chiamata resta per due motivi: rende il modello leggibile a chi ci guarda dentro, e se
+    /// una versione futura del provider imparasse a emettere la collation, il valore è già quello giusto.
+    /// Ma la garanzia vera viene dal database, non da qui.</para>
+    ///
+    /// <para>È il primo conto della debolezza del provider messa in preventivo in ADR-0007 §D4-bis, e
+    /// sarebbe passato inosservato con una verifica sul modello: lì la collation risultava presente. Per
+    /// questo i test guardano la <b>DDL generata</b>.</para>
     /// </summary>
     public static void Apply(ModelBuilder b)
     {
@@ -54,8 +88,8 @@ public static class MySqlCollation
             {
                 // Vale anche per gli enum: OnModelCreating li salva come stringa via SetProviderClrType,
                 // quindi sono colonne stringa che non sembrano tali guardando il tipo CLR.
-                var tipoStore = prop.GetProviderClrType() ?? Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
-                if (tipoStore == typeof(string)) prop.SetCollation(Name);
+                var tipoClr = prop.GetProviderClrType() ?? Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
+                if (tipoClr == typeof(string)) prop.SetCollation(Name);
             }
     }
 }

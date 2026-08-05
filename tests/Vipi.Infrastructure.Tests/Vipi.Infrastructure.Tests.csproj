@@ -23,6 +23,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+    <!-- Set di migrazioni MySQL: serve per verificare che non resti indietro rispetto al modello. È il
+         costo dichiarato della scelta (a) in ADR-0007 §D4-bis — ogni cambio di schema va emesso due volte
+         — e senza una guardia quel costo si paga in produzione invece che in CI. -->
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure.MySqlMigrations\Vipi.Infrastructure.MySqlMigrations.csproj" />
     <ProjectReference Include="..\..\src\Vipi.Application\Vipi.Application.csproj" />
     <ProjectReference Include="..\..\src\Vipi.Domain\Vipi.Domain.csproj" />
   </ItemGroup>
