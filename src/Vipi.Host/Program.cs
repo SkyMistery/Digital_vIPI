@@ -5,7 +5,16 @@ using Vipi.Host.Auth;
 using Vipi.Host.Components;
 using Vipi.Hosting;
 
+// PRIMA di tutto: su host senza accesso ai log (niente journalctl, niente console) un avvio fallito è
+// cieco da entrambe le parti. Questo scrive l'eccezione fatale accanto all'eseguibile, in un file che si
+// scarica via FTP. Senza segreti dentro: vedi StartupDiagnostics.
+StartupDiagnostics.HookFatalErrors();
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Riepilogo della configurazione vista, riscritto a ogni avvio — anche riuscito. Sta qui, subito dopo il
+// builder, perché serva anche quando l'avvio muore più avanti: dice con QUALE configurazione ci ha provato.
+StartupDiagnostics.WriteConfigurationSummary(builder);
 
 // File (default globale) della frase di coordinamento. reloadOnChange:false — il FileSystemWatcher esaurirebbe
 // le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).
