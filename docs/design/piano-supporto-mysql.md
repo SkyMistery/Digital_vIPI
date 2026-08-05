@@ -275,10 +275,40 @@ il ramo MySQL **non** viene compilato.
 - **Niente `#if NET8_0`:** con il provider Oracle il ramo è unico e compila su entrambi i TFM. Era una
   complicazione della scelta Pomelo, sparita con essa.
 
-### S4 — Collation
+### S4 — Collation ✅ *eseguita, ma non come previsto qui*
 
-Con MySQL 8.0+: `b.UseCollation("utf8mb4_0900_as_cs")` in `OnModelCreating`, applicata **solo** quando il
-provider è MySQL. Tutto eredita, niente audit colonna per colonna.
+> **Aggiornamento 5 agosto 2026.** La ricetta scritta sotto — una riga di `UseCollation` sul modello — **non
+> funziona**, per due motivi indipendenti scoperti generando la DDL. Vale la pena leggerli perché la stessa
+> trappola si ripresenterà su ogni facet che affidiamo a questo provider.
+>
+> 1. **Il database esiste già.** `itivao_atc` l'hanno creato loro: la `CREATE DATABASE` in cui `UseCollation`
+>    finirebbe non la eseguiamo mai.
+> 2. **Il provider scarta la collation quando genera SQL.** `MySql.EntityFrameworkCore` 10.0.9 la porta fino
+>    alle *operazioni* di migrazione — il file `.cs` generato contiene `collation: "utf8mb4_0900_as_cs"` su
+>    163 colonne — ma nel `CREATE TABLE` non compare. Scarta anche l'annotazione `MySQL:Charset` della
+>    `AlterDatabase()` che genera da sé, la quale infatti non produce **alcuno** statement.
+>
+> Anche il ripiego «metti la collation dentro il tipo di colonna», che è l'unica cosa emessa alla lettera,
+> funziona solo a metà: passa per le colonne senza lunghezza (`longtext COLLATE …`) ma non per quelle con
+> una, perché il provider ricostruisce il tipo come `varchar(n)` dalla dimensione e butta il resto — cioè
+> fallisce **esattamente sulle colonne indicizzate**, le uniche che contano qui.
+>
+> **Quello che funziona:** `ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs` eseguito prima
+> di ogni `CREATE TABLE`, aggiunto a mano in cima alla migrazione iniziale. Da lì in poi tabelle e colonne
+> ereditano, comprese quelle delle migrazioni future. Il nome del database è omesso di proposito: MySQL
+> applica l'istruzione a quello corrente, quindi la migrazione non ha `itivao_atc` cablato e gira identica
+> sul container di prova.
+>
+> **Prezzo:** dipende da un permesso — l'utente deve poter fare `ALTER` sul proprio database (§1.2). Se non
+> ce l'avesse, la migrazione iniziale fallisce a voce alta al primo avvio, che è il modo giusto di
+> scoprirlo. Il ripiego sarebbe un `ALTER TABLE … CONVERT TO` per tabella.
+>
+> **La lezione, più importante del dettaglio:** niente di tutto questo si vedeva dal modello, dove la
+> collation risultava presente e corretta. Un test sui metadati EF passava. **Su questo provider si verifica
+> leggendo la DDL generata**, e in ultima istanza interrogando un MySQL vivo.
+
+La ricetta originale, ora superata: `b.UseCollation("utf8mb4_0900_as_cs")` in `OnModelCreating`, applicata
+**solo** quando il provider è MySQL. Tutto eredita, niente audit colonna per colonna.
 
 **Perché è il punto più pericoloso del piano.** Il default `utf8mb4_0900_ai_ci` è case- **e**
 accent-insensitive. Il modulo ha ~10 indici unici su stringa e confronti su callsign e hash. Con la
@@ -405,6 +435,8 @@ tre tipi di documento, lock di editing (`EditResourceLock`, heartbeat 60s/TTL 3m
 
 | Rischio | Sintomo | Dove si vede |
 |---|---|---|
+| **Facet del modello che il provider non emette** | il modello è giusto, la DDL no — e i test sui metadati passano | già capitato con la collation (§S4). Verificare **sempre** sulla DDL generata |
+| **Migrazioni MySQL indietro rispetto al modello** | colonna mancante a runtime in produzione | test di allineamento snapshot↔modello in `MySqlMigrationsTests` |
 | Collation case-insensitive non corretta | violazione di unique in import su dati legali; hash fusi | S4, test integrazione |
 | `longtext` indicizzato | `CREATE TABLE` fallisce | S1, subito al primo avvio |
 | FK con lunghezze/charset diversi | `errno 150` alla creazione della FK | S1 |
