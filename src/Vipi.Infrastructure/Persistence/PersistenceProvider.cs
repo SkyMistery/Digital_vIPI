@@ -1,9 +1,9 @@
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
-/// Provider di persistenza selezionabile (ADR-0007). Entrambi i valori sono operativi.
-/// MySQL non c'è: è la strada scelta per l'embedding in Ivao.It ma non è ancora implementata —
-/// piano in <c>docs/design/piano-supporto-mysql.md</c>, decisione in ADR-0007 §D4 (sarà solo su net8).
+/// Provider di persistenza selezionabile (ADR-0007). Tutti e tre i valori sono operativi, ma servono a
+/// tre scopi diversi: <see cref="Sqlite"/> è lo sviluppo, <see cref="Postgres"/> è il deploy di prova
+/// Render+Neon, <see cref="MySql"/> è la <b>produzione</b> su <c>atc.it.ivao.aero</c>.
 /// </summary>
 public enum PersistenceProvider
 {
@@ -11,11 +11,25 @@ public enum PersistenceProvider
     Sqlite,
 
     /// <summary>
-    /// PostgreSQL: operativo — è il deploy Render+Neon. Schema creato via <c>EnsureCreated</c> +
-    /// <see cref="PostgresSchemaReconciler"/>, non dalle migrazioni (SQLite-flavored). Il cutover con
-    /// migrazioni dedicate — ADR-0007 punto (b) — resta aperto: il reconciler copre solo le aggiunte di colonna.
+    /// PostgreSQL: operativo — è il deploy Render+Neon, che dopo il cutover resta come ambiente di prova e
+    /// sorgente del travaso. Schema creato via <c>EnsureCreated</c> + <see cref="PostgresSchemaReconciler"/>,
+    /// non dalle migrazioni (SQLite-flavored). Il cutover con migrazioni dedicate — ADR-0007 punto (b) —
+    /// resta aperto: il reconciler copre solo le aggiunte di colonna.
     /// </summary>
     Postgres,
+
+    /// <summary>
+    /// MySQL 8.0+: il database di <b>produzione</b> (ADR-0007 §D4-bis). Provider Oracle
+    /// <c>MySql.EntityFrameworkCore</c>, non Pomelo — che su EF Core 10 non esiste.
+    /// <para>A differenza di Postgres lo schema NON si crea con <c>EnsureCreated</c> + reconciler ma da un
+    /// set di migrazioni dedicato: la DDL di MySQL non è transazionale, quindi un reconcile interrotto
+    /// lascerebbe lo schema parziale senza rollback. Il compromesso che accettiamo su Neon, che è casa
+    /// nostra, non lo esportiamo sul database di un partner.</para>
+    /// <para>Porta con sé due aggiustamenti al modello, applicati solo qui: le lunghezze delle colonne
+    /// stringa indicizzate (<see cref="MySqlStringLengths"/>) e la collation case- e accent-sensitive
+    /// (<see cref="MySqlCollation"/>).</para>
+    /// </summary>
+    MySql,
 }
 
 /// <summary>
@@ -35,6 +49,6 @@ public static class PersistenceProviderResolver
             return provider;
 
         throw new InvalidOperationException(
-            $"Persistence:Provider '{configuredValue}' non supportato. Valori validi: Sqlite, Postgres.");
+            $"Persistence:Provider '{configuredValue}' non supportato. Valori validi: Sqlite, Postgres, MySql.");
     }
 }

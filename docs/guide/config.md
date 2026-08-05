@@ -54,12 +54,23 @@ Mappata su `PersistenceProviderResolver` (`src/Vipi.Infrastructure/Persistence/P
 
 | Chiave | Tipo | Default | Significato |
 |---|---|---|---|
-| `Persistence:Provider` | string | `Sqlite` | `Sqlite` (operativo: file + WAL/busy_timeout via `SqliteTuningInterceptor`) o `Postgres` (cutover **pianificato**, non attuato: selezionarlo fa **fallire l'avvio** con rimando all'ADR-0007). Valore sconosciuto ⇒ errore con i valori validi. |
+| `Persistence:Provider` | string | `Sqlite` | Uno fra `Sqlite`, `Postgres`, `MySql` (case-insensitive). Valore sconosciuto ⇒ errore con l'elenco dei validi. |
 
-> ⚠️ **Postgres non è ancora operativo.** L'abilitazione richiede: pacchetto `Npgsql.EntityFrameworkCore.PostgreSQL`,
-> un **assembly di migrazioni dedicato** (le migrazioni attuali sono SQLite-flavored), revisione dei punti
-> provider-specifici (RowVersion, tipi) e **validazione su istanza reale**. Passi e razionale in
-> `../adr/adr-0007-produzione-persistenza-e-scala.md` (D1).
+I tre provider sono tutti operativi, ma servono a tre scopi diversi e non sono intercambiabili:
+
+| Valore | A cosa serve | Come nasce lo schema |
+|---|---|---|
+| `Sqlite` | **sviluppo** (default): file + WAL/`busy_timeout` via `SqliteTuningInterceptor` | migrazioni versionate del repo |
+| `Postgres` | **deploy di prova** Render+Neon, e sorgente del travaso verso la produzione | `EnsureCreated` + `PostgresSchemaReconciler` (solo aggiunte di colonna) |
+| `MySql` | **produzione** su `atc.it.ivao.aero` (MySQL 8.0+) | set di migrazioni dedicato — *non* `EnsureCreated` |
+
+> ℹ️ **Solo su `MySql`** il modello riceve due aggiustamenti che sugli altri due non si applicano:
+> le **lunghezze** delle colonne stringa indicizzate (`MySqlStringLengths` — InnoDB non indicizza `longtext`)
+> e la **collation** `utf8mb4_0900_as_cs` su ogni colonna stringa (`MySqlCollation` — il default di MySQL
+> ignora maiuscole e accenti, e il modello ha indici unici su callsign, ICAO e hash). Non sono opzionali e
+> non sono configurabili: senza, il `CREATE TABLE` fallisce o i confronti cambiano semantica in silenzio.
+> Razionale in `../adr/adr-0007-produzione-persistenza-e-scala.md` (§D4-bis) e
+> `../design/piano-supporto-mysql.md`.
 
 ---
 

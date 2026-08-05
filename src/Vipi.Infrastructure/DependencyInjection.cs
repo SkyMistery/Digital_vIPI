@@ -43,6 +43,17 @@ public static class DependencyInjection
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
                 break;
 
+            case Persistence.PersistenceProvider.MySql:
+                // Produzione su atc.it.ivao.aero (ADR-0007 §D4-bis). Provider Oracle, non Pomelo: su net10
+                // Pomelo non esiste. Lo schema NON si crea qui né via EnsureCreated — è il set di migrazioni
+                // dedicato MySQL, applicato da MigrateVipiDatabase.
+                // Nota: a differenza di Pomelo, questo provider non chiede una ServerVersion, quindi non c'è
+                // nessun auto-detect che aprirebbe una connessione al momento di costruire le opzioni.
+                services.AddDbContext<VipiDbContext>(o => o
+                    .UseMySQL(connectionString, my => my
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+                break;
+
             default:
                 throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");
         }

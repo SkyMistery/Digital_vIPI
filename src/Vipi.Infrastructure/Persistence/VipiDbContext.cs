@@ -309,10 +309,15 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Lunghezze delle colonne stringa indicizzate: solo su MySQL, dove senza di esse il CREATE TABLE
-        // fallisce (InnoDB non indicizza longtext). Su SQLite sarebbero ignorate, su Postgres sarebbero un
-        // cambio di tipo colonna che il reconciler non sa applicare. Vedi MySqlStringLengths.
+        // Due aggiustamenti che valgono SOLO su MySQL, entrambi indispensabili e per motivi diversi:
+        //   - le lunghezze, senza cui il CREATE TABLE fallisce (InnoDB non indicizza longtext). Su SQLite
+        //     sarebbero ignorate, su Postgres sarebbero un cambio di tipo che il reconciler non sa fare;
+        //   - la collation case- e accent-sensitive, senza cui i confronti cambiano semantica in silenzio
+        //     (LIRF == lirf) e gli indici unici collidono su dati legali.
         if (Database.ProviderName?.Contains("MySql", StringComparison.OrdinalIgnoreCase) == true)
+        {
             MySqlStringLengths.Apply(b);
+            MySqlCollation.Apply(b);
+        }
     }
 }

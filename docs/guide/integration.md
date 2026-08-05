@@ -9,10 +9,11 @@ chiamate. Vedi anche `../adr/adr-0002-integrazione-e-autenticazione-portabile.md
 - ASP.NET Core **8 o 10** + **Blazor Server** (Interactive Server) abilitato.
 - Un'autenticazione già configurata (tipicamente **OIDC IVAO**) che popola un `ClaimsPrincipal`
   con almeno: VID, nome, eventuali `userStaffPositions`.
-- Accesso a un DB **SQLite** (default) o **PostgreSQL** (`Persistence:Provider`). **MySQL non è ancora
-  supportato**: piano di lavoro in [`docs/design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md),
-  e quando entrerà sarà **solo sul TFM net8** (Pomelo non ha una build per EF Core 10). In ogni caso il
-  modulo usa un DB separato da quello del sito, con connection string `Vipi` propria.
+- Accesso a un DB **SQLite** (default), **PostgreSQL** o **MySQL 8.0+**, scelto con `Persistence:Provider`.
+  MySQL è supportato dal 5 agosto 2026 — è il provider di produzione — e su **entrambi** i TFM: il provider
+  è quello Oracle (`MySql.EntityFrameworkCore`), non Pomelo, che su EF Core 10 non esiste. In ogni caso il
+  modulo usa un DB **separato** da quello del sito, con connection string `Vipi` propria. Dettagli in
+  [`docs/design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md) e ADR-0007 §D4-bis.
 - Credenziali app IVAO (ClientId/ClientSecret) se serve il roster staff / live ATC.
 
 ## Installazione

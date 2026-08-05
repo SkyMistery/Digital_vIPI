@@ -7,7 +7,8 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Branch di selezione provider in <see cref="DependencyInjection.AddVipiInfrastructure(IServiceCollection,string,IConfiguration?)"/>:
-/// SQLite (default) e Postgres (deploy hostato Render+Neon, schema via EnsureCreated) registrano entrambi il DbContext.
+/// SQLite (sviluppo, default), Postgres (deploy di prova Render+Neon, schema via EnsureCreated) e MySQL
+/// (produzione su atc.it.ivao.aero, schema da migrazioni dedicate) registrano tutti il DbContext.
 /// </summary>
 public class PersistenceProviderWiringTests
 {
@@ -31,6 +32,14 @@ public class PersistenceProviderWiringTests
     {
         var services = new ServiceCollection();
         services.AddVipiInfrastructure("Host=localhost;Database=vipi", Config("Postgres"));
+        Assert.Contains(services, d => d.ServiceType == typeof(Vipi.Infrastructure.Persistence.VipiDbContext));
+    }
+
+    [Fact]
+    public void MySql_selection_registers_dbcontext()
+    {
+        var services = new ServiceCollection();
+        services.AddVipiInfrastructure("Server=localhost;Port=3306;Database=itivao_atc;User Id=u;Password=p", Config("MySql"));
         Assert.Contains(services, d => d.ServiceType == typeof(Vipi.Infrastructure.Persistence.VipiDbContext));
     }
 }
