@@ -1,10 +1,27 @@
-# Piano — supporto MySQL per l'embedding in Ivao.It 🟣
+# Piano — supporto MySQL per il sito definitivo `atc.it.ivao.aero` 🟣
 
-**Stato:** design approvato, **esecuzione non avviata** · **Aggiornato:** 1 agosto 2026
-**Branch previsto:** `feat/persistenza-mysql` (da `integrazione/ivao-it`)
-**Gate d'ingresso:** ci serve la **versione del server MySQL** di Ivao.It (§1). Senza quella risposta le
-slice del §4 non si possono nemmeno iniziare: decide la strategia di collation, che a sua volta decide
-lo schema.
+**Stato:** design approvato, **esecuzione avviata il 5 agosto 2026** · **Aggiornato:** 5 agosto 2026
+**Branch:** `feat/persistenza-mysql` (da `main`)
+**Gate d'ingresso:** ~~versione del server MySQL~~ → **sbloccato: MySQL 8.0+** (§1.1). Tutte le slice sono
+eseguibili.
+
+> ## Aggiornamento del 5 agosto 2026 — tre decisioni che riscrivono il piano
+>
+> **1. Il bersaglio non è più l'embedding: è il nostro host standalone.** `Vipi.Host` (net10) gira sul
+> loro server dietro `atc.it.ivao.aero`, non la RCL montata dentro `Ivao.It.Website`. Conseguenza diretta:
+> **MySQL deve funzionare su net10**, cioè esattamente ciò che il §2 di questo piano dava per escluso.
+> L'embedding non è cancellato, è rimandato — il multi-target `net8.0;net10.0` delle cinque librerie resta.
+>
+> **2. Il provider è Oracle, non Pomelo** (§2 riscritto). Pomelo non ha e non avrà una build EF Core 10;
+> con Pomelo il ramo net10 semplicemente non esiste, e `tools/Vipi.DbSeed` — che è net10 — non potrebbe
+> nemmeno caricare i dati.
+>
+> **3. Il loro MySQL è su `localhost:3306`, quindi da qui non ci si scrive.** Il travaso non può essere una
+> connessione diretta: vedi la catena in §S8. Come raggiungerlo (SSH? phpMyAdmin? IP autorizzato?) è la
+> domanda aperta che ha preso il posto di quella sulla versione.
+>
+> Coordinate ricevute: database `itivao_atc`, utente `itivao_atc`, host `localhost:3306`, dominio
+> `atc.it.ivao.aero`. Il §1.2 (database dedicato con utente proprietario) è quindi **soddisfatto**.
 
 Documenti collegati: [ADR-0007](../adr/adr-0007-produzione-persistenza-e-scala.md) (persistenza e scala),
 [guide/integrazione-ivao-it-da-fare.md](../guide/integrazione-ivao-it-da-fare.md) §1.3 e §4.1 (lavoro
@@ -22,10 +39,11 @@ Il modulo oggi supporta **SQLite** (default, path più testato) e **PostgreSQL**
 MySQL non è un flag da accendere: è un progetto. Questo documento lo dimensiona, lo spezza in slice e
 distingue ciò che si può fare **subito** da ciò che dipende dalla loro risposta.
 
-### 0.1 Stato del provider — verificato il 1 agosto 2026
+### 0.1 Stato del provider — verificato il 1 agosto, **ri-verificato il 5 agosto 2026**
 
-Il suggerimento di Pomelo è corretto **per il contesto in cui gli serve**, ma con un limite preciso da
-mettere a verbale, perché è la ragione per cui MySQL resterà confinato al TFM net8.
+Il suggerimento di Pomelo era corretto per il contesto in cui *a loro* serviva — il sito net8. Non è più
+il nostro contesto: dal 5 agosto il bersaglio è `Vipi.Host` su net10, e su net10 Pomelo non esiste.
+La tabella qui sotto resta perché è la prova di perché non lo si può aspettare.
 
 | Fatto | Valore verificato |
 |---|---|
@@ -35,8 +53,8 @@ mettere a verbale, perché è la ragione per cui MySQL resterà confinato al TFM
 | Issue «EF Core 10 support» (#2007) | **aperta**, ultimo movimento 07-lug-2026 |
 | PR #2019 «Upgrade to EF Core 10.0.0» | **aperta** dal 15-nov-2025, mai mergiata |
 | PR #2031, #2032, #2042 (porting EF Core 10) | **chiuse senza merge** (#2032 chiusa il 29-mag-2026, 758 file) |
-| Versione per EF Core 8 | **8.0.3**, pubblicata 02-mar-2025 — stabile, è quella che serve a loro |
-| Alternativa Oracle `MySql.EntityFrameworkCore` | **10.0.9** su NuGet; copre sia net8 sia net10 |
+| Versione per EF Core 8 | **8.0.3**, pubblicata 02-mar-2025 — stabile, ma è il TFM che non ci serve più |
+| Alternativa Oracle `MySql.EntityFrameworkCore` | **10.0.9** — ri-verificata il 5-ago-2026 **nel nuspec**, non solo sull'elenco versioni: tre gruppi di dipendenze, `net8.0`→EF 8.0.28, `net9.0`→EF 9.0.17, `net10.0`→**EF 10.0.9**, tutti su `MySql.Data` 26.7.0 |
 
 Come ri-verificare questi numeri senza fidarsi di questo documento:
 
@@ -46,33 +64,62 @@ gh api repos/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/pulls/2019 --jq '
 gh api repos/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/commits --jq '.[0].commit.author.date'
 ```
 
-**Conseguenza architetturale:** MySQL sarà supportato **solo sul TFM `net8.0`**, quello dell'embedding.
-Il ramo `net10.0` — che è il nostro deploy autonomo su Render+Neon — resta Postgres + SQLite e non viene
-toccato. Non è una limitazione temporanea da rimuovere «quando esce Pomelo 10»: il repo Pomelo è fermo da
-quasi un anno e il porting EF10 è stato tentato quattro volte senza approdare. Va scritto come **limite
-noto**, non scoperto fra sei mesi.
+~~**Conseguenza architetturale:** MySQL sarà supportato solo sul TFM `net8.0`.~~ **Superata il 5 agosto
+2026.** Quella conseguenza discendeva dalla premessa «MySQL serve solo all'embedding», che non vale più:
+il sito definitivo è `Vipi.Host` su net10. Con Pomelo non esisterebbe alcun ramo MySQL da eseguire —
+non un ramo limitato, proprio nessuno.
+
+Resta valido, e va tenuto a verbale, il **motivo** per cui non si aspetta Pomelo: il repo è fermo da
+quasi un anno e il porting a EF Core 10 è stato tentato quattro volte senza approdare (#2007 e #2019
+aperte, #2031/#2032/#2042 chiuse senza merge). Non è una finestra da riaprire fra sei mesi.
+
+I tre provider convivono così: **SQLite** in dev, **Postgres** su Render+Neon (che resta in piedi come
+ambiente di prova, vedi §S8), **MySQL** in produzione su `atc.it.ivao.aero`.
 
 ---
 
-## 1. Domande bloccanti da porre a Ivao.It
+## 1. Domande a Ivao.It — stato delle risposte
 
-La prima è l'unica che blocca davvero. Le altre tre vanno chieste nello stesso messaggio per non fare
-tre giri di mail.
+### 1.1 Versione del server MySQL — ✅ **RISPOSTO: 8.0+**
 
-### 1.1 Versione del server MySQL — **bloccante**
+Era il gate. Con MySQL 8.0+ si prende la strada pulita: collation **`utf8mb4_0900_as_cs`** a livello di
+database, ereditata da tutte le colonne, una riga in `OnModelCreating` applicata solo quando il provider è
+MySQL. Nessun audit colonna per colonna, nessuna revisione degli `OrderBy`.
 
-| Risposta | Conseguenza sul piano |
+Le due strade non prese, per memoria di chi rileggerà: su **5.7** si sarebbe ripiegato su `utf8mb4_bin`
+(*binary*, quindi cambia anche l'ordinamento e non solo la sensibilità alle maiuscole → revisione di ogni
+`OrderBy` su stringa e di ogni confronto case-insensitive **voluto**, +1 slice); **MariaDB** sarebbe stato
+un caso a sé, con matrice delle collation diversa e supporto meno battuto nel provider Oracle.
+
+⚠️ La risposta «8.0+» va **verificata contro il server vero** (`SELECT VERSION()`) prima del cutover, e la
+stessa versione esatta va usata per il container di CI (§S9) e per quello del travaso (§S8). «8.0+» non è
+un numero: `8.0.x` e `8.4` differiscono su default che ci toccano.
+
+### 1.2 Database dedicato con utente proprietario — ✅ **SODDISFATTO**
+
+Database `itivao_atc`, utente `itivao_atc`, host `localhost:3306`. È un database separato da quello del
+sito, che è ciò che serviva: il modulo ha il proprio `DbContext` e la propria connection string
+(`ConnectionStrings:Vipi`), e mescolare i due schemi renderebbe impossibile capire chi possiede cosa al
+primo problema.
+
+**Da confermare** su quel database: che l'utente abbia i permessi **DDL** (`CREATE TABLE`, `ALTER TABLE`,
+`CREATE INDEX`, `REFERENCES` per le FK). Un utente con le sole DML passa il primo test e fallisce al primo
+avvio, quando le migration provano a creare lo schema.
+
+### 1.2-bis Come ci si arriva — ⛔ **NUOVA DOMANDA APERTA, ora la più urgente**
+
+`localhost:3306` significa che **dalla nostra macchina quel MySQL non è raggiungibile**. Prima di poter
+travasare qualsiasi cosa serve sapere quale di questi vale:
+
+| Strada | Cosa cambia per noi |
 |---|---|
-| **MySQL 8.0+** | Collation `utf8mb4_0900_as_cs` a livello di database, ereditata da tutte le colonne. Strada pulita, una riga in `OnModelCreating`. |
-| **MySQL 5.7** | `utf8mb4_0900_*` non esiste. Si ripiega su `utf8mb4_bin`, che è *binary*: cambia anche il confronto di ordinamento, non solo la sensibilità a maiuscole. Va rivisto ogni `OrderBy` su stringa e ogni confronto case-insensitive **voluto** (ricerca globale, lookup ICAO digitati dall'utente). **Costo: una slice in più.** |
-| **MariaDB** (capita, e non è MySQL) | Da trattare come caso a sé: Pomelo la supporta, ma la matrice delle collation è diversa. Ri-aprire questa tabella prima di stimare. |
+| **SSH / tunnel** sul server | Ottimale: `Vipi.DbSeed` gira contro il loro MySQL direttamente, il travaso è verificabile a colpo d'occhio e ripetibile. |
+| **phpMyAdmin** o pannello web | Si importa il `.sql` prodotto dalla catena §S8. Attenzione al **limite di upload** del pannello: il dump porta anche i blob delle immagini (`MediaAsset`), quindi va previsto di spezzarlo. |
+| **3306 aperto al nostro IP** | Come SSH ma senza tunnel. Raro sugli hosting condivisi. |
+| **Nessuna delle tre** | Il `.sql` lo importano loro. Funziona, ma ogni iterazione costa un giro di mail: da evitare finché possibile. |
 
-### 1.2 Database dedicato con utente proprietario
-
-Serve un **database separato** (es. `vipi`) sullo stesso server, con un utente che abbia **DDL**
-(`CREATE TABLE`, `ALTER TABLE`, `CREATE INDEX`). Non tabelle dentro il database del sito: il modulo ha
-il proprio `DbContext` e la propria connection string (`ConnectionStrings:Vipi`), e mescolare i due
-schemi rende impossibile capire chi possiede cosa al primo problema.
+Finché non c'è risposta, il piano assume lo scenario peggiore (`.sql` da consegnare) — che è anche l'unico
+che funziona in tutti e quattro i casi.
 
 ### 1.3 Libertà sulla collation di quel database
 
@@ -86,42 +133,66 @@ Il dump attuale copre il database del sito. Quello del modulo è un database div
 va aggiunto esplicitamente. Vale già oggi per Postgres e SQLite (§3.3 del documento di integrazione), qui
 è solo più facile darlo per scontato perché «è lo stesso MySQL».
 
+### 1.5 Come gira il processo — ⛔ **NUOVE, nate col deploy standalone**
+
+Queste non esistevano nella versione del 1 agosto perché l'embedding le risolveva tutte per costruzione:
+era il *loro* processo a ospitarci. Con `Vipi.Host` standalone diventano nostre.
+
+1. **Runtime .NET.** Il loro sito è net8; `Vipi.Host` è **net10**. O installano il runtime ASP.NET Core 10,
+   o pubblichiamo **self-contained** (~100 MB, nessuna dipendenza dalla macchina). La seconda non richiede
+   niente da loro ed è la strada da proporre come default.
+2. **WebSocket sul reverse proxy.** Blazor Server **non funziona** senza: il circuito cade e la pagina
+   resta muta. È la prima cosa che si rompe dietro un proxy configurato per un sito PHP.
+3. **Supervisione del processo** (systemd, o quello che usano) e riavvio automatico.
+4. **Percorso persistente** per il key-ring Data Protection — oppure lo mettiamo su MySQL (§S7). Da
+   decidere, non da assumere.
+5. **Redirect OIDC** `https://atc.it.ivao.aero/signin-oidc` e `/signout-callback-oidc` da registrare sul
+   portale IVAO, altrimenti il login non torna indietro.
+
 ---
 
-## 2. Decisione aperta — quale provider MySQL
+## 2. Decisione presa — provider Oracle `MySql.EntityFrameworkCore` 10.0.9
 
-Non è la decisione che sembra. Il punto non è la qualità dei due provider, è **chi copre il codice con i test**.
+**Decisa il 5 agosto 2026.** La versione precedente di questa sezione raccomandava Pomelo; quella
+raccomandazione poggiava sulla premessa «MySQL vive solo sull'embedding net8», caduta con la scelta del
+deploy standalone.
 
-**Vincolo che decide:** i sei progetti di test sono `net10.0` **soli** (verificato nei `.csproj`). Le
-cinque librerie sono `net8.0;net10.0`.
+**Il vincolo che decide non è più la copertura dei test: è che il ramo esista.** `Vipi.Host` è net10.
+Pomelo non ha una build EF Core 10 e non ne avrà (§0.1). Con Pomelo non ci sarebbe un ramo MySQL poco
+testato — non ci sarebbe proprio nessun ramo MySQL da eseguire in produzione.
 
-| | **A — Pomelo 8.0.3** | **B — Oracle `MySql.EntityFrameworkCore` 10.0.x** |
+| | ~~A — Pomelo 8.0.3~~ | **B — Oracle `MySql.EntityFrameworkCore` 10.0.9** ✅ |
 |---|---|---|
-| TFM coperti | solo net8 | net8 **e** net10 |
-| Serve `#if NET8_0` attorno al ramo MySQL | **sì** | no |
-| Copertura dalla suite attuale | **zero** (la suite gira su net10) | piena, subito |
-| Connector ADO | `MySqlConnector` — **lo stesso già in uso nel sito** | `MySql.Data` — secondo stack di connessione nello stesso processo |
-| Maturità del provider EF | alta, è lo standard de facto | storicamente più debole su query translation |
-| Manutenzione upstream | ferma da ago-2025 | attiva |
+| Gira su net10 (`Vipi.Host`) | **no** — non esiste la build | **sì**, EF 10.0.9 |
+| Gira su net8 (embedding futuro) | sì | **sì**, EF 8.0.28 |
+| Serve `#if NET8_0` attorno al ramo MySQL | sì | **no** |
+| Copertura dalla suite attuale (net10) | **zero** | **piena, subito** |
+| `tools/Vipi.DbSeed` (net10) può scrivere su MySQL | **no** → travaso impossibile senza riscrivere il tool | **sì** |
+| Connector ADO | `MySqlConnector` | `MySql.Data` 26.7.0 |
+| Maturità del provider EF | alta, standard de facto | storicamente più debole su query translation |
+| Manutenzione upstream | **ferma da ago-2025** | attiva |
 
-**Raccomandazione: A (Pomelo), a condizione di multi-targettare `Vipi.Infrastructure.Tests` a
-`net8.0;net10.0`** e far girare i test MySQL solo sotto net8. Motivi: è il provider che loro già usano e
-conoscono, evita un secondo connector ADO nello stesso processo, ed è quello con meno sorprese in query
-translation — che è esattamente la superficie dove ci aspettiamo i bug (§5).
+Le due righe che chiudono la questione sono la prima e la quinta. Le altre restano vere e sono il **costo**
+della scelta, non un argomento contro: il provider Oracle è storicamente più debole in query translation,
+ed è esattamente la superficie dove il §5 si aspetta i bug. Il che rende **§S9 (verifica live) non
+negoziabile** — non è la rifinitura finale, è la slice che valida la decisione di questa sezione.
 
-Senza il multi-target dei test, la scelta A produce un ramo di produzione **mai eseguito da nessun test**:
-la stessa condizione in cui si trova oggi il percorso Npgsql di `ISchemaDriftProbe`, che infatti è ancora
-non verificato. Non ripetiamola su un database di un partner.
+L'obiezione «un secondo connector ADO nello stesso processo» **decade**: valeva quando saremmo stati
+ospiti del loro processo, che già carica `MySqlConnector`. In standalone il processo è nostro e
+`MySql.Data` è l'unico connector presente.
 
-Se il multi-target dei test si rivelasse troppo costoso (dipendenze di test non disponibili su net8), la
-scelta di ripiego è **B**, accettando il secondo connector.
+Il rovescio da mettere a verbale: se un giorno l'embedding in `Ivao.It.Website` si farà davvero, il modulo
+porterà `MySql.Data` dentro un processo che usa `MySqlConnector`. Due connector coesistono senza
+conflitti — sono due librerie indipendenti — ma è una cosa che va detta a loro prima, non scoperta da loro
+dopo.
 
 ---
 
-## 3. Lavoro indipendente dal provider — **si può fare subito**
+## 3. Lavoro indipendente dal provider — **da fare per primo**
 
 Queste due slice migliorano il modello su **tutti e tre** i provider e non vanno buttate se MySQL saltasse.
-Sono le uniche cose da fare prima di conoscere la versione del server.
+Vanno per prime non più perché sono le uniche sbloccate — ora lo sono tutte — ma perché senza di esse il
+`CREATE TABLE` di MySQL fallisce e basta: sono il presupposto di ogni altra slice.
 
 ### S1 — `HasMaxLength` su tutte le colonne stringa indicizzate
 
@@ -193,13 +264,16 @@ il ramo MySQL **non** viene compilato.
 ### S3 — Provider, resolver, DI
 
 - `PersistenceProvider.MySql` in `src/Vipi.Infrastructure/Persistence/PersistenceProvider.cs`, con il
-  `Resolve` che lo accetta (già case-insensitive, già con eccezione parlante sui valori validi).
+  `Resolve` che lo accetta (già case-insensitive, già con eccezione parlante sui valori validi) — e il
+  commento XML del tipo, che oggi dice «MySQL non c'è», aggiornato **nello stesso commit** (§7 punto 4).
 - Ramo `case MySql:` in `DependencyInjection.AddVipiInfrastructure`, con `UseQuerySplittingBehavior(SplitQuery)`
-  come gli altri due, `EnableRetryOnFailure` e `ServerVersion.AutoDetect` (o versione fissata da config —
-  meglio fissata: l'auto-detect apre una connessione all'avvio).
-- Con la scelta A, tutto il ramo va sotto `#if NET8_0`, **e il `Resolve` deve fallire con un messaggio
-  esplicito** su net10 («MySQL è supportato solo sull'embedding net8, vedi docs/design/piano-supporto-mysql.md»),
-  non con un `default:` generico. Un errore muto qui costa un pomeriggio a chi lo incontra.
+  come gli altri due ed `EnableRetryOnFailure`.
+- **Versione del server fissata da config, non `AutoDetect`.** L'auto-detect apre una connessione al
+  momento di costruire le opzioni: se il DB non è ancora su, l'app non parte per un motivo che non
+  somiglia a quello vero. Con la versione in configurazione l'avvio è deterministico e il fallimento
+  arriva alla prima query, dove si legge.
+- **Niente `#if NET8_0`:** con il provider Oracle il ramo è unico e compila su entrambi i TFM. Era una
+  complicazione della scelta Pomelo, sparita con essa.
 
 ### S4 — Collation
 
@@ -258,23 +332,58 @@ descrittore per provider.
 **token antiforgery invalidi e utenti sloggati a ogni redeploy**. Serve il ramo MySQL, oppure la conferma
 scritta che l'host ha un percorso persistente per il key-ring.
 
-⚠️ Questo file sta in `Vipi.Host` (il nostro host standalone, net10), non nel modulo. In embedded il
-key-ring è responsabilità del **loro** host — che già lo gestisce per il resto del sito. Va **verificato**,
-non assunto: se il sito usa il file-store di default e gira in container, il problema esiste già oggi per
-loro ed è solo invisibile.
+⚠️ **Con il deploy standalone questa slice smette di essere condizionale e diventa obbligatoria.** Il file
+sta in `Vipi.Host`, che ora *è* il processo di produzione: il key-ring è responsabilità **nostra**, non del
+loro sito. Nella versione precedente di questo piano si poteva sperare che se ne occupasse l'host ospitante
+— ipotesi decaduta.
 
-### S8 — `tools/Vipi.DbSeed` verso MySQL
+Da rifare com'è già fatto per Postgres, **con la stessa trappola già pagata una volta**: `EnsureCreated()`
+verifica il *database*, non la tabella, quindi su un DB esistente non crea nulla. La tabella
+`DataProtectionKeys` va creata con `CREATE TABLE IF NOT EXISTS`.
 
-Il tool oggi è SQLite → Postgres (`net10.0`, eseguito con successo il 29-lug-2026, 4506 righe). Serve il
-target MySQL per travasare i contenuti reali (§3.2 del documento di integrazione). Attenzione: il tool è
-`net10.0` e con la scelta A il provider MySQL vive solo su net8 → **il tool va multi-targettato o
-riscritto per usare Oracle solo lì**. È un dettaglio che si scopre tardi se non è scritto qui.
+### S8 — Travaso dei dati reali: Neon → MySQL
 
-### S9 — CI
+Il contenuto vero del sito è oggi su **Neon** (il deploy Render), non più sul `vipi.db` locale. È quello
+che va portato su `atc.it.ivao.aero`. Il tool `tools/Vipi.DbSeed` fa già il 90% del lavoro — cammina il
+modello EF per reflection, quindi è quasi provider-agnostico — ma è cablato **SQLite → Postgres**
+(`net10.0`, eseguito con successo il 29-lug-2026, 4506 righe lette / 4514 inserite).
+
+Con il provider Oracle il tool resta `net10.0` e parla MySQL senza multi-target. Serve:
+
+- **sorgente parametrica**: aggiungere la lettura `UseNpgsql` accanto a `UseSqlite`;
+- **destinazione MySQL**;
+- sostituire i due punti Postgres-specifici: `TRUNCATE … RESTART IDENTITY CASCADE` (su MySQL:
+  `SET FOREIGN_KEY_CHECKS=0` + `TRUNCATE` per tabella) e il `setval` sulle sequence (su MySQL:
+  `ALTER TABLE … AUTO_INCREMENT = …`);
+- **conservare** il trucco a due fasi per il ciclo `Document↔DocumentVersion`, che non dipende dal
+  provider, e la normalizzazione `DateTimeKind.Utc`, che qui serve per un motivo diverso (MySQL
+  `DATETIME` non porta timezone: se non si normalizza a monte, il fuso lo decide la macchina).
+
+**La catena, dato che il loro 3306 è su `localhost` (§1.2-bis):**
+
+```
+Neon (Render)  →  Vipi.DbSeed  →  MySQL 8 in Docker, versione loro  →  mysqldump  →  .sql da importare
+```
+
+Il MySQL in Docker **non è un passaggio sprecato**: è lo stesso ambiente che serve alla CI (§S9bis) e alla
+verifica live (§S10). Uno solo, tre usi. E produce un `.sql` canonico che funziona in tutti e quattro gli
+scenari di accesso del §1.2-bis, incluso il peggiore.
+
+Se invece arriva un tunnel SSH, il `mysqldump` salta e il tool scrive diretto: più veloce e ripetibile.
+Il codice è lo stesso — cambia solo la connection string.
+
+⚠️ **Il travaso va rifatto poco prima del cutover**, non una volta sola: fra la prova e il passaggio in
+produzione il sito su Render continua a essere modificato. La prima esecuzione serve a validare la catena,
+l'ultima a portare i dati veri.
+
+### S9bis — CI
 
 - Servizio **MySQL in docker** nel workflow (o Testcontainers), della **stessa versione** del loro server.
-- `Vipi.Infrastructure.Tests` multi-target `net8.0;net10.0`, con i test MySQL sotto `#if NET8_0`.
-- Il job `build-net8` esiste già: va esteso a `dotnet test -f net8.0`.
+- ~~`Vipi.Infrastructure.Tests` multi-target con i test MySQL sotto `#if NET8_0`~~ — **non serve più.** Con
+  il provider Oracle i test MySQL girano nella suite net10 esistente, senza multi-target e senza `#if`.
+  È il risparmio più concreto della scelta del §2.
+- Il job `build-net8` resta com'è: continua a garantire che le cinque librerie compilino su net8 per
+  l'embedding futuro.
 
 ### S10 — Verifica live end-to-end
 
@@ -303,16 +412,19 @@ tre tipi di documento, lock di editing (`EditResourceLock`, heartbeat 60s/TTL 3m
 | Precisione `DATETIME` | lock che scadono male, ordinamento release instabile | S3 — verificare `datetime(6)` |
 | `RowVersion` `byte[]` → `varbinary` | concorrenza ottimistica che non scatta | test dedicato |
 | DDL non transazionale | schema parziale dopo un reconcile fallito | S5, scegliendo (a) si evita |
-| Ramo MySQL non coperto dai test | qualsiasi cosa, in produzione da loro | S9 — è la ragione della raccomandazione del §2 |
+| Query translation del provider Oracle | query che su SQLite/Postgres traducono e su MySQL no, o traducono male | S10 — è il costo accettato nel §2, e la ragione per cui la verifica live non è negoziabile |
 
 ---
 
 ## 6. Cosa questo piano deliberatamente NON fa
 
-- **Non porta MySQL su net10.** Il provider non esiste e il nostro deploy non ne ha bisogno.
+- ~~**Non porta MySQL su net10.**~~ **Ribaltato il 5 agosto 2026:** net10 è precisamente il TFM in cui
+  MySQL deve funzionare, perché `Vipi.Host` è il sito definitivo. Il provider esiste (Oracle 10.0.9, §2).
 - **Non mette le tabelle del modulo dentro il database del sito.** DbContext e connection string restano
-  separati: è la premessa di ADR-0002 e di tutta la portabilità del modulo.
-- **Non rimpiazza SQLite né Postgres.** Restano i provider di default e del deploy autonomo.
+  separati: è la premessa di ADR-0002 e di tutta la portabilità del modulo. Il database `itivao_atc` che
+  ci hanno dato è già separato, quindi il punto è soddisfatto per costruzione.
+- **Non rimpiazza SQLite né Postgres.** SQLite resta il default in sviluppo; Postgres resta il deploy
+  Render+Neon, che **non si spegne al cutover**: diventa l'ambiente di prova e la sorgente del travaso.
 - **Non automatizza la correzione del drift di schema.** Vale su MySQL la stessa ragione di ADR-0007 §D1-bis.
 
 ---
@@ -340,17 +452,21 @@ MySQL» in `guide/integration.md`, `guide/integrazione-ivao-it-da-fare.md` §1.3
 
 ## 8. Definition of Done
 
-- [ ] Versione MySQL confermata e scritta in questo documento (§1.1).
+- [x] Versione MySQL confermata e scritta in questo documento (§1.1) — **8.0+**, da riconfermare con
+      `SELECT VERSION()` sul server vero prima del cutover.
+- [x] Provider scelto e motivato (§2) — **Oracle `MySql.EntityFrameworkCore` 10.0.9**. Da registrare in ADR-0007.
 - [ ] `HasMaxLength` su tutte le colonne stringa indicizzate + test guardia sul modello (S1, S2).
-- [ ] Provider scelto e motivato in ADR-0007 (§2).
 - [ ] Ramo MySQL nel resolver, nella DI e nel dispatch dello schema — con `default` che **lancia**, non indovina.
 - [ ] Collation verificata con un test di integrazione su MySQL reale, non per ispezione.
 - [ ] Schema creato dal set di migration MySQL su un database vuoto, da zero, in un colpo.
-- [ ] `dotnet test` verde su net10 (baseline attuale) **e** su net8 con MySQL in CI.
+- [ ] `dotnet test` verde su net10 con MySQL in CI (niente ramo net8 da testare: §S9bis).
+- [ ] Travaso Neon → MySQL eseguito e **riconciliato per conteggio riga per tabella**, non «sembra pieno».
 - [ ] Verifica live sui flussi del §S10, con traccia scritta.
+- [ ] Key-ring Data Protection su MySQL, verificato **sopravvivendo a un riavvio** (S7).
 - [ ] Documenti aggiornati: ADR-0007, `guide/integration.md`, `guide/integrazione-ivao-it-da-fare.md`,
-      `ivao-it-wiring.patch`, `guide/config.md`, memorie.
-- [ ] Limite «MySQL solo su net8» scritto in ADR-0007 come limite noto, con la data della verifica su Pomelo.
+      `ivao-it-wiring.patch`, `guide/config.md`, `HANDOFF.md`, memorie.
+- [ ] Ribaltamento «MySQL solo su net8» → «MySQL è il provider di produzione, su net10» registrato in
+      ADR-0007 con la data e il motivo, perché la versione precedente diceva il contrario.
 
 ---
 
@@ -358,32 +474,62 @@ MySQL» in `guide/integration.md`, `guide/integrazione-ivao-it-da-fare.md` §1.3
 
 | # | Slice | Dipende da | Stima |
 |---|---|---|---|
-| 1 | S1 + S2 — lunghezze e test guardia | niente — **fattibile subito** | mezza sessione |
-| 2 | S3 — provider, resolver, DI | §1.1 + decisione §2 | mezza sessione |
-| 3 | S4 — collation | §1.1 | mezza sessione |
-| 4 | S5 + S6 — schema e dispatch | S3 | 1 sessione |
-| 5 | S9 — CI con MySQL | S3 | mezza sessione |
-| 6 | S7 + S8 — Data Protection, DbSeed | S3 | mezza sessione |
-| 7 | S10 — verifica live | tutte | **1-2 sessioni, non stimabile con precisione** |
+| 1 | S1 + S2 — lunghezze e test guardia | niente | mezza sessione |
+| 2 | S3 + S4 — provider, DI, collation | decisione §2 ✅ | mezza sessione |
+| 3 | S5 + S6 — schema e dispatch | S3 | 1 sessione |
+| 4 | S8 — travaso Neon → MySQL | S5 | 1 sessione |
+| 5 | S7 + S9bis — Data Protection, CI | S3 | mezza sessione |
+| 6 | S10 — verifica live | tutte | **1-2 sessioni, non stimabile con precisione** |
+| 7 | Cutover — runtime, proxy, OIDC, import | S10 + §1.5 | mezza sessione + i loro tempi |
 
-**Totale realistico: 4-5 sessioni di lavoro concentrato**, di cui l'ultima è quella che decide se il piano
-ha funzionato. Su MySQL 5.7 aggiungere una sessione per la revisione degli ordinamenti (§1.1).
+**Totale realistico: 5-6 sessioni di lavoro concentrato**, di cui la sesta è quella che decide se il piano
+ha funzionato. Nessuna slice è più bloccata: la versione del server (§1.1) è arrivata e la decisione sul
+provider (§2) è presa.
+
+L'unica dipendenza esterna residua è il **§1.2-bis** (come raggiungere il loro MySQL), e blocca soltanto
+l'ultimo miglio del travaso — non il codice, non i test, non la verifica live, che girano tutti contro il
+container Docker.
+
+**Fuori da questo piano ma sulla stessa strada critica**, perché il sito definitivo non può nascere senza:
+il **token app IVAO che dà 400** (senza fix: niente live ATC né roster), e la decisione su cosa mandare in
+produzione dai due branch non fusi (`feature/aree-speciali-hardening`, non verificato sull'app vera;
+`feature/aurora-bridge`, il cui endpoint serve al tool desktop).
 
 ---
 
-## Appendice — messaggio pronto per Ivao.It
+## Appendice — messaggio pronto per Ivao.It (aggiornato al 5 agosto 2026)
 
-> Per far girare il modulo vIPI sul vostro MySQL ci servono quattro conferme:
+> Grazie, con database dedicato e utente abbiamo quello che serviva. Per arrivare in fondo ci mancano
+> ancora alcune cose, divise fra database e macchina.
 >
-> 1. **Versione del server MySQL** (8.0+, 5.7, o MariaDB?). È quella che ci blocca: decide la strategia di
->    collation, e MySQL è case-insensitive di default sulle stringhe mentre il modulo ha indici unici su
->    callsign, ICAO e hash dei file.
-> 2. Un **database dedicato** (es. `vipi`) sullo stesso server, con un utente proprietario che abbia i
->    permessi DDL (`CREATE TABLE`, `ALTER TABLE`, `CREATE INDEX`). Il modulo ha DbContext e connection
->    string propri, separati dal database del sito.
-> 3. Che possiamo **impostare la collation** di quel database (`utf8mb4_0900_as_cs` su MySQL 8).
-> 4. Che quel database entri nel vostro **piano di backup**: il dump attuale non lo comprende.
+> **Sul database `itivao_atc`:**
 >
-> Sul connector: avete ragione, Pomelo è quello giusto — la 8.0.3 per EF Core 8 è stabile ed è quella che
-> useremo, visto che il vostro sito gira su .NET 8.
+> 1. **La versione esatta** del server (`SELECT VERSION();`). Ci basta sapere se è `8.0.x` o `8.4`: usiamo
+>    la stessa identica versione nei nostri test, così quello che proviamo è quello che gira da voi.
+> 2. Che l'utente `itivao_atc` abbia i permessi **DDL** su quel database (`CREATE TABLE`, `ALTER TABLE`,
+>    `CREATE INDEX`, `REFERENCES`). L'applicazione crea e aggiorna il proprio schema all'avvio.
+> 3. Che possiamo **impostare la collation** del database a `utf8mb4_0900_as_cs`. Serve perché MySQL di
+>    default ignora maiuscole e accenti nei confronti, mentre noi abbiamo indici unici su callsign, ICAO e
+>    sugli hash dei file caricati: con la collation di default due valori diversi verrebbero considerati
+>    uguali.
+> 4. **Come possiamo raggiungerlo** per caricare i dati iniziali (circa 4500 righe più le immagini):
+>    un accesso SSH, phpMyAdmin, o l'apertura del 3306 al nostro IP? In alternativa vi consegniamo un file
+>    `.sql` da importare — diteci solo qual è il limite di dimensione per l'upload.
+> 5. Che il database entri nel vostro **piano di backup**: il dump attuale non lo comprende.
+>
+> **Sulla macchina che ospiterà `atc.it.ivao.aero`:**
+>
+> 6. L'applicazione è **.NET 10** mentre il vostro sito è .NET 8. Possiamo consegnarla **self-contained**
+>    (porta con sé il runtime, non dovete installare nulla) — ci va bene, volevamo solo dirvelo prima.
+> 7. Il reverse proxy deve lasciar passare i **WebSocket**: l'applicazione è Blazor Server e senza quelli
+>    le pagine si aprono ma restano bloccate. È il punto che si dimentica più spesso.
+> 8. Serve un modo per **tenere il processo attivo** e riavviarlo (systemd o quello che usate di solito).
+> 9. Ci serve **una cartella scrivibile e persistente**, oppure ci teniamo tutto sul database — fateci
+>    sapere quale preferite.
+> 10. Sul portale IVAO vanno registrati i redirect `https://atc.it.ivao.aero/signin-oidc` e
+>     `https://atc.it.ivao.aero/signout-callback-oidc`, altrimenti il login non torna al sito.
+>
+> Sul connector: avevate suggerito Pomelo, che è la scelta giusta per un sito .NET 8. Noi useremo quello
+> Oracle perché è l'unico che funziona anche su .NET 10 — cambia solo la libreria dentro la nostra
+> applicazione, per il vostro MySQL è identico.
 

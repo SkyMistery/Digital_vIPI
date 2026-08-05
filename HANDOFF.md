@@ -1,9 +1,50 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 1 agosto 2026 (integrazione nel sito Ivao.It — branch `integrazione/ivao-it`, tag `embed-v1.0`)
+**Ultimo aggiornamento:** 5 agosto 2026 (sito definitivo `atc.it.ivao.aero` su MySQL — branch `feat/persistenza-mysql`)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## ▶️ DA FARE — prossimo passo, già istruito
+> ## 🟢 PRIMA COSA — il sito definitivo `atc.it.ivao.aero` su MySQL (branch `feat/persistenza-mysql`)
+>
+> **Dal 5 agosto 2026 il gate è caduto e l'esecuzione è avviata.** Piano completo, riscritto quel giorno:
+> [`docs/design/piano-supporto-mysql.md`](docs/design/piano-supporto-mysql.md). Decisione in ADR-0007
+> **§D4-bis** — che **ribalta** §D4, non lo integra: leggere quella, non questa.
+>
+> **Le tre cose che rendono falso ciò che era scritto prima:**
+> - **Il bersaglio non è l'embedding, è il nostro host standalone.** `Vipi.Host` (net10) gira sul loro
+>   server dietro `atc.it.ivao.aero`; la RCL dentro `Ivao.It.Website` è **rimandata**, non cancellata (il
+>   multi-target `net8.0;net10.0` delle cinque librerie resta in piedi per quello).
+> - **MySQL deve funzionare su net10** ⇒ il provider è **Oracle `MySql.EntityFrameworkCore` 10.0.9**, non
+>   Pomelo, che su EF Core 10 non esiste. Ri-verificato nel nuspec: net8→EF 8.0.28, net10→EF 10.0.9. Con
+>   Pomelo non ci sarebbe un ramo MySQL poco testato: non ce ne sarebbe **nessuno**, e `tools/Vipi.DbSeed`
+>   (net10) non potrebbe nemmeno caricare i dati. In cambio: Oracle è più debole in query translation ⇒
+>   **la verifica live non è negoziabile**, è la slice che valida la decisione.
+> - **Il loro MySQL è su `localhost:3306`** ⇒ da qui non ci si scrive. Il travaso passa da
+>   `Neon → Vipi.DbSeed → MySQL 8 in Docker → mysqldump → .sql`. Il container Docker serve a tre cose
+>   (travaso, CI, verifica live), quindi non è un passaggio sprecato.
+>
+> **Coordinate ricevute:** database `itivao_atc`, utente `itivao_atc`, `localhost:3306`, **MySQL 8.0+**.
+> Il deploy Render+Neon **non si spegne**: diventa ambiente di prova e sorgente del travaso.
+>
+> **Domande ancora aperte a loro** (§1.2-bis e §1.5 del piano, messaggio pronto in appendice): versione
+> esatta (`SELECT VERSION()`), permessi DDL dell'utente, libertà sulla collation, **come raggiungere il
+> DB** (SSH? phpMyAdmin? IP autorizzato?), backup — e sulla macchina: runtime .NET 10 o publish
+> self-contained, **WebSocket sul reverse proxy** (senza, Blazor Server non funziona), supervisione del
+> processo, percorso persistente, redirect OIDC per il nuovo dominio.
+>
+> **Bug latente già in `main`,** da sistemare nella slice S6: `MigrateVipiDatabase`
+> (`VipiModuleExtensions.cs:240`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
+> «SQLite». Con MySQL configurato tenterebbe di applicare le 68 migration SQLite-flavored.
+>
+> ⚠️ **Sulla stessa strada critica, ma non di database:** il **token app IVAO dà 400** (senza fix il sito
+> definitivo nasce senza live ATC né roster), e va deciso cosa mandare in produzione dai due branch non
+> fusi — `feature/aree-speciali-hardening` (non verificato sull'app vera) e `feature/aurora-bridge`.
+
+> ## ⏸️ RIMANDATO — embedding nel sito `Ivao.It.Website` (non è più la strada del sito definitivo)
+>
+> **Dal 5 agosto 2026 questo non è più il prossimo passo.** Il sito definitivo sarà servito dal nostro
+> host standalone (blocco 🟢 qui sopra), non dalla RCL montata nel loro sito. Il lavoro qui sotto resta
+> **valido e non buttato** — l'embedding è rimandato, non cancellato, e il multi-target `net8.0;net10.0`
+> delle cinque librerie resta in piedi proprio per questo — ma non è ciò su cui si lavora ora.
 >
 > **Eseguire il modulo dentro un host net8 e guidarlo.** È il punto 3 del piano in
 > [`docs/guide/integrazione-ivao-it-da-fare.md`](docs/guide/integrazione-ivao-it-da-fare.md) §5, e chiude
@@ -30,30 +71,6 @@
 >
 > ⚠️ Serve `VipiAuth`/identità: in embedded l'identità viene dall'host, quindi per la prova o si monta un
 > `ClaimsPrincipal` finto sull'host di test, o si usa `useDevIdentity: true` in `AddVipiModule`.
-
-> ## ⏸️ IN ATTESA DI LORO — supporto MySQL (piano scritto, esecuzione non avviata)
->
-> **Ivao.It ha risposto: solo MySQL.** Niente PostgreSQL affiancato, niente disco persistente per SQLite.
-> Il supporto MySQL passa da opzionale a strada obbligata per l'integrazione (resta irrilevante per il
-> deploy Render+Neon, che non cambia).
->
-> **Piano completo: [`docs/design/piano-supporto-mysql.md`](docs/design/piano-supporto-mysql.md)** —
-> slice, rischi, stime (4-5 sessioni), e in appendice il messaggio pronto da inviare a loro.
-> Decisione registrata in ADR-0007 §D4.
->
-> - **Gate:** serve la **versione del loro server MySQL** (8.0+ / 5.7 / MariaDB). Decide la strategia di
->   collation, che decide lo schema. È l'unica risposta bloccante.
-> - **MySQL sarà supportato solo sul TFM `net8.0`.** Verificato l'1-ago-2026: `Pomelo.EntityFrameworkCore.MySql`
->   è fermo alla 9.0.0 (EF Core 9, ago-2025), `main` senza commit da allora, quattro tentativi di porting a
->   EF Core 10 fra aperti da mesi (#2007, #2019) e chiusi senza merge (#2031, #2032, #2042). Per net8 si usa
->   la **8.0.3**. Limite duraturo, non temporaneo.
-> - **Fattibile subito, senza aspettarli:** `HasMaxLength` su tutte le colonne stringa indicizzate (oggi ne
->   ha **6** in tutto il modello; InnoDB non indicizza `longtext`) + un test guardia che cammina il modello
->   EF. Vale per tutti e tre i provider, non si butta se MySQL cambiasse.
-> - **Bug latente già in `main`,** trovato scrivendo il piano: `MigrateVipiDatabase`
->   (`VipiModuleExtensions.cs:201`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
->   «SQLite». Con MySQL configurato tenterebbe di applicare le 65 migration SQLite-flavored. Da sistemare
->   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
