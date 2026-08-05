@@ -35,9 +35,11 @@
 > (`VipiModuleExtensions.cs:240`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
 > «SQLite». Con MySQL configurato tenterebbe di applicare le 68 migration SQLite-flavored.
 >
-> ⚠️ **Sulla stessa strada critica, ma non di database:** il **token app IVAO dà 400** (senza fix il sito
-> definitivo nasce senza live ATC né roster), e va deciso cosa mandare in produzione dai due branch non
-> fusi — `feature/aree-speciali-hardening` (non verificato sull'app vera) e `feature/aurora-bridge`.
+> ⚠️ **Sulla stessa strada critica, ma non di database:** va deciso cosa mandare in produzione dai due branch
+> non fusi — `feature/aree-speciali-hardening` (non verificato sull'app vera) e `feature/aurora-bridge`.
+> Il **token app IVAO** non è più fra i bloccanti: il 5 agosto ha risposto 200 col secret dei user-secrets
+> locali (dettagli e riserve nel blocco più in basso). Manca invece `VipiAuth:ClientSecret`, che in locale
+> non è mai servito perché il login è spento: in produzione serve.
 
 > ## ⏸️ RIMANDATO — embedding nel sito `Ivao.It.Website` (non è più la strada del sito definitivo)
 >
@@ -144,7 +146,14 @@
 > - **Tool `Vipi.DbSeed`** (copia SQLite locale→Neon): fix ciclo `Document↔DocumentVersion` (insert a 2 fasi con `CurrentVersionId=null`). Uso: `dotnet run --project tools/Vipi.DbSeed -- <vipi.db> "<connstring-postgres>"` (fa TRUNCATE+reseed).
 > - **`IvaoTokenProvider`**: logga il body d'errore sui token 400 (prima `EnsureSuccessStatusCode()` lo scartava).
 >
-> **⏳ APERTO — token app IVAO (400):** il polling tracker + import ACC falliscono con `POST /v2/oauth/token → 400`. Diagnosi: **NON è codice** (endpoint/grant/scope validati col discovery OIDC IVAO). È il **secret/app sul portale**: o `Ivao:ClientSecret` stale nei user-secrets, o l'app `fc95c992…` non ha grant `client_credentials`/scope `tracker`+`configuration` abilitati. Il nuovo log mostra l'`error` esatto nel body. Nota: `Ivao:ClientId == VipiAuth:ClientId` (stessa app IVAO per login utente + token app). Aggiornare il secret sia in user-secrets locali sia in `Ivao__ClientSecret` su Render.
+> **✅ RIENTRATO (5 agosto 2026) — token app IVAO.** Avviando l'host sul MySQL locale, `POST /v2/oauth/token`
+> ha risposto **200** e il polling ha trovato 2 ATC di divisione online. Il secret nei user-secrets locali
+> funziona: quello stale era su Render, non qui. ⚠️ Verificato solo il percorso con scope **`tracker`** (il
+> polling): l'**import** ACC/settori, che potrebbe volere anche `configuration`, non è stato riprovato — il
+> database di prova era vuoto. Da confermare guidando l'import. La diagnosi storica resta sotto perché il
+> ragionamento serve se il 400 tornasse.
+>
+> **⏳ ex-APERTO — token app IVAO (400):** il polling tracker + import ACC falliscono con `POST /v2/oauth/token → 400`. Diagnosi: **NON è codice** (endpoint/grant/scope validati col discovery OIDC IVAO). È il **secret/app sul portale**: o `Ivao:ClientSecret` stale nei user-secrets, o l'app `fc95c992…` non ha grant `client_credentials`/scope `tracker`+`configuration` abilitati. Il nuovo log mostra l'`error` esatto nel body. Nota: `Ivao:ClientId == VipiAuth:ClientId` (stessa app IVAO per login utente + token app). Aggiornare il secret sia in user-secrets locali sia in `Ivao__ClientSecret` su Render.
 >
 > **NB dev locale:** per testare login/logout in locale serve `VipiAuth:Enabled=true` in `appsettings.Development.json` (spegne l'utente dev fittizio → login IVAO vero) + redirect `http://localhost:5034/signin-oidc` e `/signout-callback-oidc` registrati sul portale IVAO. Questo flag è tenuto **fuori dai commit** (preferenza locale).
 
