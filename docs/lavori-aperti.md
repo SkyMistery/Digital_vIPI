@@ -142,10 +142,32 @@ raggiunge.
 ⚠️ Non verificato: che un **cookie** emesso prima del riavvio venga ancora decifrato dopo. La prova richiede
 un login vero (`VipiAuth:Enabled=true`), quindi va con A6 o col primo login su `atc.it.ivao.aero`.
 
-### A5 🟢 CI con MariaDB *(A1 fatta)*
-Servizio MariaDB della stessa versione nel workflow. I test del ramo MariaDB girano sotto **net8**
-(`Vipi.Infrastructure.Tests` è già multi-target apposta). Estendere il job esistente a
-`dotnet test -f net8.0`.
+### A5 ✅ CI con MariaDB — fatta il 6 agosto 2026
+Job nuovo **`mariadb-schema`**: servizio `mariadb:11.4.10` — la versione esatta loro, non il tag mobile
+`11.4` — con database creato **senza `COLLATE`** e utente con permessi **solo** su quello, come da loro.
+Applica le migrazioni e poi verifica **sul database**: nessuna colonna stringa fuori da
+`utf8mb4_uca1400_as_cs` (attese esattamente 2, quelle di `__EFMigrationsHistory`), `LIRF` e `lirf` che
+convivono nell'indice unico mentre il `WHERE` li distingue, e le tabelle nate con le maiuscole giuste.
+
+**La terza verifica si può fare solo lì.** Su Windows `lower_case_table_names` vale 1 o 2 e la differenza
+non è osservabile: la CI su Linux è l'unico posto dove il guasto che ha rovinato il primo dump di A3 può
+essere colto prima di arrivare da loro.
+
+**Due job erano rossi da prima, e non per MariaDB:**
+- `docker-image` falliva da quando l'host è net8: il Dockerfile pubblicava un'applicazione net8 dentro
+  `aspnet:10.0`. Build e publish riescono lo stesso — il container muore all'avvio con
+  «Microsoft.NETCore.App version 8.0.0 not found». Immagine finale portata a **`aspnet:8.0`**; lo stage di
+  build resta su `sdk:10.0`. ⚠️ **Vale anche per il deploy su Render**, che usa questo Dockerfile: senza
+  questa correzione il primo deploy dopo il merge sarebbe morto all'avvio.
+- I test del ramo net8 giravano **in roll-forward sul runtime 10**, perché in CI c'era il solo SDK 10:
+  assembly giusta, runtime sbagliato, proprio sul ramo che va in produzione. Aggiunto il runtime 8.
+
+Tre inciampi di CI, tutti nel job nuovo e tutti risolti: `dotnet ef` non si risolve dalla dispatch della
+CLI su un runner senza manifest di tool (si invoca `~/.dotnet/tools/dotnet-ef` per percorso), e `dotnet ef`
+compila ma **non restora** (senza `dotnet restore` esplicito muore con `NETSDK1004`, che parla di NuGet e
+non di migrazioni).
+
+Esito: **quattro job su quattro verdi**.
 
 ### A6 🟢 Verifica live sui flussi editoriali *(A1 fatta; skill `verifica-live`)*
 È la slice che valida la scelta del provider, non una rifinitura. Flussi obbligatori: import
