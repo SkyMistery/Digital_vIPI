@@ -76,7 +76,12 @@ jobs:
             10.0.x
 
       - name: Strumenti EF
-        run: dotnet tool install --global dotnet-ef --version "10.*"
+        # La riga sul PATH non è di contorno: `dotnet tool install --global` mette l'eseguibile in
+        # ~/.dotnet/tools, che non è nel PATH degli step successivi, e senza di essa `dotnet ef` fallisce
+        # con «Run "dotnet tool restore"» — un messaggio che manda a cercare un manifest inesistente.
+        run: |
+          dotnet tool install --global dotnet-ef --version "10.*"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Applica le migrazioni MySQL su MariaDB
         run: |
