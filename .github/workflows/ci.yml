@@ -11,29 +11,121 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          # Servono entrambi. Vipi.Infrastructure.Tests è multi-target, e senza il runtime 8 installato
+          # l'assembly net8.0 gira in roll-forward sul runtime 10: si proverebbe il ramo MariaDB su un
+          # runtime che in produzione non c'è, che è mezza verifica.
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - run: dotnet restore Vipi.slnx
       - run: dotnet build Vipi.slnx --no-restore -c Release
       - run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal
 
-  # Il ramo net8.0 delle librerie (embedding nel sito Ivao.It) NON è coperto dalla suite: i test girano
-  # tutti su net10. Senza questo job, un'API .NET 9+ o una sintassi C# 13+ entrerebbe con la CI verde e si
-  # scoprirebbe solo il giorno dell'integrazione. Vedi docs/guide/integration.md §Target framework.
+  # Il ramo net8.0 è la PRODUZIONE: Vipi.Host su atc.it.ivao.aero è net8, perché Pomelo — l'unico provider
+  # che regge MariaDB — non esiste per EF Core 10 (ADR-0007 §D4-ter). Questo job aggiunge -warnaserror, che
+  # la build della solution non fa: senza, un'API .NET 9+ o una sintassi C# 13+ entrerebbe con la CI verde.
   build-net8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
-          # Il SDK 10 sa già compilare per net8.0 (scarica i targeting pack da NuGet), ma installare anche
-          # l'8 toglie di mezzo una classe di fallimenti se quel comportamento cambia.
           dotnet-version: |
             8.0.x
             10.0.x
       # Vipi.Hosting tira gli altri quattro progetti del modulo: basta lui per coprire tutto il ramo net8.
-      # Non si compila la solution: Vipi.Host e i progetti di test sono net10.0 soli, per scelta.
       - run: dotnet restore src/Vipi.Hosting/Vipi.Hosting.csproj -p:TargetFramework=net8.0
       - run: dotnet build src/Vipi.Hosting/Vipi.Hosting.csproj -f net8.0 --no-restore -c Release -warnaserror
+
+  # Lo schema di produzione contro un MariaDB VERO. È la classe di guasti che i test unitari non vedono: la
+  # collation risultava presente e corretta nei metadati EF mentre nella DDL non c'era affatto (vedi
+  # MySqlCollation), e il provider precedente si è rotto due volte in dieci minuti di contatto con un server
+  # reale. Automatizza le verifiche della voce A1 di docs/lavori-aperti.md.
+  mariadb-schema:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        # La versione ESATTA di atc.it.ivao.aero (SELECT VERSION() = 11.4.10-MariaDB-deb11), non il tag
+        # mobile 11.4: fra due minori cambiano default che ci riguardano.
+        image: mariadb:11.4.10
+        env:
+          MARIADB_ROOT_PASSWORD: radice-di-prova
+          # Database creato SENZA collation esplicita — eredita il default del server, che è ai_ci — e
+          # utente con permessi solo su quello: sono le condizioni loro. Le condizioni comode nasconderebbero
+          # proprio i guasti che questo job cerca.
+          MARIADB_DATABASE: itivao_atc
+          MARIADB_USER: itivao_atc
+          MARIADB_PASSWORD: prova-di-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      CONN: "Server=127.0.0.1;Port=3306;Database=itivao_atc;User Id=itivao_atc;Password=prova-di-ci"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          # Il progetto delle migrazioni è net8 soltanto, e `dotnet ef` esegue la sua assembly: il runtime 8
+          # qui non è un di più.
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Strumenti EF
+        run: dotnet tool install --global dotnet-ef --version "10.*"
+
+      - name: Applica le migrazioni MySQL su MariaDB
+        run: |
+          dotnet ef database update \
+            --project src/Vipi.Infrastructure.MySqlMigrations \
+            --startup-project src/Vipi.Infrastructure.MySqlMigrations \
+            --connection "$CONN"
+
+      # Le verifiche si fanno SUL DATABASE, non sul modello: è la lezione che è costata di più in questa
+      # migrazione. Il client viene dalla stessa immagine del server, così non dipende da cosa ha il runner.
+      - name: Verifica lo schema prodotto
+        run: |
+          set -euo pipefail
+          sql() {
+            docker run --rm --network host mariadb:11.4.10 \
+              mariadb -h 127.0.0.1 -P 3306 -u itivao_atc -pprova-di-ci itivao_atc \
+              --batch --skip-column-names -e "$1"
+          }
+          fallisci() { echo "::error::$1"; exit 1; }
+
+          echo "1. collation delle colonne stringa"
+          # Fuori dalla nostra collation sono attese esattamente 2 colonne: MigrationId e ProductVersion di
+          # __EFMigrationsHistory, che EF crea prima della nostra migrazione. Quei due valori li genera e li
+          # confronta EF, quindi sono innocui — ma il numero deve restare 2: se cresce, una colonna nostra ha
+          # perso la collation e i confronti tornano insensibili alle maiuscole senza dire niente.
+          fuori=$(sql "SELECT COUNT(*) FROM information_schema.COLUMNS
+                       WHERE TABLE_SCHEMA='itivao_atc' AND COLLATION_NAME IS NOT NULL
+                         AND COLLATION_NAME <> 'utf8mb4_uca1400_as_cs';")
+          [ "$fuori" = "2" ] || fallisci "colonne stringa fuori da utf8mb4_uca1400_as_cs: $fuori (attese 2, quelle di __EFMigrationsHistory)"
+
+          echo "2. due valori che differiscono solo per le maiuscole convivono nell'indice unico"
+          # Senza la collation sulla colonna il secondo INSERT sarebbe un duplicate key. LIRF e lirf sono
+          # entrambi legittimi e arrivano dalla sorgente, non da una digitazione.
+          sql "INSERT INTO Accs (Code,Name,CountryPrefix,IsMilitary,IsForeign,IsHidden) VALUES ('LIRF','x','LI',0,0,0);"
+          sql "INSERT INTO Accs (Code,Name,CountryPrefix,IsMilitary,IsForeign,IsHidden) VALUES ('lirf','y','LI',0,0,0);"
+          trovato=$(sql "SELECT GROUP_CONCAT(Code ORDER BY Code) FROM Accs WHERE Code = 'lirf';")
+          [ "$trovato" = "lirf" ] || fallisci "WHERE Code='lirf' ha trovato '$trovato' invece del solo 'lirf'"
+          sql "DELETE FROM Accs;"
+
+          echo "3. i nomi di tabella conservano le maiuscole"
+          # Verificabile SOLO su Linux: su Windows lower_case_table_names vale 1 o 2 e la differenza non si
+          # vede. È il guasto che ha reso inutilizzabile il primo dump del travaso (A3).
+          lctn=$(sql "SELECT @@lower_case_table_names;")
+          [ "$lctn" = "0" ] || fallisci "lower_case_table_names=$lctn: questo server non distingue le maiuscole, la verifica 3 non proverebbe niente"
+          esatta=$(sql "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='itivao_atc' AND TABLE_NAME='Accs';")
+          minuscola=$(sql "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='itivao_atc' AND TABLE_NAME='accs';")
+          { [ "$esatta" = "1" ] && [ "$minuscola" = "0" ]; } || fallisci "la tabella è nata come 'accs' invece che 'Accs': EF cercherebbe quella con le maiuscole"
+
+          echo "tutte e tre le verifiche passate."
 
   # L'immagine è ciò che gira davvero su Render: se il Dockerfile si rompe, i test verdi non se ne accorgono.
   docker-image:
@@ -44,7 +136,7 @@ jobs:
         run: docker build -t vipi:ci .
       - name: Smoke del container
         run: |
-          # DB su /tmp: in aspnet:10.0 il processo gira come utente non-root e /app non è scrivibile.
+          # DB su /tmp: nell'immagine aspnet il processo gira come utente non-root e /app non è scrivibile.
           # VipiAuth spento: senza i segreti OIDC l'avvio in Production fallirebbe (vedi Auth/VipiAuth).
           docker run -d --name vipi -p 8080:8080 \
             -e VipiAuth__Enabled=false \
