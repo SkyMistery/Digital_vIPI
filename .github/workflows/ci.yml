@@ -76,16 +76,15 @@ jobs:
             10.0.x
 
       - name: Strumenti EF
-        # La riga sul PATH non è di contorno: `dotnet tool install --global` mette l'eseguibile in
-        # ~/.dotnet/tools, che non è nel PATH degli step successivi, e senza di essa `dotnet ef` fallisce
-        # con «Run "dotnet tool restore"» — un messaggio che manda a cercare un manifest inesistente.
-        run: |
-          dotnet tool install --global dotnet-ef --version "10.*"
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+        run: dotnet tool install --global dotnet-ef --version "10.*"
 
       - name: Applica le migrazioni MySQL su MariaDB
+        # Si invoca l'eseguibile per percorso invece di `dotnet ef`. La forma con lo spazio passa dalla
+        # dispatch della CLI, che qui non trova il comando e risponde «Run "dotnet tool restore"» mandando
+        # a cercare un manifest di tool che questo repository non ha — anche con ~/.dotnet/tools aggiunto
+        # a GITHUB_PATH. Il percorso è quello in cui `--global` installa, e non dipende da nient'altro.
         run: |
-          dotnet ef database update \
+          "$HOME/.dotnet/tools/dotnet-ef" database update \
             --project src/Vipi.Infrastructure.MySqlMigrations \
             --startup-project src/Vipi.Infrastructure.MySqlMigrations \
             --connection "$CONN"
