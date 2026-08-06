@@ -63,17 +63,43 @@ alternativa, bersaglio della FK da `AccSector.AccCode`) e `IX_Accs_Code` (`HasIn
 `VipiDbContext.cs:66`). Ridondanza vecchia, presente anche su SQLite: costa una scrittura d'indice in più,
 non un difetto. Toglierla vorrebbe dire toccare entrambi i set di migrazioni.
 
-### A2 🟢 `Vipi.DbSeed` a net8 *(A1 fatta)*
-Il tool è `net10.0` e con Pomelo — che esiste solo per EF Core 8 — non può scrivere su MariaDB. Va portato
-a net8. Poi vanno fatte le modifiche già progettate: lettura da **Postgres** (oggi legge solo SQLite),
-scrittura su MariaDB, e i due punti Postgres-specifici da sostituire (`TRUNCATE … RESTART IDENTITY CASCADE`
-→ `SET FOREIGN_KEY_CHECKS=0` + `TRUNCATE` per tabella; `setval` → `ALTER TABLE … AUTO_INCREMENT`).
-Conservare il trucco a due fasi per il ciclo `Document↔DocumentVersion` e la normalizzazione
-`DateTimeKind.Utc`. Dettagli: §S8 del piano.
+### A2 ✅ `Vipi.DbSeed` a net8 — fatta il 6 agosto 2026
+Tool su **net8** (come l'host, e per lo stesso motivo: Pomelo), sorgente **SQLite o Postgres**, destinazione
+**Postgres o MariaDB**. I due punti Postgres-specifici sono sostituiti come da §S8: `TRUNCATE … RESTART
+IDENTITY CASCADE` → `SET FOREIGN_KEY_CHECKS=0` + `TRUNCATE` per tabella (**riacceso subito dopo**, così gli
+INSERT restano verificati), e `setval` → `ALTER TABLE … AUTO_INCREMENT = max+1` sulle sole colonne che un
+contatore ce l'hanno davvero, chieste a `information_schema`. Conservati il trucco a due fasi per
+`Document↔DocumentVersion` e la normalizzazione `DateTimeKind.Utc`, che su MariaDB serve per un motivo
+diverso: `DATETIME` non porta fuso, quindi senza normalizzare a monte lo deciderebbe la macchina.
 
-### A3 🔴 Travaso dei dati veri *(serve la connection string di Neon)*
+Tre aggiunte non chieste ma che il travaso vero (A3) userà:
+- **Riconciliazione riga per riga** in fondo, con **uscita in errore** se una tabella non combacia. A3 chiede
+  di riconciliare per conteggio: ora lo fa il tool, invece che l'occhio di chi guarda il log.
+- **Verifica dello schema di destinazione prima del wipe**: su MariaDB si ferma elencando le tabelle mancanti
+  e il comando da lanciare, invece di svuotare e poi fallire l'INSERT.
+- **Riga di comando a flag** (`--from-postgres … --to-mysql …`): con due capi variabili e un TRUNCATE in
+  mezzo, due connection string posizionali si invertono e l'errore si scopre a database svuotato.
+
+**Eseguito**: `--from-sqlite src/Vipi.Host/vipi.db --to-mysql <MariaDB 11.4.10 locale>` → 4578 righe lette,
+4588 scritte, 36 contatori risincronizzati, **37 tabelle su 37 combaciano**, e l'host avviato su quel
+database serve le pagine con i dati veri (`/vsop` mostra LIRR/LIMM/LIBB).
+
+⚠️ **Il percorso sorgente-Postgres non è ancora stato eseguito**: serve la connection string di Neon, cioè
+A3. È l'unico pezzo del tool che nessuno ha visto girare.
+
+ℹ️ `/vsop/health` su quel database dice **Degraded**. Non è il travaso né MariaDB: l'host avviato sullo
+**stesso `vipi.db` via SQLite** dice Degraded uguale. Sono le incongruenze soft-ref già note (E2: gerarchia
+`ParentCallsign` dangling), che viaggiano coi dati.
+
+### A3 🔴 Travaso dei dati veri *(serve la connection string di Neon — è l'unica cosa che manca)*
 `Neon → DbSeed → MariaDB locale → mysqldump → .sql`. Il 3306 loro è su `localhost`, quindi da qui non ci si
-scrive: il deliverable è un file. **Riconciliare per conteggio riga per tabella**, non a occhio.
+scrive: il deliverable è un file. La riconciliazione per conteggio **la fa il tool** (A2) ed esce in errore
+se una tabella non combacia. Comando pronto:
+
+```sh
+dotnet run --project tools/Vipi.DbSeed -- --from-postgres "<connstring Neon>" \
+  --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=…"
+```
 Va rifatto **poco prima del cutover**: fra la prova e il passaggio in produzione il sito su Render continua
 a essere modificato.
 
