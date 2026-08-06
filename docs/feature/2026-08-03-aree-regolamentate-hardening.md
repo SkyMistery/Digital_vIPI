@@ -1,6 +1,6 @@
 # Feature — Aree regolamentate: interruttore, import incrementale, dangling, appartenenza e opt-in per ACC
 
-Data: 2026-08-03 · Stato: **FATTO — codice chiuso, ⏳ verifica live da fare** (suite 951 verde, build 0 warning) ·
+Data: 2026-08-03 · Stato: **FATTO — codice chiuso, ✅ verifica live eseguita il 6 agosto 2026** (suite 951 verde, build 0 warning) ·
 Branch `feature/aree-speciali-hardening`, 9 commit · Nato da un'analisi in tre punti (§1-3), esteso in giornata con
 il picker scopribile, l'appartenenza multi-ACC e l'opt-in per ACC delle aree estere (§4-6) ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
@@ -218,16 +218,36 @@ LIPP 24, LIZZ 15), 763 legami liberati, nessuna area orfana, seconda esecuzione 
 | §4 Picker scopribile | fatto — filtro per ACC, conteggio, elenco scorrevole (forma singolare compresa) |
 | §5 Appartenenza multi-ACC | fatto — `SpecialAreaCenter`, migration provata su copia del DB reale |
 | §6 Aree estere su richiesta | fatto — `Acc.SpecialAreasEnabled`, one-shot al boot, 993 → 230 aree |
-| Verifica live | **da fare** — quattro punti qui sotto |
+| Verifica live | **fatta** il 6-ago-2026 — 3 punti su 4 confermati, il quarto invecchiato nei dati (vedi sotto) |
 
-**Verifica live, cosa guardare:**
-1. `/vsop/admin/sorgenti`: togliere «Aree regolamentate», lanciare l'import, controllare che le aree **restino**
-   (non deve potare); rimetterla e verificare che riprenda.
-2. Editor di un documento con un'area cancellata a mano dal DB: deve comparire «⚠ non più disponibile» e il
-   rilievo in `/vsop/admin/diagnostica`.
-3. Dopo un import: la **R49 «Zita»** deve stare fra le aree *proprie* sia di LIRR sia di LIZZ.
-4. `/vsop/admin/accs`: «Importa aree» su un ACC estero → lo accende e ne mostra il conteggio; «Escludi aree» →
-   torna a «non importate» e libera l'archivio.
+## Verifica live — ESEGUITA il 6 agosto 2026
+
+Guidata con la skill `verifica-live` su una copia del `vipi.db` reale, con import veri contro l'API IVAO.
+
+**Al boot**, prima di toccare niente: la riconciliazione one-shot ha fatto **993 → 230 aree** (LIRR 99,
+LIBB 65, LIMM 27, LIPP 24, LIZZ 15), 230 legami, **zero aree orfane**, colonna `CenterId` sparita. È
+esattamente quanto previsto qui sopra, ma su un'esecuzione vera dell'app e non su una prova di migrazione.
+
+| # | Cosa | Esito |
+|---|---|---|
+| 1 | Categoria spenta ⇒ le aree restano | ✅ import lanciato con la spunta tolta: ACC e settori aggiornati, aree **immutate** (230 aree, 247 legami, conteggi per ACC identici). Provenienza a video «❄ Congelate: restano quelle già in archivio»; rimessa la spunta, torna «🔒 da sorgente». L'import spento dura 24s contro i minuti di quello pieno — la fetch non parte davvero |
+| 2 | Riferimento dangling | ✅ cancellata a mano l'area `1131` citata dalla vIPI Brindisi: l'editor mostra «⚠ **1131** non più disponibile» accanto alle tre sorelle sane, e `/vsop/admin/diagnostica` riporta «AVVISO · Area regolamentata dangling · vIPI Brindisi · Aree selezionate non più presenti: 1131». `/vsop/health` passa a **Degraded** |
+| 3 | R49 «Zita» propria di due ACC | ⚠️ **la meccanica funziona, l'esempio è invecchiato** — vedi sotto |
+| 4 | Aree estere su richiesta | ✅ «Importa aree» su **LFMM**: 158 create + 4 aggiornate → la riga passa da «non importate» a «162 aree». «Escludi aree»: «162 legami rimossi», torna «non importate», `SpecialAreasEnabled=0`, archivio di nuovo a 230 aree / 247 legami e **zero orfane** — le 4 aree condivise con ACC italiani sono rimaste, come da progetto |
+
+**Sul punto 3.** L'appartenenza multi-ACC funziona e si vede: dopo l'import ci sono **7 aree con più enti**,
+fra cui proprio la famiglia citata qui sopra — `WEST/EAST SARDINIA` (LIRO, **LIRR**, LIVK, LIZZ),
+`Donald West/East` ed `Eolia West/East` (LIBB, **LIRR**, LIZZ). Prima ogni area apparteneva a un ente solo.
+
+Ciò che non torna è **l'esempio**: la R49 «Zita» (id 8870) oggi la sorgente la elenca sotto **LIPP, LIRO,
+LIVK, LIZZ** — non più sotto LIRR. Non è un difetto dell'import: la fetch di LIRR ha funzionato nello stesso
+giro (99 → 105 legami, e le Sardinia/Donald/Eolia hanno preso il legame LIRR proprio adesso). Sono cambiati
+gli elenchi su IVAO fra il 3 e il 6 agosto — nel frattempo sono comparsi anche i due enti nascosti LIRO e
+LIVK, che il 3 agosto non risultavano. L'invariante che si voleva provare — *un'area sta fra le aree proprie
+di ogni ACC che la elenca* — è verificata su sette casi reali.
+
+**Non ancora provato**, perché serve un ACC estero già citato da un documento: che riaccendere un ente con
+«Importa aree» faccia **rientrare** un'area diventata dangling (§6, ultima riga).
 
 ## Non-obiettivi
 
