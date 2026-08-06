@@ -79,12 +79,27 @@ a essere modificato.
 
 ⚠️ `mysqldump` con un utente ristretto richiede `--no-tablespaces`.
 
-### A4 🟢 Data Protection su MariaDB *(A1 fatta)*
-`src/Vipi.Host/VipiDataProtection.cs` monta il key-store su DB **solo se il provider è Postgres**. Sotto
-MariaDB torna al file-store: su filesystem effimero significa antiforgery rotto e utenti sloggati a ogni
-riavvio. Con il deploy standalone il key-ring è responsabilità nostra, non dell'host ospitante.
-Trappola già pagata una volta su Postgres: `EnsureCreated()` verifica il *database*, non la tabella —
-serve `CREATE TABLE IF NOT EXISTS`. Da verificare **sopravvivendo a un riavvio**, non per ispezione.
+### A4 ✅ Data Protection su MariaDB — fatta il 6 agosto 2026
+`VipiDataProtection` montava il key-store su DB **solo se il provider era Postgres**; sotto MariaDB
+ricadeva sul file-store, cioè antiforgery rotto e utenti sloggati a ogni riavvio su disco effimero. Ora la
+decisione «questo provider tiene le chiavi nel database» sta in
+`Vipi.Infrastructure/Persistence/DataProtectionSchema.cs` — funzione pura, un caso per provider — e l'host
+fa solo il wiring. Su MariaDB il context usa Pomelo con la **versione fissata** (come `DependencyInjection`:
+`AutoDetect` aprirebbe una connessione mentre si costruiscono le opzioni) e **senza** retry, che su Neon
+serve per il risveglio del compute e qui non avrebbe motivo.
+
+**Verificato sopravvivendo a un riavvio, non per ispezione**: primo avvio → tabella creata e chiave
+`key-454f958a…` scritta in `DataProtectionKeys`; riavvio → **la stessa chiave, una sola riga**, nessuna
+chiave nuova, `AUTO_INCREMENT` fermo. Se il key-ring fosse tornato sul file-store ne sarebbe nata una seconda.
+
++7 test per target (`DataProtectionSchemaTests`, Infra **316** su net8 e **307** su net10): coprono il set
+di provider, l'idempotenza della DDL, il **nome della tabella con le maiuscole** — su Linux
+`lower_case_table_names=0`, e una `dataprotectionkeys` minuscola non sarebbe quella che EF cerca — e la
+collation, che qui va dichiarata a mano perché la tabella non è nel modello e `MySqlCollation.Apply` non la
+raggiunge.
+
+⚠️ Non verificato: che un **cookie** emesso prima del riavvio venga ancora decifrato dopo. La prova richiede
+un login vero (`VipiAuth:Enabled=true`), quindi va con A6 o col primo login su `atc.it.ivao.aero`.
 
 ### A5 🟢 CI con MariaDB *(A1 fatta)*
 Servizio MariaDB della stessa versione nel workflow. I test del ramo MariaDB girano sotto **net8**

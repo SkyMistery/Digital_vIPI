@@ -37,8 +37,9 @@ builder.Services.AddResponseCompression(o =>
 // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
 var authEnabled = builder.AddVipiStandaloneAuth();
 
-// Persistenza chiavi Data Protection su DB (solo Postgres): antiforgery/cookie sopravvivono ai redeploy
-// sul container effimero di Render. No-op in dev (SQLite → file-store di default). Vedi VipiDataProtection.cs.
+// Persistenza chiavi Data Protection su DB (Postgres e MariaDB, cioè i due deploy): antiforgery, cookie di
+// auth e state OIDC sopravvivono a un riavvio su disco effimero. No-op in dev (SQLite → file-store di
+// default). Vedi VipiDataProtection.cs.
 builder.AddVipiDataProtection();
 
 // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
