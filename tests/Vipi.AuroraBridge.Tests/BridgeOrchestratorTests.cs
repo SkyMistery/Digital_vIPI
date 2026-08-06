@@ -186,6 +186,27 @@ public class BridgeOrchestratorTests
         }
     }
 
+    /// <summary>
+    /// Il bridge nasce spento sul sito (`AuroraBridge:Enabled=false`), quindi «endpoint non montato» è il
+    /// primo errore che incontra chi punta il tool a un sito qualunque. Un «Il sito ha risposto 405» non gli
+    /// direbbe cosa fare; il messaggio deve nominare la causa e il rimedio.
+    /// </summary>
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.MethodNotAllowed)]
+    public async Task Bridge_spento_sul_sito_lo_dice_col_rimedio(HttpStatusCode status)
+    {
+        await using var server = Aurora();
+        var site = new FakeSite { Status = status };
+        var (orchestrator, api) = Build(server, site, TempCache());
+        using var _ = api;
+
+        var state = await orchestrator.RefreshAsync(force: true);
+
+        Assert.Contains("non è attivo", state.Notice);
+        Assert.DoesNotContain("405", state.Notice);
+    }
+
     [Fact]
     public async Task La_scrittura_arriva_ad_Aurora_solo_quando_la_si_chiede()
     {
