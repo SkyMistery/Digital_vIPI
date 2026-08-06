@@ -241,10 +241,33 @@ l'endpoint `POST /vsop/api/v1/transfers/resolve` con esso. Va deciso in B4, non 
 Resta non provato un solo dettaglio, perché serve un ACC estero già citato da un documento: che riaccendere
 l'ente faccia **rientrare** un'area diventata dangling.
 
-### B2 🔴 `feature/aurora-bridge` (7 commit avanti)
+### B2 🟡 `feature/aurora-bridge` — messo in sicurezza il 6 agosto 2026, resta la decisione
 Il tool desktop funziona **solo** contro un host locale finché l'endpoint
-`POST /vsop/api/v1/transfers/resolve` non è rilasciato. Da rivedere e unire. Chiuse per decisione: i
-sorvoli LIBB senza livello (lacuna redazionale, il tool non deve indovinare) e il pacchetto macOS.
+`POST /vsop/api/v1/transfers/resolve` non è acceso in produzione. Chiuse per decisione: i sorvoli LIBB senza
+livello (lacuna redazionale, il tool non deve indovinare) e il pacchetto macOS.
+
+⚠️ **Non è un ramo a sé**: sta per intero dentro B1. Fondere B1 porta dentro anche questo.
+
+**Rivisto prima di considerarlo mergiabile** — era l'unica superficie pubblica, anonima e interrogabile da
+fuori del sito, e aveva tre difetti nella protezione (nessuno nella logica, che è pura e testata):
+- **`AuroraBridge:Enabled`, default `false`**: spento, la rotta non si registra affatto. È ciò che rende
+  reversibile la decisione di B4 — fondere B1 non aggiunge superficie pubblica finché nessuno la accende.
+- **Tetto complessivo** (600/min) accanto a quello per IP: dietro il reverse proxy l'indirizzo arriva da
+  `X-Forwarded-For` e `UseForwardedHeaders` gira senza proxy noti, quindi **la chiave del tetto per IP la
+  sceglie il chiamante**. Aggiunto anche un tetto alle chiavi tracciate: ruotare l'header faceva crescere il
+  dizionario dei contatori senza limite — esaurimento di memoria a colpi di richieste da 200 byte.
+- **Cache di 30 s della topologia globale**, solo per il bridge: ogni richiesta rileggeva tutti i settori
+  attivi, e su `atc.it.ivao.aero` quel costo lo pagherebbe il database condiviso col sito che ci ospita.
+- `MaxRequestBytes` era un'opzione morta: il tetto del corpo era una costante.
+
+Osservato scrivendo il test invece di darlo per buono: a endpoint spento la risposta è **405**, non 404 — il
+catch-all delle pagine risponde al GET di qualunque percorso, a mancare è il verbo. Il tool desktop traduce
+404/405 in «su questo sito il bridge non è attivo» invece del codice nudo.
+
+Suite **944 verde**, e le correzioni sono state fuse anche in B1, che altrimenti se le sarebbe perse.
+
+**Cosa resta**: decidere se accenderlo e quando, cioè B4. Il tool non è mai stato esercitato contro un host
+remoto vero: se si accende, la prima sessione con Aurora va guidata.
 
 ### B3 ✅ `fix/dataprotection-retry` — fuso il 6 agosto 2026
 Fuso in `feat/persistenza-mysql` e ramo cancellato. Il commit aggiunge
@@ -258,8 +281,18 @@ il ramo Postgres resta in piedi perché Neon resta l'ambiente di prova ⇒ fusio
 proprio `EnableRetryOnFailure`, e questa registrazione oggi è nel ramo `Persistence:Provider=Postgres`.
 
 ### B4 🟡 Cosa mandare in produzione
-Decisione a monte del cutover: il sito definitivo nasce da `main`, da `main` + B1, o da `main` + B1 + B2?
-Va deciso **prima** del travaso dati, perché B1 cambia i dati delle aree.
+Decisione a monte del cutover, e ora è **binaria**: `main`, oppure `main` + B1 — che si porta dentro B2,
+perché il ramo del bridge sta per intero dentro quello delle aree. L'opzione «B1 senza B2» non esiste senza
+riscrivere la storia dei rami.
+
+Va deciso **prima** del travaso dati, perché B1 cambia i dati delle aree (archivio 993 → 230): il `.sql` di
+A3 andrebbe rifatto **dopo** il merge.
+
+Cosa pesa, ora che B1 è stata guidata e B2 messo in sicurezza:
+- **a favore**: le quattro verifiche di B1 sono passate sull'app vera; il ramo porta l'interruttore che
+  impedisce a un import storto di potare le aree buone, e l'alleggerimento dell'archivio;
+- **contro**: entra anche il bridge Aurora, il cui tool desktop non è mai stato esercitato contro un host
+  remoto — ma l'endpoint ora **nasce spento**, quindi entra come codice, non come superficie.
 
 ---
 
