@@ -123,8 +123,16 @@ Il tool desktop funziona **solo** contro un host locale finché l'endpoint
 `POST /vsop/api/v1/transfers/resolve` non è rilasciato. Da rivedere e unire. Chiuse per decisione: i
 sorvoli LIBB senza livello (lacuna redazionale, il tool non deve indovinare) e il pacchetto macOS.
 
-### B3 🟢 `fix/dataprotection-retry` (1 commit avanti)
-Un commit solo. Da guardare e chiudere: o si fonde o si cancella.
+### B3 ✅ `fix/dataprotection-retry` — fuso il 6 agosto 2026
+Fuso in `feat/persistenza-mysql` e ramo cancellato. Il commit aggiunge
+`EnableRetryOnFailure` al context del key-ring Data Protection, che apriva la connessione senza, a
+differenza di `VipiDbContext`: su Neon un transient sul key-ring uccideva antiforgery, cookie di auth e
+state OIDC (i «Correlation failed» del 3 agosto). Il passaggio a net8/Pomelo non aveva toccato il file, e
+il ramo Postgres resta in piedi perché Neon resta l'ambiente di prova ⇒ fusione pulita, suite verde
+(net8 309 · net10 300 + gli altri progetti).
+
+⚠️ Vive dentro A4: quando il key-store passerà a MariaDB, la stessa resilienza va rifatta lì — Pomelo ha il
+proprio `EnableRetryOnFailure`, e questa registrazione oggi è nel ramo `Persistence:Provider=Postgres`.
 
 ### B4 🟡 Cosa mandare in produzione
 Decisione a monte del cutover: il sito definitivo nasce da `main`, da `main` + B1, o da `main` + B1 + B2?
