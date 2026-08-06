@@ -221,11 +221,24 @@ static string CitaPostgres(string identifier) => "\"" + identifier.Replace("\"",
 // maiuscole esatte del modello, e citarlo evita che una tabella che collide con una parola riservata rompa.
 static string CitaMySql(string identifier) => "`" + identifier.Replace("`", "``") + "`";
 
+/// <summary>
+/// Cosa si può stampare di una stringa di connessione. Un percorso di file è utile e innocuo; tutto il
+/// resto no — e la password non sta solo nella forma <c>Password=…</c>: in un URL
+/// <c>postgres://utente:segreto@host/db</c> è dentro l'authority, dove un controllo sulla parola «Password»
+/// non la vede. L'output di questo tool finisce nei log e nei copincolla, quindi la regola è al contrario:
+/// si stampa solo ciò che è riconosciuto come sicuro.
+/// </summary>
 static string Riassumi(string connessione)
-    => connessione.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
-       connessione.Contains("pwd=", StringComparison.OrdinalIgnoreCase)
-        ? "(connessione con credenziali)"
-        : connessione;
+{
+    var c = connessione.Trim();
+    if (c.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+        c.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        var uri = new Uri(c);
+        return $"{uri.Host}{uri.AbsolutePath}";   // host e database: niente utente, niente password
+    }
+    return c.Contains('=') ? "(connessione con credenziali)" : c;   // keyword form ⇒ non si stampa
+}
 
 /// <summary>
 /// Porta l'AUTO_INCREMENT di ogni tabella oltre il massimo travasato. Le colonne interessate si chiedono a

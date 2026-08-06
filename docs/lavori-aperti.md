@@ -17,8 +17,9 @@ decisioni in ADR-0007 §D4/§D4-bis (⚠️ entrambe **superate**, vedi A8).
 
 Stato: il server è **MariaDB 11.4.10**, non MySQL. `Vipi.Host` è passato a **net8** e il provider è
 **Pomelo**; suite verde su net8 (309) e net10 (300). **Dal 6 agosto 2026 il ramo è provato contro una
-MariaDB 11.4.10 vera** (A1): schema, collation, case-sensitivity e avvio dell'applicazione. Resta da
-provarci sopra il travaso (A2/A3) e i flussi editoriali (A6).
+MariaDB 11.4.10 vera**: schema, collation, case-sensitivity, avvio dell'applicazione (A1), key-ring
+Data Protection che sopravvive a un riavvio (A4) e **travaso dei dati veri da Neon fino al `.sql`
+reimportabile** (A2/A3). Restano i flussi editoriali (A6) e la CI (A5).
 
 ### A1 ✅ MariaDB 11.4 in locale, e rifare le verifiche — eseguita il 6 agosto 2026
 MariaDB **11.4.10** portable in `D:\Programmazione\IVAO_Test\_mariadb` (fuori dal repo), porta 3399,
@@ -45,9 +46,9 @@ Tre cose imparate, che valgono per il cutover:
 - **Pomelo emette `ALTER DATABASE CHARACTER SET utf8mb4;`** come prima istruzione della migrazione. Passa
   con un `GRANT ALL ON itivao_atc.*` (è ALTER *sul database*), ma se il loro utente avesse una lista di
   privilegi ritagliata è la riga che si pianta per prima. → domanda per A9.
-- **`lower_case_table_names`** è 1 su Windows e sarà 0 sul loro Linux: qui le tabelle esistono come `accs`,
-  lì solo come `Accs`. EF genera i nomi giusti, ma `Vipi.DbSeed` scriverà `TRUNCATE` a mano → **A2 usi i
-  nomi con le maiuscole**, o funzionerà solo in locale.
+- **`lower_case_table_names`** è 1 su Windows e sarà 0 sul loro Linux: col default le tabelle si salvano
+  come `accs`, là esisterebbero solo come `Accs`. Sembrava riguardare solo le `TRUNCATE` scritte a mano;
+  in A3 si è scoperto che avvelena il **dump**, e il `my.ini` ora porta `lower-case-table-names=2`.
 - `mariadb-install-db` su Windows crea **utenti anonimi** che dirottano le connessioni da 127.0.0.1: il
   sintomo è `Access denied ... (using password: YES)`, che accusa la password mentre il problema è l'utente.
 
@@ -91,19 +92,33 @@ A3. È l'unico pezzo del tool che nessuno ha visto girare.
 **stesso `vipi.db` via SQLite** dice Degraded uguale. Sono le incongruenze soft-ref già note (E2: gerarchia
 `ParentCallsign` dangling), che viaggiano coi dati.
 
-### A3 🔴 Travaso dei dati veri *(serve la connection string di Neon — è l'unica cosa che manca)*
-`Neon → DbSeed → MariaDB locale → mysqldump → .sql`. Il 3306 loro è su `localhost`, quindi da qui non ci si
-scrive: il deliverable è un file. La riconciliazione per conteggio **la fa il tool** (A2) ed esce in errore
-se una tabella non combacia. Comando pronto:
+### A3 ✅ Travaso dei dati veri — catena eseguita il 6 agosto 2026
+`Neon → DbSeed → MariaDB locale → mariadb-dump → .sql`, tutta. Da Neon: **4807 righe** lette, 4818 scritte,
+**37 tabelle su 37 riconciliate** dal tool. Dump: `_mariadb/dump/vipi-atc-it-ivao-aero-2026-08-06.sql`,
+4,7 MB, sha256 `B4989D63…A475A296`. Procedura e opzioni: §6 di
+[`../deploy/mariadb/README.md`](../deploy/mariadb/README.md).
 
-```sh
-dotnet run --project tools/Vipi.DbSeed -- --from-postgres "<connstring Neon>" \
-  --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=…"
-```
-Va rifatto **poco prima del cutover**: fra la prova e il passaggio in produzione il sito su Render continua
-a essere modificato.
+**Verificato reimportandolo**, non guardandolo: database vuoto → import → 38 tabelle, 4808 righe, conteggi
+**identici** all'origine; host avviato su quel database → `/vsop` 200 con LIRR/LIMM/LIBB a schermo e
+**nessuna migrazione riapplicata** (`__EFMigrationsHistory` viaggia nel dump apposta).
 
-⚠️ `mysqldump` con un utente ristretto richiede `--no-tablespaces`.
+⚠️ **Il primo dump era inutilizzabile e sembrava perfetto.** Windows nasce con
+`lower_case_table_names=1`: i nomi di tabella si salvano in minuscolo e `mariadb-dump` li riemette così, per
+cui sul loro Linux (`=0`) sarebbero nate `accs` mentre EF cerca `Accs`. Rifatto tutto con
+`lower-case-table-names=2` nel `my.ini` — lo 0 su Windows corrompe gli indici — da mettere **prima** di
+creare lo schema. È la trappola annotata in A1, materializzatasi al primo tentativo.
+
+Il `.sql` **non è nel repository**: contiene contenuto reale, VID dello staff e audit log. Sta in
+`_mariadb/dump/`, fuori dall'albero.
+
+**Cosa resta, e non è lavoro tecnico:**
+- **Consegnarlo**, per il canale che concorderanno (A9) — con 4,7 MB va verificato che phpMyAdmin regga.
+- **Rifarlo poco prima del cutover**: fra oggi e il passaggio, Render continua a essere modificato. Stesso
+  comando, due minuti.
+- ⚠️ **Prima del travaso definitivo va deciso B4**: se entra `feature/aree-speciali-hardening` i dati delle
+  aree cambiano, e allora questo dump si rifà **dopo** il merge, non prima.
+- Escluso di proposito dal dump: `DataProtectionKeys`. Sono le chiavi che decifrano i cookie della nostra
+  installazione locale, non un dato da consegnare; l'host se le ricrea al primo avvio.
 
 ### A4 ✅ Data Protection su MariaDB — fatta il 6 agosto 2026
 `VipiDataProtection` montava il key-store su DB **solo se il provider era Postgres**; sotto MariaDB

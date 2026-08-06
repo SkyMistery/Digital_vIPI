@@ -51,7 +51,16 @@ log-error=<destinazione>/mariadb-error.log
 # Come il pacchetto Debian di MariaDB 11.x (50-server.cnf), che è ciò che gira da loro:
 character-set-server=utf8mb4
 collation-server=utf8mb4_uca1400_ai_ci
+lower-case-table-names=2
 ```
+
+⚠️ **`lower-case-table-names=2` non è un dettaglio, è ciò che rende il dump utilizzabile.** Windows nasce
+con **1**: i nomi di tabella si *salvano* in minuscolo, e `mariadb-dump` li riemette così — un `.sql` preso
+da un server con il default creerebbe `accs` dove EF cerca `Accs`, e sul loro Linux (`lower_case_table_names=0`)
+sono due tabelle diverse. Il valore **0 su Windows non è utilizzabile** (filesystem insensibile alle
+maiuscole ⇒ indici corrotti); il **2** salva il nome com'è scritto e confronta senza distinguere: è il più
+vicino al loro che questa macchina possa dare. Va messo **prima** di creare lo schema — le tabelle già
+create restano com'erano.
 
 ⚠️ **Percorsi con `/`, non con `\`**: in un file di opzioni il backslash è un escape e `\s` significa
 **spazio**, quindi l'avvio muore con «Can't create directory» su un percorso che a occhio sembra giusto.
@@ -138,7 +147,59 @@ Il secondo è l'unico che conta: il primo si può soddisfare con uno schema che 
 provider la regola è **verificare sul database, non sul modello** — la collation risultava presente e corretta
 nei metadati EF anche quando nella DDL non c'era affatto (vedi `MySqlCollation`).
 
-## 6. Fermare e ripartire da zero
+## 6. Il travaso dei dati veri e il `.sql` da consegnare
+
+La catena è `Neon → Vipi.DbSeed → MariaDB locale → mariadb-dump → .sql`, perché il 3306 loro è su
+`localhost` e da qui non ci si scrive. Eseguita per intero il **6 agosto 2026** (voce A3).
+
+```sh
+# 1. Neon → MariaDB locale. Il tool riconcilia da sé riga per riga ed esce in errore se una tabella
+#    non combacia (vedi tools/Vipi.DbSeed/README.md).
+dotnet run --project tools/Vipi.DbSeed -- --from-postgres "<connstring Neon>" \
+  --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=<password>"
+```
+
+```powershell
+# 2. MariaDB locale → .sql
+& "<bin>\mariadb-dump.exe" -u itivao_atc -p'<password>' -h 127.0.0.1 -P 3399 `
+  --no-tablespaces --single-transaction --hex-blob --default-character-set=utf8mb4 `
+  --ignore-table=itivao_atc.DataProtectionKeys itivao_atc > vipi-atc-it-ivao-aero-<data>.sql
+```
+
+Perché ognuna di queste opzioni:
+
+- **`--no-tablespaces`** — senza, `mariadb-dump` chiede `PROCESS`, che un utente ristretto non ha.
+- **`--single-transaction`** — dump coerente su InnoDB senza lockare le tabelle.
+- **`--hex-blob`** — le immagini dei blocchi (`MediaAssets`) sono byte nel database: in esadecimale
+  attraversano indenni qualunque conversione di charset per strada.
+- **`--ignore-table=…DataProtectionKeys`** — quelle chiavi **decifrano i cookie di sessione**: sono un
+  segreto della *nostra* installazione locale, non un dato da consegnare. La tabella se la ricrea l'host al
+  primo avvio (`UseVipiDataProtection`).
+- Niente `--databases`: così il dump non porta `CREATE DATABASE`/`USE` e si importa nel database che hanno
+  già, comunque si chiami.
+
+Il dump **include `__EFMigrationsHistory`**, ed è voluto: senza, l'host al primo avvio proverebbe ad
+applicare `InitialCreate` su uno schema che esiste già. Include anche i valori `AUTO_INCREMENT`, quindi i
+contatori arrivano di là già oltre il massimo.
+
+**Il file NON sta nel repository**: 4,7 MB di contenuto reale, con VID dello staff e log di audit. Vive in
+`_mariadb/dump/` fuori dall'albero, e si consegna per il canale che concorderanno (§A9).
+
+### Verificare il `.sql`, non fidarsene
+
+Un dump che si scrive senza errori può comunque non ricostruire niente. La prova è reimportarlo in un
+database vuoto e **confrontare i conteggi tabella per tabella**:
+
+```powershell
+& "<bin>\mariadb.exe" -u root -h 127.0.0.1 -P 3399 -e "CREATE DATABASE itivao_verifica; GRANT ALL PRIVILEGES ON itivao_verifica.* TO 'itivao_atc'@'%';"
+Get-Content <file>.sql -Raw | & "<bin>\mariadb.exe" -u itivao_atc -p'<password>' -h 127.0.0.1 -P 3399 itivao_verifica
+```
+
+Poi si avvia l'host su quel database: se il `.sql` è buono, le pagine si aprono coi dati veri e **nessuna
+migrazione viene riapplicata**. Esito del 6 agosto: 38 tabelle, 4808 righe, conteggi **identici** all'origine,
+`/vsop` 200 con LIRR/LIMM/LIBB a schermo, zero `Applying migration`.
+
+## 7. Fermare e ripartire da zero
 
 ```powershell
 & "<bin>\mariadb-admin.exe" -u root -h 127.0.0.1 -P 3399 shutdown
