@@ -78,6 +78,11 @@ jobs:
       - name: Strumenti EF
         run: dotnet tool install --global dotnet-ef --version "10.*"
 
+      # `dotnet ef` compila il progetto ma NON lo restora: senza questa riga muore con NETSDK1004
+      # (assets file mancante), che è un messaggio di NuGet e non parla né di EF né di migrazioni.
+      - name: Restore del progetto delle migrazioni
+        run: dotnet restore src/Vipi.Infrastructure.MySqlMigrations/Vipi.Infrastructure.MySqlMigrations.csproj
+
       - name: Applica le migrazioni MySQL su MariaDB
         # Si invoca l'eseguibile per percorso invece di `dotnet ef`. La forma con lo spazio passa dalla
         # dispatch della CLI, che qui non trova il comando e risponde «Run "dotnet tool restore"» mandando
