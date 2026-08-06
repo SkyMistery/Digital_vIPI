@@ -12,10 +12,12 @@ referenziati sia dall'host sia dal tool. Questo file li descrive, non li duplica
 |---|---|
 | Metodo | `POST` |
 | Percorso | `/vsop/api/v1/transfers/resolve` |
+| **Attivazione** | **`AuroraBridge:Enabled`, default `false`** — spento la rotta non si registra affatto |
 | Autenticazione | **nessuna** — espone dati già pubblici nei documenti |
 | Scrittura | nessuna: il server non tocca Aurora, lo fa il tool su azione dell'utente |
-| Tetto | `AuroraBridge:RequestsPerMinutePerIp` (default 120/min per IP) → `429` con `Retry-After: 60` |
-| Corpo massimo | 64 KB |
+| Tetto complessivo | `AuroraBridge:RequestsPerMinuteTotal` (default 600/min, tutti insieme) → `429` |
+| Tetto per IP | `AuroraBridge:RequestsPerMinutePerIp` (default 120/min) → `429` con `Retry-After: 60` |
+| Corpo massimo | `AuroraBridge:MaxRequestBytes` (default 64 KB) |
 | Versione | `v1`; ogni cambio incompatibile diventa `v2` e lascia vivo il tool vecchio |
 
 ## Configurazione (sezione `AuroraBridge`)
@@ -23,16 +25,38 @@ referenziati sia dall'host sia dal tool. Questo file li descrive, non li duplica
 ```jsonc
 {
   "AuroraBridge": {
+    "Enabled": false,                 // l'endpoint si monta SOLO se true. Default: spento
     "LabelConvention": "Number",      // "Number" (250) | "FlPrefixed" (FL250). Valore ignoto → Number
     "MaxCandidates": 8,
+    "RequestsPerMinuteTotal": 600,    // tetto di tutti i chiamanti insieme
     "RequestsPerMinutePerIp": 120,
-    "MaxRequestBytes": 65536
+    "MaxTrackedClients": 10000,       // quanti IP distinti il limitatore tiene in memoria
+    "MaxRequestBytes": 65536,
+    "TopologyCacheSeconds": 30        // riuso della topologia globale fra richieste. 0 = nessuna cache
   }
 }
 ```
 
-Senza sezione valgono i default. La convenzione è una scelta di **leggibilità del tag**: Aurora accetta
-testo libero nell'etichetta quota (piano §11.2).
+Senza sezione valgono i default, **endpoint spento compreso**. La convenzione è una scelta di **leggibilità
+del tag**: Aurora accetta testo libero nell'etichetta quota (piano §11.2).
+
+### Perché nasce spento
+
+È l'unica superficie pubblica, anonima e scrivibile-da-fuori del sito, su un dominio servito a una divisione.
+Accenderla dev'essere una decisione di chi distribuisce il tool desktop, non la conseguenza di aver fuso un
+ramo. `MaxRequestBytes` e `TopologyCacheSeconds` si leggono **all'avvio**: cambiarli richiede un riavvio.
+
+### Perché due tetti e non uno
+
+Dietro il reverse proxy l'indirizzo del chiamante arriva da `X-Forwarded-For`, e `UseForwardedHeaders` è
+configurato **senza proxy noti** perché l'IP del proxy non è fisso. Quindi la chiave del tetto per IP **la
+sceglie il chiamante**: protegge dal caso vero — un tool in polling stretto, un client difettoso — non da chi
+la ruota apposta. Quello che regge davvero è il tetto **complessivo**, che non ha chiave.
+
+Per lo stesso motivo il limitatore tiene al massimo `MaxTrackedClients` indirizzi: senza tetto, ruotare
+l'header farebbe crescere il dizionario senza limite — un esaurimento di memoria a colpi di richieste da
+200 byte. Raggiunto il tetto si spazzano le finestre scadute; se non basta, un indirizzo **mai visto** viene
+rifiutato con `429` invece che tracciato.
 
 ## Richiesta
 
@@ -113,7 +137,8 @@ la postazione, condizioni non verificabili, nessun candidato scrivibile.
 |---|---|
 | `200` | sempre, anche con `candidates` vuoto (il perché è in `warnings`) |
 | `400` | `ownerCallsign` mancante |
-| `429` | superato il tetto per IP; riprova dopo `Retry-After` |
+| `429` | superato il tetto (complessivo o per IP); riprova dopo `Retry-After` |
+| `405` | l'endpoint **non è attivo** su quel sito (`AuroraBridge:Enabled=false`). Non è `404` perché il catch-all delle pagine risponde al `GET` di qualunque percorso: a mancare è il verbo, non il percorso |
 
 ## Esempio
 

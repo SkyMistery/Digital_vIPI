@@ -56,6 +56,13 @@ public sealed class VipiApiClient : IDisposable
                 return new ResolveOutcome(await ReadCacheAsync(key, ct).ConfigureAwait(false), true,
                     "Il sito sta limitando le richieste (429): rallenta il polling.");
 
+            // 404/405 = l'endpoint non è montato: il sito ha il bridge spento (AuroraBridge:Enabled=false).
+            // È il primo errore che incontra chi punta il tool a un sito qualunque, e «Il sito ha risposto 405»
+            // non gli direbbe cosa fare.
+            if ((int)response.StatusCode is 404 or 405)
+                return new ResolveOutcome(await ReadCacheAsync(key, ct).ConfigureAwait(false), true,
+                    "Su questo sito il bridge Aurora non è attivo: chiedi allo staff di accenderlo.");
+
             if (!response.IsSuccessStatusCode)
                 return new ResolveOutcome(await ReadCacheAsync(key, ct).ConfigureAwait(false), true,
                     $"Il sito ha risposto {(int)response.StatusCode}.");

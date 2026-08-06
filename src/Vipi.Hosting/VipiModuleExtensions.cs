@@ -96,12 +96,24 @@ public static class VipiModuleExtensions
         // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
         services.AddSingleton<RequestRateLimiter>();
-        services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp => new Vipi.Application.Content.TransferMatchService(
-            sp.GetRequiredService<Vipi.Application.Abstractions.ITransferRepository>(),
-            sp.GetRequiredService<Vipi.Application.Abstractions.ITopologyProvider>(),
-            sp.GetRequiredService<Vipi.Application.Content.IStationResolver>(),
-            sp.GetRequiredService<Vipi.Application.Abstractions.IOnlineAtcProvider>(),
-            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions>>().Value.ToMatchOptions()));
+        services.AddSingleton<GlobalTopologyCache>();
+        services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp =>
+        {
+            var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions>>().Value;
+            // La topologia globale passa dalla cache SOLO qui: gli altri consumatori (AoR, coordinamenti,
+            // vista live) continuano a leggerla fresca. Vedi CachedGlobalTopology.
+            var topologia = new CachedGlobalTopologyProvider(
+                sp.GetRequiredService<Vipi.Application.Abstractions.ITopologyProvider>(),
+                sp.GetRequiredService<GlobalTopologyCache>(),
+                opt.TopologyCacheTtl);
+
+            return new Vipi.Application.Content.TransferMatchService(
+                sp.GetRequiredService<Vipi.Application.Abstractions.ITransferRepository>(),
+                topologia,
+                sp.GetRequiredService<Vipi.Application.Content.IStationResolver>(),
+                sp.GetRequiredService<Vipi.Application.Abstractions.IOnlineAtcProvider>(),
+                opt.ToMatchOptions());
+        });
 
         // Health check del modulo, in due tagli. «ready» è la sonda economica per l'orchestratore (due query);
         // «full» aggiunge il report di consistenza, che fa scansioni complete → solo su richiesta di un umano.
@@ -188,32 +200,55 @@ public static class VipiModuleExtensions
 
         // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in
         // Aurora, restituisce i punti di trasferimento candidati col livello pronto da scrivere. Read-only e
-        // anonimo come i documenti da cui deriva, quindi con tetto per IP e sul corpo. Nessuna scrittura: è il
-        // tool desktop, non il server, a toccare Aurora — e solo su azione esplicita dell'utente.
-        endpoints.MapPost("/vsop/api/v1/transfers/resolve", async (
-            Vipi.AuroraBridge.Contracts.TransferResolveRequest request,
-            HttpContext ctx,
-            Vipi.Application.Content.ITransferMatchService service,
-            RequestRateLimiter limiter,
-            Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions> options,
-            CancellationToken ct) =>
+        // anonimo come i documenti da cui deriva. Nessuna scrittura: è il tool desktop, non il server, a
+        // toccare Aurora — e solo su azione esplicita dell'utente.
+        //
+        // MONTATO SOLO SE ACCESO (AuroraBridge:Enabled, default false). È superficie pubblica e anonima su un
+        // sito servito a una divisione: accenderla dev'essere una decisione di chi distribuisce il tool, non
+        // la conseguenza di aver fuso un ramo. Spento, la rotta non si registra affatto — meglio che un 403,
+        // che direbbe comunque che c'è qualcosa. (Osservato: la risposta è 405 e non 404, perché il catch-all
+        // di MapRazorComponents risponde al GET di qualunque path; a mancare è il verbo. Vedi lo smoke E2E.)
+        var bridge = endpoints.ServiceProvider
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions>>().Value;
+
+        if (bridge.Enabled)
         {
-            var opt = options.Value;
-
-            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-            if (!limiter.TryAcquire(ip, opt.RequestsPerMinutePerIp))
+            endpoints.MapPost("/vsop/api/v1/transfers/resolve", async (
+                Vipi.AuroraBridge.Contracts.TransferResolveRequest request,
+                HttpContext ctx,
+                Vipi.Application.Content.ITransferMatchService service,
+                RequestRateLimiter limiter,
+                Microsoft.Extensions.Options.IOptions<AuroraBridgeOptions> options,
+                CancellationToken ct) =>
             {
-                ctx.Response.Headers.RetryAfter = "60";
-                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-            }
+                var opt = options.Value;
 
-            if (request is null || string.IsNullOrWhiteSpace(request.OwnerCallsign))
-                return Results.BadRequest(new { error = "ownerCallsign obbligatorio" });
+                // Il tetto complessivo viene PRIMA di quello per IP, ed è quello che regge davvero: dietro il
+                // reverse proxy l'IP arriva da X-Forwarded-For, che il chiamante sceglie. Il tetto per IP
+                // resta perché protegge dal caso vero — un tool in polling stretto — non dall'avversario.
+                if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, opt.RequestsPerMinuteTotal))
+                {
+                    ctx.Response.Headers.RetryAfter = "60";
+                    return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+                }
 
-            var result = await service.ResolveAsync(request, ct);
-            return Results.Json(result);
-        })
-        .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(64 * 1024));
+                var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+                if (!limiter.TryAcquire(ip, opt.RequestsPerMinutePerIp, opt.MaxTrackedClients))
+                {
+                    ctx.Response.Headers.RetryAfter = "60";
+                    return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+                }
+
+                if (request is null || string.IsNullOrWhiteSpace(request.OwnerCallsign))
+                    return Results.BadRequest(new { error = "ownerCallsign obbligatorio" });
+
+                var result = await service.ResolveAsync(request, ct);
+                return Results.Json(result);
+            })
+            // Il tetto del corpo si legge dalla configurazione (prima era una costante, e MaxRequestBytes non
+            // lo leggeva nessuno). Letto UNA VOLTA all'avvio: cambiarlo richiede un riavvio.
+            .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(bridge.EffectiveMaxRequestBytes));
+        }
 
         // Immagini dei blocchi editoriali. L'URL È il contenuto (sha256), quindi la risposta si può dichiarare
         // «immutable» senza rischio di stantio: cambiare immagine significa cambiare URL, non aggiornare questa.
