@@ -1,7 +1,14 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 5 agosto 2026 (sito definitivo `atc.it.ivao.aero` su MySQL — branch `feat/persistenza-mysql`)
+**Ultimo aggiornamento:** 5 agosto 2026 (sito definitivo `atc.it.ivao.aero` — il server è **MariaDB**, host su net8, provider Pomelo)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
+>
+> Elenco unico di **tutto** l'aperto — cutover, branch non fusi, debito noto, verifiche live pendenti,
+> funzionalità. Ogni voce è presa da sola in una sessione, con il blocco segnato (🟢 subito · 🟡 dipende da
+> un'altra voce · 🔴 dipende da altri). **Partire da lì**, non da questo documento, che racconta lo stato
+> ma non ordina il lavoro.
 
 > ## 🟢 PRIMA COSA — il sito definitivo `atc.it.ivao.aero` su MySQL (branch `feat/persistenza-mysql`)
 >
