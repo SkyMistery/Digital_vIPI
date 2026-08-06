@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 5 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 6 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -16,22 +16,54 @@ Branch `feat/persistenza-mysql`. Contesto: [`design/piano-supporto-mysql.md`](de
 decisioni in ADR-0007 §D4/§D4-bis (⚠️ entrambe **superate**, vedi A8).
 
 Stato: il server è **MariaDB 11.4.10**, non MySQL. `Vipi.Host` è passato a **net8** e il provider è
-**Pomelo**; suite verde su net8 (309) e net10 (300). Nulla di questo è ancora stato provato contro una
-MariaDB vera.
+**Pomelo**; suite verde su net8 (309) e net10 (300). **Dal 6 agosto 2026 il ramo è provato contro una
+MariaDB 11.4.10 vera** (A1): schema, collation, case-sensitivity e avvio dell'applicazione. Resta da
+provarci sopra il travaso (A2/A3) e i flussi editoriali (A6).
 
-### A1 🟢 MariaDB 11.4 in locale, e rifare le verifiche
-Le verifiche passate su MySQL 8.4.9 **non valgono più**: erano su un altro motore e su un altro provider.
-Serve una MariaDB 11.4 locale (gli ZIP MariaDB si scaricano senza il gating di Oracle — la ricetta per
-MySQL è in [`../deploy/mysql/README.md`](../deploy/mysql/README.md), quella MariaDB è più semplice).
-Da rifare su quella, nell'ordine: migrazioni da zero su database vuoto; collation
-`utf8mb4_uca1400_as_cs` presente su tutte le colonne stringa; `LIRF` e `lirf` che convivono nell'indice
-unico di `Accs.Code` mentre il `WHERE` li distingue; avvio dell'applicazione con
-`Persistence__Provider=MySql`.
+### A1 ✅ MariaDB 11.4 in locale, e rifare le verifiche — eseguita il 6 agosto 2026
+MariaDB **11.4.10** portable in `D:\Programmazione\IVAO_Test\_mariadb` (fuori dal repo), porta 3399,
+default di server `utf8mb4_uca1400_ai_ci` come il pacchetto Debian loro, database `itivao_atc` creato
+**senza** `COLLATE` e utente con permessi **solo** su quel database. Ricetta completa e trappole:
+[`../deploy/mariadb/README.md`](../deploy/mariadb/README.md).
 
-⚠️ Il database di prova va creato **senza** `COLLATE` e con un utente che ha permessi **solo** su quel
-database: è così da loro, e le condizioni comode nascondono proprio i guasti che cerchiamo.
+Le quattro verifiche, tutte passate:
+1. **Migrazioni da zero su database vuoto** — sia da `dotnet ef database update`, sia **all'avvio
+   dell'host** (`MigrateVipiDatabase`), che è il percorso vero del cutover. 38 tabelle, una sola riga in
+   `__EFMigrationsHistory`.
+2. **Collation** — **163** colonne stringa su 163 con `utf8mb4_uca1400_as_cs`, dichiarata sulla colonna
+   nella DDL vera (`SHOW CREATE TABLE`). Le 2 eccezioni sono `__EFMigrationsHistory`, che EF crea prima
+   della nostra migrazione: innocue, quei valori li genera e li confronta EF.
+3. **`LIRF` e `lirf` convivono** nell'indice unico di `Accs.Code` e `WHERE Code='lirf'` ne torna uno solo.
+   È la verifica che conta: il default del database è ai_ci, quindi senza la collation sulla colonna il
+   secondo INSERT sarebbe stato un duplicate key.
+4. **Avvio con `Persistence__Provider=MySql`** — `/vsop` 200, `/vsop/health` Healthy, `/vsop/health/ready`
+   200, log senza un solo `warn`. E ha **scritto davvero**: import ACC (7 ACC, 36 settori) e aree speciali
+   (230 create, 17 aggiornate) andati a buon fine su MariaDB, con `LastSuccessUtc` valorizzato e
+   `LastError` vuoto in `ImportStates`.
 
-### A2 🟡 `Vipi.DbSeed` a net8 *(dopo A1)*
+Tre cose imparate, che valgono per il cutover:
+- **Pomelo emette `ALTER DATABASE CHARACTER SET utf8mb4;`** come prima istruzione della migrazione. Passa
+  con un `GRANT ALL ON itivao_atc.*` (è ALTER *sul database*), ma se il loro utente avesse una lista di
+  privilegi ritagliata è la riga che si pianta per prima. → domanda per A9.
+- **`lower_case_table_names`** è 1 su Windows e sarà 0 sul loro Linux: qui le tabelle esistono come `accs`,
+  lì solo come `Accs`. EF genera i nomi giusti, ma `Vipi.DbSeed` scriverà `TRUNCATE` a mano → **A2 usi i
+  nomi con le maiuscole**, o funzionerà solo in locale.
+- `mariadb-install-db` su Windows crea **utenti anonimi** che dirottano le connessioni da 127.0.0.1: il
+  sintomo è `Access denied ... (using password: YES)`, che accusa la password mentre il problema è l'utente.
+
+Restano **non** verificati e non verificabili qui: `sql_mode` del loro server, e la loro
+`DEFAULT_COLLATION_NAME` vera (mai letta). Vedi «Cosa questo ambiente NON dice» nel README.
+
+ℹ️ Non è un guasto: l'import settori-aeroporto ha scritto **0 aeroporti** perché parte dal catalogo
+aeroporti, che su un database appena creato è vuoto finché non si passa da `/vsop/admin/acc` → «Importa da
+sorgente». Da riprendere in **A6**, che è dove i flussi si guidano.
+
+ℹ️ Osservazione di modello, non urgente: `Accs.Code` porta **due** indici unici, `AK_Accs_Code` (chiave
+alternativa, bersaglio della FK da `AccSector.AccCode`) e `IX_Accs_Code` (`HasIndex(...).IsUnique()`,
+`VipiDbContext.cs:66`). Ridondanza vecchia, presente anche su SQLite: costa una scrittura d'indice in più,
+non un difetto. Toglierla vorrebbe dire toccare entrambi i set di migrazioni.
+
+### A2 🟢 `Vipi.DbSeed` a net8 *(A1 fatta)*
 Il tool è `net10.0` e con Pomelo — che esiste solo per EF Core 8 — non può scrivere su MariaDB. Va portato
 a net8. Poi vanno fatte le modifiche già progettate: lettura da **Postgres** (oggi legge solo SQLite),
 scrittura su MariaDB, e i due punti Postgres-specifici da sostituire (`TRUNCATE … RESTART IDENTITY CASCADE`
@@ -47,19 +79,19 @@ a essere modificato.
 
 ⚠️ `mysqldump` con un utente ristretto richiede `--no-tablespaces`.
 
-### A4 🟡 Data Protection su MariaDB *(dopo A1)*
+### A4 🟢 Data Protection su MariaDB *(A1 fatta)*
 `src/Vipi.Host/VipiDataProtection.cs` monta il key-store su DB **solo se il provider è Postgres**. Sotto
 MariaDB torna al file-store: su filesystem effimero significa antiforgery rotto e utenti sloggati a ogni
 riavvio. Con il deploy standalone il key-ring è responsabilità nostra, non dell'host ospitante.
 Trappola già pagata una volta su Postgres: `EnsureCreated()` verifica il *database*, non la tabella —
 serve `CREATE TABLE IF NOT EXISTS`. Da verificare **sopravvivendo a un riavvio**, non per ispezione.
 
-### A5 🟡 CI con MariaDB *(dopo A1)*
+### A5 🟢 CI con MariaDB *(A1 fatta)*
 Servizio MariaDB della stessa versione nel workflow. I test del ramo MariaDB girano sotto **net8**
 (`Vipi.Infrastructure.Tests` è già multi-target apposta). Estendere il job esistente a
 `dotnet test -f net8.0`.
 
-### A6 🟡 Verifica live sui flussi editoriali *(dopo A1; skill `verifica-live`)*
+### A6 🟢 Verifica live sui flussi editoriali *(A1 fatta; skill `verifica-live`)*
 È la slice che valida la scelta del provider, non una rifinitura. Flussi obbligatori: import
 ACC/settori/aeroporti, import SID (lock per-ICAO), pubblicazione dei tre tipi di documento, lock di editing
 (`EditResourceLock`, heartbeat 60s/TTL 3min), upload immagine (`MediaAsset`, blob nel DB), ricerca globale,
@@ -90,6 +122,9 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
 - **Come raggiungiamo il database** (SSH? phpMyAdmin? IP autorizzato?) — decide se il travaso lo facciamo
   noi o gli consegniamo un file, e con quale limite di dimensione.
 - **`sql_mode`** del server: strict o no (vedi A6).
+- **I privilegi dell'utente `itivao_atc`**, in dettaglio: la migrazione iniziale apre con
+  `ALTER DATABASE CHARACTER SET utf8mb4;` (lo emette Pomelo, non noi). Con `GRANT ALL ON itivao_atc.*`
+  passa — verificato in locale il 6 agosto — ma con una lista ritagliata è la prima riga che si pianta.
 - Che il database `itivao_atc` entri nel loro **piano di backup**.
 - Sulla macchina: **WebSocket** sul reverse proxy (senza, Blazor Server apre le pagine e resta muto),
   header inoltrati, supervisione del processo, percorso persistente o key-ring su DB.

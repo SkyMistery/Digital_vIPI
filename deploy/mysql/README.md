@@ -1,5 +1,11 @@
 # MySQL locale per provare il ramo di produzione
 
+> ⛔ **SUPERATO dal 6 agosto 2026 — usare [`../mariadb/README.md`](../mariadb/README.md).**
+> Il server di `atc.it.ivao.aero` è **MariaDB 11.4.10**, e il provider non è più quello di Oracle ma
+> **Pomelo**: questa ricetta monta un MySQL 8.4 su cui il ramo di produzione non gira più. Resta come
+> storia — la parte sul gating dei download di Oracle e sulla DDL non transazionale è ancora vera — non
+> come istruzione.
+
 Serve a tre cose, tutte quelle che non si possono verificare senza un database vero: applicare davvero le
 migrazioni, travasare i dati da Neon, e guidare l'app con la skill `verifica-live`. Il database di
 produzione (`atc.it.ivao.aero`) ascolta su `localhost:3306` del loro server, quindi **da qui non è
