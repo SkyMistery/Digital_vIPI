@@ -216,20 +216,30 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B1 🔴 `feature/aree-speciali-hardening` (18 commit avanti)
-Chiuso come codice, suite verde, ma **mai verificato sull'app vera**, e `HANDOFF.md` dice esplicitamente di
-non fonderlo prima. Quattro punti da guidare, nell'ordine, con la skill `verifica-live`:
-1. `/vsop/admin/sorgenti` → togli «Aree regolamentate», lancia l'import: le aree devono **restare**.
-2. Editor con un'area cancellata a mano dal DB → «⚠ non più disponibile» nel picker e il rilievo in
-   `/vsop/admin/diagnostica`.
-3. Dopo un import, la **R49 «Zita»** (id 8870) dev'essere fra le aree **proprie** sia di LIRR sia di LIZZ.
-4. `/vsop/admin/accs` → «Importa aree» su un ACC estero lo accende; «Escludi aree» lo spegne.
+### B1 ✅ `feature/aree-speciali-hardening` — verificata sull'app vera il 6 agosto 2026
+I quattro punti sono stati guidati con la skill `verifica-live` su una copia del `vipi.db` reale, con import
+veri contro l'API IVAO. Esito per esteso nella carta,
+[`feature/2026-08-03-aree-regolamentate-hardening.md`](feature/2026-08-03-aree-regolamentate-hardening.md).
 
-Due cose da sapere prima di avviare: al primo boot una riconciliazione one-shot **spegne gli ACC esteri**
-(763 legami su 993, restano le 230 italiane); e dopo il deploy va premuto «Importa da sorgente», perché il
-backfill recupera una sola appartenenza per area.
+- **Riconciliazione al boot**: 993 → 230 aree, zero orfane, colonna `CenterId` sparita. Come previsto.
+- **1. Interruttore** ✅ con la categoria spenta l'import aggiorna ACC e settori e **lascia le aree intatte**
+  (230 aree / 247 legami, conteggi per ACC identici); a video «❄ Congelate». E dura **24 secondi** contro i
+  minuti dell'import pieno: la fetch non parte davvero.
+- **2. Dangling** ✅ cancellata a mano l'area `1131` citata dalla vIPI Brindisi: «⚠ 1131 non più disponibile»
+  nell'editor, rilievo in `/vsop/admin/diagnostica`, `/vsop/health` a **Degraded**.
+- **3. R49 «Zita»** ⚠️ la **meccanica multi-ACC funziona** — 7 aree con più enti, fra cui `WEST/EAST SARDINIA`
+  e `Donald`/`Eolia` che ora appartengono anche a LIRR — ma **l'esempio è invecchiato**: oggi la sorgente
+  elenca la 8870 sotto LIPP, LIRO, LIVK, LIZZ e non più sotto LIRR. Non è l'import: nello stesso giro la
+  fetch di LIRR ha portato 105 legami. Sono cambiati gli elenchi IVAO fra il 3 e il 6 agosto.
+- **4. Aree estere** ✅ «Importa aree» su LFMM → 162 aree e l'ente si accende; «Escludi aree» → 162 legami
+  rimossi, torna «non importate», archivio di nuovo a 230/247 senza orfane (le 4 aree condivise restano).
 
-Carta: `feature/2026-08-03-aree-regolamentate-hardening.md`.
+⚠️ **Il ramo contiene anche B2**: `feature/aurora-bridge` è interamente dentro questi 18 commit (i 7 del
+bridge, da `b5f1f58` a `7e7e406`, sono i suoi antenati). Fondere B1 porta dentro anche il bridge Aurora — e
+l'endpoint `POST /vsop/api/v1/transfers/resolve` con esso. Va deciso in B4, non scoperto al merge.
+
+Resta non provato un solo dettaglio, perché serve un ACC estero già citato da un documento: che riaccendere
+l'ente faccia **rientrare** un'area diventata dangling.
 
 ### B2 🔴 `feature/aurora-bridge` (7 commit avanti)
 Il tool desktop funziona **solo** contro un host locale finché l'endpoint
