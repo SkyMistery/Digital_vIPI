@@ -297,7 +297,7 @@ che riguarda il provisioning. La Fase 1 e la Fase 2 sono eseguite.
 
 Tutte con la skill `verifica-live`. Sono lavori già scritti e testati, che nessuno ha ancora **guidato**.
 
-- 🟢 **Aree regolamentate** — i quattro punti di B1.
+- ✅ **Aree regolamentate** — fatta il 6 agosto 2026: esito in B1.
 - 🟢 **Settori esteri aggiunti a mano** (es. `LGKR_APP` su coppia confinante confermata): verifica IVAO +
   `AccSector` + riproiezione, e la guardia anti-hijack. Memoria: `foreign-sector-manual-add`.
 - 🟢 **Coordinamenti/sorvoli rielaborati**: sorvoli senza aeroporto, parità di livello, CoP `ALL`/`ALL-to-X`,
