@@ -229,7 +229,10 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B1 ✅ `feature/aree-speciali-hardening` — verificata sull'app vera il 6 agosto 2026
+### B1 ✅ FUSA — `feature/aree-speciali-hardening`, verificata il 6 agosto e fusa il 7 agosto 2026
+**Fusa in `main` in fast-forward** (21 commit, `bbbbf2b` → `7557ec4`) e da lì nel ramo del cutover
+`feat/persistenza-mysql`. Il ramo può essere cancellato dopo il push di `main`. Sotto, l'esito della
+verifica live che ha sbloccato la decisione.
 I quattro punti sono stati guidati con la skill `verifica-live` su una copia del `vipi.db` reale, con import
 veri contro l'API IVAO. Esito per esteso nella carta,
 [`feature/2026-08-03-aree-regolamentate-hardening.md`](feature/2026-08-03-aree-regolamentate-hardening.md).
@@ -254,7 +257,10 @@ l'endpoint `POST /vsop/api/v1/transfers/resolve` con esso. Va deciso in B4, non 
 Resta non provato un solo dettaglio, perché serve un ACC estero già citato da un documento: che riaccendere
 l'ente faccia **rientrare** un'area diventata dangling.
 
-### B2 🟡 `feature/aurora-bridge` — messo in sicurezza il 6 agosto 2026, resta la decisione
+### B2 ✅ FUSO — `feature/aurora-bridge`, dentro B1, endpoint spento
+È entrato in produzione **come codice, non come superficie**: `AuroraBridge:Enabled` nasce `false` e la
+rotta non si registra affatto. Accenderlo resta una decisione separata, e il giorno in cui si accende la
+prima sessione col tool va guidata — non è mai stato esercitato contro un host remoto vero.
 Il tool desktop funziona **solo** contro un host locale finché l'endpoint
 `POST /vsop/api/v1/transfers/resolve` non è acceso in produzione. Chiuse per decisione: i sorvoli LIBB senza
 livello (lacuna redazionale, il tool non deve indovinare) e il pacchetto macOS.
@@ -293,19 +299,16 @@ il ramo Postgres resta in piedi perché Neon resta l'ambiente di prova ⇒ fusio
 ⚠️ Vive dentro A4: quando il key-store passerà a MariaDB, la stessa resilienza va rifatta lì — Pomelo ha il
 proprio `EnableRetryOnFailure`, e questa registrazione oggi è nel ramo `Persistence:Provider=Postgres`.
 
-### B4 🟡 Cosa mandare in produzione
-Decisione a monte del cutover, e ora è **binaria**: `main`, oppure `main` + B1 — che si porta dentro B2,
-perché il ramo del bridge sta per intero dentro quello delle aree. L'opzione «B1 senza B2» non esiste senza
-riscrivere la storia dei rami.
+### B4 ✅ DECISO il 7 agosto 2026 — in produzione va `main` + B1
+Con B2 dentro, perché il ramo del bridge sta per intero in quello delle aree. Eseguito: B1 fusa in `main`,
+`main` fusa in `feat/persistenza-mysql`, suite verde su entrambi i TFM.
 
-Va deciso **prima** del travaso dati, perché B1 cambia i dati delle aree (archivio 993 → 230): il `.sql` di
-A3 andrebbe rifatto **dopo** il merge.
-
-Cosa pesa, ora che B1 è stata guidata e B2 messo in sicurezza:
-- **a favore**: le quattro verifiche di B1 sono passate sull'app vera; il ramo porta l'interruttore che
-  impedisce a un import storto di potare le aree buone, e l'alleggerimento dell'archivio;
-- **contro**: entra anche il bridge Aurora, il cui tool desktop non è mai stato esercitato contro un host
-  remoto — ma l'endpoint ora **nasce spento**, quindi entra come codice, non come superficie.
+**Cosa resta di questa decisione, in ordine:**
+1. 🔴 **`git push origin main`** — 21 commit locali non ancora sul remoto. Fa partire il redeploy Render.
+2. 🟡 **Dopo il deploy**: al primo boot Neon riconcilia l'archivio (993 → 230 legami, aree estere spente);
+   poi premere **«Importa da sorgente»**, perché il backfill recupera un solo legame per area.
+3. 🟡 **Rifare il travaso di A3** su quei dati: il `.sql` del 6 agosto non vale più.
+4. 🟢 Cancellare i rami `feature/aree-speciali-hardening` e `feature/aurora-bridge`, ormai contenuti in `main`.
 
 ---
 
