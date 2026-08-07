@@ -25,4 +25,12 @@ public static class ImportCategories
     public const string AirportSector = "AirportSector";
     public const string SpecialArea = "SpecialArea";
     public const string Sid = "Sid";
+
+    /// <summary>
+    /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
+    /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
+    /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le
+    /// aree di un ACC estero che l'admin ha appena abilitato.
+    /// </summary>
+    public const string SpecialAreaForeignOptOut = "SpecialAreaForeignOptOut";
 }

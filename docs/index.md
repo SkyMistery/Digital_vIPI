@@ -35,17 +35,20 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [guide/integrazione-ivao-it-da-fare.md](guide/integrazione-ivao-it-da-fare.md) | **Lavoro aperto** per far girare il modulo dentro Ivao.It: bloccanti, verifiche mai eseguite, decisioni loro. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
 | [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
+| [guide/aurora-bridge.md](guide/aurora-bridge.md) | **Guida per il controllore** al tool desktop Aurora: prerequisiti, scrittura del livello, scorciatoia, limiti, dove guardare quando non va. |
 
 ## Reference — `reference/` 🔵
 | File | Scopo |
 |---|---|
 | [reference/sector-map.md](reference/sector-map.md) | Mappa settori della ACC pilota Roma (seed di test/fixture). |
+| [reference/api-aurora-bridge.md](reference/api-aurora-bridge.md) | Contratto di `POST /vsop/api/v1/transfers/resolve` (bridge Aurora): richiesta, risposta, configurazione `AuroraBridge`, tetti. |
 
 ## Design — `design/` 🟣
 | File | Scopo |
 |---|---|
 | [design/piano-vipi-tool.md](design/piano-vipi-tool.md) | Documento di design strategico di base (requisiti, roadmap). Parti superate dai round successivi. |
 | [design/piano-editor-appn.md](design/piano-editor-appn.md) | Design editor/viewer APP non remotizzati (storage su Document dopo refactor 08). |
+| [design/piano-aurora-bridge.md](design/piano-aurora-bridge.md) | **Tool desktop Aurora ↔ vIPI**: propone il livello di trasferimento al prossimo ente e lo scrive nell'etichetta quota del tag. Endpoint `/vsop/api/v1/transfers/resolve` + app Avalonia. **Codice non iniziato**: prima lo spike F0 sul protocollo Aurora. |
 | [design/piano-supporto-mysql.md](design/piano-supporto-mysql.md) | **Supporto MySQL per l'embedding in Ivao.It** (solo TFM net8: Pomelo non ha build EF Core 10). Slice, rischi, stime. **Esecuzione non avviata**: attende la versione del loro server MySQL, che decide la collation. |
 | [design/piano-ux-hardening.md](design/piano-ux-hardening.md) | UX hardening (audit 2026-07-22): U1 conferma delete (`InlineConfirm`), U2 icone SVG (`Icon`), U3 zoom a11y, U5–U12 refactor tema (token colori/font, dedup CSS, `.choice`/`.pill.neutral`, `LoadingState`/`EmptyState`, `.live-badge.off`, touch target). **U4 i18n IT+EN COMPLETO (2026-07-23):** chrome app tutta localizzata (nav+viewer+admin 12/12+editor 12/12), 1071 chiavi `SharedResource.resx`/`.en.resx`, switch runtime `?culture=en`. Contenuto editoriale dal DB resta IT. |
 
@@ -57,6 +60,7 @@ Le lezioni riusabili finiscono anche nelle memorie; qui resta il perché delle s
 | [feature/2026-07-29-toc-editor.md](feature/2026-07-29-toc-editor.md) | TOC laterale sezioni negli editor (menu di navigazione sticky, rail azioni, UX lock). |
 | [feature/2026-07-30-stampa-documenti.md](feature/2026-07-30-stampa-documenti.md) | **Stampa dei documenti** (`@media print`): foglio `vipi-print.css`, `PrintMeta`, tasto Stampa, apertura dei `<details>`, scala tipografica da carta, mappe AoR ridimensionate, dati live esclusi. Include il fix delle larghezze di colonna dei coordinamenti (schermo **e** stampa). |
 | [feature/2026-07-30-pill-stato-dopo-publish.md](feature/2026-07-30-pill-stato-dopo-publish.md) | «Bozza vN» dopo «Pubblica ora»: callback `Published` di `ReleasePanel` + etichetta «rilascio #N»; in coda il fix della **chiave di release ACC** che ignorava la radice dell'albero. |
+| [feature/2026-08-03-aree-regolamentate-hardening.md](feature/2026-08-03-aree-regolamentate-hardening.md) | **Aree regolamentate**: categoria di import `SpecialAreas` (escludere = congelare, non «manuale»), dettaglio shape saltato quando è già in archivio, rilievo «Area regolamentata dangling» + marcatura nell'editor; poi picker scopribile e **appartenenza multi-ACC** (`SpecialAreaCenter`: la R49 «Zita» è di LIRR *e* del militare, prima vinceva l'ultimo ACC alfabetico) e **aree estere solo su richiesta** per ACC (763 legami su 993 liberati). In coda: il default dei flag bool nuovi, che nasceva `false` anche sul reconciler Postgres. |
 | [feature/2026-07-31-aor3d-leggibilita.md](feature/2026-07-31-aor3d-leggibilita.md) | **AoR 3D leggibile**: selettore «Altezza» ×0.25→×2 (default ×0.5), etichette da sprite a overlay HTML con declutter, chip settore condivise col 2D. Il link «Apri pagina» è rimosso in attesa di rilavorare la pagina dedicata (rotta viva). |
 
 ## Decisioni architetturali — `adr/` 🟢

@@ -99,7 +99,7 @@ public enum DateParity { Any, Even, Odd }
 public enum RunwaySurface { Any, Dry, Wet }
 
 /// <summary>Categoria di dati che la sorgente esterna può fornire (governata dalla ImportPolicy globale).</summary>
-public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids }
+public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas }
 
 /// <summary>Stato di una coppia ACC confinante candidata a diventare una vLOA: proposta dal calcolo di
 /// adiacenza, confermata dall'admin (→ vLOA generabile), o rifiutata (falso positivo, non riproporre).</summary>

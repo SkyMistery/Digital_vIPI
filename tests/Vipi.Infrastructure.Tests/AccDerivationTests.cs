@@ -269,16 +269,34 @@ public class AccProfileTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var others = await _service.ListOtherAccSpecialAreasAsync(Acc);
-        Assert.DoesNotContain(others, p => p.CenterId == Acc);
-        Assert.Contains(others, p => p.IvaoId == "x1" && p.CenterId == "LIMM");
-        Assert.Contains(others, p => p.IvaoId == "x2" && p.CenterId == "LIBB");
+        Assert.DoesNotContain(others, p => p.Centers.Contains(Acc));
+        Assert.Contains(others, p => p.IvaoId == "x1" && p.Centers.SequenceEqual(new[] { "LIMM" }));
+        Assert.Contains(others, p => p.IvaoId == "x2" && p.Centers.SequenceEqual(new[] { "LIBB" }));
+    }
+
+    [Fact]
+    public async Task Area_listed_by_two_accs_is_own_for_both()
+    {
+        _db.Accs.Add(new Acc { Code = "LIZZ", Name = "Legion" });
+        _db.SpecialAreas.Add(Area("8870", Acc, "LI R49 - Zita", "LIZZ"));   // civile + militare, come sulla sorgente
+        await _db.SaveChangesAsync();
+
+        var mine = await _service.ListSpecialAreasByAccAsync(Acc);
+        var military = await _service.ListSpecialAreasByAccAsync("LIZZ");
+
+        Assert.Contains(mine, p => p.IvaoId == "8870");
+        Assert.Contains(military, p => p.IvaoId == "8870");
+        Assert.DoesNotContain(await _service.ListOtherAccSpecialAreasAsync(Acc), p => p.IvaoId == "8870");
     }
 
     // ---- helper ----
 
-    private static SpecialArea Area(string ivaoId, string acc, string name) => new()
+    private static SpecialArea Area(string ivaoId, string acc, string name, params string[] alsoAccs) => new()
     {
-        IvaoId = ivaoId, CenterId = acc, Name = name,
+        IvaoId = ivaoId,
+        Name = name,
+        Centers = new[] { acc }.Concat(alsoAccs)
+            .Select(a => new SpecialAreaCenter { IvaoId = ivaoId, CenterId = a }).ToList(),
     };
 
     private static AirportSector ApSec(string compose, string position, string freq, string? poly) => new()

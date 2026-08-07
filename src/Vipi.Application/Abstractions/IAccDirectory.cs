@@ -61,6 +61,15 @@ public interface IAccDirectory
     /// <summary>Settori ATC (subcenter) di un ACC, con frequenza e shape risolte dal dettaglio.</summary>
     Task<IReadOnlyList<SourceSubcenter>> GetSubcentersAsync(string accIcao, CancellationToken ct = default);
 
-    /// <summary>Aree speciali/regolamentate di un ACC (paginato), con shape risolta dal dettaglio.</summary>
-    Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default);
+    /// <summary>
+    /// Aree speciali/regolamentate di un ACC (paginato), con shape risolta dal dettaglio.
+    /// <para>
+    /// L'elenco porta già tutti i metadati; il dettaglio serve SOLO per la shape, che è la parte più stabile del
+    /// dato. <paramref name="skipDetailIds"/> elenca le aree la cui shape è già in archivio e ancora buona: per
+    /// quelle il dettaglio non viene chiamato e la shape torna <c>null</c>, che l'upsert interpreta come «tieni
+    /// quella che hai». Insieme vuoto = scarica tutto (primo giro). Evita N chiamate per ACC a ogni import.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(
+        string accIcao, IReadOnlySet<string> skipDetailIds, CancellationToken ct = default);
 }

@@ -120,9 +120,14 @@ public static class AorCustomizationCleaner
 /// <summary>Radice di un albero di settori CTR dell'ACC (una vIPI per albero). Callsign + nome del CTR radice.</summary>
 public sealed record AccTreeRoot(string Callsign, string Name);
 
-/// <summary>Area speciale selezionabile (picker editor). <see cref="CenterId"/> = ACC di appartenenza (per il picker
-/// cross-ACC delle aree extra).</summary>
-public sealed record SpecialAreaPick(string IvaoId, string Name, string? Type, int? MinimumAlt, int? MaximumAlt, string CenterId);
+/// <summary>Area speciale selezionabile (picker editor). <see cref="Centers"/> = ACC che la elencano — sono più di
+/// uno per le aree condivise fra centri (il picker cross-ACC li mostra e ci filtra sopra).</summary>
+public sealed record SpecialAreaPick(
+    string IvaoId, string Name, string? Type, int? MinimumAlt, int? MaximumAlt, IReadOnlyList<string> Centers)
+{
+    /// <summary>Enti in forma leggibile, per la riga del picker.</summary>
+    public string CentersText => string.Join(" · ", Centers);
+}
 
 /// <summary>Selezione delle aree regolamentate di un blocco vIPI ACC. Le aree del <b>proprio</b> ACC sono in
 /// <see cref="OwnAuto"/> (tutte, dinamiche: seguono gli import) finché lo staff non passa a manuale scegliendo un

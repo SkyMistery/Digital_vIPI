@@ -50,7 +50,11 @@ public static class MySqlStringLengths
             [("Acc", "Code")] = 16,
             [("AccSector", "CenterId")] = 16,              // FK → Acc.Code
             [("AirportSector", "AccCode")] = 16,           // FK → Acc.Code
-            [("SpecialArea", "CenterId")] = 16,            // FK → Acc.Code
+            // L'appartenenza dell'area al centro non è più una colonna su SpecialArea: un'area sta in più
+            // elenchi ACC, quindi vive nell'entità di legame SpecialAreaCenter (SPEC §9.23). Le due colonne
+            // sono INSIEME la chiave primaria e SEPARATAMENTE due FK: vanno dimensionate come le principali.
+            [("SpecialAreaCenter", "CenterId")] = 16,      // FK → Acc.Code
+            [("SpecialAreaCenter", "IvaoId")] = 64,        // FK → SpecialArea.IvaoId
             [("Airport", "Icao")] = 8,
             [("AirportSector", "AirportIcao")] = 8,        // FK → Airport.Icao
             // Non sono FK dichiarate ma contengono codici ACC: stessa taglia per coerenza.

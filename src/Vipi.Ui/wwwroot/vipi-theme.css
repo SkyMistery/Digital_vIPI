@@ -1130,6 +1130,9 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .sp-item.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
 .sp-item.on b,.sp-item b{font-weight:700}
 
+/* Elenco candidati dei picker aree: scorre invece di allungare la pagina (un ACC può averne un centinaio). */
+.area-pick-list{max-height:240px;overflow-y:auto;align-content:flex-start;padding:2px}
+
 /* Picker shape AoR extra: chip dei settori selezionati. */
 .aor-extra-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
 .aor-extra-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#f2f5ff;font-size:12.5px;line-height:1.2}

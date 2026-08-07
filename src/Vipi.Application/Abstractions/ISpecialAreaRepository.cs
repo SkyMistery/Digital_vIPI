@@ -9,10 +9,11 @@ namespace Vipi.Application.Abstractions;
 /// </summary>
 public interface ISpecialAreaRepository
 {
-    /// <summary>Aree speciali dell'ACC indicato (picker editor), ordinate per nome.</summary>
+    /// <summary>Aree elencate dall'ACC indicato (picker editor), ordinate per nome. Un'area condivisa fra più
+    /// centri è «propria» per ognuno di essi.</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasByAccAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Aree speciali di TUTTI gli altri ACC (picker editor aree extra), ordinate per ACC poi nome.</summary>
+    /// <summary>Aree che l'ACC indicato NON elenca (picker editor aree extra), ordinate per nome.</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasExcludingAccAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>Aree speciali per IvaoId (per il viewer), con shape grezza.</summary>

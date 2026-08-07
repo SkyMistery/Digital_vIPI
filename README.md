@@ -21,7 +21,13 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 | `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host. Stili confinati in `.vipi-root`. | Application, Domain |
 | `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host, middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
 | `src/Vipi.Host` | Host Blazor Server di **sviluppo/esempio** che aggancia il modulo. | tutti |
-| `tests/*` | xUnit: AIRAC, scenari AoR S1–S10, editing, proiezione settori, import. | — |
+| `src/Vipi.AuroraBridge.Contracts` | Contratto di filo dell'API del bridge Aurora (solo POCO, `net8.0;net10.0`). | — |
+| `src/Vipi.AuroraBridge.Core` | Cuore del **tool desktop**: protocollo Aurora (TCP 1130), client del sito, orchestrazione, ViewModel. Nessuna UI. | Contracts |
+| `src/Vipi.AuroraBridge` | Shell **Avalonia** del tool desktop (solo XAML e binding). | Core |
+| `tests/*` | xUnit: AIRAC, scenari AoR S1–S10, editing, proiezione settori, import, bridge Aurora. | — |
+
+Il **tool desktop** (ultime tre righe) sta fuori dalla regola di dipendenza del modulo: è un programma a sé che
+gira sul PC del controllore e parla col sito via HTTP. Vedi `docs/guide/aurora-bridge.md`.
 
 Regola di dipendenza verso l'interno: `Host → Infrastructure → Application → Domain`. La RCL e la logica
 **non dipendono da tipi specifici dell'host** (ADR-0002 D5): l'identità arriva solo da `ICurrentUserProvider`.
@@ -31,9 +37,12 @@ In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `I
 
 ```bash
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx            # 128 test (AoR S1–S10, editing, proiezione settori + gerarchia per callsign, ...)
+dotnet test  Vipi.slnx            # 930 test (AoR S1–S10, editing, proiezione settori + gerarchia per callsign, bridge Aurora, ...)
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
 ```
+
+Tool desktop Aurora (facoltativo, fuori dal sito): `./tools/publish-aurora-bridge.ps1` → eseguibile autonomo
+in `artifacts/bridge/win-x64/`. Guida: `docs/guide/aurora-bridge.md`.
 
 Il DB SQLite viene creato/migrato all'avvio dell'host (`Data Source=vipi.db`, override via `ConnectionStrings:Vipi`).
 
@@ -46,9 +55,11 @@ dotnet ef migrations add <Nome> \
 (usa `DesignTimeDbContextFactory`; a runtime la connection string la fornisce l'host)
 
 ## Stato in breve
-Solution .NET 10 a 4 layer + Host Blazor Server, **663 test verdi**. Consultazione + editing + sicurezza dal DB;
+Solution .NET 10 a 4 layer + Host Blazor Server, **930 test verdi**. Consultazione + editing + sicurezza dal DB;
 live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/vsop`; **fonte unica = cataloghi**
-(i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). Dettaglio completo
+(i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). **Bridge Aurora**:
+tool desktop + endpoint `POST /vsop/api/v1/transfers/resolve` che propone il livello di trasferimento al
+prossimo ente e lo scrive nel tag (branch `feature/aurora-bridge`, non ancora in produzione). Dettaglio completo
 e prossimi passi in **`HANDOFF.md`**; storia in **`docs/history/rounds.md`**.
 
 ## Licenza

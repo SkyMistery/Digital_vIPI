@@ -52,6 +52,12 @@
                         <td>@Provenance(_p.Sids)</td>
                         <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.Sids" /> @L["Sorg_ImportFromSource"]</label></td>
                     </tr>
+                    <tr>
+                        <td><b>@L["Sorg_SpecialAreasLabel"]</b><br /><span class="muted" style="font-size:11px">@L["Sorg_SpecialAreasDesc"]</span></td>
+                        @* Non sono editabili da nessuna pagina: escluderle non le rende "manuali" ma le congela. *@
+                        <td>@(_p.SpecialAreas ? Provenance(true) : "❄ " + L["Sorg_SpecialAreasFrozen"].Value)</td>
+                        <td><label class="se-row" style="gap:6px"><input type="checkbox" @bind="_p.SpecialAreas" /> @L["Sorg_ImportFromSource"]</label></td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -105,6 +111,7 @@
         public bool Runways { get; set; } = true;
         public bool Sectors { get; set; } = true;
         public bool Sids { get; set; } = true;
+        public bool SpecialAreas { get; set; } = true;
     }
 
     private PolicyEdit _p = new();
@@ -116,7 +123,11 @@
     {
         if (!Authz.IsAdmin) return;
         var s = await Policy.GetAsync();
-        _p = new PolicyEdit { TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors, Sids = s.Sids };
+        _p = new PolicyEdit
+        {
+            TransitionAltitude = s.TransitionAltitude, Runways = s.Runways, Sectors = s.Sectors,
+            Sids = s.Sids, SpecialAreas = s.SpecialAreas,
+        };
         _states = await ImportStates.GetAllAsync();
     }
 
@@ -129,7 +140,7 @@
         _busy = true; _msg = _ok = null;
         try
         {
-            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors, _p.Sids));
+            await Policy.SaveAsync(new ImportPolicySnapshot(_p.TransitionAltitude, _p.Runways, _p.Sectors, _p.Sids, _p.SpecialAreas));
             _ok = L["Sorg_Saved"];
         }
         catch (EditNotAllowedException) { _msg = L["Common_OpAdminOnly"]; }

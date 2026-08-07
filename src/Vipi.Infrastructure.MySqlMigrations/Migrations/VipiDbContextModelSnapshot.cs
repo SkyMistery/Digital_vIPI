@@ -58,6 +58,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool>("SpecialAreasEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -1188,7 +1193,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("ImportSids")
-                        .HasColumnType("tinyint(1)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("ImportSpecialAreas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("ImportTransitionAltitude")
                         .HasColumnType("tinyint(1)");
@@ -1563,12 +1575,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
-                    b.Property<string>("CenterId")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
                     b.Property<string>("Description")
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
@@ -1606,12 +1612,32 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CenterId");
-
                     b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.ToTable("SpecialAreas");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialAreaCenter", b =>
+                {
+                    b.Property<string>("IvaoId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("CenterId")
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("ImportedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("IvaoId", "CenterId");
+
+                    b.HasIndex("CenterId");
+
+                    b.ToTable("SpecialAreaCenters");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
@@ -2159,7 +2185,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("ParentSector");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialAreaCenter", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
                         .WithMany()
@@ -2168,7 +2194,16 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Vipi.Domain.Entities.SpecialArea", "Area")
+                        .WithMany("Centers")
+                        .HasForeignKey("IvaoId")
+                        .HasPrincipalKey("IvaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Acc");
+
+                    b.Navigation("Area");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>
@@ -2296,6 +2331,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+                {
+                    b.Navigation("Centers");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>

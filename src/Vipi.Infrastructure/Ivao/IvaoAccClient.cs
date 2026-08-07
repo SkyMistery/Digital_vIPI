@@ -147,7 +147,8 @@ public sealed class IvaoAccClient : IAccDirectory
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(string accIcao, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SourceSpecialArea>> GetSpecialAreasAsync(
+        string accIcao, IReadOnlySet<string> skipDetailIds, CancellationToken ct = default)
     {
         if (!_http.IsConfigured)
             throw new InvalidOperationException(
@@ -201,12 +202,15 @@ public sealed class IvaoAccClient : IAccDirectory
             page++;
         } while (page <= maxPages && page <= 50);
 
-        // 2) Dettaglio per id: shape (regionMapPolygon grezzo, best-effort).
+        // 2) Dettaglio per id: shape (regionMapPolygon grezzo, best-effort). Saltato per le aree la cui shape è già
+        //    in archivio e fresca: polygon resta null e l'upsert preserva quella salvata.
         var result = new List<SourceSpecialArea>(basics.Count);
         foreach (var b in basics)
         {
             string? polygon = null;
-            var detailBody = await _http.GetStringAsync(string.Format(_opt.SpecialAreaDetailPathFormat, Uri.EscapeDataString(b.Id)), ct);
+            var detailBody = skipDetailIds.Contains(b.Id)
+                ? null
+                : await _http.GetStringAsync(string.Format(_opt.SpecialAreaDetailPathFormat, Uri.EscapeDataString(b.Id)), ct);
             if (detailBody is not null)
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(detailBody);

@@ -44,6 +44,7 @@ public class VipiDbContext : DbContext
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
+    public DbSet<SpecialAreaCenter> SpecialAreaCenters => Set<SpecialAreaCenter>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
@@ -63,10 +64,27 @@ public class VipiDbContext : DbContext
                 if (t.IsEnum) prop.SetProviderClrType(typeof(string));
             }
 
-        b.Entity<Acc>().HasIndex(x => x.Code).IsUnique();
+        b.Entity<Acc>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            // Default nel modello e non solo nella migration: su Postgres la colonna la aggiunge
+            // PostgresSchemaReconciler, che legge di qui il valore con cui backfillare le righe esistenti.
+            // Senza, gli ACC già in tabella — italiani compresi — nascerebbero con le aree spente.
+            e.Property(x => x.SpecialAreasEnabled).HasDefaultValue(true);
+        });
 
         b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import
+
+        // Policy di import: i flag aggiunti DOPO la creazione della tabella devono nascere a `true`, altrimenti
+        // la riga di policy già esistente si ritrova la categoria spenta (opt-out ribaltato). Il default sta nel
+        // modello e non solo nella migration perché su Postgres lo schema si allinea con PostgresSchemaReconciler,
+        // che legge i default da qui (deploy Render+Neon con EnsureCreated, ADR-0007).
+        b.Entity<ImportPolicy>(e =>
+        {
+            e.Property(x => x.ImportSids).HasDefaultValue(true);
+            e.Property(x => x.ImportSpecialAreas).HasDefaultValue(true);
+        });
 
         b.Entity<AccSector>(e =>
         {
@@ -299,11 +317,20 @@ public class VipiDbContext : DbContext
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
         });
 
-        // --- Aree speciali/regolamentate importate dalla sorgente, legate all'ACC via Acc.Code. ---
+        // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti
+        //     (la sorgente espone la stessa area sotto più centri): vive in SpecialAreaCenters. ---
         b.Entity<SpecialArea>(e =>
         {
             e.HasIndex(x => x.IvaoId).IsUnique();             // chiave naturale (reference update)
+        });
+
+        b.Entity<SpecialAreaCenter>(e =>
+        {
+            e.HasKey(x => new { x.IvaoId, x.CenterId });
             e.HasIndex(x => x.CenterId);
+            e.HasOne(x => x.Area).WithMany(a => a.Centers)
+                .HasForeignKey(x => x.IvaoId).HasPrincipalKey(a => a.IvaoId)
+                .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Acc).WithMany()
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
                 .OnDelete(DeleteBehavior.Cascade);

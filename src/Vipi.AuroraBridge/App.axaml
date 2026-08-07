@@ -1,0 +1,23 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Vipi.AuroraBridge.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Styles>
+    <FluentTheme />
+  </Application.Styles>
+
+  <Application.Resources>
+    <!-- Palette IVAO (brand.ivao.aero): il tool sta accanto al portale, non deve sembrare un'altra cosa.
+         Tonalità scure perché convive con la PVD di Aurora, che è nera. -->
+    <SolidColorBrush x:Key="IvaoBlue">#0D2C99</SolidColorBrush>
+    <SolidColorBrush x:Key="IvaoLightBlue">#3C55AC</SolidColorBrush>
+    <SolidColorBrush x:Key="IvaoGreen">#2EC662</SolidColorBrush>
+    <SolidColorBrush x:Key="IvaoYellow">#F9CC2C</SolidColorBrush>
+    <SolidColorBrush x:Key="IvaoRed">#E93434</SolidColorBrush>
+    <SolidColorBrush x:Key="IvaoInfo">#7EA2D6</SolidColorBrush>
+    <SolidColorBrush x:Key="Surface">#12161F</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceRaised">#1B2130</SolidColorBrush>
+    <SolidColorBrush x:Key="Muted">#8E97A8</SolidColorBrush>
+  </Application.Resources>
+</Application>

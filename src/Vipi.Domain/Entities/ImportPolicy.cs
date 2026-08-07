@@ -5,6 +5,11 @@ namespace Vipi.Domain.Entities;
 /// Semantica opt-out: <c>true</c> = importato e bloccato (sorgente autorevole, sola lettura per l'utente);
 /// <c>false</c> = escluso (gestito a mano, l'import non lo tocca). Default tutto <c>true</c>.
 /// Le categorie editoriali (regole pista, SID, livelli TL, link, ecc.) non sono qui: sempre dell'utente.
+/// <para>
+/// Sfumatura di <see cref="ImportSpecialAreas"/>: le aree regolamentate non sono editabili da nessuna UI, quindi
+/// <c>false</c> non significa «le gestisco a mano» ma «congela quelle già in DB» — l'import non le aggiorna e
+/// soprattutto non le pota. Serve a fermare la sorgente quando restituisce dati sbagliati.
+/// </para>
 /// </summary>
 public class ImportPolicy
 {
@@ -13,6 +18,7 @@ public class ImportPolicy
     public bool ImportRunways { get; set; } = true;               // AirportRunway.Ident/LengthM/Bearing
     public bool ImportSectors { get; set; } = true;               // Sector.Callsign/Type/DefaultFrequency
     public bool ImportSids { get; set; } = true;                  // AirportSid dal sectorfile Aurora (GitHub)
+    public bool ImportSpecialAreas { get; set; } = true;          // SpecialArea (aree regolamentate per ACC)
     public DateTime UpdatedUtc { get; set; }
     public int UpdatedByUserId { get; set; }
 }

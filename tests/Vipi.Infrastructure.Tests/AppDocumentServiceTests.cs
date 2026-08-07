@@ -358,12 +358,14 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var others = await _service.ListOtherAccSpecialAreasAsync(App);
 
         Assert.Equal(new[] { "AAA" }, own.Select(p => p.Name));
-        Assert.Equal(new[] { "YYY", "XXX" }, others.Select(p => p.Name));   // ordinate per ACC (LIBB, LIMM)
+        Assert.Equal(new[] { "XXX", "YYY" }, others.Select(p => p.Name));   // ordinate per nome (l'ente è un filtro)
     }
 
     private static SpecialArea Area(string ivaoId, string acc, string name) => new()
     {
-        IvaoId = ivaoId, CenterId = acc, Name = name,
+        IvaoId = ivaoId,
+        Name = name,
+        Centers = new List<SpecialAreaCenter> { new() { IvaoId = ivaoId, CenterId = acc } },
     };
 
     private static AirportSector Pos(string compose, string position, string freq) => new()

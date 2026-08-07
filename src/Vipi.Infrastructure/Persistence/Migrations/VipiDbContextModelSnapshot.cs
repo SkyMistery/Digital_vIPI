@@ -47,6 +47,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("SpecialAreasEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -1019,7 +1024,14 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportSids")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("ImportSpecialAreas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("ImportTransitionAltitude")
                         .HasColumnType("INTEGER");
@@ -1338,10 +1350,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("ActivationDetails")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("CenterId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
@@ -1373,12 +1381,28 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CenterId");
-
                     b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.ToTable("SpecialAreas");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialAreaCenter", b =>
+                {
+                    b.Property<string>("IvaoId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CenterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ImportedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("IvaoId", "CenterId");
+
+                    b.HasIndex("CenterId");
+
+                    b.ToTable("SpecialAreaCenters");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
@@ -1892,7 +1916,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("ParentSector");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialAreaCenter", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
                         .WithMany()
@@ -1901,7 +1925,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Vipi.Domain.Entities.SpecialArea", "Area")
+                        .WithMany("Centers")
+                        .HasForeignKey("IvaoId")
+                        .HasPrincipalKey("IvaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Acc");
+
+                    b.Navigation("Area");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>
@@ -2029,6 +2062,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
+                {
+                    b.Navigation("Centers");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TransferFlow", b =>

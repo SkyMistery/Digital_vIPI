@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 6 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 7 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -20,6 +20,18 @@ Stato: il server è **MariaDB 11.4.10**, non MySQL. `Vipi.Host` è passato a **n
 MariaDB 11.4.10 vera**: schema, collation, case-sensitivity, avvio dell'applicazione (A1), key-ring
 Data Protection che sopravvive a un riavvio (A4) e **travaso dei dati veri da Neon fino al `.sql`
 reimportabile** (A2/A3). Restano i flussi editoriali (A6) e la CI (A5).
+
+**Dal 7 agosto 2026 il ramo porta anche B1+B2** (B4 deciso: in produzione va `main` + B1). Quel merge ha
+richiesto tre correzioni che i test guardia hanno chiesto da soli, e che valgono come promemoria del costo
+dichiarato in ADR-0007 — **ogni cambio di schema va emesso due volte**:
+- migrazione MySQL **`20260807125819_SpecialAreasHardening`**, che copre le tre migrazioni SQLite delle aree
+  in una sola (il set MySQL nasce il 5 agosto e non ha una storia da rispettare). ⚠️ Lo scaffold di EF metteva
+  il `DropColumn` di `SpecialAreas.CenterId` **prima** del travaso: riordinato a mano e aggiunto il backfill,
+  come nella gemella SQLite, o su un database con dati i legami sparivano in silenzio;
+- `MySqlStringLengths`: `SpecialArea.CenterId` non esiste più, e le due colonne della PK composta di
+  `SpecialAreaCenter` vanno lunghe **esattamente** come le principali (64 e 16) o è `errno 150`;
+- lo smoke E2E del bridge spento pretendeva **405**: quel codice è di net10, dove il catch-all della pagina
+  «non trovato» risponde al GET di qualunque path. Su net8 — l'host che va in produzione — è **404**.
 
 ### A1 ✅ MariaDB 11.4 in locale, e rifare le verifiche — eseguita il 6 agosto 2026
 MariaDB **11.4.10** portable in `D:\Programmazione\IVAO_Test\_mariadb` (fuori dal repo), porta 3399,
@@ -115,8 +127,9 @@ Il `.sql` **non è nel repository**: contiene contenuto reale, VID dello staff e
 - **Consegnarlo**, per il canale che concorderanno (A9) — con 4,7 MB va verificato che phpMyAdmin regga.
 - **Rifarlo poco prima del cutover**: fra oggi e il passaggio, Render continua a essere modificato. Stesso
   comando, due minuti.
-- ⚠️ **Prima del travaso definitivo va deciso B4**: se entra `feature/aree-speciali-hardening` i dati delle
-  aree cambiano, e allora questo dump si rifà **dopo** il merge, non prima.
+- ⚠️ **Il dump del 6 agosto è da buttare.** B4 è deciso (B1 entra) e i dati delle aree cambiano: il travaso si
+  rifà **dopo** che B1 è su Render e Neon ha riconciliato l'archivio (993 → 230 legami) e dopo aver premuto
+  «Importa da sorgente», non prima.
 - Escluso di proposito dal dump: `DataProtectionKeys`. Sono le chiavi che decifrano i cookie della nostra
   installazione locale, non un dato da consegnare; l'host se le ricrea al primo avvio.
 

@@ -15,10 +15,18 @@ public interface IAccAdminRepository
     /// <summary>Upsert settori ATC (subcenter). Preserva IsHidden e i limiti admin (salvo valori dalla sorgente). Ritorna (creati, aggiornati).</summary>
     Task<(int Created, int Updated)> ImportSubcentersAsync(IReadOnlyList<SourceSubcenter> subs, CancellationToken ct = default);
 
-    /// <summary>Upsert aree speciali/regolamentate per IvaoId (chiave naturale). Ritorna (creati, aggiornati).</summary>
+    /// <summary>Upsert aree speciali/regolamentate per IvaoId (chiave naturale) + del legame con l'ACC che le
+    /// elenca (additivo: un centro non se le porta via agli altri). Ritorna (create, aggiornate).</summary>
     Task<(int Created, int Updated)> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default);
 
-    /// <summary>Cancella le aree speciali di un ACC il cui IvaoId non è più presente sulla sorgente. Ritorna il numero rimosse.</summary>
+    /// <summary>
+    /// IvaoId delle aree di un ACC che hanno già una shape importata dopo <paramref name="importedAfterUtc"/>:
+    /// per queste il dettaglio sorgente si può saltare (i metadati arrivano comunque dall'elenco).
+    /// </summary>
+    Task<IReadOnlySet<string>> ListAreasWithFreshShapeAsync(string accCode, DateTime importedAfterUtc, CancellationToken ct = default);
+
+    /// <summary>Toglie a un ACC i legami verso le aree che non elenca più; l'area sopravvive finché almeno un altro
+    /// ente la elenca, e si cancella quando resta senza. Ritorna il numero di legami rimossi.</summary>
     Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default);
 
     /// <summary>Tutti gli ACC (anche nascosti).</summary>
@@ -29,6 +37,10 @@ public interface IAccAdminRepository
 
     /// <summary>Mostra/nasconde un ACC dalla navigazione pubblica.</summary>
     Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>Accende/spegne l'import periodico delle aree regolamentate di un ACC. Spegnendolo ne pota anche i
+    /// legami (le aree che nessun altro ente elenca spariscono): ritorna quanti legami ha tolto.</summary>
+    Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default);
 
     /// <summary>Mostra/nasconde un settore ATC.</summary>
     Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default);

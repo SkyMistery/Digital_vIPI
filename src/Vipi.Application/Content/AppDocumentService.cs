@@ -341,7 +341,7 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return NoAuto(null);
         var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct);
-        return NoAuto(Deserialize<RegulatedSelection>(json));
+        return NoAuto(RegulatedSelectionJson.Parse(json));
     }
 
     public async Task SaveRegulatedAsync(string appCallsign, RegulatedSelection selection, CancellationToken ct = default)

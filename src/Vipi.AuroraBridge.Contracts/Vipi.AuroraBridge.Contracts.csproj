@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Contratto di filo dell'endpoint /vsop/api/v1/transfers/resolve: SOLO POCO, nessuna dipendenza.
+       Referenziato dall'host (che lo serve) e dal tool desktop (che lo consuma), così il contratto è
+       uno solo e non due copie che divergono. net8.0 per poter essere referenziato anche dal tool. -->
+
+</Project>

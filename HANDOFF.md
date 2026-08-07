@@ -1,6 +1,6 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 5 agosto 2026 (sito definitivo `atc.it.ivao.aero` — il server è **MariaDB**, host su net8, provider Pomelo)
+**Ultimo aggiornamento:** 7 agosto 2026 (sito definitivo `atc.it.ivao.aero` — il server è **MariaDB**, host su net8, provider Pomelo; B1+B2 fusi in `main`)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
@@ -42,9 +42,13 @@
 > (`VipiModuleExtensions.cs:240`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
 > «SQLite». Con MySQL configurato tenterebbe di applicare le 68 migration SQLite-flavored.
 >
-> ⚠️ **Sulla stessa strada critica, ma non di database:** va deciso cosa mandare in produzione dai due branch
-> non fusi — `feature/aree-speciali-hardening` (non verificato sull'app vera) e `feature/aurora-bridge`.
-> Il **token app IVAO** non è più fra i bloccanti: il 5 agosto ha risposto 200 col secret dei user-secrets
+> ✅ **B4 deciso il 7 agosto 2026: in produzione va `main` + B1.** `feature/aree-speciali-hardening` è
+> fusa in `main` (fast-forward, 21 commit) e si porta dentro per intero `feature/aurora-bridge`, il cui
+> endpoint `POST /vsop/api/v1/transfers/resolve` **nasce spento** (`AuroraBridge:Enabled=false`): entra
+> come codice, non come superficie pubblica. Conseguenze: al primo boot su Neon l'archivio aree passa da
+> 993 a 230 legami (poi «Importa da sorgente»), e **il `.sql` di A3 va rifatto dopo il merge**.
+>
+> ⚠️ Il **token app IVAO** non è più fra i bloccanti: il 5 agosto ha risposto 200 col secret dei user-secrets
 > locali (dettagli e riserve nel blocco più in basso). Manca invece `VipiAuth:ClientSecret`, che in locale
 > non è mai servito perché il login è spento: in produzione serve.
 
@@ -80,6 +84,38 @@
 >
 > ⚠️ Serve `VipiAuth`/identità: in embedded l'identità viene dall'host, quindi per la prova o si monta un
 > `ClaimsPrincipal` finto sull'host di test, o si usa `useDevIdentity: true` in `AddVipiModule`.
+
+> **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling, appartenenza
+> multi-ACC.** Branch `feature/aree-speciali-hardening`, 8 commit, suite **951 verde** (+24), build 0 warning. Carta completa:
+> `docs/feature/2026-08-03-aree-regolamentate-hardening.md`. Le cose da sapere subito:
+> - ⚠️ **`ImportSids` può essere spento in produzione senza che nessuno l'abbia deciso.** La migration dell'8 lug
+>   aggiunse la colonna con `defaultValue: false`, e su Postgres `PostgresSchemaReconciler` backfillava a `false`
+>   ogni bool NOT NULL nuovo: su un DB dove la riga `ImportPolicies` esisteva già, la categoria è nata spenta.
+>   **Da guardare in `/vsop/admin/sorgenti`.** Non è ribaltabile da codice: `false` è indistinguibile da una scelta
+>   dell'admin. Per il futuro il default sta nel modello (`HasDefaultValue`) e il reconciler lo legge.
+> - **Le aree regolamentate ora hanno un interruttore** (categoria `SpecialAreas`): escluderle **congela** quelle in
+>   archivio — l'import non le aggiorna e soprattutto non le pota. Gate in `SpecialAreaImportUseCase`, non
+>   nell'hosted service, sennò il bottone di `/vsop/admin/accs` lo scavalca.
+> - **L'import non riscarica più la shape** delle aree che ce l'hanno già (rinfresco a 30 giorni): era una chiamata
+>   per area per ACC a ogni giro, solo per rileggere lo stesso poligono.
+> - **Le aree selezionate in un documento possono sparire in silenzio**: gli id sono soft-ref senza FK e il prune li
+>   può cancellare. Ora la diagnostica le segnala («Area regolamentata dangling», sola versione di lavoro) e
+>   l'editor le marca «⚠ non più disponibile». Il prune resta libero di potare: si rileva, non si vincola.
+> - **Un'area regolamentata può appartenere a PIÙ ACC** e prima ne tenevamo uno solo: `IvaoId` è unico e
+>   `CenterId` era una colonna, quindi vinceva l'ultimo ACC in ordine alfabetico. La R49 «Zita» (id 8870), che su
+>   IVAO è di LIRR e del militare LIZZ, risultava solo di LIZZ — ente nascosto — e spariva dalle aree proprie di
+>   Roma. Ora c'è l'entità di legame `SpecialAreaCenter` (SPEC §9.23): import additivo, prune per legame, area
+>   cancellata solo quando resta senza enti.
+> - ⚠️ **Dopo il deploy premere «Importa da sorgente»**: il backfill recupera una sola appartenenza per area (era
+>   l'unica che il vecchio modello sapeva); le altre le riporta il primo import. Su Postgres il travaso e il drop
+>   della colonna storica li fa `ISpecialAreaMaintenance` al boot, non la migration — che lì non gira.
+> - ⚠️ **Le aree estere spariscono dall'archivio al primo avvio** (763 legami su 993): `Acc.SpecialAreasEnabled`
+>   nasce spento per gli `IsForeign`, e una riconciliazione one-shot al boot le libera. Restano le 230 italiane.
+>   Se ne serve una, si riaccende quell'ACC con «Importa aree» in `/vsop/admin/accs` e torna. I documenti che ne
+>   citavano una la vedono come dangling (diagnostica + marcatura nell'editor).
+> - ✅ **Verifica live eseguita il 6 agosto 2026** (esito per esteso nella carta e in `docs/lavori-aperti.md` B1):
+>   interruttore, dangling e aree estere confermati; la R49 «Zita» non è più elencata sotto LIRR dalla sorgente —
+>   la meccanica multi-ACC funziona lo stesso, è l'esempio a essere invecchiato.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
@@ -239,7 +275,7 @@ dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vs
 ## 3. Mappa documenti
 Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sintesi:
 - `README.md` (cos'è + architettura + build) · **questo `HANDOFF.md`** (leggere per primo per riprendere).
-- `docs/history/rounds.md` (changelog dei round) · `docs/spec/` (modello dati, logica AoR, mappa pagine) · `docs/guide/` (config, integrazione) · `docs/adr/` (decisioni) · `docs/design/` (piano) · `docs/reference/sector-map.md`.
+- `docs/history/rounds.md` (changelog dei round) · `docs/spec/` (modello dati, logica AoR, mappa pagine) · `docs/guide/` (config, integrazione, **guida utente del bridge Aurora**) · `docs/adr/` (decisioni) · `docs/design/` (piano, **piano+verbali del bridge Aurora**) · `docs/reference/` (`sector-map.md`, **`api-aurora-bridge.md`**).
 
 ---
 
@@ -279,9 +315,30 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 
 **Shape tonda TWR + coord aeroporto (✅ Round 22):** le TWR senza poligono reale (IVAO le espone come `"[]"`) ricevono una **shape circolare 5 NM** sintetica così da poterle disegnare. `CircleShapeBuilder` (puro, formato `[[lng,lat],…]`), `TowerShapeFallbackService` (genera solo sulle vuote — decise col `AorPolygonProjector` —, marca `IsShapeSynthetic=true`, mai sovrascrive shape reali). Centro = `Airport.Latitude/Longitude`, popolate all'import dal blocco `airport` del dettaglio `/v2/ATCPositions/{compose}` (`SourceAtcPosition.AirportLatitude/Longitude`); ripiego = centro del poligono di un settore fratello. Job in `AirportSectorImportHostedService` (import isolato in try: il fallback gira anche senza credenziali). **TODO futuro:** shape reali TWR dal **sectorfile GitHub** via `DataSource:Provider` → rimpiazzano solo le sintetiche. Dettagli: `docs/spec/modello-dati.md` §9.14.
 
+**Bridge Aurora (✅ 3 ago 2026, branch `feature/aurora-bridge`, NON ancora in `main`):** tool desktop che
+scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
+- **Lato sito:** `TransferMatcher` (puro, `Application/Content/`) + `ITransferMatchService` + endpoint
+  **`POST /vsop/api/v1/transfers/resolve`** (in `MapVipiModule`, anonimo e read-only, tetto per IP via
+  `RequestRateLimiter`, sezione di config `AuroraBridge`). Il matching valuta CoP (fix da `#TRPATHL`, poi
+  rotta; jolly `ALL`/`ALL to GR`, range aerovie `Y01-Y12`), parità semicircolare, condizione pista contro
+  `#CTRLRWY`, next ATC già impostato — e restituisce candidati **motivati in italiano**.
+- **Lato tool:** `Vipi.AuroraBridge.Contracts` (contratto), `.Core` (protocollo TCP 1130, client HTTP con
+  cache su disco, orchestratore, ViewModel), `Vipi.AuroraBridge` (shell Avalonia), `tools/Vipi.AuroraBridge.Cli`
+  (verifica end-to-end), `tools/Vipi.AuroraProbe` (sonda del protocollo).
+- **Vincoli di Aurora accertati sul campo:** l'**XFL non è scrivibile** (nessun comando esiste, si scrive
+  l'etichetta quota con `#LBALT`), si scrive **solo sul traffico assunto**, e la porta 1130 si apre solo
+  riapplicando *3rd Party Software Access* **nella sessione in corso**. Cinque inesattezze della wiki IVAO
+  documentate in `docs/design/piano-aurora-bridge.md` §11.
+- Guida utente: `docs/guide/aurora-bridge.md`. Contratto: `docs/reference/api-aurora-bridge.md`.
+
 ---
 
 ## 5. PROSSIMI PASSI (ordinati per valore)
+
+0. **Bridge Aurora — portarlo in produzione:** il branch `feature/aurora-bridge` va rivisto e unito; finché
+   l'endpoint non è rilasciato su `it.ivao.aero`, il tool funziona **solo** contro un host locale.
+   Chiuse per decisione: i sorvoli LIBB senza livello sono lacuna redazionale (il tool non deve indovinare),
+   e il pacchetto macOS lo farà chi ha una macchina Apple.
 
 1. **Live IVAO — rifiniture aperte:**
    - **Identità "P"** legata al callsign connesso del CH loggato (oggi selettore manuale in Ridotta).

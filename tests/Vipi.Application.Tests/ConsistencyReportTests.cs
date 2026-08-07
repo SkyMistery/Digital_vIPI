@@ -19,6 +19,8 @@ public class ConsistencyReportTests
         AreaNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LI R14A" },
         ParentRefs = new[] { new ParentRefRow("Settore APT", "LIRF_TWR", "LIRR_APP") },
         ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRR_APP", "LIRF_TWR" },
+        RegulatedRefs = new[] { new RegulatedRefRow("vIPI", "Roma ACC", """{"OwnAuto":false,"OwnIds":["8963"],"ExtraIds":[]}""") },
+        SpecialAreaIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "8963" },
     };
 
     [Fact]
@@ -71,6 +73,49 @@ public class ConsistencyReportTests
         };
         var f = Assert.Single(ConsistencyReportService.Analyze(d));
         Assert.Equal("Area fantasma", f.Category);
+    }
+
+    [Fact]
+    public void Dangling_regulated_area_id_is_flagged()
+    {
+        var d = new ConsistencyDataset
+        {
+            RegulatedRefs = new[]
+            {
+                new RegulatedRefRow("vIPI", "Roma ACC", """{"OwnAuto":false,"OwnIds":["8963"],"ExtraIds":["9999"]}"""),
+            },
+            SpecialAreaIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "8963" },   // 9999 potata dall'import
+        };
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Area regolamentata dangling", f.Category);
+        Assert.Equal(ConsistencySeverity.Warning, f.Severity);
+        Assert.Contains("9999", f.Detail);
+        Assert.DoesNotContain("8963", f.Detail);
+    }
+
+    [Fact]
+    public void Regulated_selection_in_auto_mode_has_nothing_to_dangle()
+    {
+        var d = new ConsistencyDataset
+        {
+            // Automatico = lista viva delle aree dell'ACC, nessun id salvato; anche senza aree in catalogo è coerente.
+            RegulatedRefs = new[] { new RegulatedRefRow("vIPI", "Roma ACC", """{"OwnAuto":true,"OwnIds":[],"ExtraIds":[]}""") },
+            SpecialAreaIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+        };
+        Assert.Empty(ConsistencyReportService.Analyze(d));
+    }
+
+    [Fact]
+    public void Legacy_array_selection_is_read_as_manual_ids()
+    {
+        var d = new ConsistencyDataset
+        {
+            RegulatedRefs = new[] { new RegulatedRefRow("vIPI", "Napoli APP", """["8963","9999"]""") },
+            SpecialAreaIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "8963" },
+        };
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Area regolamentata dangling", f.Category);
+        Assert.Contains("9999", f.Detail);
     }
 
     [Fact]

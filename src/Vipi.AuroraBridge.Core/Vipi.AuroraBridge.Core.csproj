@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Cuore del tool desktop: protocollo Aurora + client HTTP verso il sito + orchestrazione del polling.
+       Nessuna UI, così tutto è testabile senza finestre (la shell Avalonia arriva in F3). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.AuroraBridge.Contracts\Vipi.AuroraBridge.Contracts.csproj" />
+  </ItemGroup>
+
+  <!-- La logica di presentazione (composizione delle righe, abilitazione della scrittura) resta interna:
+       è dettaglio del ViewModel, non superficie pubblica. Ai test serve però vederla. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vipi.AuroraBridge.Tests" />
+  </ItemGroup>
+
+</Project>

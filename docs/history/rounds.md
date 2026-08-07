@@ -1082,3 +1082,83 @@ mentre un singolo avvicinamento ne tocca due o tre, quindi qui si scelgono a man
 
 Suite **816 → 819** verde; verifica live su `LIPE_W_APP` (scelta di un'area LIPP + una extra LIRR, ricomparsa dopo
 reload, rese nel viewer bozza con mappa, banda quota e note).
+
+---
+
+## 2026-08-03 — Bridge Aurora: dal tag di Aurora alla vIPI e ritorno — piano [design/piano-aurora-bridge.md](../design/piano-aurora-bridge.md)
+
+Nuovo prodotto accanto al portale: un tool desktop che, selezionato un aeromobile in Aurora, legge la vIPI e
+propone **a che livello va ceduto al prossimo ente**, scrivendolo nell'etichetta quota del tag su richiesta
+dell'utente. Cinque fasi in una sessione (F0 sonda protocollo → F1 matching+API → F2 client → F3 UI → F4
+rifinitura), branch `feature/aurora-bridge`, **suite 819 → 930 verde**.
+
+- **F0 ha riscritto le premesse.** La sonda contro Aurora reale ha smentito la wiki IVAO in cinque punti; il più
+  pesante: l'**XFL non è scrivibile** (`#LBXFL`/`#XFL`/`#TRXFL`/`#SETXFL` → `Unknown command`, mentre `#LBALT`
+  nudo → `Incomplete data`: la sonda discrimina). Si scrive l'**etichetta quota**, e **solo su traffico assunto**
+  — vincolo non documentato. In compenso `#LBALT` accetta **testo libero**, quindi la convenzione del tag è una
+  scelta, non un limite. Regalo inatteso: `#TRPATHL` dà la rotta **già risolta da Aurora** con gli ETO, molto
+  meglio del parsing della rotta del piano di volo.
+- **Il matching è puro e motivato.** `TransferMatcher` non scarta mai in silenzio: ciò che non torna abbassa il
+  punteggio e lascia una ragione leggibile («CoP ASPIR in rotta (ETO 0925)», «riga per livelli pari, il volo è a
+  FL350»). Il punteggio si **normalizza** invece di essere troncato a 1, altrimenti due candidati forti finivano
+  appaiati proprio dove serviva distinguerli. La copertura top-down non ha richiesto nuove API sulla topologia:
+  un flusso è mio se `FirstOnline([proprietario, …antenati], online + me) == me`.
+- **Un modello solo.** `Vipi.AuroraBridge.Contracts` è referenziato sia dall'host sia dal tool: niente DTO
+  gemelli ricopiati nell'endpoint (FEATURE-PROCESS §1). Il limitatore per IP è scritto in casa perché il modulo
+  gira anche **embedded** in Ivao.It e non deve toccare la pipeline dell'host.
+- **Il tool non scrive mai da solo.** `RefreshAsync` non manda mai `#LBALT`; esiste solo `WriteAsync`, che
+  rifiuta prima ancora di parlare con Aurora se il traffico non è assunto o il livello non è scrivibile. Anche
+  la scorciatoia globale **non ripiega** su un altro candidato: se il primo non è scrivibile si ferma e spiega.
+- **Cosa hanno trovato le verifiche live, e i test no:** che l'assunzione va confrontata col callsign
+  **connesso** e non con l'override delle regole (il tool rifiutava scritture legittime), e che la finestra
+  moriva all'avvio perché `InitializeComponent` riscritto a mano non popola i campi `x:Name`. Nessun test
+  poteva vederle: la prima richiede Aurora vera, la seconda una finestra vera.
+- **Scoperta sui dati, non sul codice:** 30 punti di sorvolo su 33 in LIBB hanno il vincolo ma **non il
+  livello**. Deciso: è una lacuna redazionale, il tool si limita a non scrivere nulla e a dirlo.
+
+Superficie nuova: `POST /vsop/api/v1/transfers/resolve` (anonimo, read-only, tetto per IP) ·
+[guida utente](../guide/aurora-bridge.md) · [contratto API](../reference/api-aurora-bridge.md).
+
+## Aree regolamentate — interruttore, import incrementale, dangling (3 ago 2026, 951 test)
+Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
+([carta](../feature/2026-08-03-aree-regolamentate-hardening.md), SPEC §9.21-9.22).
+- **Categoria di import `SpecialAreas`** (`ImportPolicy.ImportSpecialAreas`, default true): erano l'unico dato di
+  sorgente senza interruttore, e il prune per-ACC cancellava le righe buone senza che l'admin potesse fermarlo. Gate
+  in `SpecialAreaImportUseCase` (corpo condiviso auto/manual), **prima della fetch e del prune** → esclusa =
+  congelata. Riga in `/vsop/admin/sorgenti`.
+- **Trappola del default trovata strada facendo**: `migrations add` genera `defaultValue: false` per un bool nuovo, e
+  `PostgresSchemaReconciler` backfillava a `false` ogni colonna NOT NULL — per un flag opt-out significa spegnere la
+  categoria in silenzio sul DB già popolato. Ora il default sta nel modello (`HasDefaultValue`) e il reconciler lo
+  legge (`BackfillLiteral`). ⚠ **`ImportSids` ne era già vittima** (8 lug): da controllare in produzione, non è
+  ribaltabile da codice perché `false` è indistinguibile da una scelta dell'admin.
+- **Import incrementale della shape**: il dettaglio `/v2/specialAreas/{id}` si salta per le aree con shape già in
+  archivio e recente (30 gg) — `skipDetailIds` dal DB via use-case, il client resta senza persistenza. Da N+1 per
+  ACC a una chiamata per pagina.
+- **Riferimenti dangling**: la selezione di aree di un documento cita gli `IvaoId` senza FK; il prune poteva
+  cancellarne una e il viewer la saltava in silenzio. Nuovo rilievo «Area regolamentata dangling» in diagnostica
+  (sola versione di lavoro) + «⚠ non più disponibile» nell'editor. Nessun guard nel prune: si rileva, non si vincola.
+- Estratto `RegulatedSelectionJson`, unico lettore del `BodyJson` `regulated` (l'APP non leggeva l'array legacy).
+
+**Seguito in giornata, partendo da «non trovo le aree di altri ACC» su una vIPI di APP:**
+- **Il picker nascondeva ciò che aveva**: candidati solo digitando e taglio muto a 12 su ~800 aree. Ora tendina per
+  ACC col conteggio, elenco anche senza cercare, contatore «Mostrate 20 di 99», lista scorrevole.
+- **Un'area può appartenere a più ACC.** Caso rivelatore: `8870` «LI R49 Zita», su IVAO in LIRR *e* nel militare
+  LIZZ; da noi risultava solo di LIZZ perché `IvaoId` è unico e `CenterId` era una colonna sola — ogni ACC che la
+  elencava riscriveva l'appartenenza e **vinceva l'ultimo in ordine alfabetico**. Le 15 aree di LIZZ erano tutte
+  così (R21 Sara, STAR1-10, Donald, Eolia, Sardinia). Nuova entità di legame `SpecialAreaCenter`, `CenterId`
+  rimossa da `SpecialArea`, import additivo, prune per legame, area cancellata solo quando resta senza enti
+  (SPEC §9.23).
+- **Backfill doppio**: migration per SQLite + `ISpecialAreaMaintenance` al boot per Postgres (dove lo schema lo
+  allinea il reconciler, che le migration non le esegue) — lì droppa anche la colonna storica, NOT NULL e fuori
+  dal modello, che bloccherebbe gli inserimenti. Recupera una sola appartenenza per area: le altre le riporta il
+  primo import, quindi dopo il deploy conviene premere «Importa da sorgente».
+- Migration provata su copia del `vipi.db` reale: 993 aree → 993 legami, nessuna orfana.
+- **Aree estere solo su richiesta** (`Acc.SpecialAreasEnabled`, default true): erano **763 legami su 993**, scaricati
+  ogni 24h per gli ACC esteri materializzati dalle vLOA e usati quasi da nessuno. Il giro periodico tocca solo gli
+  abilitati; «Importa aree» nella riga di `/vsop/admin/accs` fa il primo scarico e accende l'ente (solo se la fetch
+  produce qualcosa), «Escludi aree» pota. Riconciliazione one-shot al boot per gli esteri già in archivio, con
+  segnaposto in `ImportState` perché non si ripeta su un ente riabilitato a mano. Sul DB reale: **993 aree → 230**,
+  le italiane invariate.
+
+Chiusura: 9 commit sul branch `feature/aree-speciali-hardening`, suite 951 verde, build 0 warning, due migration
+provate su copia del `vipi.db` reale. Resta la **verifica live** (quattro punti elencati in fondo alla carta).

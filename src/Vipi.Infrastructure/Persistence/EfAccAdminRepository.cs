@@ -23,8 +23,22 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
     public async Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking()
             .OrderBy(a => a.Code)
-            .Select(a => new AccAdminRow(a.Id, a.Code, a.Name, a.IsMilitary, a.IsHidden))
+            .Select(a => new AccAdminRow(a.Id, a.Code, a.Name, a.IsMilitary, a.IsHidden,
+                a.IsForeign, a.SpecialAreasEnabled,
+                _db.SpecialAreaCenters.Count(c => c.CenterId == a.Code)))
             .ToListAsync(ct);
+
+    public async Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
+    {
+        var acc = await _db.Accs.FirstOrDefaultAsync(a => a.Id == accId, ct)
+                  ?? throw new InvalidOperationException($"ACC id {accId} inesistente.");
+        acc.SpecialAreasEnabled = enabled;
+        await _db.SaveChangesAsync(ct);
+
+        // Spegnere significa anche liberare l'archivio: senza questo le aree resterebbero lì per sempre, ferme e
+        // selezionabili. Chi le condivide con un altro ente abilitato le conserva (si toglie solo il legame).
+        return enabled ? 0 : await PruneSpecialAreasNotInAsync(acc.Code, Array.Empty<string>(), ct);
+    }
 
     public async Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) =>
         await _db.AccSectors.AsNoTracking()
@@ -88,7 +102,9 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var existing = await _db.SpecialAreas
             .ToDictionaryAsync(s => s.IvaoId, StringComparer.OrdinalIgnoreCase, ct);
-        var handled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // dedup batch (stessa area su più ACC)
+        var links = (await _db.SpecialAreaCenters.ToListAsync(ct))
+            .ToDictionary(l => LinkKey(l.IvaoId, l.CenterId), StringComparer.OrdinalIgnoreCase);
+        var handled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // dedup dentro il batch di QUESTO ACC
 
         foreach (var a in areas)
         {
@@ -98,9 +114,18 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
             var center = a.CenterId.Trim().ToUpperInvariant();
             if (!accCodes.Contains(center)) continue;   // niente ACC corrispondente → salta (FK)
 
+            // Legame area↔ACC: additivo. Un altro centro che elenca la stessa area non se la porta via (era il
+            // difetto del vecchio CenterId singolo: vinceva l'ultimo ACC in ordine alfabetico).
+            if (links.TryGetValue(LinkKey(ivaoId, center), out var link)) link.ImportedAtUtc = now;
+            else
+            {
+                link = new SpecialAreaCenter { IvaoId = ivaoId, CenterId = center, ImportedAtUtc = now };
+                _db.SpecialAreaCenters.Add(link);
+                links[LinkKey(ivaoId, center)] = link;
+            }
+
             if (existing.TryGetValue(ivaoId, out var row))
             {
-                row.CenterId = center;
                 row.Type = a.Type;
                 row.Name = a.Name;
                 row.Description = a.Description;
@@ -117,7 +142,6 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 _db.SpecialAreas.Add(new SpecialArea
                 {
                     IvaoId = ivaoId,
-                    CenterId = center,
                     Type = a.Type,
                     Name = a.Name,
                     Description = a.Description,
@@ -136,19 +160,44 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         return (created, updated);
     }
 
+    public async Task<IReadOnlySet<string>> ListAreasWithFreshShapeAsync(string accCode, DateTime importedAfterUtc, CancellationToken ct = default)
+    {
+        accCode = accCode.Trim().ToUpperInvariant();
+        var ids = await _db.SpecialAreas.AsNoTracking()
+            .Where(s => s.Centers.Any(c => c.CenterId == accCode) && s.RegionMapPolygon != null
+                        && s.ImportedAtUtc != null && s.ImportedAtUtc > importedAfterUtc)
+            .Select(s => s.IvaoId)
+            .ToListAsync(ct);
+        return ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
     {
         accCode = accCode.Trim().ToUpperInvariant();
         var keep = keepIvaoIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var stale = await _db.SpecialAreas
-            .Where(s => s.CenterId == accCode)
-            .ToListAsync(ct);
-        var remove = stale.Where(s => !keep.Contains(s.IvaoId)).ToList();
+
+        // Si potano i LEGAMI di questo ACC, non le aree: «LIRR non la elenca più» non vuol dire che sia sparita,
+        // può restare del militare. L'area si cancella solo quando resta senza nessun ente che la elenchi.
+        var links = await _db.SpecialAreaCenters.Where(l => l.CenterId == accCode).ToListAsync(ct);
+        var remove = links.Where(l => !keep.Contains(l.IvaoId)).ToList();
         if (remove.Count == 0) return 0;
-        _db.SpecialAreas.RemoveRange(remove);
+        _db.SpecialAreaCenters.RemoveRange(remove);
         await _db.SaveChangesAsync(ct);
+
+        var orphanIds = remove.Select(l => l.IvaoId).ToList();
+        var orphans = await _db.SpecialAreas
+            .Where(a => orphanIds.Contains(a.IvaoId) && !a.Centers.Any())
+            .ToListAsync(ct);
+        if (orphans.Count > 0)
+        {
+            _db.SpecialAreas.RemoveRange(orphans);
+            await _db.SaveChangesAsync(ct);
+        }
         return remove.Count;
     }
+
+    // Chiave del legame area↔ACC in memoria (l'id IVAO è numerico, il codice ACC già normalizzato maiuscolo).
+    private static string LinkKey(string ivaoId, string centerId) => ivaoId + "|" + centerId;
 
     public async Task<(int Created, int Updated)> ImportSubcentersAsync(IReadOnlyList<SourceSubcenter> subs, CancellationToken ct = default)
     {

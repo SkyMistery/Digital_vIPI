@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -126,6 +127,69 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         b[18] = 0x03; b[19] = 0x20;   // 800
         b[22] = 0x02; b[23] = 0x58;   // 600
         return b;
+    }
+
+    /// <summary>
+    /// L'endpoint del bridge Aurora è superficie pubblica e anonima: non deve esistere finché qualcuno non lo
+    /// accende. Questo test è l'unico posto in cui la scelta del default si vede davvero — nelle opzioni è una
+    /// riga che si cambia senza accorgersene.
+    ///
+    /// <para>⚠️ <b>Il codice esatto dipende dal TFM dell'host, e nessuno dei due è un difetto.</b> Su net10 il
+    /// catch-all che <c>MapRazorComponents</c> registra per la pagina «non trovato» risponde al GET di qualunque
+    /// path: per il routing quel path esiste e a mancare è solo il verbo, quindi <b>405</b>. Su net8 — cioè
+    /// l'host che va in produzione su <c>atc.it.ivao.aero</c> — quel catch-all non esiste e la risposta è
+    /// <b>404</b>. Ciò che il test presidia è che il gestore non giri; il codice lo decide una rotta che non è
+    /// la nostra. Il tool desktop traduce entrambi in «su questo sito il bridge non è attivo».</para>
+    /// </summary>
+    [Fact]
+    public async Task Aurora_bridge_endpoint_is_not_mounted_unless_enabled()
+    {
+        var res = await _factory.CreateClient().PostAsJsonAsync(
+            "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "LIRR_CTR" });
+
+        Assert.True(
+            res.StatusCode is HttpStatusCode.MethodNotAllowed or HttpStatusCode.NotFound,
+            $"con il bridge spento la rotta non deve esistere: atteso 404 (host net8) o 405 (host net10), ricevuto {(int)res.StatusCode}");
+    }
+
+    /// <summary>Acceso, l'endpoint c'è e valida: senza <c>ownerCallsign</c> risponde 400, non 500.</summary>
+    [Fact]
+    public async Task Aurora_bridge_endpoint_answers_when_enabled()
+    {
+        using var factory = new BridgeOnAppFactory();
+        var client = factory.CreateClient();
+
+        var senzaCallsign = await client.PostAsJsonAsync("/vsop/api/v1/transfers/resolve", new { });
+        Assert.Equal(HttpStatusCode.BadRequest, senzaCallsign.StatusCode);
+
+        // Callsign non riconducibile a nessuna ACC: risposta valida con un avviso, non un errore.
+        var conCallsign = await client.PostAsJsonAsync(
+            "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "ZZZZ_CTR" });
+        Assert.Equal(HttpStatusCode.OK, conCallsign.StatusCode);
+    }
+
+    /// <summary>Fabbrica gemella con il bridge acceso: il default resta spento per tutti gli altri test.</summary>
+    public sealed class BridgeOnAppFactory : WebApplicationFactory<Program>
+    {
+        private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"vipi-e2e-bridge-{Guid.NewGuid():N}.db");
+
+        protected override IHost CreateHost(IHostBuilder builder)
+        {
+            builder.UseEnvironment("Development");
+            builder.ConfigureHostConfiguration(cfg => cfg.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:Vipi"] = $"Data Source={_dbPath}",
+                ["AuroraBridge:Enabled"] = "true",
+            }));
+            Environment.SetEnvironmentVariable("VipiAuth__Enabled", "false");
+            return base.CreateHost(builder);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            try { if (File.Exists(_dbPath)) File.Delete(_dbPath); } catch { /* best-effort cleanup */ }
+        }
     }
 
     [Fact]

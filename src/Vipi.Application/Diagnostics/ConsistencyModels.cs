@@ -18,6 +18,13 @@ public sealed record TransferConditionRow(int PointId, string AccCode, string Co
 public sealed record ParentRefRow(string Kind, string Reference, string ParentCallsign);
 
 /// <summary>
+/// Sezione <c>regulated</c> di un documento con la sua selezione di aree, come JSON grezzo: il parse sta
+/// nell'analisi (funzione pura) e non nel repository. <paramref name="Reference"/> è il nome leggibile del
+/// documento, <paramref name="Kind"/> ne dice la famiglia (vIPI ACC / vIPI APP).
+/// </summary>
+public sealed record RegulatedRefRow(string Kind, string Reference, string? Json);
+
+/// <summary>
 /// Fotografia di sola lettura dei dati soggetti a soft-ref, caricata dalla persistenza e analizzata dal
 /// <see cref="ConsistencyReportService"/>. Separa i dati (repo) dalla logica di rilevazione (pura, testabile).
 /// </summary>
@@ -37,4 +44,10 @@ public sealed class ConsistencyDataset
 
     /// <summary>Callsign validi come padre (union delle chiavi naturali dei cataloghi ACC/aeroporto).</summary>
     public IReadOnlySet<string> ValidCallsigns { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Sezioni <c>regulated</c> con la selezione di aree salvata (JSON grezzo).</summary>
+    public IReadOnlyList<RegulatedRefRow> RegulatedRefs { get; init; } = Array.Empty<RegulatedRefRow>();
+
+    /// <summary>IvaoId delle aree speciali esistenti, per validare gli id salvati nelle selezioni.</summary>
+    public IReadOnlySet<string> SpecialAreaIds { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 }
