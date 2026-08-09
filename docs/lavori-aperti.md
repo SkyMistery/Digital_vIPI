@@ -485,17 +485,34 @@ qui era contarlo due volte.
 
 ---
 
-## D. Verifiche live pendenti da sessioni passate
+## D. ✅ Verifiche live arretrate — **sezione chiusa il 9 agosto 2026**
 
-Tutte con la skill `verifica-live`. Sono lavori già scritti e testati, che nessuno ha ancora **guidato**.
+Erano lavori già scritti e testati che nessuno aveva mai **guidato**. Tutte rifatte su MariaDB coi dati
+veri, non su un database di comodo.
 
-- ✅ **Aree regolamentate** — fatta il 6 agosto 2026: esito in B1.
-- 🟢 **Settori esteri aggiunti a mano** (es. `LGKR_APP` su coppia confinante confermata): verifica IVAO +
-  `AccSector` + riproiezione, e la guardia anti-hijack. Memoria: `foreign-sector-manual-add`.
-- 🟢 **Coordinamenti/sorvoli rielaborati**: sorvoli senza aeroporto, parità di livello, CoP `ALL`/`ALL-to-X`,
-  vLOA in stile ACC+EN, lookup aeroporto IVAO fuori DB. Memoria: `transfers-overflight-rework`.
-- 🟢 **Retention pubblicazione**: resta solo il riscontro del conteggio righe sul DB.
-  Memoria: `publication-retention-plan`.
+- ✅ **Aree regolamentate** — 6 agosto: esito in B1.
+- ✅ **Settori esteri aggiunti a mano.** In `/vsop/admin/confinanti`, su coppia confermata, provati i tre
+  esiti che contano: **aggiunta** di `LGRP_APP` a LGGG → verificato su IVAO e materializzato con dati veri
+  (*Rodos Approach*, 127.250, poligono di 3378 caratteri), **riproiettato** come `Sector` attivo e presente
+  nel **picker del ricevente** (`LGRP_APP LGGG`); **ri-aggiunta** dello stesso → «already present», non un
+  errore; **dirottamento** di `LGKR_APP` su LAAA → rifiutato («appartiene già all'ACC LGGG»), e soprattutto
+  **nessuna riga fantasma** sotto LAAA.
+  ⚠️ Il dropdown del picker è governato da `@onfocus`: un click di automazione lo chiude. Va aperto con
+  `page.focus` e riempito da tastiera, senza altri click — altrimenti sembra vuoto quando non lo è.
+- ✅ **Coordinamenti/sorvoli rielaborati.** Sulla vIPI ACC di LIBB: CoP `ALL` → «su tutti i punti», `ALL to
+  GR` → «su tutti i punti verso GR», **nessuna riga col vecchio «su —»**; sorvoli senza aeroporto presenti;
+  parità resa («*stabile a livello 260 **pari** su tutti i punti verso GR*»). Sulla vLOA LIBB↔LGGG:
+  coordinamenti in stile ACC e frasi in inglese. **Lookup IVAO**: scritto `LFPG`, il tasto compare e riempie
+  «Paris Charles de Gaulle» — e l'aeroporto **non entra nel catalogo** (92 prima, 92 dopo), che era il
+  vincolo.
+  ⚠️ **Difetto trovato qui e corretto**: in inglese la parità era attaccata con l'ordine italiano —
+  «at level 260 even», «for a level odd». Ora l'ordine sta nel template (`WithParity`, `ForLevelParity`):
+  «at level 260 (even)», «for an odd level». Un test **fotografava il difetto** invece di impedirlo ed è
+  stato corretto: è la ragione per cui non era mai emerso.
+- ✅ **Retention pubblicazione.** Non solo conteggi: fatta scattare. Una pubblicazione in più su LIBB →
+  `Superseded` 12→13 e versioni archiviate **ferme a 3** (il cap regge, era l'off-by-one del 21 luglio).
+  Poi tre release retrodatate oltre soglia e riavvio: il boot sweep ne ha potate **esattamente tre**
+  (53→50 release, `Effective` intatte), e un secondo riavvio è stato **no-op**.
 
 ---
 

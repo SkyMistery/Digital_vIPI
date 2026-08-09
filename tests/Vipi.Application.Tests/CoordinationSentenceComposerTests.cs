@@ -134,6 +134,30 @@ public class CoordinationSentenceComposerTests
         Assert.Equal("Roma Radar NE trasferisce a Milano Radar WS2 il traffico stabile per un livello dispari su TIGRA.", s);
     }
 
+    /// <summary>
+    /// La parità in <b>inglese</b> non si attacca come in italiano, e le vLOA sono documenti che leggono i
+    /// vicini: ricalcando l'ordine italiano uscivano «at level 260 even» e «for a level odd», che nessuno
+    /// scriverebbe. Trovato leggendo una vLOA resa (verifica live D2), non da un test: il compositore era
+    /// corretto, era la lingua a non entrarci. Ora l'ordine sta nel template, che è il posto della lingua.
+    /// </summary>
+    [Fact]
+    public void English_template_puts_parity_where_english_wants_it()
+    {
+        var en = CoordinationSentenceTemplate.English;
+
+        var conValore = CoordinationSentences.Compose(en, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 260, LevelUnit.Fl, null,
+            LevelParity.Even, "ALL to GR", TransferFlowKind.Departure, verticalState: TransferVerticalState.Level);
+        Assert.Contains("at level 260 (even)", conValore);
+        Assert.DoesNotContain("level 260 even ", conValore);
+
+        var senzaValore = CoordinationSentences.Compose(en, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", null, LevelConstraint.Exact, null, LevelUnit.Fl, null,
+            LevelParity.Odd, "TIGRA", TransferFlowKind.Overflight, verticalState: TransferVerticalState.Level);
+        Assert.Contains("for an odd level", senzaValore);
+        Assert.DoesNotContain("for a level odd", senzaValore);
+    }
+
     [Theory]
     [InlineData("ALL")]
     [InlineData("all")]
@@ -173,10 +197,13 @@ public class CoordinationSentenceComposerTests
     public void English_template_composes_english_sentence()
     {
         // Template inglese (vLOA): stato/livello/parità/punto tutti in EN.
+        // ⚠️ L'attesa è cambiata il 9 agosto 2026: diceva «or below odd», che era la parità attaccata
+        // all'ordine italiano. Il test fotografava il difetto invece di impedirlo — è saltato fuori
+        // leggendo una vLOA vera, non da qui.
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 150, LevelUnit.Fl, null, LevelParity.Odd, "ALL",
             verticalState: TransferVerticalState.Descending);
-        Assert.Equal("Roma Radar NE transfers to Milano Radar WS2 the traffic inbound to Fiumicino LIRF descending at level 150 or below odd over all points.", s);
+        Assert.Equal("Roma Radar NE transfers to Milano Radar WS2 the traffic inbound to Fiumicino LIRF descending at level 150 or below (odd) over all points.", s);
     }
 
     [Fact]

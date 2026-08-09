@@ -61,7 +61,11 @@ public sealed class CoordinationSentenceTemplate
             FtBody = "at {v} ft",
             OrBelow = "or below",
             OrAbove = "or above",
-            ForLevel = "for a level",
+            // La parità in inglese va fra parentesi dopo il livello e come aggettivo prima del sostantivo:
+            // «at level 260 (even)», «for an odd level». Ricalcare l'ordine italiano dava «at level 260 even»
+            // e «for a level odd».
+            WithParity = "{body} ({parity})",
+            ForLevelParity = "for an {parity} level",
             ParityEven = "even",
             ParityOdd = "odd",
         },
@@ -90,7 +94,8 @@ public sealed class CoordinationSentenceState
 
 /// <summary>Fraseologia del livello nella frase di coordinamento ({fl}). Testi lingua-specifici estratti dal composer
 /// così che il template inglese (vLOA) possa renderli in EN. <see cref="FlBody"/>/<see cref="FtBody"/> usano il
-/// placeholder {v} per il valore; <see cref="ForLevel"/> precede la parità quando manca un valore numerico.</summary>
+/// placeholder {v} per il valore; <see cref="ForLevelParity"/> è la frase intera quando manca un valore
+/// numerico ma c'è la parità.</summary>
 public sealed class CoordinationSentenceLevel
 {
     /// <summary>Corpo con unità FL, placeholder {v}: «a livello {v}».</summary>
@@ -101,8 +106,23 @@ public sealed class CoordinationSentenceLevel
     public string OrBelow { get; init; } = "o livello inferiore";
     /// <summary>Suffisso vincolo ≥ (AtOrAbove): «o livello superiore».</summary>
     public string OrAbove { get; init; } = "o livello superiore";
-    /// <summary>Prefisso usato senza valore numerico ma con parità: «per un livello» + parità.</summary>
-    public string ForLevel { get; init; } = "per un livello";
+    /// <summary>
+    /// Come la parità si attacca a un livello con valore. Placeholder <c>{body}</c> (es. «a livello 260»)
+    /// e <c>{parity}</c>.
+    ///
+    /// <para><b>È un pattern e non una concatenazione perché l'ordine delle parole è lingua-specifico.</b>
+    /// In italiano l'aggettivo segue («a livello 260 pari»); in inglese la stessa forma dava
+    /// «at level 260 even», che nessuno scriverebbe. Scoperto leggendo una vLOA resa, non dai test:
+    /// il compositore era corretto, era la lingua a non entrarci.</para>
+    /// </summary>
+    public string WithParity { get; init; } = "{body} {parity}";
+
+    /// <summary>
+    /// Frase completa quando c'è la parità ma <b>nessun valore</b> numerico. Placeholder <c>{parity}</c>:
+    /// «per un livello dispari» in italiano, «for an odd level» in inglese — di nuovo, ordine diverso.
+    /// </summary>
+    public string ForLevelParity { get; init; } = "per un livello {parity}";
+
     public string ParityEven { get; init; } = "pari";
     public string ParityOdd { get; init; } = "dispari";
 }
