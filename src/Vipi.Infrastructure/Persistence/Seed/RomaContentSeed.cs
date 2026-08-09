@@ -111,10 +111,11 @@ public static class RomaContentSeed
             }
         });
 
-        // 5 — Minime di vettoramento (placeholder future)
+        // 5 — Minime di vettoramento: contenuto editoriale, non importato (decisione del 9 agosto 2026).
         var min = b.Section("Minime di vettoramento", BlockSection.Separations, 5);
-        b.Callout(min, CalloutKind.Warning, "Da definire", BlockTier.Extended,
-            "🛠️ Sono **mappe** (carte MVA), non tabelle. Saranno importate dal sectorfile della divisione su GitHub; il parsing è rimandato.");
+        b.Callout(min, CalloutKind.Info, "Da scrivere", BlockTier.Extended,
+            "Sono **mappe** (carte MVA), non tabelle, e non si importano dal sectorfile: là non è indicato a quale " +
+            "settore appartenga ciascuna area. Vanno scritte qui, come contenuto del documento.");
 
         // 6 — Coordinamenti
         var coord = b.Section("Coordinamenti", BlockSection.Coordination, 6);

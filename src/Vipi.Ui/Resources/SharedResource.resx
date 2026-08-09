@@ -230,8 +230,8 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Settore unico</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>Nessuna frequenza nel sottoalbero.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina trascinando ⠿ o con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</value></data>
-  <data name="AppMinima_Title" xml:space="preserve"><value>Carte MVA da GitHub</value></data>
-  <data name="AppMinima_Body" xml:space="preserve"><value>Le minime di vettoramento (carte MVA) saranno importate dal sectorfile della divisione. Funzione in sviluppo.</value></data>
+  <data name="AppMinima_Title" xml:space="preserve"><value>Minime di vettoramento</value></data>
+  <data name="AppMinima_Body" xml:space="preserve"><value>Le carte MVA non vengono importate dal sectorfile: là non è indicato a quale settore appartenga ciascuna area, e attribuire una minima al settore sbagliato sarebbe peggio che non averla. Se servono, si scrivono qui come contenuto del documento.</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>Nessun coordinamento configurato per questo APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Trasferimenti verso ACC</value></data>

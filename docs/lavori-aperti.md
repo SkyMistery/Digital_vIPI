@@ -550,8 +550,15 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   poligono reale**, 16 restano col cerchio. E i 16 non sono un buco: scaricato `twrs.tfl` e confrontato,
   **nessuno dei 16 callsign è presente nel file** — il cerchio copre esattamente le torri che nemmeno la
   sorgente ha.
-- **Minime MVA** (`<icao>.mva`, stesso repo): riusa il pattern delle SID — parser, import gated,
-  pubblicazione differita al ciclo AIRAC successivo.
+- ❌ **Minime MVA da GitHub — scartato il 9 agosto 2026 (decisione del committente).** L'idea era riusare il
+  pattern delle SID (parser, import gated, pubblicazione differita al ciclo successivo). Non si fa, e non per
+  il nostro lato: **nel sectorfile la struttura dei file MVA non dice a quale settore appartiene un'area**.
+  Un import dovrebbe indovinare quell'associazione, e una minima di vettoramento attribuita al settore
+  sbagliato è peggio di una minima assente — è un dato operativo che qualcuno userebbe.
+
+  Se un giorno le MVA serviranno davvero, la strada non è l'import ma quella **editoriale**: una sezione
+  come le altre, compilata dallo staff e pubblicata col documento, dove l'associazione al settore la
+  dichiara una persona invece di un'euristica. A quel punto è lavoro di editor, non di parser.
 - 33 torri di aeroporti senza APP e senza padre configurato in Struttura, più LIRF stesso. Si sistemano
   dalla pagina: il filtro «solo da agganciare» li raccoglie.
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
