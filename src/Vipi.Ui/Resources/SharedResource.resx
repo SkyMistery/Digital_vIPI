@@ -922,6 +922,12 @@
   <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Elimina definitivamente</value></data>
   <data name="Ver_DeleteDocAria" xml:space="preserve"><value>Elimina documento</value></data>
   <data name="Ver_DeletePrompt" xml:space="preserve"><value>Eliminare definitivamente?</value></data>
+  <data name="Ver_Discard" xml:space="preserve"><value>Scarta bozza</value></data>
+  <data name="Ver_DiscardTitle" xml:space="preserve"><value>Elimina questa bozza e torna alla versione pubblicata</value></data>
+  <data name="Ver_DiscardAria" xml:space="preserve"><value>Scarta bozza</value></data>
+  <data name="Ver_DiscardPrompt" xml:space="preserve"><value>Scartare la bozza? Le modifiche non pubblicate vanno perse.</value></data>
+  <data name="Ver_DiscardConfirm" xml:space="preserve"><value>Sì, scarta</value></data>
+  <data name="Ver_DraftDiscarded" xml:space="preserve"><value>Bozza scartata.</value></data>
   <data name="Ver_Current" xml:space="preserve"><value>corrente</value></data>
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Autore = chi ha creato la bozza</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Pubblica versione</value></data>

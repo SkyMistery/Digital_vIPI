@@ -871,36 +871,70 @@ public sealed class EfEditingRepository : IEditingRepository
         var shaPotati = new List<string>();
 
         foreach (var versionId in toDelete)
-        {
-            // Ordine esplicito per i FK Restrict (Block→Section, Section→ParentSection self-ref): non affidarsi al
-            // cascade DB. Blocchi → sezioni figli-prima-dei-genitori → versione (stesso pattern di DeleteSectionAsync).
-            var blocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == versionId).ToListAsync(ct);
-            shaPotati.AddRange(ShaCitati(blocks));   // la retention porta via anche le foto di quelle versioni
-            _db.ContentBlocks.RemoveRange(blocks);
-
-            var sections = await _db.DocumentSections.Where(s => s.DocumentVersionId == versionId).ToListAsync(ct);
-            var childrenByParent = sections.Where(s => s.ParentSectionId != null)
-                .GroupBy(s => s.ParentSectionId!.Value)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            var ordered = new List<DocumentSection>();
-            void Collect(DocumentSection s)
-            {
-                if (childrenByParent.TryGetValue(s.Id, out var kids))
-                    foreach (var k in kids) Collect(k);
-                ordered.Add(s); // post-order: figli prima dei genitori
-            }
-            foreach (var root in sections.Where(s => s.ParentSectionId == null)) Collect(root);
-            _db.DocumentSections.RemoveRange(ordered);
-
-            var ver = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == versionId, ct);
-            if (ver is not null) _db.DocumentVersions.Remove(ver);
-            await _db.SaveChangesAsync(ct);
-        }
+            shaPotati.AddRange(await EliminaVersioneAsync(versionId, ct));
 
         // Dopo TUTTE le versioni potate, non a ogni giro: una foto puo' essere citata da due delle versioni in
         // potatura, e chiedersi se e' orfana a meta' lavoro darebbe la risposta sbagliata.
         await LiberaImmaginiAsync(shaPotati, ct);
         return toDelete.Count;
+    }
+
+    /// <summary>
+    /// Elimina UNA versione col suo contenuto e ritorna gli sha delle immagini che vi comparivano (la
+    /// liberazione la decide il chiamante, che sa se ha altre versioni in corso di cancellazione).
+    ///
+    /// <para>Ordine esplicito per i FK <c>Restrict</c> (Block→Section, Section→ParentSection self-ref): non ci
+    /// si affida al cascade del database. Blocchi → sezioni figli-prima-dei-genitori → versione, lo stesso
+    /// pattern di <c>DeleteSectionAsync</c>.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<string>> EliminaVersioneAsync(int versionId, CancellationToken ct)
+    {
+        var blocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == versionId).ToListAsync(ct);
+        var sha = ShaCitati(blocks);
+        _db.ContentBlocks.RemoveRange(blocks);
+
+        var sections = await _db.DocumentSections.Where(s => s.DocumentVersionId == versionId).ToListAsync(ct);
+        var childrenByParent = sections.Where(s => s.ParentSectionId != null)
+            .GroupBy(s => s.ParentSectionId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var ordered = new List<DocumentSection>();
+        void Collect(DocumentSection s)
+        {
+            if (childrenByParent.TryGetValue(s.Id, out var kids))
+                foreach (var k in kids) Collect(k);
+            ordered.Add(s); // post-order: figli prima dei genitori
+        }
+        foreach (var root in sections.Where(s => s.ParentSectionId == null)) Collect(root);
+        _db.DocumentSections.RemoveRange(ordered);
+
+        var ver = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == versionId, ct);
+        if (ver is not null) _db.DocumentVersions.Remove(ver);
+        await _db.SaveChangesAsync(ct);
+        return sha;
+    }
+
+    public async Task<int> DiscardDraftAsync(int versionId, int actorUserId, CancellationToken ct = default)
+    {
+        var ver = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == versionId, ct)
+                  ?? throw new KeyNotFoundException($"Versione {versionId} inesistente.");
+        var numero = ver.VersionNumber;
+        var documentId = ver.DocumentId;
+
+        // L'audit va scritto PRIMA della cancellazione: dopo, la versione non esiste più e resterebbe solo un
+        // documento che ha perso una bozza senza che nessuno sappia chi e quando.
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = actorUserId,
+            Action = AuditAction.Discard,
+            EntityType = "DocumentVersion",
+            EntityId = versionId.ToString(),
+            TimestampUtc = DateTime.UtcNow,
+            DetailsJson = JsonSerializer.Serialize(new { DocumentId = documentId, VersionNumber = numero }),
+        });
+        await _db.SaveChangesAsync(ct);
+
+        await LiberaImmaginiAsync(await EliminaVersioneAsync(versionId, ct), ct);
+        return numero;
     }
 
     public async Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default)

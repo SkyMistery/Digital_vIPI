@@ -138,6 +138,16 @@ public interface IEditingRepository
     /// <summary>Storico versioni di un documento (più recente prima).</summary>
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Elimina una versione <c>Draft</c> con tutto il suo contenuto e scrive l'audit: è lo «scarta bozza».
+    /// Stesso ordine di cancellazione della potatura (blocchi → sezioni post-order → versione) per i FK
+    /// <c>Restrict</c>, e stessa liberazione delle immagini rimaste orfane.
+    ///
+    /// <para>Le condizioni (che sia davvero una bozza, e che ci sia una versione pubblicata a cui tornare)
+    /// le impone il <b>servizio</b>: qui si esegue. Ritorna il numero di versione scartato, per il messaggio.</para>
+    /// </summary>
+    Task<int> DiscardDraftAsync(int versionId, int actorUserId, CancellationToken ct = default);
+
     /// <summary>Pota le versioni <c>Archived</c> del documento oltre le più recenti <paramref name="keepN"/> (per
     /// VersionNumber): elimina ogni versione eccedente coi suoi <c>ContentBlock</c> e <c>DocumentSection</c> in ordine
     /// esplicito (blocchi → sezioni post-order → versione) per rispettare i FK Restrict su <c>Section</c> e

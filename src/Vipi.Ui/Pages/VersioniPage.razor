@@ -417,6 +417,15 @@
                         @if (v.Status == DocumentStatus.Draft)
                         {
                             <button class="btn primary" disabled="@_busy" @onclick="() => Publish(d, v.Id)">@L["Ver_PublishVersion"]</button>
+                            @* Scartare distrugge lavoro: stessa conferma in linea dell'eliminazione documento. *@
+                            @* Etichette passate esplicitamente: i default del componente sono in italiano fisso
+                               e direbbero «elimina», mentre qui l'azione è «scarta» — e la pagina può essere in inglese. *@
+                            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_DiscardTitle"]" AriaLabel="@L["Ver_DiscardAria"]"
+                                           Prompt="@L["Ver_DiscardPrompt"]" Disabled="@_busy"
+                                           ConfirmLabel="@L["Ver_DiscardConfirm"]" CancelLabel="@L["Common_Cancel"]"
+                                           OnConfirm="() => DiscardDraft(d, v.Id)">
+                                <Trigger><Icon Name="trash" /> @L["Ver_Discard"]</Trigger>
+                            </InlineConfirm>
                         }
                     </span>
                 </div>
@@ -513,6 +522,21 @@
             if (d.DocumentId is int docId) await Editing.AcquireLockAsync(docId);
             await Editing.PublishAsync(versionId, note: null);
         }, L["Ver_VersionPublished"]);
+    }
+
+    /// <summary>
+    /// Scarta la bozza: come la pubblicazione dalla lista, prende prima il lock (un documento mai aperto non
+    /// ne ha uno) e il servizio lo rilascia dopo. Se lo detiene un altro editor, il conflitto arriva da lì col
+    /// suo messaggio. Le condizioni — è davvero una bozza, e c'è una versione a cui tornare — le impone il
+    /// servizio: qui non si duplicano, o divergerebbero al primo cambio.
+    /// </summary>
+    private async Task DiscardDraft(ManagedDoc d, int versionId)
+    {
+        await Run(async () =>
+        {
+            if (d.DocumentId is int docId) await Editing.AcquireLockAsync(docId);
+            await Editing.DiscardDraftAsync(versionId);
+        }, L["Ver_DraftDiscarded"]);
     }
 
     private async Task PublishRelease(ManagedDoc d)

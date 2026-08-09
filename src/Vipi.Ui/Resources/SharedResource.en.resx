@@ -919,6 +919,12 @@
   <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Delete permanently</value></data>
   <data name="Ver_DeleteDocAria" xml:space="preserve"><value>Delete document</value></data>
   <data name="Ver_DeletePrompt" xml:space="preserve"><value>Delete permanently?</value></data>
+  <data name="Ver_Discard" xml:space="preserve"><value>Discard draft</value></data>
+  <data name="Ver_DiscardTitle" xml:space="preserve"><value>Delete this draft and go back to the published version</value></data>
+  <data name="Ver_DiscardAria" xml:space="preserve"><value>Discard draft</value></data>
+  <data name="Ver_DiscardPrompt" xml:space="preserve"><value>Discard the draft? Unpublished changes will be lost.</value></data>
+  <data name="Ver_DiscardConfirm" xml:space="preserve"><value>Yes, discard</value></data>
+  <data name="Ver_DraftDiscarded" xml:space="preserve"><value>Draft discarded.</value></data>
   <data name="Ver_Current" xml:space="preserve"><value>current</value></data>
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Author = who created the draft</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Publish version</value></data>
