@@ -93,9 +93,11 @@ if (!app.Environment.IsDevelopment())
 app.UseResponseCompression();
 
 // File statici: wwwroot dell'host + wwwroot della RCL vIPI (_content/Vipi.Ui/...).
-// Rimpiazza MapStaticAssets, che è .NET 9+ (ADR-0007 §D4-ter). La differenza che si sente è il
-// cache-busting: qui l'invalidazione viene dal suffisso ?v= di AssetVersion, uno per tutti gli asset,
-// non dall'impronta del singolo file. Vedi AssetVersion per cosa comporta.
+// Rimpiazza MapStaticAssets, che è .NET 9+ (ADR-0007 §D4-ter). Il cache-busting lo fa AssetVersion, che
+// legge i file da QUESTO stesso provider: l'impronta nell'URL è quella del contenuto servito, non della
+// build, quindi un asset immutato conserva il proprio URL e resta valido in cache.
+AssetVersion.Initialize(app.Environment.WebRootFileProvider);
+
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
@@ -111,7 +113,8 @@ app.UseStaticFiles(new StaticFileOptions
         ctx.Context.Response.Headers.CacheControl = dev
             ? "no-cache, no-store, must-revalidate"
             : lunga ? "public,max-age=604800"    // 7 giorni
-                    : "public,max-age=86400";    // 1 giorno: l'URL cambia col ?v= a ogni deploy
+                    : "public,max-age=86400";    // 1 giorno: col ?v= per contenuto, un asset immutato
+                                                 // conserva l'URL e alla scadenza si rivalida con un 304
     },
 });
 

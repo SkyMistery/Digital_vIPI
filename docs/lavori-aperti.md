@@ -251,9 +251,14 @@ promozione di una bozza (`EfReleaseRepository.PromoteDraftAsync`). È una scelta
 visto che il viewer dell'audit è fra i lavori aperti (E5).
 
 ### A7 ✅ Nuovo pacchetto di deploy — fatto il 9 agosto 2026
-`artifacts/publish/vipi-linux-x64-mariadb-20260809.zip` — **47,8 MB**, 396 file, self-contained **net8**
-(sha256 `21075288F3775EF9…`), con dentro `appsettings.Production.json`, `deploy/vipi.service` e
-`deploy/nginx-vipi.conf`.
+`artifacts/publish/vipi-linux-x64-mariadb-20260809.zip` — **47,8 MB**, self-contained **net8**
+(sha256 `F17A0512E2D37AF7…`), con dentro `LEGGIMI-DEPLOY.md`, `appsettings.Production.json`,
+`deploy/vipi.service` e `deploy/nginx-vipi.conf`. Rigenerato dopo la correzione C4, così il binario
+consegnato contiene anche quella.
+
+ℹ️ Il `LEGGIMI-DEPLOY.md` ora vive in **`deploy/atc-ivao/`**, cioè nel repository, e viene copiato nel
+pacchetto: prima esisteva solo dentro `artifacts/`, che è gitignorata, e un `dotnet publish` che ripulisce
+la cartella se lo portava via.
 
 `LEGGIMI-DEPLOY.md` **riscritto**: diceva MySQL 8.4.9, provider Oracle e collation `utf8mb4_0900_as_cs` —
 tre cose false su MariaDB. Ora dice MariaDB/Pomelo/`uca1400_as_cs`, aggiunge il passo «carica il `.sql`»
@@ -392,10 +397,19 @@ Con B2 dentro, perché il ramo del bridge sta per intero in quello delle aree. E
 
 ## C. Debito noto — non urgente, ma non dimenticabile
 
-### C1 🟡 Il percorso Npgsql di `ISchemaDriftProbe` non è mai stato eseguito
-L'analizzatore è coperto dai test e la query è la stessa `information_schema` del reconciler, ma la prima
-conferma vera sarà il primo deploy. Se la diagnostica mostra righe di drift inattese, quasi certamente è un
-**falso positivo di tipo**: si estende la mappa alias in `SchemaDriftAnalyzer.Canonical`.
+### C1 ✅ Il percorso Npgsql di `ISchemaDriftProbe` è stato eseguito — 9 agosto 2026
+Host locale puntato a **Neon**, cioè l'unico modo di eseguirlo (in locale non c'è un Postgres). Non ci si è
+fermati al «non segnala niente», che da solo non distingue *pulito* da *mai eseguito*: si è **introdotto un
+drift finto** — una colonna `Accs.ZzSondaDrift` — e la sonda l'ha vista.
+
+- a schema pulito: `/vsop/admin/diagnostica` «nessuna incongruenza», `/vsop/health` **Healthy**;
+- con la colonna estranea: rilievo **«Colonna orfana nello schema — `Accs.ZzSondaDrift`»**, col messaggio
+  che conta («se è una rinomina, i dati sono ancora QUI e la colonna nuova è vuota»), e `/vsop/health` a
+  **Degraded**;
+- rimossa la colonna: di nuovo pulito e Healthy. Neon è tornato esattamente com'era.
+
+Nessun falso positivo di tipo sulle 39 tabelle reali, quindi la mappa alias di `SchemaDriftAnalyzer.Canonical`
+non è stata toccata.
 
 ### C2 ✅ CHIUSA il 9 agosto 2026 — `ImportSids` non è spento da nessuna parte
 Il timore era: la migration dell'8 luglio creò la colonna con `defaultValue: false` e il reconciler la
@@ -412,20 +426,62 @@ di qua né di là. Verificato leggendo i dati veri, non l'interfaccia.
 [[bool-column-default-trap]]. Dal branch delle aree il default sta nel modello (`HasDefaultValue`) e il
 reconciler lo legge.
 
-### C3 🟡 ADR-0007 punto (b): migrazioni Postgres versionate
+### C3 🟡 ADR-0007 punto (b): migrazioni Postgres versionate — **rischio accettato, con un rilevatore che ora funziona**
 Il `PostgresSchemaReconciler` copre **solo le aggiunte di colonna**: il primo rename, drop o cambio di tipo
-su Neon va applicato a mano. Il punto duro non è il lavoro corrente ma il **baseline**: lo schema su Neon è
-il prodotto di `EnsureCreated` più le toppe del reconciler, e va riprodotto in uno snapshot iniziale da
-timbrare come applicato. Meno urgente ora che la produzione è MariaDB e Neon resta ambiente di prova.
+su Neon va applicato a mano. Resta vero.
 
-### C4 🟡 Cache-busting degradato dal passaggio a net8
-`MapStaticAssets` (.NET 9+) è stato sostituito da `UseStaticFiles` + un suffisso `?v=` unico per tutti gli
-asset (`AssetVersion`). Dopo ogni deploy il browser riscarica **tutti** gli asset invece dei soli cambiati.
-Accettato consapevolmente; da rivedere solo se Pomelo pubblicasse un giorno una build per EF Core 10.
+**Perché non si costruisce adesso il terzo set di migrazioni.** Costerebbe **emettere ogni cambio di schema
+tre volte** (SQLite, MySQL, Postgres) per sempre — e ADR-0007 §D4-ter dichiara quel costo già pesante a
+due. Lo si spenderebbe per un ambiente che è **di prova** e che, a cutover riuscito, è candidato a essere
+ritirato: la decisione su Neon è ancora aperta e va presa prima, non dopo.
 
-### C5 🟢 Audit 22 luglio — voci ALTE ancora aperte
-`history/audit-2026-07-22-criticita-full-stack.md`: **A2** scala Blazor (backplane), e la parte di **D1**
-che riguarda il provisioning. La Fase 1 e la Fase 2 sono eseguite.
+**Cosa rende accettabile aspettare, e non era vero prima del 9 agosto:** il guasto temuto — una rinomina
+che lascia i dati nella colonna vecchia mentre l'app legge la nuova, vuota, **senza lanciare niente** — ora
+ha un rilevatore **provato sul campo** (C1): compare in `/vsop/admin/diagnostica` e porta `/vsop/health` a
+Degraded. Il rischio passa da *silenzioso* a *rumoroso*, che è la differenza che conta.
+
+**Cosa lo riaprirebbe, e allora va costruito:** se Neon smettesse di essere un ambiente di prova (dati che
+non si possono ricreare), oppure se servisse un rename/drop/cambio-tipo — a quel punto il baseline si
+genera dal modello **mentre la sonda dice che lo schema combacia**, che è esattamente lo stato verificato
+oggi, e si timbra come applicato. È la stessa ricetta già usata per MariaDB.
+
+### C4 ✅ Cache-busting rimesso a posto — 9 agosto 2026, senza aspettare EF Core 10
+Era accettato come costo di net8: niente `@Assets[...]`, quindi un'unica impronta per tutti gli asset (il
+MVID dell'assembly), e a ogni deploy il browser riscaricava **tutto**, anche i file identici byte per byte.
+
+Ora `AssetVersion` calcola lo **SHA-256 del contenuto di ogni file**, letto dallo **stesso provider** che poi
+lo serve — così le due cose non possono divergere — e ne mette 8 caratteri nell'URL. Un asset immutato
+conserva il proprio URL e resta valido in cache; cambia solo ciò che è cambiato davvero. Le impronte si
+calcolano una volta per percorso e restano in memoria.
+
+Il ripiego è deliberato: se un file non si risolve si torna al MVID, **non** a un URL nudo — invalidare
+troppo è innocuo, invalidare troppo poco lascia un CSS vecchio in cache dopo un aggiornamento.
+
+Guardia: `Ogni_asset_ha_la_propria_impronta_di_contenuto` in `Vipi.E2E.Tests` guarda la pagina servita e
+pretende impronte **diverse** fra asset diversi — fallisce sia se torna l'impronta unica sia se i file non
+si risolvono e si sta usando il ripiego. Vista fallire sull'implementazione precedente.
+
+### C5 ✅ Audit 22 luglio — le due voci residue sono risolte, 9 agosto 2026
+`history/audit-2026-07-22-criticita-full-stack.md`. Fasi 1 e 2 erano già eseguite.
+
+**A2 (scala Blazor) — deciso, non costruito.** La scala attesa è **una sola istanza**: un processo dietro
+`proxy_pass` verso un solo indirizzo. Con un'istanza il backplane non serve a nulla, e aggiungerlo ora
+sarebbe infrastruttura da mantenere per un problema che non abbiamo. La decisione ha però un vincolo che
+va **detto a chi amministra la macchina**, perché il guasto è vistoso e la causa no: Blazor Server tiene lo
+stato dell'utente nel processo che ha aperto il circuito, quindi **due processi dietro un bilanciatore
+fanno cadere le pagine in riconnessione continua**. Se un domani serve scalare, prima il backplane, poi il
+secondo processo. Scritto in `deploy/atc-ivao/nginx-vipi.conf`, dove lo legge chi tocca il proxy.
+
+⚠️ **Trovato mentre si verificava questo: `nginx-vipi.conf` conteneva `proxy_read_send_timeout`, che non è
+una direttiva nginx.** Non è un dettaglio di stile: nginx rifiuta di avviarsi con «unknown directive», e la
+consegna si sarebbe fermata lì. Rimossa — le due valide (`proxy_read_timeout`, `proxy_send_timeout`) erano
+già presenti sotto.
+
+**D1 (provisioning) — non è più una voce di debito, è una dipendenza da loro.** La parte di codice è chiusa
+dal 22 luglio (`ProductionIdentityGuard` fa hard-fail se l'identità di sviluppo è attiva fuori da
+Development, con test sul percorso di produzione). Quel che resta — montare i claim e gli **staff-code IVAO
+reali** — vive già come **A9/A10** (segreti e redirect) ed **E4** (conferma dei codici staff): tenerlo anche
+qui era contarlo due volte.
 
 ---
 

@@ -284,8 +284,11 @@ divergiuto abbastanza da rendere invalide entrambe le altre scelte.
   `mariadb-schema` su MariaDB vera).
 - **Torna il multi-target dei test** che D4-bis si vantava di evitare: `#if NET8_0` sui test del ramo MySQL.
   In cambio, però, quel ramo **è provato contro un server vero**, che è ciò che D4-bis non poteva offrire.
-- **Cache-busting degradato**: `MapStaticAssets` è .NET 9+, quindi su net8 si torna a `UseStaticFiles` con
-  un suffisso unico per tutti gli asset. Accettato (voce C4 dei lavori aperti).
+- **Cache-busting**: `MapStaticAssets` è .NET 9+, quindi su net8 si torna a `UseStaticFiles`. Il costo era
+  un'impronta unica per tutti gli asset; **rientrato il 9 agosto 2026** (voce C4): `AssetVersion` calcola
+  l'impronta del contenuto di ogni file dallo stesso provider che lo serve, quindi si riscarica solo ciò che
+  è cambiato. Di `MapStaticAssets` restano fuori le varianti precompresse `.br`/`.gz`, che qui si pagano
+  comprimendo a ogni richiesta.
 
 ### Perché questa volta la decisione è verificata, non prevista
 

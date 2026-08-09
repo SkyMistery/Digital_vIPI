@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -166,6 +167,32 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         var conCallsign = await client.PostAsJsonAsync(
             "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "ZZZZ_CTR" });
         Assert.Equal(HttpStatusCode.OK, conCallsign.StatusCode);
+    }
+
+    /// <summary>
+    /// Il cache-busting degli asset deve essere <b>per file</b>, non per build. Su net8 non c'è
+    /// <c>@Assets[...]</c> e la prima versione usava un'impronta sola per tutti (il MVID dell'assembly):
+    /// bastava ricompilare per far riscaricare al browser anche i file identici byte per byte.
+    ///
+    /// <para>Il test guarda la pagina servita, non l'implementazione: se i suffissi <c>?v=</c> di due asset
+    /// diversi coincidono, siamo tornati all'impronta unica — o il file non è stato trovato e si è ricaduti
+    /// sul ripiego, che è lo stesso valore per tutti. In entrambi i casi la regressione è reale.</para>
+    /// </summary>
+    [Fact]
+    public async Task Ogni_asset_ha_la_propria_impronta_di_contenuto()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+
+        var versioni = Regex.Matches(html, @"(?<file>[\w\-./]+\.(?:css|js))\?v=(?<impronta>[0-9a-f]+)")
+            .Select(m => (File: m.Groups["file"].Value, Impronta: m.Groups["impronta"].Value))
+            .DistinctBy(x => x.File)
+            .ToList();
+
+        Assert.True(versioni.Count >= 2, $"attesi almeno due asset versionati nella pagina, trovati {versioni.Count}");
+        Assert.True(versioni.Select(v => v.Impronta).Distinct().Count() > 1,
+            "tutti gli asset hanno la stessa impronta: o è tornata quella per build, o i file non si " +
+            "risolvono e si sta usando il ripiego.\n  " +
+            string.Join("\n  ", versioni.Select(v => $"{v.File} -> {v.Impronta}")));
     }
 
     /// <summary>Fabbrica gemella con il bridge acceso: il default resta spento per tutti gli altri test.</summary>
