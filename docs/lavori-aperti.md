@@ -397,11 +397,20 @@ L'analizzatore è coperto dai test e la query è la stessa `information_schema` 
 conferma vera sarà il primo deploy. Se la diagnostica mostra righe di drift inattese, quasi certamente è un
 **falso positivo di tipo**: si estende la mappa alias in `SchemaDriftAnalyzer.Canonical`.
 
-### C2 🔴 `ImportSids` potrebbe essere spento in produzione senza che nessuno l'abbia deciso
-La migration dell'8 luglio creò la colonna con `defaultValue: false` e il reconciler la backfillava a
-`false`: su un DB dove la riga `ImportPolicies` esisteva già, la categoria è **nata spenta**. Non è
-ribaltabile da codice — `false` è indistinguibile da una scelta dell'admin. **Da guardare in
-`/vsop/admin/sorgenti`** e rimettere a mano. Memoria: `bool-column-default-trap`.
+### C2 ✅ CHIUSA il 9 agosto 2026 — `ImportSids` non è spento da nessuna parte
+Il timore era: la migration dell'8 luglio creò la colonna con `defaultValue: false` e il reconciler la
+backfillava a `false`, quindi su un database dove la riga `ImportPolicies` **esisteva già** la categoria
+sarebbe nata spenta, in modo indistinguibile da una scelta dell'admin.
+
+**Quella riga non esiste.** Su Neon `ImportPolicies` ha **zero righe**, e senza riga
+`EfImportPolicyStore.GetAsync` torna `ImportPolicySnapshot.AllImported` — tutto importato, SID comprese. Il
+`.sql` del travaso porta la stessa situazione in produzione, quindi il trabocchetto non si materializza né
+di qua né di là. Verificato leggendo i dati veri, non l'interfaccia.
+
+⚠️ Resta vera la regola generale, ed è quella che vale la pena ricordare: un `bool NOT NULL` nuovo nasce
+`false` ovunque, migration e reconciler compresi, ed è veleno per un flag **opt-out**. Memoria:
+[[bool-column-default-trap]]. Dal branch delle aree il default sta nel modello (`HasDefaultValue`) e il
+reconciler lo legge.
 
 ### C3 🟡 ADR-0007 punto (b): migrazioni Postgres versionate
 Il `PostgresSchemaReconciler` copre **solo le aggiunte di colonna**: il primo rename, drop o cambio di tipo
