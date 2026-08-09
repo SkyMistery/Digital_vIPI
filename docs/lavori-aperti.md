@@ -544,8 +544,12 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   invece che in frequenza. Verificata sui dati veri: nessun rilievo, nessun rumore.
 
 ### E2 Dati reali che mancano
-- **Shape reali delle TWR** dal sectorfile GitHub, a rimpiazzare i cerchi sintetici da 5 NM
-  (`IsShapeSynthetic`).
+- ✅ ~~**Shape reali delle TWR** dal sectorfile GitHub~~ — **già fatto e verificato il 9 agosto 2026.**
+  `GithubTowerShapeService` applica i poligoni di `DYNAMIC_SEC/twrs.tfl` **prima** del cerchio sintetico ed è
+  agganciato all'import automatico più un bottone nell'editor. Sui dati veri: **68 TWR su 84 hanno un
+  poligono reale**, 16 restano col cerchio. E i 16 non sono un buco: scaricato `twrs.tfl` e confrontato,
+  **nessuno dei 16 callsign è presente nel file** — il cerchio copre esattamente le torri che nemmeno la
+  sorgente ha.
 - **Minime MVA** (`<icao>.mva`, stesso repo): riusa il pattern delle SID — parser, import gated,
   pubblicazione differita al ciclo AIRAC successivo.
 - 33 torri di aeroporti senza APP e senza padre configurato in Struttura, più LIRF stesso. Si sistemano
@@ -562,8 +566,18 @@ com'è già stato fatto per i trasferimenti.
 Confermare gli **staff code reali** IVAO: ruoli di divisione (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`) e
 ruoli chief ACC-scoped (`{ACC}-CH`, `{ACC}-ACH`). Oggi sono ipotesi in configurazione.
 
-### E5 Copertura e rifiniture
-Viewer dell'**audit log**, «scarta bozza», editor visuale delle mappe AoR, test property-based sull'AoR.
+### E5 Copertura e rifiniture — due voci chiuse il 9 agosto 2026
+- ✅ **«Scarta bozza»** — fatto. Elimina la versione `Draft` col suo contenuto, scrive l'audit
+  (`AuditAction.Discard`, nuovo) e libera il lock. La cancellazione di una versione esisteva già dentro la
+  potatura: **estratta e riusata**, non ricopiata. Due regole nel servizio: si scarta solo una bozza, e solo
+  se c'è una versione a cui tornare (su un documento mai pubblicato la bozza *è* il documento). Verificato
+  sull'app: bozze 11 → 10, audit con documento e numero di versione, zero sezioni o blocchi orfani.
+- ✅ ~~Viewer dell'**audit log**~~ — **esisteva già** (`AuditPage`, rotta `/vsop/admin/audit`): voce stantia.
+  ⚠️ Resta la domanda aperta di prodotto: pubblicare una **release** non scrive audit (lo fa solo la
+  promozione di una bozza), quindi il viewer non mostra quelle pubblicazioni.
+- 🟢 **Test property-based sull'AoR** — non c'è ancora alcuna libreria property-based nel progetto.
+- 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
+  con chi la userà prima di essere scritta.
 
 ---
 
