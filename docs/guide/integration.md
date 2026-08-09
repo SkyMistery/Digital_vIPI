@@ -9,11 +9,12 @@ chiamate. Vedi anche `../adr/adr-0002-integrazione-e-autenticazione-portabile.md
 - ASP.NET Core **8 o 10** + **Blazor Server** (Interactive Server) abilitato.
 - Un'autenticazione già configurata (tipicamente **OIDC IVAO**) che popola un `ClaimsPrincipal`
   con almeno: VID, nome, eventuali `userStaffPositions`.
-- Accesso a un DB **SQLite** (default), **PostgreSQL** o **MySQL 8.0+**, scelto con `Persistence:Provider`.
-  MySQL è supportato dal 5 agosto 2026 — è il provider di produzione — e su **entrambi** i TFM: il provider
-  è quello Oracle (`MySql.EntityFrameworkCore`), non Pomelo, che su EF Core 10 non esiste. In ogni caso il
-  modulo usa un DB **separato** da quello del sito, con connection string `Vipi` propria. Dettagli in
-  [`docs/design/piano-supporto-mysql.md`](../design/piano-supporto-mysql.md) e ADR-0007 §D4-bis.
+- Accesso a un DB **SQLite** (default), **PostgreSQL** o **MySQL/MariaDB**, scelto con
+  `Persistence:Provider`. Il ramo `MySql` è il provider di **produzione** (il server di `atc.it.ivao.aero`
+  è **MariaDB 11.4.10**) e usa **Pomelo 8.0.3**: esiste quindi **solo sul TFM `net8.0`**, perché Pomelo non
+  ha una build per EF Core 10. Un host net10 può montare il modulo, ma non con questo provider. In ogni caso
+  il modulo usa un DB **separato** da quello del sito, con connection string `Vipi` propria. Dettagli in
+  ADR-0007 **§D4-ter** (che supera §D4-bis) e in [`../lavori-aperti.md`](../lavori-aperti.md) sezione A.
 - Credenziali app IVAO (ClientId/ClientSecret) se serve il roster staff / live ATC.
 
 ## Installazione
@@ -40,8 +41,9 @@ Conseguenze pratiche per chi tocca il codice del modulo:
   usare `Convert.ToHexString(...).ToLowerInvariant()`.
 - Le migration sono generate con EF Core 10 ma **applicate anche da EF Core 8** (verificato: le 65
   migration si applicano su SQLite sotto EF 8.0.29). Restano SQLite-flavored — vedi `config.md`.
-- Il build net8 non è coperto dalla suite (i test girano su net10): va compilato a parte con
-  `dotnet build src/Vipi.Hosting/Vipi.Hosting.csproj -f net8.0`.
+- ⚠️ **Non è più vero che il ramo net8 non sia coperto dai test.** Da quando l'host di produzione è net8,
+  `Vipi.Infrastructure.Tests` è multi-target e la suite gira su **entrambi** i TFM (331 test su net8, 322 su
+  net10), e la CI applica lo schema a una MariaDB 11.4.10 vera su Linux.
 
 ## Wiring (Program.cs dell'host)
 ```csharp

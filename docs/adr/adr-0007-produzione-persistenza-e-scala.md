@@ -178,7 +178,12 @@ quando il provider è MySQL**, lasciando Neon intatto.
 
 ---
 
-## Aggiornamento (5 agosto 2026) — D4-bis: MySQL è il provider di **produzione**, su net10
+## Aggiornamento (5 agosto 2026) — D4-bis: MySQL è il provider di **produzione**, su net10 — ⚠️ **SUPERATO da D4-ter**
+
+> ⚠️ **Non è più la decisione vigente.** Superata il **9 agosto 2026** da D4-ter, in fondo a questo
+> documento: il server non è MySQL ma **MariaDB 11.4.10**, il provider è **Pomelo** e l'host è tornato a
+> **net8**. Il testo resta perché il ragionamento sul provider è ciò che spiega come ci si è arrivati —
+> ma le tre conclusioni operative qui sotto (Oracle, net10, `utf8mb4_0900_as_cs`) sono **false**.
 
 **Questa sezione ribalta la decisione di D4 sopra.** Il testo di D4 resta perché la sua analisi del
 provider è ancora la prova del perché non si aspetta Pomelo — ma la sua conclusione («MySQL solo su
@@ -233,3 +238,65 @@ rollback). Il compromesso che accettiamo su Neon, che è casa nostra, non lo esp
 **Nuovo, nato col deploy standalone:** il key-ring Data Protection era «responsabilità dell'host
 ospitante» finché l'host era il loro. Ora `Vipi.Host` *è* il processo di produzione, quindi è nostra —
 vedi §S7 del piano.
+
+---
+
+## Aggiornamento (9 agosto 2026) — D4-ter: il server è **MariaDB**, il provider è **Pomelo**, l'host torna a **net8**
+
+**Questa è la decisione vigente.** Ribalta D4-bis su tutti e tre i punti operativi, e per una ragione sola:
+D4-bis era costruita su una premessa di fatto sbagliata. «Il server è MySQL 8.0+» era ciò che ci era stato
+riferito; il server è **MariaDB 11.4.10**. Non è una sfumatura di versione — MariaDB e MySQL 8 hanno
+divergiuto abbastanza da rendere invalide entrambe le altre scelte.
+
+### Cosa cade, e perché
+
+- **`utf8mb4_0900_as_cs` su MariaDB non esiste affatto.** Non è «meno supportata»: il nome non è
+  riconosciuto, e la DDL non è eseguibile. La collation giusta è **`utf8mb4_uca1400_as_cs`** (UCA 14.0.0,
+  da MariaDB 10.10). Cambiare la costante non sarebbe bastato: cambiano anche il lock di migrazione e il
+  provider.
+- **Il provider Oracle non regge la collation.** Portava l'annotazione fino alle *operazioni* di migrazione
+  e la scartava generando SQL, scartava il charset della propria `AlterDatabase()`, e ricostruiva il tipo
+  come `varchar(n)` buttando il resto — fallendo **proprio sulle colonne indicizzate**. L'unica via
+  rimasta sarebbe stata un `ALTER DATABASE … COLLATE` innestato a mano, che per giunta chiedeva un permesso
+  in più all'utente. Con **Pomelo** la collation arriva nella DDL su ogni colonna stringa, e quel giro
+  sparisce.
+- **Pomelo non esiste per EF Core 10** (la ragione originale di D4). Quindi scegliere Pomelo significa
+  riportare l'host a **net8**: `Vipi.Host` torna `net8.0`, come le cinque librerie che erano già
+  multi-target per l'embedding.
+
+### Decisione
+
+1. **Provider `Pomelo.EntityFrameworkCore.MySql` 8.0.3**, attivo quando `Persistence:Provider=MySql` — nome
+   del dialetto, non del prodotto: vale per MariaDB.
+2. **`Vipi.Host` è `net8.0`.** Le librerie restano `net8.0;net10.0`; la suite gira su entrambi.
+3. **Collation `utf8mb4_uca1400_as_cs`** dichiarata **per colonna** dal modello (`MySqlCollation.Apply`),
+   non ereditata dal database. È più forte dell'eredità: sopravvive a un cambio di default del server, che
+   altrimenti passerebbe inosservato.
+4. **Migrazioni MySQL in un assembly dedicato** (`Vipi.Infrastructure.MySqlMigrations`): le 68 del repo sono
+   SQLite-flavored. Conferma la forma (b) di D1, già decisa in D4 e D4-bis.
+
+### Il costo, dichiarato
+
+- **Ogni cambio di schema va emesso due volte**, SQLite e MySQL. Non è teorico: il 7 agosto il merge delle
+  aree regolamentate ha richiesto una seconda migrazione, e lo scaffold di EF metteva il `DropColumn`
+  **prima** del travaso — su un database con dati i legami sarebbero spariti in silenzio. Tre test guardia
+  rendono il costo esigibile in CI (`MySqlMigrationsTests`, `IndexedStringLengthTests`, il job
+  `mariadb-schema` su MariaDB vera).
+- **Torna il multi-target dei test** che D4-bis si vantava di evitare: `#if NET8_0` sui test del ramo MySQL.
+  In cambio, però, quel ramo **è provato contro un server vero**, che è ciò che D4-bis non poteva offrire.
+- **Cache-busting degradato**: `MapStaticAssets` è .NET 9+, quindi su net8 si torna a `UseStaticFiles` con
+  un suffisso unico per tutti gli asset. Accettato (voce C4 dei lavori aperti).
+
+### Perché questa volta la decisione è verificata, non prevista
+
+D4 accettava un ramo mai eseguito; D4-bis prometteva una verifica live «non negoziabile». Qui la verifica
+c'è stata, fra il 6 e il 9 agosto 2026, contro **MariaDB 11.4.10** con un utente ristretto: schema e
+collation (163 colonne su 163), convivenza di `LIRF` e `lirf`, travaso dei dati veri con `.sql` riletto in
+un database vuoto, key-ring che sopravvive al riavvio, e i **flussi editoriali guidati sull'applicazione**
+— import, SID per aeroporto, pubblicazione dei tre tipi di documento, lock, ricerca, vista live, blob delle
+immagini. Ha trovato tre pagine che morivano (voce A6): non erano difetti del provider, ma corse sul
+`DbContext` che MariaDB rende sistematiche.
+
+Resta fuori portata da qui l'`sql_mode` del loro server: provato anche in modalità non-strict senza
+differenze osservabili, che non è una dimostrazione — solo l'assenza di un sintomo sulla superficie
+esercitata.

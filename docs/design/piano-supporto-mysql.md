@@ -1,9 +1,26 @@
 # Piano — supporto MySQL per il sito definitivo `atc.it.ivao.aero` 🟣
 
-**Stato:** design approvato, **esecuzione avviata il 5 agosto 2026** · **Aggiornato:** 5 agosto 2026
+**Stato:** **eseguito** (slice A1–A6 chiuse fra il 6 e il 9 agosto 2026) · **Aggiornato:** 9 agosto 2026
 **Branch:** `feat/persistenza-mysql` (da `main`)
-**Gate d'ingresso:** ~~versione del server MySQL~~ → **sbloccato: MySQL 8.0+** (§1.1). Tutte le slice sono
-eseguibili.
+**Gate d'ingresso:** ~~versione del server MySQL~~ → **il server è MariaDB 11.4.10** (§1.1).
+
+> # ⚠️ LEGGERE PRIMA — questo piano descrive un bersaglio che è cambiato
+>
+> Il documento parla quasi ovunque di **MySQL 8.0+**, di **provider Oracle** e di host **net10**. Nessuna
+> delle tre cose è vera. Il server di `atc.it.ivao.aero` è **MariaDB 11.4.10**; il provider è **Pomelo
+> 8.0.3**; `Vipi.Host` è tornato a **net8**. La decisione vigente è
+> [**ADR-0007 §D4-ter**](../adr/adr-0007-produzione-persistenza-e-scala.md) — che ribalta §D4-bis, la
+> quale a sua volta aveva ribaltato §D4.
+>
+> **Cosa resta valido di questo piano:** l'analisi dei rischi (collation, lunghezze delle colonne
+> indicizzate, DDL non transazionale), la struttura delle slice e la catena del travaso dati di §S8, che è
+> stata eseguita così com'era scritta.
+>
+> **Cosa leggere invece, per lo stato reale:** [`../lavori-aperti.md`](../lavori-aperti.md) sezione A —
+> è l'unico posto aggiornato su cosa è fatto, cosa manca e cosa dipende da Ivao.It.
+>
+> ℹ️ Dove il piano dice «collation `utf8mb4_0900_as_cs`» va letto **`utf8mb4_uca1400_as_cs`**: il nome
+> MySQL su MariaDB non esiste affatto, e la DDL non sarebbe eseguibile.
 
 > ## Aggiornamento del 5 agosto 2026 — tre decisioni che riscrivono il piano
 >

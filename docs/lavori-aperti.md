@@ -202,7 +202,7 @@ non di migrazioni).
 
 Esito: **quattro job su quattro verdi**.
 
-### A6 🟡 Verifica live sui flussi editoriali — **prima passata fatta il 9 agosto 2026**
+### A6 ✅ Verifica live sui flussi editoriali — **chiusa il 9 agosto 2026**
 Guidata con la skill `verifica-live` su `Vipi.Host` con `Persistence__Provider=MySql` contro la MariaDB
 11.4.10 locale, caricata col **travaso vero da Neon** (A3), non con dati finti. `/vsop/health` e
 `/vsop/health/ready` **Healthy**.
@@ -233,33 +233,53 @@ identici alla colonna `longblob` (179286 / 146102 / 280283).
 ⚠️ **La collation `as_cs` NON ha reso la ricerca sensibile alle maiuscole** — era il rischio dichiarato in
 `MySqlCollation`: `LIBC`/`libc` danno 2 risultati, `Crotone`/`crotone` 1. Verificato, non dedotto.
 
-**Cosa resta scoperto, e va detto invece che dato per fatto:**
-- **`sql_mode` locale è `STRICT_TRANS_TABLES`**, cioè la configurazione *severa*. La classe di bug del CAST
-  silenzioso vive **fuori** da strict, quindi qui non è verificabile: dipende dal loro server (→ A9).
-- **Upload immagine (scrittura del blob) non esercitato**: il caricatore vive dentro l'editing delle
-  sezioni, non nelle viste che il driver raggiunge. La *lettura* è verificata; la scrittura resta coperta
-  solo dai test E2E, che girano su SQLite.
-- **Pubblicazione provata su un tipo solo** (aeroporto). Il percorso è generico (`IReleaseTarget`), ma le
-  derivazioni di ACC e vLOA girano al publish e sono le più pesanti in query.
-- ℹ️ Osservazione, non guasto: **pubblicare una release non scrive audit**. L'audit lo scrive solo la
-  promozione di una bozza (`EfReleaseRepository.PromoteDraftAsync`). È una scelta di prodotto da confermare,
-  visto che il viewer dell'audit è fra i lavori aperti (E5).
+**Seconda passata, 9 agosto: chiusi i tre buchi che restavano.**
+- **Scrittura del blob** ✅ «+ Image» in una sezione extra dell'aeroporto: PNG da 694 byte caricato, salvato,
+  e riletto dall'endpoint con **sha256 identico** a quello del file di partenza. `longblob` regge andata e
+  ritorno.
+- **Pubblicazione degli altri due tipi** ✅ vIPI **ACC** (release v16, payload 62 KB, con la derivazione
+  pesante che gira al publish) e **vLOA** (release v2, payload **73 KB**). ⚠️ L'editor vLOA non si apre con
+  `?doc=`: vuole `/vsop/{acc}/vloa/editor?acc={estero}` — con `?doc=8` si finisce sull'editor ACC e si
+  pubblica quello, cosa che è successa al primo tentativo.
+- **`sql_mode` non-strict** ✅ provato davvero, mettendo il server in `NO_ENGINE_SUBSTITUTION` e rifacendo la
+  passata: **nessuna differenza** sulle pagine esercitate. Le uniche due che cambiavano erano quelle col
+  METAR live, cioè dato che cambia da sé. Non è una dimostrazione — è l'assenza di sintomi sulla superficie
+  provata — ma la domanda ad A9 resta per prudenza, non per ignoranza.
 
-### A7 🟡 Nuovo pacchetto di deploy *(dopo A6)*
-Ripubblicare `dotnet publish -c Release -r linux-x64 --self-contained true`, rigenerare lo zip con
-`appsettings.Production.json`, `deploy/vipi.service` e `deploy/nginx-vipi.conf`, e aggiornare il
-`LEGGIMI-DEPLOY.md`.
+ℹ️ Osservazione, non guasto: **pubblicare una release non scrive audit**. L'audit lo scrive solo la
+promozione di una bozza (`EfReleaseRepository.PromoteDraftAsync`). È una scelta di prodotto da confermare,
+visto che il viewer dell'audit è fra i lavori aperti (E5).
 
-⚠️ **Dire a Ivao.It che il pacchetto che hanno in mano non funzionerà mai su quel server**: è compilato
-contro un provider che non supporta MariaDB. Tanto vale che smettano di provarci.
+### A7 ✅ Nuovo pacchetto di deploy — fatto il 9 agosto 2026
+`artifacts/publish/vipi-linux-x64-mariadb-20260809.zip` — **47,8 MB**, 396 file, self-contained **net8**
+(sha256 `21075288F3775EF9…`), con dentro `appsettings.Production.json`, `deploy/vipi.service` e
+`deploy/nginx-vipi.conf`.
 
-### A8 🟡 Riscrivere le decisioni, che oggi dicono il falso *(dopo A6)*
-- **ADR-0007 §D4** dice «MySQL solo su net8, provider Pomelo»; **§D4-bis** dice «provider Oracle, su
-  net10». Serve un **§D4-ter** che registri la realtà — MariaDB, Pomelo, host su net8 — e marchi §D4-bis
-  come superata, com'è già stato fatto per §D4.
-- Il **piano MySQL** va riletto per intero: parla di MySQL 8.0+ e del provider Oracle quasi ovunque.
-- `guide/config.md` (tabella dei tre provider), `guide/integration.md`, `HANDOFF.md`.
-- Memorie da correggere: `mysql-embedding-plan`, `multitarget-net8-embedding`, `deploy-hosting-options`.
+`LEGGIMI-DEPLOY.md` **riscritto**: diceva MySQL 8.4.9, provider Oracle e collation `utf8mb4_0900_as_cs` —
+tre cose false su MariaDB. Ora dice MariaDB/Pomelo/`uca1400_as_cs`, aggiunge il passo «carica il `.sql`»
+(che prima non esisteva: il documento dava per scontato un database vuoto), e chiede esplicitamente le due
+impostazioni del loro server, `max_allowed_packet` ≥ 4 MB e `sql_mode`.
+
+⚠️ **Dire a Ivao.It che il pacchetto del 5 agosto non funzionerà mai su quel server**: è compilato contro
+un provider che non supporta MariaDB. Lo zip vecchio è ancora in `artifacts/publish/`: va tolto di mezzo
+prima della consegna, o si consegna quello sbagliato.
+
+⚠️ Il pacchetto **non è mai stato eseguito su Linux** — è compilato in modo incrociato da Windows. Il primo
+avvio da loro è anche la prima prova su quel sistema, ed è scritto nel LEGGIMI.
+
+### A8 ✅ Riscritte le decisioni che dicevano il falso — 9 agosto 2026
+- **ADR-0007 §D4-ter** scritto: MariaDB 11.4.10, Pomelo 8.0.3, host net8, collation `utf8mb4_uca1400_as_cs`,
+  migrazioni in assembly dedicato. Dice anche **perché** §D4-bis è caduta (era costruita su «il server è
+  MySQL 8.0+», che era di seconda mano) e **quanto costa** questa scelta: schema doppio, ritorno del
+  multi-target nei test, cache-busting degradato. §D4-bis è marcata superata in testa, com'era già §D4.
+- **Piano MySQL**: avviso in cima che dichiara il documento superato, dice cosa resta valido (analisi dei
+  rischi e catena del travaso §S8) e rimanda a questo elenco per lo stato reale.
+- `guide/config.md`: tabella dei provider corretta, più l'avviso che `utf8mb4_0900_as_cs` su MariaDB **non
+  esiste** e il requisito `max_allowed_packet` ≥ 4 MB.
+- `guide/integration.md`: il ramo `MySql` esiste **solo su net8** (Pomelo); e non è più vero che il net8 non
+  sia coperto dai test.
+- `HANDOFF.md`: blocco di testa riscritto sullo stato verificato.
+- Memorie aggiornate: `mysql-embedding-plan`, `multitarget-net8-embedding`, `deploy-hosting-options`.
 
 ### A9 🔴 Domande e conferme da Ivao.It
 Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora di MySQL. Aperte:

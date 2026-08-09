@@ -1,6 +1,6 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 7 agosto 2026 (sito definitivo `atc.it.ivao.aero` — il server è **MariaDB**, host su net8, provider Pomelo; B1+B2 fusi in `main`)
+**Ultimo aggiornamento:** 9 agosto 2026 (cutover MariaDB: schema, travaso, CI e **flussi editoriali** verificati; pacchetto di deploy rifatto)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
@@ -10,37 +10,30 @@
 > un'altra voce · 🔴 dipende da altri). **Partire da lì**, non da questo documento, che racconta lo stato
 > ma non ordina il lavoro.
 
-> ## 🟢 PRIMA COSA — il sito definitivo `atc.it.ivao.aero` su MySQL (branch `feat/persistenza-mysql`)
+> ## 🟢 PRIMA COSA — il cutover su `atc.it.ivao.aero` (branch `feat/persistenza-mysql`)
 >
-> **Dal 5 agosto 2026 il gate è caduto e l'esecuzione è avviata.** Piano completo, riscritto quel giorno:
-> [`docs/design/piano-supporto-mysql.md`](docs/design/piano-supporto-mysql.md). Decisione in ADR-0007
-> **§D4-bis** — che **ribalta** §D4, non lo integra: leggere quella, non questa.
+> **Il server è MariaDB 11.4.10, il provider è Pomelo, `Vipi.Host` è net8.** Decisione vigente: ADR-0007
+> **§D4-ter**, che supera §D4-bis (Oracle/net10/MySQL 8) come quella aveva superato §D4. Il
+> [piano MySQL](docs/design/piano-supporto-mysql.md) descrive un bersaglio cambiato: leggerlo solo per
+> l'analisi dei rischi, **non** per lo stato.
 >
-> **Le tre cose che rendono falso ciò che era scritto prima:**
-> - **Il bersaglio non è l'embedding, è il nostro host standalone.** `Vipi.Host` (net10) gira sul loro
->   server dietro `atc.it.ivao.aero`; la RCL dentro `Ivao.It.Website` è **rimandata**, non cancellata (il
->   multi-target `net8.0;net10.0` delle cinque librerie resta in piedi per quello).
-> - **MySQL deve funzionare su net10** ⇒ il provider è **Oracle `MySql.EntityFrameworkCore` 10.0.9**, non
->   Pomelo, che su EF Core 10 non esiste. Ri-verificato nel nuspec: net8→EF 8.0.28, net10→EF 10.0.9. Con
->   Pomelo non ci sarebbe un ramo MySQL poco testato: non ce ne sarebbe **nessuno**, e `tools/Vipi.DbSeed`
->   (net10) non potrebbe nemmeno caricare i dati. In cambio: Oracle è più debole in query translation ⇒
->   **la verifica live non è negoziabile**, è la slice che valida la decisione.
-> - **Il loro MySQL è su `localhost:3306`** ⇒ da qui non ci si scrive. Il travaso passa da
->   `Neon → Vipi.DbSeed → MySQL 8 in Docker → mysqldump → .sql`. Il container Docker serve a tre cose
->   (travaso, CI, verifica live), quindi non è un passaggio sprecato.
+> **Cosa è già verificato contro una MariaDB vera** (6–9 agosto): schema e collation `utf8mb4_uca1400_as_cs`
+> (163 colonne su 163), `LIRF`/`lirf` che convivono, travaso dei dati veri da Neon con `.sql` **riletto** in
+> un database vuoto, key-ring Data Protection che sopravvive al riavvio, un job di CI su MariaDB 11.4.10
+> Linux, e i **flussi editoriali guidati sull'app** (import, SID per aeroporto, pubblicazione dei tre tipi
+> di documento, lock, ricerca, vista live, blob delle immagini byte-identici).
 >
-> **Coordinate ricevute:** database `itivao_atc`, utente `itivao_atc`, `localhost:3306`, **MySQL 8.0+**.
-> Il deploy Render+Neon **non si spegne**: diventa ambiente di prova e sorgente del travaso.
+> **Il `.sql` da consegnare**: `_mariadb/dump/vipi-atc-it-ivao-aero-2026-08-09.sql`, 4 MB, sha256
+> `1CD77F3A…`. **Il pacchetto di deploy**: `artifacts/publish/vipi-linux-x64-mariadb-20260809.zip`, 47,8 MB,
+> self-contained net8. ⚠️ Quello del 5 agosto è compilato contro un provider che non parla MariaDB: **non
+> funzionerà mai**, va ritirato.
 >
-> **Domande ancora aperte a loro** (§1.2-bis e §1.5 del piano, messaggio pronto in appendice): versione
-> esatta (`SELECT VERSION()`), permessi DDL dell'utente, libertà sulla collation, **come raggiungere il
-> DB** (SSH? phpMyAdmin? IP autorizzato?), backup — e sulla macchina: runtime .NET 10 o publish
-> self-contained, **WebSocket sul reverse proxy** (senza, Blazor Server non funziona), supervisione del
-> processo, percorso persistente, redirect OIDC per il nuovo dominio.
+> **Cosa resta, tutto in [`docs/lavori-aperti.md`](docs/lavori-aperti.md) sezione A:** consegnare il dump e
+> il pacchetto, le domande a Ivao.It (A9: accesso al DB, `sql_mode`, privilegi, **`max_allowed_packet` ≥ 4
+> MB**, backup, WebSocket sul proxy) e i redirect OIDC (A10).
 >
-> **Bug latente già in `main`,** da sistemare nella slice S6: `MigrateVipiDatabase`
-> (`VipiModuleExtensions.cs:240`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
-> «SQLite». Con MySQL configurato tenterebbe di applicare le 68 migration SQLite-flavored.
+> ℹ️ Il bug latente di `MigrateVipiDatabase` è **chiuso**: il dispatch è esplicito per provider e un
+> provider senza strategia fallisce l'avvio con un messaggio che dice cosa fare.
 >
 > ✅ **B4 deciso il 7 agosto 2026: in produzione va `main` + B1.** `feature/aree-speciali-hardening` è
 > fusa in `main` (fast-forward, 21 commit) e si porta dentro per intero `feature/aurora-bridge`, il cui
