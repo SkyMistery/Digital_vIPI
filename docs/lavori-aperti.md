@@ -97,8 +97,8 @@ Tre aggiunte non chieste ma che il travaso vero (A3) userà:
 4588 scritte, 36 contatori risincronizzati, **37 tabelle su 37 combaciano**, e l'host avviato su quel
 database serve le pagine con i dati veri (`/vsop` mostra LIRR/LIMM/LIBB).
 
-⚠️ **Il percorso sorgente-Postgres non è ancora stato eseguito**: serve la connection string di Neon, cioè
-A3. È l'unico pezzo del tool che nessuno ha visto girare.
+✅ **Il percorso sorgente-Postgres è stato eseguito il 9 agosto 2026** (A3): 4303 righe da Neon, 4314 scritte
+su MariaDB, 38/38 tabelle riconciliate. Era l'unico pezzo del tool che nessuno aveva visto girare.
 
 ℹ️ `/vsop/health` su quel database dice **Degraded**. Non è il travaso né MariaDB: l'host avviato sullo
 **stesso `vipi.db` via SQLite** dice Degraded uguale. Sono le incongruenze soft-ref già note (E2: gerarchia
@@ -123,13 +123,33 @@ creare lo schema. È la trappola annotata in A1, materializzatasi al primo tenta
 Il `.sql` **non è nel repository**: contiene contenuto reale, VID dello staff e audit log. Sta in
 `_mariadb/dump/`, fuori dall'albero.
 
+**Rifatto dopo il merge di B1 — 9 agosto 2026, ed è questo il dump buono.**
+`_mariadb/dump/vipi-atc-it-ivao-aero-2026-08-09.sql`, 4,0 MB, sha256
+`1CD77F3A5428AA55ECB85F96DB9D8939224C4974D0DA2694F8BFA7801B562DFC`. Da Neon **4303 righe**, 4314 scritte,
+38/38 tabelle riconciliate; riletto in un database vuoto: **39/39 tabelle combaciano**, 4305 righe, e i
+legami multi-ACC sopravvivono al giro (223 aree con un ente, 4 con tre, 3 con quattro = 247). I due dump
+precedenti (06 e 07 agosto) sono **superati**: il primo ha l'archivio vecchio da 993 legami, il secondo il
+solo backfill da 230.
+
+⚠️ **Il dump del 7 agosto sembrava a posto e non lo era.** Dopo il deploy di B1 l'archivio aveva 230 legami,
+uno per area: la firma del **solo backfill**. Il motivo non era un guasto ma il **gate a 24h** di
+`ImportState` — l'ultimo import aree era del 6 agosto 18:15, quindi al boot veniva saltato, e solo il
+bottone manuale lo scavalca. Premuto quello, i legami sono tornati **247**. Il controllo che lo rivela è
+`SpecialAreaCenters == SpecialAreas`: se i due numeri coincidono, l'import delle aree non è ancora girato.
+
+L'import è stato lanciato **da un host locale puntato a Neon** (`Persistence__Provider=Postgres` +
+connection string di Neon), non dal sito: usa il secret IVAO dei user-secrets locali, che funziona, mentre
+quello su Render risultava stale il 5 agosto. Esito: «ACC: 0 create, 7 aggiornate · settori ACC: 0 create,
+147 aggiornati».
+
+ℹ️ La pagina è **`/vsop/admin/acc`**, al singolare — `/vsop/admin/accs` non esiste e risponde 404 (su net8
+non c'è nemmeno il catch-all che su net10 darebbe altro). Il bottone è inoltre inerte finché non si prende
+il **lock di risorsa** dalla barra in cima: `OnLockChanged(mine)` è ciò che accende `_canEdit`.
+
 **Cosa resta, e non è lavoro tecnico:**
-- **Consegnarlo**, per il canale che concorderanno (A9) — con 4,7 MB va verificato che phpMyAdmin regga.
+- **Consegnarlo**, per il canale che concorderanno (A9) — con 4 MB va verificato che phpMyAdmin regga.
 - **Rifarlo poco prima del cutover**: fra oggi e il passaggio, Render continua a essere modificato. Stesso
-  comando, due minuti.
-- ⚠️ **Il dump del 6 agosto è da buttare.** B4 è deciso (B1 entra) e i dati delle aree cambiano: il travaso si
-  rifà **dopo** che B1 è su Render e Neon ha riconciliato l'archivio (993 → 230 legami) e dopo aver premuto
-  «Importa da sorgente», non prima.
+  comando, due minuti — e prima di rifarlo, premere «Importa da sorgente» e ricontrollare quei due conteggi.
 - Escluso di proposito dal dump: `DataProtectionKeys`. Sono le chiavi che decifrano i cookie della nostra
   installazione locale, non un dato da consegnare; l'host se le ricrea al primo avvio.
 

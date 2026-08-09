@@ -84,5 +84,11 @@ lette, 4588 scritte (le 10 in più sono la seconda fase sui `Document`), 36 cont
 risincronizzati, **37 tabelle su 37 combaciano**. L'host avviato su quel database serve le pagine con i dati
 veri.
 
-⚠️ Il percorso **sorgente Postgres** non è ancora stato eseguito contro Neon: serve la connection string
-(voce A3). È l'unico pezzo del tool che nessuno ha ancora visto girare.
+**9 agosto 2026** — `--from-postgres <Neon> --to-mysql <MariaDB 11.4.10 locale>`, cioè il percorso
+**sorgente Postgres**, che fino a quel giorno nessuno aveva visto girare: 4303 righe lette, 4314 scritte,
+35 contatori risincronizzati, **38 tabelle su 38 combaciano**. Il `.sql` che ne è uscito è stato riletto in
+un database vuoto con conteggi identici (voce A3 di `docs/lavori-aperti.md`).
+
+⚠️ Contro Neon la connection string si copincolla nel formato URL `postgres://…`; il `--dry-run` prima del
+travaso non è cerimonia, è il modo di accorgersi che la **sorgente** non è nello stato che credi — è così
+che si è visto che l'import delle aree non era ancora girato (`SpecialAreaCenters` uguale a `SpecialAreas`).

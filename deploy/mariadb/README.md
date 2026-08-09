@@ -150,7 +150,15 @@ nei metadati EF anche quando nella DDL non c'era affatto (vedi `MySqlCollation`)
 ## 6. Il travaso dei dati veri e il `.sql` da consegnare
 
 La catena è `Neon → Vipi.DbSeed → MariaDB locale → mariadb-dump → .sql`, perché il 3306 loro è su
-`localhost` e da qui non ci si scrive. Eseguita per intero il **6 agosto 2026** (voce A3).
+`localhost` e da qui non ci si scrive. Eseguita per intero il **6 agosto 2026** e **rifatta il 9 agosto**
+dopo il merge di B1 (voce A3).
+
+⚠️ **Prima di far partire la catena, guardare la sorgente, non il tool.** Il 7 agosto il dump è uscito
+pulito da un archivio incompleto: dopo il deploy le aree avevano un solo legame ciascuna, perché l'import
+automatico è **gated a 24h** (`ImportState`) e al boot viene saltato. Si preme «Importa da sorgente» in
+`/vsop/admin/acc` — al singolare, e serve prima prendere il lock dalla barra in cima — e si ricontrolla che
+`SpecialAreaCenters` sia **maggiore** di `SpecialAreas`: se i due numeri coincidono, l'import non è girato.
+Il `--dry-run` di `Vipi.DbSeed` basta per leggerli.
 
 ```sh
 # 1. Neon → MariaDB locale. Il tool riconcilia da sé riga per riga ed esce in errore se una tabella
