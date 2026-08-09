@@ -520,12 +520,28 @@ veri, non su un database di comodo.
 
 Ordinate per valore, come lì.
 
-### E1 Live IVAO — rifiniture
-- **Identità «P»** legata al callsign connesso del CH loggato (oggi selettore manuale in Ridotta).
-- **Mapping token-handler → callsign** nei trasferimenti: oggi è un'euristica match-segmento, valutare una
-  tabella esplicita.
-- **Endpoint membri divisione** `/v2/divisions/IT/members` da confermare.
-- Estendere `live=true` a **vIPI aeroporto** e **vLOA** (oggi solo ACC Ridotta).
+### E1 ✅ Live IVAO — **chiusa il 9 agosto 2026**: tre voci su quattro erano già morte
+L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) e non era stato ricontrollato.
+
+- ~~**Identità «P»** legata al callsign connesso~~ — **già fatto**: `/vsop/live` *è* la tua postazione, presa
+  dalla connessione IVAO. Il selettore manuale non esiste più, e nemmeno la pagina Ridotta che lo ospitava
+  (rimossa al Round 12).
+- ~~**Endpoint membri divisione** da confermare~~ — **confermato da tempo, in negativo**:
+  `/v2/divisions/{id}/members` risponde **404** e `/users` dà 500 col token app. È la ragione per cui esiste
+  il roster costruito dai login ([[staff-roster-design]]). Non c'era niente da confermare, solo da cancellare.
+- ~~Estendere **`live=true`** a vIPI aeroporto e vLOA~~ — **obsoleta**: quel parametro non esiste più. La
+  vista live è una pagina unificata legata all'**ente**, non un livello di dettaglio dei documenti.
+- **Mapping token-handler → callsign: valutato, e la tabella esplicita NON serve.** L'euristica di
+  `TransferOnlineResolver` accetta match esatto, segmento e sottostringa ≥4. Provata sui **313 callsign
+  reali**: le coppie che collidono sono **zero**, e non per caso — nessun callsign del catalogo è privo di
+  underscore (quindi la regola «segmento» non può scattare) e nessuno è contenuto in un altro. Nella pratica
+  l'euristica **si riduce al match esatto**: una tabella di mapping sarebbe manutenzione in più a parità di
+  comportamento.
+
+  La scelta è però resa **revocabile da sola**: nuova regola nella diagnostica, **«Callsign ambiguo
+  (risoluzione live)»**, che riusa il resolver invece di ricopiarne le regole — se l'euristica cambia, la
+  diagnosi cambia con lei. Il giorno che nasce un settore che collide si vede in `/vsop/admin/diagnostica`
+  invece che in frequenza. Verificata sui dati veri: nessun rilievo, nessun rumore.
 
 ### E2 Dati reali che mancano
 - **Shape reali delle TWR** dal sectorfile GitHub, a rimpiazzare i cerchi sintetici da 5 NM
