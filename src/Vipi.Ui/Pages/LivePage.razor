@@ -216,9 +216,30 @@
     private DotNetObjectReference<LivePage>? _ref;
     private int? _liveSubId;   // id restituito da vipiLive.subscribe: lo stream SSE è condiviso col badge in topbar
 
+    /// <summary>
+    /// Il caricamento arriva da <b>due</b> parti: il ciclo di vita (<c>OnParametersSetAsync</c>) e il
+    /// callback SSE (<c>OnLiveUpdate</c>), che il poller invoca a ogni giro. Non sono coordinati fra loro:
+    /// un aggiornamento che atterra mentre la prima lettura è ancora in volo ne fa partire una seconda
+    /// sullo <b>stesso</b> <c>DbContext</c> di circuito, ed EF risponde «A second operation was started»
+    /// uccidendo il circuito — la pagina resta al prerender e non si aggiorna più.
+    ///
+    /// <para>Non è un difetto del provider: è una corsa, e MariaDB ne allarga solo la finestra (query
+    /// divise, latenza maggiore). È così che è emersa, guidando l'app in A6 su <c>/vsop/live/{callsign}</c>.
+    /// Serializzare è anche semanticamente giusto: due letture sovrapposte scriverebbero <c>_view</c> in
+    /// ordine indeterminato.</para>
+    /// </summary>
+    private readonly SemaphoreSlim _caricamento = new(1, 1);
+
     protected override Task OnParametersSetAsync() => LoadAsync();
 
     private async Task LoadAsync()
+    {
+        await _caricamento.WaitAsync();
+        try { await CaricaAsync(); }
+        finally { _caricamento.Release(); }
+    }
+
+    private async Task CaricaAsync()
     {
         _snapshot = Live.Snapshot();
         _myCallsign = Live.MyCallsign();
@@ -333,5 +354,6 @@
     {
         try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _liveSubId); } catch { /* circuito chiuso */ }
         _ref?.Dispose();
+        _caricamento.Dispose();
     }
 }

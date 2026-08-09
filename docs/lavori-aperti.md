@@ -202,15 +202,48 @@ non di migrazioni).
 
 Esito: **quattro job su quattro verdi**.
 
-### A6 🟢 Verifica live sui flussi editoriali *(A1 fatta; skill `verifica-live`)*
-È la slice che valida la scelta del provider, non una rifinitura. Flussi obbligatori: import
-ACC/settori/aeroporti, import SID (lock per-ICAO), pubblicazione dei tre tipi di documento, lock di editing
-(`EditResourceLock`, heartbeat 60s/TTL 3min), upload immagine (`MediaAsset`, blob nel DB), ricerca globale,
-vista live.
+### A6 🟡 Verifica live sui flussi editoriali — **prima passata fatta il 9 agosto 2026**
+Guidata con la skill `verifica-live` su `Vipi.Host` con `Persistence__Provider=MySql` contro la MariaDB
+11.4.10 locale, caricata col **travaso vero da Neon** (A3), non con dati finti. `/vsop/health` e
+`/vsop/health/ready` **Healthy**.
 
-⚠️ Fuori da `sql_mode` strict un CAST non numerico dà **warning e 0** invece di lanciare: la classe di bug
-che su Postgres crashava (`(int)` su enum-stringa) qui torna silenziosa. Da confermare qual è l'`sql_mode`
-del loro server.
+**Due bug trovati, entrambi corretti e con la loro rete di test.** Nessuno dei due è colpa del provider:
+sono corse che MariaDB rende sistematiche, e che su SQLite e Postgres capitano solo con la tempistica
+giusta — cioè nel modo peggiore.
+- **`/vsop/admin/trasferimenti` e `/vsop/admin/permessi` non si aprivano affatto**: leggono
+  `IStationResolver` dal **markup**, e il lazy-load partiva durante il render sul `DbContext` del circuito
+  ⇒ «A second operation was started», circuito morto (la pagina restava al prerender, che a occhio sembra
+  viva). Sistemate con `Stations.Prewarm()` nel ciclo di vita, come già facevano `AccVipiPage`, `SopHome` e
+  `VloaListPage` dal 29 luglio: queste due erano rimaste indietro. Guardia: `StationResolverPrewarmTests`
+  cammina i `.razor` e pretende il Prewarm da **ogni** componente interattivo che legge il resolver nel
+  render — il chrome statico (`SopLayout`) è escluso per costruzione, non per elenco.
+- **`/vsop/live/{callsign}` uccideva il circuito**: `LoadAsync` ha **due** ingressi non coordinati — il
+  ciclo di vita e il callback SSE `OnLiveUpdate`, che il poller invoca a ogni giro — e un aggiornamento che
+  atterra a lettura in corso ne fa partire una seconda sullo stesso context. Serializzati con un
+  `SemaphoreSlim`. Guardia: `LivePageConcurrencyTests` lancia i due ingressi in parallelo contro un servizio
+  che si accorge della sovrapposizione. Entrambi i test sono stati **visti fallire** senza la correzione.
+
+**Flussi esercitati e passati:** import ACC (7 aggiornati) e settori (147) — girati sia al boot sia dal
+bottone manuale; import settori-aeroporto; **import SID per-ICAO** dall'editor («SID LIBC: 16 estratti»);
+**pubblicazione** dall'editor aeroporto LIBC (release v6 ciclo 2608 `Effective`, la v5 archiviata a
+`Superseded`, snapshot da 3355 byte); **lock di risorsa** (preso e rilasciato dalla barra); **ricerca
+globale**; **vista live** per callsign; **blob**: le tre immagini in archivio escono dall'endpoint con byte
+identici alla colonna `longblob` (179286 / 146102 / 280283).
+
+⚠️ **La collation `as_cs` NON ha reso la ricerca sensibile alle maiuscole** — era il rischio dichiarato in
+`MySqlCollation`: `LIBC`/`libc` danno 2 risultati, `Crotone`/`crotone` 1. Verificato, non dedotto.
+
+**Cosa resta scoperto, e va detto invece che dato per fatto:**
+- **`sql_mode` locale è `STRICT_TRANS_TABLES`**, cioè la configurazione *severa*. La classe di bug del CAST
+  silenzioso vive **fuori** da strict, quindi qui non è verificabile: dipende dal loro server (→ A9).
+- **Upload immagine (scrittura del blob) non esercitato**: il caricatore vive dentro l'editing delle
+  sezioni, non nelle viste che il driver raggiunge. La *lettura* è verificata; la scrittura resta coperta
+  solo dai test E2E, che girano su SQLite.
+- **Pubblicazione provata su un tipo solo** (aeroporto). Il percorso è generico (`IReleaseTarget`), ma le
+  derivazioni di ACC e vLOA girano al publish e sono le più pesanti in query.
+- ℹ️ Osservazione, non guasto: **pubblicare una release non scrive audit**. L'audit lo scrive solo la
+  promozione di una bozza (`EfReleaseRepository.PromoteDraftAsync`). È una scelta di prodotto da confermare,
+  visto che il viewer dell'audit è fra i lavori aperti (E5).
 
 ### A7 🟡 Nuovo pacchetto di deploy *(dopo A6)*
 Ripubblicare `dotnet publish -c Release -r linux-x64 --self-contained true`, rigenerare lo zip con
@@ -232,7 +265,12 @@ contro un provider che non supporta MariaDB. Tanto vale che smettano di provarci
 Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora di MySQL. Aperte:
 - **Come raggiungiamo il database** (SSH? phpMyAdmin? IP autorizzato?) — decide se il travaso lo facciamo
   noi o gli consegniamo un file, e con quale limite di dimensione.
-- **`sql_mode`** del server: strict o no (vedi A6).
+- **`sql_mode`** del server: strict o no (vedi A6). Da noi è `STRICT_TRANS_TABLES`; fuori da strict un CAST
+  non numerico dà warning e 0 invece di lanciare, e quella classe di bug torna silenziosa.
+- **`max_allowed_packet`**, che nessuno aveva ancora chiesto: le immagini dei blocchi sono `longblob` e
+  viaggiano in un solo pacchetto. L'app taglia a **3 MB per immagine** (`MediaOptions.MaxUploadBytes`, 25 MB
+  per documento), quindi basta che il loro valore sia **≥ 4 MB** — il default MariaDB è 16 MB, ma su hosting
+  condiviso capita 1 MB, e allora gli upload sopra il mega fallirebbero al primo INSERT.
 - **I privilegi dell'utente `itivao_atc`**, in dettaglio: la migrazione iniziale apre con
   `ALTER DATABASE CHARACTER SET utf8mb4;` (lo emette Pomelo, non noi). Con `GRANT ALL ON itivao_atc.*`
   passa — verificato in locale il 6 agosto — ma con una lista ritagliata è la prima riga che si pianta.

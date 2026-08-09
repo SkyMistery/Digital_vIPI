@@ -760,6 +760,10 @@
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
+        // Il selettore ACC legge Stations.Accs nel RENDER: va scaldato ORA, con il context libero e
+        // sequenziale. Senza, il lazy-load parte durante il render e il circuito muore con «A second
+        // operation was started» (verifica live A6 su MariaDB: la pagina non si apriva affatto).
+        Stations.Prewarm();
         _all = await Struct.ListSectorNodesAsync();
         _airports = await Struct.ListAllAirportsAsync();
         // Coppie confinanti: abilitano i settori esteri come MITTENTI (direzione estero→home nelle vLOA).
