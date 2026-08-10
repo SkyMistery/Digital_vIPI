@@ -71,8 +71,15 @@ public interface IAppDocumentService
     /// <summary>Salva le configurazioni nel blocco keyed <c>configurations</c> del Document (garantisce prima il documento; ACC-gated).</summary>
     Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
-    /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero APP.</summary>
+    /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero
+    /// APP a partire dalle configurazioni della versione di LAVORO. Per l'editor: chi mostra un documento pubblicato
+    /// deve passare le configurazioni di QUEL documento (overload sotto), o servirebbe la bozza al pubblico.</summary>
     Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Come sopra ma sulle configurazioni date, non su quelle della versione di lavoro: le passa chi rende
+    /// un documento (pubblico, bozza o anteprima release) leggendole dal documento che sta mostrando. Doc 13 §3g.</summary>
+    Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
+        string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
     /// <summary>Selezione salvata delle aree regolamentate (sezione <c>regulated</c>). Vuota se assente: l'APP non ha
     /// aree di default (<c>OwnAuto</c> è sempre falso, a differenza del blocco Aerovia della vIPI ACC).</summary>
@@ -420,11 +427,14 @@ public sealed class AppDocumentService : IAppDocumentService
         await _editing.SaveSectionBlockJsonAsync(docId, "configurations", json, _authz.CurrentUserId ?? 0, ct);
     }
 
-    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default) =>
+        await DeriveConfigTableAsync(appCallsign, await GetConfigurationsAsync(Norm(appCallsign), ct), ct);
+
+    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
+        string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
         var app = Norm(appCallsign);
-        var configs = await GetConfigurationsAsync(app, ct);
-        if (configs.Count == 0) return Array.Empty<AccConfigTableView>();
+        if (configs is null || configs.Count == 0) return Array.Empty<AccConfigTableView>();
 
         var topo = await _topology.BuildGlobalAsync(ct);
         var sectors = await AppSectorsOfAsync(app, ct);
