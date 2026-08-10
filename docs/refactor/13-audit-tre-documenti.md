@@ -1,8 +1,8 @@
 # 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
 
-> **Stato: ESEGUITO** (2026-08-10, branch `refactor/13-tre-documenti`). §1-§2 rilevate sul codice del
-> 2026-08-10; §3-§4 approvate dall'owner e portate a termine: 17 passi, 16 commit, suite **1335 → 1377**
-> verde. Resta la **verifica live** (§5), obbligatoria su Blazor.
+> **Stato: CHIUSO** (2026-08-10/11, branch `refactor/13-tre-documenti`). §1-§2 rilevate sul codice del
+> 2026-08-10; §3-§4 approvate dall'owner ed eseguite: 17 passi, 18 commit, suite **1335 → 1384** verde,
+> **verifica live fatta** sui tre documenti (§5) — con due difetti trovati lì e chiusi.
 >
 > §1 e §2 descrivono lo stato **prima** del lavoro e si leggono al passato: sono il referto, non la mappa
 > del codice di oggi.
@@ -435,5 +435,28 @@ Un passo = un commit (o più, se il passo è grosso), build verde e suite verde 
   - S4: riconciliazione idempotente (due giri, stesso risultato);
   - S7: la pagina pubblica non vede una configurazione salvata solo in bozza;
   - S10: un documento nascosto e una sezione nascosta non compaiono nella ricerca.
-- **Verifica live obbligatoria** a fine giro (skill `verifica-live`): i viewer sono Blazor, e le
-  regressioni di resa non le vede `dotnet test` — vedi [[dev-process-gates]].
+- **Verifica live eseguita** (2026-08-10/11, skill `verifica-live`, copia del `vipi.db` reale, Edge +
+  puppeteer-core). Al boot: **15 sezioni vLOA** riconciliate sulle chiavi del catalogo e **18 blocchi
+  placeholder** rimossi dalle sezioni `minima`. Osservato sui documenti veri: ancore `#s-{id}` uniformi
+  nelle tre famiglie; ciclo AIRAC **2607**, quello della release e non quello di oggi; ricerca col filtro
+  APP che porta a `/vsop/lirr/apps/vipi?app=LIBP_APP#s-56`; «Minime» con i propri pulsanti di blocco e
+  **senza** toggle Live/Congelata, mentre AoR/Frequenze/Coordinamenti lo mantengono; pannello release con
+  «Differenze» e «Annulla» anche negli editor ACC e vLOA; paesi confinanti e liste tradotti. DB di
+  progetto intatto a fine giro.
+
+### Due difetti che solo la verifica live poteva trovare
+
+Entrambi invisibili a 1377 test verdi. Sono la ragione per cui il runbook la chiede ([[dev-process-gates]]).
+
+1. **Sezioni collassate, un ramo alla volta.** `AppnPage` e i rami derivati di `VloaDocumentView` non
+   chiedevano al catalogo: «Aree regolamentate» nasceva **aperta** sull'APP e chiusa sulle altre due. Era
+   il punto B1 di §2, incluso in §3j e sfuggito all'esecuzione.
+2. **Le direzioni dei coordinamenti raddoppiate — regressione introdotta da S5.** Il viewer pubblico legge
+   lo **snapshot della release**, congelato *prima* della riconciliazione: là entrambe le figlie portano
+   ancora la chiave del padre. Il filtro per chiave nuova non le riconosceva e finivano anche fra le
+   sotto-sezioni, col paragrafo segnaposto che nessuna vista aveva mai mostrato. Prima di S5 non si vedeva
+   perché quel ramo le sotto-sezioni le scartava.
+
+   **Lezione da portarsi avanti:** una riconciliazione al boot sistema i *documenti*, **mai le release già
+   pubblicate** — e sono quelle che il pubblico legge. Chi cambia la forma di una chiave deve chiedersi
+   come si comporta il viewer davanti a uno snapshot nella forma vecchia, perché quello non si riscrive.

@@ -1197,5 +1197,14 @@ editor passano gli stessi parametri; la landing ACC non promette più una vIPI s
 i testi rimasti indietro (`AppsListPage` non usava il localizer nemmeno una volta) e tolto il codice che
 nessuno chiamava più (`BuildAccVipiAsync`, `BuildVloaByPairAsync`, `SectionCatalog.Reconcile`).
 
-Chiusura: 16 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1377** verde, build senza
-errori. Resta la **verifica live** dei tre documenti.
+**La verifica live ha trovato due cose che i test non vedevano** — ed è il motivo per cui il runbook la
+chiede. «Aree regolamentate» nasceva aperta sull'APP e chiusa sulle altre due famiglie (un ramo che non
+chiedeva al catalogo). E soprattutto: sulle vLOA **già pubblicate** le due direzioni dei coordinamenti
+comparivano due volte, perché il viewer pubblico legge lo snapshot della release — congelato *prima* della
+riconciliazione, quindi con entrambe le figlie ancora sulla chiave del padre. Regressione introdotta dal
+passo che rendeva le sotto-sezioni, invisibile finché quel ramo le buttava via. Da qui una regola:
+**una riconciliazione sistema i documenti, mai le release già pubblicate**, e sono quelle che il pubblico
+legge.
+
+Chiusura: 18 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1384** verde, build senza
+errori, verifica live dei tre documenti su copia del `vipi.db` reale.
