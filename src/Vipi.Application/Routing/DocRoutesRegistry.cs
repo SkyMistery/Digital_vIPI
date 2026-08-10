@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <inheritdoc cref="IDocRoutesRegistry"/>
 public sealed class DocRoutesRegistry : IDocRoutesRegistry

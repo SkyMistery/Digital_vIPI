@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <summary>Rotte vIPI ACC (doc 09 §3b): unica per ACC, l'editor usa sempre il root primario (nessun ?tree).</summary>
 public sealed class AccVipiDocRoutes : IDocKindRoutes

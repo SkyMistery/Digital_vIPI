@@ -26,8 +26,8 @@ public class SearchAndChangesTests : IAsyncLifetime
         await RomaContentSeed.SeedAsync(_db);
         await RomaAirportSeed.SeedAsync(_db);
         await RomaVloaSeed.SeedAsync(_db);
-        _search = new EfSearchRepository(_db);
-        _changes = new EfChangesRepository(_db);
+        _search = new EfSearchRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes());
+        _changes = new EfChangesRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes());
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
@@ -109,5 +109,57 @@ public class SearchAndChangesTests : IAsyncLifetime
     {
         var rows = await _changes.ListChangedAsync("9999");
         Assert.Empty(rows);
+    }
+
+    // ---- doc 13 §3e: la rotta di un risultato la dà il registry, non un if scritto a mano ----
+
+    /// <summary>Crea e pubblica il documento dell'APP non remotizzato LIRP_APP con una sezione riconoscibile.</summary>
+    private async Task<int> SeedPublishedAppDocumentAsync()
+    {
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
+        var sectorId = await _db.Sectors.Where(x => x.Callsign == "LIRP_APP").Select(x => x.Id).FirstAsync();
+        var docId = await editing.EnsureVipiDocumentAsync(sectorId, "vIPI Pisa Avvicinamento", Vipi.Domain.Language.It,
+            new[] { ("custom:pisatok", "Consegne particolari PISATOKEN") }, authorUserId: 1);
+        var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(versionId, actorUserId: 1, note: null);
+        return docId;
+    }
+
+    [Fact]
+    public async Task An_App_document_points_at_its_own_page_not_at_the_Acc_vipi()
+    {
+        // Il difetto: la risoluzione scritta a mano distingueva solo «aeroporto» da «tutto il resto», quindi ogni
+        // documento di APP standalone puntava a /vsop/{acc}/vipi — la vIPI di ACC, un altro documento.
+        await SeedPublishedAppDocumentAsync();
+
+        var hits = await _search.SearchAsync("PISATOKEN", SearchScope.All, 50);
+
+        var hit = Assert.Single(hits);
+        Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP", hit.Url.Split('#')[0]);
+    }
+
+    [Fact]
+    public async Task The_App_scope_separates_the_approaches_from_the_Acc_vipi()
+    {
+        await SeedPublishedAppDocumentAsync();
+
+        var app = await _search.SearchAsync("PISATOKEN", SearchScope.App, 50);
+        Assert.NotEmpty(app);
+        Assert.All(app, h => Assert.Contains("/apps/vipi", h.Url));
+
+        // …e nello scope «vIPI» (le ACC) non compare più mescolato.
+        var acc = await _search.SearchAsync("PISATOKEN", SearchScope.Vipi, 50);
+        Assert.Empty(acc);
+    }
+
+    [Fact]
+    public async Task Changed_lists_an_App_document_with_its_own_route()
+    {
+        await SeedPublishedAppDocumentAsync();
+
+        var rows = await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow));
+
+        var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
+        Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP", row.Url);
     }
 }

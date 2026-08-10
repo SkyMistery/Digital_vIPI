@@ -92,6 +92,7 @@
   <data name="Search_ResultsFor" xml:space="preserve"><value>{0} results for</value></data>
   <data name="Search_NoResults" xml:space="preserve"><value>No results.</value></data>
   <data name="Search_ScopeVipi" xml:space="preserve"><value>vIPI</value></data>
+  <data name="Search_ScopeApp" xml:space="preserve"><value>APP</value></data>
   <data name="Search_ScopeVloa" xml:space="preserve"><value>vLOA</value></data>
   <data name="Search_ScopeAirports" xml:space="preserve"><value>Airports</value></data>
   <!-- Common viewer -->

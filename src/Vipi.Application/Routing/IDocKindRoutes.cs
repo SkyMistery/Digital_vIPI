@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <summary>
 /// Rotte viewer/editor per tipo di documento (doc 09 §3b). Isola la conoscenza per-tipo delle URL, prima duplicata

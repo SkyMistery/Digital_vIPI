@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Application.Routing;
 using Vipi.Domain;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -9,13 +10,22 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfChangesRepository : IChangesRepository
 {
     private readonly VipiDbContext _db;
-    public EfChangesRepository(VipiDbContext db) => _db = db;
+    private readonly IReleaseTargetRegistry _targets;
+    private readonly IDocRoutesRegistry _routes;
+
+    public EfChangesRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes)
+    {
+        _db = db;
+        _targets = targets;
+        _routes = routes;
+    }
 
     public async Task<IReadOnlyList<ChangeRow>> ListChangedAsync(string airacCycle, CancellationToken ct = default)
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .Include(d => d.CurrentVersion)
             .AsNoTracking().ToListAsync(ct);
 
@@ -25,25 +35,18 @@ public sealed class EfChangesRepository : IChangesRepository
             var cur = d.CurrentVersion!;
             if (cur.AiracCycle != airacCycle) continue;
 
-            // ACC + rotta
-            string? acc; string urlBase;
-            if (d.Type == DocumentType.Vloa)
-            {
-                acc = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                var neigh = await _db.DocumentParties.Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Neighbour)
-                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                urlBase = neigh is not null ? $"vloa?acc={neigh}" : "vloa";
-            }
-            else
-            {
-                var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-                acc = primary?.Acc?.Code;
-                urlBase = primary?.Kind == SectorKind.Airport
-                    ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
-                    : "vipi";
-            }
-            if (acc is null) continue;
+            // Tipo, ACC e ROTTA dai descrittori + registry delle rotte (doc 13 §3e). Qui c'era la QUARTA copia
+            // della risoluzione — dopo VersioniPage, ReleasePreviewPage e la ricerca — con lo stesso errore:
+            // i documenti di APP standalone puntavano alla vIPI di ACC.
+            ManagedDoc? managed = null;
+            foreach (var target in _targets.ByDescribeOrder)
+                if (target.TryDescribe(d, hasDraft: false, out var m)) { managed = m; break; }
+            if (managed is null) continue;
+
+            var acc = managed.AccCode;
+            if (string.IsNullOrEmpty(acc)) continue;
+            var url = _routes.For(managed.Kind).PublicUrl(acc.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
+            if (url is null) continue;
 
             // versione precedente (numero più alto < corrente)
             var prevVersionId = await _db.DocumentVersions
@@ -60,7 +63,7 @@ public sealed class EfChangesRepository : IChangesRepository
                 DocTitle = d.Title,
                 Type = d.Type,
                 AccCode = acc,
-                Url = $"/vsop/{acc.ToLowerInvariant()}/{urlBase}",
+                Url = url,
                 VersionNumber = cur.VersionNumber,
                 Note = cur.Note,
                 PublishedByUserId = cur.CreatedByUserId,

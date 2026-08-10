@@ -10,6 +10,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddVipiApplication(this IServiceCollection services)
     {
+        // Rotte pubbliche/editor per tipo di documento (doc 09 §3b). Stanno in Application dal doc 13 §3e: le
+        // consultano anche ricerca e «Cosa è cambiato», che vivono in Infrastructure e non possono vedere la UI.
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.VloaDocRoutes>();
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.AppDocRoutes>();
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.AccVipiDocRoutes>();
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.AirportDocRoutes>();
+        services.AddSingleton<Routing.IDocRoutesRegistry, Routing.DocRoutesRegistry>();
+
         services.AddSingleton<IAiracService, AiracService>();
         services.AddSingleton<IAorService, AorService>();
         services.AddSingleton<IContentService, ContentService>();

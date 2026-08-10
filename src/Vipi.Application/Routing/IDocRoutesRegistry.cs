@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <summary>Registro dei descrittori di rotta <see cref="IDocKindRoutes"/>, uno per tipo (doc 09 §3b).</summary>
 public interface IDocRoutesRegistry

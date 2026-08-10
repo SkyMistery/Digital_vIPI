@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Application.Routing;
 using Vipi.Domain;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -12,47 +13,40 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfSearchRepository : ISearchRepository
 {
     private readonly VipiDbContext _db;
-    public EfSearchRepository(VipiDbContext db) => _db = db;
+    private readonly IReleaseTargetRegistry _targets;
+    private readonly IDocRoutesRegistry _routes;
 
-    private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string AccCode, string UrlBase);
+    public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes)
+    {
+        _db = db;
+        _targets = targets;
+        _routes = routes;
+    }
+
+    private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string Url);
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope, int limit, CancellationToken ct = default)
     {
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking().ToListAsync(ct);
 
-        // Risolve i metadati (ACC + rotta) e applica il filtro di scope.
+        // Tipo, ACC e ROTTA di ogni documento vengono dai descrittori (doc 13 §3e): la stessa attribuzione
+        // dell'elenco unificato, e le URL dal registry delle rotte. Qui ce n'era una copia scritta a mano che
+        // distingueva solo «aeroporto» da «tutto il resto» → OGNI documento di APP standalone finiva su
+        // /vsop/{acc}/vipi, cioè sulla vIPI di ACC, invece che sulla propria pagina.
         var metas = new List<DocMeta>();
         foreach (var d in docs)
         {
-            string? acc; string urlBase;
-            if (d.Type == DocumentType.Vloa)
-            {
-                acc = await _db.DocumentParties
-                    .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Home)
-                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                var neigh = await _db.DocumentParties
-                    .Where(pa => pa.DocumentId == d.Id && pa.Role == PartyRole.Neighbour)
-                    .Select(pa => pa.Sector!.Acc!.Code).FirstOrDefaultAsync(ct);
-                urlBase = neigh is not null ? $"vloa?acc={neigh}" : "vloa";
-                if (scope is not (SearchScope.All or SearchScope.Vloa)) continue;
-            }
-            else
-            {
-                var primary = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-                acc = primary?.Acc?.Code;
-                var isAirport = primary?.Kind == SectorKind.Airport;
-                urlBase = isAirport
-                    ? (primary?.AirportIcao is string ic ? $"airports?icao={ic}" : "airports")
-                    : "vipi";
-                if (scope == SearchScope.Vipi && isAirport) continue;
-                if (scope == SearchScope.Airport && !isAirport) continue;
-                if (scope == SearchScope.Vloa) continue;
-            }
-            if (acc is null) continue;
-            metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, acc, urlBase));
+            if (Describe(d) is not { } managed) continue;
+            if (!InScope(scope, managed.Kind)) continue;
+            var acc = managed.AccCode;
+            if (string.IsNullOrEmpty(acc)) continue;
+            var url = _routes.For(managed.Kind).PublicUrl(acc.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
+            if (url is null) continue;
+            metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, url));
         }
 
         var versionIds = metas.Select(m => m.VersionId).ToList();
@@ -69,7 +63,7 @@ public sealed class EfSearchRepository : ISearchRepository
         foreach (var m in metas)
         {
             if (hits.Count >= limit) break;
-            var url = $"/vsop/{m.AccCode.ToLowerInvariant()}/{m.UrlBase}";
+            var url = m.Url;
 
             // 1) titolo documento
             if (Has(m.Title))
@@ -136,4 +130,23 @@ public sealed class EfSearchRepository : ISearchRepository
         if (end < text.Length) s += "…";
         return s;
     }
+
+    /// <summary>Attribuisce il documento a un tipo con gli stessi descrittori dell'elenco unificato.</summary>
+    private ManagedDoc? Describe(Domain.Entities.Document doc)
+    {
+        foreach (var target in _targets.ByDescribeOrder)
+            if (target.TryDescribe(doc, hasDraft: false, out var managed))
+                return managed;
+        return null;
+    }
+
+    private static bool InScope(SearchScope scope, ManagedDocKind kind) => scope switch
+    {
+        SearchScope.All => true,
+        SearchScope.Vipi => kind == ManagedDocKind.AccVipi,
+        SearchScope.App => kind == ManagedDocKind.AppVipi,
+        SearchScope.Airport => kind == ManagedDocKind.AirportVipi,
+        SearchScope.Vloa => kind == ManagedDocKind.Vloa,
+        _ => true,
+    };
 }

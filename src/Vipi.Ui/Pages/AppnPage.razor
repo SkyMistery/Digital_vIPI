@@ -167,7 +167,9 @@ else
     // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
     private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.App, key);
 
-    private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
+    // Ancora di sezione: «s-{Id}» per TUTTE, comprese quelle rese dalla pagina (doc 13 §3e). Prima le speciali
+    // usavano «p-{chiave}», e i deep-link della ricerca — che indicizza per Id — cadevano in cima alla pagina.
+    private static string AnchorOf(SectionView s) => s.Id;
     private IEnumerable<SectionView> VisibleSections() =>
         _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
 

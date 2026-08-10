@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <summary>Rotte APP standalone (doc 09 §3b): keyed sul callsign dell'APP.</summary>
 public sealed class AppDocRoutes : IDocKindRoutes

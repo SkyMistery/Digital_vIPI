@@ -4,7 +4,7 @@ using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Live;
 using Vipi.Ui.Pages;
-using Vipi.Ui.Shared.Routing;
+using Vipi.Application.Routing;
 using Xunit;
 
 namespace Vipi.Ui.Tests;

@@ -83,13 +83,6 @@ public static class VipiModuleExtensions
             services.AddScoped<ICurrentUserProvider, HostIdentityCurrentUserProvider>();
         }
 
-        // Rotte viewer/editor per tipo di documento (doc 09 §3b): i consumatori UI consultano il registry.
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.VloaDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AppDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AccVipiDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AirportDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocRoutesRegistry, Vipi.Ui.Shared.Routing.DocRoutesRegistry>();
-
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
 

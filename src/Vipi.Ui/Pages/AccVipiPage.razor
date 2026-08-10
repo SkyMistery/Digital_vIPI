@@ -35,7 +35,7 @@ else
                     <ul>
                         @foreach (var s in VisibleSections(block))
                         {
-                            <li><a class="lvl2" href="#p-@(block.Key)-@s.Key">@s.Title</a></li>
+                            <li><a class="lvl2" href="#@AnchorOf(block, s)">@s.Title</a></li>
                         }
                     </ul>
                 }
@@ -69,7 +69,7 @@ else
                     @foreach (var s in VisibleSections(block))
                     {
                         var isHidden = s.IsHidden;
-                        <CollapsibleBlock Id="@($"p-{block.Key}-{s.Key}")" Style="@(isHidden ? "opacity:.65" : null)"
+                        <CollapsibleBlock Id="@AnchorOf(block, s)" Style="@(isHidden ? "opacity:.65" : null)"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.Key))">
                             <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
@@ -229,6 +229,13 @@ else
         return snap.Callsigns.Count(cs =>
             Stations.ResolveByCallsign(cs)?.Code.Equals(_data.AccCode, StringComparison.OrdinalIgnoreCase) == true);
     }
+
+    // Ancora di sezione: «s-{Id}», come in tutte le altre famiglie (doc 13 §3e). Serve ai deep-link della
+    // ricerca, che indicizza le sezioni per Id e prima cadeva in cima alla pagina perché qui l'ancora era
+    // «p-{blocco}-{chiave}». Le sezioni sintetizzate dall'assembler (di catalogo, assenti dal documento) non
+    // hanno Id: là resta la chiave, e nessuno ci fa deep-link perché non hanno contenuto.
+    private static string AnchorOf(AccBlock block, AccBlockSection s) =>
+        s.SectionId > 0 ? $"s-{s.SectionId}" : $"p-{block.Key}-{s.Key}";
 
     // vIPI ACC unica per ACC: nessun ?tree nei link (il root primario è implicito).
     private string TreeQuery() => "";

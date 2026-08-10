@@ -1,4 +1,4 @@
-﻿@page "/vsop/search"
+@page "/vsop/search"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Net
@@ -55,7 +55,7 @@
     // (chiave-risorsa, scope): l'etichetta è localizzata in markup via L[labelKey].
     private static readonly (string, SearchScope)[] _scopes =
     {
-        ("Common_All", SearchScope.All), ("Search_ScopeVipi", SearchScope.Vipi), ("Search_ScopeVloa", SearchScope.Vloa), ("Search_ScopeAirports", SearchScope.Airport),
+        ("Common_All", SearchScope.All), ("Search_ScopeVipi", SearchScope.Vipi), ("Search_ScopeApp", SearchScope.App), ("Search_ScopeVloa", SearchScope.Vloa), ("Search_ScopeAirports", SearchScope.Airport),
     };
 
     protected override async Task OnParametersSetAsync()
