@@ -41,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<Live.ILiveStationKind, Live.AirportLiveStation>();
         services.AddScoped<Live.ILiveStationRegistry, Live.LiveStationRegistry>();
         services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
+        // «Chi controlla l'aeroporto adesso» per le pagine fuori dalla vista live (vista rapida, viewer).
+        services.AddScoped<Live.IAirportPresidencyService, Live.AirportPresidencyService>();
         // doc 10 §3b: cattura Frozen delle sezioni derivate. Un provider per famiglia; il registry li risolve per tipo.
         services.AddScoped<IFrozenSectionProvider, VloaFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AppFrozenSectionProvider>();

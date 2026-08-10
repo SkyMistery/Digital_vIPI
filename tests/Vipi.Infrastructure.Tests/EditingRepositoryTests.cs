@@ -388,6 +388,72 @@ public class EditingRepositoryTests : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// «Scarta bozza» (voce E5): la bozza sparisce col suo contenuto, il documento torna alla versione
+    /// pubblicata e resta un'impronta in audit — senza la quale un documento perderebbe una bozza senza che
+    /// nessuno sappia chi e quando.
+    /// </summary>
+    [Fact]
+    public async Task DiscardDraft_RemovesDraftWithChildren_KeepsPublished_AndAudits()
+    {
+        var docId = await AccDocIdAsync();
+        var svc = Servizio();
+
+        var draftId = await svc.CreateDraftAsync(docId);
+        var sezioni = await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == draftId);
+        Assert.True(sezioni > 0);   // la bozza clona il contenuto ⇒ la cancellazione deve essere ordinata
+        var correnteId = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+
+        var numero = await svc.DiscardDraftAsync(draftId);
+
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == draftId));
+        Assert.Equal(0, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == draftId));
+        Assert.Equal(0, await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == draftId));
+
+        // Il documento resta in piedi sulla versione pubblicata: scartare non tocca ciò che il pubblico vede.
+        var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == docId);
+        Assert.Equal(correnteId, doc.CurrentVersionId);
+        Assert.Equal(DocumentStatus.Published, doc.Status);
+
+        Assert.True(numero > 0);
+        Assert.True(await _db.AuditLogs.AnyAsync(a => a.Action == AuditAction.Discard && a.EntityId == draftId.ToString()));
+    }
+
+    /// <summary>
+    /// Le due cose che «scarta» NON deve fare: toccare una versione pubblicata (è storia, e le release
+    /// dichiarano di averla fotografata) e svuotare un documento che non ha altro — lì la bozza È il
+    /// documento, e chi vuole disfarsene ha l'eliminazione, che è un'altra azione con altre conseguenze.
+    /// </summary>
+    [Fact]
+    public async Task DiscardDraft_RefusesPublishedVersion_AndLastRemainingVersion()
+    {
+        var docId = await AccDocIdAsync();
+        var svc = Servizio();
+
+        // Il lock si prende prima, come fa la pagina: scartare è una scrittura, e la guardia del lock
+        // precede la validazione esattamente come nella pubblicazione.
+        await svc.AcquireLockAsync(docId);
+
+        var correnteId = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var suPubblicata = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => svc.DiscardDraftAsync(correnteId));
+        Assert.Contains("non è una bozza", suPubblicata.Message);
+
+        // Documento nuovo, mai pubblicato: la sua unica versione è una bozza.
+        var nuovoId = await _repo.CreateDocumentAsync(DocumentType.Vipi, "Solo bozza", Language.It,
+            Array.Empty<int>(), null, null, authorUserId: 1);
+        var unica = await _db.DocumentVersions.Where(v => v.DocumentId == nuovoId).Select(v => v.Id).SingleAsync();
+        await svc.AcquireLockAsync(nuovoId);
+
+        var unicaVersione = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => svc.DiscardDraftAsync(unica));
+        Assert.Contains("unica versione", unicaVersione.Message);
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == unica));   // non è stata toccata
+    }
+
+    private EditingService Servizio() => new(_repo, new AllowAuthz(),
+        Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
+
     private sealed class AllowAuthz : Vipi.Application.Auth.IEditAuthorizationService
     {
         public bool IsAdmin => true;

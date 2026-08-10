@@ -43,6 +43,38 @@ public static class DependencyInjection
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
                 break;
 
+            case Persistence.PersistenceProvider.MySql:
+#if NET8_0
+                // Produzione su atc.it.ivao.aero, che è MariaDB 11.4 (ADR-0007 §D4-ter). Provider Pomelo,
+                // l'unico che supporta MariaDB davvero — e che esiste solo per EF Core 8, da cui questo #if
+                // e il fatto che Vipi.Host sia net8.
+                //
+                // La versione del server è FISSATA, non auto-rilevata: ServerVersion.AutoDetect apre una
+                // connessione mentre si costruiscono le opzioni, quindi con il database ancora giù l'app non
+                // parte per un motivo che non somiglia a quello vero. Fissandola, l'avvio è deterministico e
+                // il guasto arriva alla prima query, dove si legge.
+                var versioneServer = Persistence.MySqlSchema.ResolveServerVersion(
+                    configuration?[Persistence.MySqlSchema.ServerVersionConfigKey]);
+
+                services.AddDbContext<VipiDbContext>(o => o
+                    .UseMySql(connectionString, versioneServer, my => my
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                        // Senza questa riga EF cercherebbe le migrazioni in Vipi.Infrastructure e ci
+                        // troverebbe le 68 SQLite-flavored, applicandole a MariaDB. È il modo silenzioso in
+                        // cui questa configurazione può sbagliare: non manca niente, c'è la cosa sbagliata.
+                        .MigrationsAssembly(Persistence.MySqlSchema.MigrationsAssemblyName)));
+                break;
+#else
+                // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a
+                // breve (quattro tentativi di porting, nessuno approdato). Meglio un errore che lo dice che
+                // un `default:` generico, che manderebbe a cercare un errore di battitura nella config.
+                throw new InvalidOperationException(
+                    "Persistence:Provider=MySql è supportato solo sul target net8.0, perché il provider " +
+                    "Pomelo — l'unico che regge MariaDB — non ha una build per EF Core 10. L'host di " +
+                    "produzione (Vipi.Host) è net8 apposta. Vedi ADR-0007 §D4-ter e " +
+                    "docs/design/piano-supporto-mysql.md.");
+#endif
+
             default:
                 throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");
         }

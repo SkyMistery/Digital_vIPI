@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Set di migrazioni dedicato a MySQL (ADR-0007 §D4-bis, piano §S5).
+
+       Perché è un progetto a sé e non una cartella dentro Vipi.Infrastructure: EF sceglie le migrazioni
+       scansionando l'assembly di migrazioni per le classi Migration marcate col DbContext, senza guardare
+       la cartella. Due set nello stesso assembly collidono. La separazione è l'unico modo supportato di
+       tenere migrazioni SQLite-flavored e MySQL-flavored per lo stesso DbContext.
+
+       Chi lo referenzia: l'HOST (Vipi.Host, e in futuro l'host dell'embedding), non Vipi.Infrastructure —
+       che sarebbe un ciclo, visto che di lì viene il VipiDbContext. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Serve al design-time (dotnet ef migrations add) E a runtime: la factory qui sotto la usa per
+         costruire il contesto senza dipendere dalla configurazione dell'host. -->
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+  </ItemGroup>
+
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- net8 soltanto, a differenza delle cinque librerie: Pomelo non ha una build per EF Core 10, quindi
+         su net10 questo progetto non avrebbe nemmeno un provider con cui generare le migrazioni. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

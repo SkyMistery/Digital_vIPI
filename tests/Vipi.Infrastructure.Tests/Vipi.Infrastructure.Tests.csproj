@@ -1,7 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Multi-target, e non per gusto: il ramo MariaDB del codice vive sotto #if NET8_0 perché Pomelo non
+         ha una build per EF Core 10 (ADR-0007 §D4-ter). Su net10 quel ramo non viene nemmeno compilato,
+         quindi senza il target net8 manderemmo in produzione l'unico pezzo che nessun test esegue — che è
+         esattamente la condizione in cui si trova ancora oggi il percorso Npgsql di ISchemaDriftProbe.
+         `dotnet test` esegue entrambi i target. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -11,10 +16,17 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +37,13 @@
     <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Vipi.Application\Vipi.Application.csproj" />
     <ProjectReference Include="..\..\src\Vipi.Domain\Vipi.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- Set di migrazioni MariaDB: esiste solo su net8, come Pomelo. Serve a verificare che non resti
+         indietro rispetto al modello — il costo dichiarato della scelta (a) in ADR-0007 è "ogni cambio di
+         schema va emesso due volte", e senza una guardia quel costo si paga in produzione. -->
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure.MySqlMigrations\Vipi.Infrastructure.MySqlMigrations.csproj" />
   </ItemGroup>
 
 </Project>

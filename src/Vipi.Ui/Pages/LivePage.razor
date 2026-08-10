@@ -128,7 +128,7 @@
         {
             <details class="acc-item" open data-persist="live-apt">
                 <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@icao</span></summary>
-                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" /></div>
+                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
             </details>
         }
         else if (_view.AirportChips.Count > 0)
@@ -139,8 +139,10 @@
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;
+                    @* Il tooltip dice CHI presiede adesso, non solo che qualcuno lo fa: è l'informazione
+                       per cui si guarda la chip. La forma resta invariata (nessun ridisegno). *@
                     <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
-                          title="@(chip.Delegated ? L["Live_AptDelegatedTip"] : L["Live_AptQuickTip"])"
+                          title="@ChiPresiede(chip)"
                           @onclick="() => _selectedApt = ic">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
             </div>
@@ -148,7 +150,7 @@
 
         @if (_selectedApt is { } sel)
         {
-            <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" />
+            <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" Presidency="@PresidenzaDi(sel)" />
         }
         else
         {
@@ -216,9 +218,30 @@
     private DotNetObjectReference<LivePage>? _ref;
     private int? _liveSubId;   // id restituito da vipiLive.subscribe: lo stream SSE è condiviso col badge in topbar
 
+    /// <summary>
+    /// Il caricamento arriva da <b>due</b> parti: il ciclo di vita (<c>OnParametersSetAsync</c>) e il
+    /// callback SSE (<c>OnLiveUpdate</c>), che il poller invoca a ogni giro. Non sono coordinati fra loro:
+    /// un aggiornamento che atterra mentre la prima lettura è ancora in volo ne fa partire una seconda
+    /// sullo <b>stesso</b> <c>DbContext</c> di circuito, ed EF risponde «A second operation was started»
+    /// uccidendo il circuito — la pagina resta al prerender e non si aggiorna più.
+    ///
+    /// <para>Non è un difetto del provider: è una corsa, e MariaDB ne allarga solo la finestra (query
+    /// divise, latenza maggiore). È così che è emersa, guidando l'app in A6 su <c>/vsop/live/{callsign}</c>.
+    /// Serializzare è anche semanticamente giusto: due letture sovrapposte scriverebbero <c>_view</c> in
+    /// ordine indeterminato.</para>
+    /// </summary>
+    private readonly SemaphoreSlim _caricamento = new(1, 1);
+
     protected override Task OnParametersSetAsync() => LoadAsync();
 
     private async Task LoadAsync()
+    {
+        await _caricamento.WaitAsync();
+        try { await CaricaAsync(); }
+        finally { _caricamento.Release(); }
+    }
+
+    private async Task CaricaAsync()
     {
         _snapshot = Live.Snapshot();
         _myCallsign = Live.MyCallsign();
@@ -238,6 +261,31 @@
             _selectedApt = null;
 
         TrackChanges();
+    }
+
+    /// <summary>
+    /// Presidenza già calcolata per le chip, riusata dalla vista rapida: la stessa schermata non deve
+    /// risolverla due volte, e soprattutto non in due modi. Null se quell'ICAO non ha una chip (es. il
+    /// pannello fisso di una torre): lì la riga semplicemente non compare.
+    /// </summary>
+    private AirportPresidency? PresidenzaDi(string icao) =>
+        _view?.AirportChips.FirstOrDefault(c => string.Equals(c.Icao, icao, StringComparison.OrdinalIgnoreCase))?.Presidency;
+
+    /// <summary>
+    /// Chi controlla quell'aeroporto adesso, in una riga: le posizioni sue online dal gate in su, e — se
+    /// qualcosa non è presidiato in loco — chi lo copre risalendo. Nessuno dei due ⇒ UNICOM.
+    /// </summary>
+    private string ChiPresiede(LiveAirportChip chip)
+    {
+        var p = chip.Presidency;
+        if (p.Unicom) return L["Live_AptPresidedNobody"];
+
+        var locali = string.Join(" · ", p.Local.Select(s => s.Callsign));
+        if (p.Covering is null) return L["Live_AptPresidedBy", locali].Value;
+
+        return locali.Length == 0
+            ? L["Live_AptCoveredBy", p.Covering.Callsign].Value
+            : L["Live_AptPresidedBy", locali].Value + " — " + L["Live_AptCoveredBy", p.Covering.Callsign].Value;
     }
 
     /// <summary>Enti che contano per questa postazione: la sua AoR, la catena di copertura e chiunque compaia
@@ -333,5 +381,6 @@
     {
         try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _liveSubId); } catch { /* circuito chiuso */ }
         _ref?.Dispose();
+        _caricamento.Dispose();
     }
 }

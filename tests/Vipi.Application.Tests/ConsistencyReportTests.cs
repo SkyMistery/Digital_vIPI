@@ -29,6 +29,49 @@ public class ConsistencyReportTests
         Assert.Empty(ConsistencyReportService.Analyze(Clean()));
     }
 
+    /// <summary>
+    /// La risoluzione live del ricevente accetta anche il candidato che sia un <b>segmento</b> del callsign
+    /// online (serve alla risalita della copertura). Se due callsign del catalogo si confondono così, un
+    /// settore online ne fa apparire online un altro: al controllore comparirebbe un consegnatario che non c'è.
+    ///
+    /// <para>Sui 313 callsign reali (9 agosto 2026) le collisioni sono <b>zero</b> — nessuno è privo di
+    /// underscore, nessuno è contenuto in un altro — ed è la misura che ha fatto scartare la tabella di
+    /// mapping esplicita della voce E1. Questa è la sentinella che rende revocabile quella scelta.</para>
+    /// </summary>
+    [Fact]
+    public void Callsign_che_si_confondono_nella_risoluzione_live_sono_segnalati()
+    {
+        // Solo i callsign: così il caso è isolato e nessun'altra regola può sporcare l'esito.
+        var d = new ConsistencyDataset
+        {
+            // «LIRR» nudo è un segmento di «LIRR_APP»: con l'APP online, l'ACC risulterebbe online.
+            ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRR_APP", "LIRF_TWR", "LIRR" },
+        };
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d), x => x.Category.StartsWith("Callsign ambiguo"));
+        Assert.Equal("LIRR", f.Entity);
+        Assert.Contains("LIRR_APP", f.Detail);
+    }
+
+    /// <summary>
+    /// Il caso che <b>non</b> deve allarmare, ed è la forma normale del catalogo: callsign che condividono
+    /// l'ICAO e la posizione ma differiscono per infisso non si confondono affatto — né segmento né sottostringa.
+    /// Senza questo test la regola precedente potrebbe passare rendendo il report inutilizzabile di rumore.
+    /// </summary>
+    [Fact]
+    public void Callsign_con_infisso_diverso_non_sono_ambigui()
+    {
+        var d = new ConsistencyDataset
+        {
+            ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "LIRF_APP", "LIRF_E_APP", "LIBB_ES_CTR", "LIMM_WS2_CTR",
+            },
+        };
+
+        Assert.DoesNotContain(ConsistencyReportService.Analyze(d), x => x.Category.StartsWith("Callsign ambiguo"));
+    }
+
     [Fact]
     public void Orphan_runway_ref_is_flagged()
     {

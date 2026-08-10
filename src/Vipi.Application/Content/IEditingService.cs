@@ -43,6 +43,15 @@ public interface IEditingService
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
     Task PublishAsync(int versionId, string? note, CancellationToken ct = default);
+
+    /// <summary>
+    /// Scarta una bozza: la elimina col suo contenuto, scrive l'audit e libera il lock. Ritorna il numero di
+    /// versione scartato.
+    ///
+    /// <para>Rifiuta con <see cref="ValidationException"/> se la versione non è una bozza, o se è l'<b>unica</b>
+    /// versione del documento — in quel caso non ci sarebbe nulla a cui tornare.</para>
+    /// </summary>
+    Task<int> DiscardDraftAsync(int versionId, CancellationToken ct = default);
     Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default);
 
     // --- Lock di editing esclusivo ---

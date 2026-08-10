@@ -6,35 +6,57 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Host;
 
 /// <summary>
-/// Persistenza delle chiavi Data Protection (usate per antiforgery, cookie auth, ecc.). STACCABILE come il
-/// modulo auth. Su Render (free) il container è effimero: il key-ring di default finisce in
-/// <c>/root/.aspnet/DataProtection-Keys</c> e si perde a ogni redeploy → token antiforgery invalidi e utenti
-/// sloggati. Qui le chiavi vanno su un DbContext dedicato, così vivono su Neon (persistente) e sopravvivono
-/// ai redeploy. Attivo SOLO quando <c>Persistence:Provider=Postgres</c>: in dev (SQLite) resta il file-store
-/// di default, adeguato a una singola macchina. Il context è separato da <see cref="VipiDbContext"/> per non
-/// toccarne modello e migrazioni; la sua unica tabella si crea via EnsureCreated all'avvio.
+/// Persistenza delle chiavi Data Protection (antiforgery, cookie di autenticazione, state OIDC). STACCABILE
+/// come il modulo auth. Il key-ring predefinito è una cartella sul disco: dove il disco è effimero — il
+/// container di Render, o il nostro processo su <c>atc.it.ivao.aero</c> se ripartisse da una macchina
+/// riprovisionata — si perde a ogni riavvio, e il sintomo non parla di chiavi ma di utenti sloggati e di form
+/// che rispondono «antiforgery token non valido».
+///
+/// <para>Attivo su <b>Postgres</b> e <b>MySQL/MariaDB</b>, cioè i due deploy; in sviluppo (SQLite) resta il
+/// file-store predefinito, adeguato a una macchina sola e senza tabelle in più nel DB di lavoro. Chi decide è
+/// <see cref="DataProtectionSchema.UsesDatabaseKeyRing"/>: qui c'è solo il wiring.</para>
+///
+/// <para>Il context è separato da <see cref="VipiDbContext"/> per non toccarne modello e migrazioni: la sua
+/// unica tabella non compare né fra le entità né nei due set di migrazioni, e si crea a mano all'avvio.</para>
 /// </summary>
 public static class VipiDataProtection
 {
-    /// <summary>Se il provider è Postgres, registra il key-store su DB. Ritorna <c>true</c> se attivato.</summary>
+    /// <summary>Se il provider tiene le chiavi nel DB, registra il key-store. Ritorna <c>true</c> se attivato.</summary>
     public static bool AddVipiDataProtection(this WebApplicationBuilder builder)
     {
         var provider = PersistenceProviderResolver.Resolve(
             builder.Configuration[PersistenceProviderResolver.ProviderConfigKey]);
-        if (provider != PersistenceProvider.Postgres) return false;
+        if (!DataProtectionSchema.UsesDatabaseKeyRing(provider)) return false;
 
         var connectionString = builder.Configuration.GetConnectionString("Vipi");
         if (string.IsNullOrWhiteSpace(connectionString)) return false;
 
-        // Stessa resilienza di VipiDbContext (vedi DependencyInjection): Neon sospende il compute e chiude le
-        // connessioni idle, quindi la prima query dopo l'inattività fallisce "transient". Senza retry qui, un
-        // transient sul key-ring si propaga a tutto ciò che passa da Data Protection — antiforgery, cookie di
-        // auth e lo state OIDC — e il login muore con «Correlation failed» invece di riprovare. Copre anche
-        // UseVipiDataProtection: ExecuteSqlRaw passa dall'execution strategy, quindi il CREATE TABLE all'avvio
-        // non fa più fallire il boot se Neon si sta risvegliando.
-        builder.Services.AddDbContext<DataProtectionKeysDbContext>(o => o
-            .UseNpgsql(connectionString, npg => npg
-                .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
+        builder.Services.AddDbContext<DataProtectionKeysDbContext>(o =>
+        {
+            if (provider == PersistenceProvider.Postgres)
+            {
+                // Stessa resilienza di VipiDbContext (vedi DependencyInjection): Neon sospende il compute e
+                // chiude le connessioni idle, quindi la prima query dopo l'inattività fallisce "transient".
+                // Senza retry qui, un transient sul key-ring si propaga a tutto ciò che passa da Data
+                // Protection — antiforgery, cookie di auth e lo state OIDC — e il login muore con
+                // «Correlation failed» invece di riprovare. Copre anche UseVipiDataProtection: ExecuteSqlRaw
+                // passa dall'execution strategy, quindi il CREATE TABLE all'avvio non fa fallire il boot se
+                // Neon si sta risvegliando.
+                o.UseNpgsql(connectionString, npg => npg
+                    .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null));
+            }
+            else
+            {
+                // MariaDB su atc.it.ivao.aero: server dedicato, non serverless. Niente retry, perché la
+                // ragione del retry su Neon — il risveglio del compute sospeso — qui non esiste.
+                //
+                // Versione FISSATA come in DependencyInjection: ServerVersion.AutoDetect aprirebbe una
+                // connessione mentre si costruiscono le opzioni, e col database giù l'applicazione non
+                // partirebbe per un motivo che non somiglia a quello vero.
+                o.UseMySql(connectionString, MySqlSchema.ResolveServerVersion(
+                    builder.Configuration[MySqlSchema.ServerVersionConfigKey]));
+            }
+        });
 
         // SetApplicationName fissa il discriminatore di scopo: instanze/redeploy diversi condividono lo stesso
         // key-ring (senza, ogni deploy userebbe uno scopo diverso e i vecchi token resterebbero comunque invalidi).
@@ -52,17 +74,13 @@ public static class VipiDataProtection
         var ctx = scope.ServiceProvider.GetService<DataProtectionKeysDbContext>();
         if (ctx is null) return app;
 
-        // NON EnsureCreated(): controlla l'esistenza del *database* (già creato da VipiDbContext), quindi non
-        // creerebbe mai la tabella su un DB condiviso esistente → 42P01. Creo direttamente la tabella con lo
-        // schema atteso da EntityFrameworkCoreXmlRepository (Id identità, FriendlyName, Xml). Idempotente;
-        // Postgres-only (il context è registrato solo su questo ramo).
-        ctx.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
-                "Id" integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                "FriendlyName" text NULL,
-                "Xml" text NULL
-            );
-            """);
+        // Il provider si rilegge dalla configurazione, e la DDL è indicizzata per PersistenceProvider: è la
+        // stessa decisione presa in AddVipiDataProtection, che è anche l'unica ragione per cui questo context
+        // esiste — se non fosse attivo, la GetService qui sopra avrebbe già ritornato null.
+        var provider = PersistenceProviderResolver.Resolve(
+            app.Configuration[PersistenceProviderResolver.ProviderConfigKey]);
+
+        ctx.Database.ExecuteSqlRaw(DataProtectionSchema.CreateTableSql(provider));
         return app;
     }
 }

@@ -116,15 +116,34 @@ public sealed class LiveStationParts
         return ctx.Structure.Airports
             .Where(a => a.IsPublic && published.Contains(a.Icao))
             .Where(a => a.ParentCallsign is { } pc && domain.Contains(pc))
-            .Select(a => new LiveAirportChip(a.Icao, IsDelegated(ctx, a.Icao)))
+            .Select(a =>
+            {
+                var chi = Presidency(ctx, a.Icao, a.ParentCallsign);
+                return new LiveAirportChip(a.Icao, chi.Local.Count > 0, chi);
+            })
             .OrderByDescending(c => !c.Delegated)
             .ThenBy(c => c.Icao, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
-    /// <summary>Aeroporto «delegato»: un callsign col primo token = ICAO è online (lo controlla qualcun altro).</summary>
-    private static bool IsDelegated(LiveStationContext ctx, string icao) =>
-        ctx.Online.Any(cs => cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// Chi presiede l'aeroporto adesso: posizioni sue online (dal gate in su) più chi copre il resto risalendo.
+    ///
+    /// <para>Sostituisce il vecchio «delegato = c'è un callsign online che comincia con l'ICAO», che aveva due
+    /// difetti: non diceva <b>chi</b> chiamare, e contava anche l'<b>ATIS</b> — che è una frequenza, non una
+    /// postazione che controlla. Qui si parte dalle posizioni note dell'aeroporto, quindi l'ATIS non entra
+    /// perché non è un settore.</para>
+    /// </summary>
+    private static AirportPresidency Presidency(LiveStationContext ctx, string icao, string? airportParent)
+    {
+        var posizioni = ctx.Structure.Sectors
+            .Where(s => s.IsActive && string.Equals(s.AirportIcao, icao, StringComparison.OrdinalIgnoreCase))
+            .Select(s => (s.Callsign, s.Type))
+            .ToList();
+
+        var antenati = AirportPresidencyResolver.Ancestors(airportParent, ctx.Topology.Parent);
+        return AirportPresidencyResolver.Resolve(posizioni, antenati, ctx.Online);
+    }
 
     /// <summary>AoR della postazione: chi copro io, chi è gestito da un subordinato online.</summary>
     public AorResult Aor(Topology topology, string callsign, IReadOnlySet<string> online) =>

@@ -5,6 +5,8 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 **Stato:** 🟢 Autorevole (corrente) · 🔵 Reference (config/integrazione) · 🟣 Design · ⚪ Storico.
 
 ## Ordine di lettura consigliato (nuova chat)
+0. **[lavori-aperti.md](lavori-aperti.md)** — 📋 elenco unico di **cosa manca da fare**, con il blocco di
+   ciascuna voce. Se l'obiettivo è lavorare e non capire, si parte da qui.
 1. `../README.md` — cos'è il progetto, architettura, build/run.
 2. `../HANDOFF.md` — stato corrente e come riprendere il lavoro.
 3. `history/rounds.md` — cosa è cambiato round per round.

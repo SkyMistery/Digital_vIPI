@@ -55,5 +55,23 @@ public static class FrequencyPositions
         _ => t.ToString().ToUpperInvariant(),
     };
 
+    /// <summary>
+    /// Tipo di settore dalla sigla di posizione — il verso opposto di <see cref="FromSectorType"/>.
+    ///
+    /// <para><b>ATIS torna null, ed è il punto.</b> Nell'elenco delle postazioni d'aeroporto l'ATIS c'è, ma è
+    /// una <i>frequenza</i>, non qualcuno che controlla: contarlo faceva risultare «presidiato» un aeroporto
+    /// dove non c'era nessuno. Nullo anche per le sigle che non riconosciamo, per la stessa ragione — meglio
+    /// non attribuire un ruolo che inventarne uno.</para>
+    /// </summary>
+    public static SectorType? ToSectorType(string? position) => Normalize(position) switch
+    {
+        "DEL" => SectorType.Del,
+        "GND" => SectorType.Gnd,
+        "TWR" => SectorType.Twr,
+        "APP" or "DEP" => SectorType.App,
+        "CTR" => SectorType.Ctr,
+        _ => null,
+    };
+
     private static string Normalize(string? position) => (position ?? "").Trim().ToUpperInvariant();
 }

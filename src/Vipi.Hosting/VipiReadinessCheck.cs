@@ -16,7 +16,8 @@ namespace Vipi.Hosting;
 public sealed class VipiReadinessCheck : IHealthCheck
 {
     /// <summary>
-    /// Se su questo provider lo schema è gestito dalle migrazioni EF. Su Postgres NO: <c>MigrateVipiDatabase</c>
+    /// Se su questo provider lo schema è gestito dalle migrazioni EF. Su SQLite e su MySQL sì (set diversi:
+    /// quelle del repo e quelle di <c>Vipi.Infrastructure.MySqlMigrations</c>). Su Postgres NO: <c>MigrateVipiDatabase</c>
     /// usa <c>PostgresSchemaReconciler</c> (EnsureCreated + riconciliazione delle colonne), che non scrive mai in
     /// <c>__EFMigrationsHistory</c>. Lì <c>GetPendingMigrations</c> le riporterebbe TUTTE come pendenti anche con
     /// lo schema perfettamente allineato al modello, e l'health check direbbe sempre Unhealthy — un falso allarme

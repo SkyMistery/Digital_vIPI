@@ -152,6 +152,10 @@
   <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controllato da un'altra posizione online</value></data>
   <data name="Live_AptQuickTip" xml:space="preserve"><value>vista rapida aeroporto</value></data>
+  <data name="Live_AptPresidedBy" xml:space="preserve"><value>Adesso: {0}</value></data>
+  <data name="Live_AptPresidedLabel" xml:space="preserve"><value>Adesso</value></data>
+  <data name="Live_AptCoveredBy" xml:space="preserve"><value>coperto da {0}</value></data>
+  <data name="Live_AptPresidedNobody" xml:space="preserve"><value>Nessuno online: UNICOM</value></data>
   <data name="Live_DelegSuffix" xml:space="preserve"><value> ·delegato</value></data>
   <data name="Live_NoFreqDerived" xml:space="preserve"><value>Nessuna frequenza derivata.</value></data>
   <data name="Live_Delegated" xml:space="preserve"><value>delegati</value></data>
@@ -230,8 +234,8 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Settore unico</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>Nessuna frequenza nel sottoalbero.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina trascinando ⠿ o con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</value></data>
-  <data name="AppMinima_Title" xml:space="preserve"><value>Carte MVA da GitHub</value></data>
-  <data name="AppMinima_Body" xml:space="preserve"><value>Le minime di vettoramento (carte MVA) saranno importate dal sectorfile della divisione. Funzione in sviluppo.</value></data>
+  <data name="AppMinima_Title" xml:space="preserve"><value>Minime di vettoramento</value></data>
+  <data name="AppMinima_Body" xml:space="preserve"><value>Le carte MVA non vengono importate dal sectorfile: là non è indicato a quale settore appartenga ciascuna area, e attribuire una minima al settore sbagliato sarebbe peggio che non averla. Se servono, si scrivono qui come contenuto del documento.</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>Nessun coordinamento configurato per questo APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Trasferimenti verso ACC</value></data>
@@ -922,6 +926,12 @@
   <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Elimina definitivamente</value></data>
   <data name="Ver_DeleteDocAria" xml:space="preserve"><value>Elimina documento</value></data>
   <data name="Ver_DeletePrompt" xml:space="preserve"><value>Eliminare definitivamente?</value></data>
+  <data name="Ver_Discard" xml:space="preserve"><value>Scarta bozza</value></data>
+  <data name="Ver_DiscardTitle" xml:space="preserve"><value>Elimina questa bozza e torna alla versione pubblicata</value></data>
+  <data name="Ver_DiscardAria" xml:space="preserve"><value>Scarta bozza</value></data>
+  <data name="Ver_DiscardPrompt" xml:space="preserve"><value>Scartare la bozza? Le modifiche non pubblicate vanno perse.</value></data>
+  <data name="Ver_DiscardConfirm" xml:space="preserve"><value>Sì, scarta</value></data>
+  <data name="Ver_DraftDiscarded" xml:space="preserve"><value>Bozza scartata.</value></data>
   <data name="Ver_Current" xml:space="preserve"><value>corrente</value></data>
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Autore = chi ha creato la bozza</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Pubblica versione</value></data>

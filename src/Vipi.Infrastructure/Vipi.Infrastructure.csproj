@@ -25,6 +25,11 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.*" />
+    <!-- MariaDB: il database di PRODUZIONE (atc.it.ivao.aero è MariaDB 11.4, ADR-0007 §D4-ter).
+         SOLO su net8, ed è il motivo per cui Vipi.Host è net8: Pomelo non ha una build per EF Core 10
+         e il provider Oracle, che ce l'ha, non supporta MariaDB — si rompe sul lock di migrazione e
+         sulla collation. Il ramo MySQL del codice è quindi sotto #if NET8_0. -->
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.*" />

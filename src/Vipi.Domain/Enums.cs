@@ -60,7 +60,9 @@ public enum BlockSection
 }
 
 /// <summary>Azione registrata nell'audit log.</summary>
-public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange }
+// ⚠️ Salvato come STRINGA: aggiungere un valore è additivo e sicuro, RINOMINARNE uno lascia le righe
+// vecchie non più trovabili (voce B2 dell'audit del 22 luglio 2026).
+public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard }
 
 /// <summary>Tipo di riferimento nav per la validazione semantica.</summary>
 public enum NavRefType { Fix, Airway, Navaid }

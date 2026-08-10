@@ -7,7 +7,11 @@ COPY . .
 RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
 RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+# aspnet:8.0 e non 10.0: Vipi.Host è passato a net8 col provider Pomelo (ADR-0007 §D4-ter), e un'immagine
+# col solo runtime 10 fa morire il container all'avvio con «Microsoft.NETCore.App version 8.0.0 not found»
+# — build e publish riescono lo stesso, quindi il guasto si vede solo eseguendolo. Lo stage di build resta
+# su sdk:10.0, che compila net8 senza problemi.
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app .
 # Il DB SQLite di default è relativo: per la persistenza montare un volume su /app/data e impostare

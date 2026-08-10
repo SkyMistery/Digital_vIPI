@@ -20,8 +20,12 @@ public sealed record LiveStationContext(
     Topology Topology,
     IReadOnlySet<string> Online);
 
-/// <summary>Chip «vista rapida aeroporto» dei tipi d'area: ICAO + se è controllato da qualcun altro online.</summary>
-public sealed record LiveAirportChip(string Icao, bool Delegated);
+/// <summary>
+/// Chip «vista rapida aeroporto» dei tipi d'area: ICAO, se è controllato da qualcun altro online, e
+/// <b>chi</b> lo presiede adesso. Il «chi» non è decorazione: senza, la pagina dice che l'aeroporto è
+/// coperto ma non da chi, che è l'unica informazione per cui la si guarda.
+/// </summary>
+public sealed record LiveAirportChip(string Icao, bool Delegated, AirportPresidency Presidency);
 
 /// <summary>Gruppo-APP del documento reso come sezione a sé (coperto o delegato = collasso morbido).</summary>
 public sealed record LiveGroup(AccBlock Block, IReadOnlyList<AppFreqRow> Freqs, bool Delegated);

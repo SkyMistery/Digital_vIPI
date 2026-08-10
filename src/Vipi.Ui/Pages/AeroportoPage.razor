@@ -13,6 +13,7 @@
 @inject IAirportSectorService AirportSectors
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
+@inject Vipi.Application.Live.IAirportPresidencyService Presidency
 @inject IEditAuthorizationService Authz
 @inject IReleaseService Releases
 @using Vipi.Ui.Shared
@@ -391,6 +392,8 @@ else
                         @{ var n = OnlineAt(_icao); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
+                    @* «Quanti» non dice a chi parlare: questa riga sì, ed è la stessa risposta della vista live. *@
+                    <div class="rail-line"><span class="muted">@L["Live_AptPresidedLabel"]</span><b>@ChiPresiede()</b></div>
                 </div>
                 <div class="rail-card">
                     <h5><Icon Name="link" /> @L["Common_Links"]</h5>
@@ -451,6 +454,10 @@ else
     private IReadOnlyList<string> _tlCols = Array.Empty<string>();
     private List<(string Range, string Level)> _tlRows = new();
 
+    /// <summary>Chi presiede l'aeroporto: risolto nel ciclo di vita, MAI nel render (regola del progetto:
+    /// nessuna I/O sul database mentre si disegna, o il circuito muore con «second operation»).</summary>
+    private Vipi.Application.Live.AirportPresidency? _presidency;
+
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
@@ -486,6 +493,7 @@ else
         _icao = Icao!.ToUpperInvariant();
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _presidency = await Presidency.ResolveAsync(_icao);
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
@@ -602,11 +610,30 @@ else
     private static string? Norm(string? rwy) => string.IsNullOrWhiteSpace(rwy) ? null : rwy.Trim();
 
     // ATC online per l'aeroporto: callsign il cui primo token (prima del "_") è l'ICAO (es. LIRF_TWR, LIRF_S_APP).
+    // ⚠️ L'ATIS è escluso: nell'elenco delle postazioni c'è, ma è una frequenza registrata, non qualcuno che
+    // controlla — contarlo faceva apparire «1 online» un aeroporto dove non risponde nessuno.
     private int OnlineAt(string icao)
     {
         var snap = Online.GetCurrent();
         return snap.Callsigns.Count(cs =>
-            cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase));
+            cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase) &&
+            !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Chi presiede questo aeroporto adesso, in una riga: posizioni sue online dal gate in su e, per ciò che
+    /// non è presidiato in loco, chi lo copre risalendo. Stessa risposta della vista live, stesso risolutore.
+    /// </summary>
+    private string ChiPresiede()
+    {
+        if (_presidency is not { } p) return "—";
+        if (p.Unicom) return L["Live_AptPresidedNobody"];
+
+        var locali = string.Join(" · ", p.Local.Select(s => s.Callsign));
+        if (p.Covering is null) return locali;
+        return locali.Length == 0
+            ? L["Live_AptCoveredBy", p.Covering.Callsign].Value
+            : $"{locali} — {L["Live_AptCoveredBy", p.Covering.Callsign].Value}";
     }
 
     /// <summary>Voci del sommario, nello stesso ordine e con gli stessi ancoraggi (id) dei blocchi realmente renderizzati.</summary>

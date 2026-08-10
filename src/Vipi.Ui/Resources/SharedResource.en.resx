@@ -152,6 +152,10 @@
   <data name="Live_MySector" xml:space="preserve"><value>My sector</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controlled by another online position</value></data>
   <data name="Live_AptQuickTip" xml:space="preserve"><value>airport quick view</value></data>
+  <data name="Live_AptPresidedBy" xml:space="preserve"><value>Now: {0}</value></data>
+  <data name="Live_AptPresidedLabel" xml:space="preserve"><value>Now</value></data>
+  <data name="Live_AptCoveredBy" xml:space="preserve"><value>covered by {0}</value></data>
+  <data name="Live_AptPresidedNobody" xml:space="preserve"><value>Nobody online: UNICOM</value></data>
   <data name="Live_DelegSuffix" xml:space="preserve"><value> ·delegated</value></data>
   <data name="Live_NoFreqDerived" xml:space="preserve"><value>No derived frequency.</value></data>
   <data name="Live_Delegated" xml:space="preserve"><value>delegated</value></data>
@@ -227,8 +231,8 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Unified sector</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>No frequency in the subtree.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Frequencies derive from the sector tree: change the hierarchy and they change here. Reorder by dragging ⠿ or with ↑/↓; add external frequencies with «Link frequency».</value></data>
-  <data name="AppMinima_Title" xml:space="preserve"><value>MVA charts from GitHub</value></data>
-  <data name="AppMinima_Body" xml:space="preserve"><value>Minimum vectoring altitudes (MVA charts) will be imported from the division sectorfile. Feature in development.</value></data>
+  <data name="AppMinima_Title" xml:space="preserve"><value>Minimum vectoring altitudes</value></data>
+  <data name="AppMinima_Body" xml:space="preserve"><value>MVA charts are not imported from the sectorfile: it does not say which sector each area belongs to, and assigning a minimum to the wrong sector would be worse than not having it. If they are needed, they are written here as document content.</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Approach sector transfers: towards ACCs and towards the tower(s). Derived from the configured flows.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>No coordination configured for this APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Transfers towards ACC</value></data>
@@ -919,6 +923,12 @@
   <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Delete permanently</value></data>
   <data name="Ver_DeleteDocAria" xml:space="preserve"><value>Delete document</value></data>
   <data name="Ver_DeletePrompt" xml:space="preserve"><value>Delete permanently?</value></data>
+  <data name="Ver_Discard" xml:space="preserve"><value>Discard draft</value></data>
+  <data name="Ver_DiscardTitle" xml:space="preserve"><value>Delete this draft and go back to the published version</value></data>
+  <data name="Ver_DiscardAria" xml:space="preserve"><value>Discard draft</value></data>
+  <data name="Ver_DiscardPrompt" xml:space="preserve"><value>Discard the draft? Unpublished changes will be lost.</value></data>
+  <data name="Ver_DiscardConfirm" xml:space="preserve"><value>Yes, discard</value></data>
+  <data name="Ver_DraftDiscarded" xml:space="preserve"><value>Draft discarded.</value></data>
   <data name="Ver_Current" xml:space="preserve"><value>current</value></data>
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Author = who created the draft</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Publish version</value></data>

@@ -102,6 +102,50 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 "dall'import; nel documento restano citate ma non vengono mostrate."));
         }
 
+        findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
         return findings;
+    }
+
+    /// <summary>
+    /// Callsign che si confondono fra loro nella risoluzione live del ricevente.
+    ///
+    /// <para><b>Perché esiste.</b> <see cref="Content.TransferOnlineResolver"/> non confronta i callsign solo per
+    /// uguaglianza: accetta anche il candidato che sia un <i>segmento</i> del callsign online o una sua
+    /// sottostringa lunga. Serve a far risalire la copertura (un ACC online copre i suoi settori), ma se due
+    /// callsign del catalogo si assomigliano abbastanza, un settore online ne fa apparire online un altro — e al
+    /// controllore comparirebbe un consegnatario che non c'è.</para>
+    ///
+    /// <para><b>Misurato prima di decidere</b> (9 agosto 2026): sui 313 callsign reali le coppie che collidono
+    /// sono <b>zero</b>, perché nessun callsign è privo di underscore e nessuno è contenuto in un altro — quindi
+    /// nella pratica l'euristica si riduce al match esatto. Da qui la scelta di <b>non</b> introdurre una tabella
+    /// di mapping esplicita (voce E1): sarebbe manutenzione in più a parità di comportamento. Questa regola è la
+    /// sentinella che rende revocabile quella scelta: se un domani nasce un settore che collide, si vede qui
+    /// invece che in frequenza.</para>
+    ///
+    /// <para>Il confronto <b>riusa il resolver</b> invece di ricopiarne le regole: se l'euristica cambia, questa
+    /// diagnosi cambia con lei.</para>
+    /// </summary>
+    private static IEnumerable<ConsistencyFinding> CallsignAmbigui(IReadOnlySet<string> callsigns)
+    {
+        var elenco = callsigns.Where(c => !string.IsNullOrWhiteSpace(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
+        var uno = new HashSet<string>(1, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var candidato in elenco)
+        {
+            foreach (var altro in elenco)
+            {
+                if (string.Equals(candidato, altro, StringComparison.OrdinalIgnoreCase)) continue;
+
+                uno.Clear();
+                uno.Add(altro);
+                if (Content.TransferOnlineResolver.FirstOnline(new[] { candidato }, uno) is null) continue;
+
+                yield return new ConsistencyFinding("Callsign ambiguo (risoluzione live)", ConsistencySeverity.Warning,
+                    candidato,
+                    $"Con «{altro}» online, «{candidato}» risulterebbe online anche se non lo è: i due callsign si " +
+                    "confondono nella risalita della copertura. Rinominare uno dei due, o introdurre una tabella " +
+                    "esplicita callsign↔postazione.");
+            }
+        }
     }
 }

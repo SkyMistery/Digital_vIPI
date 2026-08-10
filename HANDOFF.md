@@ -1,37 +1,56 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 3 agosto 2026 (aree regolamentate: policy di import, shape incrementale, dangling — branch `feature/aree-speciali-hardening`)
+**Ultimo aggiornamento:** 9 agosto 2026 (cutover MariaDB: schema, travaso, CI e **flussi editoriali** verificati; pacchetto di deploy rifatto)
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🔴 PRIMA COSA DELLA PROSSIMA SESSIONE — verifica live delle aree regolamentate
+> ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
 >
-> Il branch **`feature/aree-speciali-hardening`** è chiuso come codice (9 commit, suite 951 verde, build 0
-> warning, due migration provate su copia del `vipi.db` reale) ma **non verificato sull'app vera**, ed è l'unica
-> casella non spuntata del gate. Carta completa con i dettagli:
-> [`docs/feature/2026-08-03-aree-regolamentate-hardening.md`](docs/feature/2026-08-03-aree-regolamentate-hardening.md).
-> **Non fondere su `main` prima di questa verifica.**
->
-> Con la skill `verifica-live`, quattro punti in quest'ordine:
-> 1. `/vsop/admin/sorgenti` → togli «Aree regolamentate», lancia l'import: le aree devono **restare** (nessun
->    prune). Rimettila e controlla che riprenda.
-> 2. Editor di un documento con un'area cancellata a mano dal DB → «⚠ non più disponibile» nel picker e il
->    rilievo «Area regolamentata dangling» in `/vsop/admin/diagnostica`.
-> 3. Dopo un import: la **R49 «Zita»** (id 8870) deve stare fra le aree **proprie** sia di LIRR sia di LIZZ.
-> 4. `/vsop/admin/accs` → «Importa aree» su un ACC estero lo accende e ne mostra il conteggio; «Escludi aree»
->    torna a «non importate» e libera l'archivio.
->
-> **Due cose da sapere prima di avviare l'app:**
-> - al **primo boot** una riconciliazione one-shot spegne gli ACC esteri e libera le loro aree (763 legami su
->   993; restano le 230 italiane). Un documento che ne citava una la vedrà come dangling — è atteso, si recupera
->   riaccendendo quell'ACC con «Importa aree»;
-> - dopo il deploy conviene premere **«Importa da sorgente»**: il backfill dei legami ne recupera **uno solo**
->   per area, gli altri li riporta il primo import.
->
-> ⚠️ **Da controllare in produzione, indipendente da tutto il resto:** in `/vsop/admin/sorgenti`, se la spunta
-> **SID** è vuota senza che tu l'abbia tolta, è la migration dell'8 luglio che nasceva `false` — vedi la memoria
-> `bool-column-default-trap`. Va rimessa a mano: `false` è indistinguibile da una scelta dell'admin.
+> Elenco unico di **tutto** l'aperto — cutover, branch non fusi, debito noto, verifiche live pendenti,
+> funzionalità. Ogni voce è presa da sola in una sessione, con il blocco segnato (🟢 subito · 🟡 dipende da
+> un'altra voce · 🔴 dipende da altri). **Partire da lì**, non da questo documento, che racconta lo stato
+> ma non ordina il lavoro.
 
-> ## ▶️ POI — prossimo passo, già istruito
+> ## 🟢 PRIMA COSA — il cutover su `atc.it.ivao.aero` (branch `feat/persistenza-mysql`)
+>
+> **Il server è MariaDB 11.4.10, il provider è Pomelo, `Vipi.Host` è net8.** Decisione vigente: ADR-0007
+> **§D4-ter**, che supera §D4-bis (Oracle/net10/MySQL 8) come quella aveva superato §D4. Il
+> [piano MySQL](docs/design/piano-supporto-mysql.md) descrive un bersaglio cambiato: leggerlo solo per
+> l'analisi dei rischi, **non** per lo stato.
+>
+> **Cosa è già verificato contro una MariaDB vera** (6–9 agosto): schema e collation `utf8mb4_uca1400_as_cs`
+> (163 colonne su 163), `LIRF`/`lirf` che convivono, travaso dei dati veri da Neon con `.sql` **riletto** in
+> un database vuoto, key-ring Data Protection che sopravvive al riavvio, un job di CI su MariaDB 11.4.10
+> Linux, e i **flussi editoriali guidati sull'app** (import, SID per aeroporto, pubblicazione dei tre tipi
+> di documento, lock, ricerca, vista live, blob delle immagini byte-identici).
+>
+> **Il `.sql` da consegnare**: `_mariadb/dump/vipi-atc-it-ivao-aero-2026-08-09.sql`, 4 MB, sha256
+> `1CD77F3A…`. **Il pacchetto di deploy**: `artifacts/publish/vipi-linux-x64-mariadb-20260809.zip`, 47,8 MB,
+> self-contained net8. ⚠️ Quello del 5 agosto è compilato contro un provider che non parla MariaDB: **non
+> funzionerà mai**, va ritirato.
+>
+> **Cosa resta, tutto in [`docs/lavori-aperti.md`](docs/lavori-aperti.md) sezione A:** consegnare il dump e
+> il pacchetto, le domande a Ivao.It (A9: accesso al DB, `sql_mode`, privilegi, **`max_allowed_packet` ≥ 4
+> MB**, backup, WebSocket sul proxy) e i redirect OIDC (A10).
+>
+> ℹ️ Il bug latente di `MigrateVipiDatabase` è **chiuso**: il dispatch è esplicito per provider e un
+> provider senza strategia fallisce l'avvio con un messaggio che dice cosa fare.
+>
+> ✅ **B4 deciso il 7 agosto 2026: in produzione va `main` + B1.** `feature/aree-speciali-hardening` è
+> fusa in `main` (fast-forward, 21 commit) e si porta dentro per intero `feature/aurora-bridge`, il cui
+> endpoint `POST /vsop/api/v1/transfers/resolve` **nasce spento** (`AuroraBridge:Enabled=false`): entra
+> come codice, non come superficie pubblica. Conseguenze: al primo boot su Neon l'archivio aree passa da
+> 993 a 230 legami (poi «Importa da sorgente»), e **il `.sql` di A3 va rifatto dopo il merge**.
+>
+> ⚠️ Il **token app IVAO** non è più fra i bloccanti: il 5 agosto ha risposto 200 col secret dei user-secrets
+> locali (dettagli e riserve nel blocco più in basso). Manca invece `VipiAuth:ClientSecret`, che in locale
+> non è mai servito perché il login è spento: in produzione serve.
+
+> ## ⏸️ RIMANDATO — embedding nel sito `Ivao.It.Website` (non è più la strada del sito definitivo)
+>
+> **Dal 5 agosto 2026 questo non è più il prossimo passo.** Il sito definitivo sarà servito dal nostro
+> host standalone (blocco 🟢 qui sopra), non dalla RCL montata nel loro sito. Il lavoro qui sotto resta
+> **valido e non buttato** — l'embedding è rimandato, non cancellato, e il multi-target `net8.0;net10.0`
+> delle cinque librerie resta in piedi proprio per questo — ma non è ciò su cui si lavora ora.
 >
 > **Eseguire il modulo dentro un host net8 e guidarlo.** È il punto 3 del piano in
 > [`docs/guide/integrazione-ivao-it-da-fare.md`](docs/guide/integrazione-ivao-it-da-fare.md) §5, e chiude
@@ -58,30 +77,6 @@
 >
 > ⚠️ Serve `VipiAuth`/identità: in embedded l'identità viene dall'host, quindi per la prova o si monta un
 > `ClaimsPrincipal` finto sull'host di test, o si usa `useDevIdentity: true` in `AddVipiModule`.
-
-> ## ⏸️ IN ATTESA DI LORO — supporto MySQL (piano scritto, esecuzione non avviata)
->
-> **Ivao.It ha risposto: solo MySQL.** Niente PostgreSQL affiancato, niente disco persistente per SQLite.
-> Il supporto MySQL passa da opzionale a strada obbligata per l'integrazione (resta irrilevante per il
-> deploy Render+Neon, che non cambia).
->
-> **Piano completo: [`docs/design/piano-supporto-mysql.md`](docs/design/piano-supporto-mysql.md)** —
-> slice, rischi, stime (4-5 sessioni), e in appendice il messaggio pronto da inviare a loro.
-> Decisione registrata in ADR-0007 §D4.
->
-> - **Gate:** serve la **versione del loro server MySQL** (8.0+ / 5.7 / MariaDB). Decide la strategia di
->   collation, che decide lo schema. È l'unica risposta bloccante.
-> - **MySQL sarà supportato solo sul TFM `net8.0`.** Verificato l'1-ago-2026: `Pomelo.EntityFrameworkCore.MySql`
->   è fermo alla 9.0.0 (EF Core 9, ago-2025), `main` senza commit da allora, quattro tentativi di porting a
->   EF Core 10 fra aperti da mesi (#2007, #2019) e chiusi senza merge (#2031, #2032, #2042). Per net8 si usa
->   la **8.0.3**. Limite duraturo, non temporaneo.
-> - **Fattibile subito, senza aspettarli:** `HasMaxLength` su tutte le colonne stringa indicizzate (oggi ne
->   ha **6** in tutto il modello; InnoDB non indicizza `longtext`) + un test guardia che cammina il modello
->   EF. Vale per tutti e tre i provider, non si butta se MySQL cambiasse.
-> - **Bug latente già in `main`,** trovato scrivendo il piano: `MigrateVipiDatabase`
->   (`VipiModuleExtensions.cs:201`) fa `if (Npgsql) reconcile else Migrate()` — il ramo `else` assume
->   «SQLite». Con MySQL configurato tenterebbe di applicare le 65 migration SQLite-flavored. Da sistemare
->   nella slice S6, oppure prima se qualcuno tocca quel dispatch.
 
 > **🚧 Sessione 2026-08-03 — aree regolamentate: interruttore, import incrementale, dangling, appartenenza
 > multi-ACC.** Branch `feature/aree-speciali-hardening`, 8 commit, suite **951 verde** (+24), build 0 warning. Carta completa:
@@ -111,8 +106,9 @@
 >   nasce spento per gli `IsForeign`, e una riconciliazione one-shot al boot le libera. Restano le 230 italiane.
 >   Se ne serve una, si riaccende quell'ACC con «Importa aree» in `/vsop/admin/accs` e torna. I documenti che ne
 >   citavano una la vedono come dangling (diagnostica + marcatura nell'editor).
-> - **Verifica live da fare**: pagina sorgenti (spegni/riaccendi + import), editor con un'area rimossa a mano,
->   la Zita che dopo l'import compare fra le aree proprie sia di LIRR sia di LIZZ, e «Importa aree» su un estero.
+> - ✅ **Verifica live eseguita il 6 agosto 2026** (esito per esteso nella carta e in `docs/lavori-aperti.md` B1):
+>   interruttore, dangling e aree estere confermati; la R49 «Zita» non è più elencata sotto LIRR dalla sorgente —
+>   la meccanica multi-ACC funziona lo stesso, è l'esempio a essere invecchiato.
 
 > **📄 Sessione 2026-07-30 (3) — uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA).** Branch
 > `fix/uniformita-tre-documenti`, 17 commit, suite **640 → 663 verde**, verifica live confermata dall'owner.
@@ -186,7 +182,14 @@
 > - **Tool `Vipi.DbSeed`** (copia SQLite locale→Neon): fix ciclo `Document↔DocumentVersion` (insert a 2 fasi con `CurrentVersionId=null`). Uso: `dotnet run --project tools/Vipi.DbSeed -- <vipi.db> "<connstring-postgres>"` (fa TRUNCATE+reseed).
 > - **`IvaoTokenProvider`**: logga il body d'errore sui token 400 (prima `EnsureSuccessStatusCode()` lo scartava).
 >
-> **⏳ APERTO — token app IVAO (400):** il polling tracker + import ACC falliscono con `POST /v2/oauth/token → 400`. Diagnosi: **NON è codice** (endpoint/grant/scope validati col discovery OIDC IVAO). È il **secret/app sul portale**: o `Ivao:ClientSecret` stale nei user-secrets, o l'app `fc95c992…` non ha grant `client_credentials`/scope `tracker`+`configuration` abilitati. Il nuovo log mostra l'`error` esatto nel body. Nota: `Ivao:ClientId == VipiAuth:ClientId` (stessa app IVAO per login utente + token app). Aggiornare il secret sia in user-secrets locali sia in `Ivao__ClientSecret` su Render.
+> **✅ RIENTRATO (5 agosto 2026) — token app IVAO.** Avviando l'host sul MySQL locale, `POST /v2/oauth/token`
+> ha risposto **200** e il polling ha trovato 2 ATC di divisione online. Il secret nei user-secrets locali
+> funziona: quello stale era su Render, non qui. ⚠️ Verificato solo il percorso con scope **`tracker`** (il
+> polling): l'**import** ACC/settori, che potrebbe volere anche `configuration`, non è stato riprovato — il
+> database di prova era vuoto. Da confermare guidando l'import. La diagnosi storica resta sotto perché il
+> ragionamento serve se il 400 tornasse.
+>
+> **⏳ ex-APERTO — token app IVAO (400):** il polling tracker + import ACC falliscono con `POST /v2/oauth/token → 400`. Diagnosi: **NON è codice** (endpoint/grant/scope validati col discovery OIDC IVAO). È il **secret/app sul portale**: o `Ivao:ClientSecret` stale nei user-secrets, o l'app `fc95c992…` non ha grant `client_credentials`/scope `tracker`+`configuration` abilitati. Il nuovo log mostra l'`error` esatto nel body. Nota: `Ivao:ClientId == VipiAuth:ClientId` (stessa app IVAO per login utente + token app). Aggiornare il secret sia in user-secrets locali sia in `Ivao__ClientSecret` su Render.
 >
 > **NB dev locale:** per testare login/logout in locale serve `VipiAuth:Enabled=true` in `appsettings.Development.json` (spegne l'utente dev fittizio → login IVAO vero) + redirect `http://localhost:5034/signin-oidc` e `/signout-callback-oidc` registrati sul portale IVAO. Questo flag è tenuto **fuori dai commit** (preferenza locale).
 
@@ -335,7 +338,7 @@ scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
    - **Mapping token-handler → callsign** trasferimenti (oggi euristica match-segmento). Valutare tabella esplicita.
    - **Endpoint membri divisione** (`/v2/divisions/IT/members`) da confermare.
    - Estendere `live=true` a **vIPI aeroporto / vLOA** (oggi solo ACC Ridotta).
-2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO). **SID ✅** (sectorfile Aurora GitHub, round 34, sez. config `Sectorfile`). **AoR 3D ✅** (Three.js r128 vendorizzato: tab 2D/3D nel blocco AoR + pagina `/vsop/aor3d/{Kind}/{Key}`; settori estrusi per banda FL, con **basemap geografica CartoDB come pavimento** — proiezione Web Mercator, toggle «Mappa base» — e rendering leggibile: selettore «Altezza» ×0.25→×2 con default ×0.5, etichette come overlay HTML con declutter, chip settore condivise col 2D — vedi `docs/feature/2026-07-31-aor3d-leggibilita.md`; il link «Apri pagina» è **rimosso** in attesa di rilavorare la pagina dedicata, che resta raggiungibile a URL diretto). Restano: **shape reali TWR dal sectorfile GitHub** (rimpiazza le sintetiche `IsShapeSynthetic`), **minime MVA** (`<icao>.mva` stesso repo — riusa il pattern SID: parser + import gated + pubblicazione differita). Nota AoR 3D: i settori senza limiti admin estrudono GND→UNL (banda piatta) → il rilievo 3D emerge solo coi `LowerLimit`/`UpperLimit` valorizzati.
+2. **Dati reali:** METAR/TAF ✅ (NOAA). Shape AoR ✅ (poligono IVAO). **SID ✅** (sectorfile Aurora GitHub, round 34, sez. config `Sectorfile`). **AoR 3D ✅** (Three.js r128 vendorizzato: tab 2D/3D nel blocco AoR + pagina `/vsop/aor3d/{Kind}/{Key}`; settori estrusi per banda FL, con **basemap geografica CartoDB come pavimento** — proiezione Web Mercator, toggle «Mappa base» — e rendering leggibile: selettore «Altezza» ×0.25→×2 con default ×0.5, etichette come overlay HTML con declutter, chip settore condivise col 2D — vedi `docs/feature/2026-07-31-aor3d-leggibilita.md`; il link «Apri pagina» è **rimosso** in attesa di rilavorare la pagina dedicata, che resta raggiungibile a URL diretto). **Shape reali TWR ✅** (dal sectorfile GitHub, `GithubTowerShapeService`: 68 TWR su 84 hanno il poligono vero, i 16 cerchi sintetici restanti sono torri che nemmeno `twrs.tfl` contiene — verificato il 9 agosto 2026). **Minime MVA ❌ scartate** (9 agosto 2026): nel sectorfile la struttura dei file MVA non dice a quale settore appartiene un'area, e un import dovrebbe indovinarla — una minima attribuita al settore sbagliato è peggio di una minima assente. Se serviranno, saranno **editoriali**, non importate. Vedi `docs/lavori-aperti.md` §E2. Nota AoR 3D: i settori senza limiti admin estrudono GND→UNL (banda piatta) → il rilievo 3D emerge solo coi `LowerLimit`/`UpperLimit` valorizzati.
 3. **Fonte unica (Round 20) — follow-up:** doc+AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi. Eliminazione totale di `Sector` + **risoluzione live** "chi controlla l'aeroporto adesso" (presidiato se DEL/GND/TWR online, altrimenti primo antenato online risalendo `ParentCallsign`) = fase live. ✅ **Fatto per i trasferimenti:** `ITransferService.ResolveForAccAsync` + `ITopologyProvider.BuildGlobalAsync` risolvono mittente e ricevente risalendo la gerarchia globale (terminale UNICOM); Ridotta li mostra nidificati Settore ▸ Aeroporto ▸ Tipo. Resta da estendere la stessa risalita alla "presidenza aeroporto" generale.
 4. **Auth di produzione:** adapter reali `ICurrentUserProvider` — `HostIdentity` (A/B, claim `Ivao.It`) e OIDC (C); mappare gli **staff code reali** (§6). Montare la RCL nel sito host.
 5. **Copertura/rifiniture:** viewer **audit log**, "scarta bozza", editor visuale mappe AoR, test property-based AoR, rifinitura UI.

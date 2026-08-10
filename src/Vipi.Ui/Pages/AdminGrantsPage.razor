@@ -108,6 +108,10 @@
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
+        // Il menù degli ACC legge Stations.Accs nel RENDER: senza scaldarlo qui, il primo accesso è un
+        // lazy-load sul DbContext del circuito mentre un'altra operazione è in volo ⇒ «A second operation
+        // was started». Vale per ogni provider; su MariaDB si vede sempre (verifica live A6).
+        Stations.Prewarm();
         await LoadAsync();
         _members = await Roster.ListActiveAsync();
     }

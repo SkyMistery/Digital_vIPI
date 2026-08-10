@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 
@@ -182,6 +183,34 @@ public sealed class EditingService : IEditingService
         // release-publish (ReleaseService.PublishNowAsync) e del boot sweep.
         await _repo.PruneArchivedVersionsAsync(docId, _retention.KeepArchivedVersionsPerDocument, ct);
         await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct); // pubblicato → lascia il documento libero
+    }
+
+    public async Task<int> DiscardDraftAsync(int versionId, CancellationToken ct = default)
+    {
+        var docId = await AuthorizeVersionAsync(versionId, ct);
+        await EnsureLockAsync(docId, ct);
+
+        var versions = await _repo.ListVersionsAsync(docId, ct);
+        var draft = versions.FirstOrDefault(v => v.Id == versionId)
+                    ?? throw new KeyNotFoundException($"Versione {versionId} inesistente.");
+
+        // Si scarta una BOZZA, non una versione qualsiasi: pubblicate e archiviate sono storia del documento,
+        // e cancellarle romperebbe ciò che le release dichiarano di aver fotografato.
+        if (draft.Status != DocumentStatus.Draft)
+            throw new ValidationException($"La versione {draft.VersionNumber} non è una bozza ({draft.Status}): non si scarta.");
+
+        // Serve qualcosa a cui tornare. Su un documento mai pubblicato la bozza È il documento: scartarla
+        // lascerebbe un guscio senza contenuto e senza vista pubblica — chi vuole disfarsene elimini il
+        // documento, che è un'altra azione con altre conseguenze.
+        if (!versions.Any(v => v.Id != versionId && v.Status is DocumentStatus.Published or DocumentStatus.Archived))
+            throw new ValidationException(
+                "Questa bozza è l'unica versione del documento: scartandola non resterebbe nulla da mostrare. " +
+                "Pubblicala, oppure elimina il documento.");
+
+        var numero = await _repo.DiscardDraftAsync(versionId, _authz.CurrentUserId ?? 0, ct);
+        // Scartare è finire di editare: come la pubblicazione, lascia il documento libero per gli altri.
+        await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct);
+        return numero;
     }
 
     // --- Lock ---

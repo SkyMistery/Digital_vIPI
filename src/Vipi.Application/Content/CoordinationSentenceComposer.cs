@@ -133,11 +133,16 @@ public static class CoordinationSentenceComposer
                 LevelConstraint.AtOrAbove => " " + lvl.OrAbove,
                 _ => "",
             };
-            return parityWord.Length == 0 ? body + bound : $"{body}{bound} {parityWord}";
+            // L'ordine delle parole lo decide il TEMPLATE, non questa riga: in inglese la parità va fra
+            // parentesi dopo il livello, in italiano segue come aggettivo. Concatenare qui produceva
+            // «at level 260 even».
+            return parityWord.Length == 0
+                ? body + bound
+                : lvl.WithParity.Replace("{body}", body + bound).Replace("{parity}", parityWord);
         }
 
         // Nessun valore numerico: solo la parità produce una frase.
-        return parityWord.Length == 0 ? "" : $"{lvl.ForLevel} {parityWord}";
+        return parityWord.Length == 0 ? "" : lvl.ForLevelParity.Replace("{parity}", parityWord);
     }
 
     // Risolve il testo del punto dal CoP (case-insensitive). Tre casi distinti (NON condividono lo stesso
