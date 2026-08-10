@@ -445,6 +445,29 @@ non si possono ricreare), oppure se servisse un rename/drop/cambio-tipo — a qu
 genera dal modello **mentre la sonda dice che lo schema combacia**, che è esattamente lo stato verificato
 oggi, e si timbra come applicato. È la stessa ricetta già usata per MariaDB.
 
+#### C3-bis 🟡 Decisione su Neon — riesaminata il 9 agosto 2026, esito: **tenerlo fino a dopo il cutover**
+«Ritirare Neon» e «chiudere il sito di prova» sono la stessa cosa: il servizio Render è senza stato, i dati
+stanno lì. Le alternative non reggono — un MySQL gestito gratuito non parla `utf8mb4_uca1400_as_cs` (un
+ambiente di prova che mente è peggio di nessun ambiente), e SQLite su disco effimero perde i dati a ogni
+redeploy.
+
+**Cosa è cambiato, e non basta a decidere adesso.** Come banco di prova del *database* Neon **non serve
+più**: la MariaDB locale coi dati veri riproduce la produzione meglio, ed è lei ad aver trovato i tre bug di
+A6. E C1 ha alleggerito C3, rendendo rumoroso un guasto che era silenzioso. Ma ciò che Neon dà **non è il
+database**: è l'unico ambiente **hostato** — reverse proxy, WebSocket, TLS, redirect OIDC, key-ring senza
+disco persistente — cioè proprio quello che A9/A10 devono ancora chiarire con loro. E il `.sql` del cutover
+nasce da lì: fino al passaggio serve per definizione.
+
+**Quando decidere, e con quale prova.** Dopo il cutover e **un ciclo AIRAC pubblicato dal server nuovo**
+senza sorprese. La domanda diventa allora osservabile invece che opinabile: *in quelle settimane Neon è
+stato aperto anche una sola volta?*
+- **No** → si chiude. Spariscono C1, C3 e un intero dialetto: `PostgresSchemaReconciler`,
+  `PostgresSchemaDriftProbe`, il ramo Postgres di `DataProtectionSchema` e `DependencyInjection`,
+  `--from-postgres`/`--to-postgres` di `Vipi.DbSeed`. Da tre dialetti a due.
+- **Sì** → è un ambiente che conta davvero, e **C3 va costruita**, non più rimandata.
+
+⚠️ Indipendente dalla decisione: la password di Neon è passata in chat il 9 agosto 2026 e **va ruotata**.
+
 ### C4 ✅ Cache-busting rimesso a posto — 9 agosto 2026, senza aspettare EF Core 10
 Era accettato come costo di net8: niente `@Assets[...]`, quindi un'unica impronta per tutti gli asset (il
 MVID dell'assembly), e a ogni deploy il browser riscaricava **tutto**, anche i file identici byte per byte.
