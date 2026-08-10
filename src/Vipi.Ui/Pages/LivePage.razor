@@ -128,7 +128,7 @@
         {
             <details class="acc-item" open data-persist="live-apt">
                 <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@icao</span></summary>
-                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" /></div>
+                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
             </details>
         }
         else if (_view.AirportChips.Count > 0)
@@ -150,7 +150,7 @@
 
         @if (_selectedApt is { } sel)
         {
-            <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" />
+            <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" Presidency="@PresidenzaDi(sel)" />
         }
         else
         {
@@ -262,6 +262,14 @@
 
         TrackChanges();
     }
+
+    /// <summary>
+    /// Presidenza già calcolata per le chip, riusata dalla vista rapida: la stessa schermata non deve
+    /// risolverla due volte, e soprattutto non in due modi. Null se quell'ICAO non ha una chip (es. il
+    /// pannello fisso di una torre): lì la riga semplicemente non compare.
+    /// </summary>
+    private AirportPresidency? PresidenzaDi(string icao) =>
+        _view?.AirportChips.FirstOrDefault(c => string.Equals(c.Icao, icao, StringComparison.OrdinalIgnoreCase))?.Presidency;
 
     /// <summary>
     /// Chi controlla quell'aeroporto adesso, in una riga: le posizioni sue online dal gate in su, e — se

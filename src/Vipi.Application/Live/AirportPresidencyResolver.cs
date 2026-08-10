@@ -80,4 +80,25 @@ public static class AirportPresidencyResolver
 
         return new AirportPresidency(locali, copertura);
     }
+
+    /// <summary>
+    /// Catena di copertura da un callsign in su, seguendo i padri. Sta qui e non nei chiamanti perché la usano
+    /// in due (la vista live e il servizio autonomo) e camminare una gerarchia è il genere di codice che, se
+    /// duplicato, diverge senza che nessuno se ne accorga.
+    ///
+    /// <para>Il guard sui visitati non è pedanteria: se la gerarchia contenesse un ciclo — l'editor non
+    /// dovrebbe permetterlo, ma qui non lo si assume — questa risalita girerebbe per sempre.</para>
+    /// </summary>
+    public static IReadOnlyList<string> Ancestors(string? start, IReadOnlyDictionary<string, string> parent)
+    {
+        var catena = new List<string>();
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var corrente = start;
+        while (!string.IsNullOrWhiteSpace(corrente) && visti.Add(corrente))
+        {
+            catena.Add(corrente);
+            corrente = parent.TryGetValue(corrente, out var p) ? p : null;
+        }
+        return catena;
+    }
 }

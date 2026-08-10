@@ -141,17 +141,7 @@ public sealed class LiveStationParts
             .Select(s => (s.Callsign, s.Type))
             .ToList();
 
-        // Catena di copertura: dal padre dell'aeroporto in su. Il guard sui visitati evita di girare in tondo
-        // se la gerarchia contenesse un ciclo — che l'editor non dovrebbe permettere, ma qui non si assume.
-        var antenati = new List<string>();
-        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var corrente = airportParent;
-        while (!string.IsNullOrWhiteSpace(corrente) && visti.Add(corrente))
-        {
-            antenati.Add(corrente);
-            corrente = ctx.Topology.Parent.TryGetValue(corrente, out var p) ? p : null;
-        }
-
+        var antenati = AirportPresidencyResolver.Ancestors(airportParent, ctx.Topology.Parent);
         return AirportPresidencyResolver.Resolve(posizioni, antenati, ctx.Online);
     }
 

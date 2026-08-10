@@ -564,9 +564,9 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
   correggere nell'editor: è un dato, non un bug.
 
-### E3 🟡 Fonte unica — «presidenza aeroporto» fatta il 9 agosto 2026, resta l'innesto in due pagine
-Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi: quella parte resta.
-La **risalita** invece c'è.
+### E3 🟡 Fonte unica — «presidenza aeroporto» ✅ fatta il 9 agosto 2026; resta il distacco dai `Sector`
+Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi: **quella parte
+resta aperta** ed è il grosso del follow-up del Round 20. La **risalita**, che era l'altra metà, è fatta.
 
 **`AirportPresidencyResolver`** (Application/Live, puro) risponde a «chi controlla questo aeroporto adesso»
 nella forma scelta dal committente: le posizioni **sue** online dal gate in su (DEL → GND → TWR → APP), più
@@ -589,9 +589,20 @@ vista live, che ora nel tooltip dicono chi presiede invece di una stringa fissa.
 ATC realmente online (`LIEO_EW0_APP`, `LIMC_ANE_APP`, `LIME_TWR`) non toccano nessuno degli aeroporti
 pubblicati — ed è coperto dai test.
 
-**Resta da innestare** dove la domanda si pone davvero all'utente: **`AirportQuickPanel`** (la vista rapida
-mostra TA/TL, piste e SID ma non chi chiamare) e il **viewer dell'aeroporto** `/vsop/{acc}/airports?icao=`.
-Entrambi hanno un percorso dati proprio: serve dare loro l'elenco degli online e la struttura.
+**Innestato in tutti e tre i punti** (9 agosto 2026), con due modi diversi e deliberati:
+- **chip della vista live** — il tooltip dice chi presiede;
+- **`AirportQuickPanel`** — riga «Adesso» accanto a TA/TL/vento/piste. La presidenza **arriva come parametro**
+  dalla pagina live, che l'ha già risolta per le chip: ricalcolarla dentro il pannello vorrebbe dire rifare le
+  query a ogni tick del feed, e rischiare che due parti della stessa schermata dicano cose diverse;
+- **viewer dell'aeroporto** `/vsop/{acc}/airports?icao=` — riga nel riepilogo, risolta da
+  `IAirportPresidencyService` perché quella pagina sta fuori dalla vista live e non ha un contesto pronto.
+  Risolta nel ciclo di vita, mai nel render.
+
+⚠️ **Difetto corretto strada facendo:** il conteggio «ATC online» del viewer contava anche l'**ATIS**, che è
+una frequenza registrata e non qualcuno che risponde — un aeroporto deserto poteva mostrare «1 online».
+
+Verificato a schermo su tutti e tre: chip → «Nobody online: UNICOM», vista rapida → «ADESSO nessuno online —
+UNICOM», viewer → «Now Nobody online: UNICOM» accanto al ciclo AIRAC.
 
 ### E4 Auth di produzione
 Confermare gli **staff code reali** IVAO: ruoli di divisione (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`) e

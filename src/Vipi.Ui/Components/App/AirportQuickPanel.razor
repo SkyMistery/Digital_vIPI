@@ -6,6 +6,7 @@
 @using System.Text.Json
 @using System.Text.RegularExpressions
 @using Vipi.Application.Content
+@using Vipi.Application.Live
 @using Vipi.Application.Weather
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
@@ -32,6 +33,12 @@ else
         </div>
 
         <div class="rap-quick">
+            @* Chi chiamare adesso: è la domanda per cui si apre questa vista, e prima non c'era risposta.
+               Le posizioni dello scalo online dal gate in su; se manca qualcosa, chi copre risalendo. *@
+            @if (Presidency is not null)
+            {
+                <div class="rap-box" style="flex-basis:100%"><span class="muted">Adesso</span><b>@ChiPresiede()</b></div>
+            }
             <div class="rap-box"><span class="muted">TA</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
             <div class="rap-box"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@TlNow()</b></div>
             @* Il vento accanto alla pista suggerita: la pista si sceglie per il vento, e senza vederlo la
@@ -102,6 +109,14 @@ else
     [Parameter, EditorRequired] public string Icao { get; set; } = default!;
     [Parameter, EditorRequired] public string Acc { get; set; } = default!;
 
+    /// <summary>
+    /// Chi presiede l'aeroporto adesso. Arriva dal chiamante e non si calcola qui **di proposito**: nella
+    /// vista live la pagina l'ha già risolta per le chip, e ricalcolarla qui vorrebbe dire rifare le query a
+    /// ogni tick del feed — oltre a rischiare che le due parti della stessa schermata dicano cose diverse.
+    /// Null = il chiamante non la conosce (o non è pertinente): la riga non si mostra affatto.
+    /// </summary>
+    [Parameter] public AirportPresidency? Presidency { get; set; }
+
     private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
     private AirportData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
     private int? _ta;
@@ -145,6 +160,17 @@ else
         _wind = metar?.Wind;
         _sugg = SuggestRwy(metar);
         _selRwy = _sugg.Dep is string dep && _runways.Contains(dep) ? dep : "all";
+    }
+
+    /// <summary>Una riga: le posizioni locali online, e chi copre il resto. Nessuno dei due ⇒ UNICOM.</summary>
+    private string ChiPresiede()
+    {
+        var p = Presidency!;
+        if (p.Unicom) return "nessuno online — UNICOM";
+
+        var locali = string.Join(" · ", p.Local.Select(s => s.Callsign));
+        if (p.Covering is null) return locali;
+        return locali.Length == 0 ? $"{p.Covering.Callsign} (copre)" : $"{locali} — resto: {p.Covering.Callsign}";
     }
 
     // ---- TA/TL dal documento pubblico (stessa logica di AeroportoPage.SplitSections/ParseTlTable) ----
