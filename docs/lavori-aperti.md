@@ -564,10 +564,34 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
   correggere nell'editor: è un dato, non un bug.
 
-### E3 Fonte unica — follow-up del Round 20
-Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi. Resta da estendere
-la risalita della gerarchia alla «presidenza aeroporto» generale — chi controlla l'aeroporto adesso —
-com'è già stato fatto per i trasferimenti.
+### E3 🟡 Fonte unica — «presidenza aeroporto» fatta il 9 agosto 2026, resta l'innesto in due pagine
+Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi: quella parte resta.
+La **risalita** invece c'è.
+
+**`AirportPresidencyResolver`** (Application/Live, puro) risponde a «chi controlla questo aeroporto adesso»
+nella forma scelta dal committente: le posizioni **sue** online dal gate in su (DEL → GND → TWR → APP), più
+**chi copre il resto** risalendo la gerarchia, e UNICOM se non c'è nessuno dei due. La risposta non è una
+sola perché non lo è la domanda: al gate serve il ground, in avvicinamento la torre.
+
+⚠️ **La regola di confronto è quella dei trasferimenti, riusata e non riscritta** (`TransferOnlineResolver`).
+È il punto che conta: due logiche di risalita affiancate darebbero, prima o poi, risposte diverse sullo
+stesso settore — e la sentinella dei callsign ambigui in diagnostica vale già per entrambe.
+
+**Sostituisce una risposta binaria che aveva due difetti.** La vista live diceva «delegato» se esisteva un
+callsign online che *cominciava* con l'ICAO: non diceva **chi** chiamare, e contava anche l'**ATIS**, che è
+una frequenza e non una posizione che controlla. Ora si parte dalle posizioni note dell'aeroporto, quindi
+l'ATIS non entra.
+
+**Fatto:** risolutore + 7 test (compresi il caso «solo il ground online, il resto lo copre chi sta sopra» e
+l'avvicinamento dell'aeroporto che non deve comparire due volte), innestato nelle **chip aeroporto** della
+vista live, che ora nel tooltip dicono chi presiede invece di una stringa fissa. Verificato a schermo:
+`LIPA`/`LIPI` → «Nobody online: UNICOM». ℹ️ Il ramo positivo non era osservabile in quel momento — i tre
+ATC realmente online (`LIEO_EW0_APP`, `LIMC_ANE_APP`, `LIME_TWR`) non toccano nessuno degli aeroporti
+pubblicati — ed è coperto dai test.
+
+**Resta da innestare** dove la domanda si pone davvero all'utente: **`AirportQuickPanel`** (la vista rapida
+mostra TA/TL, piste e SID ma non chi chiamare) e il **viewer dell'aeroporto** `/vsop/{acc}/airports?icao=`.
+Entrambi hanno un percorso dati proprio: serve dare loro l'elenco degli online e la struttura.
 
 ### E4 Auth di produzione
 Confermare gli **staff code reali** IVAO: ruoli di divisione (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`) e

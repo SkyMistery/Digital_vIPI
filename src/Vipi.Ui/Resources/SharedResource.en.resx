@@ -152,6 +152,9 @@
   <data name="Live_MySector" xml:space="preserve"><value>My sector</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controlled by another online position</value></data>
   <data name="Live_AptQuickTip" xml:space="preserve"><value>airport quick view</value></data>
+  <data name="Live_AptPresidedBy" xml:space="preserve"><value>Now: {0}</value></data>
+  <data name="Live_AptCoveredBy" xml:space="preserve"><value>covered by {0}</value></data>
+  <data name="Live_AptPresidedNobody" xml:space="preserve"><value>Nobody online: UNICOM</value></data>
   <data name="Live_DelegSuffix" xml:space="preserve"><value> ·delegated</value></data>
   <data name="Live_NoFreqDerived" xml:space="preserve"><value>No derived frequency.</value></data>
   <data name="Live_Delegated" xml:space="preserve"><value>delegated</value></data>

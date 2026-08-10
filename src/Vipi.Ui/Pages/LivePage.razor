@@ -139,8 +139,10 @@
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;
+                    @* Il tooltip dice CHI presiede adesso, non solo che qualcuno lo fa: è l'informazione
+                       per cui si guarda la chip. La forma resta invariata (nessun ridisegno). *@
                     <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
-                          title="@(chip.Delegated ? L["Live_AptDelegatedTip"] : L["Live_AptQuickTip"])"
+                          title="@ChiPresiede(chip)"
                           @onclick="() => _selectedApt = ic">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
             </div>
@@ -259,6 +261,23 @@
             _selectedApt = null;
 
         TrackChanges();
+    }
+
+    /// <summary>
+    /// Chi controlla quell'aeroporto adesso, in una riga: le posizioni sue online dal gate in su, e — se
+    /// qualcosa non è presidiato in loco — chi lo copre risalendo. Nessuno dei due ⇒ UNICOM.
+    /// </summary>
+    private string ChiPresiede(LiveAirportChip chip)
+    {
+        var p = chip.Presidency;
+        if (p.Unicom) return L["Live_AptPresidedNobody"];
+
+        var locali = string.Join(" · ", p.Local.Select(s => s.Callsign));
+        if (p.Covering is null) return L["Live_AptPresidedBy", locali].Value;
+
+        return locali.Length == 0
+            ? L["Live_AptCoveredBy", p.Covering.Callsign].Value
+            : L["Live_AptPresidedBy", locali].Value + " — " + L["Live_AptCoveredBy", p.Covering.Callsign].Value;
     }
 
     /// <summary>Enti che contano per questa postazione: la sua AoR, la catena di copertura e chiunque compaia
