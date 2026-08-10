@@ -21,4 +21,14 @@ public interface IDocumentMaintenance
     /// la sezione era derivata (doc 13 §3b): ora è editoriale, e un blocco tabella vuoto le darebbe un editor di
     /// tabella che nessuno ha chiesto. Ritorna il numero di blocchi rimossi.</summary>
     Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Porta le vLOA esistenti sulle chiavi del catalogo (doc 13 §3c): le due sotto-sezioni dei coordinamenti
+    /// smettono di ripetere la chiave del padre e prendono <c>coordination:out</c>/<c>coordination:in</c> secondo
+    /// l'ordine (la prima è Home→vicino, come le semina il registro), e la sezione «Purpose» — che nasceva con una
+    /// chiave libera perché il catalogo non la conosceva — prende <c>purpose</c>. Toglie anche i blocchi delle due
+    /// direzioni: il corpo lo produce la pagina, quindi erano testo scritto nel DB e invisibile in ogni vista.
+    /// Ritorna il numero di sezioni riconciliate.
+    /// </summary>
+    Task<int> ReconcileVloaSectionKeysAsync(CancellationToken ct = default);
 }

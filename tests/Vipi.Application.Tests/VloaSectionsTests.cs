@@ -39,7 +39,11 @@ public class VloaSectionsTests
 
         Assert.Empty(coord.Blocks);   // il corpo lo produce l'editor/viewer, non i blocchi
         Assert.Equal(2, coord.Children.Count);
+        // Ogni direzione ha la SUA chiave: prima ripetevano quella del padre, e la cattura frozen trovava tre
+        // sezioni «coordination» derivando tre volte lo stesso payload.
+        Assert.Equal(SectionKeys.CoordinationOut, coord.Children[0].SectionKey);
         Assert.Equal("LIBB → LDZO", coord.Children[0].Title);
+        Assert.Equal(SectionKeys.CoordinationIn, coord.Children[1].SectionKey);
         Assert.Equal("LDZO → LIBB", coord.Children[1].Title);
     }
 
@@ -51,6 +55,17 @@ public class VloaSectionsTests
         // ogni vLOA e invisibile ovunque.
         var coord = Canonical().Single(s => s.SectionKey == "coordination");
         Assert.All(coord.Children, c => Assert.Empty(c.Blocks));
+    }
+
+    [Fact]
+    public void The_directions_are_fixed_and_host_rendered_but_carry_no_toggle()
+    {
+        foreach (var key in new[] { SectionKeys.CoordinationOut, SectionKeys.CoordinationIn })
+        {
+            Assert.True(SectionCatalog.IsFixed(SectionProfile.Vloa, key));          // non rinominabili né eliminabili
+            Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Vloa, key));   // corpo = tabella dei trasferimenti
+            Assert.False(SectionCatalog.IsRenderModeToggleable(key));               // il congelamento è del padre
+        }
     }
 
     [Fact]

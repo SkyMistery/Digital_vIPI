@@ -341,6 +341,12 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
 
+        // vLOA sulle chiavi del catalogo (doc 13 §3c): direzioni dei coordinamenti e «Purpose».
+        var vloaKeys = maintenance.ReconcileVloaSectionKeysAsync().GetAwaiter().GetResult();
+        if (vloaKeys > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliate {Count} sezioni vLOA sulle chiavi del catalogo.", vloaKeys);
+
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.
         var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();

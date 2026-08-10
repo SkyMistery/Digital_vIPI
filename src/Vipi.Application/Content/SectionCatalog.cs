@@ -116,6 +116,19 @@ public static class SectionCatalog
             },
         };
 
+    // Sezioni fisse che NON sono di primo livello: stanno fuori dal registro di membership, che descrive solo ciò
+    // che si crea alla nascita del documento, ma sono fisse e rese dalla pagina come le altre. Il titolo è dinamico
+    // (dipende dai codici della coppia), quindi qui non serve. Doc 13 §3c.
+    private static readonly IReadOnlyDictionary<SectionProfile, IReadOnlyList<SectionDescriptor>> ChildRegistry =
+        new Dictionary<SectionProfile, IReadOnlyList<SectionDescriptor>>
+        {
+            [SectionProfile.Vloa] = new[]
+            {
+                H(SectionKeys.CoordinationOut, "", 1),
+                H(SectionKeys.CoordinationIn, "", 2),
+            },
+        };
+
     /// <summary>
     /// Vero se il corpo di questa sezione lo produce la PAGINA e non i blocchi della sezione (doc 13 §3a): sezioni
     /// derivate ed editoriali-strutturate. È la domanda che viewer ed editor si fanno per decidere se rendere il
@@ -132,8 +145,13 @@ public static class SectionCatalog
     /// <summary>Sezioni fisse del profilo, in ordine di default.</summary>
     public static IReadOnlyList<SectionDescriptor> For(SectionProfile profile) => Registry[profile];
 
+    /// <summary>Descrittore della sezione fissa con questa chiave: di primo livello o sotto-sezione fissa
+    /// (<see cref="ChildRegistry"/>). Null = sezione libera.</summary>
     public static SectionDescriptor? Find(SectionProfile profile, string key) =>
-        For(profile).FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase));
+        For(profile).FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
+        ?? (ChildRegistry.TryGetValue(profile, out var children)
+            ? children.FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
+            : null);
 
     public static bool IsFixed(SectionProfile profile, string key) => Find(profile, key) is not null;
 

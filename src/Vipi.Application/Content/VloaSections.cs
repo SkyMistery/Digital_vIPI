@@ -24,8 +24,7 @@ public sealed record VloaSectionSpec(string SectionKey, string Title,
 /// </summary>
 public static class VloaSections
 {
-    /// <summary>Chiave della sotto-sezione «direzione» dei coordinamenti (una per verso).</summary>
-    private const string CoordinationKey = "coordination";
+    private const string CoordinationKey = SectionKeys.Coordination;
 
     /// <summary>Struttura canonica parametrizzata sui codici ACC della coppia (contenuto EN placeholder).</summary>
     public static IReadOnlyList<VloaSectionSpec> Canonical(string homeCode, string foreignCode, string? foreignName, string airacCycle)
@@ -84,8 +83,8 @@ public static class VloaSections
         key == CoordinationKey
             ? new[]
             {
-                Sec(CoordinationKey, $"{home} → {foreign}"),
-                Sec(CoordinationKey, $"{foreign} → {home}"),
+                Sec(SectionKeys.CoordinationOut, $"{home} → {foreign}"),
+                Sec(SectionKeys.CoordinationIn, $"{foreign} → {home}"),
             }
             : Array.Empty<VloaSectionSpec>();
 

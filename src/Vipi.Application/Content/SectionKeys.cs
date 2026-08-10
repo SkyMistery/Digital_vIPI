@@ -27,4 +27,19 @@ public static class SectionKeys
     /// <summary>Vero se la chiave è quella storica ambigua, da riconciliare (doc 11 §3a).</summary>
     public static bool IsLegacyCustom(string? key) =>
         key is not null && key.Equals(LegacyCustom, StringComparison.OrdinalIgnoreCase);
+
+    // ---- coordinamenti vLOA: una chiave per direzione (doc 13 §3c) ----
+    // Le due sotto-sezioni ripetevano la chiave del padre, «coordination». Costava caro: la cattura frozen
+    // trovava TRE sezioni con quella chiave e derivava tre volte lo stesso payload, la lettura per chiave
+    // pescava «la prima che capita», e in editor e viewer la direzione si riconosceva una per TITOLO e l'altra
+    // per POSIZIONE — due modi diversi per la stessa cosa, entrambi fragili.
+
+    /// <summary>Sezione padre dei coordinamenti (il corpo lo produce la pagina, non i blocchi).</summary>
+    public const string Coordination = "coordination";
+
+    /// <summary>Direzione Home → vicino.</summary>
+    public const string CoordinationOut = "coordination:out";
+
+    /// <summary>Direzione vicino → Home.</summary>
+    public const string CoordinationIn = "coordination:in";
 }

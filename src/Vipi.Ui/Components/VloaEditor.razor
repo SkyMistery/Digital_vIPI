@@ -270,15 +270,20 @@ else
             case "frequencies":
                 @FreqView()
                 break;
-            case "coordination":
+            case SectionKeys.Coordination:
                 // La sezione PADRE non porta una direzione: le due direzioni sono le sue SOTTO-sezioni, rese qui
-                // sotto dall'editor condiviso. Renderla come se fosse una direzione duplicava l'albero — e per
-                // giunta quello sbagliato: il titolo «Coordination» non inizia col codice Home, quindi cadeva
-                // sempre su ForeignToHome. (Nel viewer è il padre a rendere ENTRAMBE le direzioni e le figlie non
-                // si rendono: là la sequenza è un'altra.)
-                if (s.Depth == 0) break;
-                var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
-                <AccCoordinationView Coord="@(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
+                // sotto dall'editor condiviso. Renderla come se fosse una direzione duplicava l'albero.
+                // (Nel viewer è il padre a rendere ENTRAMBE le direzioni e le figlie non si rendono: là la
+                // sequenza è un'altra.)
+                break;
+            // Direzione riconosciuta dalla CHIAVE (doc 13 §3c). Prima si guardava il titolo — «Coordination» non
+            // inizia col codice Home, quindi il padre cadeva sempre su ForeignToHome, e una coppia rinominata
+            // avrebbe invertito i versi in silenzio.
+            case SectionKeys.CoordinationOut:
+                <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
+                break;
+            case SectionKeys.CoordinationIn:
+                <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                 break;
         }
     };
