@@ -287,6 +287,14 @@
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>
   <data name="Diag_Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Diag_AdminTitle" xml:space="preserve"><value>Who can edit</value></data>
+  <data name="Diag_AdminHint" xml:space="preserve"><value>Configured patterns against the staff codes actually seen at login. They tell you whether the patterns are right: IVAO does not expose the list of staff members, so this is the only possible check.</value></data>
+  <data name="Diag_AdminPatterns" xml:space="preserve"><value>Admin patterns in force</value></data>
+  <data name="Diag_AdminCodes" xml:space="preserve"><value>Observed staff codes</value></data>
+  <data name="Common_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Diag_AdminIsAdmin" xml:space="preserve"><value>Grants admin</value></data>
+  <data name="Diag_AdminNoRoster" xml:space="preserve"><value>Nobody has logged in yet: the roster is filled from logins, so there is nothing to compare.</value></data>
+  <data name="Diag_AdminNobody" xml:space="preserve"><value>None of the known staff members is an admin: while this holds nobody can edit or grant permissions, and it cannot be fixed from inside. Correct «Auth:AdminStaffCodes» or the «Division» section.</value></data>
   <data name="Diag_Entity" xml:space="preserve"><value>Entity</value></data>
   <data name="Diag_Detail" xml:space="preserve"><value>Detail</value></data>
   <data name="Diag_Severe" xml:space="preserve"><value>severe</value></data>

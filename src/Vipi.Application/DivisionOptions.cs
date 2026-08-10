@@ -21,6 +21,11 @@ public sealed class DivisionOptions
     /// <summary>
     /// Suffissi (pattern regex senza prefisso divisione) considerati admin completo. L'admin code finale è
     /// <c>^{Code}-{suffisso}$</c>. Sovrascrivibili da <c>Auth:AdminStaffCodes</c> (pattern completi).
+    ///
+    /// <para>⚠️ <b>Da qui si può solo ALLARGARE, mai restringere.</b> Il binder della configurazione
+    /// <i>aggiunge</i> alle liste di default invece di sostituirle: elencare qui tre ruoli non toglie gli
+    /// altri, li somma. Per restringere davvero l'insieme degli admin si usa <c>Auth:AdminStaffCodes</c>, che
+    /// invece sostituisce tutto. È una differenza che conta: è il permesso più alto del prodotto.</para>
     /// </summary>
     public List<string> AdminRolePatterns { get; set; } = new()
     {

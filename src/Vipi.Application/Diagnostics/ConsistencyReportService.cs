@@ -17,6 +17,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
 {
     private readonly IConsistencyReportRepository _repo;
     private readonly ISchemaDriftProbe? _schema;
+    private readonly Auth.IAdminCoverageService? _admin;
 
     /// <param name="schema">
     /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
@@ -24,19 +25,28 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// restare una funzione pura sul dataset di dominio. Agganciandolo in questo punto — l'unico consumato sia da
     /// <c>/vsop/admin/diagnostica</c> sia dall'health check — entrambi lo mostrano senza modifiche a valle.
     /// </param>
-    public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null)
+    /// <param name="admin">
+    /// Opzionale, come <paramref name="schema"/> e per la stessa ragione: non è un'incongruenza di <i>dati</i>
+    /// ma di <b>configurazione</b> — se nessuno degli staff code osservati vale admin, in produzione nessuno
+    /// può editare e non lo si rimedia da dentro. Agganciato qui perché è l'unico punto letto sia dalla
+    /// diagnostica sia dall'health check.
+    /// </param>
+    public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null,
+        Auth.IAdminCoverageService? admin = null)
     {
         _repo = repo;
         _schema = schema;
+        _admin = admin;
     }
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
     {
-        var findings = Analyze(await _repo.LoadAsync(ct));
-        if (_schema is null) return findings;
+        var findings = Analyze(await _repo.LoadAsync(ct)).ToList();
 
-        var drift = await _schema.RunAsync(ct);
-        return drift.Count == 0 ? findings : findings.Concat(drift).ToList();
+        if (_schema is not null) findings.AddRange(await _schema.RunAsync(ct));
+        if (_admin is not null) findings.AddRange(await _admin.RunAsync(ct));
+
+        return findings;
     }
 
     // Logica pura (nessuna dipendenza da EF): il dataset è già in memoria ⇒ testabile con fixture.

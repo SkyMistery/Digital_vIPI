@@ -290,6 +290,14 @@
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} incongruenze rilevate ({1} gravi). Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato è stato modificato. Correzione manuale via editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Gravità</value></data>
   <data name="Diag_Category" xml:space="preserve"><value>Categoria</value></data>
+  <data name="Diag_AdminTitle" xml:space="preserve"><value>Chi può editare</value></data>
+  <data name="Diag_AdminHint" xml:space="preserve"><value>I pattern configurati a confronto con i codici staff realmente visti ai login. Servono a capire se i pattern sono quelli giusti: IVAO non espone l'elenco degli staffisti, quindi questa è l'unica verifica possibile.</value></data>
+  <data name="Diag_AdminPatterns" xml:space="preserve"><value>Pattern admin in vigore</value></data>
+  <data name="Diag_AdminCodes" xml:space="preserve"><value>Codici staff osservati</value></data>
+  <data name="Common_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Diag_AdminIsAdmin" xml:space="preserve"><value>Vale admin</value></data>
+  <data name="Diag_AdminNoRoster" xml:space="preserve"><value>Nessuno ha ancora fatto login: il roster si popola dagli accessi, quindi non c'è ancora nulla da confrontare.</value></data>
+  <data name="Diag_AdminNobody" xml:space="preserve"><value>Nessuno degli staffisti conosciuti risulta admin: finché è così nessuno può editare né assegnare permessi, e non si sblocca da dentro. Si corregge «Auth:AdminStaffCodes» o la sezione «Division».</value></data>
   <data name="Diag_Entity" xml:space="preserve"><value>Entità</value></data>
   <data name="Diag_Detail" xml:space="preserve"><value>Dettaglio</value></data>
   <data name="Diag_Severe" xml:space="preserve"><value>grave</value></data>

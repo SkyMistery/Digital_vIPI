@@ -16,6 +16,9 @@ public static class DependencyInjection
         services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
+        // Confronta i pattern admin coi codici staff realmente osservati dai login: se non combaciano,
+        // in produzione nessuno può editare e non lo si scopre in altro modo.
+        services.AddScoped<Auth.IAdminCoverageService, Auth.AdminCoverageService>();
         services.AddScoped<Auth.IStaffRosterService, Auth.StaffRosterService>();
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<IResourceLockService, ResourceLockService>();

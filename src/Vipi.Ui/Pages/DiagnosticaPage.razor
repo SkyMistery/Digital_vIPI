@@ -4,6 +4,7 @@
 @using Vipi.Application.Diagnostics
 @using Vipi.Application.Auth
 @inject IConsistencyReportService Consistency
+@inject IAdminCoverageService AdminCoverage
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 
@@ -55,6 +56,54 @@
         </table>
     }
 
+    @* Chi può editare: i pattern admin configurati contro i codici staff VERI, quelli visti ai login.
+       Fuori dal ramo del report perché va guardata anche — anzi soprattutto — quando non c'è alcun rilievo:
+       serve a confermare che i pattern siano quelli giusti, non solo a segnalare quando non lo sono. *@
+    @if (Authz.IsAdmin && _admin is not null)
+    {
+        <div class="rail-card" style="margin-top:22px">
+            <h5><Icon Name="key" /> @L["Diag_AdminTitle"]</h5>
+            <p class="muted" style="font-size:12.5px;margin:0 0 10px">@L["Diag_AdminHint"]</p>
+
+            <div class="rail-line"><span class="muted">@L["Diag_AdminPatterns"]</span><b>@string.Join(" · ", _admin.Patterns)</b></div>
+
+            @if (_admin.RosterEmpty)
+            {
+                <p class="help">@L["Diag_AdminNoRoster"]</p>
+            }
+            else
+            {
+                <table class="res-table" style="margin-top:10px">
+                    <thead><tr><th>VID</th><th>@L["Common_Name"]</th><th>@L["Diag_AdminCodes"]</th><th>@L["Diag_AdminIsAdmin"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in _admin.Rows)
+                        {
+                            <tr>
+                                <td>@r.UserId</td>
+                                <td>@(r.DisplayName ?? "—")</td>
+                                <td class="muted">@(r.Codes.Count == 0 ? "—" : string.Join(", ", r.Codes))</td>
+                                <td>
+                                    @if (r.Matched.Count > 0)
+                                    { <span class="node-badge">@string.Join(", ", r.Matched)</span> }
+                                    else
+                                    { <span class="muted">—</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (!_admin.AnyAdmin)
+                {
+                    <div class="callout danger" style="margin-top:10px">
+                        <span class="cic"><Icon Name="octagon" Size="18" /></span>
+                        <div>@L["Diag_AdminNobody"]</div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
     @* Manutenzione del deposito immagini: sta qui perché è la pagina delle azioni di manutenzione ed è già
        riservata agli admin. Fuori dal ramo del report: il quadro di consistenza può essere pulito e lo spazio
        da recuperare esserci lo stesso. *@
@@ -66,6 +115,7 @@
 
 @code {
     private IReadOnlyList<ConsistencyFinding> _findings = Array.Empty<ConsistencyFinding>();
+    private AdminCoverage? _admin;
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -74,6 +124,7 @@
         // Grave prima, poi per categoria: la lista più urgente in cima.
         var all = await Consistency.RunAsync();
         _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
+        _admin = await AdminCoverage.DescribeAsync();
         _loading = false;
     }
 }

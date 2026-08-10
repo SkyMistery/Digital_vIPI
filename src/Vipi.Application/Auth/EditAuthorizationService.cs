@@ -49,27 +49,9 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
         _user = user;
         _grants = grants;
 
-        // Override esplicito (pattern completi) se presente; altrimenti deriva i codici admin dalla divisione:
-        //  - ruoli di divisione: ^{Code}-{ruolo}$ (es. IT-DIR, DE-DIR);
-        //  - ruoli ACC-scoped (chief): ^{prefissoIcao}[A-Z0-9]+-{ruolo}$ (es. LIRR-CH, LIMM-ACH).
-        // Cambiare Division.Code / IcaoPrefixes sposta tutti i codici admin.
-        var div = division.Value;
-        IEnumerable<string> patterns;
-        if (options.Value.AdminStaffCodes is { Count: > 0 } configured)
-        {
-            patterns = configured;
-        }
-        else
-        {
-            var divRoles = div.AdminRolePatterns.Select(role => $"^{Regex.Escape(div.Code)}-{role}$");
-            var accRoles = div.IcaoPrefixes.SelectMany(prefix =>
-                div.AdminAccRolePatterns.Select(role => $"^{Regex.Escape(prefix)}[A-Z0-9]+-{role}$"));
-            patterns = divRoles.Concat(accRoles);
-        }
-
-        _adminCodes = patterns
-            .Select(p => new Regex(p, RegexOptions.Compiled | RegexOptions.IgnoreCase))
-            .ToArray();
+        // I pattern stanno in AdminStaffCodes, non qui: li usa anche la diagnostica, e una diagnosi che se li
+        // ricalcolasse per conto proprio potrebbe dire «tutto a posto» mentre l'autorizzazione ne usa altri.
+        _adminCodes = AdminStaffCodes.Compile(AdminStaffCodes.Patterns(options.Value, division.Value));
     }
 
     public bool IsAdmin

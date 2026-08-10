@@ -627,9 +627,37 @@ una frequenza registrata e non qualcuno che risponde — un aeroporto deserto po
 Verificato a schermo su tutti e tre: chip → «Nobody online: UNICOM», vista rapida → «ADESSO nessuno online —
 UNICOM», viewer → «Now Nobody online: UNICOM» accanto al ciclo AIRAC.
 
-### E4 Auth di produzione
-Confermare gli **staff code reali** IVAO: ruoli di divisione (`IT-DIR/ADIR/WM/AWM/AOC/AOAC/AOA<n>`) e
-ruoli chief ACC-scoped (`{ACC}-CH`, `{ACC}-ACH`). Oggi sono ipotesi in configurazione.
+### E4 🟡 Auth di produzione — ora si **vede**, e i codici veri dicono già qualcosa
+I pattern admin (`^IT-DIR$`, `^LI[A-Z0-9]+-CH$`, …) erano ipotesi. Due contromisure, fatte il 9 agosto 2026:
+- **scheda «Chi può editare»** in `/vsop/admin/diagnostica`: i pattern in vigore a confronto con i codici
+  staff **realmente osservati ai login** (IVAO non espone l'elenco degli staffisti — `/members` è 404 — quindi
+  il roster costruito dagli accessi è l'unica fonte possibile);
+- **rilievo grave** nel report di consistenza (quindi anche in `/vsop/health`) quando **nessuno** degli
+  staffisti conosciuti risulta admin. Non scatta a roster vuoto: su un'installazione nuova nessuno ha ancora
+  fatto login, e segnalarlo lì sarebbe solo rumore.
+
+I pattern sono ora una **fonte sola** (`AdminStaffCodes`), condivisa fra chi decide e chi diagnostica: una
+diagnosi che se li ricalcolasse potrebbe dire «tutto a posto» mentre l'autorizzazione ne usa altri.
+
+**Cosa dicono i dati veri** (roster attuale, 5 staffisti):
+
+| VID | codici osservati | vale admin |
+|---|---|---|
+| 201143 | `IT-AOC`, **`IT-SOC`** | `IT-AOC` |
+| 286571 | **`IT-T01`** | — |
+| 516571 | **`IT-FOC`** | — |
+| 657465 | `IT-ADIR`, **`IT-FOAC`** | `IT-ADIR` |
+| 704798 | `IT-AOA1`, **`IT-T03`** | `IT-AOA1` |
+
+Quindi: **il formato è confermato** (`IT-XXX`), tre su cinque sono admin, e ci sono **quattro codici veri non
+coperti** — `IT-SOC`, `IT-T01`, `IT-FOC`, `IT-FOAC`. Se debbano valere admin **non è una domanda tecnica**:
+un coordinatore training o un flight-ops devono poter editare le vIPI? È la decisione che resta a voi.
+Nessun codice chief `{ACC}-CH` è ancora comparso: quel pattern resta **non verificato**.
+
+⚠️ **Trappola di configurazione trovata qui:** dalle liste della sezione `Division` si può solo **allargare**
+l'insieme degli admin, mai restringerlo — il binder *aggiunge* ai default invece di sostituirli (era anche
+la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero si usa
+`Auth:AdminStaffCodes`, che sostituisce tutto. Su un permesso di questo peso, la differenza conta.
 
 ### E5 Copertura e rifiniture — due voci chiuse il 9 agosto 2026
 - ✅ **«Scarta bozza»** — fatto. Elimina la versione `Draft` col suo contenuto, scrive l'audit
