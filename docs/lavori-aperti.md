@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 7 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 9 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -8,11 +8,22 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 **Legenda del blocco:** 🟢 si può fare subito · 🟡 dipende da un'altra voce · 🔴 dipende da qualcun altro
 (Ivao.It, il portale IVAO, l'owner).
 
+## Dove siamo, in cinque righe
+Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
+tenuta aperta con la ragione scritta) e **D** (verifiche live arretrate) sono **chiuse**. La **E** è stata
+sfoltita: metà delle voci erano già fatte o non avevano più senso — ricontrollare un elenco prima di
+lavorarci si è rivelato più produttivo che eseguirlo.
+
+⚠️ **Quel che resta è quasi tutto fuori dal codice**: consegnare `.sql` e pacchetto, le risposte di Ivao.It
+(A9/A10), la rotazione della password Neon, e quattro decisioni di contenuto — la SID `BANA8A`, le 33 torri
+senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release* debba scrivere audit.
+
 ---
 
 ## A. Cutover su `atc.it.ivao.aero` — la strada critica
 
-Branch `feat/persistenza-mysql`. Contesto: [`design/piano-supporto-mysql.md`](design/piano-supporto-mysql.md),
+✅ **Fuso in `main` il 9 agosto 2026**: il ramo `feat/persistenza-mysql` non è più il posto dove si lavora —
+`main` è net8 + Pomelo + MariaDB. Contesto: [`design/piano-supporto-mysql.md`](design/piano-supporto-mysql.md),
 decisioni in ADR-0007 §D4/§D4-bis (⚠️ entrambe **superate**, vedi A8).
 
 Stato: il server è **MariaDB 11.4.10**, non MySQL. `Vipi.Host` è passato a **net8** e il provider è

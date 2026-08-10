@@ -29,6 +29,23 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 `Code` sposta i codici admin (`DE-DIR`…) e l'id API; `IcaoPrefixes` filtra gli ATC online.
 ⚠️ Il **contenuto seed** (Roma/LIRR) è dato, non config: una nuova divisione va riseedata a parte.
 
+> ### ⚠️ Da queste liste si può solo ALLARGARE, mai restringere
+> Il binder della configurazione **aggiunge** alle liste di default invece di sostituirle: elencare qui tre
+> ruoli non toglie gli altri, li somma (è anche il motivo per cui `IcaoPrefixes: ["LI"]` produceva «LI» due
+> volte). Per **restringere** davvero l'insieme degli admin si usa **`Auth:AdminStaffCodes`**, che sostituisce
+> l'intero elenco con pattern completi. Su ciò che è il permesso più alto del prodotto, la differenza conta.
+>
+> ### Come si verifica che i pattern siano quelli giusti
+> IVAO **non** espone l'elenco degli staffisti di divisione (`/v2/divisions/{id}/members` → 404 col token
+> app), quindi la verifica è empirica: il roster si popola dai login, e la scheda **«Chi può editare»** in
+> `/vsop/admin/diagnostica` mette i pattern in vigore accanto ai codici staff **realmente osservati**. Se
+> nessuno degli staffisti conosciuti risulta admin scatta un rilievo grave (e `/vsop/health` va a Degraded);
+> a roster vuoto invece tace, perché su un'installazione nuova nessuno ha ancora fatto login.
+>
+> Codici veri visti al 9 agosto 2026: `IT-AOC`, `IT-SOC`, `IT-T01`, `IT-FOC`, `IT-ADIR`, `IT-FOAC`,
+> `IT-AOA1`, `IT-T03` — quindi **`IT-SOC`, `IT-T01`, `IT-FOC` e `IT-FOAC` non sono coperti** dai default, e
+> nessun codice chief `{ACC}-CH` è ancora comparso.
+
 ---
 
 ## 1b. `DataSource` — selezione della sorgente dati esterna

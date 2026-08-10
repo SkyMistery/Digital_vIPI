@@ -1,7 +1,24 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 agosto 2026 (cutover MariaDB: schema, travaso, CI e **flussi editoriali** verificati; pacchetto di deploy rifatto)
+**Ultimo aggiornamento:** 9 agosto 2026 — **il cutover MariaDB è in `main`**, verificato; sezioni B, C e D
+chiuse, E sfoltita.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
+
+> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 9 agosto 2026)
+>
+> **Il ramo `feat/persistenza-mysql` è stato fuso in `main`**: il cutover non è più un ramo a parte. `main` è
+> ora **net8 + Pomelo + MariaDB**, il Dockerfile pubblica su `aspnet:8.0`, e il deploy Render+Neon resta in
+> piedi come **ambiente di prova** (decisione C3-bis: si riesamina dopo il cutover, non prima).
+>
+> **Le cose in mano a voi, non al codice:** consegnare `.sql` e pacchetto, le risposte di Ivao.It (A9/A10),
+> la rotazione della password Neon, e quattro decisioni di contenuto — la SID `BANA8A` di LIBD, le 33 torri
+> senza padre, **quali staff code valgono admin** (E4: ora i codici veri si vedono in diagnostica), e se
+> pubblicare una *release* debba scrivere audit.
+>
+> **Metodo che ha pagato, in questa sessione più che mai:** nove difetti su undici sono usciti **guidando
+> l'app**, non dai test — fra cui tre pagine che morivano su MariaDB, una direttiva nginx inesistente che
+> avrebbe bloccato la consegna, e l'ATIS contato come chi controlla un aeroporto. Prima di dichiarare fatta
+> una cosa, aprirla: la skill `verifica-live` esiste per questo.
 
 > ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
 >
@@ -10,7 +27,7 @@
 > un'altra voce · 🔴 dipende da altri). **Partire da lì**, non da questo documento, che racconta lo stato
 > ma non ordina il lavoro.
 
-> ## 🟢 PRIMA COSA — il cutover su `atc.it.ivao.aero` (branch `feat/persistenza-mysql`)
+> ## ✅ IL CUTOVER È IN `main` — cosa sapere su `atc.it.ivao.aero`
 >
 > **Il server è MariaDB 11.4.10, il provider è Pomelo, `Vipi.Host` è net8.** Decisione vigente: ADR-0007
 > **§D4-ter**, che supera §D4-bis (Oracle/net10/MySQL 8) come quella aveva superato §D4. Il
@@ -34,6 +51,11 @@
 >
 > ℹ️ Il bug latente di `MigrateVipiDatabase` è **chiuso**: il dispatch è esplicito per provider e un
 > provider senza strategia fallisce l'avvio con un messaggio che dice cosa fare.
+>
+> ⚠️ **Ogni cambio di schema va emesso DUE volte** — SQLite (`Vipi.Infrastructure`) e MySQL
+> (`Vipi.Infrastructure.MySqlMigrations`). Tre test guardia lo pretendono, più il job CI `mariadb-schema` su
+> MariaDB vera. E lo scaffold di EF va **riletto**: sull'ultima migrazione metteva il `DropColumn` prima del
+> travaso dei dati, e su un database pieno i legami sarebbero spariti in silenzio.
 >
 > ✅ **B4 deciso il 7 agosto 2026: in produzione va `main` + B1.** `feature/aree-speciali-hardening` è
 > fusa in `main` (fast-forward, 21 commit) e si porta dentro per intero `feature/aurora-bridge`, il cui
