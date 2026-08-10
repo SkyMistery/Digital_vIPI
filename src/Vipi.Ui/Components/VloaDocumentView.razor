@@ -65,9 +65,12 @@
                 <CollapsibleBlock Id="@s.Id">
                     <Header><h3 style="margin-top:0">@s.Title</h3></Header>
                     <ChildContent>
-                        @* Le due direzioni sono sotto-sezioni del documento, riconosciute dalla CHIAVE (doc 13
-                           §3c): prima erano la figlia [0] e la figlia [1], mentre l'editor le distingueva per
-                           titolo — due modi diversi per la stessa cosa. *@
+                        @* Le sotto-sezioni EXTRA (quelle che non sono una direzione) sono contenuto del documento
+                           come in ogni altra sezione resa dalla pagina: prima questo ramo — solo questo — non le
+                           rendeva affatto, pur essendo creabili dall'editor con «+ sotto-sez» (doc 11 §3b). *@
+                        @SubSections(WithoutDirections(s), SectionSlot.Before)
+                        @* Le due direzioni, riconosciute dalla CHIAVE (doc 13 §3c): prima erano la figlia [0] e la
+                           figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa. *@
                         @if (DirectionVisible(s, SectionKeys.CoordinationOut))
                         {
                             <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
@@ -78,6 +81,7 @@
                             <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
                             <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                         }
+                        @SubSections(WithoutDirections(s), SectionSlot.After)
                     </ChildContent>
                 </CollapsibleBlock>
             }
@@ -148,6 +152,25 @@
         Vloa = ScopedServices.GetRequiredService<IVloaDerivationService>();
         VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
     }
+
+    /// <summary>Vero se la chiave è una delle due direzioni dei coordinamenti (rese dal corpo, non come sotto-sezioni).</summary>
+    private static bool IsDirection(string key) =>
+        key.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase)
+        || key.Equals(SectionKeys.CoordinationIn, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>La stessa sezione senza le due direzioni fra le figlie: quelle le rende il corpo, le altre sono
+    /// sotto-sezioni normali e vanno rese negli slot come ovunque (doc 11 §3g).</summary>
+    private static SectionView WithoutDirections(SectionView s) => new()
+    {
+        Id = s.Id,
+        Title = s.Title,
+        Depth = s.Depth,
+        SectionKey = s.SectionKey,
+        IsHidden = s.IsHidden,
+        BeforeParentBody = s.BeforeParentBody,
+        Blocks = s.Blocks,
+        Children = s.Children.Where(c => !IsDirection(c.SectionKey)).ToList(),
+    };
 
     // Direzione dei coordinamenti: visibile se la sotto-sezione con quella chiave non è nascosta (in bozza si
     // mostra comunque). Se il documento non ha quella sotto-sezione (vLOA vecchia, non ancora riconciliata) la
