@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -231,8 +231,6 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Unified sector</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>No frequency in the subtree.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Frequencies derive from the sector tree: change the hierarchy and they change here. Reorder by dragging ⠿ or with ↑/↓; add external frequencies with «Link frequency».</value></data>
-  <data name="AppMinima_Title" xml:space="preserve"><value>Minimum vectoring altitudes</value></data>
-  <data name="AppMinima_Body" xml:space="preserve"><value>MVA charts are not imported from the sectorfile: it does not say which sector each area belongs to, and assigning a minimum to the wrong sector would be worse than not having it. If they are needed, they are written here as document content.</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Approach sector transfers: towards ACCs and towards the tower(s). Derived from the configured flows.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>No coordination configured for this APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Transfers towards ACC</value></data>

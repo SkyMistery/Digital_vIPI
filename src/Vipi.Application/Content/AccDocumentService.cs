@@ -83,8 +83,10 @@ public sealed class AccDocumentService : IAccDocumentService
 
     // Sezioni "live" della vIPI ACC (derivate o rese live da componenti dedicati): ricevono un blocco placeholder alla
     // creazione così restano visibili nel viewer anche senza contenuto memorizzato. Union dei due profili ACC.
+    // «minima» non c'è più (doc 13 §3b): è una sezione editoriale come le altre e un blocco tabella vuoto
+    // le darebbe un editor di tabella che nessuno ha chiesto.
     private static readonly string[] LiveKeys =
-        { "separations", "aor", "frequencies", "minima", "vfr", "coordination" };
+        { "separations", "aor", "frequencies", "vfr", "coordination" };
 
     public Task<AccDocumentIdentity?> GetIdentityAsync(string accCode, CancellationToken ct = default) =>
         _repo.ResolveAccDocumentIdentityAsync(Norm(accCode), ct);

@@ -16,7 +16,6 @@
         <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
         break;
     case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
-    case "minima": <AppMinima /> break;
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" /> break;
     case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;

@@ -341,6 +341,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
 
+        // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
+        // da derivata, o l'editor mostrerebbe una tabella senza colonne.
+        var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();
+        if (minima > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rimossi {Count} blocchi placeholder dalle sezioni «minima».", minima);
+
         // Aree regolamentate: appartenenza agli ACC dalla vecchia colonna singola alla tabella dei legami.
         var areas = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISpecialAreaMaintenance>();
         var links = areas.BackfillAreaCentersAsync().GetAwaiter().GetResult();

@@ -499,9 +499,6 @@ else
                                 OnDrop="() => FreqDragDrop(blk)" OnDragEnd="() => FreqDragDrop(blk)" />
                 @if (_editing) { @FreqLinkEditor(blk) }
                 break;
-            case "minima":
-                <AppMinima />
-                break;
             case "vfr":
                 <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_editing" ContentChanged="c => SaveVfr(blk, c)" />
                 break;

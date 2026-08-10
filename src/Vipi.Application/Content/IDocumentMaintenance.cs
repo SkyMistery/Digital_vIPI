@@ -16,4 +16,9 @@ public interface IDocumentMaintenance
     /// <c>DocumentProfile</c> per chiave nell'APP e per titolo nella vLOA) al flag versionato
     /// <c>DocumentSection.IsHidden</c> (doc 11 §3c), e azzera le sorgenti. Ritorna le sezioni marcate.</summary>
     Task<int> MigrateHiddenSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>Toglie dalle sezioni <c>minima</c> i blocchi placeholder vuoti (né testo né JSON) creati quando
+    /// la sezione era derivata (doc 13 §3b): ora è editoriale, e un blocco tabella vuoto le darebbe un editor di
+    /// tabella che nessuno ha chiesto. Ritorna il numero di blocchi rimossi.</summary>
+    Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default);
 }

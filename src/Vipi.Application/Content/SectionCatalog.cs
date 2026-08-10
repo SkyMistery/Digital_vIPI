@@ -15,8 +15,12 @@ public static class SectionCatalog
             ["aor"] = SectionKind.Derived,
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
-            ["minima"] = SectionKind.Derived,
             ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
+            // «minima» è Editorial dal doc 13 §3b: le MVA non si importano (decisione 2026-08-09, lavori-aperti §E2)
+            // e si scrivono a mano. Da derivata non derivava nulla: nessun provider la catturava, il toggle
+            // Live/Congelata non aveva effetto e — peggio — l'editor non offriva i blocchi, quindi era l'unica
+            // sezione del documento in cui NON si poteva scrivere.
+            ["minima"] = SectionKind.Editorial,
             ["separations"] = SectionKind.Editorial,
             ["configurations"] = SectionKind.Editorial,
             ["vfr"] = SectionKind.Editorial,
@@ -64,7 +68,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
+                D("minima", "Minime di vettoramento", 5),
                 H("vfr", "VFR", 6),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
@@ -77,7 +81,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
+                D("minima", "Minime di vettoramento", 5),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
@@ -89,7 +93,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
+                D("minima", "Minime di vettoramento", 5),
                 H("vfr", "VFR", 6),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),

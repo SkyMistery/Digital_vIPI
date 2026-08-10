@@ -125,8 +125,10 @@ public sealed class AppDocumentService : IAppDocumentService
 
     // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
     // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
+    // «minima» non c'è più (doc 13 §3b): è una sezione editoriale come le altre e un blocco tabella vuoto
+    // le darebbe un editor di tabella che nessuno ha chiesto.
     private static readonly string[] LiveKeys =
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+        { "separations", "configurations", "aor", "frequencies", "vfr", "coordination", "regulated" };
 
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {

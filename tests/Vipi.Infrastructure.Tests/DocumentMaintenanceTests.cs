@@ -155,4 +155,42 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         Assert.DoesNotContain("HiddenSections", (await _db.ContentBlocks.FirstAsync()).BodyJson);
         Assert.Equal(0, await _maintenance.MigrateHiddenSectionsAsync());
     }
+
+    // ---- doc 13 §3b: «minima» è tornata editoriale ----
+
+    [Fact]
+    public async Task Minima_Loses_Its_Empty_Placeholder_But_Keeps_Real_Content()
+    {
+        var ver = await SeedVersionAsync();
+        var empty = Section(ver, "minima", 1);
+        var written = Section(ver, "minima", 2);
+        var other = Section(ver, "separations", 3);
+        _db.DocumentSections.AddRange(empty, written, other);
+        _db.ContentBlocks.AddRange(
+            new ContentBlock { DocumentVersion = ver, Section = empty, Order = 1, Format = BlockFormat.Table, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, RowVersion = Guid.NewGuid().ToByteArray() },
+            new ContentBlock { DocumentVersion = ver, Section = written, Order = 1, Format = BlockFormat.Prose, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, Body = "MVA 3000 ft", RowVersion = Guid.NewGuid().ToByteArray() },
+            // Placeholder identico ma su un'altra sezione: non si tocca, là il blocco è il contenitore del BodyJson.
+            new ContentBlock { DocumentVersion = ver, Section = other, Order = 1, Format = BlockFormat.Table, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, RowVersion = Guid.NewGuid().ToByteArray() });
+        await _db.SaveChangesAsync();
+
+        var removed = await _maintenance.ClearMinimaPlaceholderBlocksAsync();
+
+        Assert.Equal(1, removed);
+        Assert.Empty(_db.ContentBlocks.Where(b => b.SectionId == empty.Id));
+        Assert.Single(_db.ContentBlocks.Where(b => b.SectionId == written.Id));
+        Assert.Single(_db.ContentBlocks.Where(b => b.SectionId == other.Id));
+    }
+
+    [Fact]
+    public async Task Clearing_Minima_Placeholders_Is_Idempotent()
+    {
+        var ver = await SeedVersionAsync();
+        var sec = Section(ver, "minima", 1);
+        _db.DocumentSections.Add(sec);
+        _db.ContentBlocks.Add(new ContentBlock { DocumentVersion = ver, Section = sec, Order = 1, Format = BlockFormat.Table, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, RowVersion = Guid.NewGuid().ToByteArray() });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(1, await _maintenance.ClearMinimaPlaceholderBlocksAsync());
+        Assert.Equal(0, await _maintenance.ClearMinimaPlaceholderBlocksAsync());
+    }
 }

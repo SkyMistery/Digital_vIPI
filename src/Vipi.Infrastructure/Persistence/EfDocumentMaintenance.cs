@@ -10,6 +10,7 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfDocumentMaintenance : IDocumentMaintenance
 {
     private const string HiddenSectionsProperty = "HiddenSections";
+    private const string MinimaKey = "minima";
 
     private readonly VipiDbContext _db;
 
@@ -37,6 +38,21 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         var touched = await FromDocumentProfilesAsync(ct);
         touched += await FromAccBlockMetaAsync(ct);
         return touched;
+    }
+
+    public async Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default)
+    {
+        // Solo i placeholder: blocco senza testo E senza JSON. Un blocco con contenuto è roba di un editore e resta.
+        var stale = await _db.ContentBlocks
+            .Where(b => b.Section!.SectionKey == MinimaKey
+                        && (b.Body == null || b.Body == "")
+                        && (b.BodyJson == null || b.BodyJson == ""))
+            .ToListAsync(ct);
+        if (stale.Count == 0) return 0;
+
+        _db.ContentBlocks.RemoveRange(stale);
+        await _db.SaveChangesAsync(ct);
+        return stale.Count;
     }
 
     /// <summary>APP (chiavi) e vLOA (titoli): un'unica colonna <c>DocumentProfiles.HiddenSectionsJson</c>, per
