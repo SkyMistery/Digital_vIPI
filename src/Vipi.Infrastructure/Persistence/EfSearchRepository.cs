@@ -15,12 +15,15 @@ public sealed class EfSearchRepository : ISearchRepository
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
     private readonly IDocRoutesRegistry _routes;
+    private readonly IReleaseRepository _releases;
 
-    public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes)
+    public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes,
+        IReleaseRepository releases)
     {
         _db = db;
         _targets = targets;
         _routes = routes;
+        _releases = releases;
     }
 
     private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string Url);
@@ -37,14 +40,22 @@ public sealed class EfSearchRepository : ISearchRepository
         // dell'elenco unificato, e le URL dal registry delle rotte. Qui ce n'era una copia scritta a mano che
         // distingueva solo «aeroporto» da «tutto il resto» → OGNI documento di APP standalone finiva su
         // /vsop/{acc}/vipi, cioè sulla vIPI di ACC, invece che sulla propria pagina.
+        var described = docs
+            .Select(d => (Doc: d, Managed: Describe(d)))
+            .Where(x => x.Managed is not null && InScope(scope, x.Managed!.Kind) && !string.IsNullOrEmpty(x.Managed!.AccCode))
+            .ToList();
+
+        // Un indice non è un posto meno pubblico della pagina (doc 13 §3f): stesso gate — non nascosto e con
+        // release AIRAC effettiva. Prima bastava avere una versione corrente, e uscivano documenti nascosti
+        // dall'admin e contenuto di versioni che nessuna pagina serve.
+        var visible = await PublicDocumentGate.VisibleAsync(
+            described, x => x.Doc, x => x.Managed!, _releases, ct);
+
         var metas = new List<DocMeta>();
-        foreach (var d in docs)
+        foreach (var (d, managed) in visible)
         {
-            if (Describe(d) is not { } managed) continue;
-            if (!InScope(scope, managed.Kind)) continue;
-            var acc = managed.AccCode;
-            if (string.IsNullOrEmpty(acc)) continue;
-            var url = _routes.For(managed.Kind).PublicUrl(acc.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
+            var url = _routes.For(managed!.Kind).PublicUrl(
+                managed.AccCode!.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
             if (url is null) continue;
             metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, url));
         }
@@ -56,6 +67,8 @@ public sealed class EfSearchRepository : ISearchRepository
             .AsNoTracking().ToListAsync(ct);
 
         var secById = sections.ToDictionary(s => s.Id);
+        // Sezioni nascoste (e i loro sottoalberi): fuori dall'indice, come sono fuori dalla pagina.
+        var hiddenSections = PublicDocumentGate.HiddenSectionIds(sections);
         var hits = new List<SearchHit>();
 
         bool Has(string? text) => !string.IsNullOrEmpty(text) && text.Contains(query, StringComparison.OrdinalIgnoreCase);
@@ -70,7 +83,7 @@ public sealed class EfSearchRepository : ISearchRepository
                 hits.Add(new SearchHit { DocTitle = m.Title, DocType = m.Type, Where = m.Title, Snippet = m.Title, Url = url });
 
             // 2) titoli sezione
-            foreach (var s in sections.Where(s => s.DocumentVersionId == m.VersionId))
+            foreach (var s in sections.Where(s => s.DocumentVersionId == m.VersionId && !hiddenSections.Contains(s.Id)))
             {
                 if (hits.Count >= limit) break;
                 if (Has(s.Title))
@@ -78,7 +91,7 @@ public sealed class EfSearchRepository : ISearchRepository
             }
 
             // 3) corpo blocchi (Body + BodyJson)
-            foreach (var b in blocks.Where(b => b.DocumentVersionId == m.VersionId))
+            foreach (var b in blocks.Where(b => b.DocumentVersionId == m.VersionId && !hiddenSections.Contains(b.SectionId)))
             {
                 if (hits.Count >= limit) break;
                 // Un blocco immagine ha per testo il suo alternativo e la didascalia: il BodyJson porta lo sha, e

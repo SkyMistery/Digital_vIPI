@@ -26,11 +26,27 @@ public class SearchAndChangesTests : IAsyncLifetime
         await RomaContentSeed.SeedAsync(_db);
         await RomaAirportSeed.SeedAsync(_db);
         await RomaVloaSeed.SeedAsync(_db);
-        _search = new EfSearchRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes());
-        _changes = new EfChangesRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes());
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        _search = new EfSearchRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes(), releases);
+        _changes = new EfChangesRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes(), releases);
+
+        // Visibilità pubblica = release AIRAC effettiva (doc 10 §3f): senza, gli indici non devono mostrare nulla.
+        // Il fixture rappresenta quindi lo stato «tutto pubblicato»; i test del gate tolgono ciò che serve.
+        await PublishAllAsync();
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
+
+    /// <summary>Dà una release effettiva a ogni documento gestito (payload irrilevante: il gate guarda l'esistenza).</summary>
+    private async Task PublishAllAsync()
+    {
+        var admin = TestReleaseTargets.AdminRepo(_db);
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        var cycle = new AiracService().GetCycle(DateTime.UtcNow);
+        foreach (var d in await admin.ListAsync())
+            await releases.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, DateTime.UtcNow.AddMinutes(-1),
+                "{}", createdByUserId: 1, note: null);
+    }
 
     [Fact]
     public async Task Search_Finds_Cop_In_Vipi()
@@ -122,6 +138,9 @@ public class SearchAndChangesTests : IAsyncLifetime
             new[] { ("custom:pisatok", "Consegne particolari PISATOKEN") }, authorUserId: 1);
         var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
         await editing.PublishAsync(versionId, actorUserId: 1, note: null);
+        await TestReleaseTargets.ReleaseRepo(_db).SaveReleaseAsync(
+            Vipi.Domain.ReleaseTargetType.App, "LIRP_APP", new AiracService().GetCycle(DateTime.UtcNow),
+            DateTime.UtcNow.AddMinutes(-1), "{}", createdByUserId: 1, note: null);
         return docId;
     }
 
@@ -161,5 +180,72 @@ public class SearchAndChangesTests : IAsyncLifetime
 
         var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
         Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP", row.Url);
+    }
+
+    // ---- doc 13 §3f: l'indice vede quello che vede la pagina ----
+
+    [Fact]
+    public async Task A_hidden_document_disappears_from_search_and_from_changed()
+    {
+        await SeedPublishedAppDocumentAsync();
+        Assert.NotEmpty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+
+        var doc = await _db.Documents.FirstAsync(d => d.Title.Contains("Pisa"));
+        doc.IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+        Assert.DoesNotContain(await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow)),
+            r => r.DocTitle.Contains("Pisa"));
+    }
+
+    [Fact]
+    public async Task A_document_without_an_effective_release_is_not_indexed()
+    {
+        // La pagina di un documento senza release dice «non disponibile»: l'indice non deve servirne il contenuto,
+        // e nemmeno linkarlo da «Cosa è cambiato».
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
+        var sectorId = await _db.Sectors.Where(x => x.Callsign == "LIRP_APP").Select(x => x.Id).FirstAsync();
+        var docId = await editing.EnsureVipiDocumentAsync(sectorId, "vIPI Pisa Avvicinamento", Vipi.Domain.Language.It,
+            new[] { ("custom:pisatok", "Consegne particolari PISATOKEN") }, authorUserId: 1);
+        var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(versionId, actorUserId: 1, note: null);   // versione pubblicata, MA nessuna release
+
+        Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+        Assert.DoesNotContain(await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow)),
+            r => r.DocTitle.Contains("Pisa"));
+    }
+
+    [Fact]
+    public async Task A_hidden_section_is_not_indexed_and_neither_is_what_is_under_it()
+    {
+        await SeedPublishedAppDocumentAsync();
+        var section = await _db.DocumentSections.FirstAsync(x => x.Title.Contains("PISATOKEN"));
+
+        // Una sotto-sezione con contenuto proprio: nascondendo il padre sparisce anche lei.
+        var child = new Vipi.Domain.Entities.DocumentSection
+        {
+            DocumentVersionId = section.DocumentVersionId, ParentSectionId = section.Id,
+            Title = "Dettaglio", Order = 1, Depth = 1, SectionKey = SectionKeys.NewCustom(),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(child);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId, SectionId = child.Id, Order = 1,
+            Format = Vipi.Domain.BlockFormat.Prose, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always, Body = "SOTTOTOKEN",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.NotEmpty(await _search.SearchAsync("SOTTOTOKEN", SearchScope.All, 50));
+
+        section.IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+        Assert.Empty(await _search.SearchAsync("SOTTOTOKEN", SearchScope.All, 50));
     }
 }

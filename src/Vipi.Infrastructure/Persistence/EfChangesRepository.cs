@@ -12,12 +12,15 @@ public sealed class EfChangesRepository : IChangesRepository
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
     private readonly IDocRoutesRegistry _routes;
+    private readonly IReleaseRepository _releases;
 
-    public EfChangesRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes)
+    public EfChangesRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes,
+        IReleaseRepository releases)
     {
         _db = db;
         _targets = targets;
         _routes = routes;
+        _releases = releases;
     }
 
     public async Task<IReadOnlyList<ChangeRow>> ListChangedAsync(string airacCycle, CancellationToken ct = default)
@@ -29,22 +32,24 @@ public sealed class EfChangesRepository : IChangesRepository
             .Include(d => d.CurrentVersion)
             .AsNoTracking().ToListAsync(ct);
 
+        // Tipo, ACC e ROTTA dai descrittori + registry delle rotte (doc 13 §3e). Qui c'era la QUARTA copia della
+        // risoluzione — dopo VersioniPage, ReleasePreviewPage e la ricerca — con lo stesso errore: i documenti di
+        // APP standalone puntavano alla vIPI di ACC.
+        var described = docs
+            .Where(d => d.CurrentVersion!.AiracCycle == airacCycle)
+            .Select(d => (Doc: d, Managed: Describe(d)))
+            .Where(x => x.Managed is not null && !string.IsNullOrEmpty(x.Managed!.AccCode))
+            .ToList();
+
+        // Stesso gate della pagina (doc 13 §3f): niente documenti nascosti né senza release effettiva — l'elenco
+        // linkava anche documenti che, aperti, dicono «non disponibile».
+        var visible = await PublicDocumentGate.VisibleAsync(described, x => x.Doc, x => x.Managed!, _releases, ct);
+
         var rows = new List<ChangeRow>();
-        foreach (var d in docs)
+        foreach (var (d, managed) in visible)
         {
             var cur = d.CurrentVersion!;
-            if (cur.AiracCycle != airacCycle) continue;
-
-            // Tipo, ACC e ROTTA dai descrittori + registry delle rotte (doc 13 §3e). Qui c'era la QUARTA copia
-            // della risoluzione — dopo VersioniPage, ReleasePreviewPage e la ricerca — con lo stesso errore:
-            // i documenti di APP standalone puntavano alla vIPI di ACC.
-            ManagedDoc? managed = null;
-            foreach (var target in _targets.ByDescribeOrder)
-                if (target.TryDescribe(d, hasDraft: false, out var m)) { managed = m; break; }
-            if (managed is null) continue;
-
-            var acc = managed.AccCode;
-            if (string.IsNullOrEmpty(acc)) continue;
+            var acc = managed!.AccCode!;
             var url = _routes.For(managed.Kind).PublicUrl(acc.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
             if (url is null) continue;
 
@@ -76,5 +81,14 @@ public sealed class EfChangesRepository : IChangesRepository
         }
 
         return rows.OrderByDescending(r => r.PublishedUtc).ToList();
+    }
+
+    /// <summary>Attribuisce il documento a un tipo con gli stessi descrittori dell'elenco unificato.</summary>
+    private ManagedDoc? Describe(Domain.Entities.Document doc)
+    {
+        foreach (var target in _targets.ByDescribeOrder)
+            if (target.TryDescribe(doc, hasDraft: false, out var managed))
+                return managed;
+        return null;
     }
 }
