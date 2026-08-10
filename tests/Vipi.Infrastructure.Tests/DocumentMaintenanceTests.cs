@@ -273,4 +273,55 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         Assert.Equal(3, await _maintenance.ReconcileVloaSectionKeysAsync());
         Assert.Equal(0, await _maintenance.ReconcileVloaSectionKeysAsync());
     }
+
+    // ---- doc 13 §3d: le sezioni di catalogo mancanti si aggiungono davvero ----
+
+    [Fact]
+    public async Task A_Vloa_Without_Purpose_Gets_It_In_The_Right_Place()
+    {
+        var ver = await SeedVloaVersionAsync();
+        // vLOA «vecchia»: le sezioni ci sono tutte tranne «purpose», che il catalogo non conosceva.
+        var order = 1;
+        foreach (var key in new[] { "aor", "frequencies", "operationaltechnique", "coordination", "regulated", "validity" })
+            _db.DocumentSections.Add(Section(ver, key, order++));
+        await _db.SaveChangesAsync();
+
+        var added = await _maintenance.AddMissingCatalogSectionsAsync();
+
+        Assert.Equal(1, added);
+        var roots = _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id).OrderBy(x => x.Order).ToList();
+        // Accodarla e basta metterebbe «Purpose» in fondo a una lettera d'accordo: va dove dice il catalogo.
+        Assert.Equal("purpose", roots[0].SectionKey);
+        Assert.Equal("Purpose", roots[0].Title);
+        Assert.Equal(Enumerable.Range(1, roots.Count), roots.Select(x => x.Order));
+    }
+
+    [Fact]
+    public async Task Adding_Missing_Catalog_Sections_Is_Idempotent()
+    {
+        var ver = await SeedVloaVersionAsync();
+        _db.DocumentSections.Add(Section(ver, "aor", 1));
+        await _db.SaveChangesAsync();
+
+        var first = await _maintenance.AddMissingCatalogSectionsAsync();
+        Assert.True(first > 0);
+        Assert.Equal(0, await _maintenance.AddMissingCatalogSectionsAsync());
+    }
+
+    [Fact]
+    public async Task Free_sections_are_left_where_they_are()
+    {
+        var ver = await SeedVloaVersionAsync();
+        var free = Section(ver, SectionKeys.NewCustom(), 1);
+        free.Title = "Note locali";
+        _db.DocumentSections.AddRange(free, Section(ver, "validity", 2));
+        await _db.SaveChangesAsync();
+
+        await _maintenance.AddMissingCatalogSectionsAsync();
+
+        var roots = _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id).OrderBy(x => x.Order).ToList();
+        // La sezione libera non ha un ordine di catalogo: nessuna fissa la scavalca, resta dov'era.
+        Assert.Equal("Note locali", roots[0].Title);
+        Assert.Equal("validity", roots[^1].SectionKey);
+    }
 }

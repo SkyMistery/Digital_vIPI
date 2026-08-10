@@ -31,4 +31,13 @@ public interface IDocumentMaintenance
     /// Ritorna il numero di sezioni riconciliate.
     /// </summary>
     Task<int> ReconcileVloaSectionKeysAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Aggiunge alle vIPI APP e alle vLOA esistenti le sezioni FISSE del catalogo che non hanno (doc 13 §3d),
+    /// nella posizione che il catalogo prevede. Serve a rendere uniforme un comportamento che era di una famiglia
+    /// sola: la vIPI ACC le sezioni mancanti se le inventa a view-time (<c>AccDocumentAssembler</c>), APP e vLOA no —
+    /// quindi una chiave aggiunta al catalogo compariva subito su tutte le ACC e mai sugli altri documenti già
+    /// creati. Tocca la versione di lavoro più recente; è idempotente. Ritorna il numero di sezioni aggiunte.
+    /// </summary>
+    Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default);
 }

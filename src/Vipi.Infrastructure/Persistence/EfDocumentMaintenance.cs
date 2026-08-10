@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -220,5 +221,69 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonNode.Parse(json) as JsonObject; }
         catch (JsonException) { return null; }
+    }
+
+    public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
+    {
+        // Solo APP standalone e vLOA: l'aeroporto non partecipa al catalogo (struttura propria) e la vIPI ACC ha
+        // le sezioni sotto i BLOCCHI, dove la rete a view-time dell'assembler continua a coprirla — serve anche
+        // agli snapshot di release vecchi, che non si riscrivono.
+        var docs = await _db.Documents
+            .Include(d => d.Sectors)
+            .Where(d => d.Type == Vipi.Domain.DocumentType.Vloa
+                        || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
+                                              && x.ApproachKind == ApproachKind.Standalone))
+            .ToListAsync(ct);
+        if (docs.Count == 0) return 0;
+
+        var added = 0;
+        foreach (var doc in docs)
+        {
+            var profile = doc.Type == Vipi.Domain.DocumentType.Vloa ? SectionProfile.Vloa : SectionProfile.App;
+
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == doc.Id)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is null) continue;
+
+            var roots = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == versionId && x.ParentSectionId == null)
+                .OrderBy(x => x.Order).ToListAsync(ct);
+
+            var present = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var missing = SectionCatalog.For(profile).Where(d => !present.Contains(d.Key)).OrderBy(d => d.Order).ToList();
+            if (missing.Count == 0) continue;
+
+            var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
+            foreach (var desc in missing)
+            {
+                var section = new DocumentSection
+                {
+                    DocumentVersion = version,
+                    ParentSection = null,
+                    Title = desc.Title,
+                    Order = 0,   // riassegnato sotto, insieme a tutti
+                    Depth = 0,
+                    SectionKey = desc.Key,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
+                };
+                // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
+                // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
+                var at = roots.FindIndex(x => SectionCatalog.Find(profile, x.SectionKey) is { } f && f.Order > desc.Order);
+                roots.Insert(at < 0 ? roots.Count : at, section);
+                _db.DocumentSections.Add(section);
+                added++;
+            }
+
+            for (var i = 0; i < roots.Count; i++)
+            {
+                if (roots[i].Order == i + 1) continue;
+                roots[i].Order = i + 1;
+                roots[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+        }
+
+        if (added > 0) await _db.SaveChangesAsync(ct);
+        return added;
     }
 }

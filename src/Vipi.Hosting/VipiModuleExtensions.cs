@@ -340,6 +340,12 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Riconciliate {Count} sezioni vLOA sulle chiavi del catalogo.", vloaKeys);
 
+        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA già creati (doc 13 §3d).
+        var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
+        if (catalog > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA.", catalog);
+
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.
         var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();
