@@ -6,9 +6,13 @@ namespace Vipi.Application.Content;
 /// chiave-figlia → Id per i salvataggi editoriali). <see cref="Data"/> è la proiezione classica <see cref="AccVipiData"/>
 /// (identità + <see cref="AccBlock"/>) per i consumer che non toccano lo storage.
 /// </summary>
+/// <param name="AiracCycle">Ciclo AIRAC del documento MOSTRATO: quello della release da cui viene lo snapshot.
+/// Null in lavorazione — una bozza non è ancora legata a un ciclo, e la pagina ricade su quello corrente. Senza
+/// questo campo la vIPI ACC scriveva in pagina il ciclo di oggi accanto a un contenuto congelato a un altro ciclo
+/// (doc 13 §3h).</param>
 public sealed record AccDocumentModel(
     int DocumentId, int VersionId, bool IsDraft, string AccCode, string AccName,
-    IReadOnlyList<AccAssembledBlock> Blocks)
+    IReadOnlyList<AccAssembledBlock> Blocks, string? AiracCycle = null)
 {
     public AccVipiData Data => new()
     {

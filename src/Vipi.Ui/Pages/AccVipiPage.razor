@@ -43,7 +43,7 @@ else
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@L["AccVipi_Subtitle"]"
-                           AiracCycle="@(_relCycle ?? Airac.GetCycle(DateTime.UtcNow))" />
+                           AiracCycle="@Cycle()" />
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">@L["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
@@ -88,7 +88,9 @@ else
             <aside class="doc-rail">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
-                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
+                    @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): il corpo è lo
+                       snapshot congelato di una release, e scriverci accanto il ciclo corrente è un dato falso. *@
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
                     <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
                         @{ var n = OnlineCount(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
@@ -123,7 +125,11 @@ else
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
     private PreviewMode _mode;
-    private string? _relCycle;
+    private string? _relCycle;      // anteprima release: ciclo di quella release
+    private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
+
+    /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato; in lavorazione (bozza) quello corrente.</summary>
+    private string Cycle() => _relCycle ?? _docCycle ?? Airac.GetCycle(DateTime.UtcNow);
 
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
     private readonly Dictionary<string, AccCoordination> _coord = new();
@@ -145,6 +151,7 @@ else
 
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _docCycle = null;
         _blocks = null;
         _useFrozen = false;
         _notAvailable = false;
@@ -204,6 +211,7 @@ else
         if (model is null) { _notAvailable = true; return; }
         _data = model.Data;
         _blocks = model.Blocks;
+        _docCycle = model.AiracCycle;
         _useFrozen = true;
     }
 

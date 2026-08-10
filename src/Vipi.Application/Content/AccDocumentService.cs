@@ -137,7 +137,8 @@ public sealed class AccDocumentService : IAccDocumentService
         if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
         {
             var blocks = AccDocumentAssembler.Assemble(snapRaw);
-            return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks);
+            return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks,
+                rel.ReleaseAiracCycle);
         }
 
         return null;
