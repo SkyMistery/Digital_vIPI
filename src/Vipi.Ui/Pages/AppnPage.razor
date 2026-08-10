@@ -67,7 +67,11 @@ else
                     }
                     else if (IsSpecial(s.SectionKey))
                     {
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)">
+                        @* Alcune sezioni nascono chiuse (doc 11 §3i): lo dice il catalogo, e vale per tutte e tre
+                           le famiglie. Questo ramo era l'unico a non chiederglielo, quindi «Aree regolamentate»
+                           nasceva aperta sull'APP e chiusa su vIPI ACC e vLOA. *@
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                             <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
                                 @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
@@ -98,7 +102,8 @@ else
                     {
                         @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali (prima passava
                            da SectionNode senza pill né opacità, e non si capiva che era fuori dal pubblico). *@
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65">
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                             <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
                             <ChildContent><SectionBody Section="s" /></ChildContent>
                         </CollapsibleBlock>

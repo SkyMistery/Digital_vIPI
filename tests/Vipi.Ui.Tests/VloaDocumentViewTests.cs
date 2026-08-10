@@ -191,4 +191,77 @@ public class VloaDocumentViewTests : TestContext
         Assert.True(cut.Markup.IndexOf("Preamble text.", StringComparison.Ordinal)
                     < cut.Markup.IndexOf("USOSA", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void A_section_the_catalog_declares_collapsed_is_born_closed()
+    {
+        // doc 11 §3i, decisione owner: vale OVUNQUE, viewer ed editor, tutte e tre le famiglie. La verifica
+        // live del doc 13 ha trovato che questo ramo (e quello dell'APP) non lo chiedeva al catalogo:
+        // «Aree regolamentate» nasceva aperta su una famiglia e chiusa sulle altre due.
+        var regulated = Section("s-4", "regulated", "Military areas coordination and management");
+        var frequencies = Section("s-5", "frequencies", "Frequencies");
+
+        var cut = Render(DocWith(regulated, frequencies));
+
+        Assert.False(cut.Find("details#s-4").HasAttribute("open"));
+        Assert.True(cut.Find("details#s-5").HasAttribute("open"));
+    }
+
+    // ---- snapshot di release ANTERIORI al doc 13: le due direzioni portano ancora la chiave del padre ----
+    // La riconciliazione al boot sistema i documenti, non le release già pubblicate — che sono ciò che il
+    // pubblico legge. Trovato in verifica live: le direzioni comparivano DUE VOLTE, e la seconda copia portava
+    // il paragrafo segnaposto che nessuna vista aveva mai mostrato.
+
+    private static int Occorrenze(string markup, string needle)
+    {
+        var n = 0;
+        for (var i = markup.IndexOf(needle, StringComparison.Ordinal); i >= 0;
+             i = markup.IndexOf(needle, i + needle.Length, StringComparison.Ordinal)) n++;
+        return n;
+    }
+
+    private static SectionView LegacyDirection(string id, string title, bool hidden = false) => new()
+    {
+        Id = id, Title = title, Depth = 1, SectionKey = SectionKeys.Coordination, IsHidden = hidden,
+        Blocks = new[] { Prose(int.Parse(id.Split('-')[1]), $"**{title}** transfers traffic, as published.") },
+        Children = Array.Empty<SectionView>(),
+    };
+
+    [Fact]
+    public void A_legacy_snapshot_does_not_render_the_directions_twice()
+    {
+        var cut = Render(DocWith(Coordination(
+            LegacyDirection("s-2", "LIBB → LDZO"), LegacyDirection("s-3", "LDZO → LIBB"))));
+
+        // Le direzioni ci sono, e il loro titolo compare UNA volta sola: dal corpo (h4). Se le figlie
+        // finissero anche fra le sotto-sezioni, lo stesso titolo tornerebbe nel <summary> di una card.
+        Assert.Contains("USOSA", cut.Markup);
+        Assert.Contains("VALKO", cut.Markup);
+        Assert.Equal(1, Occorrenze(cut.Markup, "LIBB → LDZO"));
+        Assert.Equal(1, Occorrenze(cut.Markup, "LDZO → LIBB"));
+        Assert.DoesNotContain("transfers traffic, as published.", cut.Markup);
+    }
+
+    [Fact]
+    public void On_a_legacy_snapshot_hiding_a_direction_still_works_by_position()
+    {
+        // Quella fotografia non ha altro appiglio: entrambe le figlie portano la chiave del padre.
+        var cut = Render(DocWith(Coordination(
+            LegacyDirection("s-2", "LIBB → LDZO"), LegacyDirection("s-3", "LDZO → LIBB", hidden: true))));
+
+        Assert.Contains("USOSA", cut.Markup);
+        Assert.DoesNotContain("VALKO", cut.Markup);
+    }
+
+    [Fact]
+    public void A_legacy_snapshot_still_renders_the_extra_subsections()
+    {
+        var extra = Section("s-9", SectionKeys.NewCustom(), "Local arrangements",
+            blocks: new[] { Prose(1, "Radar handover at BEBIX.") }, depth: 1);
+
+        var cut = Render(DocWith(Coordination(
+            LegacyDirection("s-2", "LIBB → LDZO"), LegacyDirection("s-3", "LDZO → LIBB"), extra)));
+
+        Assert.Contains("Radar handover at BEBIX.", cut.Markup);
+    }
 }

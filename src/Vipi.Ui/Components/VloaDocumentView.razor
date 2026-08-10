@@ -46,22 +46,23 @@
             {
                 @* Anteprima bozza: la sezione nascosta si vede, marcata — come ACC e APP (doc 11 §3c). Prima
                    spariva anche in bozza, quindi non c'era modo di rivedere cosa si era nascosto. *@
-                <CollapsibleBlock Id="@s.Id" Style="opacity:.65">
+                <CollapsibleBlock Id="@s.Id" Style="opacity:.65"
+                                  InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                     <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
                     <ChildContent><SectionBody Section="s" /></ChildContent>
                 </CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "aor")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "frequencies")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "coordination")
             {
-                <CollapsibleBlock Id="@s.Id">
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                     <Header><h3 style="margin-top:0">@s.Title</h3></Header>
                     <ChildContent>
                         @* Le sotto-sezioni EXTRA (quelle che non sono una direzione) sono contenuto del documento
@@ -156,10 +157,21 @@
     private string SubtitleOrDefault() =>
         string.IsNullOrWhiteSpace(Subtitle) ? L["Vloa_SubtitleDefault"].Value : Subtitle!;
 
-    /// <summary>Vero se la chiave è una delle due direzioni dei coordinamenti (rese dal corpo, non come sotto-sezioni).</summary>
-    private static bool IsDirection(string key) =>
-        key.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase)
-        || key.Equals(SectionKeys.CoordinationIn, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// La sotto-sezione è una delle due DIREZIONI dei coordinamenti (resa dal corpo), non una sotto-sezione extra.
+    /// <para>
+    /// Due forme, e vanno riconosciute entrambe. Quella corrente ha una chiave per verso
+    /// (<c>coordination:out</c>/<c>:in</c>, doc 13 §3c). Quella STORICA ripete la chiave del padre: la
+    /// riconciliazione al boot sistema i documenti, ma non gli <b>snapshot di release già pubblicati</b>, che
+    /// restano com'erano — e sono proprio ciò che il pubblico legge. Guardare solo le chiavi nuove faceva
+    /// comparire le direzioni <b>due volte</b> su ogni vLOA pubblicata prima del doc 13: una dal corpo e una come
+    /// sotto-sezione, quest'ultima col paragrafo segnaposto che nessuna vista aveva mai mostrato.
+    /// </para>
+    /// </summary>
+    private static bool IsDirection(SectionView child) =>
+        child.SectionKey.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase)
+        || child.SectionKey.Equals(SectionKeys.CoordinationIn, StringComparison.OrdinalIgnoreCase)
+        || child.SectionKey.Equals(SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>La stessa sezione senza le due direzioni fra le figlie: quelle le rende il corpo, le altre sono
     /// sotto-sezioni normali e vanno rese negli slot come ovunque (doc 11 §3g).</summary>
@@ -172,17 +184,29 @@
         IsHidden = s.IsHidden,
         BeforeParentBody = s.BeforeParentBody,
         Blocks = s.Blocks,
-        Children = s.Children.Where(c => !IsDirection(c.SectionKey)).ToList(),
+        Children = s.Children.Where(c => !IsDirection(c)).ToList(),
     };
 
-    // Direzione dei coordinamenti: visibile se la sotto-sezione con quella chiave non è nascosta (in bozza si
-    // mostra comunque). Se il documento non ha quella sotto-sezione (vLOA vecchia, non ancora riconciliata) la
-    // direzione si mostra: meglio un coordinamento in più che una lettera d'accordo monca.
+    /// <summary>
+    /// Direzione dei coordinamenti: visibile se la sua sotto-sezione non è nascosta (in bozza si mostra comunque).
+    /// La si cerca per chiave; sugli snapshot storici, dove entrambe portano quella del padre, si ricade
+    /// sull'ordine — è l'unico appiglio che quella fotografia offre. Se la sotto-sezione non c'è affatto, la
+    /// direzione si mostra: meglio un coordinamento in più che una lettera d'accordo monca.
+    /// </summary>
     private bool DirectionVisible(SectionView coordination, string key)
     {
-        var child = coordination.Children.FirstOrDefault(c =>
-            string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase));
+        var directions = coordination.Children.Where(IsDirection).ToList();
+        var child = directions.FirstOrDefault(c => string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase))
+            ?? LegacyByPosition(directions, key);
         return child is null || IsDraft || !child.IsHidden;
+
+        static SectionView? LegacyByPosition(IReadOnlyList<SectionView> directions, string key)
+        {
+            if (!directions.All(c => c.SectionKey.Equals(SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase)))
+                return null;
+            var index = key.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+            return index < directions.Count ? directions[index] : null;
+        }
     }
 
     // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
