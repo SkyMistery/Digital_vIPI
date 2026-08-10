@@ -1162,3 +1162,40 @@ Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
 
 Chiusura: 9 commit sul branch `feature/aree-speciali-hardening`, suite 951 verde, build 0 warning, due migration
 provate su copia del `vipi.db` reale. Resta la **verifica live** (quattro punti elencati in fondo alla carta).
+
+## 2026-08-10 — Audit dei tre documenti (doc [13](../refactor/13-audit-tre-documenti.md))
+
+Partiti da un'osservazione dell'owner — «la sezione delle versioni dovrebbe essere la stessa per tutti e
+tre i documenti, e non lo è» — e da lì un audit completo di vIPI ACC, vIPI APP e vLOA. La radice era una
+sola: il doc 11 aveva reso uguale **come** i tre viewer leggono il documento, ma non **chi decide** il
+comportamento di una sezione. Quella risposta viveva in sei `HashSet` di pagina, tre implementazioni di
+«obbligatoria» (una delle quali confrontava i **titoli**) e un registro parallelo per la vLOA, di cui il
+catalogo non sapeva nulla.
+
+**Fondamenta.** `SectionCatalog` diventa fonte unica anche di *chi rende il corpo*
+(`SectionBodySource {Blocks, Host}`, per profilo: «regulated» è un picker sulla vIPI ACC/APP e testo
+bilaterale sulla vLOA) e di *quali sezioni sono obbligatorie*. La vLOA nasce dal catalogo come le altre
+due — `VloaSections` resta solo la sorgente dei contenuti iniziali — e le due direzioni dei coordinamenti
+prendono una chiave per verso (`coordination:out`/`:in`) invece di ripetere quella del padre: da lì
+sparisce la cattura frozen fatta tre volte e l'identificazione della direzione per titolo (editor) o per
+posizione (viewer), due modi diversi per la stessa cosa.
+
+**I due difetti che uscivano dal documento.** La pagina APP pubblica derivava la tabella «Configurazioni»
+dalla **versione di lavoro**: le configurazioni di una bozza mai pubblicata erano pubbliche, contro
+l'invariante del doc 10. E ricerca e «Cosa è cambiato» partivano da «ha una versione corrente» e basta:
+uscivano documenti nascosti dall'admin, **sezioni** marcate nascoste col loro estratto, e contenuto di
+versioni senza release effettiva — che nessuna pagina serve. Ora il gate è quello della pagina, in un
+posto solo.
+
+**Il resto, in breve.** «Minime di vettoramento» torna una sezione in cui si può scrivere (era dichiarata
+derivata senza derivare nulla, e proprio per questo l'editor non offriva i blocchi); il viewer vLOA rende
+le sotto-sezioni di «Coordination», l'unico ramo che le buttava via; il ciclo AIRAC scritto in pagina è
+quello del documento e non quello di oggi; `IDocRoutesRegistry` diventa l'unica porta per «dove si
+raggiunge questo documento» — la ricerca mandava ogni APP sulla vIPI di ACC — con l'ancora `#s-{id}`
+uguale ovunque e un filtro APP suo; il pannello release si porta dietro il proprio involucro e i quattro
+editor passano gli stessi parametri; la landing ACC non promette più una vIPI senza release. Localizzati
+i testi rimasti indietro (`AppsListPage` non usava il localizer nemmeno una volta) e tolto il codice che
+nessuno chiamava più (`BuildAccVipiAsync`, `BuildVloaByPairAsync`, `SectionCatalog.Reconcile`).
+
+Chiusura: 16 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1377** verde, build senza
+errori. Resta la **verifica live** dei tre documenti.

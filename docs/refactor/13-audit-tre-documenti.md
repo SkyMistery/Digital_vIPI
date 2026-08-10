@@ -1,9 +1,11 @@
-# 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟡
+# 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
 
-> **Stato:** §1 e §2 rilevate sul codice del 2026-08-10 (🟢, verificate a lettura).
-> §3 (architettura target) e §4 (passi) sono **vuote di proposito**: gate «carta prima di codice»
-> del [REFACTOR-PROCESS](REFACTOR-PROCESS.md) — si riempiono dopo che l'owner ha scelto cosa
-> chiudere e cosa no.
+> **Stato: ESEGUITO** (2026-08-10, branch `refactor/13-tre-documenti`). §1-§2 rilevate sul codice del
+> 2026-08-10; §3-§4 approvate dall'owner e portate a termine: 17 passi, 16 commit, suite **1335 → 1377**
+> verde. Resta la **verifica live** (§5), obbligatoria su Blazor.
+>
+> §1 e §2 descrivono lo stato **prima** del lavoro e si leggono al passato: sono il referto, non la mappa
+> del codice di oggi.
 >
 > Seguito di [11 — Uniformità dei tre documenti](11-uniformita-tre-documenti.md), che ha chiuso
 > l'asse *storage/visibilità/resa del contenuto*. Questo giro guarda ciò che è rimasto fuori:
@@ -392,23 +394,36 @@ Un passo = un commit (o più, se il passo è grosso), build verde e suite verde 
 
 | # | Passo | Chiude | Tocca |
 |---|---|---|---|
-| **S1** | `SectionBodySource` nel catalogo + `IsHostRendered`; le 6 copie e i 3 `IsMandatory` chiamano il catalogo | D3, D4, §1b | `SectionDescriptor`, `SectionCatalog`, `AccSectionBody`, `AccEditorPage`, `AppnPage`, `AppEditorPage`, `VloaEditor`, `VloaDocumentView` |
-| **S2** | «Minime» editoriale: `KindOf`→Editorial, contenuto iniziale + backfill, via `AppMinima` | B4 | `SectionCatalog`, `AppMinima.razor` (rm), 4 host, `IDocumentMaintenance`, `.resx` |
-| **S3** | Profilo vLOA reale nel catalogo + `purpose` + `VloaSections` solo contenuti + `IsFixed` | D1 | `SectionCatalog`, `SectionCatalogBridge`, `VloaSections`, `VloaStructureSeeder`, `VloaEditor` |
-| **S4** | Chiavi `coordination:out`/`:in` + identificazione per chiave + cattura unica + riconciliazione | B3, C8 | `SectionKeys`, `SectionCatalog`, `VloaSections`, `VloaEditor`, `VloaDocumentView`, `EfDocumentMaintenance` |
-| **S5** | Sotto-sezioni extra di «Coordination» rese dal viewer | B2 | `VloaDocumentView` |
-| **S6** | Sezioni di catalogo mancanti aggiunte al boot per tutte e tre | D5 | `IDocumentMaintenance`, `EfDocumentMaintenance`, `VipiModuleExtensions` |
-| **S7** | Config-table APP dal documento mostrato | **C1** | `IAppDocumentService`, `AppDocumentService`, `AppnPage`, `AppEditorPage` |
-| **S8** | AIRAC del documento in ACC e APP | C6 | `AccDocumentModel`, `AccDocumentService`, `AccVipiPage`, `AppnPage` |
-| **S9** | Porta di rotta pubblica unica + ancore + scope App | C3, C4, C9 | `IDocRoutesRegistry` (→ Application), `EfSearchRepository`, `EfChangesRepository`, `SearchModels`, `SearchPage` |
-| **S10** | Gate di visibilità su ricerca e «Cosa è cambiato» | **C2**, C5 | `EfSearchRepository`, `EfChangesRepository` |
-| **S11** | `ReleasePanel` con involucro proprio; 4 editor allineati; storia modifiche per tutti | A1, A2, A3 | `ReleasePanel`, i 4 editor, `VersioniPage`, `.resx` |
-| **S12** | Gate release sulla card vIPI della landing | C7 | `AccLanding` |
-| **S13** | Anteprima release ACC via `GetPreviewAsync` | E1, E2 | `AccVipiPage`, `AccDocumentService`, `IReleaseService` |
-| **S14** | Localizzazione: `AppsListPage`, `VloaListPage`, `VloaDocumentView`, schede AoR, `[Bozza]`, sommario, titolo APP; intestazioni frequenze condivise | F1-F7 | pagine + `.resx` |
-| **S15** | Etichette diff dal chiamante (chiavi, non frasi) | F4 | `ReleaseService`, `ReleaseDiffRow`, `ReleaseDiffTable`, `.resx` |
-| **S16** | Rimozione codice morto | D2, G1, G2 | `IVipiViewService`, `VipiViewService`, `IContentRepository`, `EfContentRepository`, `SectionCatalog` |
-| **S17** | Propagazione documentale: `mappa-pagine.md`, commenti stantii, `rounds.md`, `00-overview`, memorie | G3-G6 | docs + memorie |
+| **S1** ✅ | `SectionBodySource` nel catalogo + `IsHostRendered`; le 6 copie e i 3 `IsMandatory` chiamano il catalogo | D3, D4, §1b | `SectionDescriptor`, `SectionCatalog`, `AccSectionBody`, `AccEditorPage`, `AppnPage`, `AppEditorPage`, `VloaEditor`, `VloaDocumentView` |
+| **S2** ✅ | «Minime» editoriale: `KindOf`→Editorial, contenuto iniziale + backfill, via `AppMinima` | B4 | `SectionCatalog`, `AppMinima.razor` (rm), 4 host, `IDocumentMaintenance`, `.resx` |
+| **S3** ✅ | Profilo vLOA reale nel catalogo + `purpose` + `VloaSections` solo contenuti + `IsFixed` | D1 | `SectionCatalog`, `SectionCatalogBridge`, `VloaSections`, `VloaStructureSeeder`, `VloaEditor` |
+| **S4** ✅ | Chiavi `coordination:out`/`:in` + identificazione per chiave + cattura unica + riconciliazione | B3, C8 | `SectionKeys`, `SectionCatalog`, `VloaSections`, `VloaEditor`, `VloaDocumentView`, `EfDocumentMaintenance` |
+| **S5** ✅ | Sotto-sezioni extra di «Coordination» rese dal viewer | B2 | `VloaDocumentView` |
+| **S6** ✅ | Sezioni di catalogo mancanti aggiunte al boot per tutte e tre | D5 | `IDocumentMaintenance`, `EfDocumentMaintenance`, `VipiModuleExtensions` |
+| **S7** ✅ | Config-table APP dal documento mostrato | **C1** | `IAppDocumentService`, `AppDocumentService`, `AppnPage`, `AppEditorPage` |
+| **S8** ✅ | AIRAC del documento in ACC e APP | C6 | `AccDocumentModel`, `AccDocumentService`, `AccVipiPage`, `AppnPage` |
+| **S9** ✅ | Porta di rotta pubblica unica + ancore + scope App | C3, C4, C9 | `IDocRoutesRegistry` (→ Application), `EfSearchRepository`, `EfChangesRepository`, `SearchModels`, `SearchPage` |
+| **S10** ✅ | Gate di visibilità su ricerca e «Cosa è cambiato» | **C2**, C5 | `EfSearchRepository`, `EfChangesRepository` |
+| **S11** ✅ | `ReleasePanel` con involucro proprio; 4 editor allineati; storia modifiche per tutti | A1, A2, A3 | `ReleasePanel`, i 4 editor, `VersioniPage`, `.resx` |
+| **S12** ✅ | Gate release sulla card vIPI della landing | C7 | `AccLanding` |
+| **S13** ✅* | Anteprima release ACC via `GetPreviewAsync` | E1, E2 | `AccVipiPage`, `AccDocumentService`, `IReleaseService` |
+| **S14** ✅ | Localizzazione: `AppsListPage`, `VloaListPage`, `VloaDocumentView`, schede AoR, `[Bozza]`, sommario, titolo APP; intestazioni frequenze condivise | F1-F7 | pagine + `.resx` |
+| **S15** ✅ | Etichette diff dal chiamante (chiavi, non frasi) | F4 | `ReleaseService`, `ReleaseDiffRow`, `ReleaseDiffTable`, `.resx` |
+| **S16** ✅ | Rimozione codice morto | D2, G1, G2 | `IVipiViewService`, `VipiViewService`, `IContentRepository`, `EfContentRepository`, `SectionCatalog` |
+| **S17** ✅ | Propagazione documentale: `mappa-pagine.md`, commenti stantii, `rounds.md`, `00-overview`, memorie | G3-G6 | docs + memorie |
+
+### Scostamenti dall'ordine e dalla portata dichiarati
+
+- **S7 eseguito prima di S6.** La fuga della bozza in pubblico era il difetto più grave dell'elenco e non
+  dipendeva da S6: chiuderlo prima costava nulla e valeva molto.
+- **S13 ridotto, con ragione.** L'idea era far passare anche l'anteprima release della vIPI ACC da
+  `IReleaseService.GetPreviewAsync`, come APP e vLOA. Guardandola da vicino non c'è niente da guadagnare:
+  le due strade leggono lo **stesso** `DocReleasePayload`, sono gated allo stesso modo e verificano entrambe
+  l'identità del bersaglio; quella dell'ACC in più ne **assembla i blocchi**, cioè fa il lavoro che alla
+  pagina serve. Sostituirla significherebbe rimpiazzare un percorso tipizzato e coperto da test con uno
+  generico più il riassemblaggio a mano nella pagina, senza un solo effetto per chi guarda il documento.
+  È rimasta la parte che valeva: il commento di `GetPreviewAsync` diceva «Doc null per ACC/APP», falso dal
+  doc 08, e ora dice come stanno le cose.
 
 ## 5. Impatto / Verifica
 

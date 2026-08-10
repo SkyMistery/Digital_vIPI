@@ -34,8 +34,10 @@ public interface IReleaseService
     /// <summary>Riepilogo differenze di una release rispetto a quella in vigore (o allo stato pubblicato/live).</summary>
     Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default);
 
-    /// <summary>Anteprima di una release: metadati + <see cref="RawDocument"/> del payload per i tipi doc-based
-    /// (vLOA/aeroporto); Doc null per ACC/APP (anteprima strutturale non resa qui). Authz ACC.</summary>
+    /// <summary>Anteprima di una release: metadati + <see cref="RawDocument"/> del payload. Vale per TUTTI i tipi —
+    /// dal doc 08 condividono <c>DocReleasePayload</c> — e non solo per vLOA/aeroporto come diceva questo commento.
+    /// La vIPI ACC ha comunque una porta propria (<c>IAccDocumentService.LoadForReleaseAsync</c>), che oltre allo
+    /// snapshot ne assembla i blocchi: è la stessa fotografia, letta con l'attrezzo del suo tipo. Authz ACC.</summary>
     Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default);
 
     /// <summary>Identità (tipo/chiave/ciclo/ACC) di una release, per risolvere la route del viewer tipizzato.
@@ -111,8 +113,10 @@ public sealed class ReleaseService : IReleaseService
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
         await SnapshotAndSaveAsync(type, key, cycle, now, note, ct);
-        // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così il documento è visibile
-        // nelle liste pubbliche (gate su Status==Published) e nel fallback del viewer, non solo via snapshot di release.
+        // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
+        // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
+        // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
+        // il fallback live del viewer non c'è più — questo commento diceva ancora il contrario.
         // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
         await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, ct);
         // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
