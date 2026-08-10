@@ -145,58 +145,6 @@ public class SectionCatalogTests
     }
 
     [Fact]
-    public void Reconcile_empty_yields_default_order()
-    {
-        var order = SectionCatalog.Reconcile(SectionProfile.Vloa, Array.Empty<string>());
-        Assert.Equal(
-            new[] { "purpose", "aor", "frequencies", "operationaltechnique", "coordination", "regulated", "validity" },
-            order);
-    }
-
-    [Fact]
-    public void Reconcile_drops_stale_keeps_custom_inserts_missing_fixed()
-    {
-        // saved contiene una fissa valida (aor), una custom esistente (note1), una chiave stale (obsolete).
-        var order = SectionCatalog.Reconcile(
-            SectionProfile.Vloa,
-            savedOrder: new[] { "aor", "note1", "obsolete" },
-            customKeys: new HashSet<string> { "note1" });
-
-        Assert.Equal("purpose", order[0]);     // fissa mancante inserita al suo ordine (prima di «aor»)
-        Assert.Equal("aor", order[1]);         // ordine salvato preservato
-        Assert.Contains("note1", order);       // custom preservata
-        Assert.DoesNotContain("obsolete", order); // stale scartata
-        Assert.Contains("validity", order);    // fissa mancante inserita
-    }
-
-    [Fact]
-    public void Reconcile_App_inserts_missing_fixed_at_default_position()
-    {
-        // Profilo APP salvato "vecchio" (senza le sezioni nuove del catalogo): Reconcile le inserisce al loro ordine.
-        // Ordine salvato coerente con quello di default (minima prima di vfr): le fisse nuove del catalogo
-        // (configurations/regulated/operationaltechnique/validity) vengono inserite alle loro posizioni.
-        var saved = new[] { "separations", "aor", "frequencies", "minima", "vfr", "coordination" };
-        var order = SectionCatalog.Reconcile(SectionProfile.App, saved);
-
-        var expected = SectionCatalog.For(SectionProfile.App).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
-        Assert.Equal(expected, order);   // tutte le fisse presenti, in ordine di default
-        Assert.Contains("regulated", order);
-        Assert.Contains("validity", order);
-    }
-
-    [Fact]
-    public void Reconcile_App_preserves_custom_and_drops_stale()
-    {
-        var custom = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "note1" };
-        var saved = new[] { "separations", "note1", "ghost", "aor" };
-        var order = SectionCatalog.Reconcile(SectionProfile.App, saved, custom);
-
-        Assert.Equal("note1", order[1]);          // custom preservata al suo posto
-        Assert.DoesNotContain("ghost", order);     // stale scartata
-        Assert.Contains("validity", order);        // fissa mancante inserita
-    }
-
-    [Fact]
     public void DocSection_is_recursive_with_empty_defaults()
     {
         var leaf = new DocSection("Foglia", SectionKind.Editorial);

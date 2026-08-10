@@ -10,14 +10,12 @@ namespace Vipi.Application.Content;
 /// </summary>
 public interface IVipiViewService
 {
-    Task<DocumentView?> BuildAccVipiAsync(string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default);
     Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
     /// <summary>Vista documentale di un APP non remotizzato (storage su Document, doc 08e). Le sezioni derivate
     /// (aor/freq/coord/minima) restano vuote nel view: la pagina le rende live per <c>SectionKey</c>.</summary>
     Task<DocumentView?> BuildAppVipiAsync(string appCallsign, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
     Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
-    Task<DocumentView?> BuildVloaByPairAsync(string homeAccCode, string foreignAccCode, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
 
     /// <summary>Compone la vista da un <see cref="RawDocument"/> già in mano (es. snapshot di una release), senza I/O.</summary>
     Task<DocumentView?> BuildFromRawAsync(RawDocument raw, BlockTier tier, CancellationToken ct = default);
@@ -28,30 +26,11 @@ public sealed class VipiViewService : IVipiViewService
 {
     private readonly IContentRepository _repo;
     private readonly IContentService _content;
-    private readonly IAorService _aor;
-    private readonly ITopologyProvider _topology;
-    private readonly IOnlineAtcProvider _online;
 
-    public VipiViewService(
-        IContentRepository repo,
-        IContentService content,
-        IAorService aor,
-        ITopologyProvider topology,
-        IOnlineAtcProvider online)
+    public VipiViewService(IContentRepository repo, IContentService content)
     {
         _repo = repo;
         _content = content;
-        _aor = aor;
-        _topology = topology;
-        _online = online;
-    }
-
-    public async Task<DocumentView?> BuildAccVipiAsync(
-        string accCode, BlockTier tier, bool live, string? viewerPosition = null, CancellationToken ct = default)
-    {
-        // F3: in live calcolo l'AoR reale dalla topologia della ACC + chi è online ora.
-        var aor = live ? await ResolveLiveAorAsync(accCode, viewerPosition, ct) : null;
-        return await BuildAsync(_repo.LoadAccVipiAsync(accCode, ct), tier, live, aor);
     }
 
     public Task<DocumentView?> BuildAirportVipiAsync(string icao, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
@@ -63,31 +42,8 @@ public sealed class VipiViewService : IVipiViewService
     public Task<DocumentView?> BuildVloaByIdAsync(int docId, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
         BuildAsync(_repo.LoadVloaByIdAsync(docId, ignoreRelease, preferWorking, ct), tier, live, null);
 
-    public Task<DocumentView?> BuildVloaByPairAsync(string homeAccCode, string foreignAccCode, BlockTier tier, bool live, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default) =>
-        BuildAsync(_repo.LoadVloaByPairAsync(homeAccCode, foreignAccCode, ignoreRelease, preferWorking, ct), tier, live, null);
-
     public Task<DocumentView?> BuildFromRawAsync(RawDocument raw, BlockTier tier, CancellationToken ct = default) =>
         BuildAsync(Task.FromResult<RawDocument?>(raw), tier, live: false, null);
-
-    /// <summary>AoR reale per la vista di <paramref name="viewerPosition"/> (default = radice topologia).</summary>
-    private async Task<AorResult?> ResolveLiveAorAsync(string accCode, string? viewerPosition, CancellationToken ct)
-    {
-        var topo = await _topology.BuildByAccCodeAsync(accCode, ct);
-        if (topo is null) return null;
-
-        var p = viewerPosition ?? DefaultViewer(topo);
-        if (p is null) return null;
-
-        return _aor.Resolve(topo, p, _online.GetCurrent().Callsigns);
-    }
-
-    /// <summary>Settore di default quando non specificato: prima radice (callsign senza genitore).</summary>
-    private static string? DefaultViewer(Topology topo) =>
-        topo.Sectors
-            .Where(cs => !topo.Parent.ContainsKey(cs))
-            .OrderBy(cs => cs, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault()
-        ?? topo.Sectors.FirstOrDefault();
 
     private async Task<DocumentView?> BuildAsync(Task<RawDocument?> load, BlockTier tier, bool live, AorResult? liveAor)
     {

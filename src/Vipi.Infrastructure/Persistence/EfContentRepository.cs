@@ -19,18 +19,6 @@ public sealed class EfContentRepository : IContentRepository
         _releases = releases;
     }
 
-    public Task<RawDocument?> LoadAccVipiAsync(string accCode, CancellationToken ct = default)
-    {
-        // Gate su !IsHidden (non su Status==Published): così una release AIRAC effettiva è servita anche se il Document
-        // è ancora Draft (release e pubblicazione-versione sono due layer). Senza release, il fallback interno serve solo
-        // una versione pubblicata → i doc mai pubblicati e senza release restano vuoti (nessun leak).
-        return LoadVipiAsync(
-            d => d.Type == DocumentType.Vipi
-                 && !d.IsHidden
-                 && d.Sectors.Any(s => s.Kind == SectorKind.Acc && s.Acc!.Code == accCode),
-            ignoreRelease: false, preferWorking: false, ct);
-    }
-
     public Task<RawDocument?> LoadAirportVipiAsync(string icao, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
         // ignoreRelease/preferWorking (anteprima bozza, gated all'editor): mostra anche i documenti/aeroporti nascosti
@@ -63,16 +51,6 @@ public sealed class EfContentRepository : IContentRepository
             d => d.Type == DocumentType.Vloa
                  && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Id == docId,
-            ignoreRelease, preferWorking, ct);
-    }
-
-    public Task<RawDocument?> LoadVloaByPairAsync(string homeAccCode, string foreignAccCode, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
-    {
-        return LoadVipiAsync(
-            d => d.Type == DocumentType.Vloa
-                 && (preferWorking || ignoreRelease || !d.IsHidden)
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Home && pa.Sector!.Acc!.Code == homeAccCode)
-                 && d.Parties.Any(pa => pa.Role == PartyRole.Neighbour && pa.Sector!.Acc!.Code == foreignAccCode),
             ignoreRelease, preferWorking, ct);
     }
 

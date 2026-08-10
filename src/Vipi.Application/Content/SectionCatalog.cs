@@ -2,9 +2,14 @@ namespace Vipi.Application.Content;
 
 /// <summary>
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
-/// (<see cref="KindOf"/>), la membership per profilo (<see cref="For"/>) e la riconciliazione d'ordine
-/// (<see cref="Reconcile"/>, prima duplicata in <c>AppSections</c>/<c>AccSections</c>). Sostituisce i tre registry
-/// per-tipo e l'enum <c>BlockSection</c>. L'aeroporto NON partecipa (documento generato a struttura propria).
+/// (<see cref="KindOf"/>), la membership per profilo (<see cref="For"/>), chi ne rende il corpo
+/// (<see cref="IsHostRendered"/>, doc 13 §3a) e quali sono obbligatorie (<see cref="IsFixed"/>). Sostituisce i tre
+/// registry per-tipo e l'enum <c>BlockSection</c>. L'aeroporto NON partecipa (documento generato a struttura propria).
+/// <para>
+/// Non c'è più una <c>Reconcile</c> d'ordine: dal doc 11 §3b «si itera la lista di sezioni del documento», non un
+/// elenco di chiavi riconciliato a view-time. Il metodo era rimasto senza chiamanti, con il commento che lo
+/// annunciava ancora come una delle responsabilità della fonte unica.
+/// </para>
 /// </summary>
 public static class SectionCatalog
 {
@@ -154,37 +159,4 @@ public static class SectionCatalog
             : null);
 
     public static bool IsFixed(SectionProfile profile, string key) => Find(profile, key) is not null;
-
-    /// <summary>
-    /// Riconcilia l'ordine salvato con il registry del profilo: scarta le chiavi non valide (fisse rimosse o custom
-    /// inesistenti), preserva l'ordine salvato delle valide, inserisce le fisse mancanti al loro ordine di default,
-    /// accoda le custom residue (alfabetico). Pura e deterministica. Unifica <c>AppSections</c>/<c>AccSections</c>.
-    /// </summary>
-    public static IReadOnlyList<string> Reconcile(
-        SectionProfile profile, IReadOnlyList<string> savedOrder, IReadOnlySet<string>? customKeys = null)
-    {
-        var registry = For(profile);
-        var custom = customKeys ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var kept = new List<string>();
-        foreach (var k in savedOrder)
-            if ((IsFixed(profile, k) || custom.Contains(k)) && seen.Add(k))
-                kept.Add(k);
-
-        foreach (var desc in registry.OrderBy(d => d.Order))
-        {
-            if (seen.Contains(desc.Key)) continue;
-            var idx = kept.Count;
-            for (var i = 0; i < kept.Count; i++)
-                if (Find(profile, kept[i]) is { } f && f.Order > desc.Order) { idx = i; break; }
-            kept.Insert(idx, desc.Key);
-            seen.Add(desc.Key);
-        }
-
-        foreach (var k in custom.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
-            if (seen.Add(k)) kept.Add(k);
-
-        return kept;
-    }
 }
