@@ -158,10 +158,9 @@ else
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
     private IReadOnlyList<AccSpecialAreaView> _areas = Array.Empty<AccSpecialAreaView>();
 
-    // Sezioni "speciali" rese da componenti dedicati (derivate live + editoriali-strutturate); le altre via SectionNode.
-    private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination", "regulated" };
-    private static bool IsSpecial(string key) => Special.Contains(key);
+    // Sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate); le altre via SectionNode.
+    // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
+    private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.App, key);
 
     private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
     private IEnumerable<SectionView> VisibleSections() =>

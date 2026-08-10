@@ -41,10 +41,10 @@
     /// e sotto-sezioni delle strutturate. Null = nessun contenuto documentale (es. uso parziale in Operativa).</summary>
     [Parameter] public SectionView? Editorial { get; set; }
 
-    private static readonly HashSet<string> Structured = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+    // Chi rende il corpo lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
+    private bool IsStructured(string key) =>
+        SectionCatalog.IsHostRendered(SectionCatalog.ProfileOfAccBlock(Block.Kind), key);
 
-    private static bool IsStructured(string key) => Structured.Contains(key);
     [Parameter] public string? Root { get; set; }
 
     [Parameter] public IReadOnlyList<AppFreqRow>? Freqs { get; set; }

@@ -90,10 +90,13 @@ else
                         </div>
                     }
 
+                    @* Profilo di catalogo del blocco: decide sia chi rende il corpo sia quali sezioni sono
+                       obbligatorie — un blocco Aerovia non ha il VFR, un gruppo APP sì. *@
+                    @{ var profile = SectionCatalog.ProfileOfAccBlock(blk.Block.Kind); }
                     <DocumentSectionsEditor Doc="_doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
                                             AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
-                                            IsDerivedSection="IsStructured" DerivedContent="DerivedFor(blk)"
-                                            IsMandatory="IsMandatory"
+                                            IsDerivedSection="s => SectionCatalog.IsHostRendered(profile, s.SectionKey)" DerivedContent="DerivedFor(blk)"
+                                            IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
                 </div>
             }
@@ -314,16 +317,12 @@ else
 
     private int ChildId(AccAssembledBlock blk, string key) => blk.ChildSectionIdsByKey.GetValueOrDefault(key);
 
-    // ---- struttura sezioni: strutturate (host) vs editoriali generiche (DocumentSectionsEditor) ----
-    private static readonly HashSet<string> Structured = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
-
-    private static bool IsStructured(EditableSection s) => Structured.Contains(s.SectionKey);
-    // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
+    // ---- struttura sezioni ----
+    // «Chi rende il corpo» e «è obbligatoria» sono domande al catalogo, per profilo (doc 13 §3a): qui stavano un
+    // insieme di chiavi copiato e una lista scritta a mano che il catalogo già conosceva.
+    // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
-    // Le sezioni-catalogo (chiavi note) sono obbligatorie: titolo bloccato, no elimina. Le custom (chiavi ignote) no.
-    private static bool IsMandatory(EditableSection s) =>
-        Structured.Contains(s.SectionKey) || s.SectionKey is "operationaltechnique" or "validity";
+
     // ---- editoriali-strutturate ----
     private Task SaveSeparations(AccAssembledBlock blk, IReadOnlyList<AppSeparationRow> rows) => Guard(async () =>
     {

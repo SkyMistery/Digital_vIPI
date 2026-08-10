@@ -44,61 +44,81 @@ public static class SectionCatalog
     /// </summary>
     public static bool IsRenderModeToggleable(string key) => KindOf(key) == SectionKind.Derived;
 
-    private static SectionDescriptor D(string key, string title, int order) => new(key, title, order, KindOf(key));
+    // Corpo prodotto dalla PAGINA (doc 13 §3a): derivate + editoriali-strutturate. Scritto per esteso su ogni
+    // voce perché non è deducibile dalla natura — «regulated» è un picker sulla vIPI ACC/APP e prosa sulla vLOA.
+    private static SectionDescriptor D(string key, string title, int order) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Blocks);
+
+    private static SectionDescriptor H(string key, string title, int order) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Host);
 
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/
     // operationaltechnique/validity. ACC/APP in italiano, vLOA in inglese (lettera di accordo bilaterale).
+    // H(...) = corpo reso dalla pagina, D(...) = corpo dai blocchi della sezione.
     private static readonly IReadOnlyDictionary<SectionProfile, IReadOnlyList<SectionDescriptor>> Registry =
         new Dictionary<SectionProfile, IReadOnlyList<SectionDescriptor>>
         {
             [SectionProfile.App] = new[]
             {
-                D("separations", "Separazioni", 1),
-                D("configurations", "Configurazioni", 2),
-                D("aor", "AOR", 3),
-                D("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
-                D("vfr", "VFR", 6),
-                D("coordination", "Coordinamenti", 7),
-                D("regulated", "Aree regolamentate", 8),
+                H("separations", "Separazioni", 1),
+                H("configurations", "Configurazioni", 2),
+                H("aor", "AOR", 3),
+                H("frequencies", "Frequenze", 4),
+                H("minima", "Minime di vettoramento", 5),
+                H("vfr", "VFR", 6),
+                H("coordination", "Coordinamenti", 7),
+                H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
                 D("validity", "Validità e revisione", 10),
             },
             [SectionProfile.AccAerovia] = new[]
             {
-                D("separations", "Separazioni radar", 1),
-                D("configurations", "Configurazioni", 2),
-                D("aor", "AOR", 3),
-                D("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
-                D("coordination", "Coordinamenti", 7),
-                D("regulated", "Aree regolamentate", 8),
+                H("separations", "Separazioni radar", 1),
+                H("configurations", "Configurazioni", 2),
+                H("aor", "AOR", 3),
+                H("frequencies", "Frequenze", 4),
+                H("minima", "Minime di vettoramento", 5),
+                H("coordination", "Coordinamenti", 7),
+                H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
                 D("validity", "Validità e revisione", 10),
             },
             [SectionProfile.AccAppBlock] = new[]
             {
-                D("separations", "Separazioni", 1),
-                D("configurations", "Configurazioni", 2),
-                D("aor", "AOR", 3),
-                D("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
-                D("vfr", "VFR", 6),
-                D("coordination", "Coordinamenti", 7),
-                D("regulated", "Aree regolamentate", 8),
+                H("separations", "Separazioni", 1),
+                H("configurations", "Configurazioni", 2),
+                H("aor", "AOR", 3),
+                H("frequencies", "Frequenze", 4),
+                H("minima", "Minime di vettoramento", 5),
+                H("vfr", "VFR", 6),
+                H("coordination", "Coordinamenti", 7),
+                H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
                 D("validity", "Validità e revisione", 10),
             },
             [SectionProfile.Vloa] = new[]
             {
-                D("aor", "Areas of Responsibility", 3),
-                D("frequencies", "Frequencies", 4),
-                D("coordination", "Coordination", 7),
+                H("aor", "Areas of Responsibility", 3),
+                H("frequencies", "Frequencies", 4),
+                H("coordination", "Coordination", 7),
                 D("regulated", "Regulated areas", 8),
                 D("operationaltechnique", "General procedures", 9),
                 D("validity", "Validity and Revision", 10),
             },
         };
+
+    /// <summary>
+    /// Vero se il corpo di questa sezione lo produce la PAGINA e non i blocchi della sezione (doc 13 §3a): sezioni
+    /// derivate ed editoriali-strutturate. È la domanda che viewer ed editor si fanno per decidere se rendere il
+    /// contenuto documentale o cedere il posto al componente dedicato — stava ripetuta in sei insiemi di pagina.
+    /// </summary>
+    public static bool IsHostRendered(SectionProfile profile, string key) =>
+        Find(profile, key)?.BodySource == SectionBodySource.Host;
+
+    /// <summary>Profilo di catalogo di un blocco della vIPI ACC (Aerovia o gruppo APP): la corrispondenza stava
+    /// scritta a mano nell'assembler e negli editor.</summary>
+    public static SectionProfile ProfileOfAccBlock(AccBlockKind kind) =>
+        kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
 
     /// <summary>Sezioni fisse del profilo, in ordine di default.</summary>
     public static IReadOnlyList<SectionDescriptor> For(SectionProfile profile) => Registry[profile];

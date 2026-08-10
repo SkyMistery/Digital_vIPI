@@ -186,12 +186,11 @@ else
         _freq = await Vloa.DeriveFrequenciesAsync(_docId!.Value);
     });
 
-    // Sezione derivata (data-driven) da renderizzare come vista, non come blocchi statici.
-    // Derivata = il corpo lo produce il viewer/editor dai dati, non i blocchi. La sezione PADRE dei coordinamenti
-    // è derivata quanto le due figlie (doc 11 §3f): l'editor offriva blocchi lì, ma il viewer li sostituisce con le
-    // due direzioni e non li mostra mai.
+    // Sezione il cui corpo lo produce l'editor dai dati, non i blocchi. Lo dice il catalogo per il profilo vLOA
+    // (doc 13 §3a). La sezione PADRE dei coordinamenti lo è quanto le due figlie (doc 11 §3f): l'editor offriva
+    // blocchi lì, ma il viewer li sostituisce con le due direzioni e non li mostra mai.
     private static bool IsDerived(EditableSection s) =>
-        s.SectionKey is "aor" or "frequencies" or "coordination";
+        SectionCatalog.IsHostRendered(SectionProfile.Vloa, s.SectionKey);
 
     // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
     private async Task StartEditing()

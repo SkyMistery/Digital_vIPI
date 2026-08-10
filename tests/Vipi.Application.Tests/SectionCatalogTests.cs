@@ -45,6 +45,64 @@ public class SectionCatalogTests
                     SectionCatalog.IsRenderModeToggleable(d.Key));
     }
 
+    // ---- doc 13 §3a: chi rende il corpo lo dice il catalogo, per profilo ----
+
+    // Rete di regressione contro il ritorno degli HashSet di pagina: se una pagina ricomincia a decidere da sé,
+    // questa lista e la sua smettono di combaciare e il difetto si vede qui, non in produzione.
+    [Fact]
+    public void Host_rendered_sections_are_declared_per_profile()
+    {
+        string[] Host(SectionProfile p) => SectionCatalog.For(p)
+            .Where(d => d.BodySource == SectionBodySource.Host).Select(d => d.Key).OrderBy(k => k).ToArray();
+
+        Assert.Equal(
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
+            Host(SectionProfile.App));
+        Assert.Equal(
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations" },
+            Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR
+        Assert.Equal(
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
+            Host(SectionProfile.AccAppBlock));
+        Assert.Equal(
+            new[] { "aor", "coordination", "frequencies" },
+            Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
+    }
+
+    [Fact]
+    public void The_same_key_can_be_host_rendered_in_one_profile_and_not_in_another()
+    {
+        // È il motivo per cui BodySource è per profilo e non globale come KindOf.
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.App, "regulated"));
+        Assert.False(SectionCatalog.IsHostRendered(SectionProfile.Vloa, "regulated"));
+    }
+
+    [Fact]
+    public void A_derived_section_is_always_host_rendered()
+    {
+        // Invariante: non esiste una sezione calcolata live il cui corpo venga dai blocchi salvati.
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+            foreach (var d in SectionCatalog.For(p).Where(d => d.Kind == SectionKind.Derived))
+                Assert.True(SectionCatalog.IsHostRendered(p, d.Key), $"{p}/{d.Key}");
+    }
+
+    [Fact]
+    public void Custom_sections_are_never_host_rendered_nor_fixed()
+    {
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+        {
+            Assert.False(SectionCatalog.IsHostRendered(p, "custom:9f3a1c07"));
+            Assert.False(SectionCatalog.IsFixed(p, "custom:9f3a1c07"));
+        }
+    }
+
+    [Fact]
+    public void ProfileOfAccBlock_maps_the_two_block_kinds()
+    {
+        Assert.Equal(SectionProfile.AccAerovia, SectionCatalog.ProfileOfAccBlock(AccBlockKind.Aerovia));
+        Assert.Equal(SectionProfile.AccAppBlock, SectionCatalog.ProfileOfAccBlock(AccBlockKind.AppGroup));
+    }
+
     [Fact]
     public void Universals_present_in_every_profile()
     {

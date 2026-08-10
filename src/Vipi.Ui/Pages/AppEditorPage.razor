@@ -238,14 +238,13 @@ else
         }
     }
 
-    // ---- sezioni derivate / editoriali-strutturate ----
-    private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination", "regulated" };
-
-    private static bool IsDerived(EditableSection s) => s.Depth == 0 && Special.Contains(s.SectionKey);
+    // ---- sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate) ----
+    // L'insieme lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie.
+    private static bool IsDerived(EditableSection s) =>
+        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.App, s.SectionKey);
 
     // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
-    private bool IsMandatory(EditableSection s) => SectionCatalog.Find(SectionProfile.App, s.SectionKey) is not null;
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.App, s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
     // ---- editoriali-strutturate (persist immediato via AppDocumentService) ----
