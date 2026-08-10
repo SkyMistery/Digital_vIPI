@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject ILogger<VloaEditor> Logger
 @inject IStringLocalizer<SharedResource> L
+@inject IEditAuthorizationService Authz
 @* Editing e Vloa risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash
    "second operation" sotto latenza Postgres. Vedi [[EditLockBar]]. *@
 
@@ -86,15 +87,12 @@ else
         </RightRail>
     </DocumentSectionsEditor>
 
-    @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f). Prima l'editor vLOA era
-       l'unico senza pannello release — la si poteva pubblicare solo da /vsop/versioni — e l'unico con un
-       «Pubblica» di versione. «Pubblica ora» fa snapshot + promozione della bozza. *@
-    <div class="block" id="@_releaseAnchor">
-        <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
-        <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
-                      ShowDiff="true" PreviewUrlFactory="ReleasePreviewUrl"
-                      Published="LoadAsync" />
-    </div>
+    @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f), con gli STESSI parametri
+       (doc 13 §3i) — mancavano l'aiuto e, per gli admin, l'annullo di una release. *@
+    <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
+                  ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                  PreviewUrlFactory="ReleasePreviewUrl"
+                  Published="LoadAsync" />
 }
 
 @code {
@@ -118,9 +116,8 @@ else
     // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
 
-    private const string _releaseAnchor = "p-release";
     // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor), come nell'editor APP.
-    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
     private string ReleasePreviewUrl(int releaseId) =>
         $"/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";

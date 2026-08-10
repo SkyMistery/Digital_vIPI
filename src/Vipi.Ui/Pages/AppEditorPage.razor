@@ -89,7 +89,12 @@ else
                 </RightRail>
             </DocumentSectionsEditor>
 
-            @Release()
+            @* Release AIRAC: involucro, aiuto, diff, annulla e anteprima li porta il pannello condiviso
+               (doc 13 §3i). Prima ogni editor si costruiva il proprio contorno, e infatti erano diversi. *@
+            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
+                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          PreviewUrlFactory="ReleasePreviewUrl"
+                          Published="LoadAsync" />
         }
     </div>
 }
@@ -141,14 +146,8 @@ else
     private string _freqSearch = "";
     private int? _freqDragIndex;
 
-    // Release AIRAC (target App): la timeline e la pubblicazione sono nel componente condiviso ReleasePanel,
-    // come negli editor ACC e aeroporto. Qui resta solo il ciclo corrente per il testo d'aiuto.
-    private string _currentCycle = "";
-    private const string _releaseAnchor = "p-release";
-    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor).
-    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
-
-    protected override void OnInitialized() => _currentCycle = Releases.CurrentCycle();
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor); ancora e titolo li possiede il pannello.
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
     protected override async Task OnParametersSetAsync()
     {
@@ -451,23 +450,6 @@ else
     };
 
     // ---- release AIRAC (target App) ----
-    // La pagina fornisce solo l'involucro di sezione (ancora TOC + titolo + aiuto); timeline, selettore ciclo,
-    // diff, annulla e pubblicazione sono nel componente condiviso ReleasePanel, come in AccEditorPage e
-    // AeroportoEditorPage. Prima questa pagina era l'unica dei tre editor con una copia inline.
-    private RenderFragment Release() => __builder =>
-    {
-        <div class="block" id="@_releaseAnchor">
-            <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
-            <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
-
-            @* Published: ricarica lo stato documento dopo la pubblicazione (la pill «Bozza vN» del rail sarebbe stantia). *@
-            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
-                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
-                          PreviewUrlFactory="ReleasePreviewUrl"
-                          Published="LoadAsync" />
-        </div>
-    };
-
     private string ReleasePreviewUrl(int releaseId) =>
         $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
 

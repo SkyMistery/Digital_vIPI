@@ -109,8 +109,11 @@ else
             }
 
             @* Published: dopo «Pubblica ora» la bozza è promossa a versione pubblicata — ricarichiamo, o la pill
-               «Bozza vN» del rail resta quella letta all'apertura. *@
+               «Bozza vN» del rail resta quella letta all'apertura. Stessi parametri degli altri editor (doc 13
+               §3i): qui mancavano involucro, voce di menu, differenze e annullo. *@
             <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")"
+                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          PreviewUrlFactory="ReleasePreviewUrl"
                           Published="LoadAsync" />
             </div>
             <aside class="ed-rail">
@@ -183,8 +186,12 @@ else
                     items.Add(new EditorTocItem($"s-{c.Id}", c.Title, GroupLabel: group));
             }
         }
+        // Il blocco Release è reso fuori dall'editor di sezioni: la sua voce si accoda a mano, come in APP/vLOA.
+        items.Add(new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]));
         return items;
     }
+
+    private string ReleasePreviewUrl(int releaseId) => $"/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
 
     // Derivate per blocco (chiave = BlockSectionId).
     private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();

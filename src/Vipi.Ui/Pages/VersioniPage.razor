@@ -341,11 +341,15 @@
                 _versions[key] = await Editing.ListVersionsAsync(docId);
             if (!_releases.ContainsKey(key))
                 _releases[key] = await Releases.ListAsync(d.ReleaseTarget, d.ReleaseKey);
-            // Storia modifiche (audit) solo per i profili ACC/APP: non hanno version-list.
-            if ((d.Kind is ManagedDocKind.AccVipi or ManagedDocKind.AppVipi) && !_history.ContainsKey(key))
+            // Storia modifiche: vale per TUTTE le famiglie (doc 13 §3i). L'audit lo si scrive per DocumentVersion,
+            // quindi la storia di un documento è l'unione di quella delle sue versioni. Prima si interrogavano i
+            // bersagli «AccProfile»/«AppProfile» — lo storage per-tipo droppato dal doc 08i: quelle righe non le
+            // scrive più nessuno, e il riquadro diceva sempre «nessuna storia» per ACC e APP e non c'era altrove.
+            if (d.DocumentId is int historyDocId && !_history.ContainsKey(key))
             {
-                var (etype, eid) = AuditRefOf(d);
-                _history[key] = await Audit.ListForEntityAsync(etype, eid);
+                var versionIds = (_versions.TryGetValue(key, out var vs) ? vs : await Editing.ListVersionsAsync(historyDocId))
+                    .Select(v => v.Id.ToString()).ToList();
+                _history[key] = await Audit.ListForEntitiesAsync("DocumentVersion", versionIds);
             }
             await ResolveAuthorsAsync(key);
         }
@@ -367,14 +371,6 @@
 
     private string Author(int vid) =>
         _authorNames.TryGetValue(vid, out var n) ? $"{n} (VID {vid})" : $"VID {vid}";
-
-    // Chiave audit del profilo: ACC = codice ACC; APP = callsign (= ReleaseKey). Normalizzati upper.
-    private static (string EntityType, string EntityId) AuditRefOf(ManagedDoc d) => d.Kind switch
-    {
-        ManagedDocKind.AccVipi => ("AccProfile", (d.AccCode ?? "").ToUpperInvariant()),
-        ManagedDocKind.AppVipi => ("AppProfile", d.ReleaseKey.ToUpperInvariant()),
-        _ => ("", ""),
-    };
 
     // Riepilogo leggero delle aree toccate dal DetailsJson {"Areas":[...],"Saves":N}.
     private string HistoryDetail(string? json)
@@ -432,7 +428,7 @@
             }
         }
 
-        @if (d.Kind is ManagedDocKind.AccVipi or ManagedDocKind.AppVipi)
+        @if (d.DocumentId is not null)
         {
             <div class="block" style="margin-top:8px">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">

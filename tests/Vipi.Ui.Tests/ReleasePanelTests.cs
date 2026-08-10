@@ -320,4 +320,34 @@ public class ReleasePanelTests : TestContext
 
         Assert.NotNull(cut.Find("[data-tour=release]"));
     }
+
+    // ---- doc 13 §3i: l'involucro della sezione lo porta il pannello, non ogni editor ----
+
+    [Fact]
+    public void The_panel_carries_its_own_anchor_title_and_help()
+    {
+        Arrange();
+
+        var cut = Render();
+
+        // L'ancora serve alla voce di menu degli editor: era ricostruita a mano in due editor su quattro e
+        // mancava del tutto in quello della vIPI ACC.
+        Assert.Contains($"id=\"{ReleasePanel.SectionAnchor}\"", cut.Markup);
+        Assert.Contains("Rel_SectionTitle", cut.Markup);
+        Assert.Contains("Rel_SectionHelp", cut.Markup);
+    }
+
+    [Fact]
+    public void The_header_can_be_left_to_the_host_that_already_has_one()
+    {
+        Arrange();
+
+        var cut = RenderComponent<ReleasePanel>(p => p
+            .Add(x => x.Target, ReleaseTargetType.Airport)
+            .Add(x => x.Key, "LIRF")
+            .Add(x => x.ShowSectionHeader, false));
+
+        Assert.DoesNotContain("Rel_SectionHelp", cut.Markup);
+        Assert.Contains($"id=\"{ReleasePanel.SectionAnchor}\"", cut.Markup);   // l'ancora resta
+    }
 }

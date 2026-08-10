@@ -600,7 +600,9 @@ else
             <details id="sec-versioni" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Versioni")</summary>
                 <div class="block">
-                    <h3 style="margin-top:0">@L["App_VersionsReleases"]</h3>
+                    @* Titolo e aiuto sono già qui dentro (questa pagina ha il proprio <details> di sezione):
+                       il pannello non li ripete. *@
+                    <h3 style="margin-top:0">@L["Rel_SectionTitle"]</h3>
                     <p class="help">@((MarkupString)L["Ape_VersionsHelp"].Value)</p>
 
                     @if (!_canEdit)
@@ -612,7 +614,7 @@ else
                         @* Published: ricarica il profilo dopo la pubblicazione. Qui LoadAsync è un reload totale
                            (azzera i buffer sporchi), coerente col fatto che BeforePublishAsync ha già avvisato
                            sulle sezioni non salvate e rigenerato il documento dalla bozza. *@
-                        <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
+                        <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao" ShowSectionHeader="false"
                                       ShowDiff="true" AllowCancel="Authz.IsAdmin"
                                       BeforePublishAsync="BeforePublishAsync"
                                       PreviewUrlFactory="ReleasePreviewUrl"

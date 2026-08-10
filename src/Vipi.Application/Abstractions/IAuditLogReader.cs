@@ -20,4 +20,8 @@ public interface IAuditLogReader
     /// <summary>Audit di uno specifico bersaglio (EntityType+EntityId), più recente prima. Per la storia modifiche
     /// contestuale nel dettaglio del profilo.</summary>
     Task<IReadOnlyList<AuditEntry>> ListForEntityAsync(string entityType, string entityId, int max = 50, CancellationToken ct = default);
+
+    /// <summary>Audit di più bersagli dello stesso tipo, più recente prima. Serve alla storia di un DOCUMENTO, che
+    /// è l'unione di quella delle sue versioni: l'audit lo si scrive per <c>DocumentVersion</c>.</summary>
+    Task<IReadOnlyList<AuditEntry>> ListForEntitiesAsync(string entityType, IReadOnlyList<string> entityIds, int max = 50, CancellationToken ct = default);
 }

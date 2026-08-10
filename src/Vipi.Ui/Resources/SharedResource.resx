@@ -434,6 +434,7 @@
   <data name="AccLanding_MainDoc" xml:space="preserve"><value>Documento principale</value></data>
   <data name="AccLanding_VipiOf" xml:space="preserve"><value>vIPI di {0}</value></data>
   <data name="AccLanding_VipiDesc" xml:space="preserve"><value>Documento di ACC: separazioni, AoR, configurazioni, frequenze, minime e coordinamenti. Include gli APP remotizzati.</value></data>
+  <data name="AccLanding_VipiUnpublished" xml:space="preserve"><value>Non ancora pubblicata: aprila dall'editor e pubblicala.</value></data>
   <data name="AccLanding_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI dei singoli aeroporti sotto la ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
@@ -1045,8 +1046,8 @@
   <data name="App_NoEditPerm" xml:space="preserve"><value>Non hai i permessi per modificare questo APP.</value></data>
   <data name="App_RemoveConfigConfirm" xml:space="preserve"><value>Rimuovere la configurazione «{0}»?</value></data>
   <data name="App_LinkFreqPh" xml:space="preserve"><value>Collega frequenza (cerca callsign/ICAO)…</value></data>
-  <data name="App_VersionsReleases" xml:space="preserve"><value>Versioni &amp; release AIRAC</value></data>
-  <data name="App_ReleaseHelp" xml:space="preserve"><value>Pubblica lo stato editoriale corrente &lt;b&gt;subito&lt;/b&gt; (review sul ciclo in corso) oppure &lt;b&gt;pianificalo&lt;/b&gt; a un ciclo AIRAC futuro. Il pubblico vede la release in vigore al ciclo corrente ({0}).</value></data>
+  <data name="Rel_SectionTitle" xml:space="preserve"><value>Versioni &amp; release AIRAC</value></data>
+  <data name="Rel_SectionHelp" xml:space="preserve"><value>Pubblica lo stato editoriale corrente &lt;b&gt;subito&lt;/b&gt; (review sul ciclo in corso) oppure &lt;b&gt;pianificalo&lt;/b&gt; a un ciclo AIRAC futuro. Il pubblico vede la release in vigore al ciclo corrente ({0}).</value></data>
   <data name="Acc_EditorTitle" xml:space="preserve"><value>Editor vIPI</value></data>
   <data name="Acc_DeniedBody" xml:space="preserve"><value>Non hai i permessi per la ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Caricamento editor vIPI…</value></data>
