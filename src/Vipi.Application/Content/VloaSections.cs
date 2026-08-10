@@ -7,17 +7,26 @@ namespace Vipi.Application.Content;
 public sealed record VloaBlockSpec(BlockFormat Format, string? Body = null, string? BodyJson = null, CalloutKind? CalloutKind = null);
 
 /// <summary>Sezione canonica (obbligatoria) di una vLOA, con blocchi e figli (per i Coordinamenti).</summary>
-public sealed record VloaSectionSpec(string Title, BlockSection Kind,
+public sealed record VloaSectionSpec(string SectionKey, string Title,
     IReadOnlyList<VloaBlockSpec> Blocks, IReadOnlyList<VloaSectionSpec> Children);
 
 /// <summary>
-/// Registro della struttura OBBLIGATORIA della vLOA (mockup 3d «vLOA Estere»): stesse sezioni della lettera di
-/// accordo bilaterale. Puro/parametrico su Home/Foreign; il seeding delle entità EF è in Infrastructure
-/// (<c>VloaStructureSeeder</c>), e l'editor blocca queste sezioni via <see cref="MandatoryTitles"/>.
-/// Rispecchia <c>RomaVloaSeed</c> ma generico (nessun testo Roma-specifico).
+/// <b>Contenuto</b> iniziale della vLOA (mockup 3d «vLOA Estere»), parametrico su Home/Foreign. La <b>struttura</b>
+/// — quali sezioni, con che chiave, che titolo e in che ordine — la dice il <see cref="SectionCatalog"/>, profilo
+/// <see cref="SectionProfile.Vloa"/>, come per la vIPI ACC e l'APP (doc 13 §3c).
+/// <para>
+/// Fino al doc 13 questo file era un <b>registro parallelo</b> espresso nell'enum legacy <c>BlockSection</c>, e il
+/// catalogo per la vLOA non lo consultava nessuno: le due descrizioni erano divergenti su tre punti (una sezione in
+/// più — «Purpose» —, un ordine diverso e il titolo delle aree regolamentate), e la sola vLOA identificava le sezioni
+/// obbligatorie per <b>titolo</b> invece che per chiave.
+/// </para>
+/// Il seeding delle entità EF resta in Infrastructure (<c>VloaStructureSeeder</c>).
 /// </summary>
 public static class VloaSections
 {
+    /// <summary>Chiave della sotto-sezione «direzione» dei coordinamenti (una per verso).</summary>
+    private const string CoordinationKey = "coordination";
+
     /// <summary>Struttura canonica parametrizzata sui codici ACC della coppia (contenuto EN placeholder).</summary>
     public static IReadOnlyList<VloaSectionSpec> Canonical(string homeCode, string foreignCode, string? foreignName, string airacCycle)
     {
@@ -25,61 +34,64 @@ public static class VloaSections
         var foreign = (foreignCode ?? "").Trim().ToUpperInvariant();
         var fName = string.IsNullOrWhiteSpace(foreignName) ? foreign : foreignName.Trim();
 
-        return new List<VloaSectionSpec>
-        {
-            Sec("Purpose", BlockSection.Purpose,
-                Prose($"This Letter of Agreement establishes the coordination procedures, transfer of control and transfer of communications between **{home}** and **{foreign} ({fName})** for traffic crossing the common boundary.")),
-
-            Sec("Areas of Responsibility", BlockSection.Aor,
-                Prose($"Both areas of responsibility are imported from the IVAO database; the common boundary is the {home}/{foreign} ACC limit."),
-                Prose($"**{home}:** sectors bordering {foreign}. **{foreign} ({fName}):** sectors bordering {home}.")),
-
-            // Frequenze DERIVATE (data-driven) unendo i due ACC: la tabella è generata dall'editor/viewer, qui solo intro.
-            Sec("Frequencies", BlockSection.Frequencies,
-                Prose($"Working frequencies of **{home}** and **{foreign} ({fName})** for the sectors along the common boundary (derived from the IVAO database).")),
-
-            Sec("General procedures", BlockSection.OperationalTechnique,
-                Prose("Transfer of control takes place at the common boundary unless otherwise agreed. Transfer of communications is initiated **not later than 5 minutes** before the Coordination Point."),
-                Callout(CalloutKind.Warning, "Reduced coordination", "In case of radar/communication degradation, revert to estimates and verbal handoff at the boundary.")),
-
-            // Coordinamenti DERIVATI dai trasferimenti registrati (una tabella per direzione, generata dall'editor/viewer).
-            SecWithChildren("Coordination", BlockSection.Coordination, Array.Empty<VloaBlockSpec>(),
-                Sec($"{home} → {foreign}", BlockSection.Coordination,
-                    Prose($"**{home} transfers** traffic to {foreign} at the Coordination Point, as published.")),
-                Sec($"{foreign} → {home}", BlockSection.Coordination,
-                    Prose($"**{foreign} transfers** traffic to {home} at the Coordination Point, as published."))),
-
-            Sec("Military areas coordination and management", BlockSection.AreasCorridors,
-                Prose("Activation and crossing of cross-border military areas adjacent to the common boundary are coordinated between the two units.")),
-
-            Sec("Validity and Revision", BlockSection.Validity,
-                Table(new[] { "Item", "Value" },
-                    Cells("Effective from", $"AIRAC {airacCycle}"),
-                    Cells("Review cycle", "Bilateral, at least annually"),
-                    Cells("Italian signatory", $"{home} CH / AOD"))),
-        };
+        return SectionCatalog.For(SectionProfile.Vloa)
+            .OrderBy(d => d.Order)
+            .Select(d => new VloaSectionSpec(d.Key, d.Title, BlocksFor(d.Key, home, foreign, fName, airacCycle),
+                ChildrenFor(d.Key, home, foreign)))
+            .ToList();
     }
 
-    /// <summary>Titoli delle sezioni obbligatorie (7 + 2 figli Coordinamenti), per il lock nell'editor.</summary>
-    public static IReadOnlySet<string> MandatoryTitles(string homeCode, string foreignCode)
+    // Contenuto iniziale per chiave di catalogo. Le sezioni DERIVATE (aor/frequencies) portano solo l'introduzione:
+    // la tabella la genera il viewer dai dati. «coordination» non ha corpo proprio — le due direzioni sono le sue
+    // sotto-sezioni (doc 11 §3f).
+    private static IReadOnlyList<VloaBlockSpec> BlocksFor(string key, string home, string foreign, string fName, string airacCycle) => key switch
     {
-        var home = (homeCode ?? "").Trim().ToUpperInvariant();
-        var foreign = (foreignCode ?? "").Trim().ToUpperInvariant();
-        return new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        "purpose" => new[]
         {
-            "Purpose", "Areas of Responsibility", "Frequencies", "General procedures",
-            "Coordination", $"{home} → {foreign}", $"{foreign} → {home}",
-            "Military areas coordination and management", "Validity and Revision",
-        };
-    }
+            Prose($"This Letter of Agreement establishes the coordination procedures, transfer of control and transfer of communications between **{home}** and **{foreign} ({fName})** for traffic crossing the common boundary."),
+        },
+        "aor" => new[]
+        {
+            Prose($"Both areas of responsibility are imported from the IVAO database; the common boundary is the {home}/{foreign} ACC limit."),
+            Prose($"**{home}:** sectors bordering {foreign}. **{foreign} ({fName}):** sectors bordering {home}."),
+        },
+        "frequencies" => new[]
+        {
+            Prose($"Working frequencies of **{home}** and **{foreign} ({fName})** for the sectors along the common boundary (derived from the IVAO database)."),
+        },
+        "operationaltechnique" => new[]
+        {
+            Prose("Transfer of control takes place at the common boundary unless otherwise agreed. Transfer of communications is initiated **not later than 5 minutes** before the Coordination Point."),
+            Callout(CalloutKind.Warning, "Reduced coordination", "In case of radar/communication degradation, revert to estimates and verbal handoff at the boundary."),
+        },
+        "regulated" => new[]
+        {
+            Prose("Activation and crossing of cross-border military areas adjacent to the common boundary are coordinated between the two units."),
+        },
+        "validity" => new[]
+        {
+            Table(new[] { "Item", "Value" },
+                Cells("Effective from", $"AIRAC {airacCycle}"),
+                Cells("Review cycle", "Bilateral, at least annually"),
+                Cells("Italian signatory", $"{home} CH / AOD")),
+        },
+        _ => Array.Empty<VloaBlockSpec>(),
+    };
+
+    // Le due direzioni dei coordinamenti. Nessun blocco: il corpo lo produce l'editor (tabella dei trasferimenti)
+    // e il viewer le rende dal padre — un paragrafo scritto qui non lo vedrebbe nessuno.
+    private static IReadOnlyList<VloaSectionSpec> ChildrenFor(string key, string home, string foreign) =>
+        key == CoordinationKey
+            ? new[]
+            {
+                Sec(CoordinationKey, $"{home} → {foreign}"),
+                Sec(CoordinationKey, $"{foreign} → {home}"),
+            }
+            : Array.Empty<VloaSectionSpec>();
 
     // ---- costruttori spec ----
-    private static VloaSectionSpec Sec(string title, BlockSection kind, params VloaBlockSpec[] blocks) =>
-        new(title, kind, blocks, Array.Empty<VloaSectionSpec>());
-
-    private static VloaSectionSpec SecWithChildren(string title, BlockSection kind,
-        IReadOnlyList<VloaBlockSpec> blocks, params VloaSectionSpec[] children) =>
-        new(title, kind, blocks, children);
+    private static VloaSectionSpec Sec(string key, string title) =>
+        new(key, title, Array.Empty<VloaBlockSpec>(), Array.Empty<VloaSectionSpec>());
 
     private static VloaBlockSpec Prose(string markdown) => new(BlockFormat.Prose, Body: markdown);
 

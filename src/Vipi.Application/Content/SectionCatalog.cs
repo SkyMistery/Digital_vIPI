@@ -21,6 +21,7 @@ public static class SectionCatalog
             // Live/Congelata non aveva effetto e — peggio — l'editor non offriva i blocchi, quindi era l'unica
             // sezione del documento in cui NON si poteva scrivere.
             ["minima"] = SectionKind.Editorial,
+            ["purpose"] = SectionKind.Editorial,   // vLOA: scopo dell'accordo, prosa (doc 13 §3c)
             ["separations"] = SectionKind.Editorial,
             ["configurations"] = SectionKind.Editorial,
             ["vfr"] = SectionKind.Editorial,
@@ -100,14 +101,18 @@ public static class SectionCatalog
                 D("operationaltechnique", "Procedure generali", 9),
                 D("validity", "Validità e revisione", 10),
             },
+            // vLOA: titoli e ORDINE sono quelli del documento reale (doc 13 §3c). Fino al doc 13 questo profilo non
+            // lo leggeva nessuno — la struttura nasceva da VloaSections — e i due elenchi erano divergenti: mancava
+            // «purpose», «General procedures» stava dopo «Coordination» e le aree si chiamavano «Regulated areas».
             [SectionProfile.Vloa] = new[]
             {
-                H("aor", "Areas of Responsibility", 3),
-                H("frequencies", "Frequencies", 4),
-                H("coordination", "Coordination", 7),
-                D("regulated", "Regulated areas", 8),
-                D("operationaltechnique", "General procedures", 9),
-                D("validity", "Validity and Revision", 10),
+                D("purpose", "Purpose", 1),
+                H("aor", "Areas of Responsibility", 2),
+                H("frequencies", "Frequencies", 3),
+                D("operationaltechnique", "General procedures", 4),
+                H("coordination", "Coordination", 5),
+                D("regulated", "Military areas coordination and management", 6),
+                D("validity", "Validity and Revision", 7),
             },
         };
 

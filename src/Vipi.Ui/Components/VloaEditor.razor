@@ -111,9 +111,10 @@ else
     private bool _notFound, _denied, _editing;
     private string? _error;
 
-    // Titoli delle sezioni OBBLIGATORIE (mockup 3d): bloccate (no rinomina/sposta/elimina).
-    private IReadOnlySet<string> _mandatory = new HashSet<string>();
-    private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
+    // Sezioni OBBLIGATORIE: quelle fisse del catalogo (doc 13 §3c). Prima erano riconosciute per TITOLO — una
+    // rinomina perdeva lo stato e due titoli uguali collidevano, esattamente ciò che il doc 11 §3a aveva vietato
+    // per «nascosta» ma che qui era rimasto.
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Vloa, s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
 
@@ -145,7 +146,6 @@ else
 
         var home = (Home ?? "").Trim().ToUpperInvariant();
         var foreign = (Foreign ?? "").Trim().ToUpperInvariant();
-        _mandatory = VloaSections.MandatoryTitles(home, foreign);
         _docId = await Editing.ResolveVloaIdByPairAsync(home, foreign);
         if (_docId is null) { _notFound = true; return; }
 

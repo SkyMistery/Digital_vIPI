@@ -115,10 +115,21 @@ public class SectionCatalogTests
     }
 
     [Fact]
-    public void Vloa_has_only_the_six_universals()
+    public void Vloa_is_the_universals_plus_purpose()
     {
+        // doc 13 §3c: il profilo descrive la vLOA VERA, che ha anche «Purpose» — prima il catalogo non lo sapeva
+        // perché la struttura nasceva da VloaSections e questo profilo non lo leggeva nessuno.
         var keys = SectionCatalog.For(SectionProfile.Vloa).Select(d => d.Key).ToArray();
-        Assert.Equal(Universal.OrderBy(x => x), keys.OrderBy(x => x));
+        Assert.Equal(Universal.Append("purpose").OrderBy(x => x), keys.OrderBy(x => x));
+    }
+
+    [Fact]
+    public void Vloa_default_order_is_the_order_of_the_real_document()
+    {
+        var keys = SectionCatalog.For(SectionProfile.Vloa).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
+        Assert.Equal(
+            new[] { "purpose", "aor", "frequencies", "operationaltechnique", "coordination", "regulated", "validity" },
+            keys);
     }
 
     [Fact]
@@ -137,7 +148,9 @@ public class SectionCatalogTests
     public void Reconcile_empty_yields_default_order()
     {
         var order = SectionCatalog.Reconcile(SectionProfile.Vloa, Array.Empty<string>());
-        Assert.Equal(new[] { "aor", "frequencies", "coordination", "regulated", "operationaltechnique", "validity" }, order);
+        Assert.Equal(
+            new[] { "purpose", "aor", "frequencies", "operationaltechnique", "coordination", "regulated", "validity" },
+            order);
     }
 
     [Fact]
@@ -149,7 +162,8 @@ public class SectionCatalogTests
             savedOrder: new[] { "aor", "note1", "obsolete" },
             customKeys: new HashSet<string> { "note1" });
 
-        Assert.Equal("aor", order[0]);        // ordine salvato preservato
+        Assert.Equal("purpose", order[0]);     // fissa mancante inserita al suo ordine (prima di «aor»)
+        Assert.Equal("aor", order[1]);         // ordine salvato preservato
         Assert.Contains("note1", order);       // custom preservata
         Assert.DoesNotContain("obsolete", order); // stale scartata
         Assert.Contains("validity", order);    // fissa mancante inserita

@@ -26,7 +26,7 @@ public static class VloaStructureSeeder
             Title = spec.Title,
             Order = order,
             Depth = parent is null ? 0 : parent.Depth + 1,
-            SectionKey = SectionCatalogBridge.KeyFor(spec.Kind) ?? SectionKeys.NewCustom(),
+            SectionKey = spec.SectionKey,
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         ver.Sections.Add(section);
