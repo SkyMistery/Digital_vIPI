@@ -863,6 +863,10 @@
   <data name="Rel_ChangeAdded" xml:space="preserve"><value>Aggiunta</value></data>
   <data name="Rel_ChangeRemoved" xml:space="preserve"><value>Rimossa</value></data>
   <data name="Rel_ChangeModified" xml:space="preserve"><value>Modificata</value></data>
+  <data name="Rel_DiffItems" xml:space="preserve"><value>{0} elementi</value></data>
+  <data name="Rel_DiffItemsFromTo" xml:space="preserve"><value>{0} → {1} elementi</value></data>
+  <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Rel_BaselineNone" xml:space="preserve"><value>stato attuale (nessuna release in vigore)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Confronto con:</value></data>
   <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza strutturale rilevata.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Voce</value></data>

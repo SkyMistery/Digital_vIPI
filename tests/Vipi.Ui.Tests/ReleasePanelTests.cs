@@ -29,7 +29,7 @@ public class ReleasePanelTests : TestContext
     {
         public List<ReleaseInfo> Releases { get; } = new();
         public ReleaseDiff Diff { get; set; } =
-            new(true, "AIRAC 2607", new[] { new ReleaseDiffRow("Separazioni", "Modificata", "3 NM → 5 NM") });
+            new(true, "2607", new[] { new ReleaseDiffRow("Separazioni", ReleaseChangeKind.Modified, 3, 5) });
 
         public int Published, PublishedNow, Canceled, DiffCalls;
         public string? LastCycle, LastNote;
@@ -175,12 +175,12 @@ public class ReleasePanelTests : TestContext
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
 
         Assert.Equal(1, fake.DiffCalls);
-        Assert.Contains("3 NM → 5 NM", cut.Markup);
-        Assert.Contains("AIRAC 2607", cut.Markup);            // etichetta della baseline
+        Assert.Contains("Separazioni", cut.Markup);
+        Assert.Contains("Rel_BaselineCycle", cut.Markup);      // etichetta della baseline, composta dalla UI
 
         // Chiudi e riapri: il diff è già in cache, non si richiama il service.
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
-        Assert.DoesNotContain("3 NM → 5 NM", cut.Markup);
+        Assert.DoesNotContain("Separazioni", cut.Markup);
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
         Assert.Equal(1, fake.DiffCalls);
     }

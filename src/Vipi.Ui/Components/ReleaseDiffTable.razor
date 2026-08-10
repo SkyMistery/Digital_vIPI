@@ -9,7 +9,7 @@
 }
 else
 {
-    <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @Diff.BaselineLabel</div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @BaselineLabel()</div>
     @if (Diff.Rows.Count == 0)
     {
         <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
@@ -24,7 +24,7 @@ else
                     <tr>
                         <td>@r.Label</td>
                         <td><span class="pill @Pill(r.Change)">@ChangeLabel(r.Change)</span></td>
-                        <td class="muted" style="font-size:12px">@r.Detail</td>
+                        <td class="muted" style="font-size:12px">@Detail(r)</td>
                     </tr>
                 }
             </tbody>
@@ -36,20 +36,27 @@ else
     /// <summary>Diff da mostrare. Null = ancora in caricamento (il chiamante lo risolve in modo asincrono).</summary>
     [Parameter] public ReleaseDiff? Diff { get; set; }
 
-    // Colore della pill per tipo di modifica. I valori grezzi arrivano dal service in italiano e non sono
-    // localizzati: restano la chiave di dispatch, l'etichetta mostrata invece è tradotta.
-    private static string Pill(string change) => change switch
+    // Il service consegna un enum e dei numeri (doc 13 §3k): tutto ciò che si legge lo compone la UI, quindi
+    // segue la lingua della pagina — anche nel diff di una vLOA, che è un documento inglese.
+    private static string Pill(ReleaseChangeKind change) => change switch
     {
-        "Aggiunta" => "green",
-        "Rimossa" => "grey",
+        ReleaseChangeKind.Added => "green",
+        ReleaseChangeKind.Removed => "grey",
         _ => "blue",
     };
 
-    private string ChangeLabel(string change) => change switch
+    private string ChangeLabel(ReleaseChangeKind change) => change switch
     {
-        "Aggiunta" => L["Rel_ChangeAdded"],
-        "Rimossa" => L["Rel_ChangeRemoved"],
-        "Modificata" => L["Rel_ChangeModified"],
-        _ => change,
+        ReleaseChangeKind.Added => L["Rel_ChangeAdded"],
+        ReleaseChangeKind.Removed => L["Rel_ChangeRemoved"],
+        _ => L["Rel_ChangeModified"],
     };
+
+    private string Detail(ReleaseDiffRow r) => r.Change == ReleaseChangeKind.Modified
+        ? string.Format(L["Rel_DiffItemsFromTo"].Value, r.PreviousCount, r.Count)
+        : string.Format(L["Rel_DiffItems"].Value, r.Count ?? r.PreviousCount);
+
+    private string BaselineLabel() => Diff!.BaselineCycle is { } cycle
+        ? string.Format(L["Rel_BaselineCycle"].Value, cycle)
+        : L["Rel_BaselineNone"];
 }

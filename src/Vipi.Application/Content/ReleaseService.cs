@@ -165,16 +165,16 @@ public sealed class ReleaseService : IReleaseService
         foreach (var kv in cur.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
         {
             if (!prev.TryGetValue(kv.Key, out var p))
-                rows.Add(new ReleaseDiffRow(kv.Key, "Aggiunta", $"{kv.Value} elementi"));
+                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
             else if (p != kv.Value)
-                rows.Add(new ReleaseDiffRow(kv.Key, "Modificata", $"{p} → {kv.Value} elementi"));
+                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
         }
         foreach (var kv in prev.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
             if (!cur.ContainsKey(kv.Key))
-                rows.Add(new ReleaseDiffRow(kv.Key, "Rimossa", $"{kv.Value} elementi"));
+                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
 
-        var baselineLabel = baseline is null ? "stato attuale (nessuna release in vigore)" : $"AIRAC {baseline.ReleaseAiracCycle}";
-        return new ReleaseDiff(baseline is not null, baselineLabel, rows);
+        // Niente frasi in Application: il ciclo di confronto (o la sua assenza) lo formatta la UI.
+        return new ReleaseDiff(baseline is not null, baseline?.ReleaseAiracCycle, rows);
     }
 
     public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default)
