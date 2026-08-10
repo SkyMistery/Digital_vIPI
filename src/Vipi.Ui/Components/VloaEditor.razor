@@ -336,7 +336,9 @@ else
                     @if (_editing) { <col style="width:104px" /> }
                 </colgroup>
                 <thead>
-                    <tr><th></th><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Vle_Frequency"]</th>@if (_editing) { <th></th> }</tr>
+                    @* Stesse intestazioni del viewer e di AppFrequencies (doc 13 §3j): erano tre tabelle sugli
+                       stessi dati con due nomenclature diverse. *@
+                    <tr><th></th><th>@L["AppFreq_Callsign"]</th><th>@L["AppFreq_Position"]</th><th>@L["Airport_Frequency"]</th>@if (_editing) { <th></th> }</tr>
                 </thead>
                 <tbody>
                     @foreach (var r in rows)

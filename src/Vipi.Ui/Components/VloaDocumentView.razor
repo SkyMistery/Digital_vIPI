@@ -10,7 +10,7 @@
 
 <div class="doc-layout">
     <aside class="toc">
-        <p class="toc-h">Contents</p>
+        <p class="toc-h">@L["Common_Contents"]</p>
         <ul>
             @foreach (var s in View.Sections)
             {
@@ -20,12 +20,11 @@
     </aside>
 
     <div>
-        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle"
-                   Subtitle="@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)" />
+        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" />
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
-                <span class="muted">@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)</span>
+                <span class="muted">@SubtitleOrDefault()</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
@@ -35,7 +34,7 @@
                 }
             </div>
         </div>
-        <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
+        <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">@L["Vloa_BilateralNoteTitle"]</p>@L["Vloa_BilateralNoteBody"]</div></div>
 
         @foreach (var s in View.Sections)
         {
@@ -153,6 +152,10 @@
         VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
     }
 
+    /// <summary>Sottotitolo del documento; in mancanza, la dicitura di default della lettera d'accordo.</summary>
+    private string SubtitleOrDefault() =>
+        string.IsNullOrWhiteSpace(Subtitle) ? L["Vloa_SubtitleDefault"].Value : Subtitle!;
+
     /// <summary>Vero se la chiave è una delle due direzioni dei coordinamenti (rese dal corpo, non come sotto-sezioni).</summary>
     private static bool IsDirection(string key) =>
         key.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase)
@@ -251,7 +254,7 @@
                     <col style="width:26%" />
                     <col style="width:120px" />
                 </colgroup>
-                <thead><tr><th></th><th>Callsign</th><th>Position</th><th>Frequenza</th></tr></thead>
+                <thead><tr><th></th><th>@L["AppFreq_Callsign"]</th><th>@L["AppFreq_Position"]</th><th>@L["Airport_Frequency"]</th></tr></thead>
                 <tbody>
                     @foreach (var r in rows)
                     {

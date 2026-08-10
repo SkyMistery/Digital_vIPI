@@ -18,7 +18,7 @@
 }
 else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotFoundTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {

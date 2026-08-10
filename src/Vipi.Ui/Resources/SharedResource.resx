@@ -50,6 +50,48 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppFreq_Callsign" xml:space="preserve"><value>Callsign</value></data>
+  <data name="AppFreq_Position" xml:space="preserve"><value>Posizione</value></data>
+  <data name="Apps_Title" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
+  <data name="Apps_StaffHelp" xml:space="preserve"><value>Staff: vedi &lt;b&gt;tutti&lt;/b&gt; gli APP non remotizzati. Quelli senza documento (o in bozza) sono cliccabili per crearlo/editarlo; il pubblico vede solo i pubblicati.</value></data>
+  <data name="Apps_EmptyTitle" xml:space="preserve"><value>Nessun APP non remotizzato</value></data>
+  <data name="Apps_EmptyBody" xml:space="preserve"><value>Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</value></data>
+  <data name="Apps_CreateDoc" xml:space="preserve"><value>crea documento</value></data>
+  <data name="Apps_Draft" xml:space="preserve"><value>bozza</value></data>
+  <data name="Apps_Hidden" xml:space="preserve"><value>nascosto</value></data>
+  <data name="Common_NOnline" xml:space="preserve"><value>{0} online</value></data>
+  <data name="Vloa_Title" xml:space="preserve"><value>vLoA</value></data>
+  <data name="Vloa_EmptyTitle" xml:space="preserve"><value>Nessuna vLoA</value></data>
+  <data name="Vloa_EmptyBody" xml:space="preserve"><value>Non ci sono ancora lettere di accordo pubblicate per questa ACC.</value></data>
+  <data name="Vloa_BilateralDefault" xml:space="preserve"><value>Lettera di accordo bilaterale</value></data>
+  <data name="Vloa_SubtitleDefault" xml:space="preserve"><value>Letter of Agreement (EN)</value></data>
+  <data name="Vloa_BilateralNoteTitle" xml:space="preserve"><value>Documento bilaterale</value></data>
+  <data name="Vloa_BilateralNoteBody" xml:space="preserve"><value>Modificabile solo dal lato italiano (staff). Il lato del vicino è in sola lettura.</value></data>
+  <data name="Aor_ExtraShapesTitle" xml:space="preserve"><value>Shape aggiuntive</value></data>
+  <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</value></data>
+  <data name="Aor_ColorsTitle" xml:space="preserve"><value>Colori dei settori</value></data>
+  <data name="Aor_ColorsHelp" xml:space="preserve"><value>Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</value></data>
+  <data name="AccCfg_NoneOperational" xml:space="preserve"><value>Nessuna configurazione operativa.</value></data>
+  <data name="AccCfg_PickHint" xml:space="preserve"><value>Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</value></data>
+  <data name="AccCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
+  <data name="AccCfg_Range" xml:space="preserve"><value>Range</value></data>
+  <data name="AccCfg_NoOpenSector" xml:space="preserve"><value>Nessun settore aperto.</value></data>
+  <data name="Appn_AppNotAvailTitle" xml:space="preserve"><value>APP non disponibile</value></data>
+  <data name="Country_LF" xml:space="preserve"><value>Francia</value></data>
+  <data name="Country_LS" xml:space="preserve"><value>Svizzera</value></data>
+  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
+  <data name="Country_LD" xml:space="preserve"><value>Croazia</value></data>
+  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
+  <data name="Country_LG" xml:space="preserve"><value>Grecia</value></data>
+  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
+  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
+  <data name="Country_LW" xml:space="preserve"><value>Macedonia del Nord</value></data>
+  <data name="Country_LQ" xml:space="preserve"><value>Bosnia ed Erzegovina</value></data>
+  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
+  <data name="Country_LU" xml:space="preserve"><value>Moldavia</value></data>
+  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
+  <data name="Country_LI" xml:space="preserve"><value>Italia</value></data>
   <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italia</value></data>
   <data name="Chrome_SkipToContent" xml:space="preserve"><value>Salta al contenuto</value></data>
   <data name="Chrome_AccNav" xml:space="preserve"><value>Navigazione ACC</value></data>

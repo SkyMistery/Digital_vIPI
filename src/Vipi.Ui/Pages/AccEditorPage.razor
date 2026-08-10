@@ -486,14 +486,14 @@ else
                 @if (_editing)
                 {
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">Shape aggiuntive</h4>
-                        <p class="help" style="margin:0 0 8px">Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</p>
+                        <h4 style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h4>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
                         <AorExtraShapePicker Selected="blk.Block.ExtraAorCallsigns" Catalog="_shapeCatalog" Editing="_editing"
                                              SelectedChanged="cs => SaveAorExtras(blk, cs)" />
                     </div>
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">Colori dei settori</h4>
-                        <p class="help" style="margin:0 0 8px">Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</p>
+                        <h4 style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h4>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
                         <AorColorEditor Sectors="(_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty).Sectors" Editing="_editing"
                                         ColorChanged="pick => SaveAorColor(blk, pick)" />
                     </div>

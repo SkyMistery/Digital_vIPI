@@ -1,5 +1,6 @@
 @* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
    Riceve il blocco + la chiave sezione + i valori già derivati per quel blocco. *@
+@inject IStringLocalizer<SharedResource> L
 
 @* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
 @if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.Before))
@@ -55,15 +56,15 @@
     private RenderFragment ConfigTableBody() => __builder =>
     {
         var tables = ConfigTables ?? Array.Empty<AccConfigTableView>();
-        @if (tables.Count == 0) { <p class="muted">Nessuna configurazione operativa.</p> }
-        else { <p class="muted noprint" style="margin-top:0;font-size:13.5px">Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</p> }
+        @if (tables.Count == 0) { <p class="muted">@L["AccCfg_NoneOperational"]</p> }
+        else { <p class="muted noprint" style="margin-top:0;font-size:13.5px">@L["AccCfg_PickHint"]</p> }
         @foreach (var cfg in tables)
         {
             <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@Block.Key">
                 <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
                 <div class="body">
                     <table class="cfg-table">
-                        <thead><tr><th>Settore Unificato</th><th>Accorpa</th><th>Center Point</th><th>Range</th></tr></thead>
+                        <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>@L["AccCfg_CenterPoint"]</th><th>@L["AccCfg_Range"]</th></tr></thead>
                         <tbody>
                             @foreach (var row in cfg.Rows)
                             {
@@ -74,7 +75,7 @@
                                     <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
                                 </tr>
                             }
-                            @if (cfg.Rows.Count == 0) { <tr><td colspan="4" class="muted">Nessun settore aperto.</td></tr> }
+                            @if (cfg.Rows.Count == 0) { <tr><td colspan="4" class="muted">@L["AccCfg_NoOpenSector"]</td></tr> }
                         </tbody>
                     </table>
                 </div>
