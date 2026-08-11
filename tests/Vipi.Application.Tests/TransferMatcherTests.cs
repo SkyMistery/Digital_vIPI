@@ -363,6 +363,41 @@ public class TransferMatcherTests
     }
 
     [Fact]
+    public void Con_due_livelli_l_etichetta_porta_quello_al_trasferimento()
+    {
+        // «Autorizzato a FL160, trasferito passando FL110»: nel tag va 110. Scrivere 160 direbbe una quota che
+        // il traffico non ha nel momento in cui passa di mano.
+        var punto = Point(10, "ASPIR", level: 160, constraint: LevelConstraint.AtOrAbove) with
+        {
+            HandoffKind = TransferHandoffKind.AorBoundary,
+            HandoffLevelValue = 110,
+            HandoffLevelConstraint = LevelConstraint.Exact,
+        };
+        var flows = new[] { Flow(1, TransferFlowKind.Arrival, "LIRF", punto) };
+
+        var res = Run(Request(fixes: "ASPIR"), flows);
+
+        Assert.Equal("110", res.Candidates[0].AuroraValue);
+        // Il candidato porta comunque tutti e due, così il tool può mostrare l'accordo intero.
+        Assert.Equal(160, res.Candidates[0].Level.Value);
+        Assert.Equal(110, res.Candidates[0].Level.TransferValue);
+        Assert.Equal("FL110", res.Candidates[0].Level.TransferText);
+        Assert.Equal("AorBoundary", res.Candidates[0].Level.HandoffKind);
+    }
+
+    [Fact]
+    public void Senza_faccetta_l_etichetta_resta_quella_di_sempre()
+    {
+        var flows = new[] { Flow(1, TransferFlowKind.Arrival, "LIRF", Point(10, "ASPIR", level: 210)) };
+
+        var res = Run(Request(fixes: "ASPIR"), flows);
+
+        Assert.Equal("210", res.Candidates[0].AuroraValue);
+        Assert.Null(res.Candidates[0].Level.TransferValue);
+        Assert.Equal("Unspecified", res.Candidates[0].Level.HandoffKind);
+    }
+
+    [Fact]
     public void Con_la_convenzione_FL_il_valore_e_prefissato()
     {
         var flows = new[] { Flow(1, TransferFlowKind.Arrival, "LIRF", Point(10, "ASPIR", level: 210)) };

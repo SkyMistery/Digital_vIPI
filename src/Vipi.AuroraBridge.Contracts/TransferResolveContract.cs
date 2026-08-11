@@ -113,7 +113,17 @@ public sealed class TransferCandidate
     public IList<string> Reasons { get; set; } = new List<string>();
 }
 
-/// <summary>Livello del punto, nelle sue componenti più il testo già formattato della vIPI.</summary>
+/// <summary>
+/// Livello del punto, nelle sue componenti più il testo già formattato della vIPI.
+/// <para><b>Attenzione: qui i livelli possono essere due.</b> <see cref="Value"/> e <see cref="Text"/> sono il
+/// livello <b>autorizzato</b>; <see cref="TransferValue"/> è quello <b>al trasferimento</b>, che esiste solo
+/// negli accordi in cui i due eventi non coincidono (tipicamente ACC→APP: «autorizzato a FL160, trasferito
+/// passando FL110»). Quando <see cref="TransferValue"/> è null i due coincidono, che è il caso di tutte le
+/// righe scritte prima dell'11 agosto 2026.</para>
+/// <para>L'etichetta quota di Aurora (<c>AuroraValue</c>) porta il livello <b>al trasferimento</b> quando c'è:
+/// è il livello che il traffico ha nel momento in cui passa di mano, cioè quello che il controllore scrive
+/// nel tag.</para>
+/// </summary>
 public sealed class CandidateLevel
 {
     public int? Value { get; set; }
@@ -126,8 +136,26 @@ public sealed class CandidateLevel
     public string Parity { get; set; } = "";
     /// <summary>Unspecified | Level | Descending | Climbing.</summary>
     public string VerticalState { get; set; } = "";
-    /// <summary>Resa testuale ufficiale del livello (es. «FL210- (dispari)»).</summary>
+    /// <summary>Resa testuale ufficiale del livello AUTORIZZATO (es. «FL210- (dispari)»).</summary>
     public string Text { get; set; } = "";
+
+    /// <summary>Dove passa il controllo: Unspecified | Point | AorBoundary | Custom. Unspecified = coincide
+    /// col punto d'ingresso, e allora il livello è uno solo.</summary>
+    public string HandoffKind { get; set; } = "Unspecified";
+    /// <summary>Etichetta del punto/testo di trasferimento; vuota per il confine dell'AoR.</summary>
+    public string? HandoffLabel { get; set; }
+
+    /// <summary>Livello AL TRASFERIMENTO. Null = coincide con quello autorizzato.</summary>
+    public int? TransferValue { get; set; }
+    /// <summary>Fl | Feet.</summary>
+    public string? TransferUnit { get; set; }
+    /// <summary>AtOrAbove | AtOrBelow | Exact.</summary>
+    public string? TransferConstraint { get; set; }
+    /// <summary>Resa testuale del livello al trasferimento (es. «FL110»); vuota se non c'è.</summary>
+    public string TransferText { get; set; } = "";
+
+    /// <summary>Restrizione di velocità al trasferimento già formattata («≤250 kt»); vuota se assente.</summary>
+    public string Speed { get; set; } = "";
 }
 
 /// <summary>Esito della verifica delle condizioni operative del punto (pista, area, personalizzata).</summary>

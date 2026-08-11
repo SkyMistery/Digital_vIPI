@@ -51,7 +51,18 @@ else
                                     {
                                         <div class="xt-pt @(IsChanged(p.ResolvedHandler) ? "xt-changed" : "")">
                                             <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
+                                            @* In frequenza servono ENTRAMBI i livelli, e in quest'ordine: quello a cui
+                                               autorizzi e quello a cui trasferisci. Mostrarne uno solo significherebbe
+                                               scegliere per il controllore quale delle due istruzioni dimenticare. *@
                                             <b class="fl">@p.Point.LevelText</b>
+                                            @if (p.Point.HandoffLevelText.Length > 0)
+                                            {
+                                                <b class="fl" style="opacity:.85">→ @p.Point.HandoffLevelText</b>
+                                            }
+                                            @if (p.Point.SpeedText.Length > 0)
+                                            {
+                                                <span class="muted" style="font-size:10.5px;margin-left:4px">@p.Point.SpeedText</span>
+                                            }
                                             @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
                                             {
                                                 <span class="xt-cond" title="Condizione operativa" style="font-size:10.5px;background:#eef1f7;color:#57606a;border-radius:4px;padding:1px 5px;margin-left:4px">@p.Point.ConditionLabel</span>
