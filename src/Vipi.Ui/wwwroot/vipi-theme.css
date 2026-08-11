@@ -386,6 +386,37 @@
 .coord-table th.c-level{width:21%}
 .coord-table th.c-cond{width:27%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
+
+/* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze
+   fisse qui sopra sommano già 78% con quattro colonne, quindi non c'è spazio da spartire fra le altre quattro
+   senza ridurre «Prossimo» a una colonna che spezza i callsign a metà parola.
+   La scelta è togliere il layout fisso proprio a queste tabelle: la ragione delle larghezze fisse era allineare
+   fra loro le DECINE di tabelle uguali di un documento ACC, che sono quelle SENZA faccetta e restano com'erano.
+   Le tabelle con faccetta sono poche e si leggono una per volta, quindi si dimensionano sul contenuto — con il
+   nowrap sulle celle corte, che sono numeriche e non devono mai andare a capo. */
+.coord-table:has(th.c-handoff),
+.coord-table:has(th.c-hlevel),
+.coord-table:has(th.c-speed){table-layout:auto}
+.coord-table th.c-hlevel,.coord-table th.c-speed{white-space:nowrap}
+
+/* Gruppo di varianti: le righe alternative dello stesso accordo. CoP e ricevente sono già scritti una volta
+   sola (rowspan), quindi il raggruppamento si vede dalle celle unite; queste due regole servono a dire dove
+   il blocco COMINCIA e dove FINISCE, che il solo rowspan non dice quando i gruppi sono più d'uno di fila.
+   La tinta è al 55% di --line (#e3e5ee): al 14% era invisibile a schermo — misurato, non stimato. */
+.coord-table tr.coord-variant>td{background:color-mix(in srgb,var(--line,#e3e5ee) 55%,transparent)}
+.coord-table tr.coord-variant-head>td{border-top:2px solid var(--line,#e3e5ee)}
+
+/* Editor trasferimenti — faccetta trasferimento. Sta su una riga propria della tabella di modifica: in linea
+   sarebbero sei controlli in più su una tabella che ne ha già sette. Le etichette sono inline e piccole perché
+   qui contano i valori: chi apre questa riga sa già cosa sta compilando. */
+.xfer-facet{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 0}
+.xfer-facet>label{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-left:6px}
+.xfer-facet>label:first-child{margin-left:0}
+.xfer-facet select,.xfer-facet input{font-size:12.5px}
+.xfer-facet .xfer-otherwise{display:flex;align-items:center;gap:4px;font-weight:700;cursor:pointer}
+/* Righe di un gruppo di varianti nella tabella dell'editor: la tinta dice che appartengono allo stesso accordo
+   (nell'editor le righe restano piatte — si modificano una per una — quindi non c'è il rowspan della vista). */
+.res-table tr.xfer-variant>td{background:color-mix(in srgb,var(--line,#c2cbe8) 14%,transparent)}
 /* tip operativo (stile riquadro centrato) */
 .tip{background:#0a1f6b;color:#cdd6ff;border-radius:12px;padding:18px 22px;margin:16px 0;text-align:center;font-style:italic;font-size:13.5px;line-height:1.5}
 .tip p{margin:8px 0}

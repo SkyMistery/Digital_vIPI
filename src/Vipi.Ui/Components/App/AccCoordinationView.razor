@@ -85,29 +85,13 @@
         </div>
     };
 
+    // La tabella è la stessa della vIPI APP e della vLOA: sta in CoordTable, che sa anche quali colonne
+    // mostrare (per presenza di dati) e come rendere i gruppi di varianti.
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows) => __builder =>
     {
-        @foreach (var r in rows.Where(x => !string.IsNullOrWhiteSpace(x.Sentence)))
-        {
-            <p class="coord-sentence">@r.Sentence</p>
-        }
-        var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
-        @* Le classi c-* sulle intestazioni fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel
-           tema): le tabelle dei coordinamenti sono decine e con set di colonne diverso, e senza questo ognuna
-           si dimensionava sul proprio contenuto. *@
-        <table class="coord-table">
-            <thead><tr><th class="c-cop">CoP</th><th class="c-level">@(English ? "Level" : "Livello")</th><th class="c-next">@(English ? "Next" : "Prossimo")</th>@if (hasCond) { <th class="c-cond">@(English ? "Condition" : "Condizione")</th> }</tr></thead>
-            <tbody>
-                @foreach (var r in rows)
-                {
-                    <tr>
-                        <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
-                        <td>@r.Level</td>
-                        <td>@r.Next</td>
-                        @if (hasCond) { <td>@(string.IsNullOrWhiteSpace(r.ConditionLabel) ? "—" : r.ConditionLabel)</td> }
-                    </tr>
-                }
-            </tbody>
-        </table>
+        @* Nessun LastColHeader: lo decide CoordTable, che in italiano lo prende dalle risorse e in inglese lo
+           scrive in inglese. Qui c'era «Prossimo» scritto a mano, e con l'interfaccia in inglese usciva una
+           testata mezza tradotta: VIA · CLEARED · TRANSFER · TRANSFER LEVEL · **PROSSIMO** · CONDITION. *@
+        <CoordTable Rows="rows" English="English" />
     };
 }

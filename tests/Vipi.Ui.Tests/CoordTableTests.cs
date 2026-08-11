@@ -1,0 +1,134 @@
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Vipi.Application.Content;
+using Vipi.Domain;
+using Vipi.Ui.Components;
+using Vipi.Ui.Components.App;
+using Xunit;
+
+namespace Vipi.Ui.Tests;
+
+/// <summary>
+/// Tabella dei coordinamenti condivisa (<c>CoordTable</c>): quali colonne compaiono e come si rendono i gruppi
+/// di varianti. Sono due regole che vivono solo nel markup — nessun test di dominio le vedrebbe — e sono
+/// esattamente quelle che, sbagliate, cambiano il documento pubblicato senza rompere niente.
+/// </summary>
+public class CoordTableTests : TestContext
+{
+    /// <summary>Localizer che rende la chiave stessa: le asserzioni parlano di chiavi, non di traduzioni.</summary>
+    private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] => new(name, name, resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    public CoordTableTests() =>
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+
+    private static AppCoordRow Plain(string cop = "VALMA") =>
+        new(cop, "FL200", "LIRR_CTR", TransferFlowKind.Arrival);
+
+    private IRenderedComponent<CoordTable> Render(params AppCoordRow[] rows) =>
+        RenderComponent<CoordTable>(p => p.Add(x => x.Rows, rows));
+
+    [Fact]
+    public void A_plain_table_keeps_the_four_historic_columns()
+    {
+        // L'invariante che protegge le decine di tabelle ACC↔ACC già pubblicate: senza faccetta, niente cambia.
+        var headers = Render(Plain()).FindAll("thead th").Select(th => th.TextContent).ToList();
+        Assert.Equal(new[] { "CoP", "AppCoord_Level", "AppCoord_Next" }, headers);
+    }
+
+    [Fact]
+    public void Facet_columns_appear_only_when_a_row_fills_them()
+    {
+        var conFaccetta = Plain() with { Handoff = "al confine dell'AoR", HandoffLevel = "passando FL110" };
+        var headers = Render(conFaccetta).FindAll("thead th").Select(th => th.TextContent).ToList();
+
+        Assert.Contains("Coord_Handoff", headers);
+        Assert.Contains("Coord_HandoffLevel", headers);
+        // Con due livelli, «Livello» non basta più a dire quale: diventa «Autorizzato».
+        Assert.Contains("Coord_Cleared", headers);
+        Assert.DoesNotContain("AppCoord_Level", headers);
+        // Velocità e comunicazioni non le compila nessuno: non devono comparire come colonne vuote.
+        Assert.DoesNotContain("Coord_Speed", headers);
+        Assert.DoesNotContain("Coord_Comms", headers);
+    }
+
+    [Fact]
+    public void Cop_header_becomes_via_when_the_transfer_is_elsewhere()
+    {
+        // Senza faccetta il CoP è ingresso E trasferimento; con la faccetta è solo l'ingresso, cioè il «via».
+        var headers = Render(Plain() with { Handoff = "su AVN" }).FindAll("thead th").Select(th => th.TextContent).ToList();
+        Assert.Contains("Coord_Via", headers);
+        Assert.DoesNotContain("CoP", headers);
+    }
+
+    [Fact]
+    public void Variant_rows_share_cop_and_receiver_in_one_cell()
+    {
+        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "16R", Level = "FL80-" };
+        var alt = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, IsOtherwise = true, Level = "FL110-" };
+
+        var t = Render(head, alt);
+        var rows = t.FindAll("tbody tr").ToList();
+        Assert.Equal(2, rows.Count);
+
+        // CoP e ricevente scritti una volta sola, in rowspan: ciò che resta per riga è il delta.
+        var capofila = rows[0].QuerySelectorAll("td").ToList();
+        Assert.Equal("2", capofila[0].GetAttribute("rowspan"));      // CoP
+        Assert.Equal("BIRSU", capofila[0].TextContent);
+        Assert.Equal("2", capofila[2].GetAttribute("rowspan"));      // ricevente
+        // La variante porta solo le celle che cambiano.
+        Assert.Equal(2, rows[1].QuerySelectorAll("td").Count());
+        Assert.Contains("coord-variant", rows[1].GetAttribute("class"));
+    }
+
+    [Fact]
+    public void The_otherwise_row_is_rendered_last_whatever_the_order()
+    {
+        // «Negli altri casi» è il complemento delle sorelle: si legge dopo, anche se nel flusso sta prima.
+        // Il TESTO arriva già scritto in ConditionLabel, nella lingua del template: deve concordare con la
+        // frase che sta sopra la tabella, non col chrome della pagina (con la UI in inglese e le frasi in
+        // italiano si leggeva «in all other cases» nella cella e «negli altri casi» nella prosa).
+        var alt = Plain("BIRSU") with
+        {
+            FlowId = 7, VariantGroup = 1, IsOtherwise = true, Level = "FL110-", ConditionLabel = "negli altri casi",
+        };
+        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "16R", Level = "FL80-" };
+
+        var t = Render(alt, head);
+        var celle = t.FindAll("tbody tr").Select(r => r.QuerySelectorAll("td").Last().TextContent).ToList();
+        Assert.Equal(new[] { "16R", "negli altri casi" }, celle);
+    }
+
+    [Fact]
+    public void Same_group_number_in_different_flows_stays_separate()
+    {
+        // Il numero di gruppo è progressivo PER FLUSSO: senza la chiave (flusso, gruppo) due accordi diversi
+        // finirebbero fusi in un unico blocco con un rowspan che copre righe che non c'entrano.
+        var a = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1 };
+        var b = Plain("PISIP") with { FlowId = 9, VariantGroup = 1 };
+
+        var rows = Render(a, b).FindAll("tbody tr");
+        Assert.All(rows, r => Assert.Null(r.QuerySelectorAll("td")[0].GetAttribute("rowspan")));
+        Assert.Equal(2, rows.Count);
+    }
+
+    [Fact]
+    public void English_labels_ignore_the_localizer()
+    {
+        // Le vLOA sono in inglese a prescindere dalla cultura della pagina: il localizer qui non deve entrarci.
+        var t = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Plain() with { Speed = "at 250 kt or less" } })
+            .Add(x => x.English, true)
+            .Add(x => x.LastColHeader, "Next"));
+
+        var headers = t.FindAll("thead th").Select(th => th.TextContent).ToList();
+        Assert.Contains("Speed", headers);
+        Assert.Contains("Level", headers);
+        Assert.DoesNotContain(headers, h => h.StartsWith("Coord_") || h.StartsWith("AppCoord_"));
+    }
+}

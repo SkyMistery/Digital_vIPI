@@ -4,13 +4,15 @@
 @inject IStringLocalizer<SharedResource> L
 <p class="muted" style="margin-top:0;font-size:13.5px">@L["AppCoord_Intro"]</p>
 
-@if (Coord.TowardAcc.Count == 0 && Coord.TowardTowers.Count == 0 && Coord.Overflights.Count == 0)
+@{ var hasAny = Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0
+                || Coord.TowardApps.Count > 0 || Coord.Overflights.Count > 0; }
+@if (!hasAny)
 {
     <p class="muted" style="margin:0">@L["AppCoord_None"]</p>
 }
 
 <div class="coord-wrap">
-@if (Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0 || Coord.Overflights.Count > 0)
+@if (hasAny)
 {
     @CoordTools
 }
@@ -33,9 +35,10 @@
             }
             @if (arrivi.Count > 0)
             {
+                @* Negli arrivi l'ultima colonna è il mittente, non il ricevente: «Da», non «Prossimo». *@
                 <details class="coord-sub2">
                     <summary><span>@L["Airport_Arrivals"]</span><span class="chev">▸</span></summary>
-                    <div class="body">@RenderTable(arrivi, showKind: false, lastCol: "From")</div>
+                    <div class="body">@RenderTable(arrivi, showKind: false, lastCol: L["AppCoord_From"])</div>
                 </details>
             }
         </div>
@@ -50,9 +53,28 @@
             @CoordTools
             @foreach (var g in Coord.TowardTowers)
             {
+                @* Colonna «Flusso»: verso le torri ora passano anche le partenze, non solo gli arrivi. *@
                 <details class="coord-sub2">
                     <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
-                    <div class="body">@RenderTable(g.Rows, showKind: false)</div>
+                    <div class="body">@RenderTable(g.Rows, showKind: true)</div>
+                </details>
+            }
+        </div>
+    </details>
+}
+
+@if (Coord.TowardApps.Count > 0)
+{
+    @* TMA confinanti: prima questi coordinamenti non avevano un gruppo dove finire e sparivano dal documento. *@
+    <details class="coord-sub" open>
+        <summary><span>@L["AppCoord_TowardApps"]</span><span class="chev">▸</span></summary>
+        <div class="body">
+            @CoordTools
+            @foreach (var g in Coord.TowardApps)
+            {
+                <details class="coord-sub2">
+                    <summary><span>@g.TargetCallsign</span><span class="chev">▸</span></summary>
+                    <div class="body">@RenderTable(g.Rows, showKind: true)</div>
                 </details>
             }
         </div>
@@ -90,35 +112,9 @@
         </div>
     };
 
-    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string lastCol = "Next") => __builder =>
+    // Stessa tabella della vIPI ACC e della vLOA: vedi CoordTable (colonne per presenza dati, gruppi varianti).
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string? lastCol = null) => __builder =>
     {
-        @foreach (var r in rows.Where(x => !string.IsNullOrWhiteSpace(x.Sentence)))
-        {
-            <p class="coord-sentence">@r.Sentence</p>
-        }
-        var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
-        @* Le classi c-* sulle intestazioni fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel
-           tema): «Flusso» e «Condizione» sono opzionali, quindi la stessa colonna cade in posizioni diverse da
-           una tabella all'altra e larghezze per posizione non allineerebbero nulla. *@
-        <table class="coord-table">
-            <thead>
-                <tr>
-                    @if (showKind) { <th class="c-flow">@L["AppCoord_Flow"]</th> }
-                    <th class="c-cop">CoP</th><th class="c-level">@L["AppCoord_Level"]</th><th class="c-next">@lastCol</th>@if (hasCond) { <th class="c-cond">@L["AppCoord_Condition"]</th> }
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in rows)
-                {
-                    <tr>
-                        @if (showKind) { <td>@TransferFlowKindLabels.Label(r.Kind)</td> }
-                        <td>@(string.IsNullOrWhiteSpace(r.Cop) ? "—" : r.Cop)</td>
-                        <td>@r.Level</td>
-                        <td>@r.Next</td>
-                        @if (hasCond) { <td>@(string.IsNullOrWhiteSpace(r.ConditionLabel) ? "—" : r.ConditionLabel)</td> }
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <CoordTable Rows="rows" ShowKind="showKind" LastColHeader="@(lastCol ?? L["AppCoord_Next"])" />
     };
 }
