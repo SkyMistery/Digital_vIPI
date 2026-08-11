@@ -468,6 +468,133 @@ public class TransferRepositoryTests : IAsyncLifetime
         Assert.Null(p.VariantGroup);
     }
 
+    // ---- Editor: trascinamento, duplicazione di gruppo, ricevente in blocco ----
+
+    [Fact]
+    public async Task Dragging_Lands_After_The_Target_Going_Down_And_Before_It_Going_Up()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var a = await _repo.AddPointAsync("LIRR", flowId, Point("AAA", 100, _ftwrId));
+        var b = await _repo.AddPointAsync("LIRR", flowId, Point("BBB", 110, _ftwrId));
+        var c = await _repo.AddPointAsync("LIRR", flowId, Point("CCC", 120, _ftwrId));
+
+        // Scendendo si va DOPO il bersaglio: chi trascina A su C se lo aspetta sotto C, non sopra.
+        await _repo.MovePointToAsync("LIRR", a, c);
+        var cops = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToArray();
+        Assert.Equal(new[] { "BBB", "CCC", "AAA" }, cops);
+
+        // Salendo si va PRIMA: A su B torna in testa.
+        await _repo.MovePointToAsync("LIRR", a, b);
+        cops = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToArray();
+        Assert.Equal(new[] { "AAA", "BBB", "CCC" }, cops);
+
+        // Su sé stessa: niente da fare, e nessun ordine da riscrivere.
+        await _repo.MovePointToAsync("LIRR", a, a);
+        cops = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Select(p => p.Cop).ToArray();
+        Assert.Equal(new[] { "AAA", "BBB", "CCC" }, cops);
+    }
+
+    [Fact]
+    public async Task Dragging_Carries_The_Subtree_And_Refuses_To_Enter_Itself()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var rwy07 = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+        var exc07 = await _repo.AddExceptionAsync("LIRR", rwy07);
+        var rwy25 = await _repo.AddAlternativeAsync("LIRR", rwy07);
+
+        // Trascinare la 07 sulla 25 porta con sé la sua eccezione: lasciarla indietro la darebbe alla 25,
+        // senza nessun errore e continuando a dire quello che diceva.
+        await _repo.MovePointToAsync("LIRR", rwy07, rwy25);
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(new[] { rwy25, rwy07, exc07 }, points.Select(p => p.Id));
+        Assert.Equal(new[] { 0, 0, 1 }, points.Select(p => p.VariantDepth));
+
+        // Dentro sé stessa non c'è dove andare: il bersaglio è nel blocco che si sta spostando.
+        await _repo.MovePointToAsync("LIRR", rwy07, exc07);
+        points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(new[] { rwy25, rwy07, exc07 }, points.Select(p => p.Id));
+    }
+
+    [Fact]
+    public async Task Dragging_Between_Flows_Is_A_Noop()
+    {
+        // Un accordo appartiene al suo gruppo di traffico: spostarlo altrove è un'altra operazione, non un riordino.
+        var arrivi = await _repo.AddFlowAsync("LIRR", Flow());
+        var partenze = await _repo.AddFlowAsync("LIRR", new TransferFlowInput
+        {
+            OwningSectorId = _neId, Kind = TransferFlowKind.Departure, AirportIcao = "LIRF", Description = "test",
+        });
+        var a = await _repo.AddPointAsync("LIRR", arrivi, Point("AAA", 100, _ftwrId));
+        var z = await _repo.AddPointAsync("LIRR", partenze, Point("ZZZ", 200, _ftwrId));
+
+        await _repo.MovePointToAsync("LIRR", a, z);
+
+        var flows = await _repo.ListFlowsByAccAsync("LIRR");
+        Assert.Equal("AAA", Assert.Single(flows.Single(f => f.Id == arrivi).Points).Cop);
+        Assert.Equal("ZZZ", Assert.Single(flows.Single(f => f.Id == partenze).Points).Cop);
+    }
+
+    [Fact]
+    public async Task Duplicating_A_Group_Copies_The_Outline_Next_To_It()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var rwy07 = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+        await _repo.AddExceptionAsync("LIRR", rwy07);
+        var trasversale = await _repo.AddAlternativeAsync("LIRR", rwy07);
+        await _repo.UpdatePointAsync("LIRR", trasversale,
+            Point("BIRSU", 130, _ftwrId) with { ConditionCustomLabel = "di notte", IsGroupWide = true });
+
+        var copiate = await _repo.DuplicateVariantGroupAsync("LIRR", rwy07);
+
+        Assert.Equal(3, copiate);
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        var originali = points.Take(3).ToList();
+        var copie = points.Skip(3).ToList();
+        // La copia nasce ACCANTO all'originale, non dentro: gruppo nuovo, in coda.
+        Assert.NotEqual(originali[0].VariantGroup, copie[0].VariantGroup);
+        Assert.All(copie, p => Assert.Equal(copie[0].VariantGroup, p.VariantGroup));
+        // Profondità e riga trasversale sono ciò che rende utile duplicare un gruppo invece delle sue righe.
+        Assert.Equal(new[] { 0, 1, 0 }, copie.Select(p => p.VariantDepth));
+        Assert.True(copie[^1].IsGroupWide);
+        // ⚠️ Qui la condizione SI copia: è l'opposto dell'alternativa, e le due operazioni condividono CopyOf.
+        Assert.Equal("07", copie[0].ConditionLabel);
+        Assert.Equal("di notte", copie[^1].ConditionCustomLabel);
+    }
+
+    [Fact]
+    public async Task Duplicating_Outside_A_Group_Does_Nothing()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+
+        Assert.Equal(0, await _repo.DuplicateVariantGroupAsync("LIRR", id));
+        Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+    }
+
+    [Fact]
+    public async Task Bulk_Receiver_Reaches_The_Whole_Group_Of_A_Selected_Row()
+    {
+        // Quando un settore cambia nome, il ricevente va cambiato su decine di righe: basta saltarne una perché
+        // il documento dica due cose. E una selezione parziale non deve spaccare l'invariante del gruppo.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var altId = await _repo.AddAlternativeAsync("LIRR", srcId);
+        var sola = await _repo.AddPointAsync("LIRR", flowId, Point("ELKAP", 130, _ftwrId));
+        var estranea = await _repo.AddPointAsync("LIRR", flowId, Point("OSTIA", 110, _ftwrId));
+
+        var toccate = await _repo.SetReceiverAsync("LIRR", new[] { srcId, sola }, _tsId);
+
+        Assert.Equal(2, toccate);   // le righe scelte, non quelle raggiunte per propagazione
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(_tsId, points.First(p => p.Id == altId).NextSectorId);   // sorella, non selezionata
+        Assert.Equal(_tsId, points.First(p => p.Id == sola).NextSectorId);
+        Assert.Equal(_ftwrId, points.First(p => p.Id == estranea).NextSectorId);
+
+        // Nessuno selezionato: niente da fare, e nessuna riga da svuotare per sbaglio.
+        Assert.Equal(0, await _repo.SetReceiverAsync("LIRR", Array.Empty<int>(), null));
+        Assert.All((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points, p => Assert.NotNull(p.NextSectorId));
+    }
+
     [Fact]
     public async Task Seed_Populates_Demo_Flows()
     {

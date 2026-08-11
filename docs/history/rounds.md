@@ -1364,4 +1364,16 @@ quando si è aperto.
 gruppo e creazione di variante, la variante ha cominciato a copiare anche la **condizione** — che è esattamente
 ciò che deve dire di diverso. Le due operazioni condividono venti campi e ne vogliono diciannove.
 
-Suite **2185** verde, Release `--no-incremental` 0 warning su entrambi i TFM.
+Le tre operazioni nuove del repository hanno **sei test** (`TransferRepositoryTests`): trascinamento nelle due
+direzioni, trascinamento che porta il sottoalbero e rifiuta di entrare in sé stesso, no-op fra flussi diversi,
+duplicazione che copia l'outline (profondità e riga trasversale) **e la condizione**, duplicazione fuori da un
+gruppo, ricevente in blocco che raggiunge le sorelle non selezionate. Quello sulla condizione è scritto per
+tenere ferma la differenza con l'alternativa, che invece la azzera: è la regressione di `CopyOf` messa in guardia.
+
+Suite **2197** verde (2185 + 12: sei test × due TFM), Release `--no-incremental` 0 warning su entrambi i TFM.
+
+⚠️ **L'intermittente del bridge è ricomparso** una volta, e dice qualcosa di nuovo: fallisce **solo** nella
+corsa completa in parallelo della soluzione, mai da solo — otto giri isolati di `Vipi.AuroraBridge.Tests` e una
+seconda corsa completa sono verdi. Il nome del test non è stato catturato (il log della corsa non era su file):
+alla prossima occorrenza va tenuto il log intero, perché il sospetto ora è la **contesa** fra progetti, non il
+tempo dentro un test.

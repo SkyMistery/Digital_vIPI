@@ -24,6 +24,13 @@
 > rifiutare teneva il tool fermo **21,1 secondi** contro i 500 ms richiesti. Riprodotto e corretto. Il test
 > intermittente in sé resta **non riprodotto** in 9 giri ulteriori: chiuso sull'ipotesi più probabile letta
 > nel codice, con asserzioni che alla prossima occorrenza diranno che cosa è successo.
+>
+> ⚠️ **Ricomparso il 12 agosto**, e con un dato nuovo: fallisce **solo** nella corsa completa in parallelo della
+> soluzione, mai da solo — otto giri isolati del progetto e una seconda corsa completa sono verdi. Il sospetto
+> si sposta dal tempo dentro un test alla **contesa fra progetti** (porta, file temporaneo, cartella condivisa).
+> Il nome del test non è stato catturato perché il log della corsa non era su file: alla prossima occorrenza
+> **tenere il log intero** (`dotnet test Vipi.slnx > log.txt 2>&1`), il nome sta nella riga sopra
+> «Error Message».
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -746,7 +753,7 @@ Terza scheda dello stesso filone: [`feature/2026-08-12-editor-trasferimenti-ux.m
 — la **pagina** che scrive quelle righe, rifatta col pattern del progetto (lista + pannello a destra), nove
 bottoni-icona per riga ridotti a tre, **51 stili inline azzerati** e dieci migliorie d'uso.
 
-Suite 2185 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e tre
+Suite 2197 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e tre
 i giri (dodici difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove

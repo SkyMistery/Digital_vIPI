@@ -1,6 +1,6 @@
 # Feature — Editor trasferimenti: l'editing esce dalla riga ed entra nel pannello
 
-Data: 2026-08-12 · Stato: **CHIUSO — suite 2185 verde, Release 0 warning su entrambi i TFM, ✅ verifica live** ·
+Data: 2026-08-12 · Stato: **CHIUSO — suite 2197 verde, Release 0 warning su entrambi i TFM, ✅ verifica live** ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [trasferimenti ACC↔APP](2026-08-11-trasferimenti-acc-app.md) e
 [varianti a livelli](2026-08-12-varianti-a-livelli.md), stesso branch.
@@ -103,6 +103,23 @@ Ricognizione a schermo prima e dopo, sulla pagina reale con i dati veri.
 duplicazione di gruppo e creazione di variante, la variante ha cominciato a copiare **anche la condizione** —
 che è esattamente ciò che deve dire di diverso. Le due operazioni condividono venti campi e ne vogliono
 diciannove: l'azzeramento è esplicito e commentato, perché la prossima persona rifarà la stessa domanda.
+
+## Test — sei, sulle tre operazioni nuove
+
+In `tests/Vipi.Infrastructure.Tests/TransferRepositoryTests.cs`, accanto a quelli delle varianti:
+
+| Test | Cosa tiene fermo |
+|---|---|
+| `Dragging_Lands_After_The_Target_Going_Down_And_Before_It_Going_Up` | il verso: scendendo dopo, salendo prima — e su sé stessa non riscrive niente |
+| `Dragging_Carries_The_Subtree_And_Refuses_To_Enter_Itself` | la capofila porta le eccezioni; il bersaglio dentro il blocco è un no-op |
+| `Dragging_Between_Flows_Is_A_Noop` | un accordo non cambia gruppo di traffico per un riordino |
+| `Duplicating_A_Group_Copies_The_Outline_Next_To_It` | profondità, riga trasversale, gruppo nuovo in coda — **e la condizione** |
+| `Duplicating_Outside_A_Group_Does_Nothing` | fuori da un gruppo non c'è un outline da copiare |
+| `Bulk_Receiver_Reaches_The_Whole_Group_Of_A_Selected_Row` | la propagazione alle sorelle non selezionate; il conteggio resta quello scelto |
+
+Il quarto è scritto **contro** il primo dei test delle varianti
+(`Alternative_Is_Peer_And_Copies_Everything_But_The_Condition`): stesso `CopyOf`, esito opposto sulla condizione.
+È la regressione di questo giro messa in guardia, non una verifica di comodo.
 
 ## Fuori scopo
 
