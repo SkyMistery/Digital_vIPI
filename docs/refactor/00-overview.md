@@ -44,7 +44,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 10 | [10-snapshot-totale-e-rendermode.md](10-snapshot-totale-e-rendermode.md) | Snapshot totale + `RenderMode` per sezione (estende 09) | ✅ eseguito (S0→S7), verify live ok, da mergiare |
 | 11 | [11-uniformita-tre-documenti.md](11-uniformita-tre-documenti.md) | Uniformità vIPI ACC / vIPI APP / vLOA fra editor, bozza e pubblica (estende 08-10) | ✅ eseguito (P1→P9), suite 663, verify live ok |
 | 12 | [12-vista-live-unificata.md](12-vista-live-unificata.md) | Vista live: due pagine gemelle → una, keyed sul callsign + registry per tipo di ente | ✅ eseguito, suite 702, verify live su 12 postazioni |
-| 13 | [13-audit-tre-documenti.md](13-audit-tre-documenti.md) | Audit dei tre documenti: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria», vLOA dal catalogo, gate pubblico su ricerca/«Cosa è cambiato», pannello release unico | ✅ eseguito (S1→S17), suite 1384, verify live ok |
+| 13 | [13-audit-tre-documenti.md](13-audit-tre-documenti.md) | Audit dei tre documenti: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria», vLOA dal catalogo, gate pubblico su ricerca/«Cosa è cambiato», pannello release unico, una sola resa per sezione comune | ✅ eseguito (S1→S19), suite 1391, verify live ok |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)
 

@@ -1206,5 +1206,17 @@ passo che rendeva le sotto-sezioni, invisibile finché quel ramo le buttava via.
 **una riconciliazione sistema i documenti, mai le release già pubblicate**, e sono quelle che il pubblico
 legge.
 
-Chiusura: 18 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1384** verde, build senza
+**Coda dell'11 agosto, da una domanda dell'owner:** «la sezione AoR è uguale in tutti, e se la modifico si
+modifica ovunque?». La risposta — *definizione e resa condivise, contenuto per documento* — è quella
+giusta, ma verificandola su **tutte** le sezioni comuni sono uscite due copie che il giro non aveva
+toccato. «Configurazioni»: il viewer della vIPI ACC ripeteva riga per riga il componente che il suo stesso
+editor già usava, e le due copie erano già divergenti (solo una diceva «nessun settore aperto», solo
+l'altra aveva il proprio messaggio di elenco vuoto) — quindi nell'editor si vedeva una cosa e nel
+documento pubblicato un'altra. «Frequenze»: la vLOA aveva una tabella tutta sua, ed è il motivo per cui le
+intestazioni erano andate per conto loro. Ora `AppFrequencies` sa attenuare una riga e portare una colonna
+di azioni, e la vLOA la invoca una volta per lato. Resta di proposito la doppia resa dei **coordinamenti**:
+`AccCoordinationView` e `AppCoordinationView` servono due modelli di dati diversi, perché un avvicinamento
+non ha settori sotto di sé.
+
+Chiusura: 20 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1391** verde, build senza
 errori, verifica live dei tre documenti su copia del `vipi.db` reale.

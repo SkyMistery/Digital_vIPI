@@ -1,6 +1,5 @@
 @* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
    Riceve il blocco + la chiave sezione + i valori già derivati per quel blocco. *@
-@inject IStringLocalizer<SharedResource> L
 
 @* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
 @if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.Before))
@@ -11,7 +10,13 @@
 @switch (Key)
 {
     case "separations": <AppSeparations Rows="Block.Separations" /> break;
-    case "configurations": @ConfigTableBody() break;
+    @* Stesso componente dell'editor ACC e della vIPI APP: qui c'era una copia riga per riga della sua resa
+       di lettura, già divergente nei dettagli (doc 13 §3l). MapScope = chiave del blocco, che è anche l'Id
+       della mappa AoR: è il legame che il JS usa per aprire la configurazione selezionata. *@
+    case "configurations":
+        <AppConfigurations Configs="Array.Empty<AccConfiguration>()"
+                           Tables="ConfigTables ?? Array.Empty<AccConfigTableView>()" MapScope="@Block.Key" />
+        break;
     case "aor":
         @* @key include l'albero: al cambio root l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
         <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
@@ -52,36 +57,6 @@
     [Parameter] public AccAorView? Aor { get; set; }
     [Parameter] public IReadOnlyList<AccSpecialAreaView>? Areas { get; set; }
     [Parameter] public IReadOnlyList<AccConfigTableView>? ConfigTables { get; set; }
-
-    private RenderFragment ConfigTableBody() => __builder =>
-    {
-        var tables = ConfigTables ?? Array.Empty<AccConfigTableView>();
-        @if (tables.Count == 0) { <p class="muted">@L["AccCfg_NoneOperational"]</p> }
-        else { <p class="muted noprint" style="margin-top:0;font-size:13.5px">@L["AccCfg_PickHint"]</p> }
-        @foreach (var cfg in tables)
-        {
-            <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@Block.Key">
-                <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
-                <div class="body">
-                    <table class="cfg-table">
-                        <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>@L["AccCfg_CenterPoint"]</th><th>@L["AccCfg_Range"]</th></tr></thead>
-                        <tbody>
-                            @foreach (var row in cfg.Rows)
-                            {
-                                <tr class="grp-start">
-                                    <td class="uni">@row.UnifiedCallsign</td>
-                                    <td>@string.Join(", ", row.Absorbed)</td>
-                                    <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
-                                    <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
-                                </tr>
-                            }
-                            @if (cfg.Rows.Count == 0) { <tr><td colspan="4" class="muted">@L["AccCfg_NoOpenSector"]</td></tr> }
-                        </tbody>
-                    </table>
-                </div>
-            </details>
-        }
-    };
 
     private static AppVfrContent ParseVfr(string? json)
     {

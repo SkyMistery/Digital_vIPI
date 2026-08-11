@@ -285,6 +285,23 @@ else
         }
     };
 
+    // Righe di un lato: in modifica tutte (le escluse attenuate), in lettura solo quelle nel documento.
+    private RenderFragment FreqSide(bool foreign) => __builder =>
+    {
+        var side = _freq.Rows.Where(r => r.IsForeign == foreign).Where(r => _editing || !r.Hidden).ToList();
+        var hidden = side.Where(r => r.Hidden).Select(r => r.Row.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        <AppFrequencies Rows="side.Select(r => r.Row).ToList()"
+                        IsDimmed="row => hidden.Contains(row.Callsign)"
+                        RowActions="@(_editing ? FreqToggle(hidden) : null)" />
+    };
+
+    private RenderFragment<AppFreqRow> FreqToggle(IReadOnlySet<string> hidden) => row => __builder =>
+    {
+        <button class="btn ghost" @onclick="() => ToggleFreq(row.Callsign)">
+            @(hidden.Contains(row.Callsign) ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])
+        </button>
+    };
+
     private RenderFragment AorView() => __builder =>
     {
         @if (_editing && _aor.Toggles.Count > 0)
@@ -312,54 +329,12 @@ else
         }
         else
         {
+            @* Stessa tabella del documento (doc 13 §3l). In modifica si vedono anche le frequenze escluse,
+               attenuate, col loro interruttore: l'editor deve mostrare ciò che il viewer mostrerà, più i comandi. *@
             <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
-            @FreqTable(_freq.Rows.Where(r => !r.IsForeign).ToList())
+            @FreqSide(foreign: false)
             <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
-            @FreqTable(_freq.Rows.Where(r => r.IsForeign).ToList())
+            @FreqSide(foreign: true)
         }
     };
-
-    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted" style="margin:0">@L["Vle_NoFreq"]</p>
-        }
-        else
-        {
-            <table class="cfg-table" style="table-layout:fixed;width:100%">
-                <colgroup>
-                    <col style="width:32px" />
-                    <col style="width:auto" />
-                    <col style="width:26%" />
-                    <col style="width:120px" />
-                    @if (_editing) { <col style="width:104px" /> }
-                </colgroup>
-                <thead>
-                    @* Stesse intestazioni del viewer e di AppFrequencies (doc 13 §3j): erano tre tabelle sugli
-                       stessi dati con due nomenclature diverse. *@
-                    <tr><th></th><th>@L["AppFreq_Callsign"]</th><th>@L["AppFreq_Position"]</th><th>@L["Airport_Frequency"]</th>@if (_editing) { <th></th> }</tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        @if (_editing || !r.Hidden)
-                        {
-                            <tr style="@(r.Hidden ? "opacity:.45" : "")">
-                                <td>@(r.Row.IsPrimary ? "★" : "")</td>
-                                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
-                                <td>@r.Row.Callsign</td>
-                                <td>@r.Row.FrequencyMhz</td>
-                                @if (_editing)
-                                {
-                                    <td><button class="btn ghost" @onclick="() => ToggleFreq(r.Row.Callsign)">@(r.Hidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button></td>
-                                }
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        }
-    };
-
 }

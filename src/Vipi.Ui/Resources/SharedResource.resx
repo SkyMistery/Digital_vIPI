@@ -71,11 +71,10 @@
   <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</value></data>
   <data name="Aor_ColorsTitle" xml:space="preserve"><value>Colori dei settori</value></data>
   <data name="Aor_ColorsHelp" xml:space="preserve"><value>Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</value></data>
-  <data name="AccCfg_NoneOperational" xml:space="preserve"><value>Nessuna configurazione operativa.</value></data>
-  <data name="AccCfg_PickHint" xml:space="preserve"><value>Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</value></data>
-  <data name="AccCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
-  <data name="AccCfg_Range" xml:space="preserve"><value>Range</value></data>
-  <data name="AccCfg_NoOpenSector" xml:space="preserve"><value>Nessun settore aperto.</value></data>
+  <data name="AppCfg_PickHint" xml:space="preserve"><value>Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</value></data>
+  <data name="AppCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
+  <data name="AppCfg_Range" xml:space="preserve"><value>Range</value></data>
+  <data name="AppCfg_NoOpenSector" xml:space="preserve"><value>Nessun settore aperto.</value></data>
   <data name="Appn_AppNotAvailTitle" xml:space="preserve"><value>APP non disponibile</value></data>
   <data name="Country_LF" xml:space="preserve"><value>Francia</value></data>
   <data name="Country_LS" xml:space="preserve"><value>Svizzera</value></data>

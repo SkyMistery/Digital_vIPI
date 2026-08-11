@@ -54,13 +54,19 @@ else
     {
         <p class="muted">@L["AppCfg_None"]</p>
     }
+    else
+    {
+        @* Spiega l'aggancio con la mappa: selezionare una configurazione nell'AoR apre qui la sua tabella.
+           Vale per entrambe le famiglie — la mappa e il suo selettore sono gli stessi (doc 13 §3l). *@
+        <p class="muted noprint" style="margin-top:0;font-size:13.5px">@L["AppCfg_PickHint"]</p>
+    }
     @foreach (var cfg in Tables)
     {
         <details class="cfg-collapse coord-sub" data-cfgkey="@cfg.ConfigKey" data-cfgblock="@MapScope">
             <summary><span>@cfg.ConfigName</span><span class="chev">▸</span></summary>
             <div class="body">
                 <table class="cfg-table">
-                    <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>Center Point</th><th>Range</th></tr></thead>
+                    <thead><tr><th>@L["AppCfg_UnifiedSector"]</th><th>@L["AppCfg_Absorbs"]</th><th>@L["AppCfg_CenterPoint"]</th><th>@L["AppCfg_Range"]</th></tr></thead>
                     <tbody>
                         @foreach (var row in cfg.Rows)
                         {
@@ -70,6 +76,10 @@ else
                                 <td>@(string.IsNullOrWhiteSpace(row.CenterPoint) ? "—" : row.CenterPoint)</td>
                                 <td>@(string.IsNullOrWhiteSpace(row.Range) ? "—" : row.Range)</td>
                             </tr>
+                        }
+                        @if (cfg.Rows.Count == 0)
+                        {
+                            <tr><td colspan="4" class="muted">@L["AppCfg_NoOpenSector"]</td></tr>
                         }
                     </tbody>
                 </table>

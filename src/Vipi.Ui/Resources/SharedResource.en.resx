@@ -71,11 +71,10 @@
   <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Add shapes of other units (foreign ones or towers too) taken from the database: they appear as toggleable rings on the map and can be selected in the configurations.</value></data>
   <data name="Aor_ColorsTitle" xml:space="preserve"><value>Sector colours</value></data>
   <data name="Aor_ColorsHelp" xml:space="preserve"><value>Each unit has a default colour by type (towers in red, for instance). Change it here per sector; "default" restores the type colour.</value></data>
-  <data name="AccCfg_NoneOperational" xml:space="preserve"><value>No operational configuration.</value></data>
-  <data name="AccCfg_PickHint" xml:space="preserve"><value>Open a configuration; selecting it on the AoR opens it here automatically.</value></data>
-  <data name="AccCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
-  <data name="AccCfg_Range" xml:space="preserve"><value>Range</value></data>
-  <data name="AccCfg_NoOpenSector" xml:space="preserve"><value>No open sector.</value></data>
+  <data name="AppCfg_PickHint" xml:space="preserve"><value>Open a configuration; selecting it on the AoR opens it here automatically.</value></data>
+  <data name="AppCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
+  <data name="AppCfg_Range" xml:space="preserve"><value>Range</value></data>
+  <data name="AppCfg_NoOpenSector" xml:space="preserve"><value>No open sector.</value></data>
   <data name="Appn_AppNotAvailTitle" xml:space="preserve"><value>Approach not available</value></data>
   <data name="Country_LF" xml:space="preserve"><value>France</value></data>
   <data name="Country_LS" xml:space="preserve"><value>Switzerland</value></data>

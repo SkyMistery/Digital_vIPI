@@ -21,7 +21,7 @@
             i = j;
         }
     }
-    var cols = (grouped ? 1 : 0) + 3 + (Editing ? 1 : 0);
+    var cols = (grouped ? 1 : 0) + 3 + (Editing || RowActions is not null ? 1 : 0);
 }
 <table class="@(grouped ? "cfg-table" : null)">
     <thead>
@@ -29,6 +29,7 @@
             @if (grouped) { <th>@L["AppFreq_UniSector"]</th> }
             <th>@L["AppFreq_Callsign"]</th><th>@L["AppFreq_Position"]</th><th>@L["Airport_Frequency"]</th>
             @if (Editing) { <th style="width:120px">@L["Common_Order"]</th> }
+            else if (RowActions is not null) { <th style="width:104px"></th> }
         </tr>
     </thead>
     <tbody>
@@ -37,6 +38,7 @@
             var idx = i;
             var row = rowsList[idx];
             <tr class="@(row.IsPrimary ? "freq-table primary" : null) @(Editing && DragIndex == idx ? "app-sec-drag" : null) @(grouped && gFirst[idx] ? "grp-start" : null)"
+                style="@(IsDimmed?.Invoke(row) == true ? "opacity:.45" : null)"
                 @ondragover:preventDefault="Editing" @ondragenter="() => OnDragEnter.InvokeAsync(idx)"
                 @ondrop="OnDrop" @ondragend="OnDragEnd">
                 @if (grouped && gFirst[idx])
@@ -52,6 +54,10 @@
                 </td>
                 <td>@row.Callsign</td>
                 <td>@row.FrequencyMhz @(row.IsPrimary ? (MarkupString)"<span class=\"freq-key\">★</span>" : (MarkupString)"")</td>
+                @if (!Editing && RowActions is not null)
+                {
+                    <td>@RowActions(row)</td>
+                }
                 @if (Editing)
                 {
                     <td>
@@ -84,6 +90,14 @@
 
     // Accorpamento per ramo (Aerovia ACC): callsign → nome ramo. null = nessun raggruppamento.
     [Parameter] public Func<AppFreqRow, string?>? GroupOf { get; set; }
+
+    /// <summary>Righe da mostrare in trasparenza invece che nascondere: la vLOA in editing fa vedere anche le
+    /// frequenze escluse dal documento, per poterle riaccendere. Null = nessuna riga attenuata.</summary>
+    [Parameter] public Func<AppFreqRow, bool>? IsDimmed { get; set; }
+
+    /// <summary>Colonna di azioni per riga, fuori dal riordino (la vLOA ci mette «mostra/nascondi»). Null = niente
+    /// colonna. Doc 13 §3l: la vLOA aveva una tabella tutta sua, che è tornata a divergere appena l'hanno toccata.</summary>
+    [Parameter] public RenderFragment<AppFreqRow>? RowActions { get; set; }
 
     // Drag-and-drop riordino (maniglia ⠿): il container/pagina possiede lo stato _freqDragIndex.
     [Parameter] public int? DragIndex { get; set; }

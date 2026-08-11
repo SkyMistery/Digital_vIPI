@@ -242,6 +242,10 @@
         _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && await Authz.CanEditAccAsync(HomeAcc!);
     }
 
+    /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>
+    private static IReadOnlyList<AppFreqRow> Rows(IReadOnlyList<VloaFreqRow> rows, bool foreign) =>
+        rows.Where(r => r.IsForeign == foreign).Select(r => r.Row).ToList();
+
     private RenderFragment ReadAor() => __builder =>
     {
         <AccAor View="_aor.Map" Id="@($"vloa-aor-view-{DocId}")" />
@@ -256,42 +260,12 @@
         }
         else
         {
+            @* Stessa tabella della vIPI ACC e dell'APP, invocata una volta per lato (doc 13 §3l): qui c'era una
+               copia inline, che infatti aveva finito per chiamare le colonne in un altro modo. *@
             <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
-            @FreqTable(visible.Where(r => !r.IsForeign).ToList())
+            <AppFrequencies Rows="Rows(visible, foreign: false)" />
             <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
-            @FreqTable(visible.Where(r => r.IsForeign).ToList())
+            <AppFrequencies Rows="Rows(visible, foreign: true)" />
         }
     };
-
-    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted" style="margin:0">@L["Vloa_NoFreq"]</p>
-        }
-        else
-        {
-            <table class="cfg-table" style="table-layout:fixed;width:100%">
-                <colgroup>
-                    <col style="width:32px" />
-                    <col style="width:auto" />
-                    <col style="width:26%" />
-                    <col style="width:120px" />
-                </colgroup>
-                <thead><tr><th></th><th>@L["AppFreq_Callsign"]</th><th>@L["AppFreq_Position"]</th><th>@L["Airport_Frequency"]</th></tr></thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        <tr>
-                            <td>@(r.Row.IsPrimary ? "★" : "")</td>
-                            <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
-                            <td>@r.Row.Callsign</td>
-                            <td>@r.Row.FrequencyMhz</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    };
-
 }

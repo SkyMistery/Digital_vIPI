@@ -1,8 +1,11 @@
 # 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
 
 > **Stato: CHIUSO** (2026-08-10/11, branch `refactor/13-tre-documenti`). §1-§2 rilevate sul codice del
-> 2026-08-10; §3-§4 approvate dall'owner ed eseguite: 17 passi, 18 commit, suite **1335 → 1384** verde,
+> 2026-08-10; §3-§4 approvate dall'owner ed eseguite: **19 passi, 20 commit**, suite **1335 → 1391** verde,
 > **verifica live fatta** sui tre documenti (§5) — con due difetti trovati lì e chiusi.
+>
+> §2 gruppo **H** e §3l/§4 S18-S19 sono un'aggiunta dell'11 agosto, nata da una domanda dell'owner sulla
+> gerarchia: la risposta ha fatto emergere due sezioni comuni ancora disegnate da due componenti.
 >
 > §1 e §2 descrivono lo stato **prima** del lavoro e si leggono al passato: sono il referto, non la mappa
 > del codice di oggi.
@@ -263,6 +266,28 @@ sezioni fisse» quando il profilo del catalogo ne ha 10.
 **G6 🔸** `VloaReleaseTarget.ResolveDocumentIdAsync` restituisce l'intero parsato senza verificare che quel
 Document sia davvero una vLOA: una chiave sbagliata punta a un documento di un'altra famiglia.
 
+### H — La stessa sezione disegnata due volte (rilevato 2026-08-11, su domanda dell'owner)
+
+Domanda: «la sezione AoR è uguale in tutti, e se la modifico si modifica ovunque?». La risposta —
+**definizione e resa condivise, contenuto per documento** — è quella giusta, e verificandola su tutte le
+sezioni comuni sono uscite due copie che il resto del doc 13 non aveva toccato.
+
+**H1 ⚠️ `configurations`: copia inline nel viewer della vIPI ACC.** `AppConfigurations` si dichiara
+«sezione CONDIVISA (vIPI ACC + vIPI APP)» e l'**editor** ACC la usa; il **viewer** ACC no —
+`ConfigTableBody()` ne ripete il markup riga per riga. Già divergenti nei dettagli: solo la copia diceva
+«nessun settore aperto» e spiegava l'aggancio con la mappa, solo il componente aveva il proprio messaggio
+di elenco vuoto. Divergenza **dentro la stessa famiglia**: nell'editor una cosa, nel documento pubblicato
+un'altra.
+
+**H2 ⚠️ `frequencies`: tabella propria della vLOA.** ACC e APP passano da `AppFrequencies`, la vLOA da un
+`FreqTable` inline. Le intestazioni erano già andate per conto loro — S14 le aveva riallineate, ma sul
+sintomo, non sulla causa.
+
+**Non-problema verificato (per non «aggiustarlo» in futuro):** `coordination` usa `AccCoordinationView` su
+ACC e vLOA e `AppCoordinationView` sull'APP. Sono due **modelli di dati** diversi — Settore → ACC →
+Aeroporto → arrivi/partenze contro verso-ACC / verso-torri / sorvoli — perché un avvicinamento non ha
+settori sotto di sé. Due componenti giustificati.
+
 ---
 
 ## 3. Architettura target 🟢
@@ -377,6 +402,31 @@ risorsa `App_VersionsReleases`/`App_ReleaseHelp` si rinominano `Rel_SectionTitle
   disponibile» dell'APP. Le intestazioni della tabella frequenze diventano **una sola** definizione
   condivisa fra editor e viewer vLOA.
 
+### 3l. Una sezione comune si disegna con UN componente (H1, H2)
+
+Il doc 13 nasce da «la definizione è unica»; questo passo chiude l'altra metà: **anche la resa**. Verificate
+tutte le sezioni comuni, viewer ed editor, sono emerse due copie:
+
+- **`configurations`** — `AppConfigurations` si dichiara «sezione CONDIVISA (vIPI ACC + vIPI APP)» e
+  l'**editor** ACC la usa, ma il **viewer** ACC aveva `ConfigTableBody()`, un fragment inline che rendeva
+  lo stesso markup riga per riga. Già divergente: solo la copia diceva «nessun settore aperto» e spiegava
+  l'aggancio con la mappa; solo il componente aveva il proprio messaggio di elenco vuoto. Divergenza
+  **dentro la stessa famiglia** — nell'editor una cosa, nel documento pubblicato un'altra. Le due
+  differenze entrano nel componente (valgono per entrambe le famiglie: la mappa e il suo selettore sono
+  gli stessi) e la copia sparisce.
+- **`frequencies`** — la vLOA aveva `FreqTable` inline; `AppFrequencies` guadagna due opzioni
+  (`IsDimmed`, `RowActions`) e la vLOA la invoca **una volta per lato**. Le opzioni servono a ciò che la
+  vLOA ha in più: in modifica mostra anche le frequenze escluse, attenuate, col loro interruttore — e
+  senza il riordino, che sulla vLOA non esiste.
+
+**Non è una divergenza** `coordination`, che usa `AccCoordinationView` su ACC e vLOA e
+`AppCoordinationView` sull'APP: sono due **modelli di dati** diversi (Settore → ACC → Aeroporto →
+arrivi/partenze contro verso-ACC / verso-torri / sorvoli), perché un avvicinamento non ha settori sotto di
+sé. Due componenti giustificati, lasciati come sono.
+
+Ricaduta visibile: nella vLOA la stella del primario passa da una colonna propria a fianco della
+frequenza, come nelle altre due famiglie.
+
 ### 3k. Pulizia (D2, E1, E2, G1-G6)
 
 Si rimuovono: `BuildAccVipiAsync`/`LoadAccVipiAsync` con `ResolveLiveAorAsync`/`DefaultViewer` e le tre
@@ -411,6 +461,8 @@ Un passo = un commit (o più, se il passo è grosso), build verde e suite verde 
 | **S15** ✅ | Etichette diff dal chiamante (chiavi, non frasi) | F4 | `ReleaseService`, `ReleaseDiffRow`, `ReleaseDiffTable`, `.resx` |
 | **S16** ✅ | Rimozione codice morto | D2, G1, G2 | `IVipiViewService`, `VipiViewService`, `IContentRepository`, `EfContentRepository`, `SectionCatalog` |
 | **S17** ✅ | Propagazione documentale: `mappa-pagine.md`, commenti stantii, `rounds.md`, `00-overview`, memorie | G3-G6 | docs + memorie |
+| **S18** ✅ | «Configurazioni»: via la copia inline del viewer ACC, dentro il componente condiviso | H1 | `AppConfigurations`, `AccSectionBody`, `.resx` |
+| **S19** ✅ | Frequenze vLOA da `AppFrequencies` (righe attenuate + colonna azioni) | H2 | `AppFrequencies`, `VloaDocumentView`, `VloaEditor` |
 
 ### Scostamenti dall'ordine e dalla portata dichiarati
 
