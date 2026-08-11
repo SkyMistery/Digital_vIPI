@@ -1,4 +1,4 @@
-# Feature — Trasferimenti ACC↔APP: autorizzazione e trasferimento separati, varianti per condizione, velocità
+﻿# Feature — Trasferimenti ACC↔APP: autorizzazione e trasferimento separati, varianti per condizione, velocità
 
 Data: 2026-08-11 · Stato: **CHIUSO — codice, suite 2173 verde, build Release 0 warning su entrambi i TFM,
 ✅ verifica live eseguita** ·
@@ -136,6 +136,14 @@ leggendolo in vIPI ACC, vIPI APP, vLOA (inglese) e stampa. Più il caso reale BI
 
 Non rimuove né rinomina: è additiva. Ma **allarga il passo 2 della derivazione**, che è un cambio di
 comportamento su codice condiviso da ACC, APP e vLOA. La lista completa sta in «Propagazione».
+
+> ⚠️ **La parte «varianti» di questa scheda è superata dal giorno dopo.** Alla prima lettura il committente
+> ha rovesciato tre cose: lo standard va in **testa** e non in fondo, le alternative sono **pari-grado** (pista
+> 07 e pista 25, nessuna subordinata all'altra) e i livelli possono essere **più di due**. `IsOtherwise` è
+> stato sostituito da `VariantDepth` + `IsGroupWide` prima del merge, quindi a costo di dati zero. Dove qui si
+> legge «negli altri casi» e «capofila + subordinate», vale
+> [`2026-08-12-varianti-a-livelli.md`](2026-08-12-varianti-a-livelli.md) e `modello-dati.md` §9.20-ter.
+> Il resto della scheda — faccetta trasferimento, velocità, derivazione estesa, tabella condivisa — è invariato.
 
 ## Modello
 

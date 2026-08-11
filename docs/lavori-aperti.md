@@ -733,10 +733,17 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
 - 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
   con chi la userà prima di essere scritta.
 
-### E6 ✅ Trasferimenti ACC↔APP — **chiuso l'11 agosto 2026, verifica live eseguita**
-Carta ed esito: [`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md),
-decisa punto per punto col committente. Suite 2173 verde, Release 0 warning su entrambi i TFM, verifica live
-su copia del `vipi.db` reale (tre difetti trovati proprio lì, nessuno visibile alla suite).
+### E6 ✅ Trasferimenti ACC↔APP — **chiuso l'11-12 agosto 2026, verifica live eseguita**
+Due schede, in sequenza sullo stesso branch:
+[`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md) (autorizzazione e
+trasferimento separati, velocità, derivazione estesa) e
+[`feature/2026-08-12-varianti-a-livelli.md`](feature/2026-08-12-varianti-a-livelli.md) (il gruppo di varianti
+diventa un **outline**: alternative pari-grado, eccezioni annidate a profondità libera, righe che scavalcano).
+La seconda **corregge** la parte «varianti» della prima, decisa dal committente alla prima lettura e fatta
+prima del merge, quindi a costo di dati zero.
+
+Suite 2185 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in entrambi i
+giri (dieci difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
 avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al

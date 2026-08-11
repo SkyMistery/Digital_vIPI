@@ -1285,3 +1285,46 @@ buon esempio del **legame** fra varianti; non lo è mai stato di un'ambiguità. 
 ⚠️ **Resta ai colleghi, non al codice:** le 15 righe con ricevente APP e faccetta vuota vanno riviste a mano —
 il loro livello può voler dire «autorizzato» o «al trasferimento». Il filtro «Da rivedere» in
 `/vsop/admin/trasferimenti` le elenca; il numero va rimisurato sulla produzione.
+
+## Feature: le varianti diventano un outline (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-varianti-a-livelli.md`](../feature/2026-08-12-varianti-a-livelli.md);
+schema `../spec/modello-dati.md` §9.20-ter; area [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §9.
+
+Il gruppo di varianti del giorno prima aveva **una forma sola** — una capofila più subordinate, con «negli
+altri casi» in fondo. Alla prima lettura del committente sono usciti tre difetti, e il terzo dice che la forma
+era proprio quella sbagliata: l'ordine era rovesciato (un accordo si legge come una norma: prima la regola,
+poi le eccezioni); le alternative **non sono subordinate a nessuno** (pista 07 e pista 25 sono pari-grado, ed
+è esattamente il dato che sta in archivio); e due livelli non bastano, perché serve «con area attiva» e,
+dentro, «con area attiva **e di notte**». Più l'eccezione **trasversale**, che scavalca le alternative.
+
+`IsOtherwise` lascia il posto a `VariantDepth` + `IsGroupWide`: il gruppo diventa un outline dove l'ordine È
+la struttura. Fatto **prima del merge** della scheda di ieri, quindi a costo di dati zero — dopo sarebbe stata
+una migrazione dati.
+
+**Due cose che valgono più della sintassi:**
+
+- **Chi sposta una riga deve spostarne il sottoalbero.** Una capofila che si muove lasciando indietro le sue
+  eccezioni le riassegna a un'altra alternativa **senza nessun errore**: nessuna eccezione, nessun log, solo un
+  accordo che dice un'altra cosa. È il prezzo dell'appartenenza per ordine, e ha un test che lo presidia.
+- **Frase e tabella divergono apposta.** In tabella si legge il delta (il rientro dà il contesto); la frase
+  cumula la catena, perché viaggia da sola nella prosa. E la catena si **fonde** in una clausola prima di
+  diventare parole: comporre un pezzo per livello ripeteva la preposizione — «con pista 07 in uso **e con**
+  R403B attiva» — mentre la condizione cumulata è un AND unico, che la fraseologia approvata già sa dire.
+
+⚠️ **Lo scaffolding EF proponeva un `RenameColumn` da `IsOtherwise`, e lo proponeva diverso nei due provider**:
+SQLite verso `VariantDepth`, MySQL verso `IsGroupWide`. Due inferenze incompatibili dalla stessa modifica —
+la prova che il rename è una supposizione sui tipi, non un'intenzione letta dal modello. Un `true`
+sopravvissuto sarebbe diventato «profondità 1» di là e «riga che scavalca tutto» di qua, in silenzio. Riscritte
+entrambe come drop + add.
+
+**Verifica live sul caso vero**, costruito guidando l'editor: pista 07 → eccezione «area LI R403B» → eccezione
+dell'eccezione «di notte» → riga trasversale. Le tre frasi cumulano («con pista 07 in uso e LI R403B attiva e
+in condizione di notte»), la tabella rientra 20/34px e tiene CoP e ricevente in `rowspan` su tutto il gruppo, e
+l'avviso «alternativa senza caso normale» **scatta sul dato reale** — la riga 77 porta «pista 25 + area R403B»
+e non ha una «pista 25, normalmente». Il modello di ieri non permetteva nemmeno di accorgersene.
+
+Un difetto di lingua preso leggendo, non prevedendo: il marcatore trasversale accostava due preposizioni («in
+ogni caso **in** condizione …»). Ora c'è la virgola.
+
+Suite **2173 → 2185** verde, `dotnet build -c Release --no-incremental` 0 warning su entrambi i TFM.

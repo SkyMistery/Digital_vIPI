@@ -1,4 +1,4 @@
-# Specifica del Modello Dati — vIPI/vLOA Interactive
+﻿# Specifica del Modello Dati — vIPI/vLOA Interactive
 
 > 🧭 **Come leggere questo documento (stato delle sezioni).** Il modello è cresciuto per round; le sezioni **non** hanno tutte lo stesso peso:
 > - **§1–§2** principi e diagramma — di contesto.
@@ -514,7 +514,7 @@ Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFo
 `SectorType { Del, Gnd, Twr, ITwr, App, Ctr }` · `SectorKind { Airport, Acc }` · `ApproachKind { Remotized, Standalone }` · `DateParity { Any, Even, Odd }` (regole pista, round 9) · `LevelParity { Any, Even, Odd }` (parità livello di crociera su `TransferPoint`, regola semicircolare) · `TransferHandoffKind { Unspecified, Point, AorBoundary, Custom }` (dove passa il controllo/le comunicazioni quando NON coincide col punto d'ingresso, §9.20-bis) · `SpeedConstraint { Unspecified, AtOrBelow, AtOrAbove, Exact }` (restrizione di velocità al trasferimento; enum dedicato e non riuso di `LevelConstraint`, che porta uno `Special` senza senso su una velocità) · `TransferVerticalState { Unspecified, Level, Descending, Climbing }` (stato verticale su `TransferPoint`, indipendente dal `LevelConstraint`; guida la parola «in discesa/salita/stabile» della frase — §7.3 refactor) · `ImportCategory { TransitionAltitude, Runways, Sectors }`. Rimossi `GeometryFormat`, `TransferConditionKind` (la condizione trasferimento è ora tre colonne indipendenti pista/area/personalizzata, §9.20).
 
 ### 9.8 Migrazioni (ordine attuale)
-`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione) → **`AddAirportSectorIsAccApp`** (flag «APP di ACC» + backfill dei callsign a 3 pezzi) → **`ReworkTransfers`** (sostituisce `Transfer` ACC↔ACC con `TransferFlow` settore-proprio + `TransferPoint` CoP/livello strutturato/Next) → **`SimplifyTransferResolution`** (drop `TransferPoint.Fallback` + `ManualChainJson`: la risoluzione live del ricevente/mittente risale la **gerarchia di copertura globale** `ParentCallsign`/`ParentSectorId`, terminale fisso **UNICOM**; rimosso l'enum `TransferFallback`) → **`AddAppProfile`** (profilo APP standalone, §9.13) → **`AddAppCustomSections`** (colonna `CustomSectionsJson`) → **`AddAppHiddenSections`** (colonna `HiddenSectionsJson`) → **`AddAirportCoordsAndTwrSyntheticShape`** (round 22: `Airport.Latitude/Longitude` + `AirportSector.IsShapeSynthetic`, §9.14) → **`AddAccProfile`** (round 23: vIPI ACC data-driven, tabella `AccProfiles` 1:1 con `Acc`, `BlocksJson`, §9.15) → *(round 27–33: `AddNeighbourCandidate`, `AddVloaProfile`, `AddDocRelease`, `AddEditorTask`, `AddDocumentHideFlags` e affini — vedi changelog)* → **`AddSidImport`** (round 34: `AirportSid` +`IsImported`/`Priority`/`StableKey`/`SourceAiracCycle`/`ForcePublished`/`NeedsFixReview`, entità `SidFixAlias`, `ImportPolicy.ImportSids`; import SID dal sectorfile Aurora GitHub) → **`AddImportState`** (round 34: tabella `ImportStates` per il gating degli import periodici, chiave `Category` + `LastSuccessUtc`) → **`AddTransferPointParity`** (colonna `TransferPoint.Parity` enum `LevelParity`, default `Any`; parità del livello di crociera per la regola semicircolare, resa nel `LevelText` come «(pari)»/«(dispari)») → *(round 29→33: `AddTransferFlowAirportName`, `AddDocumentReviewSignal`, `AddSectionRenderMode`, `AddDocumentProfile`/`Drop*Profile`, `SectionKeyCatalog`, `DropCoordinationSentenceTemplate` — vedi changelog)* → **`AddTransferPointCondition`** (2026-07-22: colonne `TransferPoint.ConditionKind` enum `TransferConditionKind` default `None` + `ConditionLabel` max 80 + `ConditionRefId`; condizione operativa pista/area, §9.20) → *(2026-07-22: `AddTransferPointConditionArea`, `SplitTransferConditionColumns` — condizione a tre colonne indipendenti, §9.20)* → **`AddImportStateLastError`** (2026-07-22, audit Fase 1: colonne `ImportState.LastAttemptUtc` + `LastError` per l'osservabilità dei fallimenti degli import periodici; report read-only in `/vsop/admin/sorgenti`). → *(2026-07-24/29: `AddTransferPointVerticalState`, `AddSidInitialClimbByApp` — vedi changelog)* → **`AddSectionIsHidden`** (2026-07-30, doc 11 §3c: colonna `DocumentSections.IsHidden`, default 0 — «sezione nascosta dal documento pubblicato» diventa stato **versionato** sulla sezione, gemello di `RenderMode`; prima viveva in `AccBlockMeta.HiddenSections` per la vIPI ACC e in `DocumentProfiles.HiddenSectionsJson` per APP e vLOA, quindi non versionato. Migrazione dati one-shot idempotente al boot, `IDocumentMaintenance`, che azzera le sorgenti; nello stesso giro le sezioni libere passano dalla chiave costante `"custom"` a `custom:{guid8}` univoca) → **`AddSectionBeforeParentBody`** (2026-07-30, doc 11 §3g: colonna `DocumentSections.BeforeParentBody`, default 0 — una **sotto-sezione** può precedere il corpo della sezione padre, es. una premessa sopra le mappe delle aree regolamentate; terzo flag per-sezione con `RenderMode` e `IsHidden`, nessuna migrazione dati perché il default riproduce il comportamento storico) → **`AddTransferHandoffSpeedAndVariants`** (2026-08-11, §9.20-bis: faccetta trasferimento su `TransferPoint` — `HandoffKind`/`HandoffLabel`/`HandoffLevel*`, `CommsHandoff*` — più `SpeedValue`/`SpeedConstraint` e il gruppo di varianti `VariantGroup`/`IsOtherwise`, con indice `(FlowId, VariantGroup)`. Additiva e senza backfill: i default riproducono il comportamento storico. ⚠️ I default degli enum-stringa sono **dichiarati nel modello** con `HasDefaultValue`, non solo in migrazione, perché lo scaffolding proporrebbe `""` — un valore che nessuno di quegli enum sa rileggere — e perché lo stesso vale per il `PostgresSchemaReconciler`).
+`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione) → **`AddAirportSectorIsAccApp`** (flag «APP di ACC» + backfill dei callsign a 3 pezzi) → **`ReworkTransfers`** (sostituisce `Transfer` ACC↔ACC con `TransferFlow` settore-proprio + `TransferPoint` CoP/livello strutturato/Next) → **`SimplifyTransferResolution`** (drop `TransferPoint.Fallback` + `ManualChainJson`: la risoluzione live del ricevente/mittente risale la **gerarchia di copertura globale** `ParentCallsign`/`ParentSectorId`, terminale fisso **UNICOM**; rimosso l'enum `TransferFallback`) → **`AddAppProfile`** (profilo APP standalone, §9.13) → **`AddAppCustomSections`** (colonna `CustomSectionsJson`) → **`AddAppHiddenSections`** (colonna `HiddenSectionsJson`) → **`AddAirportCoordsAndTwrSyntheticShape`** (round 22: `Airport.Latitude/Longitude` + `AirportSector.IsShapeSynthetic`, §9.14) → **`AddAccProfile`** (round 23: vIPI ACC data-driven, tabella `AccProfiles` 1:1 con `Acc`, `BlocksJson`, §9.15) → *(round 27–33: `AddNeighbourCandidate`, `AddVloaProfile`, `AddDocRelease`, `AddEditorTask`, `AddDocumentHideFlags` e affini — vedi changelog)* → **`AddSidImport`** (round 34: `AirportSid` +`IsImported`/`Priority`/`StableKey`/`SourceAiracCycle`/`ForcePublished`/`NeedsFixReview`, entità `SidFixAlias`, `ImportPolicy.ImportSids`; import SID dal sectorfile Aurora GitHub) → **`AddImportState`** (round 34: tabella `ImportStates` per il gating degli import periodici, chiave `Category` + `LastSuccessUtc`) → **`AddTransferPointParity`** (colonna `TransferPoint.Parity` enum `LevelParity`, default `Any`; parità del livello di crociera per la regola semicircolare, resa nel `LevelText` come «(pari)»/«(dispari)») → *(round 29→33: `AddTransferFlowAirportName`, `AddDocumentReviewSignal`, `AddSectionRenderMode`, `AddDocumentProfile`/`Drop*Profile`, `SectionKeyCatalog`, `DropCoordinationSentenceTemplate` — vedi changelog)* → **`AddTransferPointCondition`** (2026-07-22: colonne `TransferPoint.ConditionKind` enum `TransferConditionKind` default `None` + `ConditionLabel` max 80 + `ConditionRefId`; condizione operativa pista/area, §9.20) → *(2026-07-22: `AddTransferPointConditionArea`, `SplitTransferConditionColumns` — condizione a tre colonne indipendenti, §9.20)* → **`AddImportStateLastError`** (2026-07-22, audit Fase 1: colonne `ImportState.LastAttemptUtc` + `LastError` per l'osservabilità dei fallimenti degli import periodici; report read-only in `/vsop/admin/sorgenti`). → *(2026-07-24/29: `AddTransferPointVerticalState`, `AddSidInitialClimbByApp` — vedi changelog)* → **`AddSectionIsHidden`** (2026-07-30, doc 11 §3c: colonna `DocumentSections.IsHidden`, default 0 — «sezione nascosta dal documento pubblicato» diventa stato **versionato** sulla sezione, gemello di `RenderMode`; prima viveva in `AccBlockMeta.HiddenSections` per la vIPI ACC e in `DocumentProfiles.HiddenSectionsJson` per APP e vLOA, quindi non versionato. Migrazione dati one-shot idempotente al boot, `IDocumentMaintenance`, che azzera le sorgenti; nello stesso giro le sezioni libere passano dalla chiave costante `"custom"` a `custom:{guid8}` univoca) → **`AddSectionBeforeParentBody`** (2026-07-30, doc 11 §3g: colonna `DocumentSections.BeforeParentBody`, default 0 — una **sotto-sezione** può precedere il corpo della sezione padre, es. una premessa sopra le mappe delle aree regolamentate; terzo flag per-sezione con `RenderMode` e `IsHidden`, nessuna migrazione dati perché il default riproduce il comportamento storico) → **`AddTransferHandoffSpeedAndVariants`** (2026-08-11, §9.20-bis: faccetta trasferimento su `TransferPoint` — `HandoffKind`/`HandoffLabel`/`HandoffLevel*`, `CommsHandoff*` — più `SpeedValue`/`SpeedConstraint` e il gruppo di varianti `VariantGroup`/`IsOtherwise`, con indice `(FlowId, VariantGroup)`. Additiva e senza backfill: i default riproducono il comportamento storico. ⚠️ I default degli enum-stringa sono **dichiarati nel modello** con `HasDefaultValue`, non solo in migrazione, perché lo scaffolding proporrebbe `""` — un valore che nessuno di quegli enum sa rileggere — e perché lo stesso vale per il `PostgresSchemaReconciler`). → **`ReworkVariantsAsOutline`** (2026-08-12, §9.20-ter: **droppa `IsOtherwise`**, aggiunge `VariantDepth` (int) + `IsGroupWide` (bool) e porta l'indice a `(FlowId, VariantGroup, Order)`. Il gruppo di varianti diventa un outline con alternative pari-grado ed eccezioni annidate a profondità libera. Nessun backfill: la colonna droppata non era mai stata scritta. ⚠️ Lo scaffolding proponeva un `RenameColumn`, **diverso nei due provider** — SQLite verso `VariantDepth`, MySQL verso `IsGroupWide`: due inferenze incompatibili dalla stessa modifica, che è la prova che il rename è una supposizione sui tipi e non un'intenzione. Riscritte entrambe come drop + add).
 
 ### 9.9 `AirportRunwayRule` — regole pista a soglie operative (sessione 28 giu)
 Le condizioni vento-arco/velocità/pioggia-neve sono state sostituite da **soglie operative per-regola**. Su `AirportRunwayRule`: **rimossi** `WindDirFrom/WindDirTo/WindSpeedMin/WindSpeedMax/Rain/Snow`; **aggiunti** `Name` (etichetta), **`MaxTailwindKt`** (int, default 5), **`MaxCrosswindKt`** (int?, null = nessun vincolo), **`Surface`** (enum **`RunwaySurface { Any, Dry, Wet }`**, Wet = pioggia/neve nel METAR). `Order` = priorità (prima regola applicabile vince); `DepRunways/ArrRunways/Note` invariati; i filtri temporali (orario/giorni/parità + finestra stagionale §9.10) restano come **filtro di eleggibilità opzionale** (avanzate, caso Malpensa). Tailwind/crosswind sono **calcolati dal vento** (non più inseriti come direzione). Su `Airport` **nessuna soglia** (sono per-regola). Selezione in `Application/Weather/RunwaySuggestion.EvaluateRules(rules, windDir, windKt, wet, now)`; se nessuna regola si applica → fallback `Suggest()`. Migrazione **`RunwayRuleThresholds`** (drop 6 colonne, add `Name`/`MaxTailwindKt`/`MaxCrosswindKt`/`Surface`, svuota le vecchie righe).
@@ -642,21 +642,26 @@ che ha reso la migrazione un no-op sulle 73 righe in archivio.
 | `CommsHandoffKind` / `CommsHandoffLabel` | `TransferHandoffKind` / string? (80) | passaggio **comunicazioni**, se altrove rispetto al controllo |
 | `SpeedValue` / `SpeedConstraint` | int? / `SpeedConstraint` | nodi IAS; `SpeedConstraint { Unspecified, AtOrBelow, AtOrAbove, Exact }` |
 | `VariantGroup` | int? | gruppo di varianti, progressivo **per flusso**; null = riga singola |
-| `IsOtherwise` | bool | la riga «negli altri casi»; al più una per gruppo, e non porta condizioni |
+| `VariantDepth` | int | rientro nell'outline: 0 = alternativa, 1 = sua eccezione, 2 = eccezione dell'eccezione, … (§9.20-ter) |
+| `IsGroupWide` | bool | la riga scavalca le alternative: vale per tutto il gruppo (§9.20-ter) |
 
 Lo **stato verticale** al trasferimento è già `VerticalState` e non si duplica.
 
-**Varianti = chiave sulla riga, non tabella figlia.** Le alternative dello stesso accordo (condizioni diverse)
-condividono flusso, `Cop` e `NextSectorId`; l'ordine è l'`Order` esistente (nessun secondo ordinamento che possa
-contraddirlo). I dati restano **piatti e completi**: nessuna eredità di campo, che con `LevelValue` nullable
-sarebbe ambigua («null = eredita» contro «null = non specificato»). L'eredità sta nell'editor (`AddVariantAsync`
-copia tutto tranne la condizione), il delta nel rendering (`rowspan` su CoP e ricevente). La tabella figlia
-`TransferPointVariant` è stata valutata e **scartata**: più pura, ma avrebbe spostato ogni campo esistente nello
-stesso giro in cui se ne aggiungono nove — vedi la carta.
+**Varianti = chiave sulla riga, non tabella figlia.** Le righe dello stesso accordo condividono flusso, `Cop` e
+`NextSectorId`; l'ordine è l'`Order` esistente (nessun secondo ordinamento che possa contraddirlo). I dati
+restano **piatti e completi**: nessuna eredità di campo, che con `LevelValue` nullable sarebbe ambigua («null =
+eredita» contro «null = non specificato»). L'eredità sta nell'editor (la riga nuova nasce copiata tranne la
+condizione), il delta nel rendering (`rowspan` su CoP e ricevente). La tabella figlia `TransferPointVariant` è
+stata valutata e **scartata**: più pura, ma avrebbe spostato ogni campo esistente nello stesso giro in cui se ne
+aggiungono nove — vedi la carta.
+
+> ⚠️ La **forma** del gruppo è cambiata il 12 agosto, prima del merge: da «una capofila + subordinate» a un
+> **outline** con alternative pari-grado ed eccezioni annidate. Vedi **§9.20-ter**, che supera questo paragrafo
+> per quanto riguarda struttura, ordinamento e resa.
 
 Invarianti applicati in `EfTransferRepository`: aggiornare `Cop`/`NextSectorId` su una riga li **propaga** al
-gruppo (sono l'identità dell'accordo); una seconda riga `IsOtherwise` è rifiutata con `ValidationException`; un
-gruppo rimasto con una riga sola viene **sciolto** (dopo `DetachVariantAsync` e dopo `DeletePointAsync`).
+gruppo (sono l'identità dell'accordo); un gruppo rimasto con una riga sola viene **sciolto** (dopo
+`DetachVariantAsync` e dopo `DeletePointAsync`).
 
 ⚠️ **Default degli enum dichiarati nel MODELLO** (`VipiDbContext`, `HasDefaultValue`), non solo in migrazione:
 questi enum stanno su colonna testuale e lo scaffolding proponeva `defaultValue: ""`, che nessuno di essi sa
@@ -671,15 +676,57 @@ Migrazione unica **`AddTransferHandoffSpeedAndVariants`** (SQLite e MySQL), addi
 
 Frase (`CoordinationSentenceComposer`): con la faccetta cambia il **verbo** della principale, quindi cambia
 template — `TemplateCleared` accanto a `Template`, con i placeholder `{handoff}` e `{handoffLevel}`. Velocità e
-comunicazioni sono code separate da virgola; «negli altri casi» prende il posto della clausola condizione.
-Chiavi IT **e** EN (vLOA). Le parole del trasferimento stanno in `TransferHandoffText`, condiviso con la
-derivazione — le colonne della tabella arrivano alla vista **già a parole**, perché la lingua vive nel template.
+comunicazioni sono code separate da virgola. Chiavi IT **e** EN (vLOA). Le parole del trasferimento stanno in
+`TransferHandoffText`, condiviso con la derivazione — le colonne della tabella arrivano alla vista **già a
+parole**, perché la lingua vive nel template.
 
 Propagazione: `TransferPointRow`/`TransferPointInput` (entrambi ora `record`), `EfTransferRepository`,
 `CoordinationDerivation.ToRow` (unico costruttore di riga, usato anche dalla vLOA), `AppCoordRow`,
 `CoordTable.razor` (tabella condivisa da ACC/APP/vLOA: colonne **per presenza di dati**, mai per tipo di ente),
 `AdminTrasferimentiPage`, `TransfersLive`, `TransferMatcher` + `CandidateLevel` (l'etichetta quota di Aurora
 porta il livello **al trasferimento** quando c'è).
+
+### 9.20-ter `TransferPoint` — il gruppo di varianti è un **outline** (sessione 12 ago 2026)
+
+Supera §9.20-bis su struttura, ordinamento e resa del gruppo. Carta ed esito:
+[`feature/2026-08-12-varianti-a-livelli.md`](../feature/2026-08-12-varianti-a-livelli.md).
+
+Il gruppo aveva **una forma sola** — una capofila più righe subordinate, con «negli altri casi» in fondo — e
+non regge il dato reale: pista 07 e pista 25 sono **pari-grado** (nessuna è lo standard dell'altra) e ognuna
+può avere le proprie eccezioni, che a loro volta possono averne («area attiva» e, dentro, «area attiva **e di
+notte**»). Serve un annidamento a profondità libera.
+
+```
+VariantDepth  int    // 0 = alternativa · 1 = sua eccezione · 2 = eccezione dell'eccezione · …
+IsGroupWide   bool   // la riga scavalca le alternative: vale per tutto il gruppo
+```
+
+**`IsOtherwise` è RIMOSSO** (migrazione `ReworkVariantsAsOutline`, SQLite e MySQL). Nessun backfill: la colonna
+non è mai stata scritta da nessuno — quella che l'aveva introdotta non è stata applicata né alla produzione né
+al DB di sviluppo. Il concetto «negli altri casi» sparisce: la condizione operativa standard è la **capofila**,
+in testa, e se non ha condizioni proprie non scrive nulla.
+
+**L'ordine è la struttura.** Una riga di profondità `N` appartiene all'ultima di profondità `N-1` che la
+precede — come una lista puntata. Nessun puntatore al padre; in cambio, tutto ciò che sposta una riga deve
+spostare il suo **sottoalbero** (`EfTransferRepository.Subtree`), perché una capofila che si muove lasciando
+indietro le eccezioni le riassegna a un'altra alternativa **senza nessun errore**. L'indice diventa
+`(FlowId, VariantGroup, Order)`: il gruppo si legge sempre ordinato.
+
+Invarianti: `IsGroupWide` solo a profondità 0 (una riga che scavalca le alternative non può stare dentro una) e
+solo dentro un gruppo; una riga trasversale deve dire **a quali condizioni** vale, o sarebbe indistinguibile da
+un'alternativa in più. Avviso non bloccante: un'alternativa con eccezioni ma senza un caso normale lascia
+scoperto chi non ricade in nessuna — è il buco che il dato reale aveva già (riga 77: «pista 25 + area R403B»,
+senza una «pista 25, normalmente»).
+
+**Frase e tabella dicono cose diverse, apposta.** In tabella la riga mostra il proprio **delta**, perché il
+rientro dà il contesto; la frase **cumula la catena degli antenati**, perché viaggia da sola nella prosa del
+documento. La catena si **fonde in una clausola sola** prima di diventare parole (`ConditionClause` +
+`Merge`): comporre un pezzo per livello ripeteva la preposizione — «con pista 07 in uso **e con** R403B
+attiva» — mentre la condizione cumulata è un AND unico, che la fraseologia approvata sa già dire. La riga
+trasversale premette il marcatore `GroupWide` (IT «in ogni caso», EN «in any case»), con la virgola.
+
+Editor: due azioni distinte — **«+ alternativa»** (pari-grado, dopo tutto il sottoalbero della sorgente) e
+**«+ eccezione»** (un livello più dentro, subito sotto) — più una spunta per la trasversale.
 
 ### 9.21 `ImportPolicy` — categoria **Aree regolamentate** (sessione 3 ago 2026)
 
