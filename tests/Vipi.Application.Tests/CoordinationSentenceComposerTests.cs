@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -64,8 +64,8 @@ public class CoordinationSentenceComposerTests
         int? level = null, LevelConstraint levelConstraint = LevelConstraint.Exact,
         TransferHandoffKind commsKind = TransferHandoffKind.Unspecified, string? commsLabel = null,
         int? speed = null, SpeedConstraint speedConstraint = SpeedConstraint.Unspecified,
-        bool otherwise = false)
-        => new(kind, label, level, LevelUnit.Fl, levelConstraint, commsKind, commsLabel, speed, speedConstraint, otherwise);
+        bool groupWide = false)
+        => new(kind, label, level, LevelUnit.Fl, levelConstraint, commsKind, commsLabel, speed, speedConstraint, groupWide);
 
     [Fact]
     public void Ctr_target_includes_code_and_descent()
@@ -262,9 +262,14 @@ public class CoordinationSentenceComposerTests
     }
 
     private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null) =>
+        ComposeChain(new ConditionClause(runway, area, custom));
+
+    /// <summary>Compone con una CATENA di condizioni: una clausola per livello dell'outline, dalla capofila
+    /// alla riga. Una riga senza varianti ne ha una sola.</summary>
+    private static string? ComposeChain(params ConditionClause[] chain) =>
         CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, runway, area, custom);
+            "VALMA", TransferFlowKind.Arrival, chain);
 
     [Fact]
     public void Runway_condition_appends_clause_before_period()
@@ -300,7 +305,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, "RWY 16");
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("RWY 16", null, null) });
         Assert.EndsWith("over VALMA with runway RWY 16 in use.", s);
     }
 
@@ -325,7 +330,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, "16R", "R41");
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "R41", null) });
         Assert.EndsWith("over VALMA with runway 16R in use and R41 active.", s);
     }
 
@@ -417,15 +422,17 @@ public class CoordinationSentenceComposerTests
     }
 
     [Fact]
-    public void Otherwise_row_replaces_the_condition_clause()
+    public void A_group_wide_row_prefixes_its_marker()
     {
         var s = CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, LevelUnit.Fl, null, LevelParity.Any,
             "BIRSU", TransferFlowKind.Arrival,
-            // Anche se qualcuno ci mettesse una condizione, «negli altri casi» vince: è ciò che quella riga è.
-            conditionLabel: "16R",
-            facet: Facet(TransferHandoffKind.Unspecified, otherwise: true));
-        Assert.EndsWith("su BIRSU negli altri casi.", s);
+            new[] { new ConditionClause(null, null, "traffico notturno") },
+            facet: Facet(TransferHandoffKind.Unspecified, groupWide: true));
+        // Chi scavalca le alternative premette il proprio marcatore: senza, il lettore la scambierebbe per
+        // un'alternativa in più.
+        // La virgola dopo il marcatore evita l'accostamento di due preposizioni («in ogni caso in condizione»).
+        Assert.EndsWith("su BIRSU in ogni caso, in condizione traffico notturno.", s);
     }
 
     [Fact]

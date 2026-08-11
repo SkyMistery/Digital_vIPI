@@ -25,7 +25,8 @@ public sealed class CoordinationSentenceOptions
     public HandoffWords? Handoff { get; set; }
     public SpeedWords? Speed { get; set; }
     /// <summary>Testo della riga «negli altri casi» di un gruppo di varianti.</summary>
-    public string? Otherwise { get; set; }
+    /// <summary>Marcatore della riga che scavalca le alternative del gruppo.</summary>
+    public string? GroupWide { get; set; }
 
     public sealed class StateWords
     {
@@ -85,7 +86,7 @@ public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentence
                     Level = Fallback(o.Stato?.Level, d.Stato.Level),
                 },
                 TemplateCleared = Fallback(o.TemplateCleared, d.TemplateCleared),
-                Otherwise = Fallback(o.Otherwise, d.Otherwise),
+                GroupWide = Fallback(o.GroupWide, d.GroupWide),
                 Handoff = new CoordinationSentenceHandoff
                 {
                     Point = Fallback(o.Handoff?.Point, d.Handoff.Point),

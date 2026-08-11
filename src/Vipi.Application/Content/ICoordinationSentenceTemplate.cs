@@ -51,9 +51,9 @@ public sealed class CoordinationSentenceTemplate
     public CoordinationSentenceHandoff Handoff { get; init; } = new();
     /// <summary>Fraseologia della restrizione di velocità al trasferimento. Placeholder {v}.</summary>
     public CoordinationSentenceSpeed Speed { get; init; } = new();
-    /// <summary>Testo della riga «negli altri casi» di un gruppo di varianti: prende il posto della clausola
-    /// condizione, perché quella riga è definita dal NON avere condizioni.</summary>
-    public string Otherwise { get; init; } = "negli altri casi";
+    /// <summary>Premesso alla condizione di una riga che SCAVALCA le alternative del gruppo («in ogni caso, di
+    /// notte …»): senza, il lettore la scambierebbe per un'alternativa in più.</summary>
+    public string GroupWide { get; init; } = "in ogni caso";
     /// <summary>Reso quando il CoP è VUOTO (non compilato): distinto da «ALL». Il default globale può renderlo «—».</summary>
     public string FallbackMissingPoint { get; init; } = "tutti i punti";
     /// <summary>Reso quando il CoP è «ALL»: istruzione esplicita «tutti i punti di consegna».</summary>
@@ -113,7 +113,7 @@ public sealed class CoordinationSentenceTemplate
             AtOrAbove = "at {v} kt or more",
             Exact = "at {v} kt",
         },
-        Otherwise = "in all other cases",
+        GroupWide = "in any case",
         TemplateCleared =
             "{owner} clears the traffic {airport} via {point} {fl} and transfers it to {target} {handoff} {handoffLevel} {stato}.",
         FallbackMissingPoint = "—",

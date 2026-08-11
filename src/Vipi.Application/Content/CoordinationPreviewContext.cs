@@ -16,14 +16,16 @@ public sealed record CoordinationPreviewContext(
 {
     /// <summary>Compone la frase per un punto (owner→next). Ritorna null se i dati sono incompleti
     /// (senza mittente/ricevente, o arrivo/partenza senza aeroporto): come la derivazione reale.</summary>
+    /// <param name="conditions">Catena delle condizioni, dalla capofila dell'outline alla riga in anteprima:
+    /// l'editor deve mostrare la frase che il documento renderà, e quella cumula gli antenati.</param>
     public string? Compose(
         string ownerCallsign, string? nextCallsign, string? airportIcao, TransferFlowKind kind,
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial,
         LevelParity parity, TransferVerticalState verticalState, string cop,
-        string? conditionLabel, string? conditionAreaLabel, string? conditionCustomLabel,
+        IReadOnlyList<ConditionClause> conditions,
         TransferHandoffFacet? facet = null) =>
         CoordinationSentences.Compose(Template, Types, Names, Codes, Airports, Atc,
             ownerCallsign, nextCallsign ?? "", airportIcao,
             constraint, levelValue, levelUnit, levelSpecial, parity, cop, kind,
-            conditionLabel, conditionAreaLabel, conditionCustomLabel, verticalState, facet);
+            conditions, verticalState, facet);
 }
