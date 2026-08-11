@@ -1,4 +1,4 @@
-@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
+﻿@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
    ResourceKey e ascolta LockChanged per abilitare/disabilitare i controlli della pagina. Heartbeat 60s finché la
    scheda è aperta (TTL corto lato service → la chiusura scheda libera da sé in pochi minuti). Rilascio su teardown. *@
 @using Vipi.Application.Content
@@ -46,6 +46,11 @@
     [Parameter, EditorRequired] public string ResourceKey { get; set; } = default!;
     /// <summary>Notifica la pagina ad ogni cambio: true = l'utente corrente tiene il lock (può modificare).</summary>
     [Parameter] public EventCallback<bool> LockChanged { get; set; }
+
+    /// <summary>Quando scade il lock (UTC), a ogni battito. Serve alle pagine che vogliono avvisare prima della
+    /// scadenza invece di lasciare che l'editing torni in sola lettura mentre si sta scrivendo. Additivo: chi non
+    /// lo aggancia non cambia comportamento.</summary>
+    [Parameter] public EventCallback<DateTime?> ExpiresChanged { get; set; }
 
     private LockInfo _lock = LockInfo.Free();
     private CancellationTokenSource? _beat;
@@ -165,7 +170,11 @@
         catch (ObjectDisposedException) { }
     }
 
-    private Task NotifyAsync() => LockChanged.InvokeAsync(_lock.IsMine);
+    private async Task NotifyAsync()
+    {
+        await LockChanged.InvokeAsync(_lock.IsMine);
+        await ExpiresChanged.InvokeAsync(_lock.IsMine ? _lock.ExpiresUtc : null);
+    }
 
     public ValueTask DisposeAsync()
     {
