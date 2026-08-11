@@ -54,7 +54,10 @@
             {
                 var r = block[i];
                 var first = i == 0;
-                <tr class="@(grouped ? (first ? "coord-variant-head" : "coord-variant") : null)">
+                @* Il rientro dice l'annidamento: una riga a profondità 1 è un'eccezione della riga meno
+                   profonda che la precede. Le alternative (profondità 0) restano allineate fra loro, perché
+                   sono pari-grado — nessuna è lo standard dell'altra. *@
+                <tr class="@RowClass(grouped, first, r)">
                     @if (ShowKind && first) { <td rowspan="@span">@TransferFlowKindLabels.Label(r.Kind)</td> }
                     @* CoP e ricevente sono l'identità dell'accordo, uguali per tutto il gruppo: scritti una volta. *@
                     @if (first) { <td rowspan="@span">@Dash(r.Cop)</td> }
@@ -64,10 +67,13 @@
                     @if (hasComms) { <td>@Dash(r.CommsHandoff)</td> }
                     @if (hasSpeed) { <td>@Dash(r.Speed)</td> }
                     @if (first) { <td rowspan="@span">@Dash(r.Next)</td> }
-                    @* «Negli altri casi» arriva già scritto dentro ConditionLabel, nella lingua del template
-                       (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con il
-                       chrome della pagina. Qui la riga «altrimenti» non ha nulla di speciale da rendere. *@
-                    @if (hasCond) { <td>@Dash(r.ConditionLabel)</td> }
+                    @* Il marcatore della riga trasversale arriva già dentro ConditionLabel, nella lingua del
+                       template (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con
+                       il chrome della pagina. Qui la riga non ha nulla di speciale da rendere. *@
+                    @if (hasCond)
+                    {
+                        <td style="@Indent(r)">@Dash(r.ConditionLabel)</td>
+                    }
                 </tr>
             }
         }
@@ -90,6 +96,21 @@
     private string T(string key, string en) => English ? en : L[key];
 
     private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+
+    /// <summary>Classe della riga: la capofila del blocco apre, le annidate si distinguono dalle alternative
+    /// (che sono pari-grado e non continuazioni), la trasversale ha il proprio segno perché scavalca tutto.</summary>
+    private static string? RowClass(bool grouped, bool first, AppCoordRow r)
+    {
+        if (!grouped) return null;
+        if (r.IsGroupWide) return "coord-variant-wide";
+        if (first) return "coord-variant-head";
+        return r.VariantDepth > 0 ? "coord-variant" : "coord-variant-alt";
+    }
+
+    // Rientro proporzionale alla profondità, sulla sola colonna condizione: è lì che si legge l'annidamento,
+    // e rientrare l'intera riga spezzerebbe l'allineamento delle colonne numeriche che si confrontano a occhio.
+    private static string? Indent(AppCoordRow r) =>
+        r.VariantDepth > 0 ? $"padding-left:{6 + r.VariantDepth * 14}px" : null;
 
     /// <summary>
     /// Raggruppa le righe in blocchi da rendere insieme, nell'ordine di prima apparizione. Una riga senza
@@ -121,11 +142,13 @@
             list.Add(r);
         }
 
-        // «Negli altri casi» è il complemento delle sorelle: si legge dopo di loro, sempre, comunque sia
-        // ordinato il flusso. OrderBy è stabile, quindi il resto dell'ordine non si muove.
-        foreach (var b in blocks.Where(b => b.Count > 1).ToList())
+        // ⚠️ L'ordine dentro un blocco NON si tocca: in un outline è la struttura, non la presentazione — una
+        // riga appartiene all'ultima meno profonda che la precede, e riordinarla la riassegnerebbe a un'altra
+        // capofila. L'unica eccezione sono le righe che scavalcano le alternative: non appartengono a nessuna,
+        // quindi si leggono in fondo, dopo i casi che scavalcano. OrderBy è stabile: il resto non si muove.
+        foreach (var b in blocks.Where(b => b.Count > 1 && b.Any(r => r.IsGroupWide)).ToList())
         {
-            var sorted = b.OrderBy(r => r.IsOtherwise ? 1 : 0).ToList();
+            var sorted = b.OrderBy(r => r.IsGroupWide ? 1 : 0).ToList();
             b.Clear();
             b.AddRange(sorted);
         }

@@ -399,12 +399,18 @@
 .coord-table:has(th.c-speed){table-layout:auto}
 .coord-table th.c-hlevel,.coord-table th.c-speed{white-space:nowrap}
 
-/* Gruppo di varianti: le righe alternative dello stesso accordo. CoP e ricevente sono già scritti una volta
-   sola (rowspan), quindi il raggruppamento si vede dalle celle unite; queste due regole servono a dire dove
-   il blocco COMINCIA e dove FINISCE, che il solo rowspan non dice quando i gruppi sono più d'uno di fila.
+/* Gruppo di varianti = un OUTLINE. Tre nature di riga, tre segni diversi, perché dicono cose diverse:
+   — `coord-variant-alt`: ALTERNATIVA pari-grado (pista 07 · pista 25). Nessuna è lo standard dell'altra,
+     quindi niente tinta: sono allo stesso livello e si leggono come righe intere;
+   — `coord-variant`: ECCEZIONE annidata. La tinta dice «questa qualifica la riga sopra, non è un accordo
+     nuovo», e il rientro (inline, proporzionale alla profondità) dice quanto è dentro;
+   — `coord-variant-wide`: riga che SCAVALCA le alternative. Va in fondo e ha un segno proprio, altrimenti si
+     confonde con un'alternativa in più.
    La tinta è al 55% di --line (#e3e5ee): al 14% era invisibile a schermo — misurato, non stimato. */
 .coord-table tr.coord-variant>td{background:color-mix(in srgb,var(--line,#e3e5ee) 55%,transparent)}
 .coord-table tr.coord-variant-head>td{border-top:2px solid var(--line,#e3e5ee)}
+.coord-table tr.coord-variant-alt>td{border-top:1px dashed var(--line,#e3e5ee)}
+.coord-table tr.coord-variant-wide>td{border-top:1px solid var(--accent,#2f4bd0);font-style:italic}
 
 /* Editor trasferimenti — faccetta trasferimento. Sta su una riga propria della tabella di modifica: in linea
    sarebbero sei controlli in più su una tabella che ne ha già sette. Le etichette sono inline e piccole perché

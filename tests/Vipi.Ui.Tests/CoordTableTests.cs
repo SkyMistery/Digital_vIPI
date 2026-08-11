@@ -69,10 +69,13 @@ public class CoordTableTests : TestContext
     [Fact]
     public void Variant_rows_share_cop_and_receiver_in_one_cell()
     {
-        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "16R", Level = "FL80-" };
-        var alt = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, IsOtherwise = true, Level = "FL110-" };
+        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "07", Level = "FL150-" };
+        var exc = Plain("BIRSU") with
+        {
+            FlowId = 7, VariantGroup = 1, VariantDepth = 1, ConditionLabel = "R403B", Level = "FL130-",
+        };
 
-        var t = Render(head, alt);
+        var t = Render(head, exc);
         var rows = t.FindAll("tbody tr").ToList();
         Assert.Equal(2, rows.Count);
 
@@ -81,27 +84,56 @@ public class CoordTableTests : TestContext
         Assert.Equal("2", capofila[0].GetAttribute("rowspan"));      // CoP
         Assert.Equal("BIRSU", capofila[0].TextContent);
         Assert.Equal("2", capofila[2].GetAttribute("rowspan"));      // ricevente
-        // La variante porta solo le celle che cambiano.
+        // L'eccezione porta solo le celle che cambiano, e rientra.
         Assert.Equal(2, rows[1].QuerySelectorAll("td").Count());
         Assert.Contains("coord-variant", rows[1].GetAttribute("class"));
+        Assert.Contains("padding-left", rows[1].QuerySelectorAll("td").Last().GetAttribute("style") ?? "");
     }
 
     [Fact]
-    public void The_otherwise_row_is_rendered_last_whatever_the_order()
+    public void Peer_alternatives_are_not_indented_and_not_tinted()
     {
-        // «Negli altri casi» è il complemento delle sorelle: si legge dopo, anche se nel flusso sta prima.
-        // Il TESTO arriva già scritto in ConditionLabel, nella lingua del template: deve concordare con la
-        // frase che sta sopra la tabella, non col chrome della pagina (con la UI in inglese e le frasi in
-        // italiano si leggeva «in all other cases» nella cella e «negli altri casi» nella prosa).
-        var alt = Plain("BIRSU") with
-        {
-            FlowId = 7, VariantGroup = 1, IsOtherwise = true, Level = "FL110-", ConditionLabel = "negli altri casi",
-        };
-        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "16R", Level = "FL80-" };
+        // Pista 07 e pista 25 sono pari-grado: nessuna è lo standard dell'altra, quindi nessuna delle due
+        // deve sembrare la continuazione dell'altra.
+        var a = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "07", Level = "FL150-" };
+        var b = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "25", Level = "FL130-" };
 
-        var t = Render(alt, head);
-        var celle = t.FindAll("tbody tr").Select(r => r.QuerySelectorAll("td").Last().TextContent).ToList();
-        Assert.Equal(new[] { "16R", "negli altri casi" }, celle);
+        var rows = Render(a, b).FindAll("tbody tr").ToList();
+        Assert.Contains("coord-variant-head", rows[0].GetAttribute("class"));
+        Assert.Contains("coord-variant-alt", rows[1].GetAttribute("class"));
+        Assert.Null(rows[1].QuerySelectorAll("td").Last().GetAttribute("style"));
+    }
+
+    [Fact]
+    public void The_group_wide_row_is_rendered_last_whatever_the_order()
+    {
+        // Chi scavalca le alternative non appartiene a nessuna: si legge dopo i casi che scavalca, anche se
+        // nel flusso sta prima. Il marcatore arriva già scritto in ConditionLabel, nella lingua del template.
+        var wide = Plain("BIRSU") with
+        {
+            FlowId = 7, VariantGroup = 1, IsGroupWide = true, Level = "FL90-", ConditionLabel = "in ogni caso · notte",
+        };
+        var head = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "07", Level = "FL150-" };
+
+        var t = Render(wide, head);
+        var rows = t.FindAll("tbody tr").ToList();
+        var celle = rows.Select(r => r.QuerySelectorAll("td").Last().TextContent).ToList();
+        Assert.Equal(new[] { "07", "in ogni caso · notte" }, celle);
+        Assert.Contains("coord-variant-wide", rows[1].GetAttribute("class"));
+    }
+
+    [Fact]
+    public void Nesting_order_inside_a_block_is_never_reordered()
+    {
+        // ⚠️ In un outline l'ordine È la struttura: riordinare una riga la riassegnerebbe a un'altra capofila.
+        // Solo le righe che scavalcano si spostano, perché non appartengono a nessuna.
+        var a = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "07", Level = "FL150-" };
+        var aExc = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, VariantDepth = 1, ConditionLabel = "R403B", Level = "FL130-" };
+        var b = Plain("BIRSU") with { FlowId = 7, VariantGroup = 1, ConditionLabel = "25", Level = "FL130-" };
+
+        var celle = Render(a, aExc, b).FindAll("tbody tr")
+            .Select(r => r.QuerySelectorAll("td").Last().TextContent).ToList();
+        Assert.Equal(new[] { "07", "R403B", "25" }, celle);
     }
 
     [Fact]

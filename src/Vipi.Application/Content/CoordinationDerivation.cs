@@ -57,19 +57,50 @@ public static class CoordinationDerivation
             AirportIcao = flow.AirportIcao,
             Constraint = p.LevelConstraint,
             Sentence = sentence,
-            // «Negli altri casi» prende il posto della condizione, e arriva dal TEMPLATE come la frase — non
-            // dalle risorse dell'interfaccia. Sono la stessa cosa detta a due centimetri di distanza: con la UI
-            // in inglese e le frasi in italiano si leggeva «in all other cases» nella cella e «negli altri
-            // casi» nella riga di prosa sopra. Visto a schermo, non da un test.
-            ConditionLabel = p.IsOtherwise ? tpl.Otherwise : p.ConditionDisplay,
+            // In TABELLA la riga mostra il proprio DELTA: il rientro dà il contesto, e ripetere la condizione
+            // della capofila su ogni eccezione allungherebbe la colonna nascondendo ciò che cambia. La frase
+            // invece cumula, perché viaggia da sola nella prosa (vedi CoordinationSentenceComposer).
+            // Il marcatore della riga trasversale viene dal TEMPLATE come la frase, non dalle risorse
+            // dell'interfaccia: sono la stessa cosa detta a due centimetri di distanza, e con la UI in inglese
+            // e le frasi in italiano si leggevano in due lingue diverse. Visto a schermo, non da un test.
+            ConditionLabel = p.IsGroupWide
+                ? $"{tpl.GroupWide} · {p.ConditionDisplay}"
+                : p.ConditionDisplay,
             Handoff = TransferHandoffText.Place(tpl, p.HandoffKind, p.HandoffLabel),
             HandoffLevel = TransferHandoffText.Level(tpl, p.HandoffLevelValue, p.HandoffLevelUnit, p.HandoffLevelConstraint),
             CommsHandoff = TransferHandoffText.CommsPlace(tpl, TransferHandoffFacet.From(p)),
             Speed = TransferHandoffText.Speed(tpl, p.SpeedValue, p.SpeedConstraint),
             FlowId = flow.Id,
             VariantGroup = p.VariantGroup,
-            IsOtherwise = p.IsOtherwise,
+            VariantDepth = p.VariantDepth,
+            IsGroupWide = p.IsGroupWide,
         };
+
+    /// <summary>
+    /// La catena delle condizioni che valgono per una riga: quelle dei suoi antenati nell'outline più la
+    /// propria, dalla capofila in giù. Una riga fuori da un gruppo, o a profondità 0, ha solo la propria.
+    /// <para>Gli antenati si risalgono per POSIZIONE — l'ordine è la struttura — cercando all'indietro la prima
+    /// riga meno profonda: è la stessa lettura che fa l'occhio davanti a una lista rientrata.</para>
+    /// <para>Una riga che scavalca le alternative NON eredita: vale per tutte, quindi non sta dentro nessuna.</para>
+    /// </summary>
+    public static IReadOnlyList<ConditionClause> ConditionChain(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p)
+    {
+        var own = new ConditionClause(p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
+        if (p.VariantGroup is null || p.VariantDepth == 0 || p.IsGroupWide) return new[] { own };
+
+        var chain = new List<ConditionClause> { own };
+        var i = flowPoints.ToList().FindIndex(x => x.Id == p.Id);
+        var depth = p.VariantDepth;
+        for (var k = i - 1; k >= 0 && depth > 0; k--)
+        {
+            var a = flowPoints[k];
+            if (a.VariantGroup != p.VariantGroup) break;      // fuori dal gruppo: la catena finisce qui
+            if (a.VariantDepth >= depth) continue;            // pari-grado o più profonda: non è un antenato
+            chain.Insert(0, new ConditionClause(a.ConditionLabel, a.ConditionAreaLabel, a.ConditionCustomLabel));
+            depth = a.VariantDepth;
+        }
+        return chain;
+    }
 
     public static IReadOnlyList<CoordinationEntry> Build(
         IReadOnlyList<TransferFlowRow> flows,
@@ -83,15 +114,16 @@ public static class CoordinationDerivation
     {
         var entries = new List<CoordinationEntry>();
 
-        string? Compose(string sender, string receiver, string? icao, TransferPointRow p, TransferFlowKind kind)
-            => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver, icao,
+        // La catena si costruisce dal flusso a cui la riga appartiene: gli antenati si risalgono per posizione.
+        string? Compose(string sender, string receiver, TransferFlowRow flow, TransferPointRow p, TransferFlowKind kind)
+            => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver,
+                flow.AirportIcao,
                 p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
-                p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState,
-                TransferHandoffFacet.From(p));
+                ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p));
 
         AppCoordRow Row(TransferPointRow p, string next, TransferFlowRow flow, string sentenceOwner, string sentenceTarget,
             TransferFlowKind kind) =>
-            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow.AirportIcao, p, kind));
+            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow, p, kind));
 
         // 1) Flussi POSSEDUTI dai settori del blocco/dominio (qualsiasi Next: ACC/APP/torre; qualsiasi tipo).
         foreach (var flow in flows.Where(f => owners.Contains(f.OwningSectorCallsign)))

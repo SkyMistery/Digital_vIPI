@@ -53,10 +53,13 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     /// di flussi diversi si fonderebbero in uno.</summary>
     public int FlowId { get; init; }
     /// <summary>Identità del gruppo di varianti dentro il flusso (null = riga singola). Le righe con lo stesso
-    /// <see cref="FlowId"/> e lo stesso gruppo sono alternative dello stesso accordo e vanno rese insieme.</summary>
+    /// <see cref="FlowId"/> e lo stesso gruppo appartengono allo stesso accordo e vanno rese insieme.</summary>
     public int? VariantGroup { get; init; }
-    /// <summary>La riga «negli altri casi»: resa sempre per ultima del suo gruppo.</summary>
-    public bool IsOtherwise { get; init; }
+    /// <summary>Rientro nell'outline del gruppo: 0 = alternativa pari-grado, 1 = sua eccezione, 2 = eccezione
+    /// dell'eccezione. Guida il rientro della colonna condizione.</summary>
+    public int VariantDepth { get; init; }
+    /// <summary>La riga scavalca le alternative del gruppo: resa in fondo, senza rientro.</summary>
+    public bool IsGroupWide { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>

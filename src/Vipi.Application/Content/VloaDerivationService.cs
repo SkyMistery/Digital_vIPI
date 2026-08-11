@@ -214,9 +214,9 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
                     owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
-                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState,
                     // La vLOA è già stata dimenticata una volta (il flow.Kind mancante che azzerava i sorvoli):
-                    // la faccetta passa esplicitamente da qui, non per analogia con l'ACC.
+                    // catena delle condizioni e faccetta passano esplicitamente da qui, non per analogia con l'ACC.
+                    CoordinationDerivation.ConditionChain(flow.Points, p), p.VerticalState,
                     TransferHandoffFacet.From(p));
                 // Stessa riga della derivazione ACC/APP, template inglese: le colonne della faccetta e il gruppo
                 // di varianti arrivano da lì, non da una seconda costruzione a mano che si dimentica un campo.

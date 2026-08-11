@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -213,23 +213,28 @@ public class CoordinationDerivationTests
     }
 
     [Fact]
-    public void Variant_group_and_otherwise_travel_to_the_row()
+    public void The_sentence_cumulates_the_chain_while_the_table_shows_the_delta()
     {
-        TransferPointRow V(int? level, string? runway, bool otherwise, int order) => new()
+        TransferPointRow V(int? level, string? runway, string? area, int depth, int order) => new()
         {
             Id = order, Cop = "BIRSU", LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
             LevelText = $"FL{level}-", NextSectorCallsign = "LIRR_TS_CTR", Order = order,
-            ConditionLabel = runway, VariantGroup = 1, IsOtherwise = otherwise,
+            ConditionLabel = runway, ConditionAreaLabel = area, VariantGroup = 1, VariantDepth = depth,
         };
-        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", V(80, "16R", false, 1), V(110, null, true, 2)) };
+        // Outline: pista 07 · sua eccezione con R403B attiva · pista 25 pari-grado alla 07.
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN",
+            V(150, "07", null, 0, 1), V(130, null, "R403B", 1, 2), V(130, "25", null, 0, 3)) };
 
         var rows = Build(flows, "LIBB_ES_CTR").Select(x => x.Row).ToList();
         Assert.All(rows, r => Assert.Equal(1, r.VariantGroup));
-        Assert.EndsWith("con pista 16R in uso.", rows[0].Sentence);
-        Assert.True(rows[1].IsOtherwise);
-        Assert.EndsWith("negli altri casi.", rows[1].Sentence);
-        // La cella condizione dice la stessa cosa della frase, e la dice nella lingua del template: sono a due
-        // centimetri di distanza nella stessa schermata.
-        Assert.Equal("negli altri casi", rows[1].ConditionLabel);
+        Assert.Equal(new[] { 0, 1, 0 }, rows.Select(r => r.VariantDepth));
+
+        // La FRASE cumula la catena: l'eccezione vale solo dentro la pista 07, e viaggia da sola nella prosa.
+        Assert.EndsWith("con pista 07 in uso.", rows[0].Sentence);
+        Assert.EndsWith("con pista 07 in uso e R403B attiva.", rows[1].Sentence);
+        Assert.EndsWith("con pista 25 in uso.", rows[2].Sentence);
+        // In TABELLA invece si legge il solo delta: il rientro dà il contesto. («area » è il prefisso che
+        // ConditionDisplay mette alle aree per distinguerle dalle piste in una cella breve.)
+        Assert.Equal("area R403B", rows[1].ConditionLabel);
     }
 }
