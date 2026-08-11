@@ -75,17 +75,15 @@ public sealed class EfTransferRepository : ITransferRepository
 
         if (p.VariantGroup is int group)
         {
-            var siblings = await GroupSiblingsAsync(p, group, ct);
-
-            // «Negli altri casi» è il complemento delle sorelle: una sola per gruppo, altrimenti il lettore ha
-            // due catch-all e nessuna regola per sceglierne uno.
-            if (p.IsOtherwise && siblings.Any(s => s.IsOtherwise))
-                throw new ValidationException("Il gruppo di varianti ha già una riga «negli altri casi».");
+            // Una riga che scavalca le alternative non può stare dentro una: sarebbe una contraddizione fra il
+            // proprio significato («vale per tutte») e la propria posizione («appartengo a questa»).
+            if (p.IsGroupWide && p.VariantDepth > 0)
+                throw new ValidationException("Una riga «in ogni caso» non può essere l'eccezione di un'altra riga.");
 
             // CoP e ricevente sono l'IDENTITÀ dell'accordo, condivisa da tutte le varianti: cambiarli su una riga
             // li cambia sul gruppo. Propagare è meglio che rifiutare — l'invariante resta vera senza chiedere
             // all'editore di ripetere la stessa modifica su ogni riga.
-            foreach (var s in siblings)
+            foreach (var s in await GroupSiblingsAsync(p, group, ct))
             {
                 s.Cop = p.Cop;
                 s.NextSectorId = p.NextSectorId;
@@ -105,7 +103,22 @@ public sealed class EfTransferRepository : ITransferRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    public Task<int> AddAlternativeAsync(string accCode, int pointId, CancellationToken ct = default) =>
+        AddVariantRowAsync(accCode, pointId, asException: false, ct);
+
+    public Task<int> AddExceptionAsync(string accCode, int pointId, CancellationToken ct = default) =>
+        AddVariantRowAsync(accCode, pointId, asException: true, ct);
+
+    /// <summary>
+    /// Nasce una riga nell'outline del gruppo, copiata dalla sorgente meno la condizione — che è esattamente
+    /// ciò che deve dire di diverso. I dati restano piatti (nessuna eredità di campo: con <c>LevelValue</c>
+    /// nullable, «null = eredita» sarebbe indistinguibile da «null = non specificato»), ma chi scrive non
+    /// ridigita quindici campi per cambiarne uno.
+    /// <para><paramref name="asException"/> decide dove finisce: **alternativa** = pari-grado alla sorgente,
+    /// dopo tutto il suo sottoalbero, altrimenti spezzerebbe in due un blocco già scritto; **eccezione** = un
+    /// livello più dentro, subito sotto la sorgente.</para>
+    /// </summary>
+    private async Task<int> AddVariantRowAsync(string accCode, int pointId, bool asException, CancellationToken ct)
     {
         var src = await PointInAccAsync(accCode, pointId, ct);
 
@@ -113,10 +126,16 @@ public sealed class EfTransferRepository : ITransferRepository
         if (src.VariantGroup is null)
             src.VariantGroup = (await _db.TransferPoints.Where(x => x.FlowId == src.FlowId)
                 .MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0) + 1;
+        var group = src.VariantGroup.Value;
 
-        // La variante è una COPIA COMPLETA meno la condizione: i dati restano piatti (nessuna eredità di campo,
-        // che con LevelValue nullable sarebbe ambigua), ma chi scrive non ridigita dieci campi per cambiarne uno.
-        // La condizione resta vuota perché è esattamente ciò che la variante deve dire di diverso.
+        // Un'alternativa di una riga annidata resta al livello di QUELLA riga, non torna a 0: «pari-grado alla
+        // sorgente» è la promessa del tasto, e vale a qualunque profondità.
+        var depth = asException ? src.VariantDepth + 1 : src.VariantDepth;
+
+        var rows = await GroupRowsInOrderAsync(src.FlowId, group, ct);
+        // L'eccezione va subito sotto la sorgente; l'alternativa dopo l'ultimo discendente della sorgente.
+        var after = asException ? src : Subtree(rows, src)[^1];
+
         var copy = new TransferPoint
         {
             FlowId = src.FlowId,
@@ -137,13 +156,13 @@ public sealed class EfTransferRepository : ITransferRepository
             CommsHandoffLabel = src.CommsHandoffLabel,
             SpeedValue = src.SpeedValue,
             SpeedConstraint = src.SpeedConstraint,
-            VariantGroup = src.VariantGroup,
-            Order = src.Order + 1,
+            VariantGroup = group,
+            VariantDepth = depth,
+            Order = after.Order + 1,
         };
 
-        // Spazio subito sotto la riga sorgente: le varianti stanno vicine, che è come si leggono.
-        var below = await _db.TransferPoints.Where(x => x.FlowId == src.FlowId && x.Order > src.Order).ToListAsync(ct);
-        foreach (var x in below) x.Order++;
+        foreach (var x in await _db.TransferPoints.Where(x => x.FlowId == src.FlowId && x.Order > after.Order).ToListAsync(ct))
+            x.Order++;
 
         _db.TransferPoints.Add(copy);
         await _db.SaveChangesAsync(ct);
@@ -154,8 +173,21 @@ public sealed class EfTransferRepository : ITransferRepository
     {
         var p = await PointInAccAsync(accCode, pointId, ct);
         if (p.VariantGroup is not int group) return;
-        p.VariantGroup = null;
-        p.IsOtherwise = false;
+
+        // Sfilare una riga porta via il suo SOTTOALBERO: le eccezioni descrivono la riga che le ospita, e
+        // lasciarle indietro le riassegnerebbe in silenzio alla riga di sopra — cambiando ciò che dicono.
+        var moved = Subtree(await GroupRowsInOrderAsync(p.FlowId, group, ct), p);
+
+        // Il pezzo staccato riparte da zero: la radice torna a profondità 0 e i discendenti scalano con lei.
+        var shift = p.VariantDepth;
+        foreach (var x in moved) { x.VariantDepth -= shift; x.IsGroupWide = false; }
+
+        // Resta un gruppo solo se ha ancora qualcosa da tenere insieme; una riga sola non è un gruppo.
+        var newGroup = moved.Count > 1
+            ? (await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0) + 1
+            : (int?)null;
+        foreach (var x in moved) x.VariantGroup = newGroup;
+
         await DissolveIfAloneAsync(p.FlowId, group, ct);
         await _db.SaveChangesAsync(ct);
     }
@@ -163,27 +195,54 @@ public sealed class EfTransferRepository : ITransferRepository
     public async Task MovePointAsync(string accCode, int pointId, bool up, CancellationToken ct = default)
     {
         var p = await PointInAccAsync(accCode, pointId, ct);
-        // Vicino nello stesso flusso: Order massimo < corrente (su) o minimo > corrente (giù).
-        var neighbour = up
-            ? await _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.Order < p.Order)
-                .OrderByDescending(x => x.Order).FirstOrDefaultAsync(ct)
-            : await _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.Order > p.Order)
-                .OrderBy(x => x.Order).FirstOrDefaultAsync(ct);
+        var rows = await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).OrderBy(x => x.Order).ToListAsync(ct);
+
+        // Si muove il BLOCCO, non la riga: una capofila che si sposta lasciando indietro le sue eccezioni le
+        // riassegna alla riga di sopra, e quelle continuano a dire quello che dicevano di un'altra alternativa.
+        // Nessun errore, significato cambiato: è la trappola dell'appartenenza per ordine.
+        var block = Subtree(rows, p);
+        var first = rows.IndexOf(block[0]);
+        var last = first + block.Count - 1;
+
+        // Il vicino nella stessa direzione è a sua volta un blocco: si scavalca intero, non riga per riga.
+        List<TransferPoint>? neighbour = null;
+        if (up && first > 0) neighbour = Subtree(rows, RootOf(rows, first - 1));
+        else if (!up && last < rows.Count - 1) neighbour = Subtree(rows, rows[last + 1]);
         if (neighbour is null) return;   // estremo: no-op
-        (p.Order, neighbour.Order) = (neighbour.Order, p.Order);
+
+        var reordered = new List<TransferPoint>(rows);
+        reordered.RemoveAll(x => block.Contains(x));
+        var anchor = reordered.IndexOf(up ? neighbour[0] : neighbour[^1]);
+        reordered.InsertRange(up ? anchor : anchor + 1, block);
+        for (var i = 0; i < reordered.Count; i++) reordered[i].Order = i + 1;
+
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default)
     {
         var p = await PointInAccAsync(accCode, pointId, ct);
-        // Fratelli dello stesso flusso in ordine corrente; sposto p all'estremo e ricompatto gli Order (1..N).
-        var siblings = await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).OrderBy(x => x.Order).ToListAsync(ct);
-        if (siblings.Count < 2) return;
-        siblings.Remove(p);
-        if (top) siblings.Insert(0, p); else siblings.Add(p);
-        for (var i = 0; i < siblings.Count; i++) siblings[i].Order = i + 1;
+        var rows = await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).OrderBy(x => x.Order).ToListAsync(ct);
+        if (rows.Count < 2) return;
+
+        // Anche qui si sposta il blocco: vale la stessa ragione di MovePointAsync.
+        var block = Subtree(rows, p);
+        rows.RemoveAll(x => block.Contains(x));
+        if (top) rows.InsertRange(0, block); else rows.AddRange(block);
+        for (var i = 0; i < rows.Count; i++) rows[i].Order = i + 1;
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Risale dalla riga in posizione <paramref name="index"/> alla radice del suo blocco: serve per
+    /// scavalcare all'insù un vicino che è a sua volta un sottoalbero, e non finirgli in mezzo.</summary>
+    private static TransferPoint RootOf(List<TransferPoint> rowsInOrder, int index)
+    {
+        var r = rowsInOrder[index];
+        if (r.VariantGroup is null || r.VariantDepth == 0) return r;
+        for (var k = index - 1; k >= 0; k--)
+            if (rowsInOrder[k].VariantGroup == r.VariantGroup && rowsInOrder[k].VariantDepth < r.VariantDepth)
+                return rowsInOrder[k];
+        return r;
     }
 
     // ---- helper ----
@@ -199,6 +258,31 @@ public sealed class EfTransferRepository : ITransferRepository
     /// <summary>Le altre righe dello stesso gruppo di varianti (la riga passata esclusa).</summary>
     private Task<List<TransferPoint>> GroupSiblingsAsync(TransferPoint p, int group, CancellationToken ct) =>
         _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.VariantGroup == group && x.Id != p.Id).ToListAsync(ct);
+
+    /// <summary>Le righe di un gruppo nell'ordine in cui si leggono — che nell'outline è anche la struttura.</summary>
+    private Task<List<TransferPoint>> GroupRowsInOrderAsync(int flowId, int group, CancellationToken ct) =>
+        _db.TransferPoints.Where(x => x.FlowId == flowId && x.VariantGroup == group)
+            .OrderBy(x => x.Order).ToListAsync(ct);
+
+    /// <summary>
+    /// La riga più tutto ciò che le appartiene: quelle che la seguono finché restano nel suo gruppo e più
+    /// profonde di lei. È la definizione di sottoalbero in un outline, e serve ovunque una riga si muova o si
+    /// stacchi — perché muovere una capofila senza le sue eccezioni le riassegna a un'altra alternativa
+    /// **senza un errore**: nessuna eccezione, nessun log, solo un accordo che dice un'altra cosa.
+    /// <para>Funziona sia sull'elenco del solo gruppo sia su quello dell'intero flusso: le righe fuori dal
+    /// gruppo non hanno profondità, quindi il confronto sul gruppo chiude il blocco da sé.</para>
+    /// </summary>
+    private static List<TransferPoint> Subtree(List<TransferPoint> rowsInOrder, TransferPoint root)
+    {
+        var i = rowsInOrder.FindIndex(x => x.Id == root.Id);
+        if (i < 0 || root.VariantGroup is null) return new List<TransferPoint> { root };
+        var block = new List<TransferPoint> { rowsInOrder[i] };
+        for (var k = i + 1; k < rowsInOrder.Count
+                            && rowsInOrder[k].VariantGroup == root.VariantGroup
+                            && rowsInOrder[k].VariantDepth > root.VariantDepth; k++)
+            block.Add(rowsInOrder[k]);
+        return block;
+    }
 
     /// <summary>Scioglie un gruppo rimasto con una sola riga: un gruppo di uno non è un gruppo, e lasciarlo
     /// significherebbe rendere una riga singola con l'intestazione di gruppo e un «negli altri casi» senza «casi».
@@ -217,7 +301,7 @@ public sealed class EfTransferRepository : ITransferRepository
             .Where(x => x.VariantGroup == group && _db.Entry(x).State != EntityState.Deleted)
             .ToList();
         if (remaining.Count > 1) return;
-        foreach (var x in remaining) { x.VariantGroup = null; x.IsOtherwise = false; }
+        foreach (var x in remaining) { x.VariantGroup = null; x.VariantDepth = 0; x.IsGroupWide = false; }
     }
 
     private static void ApplyFlow(TransferFlow f, TransferFlowInput i)
@@ -266,7 +350,8 @@ public sealed class EfTransferRepository : ITransferRepository
 
         // «Negli altri casi» ha senso solo dentro un gruppo, e il gruppo lo assegna AddVariantAsync: qui il flag
         // si accetta solo se la riga è già in un gruppo (VariantGroup non è un campo dell'input, apposta).
-        p.IsOtherwise = i.IsOtherwise && p.VariantGroup is not null;
+        // «Scavalca le alternative» ha senso solo dentro un gruppo: fuori non ci sono alternative da scavalcare.
+        p.IsGroupWide = i.IsGroupWide && p.VariantGroup is not null;
     }
 
     private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -312,7 +397,8 @@ public sealed class EfTransferRepository : ITransferRepository
         SpeedValue = p.SpeedValue,
         SpeedConstraint = p.SpeedConstraint,
         VariantGroup = p.VariantGroup,
-        IsOtherwise = p.IsOtherwise,
+        VariantDepth = p.VariantDepth,
+        IsGroupWide = p.IsGroupWide,
         Order = p.Order,
     };
 }

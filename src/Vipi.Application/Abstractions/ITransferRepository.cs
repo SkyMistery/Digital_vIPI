@@ -22,13 +22,20 @@ public interface ITransferRepository
     /// <summary>Sposta un punto in cima (<paramref name="top"/>=true) o in fondo al suo flusso, ricompattando gli <c>Order</c>. No-op se già all'estremo.</summary>
     Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default);
 
-    /// <summary>Aggiunge una VARIANTE della riga indicata: stesso accordo (CoP e ricevente), condizione diversa.
-    /// Copia l'intera riga tranne la condizione — che è ciò che la variante deve dire — e la inserisce subito sotto.
-    /// Se la riga non è ancora in un gruppo, il gruppo viene creato qui: è il repository ad assegnarlo, perché è
-    /// un'identità condivisa fra righe e non un campo che l'editor possa comporre da solo.</summary>
-    Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default);
+    /// <summary>Aggiunge un'ALTERNATIVA pari-grado alla riga indicata (stessa profondità), dopo tutto il suo
+    /// sottoalbero: «pista 25» accanto a «pista 07». Copia l'intera riga tranne la condizione — che è ciò che
+    /// l'alternativa deve dire di diverso. Se la riga non è ancora in un gruppo, il gruppo nasce qui: è il
+    /// repository ad assegnarlo, perché è un'identità condivisa fra righe e non un campo che l'editor possa
+    /// comporre da solo.</summary>
+    Task<int> AddAlternativeAsync(string accCode, int pointId, CancellationToken ct = default);
 
-    /// <summary>Sfila una riga dal suo gruppo di varianti (torna riga singola). Se il gruppo resta con una sola
-    /// riga viene sciolto anche quello: un gruppo di uno non è un gruppo.</summary>
+    /// <summary>Aggiunge un'ECCEZIONE della riga indicata: un livello più dentro, subito sotto. Stessa copia
+    /// senza condizione dell'alternativa; cambia dove finisce nell'outline, cioè a chi appartiene.</summary>
+    Task<int> AddExceptionAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Sfila una riga <b>col suo sottoalbero</b> dal gruppo: le eccezioni descrivono la riga che le
+    /// ospita, e lasciarle indietro le riassegnerebbe alla riga di sopra. Il pezzo staccato riparte da
+    /// profondità 0 e resta un gruppo solo se ha più di una riga; se il gruppo d'origine resta con una riga
+    /// sola, si scioglie anche quello.</summary>
     Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default);
 }

@@ -25,9 +25,12 @@ public interface ITransferService
     /// <summary>Sposta un punto in cima o in fondo al suo flusso (ricompattando gli Order).</summary>
     Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default);
 
-    /// <summary>Aggiunge una variante della riga (stesso CoP e ricevente, condizione da scrivere), subito sotto.</summary>
-    Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default);
+    /// <summary>Alternativa pari-grado alla riga (es. «pista 25» accanto a «pista 07»), dopo il suo sottoalbero.</summary>
+    Task<int> AddAlternativeAsync(string accCode, int pointId, CancellationToken ct = default);
 
-    /// <summary>Sfila la riga dal suo gruppo di varianti; scioglie il gruppo se resta con una riga sola.</summary>
+    /// <summary>Eccezione della riga: un livello più dentro, subito sotto.</summary>
+    Task<int> AddExceptionAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Sfila la riga col suo sottoalbero dal gruppo; scioglie ciò che resta di un gruppo di uno.</summary>
     Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default);
 }

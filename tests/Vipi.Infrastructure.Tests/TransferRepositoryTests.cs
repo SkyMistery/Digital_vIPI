@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -293,40 +293,72 @@ public class TransferRepositoryTests : IAsyncLifetime
         Assert.Equal("", p.HandoffLevelText);
     }
 
-    // ---- Varianti ----
+    // ---- Varianti: il gruppo è un OUTLINE ----
 
     [Fact]
-    public async Task AddVariant_Copies_Everything_Except_Condition_And_Sits_Below()
+    public async Task Alternative_Is_Peer_And_Copies_Everything_But_The_Condition()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
         var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with
         {
             HandoffKind = TransferHandoffKind.AorBoundary, HandoffLevelValue = 110,
-            ConditionLabel = "16R", SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
+            ConditionLabel = "07", SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
         });
         await _repo.AddPointAsync("LIRR", flowId, Point("ELKAP", 150, _ftwrId));   // riga che deve scalare sotto
 
-        await _repo.AddVariantAsync("LIRR", srcId);
+        await _repo.AddAlternativeAsync("LIRR", srcId);
 
         var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
         Assert.Equal(3, points.Count);
-        var (src, variant, other) = (points[0], points[1], points[2]);
+        var (src, alt, other) = (points[0], points[1], points[2]);
 
-        // La variante nasce SUBITO SOTTO la sorgente: le alternative si leggono vicine.
-        Assert.Equal("BIRSU", variant.Cop);
+        Assert.Equal("BIRSU", alt.Cop);
         Assert.Equal("ELKAP", other.Cop);
+        // Pari-grado: nessuna delle due è lo standard dell'altra (pista 07 · pista 25).
+        Assert.Equal(0, src.VariantDepth);
+        Assert.Equal(0, alt.VariantDepth);
         // Copia completa: livelli, faccetta trasferimento, velocità, ricevente.
-        Assert.Equal(150, variant.LevelValue);
-        Assert.Equal(TransferHandoffKind.AorBoundary, variant.HandoffKind);
-        Assert.Equal(110, variant.HandoffLevelValue);
-        Assert.Equal(250, variant.SpeedValue);
-        Assert.Equal(src.NextSectorId, variant.NextSectorId);
-        // Tranne la condizione, che è ciò che la variante deve dire di diverso.
-        Assert.Null(variant.ConditionLabel);
-        // Stesso gruppo per entrambe, ed è nato ora.
+        Assert.Equal(150, alt.LevelValue);
+        Assert.Equal(TransferHandoffKind.AorBoundary, alt.HandoffKind);
+        Assert.Equal(110, alt.HandoffLevelValue);
+        Assert.Equal(250, alt.SpeedValue);
+        Assert.Equal(src.NextSectorId, alt.NextSectorId);
+        // Tranne la condizione, che è ciò che l'alternativa deve dire di diverso.
+        Assert.Null(alt.ConditionLabel);
         Assert.NotNull(src.VariantGroup);
-        Assert.Equal(src.VariantGroup, variant.VariantGroup);
+        Assert.Equal(src.VariantGroup, alt.VariantGroup);
         Assert.Null(other.VariantGroup);
+    }
+
+    [Fact]
+    public async Task Exception_Nests_One_Level_Deeper()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+
+        var excId = await _repo.AddExceptionAsync("LIRR", srcId);
+        var deeperId = await _repo.AddExceptionAsync("LIRR", excId);   // eccezione dell'eccezione
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(new[] { 0, 1, 2 }, points.Select(p => p.VariantDepth));
+        Assert.Equal(new[] { srcId, excId, deeperId }, points.Select(p => p.Id));
+    }
+
+    [Fact]
+    public async Task An_Alternative_Lands_After_The_Whole_Subtree()
+    {
+        // Aggiungere «pista 25» accanto a «pista 07» non deve infilarsi in mezzo alle eccezioni della 07:
+        // spezzerebbe in due un blocco già scritto, e le eccezioni rimaste sotto cambierebbero padrone.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var rwy07 = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+        var exc = await _repo.AddExceptionAsync("LIRR", rwy07);
+        await _repo.AddExceptionAsync("LIRR", exc);
+
+        var rwy25 = await _repo.AddAlternativeAsync("LIRR", rwy07);
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(rwy25, points[^1].Id);
+        Assert.Equal(0, points[^1].VariantDepth);
     }
 
     [Fact]
@@ -334,43 +366,79 @@ public class TransferRepositoryTests : IAsyncLifetime
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
         var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
-        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+        var altId = await _repo.AddAlternativeAsync("LIRR", srcId);
 
         // CoP e ricevente sono l'identità dell'accordo: cambiarli su una riga li cambia sul gruppo.
-        await _repo.UpdatePointAsync("LIRR", variantId, Point("PISIP", 130, _tsId));
+        await _repo.UpdatePointAsync("LIRR", altId, Point("PISIP", 130, _tsId));
 
         var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
         Assert.All(points, p => Assert.Equal("PISIP", p.Cop));
         Assert.All(points, p => Assert.Equal(_tsId, p.NextSectorId));
-        // Il livello invece resta di ciascuna riga: è proprio ciò che la variante differenzia.
+        // Il livello invece resta di ciascuna riga: è proprio ciò che l'alternativa differenzia.
         Assert.Equal(150, points[0].LevelValue);
         Assert.Equal(130, points[1].LevelValue);
     }
 
     [Fact]
-    public async Task Only_One_Otherwise_Row_Per_Group()
+    public async Task A_GroupWide_Row_Cannot_Be_Nested()
     {
+        // «Vale per tutte le alternative» e «appartengo a questa» sono in contraddizione.
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
         var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
-        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
-
-        await _repo.UpdatePointAsync("LIRR", variantId, Point("BIRSU", 130, _ftwrId) with { IsOtherwise = true });
+        var excId = await _repo.AddExceptionAsync("LIRR", srcId);
 
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() =>
-            _repo.UpdatePointAsync("LIRR", srcId, Point("BIRSU", 150, _ftwrId) with { IsOtherwise = true }));
+            _repo.UpdatePointAsync("LIRR", excId, Point("BIRSU", 130, _ftwrId) with { IsGroupWide = true }));
     }
 
     [Fact]
-    public async Task Otherwise_Flag_Ignored_Outside_A_Group()
+    public async Task GroupWide_Flag_Ignored_Outside_A_Group()
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
-        var id = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { IsOtherwise = true });
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { IsGroupWide = true });
 
-        // Una riga singola non ha «altri casi» rispetto a cui essere il complemento.
+        // Una riga singola non ha alternative da scavalcare.
         var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
-        Assert.False(p.IsOtherwise);
+        Assert.False(p.IsGroupWide);
         Assert.Null(p.VariantGroup);
         Assert.Equal(id, p.Id);
+    }
+
+    [Fact]
+    public async Task Moving_A_Row_Carries_Its_Subtree()
+    {
+        // ⚠️ Il difetto che questo test presidia non darebbe nessun errore: la capofila si sposta, le sue
+        // eccezioni restano indietro e passano ad altra alternativa continuando a dire quello che dicevano.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var rwy07 = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+        var exc07 = await _repo.AddExceptionAsync("LIRR", rwy07);
+        var rwy25 = await _repo.AddAlternativeAsync("LIRR", rwy07);
+
+        await _repo.MovePointAsync("LIRR", rwy07, up: false);   // la 07 scende sotto la 25
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(new[] { rwy25, rwy07, exc07 }, points.Select(p => p.Id));
+        Assert.Equal(new[] { 0, 0, 1 }, points.Select(p => p.VariantDepth));
+    }
+
+    [Fact]
+    public async Task Detaching_Takes_The_Subtree_And_Restarts_From_Zero()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var rwy07 = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { ConditionLabel = "07" });
+        var exc = await _repo.AddExceptionAsync("LIRR", rwy07);
+        var deeper = await _repo.AddExceptionAsync("LIRR", exc);
+        await _repo.AddAlternativeAsync("LIRR", rwy07);   // così il gruppo d'origine sopravvive
+
+        await _repo.DetachVariantAsync("LIRR", exc);
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        var staccate = points.Where(p => p.Id == exc || p.Id == deeper).ToList();
+        // Il pezzo staccato riparte da zero e resta un gruppo suo: la sua struttura interna sopravvive.
+        Assert.Equal(new[] { 0, 1 }, staccate.Select(p => p.VariantDepth));
+        Assert.NotNull(staccate[0].VariantGroup);
+        Assert.Equal(staccate[0].VariantGroup, staccate[1].VariantGroup);
+        Assert.NotEqual(points.First(p => p.Id == rwy07).VariantGroup, staccate[0].VariantGroup);
     }
 
     [Fact]
@@ -378,14 +446,13 @@ public class TransferRepositoryTests : IAsyncLifetime
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
         var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
-        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
-        await _repo.UpdatePointAsync("LIRR", variantId, Point("BIRSU", 130, _ftwrId) with { IsOtherwise = true });
+        var altId = await _repo.AddAlternativeAsync("LIRR", srcId);
 
-        await _repo.DetachVariantAsync("LIRR", variantId);
+        await _repo.DetachVariantAsync("LIRR", altId);
 
         var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
         Assert.All(points, p => Assert.Null(p.VariantGroup));   // sciolto anche il superstite
-        Assert.All(points, p => Assert.False(p.IsOtherwise));
+        Assert.All(points, p => Assert.Equal(0, p.VariantDepth));
     }
 
     [Fact]
@@ -393,9 +460,9 @@ public class TransferRepositoryTests : IAsyncLifetime
     {
         var flowId = await _repo.AddFlowAsync("LIRR", Flow());
         var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
-        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+        var altId = await _repo.AddAlternativeAsync("LIRR", srcId);
 
-        await _repo.DeletePointAsync("LIRR", variantId);
+        await _repo.DeletePointAsync("LIRR", altId);
 
         var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
         Assert.Null(p.VariantGroup);

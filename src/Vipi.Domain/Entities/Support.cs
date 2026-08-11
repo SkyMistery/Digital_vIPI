@@ -170,15 +170,25 @@ public class TransferPoint
     public SpeedConstraint SpeedConstraint { get; set; }
 
     // ---- VARIANTI ----
-    // Righe alternative dello stesso accordo, che differiscono per condizione: «FL80 con pista 16R, FL110 altrimenti».
-    // Il gruppo è una chiave sulla riga, non una tabella figlia: i consumatori a valle (matcher, bridge, vista live)
-    // continuano a vedere righe piatte, che per loro è la lettura giusta — due varianti SONO due candidati distinti.
-    // Le righe di un gruppo condividono flusso, Cop e NextSectorId; l'ordine è l'Order esistente (nessun secondo
-    // ordinamento che possa contraddirlo).
+    // Righe dello stesso accordo che differiscono per condizione. Il gruppo è una chiave sulla riga, non una
+    // tabella figlia: i consumatori a valle (matcher, bridge, vista live) continuano a vedere righe piatte, che
+    // per loro è la lettura giusta — due varianti SONO due candidati distinti. Le righe di un gruppo condividono
+    // flusso, Cop e NextSectorId.
+    //
+    // Un gruppo è un OUTLINE, non una capofila con subordinate: le alternative di primo livello sono PARI-GRADO
+    // fra loro (pista 07 e pista 25 — nessuna è lo standard dell'altra) e ognuna può avere le proprie eccezioni,
+    // che a loro volta possono averne. L'ordine (Order) È la struttura: nessun puntatore al padre.
     public int? VariantGroup { get; set; }                  // null = riga singola; progressivo per flusso
-    /// <summary>La riga «negli altri casi»: complemento delle condizioni delle sorelle, quindi non ne porta una.
-    /// Al più una per gruppo, resa sempre per ultima.</summary>
-    public bool IsOtherwise { get; set; }
+
+    /// <summary>Rientro della riga nel gruppo: 0 = alternativa di primo livello, 1 = sua eccezione, 2 =
+    /// eccezione dell'eccezione, e così via senza limite. Una riga di profondità N appartiene all'ultima riga
+    /// di profondità N-1 che la precede — come una lista puntata.</summary>
+    public int VariantDepth { get; set; }
+
+    /// <summary>La riga SCAVALCA le alternative: vale per tutto il gruppo, non per una capofila («di notte,
+    /// qualunque pista»). Non partiziona come un'alternativa e non appartiene a nessuna: si rende in fondo al
+    /// gruppo. Ha senso solo a profondità 0 — una riga che scavalca le alternative non può stare dentro una.</summary>
+    public bool IsGroupWide { get; set; }
 
     public int Order { get; set; }
 }

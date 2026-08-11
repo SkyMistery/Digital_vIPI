@@ -104,10 +104,16 @@ public sealed class TransferService : ITransferService
         await _repo.MovePointToEndAsync(accCode, pointId, top, ct);
     }
 
-    public async Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    public async Task<int> AddAlternativeAsync(string accCode, int pointId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
-        return await _repo.AddVariantAsync(accCode, pointId, ct);
+        return await _repo.AddAlternativeAsync(accCode, pointId, ct);
+    }
+
+    public async Task<int> AddExceptionAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.AddExceptionAsync(accCode, pointId, ct);
     }
 
     public async Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default)
@@ -145,10 +151,12 @@ public sealed class TransferService : ITransferService
         if (i.SpeedConstraint != Domain.SpeedConstraint.Unspecified && i.SpeedValue is null)
             throw new ValidationException("Indica il valore della velocità, o togli il vincolo.");
 
-        // «Negli altri casi» è il complemento delle condizioni delle sorelle: portarne una sarebbe una contraddizione.
-        if (i.IsOtherwise && (!string.IsNullOrWhiteSpace(i.ConditionLabel)
-                              || !string.IsNullOrWhiteSpace(i.ConditionAreaLabel)
-                              || !string.IsNullOrWhiteSpace(i.ConditionCustomLabel)))
-            throw new ValidationException("La riga «negli altri casi» non porta condizioni: è il caso che resta.");
+        // Una riga che scavalca le alternative deve dire A QUALI CONDIZIONI le scavalca («di notte, qualunque
+        // pista»): senza condizione non si distinguerebbe da un'alternativa in più, e il lettore non saprebbe
+        // quando applicarla.
+        if (i.IsGroupWide && string.IsNullOrWhiteSpace(i.ConditionLabel)
+                          && string.IsNullOrWhiteSpace(i.ConditionAreaLabel)
+                          && string.IsNullOrWhiteSpace(i.ConditionCustomLabel))
+            throw new ValidationException("Una riga «in ogni caso» deve dire a quali condizioni vale.");
     }
 }

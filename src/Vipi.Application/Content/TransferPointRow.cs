@@ -50,9 +50,12 @@ public sealed record TransferPointRow
     /// le colonne relative (per presenza di dati, mai per tipo di ente).</summary>
     public bool HasHandoff => HandoffKind != TransferHandoffKind.Unspecified;
 
-    // Varianti: righe alternative dello stesso accordo. Il gruppo è assegnato dal repository.
+    // Varianti: righe dello stesso accordo, organizzate a outline. Gruppo e profondità li assegna il repository.
     public int? VariantGroup { get; init; }
-    public bool IsOtherwise { get; init; }
+    /// <summary>Rientro nell'outline: 0 = alternativa, 1 = sua eccezione, 2 = eccezione dell'eccezione, …</summary>
+    public int VariantDepth { get; init; }
+    /// <summary>La riga scavalca le alternative: vale per tutto il gruppo, e si rende in fondo.</summary>
+    public bool IsGroupWide { get; init; }
 
     public required int Order { get; init; }
 }

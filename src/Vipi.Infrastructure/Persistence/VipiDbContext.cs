@@ -236,7 +236,9 @@ public class VipiDbContext : DbContext
             e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
             e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
             // Varianti: il gruppo si legge sempre insieme al flusso, e le righe di un gruppo vanno tenute vicine.
-            e.HasIndex(x => new { x.FlowId, x.VariantGroup });
+            // L'Order entra nell'indice perché in un outline l'ordine NON è solo presentazione: è la struttura
+            // (una riga appartiene all'ultima meno profonda che la precede), quindi si legge sempre ordinato.
+            e.HasIndex(x => new { x.FlowId, x.VariantGroup, x.Order });
         });
 
         b.Entity<EditGrant>(e =>

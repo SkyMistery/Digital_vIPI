@@ -36,8 +36,12 @@ public sealed record TransferPointInput
     public int? SpeedValue { get; init; }
     public SpeedConstraint SpeedConstraint { get; init; } = SpeedConstraint.Unspecified;
 
-    /// <summary>La riga «negli altri casi» di un gruppo di varianti. Il gruppo in sé NON sta qui: lo assegna il
-    /// repository (<c>AddVariantAsync</c>/<c>DetachVariantAsync</c>), perché è un'identità condivisa fra righe
-    /// e non un campo che l'editor possa comporre da solo.</summary>
-    public bool IsOtherwise { get; init; }
+    /// <summary>La riga scavalca le alternative del gruppo («di notte, qualunque pista»). Ha senso solo a
+    /// profondità 0.</summary>
+    public bool IsGroupWide { get; init; }
+
+    // La PROFONDITÀ non sta qui, come non ci sta il gruppo: entrambe descrivono la posizione della riga
+    // nell'outline, e la decide il repository quando la riga nasce (AddAlternativeAsync/AddExceptionAsync) o si
+    // sposta. Un editor che potesse scriverle a mano potrebbe creare una riga orfana o un salto di profondità
+    // in un modo che nessuna validazione a valle saprebbe attribuire a un'intenzione.
 }

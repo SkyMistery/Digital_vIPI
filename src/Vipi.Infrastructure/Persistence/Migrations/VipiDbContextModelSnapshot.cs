@@ -1543,7 +1543,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("HandoffLevelValue")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsOtherwise")
+                    b.Property<bool>("IsGroupWide")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("LevelConstraint")
@@ -1579,6 +1579,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("SpeedValue")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("VariantDepth")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("VariantGroup")
                         .HasColumnType("INTEGER");
 
@@ -1592,7 +1595,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FlowId", "Order");
 
-                    b.HasIndex("FlowId", "VariantGroup");
+                    b.HasIndex("FlowId", "VariantGroup", "Order");
 
                     b.ToTable("TransferPoints");
                 });
