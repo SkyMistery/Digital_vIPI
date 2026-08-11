@@ -163,7 +163,17 @@
                         <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
                     </select>
                     <span class="muted" style="font-size:12px;white-space:nowrap">@GroupsCountLabel(shown.Count) · @(string.Format(L["Xfer_RowsCount"].Value, shown.Sum(f => f.Points.Count)))</span>
-                    @if (_filtering) { <button class="btn ghost" @onclick="() => { _flowFilter = string.Empty; _kindFilter = null; }">↺ @L["Xfer_Reset"]</button> }
+                    @* Le righe ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
+                       vanno riviste a mano: senza un modo di elencarle, la revisione si perde per strada. *@
+                    @{ var toReview = ToReviewCount(); }
+                    @if (toReview > 0 || _toReviewOnly)
+                    {
+                        <button class="btn @(_toReviewOnly ? "primary" : "ghost")" style="white-space:nowrap"
+                                title="@L["Xfer_ToReviewTitle"]" @onclick="() => _toReviewOnly = !_toReviewOnly">
+                            ⚠ @L["Xfer_ToReview"] (@toReview)
+                        </button>
+                    }
+                    @if (_filtering) { <button class="btn ghost" @onclick="() => { _flowFilter = string.Empty; _kindFilter = null; _toReviewOnly = false; }">↺ @L["Xfer_Reset"]</button> }
                     <span class="ln" style="flex:1"></span>
                     <button class="btn ghost" title="@L["Xfer_ExpandAll"]" @onclick="ExpandAll">⊞ @L["Xfer_ExpandAll"]</button>
                     <button class="btn ghost" title="@L["Xfer_CollapseAll"]" @onclick="CollapseAll">⊟ @L["Xfer_CollapseAll"]</button>
@@ -297,6 +307,17 @@
                                 </div>
                             }
 
+                            @* Avviso NON bloccante: un gruppo di varianti senza «negli altri casi» lascia scoperti i
+                               casi che nessuna condizione copre, e chi legge non sa che fare. Può essere legittimo
+                               (le condizioni possono essere esaustive), quindi si segnala, non si impedisce. *@
+                            @foreach (var g in GroupsWithoutOtherwise(f))
+                            {
+                                <div class="callout" style="margin:0 0 6px;font-size:12.5px">
+                                    <span class="cic">⚠</span>
+                                    <div>@(string.Format(L["Xfer_GroupNoOtherwise"].Value, g))</div>
+                                </div>
+                            }
+
                             <table class="res-table">
                                 <thead><tr><th>@L["Xfer_ColCop"]</th><th>@L["Xfer_ColLevel"]</th><th>@L["Xfer_ColReceiver"]</th><th>@L["Xfer_ColRunway"]</th><th>@L["Xfer_ColArea"]</th><th>@L["Xfer_ColCustom"]</th><th></th></tr></thead>
                                 <tbody>
@@ -383,6 +404,11 @@
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CancelEsc"]" @onclick="() => _editPointId = null">✕</button>
                                                 </td>
                                             </tr>
+                                            @* Faccetta trasferimento su una riga a sé: in linea sarebbero sei controlli
+                                               in più su una tabella che ne ha già sette, e non ci starebbero. *@
+                                            <tr class="xfer-facet-row"><td colspan="7" style="border-top:0;padding:2px 6px 4px 6px">
+                                                @FacetFields(_epFacet, p.VariantGroup is not null)
+                                            </td></tr>
                                             var prevEdit = PreviewEdit(f);
                                             <tr class="xfer-prev"><td colspan="7" style="border-top:0;padding:0 6px 6px 6px">
                                                 <span class="muted" style="font-size:11.5px"><b>@L["Xfer_PreviewLabel"]:</b> <span style="font-style:italic">@(string.IsNullOrWhiteSpace(prevEdit) ? L["Xfer_PreviewIncomplete"].Value : $"“{prevEdit}”")</span></span>
@@ -390,14 +416,38 @@
                                         }
                                         else
                                         {
-                                            <tr>
-                                                <td><b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b></td>
-                                                <td>@p.LevelText</td>
+                                            <tr class="@(p.VariantGroup is null ? null : "xfer-variant")">
+                                                <td>
+                                                    <b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b>
+                                                    @if (p.VariantGroup is not null)
+                                                    {
+                                                        <span class="pill neutral" style="margin-left:4px" title="@L["Xfer_VariantTitle"]">@L["Xfer_Variant"] @p.VariantGroup</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @p.LevelText
+                                                    @* La faccetta si legge sotto il livello autorizzato: sono due livelli,
+                                                       e metterli sulla stessa riga confonde proprio ciò che distingue. *@
+                                                    @{ var facetSummary = FacetSummary(p); }
+                                                    @if (facetSummary.Length > 0)
+                                                    {
+                                                        <div class="muted" style="font-size:11.5px">→ @facetSummary</div>
+                                                    }
+                                                </td>
                                                 <td>@(p.NextSectorCallsign ?? "—")</td>
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionLabel)) { <span class="pill neutral" title="@L["Xfer_RunwayInUse"]">@p.ConditionLabel</span> } else { <span class="muted">—</span> }</td>
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionAreaLabel)) { <span class="pill neutral" title="@L["Xfer_ActiveArea"]">@p.ConditionAreaLabel</span> } else { <span class="muted">—</span> }</td>
-                                                <td>@if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> } else { <span class="muted">—</span> }</td>
+                                                <td>
+                                                    @if (p.IsOtherwise) { <span class="pill neutral" title="@L["Xfer_OtherwiseTitle"]">@L["Xfer_Otherwise"]</span> }
+                                                    else if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> }
+                                                    else { <span class="muted">—</span> }
+                                                </td>
                                                 <td style="white-space:nowrap">
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddVariantTitle"]" @onclick="() => AddVariant(p.Id)">⑂</button>
+                                                    @if (p.VariantGroup is not null)
+                                                    {
+                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => DetachVariant(p.Id)">⇤</button>
+                                                    }
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveTop"]" @onclick="() => MoveToEnd(p.Id, true)">⤒</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveUp"]" @onclick="() => Move(p.Id, true)">▲</button>
                                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="@L["Xfer_MoveDown"]" @onclick="() => Move(p.Id, false)">▼</button>
@@ -500,6 +550,7 @@
                                     <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted" style="font-weight:400">@L["Xfer_FreeTextHint"]</span></label>
                                         <input placeholder="@L["Xfer_CustomPh"]" @bind="_pCondCustomLabel" @bind:event="oninput" @onkeydown="e => TrySubmitPoint(f.Id, e)" />
                                     </div>
+                                    <div style="flex-basis:100%">@FacetFields(_pFacet, inGroup: false)</div>
                                     <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => AddPoint(f.Id)">@L["Xfer_AddRow"]</button>
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(f.Id, true)">＋ @L["Xfer_AddRowContinue"]</button>
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _addPointFlowId = null">@L["Common_Cancel"]</button>
@@ -595,14 +646,31 @@
     private string _flowFilter = "";
     private TransferFlowKind? _kindFilter;
 
-    private bool _filtering => !string.IsNullOrWhiteSpace(_flowFilter) || _kindFilter is not null;
+    // Un filtro attivo espande l'albero: quello che resta va visto, non ricercato a mano cliccando.
+    private bool _filtering => !string.IsNullOrWhiteSpace(_flowFilter) || _kindFilter is not null || _toReviewOnly;
 
-    /// <summary>Flussi filtrati per testo (settore/aeroporto/descrizione/CoP/ricevente) e per tipo.</summary>
+    /// <summary>Filtro «da rivedere»: mostra solo i flussi con almeno una riga da rivedere.</summary>
+    private bool _toReviewOnly;
+
+    /// <summary>
+    /// Una riga «da rivedere» è una riga che consegna a un APP e non dice ancora dove avviene il trasferimento.
+    /// Prima della faccetta quel dato non esisteva, quindi il suo livello poteva voler dire due cose diverse
+    /// (autorizzato o al trasferimento) e solo chi ha scritto la riga lo sa: vanno riaperte a mano.
+    /// </summary>
+    private bool NeedsReview(TransferPointRow p) =>
+        p.HandoffKind == TransferHandoffKind.Unspecified
+        && p.NextSectorId is int id
+        && _all.FirstOrDefault(s => s.Id == id)?.Type == SectorType.App;
+
+    private int ToReviewCount() => _flows.Sum(f => f.Points.Count(NeedsReview));
+
+    /// <summary>Flussi filtrati per testo (settore/aeroporto/descrizione/CoP/ricevente), per tipo e «da rivedere».</summary>
     private IReadOnlyList<TransferFlowRow> FilteredFlows()
     {
         var q = _flowFilter.Trim();
         return _flows.Where(f =>
             (_kindFilter is null || f.Kind == _kindFilter)
+            && (!_toReviewOnly || f.Points.Any(NeedsReview))
             && (q.Length == 0
                 || (f.OwningSectorCallsign?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (f.AirportIcao?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
@@ -633,6 +701,145 @@
     private string _epAreaText = "";                        // testo ricerca area (typeahead)
     private bool _epAreaOpen;                               // dropdown area aperto
     private string _epCondCustomLabel = "";                 // condizione personalizzata
+
+    /// <summary>
+    /// Stato del form per la faccetta TRASFERIMENTO di una riga (dove passa il controllo, a che livello, dove
+    /// passano le comunicazioni, velocità, «negli altri casi»).
+    /// <para>Un oggetto e non dieci campi sciolti per form: i form sono due (modifica in-place e nuova riga) e
+    /// la faccetta ha dieci pezzi — venti campi paralleli con prefisso diverso sono venti occasioni di
+    /// aggiornarne uno solo dei due.</para>
+    /// </summary>
+    private sealed class FacetForm
+    {
+        public TransferHandoffKind Kind { get; set; } = TransferHandoffKind.Unspecified;
+        public string Label { get; set; } = "";
+        public int? LevelValue { get; set; }
+        public LevelUnit LevelUnit { get; set; } = LevelUnit.Fl;
+        public LevelConstraint LevelConstraint { get; set; } = LevelConstraint.Exact;
+        public TransferHandoffKind CommsKind { get; set; } = TransferHandoffKind.Unspecified;
+        public string CommsLabel { get; set; } = "";
+        public int? SpeedValue { get; set; }
+        public SpeedConstraint SpeedConstraint { get; set; } = SpeedConstraint.Unspecified;
+        public bool IsOtherwise { get; set; }
+
+        public void LoadFrom(TransferPointRow p)
+        {
+            Kind = p.HandoffKind; Label = p.HandoffLabel ?? "";
+            LevelValue = p.HandoffLevelValue; LevelUnit = p.HandoffLevelUnit;
+            // Su una riga che la faccetta non l'ha mai usata, il vincolo salvato è il valore di riposo della
+            // colonna (AtOrAbove, lo zero dell'enum) e non una scelta di nessuno: caricarlo farebbe partire il
+            // form da «o superiore» e la prima faccetta scritta direbbe la forma sbagliata. Trovato guidando
+            // l'editor: la frase usciva «al confine dell'AoR a FL110 o superiore» invece di «passando FL110».
+            LevelConstraint = p.HandoffKind == TransferHandoffKind.Unspecified
+                ? LevelConstraint.Exact
+                : p.HandoffLevelConstraint;
+            CommsKind = p.CommsHandoffKind; CommsLabel = p.CommsHandoffLabel ?? "";
+            SpeedValue = p.SpeedValue; SpeedConstraint = p.SpeedConstraint;
+            IsOtherwise = p.IsOtherwise;
+        }
+
+        /// <summary>Svuota il form. Con <paramref name="preset"/> apre già la faccetta sul caso più comune —
+        /// «al confine dell'AoR, passando un livello» — che è la forma di un accordo ACC→APP.</summary>
+        public void Reset(bool preset = false)
+        {
+            Kind = preset ? TransferHandoffKind.AorBoundary : TransferHandoffKind.Unspecified;
+            Label = ""; LevelValue = null; LevelUnit = LevelUnit.Fl; LevelConstraint = LevelConstraint.Exact;
+            CommsKind = TransferHandoffKind.Unspecified; CommsLabel = "";
+            SpeedValue = null; SpeedConstraint = SpeedConstraint.Unspecified;
+            IsOtherwise = false;
+        }
+
+        public TransferHandoffFacet ToFacet() => new(
+            Kind, Label, LevelValue, LevelUnit, LevelConstraint,
+            CommsKind, CommsLabel, SpeedValue, SpeedConstraint, IsOtherwise);
+
+        /// <summary>Riversa la faccetta nell'input di salvataggio (l'input è un record: <c>with</c> tiene
+        /// insieme i campi senza ricopiare gli altri quindici).</summary>
+        public TransferPointInput Apply(TransferPointInput input) => input with
+        {
+            HandoffKind = Kind,
+            HandoffLabel = string.IsNullOrWhiteSpace(Label) ? null : Label.Trim(),
+            HandoffLevelValue = LevelValue,
+            HandoffLevelUnit = LevelUnit,
+            HandoffLevelConstraint = LevelConstraint,
+            CommsHandoffKind = CommsKind,
+            CommsHandoffLabel = string.IsNullOrWhiteSpace(CommsLabel) ? null : CommsLabel.Trim(),
+            SpeedValue = SpeedValue,
+            SpeedConstraint = SpeedConstraint,
+            IsOtherwise = IsOtherwise,
+        };
+    }
+
+    private readonly FacetForm _epFacet = new();   // modifica in-place
+    private readonly FacetForm _pFacet = new();    // nuova riga
+
+    /// <summary>
+    /// Campi della faccetta trasferimento, identici nei due form (modifica in-place e nuova riga). I campi
+    /// dipendenti compaiono solo quando servono: l'etichetta non si chiede per il confine dell'AoR, che si
+    /// descrive da sé, e il valore di velocità non si chiede senza vincolo.
+    /// <para><paramref name="inGroup"/> = la riga sta in un gruppo di varianti: solo lì «negli altri casi»
+    /// significa qualcosa, perché solo lì esistono «gli altri casi».</para>
+    /// </summary>
+    private RenderFragment FacetFields(FacetForm ff, bool inGroup) => __builder =>
+    {
+        <div class="xfer-facet">
+            <label>@L["Xfer_Handoff"]</label>
+            <select @bind="ff.Kind" title="@L["Xfer_HandoffTitle"]">
+                <option value="@TransferHandoffKind.Unspecified">@L["Xfer_HandoffNone"]</option>
+                <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
+                <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
+                <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
+            </select>
+            @if (ff.Kind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
+            {
+                <input style="width:130px" placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.Label" @bind:event="oninput" />
+            }
+
+            @if (ff.Kind != TransferHandoffKind.Unspecified)
+            {
+                <label>@L["Xfer_HandoffLevel"]</label>
+                <select @bind="ff.LevelConstraint" style="width:96px" title="@L["Xfer_HandoffLevelTitle"]">
+                    <option value="@LevelConstraint.Exact">@L["Xfer_HandoffPassing"]</option>
+                    <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
+                    <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
+                </select>
+                <input type="number" style="width:70px" @bind="ff.LevelValue" @bind:event="oninput" />
+                <select @bind="ff.LevelUnit" style="width:56px"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+
+                <label>@L["Xfer_Comms"]</label>
+                <select @bind="ff.CommsKind" title="@L["Xfer_CommsTitle"]">
+                    <option value="@TransferHandoffKind.Unspecified">@L["Xfer_CommsSame"]</option>
+                    <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
+                    <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
+                    <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
+                </select>
+                @if (ff.CommsKind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
+                {
+                    <input style="width:130px" placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.CommsLabel" @bind:event="oninput" />
+                }
+            }
+
+            <label>@L["Xfer_Speed"]</label>
+            <select @bind="ff.SpeedConstraint" style="width:96px">
+                <option value="@SpeedConstraint.Unspecified">@L["Xfer_SpeedNone"]</option>
+                <option value="@SpeedConstraint.AtOrBelow">≤</option>
+                <option value="@SpeedConstraint.AtOrAbove">≥</option>
+                <option value="@SpeedConstraint.Exact">=</option>
+            </select>
+            @if (ff.SpeedConstraint != SpeedConstraint.Unspecified)
+            {
+                <input type="number" style="width:70px" placeholder="250" @bind="ff.SpeedValue" @bind:event="oninput" />
+                <span class="muted" style="font-size:11.5px">kt</span>
+            }
+
+            @if (inGroup)
+            {
+                <label class="xfer-otherwise" title="@L["Xfer_OtherwiseTitle"]">
+                    <input type="checkbox" @bind="ff.IsOtherwise" /> @L["Xfer_Otherwise"]
+                </label>
+            }
+        </div>
+    };
 
     // Aree filtrate per testo (typeahead): match sul nome (case-insensitive); vuoto = tutte.
     private IEnumerable<SpecialAreaPick> MatchAreas(string text) =>
@@ -684,7 +891,14 @@
         string.IsNullOrWhiteSpace(text) || s.Callsign.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void PickFSector(GlobalSectorRow s) { _fSector = s.Id; _fSectorText = s.Callsign; _fOpen = false; }
-    private void PickPNext(GlobalSectorRow s) { _pNext = s.Id; _pNextText = s.Callsign; _pOpen = false; }
+    private void PickPNext(GlobalSectorRow s)
+    {
+        _pNext = s.Id; _pNextText = s.Callsign; _pOpen = false;
+        // Preset: scegliendo un APP come ricevente, la riga è quasi sempre un accordo a due eventi. La faccetta
+        // si apre già sulla forma tipica invece di restare chiusa e obbligare a un giro in più. Solo se l'utente
+        // non l'ha già toccata — un preset che sovrascrive una scelta fatta è un bug, non una comodità.
+        if (s.Type == SectorType.App && _pFacet.Kind == TransferHandoffKind.Unspecified) _pFacet.Reset(preset: true);
+    }
 
     private static bool MatchApt(AirportAdminRow a, string text) =>
         string.IsNullOrWhiteSpace(text)
@@ -825,7 +1039,8 @@
     private string? PreviewRow(TransferFlowRow f, TransferPointRow p) =>
         _preview?.Compose(f.OwningSectorCallsign, p.NextSectorCallsign, f.AirportIcao, f.Kind,
             p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.VerticalState, p.Cop,
-            p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
+            p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel,
+            TransferHandoffFacet.From(p));
 
     // Anteprima live della riga in EDIT (dai campi _ep*). Usa la label piste combinata come nel salvataggio.
     private string? PreviewEdit(TransferFlowRow f) =>
@@ -833,7 +1048,8 @@
             _epConstraint, _epValue, _epUnit, _epSpecial, _epParity, _epVState, _epCop,
             _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
             string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
-            string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel);
+            string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel,
+            _epFacet.ToFacet());
 
     // Anteprima live della riga in AGGIUNTA (dai campi _p*). Per liste di CoP usa il primo come esempio.
     private string? PreviewAdd(TransferFlowRow f)
@@ -843,7 +1059,8 @@
             _pConstraint, _pValue, _pUnit, _pSpecial, _pParity, _pVState, cop,
             _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys),
             string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
-            string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel);
+            string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel,
+            _pFacet.ToFacet());
     }
 
     /// <summary>Settori mittenti candidati: i settori di questo ACC + quelli degli ACC esteri confinanti (per la
@@ -939,6 +1156,7 @@
         _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
         _pSpecial = ""; _pParity = LevelParity.Any; _pVState = TransferVerticalState.Unspecified; _pNext = 0; _pNextText = "";
         _pCondRwys = Array.Empty<string>(); _pCondAreaLabel = ""; _pAreaText = ""; _pAreaOpen = false; _pCondCustomLabel = "";
+        _pFacet.Reset();
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
@@ -997,6 +1215,7 @@
         _pSpecial = p.LevelSpecial ?? ""; _pParity = p.Parity; _pVState = p.VerticalState; _pNext = p.NextSectorId ?? 0; _pNextText = p.NextSectorCallsign ?? "";
         _pCondRwys = ParseRwys(p.ConditionLabel); _pCondAreaLabel = p.ConditionAreaLabel ?? ""; _pAreaText = p.ConditionAreaLabel ?? ""; _pAreaOpen = false;
         _pCondCustomLabel = p.ConditionCustomLabel ?? "";
+        _pFacet.LoadFrom(p);
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
@@ -1035,6 +1254,13 @@
                     LevelSpecial = p.LevelSpecial, Parity = p.Parity, VerticalState = p.VerticalState, NextSectorId = p.NextSectorId,
                     ConditionLabel = p.ConditionLabel, ConditionRefId = p.ConditionRefId,
                     ConditionAreaLabel = p.ConditionAreaLabel, ConditionCustomLabel = p.ConditionCustomLabel,
+                    // La faccetta segue la riga clonata; il GRUPPO di varianti no: appartiene al flusso di
+                    // origine, e ricrearlo qui vorrebbe dire inventare legami fra righe che nessuno ha chiesto.
+                    HandoffKind = p.HandoffKind, HandoffLabel = p.HandoffLabel,
+                    HandoffLevelValue = p.HandoffLevelValue, HandoffLevelUnit = p.HandoffLevelUnit,
+                    HandoffLevelConstraint = p.HandoffLevelConstraint,
+                    CommsHandoffKind = p.CommsHandoffKind, CommsHandoffLabel = p.CommsHandoffLabel,
+                    SpeedValue = p.SpeedValue, SpeedConstraint = p.SpeedConstraint,
                 });
             }
             _cloneFlowId = null;
@@ -1050,7 +1276,51 @@
         _epSpecial = p.LevelSpecial ?? ""; _epParity = p.Parity; _epVState = p.VerticalState; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
         _epCondRwys = ParseRwys(p.ConditionLabel); _epCondAreaLabel = p.ConditionAreaLabel ?? ""; _epAreaText = p.ConditionAreaLabel ?? ""; _epAreaOpen = false;
         _epCondCustomLabel = p.ConditionCustomLabel ?? "";
+        _epFacet.LoadFrom(p);
         await LoadCondRulesAsync(f.AirportIcao);
+    }
+
+    /// <summary>Aggiunge una variante della riga: stesso accordo, condizione diversa. La nuova riga nasce
+    /// copiata (tranne la condizione) e si apre subito in modifica, col cursore su ciò che deve cambiare.</summary>
+    private async Task AddVariant(int pointId)
+    {
+        var newId = 0;
+        await Guarded(async () => newId = await Transfers.AddVariantAsync(_acc!.Code, pointId), L["Xfer_VariantAdded"]);
+        if (newId == 0) return;
+        // Guarded ha già ricaricato i flussi: la riga nuova c'è, e si apre dove l'utente sta guardando.
+        var f = _flows.FirstOrDefault(x => x.Points.Any(p => p.Id == newId));
+        var p = f?.Points.FirstOrDefault(x => x.Id == newId);
+        if (f is not null && p is not null) await EditPoint(f, p);
+    }
+
+    private Task DetachVariant(int pointId) =>
+        Guarded(() => Transfers.DetachVariantAsync(_acc!.Code, pointId), L["Xfer_VariantDetached"]);
+
+    /// <summary>Numeri dei gruppi di varianti del flusso che non hanno una riga «negli altri casi».</summary>
+    private static IReadOnlyList<int> GroupsWithoutOtherwise(TransferFlowRow f) =>
+        f.Points.Where(p => p.VariantGroup is not null)
+            .GroupBy(p => p.VariantGroup!.Value)
+            .Where(g => !g.Any(p => p.IsOtherwise))
+            .Select(g => g.Key)
+            .OrderBy(x => x)
+            .ToList();
+
+    /// <summary>Riassunto della faccetta per la riga in sola lettura: «al confine dell'AoR · passando FL110 ·
+    /// com. su AVN · ≤250 kt». Vuoto se la riga non usa la faccetta. Usa il template italiano dell'anteprima,
+    /// che è la stessa lingua della pagina.</summary>
+    private string FacetSummary(TransferPointRow p)
+    {
+        var tpl = _preview?.Template ?? CoordinationSentenceTemplate.Default;
+        var pezzi = new List<string>(4);
+        var dove = TransferHandoffText.Place(tpl, p.HandoffKind, p.HandoffLabel);
+        if (dove.Length > 0) pezzi.Add(dove);
+        var liv = TransferHandoffText.Level(tpl, p.HandoffLevelValue, p.HandoffLevelUnit, p.HandoffLevelConstraint);
+        if (liv.Length > 0) pezzi.Add(liv);
+        var comms = TransferHandoffText.CommsPlace(tpl, TransferHandoffFacet.From(p));
+        if (comms.Length > 0) pezzi.Add($"{L["Xfer_CommsShort"]} {comms}");
+        var vel = LevelFormatting.FormatSpeed(p.SpeedValue, p.SpeedConstraint);
+        if (vel.Length > 0) pezzi.Add(vel);
+        return string.Join(" · ", pezzi);
     }
 
     // Warning UNICOM azionabile: espandi il gruppo e apri subito l'edit del primo punto per assegnargli un ricevente.
@@ -1064,7 +1334,7 @@
     {
         await Guarded(async () =>
         {
-            await Transfers.UpdatePointAsync(_acc!.Code, pointId, new TransferPointInput
+            await Transfers.UpdatePointAsync(_acc!.Code, pointId, _epFacet.Apply(new TransferPointInput
             {
                 Cop = _epCop, LevelValue = _epValue, LevelUnit = _epUnit, LevelConstraint = _epConstraint,
                 LevelSpecial = _epSpecial, Parity = _epParity, VerticalState = _epVState, NextSectorId = _epNext == 0 ? null : _epNext,
@@ -1072,7 +1342,7 @@
                 ConditionRefId = ResolveRwyRef(_epCondRwys),
                 ConditionAreaLabel = string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
                 ConditionCustomLabel = string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel,
-            });
+            }));
             _editPointId = null;
         }, L["Xfer_RowUpdated"]);
     }
@@ -1086,7 +1356,7 @@
         {
             foreach (var cop in cops)
             {
-                await Transfers.AddPointAsync(_acc!.Code, flowId, new TransferPointInput
+                await Transfers.AddPointAsync(_acc!.Code, flowId, _pFacet.Apply(new TransferPointInput
                 {
                     Cop = cop, LevelValue = _pValue, LevelUnit = _pUnit, LevelConstraint = _pConstraint,
                     LevelSpecial = _pSpecial, Parity = _pParity, VerticalState = _pVState, NextSectorId = _pNext == 0 ? null : _pNext,
@@ -1094,7 +1364,7 @@
                     ConditionRefId = ResolveRwyRef(_pCondRwys),
                     ConditionAreaLabel = string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
                     ConditionCustomLabel = string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel,
-                });
+                }));
             }
             if (keepOpen) { _pCop = ""; }   // pronto per la riga successiva (stesso livello/ricevente/condizioni)
             else { _addPointFlowId = null; }

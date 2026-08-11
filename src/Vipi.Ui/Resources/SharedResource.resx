@@ -284,6 +284,43 @@
   <data name="AppCoord_Flow" xml:space="preserve"><value>Flusso</value></data>
   <data name="AppCoord_Level" xml:space="preserve"><value>Livello</value></data>
   <data name="AppCoord_Condition" xml:space="preserve"><value>Condizione</value></data>
+  <data name="AppCoord_TowardApps" xml:space="preserve"><value>Trasferimenti verso altri APP</value></data>
+  <data name="AppCoord_Next" xml:space="preserve"><value>Prossimo</value></data>
+  <data name="AppCoord_From" xml:space="preserve"><value>Da</value></data>
+  <data name="Coord_Via" xml:space="preserve"><value>Via</value></data>
+  <data name="Coord_Cleared" xml:space="preserve"><value>Autorizzato</value></data>
+  <data name="Coord_Handoff" xml:space="preserve"><value>Trasferimento</value></data>
+  <data name="Coord_HandoffLevel" xml:space="preserve"><value>Livello trasf.</value></data>
+  <data name="Coord_Comms" xml:space="preserve"><value>Comunicazioni</value></data>
+  <data name="Coord_Speed" xml:space="preserve"><value>Velocità</value></data>
+  <data name="Coord_Otherwise" xml:space="preserve"><value>negli altri casi</value></data>
+  <data name="Xfer_Handoff" xml:space="preserve"><value>Trasferimento</value></data>
+  <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Dove passa il controllo, quando non coincide col punto d'ingresso (accordi ACC→APP)</value></data>
+  <data name="Xfer_HandoffNone" xml:space="preserve"><value>come l'ingresso</value></data>
+  <data name="Xfer_HandoffAor" xml:space="preserve"><value>confine AoR</value></data>
+  <data name="Xfer_HandoffPoint" xml:space="preserve"><value>punto</value></data>
+  <data name="Xfer_HandoffCustom" xml:space="preserve"><value>testo libero</value></data>
+  <data name="Xfer_HandoffLabelPh" xml:space="preserve"><value>AVN / 20 NM da AVN</value></data>
+  <data name="Xfer_HandoffLevel" xml:space="preserve"><value>Livello trasf.</value></data>
+  <data name="Xfer_HandoffLevelTitle" xml:space="preserve"><value>Livello al trasferimento, distinto da quello autorizzato</value></data>
+  <data name="Xfer_HandoffPassing" xml:space="preserve"><value>passando</value></data>
+  <data name="Xfer_Comms" xml:space="preserve"><value>Comunicazioni</value></data>
+  <data name="Xfer_CommsShort" xml:space="preserve"><value>com.</value></data>
+  <data name="Xfer_CommsTitle" xml:space="preserve"><value>Dove passano le comunicazioni, se diverso da dove passa il controllo</value></data>
+  <data name="Xfer_CommsSame" xml:space="preserve"><value>dove il controllo</value></data>
+  <data name="Xfer_Speed" xml:space="preserve"><value>Velocità</value></data>
+  <data name="Xfer_SpeedNone" xml:space="preserve"><value>nessuna</value></data>
+  <data name="Xfer_Otherwise" xml:space="preserve"><value>negli altri casi</value></data>
+  <data name="Xfer_OtherwiseTitle" xml:space="preserve"><value>La riga che vale quando nessuna condizione delle altre varianti è soddisfatta. Una sola per gruppo, e non porta condizioni.</value></data>
+  <data name="Xfer_Variant" xml:space="preserve"><value>variante</value></data>
+  <data name="Xfer_VariantTitle" xml:space="preserve"><value>Riga alternativa dello stesso accordo: stesso CoP e stesso ricevente, condizione diversa</value></data>
+  <data name="Xfer_AddVariantTitle" xml:space="preserve"><value>Aggiungi una variante di questa riga (copia tutto tranne la condizione)</value></data>
+  <data name="Xfer_DetachVariantTitle" xml:space="preserve"><value>Sfila la riga dal gruppo di varianti</value></data>
+  <data name="Xfer_VariantAdded" xml:space="preserve"><value>Variante aggiunta: scrivi la condizione che la distingue.</value></data>
+  <data name="Xfer_VariantDetached" xml:space="preserve"><value>Riga sfilata dal gruppo di varianti.</value></data>
+  <data name="Xfer_GroupNoOtherwise" xml:space="preserve"><value>Il gruppo di varianti {0} non ha una riga «negli altri casi»: chi legge non sa cosa fare quando nessuna condizione è soddisfatta.</value></data>
+  <data name="Xfer_ToReview" xml:space="preserve"><value>Da rivedere</value></data>
+  <data name="Xfer_ToReviewTitle" xml:space="preserve"><value>Righe con ricevente APP che non dicono ancora dove avviene il trasferimento</value></data>
   <data name="AppVfr_IntroLabel" xml:space="preserve"><value>Introduzione (markdown)</value></data>
   <data name="AppVfr_Situation" xml:space="preserve"><value>Situazione</value></data>
   <data name="AppVfr_Procedure" xml:space="preserve"><value>Procedura</value></data>
