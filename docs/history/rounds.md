@@ -1220,3 +1220,68 @@ non ha settori sotto di sé.
 
 Chiusura: 20 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1391** verde, build senza
 errori, verifica live dei tre documenti su copia del `vipi.db` reale.
+
+## Feature: trasferimenti ACC↔APP — autorizzazione e trasferimento separati (11 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-11-trasferimenti-acc-app.md`](../feature/2026-08-11-trasferimenti-acc-app.md);
+schema `../spec/modello-dati.md` §9.20-bis; area [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §8.
+
+Il modello dei trasferimenti descriveva **un evento con un livello**: regge un accordo ACC↔ACC, non regge un
+ACC→APP, dove autorizzazione e trasferimento sono due momenti diversi. «Padova Military autorizza il traffico
+con destinazione Aviano LIPA via CHI a FL160 o superiore e lo trasferisce ad Aviano Approach al confine dell'AoR
+passando FL110 in discesa» non era esprimibile — non per come veniva reso, per come era fatto il modello.
+
+Chiuse cinque cose nello stesso giro, perché vivono tutte sulla stessa riga: i due livelli con il proprio punto
+di trasferimento (e le **comunicazioni** su colonna distinta dal controllo), la **velocità**, il **gruppo di
+varianti** con la riga «negli altri casi», la sezione estesa che mostra **tutto ciò che entra o esce** da un
+ente, e il filtro «da rivedere» per le righe scritte prima.
+
+**Quattro difetti veri trovati strada facendo**, tre invisibili ai test:
+
+- Lo scaffolding EF proponeva `defaultValue: ""` per cinque colonne enum-su-testo: le 73 righe in archivio
+  sarebbero nate con una stringa illeggibile e la **prima lettura sarebbe andata in eccezione**. Chiuso
+  dichiarando i default nel modello, che copre anche il `PostgresSchemaReconciler` del deploy Render.
+- Una guardia esistente (`IndexedStringLengthTests`) ha fermato il giro sul fatto che su MySQL una stringa con
+  DEFAULT nasce `longtext`, e `longtext` un default non può averlo. La guardia era però cieca a metà: cercava le
+  colonne solo dentro il `CREATE TABLE` e le nostre arrivano con un `ALTER TABLE ADD` — falliva sulla propria
+  ricerca, non sul difetto che presidia. Estesa.
+- Lo scioglimento di un gruppo rimasto con una riga sola interrogava il database **prima** della `SaveChanges`,
+  quindi vedeva ancora la riga appena sfilata e non scioglieva mai niente.
+- Il mittente perdeva il codice di posizione quando non era un CTR: da quando la sezione estesa mostra ciò che
+  entra da un APP, la frase diventava «Roma Radar trasferisce a Roma Radar TS». Nessun test esistente si è
+  rotto correggendolo, il che dice quanto era coperto quel ramo.
+
+**Un rischio si è sgonfiato leggendo il codice**: `TransferMatcher` sembrava il punto più esposto, ma il livello
+non entra in nessun criterio di punteggio — serve solo a comporre l'etichetta quota, che ora prende quella al
+trasferimento. Era una riga, non una revisione.
+
+**Duplicazioni chiuse**: `CoordTable.razor` (la tabella dei coordinamenti era due volte, quasi identica, in
+`AccCoordinationView` e `AppCoordinationView`) e `CoordinationDerivation.ToRow` (la vLOA si costruiva la riga a
+mano). ⚠️ Supera la nota del refactor 13 «resta di proposito la doppia resa dei coordinamenti»: restano due
+**viste**, perché l'albero è diverso; la tabella è una.
+
+Suite **2111 → 2173** verde, `dotnet build -c Release --no-incremental` 0 warning su entrambi i TFM.
+Migrazione unica `AddTransferHandoffSpeedAndVariants`, additiva, provata su copia del `vipi.db` reale.
+
+**✅ Verifica live eseguita nella stessa giornata**, su copia del `vipi.db` reale (il DB del progetto è rimasto
+intatto). Confermati a schermo: la frase a due eventi («autorizza … via BIRSU … e lo trasferisce … al confine
+dell'AoR passando FL110»), il gruppo di varianti col `rowspan` e «negli altri casi» in fondo, le colonne che
+compaiono **solo** dove servono (2 tabelle su 35 nella vIPI ACC, 1 su 9 nella vLOA), la vLOA interamente in
+inglese, i tre flussi di `LYTV_APP` che ora l'ACC vede, il gruppo APP nuovo «verso altri APP», e la stampa
+misurata a **larghezza carta** (636px su 760 disponibili, nessuno scorrimento).
+
+**Altri tre difetti presi lì, nessuno visibile alla suite:** il vincolo del livello di trasferimento partiva da
+«o superiore» invece che da «passando» su una riga che la faccetta non aveva mai usato (l'editor caricava lo
+zero dell'enum come se fosse una scelta); «negli altri casi» era detto in due lingue nella stessa schermata,
+perché la cella veniva dalle risorse dell'interfaccia e la frase dal template (ora entrambe dal template: è
+contenuto, non chrome); e una testata mezza tradotta, con «PROSSIMO» in mezzo alle colonne inglesi. Più la
+tinta delle righe-variante, che al 14% di `--line` a schermo **non si vedeva**: portata al 55% e misurata.
+
+⚠️ **Una correzione a questa stessa scheda.** La carta aveva sostenuto che le righe BIRSU 76/77 fossero *senza
+condizione*, e quindi che il lettore non sapesse quale applicare: falso, l'avevo dedotto da un conteggio
+aggregato senza guardare le colonne della riga. Le due condizioni del DB sono proprio le loro. Il caso resta il
+buon esempio del **legame** fra varianti; non lo è mai stato di un'ambiguità. *Un aggregato non è una riga.*
+
+⚠️ **Resta ai colleghi, non al codice:** le 15 righe con ricevente APP e faccetta vuota vanno riviste a mano —
+il loro livello può voler dire «autorizzato» o «al trasferimento». Il filtro «Da rivedere» in
+`/vsop/admin/trasferimenti` le elenca; il numero va rimisurato sulla produzione.

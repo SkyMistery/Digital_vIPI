@@ -145,3 +145,42 @@ una salita. Ora lo stato verticale è una **dimensione indipendente**.
   selettore vincolo mostrano `≤ (-)` / `≥ (+)`; le opzioni stato verticale mostrano `↓ In discesa` / `↑ In salita`.
 - Test: composer (stato scelto a mano IT/EN, regressione «constraint senza stato»), EF round-trip. Suite verde
   (450 tot, 0 warning).
+
+## 8. Autorizzazione e trasferimento separati, varianti, velocità (2026-08-11)
+
+Carta ed esito completi: [`../feature/2026-08-11-trasferimenti-acc-app.md`](../feature/2026-08-11-trasferimenti-acc-app.md);
+schema autorevole: `../spec/modello-dati.md` §9.20-bis. Qui solo cosa cambia per quest'area.
+
+Il modello descriveva **un evento con un livello**. Regge un accordo ACC↔ACC — al CoP il traffico entra e lì
+passa il controllo — e non regge un ACC→APP, dove i due eventi sono distinti: «autorizza via CHI a FL160 o
+superiore, trasferisce al confine dell'AoR passando FL110 in discesa, a 250 kt o inferiore».
+
+- **Semantica chiarita, non cambiata**: `Cop` = punto/rotta d'**ingresso**; `Level*` = livello **autorizzato**.
+  Su un ACC↔ACC sono anche il punto e il livello del trasferimento, perché i due eventi coincidono.
+- **Faccetta trasferimento** su `TransferPoint`: dove passa il controllo (`HandoffKind` + `HandoffLabel`), a che
+  livello (`HandoffLevel*`), dove passano le **comunicazioni** se altrove (`CommsHandoff*`), più la
+  **velocità** (`SpeedValue`/`SpeedConstraint`). `HandoffKind = Unspecified` ⇒ riga identica a prima, frase
+  compresa: è l'invariante che ha reso la migrazione un no-op sulle 73 righe in archivio.
+- **Gruppo di varianti** (`VariantGroup` + `IsOtherwise`): le alternative dello stesso accordo, prima righe
+  scollegate. Chiave sulla riga e non tabella figlia — vedi la carta per il perché. Righe piatte a valle:
+  matcher, bridge e vista live continuano a vedere due candidati distinti, che per loro è la lettura giusta.
+- **Frase**: con la faccetta cambia il **verbo**, quindi cambia template (`TemplateCleared` con `{handoff}` e
+  `{handoffLevel}`). Velocità e comunicazioni sono code separate da virgola; «negli altri casi» prende il posto
+  della clausola condizione. Le parole del trasferimento vivono in `TransferHandoffText`, condiviso con la
+  derivazione: le colonne arrivano alla vista **già a parole**, perché la lingua sta nel template (IT e EN).
+- **Derivazione — la sezione estesa porta tutto ciò che entra o esce.** `CoordinationDerivation.Build`, passo 2,
+  accettava solo `Kind == Arrival` da un `Ctr`: l'ACC **non vedeva le partenze** che i suoi APP gli consegnano.
+  Il filtro è caduto. Nel bucketing dell'APP sono emerse due categorie che cadevano in silenzio — le partenze
+  verso una torre e **qualunque** coordinamento con un altro APP — e quest'ultima ha ora il suo gruppo
+  (`AppCoordination.TowardApps`).
+- **Tabella condivisa.** `CoordTable.razor` rende la tabella dei coordinamenti per vIPI ACC, vIPI APP e vLOA:
+  colonne **per presenza di dati** (mai uno switch su `SectorType`), gruppi di varianti con `rowspan` su CoP e
+  ricevente così che a schermo resti il **delta**, riga «negli altri casi» sempre ultima del gruppo. Supera la
+  nota del refactor 13 «resta di proposito la doppia resa dei coordinamenti»: restano due **viste** (l'albero è
+  diverso), non più due tabelle.
+- **Editor**: la faccetta sta su una riga propria della tabella di modifica (in linea non ci starebbe), «⑂»
+  aggiunge una variante copiando tutto tranne la condizione, «⇤» la sfila; avviso non bloccante sui gruppi
+  senza «negli altri casi»; filtro **«da rivedere»** = righe con ricevente APP e faccetta ancora vuota (le
+  righe scritte prima, il cui livello può voler dire due cose e solo chi le ha scritte lo sa).
+- **Aurora**: `CandidateLevel` porta ora entrambi i livelli, e l'etichetta `#LBALT` prende quello **al
+  trasferimento** quando c'è — è la quota che il traffico ha nel momento in cui passa di mano.

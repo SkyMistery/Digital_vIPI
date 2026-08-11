@@ -733,6 +733,36 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
 - 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
   con chi la userà prima di essere scritta.
 
+### E6 ✅ Trasferimenti ACC↔APP — **chiuso l'11 agosto 2026, verifica live eseguita**
+Carta ed esito: [`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md),
+decisa punto per punto col committente. Suite 2173 verde, Release 0 warning su entrambi i TFM, verifica live
+su copia del `vipi.db` reale (tre difetti trovati proprio lì, nessuno visibile alla suite).
+
+⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
+avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al
+trasferimento» e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
+elenca e ne tiene il conto. Il numero va rimisurato sulla produzione MariaDB, dove i dati sono altri.
+
+Il modello dei trasferimenti descrive **un evento con un livello**, che basta per un accordo ACC↔ACC e non
+basta per un ACC→APP: «autorizzo a FL160 via CHI, trasferisco al confine dell'AoR passando FL110» oggi non è
+esprimibile. Cinque cose in un giro solo, perché vivono tutte sulla stessa riga:
+
+1. livello **autorizzato** e livello **al trasferimento** separati, con punto di trasferimento proprio
+   (confine AoR / fix / testo libero) e **comunicazioni** su colonna distinta dal controllo;
+2. **velocità** al trasferimento (`valore + ≤/≥/=`), oggi assente dal modello;
+3. **gruppo di varianti** (`VariantGroup` sulla riga, non una tabella figlia) più la riga «negli altri casi»:
+   le alternative per condizione oggi sono righe scollegate, e il caso reale è già in archivio — righe 76/77,
+   `BIRSU FL150 con pista 07` e `BIRSU FL130 in discesa con pista 25`, la stessa riga con condizioni diverse
+   che il modello non sa legare;
+4. il passo 2 di `CoordinationDerivation.Build` filtra `Arrival` + owner `Ctr`, quindi **l'ACC non vede le
+   partenze** che gli APP gli consegnano. Decisione: nella sezione estesa ci va tutto ciò che entra o esce;
+5. filtro «righe da rivedere» nell'editor, perché le righe ACC→APP esistenti si rivedono a mano (16 nel DB di
+   sviluppo, da rimisurare in produzione).
+
+⚠️ Due punti da leggere **prima** di stimare, non durante: `TransferMatcher` pesa la graduatoria su «un punto,
+un livello», e `TransferResolveContract.CandidateLevel` è un contratto verso Aurora — con due livelli va deciso
+quale finisce nell'etichetta quota.
+
 ---
 
 ## F. Rimandato, non cancellato
