@@ -4,7 +4,18 @@
 chiuse, E sfoltita.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 9 agosto 2026)
+> ## 🧭 DA DOVE SI RIPARTE (aggiornato l'11 agosto 2026)
+>
+> **⚠️ C'è un ramo pronto e non fuso: `refactor/13-tre-documenti`** (19 commit, suite **1391** verde,
+> verifica live fatta). È il [doc 13](docs/refactor/13-audit-tre-documenti.md), l'audit dei tre documenti:
+> catalogo fonte unica anche di «chi rende il corpo» e «quale sezione è obbligatoria», vLOA finalmente dal
+> catalogo, gate pubblico su ricerca e «Cosa è cambiato», pannello release uguale nei quattro editor, una
+> sola resa per ogni sezione comune. Dentro ci sono **due difetti che uscivano dal documento**: la pagina
+> APP pubblica mostrava le configurazioni della bozza, e gli indici servivano documenti nascosti, sezioni
+> nascoste e contenuto senza release. Il merge in `main` **aspetta l'ok esplicito** (come per il doc 10).
+>
+> Al primo avvio dopo il merge girano tre riconciliazioni one-shot (chiavi vLOA, placeholder «minima»,
+> sezioni di catalogo mancanti): sul DB di sviluppo hanno toccato 15 sezioni e 18 blocchi.
 >
 > **Il ramo `feat/persistenza-mysql` è stato fuso in `main`**: il cutover non è più un ramo a parte. `main` è
 > ora **net8 + Pomelo + MariaDB**, il Dockerfile pubblica su `aspnet:8.0`, e il deploy Render+Neon resta in

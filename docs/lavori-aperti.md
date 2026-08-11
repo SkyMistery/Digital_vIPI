@@ -323,6 +323,27 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+### B5 🟡 `refactor/13-tre-documenti` — pronto, in attesa di un ok
+
+19 commit, suite **1391** verde, build senza errori, **verifica live fatta** sui tre documenti (copia del
+`vipi.db` reale). È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA,
+nato dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
+
+Perché conviene farlo entrare: due difetti **uscivano dal documento** — la pagina APP pubblica derivava le
+configurazioni dalla versione di lavoro (bozza in pubblico, contro l'invariante del doc 10), e ricerca e
+«Cosa è cambiato» indicizzavano documenti nascosti, **sezioni** nascoste e contenuto senza release
+effettiva. Il resto è uniformità: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria»,
+vLOA dal catalogo, ciclo AIRAC del documento invece che di oggi, pannello release uguale nei quattro
+editor, una sola resa per sezione comune, testi localizzati, codice morto rimosso.
+
+Da sapere prima del merge: al primo avvio girano **tre riconciliazioni one-shot** (chiavi delle direzioni
+vLOA + «Purpose», placeholder vuoti di «minima», sezioni di catalogo mancanti su APP/vLOA). Sul DB di
+sviluppo hanno toccato 15 sezioni e rimosso 18 blocchi. Sono idempotenti e non toccano le release già
+pubblicate — il viewer sa leggere anche gli snapshot nella forma vecchia.
+
+**Decisione da prendere:** merge in `main` (serve l'ok esplicito, come per il doc 10) e push.
+
+
 ### B1 ✅ FUSA — `feature/aree-speciali-hardening`, verificata il 6 agosto e fusa il 7 agosto 2026
 **Fusa in `main` in fast-forward** (21 commit, `bbbbf2b` → `7557ec4`) e da lì nel ramo del cutover
 `feat/persistenza-mysql`. Il ramo può essere cancellato dopo il push di `main`. Sotto, l'esito della
