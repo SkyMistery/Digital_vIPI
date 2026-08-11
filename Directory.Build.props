@@ -32,6 +32,24 @@
 
     <!-- Deterministico in CI: l'assembly non porta dentro i percorsi assoluti del runner. -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!--
+      File di lock delle dipendenze, uno per progetto, committati.
+
+      ⚠️ Le versioni dei pacchetti sono scritte con le wildcard (8.0.*, 10.0.*, 11.2.*). Vuol dire che
+      ricompilare LO STESSO COMMIT fra due mesi produceva un binario diverso da quello consegnato — e per un
+      pacchetto self-contained che va su una macchina di qualcun altro, e che si rigenera ogni volta che si
+      corregge qualcosa, è una differenza che nessuno può vedere finché non rompe.
+
+      Il lock file registra le versioni ESATTE risolte. In locale il restore le riverifica e aggiorna il file
+      (la deriva si vede in git, che è il punto); in CI si passa l'opzione «locked mode» al restore, che
+      invece fallisce se qualcosa è cambiato senza che nessuno l'abbia scritto.
+
+      Perché non la gestione centralizzata dei pacchetti (Directory.Packages.props): darebbe un posto solo per
+      le versioni, ma la riproducibilità — che è il problema vero — la dà il lock file, e toccare venti csproj
+      con versioni già condizionate al TFM è rischio senza il guadagno che conta.
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
 </Project>

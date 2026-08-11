@@ -1,6 +1,24 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 9 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 11 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+
+> ### 🆕 11 agosto 2026 — audit full-stack, eseguito
+> Carta ed esito in [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md).
+> 34 voci esaminate, 23 chiuse, 3 ribaltate dalla misura, 5 non fatte con la ragione scritta. Suite da 1391 a
+> **2087** test verdi.
+>
+> **Due cose toccano direttamente questo elenco:**
+> - ⚠️ **B5 era mergiabile solo in apparenza.** Il ramo `refactor/13-tre-documenti` portava 14 chiavi
+>   duplicate nei `.resx`: con `-warnaserror` il job CI `build-net8` dava **28 errori**, e nessuno l'aveva
+>   visto perché il ramo non era mai stato spinto. Corretto, con tre guardie. La decisione di merge resta
+>   vostra, ma adesso il ramo compila davvero.
+> - ⚠️ **Su net8 — cioè la produzione — girava un solo progetto di test su sette.** Gli altri sei erano
+>   net10, ~1000 test che non toccavano mai il runtime del cutover. Ora sono 1102 su net8.
+>
+> **Voci nuove, aperte:** un test di `Vipi.AuroraBridge.Tests` che fallisce a intermittenza sotto carico
+> (nome non catturato, sospetto `FakeAuroraServer`); la CSP è in sola segnalazione finché non spariscono lo
+> `<script>` inline dello zoom e gli `style=` nel markup; la mappa dei claim OIDC e il nonce vanno con A10,
+> perché richiedono un login IVAO vero.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.

@@ -105,6 +105,7 @@ Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti es
 | [history/audit-2026-07-14-correttezza-fonti-dati.md](history/audit-2026-07-14-correttezza-fonti-dati.md) | Audit senior correttezza + fonti-dati multiple: findings A1–A4/B1–B5, falsi positivi, fix. |
 | [history/audit-2026-07-22-criticita-full-stack.md](history/audit-2026-07-22-criticita-full-stack.md) | Audit full-stack (back/front/DB): 15 criticità con severità + piano a fasi + Fase 1 (health-check migrazioni, osservabilità import, rete test bUnit/E2E). |
 | [history/audit-2026-07-30-concorrenza-e-ridondanze.md](history/audit-2026-07-30-concorrenza-e-ridondanze.md) | Audit concorrenza/codice morto/ridondanze: 8 fix di race condition, import SID rotto in silenzio, 450 righe morte, 4 estrazioni + bug Razor `v@r.…` trovato in verifica live. |
+| [history/audit-2026-08-11-crepe-full-stack.md](history/audit-2026-08-11-crepe-full-stack.md) | Audit full-stack **con esito**: 34 voci (2 bloccanti, 5 alte, 17 medie, 11 di debito), 23 chiuse, 3 ribaltate dalla misura, 5 rimandate con la ragione. Carta scritta prima di toccare il codice, esito in fondo. La CI era rossa sul ramo del doc 13 e su net8 girava 1 progetto di test su 7. |
 
 ---
 **Nota:** i commenti nel codice sorgente (`.cs`/`.razor`) citano i documenti per **nome e sezione** in forma informale (es. «modello-dati §9.12», «ADR-0001 D5»), non come link a percorso.

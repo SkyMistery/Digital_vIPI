@@ -60,4 +60,41 @@ public class PolygonGeometryTests
         var dist = PolygonGeometry.MinEdgeDistanceNm(a!.Points, d!.Points);
         Assert.True(dist is > 350 and < 430, $"distanza attesa ~391 NM, ottenuta {dist:0}");
     }
+
+    /// <summary>
+    /// Un anello incapsulato (<c>[[[lng,lat],…]]</c>) si legge: è la forma con cui la sorgente manda alcuni
+    /// poligoni, ed era già gestita.
+    /// </summary>
+    [Fact]
+    public void Un_anello_incapsulato_si_legge()
+    {
+        var pts = PolygonGeometry.ParsePoints("[" + SquareA + "]");
+
+        Assert.Equal(4, pts.Count);
+        Assert.Equal((43.0, 10.0), pts[0]);
+    }
+
+    /// <summary>
+    /// <b>Fotografa un limite noto, non lo approva.</b> Con più anelli allo stesso livello — un MultiPolygon,
+    /// o un poligono con un buco — <c>ExtractPoints</c> scende nel PRIMO e ignora gli altri, in silenzio.
+    ///
+    /// <para>Misurato l'11 agosto 2026 su <c>vipi.db</c>: <b>zero</b> casi del genere su 1338 poligoni reali
+    /// (1273 anelli singoli, 50 colonne vuote, 15 array vuoti). Per questo il comportamento non è stato
+    /// cambiato: far restituire più anelli a <c>ToRing</c> vorrebbe dire toccare tutti i consumatori — mappa
+    /// AoR, adiacenza dei confinanti, poligoni pubblicati — per un caso che non si verifica.</para>
+    ///
+    /// <para>⚠️ Se un giorno questo test comincia a sembrare sbagliato, è perché la misura è cambiata: allora
+    /// la correzione è restituire tutti gli anelli, non aggiustare l'asserzione. Un settore che perde metà
+    /// della propria forma sbaglia i vicini, e i vicini decidono i coordinamenti.</para>
+    /// </summary>
+    [Fact]
+    public void Con_piu_anelli_si_legge_solo_il_primo_ed_e_un_limite_noto()
+    {
+        var multi = "[" + SquareA + "," + SquareD_Far + "]";
+
+        var pts = PolygonGeometry.ParsePoints(multi);
+
+        Assert.Equal(4, pts.Count);                       // solo il primo anello
+        Assert.DoesNotContain(pts, p => p.Lon >= 20.0);   // il secondo (lon 20..21) è sparito
+    }
 }

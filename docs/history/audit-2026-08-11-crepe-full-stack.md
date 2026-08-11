@@ -1,6 +1,11 @@
 # Audit full-stack — 11 agosto 2026
 
-**Ramo esaminato:** `refactor/13-tre-documenti` (20 commit avanti a `origin/main`) · **Stato:** carta, nessuna riga di codice toccata.
+**Ramo esaminato:** `refactor/13-tre-documenti` · **Stato:** ✅ **eseguito lo stesso giorno.** L'esito per
+voce è in fondo, in «[Esito dell'esecuzione](#esito-dellesecuzione--11-agosto-2026)»; qui sotto resta l'analisi
+com'era stata scritta, **prima** di toccare il codice, perché la parte che vale rileggere è il ragionamento —
+e in due casi (M13, D4/D5) la misura ha poi ribaltato la conclusione.
+
+Suite dopo l'esecuzione: **2087 test verdi** — 1102 su net8, 985 su net10. Build pulita, zero avvisi.
 
 Audit indipendente di tutta l'applicazione: sicurezza, concorrenza, persistenza, scala, front-end, build e
 processo. Non riparte da `lavori-aperti.md` — quello dice cosa si sa già; questo cerca quello che non si sa.
@@ -684,3 +689,111 @@ delle due è urgente, entrambe toccano molto, e nessuna va fatta di fretta.
   quanto di quel codice sia davvero esercitato non lo so, e nel progetto non c'è ancora una misura.
 - **Non ho toccato il bridge Aurora** oltre a quel che serviva per M4: è spento per default, e la sua
   superficie è già stata rivista in B2 con più attenzione di quanta gliene avrei dedicata io qui.
+
+---
+
+## Esito dell'esecuzione — 11 agosto 2026
+
+Tutte le voci sono state affrontate nell'ordine proposto. Quattro commit: `f44a3bb` (passo 0+1), `3807585`
+(passo 2), `dc2ca23` (passo 3), più quello del passo 4.
+
+**Suite: 2087 test verdi** (net8 1102, net10 985 — erano 347 su net8 prima del passo 1). Build pulita con
+`TreatWarningsAsErrors`, zero avvisi.
+
+### Chiuse (23)
+
+| # | Come è finita |
+|---|---|
+| **B1** | 14 chiavi duplicate rimosse per file. Tre guardie in `SharedResourceIntegrityTests` che leggono i `.resx` **dal disco** — un duplicato nella risorsa compilata non c'è più per definizione. **Vista fallire** inserendo un duplicato finto. |
+| **B2** | Application/Domain/Hosting/Ui multi-target; E2E e AuroraBridge portati a **net8 e basta**, perché i progetti che avviano (`Vipi.Host`, `AuroraBridge.Core`) sono net8 e basta — prima li caricavano in roll-forward sul runtime 10. Il job CI fa `dotnet test -f net8.0` invece di `dotnet build`. |
+| **D9** | `Directory.Build.props` con `TreatWarningsAsErrors`. Gli avvisi NuGet restano avvisi (li decide il feed, non noi) ma `NuGetAudit` è acceso in modalità `all`. |
+| **A1** | Filtro dei blocchi spostato nel database + `ToLookup` al posto delle due `Where` nel ciclo. Il filtro è `ToLower()` su entrambi i lati e **non** un `LIKE` nudo: `LIKE` segue la collation, e in produzione è `as_cs` — un `LIKE` nudo avrebbe reso la ricerca sensibile alle maiuscole in silenzio, solo su MariaDB. |
+| **A2** | `ConsistencyReportCache`, TTL 2 minuti, stessa forma di `GlobalTopologyCache`. Endpoint lasciato **aperto** di proposito: il problema era il costo, non la riservatezza, e chiuderlo dietro il login lo toglierebbe a chi ha più motivo di guardarlo. |
+| **A3** | `SaveTokens = false`. |
+| **A4** | Pubblicazione dentro `IUnitOfWork`. Test **visto fallire** senza la transazione: «Assert.Empty() Failure: Collection was not empty». |
+| **A5** | Leaflet vendorizzato in `wwwroot/vendor/leaflet/`. Lo sha256 dei file scaricati **combacia** con l'`integrity` che stava in `App.razor` — stessi byte, verificato. Guardia E2E: zero `src`/`href` esterni nella pagina servita. |
+| **M1** | `SafeReturn` riscritta, 16 casi in tabella. |
+| **M4** | Loopback fra i proxy fidati in Production; nginx passa `$remote_addr`; `AllowedHosts` col nome vero. |
+| **M5** | Header su ogni risposta + CSP in **sola segnalazione**. Guardia E2E su due percorsi. |
+| **M6** | `ResourceLockKeys.RichiedonoAdmin`. Due test: la struttura la prende solo un admin, `editor:newdoc` resta di tutti. |
+| **M7** | Due ingressi come in `AccAdminService`. **Prima non aveva alcun test**; ora ne ha cinque. |
+| **M8** | Sottocartella `diagnostica/` + la riga di nginx che la nega. |
+| **M9** | `using` sul semaforo + tetto a 300 connessioni contemporanee. |
+| **M10** | 25 circuiti trattenuti, 2 minuti, `DetailedErrors` scritto. Numeri **stimati**: da rivedere dopo il primo ciclo AIRAC dal server nuovo. |
+| **M11** | `catch` generico che salta il colpo e riprova al tick dopo. |
+| **M12** | `DelayedUiAction` al posto del contatore in quattro editor, con cinque test. |
+| **M13** | **Misurata, non corretta** — vedi sotto. |
+| **M14** | `packages.lock.json` committati + «locked mode» nel restore della CI. **Non** la gestione centralizzata dei pacchetti: la riproducibilità la dà il lock file, e toccare venti csproj con versioni già condizionate al TFM è rischio senza il guadagno che conta. |
+| **M15** | `<html lang>` segue la cultura risolta. |
+| **M16** | `AorBlock` e `AirportQuickPanel` passano dalle risorse (7 chiavi nuove per lingua). |
+| **M17** | `UseAntiforgery()` dopo `UseAuthentication`/`UseAuthorization`. |
+| **D7** | La lista dei prefissi noti sparisce: si chiede al localizzatore se la chiave esiste (`ResourceNotFound`). |
+
+### Ribaltate dalla misura (3)
+
+Il piano diceva «misurare prima di toccare». Misurato, tre voci **non** andavano fatte — e dirlo è il
+risultato, non una scorciatoia.
+
+- **M13 — multi-poligono.** Contati i poligoni reali in `vipi.db`: **1338**, di cui 1273 con un anello solo,
+  50 colonne vuote, 15 array vuoti. **Zero** con più di un anello. Quindi il ramo che scende solo nel primo
+  non perde niente oggi. Far restituire più anelli a `ToRing` significherebbe toccare tutti i consumatori —
+  mappa AoR, adiacenza dei confinanti, poligoni pubblicati — per un caso che non si verifica. Fatto invece:
+  la misura è scritta nel commento, e un test **fotografa** il limite dicendo che se un giorno sembrerà
+  sbagliato la correzione è restituire tutti gli anelli, non aggiustare l'asserzione.
+- **D4 — retention dell'audit.** `AuditLogs` ha **19 righe**, dal 12 al 31 luglio, cioè tre settimane di
+  sviluppo fitto: circa 330 righe l'anno. Costruire una potatura sarebbe infrastruttura da mantenere per un
+  problema che non esiste.
+- **D5 — immagini orfane.** `MediaAssets` ha **1 riga**. Stessa conclusione.
+
+### Non fatte, con la ragione (5)
+
+- **M2 — nonce e validazione userinfo OIDC.** Richiede un login IVAO vero per essere verificata, e sbagliare
+  lì significa non far entrare nessuno il giorno del cutover. Va con **A10**, non prima.
+- **A3, seconda metà — `ClaimActions.MapAll()`.** Stessa ragione: restringere la mappa dei claim è giusto,
+  ma un nome di campo sbagliato non lancia — toglie l'admin, in silenzio, al primo accesso dopo il cutover.
+  Il grosso del cookie erano comunque i token, ed è già andato via.
+- **D1 — estrarre `Guarded`.** `SaveState` e l'auto-dismiss erano identici e sono stati estratti. `Guarded`
+  **no**: confrontati i corpi e non le firme, divergono davvero — `catch` diversi, `EditConflictException`
+  che ricarica il lock solo in tre, messaggi diversi, e una versione che torna `bool`. Unificarla porterebbe
+  l'unione di cinque `catch` dentro ogni chiamante.
+- **D2 — i file da 1500 righe.** Da fare una sezione alla volta, quando si tocca quella sezione per altro.
+- **D8 — lock distribuito all'avvio.** La scala decisa è una istanza (audit 22 luglio, voce A2), scritta in
+  `nginx-vipi.conf`. Un lock applicativo vorrebbe dire un terzo dialetto SQL (`GET_LOCK` su MySQL,
+  `pg_advisory_lock` su Postgres, niente su SQLite), che è esattamente il costo di cui ADR-0007 §D4-ter si
+  lamenta già a due.
+
+### Nate durante l'esecuzione (3)
+
+- ⚠️ **`Tmds.DBus.Protocol` 0.20.0 — vulnerabilità high (GHSA-xrw6-gwf8-vvr9)**, tirata da Avalonia nel tool
+  desktop. **Trovata dal `NuGetAudit` acceso in D9**, non da un allarme esterno. Provate 0.21.2, 0.22, 0.25,
+  0.30, 0.80, 0.90: l'avviso resta su tutte, la **0.94.2 è la prima che lo chiude**. Pinnata. Il salto è
+  grosso e riguarda l'integrazione D-Bus **su Linux**, che il tool non spedisce e il sito non referenzia
+  affatto: rischio teorico su un bersaglio che non consegniamo. Da togliere quando Avalonia sale da sé.
+- ⚠️ **Un test di `Vipi.AuroraBridge.Tests` fallisce a intermittenza** sotto carico: 2 volte su ~9 giri della
+  suite intera, mai in 3 giri in isolamento né negli ultimi 5 giri interi. **Nome non catturato** — il logger
+  normale non lo riporta quando il giro successivo passa. Sospetto `FakeAuroraServer`, che apre un socket TCP
+  vero. **Voce aperta.** Un test che fallisce a caso è peggio di un test che manca: insegna a ignorare il rosso.
+- ⚠️ **Un `Directory.Build.props` non valido si porta via tutto.** Un doppio trattino dentro un commento XML
+  (stavo scrivendo il nome dell'opzione «locked mode» con i trattini davanti) rende il file illeggibile:
+  MSBuild dà `MSB4024` e **nessuna** delle proprietà si applica, `TreatWarningsAsErrors` compreso. L'errore è
+  rumoroso, ma la conseguenza — che quel file è un punto singolo di fallimento per tutte le garanzie di build
+  — vale la pena saperla.
+
+### a11y (D3) — metà
+
+Le 12 chip/pill di filtro (ricerca, versioni, confinanti, «Cosa è cambiato», vista live, vista rapida
+aeroporto) passano dal componente `Chip`: `role="button"`, `tabindex="0"`, `aria-pressed`, Invio e Spazio.
+Rende uno `<span>` e non un `<button>` di proposito — i fogli di stile disegnano `.ch` e `.pill` su elementi
+in linea, e un `<button>` porterebbe margini, font e box-sizing da azzerare in ogni tema. Sette test.
+
+**Restano fuori**: le celle di tabella cliccabili di `AeroportiPage` (3) e i toggle dell'albero in
+`StrutturaPage` (2). Sono comandi con una forma diversa e vanno guardati insieme alla pagina, non convertiti
+a tappeto.
+
+### Cosa resta aperto, in una riga
+
+1. 🔴 Il **test intermittente** del bridge Aurora: da isolare e correggere.
+2. 🟡 **M2 + la seconda metà di A3**: al primo login IVAO vero (con A10).
+3. 🟡 **CSP da segnalazione a vera**: prima vanno via lo `<script>` inline dello zoom e gli `style=` nel markup.
+4. 🟢 **D3 restante** (5 comandi), **D2** (file lunghi), **M3 punto 2** (identità del circuito).
+5. 🟢 I numeri di **M10** (tetti dei circuiti) sono stime: vanno rivisti su un ciclo AIRAC vero.

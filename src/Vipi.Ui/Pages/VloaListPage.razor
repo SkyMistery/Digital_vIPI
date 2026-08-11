@@ -199,9 +199,14 @@ else
 
     // Paese dal prefisso ICAO dell'ACC confinante (per raggruppamento + tag), dalle risorse: i nomi dei paesi
     // cambiano con la lingua della pagina. Prefisso senza traduzione = si mostra il prefisso stesso.
-    private static readonly string[] KnownPrefixes =
-        { "LF", "LS", "LO", "LD", "LJ", "LG", "LM", "LA", "LW", "LQ", "LY", "LU", "DA", "DT", "LI" };
-
-    private string Country(string prefix) =>
-        KnownPrefixes.Contains(prefix) ? L["Country_" + prefix].Value : prefix;
+    //
+    // Si chiede al localizzatore se la chiave esiste (ResourceNotFound) invece di tenere qui una lista dei
+    // prefissi noti. Quella lista era una seconda copia dei nomi paese che stanno nel .resx, e le due
+    // potevano scollarsi in un modo silenzioso e a senso unico: aggiungere un paese SOLO nelle risorse dava
+    // una pagina che mostra «LB» invece di «Libano», senza che niente lo segnalasse.
+    private string Country(string prefix)
+    {
+        var tradotto = L["Country_" + prefix];
+        return tradotto.ResourceNotFound ? prefix : tradotto.Value;
+    }
 }

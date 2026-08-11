@@ -1,4 +1,4 @@
-@page "/vsop/changed"
+﻿@page "/vsop/changed"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IChangesService Changes
@@ -14,10 +14,10 @@
     </div>
 
     <div class="apt-quick" style="margin:6px 0 20px">
-        <span class="ch @(_acc is null ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(null)">@L["Common_All"]</span>
+        <Chip Class="@($"ch {(_acc is null ? "on" : "")}")" Active="_acc is null" Style="cursor:pointer" OnActivate="() => SetAcc(null)">@L["Common_All"]</Chip>
         @foreach (var f in _accs)
         {
-            <span class="ch @(_acc == f ? "on" : "")" style="cursor:pointer" @onclick="() => SetAcc(f)">@f</span>
+            <Chip Class="@($"ch {(_acc == f ? "on" : "")}")" Active="_acc == f" Style="cursor:pointer" OnActivate="() => SetAcc(f)">@f</Chip>
         }
     </div>
 

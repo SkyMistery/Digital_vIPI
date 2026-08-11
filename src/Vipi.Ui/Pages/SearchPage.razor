@@ -1,4 +1,4 @@
-@page "/vsop/search"
+﻿@page "/vsop/search"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Net
@@ -18,7 +18,7 @@
     <div class="apt-quick" style="margin-bottom:18px">
         @foreach (var (labelKey, sc) in _scopes)
         {
-            <span class="ch @(_scope == sc ? "on" : "")" style="cursor:pointer" @onclick="() => SetScope(sc)">@L[labelKey]</span>
+            <Chip Class="@($"ch {(_scope == sc ? "on" : "")}")" Active="_scope == sc" Style="cursor:pointer" OnActivate="() => SetScope(sc)">@L[labelKey]</Chip>
         }
     </div>
 

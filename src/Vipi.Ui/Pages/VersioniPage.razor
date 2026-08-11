@@ -1,4 +1,4 @@
-@page "/vsop/versioni"
+﻿@page "/vsop/versioni"
 @page "/vsop/{Acc}/versioni"
 @layout SopLayout
 @rendermode InteractiveServer
@@ -53,17 +53,17 @@
             <span>@L["Ver_KindLabel"]</span>
             @foreach (var (k, lab) in KindFilters)
             {
-                <span class="pill @(_kindFilter == k ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetKind(k)">@lab</span>
+                <Chip Class="@($"pill {(_kindFilter == k ? "blue" : "grey")}")" Active="_kindFilter == k" Style="cursor:pointer" OnActivate="() => SetKind(k)">@lab</Chip>
             }
             <span style="margin-left:6px">@L["Ver_StatusLabel"]</span>
             @foreach (var (s, lab) in StatusFilters)
             {
-                <span class="pill @(_statusFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetStatus(s)">@lab</span>
+                <Chip Class="@($"pill {(_statusFilter == s ? "blue" : "grey")}")" Active="_statusFilter == s" Style="cursor:pointer" OnActivate="() => SetStatus(s)">@lab</Chip>
             }
             <span style="margin-left:6px">@L["Ver_ReleaseLabel"]</span>
             @foreach (var (s, lab) in ReleaseFilters)
             {
-                <span class="pill @(_releaseFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetRelease(s)">@lab</span>
+                <Chip Class="@($"pill {(_releaseFilter == s ? "blue" : "grey")}")" Active="_releaseFilter == s" Style="cursor:pointer" OnActivate="() => SetRelease(s)">@lab</Chip>
             }
         </div>
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -1293,4 +1293,11 @@
   <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Delete the image?</value></data>
   <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Deleted 1 image.</value></data>
   <data name="MediaClean_ColPreview" xml:space="preserve"><value>Preview</value></data>
+  <data name="AorBlock_All" xml:space="preserve"><value>All</value></data>
+  <data name="AorBlock_None" xml:space="preserve"><value>None</value></data>
+  <data name="AorBlock_OverlapLegend" xml:space="preserve"><value>Overlap = boundary shared by the visible sectors. Turn a sector off to isolate how the others interact.</value></data>
+  <data name="AorBlock_ConfigLabel" xml:space="preserve"><value>Configuration:</value></data>
+  <data name="AorBlock_ConfigClear" xml:space="preserve"><value>clear</value></data>
+  <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selecting a configuration highlights the matching settings under "Operational configurations".</value></data>
+  <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Selected runway</value></data>
 </root>
