@@ -20,6 +20,23 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.2.*" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.*" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.*" />
+
+    <!-- Pin transitivo. Avalonia.Desktop 11.2 tira Tmds.DBus.Protocol 0.20.0, che ha una vulnerabilità
+         high (GHSA-xrw6-gwf8-vvr9) — trovata dal NuGetAudit acceso in Directory.Build.props l'11 agosto
+         2026, non da un allarme esterno.
+
+         ⚠️ Il salto è grosso, e non per scelta: provate 0.21.2, 0.22, 0.25, 0.30, 0.80 e 0.90, l'avviso
+         resta su tutte — la **0.94.2 è la prima versione che lo chiude**. Scavalca di molto quel che
+         Avalonia 11.2 si aspetta.
+
+         Perché lo si accetta: è l'integrazione **D-Bus su Linux** di Avalonia, e il tool desktop gira su
+         Windows (il pacchetto macOS è chiuso per decisione, quello Linux non è mai esistito). Il sito —
+         cioè quel che va su atc.it.ivao.aero — non referenzia Avalonia affatto. Nessun rischio per la
+         produzione; rischio teorico su un bersaglio che non spediamo.
+
+         NON è verificato che il tool si apra su Linux con questa versione — e non lo era nemmeno prima.
+         Da togliere appena Avalonia sale da sé, che è la correzione vera. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.2" />
   </ItemGroup>
 
   <ItemGroup>

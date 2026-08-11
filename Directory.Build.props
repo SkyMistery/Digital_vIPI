@@ -1,0 +1,37 @@
+<Project>
+
+  <!--
+    Impostazioni comuni a TUTTI i progetti del repository (src, tests, tools): MSBuild importa questo file
+    risalendo dall'albero, quindi non serve referenziarlo da nessuna parte.
+
+    ── Perché esiste ────────────────────────────────────────────────────────────────────────────────────
+    L'11 agosto 2026 la build di produzione era rotta e la suite verde nello stesso momento: quattordici
+    chiavi duplicate in SharedResource.resx producevano altrettanti MSB3568, e il solo posto che li
+    trasformava in un ostacolo era il job CI `build-net8` — un ramo che non era ancora mai stato spinto.
+    `dotnet build` in locale li stampava e proseguiva; `dotnet test` non li vedeva affatto.
+
+    Un avviso che arriva sulla macchina di chi scrive costa un minuto. Lo stesso avviso che arriva dopo il
+    merge costa una giornata. TreatWarningsAsErrors è la riga che sposta il momento.
+
+    ⚠️ Non è gratis: da qui in avanti un avviso nuovo FERMA la build. È voluto. Se un avviso va tollerato,
+    si silenzia dove nasce, con scritto perché — non alzando le spalle qui.
+  -->
+
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Gli avvisi di NuGet (pacchetto deprecato, vulnerabilità note, downgrade) NON diventano errori: li
+         decide il feed, non il nostro codice, e un avviso nuovo pubblicato di notte fermerebbe una build
+         che ieri passava senza che nulla qui sia cambiato. Restano visibili e vanno letti. -->
+    <WarningsNotAsErrors>NU1900;NU1901;NU1902;NU1903;NU1904;NU5104;NU1701</WarningsNotAsErrors>
+
+    <!-- Vulnerabilità nei pacchetti: elencate a ogni restore invece che a richiesta. È il rovescio della
+         riga sopra — non fermano la build, ma non si possono più non vedere. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+
+    <!-- Deterministico in CI: l'assembly non porta dentro i percorsi assoluti del runner. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

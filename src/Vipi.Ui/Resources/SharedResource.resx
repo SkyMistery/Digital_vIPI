@@ -510,20 +510,9 @@
   <data name="Home_PermsDesc" xml:space="preserve"><value>Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>sì</value></data>
   <data name="Common_UnexpectedError" xml:space="preserve"><value>Errore imprevisto: </value></data>
-  <data name="Country_LI" xml:space="preserve"><value>Italia</value></data>
-  <data name="Country_LF" xml:space="preserve"><value>Francia</value></data>
-  <data name="Country_LS" xml:space="preserve"><value>Svizzera</value></data>
-  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
-  <data name="Country_LD" xml:space="preserve"><value>Croazia</value></data>
-  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
-  <data name="Country_LG" xml:space="preserve"><value>Grecia</value></data>
-  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
-  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
-  <data name="Country_LQ" xml:space="preserve"><value>Bosnia</value></data>
-  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
-  <data name="Country_LW" xml:space="preserve"><value>Macedonia del Nord</value></data>
-  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
-  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <!-- I nomi dei paesi vivono UNA volta sola, più in alto (Country_LF … Country_LI). Qui c'era un secondo
+       elenco, quasi identico: il compilatore di risorse scartava i duplicati con 14 MSB3568 per file, e con
+       -warnaserror la build di produzione non passava. Chi aggiunge un paese lo aggiunge lassù. -->
   <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Center importati dalla sorgente. Tutti attivi: nascondine alcuni se serve.</value></data>
   <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Importa/aggiorna ACC e settori ACC dalla sorgente dati</value></data>
   <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Importa da sorgente</value></data>

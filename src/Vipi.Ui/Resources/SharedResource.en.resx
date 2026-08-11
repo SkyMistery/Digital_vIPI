@@ -507,20 +507,9 @@
   <data name="Home_PermsDesc" xml:space="preserve"><value>Grant a VID (CH or not) the right to edit documents per ACC.</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>yes</value></data>
   <data name="Common_UnexpectedError" xml:space="preserve"><value>Unexpected error: </value></data>
-  <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
-  <data name="Country_LF" xml:space="preserve"><value>France</value></data>
-  <data name="Country_LS" xml:space="preserve"><value>Switzerland</value></data>
-  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
-  <data name="Country_LD" xml:space="preserve"><value>Croatia</value></data>
-  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
-  <data name="Country_LG" xml:space="preserve"><value>Greece</value></data>
-  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
-  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
-  <data name="Country_LQ" xml:space="preserve"><value>Bosnia</value></data>
-  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
-  <data name="Country_LW" xml:space="preserve"><value>North Macedonia</value></data>
-  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
-  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <!-- Country names live ONCE, further up (Country_LF … Country_LI). A second, near-identical list used to
+       sit here: the resource compiler dropped the duplicates with 14 MSB3568 per file, and -warnaserror broke
+       the production build. Add new countries up there. -->
   <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Centers imported from the source. All active: hide some if needed.</value></data>
   <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Import/update ACCs and ACC sectors from the data source</value></data>
   <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Import from source</value></data>

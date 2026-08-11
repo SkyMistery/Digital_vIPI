@@ -1,7 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Multi-target come Vipi.Hosting. È il progetto che prova l'AVVIO del modulo, cioè il punto dove le
+         differenze fra i due runtime si vedono per prime (MigrateVipiDatabase, dispatch dei provider,
+         registrazione degli endpoint): provarlo solo su net10 significava non provarlo dove conta. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
