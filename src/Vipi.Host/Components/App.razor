@@ -1,5 +1,9 @@
-﻿<!DOCTYPE html>
-<html lang="it">
+﻿@using System.Globalization
+<!DOCTYPE html>
+@* La lingua della pagina è quella risolta da UseRequestLocalization, non «it» fisso: il modulo è
+   localizzato in it/en, e con lang sbagliato uno screen reader pronuncia l'inglese con le regole
+   italiane e il browser offre una traduzione che non serve. *@
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
 
 <head>
     <meta charset="utf-8" />
@@ -12,9 +16,14 @@
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-print.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
-    <!-- Leaflet (mappa AOR minimal). -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Leaflet 1.9.4 (mappa AOR minimal), VENDORIZZATO come three.js e i font. Prima arrivava da
+         unpkg.com: l'SRI copriva la manomissione, non la disponibilità — CDN irraggiungibile = tutte le
+         mappe vuote, senza ripiego — né la coerenza con il resto, che è tutto self-hosted apposta.
+         I byte sono gli stessi: lo sha256 dei file in vendor/leaflet combacia con l'integrity che stava
+         qui (js 20nQCchB9co0…, css p4NxAoJBhIIN…), verificato scaricandoli.
+         ⚠️ Le TESSERE della mappa restano esterne (basemaps.cartocdn.com): quelle non si vendorizzano.
+         Senza rete i poligoni — cioè il dato nostro — si disegnano lo stesso, su sfondo vuoto. -->
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:#f4f5f9}</style>
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -44,8 +53,7 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-screens.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-live.js")"></script>

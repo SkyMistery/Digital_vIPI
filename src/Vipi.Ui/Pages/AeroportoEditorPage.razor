@@ -1045,7 +1045,9 @@ else
     }
 
     // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
-    private async Task ReimportSids() { if (await Guarded(() => SidImporter.ImportAsync(_icao))) await LoadAsync(); }
+    // ImportForCurrentUserAsync e non ImportAsync: quest'ultimo è l'ingresso del job periodico, che gira
+    // senza utente e quindi senza controllo di autorizzazione. Vedi ISidImporter.
+    private async Task ReimportSids() { if (await Guarded(() => SidImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync(); }
 
     private Task SaveImported(ImportedSidEdit e) => Guarded(() => PersistImported(e));
 

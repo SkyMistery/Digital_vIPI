@@ -30,6 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Per provare SafeReturn (anti open-redirect) senza doverla rendere pubblica: è un dettaglio del
+         modulo di login, non superficie dell'host. -->
+    <InternalsVisibleTo Include="Vipi.E2E.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Modulo login IVAO OIDC (scenario C, standalone). STACCABILE: rimuovi questo pacchetto + i file
          Auth\*.cs quando vIPI va embedded in un host con auth propria. Il core resta invariato. -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.*" />

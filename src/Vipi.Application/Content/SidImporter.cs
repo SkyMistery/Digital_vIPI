@@ -22,15 +22,29 @@ public sealed class SidImporter : ISidImporter
     private readonly IAirportRepository _repo;
     private readonly IImportPolicyStore _policy;
     private readonly IAiracService _airac;
+    private readonly Vipi.Application.Auth.IEditAuthorizationService _authz;
 
-    public SidImporter(ISidProvider provider, IAirportRepository repo, IImportPolicyStore policy, IAiracService airac)
+    public SidImporter(ISidProvider provider, IAirportRepository repo, IImportPolicyStore policy,
+        IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz)
     {
         _provider = provider;
         _repo = repo;
         _policy = policy;
         _airac = airac;
+        _authz = authz;
     }
 
+    /// <inheritdoc />
+    public async Task<int> ImportForCurrentUserAsync(string icao, CancellationToken ct = default)
+    {
+        var norm = icao.Trim().ToUpperInvariant();
+        var acc = await _repo.GetAccCodeByIcaoAsync(norm, ct)
+            ?? throw new Vipi.Application.Aor.ValidationException($"Aeroporto {norm} inesistente o senza ACC.");
+        await _authz.EnsureCanEditAccAsync(acc, ct);
+        return await ImportAsync(norm, ct);
+    }
+
+    /// <inheritdoc />
     public async Task<int> ImportAsync(string icao, CancellationToken ct = default)
     {
         icao = icao.Trim().ToUpperInvariant();

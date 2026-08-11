@@ -35,6 +35,16 @@ public static class VipiModuleExtensions
     public const string FullTag = "full";
 
     /// <summary>
+    /// Tetto alle connessioni SSE contemporanee su <c>/vsop/live/atc</c>. Costante e non configurazione:
+    /// la scala è una divisione, il numero giusto non dipende dall'installazione, e un'opzione in più è
+    /// un'opzione in più da spiegare. Oltre il tetto si risponde 503 con <c>Retry-After</c>.
+    /// </summary>
+    private const int MaxSseConcorrenti = 300;
+
+    /// <summary>Connessioni SSE attualmente aperte. Vive quanto il processo, come l'endpoint.</summary>
+    private static int _sseAperti;
+
+    /// <summary>
     /// Registra tutti i servizi del modulo (Application, Infrastructure/EF, polling IVAO, opzioni,
     /// identità). <paramref name="useDevIdentity"/> = true monta l'utente fittizio di sviluppo;
     /// altrimenti l'identità è letta dal sito ospitante via <see cref="HostIdentityCurrentUserProvider"/>.
@@ -155,12 +165,27 @@ public static class VipiModuleExtensions
         // ADR-0003. Read-only, nessun dato sensibile.
         endpoints.MapGet("/vsop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, CancellationToken ct) =>
         {
+            // Tetto alle connessioni contemporanee. Ogni stream è una richiesta che resta aperta finché il
+            // browser la tiene, e l'endpoint è pubblico e anonimo: senza un tetto, il numero di richieste
+            // aperte su un processo solo — la scala decisa è UNA istanza — lo sceglie chi chiama.
+            // Il numero di persone che guardano la vista live è noto e piccolo (una divisione, decine di
+            // controllori): superare di molto questa soglia significa che sta succedendo altro.
+            if (Interlocked.Increment(ref _sseAperti) > MaxSseConcorrenti)
+            {
+                Interlocked.Decrement(ref _sseAperti);
+                ctx.Response.Headers.RetryAfter = "30";
+                ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                return;
+            }
+
             ctx.Response.Headers.ContentType = "text/event-stream";
             ctx.Response.Headers.CacheControl = "no-cache";
             ctx.Response.Headers.Connection = "keep-alive";
             ctx.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-            var signal = new SemaphoreSlim(0);
+            // `using`: il semaforo alloca il proprio handle di attesa alla prima WaitAsync con timeout, che
+            // è esattamente quel che fa il ciclo qui sotto. Senza Dispose restava a ogni connessione chiusa.
+            using var signal = new SemaphoreSlim(0);
             void OnChanged() => signal.Release();
             cache.Changed += OnChanged;
 
@@ -188,7 +213,11 @@ public static class VipiModuleExtensions
                 }
             }
             catch (OperationCanceledException) { /* client disconnesso */ }
-            finally { cache.Changed -= OnChanged; }
+            finally
+            {
+                cache.Changed -= OnChanged;
+                Interlocked.Decrement(ref _sseAperti);
+            }
         });
 
         // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in

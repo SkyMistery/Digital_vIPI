@@ -91,6 +91,36 @@ public class ResourceLockTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditNotAllowedException>(() => plain.ForceUnlockAsync(Key));
     }
 
+    /// <summary>
+    /// Il lock della struttura è di una pagina admin, quindi lo prende solo un admin. Fino all'11 agosto
+    /// 2026 bastava essere autenticati: qualunque membro IVAO poteva prenderlo e — con l'heartbeat della
+    /// UI — tenerlo per sempre, lasciando gli admin fuori dal proprio strumento. Il force-unlock lo
+    /// risolveva ogni volta, ma la volta dopo ricominciava.
+    /// </summary>
+    [Fact]
+    public async Task Non_Admin_Cannot_Take_The_Structure_Lock()
+    {
+        var plain = Build(Plain(555));
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => plain.AcquireAsync(Key));
+
+        // E non ha lasciato niente dietro: l'admin trova la risorsa libera.
+        var admin = Build(Admin(1));
+        Assert.True((await admin.AcquireAsync(Key)).IsMine);
+    }
+
+    /// <summary>
+    /// Il gemello: <c>editor:newdoc</c> resta prendibile da chi non è admin. Creare un documento è già
+    /// filtrato dai grant per ACC dentro il servizio che lo crea, e chiedere l'admin qui toglierebbe il
+    /// lock proprio a chi ha il permesso di scrivere.
+    /// </summary>
+    [Fact]
+    public async Task Non_Admin_Can_Still_Take_The_NewDoc_Lock()
+    {
+        var plain = Build(Plain(555));
+        Assert.True((await plain.AcquireAsync(ResourceLockKeys.NewDoc)).IsMine);
+    }
+
     [Fact]
     public async Task Owner_Reacquire_Is_Idempotent()
     {

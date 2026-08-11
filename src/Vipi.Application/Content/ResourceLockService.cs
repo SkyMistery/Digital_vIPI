@@ -11,6 +11,23 @@ public static class ResourceLockKeys
 
     /// <summary>Wizard di creazione nuovo documento.</summary>
     public const string NewDoc = "editor:newdoc";
+
+    /// <summary>
+    /// Chiavi che solo un admin può prendere. Il requisito è dichiarato qui e non dedotto dal prefisso
+    /// «admin:» del nome, che è una convenzione e non un controllo.
+    ///
+    /// <para><b>Perché serve.</b> Fino all'11 agosto 2026 <see cref="IResourceLockService.AcquireAsync"/>
+    /// chiedeva una cosa sola: che l'utente fosse autenticato. Le quattro pagine di struttura sono pagine
+    /// admin, ma il loro lock lo poteva prendere qualunque membro IVAO loggato — e tenerlo per sempre, con
+    /// l'heartbeat della UI. Gli admin restavano fuori dal proprio strumento finché l'altro non smetteva.
+    /// Non era un blocco (il force-unlock è già riservato agli admin) ma un fastidio ripetibile a piacere.</para>
+    ///
+    /// <para><c>editor:newdoc</c> resta fuori di proposito: creare un documento è già filtrato dai grant
+    /// per ACC dentro il servizio che lo crea, e chiedere l'admin qui toglierebbe il lock a chi ha il
+    /// permesso di scrivere.</para>
+    /// </summary>
+    public static readonly IReadOnlySet<string> RichiedonoAdmin =
+        new HashSet<string>(StringComparer.Ordinal) { Structure };
 }
 
 /// <summary>
@@ -57,6 +74,8 @@ public sealed class ResourceLockService : IResourceLockService
     public Task<LockInfo> AcquireAsync(string resourceKey, CancellationToken ct = default)
     {
         if (_authz.CurrentUserId is not int uid) return Task.FromResult(LockInfo.Free());
+        // Le chiavi admin le prende solo un admin: vedi ResourceLockKeys.RichiedonoAdmin per il perché.
+        if (ResourceLockKeys.RichiedonoAdmin.Contains(resourceKey)) _authz.EnsureAdmin();
         return _repo.AcquireOrInspectAsync(resourceKey, uid, _authz.CurrentName, LockTtlMinutes, ct);
     }
 
