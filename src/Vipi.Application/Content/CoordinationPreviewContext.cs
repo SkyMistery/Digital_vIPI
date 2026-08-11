@@ -20,9 +20,10 @@ public sealed record CoordinationPreviewContext(
         string ownerCallsign, string? nextCallsign, string? airportIcao, TransferFlowKind kind,
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial,
         LevelParity parity, TransferVerticalState verticalState, string cop,
-        string? conditionLabel, string? conditionAreaLabel, string? conditionCustomLabel) =>
+        string? conditionLabel, string? conditionAreaLabel, string? conditionCustomLabel,
+        TransferHandoffFacet? facet = null) =>
         CoordinationSentences.Compose(Template, Types, Names, Codes, Airports, Atc,
             ownerCallsign, nextCallsign ?? "", airportIcao,
             constraint, levelValue, levelUnit, levelSpecial, parity, cop, kind,
-            conditionLabel, conditionAreaLabel, conditionCustomLabel, verticalState);
+            conditionLabel, conditionAreaLabel, conditionCustomLabel, verticalState, facet);
 }

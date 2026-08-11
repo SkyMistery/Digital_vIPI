@@ -53,9 +53,19 @@ public class CoordinationSentenceComposerTests
     private static string? Compose(string owner, string target, string? icao, LevelConstraint c,
         int? value, string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
         LevelParity parity = LevelParity.Any, string? special = null, LevelUnit unit = LevelUnit.Fl,
-        TransferVerticalState vstate = TransferVerticalState.Unspecified)
+        TransferVerticalState vstate = TransferVerticalState.Unspecified,
+        TransferHandoffFacet? facet = null)
         => CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc, owner, target, icao,
-            c, value, unit, special, parity, cop, kind, verticalState: vstate);
+            c, value, unit, special, parity, cop, kind, verticalState: vstate, facet: facet);
+
+    /// <summary>Faccetta trasferimento con i soli campi che il caso in prova usa: il resto è «non c'è».</summary>
+    private static TransferHandoffFacet Facet(
+        TransferHandoffKind kind = TransferHandoffKind.AorBoundary, string? label = null,
+        int? level = null, LevelConstraint levelConstraint = LevelConstraint.Exact,
+        TransferHandoffKind commsKind = TransferHandoffKind.Unspecified, string? commsLabel = null,
+        int? speed = null, SpeedConstraint speedConstraint = SpeedConstraint.Unspecified,
+        bool otherwise = false)
+        => new(kind, label, level, LevelUnit.Fl, levelConstraint, commsKind, commsLabel, speed, speedConstraint, otherwise);
 
     [Fact]
     public void Ctr_target_includes_code_and_descent()
@@ -332,5 +342,105 @@ public class CoordinationSentenceComposerTests
     {
         var s = ComposeCond(area: "R41", custom: "notte");
         Assert.EndsWith("su VALMA con R41 attiva e in condizione notte.", s);
+    }
+
+    // ---- Faccetta trasferimento (ACC→APP): autorizzazione e trasferimento sono due eventi ----
+
+    [Fact]
+    public void Without_handoff_the_sentence_keeps_the_historic_form()
+    {
+        // L'invariante che rende sicura tutta la faccetta: senza, non cambia una parola.
+        var conFaccettaVuota = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, "VALMA",
+            facet: TransferHandoffFacet.None);
+        var senzaFaccetta = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, "VALMA");
+        Assert.Equal(senzaFaccetta, conFaccettaVuota);
+        Assert.StartsWith("Roma Radar NE trasferisce a", conFaccettaVuota);
+    }
+
+    [Fact]
+    public void Handoff_switches_the_verb_and_says_both_levels()
+    {
+        // Il caso portato dal committente: autorizzato a un livello, trasferito passandone un altro.
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrAbove, 160, "CHI",
+            vstate: TransferVerticalState.Descending,
+            facet: Facet(TransferHandoffKind.AorBoundary, level: 110));
+
+        Assert.Equal(
+            "Roma Radar NE autorizza il traffico con destinazione Pisa - San Giusto LIRP via CHI a livello 160 " +
+            "o livello superiore e lo trasferisce a Pisa Approach US0 al confine dell'AoR passando FL110 in discesa.", s);
+    }
+
+    [Fact]
+    public void Handoff_on_a_point_names_it()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(TransferHandoffKind.Point, label: "AVN", level: 110));
+        Assert.Contains("e lo trasferisce a Pisa Approach US0 su AVN passando FL110.", s);
+    }
+
+    [Fact]
+    public void Handoff_level_constraint_changes_the_wording()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(level: 110, levelConstraint: LevelConstraint.AtOrBelow));
+        Assert.Contains("al confine dell'AoR a FL110 o inferiore.", s);
+    }
+
+    [Fact]
+    public void Speed_restriction_is_appended_after_a_comma()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(level: 110, speed: 250, speedConstraint: SpeedConstraint.AtOrBelow));
+        Assert.EndsWith("passando FL110, a 250 kt o inferiore.", s);
+    }
+
+    [Fact]
+    public void Comms_are_said_only_when_they_pass_elsewhere()
+    {
+        // Stesso posto del controllo: ripeterlo allunga la frase e non aggiunge niente.
+        var stessoPosto = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(TransferHandoffKind.AorBoundary, level: 110, commsKind: TransferHandoffKind.AorBoundary));
+        Assert.EndsWith("al confine dell'AoR passando FL110.", stessoPosto);
+
+        var altrove = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(TransferHandoffKind.AorBoundary, level: 110,
+                commsKind: TransferHandoffKind.Point, commsLabel: "AVN"));
+        Assert.EndsWith("passando FL110, comunicazioni su AVN.", altrove);
+    }
+
+    [Fact]
+    public void Handoff_point_without_label_says_nothing_rather_than_something_broken()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
+            facet: Facet(TransferHandoffKind.Point, label: null, level: 110));
+        Assert.Contains("e lo trasferisce a Pisa Approach US0 passando FL110.", s);
+    }
+
+    [Fact]
+    public void Otherwise_row_replaces_the_condition_clause()
+    {
+        var s = CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, LevelUnit.Fl, null, LevelParity.Any,
+            "BIRSU", TransferFlowKind.Arrival,
+            // Anche se qualcuno ci mettesse una condizione, «negli altri casi» vince: è ciò che quella riga è.
+            conditionLabel: "16R",
+            facet: Facet(TransferHandoffKind.Unspecified, otherwise: true));
+        Assert.EndsWith("su BIRSU negli altri casi.", s);
+    }
+
+    [Fact]
+    public void English_template_says_the_handoff_in_english()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrAbove, 160, LevelUnit.Fl, null, LevelParity.Any,
+            "CHI", TransferFlowKind.Arrival, verticalState: TransferVerticalState.Descending,
+            facet: Facet(TransferHandoffKind.AorBoundary, level: 110,
+                commsKind: TransferHandoffKind.Point, commsLabel: "AVN",
+                speed: 250, speedConstraint: SpeedConstraint.AtOrBelow));
+
+        Assert.Equal(
+            "Roma Radar NE clears the traffic inbound to Pisa - San Giusto LIRP via CHI at level 160 or above " +
+            "and transfers it to Pisa Approach US0 at the AoR boundary passing FL110 descending, " +
+            "at 250 kt or less, communications over AVN.", s);
     }
 }

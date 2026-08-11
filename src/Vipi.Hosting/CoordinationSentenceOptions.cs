@@ -20,11 +20,36 @@ public sealed class CoordinationSentenceOptions
     public string? FallbackAllPoints { get; set; }
     public string? FallbackAllToward { get; set; }
 
+    /// <summary>Forma della frase quando autorizzazione e trasferimento sono due eventi (ACC→APP).</summary>
+    public string? TemplateCleared { get; set; }
+    public HandoffWords? Handoff { get; set; }
+    public SpeedWords? Speed { get; set; }
+    /// <summary>Testo della riga «negli altri casi» di un gruppo di varianti.</summary>
+    public string? Otherwise { get; set; }
+
     public sealed class StateWords
     {
         public string? Descending { get; set; }
         public string? Climbing { get; set; }
         public string? Level { get; set; }
+    }
+
+    public sealed class HandoffWords
+    {
+        public string? Point { get; set; }
+        public string? AorBoundary { get; set; }
+        public string? Custom { get; set; }
+        public string? LevelPassing { get; set; }
+        public string? LevelAtOrBelow { get; set; }
+        public string? LevelAtOrAbove { get; set; }
+        public string? Comms { get; set; }
+    }
+
+    public sealed class SpeedWords
+    {
+        public string? AtOrBelow { get; set; }
+        public string? AtOrAbove { get; set; }
+        public string? Exact { get; set; }
     }
 }
 
@@ -58,6 +83,24 @@ public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentence
                     Descending = Fallback(o.Stato?.Descending, d.Stato.Descending),
                     Climbing = Fallback(o.Stato?.Climbing, d.Stato.Climbing),
                     Level = Fallback(o.Stato?.Level, d.Stato.Level),
+                },
+                TemplateCleared = Fallback(o.TemplateCleared, d.TemplateCleared),
+                Otherwise = Fallback(o.Otherwise, d.Otherwise),
+                Handoff = new CoordinationSentenceHandoff
+                {
+                    Point = Fallback(o.Handoff?.Point, d.Handoff.Point),
+                    AorBoundary = Fallback(o.Handoff?.AorBoundary, d.Handoff.AorBoundary),
+                    Custom = Fallback(o.Handoff?.Custom, d.Handoff.Custom),
+                    LevelPassing = Fallback(o.Handoff?.LevelPassing, d.Handoff.LevelPassing),
+                    LevelAtOrBelow = Fallback(o.Handoff?.LevelAtOrBelow, d.Handoff.LevelAtOrBelow),
+                    LevelAtOrAbove = Fallback(o.Handoff?.LevelAtOrAbove, d.Handoff.LevelAtOrAbove),
+                    Comms = Fallback(o.Handoff?.Comms, d.Handoff.Comms),
+                },
+                Speed = new CoordinationSentenceSpeed
+                {
+                    AtOrBelow = Fallback(o.Speed?.AtOrBelow, d.Speed.AtOrBelow),
+                    AtOrAbove = Fallback(o.Speed?.AtOrAbove, d.Speed.AtOrAbove),
+                    Exact = Fallback(o.Speed?.Exact, d.Speed.Exact),
                 },
             };
         }

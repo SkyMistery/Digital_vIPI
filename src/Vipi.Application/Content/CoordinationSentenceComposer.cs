@@ -33,6 +33,11 @@ public sealed class CoordinationSentenceData
     public string? ConditionLabel { get; init; }        // pista/e in uso («16R / 16L»)
     public string? ConditionAreaLabel { get; init; }    // area attiva
     public string? ConditionCustomLabel { get; init; }  // condizione personalizzata (testo libero)
+
+    /// <summary>Faccetta trasferimento: quando c'è, la frase cambia forma («autorizza … e lo trasferisce»)
+    /// invece di limitarsi ad allungarsi. <see cref="TransferHandoffFacet.None"/> ⇒ frase identica a prima,
+    /// parola per parola.</summary>
+    public TransferHandoffFacet Facet { get; init; } = TransferHandoffFacet.None;
 }
 
 /// <summary>Compone la frase di coordinamento sostituendo i placeholder del template. Funzione pura.</summary>
@@ -66,21 +71,53 @@ public static class CoordinationSentenceComposer
         var airport = airportTpl.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
         var point = ResolvePoint((d.Point ?? "").Trim(), tpl);
 
-        var s = tpl.Template
+        // Con una faccetta trasferimento la frase cambia VERBO («autorizza … e lo trasferisce»), quindi cambia
+        // template. Senza, resta la forma storica: è ciò che tiene identiche le righe ACC↔ACC già scritte.
+        var hasHandoff = d.Facet.Kind != TransferHandoffKind.Unspecified;
+        var s = (hasHandoff ? tpl.TemplateCleared : tpl.Template)
             .Replace("{owner}", d.OwnerName)
             .Replace("{target}", target)
             .Replace("{airport}", airport)
             .Replace("{stato}", stato)
             .Replace("{fl}", fl)
-            .Replace("{point}", point);
+            .Replace("{point}", point)
+            .Replace("{handoff}", hasHandoff ? TransferHandoffText.Place(tpl, d.Facet.Kind, d.Facet.Label) : "")
+            .Replace("{handoffLevel}", hasHandoff
+                ? TransferHandoffText.Level(tpl, d.Facet.LevelValue, d.Facet.LevelUnit, d.Facet.LevelConstraint)
+                : "");
 
-        return AppendCondition(Normalize(s), BuildCondition(tpl, d));
+        // Condizione prima, poi le code separate da virgola: «… passando FL110 in discesa con pista 16R in uso,
+        // a 250 kt o inferiore, comunicazioni su AVN.» La condizione resta dov'era, così le frasi senza faccetta
+        // non si spostano di una virgola.
+        var withCondition = AppendCondition(Normalize(s), BuildCondition(tpl, d));
+        return AppendTail(withCondition,
+            TransferHandoffText.Speed(tpl, d.Facet.SpeedValue, d.Facet.SpeedConstraint),
+            BuildComms(tpl, d));
+    }
+
+    // Le parole del trasferimento stanno in TransferHandoffText: le usa anche la derivazione per riempire le
+    // colonne della tabella, e una seconda copia qui sarebbe la solita coppia da tenere d'accordo a mano.
+    private static string BuildComms(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
+    {
+        var where = TransferHandoffText.CommsPlace(tpl, d.Facet);
+        return where.Length == 0 ? "" : tpl.Handoff.Comms.Replace("{handoff}", where);
+    }
+
+    // Code separate da virgola, inserite prima del punto finale.
+    private static string AppendTail(string s, params string[] clauses)
+    {
+        var tail = string.Join(", ", clauses.Where(c => c.Length > 0));
+        if (tail.Length == 0) return s;
+        return s.EndsWith(".") ? $"{s[..^1]}, {tail}." : $"{s}, {tail}";
     }
 
     // Clausola condizione (pista/area/custom) appesa a fine frase. Vuota se None o senza etichetta. Appesa qui
     // e non via placeholder del Template così vale anche per i template custom caricati da file (che non hanno {condition}).
     private static string BuildCondition(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
     {
+        // La riga «negli altri casi» è definita dal NON avere condizioni: al loro posto dice di essere il resto.
+        if (d.Facet.IsOtherwise) return tpl.Otherwise;
+
         var rwy = (d.ConditionLabel ?? "").Trim();
         var area = (d.ConditionAreaLabel ?? "").Trim();
         var custom = (d.ConditionCustomLabel ?? "").Trim();
@@ -170,6 +207,36 @@ public static class CoordinationSentenceComposer
         Regex.Replace(Regex.Replace(s, @"\s+([.,;:])", "$1"), @"\s{2,}", " ").Trim();
 }
 
+/// <summary>
+/// La faccetta TRASFERIMENTO di una riga, passata in blocco alla composizione della frase.
+/// <para>Raggruppata in un tipo e non spalmata in nove parametri: <see cref="CoordinationSentences.Compose"/>
+/// ne aveva già quattordici, e nove code posizionali dello stesso tipo (due enum uguali, due stringhe, due
+/// interi) sono un invito a scambiarne due senza che il compilatore fiati.</para>
+/// <see cref="None"/> = riga senza faccetta, cioè il comportamento storico.
+/// </summary>
+public sealed record TransferHandoffFacet(
+    TransferHandoffKind Kind,
+    string? Label,
+    int? LevelValue,
+    LevelUnit LevelUnit,
+    LevelConstraint LevelConstraint,
+    TransferHandoffKind CommsKind,
+    string? CommsLabel,
+    int? SpeedValue,
+    SpeedConstraint SpeedConstraint,
+    bool IsOtherwise)
+{
+    /// <summary>Nessun trasferimento distinto, nessuna velocità, nessun «negli altri casi»: frase come prima.</summary>
+    public static TransferHandoffFacet None { get; } = new(
+        TransferHandoffKind.Unspecified, null, null, LevelUnit.Fl, LevelConstraint.Exact,
+        TransferHandoffKind.Unspecified, null, null, SpeedConstraint.Unspecified, IsOtherwise: false);
+
+    /// <summary>La faccetta di una riga letta dal repository.</summary>
+    public static TransferHandoffFacet From(TransferPointRow p) => new(
+        p.HandoffKind, p.HandoffLabel, p.HandoffLevelValue, p.HandoffLevelUnit, p.HandoffLevelConstraint,
+        p.CommsHandoffKind, p.CommsHandoffLabel, p.SpeedValue, p.SpeedConstraint, p.IsOtherwise);
+}
+
 /// <summary>Risoluzione nomi/codici/aeroporto + composizione, condivisa da AccDerivationService e AppDocumentService.</summary>
 public static class CoordinationSentences
 {
@@ -186,8 +253,10 @@ public static class CoordinationSentences
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial, LevelParity parity,
         string cop, TransferFlowKind kind = TransferFlowKind.Arrival,
         string? conditionLabel = null, string? conditionAreaLabel = null, string? conditionCustomLabel = null,
-        TransferVerticalState verticalState = TransferVerticalState.Unspecified)
+        TransferVerticalState verticalState = TransferVerticalState.Unspecified,
+        TransferHandoffFacet? facet = null)
     {
+        facet ??= TransferHandoffFacet.None;
         // Senza mittente o destinatario la frase è priva di soggetto/oggetto → riga incompleta, nessuna frase
         // (coerente col contratto «dati incompleti → null»; evita anche lookup con chiave vuota più sotto).
         if (string.IsNullOrWhiteSpace(ownerCallsign) || string.IsNullOrWhiteSpace(targetCallsign)) return null;
@@ -205,12 +274,16 @@ public static class CoordinationSentences
                    && tt is SectorType.App or SectorType.Twr or SectorType.ITwr
                    && string.IsNullOrWhiteSpace(targetCode);
 
-        // Mittente: nome base + codice settore (es. «Roma Radar» + «NE») quando è un CTR. Il ricevente porta il
-        // codice nel proprio slot del template (targetWithCode), quindi qui il target è senza codice.
+        // Mittente: nome base + codice di posizione quando ne ha uno (es. «Roma Radar» + «NE»). Il ricevente
+        // porta il proprio codice nello slot del template (targetWithCode), quindi qui il target è senza.
+        //
+        // La regola era ristretta ai soli CTR, e reggeva finché il mittente era sempre un CTR. Da quando la
+        // sezione estesa mostra anche ciò che ENTRA da un APP (11 agosto 2026), un APP consolidato può essere
+        // il mittente: senza codice la frase diventava «Roma Radar trasferisce a Roma Radar TS», due enti
+        // diversi con lo stesso nome. Ora la regola è la stessa dei due lati: il codice si mostra se c'è.
         var ownerBase = BaseName(ownerCallsign, nameMap, atcMap);
-        var ownerIsCtr = types.TryGetValue(ownerCallsign, out var ot) && ot == SectorType.Ctr;
         var ownerMid = codeMap.GetValueOrDefault(ownerCallsign) ?? "";
-        var ownerName = (ownerIsCtr && ownerMid.Length > 0 && ownerBase.IndexOf(ownerMid, StringComparison.OrdinalIgnoreCase) < 0)
+        var ownerName = (ownerMid.Length > 0 && ownerBase.IndexOf(ownerMid, StringComparison.OrdinalIgnoreCase) < 0)
             ? $"{ownerBase} {ownerMid}"
             : ownerBase;
 
@@ -233,6 +306,7 @@ public static class CoordinationSentences
             ConditionLabel = conditionLabel,
             ConditionAreaLabel = conditionAreaLabel,
             ConditionCustomLabel = conditionCustomLabel,
+            Facet = facet,
         });
     }
 

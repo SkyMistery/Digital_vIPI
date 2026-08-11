@@ -20,6 +20,18 @@ public sealed class CoordinationSentenceTemplate
     // «con destinazione», sennò per le partenze la frase risulterebbe errata.
     public string Template { get; init; } =
         "{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}.";
+
+    /// <summary>
+    /// Variante della frase per gli accordi in cui l'AUTORIZZAZIONE e il TRASFERIMENTO sono due eventi distinti
+    /// (tipicamente ACC→APP): «autorizza … via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel}».
+    /// Scelta al posto di <see cref="Template"/> quando il punto porta una faccetta trasferimento; senza, non si
+    /// usa mai e le righe storiche restano parola per parola quelle di prima.
+    /// <para>Placeholder aggiuntivi: <c>{handoff}</c> (dove passa il controllo) e <c>{handoffLevel}</c> (a che
+    /// livello ci si arriva). È un template a sé e non una coda appesa perché cambia il VERBO della principale,
+    /// e il verbo non si può appendere.</para>
+    /// </summary>
+    public string TemplateCleared { get; init; } =
+        "{owner} autorizza il traffico {airport} via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel} {stato}.";
     public string TargetWithCode { get; init; } = "{name} {code}";
     public string TargetNoCode { get; init; } = "{name}";
     /// <summary>Aeroporto neutro (senza relazione): fallback per flussi non arrivo/partenza. Placeholder {name} {icao}.</summary>
@@ -34,6 +46,14 @@ public sealed class CoordinationSentenceTemplate
     /// <summary>Clausola condizione (pista in uso / area attiva), appesa a fine frase quando il punto ha una condizione.
     /// Placeholder {label}. Vuota quando la condizione è None.</summary>
     public CoordinationSentenceCondition Condition { get; init; } = new();
+    /// <summary>Fraseologia del trasferimento: dove passa il controllo, a che livello, e dove passano le
+    /// comunicazioni quando non è lo stesso posto. Usata solo con <see cref="TemplateCleared"/>.</summary>
+    public CoordinationSentenceHandoff Handoff { get; init; } = new();
+    /// <summary>Fraseologia della restrizione di velocità al trasferimento. Placeholder {v}.</summary>
+    public CoordinationSentenceSpeed Speed { get; init; } = new();
+    /// <summary>Testo della riga «negli altri casi» di un gruppo di varianti: prende il posto della clausola
+    /// condizione, perché quella riga è definita dal NON avere condizioni.</summary>
+    public string Otherwise { get; init; } = "negli altri casi";
     /// <summary>Reso quando il CoP è VUOTO (non compilato): distinto da «ALL». Il default globale può renderlo «—».</summary>
     public string FallbackMissingPoint { get; init; } = "tutti i punti";
     /// <summary>Reso quando il CoP è «ALL»: istruzione esplicita «tutti i punti di consegna».</summary>
@@ -77,10 +97,63 @@ public sealed class CoordinationSentenceTemplate
             Custom = "under condition {label}",
             Join = "and",
         },
+        Handoff = new CoordinationSentenceHandoff
+        {
+            Point = "over {label}",
+            AorBoundary = "at the AoR boundary",
+            Custom = "{label}",
+            LevelPassing = "passing {v}",
+            LevelAtOrBelow = "at {v} or below",
+            LevelAtOrAbove = "at {v} or above",
+            Comms = "communications {handoff}",
+        },
+        Speed = new CoordinationSentenceSpeed
+        {
+            AtOrBelow = "at {v} kt or less",
+            AtOrAbove = "at {v} kt or more",
+            Exact = "at {v} kt",
+        },
+        Otherwise = "in all other cases",
+        TemplateCleared =
+            "{owner} clears the traffic {airport} via {point} {fl} and transfers it to {target} {handoff} {handoffLevel} {stato}.",
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",
     };
+}
+
+/// <summary>Fraseologia del TRASFERIMENTO (accordi ACC→APP): dove passa il controllo, a che livello, e dove
+/// passano le comunicazioni quando avviene altrove. Lingua-specifica come il resto del template.</summary>
+public sealed class CoordinationSentenceHandoff
+{
+    /// <summary>Trasferimento su un punto/fix, placeholder {label}: «su {label}».</summary>
+    public string Point { get; init; } = "su {label}";
+    /// <summary>Trasferimento al confine dell'area di responsabilità: si descrive da sé, nessun placeholder.</summary>
+    public string AorBoundary { get; init; } = "al confine dell'AoR";
+    /// <summary>Trasferimento descritto a parole («20 NM da AVN»), placeholder {label}: il testo così com'è.</summary>
+    public string Custom { get; init; } = "{label}";
+
+    /// <summary>Livello al trasferimento con vincolo esatto — la forma di riferimento. Placeholder {v} = «FL110».
+    /// <para>«Passando» e non «a»: al trasferimento il traffico ATTRAVERSA quel livello, non ci si stabilizza.
+    /// È la differenza che rende la faccetta utile e la ragione per cui non si riusa la fraseologia del
+    /// livello autorizzato.</para></summary>
+    public string LevelPassing { get; init; } = "passando {v}";
+    /// <summary>Livello al trasferimento con vincolo ≤, placeholder {v}.</summary>
+    public string LevelAtOrBelow { get; init; } = "a {v} o inferiore";
+    /// <summary>Livello al trasferimento con vincolo ≥, placeholder {v}.</summary>
+    public string LevelAtOrAbove { get; init; } = "a {v} o superiore";
+
+    /// <summary>Clausola del passaggio comunicazioni, quando avviene altrove rispetto al controllo.
+    /// Placeholder {handoff} = una delle forme qui sopra.</summary>
+    public string Comms { get; init; } = "comunicazioni {handoff}";
+}
+
+/// <summary>Fraseologia della restrizione di velocità al trasferimento. Placeholder {v} = il valore in nodi.</summary>
+public sealed class CoordinationSentenceSpeed
+{
+    public string AtOrBelow { get; init; } = "a {v} kt o inferiore";
+    public string AtOrAbove { get; init; } = "a {v} kt o superiore";
+    public string Exact { get; init; } = "a {v} kt";
 }
 
 /// <summary>Parola per lo stato verticale del traffico, scelto a mano sul punto (<see cref="Vipi.Domain.TransferVerticalState"/>).
