@@ -15,10 +15,15 @@
 > - ⚠️ **Su net8 — cioè la produzione — girava un solo progetto di test su sette.** Gli altri sei erano
 >   net10, ~1000 test che non toccavano mai il runtime del cutover. Ora sono 1102 su net8.
 >
-> **Voci nuove, aperte:** un test di `Vipi.AuroraBridge.Tests` che fallisce a intermittenza sotto carico
-> (nome non catturato, sospetto `FakeAuroraServer`); la CSP è in sola segnalazione finché non spariscono lo
-> `<script>` inline dello zoom e gli `style=` nel markup; la mappa dei claim OIDC e il nonce vanno con A10,
-> perché richiedono un login IVAO vero.
+> **Voci nuove, ancora aperte:** la CSP è in sola segnalazione finché non spariscono lo `<script>` inline
+> dello zoom e gli `style=` nel markup; la mappa dei claim OIDC e il nonce vanno con **A10**, perché
+> richiedono un login IVAO vero.
+>
+> **Chiuso nel seguito dello stesso giorno**, cercando il test intermittente del bridge: `TimeoutMs` di
+> `AuroraClient` **non copriva la connessione**, solo l'attesa della risposta. Un host che tace invece di
+> rifiutare teneva il tool fermo **21,1 secondi** contro i 500 ms richiesti. Riprodotto e corretto. Il test
+> intermittente in sé resta **non riprodotto** in 9 giri ulteriori: chiuso sull'ipotesi più probabile letta
+> nel codice, con asserzioni che alla prossima occorrenza diranno che cosa è successo.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.

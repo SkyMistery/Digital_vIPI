@@ -5,7 +5,7 @@ voce è in fondo, in «[Esito dell'esecuzione](#esito-dellesecuzione--11-agosto-
 com'era stata scritta, **prima** di toccare il codice, perché la parte che vale rileggere è il ragionamento —
 e in due casi (M13, D4/D5) la misura ha poi ribaltato la conclusione.
 
-Suite dopo l'esecuzione: **2087 test verdi** — 1102 su net8, 985 su net10. Build pulita, zero avvisi.
+Suite dopo l'esecuzione: **2100 test verdi** — 1109 su net8, 991 su net10. Build pulita, zero avvisi.
 
 Audit indipendente di tutta l'applicazione: sicurezza, concorrenza, persistenza, scala, front-end, build e
 processo. Non riparte da `lavori-aperti.md` — quello dice cosa si sa già; questo cerca quello che non si sa.
@@ -792,8 +792,63 @@ a tappeto.
 
 ### Cosa resta aperto, in una riga
 
-1. 🔴 Il **test intermittente** del bridge Aurora: da isolare e correggere.
+1. ✅ ~~Il **test intermittente** del bridge Aurora~~ — chiuso, vedi il seguito qui sotto. Resta **non
+   riprodotto**: la correzione è la causa più probabile letta nel codice, più asserzioni che alla prossima
+   occorrenza diranno che cosa è successo.
 2. 🟡 **M2 + la seconda metà di A3**: al primo login IVAO vero (con A10).
 3. 🟡 **CSP da segnalazione a vera**: prima vanno via lo `<script>` inline dello zoom e gli `style=` nel markup.
 4. 🟢 **D3 restante** (5 comandi), **D2** (file lunghi), **M3 punto 2** (identità del circuito).
 5. 🟢 I numeri di **M10** (tetti dei circuiti) sono stime: vanno rivisti su un ciclo AIRAC vero.
+
+### Seguito — le tre voci nate durante l'esecuzione, chiuse
+
+Le tre voci qui sopra erano state lasciate come «nate durante l'esecuzione», e una sola era davvero
+sistemata. Ripreso e chiuso tutto lo stesso giorno.
+
+**1. `Tmds.DBus.Protocol` — già chiusa.** Pin a 0.94.2, l'unica versione che chiude l'avviso.
+
+**2. Il test intermittente — chiuso, ma non nel modo che speravo.**
+
+Prima cosa da dire, perché cambia il valore di tutto il resto: **il controllo con cui avevo dichiarato «sei
+giri puliti» non provava niente.** Cercava i file `.trx` sotto `/tmp`, che Git Bash mappa altrove e che
+Python su Windows non risolve: il glob non trovava nulla e il codice stampava «nessun fallimento». Rifatto
+col percorso vero: 6 giri della suite intera più 3 con la macchina sotto carico a 16 processi, **tutti
+verdi**. Il guasto resta non riprodotto — l'ho visto due volte, e restano quelle due.
+
+Non potendo riprodurlo, l'ho chiuso leggendo il codice, e le due cose fatte sono diverse fra loro:
+
+- **Ipotesi, non certezza.** Il tempo d'attesa dei test che pretendono una risposta era 1500 ms — un valore
+  che lì non misura niente di utile, perché il server finto è su localhost. Con dodici assembly di test in
+  parallelo il thread-pool cresce di circa un thread al secondo oltre il numero di core, e il `Task.Run` del
+  ciclo di lettura può aspettare il proprio turno per centinaia di millisecondi: scaduto il tempo,
+  `SendAsync` torna `Ok = false` e `Assert.True(response.Ok)` fallisce **senza dire perché**. Portato a
+  15000 ms (il test del silenzio, che ha bisogno di un tempo corto, se lo passa a mano). **Non è verificato
+  che questo fosse il guasto.**
+- **L'altra metà, che vale a prescindere:** le asserzioni ora riportano `response.Error` e la riga grezza.
+  Alla prossima occorrenza il messaggio dirà cosa è successo invece di «expected True, actual False». Se
+  l'ipotesi è sbagliata, è così che lo si scopre.
+
+**E cercandolo è saltato fuori un difetto vero, questo sì riprodotto.** `AuroraClient.EnsureConnectedAsync`
+passava a `ConnectAsync` il token del chiamante e basta: **`TimeoutMs` non copriva la connessione**, solo
+l'attesa della risposta. Un host che *tace* invece di rifiutare — firewall che scarta i SYN, macchina spenta
+con l'IP ancora assegnato — lasciava il tool fermo per il timeout del sistema operativo mentre l'opzione
+diceva 3000 ms. Misurato: **21,1 secondi** contro i 500 ms richiesti. Corretto, con un test verso
+`203.0.113.1` (TEST-NET-3, RFC 5737: riservata alla documentazione e non instradata) **visto fallire** senza
+la correzione.
+
+Nello stesso giro, `Aurora_chiusa_produce_un_errore_leggibile` non usa più la porta 1 — «quasi certamente
+libera» — ma una porta che il sistema assegna e che viene chiusa subito prima: su una macchina che filtra la
+porta 1 invece di rifiutarla, quel test sarebbe rimasto appeso proprio al timeout appena corretto.
+
+**3. `Directory.Build.props` — guardato, e ha trovato roba.**
+Quattro asserzioni in `BuildConfigurationTests`. Su quella dell'XML sono onesto: se il file è illeggibile
+MSBuild non valuta nemmeno il progetto di test, quindi quel test non gira — fallisce la build, che è già
+rumorosa. Le altre tre portano il peso vero, perché una proprietà **cancellata** non rompe niente e nessuno
+se ne accorge: `TreatWarningsAsErrors`, `RestorePackagesWithLockFile`, `NuGetAudit`/`NuGetAuditMode`.
+
+La quarta — «ogni progetto ha il proprio `packages.lock.json`» — **ha trovato tre buchi al primo giro**: i
+progetti in `tools/` stanno fuori da `Vipi.slnx`, quindi il restore della soluzione non li tocca e non
+avevano lock file. Fra questi c'è **`Vipi.DbSeed`**, cioè lo strumento con cui si fa il travaso dei dati
+verso MariaDB: il pezzo dove la riproducibilità conta di più. Generati e committati.
+
+**Suite: 2100 test verdi** (net8 1109, net10 991).

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "vipi.aurorabridge.contracts": {
+        "type": "Project"
+      },
+      "vipi.aurorabridge.core": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.AuroraBridge.Contracts": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
