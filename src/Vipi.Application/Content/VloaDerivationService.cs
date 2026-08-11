@@ -214,15 +214,13 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
                     owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
-                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState);
-                var row = new AppCoordRow(p.Cop, p.LevelText, next!, flow.Kind)
-                {
-                    OwnerCallsign = owner,
-                    AirportIcao = flow.AirportIcao,
-                    Constraint = p.LevelConstraint,
-                    Sentence = sentence,
-                    ConditionLabel = p.ConditionDisplay,
-                };
+                    p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel, p.VerticalState,
+                    // La vLOA è già stata dimenticata una volta (il flow.Kind mancante che azzerava i sorvoli):
+                    // la faccetta passa esplicitamente da qui, non per analogia con l'ACC.
+                    TransferHandoffFacet.From(p));
+                // Stessa riga della derivazione ACC/APP, template inglese: le colonne della faccetta e il gruppo
+                // di varianti arrivano da lì, non da una seconda costruzione a mano che si dimentica un campo.
+                var row = CoordinationDerivation.ToRow(tpl, p, flow, next!, flow.Kind, owner, sentence);
                 var entry = new CoordinationEntry(owner, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row);
                 (isH2F ? h2f : f2h).Add(entry);
             }

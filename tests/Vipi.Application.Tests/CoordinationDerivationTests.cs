@@ -137,4 +137,99 @@ public class CoordinationDerivationTests
         Assert.Equal("LIBB_ES_CTR", e.CounterpartCallsign);
         Assert.StartsWith("Brindisi Radar ES trasferisce a Roma Radar TS", e.Row.Sentence);
     }
+
+    // ---- La sezione estesa porta tutto ciò che entra o esce (11 agosto 2026) ----
+
+    [Fact]
+    public void Incoming_departure_from_an_app_reaches_the_acc()
+    {
+        // Prima del 11 agosto il passo «entranti» accettava solo Arrival da un Ctr: una partenza che un APP
+        // consegna all'ACC non compariva da nessuna parte nel documento dell'ACC — l'accordo si vedeva da un
+        // lato solo. È il caso che il committente ha chiesto di chiudere.
+        var flows = new[] { Flow("LIRN_US0_APP", TransferFlowKind.Departure, "LIRN",
+            Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
+
+        var e = Assert.Single(Build(flows, "LIRR_TS_CTR"));
+        Assert.True(e.IsIncoming);
+        Assert.Equal("LIRR_TS_CTR", e.OurSectorCallsign);
+        Assert.Equal("LIRN_US0_APP", e.CounterpartCallsign);
+        Assert.Equal(SectorType.App, e.CounterpartType);
+        Assert.Equal(TransferFlowKind.Departure, e.Kind);
+        Assert.StartsWith("Roma Radar US0 trasferisce a Roma Radar TS", e.Row.Sentence);
+    }
+
+    [Fact]
+    public void Both_sides_of_an_agreement_can_coexist_without_being_merged()
+    {
+        // Se ACC e APP hanno scritto ciascuno la propria riga per lo stesso accordo, compaiono entrambe:
+        // sono due DICHIARAZIONI distinte, e fonderle nasconderebbe anche il caso in cui divergono.
+        var flows = new[]
+        {
+            Flow("LIRR_TS_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRN_US0_APP")),
+            Flow("LIRN_US0_APP", TransferFlowKind.Departure, "LIRN", Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")),
+        };
+
+        var entries = Build(flows, "LIRR_TS_CTR");
+        Assert.Equal(2, entries.Count);
+        Assert.Single(entries, x => !x.IsIncoming);
+        Assert.Single(entries, x => x.IsIncoming);
+    }
+
+    // ---- Faccetta trasferimento nelle colonne ----
+
+    [Fact]
+    public void Handoff_columns_arrive_already_worded()
+    {
+        var pt = new TransferPointRow
+        {
+            Id = 0, Cop = "CHI", LevelValue = 160, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
+            LevelText = "FL160+", NextSectorCallsign = "LIRN_US0_APP", Order = 1,
+            HandoffKind = TransferHandoffKind.AorBoundary,
+            HandoffLevelValue = 110, HandoffLevelConstraint = LevelConstraint.Exact,
+            CommsHandoffKind = TransferHandoffKind.Point, CommsHandoffLabel = "AVN",
+            SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
+        };
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", pt) };
+
+        var e = Assert.Single(Build(flows, "LIBB_ES_CTR"));
+        // Le colonne arrivano alla vista GIÀ a parole: la lingua sta nel template, non nel markup.
+        Assert.Equal("al confine dell'AoR", e.Row.Handoff);
+        Assert.Equal("passando FL110", e.Row.HandoffLevel);
+        Assert.Equal("su AVN", e.Row.CommsHandoff);
+        Assert.Equal("a 250 kt o inferiore", e.Row.Speed);
+        Assert.Contains("autorizza il traffico", e.Row.Sentence);
+    }
+
+    [Fact]
+    public void Rows_without_the_facet_leave_the_new_columns_empty()
+    {
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 260, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
+        var e = Assert.Single(Build(flows, "LIBB_ES_CTR"));
+        Assert.Equal("", e.Row.Handoff);
+        Assert.Equal("", e.Row.HandoffLevel);
+        Assert.Equal("", e.Row.CommsHandoff);
+        Assert.Equal("", e.Row.Speed);
+        Assert.Null(e.Row.VariantGroup);
+    }
+
+    [Fact]
+    public void Variant_group_and_otherwise_travel_to_the_row()
+    {
+        TransferPointRow V(int? level, string? runway, bool otherwise, int order) => new()
+        {
+            Id = order, Cop = "BIRSU", LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            LevelText = $"FL{level}-", NextSectorCallsign = "LIRR_TS_CTR", Order = order,
+            ConditionLabel = runway, VariantGroup = 1, IsOtherwise = otherwise,
+        };
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", V(80, "16R", false, 1), V(110, null, true, 2)) };
+
+        var rows = Build(flows, "LIBB_ES_CTR").Select(x => x.Row).ToList();
+        Assert.All(rows, r => Assert.Equal(1, r.VariantGroup));
+        Assert.EndsWith("con pista 16R in uso.", rows[0].Sentence);
+        Assert.True(rows[1].IsOtherwise);
+        Assert.EndsWith("negli altri casi.", rows[1].Sentence);
+        // La cella condizione dice la stessa cosa della frase, e la dice nella lingua del template: sono a due
+        // centimetri di distanza nella stessa schermata.
+        Assert.Equal("negli altri casi", rows[1].ConditionLabel);
+    }
 }

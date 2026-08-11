@@ -197,8 +197,12 @@ public sealed class AppDocumentService : IAppDocumentService
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
+        var towardApp = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var overflights = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
 
+        // Ogni entry deve trovare un cesto: la sezione estesa porta tutto ciò che entra o esce dall'ente.
+        // Prima ne cadevano due categorie in silenzio — le partenze verso una torre, e qualunque coordinamento
+        // con un altro APP (TMA confinanti), che non aveva proprio un cesto dove andare.
         foreach (var e in entries)
         {
             // Sorvoli/VFR/altro (senza aeroporto) → gruppo dedicato per etichetta di tipo.
@@ -207,12 +211,19 @@ public sealed class AppDocumentService : IAppDocumentService
             // Arrivi/partenze verso un ACC (CTR) → verso ACC; il counterpart è la chiave del gruppo.
             else if (e.CounterpartType == SectorType.Ctr)
                 Bucket(towardAcc, e.CounterpartCallsign).Add(e.Row);
-            // Arrivi verso una torre → verso torri (le partenze verso torre non si mostrano).
-            else if (e.CounterpartType is SectorType.Twr or SectorType.ITwr && e.Kind == TransferFlowKind.Arrival)
+            else if (e.CounterpartType is SectorType.Twr or SectorType.ITwr)
                 Bucket(towardTwr, e.CounterpartCallsign).Add(e.Row);
+            else if (e.CounterpartType == SectorType.App)
+                Bucket(towardApp, e.CounterpartCallsign).Add(e.Row);
         }
 
-        return new AppCoordination { TowardAcc = ToGroups(towardAcc), TowardTowers = ToGroups(towardTwr), Overflights = ToGroups(overflights) };
+        return new AppCoordination
+        {
+            TowardAcc = ToGroups(towardAcc),
+            TowardTowers = ToGroups(towardTwr),
+            TowardApps = ToGroups(towardApp),
+            Overflights = ToGroups(overflights),
+        };
 
         static List<AppCoordRow> Bucket(Dictionary<string, List<AppCoordRow>> d, string key) =>
             d.TryGetValue(key, out var list) ? list : d[key] = new List<AppCoordRow>();

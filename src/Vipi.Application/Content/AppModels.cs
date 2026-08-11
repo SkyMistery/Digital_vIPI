@@ -34,17 +34,45 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     public string? Sentence { get; init; }
     /// <summary>Etichetta condizione operativa (pista in uso / area attiva); null/vuota = riga sempre valida.</summary>
     public string? ConditionLabel { get; init; }
+
+    // ---- Faccetta trasferimento: colonne che compaiono SOLO se qualche riga le compila ----
+    // Testo già reso, non l'enum: la parola del luogo («al confine dell'AoR») è lingua, e la lingua vive nel
+    // template — che la vLOA ha in inglese. Una vista che traducesse da sé rifarebbe quel lavoro in italiano.
+    /// <summary>Dove passa il controllo, già a parole; vuoto = coincide con l'ingresso (riga «come prima»).</summary>
+    public string? Handoff { get; init; }
+    /// <summary>Livello al trasferimento già formattato («FL110»); vuoto = la riga non lo porta.</summary>
+    public string? HandoffLevel { get; init; }
+    /// <summary>Dove passano le comunicazioni, se altrove rispetto al controllo; vuoto altrimenti.</summary>
+    public string? CommsHandoff { get; init; }
+    /// <summary>Restrizione di velocità già formattata («≤250 kt»); vuota se assente.</summary>
+    public string? Speed { get; init; }
+
+    // ---- Varianti ----
+    /// <summary>Flusso di provenienza. Serve a distinguere i gruppi di varianti: il numero di gruppo è
+    /// progressivo <b>per flusso</b>, e una tabella raccoglie righe di più flussi — senza questo, due gruppi «1»
+    /// di flussi diversi si fonderebbero in uno.</summary>
+    public int FlowId { get; init; }
+    /// <summary>Identità del gruppo di varianti dentro il flusso (null = riga singola). Le righe con lo stesso
+    /// <see cref="FlowId"/> e lo stesso gruppo sono alternative dello stesso accordo e vanno rese insieme.</summary>
+    public int? VariantGroup { get; init; }
+    /// <summary>La riga «negli altri casi»: resa sempre per ultima del suo gruppo.</summary>
+    public bool IsOtherwise { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>
 public sealed record AppCoordGroup(string TargetCallsign, IReadOnlyList<AppCoordRow> Rows);
 
-/// <summary>Coordinamenti derivati di un APP: verso gli ACC (partenze+arrivi), verso le torri (solo arrivi),
-/// e i flussi senza aeroporto (<see cref="Overflights"/>: sorvoli/VFR/altro, per etichetta di tipo).</summary>
+/// <summary>Coordinamenti derivati di un APP, per controparte: verso gli ACC, verso le torri, verso gli altri
+/// APP (TMA confinanti), più i flussi senza aeroporto (<see cref="Overflights"/>: sorvoli/VFR/altro, per
+/// etichetta di tipo). Arrivi e partenze insieme in ogni gruppo: la sezione estesa porta tutto ciò che entra
+/// o esce dall'ente.</summary>
 public sealed class AppCoordination
 {
     public required IReadOnlyList<AppCoordGroup> TowardAcc { get; init; }
     public required IReadOnlyList<AppCoordGroup> TowardTowers { get; init; }
+    /// <summary>Coordinamenti con un altro APP (TMA confinanti). Prima non avevano un gruppo dove finire e
+    /// cadevano fuori dal documento in silenzio.</summary>
+    public IReadOnlyList<AppCoordGroup> TowardApps { get; init; } = Array.Empty<AppCoordGroup>();
     public IReadOnlyList<AppCoordGroup> Overflights { get; init; } = Array.Empty<AppCoordGroup>();
 
     public static AppCoordination Empty { get; } =
