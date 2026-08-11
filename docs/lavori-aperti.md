@@ -742,8 +742,12 @@ diventa un **outline**: alternative pari-grado, eccezioni annidate a profondità
 La seconda **corregge** la parte «varianti» della prima, decisa dal committente alla prima lettura e fatta
 prima del merge, quindi a costo di dati zero.
 
-Suite 2185 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in entrambi i
-giri (dieci difetti trovati proprio lì, quasi nessuno visibile alla suite).
+Terza scheda dello stesso filone: [`feature/2026-08-12-editor-trasferimenti-ux.md`](feature/2026-08-12-editor-trasferimenti-ux.md)
+— la **pagina** che scrive quelle righe, rifatta col pattern del progetto (lista + pannello a destra), nove
+bottoni-icona per riga ridotti a tre, **51 stili inline azzerati** e dieci migliorie d'uso.
+
+Suite 2185 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e tre
+i giri (dodici difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
 avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al

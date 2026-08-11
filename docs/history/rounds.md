@@ -1328,3 +1328,40 @@ Un difetto di lingua preso leggendo, non prevedendo: il marcatore trasversale ac
 ogni caso **in** condizione …»). Ora c'è la virgola.
 
 Suite **2173 → 2185** verde, `dotnet build -c Release --no-incremental` 0 warning su entrambi i TFM.
+
+## Feature: l'editor dei trasferimenti prende la forma delle altre pagine (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-ux.md`](../feature/2026-08-12-editor-trasferimenti-ux.md).
+
+Due giri avevano aggiunto alla riga la faccetta, la velocità e l'outline delle varianti; la pagina che le scrive
+no. Guardandola a schermo: la riga in modifica era **una fila di sei controlli senza etichette**, il
+multi-select delle piste **copriva la riga sotto**, le azioni erano **nove bottoni-icona da 28px** per riga, tre
+bottoni dicevano tutti «Gruppo», le colonne di condizione erano tre e vuote su 70 righe di 76, e gli stili
+inline erano **51** più un `<style>` dentro il markup.
+
+Soprattutto: il progetto **ha già** il pattern per una pagina di editing admin — `.xfe-layout` (lista + pannello
+a destra) in Permessi e Incarichi, `.gerarchia-2col` + `.detail-sticky` in Struttura — e Trasferimenti era
+l'unica che trasformava la riga in un form. «Conforme al resto» non era una questione di colori.
+
+Ora l'editing sta nel **pannello a destra**, coi campi etichettati e raggruppati e l'anteprima in fondo; in
+tabella restano tre azioni; una colonna di condizione; **zero** stili inline. I due blocchi di campi paralleli
+del form (`_p*` e `_ep*`) diventano **un tipo in due istanze**: dodici coppie da tenere allineate a mano erano
+dodici occasioni di aggiornarne una sola.
+
+Dieci migliorie d'uso, tutte quelle proposte: trascinamento che sposta il **sottoalbero**, duplicazione di un
+gruppo di varianti **con la sua struttura**, modifica in blocco del ricevente, filtro «senza ricevente», avviso
+di modifiche non salvate, avviso di lock in scadenza, anteprima sempre accesa, copia righe da un altro gruppo,
+ordinamento della **vista** (mai dell'ordine salvato — nell'outline è la struttura, e per questo l'ordinamento
+non-manuale spegne il trascinamento), tasti Esc/Invio/Ctrl+Invio.
+
+⚠️ **Due avvisi nati rumorosi, corretti guardandoli.** Quello di scadenza del lock era **sempre acceso**: soglia
+a cinque minuti su un TTL di tre, quindi vero a ogni caricamento — ora è a 60 secondi, e con l'heartbeat vivo
+non scatta mai (scatta quando l'heartbeat si è fermato, l'unico caso in cui serve). Quello di «modifiche non
+salvate» si accendeva **aprendo** una riga, prima di toccarla: ora confronta una firma del form con quella di
+quando si è aperto.
+
+⚠️ **Una regressione presa al volo**: estraendo `CopyOf` per condividere la copia di riga fra duplicazione di
+gruppo e creazione di variante, la variante ha cominciato a copiare anche la **condizione** — che è esattamente
+ciò che deve dire di diverso. Le due operazioni condividono venti campi e ne vogliono diciannove.
+
+Suite **2185** verde, Release `--no-incremental` 0 warning su entrambi i TFM.
