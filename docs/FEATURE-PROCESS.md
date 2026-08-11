@@ -62,10 +62,22 @@ Rispondi a queste quattro PRIMA di scrivere. Se una non ha risposta pulita, il d
 - [ ] Nessun modello «gemello» aggiunto; nessun nuovo `switch(tipo)` duplicato (o registry introdotto).
 - [ ] Ingresso UI per creare **e** raggiungere il primo elemento (no catch-22).
 - [ ] `dotnet test` verde (== o > baseline), test-first sul cuore complesso non coperto.
+- [ ] ⚠️ **`dotnet build` verde vale su ENTRAMBI i TFM.** Dall'11 agosto 2026 `Directory.Build.props` rende
+      gli avvisi errori, e `dotnet test` **non** usa quel flag: la suite verde e la build di produzione rotta
+      possono convivere — è già successo, 1391 test verdi e 28 errori in CI. Il comando che chiude la
+      questione è `dotnet build Vipi.slnx -c Release --no-incremental`.
 - [ ] **Verificato live** sul flusso reale, non solo test — con **traccia** (nota «verificato X guidando Y», o log CDP).
 - [ ] 1 commit/passo, build verde; doc/spec autorevoli aggiornati se schema o rotte cambiano.
 - [ ] **Tracciamento coerente**: header == tabella indice == `rounds`; nessuno stato contraddittorio (`✅` da una parte, `🟡` dall'altra).
 - [ ] **Nessun nome/commento morto**: la slice non lascia tipi/file/`<see cref>`/doc/memorie che citano qualcosa rimosso o rinominato in questo giro.
+- [ ] **Se hai aggiunto un pacchetto o un progetto**: `packages.lock.json` rigenerato e committato (la CI
+      restora in «locked mode» e si ferma senza). Un progetto nuovo fuori da `Vipi.slnx` va restaurato a mano.
+
+> **Prima di dire «non serve, misuriamo»: misura davvero.** Nell'audit dell'11 agosto tre voci su
+> trentaquattro sono state *ribaltate dal dato* — un difetto reale nel parser dei poligoni non toccava
+> nessuno dei 1338 poligoni veri, e due retention servivano per tabelle da 19 e 1 riga. Una query sul
+> `vipi.db` reale costa cinque minuti e ha risparmiato tre lavori inutili. Vale anche al contrario: due
+> guardie nuove hanno **smentito affermazioni già scritte nei commit**.
 
 ## Quando questo processo NON serve
 

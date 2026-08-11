@@ -1,13 +1,18 @@
-# HANDOFF — vIPI/vLOA Interactive
+﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 agosto 2026 — **il cutover MariaDB è in `main`**, verificato; sezioni B, C e D
-chiuse, E sfoltita.
+**Ultimo aggiornamento:** 11 agosto 2026 — audit full-stack **eseguito** sul ramo del doc 13; il cutover
+MariaDB è in `main` dal 9 agosto, verificato; sezioni B, C e D chiuse, E sfoltita.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 🧭 DA DOVE SI RIPARTE (aggiornato l'11 agosto 2026)
 >
-> **⚠️ C'è un ramo pronto e non fuso: `refactor/13-tre-documenti`** (19 commit, suite **1391** verde,
-> verifica live fatta). È il [doc 13](docs/refactor/13-audit-tre-documenti.md), l'audit dei tre documenti:
+> **⚠️ C'è un ramo pronto e non fuso: `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
+> verifica live fatta).
+>
+> ⚠️ **Quel ramo non compilava, e nessuno l'aveva visto.** L'audit dell'11 agosto ha trovato 14 chiavi
+> duplicate nei `.resx`: il job CI che compila con `-warnaserror` dava **28 errori**, mentre la suite locale
+> restava verde — *1391 test verdi e build di produzione rotta convivevano*. Corretto, con tre guardie.
+> Adesso il ramo compila davvero, e la decisione di merge è di nuovo solo vostra. È il [doc 13](docs/refactor/13-audit-tre-documenti.md), l'audit dei tre documenti:
 > catalogo fonte unica anche di «chi rende il corpo» e «quale sezione è obbligatoria», vLOA finalmente dal
 > catalogo, gate pubblico su ricerca e «Cosa è cambiato», pannello release uguale nei quattro editor, una
 > sola resa per ogni sezione comune. Dentro ci sono **due difetti che uscivano dal documento**: la pagina
@@ -30,6 +35,28 @@ chiuse, E sfoltita.
 > l'app**, non dai test — fra cui tre pagine che morivano su MariaDB, una direttiva nginx inesistente che
 > avrebbe bloccato la consegna, e l'ATIS contato come chi controlla un aeroporto. Prima di dichiarare fatta
 > una cosa, aprirla: la skill `verifica-live` esiste per questo.
+
+> ## 🔬 AUDIT FULL-STACK — 11 agosto 2026, eseguito
+>
+> Carta ed esito: [`docs/history/audit-2026-08-11-crepe-full-stack.md`](docs/history/audit-2026-08-11-crepe-full-stack.md).
+> 34 voci: **23 chiuse**, 3 **ribaltate dalla misura**, 5 rimandate con la ragione scritta. Sei commit.
+>
+> **Tre cose cambiano le regole, non solo il codice** — chi lavora qui le incontra subito:
+> 1. **Gli avvisi sono errori** (`Directory.Build.props`). Un avviso nuovo ferma la build, in locale non solo
+>    in CI. ⚠️ Un `--` dentro un commento XML rende quel file illeggibile e **tutte** le proprietà spariscono
+>    in silenzio: c'è una guardia, ma vale saperlo.
+> 2. **I test girano su net8**, che è la produzione: da **347** a **1115**. Prima ~1000 test non toccavano mai
+>    il runtime del cutover.
+> 3. **Le dipendenze sono bloccate** (`packages.lock.json` + restore in «locked mode»). Se la CI si ferma sul
+>    restore: `dotnet restore --force-evaluate` e committa i lock.
+>
+> **Metodo che ha pagato, di nuovo:** tre voci sono state *ribaltate dalla misura* — i multi-poligono (zero
+> casi su 1338 reali), la retention dell'audit (19 righe in tre settimane), le immagini orfane (1 riga).
+> Misurare prima di toccare ha evitato tre lavori inutili. E due guardie nuove hanno **smentito affermazioni
+> mie**: le chip a11y erano 8 e non 12, e tre progetti in `tools/` erano senza lock file.
+>
+> **Aperto dall'audit:** i 17 gestori inline che bloccano la CSP vera, `MapAll()` e il nonce OIDC (vanno con
+> A10, servono un login IVAO vero), i file da 1500 righe, l'identità del circuito.
 
 > ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
 >

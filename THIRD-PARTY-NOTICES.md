@@ -62,9 +62,46 @@ né usa i nomi riservati previsti dalla OFL.
 
 ---
 
-## Leaflet — non ridistribuito
+## Leaflet
 
-Leaflet 1.9.4 (BSD-2-Clause, © 2010–2023 Volodymyr Agafonkin, © 2010–2011 CloudMade) è caricato
-da **CDN unpkg** in `src/Vipi.Host/Components/App.razor`: non c'è alcuna copia nel repository,
-quindi nessun obbligo di notice. Elencato qui perché un host che self-hosti Leaflet **acquisisce**
-quell'obbligo, e perché è una dipendenza da rete esterna rilevante per la CSP del sito ospitante.
+- **File:** `src/Vipi.Ui/wwwroot/vendor/leaflet/leaflet.js`, `leaflet.css`, `images/*.png`
+- **Copyright:** © 2010–2023 Volodymyr Agafonkin, © 2010–2011 CloudMade
+- **Licenza:** BSD-2-Clause
+- **Sito:** https://leafletjs.com — https://github.com/Leaflet/Leaflet
+
+⚠️ **Dall'11 agosto 2026 Leaflet è RIDISTRIBUITO, e questa sezione è cambiata di conseguenza.** Fino a
+quel giorno arrivava dalla CDN unpkg e qui c'era scritto «non ridistribuito, nessun obbligo di notice».
+Vendorizzandolo l'obbligo lo abbiamo acquisito noi — è la ragione per cui il testo della licenza sta qui
+sotto per esteso, come per three.js e per i font.
+
+Caricato in `src/Vipi.Host/Components/App.razor` dalle rotte statiche del modulo. ℹ️ Le **tessere** della
+mappa restano esterne (`basemaps.cartocdn.com`): quelle non si vendorizzano, e sono l'unico host di terzi
+che la pagina contatti ancora.
+
+```
+BSD 2-Clause License
+
+Copyright (c) 2010-2023, Volodymyr Agafonkin
+Copyright (c) 2010-2011, CloudMade
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this list of
+      conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice, this list
+      of conditions and the following disclaimer in the documentation and/or other materials
+      provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```

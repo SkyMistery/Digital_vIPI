@@ -1,11 +1,11 @@
-# Lavori aperti — elenco unico
+﻿# Lavori aperti — elenco unico
 
 **Aggiornato:** 11 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 > ### 🆕 11 agosto 2026 — audit full-stack, eseguito
 > Carta ed esito in [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md).
 > 34 voci esaminate, 23 chiuse, 3 ribaltate dalla misura, 5 non fatte con la ragione scritta. Suite da 1391 a
-> **2087** test verdi.
+> **2111** test verdi (net8 1115, net10 996). Sei commit, tutti spinti.
 >
 > **Due cose toccano direttamente questo elenco:**
 > - ⚠️ **B5 era mergiabile solo in apparenza.** Il ramo `refactor/13-tre-documenti` portava 14 chiavi
@@ -348,8 +348,14 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ### B5 🟡 `refactor/13-tre-documenti` — pronto, in attesa di un ok
 
-19 commit, suite **1391** verde, build senza errori, **verifica live fatta** sui tre documenti (copia del
-`vipi.db` reale). È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA,
+25 commit, suite **2111** verde su entrambi i TFM, **verifica live fatta** sui tre documenti (copia del
+`vipi.db` reale).
+
+⚠️ **«Build senza errori» era falso fino all'11 agosto 2026**, e la riga qui sopra lo diceva lo stesso: il
+job CI che compila con `-warnaserror` dava **28 errori** per 14 chiavi duplicate nei `.resx`. Il ramo non
+era mai stato spinto dopo il commit che le ha introdotte, quindi la CI non l'aveva mai visto, e la suite
+locale restava verde perché `dotnet test` non usa quel flag. Corretto, con tre guardie che leggono i `.resx`
+dal disco. Adesso la frase è vera. È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA,
 nato dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
 
 Perché conviene farlo entrare: due difetti **uscivano dal documento** — la pagina APP pubblica derivava le

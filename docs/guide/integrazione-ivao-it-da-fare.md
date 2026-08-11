@@ -152,9 +152,18 @@ su GitHub Packages per cinque pacchetti. Da fare quando l'integrazione è stabil
 Il build passa dai `ProjectReference`, ma i progetti del modulo **non compaiono in Visual Studio**
 finché non vengono aggiunti alla solution. Cosmetico finché non devono metterci mano loro.
 
-### 4.4 Self-hosting di Leaflet
-Arriva da CDN unpkg. Se la loro CSP lo blocca va self-hostato, e in quel caso **l'obbligo di notice
-BSD-2-Clause passa a loro**. Noi abbiamo già self-hostato i font, il precedente c'è.
+### 4.4 ~~Self-hosting di Leaflet~~ — ✅ non serve più, fatto da noi l'11 agosto 2026
+Leaflet è **vendorizzato** in `src/Vipi.Ui/wwwroot/vendor/leaflet/` e servito dalle rotte statiche del
+modulo, come three.js e i font. La pagina non contatta più `unpkg`, quindi non c'è niente da chiedere alla
+loro CSP e l'obbligo di notice BSD-2-Clause **è già nostro** (`THIRD-PARTY-NOTICES.md`), non passa a loro.
+
+⚠️ Restano esterne le **tessere** della mappa (`basemaps.cartocdn.com`): quelle non si vendorizzano. Se la
+loro CSP le blocca, i poligoni — cioè il dato nostro — si disegnano lo stesso, su sfondo vuoto. È l'unico
+host di terzi che la pagina contatti, e va detto nella `img-src` della loro policy.
+
+ℹ️ `ivao-it-wiring.patch` è un artefatto **congelato al 1° agosto 2026** e su questo punto dice ancora
+«unpkg»: chi lo applica deve sostituire quelle due righe con i riferimenti locali. Non è stato riscritto
+perché è un patch con un hash, non un documento.
 
 ---
 
