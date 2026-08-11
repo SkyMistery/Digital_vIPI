@@ -290,7 +290,6 @@
   <data name="Coord_HandoffLevel" xml:space="preserve"><value>Transfer level</value></data>
   <data name="Coord_Comms" xml:space="preserve"><value>Communications</value></data>
   <data name="Coord_Speed" xml:space="preserve"><value>Speed</value></data>
-  <data name="Coord_Otherwise" xml:space="preserve"><value>in all other cases</value></data>
   <data name="Xfer_Handoff" xml:space="preserve"><value>Transfer</value></data>
   <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Where control passes, when it is not the entry point (ACC→APP agreements)</value></data>
   <data name="Xfer_HandoffNone" xml:space="preserve"><value>same as entry</value></data>
@@ -307,15 +306,17 @@
   <data name="Xfer_CommsSame" xml:space="preserve"><value>where control does</value></data>
   <data name="Xfer_Speed" xml:space="preserve"><value>Speed</value></data>
   <data name="Xfer_SpeedNone" xml:space="preserve"><value>none</value></data>
-  <data name="Xfer_Otherwise" xml:space="preserve"><value>in all other cases</value></data>
-  <data name="Xfer_OtherwiseTitle" xml:space="preserve"><value>The row that applies when no other variant's condition is met. One per group, and it carries no conditions.</value></data>
+  <data name="Xfer_GroupWide" xml:space="preserve"><value>in any case</value></data>
+  <data name="Xfer_GroupWideTitle" xml:space="preserve"><value>The row overrides the alternatives: it applies to all of them («at night, any runway»). First level only, and it must say under which conditions it applies.</value></data>
   <data name="Xfer_Variant" xml:space="preserve"><value>variant</value></data>
-  <data name="Xfer_VariantTitle" xml:space="preserve"><value>Alternative row of the same agreement: same CoP and receiver, different condition</value></data>
-  <data name="Xfer_AddVariantTitle" xml:space="preserve"><value>Add a variant of this row (copies everything but the condition)</value></data>
-  <data name="Xfer_DetachVariantTitle" xml:space="preserve"><value>Detach the row from its variant group</value></data>
-  <data name="Xfer_VariantAdded" xml:space="preserve"><value>Variant added: write the condition that tells it apart.</value></data>
+  <data name="Xfer_VariantTitle" xml:space="preserve"><value>Row of the same agreement: same CoP and receiver, different condition. The indent says what it belongs to.</value></data>
+  <data name="Xfer_AddAlternativeTitle" xml:space="preserve"><value>Add an alternative alongside this row, e.g. «runway 25» next to «runway 07» (copies everything but the condition)</value></data>
+  <data name="Xfer_AddExceptionTitle" xml:space="preserve"><value>Add an exception INSIDE this row: it applies only within its case, and the sentence will state both conditions</value></data>
+  <data name="Xfer_DetachVariantTitle" xml:space="preserve"><value>Detach the row, with its exceptions, from its variant group</value></data>
+  <data name="Xfer_AlternativeAdded" xml:space="preserve"><value>Alternative added: write the condition that tells it apart.</value></data>
+  <data name="Xfer_ExceptionAdded" xml:space="preserve"><value>Exception added: write only what changes from the row that hosts it.</value></data>
   <data name="Xfer_VariantDetached" xml:space="preserve"><value>Row detached from its variant group.</value></data>
-  <data name="Xfer_GroupNoOtherwise" xml:space="preserve"><value>Variant group {0} has no «in all other cases» row: readers have no instruction when no condition is met.</value></data>
+  <data name="Xfer_AltNoNormalCase" xml:space="preserve"><value>«{0}» has exceptions but does not say what applies in its normal case: a reader falling into none of them finds no instruction.</value></data>
   <data name="Xfer_ToReview" xml:space="preserve"><value>To review</value></data>
   <data name="Xfer_ToReviewTitle" xml:space="preserve"><value>Rows with an APP receiver that do not yet say where the transfer happens</value></data>
   <data name="AppVfr_IntroLabel" xml:space="preserve"><value>Introduction (markdown)</value></data>

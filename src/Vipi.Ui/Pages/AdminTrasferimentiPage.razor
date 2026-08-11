@@ -310,11 +310,11 @@
                             @* Avviso NON bloccante: un gruppo di varianti senza «negli altri casi» lascia scoperti i
                                casi che nessuna condizione copre, e chi legge non sa che fare. Può essere legittimo
                                (le condizioni possono essere esaustive), quindi si segnala, non si impedisce. *@
-                            @foreach (var g in GroupsWithoutOtherwise(f))
+                            @foreach (var a in AlternativesWithoutNormalCase(f))
                             {
                                 <div class="callout" style="margin:0 0 6px;font-size:12.5px">
                                     <span class="cic">⚠</span>
-                                    <div>@(string.Format(L["Xfer_GroupNoOtherwise"].Value, g))</div>
+                                    <div>@(string.Format(L["Xfer_AltNoNormalCase"].Value, a))</div>
                                 </div>
                             }
 
@@ -417,11 +417,19 @@
                                         else
                                         {
                                             <tr class="@(p.VariantGroup is null ? null : "xfer-variant")">
-                                                <td>
+                                                @* Il rientro dice a chi appartiene la riga: profondità 1 = eccezione
+                                                   della prima riga meno profonda sopra di lei. Le alternative
+                                                   (profondità 0) restano allineate, perché sono pari-grado. *@
+                                                <td style="@(p.VariantDepth > 0 ? $"padding-left:{6 + p.VariantDepth * 16}px" : null)">
+                                                    @if (p.VariantDepth > 0) { <span class="muted" style="font-size:11px">↳ </span> }
                                                     <b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b>
                                                     @if (p.VariantGroup is not null)
                                                     {
                                                         <span class="pill neutral" style="margin-left:4px" title="@L["Xfer_VariantTitle"]">@L["Xfer_Variant"] @p.VariantGroup</span>
+                                                    }
+                                                    @if (p.IsGroupWide)
+                                                    {
+                                                        <span class="pill neutral" style="margin-left:4px" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
                                                     }
                                                 </td>
                                                 <td>
@@ -437,13 +445,13 @@
                                                 <td>@(p.NextSectorCallsign ?? "—")</td>
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionLabel)) { <span class="pill neutral" title="@L["Xfer_RunwayInUse"]">@p.ConditionLabel</span> } else { <span class="muted">—</span> }</td>
                                                 <td>@if (!string.IsNullOrWhiteSpace(p.ConditionAreaLabel)) { <span class="pill neutral" title="@L["Xfer_ActiveArea"]">@p.ConditionAreaLabel</span> } else { <span class="muted">—</span> }</td>
-                                                <td>
-                                                    @if (p.IsOtherwise) { <span class="pill neutral" title="@L["Xfer_OtherwiseTitle"]">@L["Xfer_Otherwise"]</span> }
-                                                    else if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> }
-                                                    else { <span class="muted">—</span> }
-                                                </td>
+                                                <td>@if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> } else { <span class="muted">—</span> }</td>
                                                 <td style="white-space:nowrap">
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddVariantTitle"]" @onclick="() => AddVariant(p.Id)">⑂</button>
+                                                    @* Due intenzioni diverse, due tasti: «⑂» affianca un'alternativa
+                                                       pari-grado (pista 25 accanto alla 07), «↳» annida un'eccezione
+                                                       dentro questa riga. Un tasto solo avrebbe dovuto indovinare. *@
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => AddAlternative(p.Id)">⑂</button>
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => AddException(p.Id)">↳</button>
                                                     @if (p.VariantGroup is not null)
                                                     {
                                                         <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => DetachVariant(p.Id)">⇤</button>
@@ -720,7 +728,7 @@
         public string CommsLabel { get; set; } = "";
         public int? SpeedValue { get; set; }
         public SpeedConstraint SpeedConstraint { get; set; } = SpeedConstraint.Unspecified;
-        public bool IsOtherwise { get; set; }
+        public bool IsGroupWide { get; set; }
 
         public void LoadFrom(TransferPointRow p)
         {
@@ -735,7 +743,7 @@
                 : p.HandoffLevelConstraint;
             CommsKind = p.CommsHandoffKind; CommsLabel = p.CommsHandoffLabel ?? "";
             SpeedValue = p.SpeedValue; SpeedConstraint = p.SpeedConstraint;
-            IsOtherwise = p.IsOtherwise;
+            IsGroupWide = p.IsGroupWide;
         }
 
         /// <summary>Svuota il form. Con <paramref name="preset"/> apre già la faccetta sul caso più comune —
@@ -746,12 +754,12 @@
             Label = ""; LevelValue = null; LevelUnit = LevelUnit.Fl; LevelConstraint = LevelConstraint.Exact;
             CommsKind = TransferHandoffKind.Unspecified; CommsLabel = "";
             SpeedValue = null; SpeedConstraint = SpeedConstraint.Unspecified;
-            IsOtherwise = false;
+            IsGroupWide = false;
         }
 
         public TransferHandoffFacet ToFacet() => new(
             Kind, Label, LevelValue, LevelUnit, LevelConstraint,
-            CommsKind, CommsLabel, SpeedValue, SpeedConstraint, IsOtherwise);
+            CommsKind, CommsLabel, SpeedValue, SpeedConstraint, IsGroupWide);
 
         /// <summary>Riversa la faccetta nell'input di salvataggio (l'input è un record: <c>with</c> tiene
         /// insieme i campi senza ricopiare gli altri quindici).</summary>
@@ -766,7 +774,7 @@
             CommsHandoffLabel = string.IsNullOrWhiteSpace(CommsLabel) ? null : CommsLabel.Trim(),
             SpeedValue = SpeedValue,
             SpeedConstraint = SpeedConstraint,
-            IsOtherwise = IsOtherwise,
+            IsGroupWide = IsGroupWide,
         };
     }
 
@@ -834,8 +842,8 @@
 
             @if (inGroup)
             {
-                <label class="xfer-otherwise" title="@L["Xfer_OtherwiseTitle"]">
-                    <input type="checkbox" @bind="ff.IsOtherwise" /> @L["Xfer_Otherwise"]
+                <label class="xfer-otherwise" title="@L["Xfer_GroupWideTitle"]">
+                    <input type="checkbox" @bind="ff.IsGroupWide" /> @L["Xfer_GroupWide"]
                 </label>
             }
         </div>
@@ -1039,27 +1047,39 @@
     private string? PreviewRow(TransferFlowRow f, TransferPointRow p) =>
         _preview?.Compose(f.OwningSectorCallsign, p.NextSectorCallsign, f.AirportIcao, f.Kind,
             p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.VerticalState, p.Cop,
-            p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel,
+            CoordinationDerivation.ConditionChain(f.Points, p),
             TransferHandoffFacet.From(p));
 
-    // Anteprima live della riga in EDIT (dai campi _ep*). Usa la label piste combinata come nel salvataggio.
-    private string? PreviewEdit(TransferFlowRow f) =>
-        _preview?.Compose(f.OwningSectorCallsign, _epNext == 0 ? null : _epNextText, f.AirportIcao, f.Kind,
-            _epConstraint, _epValue, _epUnit, _epSpecial, _epParity, _epVState, _epCop,
+    /// <summary>
+    /// Anteprima live della riga in EDIT (dai campi <c>_ep*</c>). Usa la label piste combinata come nel salvataggio.
+    /// <para>La catena parte dagli ANTENATI SALVATI e finisce sulla condizione che si sta scrivendo: l'anteprima
+    /// deve mostrare la frase che il documento renderà, e quella cumula. Prendere solo i campi del form direbbe
+    /// «R403B attiva» dove il documento dirà «con pista 07 in uso e R403B attiva».</para>
+    /// </summary>
+    private string? PreviewEdit(TransferFlowRow f)
+    {
+        var p = f.Points.FirstOrDefault(x => x.Id == _editPointId);
+        var chain = p is null
+            ? new List<ConditionClause>()
+            : CoordinationDerivation.ConditionChain(f.Points, p).SkipLast(1).ToList();
+        chain.Add(new ConditionClause(
             _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
-            string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
-            string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel,
-            _epFacet.ToFacet());
+            _epCondAreaLabel, _epCondCustomLabel));
+
+        return _preview?.Compose(f.OwningSectorCallsign, _epNext == 0 ? null : _epNextText, f.AirportIcao, f.Kind,
+            _epConstraint, _epValue, _epUnit, _epSpecial, _epParity, _epVState, _epCop,
+            chain, _epFacet.ToFacet());
+    }
 
     // Anteprima live della riga in AGGIUNTA (dai campi _p*). Per liste di CoP usa il primo come esempio.
+    // La riga nuova nasce fuori da un gruppo, quindi non ha antenati: una clausola sola.
     private string? PreviewAdd(TransferFlowRow f)
     {
         var cop = SplitCops(_pCop).FirstOrDefault() ?? "";
         return _preview?.Compose(f.OwningSectorCallsign, _pNext == 0 ? null : _pNextText, f.AirportIcao, f.Kind,
             _pConstraint, _pValue, _pUnit, _pSpecial, _pParity, _pVState, cop,
-            _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys),
-            string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
-            string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel,
+            new[] { new ConditionClause(
+                _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys), _pCondAreaLabel, _pCondCustomLabel) },
             _pFacet.ToFacet());
     }
 
@@ -1280,12 +1300,19 @@
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
-    /// <summary>Aggiunge una variante della riga: stesso accordo, condizione diversa. La nuova riga nasce
-    /// copiata (tranne la condizione) e si apre subito in modifica, col cursore su ciò che deve cambiare.</summary>
-    private async Task AddVariant(int pointId)
+    /// <summary>Alternativa pari-grado alla riga (es. «pista 25» accanto a «pista 07»): nasce copiata tranne la
+    /// condizione, e si apre subito in modifica — la condizione è l'unica cosa che deve cambiare.</summary>
+    private Task AddAlternative(int pointId) =>
+        AddVariantRow(() => Transfers.AddAlternativeAsync(_acc!.Code, pointId), L["Xfer_AlternativeAdded"]);
+
+    /// <summary>Eccezione della riga: un livello più dentro, subito sotto.</summary>
+    private Task AddException(int pointId) =>
+        AddVariantRow(() => Transfers.AddExceptionAsync(_acc!.Code, pointId), L["Xfer_ExceptionAdded"]);
+
+    private async Task AddVariantRow(Func<Task<int>> add, string message)
     {
         var newId = 0;
-        await Guarded(async () => newId = await Transfers.AddVariantAsync(_acc!.Code, pointId), L["Xfer_VariantAdded"]);
+        await Guarded(async () => newId = await add(), message);
         if (newId == 0) return;
         // Guarded ha già ricaricato i flussi: la riga nuova c'è, e si apre dove l'utente sta guardando.
         var f = _flows.FirstOrDefault(x => x.Points.Any(p => p.Id == newId));
@@ -1296,14 +1323,29 @@
     private Task DetachVariant(int pointId) =>
         Guarded(() => Transfers.DetachVariantAsync(_acc!.Code, pointId), L["Xfer_VariantDetached"]);
 
-    /// <summary>Numeri dei gruppi di varianti del flusso che non hanno una riga «negli altri casi».</summary>
-    private static IReadOnlyList<int> GroupsWithoutOtherwise(TransferFlowRow f) =>
-        f.Points.Where(p => p.VariantGroup is not null)
-            .GroupBy(p => p.VariantGroup!.Value)
-            .Where(g => !g.Any(p => p.IsOtherwise))
-            .Select(g => g.Key)
-            .OrderBy(x => x)
-            .ToList();
+    /// <summary>
+    /// Le alternative del flusso che non hanno una riga «senza condizioni proprie», cioè che non dicono cosa
+    /// vale nel loro caso normale. Il lettore che non ricade in nessuna eccezione non trova un'istruzione.
+    /// <para>Non è un errore — l'insieme delle eccezioni può essere esaustivo — ma è il buco che il dato reale
+    /// aveva già: la riga «pista 25 + area R403B attiva» esiste, la riga «pista 25, normalmente» no.</para>
+    /// </summary>
+    private static IReadOnlyList<string> AlternativesWithoutNormalCase(TransferFlowRow f)
+    {
+        var mancanti = new List<string>();
+        var points = f.Points;
+        for (var i = 0; i < points.Count; i++)
+        {
+            var a = points[i];
+            if (a.VariantGroup is null || a.VariantDepth != 0 || a.IsGroupWide) continue;
+            if (string.IsNullOrWhiteSpace(a.ConditionDisplay)) continue;   // già il caso normale del gruppo
+
+            // Ha almeno un'eccezione, e nessuna di esse è la sua «senza condizioni»?
+            var hasChild = i + 1 < points.Count
+                           && points[i + 1].VariantGroup == a.VariantGroup && points[i + 1].VariantDepth > 0;
+            if (hasChild) mancanti.Add(a.ConditionDisplay!);
+        }
+        return mancanti;
+    }
 
     /// <summary>Riassunto della faccetta per la riga in sola lettura: «al confine dell'AoR · passando FL110 ·
     /// com. su AVN · ≤250 kt». Vuoto se la riga non usa la faccetta. Usa il template italiano dell'anteprima,
