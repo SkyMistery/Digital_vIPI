@@ -1314,3 +1314,99 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .area-map{height:190px;width:100%;border:1px solid #f4d5d5;border-radius:10px;overflow:hidden}
 .area-noshape{display:grid;place-items:center;font-size:13px}
 .area-alt{display:flex;gap:8px;align-items:baseline}
+
+/* ===== Editor trasferimenti =====================================================================
+   Pagina di editing come le altre del progetto: lista a sinistra, pannello a destra (.xfe-layout,
+   lo stesso di Permessi e Incarichi). Prima l'editing trasformava la riga in una fila di sei controlli
+   senza etichetta, e il multi-select delle piste copriva la riga sotto.
+   Tutto ciò che segue nasce da stili che stavano inline nel markup: la CSP li vuole fuori, ed erano
+   cinquantuno. */
+
+.xt-list{min-width:0}                                   /* la griglia non deve farsi allargare dalla tabella */
+.xt-panel{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 15px}
+.xt-panel-empty{color:var(--ink-soft);font-size:13px}
+.xt-panel-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
+.xt-panel-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.xt-panel-h b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-panel-h .muted{font-size:12px}
+.xt-panel-x{margin-left:auto;padding:2px 8px}
+.xt-panel-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+/* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue. */
+.xt-grp{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
+.xt-grp span{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft)}
+.xt-grp::after{content:"";flex:1;height:1px;background:var(--line)}
+.xt-row2{display:flex;gap:8px;flex-wrap:wrap}
+.xt-row2 .field{flex:1;min-width:90px}
+.xt-preview{margin-top:12px;padding:8px 10px;background:#f7f9ff;border:1px solid var(--line);border-radius:8px;font-size:11.5px}
+.xt-preview b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-prev{font-style:italic;color:var(--ink-soft)}
+
+/* Tabella: sola lettura, quindi le colonne possono restare strette e leggibili. */
+.xt-drag{width:26px;text-align:center}
+.xt-acts{width:118px;white-space:nowrap;text-align:right}
+.xt-facet{color:var(--ink-soft);font-size:11.5px}
+.xt-nest{color:var(--ink-soft);font-size:11px;margin-right:2px}
+.res-table tr.xt-sel>td{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
+/* Rientro per profondità: una classe per livello invece di un padding calcolato nel markup. */
+.xt-d1{padding-left:22px}
+.xt-d2{padding-left:38px}
+.xt-d3{padding-left:54px}
+.xt-d4{padding-left:70px}
+
+.xt-bar{align-items:center;margin:6px 0 12px}
+.xt-search{flex:1;min-width:180px;margin-bottom:0}
+.xt-count{font-size:12px;white-space:nowrap}
+.xt-grow{flex:1}
+.xt-check{font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
+.xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.xt-subform{margin:0 0 8px;background:#f2f5ff;border-radius:6px;padding:8px}
+.xt-warn{margin:0 0 6px;font-size:12.5px}
+
+/* Utilità nate dagli stili inline della pagina. */
+.xt-h2{margin-bottom:2px}
+.xt-chips{display:flex;flex-wrap:wrap;gap:8px}
+.xt-lbl-soft{font-weight:400}
+.xt-hint{font-size:11.5px}
+.xt-nowrap{white-space:nowrap}
+.xt-btnrow{display:flex;gap:6px}
+.xt-selfc{align-self:center}
+.xt-mt0{margin-top:0}
+.xt-m0{margin:0}
+.xt-my{margin:6px 0}
+.xt-mb{margin:0 0 8px}
+.xt-flat{border-top:0;padding-top:0;margin-top:0}
+.xt-clickable{cursor:pointer}
+.xt-chev{display:inline-block;width:1em}
+.xt-desc{font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:38ch;display:inline-block;vertical-align:bottom}
+.xt-warnpill{background:#f4c542;color:#3a2f00;border:0;cursor:pointer}
+.xt-w56{width:56px}
+.xt-w70{width:70px}
+.xt-w96{width:96px}
+.xt-w130{width:130px}
+
+/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina. */
+.sector-pick-wrap{position:relative}
+.sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
+  border:1px solid #c4cadb;border-radius:6px;background:#fff;box-shadow:0 6px 18px rgba(13,44,153,.14)}
+.sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
+  background:transparent;padding:5px 9px;font-size:13px;cursor:pointer}
+.sector-pick .sp-item:last-child{border-bottom:0}
+.sector-pick .sp-item:hover{background:#f2f5ff}
+.sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
+.sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
+.toast-fixed{position:fixed;right:18px;bottom:18px;z-index:60;max-width:380px;
+  box-shadow:0 8px 24px rgba(13,44,153,.22);border-radius:8px}
+.toast-fixed .callout{margin:0}
+.toast-fixed .tclose{margin-left:auto;border:0;background:transparent;cursor:pointer;font-size:15px;
+  line-height:1;color:inherit;opacity:.6}
+.toast-fixed .tclose:hover{opacity:1}
+.xt-pick{width:26px;text-align:center}
+.xt-bulk{margin:0 0 12px}
+.xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.xt-bulkpick{margin:0;min-width:200px}
+.xt-bulkpick input{margin:0}
+.xt-unsaved{margin:0 0 12px}
+.xt-groupwide{margin-top:6px}

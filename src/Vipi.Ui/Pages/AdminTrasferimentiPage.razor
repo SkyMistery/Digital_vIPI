@@ -1,4 +1,4 @@
-@page "/vsop/admin/trasferimenti"
+﻿@page "/vsop/admin/trasferimenti"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -12,24 +12,10 @@
 
 <PageTitle>@L["Xfer_Title"] · vIPI IVAO Italia</PageTitle>
 
-<style>
-    .sector-pick-wrap { position: relative; }
-    .sector-pick { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; margin-top: 2px; max-height: 200px; overflow-y: auto; border: 1px solid #c4cadb; border-radius: 6px; background: #fff; box-shadow: 0 6px 18px rgba(13,44,153,.14); }
-    .sector-pick .sp-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #eef1f7; background: transparent; padding: 5px 9px; font-size: 13px; cursor: pointer; }
-    .sector-pick .sp-item:last-child { border-bottom: 0; }
-    .sector-pick .sp-item:hover { background: #f2f5ff; }
-    .sector-pick .sp-item.on { background: #0D2C99; color: #fff; font-weight: 600; }
-    .sector-pick .sp-empty { display: block; padding: 6px 9px; color: #8a90a2; font-size: 12px; }
-    .toast-fixed { position: fixed; right: 18px; bottom: 18px; z-index: 60; max-width: 380px; box-shadow: 0 8px 24px rgba(13,44,153,.22); border-radius: 8px; }
-    .toast-fixed .callout { margin: 0; }
-    .toast-fixed .tclose { margin-left: auto; border: 0; background: transparent; cursor: pointer; font-size: 15px; line-height: 1; color: inherit; opacity: .6; }
-    .toast-fixed .tclose:hover { opacity: 1; }
-</style>
-
 <div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Xfer_Title"]</b></div>
     <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Xfer_Heading"]</h2><span class="muted">@((MarkupString)L["Xfer_Subtitle"].Value)</span></div>
+        <div><h2 class="xt-h2">@L["Xfer_Heading"]</h2><span class="muted">@((MarkupString)L["Xfer_Subtitle"].Value)</span></div>
     </div>
 
     @if (!Authz.IsAdmin)
@@ -52,7 +38,28 @@
             </div>
         }
 
-        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" ExpiresChanged="OnLockExpiry" />
+
+        @* Il lock scadeva senza preavviso: si stava scrivendo e la pagina tornava in sola lettura. *@
+        @if (LockEndingSoon)
+        {
+            <div class="callout warning">
+                <span class="cic">⏳</span>
+                <div>
+                    <p class="ct">@L["Xfer_LockEndingTitle"]</p>
+                    @(string.Format(L["Xfer_LockEndingBody"].Value, _lockExpiresUtc!.Value.ToLocalTime().ToString("HH:mm")))
+                </div>
+            </div>
+        }
+
+        @* Chiudere il pannello scarta: meglio dirlo mentre la riga è ancora aperta. *@
+        @if (HasOpenEdit)
+        {
+            <div class="callout info xt-unsaved">
+                <span class="cic">✎</span>
+                <div><p class="ct">@L["Xfer_UnsavedTitle"]</p>@L["Xfer_UnsavedBody"]</div>
+            </div>
+        }
 
         @* ---- Scelta ACC ---- *@
         <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
@@ -63,7 +70,7 @@
             }
             else
             {
-                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <div class="xt-chips">
                     @foreach (var a in Stations.Accs)
                     {
                         var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
@@ -81,8 +88,8 @@
         {
             @* ---- Nuovo gruppo (settore · aeroporto · tipo) ---- *@
             <div class="block">
-                <h5 style="margin-top:0">@L["Xfer_NewGroup"]</h5>
-                <div class="inline-form" style="border-top:0;padding-top:0;margin-top:0">
+                <h5 class="xt-mt0">@L["Xfer_NewGroup"]</h5>
+                <div class="inline-form xt-flat">
                     <div class="field sector-pick-wrap"><label>@L["Xfer_SenderSector"]</label>
                         <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_fSectorText" @bind:event="oninput" @bind:after="ResolveFSector"
                                @onfocus="() => _fOpen = true" @onblur="() => _fOpen = false" />
@@ -98,7 +105,7 @@
                             </div>
                         }
                     </div>
-                    <div class="field sector-pick-wrap"><label>@L["Xfer_Airport"] <span class="muted" style="font-weight:400">@L["Xfer_AirportNewForeign"]</span></label>
+                    <div class="field sector-pick-wrap"><label>@L["Xfer_Airport"] <span class="muted xt-lbl-soft">@L["Xfer_AirportNewForeign"]</span></label>
                         <input placeholder="LIRF / LFPG" @bind="_fApt" @bind:event="oninput" title="@L["Xfer_IcaoForeignTitle"]" autocomplete="off"
                                @onfocus="() => _aOpen = true" @onblur="OnAptBlur" />
                         @if (_aOpen)
@@ -107,7 +114,7 @@
                                 @foreach (var ap in _airports.Where(a => MatchApt(a, _fApt)).Take(50))
                                 {
                                     <button type="button" class="sp-item @(string.Equals(ap.Icao, _fApt, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                            @onmousedown:preventDefault="true" @onmousedown="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted" style="font-size:11px">@ap.Name · @ap.AccCode</span></button>
+                                            @onmousedown:preventDefault="true" @onmousedown="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted xt-hint">@ap.Name · @ap.AccCode</span></button>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(_fApt) && !_airports.Any(a => string.Equals(a.Icao, _fApt.Trim(), StringComparison.OrdinalIgnoreCase)))
                                 {
@@ -118,12 +125,12 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(_fApt) && !IsKnownApt(_fApt))
                     {
-                        <div class="field"><label>@L["Xfer_AptName"] <span class="muted" style="font-weight:400">@L["Xfer_OutOfDb"]</span></label>
-                            <div style="display:flex;gap:6px">
+                        <div class="field"><label>@L["Xfer_AptName"] <span class="muted xt-lbl-soft">@L["Xfer_OutOfDb"]</span></label>
+                            <div class="xt-btnrow">
                                 <input placeholder="@L["Xfer_AptNamePh"]" @bind="_fAptName" title="@L["Xfer_AptNameTitle"]" />
-                                <button type="button" class="btn ghost" style="white-space:nowrap" disabled="@_busy" @onclick="() => LookupApt(false)" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
+                                <button type="button" class="btn ghost xt-nowrap" disabled="@_busy" @onclick="() => LookupApt(false)" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
                             </div>
-                            @if (!string.IsNullOrWhiteSpace(_fAptMsg)) { <span class="muted" style="font-size:11.5px">@_fAptMsg</span> }
+                            @if (!string.IsNullOrWhiteSpace(_fAptMsg)) { <span class="muted xt-hint">@_fAptMsg</span> }
                         </div>
                     }
                     <div class="field narrow"><label>@L["Xfer_Kind"]</label>
@@ -137,11 +144,11 @@
                     </div>
                     <div class="field"><label>@L["Xfer_DescOpt"]</label><input placeholder="@L["Xfer_DescPh"]" @bind="_fDesc" @bind:event="oninput" @onkeydown="TrySubmitGroup" /></div>
                     <button class="btn primary" disabled="@(_busy || !_canEdit || _fSector == 0 || NewAptMissingName(_fApt, _fAptName))" @onclick="AddFlow">+ @L["Xfer_Group"]</button>
-                    @if (_canEdit && _fSector == 0) { <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_SelectSenderHint"]</span> }
-                    else if (_canEdit && AirportRequiredMissing(_fKind, _fApt)) { <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_AirportRequired"]</span> }
-                    else if (_canEdit && NewAptMissingName(_fApt, _fAptName)) { <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_AptNeedsName"]</span> }
+                    @if (_canEdit && _fSector == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectSenderHint"]</span> }
+                    else if (_canEdit && AirportRequiredMissing(_fKind, _fApt)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                    else if (_canEdit && NewAptMissingName(_fApt, _fAptName)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AptNeedsName"]</span> }
                 </div>
-                <p class="help" style="margin:6px 0 0">@((MarkupString)L["Xfer_NewGroupHelp"].Value)</p>
+                <p class="help xt-mt0">@((MarkupString)L["Xfer_NewGroupHelp"].Value)</p>
             </div>
 
             @if (_flows.Count == 0)
@@ -151,10 +158,10 @@
             else
             {
                 var shown = FilteredFlows();
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px">
-                    <input class="htree-search" style="flex:1;min-width:180px" placeholder="@L["Xfer_FilterPh"]"
+                <div class="xfe-filters xt-bar">
+                    <input class="htree-search xt-search" placeholder="@L["Xfer_FilterPh"]"
                            @bind="_flowFilter" @bind:event="oninput" />
-                    <select @bind="_kindFilter" style="width:130px">
+                    <select @bind="_kindFilter">
                         <option value="">@L["Xfer_AllKinds"]</option>
                         <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
                         <option value="@TransferFlowKind.Departure">@L["Xfer_KindDeparture"]</option>
@@ -162,22 +169,37 @@
                         <option value="@TransferFlowKind.Vfr">@L["Xfer_KindVfr"]</option>
                         <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
                     </select>
-                    <span class="muted" style="font-size:12px;white-space:nowrap">@GroupsCountLabel(shown.Count) · @(string.Format(L["Xfer_RowsCount"].Value, shown.Sum(f => f.Points.Count)))</span>
+                    <span class="muted xt-count">@GroupsCountLabel(shown.Count) · @(string.Format(L["Xfer_RowsCount"].Value, shown.Sum(f => f.Points.Count)))</span>
+                    @* Un ricevente mancante è una riga che in frequenza finisce a UNICOM: va trovata, non cercata. *@
+                    @{ var noRecv = _flows.Sum(f => f.Points.Count(x => x.NextSectorId is null)); }
+                    @if (noRecv > 0 || _noReceiverOnly)
+                    {
+                        <button class="btn @(_noReceiverOnly ? "primary" : "ghost")" title="@L["Xfer_NoReceiverTitle"]"
+                                @onclick="() => _noReceiverOnly = !_noReceiverOnly">⚠ @L["Xfer_NoReceiverFilter"] (@noRecv)</button>
+                    }
                     @* Le righe ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
                        vanno riviste a mano: senza un modo di elencarle, la revisione si perde per strada. *@
                     @{ var toReview = ToReviewCount(); }
                     @if (toReview > 0 || _toReviewOnly)
                     {
-                        <button class="btn @(_toReviewOnly ? "primary" : "ghost")" style="white-space:nowrap"
+                        <button class="btn @(_toReviewOnly ? "primary" : "ghost")"
                                 title="@L["Xfer_ToReviewTitle"]" @onclick="() => _toReviewOnly = !_toReviewOnly">
                             ⚠ @L["Xfer_ToReview"] (@toReview)
                         </button>
                     }
-                    @if (_filtering) { <button class="btn ghost" @onclick="() => { _flowFilter = string.Empty; _kindFilter = null; _toReviewOnly = false; }">↺ @L["Xfer_Reset"]</button> }
-                    <span class="ln" style="flex:1"></span>
+                    @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
+                    <span class="ln xt-grow"></span>
                     <button class="btn ghost" title="@L["Xfer_ExpandAll"]" @onclick="ExpandAll">⊞ @L["Xfer_ExpandAll"]</button>
                     <button class="btn ghost" title="@L["Xfer_CollapseAll"]" @onclick="CollapseAll">⊟ @L["Xfer_CollapseAll"]</button>
-                    <label class="muted" style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer" title="@L["Xfer_ShowPreviewsTitle"]">
+                    <label class="muted xt-check" title="@L["Xfer_SortNote"]">
+                        @L["Xfer_SortBy"]
+                        <select @bind="_sort">
+                            <option value="@RowSort.Manual">@L["Xfer_SortManual"]</option>
+                            <option value="@RowSort.Cop">@L["Xfer_SortCop"]</option>
+                            <option value="@RowSort.Level">@L["Xfer_SortLevel"]</option>
+                        </select>
+                    </label>
+                    <label class="muted xt-check" title="@L["Xfer_ShowPreviewsTitle"]">
                         <input type="checkbox" @bind="_showPreviews" /> @L["Xfer_ShowPreviews"]
                     </label>
                 </div>
@@ -186,17 +208,49 @@
                     <p class="help">@L["Xfer_NoFilterMatch"]</p>
                 }
 
+            @* Lista a sinistra, editing a destra: è il pattern che il progetto usa già in Struttura, Permessi e
+               Incarichi. Qui mancava, ed era l'unica pagina di editing che trasformava la riga in un form. *@
+            @if (_selected.Count > 0)
+            {
+                <div class="callout info xt-bulk">
+                    <span class="cic">☑</span>
+                    <div class="xt-bulkbody">
+                        <b>@(string.Format(L["Xfer_BulkSelected"].Value, _selected.Count))</b>
+                        <div class="field sector-pick-wrap xt-bulkpick">
+                            <input placeholder="@L["Xfer_BulkReceiver"]" @bind="_bulkNextText" @bind:event="oninput"
+                                   @bind:after="() => _bulkNext = _all.FirstOrDefault(x => string.Equals(x.Callsign, _bulkNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0"
+                                   @onfocus="() => _bulkOpen = true" @onblur="() => _bulkOpen = false" />
+                            @if (_bulkOpen)
+                            {
+                                <div class="sector-pick">
+                                    @foreach (var sx in _all.Where(x => Match(x, _bulkNextText)).Take(50))
+                                    {
+                                        <button type="button" class="sp-item" @onmousedown:preventDefault="true"
+                                                @onmousedown="() => { _bulkNext = sx.Id; _bulkNextText = sx.Callsign; _bulkOpen = false; }">@sx.Callsign</button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ApplyBulkReceiver">@L["Xfer_BulkApply"]</button>
+                        <button class="btn ghost" @onclick="() => _selected.Clear()">@L["Xfer_BulkClear"]</button>
+                    </div>
+                </div>
+            }
+
+            <div class="xfe-layout">
+            <div class="xt-list">
+
             @* ---- Settore ▸ Aeroporto ▸ Tipo ▸ righe ---- *@
             @foreach (var secGroup in shown.GroupBy(f => f.OwningSectorCallsign).OrderBy(g => g.Key))
             {
                 var secKey = secGroup.Key;
                 var secOpen = _filtering || !_collapsedSec.Contains(secKey);
-                <div class="section-title" style="margin-bottom:4px;cursor:pointer" role="button" tabindex="0"
+                <div class="section-title xt-clickable" role="button" tabindex="0"
                      aria-expanded="@secOpen" @onclick="() => ToggleSec(secKey)"
                      @onkeydown="e => { if (IsActivationKey(e)) ToggleSec(secKey); }">
-                    <h3 style="margin:0"><span style="display:inline-block;width:1em">@(secOpen ? "▾" : "▸")</span> @secKey</h3>
+                    <h3 class="xt-m0"><span class="xt-chev">@(secOpen ? "▾" : "▸")</span> @secKey</h3>
                     <span class="ln"></span>
-                    <span class="muted" style="font-size:12px">@(string.Format(L["Xfer_GroupsN"].Value, secGroup.Count()))</span>
+                    <span class="muted xt-hint">@(string.Format(L["Xfer_GroupsN"].Value, secGroup.Count()))</span>
                 </div>
                 @if (!secOpen) { continue; }
                 @foreach (var aptGroup in secGroup.GroupBy(f => f.AirportIcao).OrderBy(g => g.Key ?? "~"))
@@ -204,9 +258,9 @@
                     var aptKey = $"{secKey}|{aptGroup.Key}";
                     var aptOpen = _filtering || !_collapsedApt.Contains(aptKey);
                     <div class="block">
-                        <h5 style="margin:0;cursor:pointer" role="button" tabindex="0" aria-expanded="@aptOpen"
+                        <h5 class="xt-m0 xt-clickable" role="button" tabindex="0" aria-expanded="@aptOpen"
                             @onclick="() => ToggleApt(aptKey)" @onkeydown="e => { if (IsActivationKey(e)) ToggleApt(aptKey); }">
-                            <span style="display:inline-block;width:1em">@(aptOpen ? "▾" : "▸")</span>
+                            <span class="xt-chev">@(aptOpen ? "▾" : "▸")</span>
                             @AptHeader(aptGroup.Key)
                         </h5>
                         @if (aptOpen)
@@ -214,33 +268,34 @@
                         @foreach (var f in aptGroup.OrderBy(x => x.Kind))
                         {
                             var flowOpen = _filtering || !_collapsedFlow.Contains(f.Id);
-                            <div class="section-title" style="margin:6px 0">
-                                <h4 style="margin:0;cursor:pointer" role="button" tabindex="0" aria-expanded="@flowOpen"
+                            <div class="section-title xt-my">
+                                <h4 class="xt-m0 xt-clickable" role="button" tabindex="0" aria-expanded="@flowOpen"
                                     @onclick="() => ToggleFlow(f.Id)" @onkeydown="e => { if (IsActivationKey(e)) ToggleFlow(f.Id); }">
-                                    <span style="display:inline-block;width:1em">@(flowOpen ? "▾" : "▸")</span>
+                                    <span class="xt-chev">@(flowOpen ? "▾" : "▸")</span>
                                     <span class="pill blue">@KindLabel(f.Kind)</span>
-                                    <span class="muted" style="font-size:12px;font-weight:400">@(string.Format(L["Xfer_RowsCount"].Value, f.Points.Count))</span>
+                                    <span class="muted xt-hint xt-lbl-soft">@(string.Format(L["Xfer_RowsCount"].Value, f.Points.Count))</span>
                                     @if (!string.IsNullOrWhiteSpace(f.Description))
                                     {
-                                        <span class="muted" style="font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38ch;display:inline-block;vertical-align:bottom" title="@f.Description">— @f.Description</span>
+                                        <span class="muted xt-desc" title="@f.Description">— @f.Description</span>
                                     }
                                     @if (f.Points.Count > 0 && f.Points.All(p => string.IsNullOrWhiteSpace(p.NextSectorCallsign)))
                                     {
-                                        <button type="button" class="pill" style="background:#f4c542;color:#3a2f00;border:0;cursor:pointer"
+                                        <button type="button" class="pill xt-warnpill"
                                                 title="@L["Xfer_UnicomTitle"]"
                                                 @onclick:stopPropagation="true" disabled="@(_busy || !_canEdit)" @onclick="() => FixUnicom(f)">⚠ @L["Xfer_NoReceiver"]</button>
                                     }
                                 </h4>
                                 <span class="ln"></span>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CloneGroupTitle"]" @onclick="() => OpenCloneFlow(f)">⧉ @L["Xfer_Group"]</button>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditFlow(f)">✎ @L["Xfer_Group"]</button>
+                                @* Tre azioni sullo stesso oggetto dicevano tutte e tre «Gruppo»: il verbo mancava proprio dove serviva. *@
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CloneGroupTitle"]" @onclick="() => OpenCloneFlow(f)">⧉ @L["Xfer_GroupClone"]</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditFlow(f)">✎ @L["Xfer_GroupEdit"]</button>
                                 <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteGroupAria"]" Disabled="@(_busy || !_canEdit)"
-                                               Prompt="@(string.Format(L["Xfer_DeleteGroupPrompt"].Value, f.Points.Count))" OnConfirm="() => DeleteFlow(f.Id)"><Trigger><Icon Name="x" /> @L["Xfer_Group"]</Trigger></InlineConfirm>
+                                               Prompt="@(string.Format(L["Xfer_DeleteGroupPrompt"].Value, f.Points.Count))" OnConfirm="() => DeleteFlow(f.Id)"><Trigger><Icon Name="x" /> @L["Xfer_GroupDelete"]</Trigger></InlineConfirm>
                             </div>
                             @if (!flowOpen) { continue; }
                             @if (_editFlowId == f.Id)
                             {
-                                <div class="inline-form" style="margin:0 0 8px">
+                                <div class="inline-form xt-mb">
                                     <div class="field sector-pick-wrap"><label>@L["Xfer_SenderSector"]</label>
                                         <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_efSectorText" @bind:event="oninput" @bind:after="ResolveEfSector"
                                                @onfocus="() => _efOpen = true" @onblur="() => _efOpen = false" />
@@ -250,7 +305,7 @@
                                                 @foreach (var s in OwnSectors().Where(s => Match(s, _efSectorText)).Take(50))
                                                 {
                                                     <button type="button" class="sp-item @(s.Id == _efSector ? "on" : "")"
-                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEfSector(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
+                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEfSector(s)">@s.Callsign <span class="muted xt-hint">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
                                                 }
                                                 @if (!OwnSectors().Any(s => Match(s, _efSectorText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
                                             </div>
@@ -268,24 +323,24 @@
                                     <div class="field narrow"><label>@L["Xfer_Airport"]</label><input placeholder="LIRF / —" @bind="_efApt" @onblur="() => MaybeAutoLookup(true)" /></div>
                                     @if (!string.IsNullOrWhiteSpace(_efApt) && !IsKnownApt(_efApt))
                                     {
-                                        <div class="field"><label>@L["Xfer_AptName"] <span class="muted" style="font-weight:400">@L["Xfer_OutOfDb"]</span></label>
-                                            <div style="display:flex;gap:6px">
+                                        <div class="field"><label>@L["Xfer_AptName"] <span class="muted xt-lbl-soft">@L["Xfer_OutOfDb"]</span></label>
+                                            <div class="xt-btnrow">
                                                 <input placeholder="@L["Xfer_AptNamePh"]" @bind="_efAptName" />
-                                                <button type="button" class="btn ghost" style="white-space:nowrap" disabled="@_busy" @onclick="() => LookupApt(true)" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
+                                                <button type="button" class="btn ghost xt-nowrap" disabled="@_busy" @onclick="() => LookupApt(true)" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
                                             </div>
-                                            @if (!string.IsNullOrWhiteSpace(_efAptMsg)) { <span class="muted" style="font-size:11.5px">@_efAptMsg</span> }
+                                            @if (!string.IsNullOrWhiteSpace(_efAptMsg)) { <span class="muted xt-hint">@_efAptMsg</span> }
                                         </div>
                                     }
                                     <div class="field"><label>@L["Xfer_DescOpt"]</label><input placeholder="@L["Xfer_DescPh"]" @bind="_efDesc" /></div>
                                     <button class="btn primary" disabled="@(_busy || !_canEdit || NewAptMissingName(_efApt, _efAptName))" @onclick="() => SaveFlow(f.Id)">💾 @L["Common_Save"]</button>
-                                    @if (_canEdit && AirportRequiredMissing(_efKind, _efApt)) { <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_AirportRequired"]</span> }
-                                    else if (_canEdit && NewAptMissingName(_efApt, _efAptName)) { <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_AptNeedsName"]</span> }
+                                    @if (_canEdit && AirportRequiredMissing(_efKind, _efApt)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                                    else if (_canEdit && NewAptMissingName(_efApt, _efAptName)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AptNeedsName"]</span> }
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editFlowId = null">@L["Common_Cancel"]</button>
                                 </div>
                             }
                             @if (_cloneFlowId == f.Id)
                             {
-                                <div class="inline-form" style="margin:0 0 8px;background:#f2f5ff;border-radius:6px;padding:8px">
+                                <div class="inline-form xt-subform">
                                     <div class="field sector-pick-wrap"><label>@L["Xfer_CloneToSender"]</label>
                                         <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_cloneSectorText" @bind:event="oninput" @bind:after="ResolveCloneSector"
                                                @onfocus="() => _cloneOpen = true" @onblur="() => _cloneOpen = false" />
@@ -295,13 +350,13 @@
                                                 @foreach (var s in OwnSectors().Where(s => Match(s, _cloneSectorText)).Take(50))
                                                 {
                                                     <button type="button" class="sp-item @(s.Id == _cloneSector ? "on" : "")"
-                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickCloneSector(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
+                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickCloneSector(s)">@s.Callsign <span class="muted xt-hint">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
                                                 }
                                                 @if (!OwnSectors().Any(s => Match(s, _cloneSectorText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
                                             </div>
                                         }
                                     </div>
-                                    <span class="muted" style="font-size:12px;align-self:center">@L["Xfer_Copy"] <b>@KindLabel(f.Kind)</b>@(string.IsNullOrWhiteSpace(f.AirportIcao) ? "" : $" · {f.AirportIcao}") @(string.Format(L["Xfer_WithRows"].Value, f.Points.Count))</span>
+                                    <span class="muted xt-hint xt-selfc">@L["Xfer_Copy"] <b>@KindLabel(f.Kind)</b>@(string.IsNullOrWhiteSpace(f.AirportIcao) ? "" : $" · {f.AirportIcao}") @(string.Format(L["Xfer_WithRows"].Value, f.Points.Count))</span>
                                     <button class="btn primary" disabled="@(_busy || !_canEdit || _cloneSector == 0)" @onclick="() => ConfirmCloneFlow(f)">⧉ @L["Xfer_CloneHere"]</button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => _cloneFlowId = null">@L["Common_Cancel"]</button>
                                 </div>
@@ -312,272 +367,132 @@
                                (le condizioni possono essere esaustive), quindi si segnala, non si impedisce. *@
                             @foreach (var a in AlternativesWithoutNormalCase(f))
                             {
-                                <div class="callout" style="margin:0 0 6px;font-size:12.5px">
+                                <div class="callout xt-warn">
                                     <span class="cic">⚠</span>
                                     <div>@(string.Format(L["Xfer_AltNoNormalCase"].Value, a))</div>
                                 </div>
                             }
 
-                            <table class="res-table">
-                                <thead><tr><th>@L["Xfer_ColCop"]</th><th>@L["Xfer_ColLevel"]</th><th>@L["Xfer_ColReceiver"]</th><th>@L["Xfer_ColRunway"]</th><th>@L["Xfer_ColArea"]</th><th>@L["Xfer_ColCustom"]</th><th></th></tr></thead>
+                            @* Tabella di SOLA LETTURA: l'editing sta nel pannello a destra, dove i campi hanno
+                               un'etichetta e lo spazio per starci. Prima la riga si trasformava in una fila di sei
+                               controlli senza nomi, e il multi-select delle piste copriva la riga sotto. *@
+                            <table class="res-table xfe-table">
+                                <thead>
+                                    <tr>
+                                        <th class="xt-drag"></th>
+                                        <th class="xt-pick"></th>
+                                        <th>@L["Xfer_ColCop"]</th>
+                                        <th>@L["Xfer_ColLevel"]</th>
+                                        <th>@L["Xfer_ColReceiver"]</th>
+                                        <th>@L["Xfer_ColCondition"]</th>
+                                        <th class="xt-acts"></th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                    @foreach (var p in f.Points)
+                                    @foreach (var p in SortedPoints(f))
                                     {
-                                        @if (_editPointId == p.Id)
-                                        {
-                                            <tr>
-                                                <td><input style="width:90px" placeholder="VALMA / —" @bind="_epCop" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" /></td>
-                                                <td>
-                                                    <select @bind="_epConstraint" style="width:78px">
-                                                        <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
-                                                        <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
-                                                        <option value="@LevelConstraint.Exact">@L["Xfer_Exact"]</option>
-                                                        <option value="@LevelConstraint.Special">@L["Xfer_Special"]</option>
-                                                    </select>
-                                                    @if (_epConstraint == LevelConstraint.Special)
-                                                    {
-                                                        <input style="width:120px" placeholder="@L["Xfer_PerAirway"]" @bind="_epSpecial" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" />
-                                                    }
-                                                    else
-                                                    {
-                                                        <input type="number" style="width:70px" @bind="_epValue" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" />
-                                                        <select @bind="_epUnit" style="width:56px"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
-                                                    }
-                                                    <select @bind="_epParity" style="width:78px" title="@L["Xfer_SemicircLevels"]">
-                                                        <option value="@LevelParity.Any">@L["Xfer_ParityAny"]</option>
-                                                        <option value="@LevelParity.Even">@L["Xfer_ParityEven"]</option>
-                                                        <option value="@LevelParity.Odd">@L["Xfer_ParityOdd"]</option>
-                                                    </select>
-                                                    <select @bind="_epVState" style="width:96px" title="@L["Xfer_VState"]">
-                                                        <option value="@TransferVerticalState.Unspecified">@L["Xfer_VStateNone"]</option>
-                                                        <option value="@TransferVerticalState.Level">@L["Xfer_VStateLevel"]</option>
-                                                        <option value="@TransferVerticalState.Descending">@L["Xfer_VStateDescending"]</option>
-                                                        <option value="@TransferVerticalState.Climbing">@L["Xfer_VStateClimbing"]</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <div class="sector-pick-wrap">
-                                                        <input style="width:150px" placeholder="UNICOM" @bind="_epNextText" @bind:event="oninput" @bind:after="ResolveEpNext"
-                                                               @onkeydown="e => TrySavePoint(p.Id, e)"
-                                                               @onfocus="() => _epOpen = true" @onblur="() => _epOpen = false" />
-                                                        @if (_epOpen)
-                                                        {
-                                                            <div class="sector-pick">
-                                                                @foreach (var s in _all.Where(s => Match(s, _epNextText)).Take(50))
-                                                                {
-                                                                    <button type="button" class="sp-item @(s.Id == _epNext ? "on" : "")"
-                                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEpNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
-                                                                }
-                                                                @if (!_all.Any(s => Match(s, _epNextText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    @if (_condRunways.Count > 0)
-                                                    {
-                                                        <select multiple size="3" style="width:88px" title="@L["Xfer_RunwaysInUseTitle"]" @bind="_epCondRwys">@foreach (var r in _condRunways) { <option value="@r.Ident">@RwyLabel(r)</option> }</select>
-                                                    }
-                                                    else { <span class="muted" style="font-size:11px">@L["Xfer_NoRunway"]</span> }
-                                                </td>
-                                                <td>
-                                                    <div class="sector-pick-wrap">
-                                                        <input style="width:120px" placeholder="@L["Xfer_SearchArea"]" @bind="_epAreaText" @bind:event="oninput" @bind:after="ResolveEpArea"
-                                                               @onfocus="() => _epAreaOpen = true" @onblur="() => _epAreaOpen = false" />
-                                                        @if (_epAreaOpen)
-                                                        {
-                                                            <div class="sector-pick">
-                                                                <button type="button" class="sp-item" @onmousedown:preventDefault="true" @onmousedown="() => PickEpArea(null)"><span class="muted">@L["Xfer_AreaNone"]</span></button>
-                                                                @foreach (var a in MatchAreas(_epAreaText).Take(50))
-                                                                {
-                                                                    <button type="button" class="sp-item @(string.Equals(a.Name, _epCondAreaLabel, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickEpArea(a)">@a.Name @if (!string.IsNullOrWhiteSpace(a.Type)) { <span class="muted" style="font-size:11px">@a.Type</span> }</button>
-                                                                }
-                                                                @if (!MatchAreas(_epAreaText).Any()) { <span class="sp-empty">@L["Xfer_NoArea"]</span> }
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </td>
-                                                <td><input style="width:120px" placeholder="@L["Xfer_Custom"]" @bind="_epCondCustomLabel" @bind:event="oninput" @onkeydown="e => TrySavePoint(p.Id, e)" /></td>
-                                                <td style="white-space:nowrap">
-                                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SaveRowTitle"]" @onclick="() => SavePoint(p.Id)">💾</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CancelEsc"]" @onclick="() => _editPointId = null">✕</button>
-                                                </td>
-                                            </tr>
-                                            @* Faccetta trasferimento su una riga a sé: in linea sarebbero sei controlli
-                                               in più su una tabella che ne ha già sette, e non ci starebbero. *@
-                                            <tr class="xfer-facet-row"><td colspan="7" style="border-top:0;padding:2px 6px 4px 6px">
-                                                @FacetFields(_epFacet, p.VariantGroup is not null)
-                                            </td></tr>
-                                            var prevEdit = PreviewEdit(f);
-                                            <tr class="xfer-prev"><td colspan="7" style="border-top:0;padding:0 6px 6px 6px">
-                                                <span class="muted" style="font-size:11.5px"><b>@L["Xfer_PreviewLabel"]:</b> <span style="font-style:italic">@(string.IsNullOrWhiteSpace(prevEdit) ? L["Xfer_PreviewIncomplete"].Value : $"“{prevEdit}”")</span></span>
-                                            </td></tr>
-                                        }
-                                        else
-                                        {
-                                            <tr class="@(p.VariantGroup is null ? null : "xfer-variant")">
-                                                @* Il rientro dice a chi appartiene la riga: profondità 1 = eccezione
-                                                   della prima riga meno profonda sopra di lei. Le alternative
-                                                   (profondità 0) restano allineate, perché sono pari-grado. *@
-                                                <td style="@(p.VariantDepth > 0 ? $"padding-left:{6 + p.VariantDepth * 16}px" : null)">
-                                                    @if (p.VariantDepth > 0) { <span class="muted" style="font-size:11px">↳ </span> }
-                                                    <b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b>
-                                                    @if (p.VariantGroup is not null)
-                                                    {
-                                                        <span class="pill neutral" style="margin-left:4px" title="@L["Xfer_VariantTitle"]">@L["Xfer_Variant"] @p.VariantGroup</span>
-                                                    }
-                                                    @if (p.IsGroupWide)
-                                                    {
-                                                        <span class="pill neutral" style="margin-left:4px" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
-                                                    }
-                                                </td>
-                                                <td>
-                                                    @p.LevelText
-                                                    @* La faccetta si legge sotto il livello autorizzato: sono due livelli,
-                                                       e metterli sulla stessa riga confonde proprio ciò che distingue. *@
-                                                    @{ var facetSummary = FacetSummary(p); }
-                                                    @if (facetSummary.Length > 0)
-                                                    {
-                                                        <div class="muted" style="font-size:11.5px">→ @facetSummary</div>
-                                                    }
-                                                </td>
-                                                <td>@(p.NextSectorCallsign ?? "—")</td>
-                                                <td>@if (!string.IsNullOrWhiteSpace(p.ConditionLabel)) { <span class="pill neutral" title="@L["Xfer_RunwayInUse"]">@p.ConditionLabel</span> } else { <span class="muted">—</span> }</td>
-                                                <td>@if (!string.IsNullOrWhiteSpace(p.ConditionAreaLabel)) { <span class="pill neutral" title="@L["Xfer_ActiveArea"]">@p.ConditionAreaLabel</span> } else { <span class="muted">—</span> }</td>
-                                                <td>@if (!string.IsNullOrWhiteSpace(p.ConditionCustomLabel)) { <span class="pill neutral" title="@L["Xfer_CustomCond"]">@p.ConditionCustomLabel</span> } else { <span class="muted">—</span> }</td>
-                                                <td style="white-space:nowrap">
-                                                    @* Due intenzioni diverse, due tasti: «⑂» affianca un'alternativa
-                                                       pari-grado (pista 25 accanto alla 07), «↳» annida un'eccezione
-                                                       dentro questa riga. Un tasto solo avrebbe dovuto indovinare. *@
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => AddAlternative(p.Id)">⑂</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => AddException(p.Id)">↳</button>
-                                                    @if (p.VariantGroup is not null)
-                                                    {
-                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => DetachVariant(p.Id)">⇤</button>
-                                                    }
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveTop"]" @onclick="() => MoveToEnd(p.Id, true)">⤒</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[0].Id)" title="@L["Xfer_MoveUp"]" @onclick="() => Move(p.Id, true)">▲</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="@L["Xfer_MoveDown"]" @onclick="() => Move(p.Id, false)">▼</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || p.Id == f.Points[^1].Id)" title="@L["Xfer_MoveBottom"]" @onclick="() => MoveToEnd(p.Id, false)">⤓</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateRow"]" @onclick="() => CloneRow(f, p)">⧉</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => EditPoint(f, p)">✎</button>
-                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => DeletePoint(p.Id)">✕</button>
-                                                </td>
-                                            </tr>
-                                            @if (_showPreviews)
-                                            {
-                                                var prev = PreviewRow(f, p);
-                                                @if (!string.IsNullOrWhiteSpace(prev))
+                                        var sel = _editPointId == p.Id;
+                                        <tr class="@RowClass(p, sel)" @key="p.Id"
+                                            @ondragover:preventDefault="true"
+                                            @ondragenter="() => _dragOver = p.Id" @ondrop="() => DropOn(p)">
+                                            @* Riordino per trascinamento: con l'outline l'ordine è la struttura, e
+                                               quattro frecce per riga su otto righe erano trentadue bersagli. *@
+                                            @* Il trascinamento vale solo con l'ordinamento manuale: riordinare una
+                                               vista ordinata per CoP scriverebbe un ordine che non è quello che si vede. *@
+                                            <td class="xt-drag">
+                                                @if (_sort == RowSort.Manual)
                                                 {
-                                                    <tr class="xfer-prev"><td colspan="7" style="border-top:0;padding:0 6px 6px 6px"><span class="muted" style="font-size:11.5px;font-style:italic">“@prev”</span></td></tr>
+                                                    <span class="app-drag" draggable="@(_canEdit ? "true" : "false")"
+                                                          title="@L["Common_DragReorder"]" @ondragstart="() => _dragId = p.Id">⠿</span>
                                                 }
+                                            </td>
+                                            <td class="xt-pick">
+                                                <input type="checkbox" checked="@_selected.Contains(p.Id)"
+                                                       @onchange="() => ToggleSelect(p.Id)" />
+                                            </td>
+                                            <td class="@DepthClass(p)">
+                                                @if (p.VariantDepth > 0) { <span class="xt-nest">↳</span> }
+                                                <b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b>
+                                                @if (p.IsGroupWide)
+                                                {
+                                                    <span class="pill neutral" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @p.LevelText
+                                                @* La faccetta si legge sotto il livello autorizzato: sono due livelli,
+                                                   e metterli sulla stessa riga confonde proprio ciò che distingue. *@
+                                                @{ var facetSummary = FacetSummary(p); }
+                                                @if (facetSummary.Length > 0) { <div class="xt-facet">→ @facetSummary</div> }
+                                            </td>
+                                            <td>@(p.NextSectorCallsign ?? "—")</td>
+                                            @* Una colonna sola, come nella vista pubblica: le tre separate erano vuote
+                                               su 70 righe di 76, e la stessa condizione si leggeva in tre posti. *@
+                                            <td>
+                                                @if (string.IsNullOrWhiteSpace(p.ConditionDisplay)) { <span class="muted">—</span> }
+                                                else { <span class="pill neutral" title="@L["Xfer_ColCondition"]">@p.ConditionDisplay</span> }
+                                            </td>
+                                            <td class="xt-acts">
+                                                @* Tre azioni, non nove: aggiungere, modificare, eliminare. Spostare,
+                                                   duplicare e sfilare stanno nel pannello, dove c'è posto per le parole. *@
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => AddAlternative(p.Id)">⑂</button>
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => AddException(p.Id)">↳</button>
+                                                <button class="btn @(sel ? "primary" : "ghost")" disabled="@(_busy || !_canEdit)" title="@L["Xfer_EditRowTitle"]" @onclick="() => EditPoint(f, p)">✎</button>
+                                            </td>
+                                        </tr>
+                                        @if (_showPreviews)
+                                        {
+                                            var prev = PreviewRow(f, p);
+                                            @if (!string.IsNullOrWhiteSpace(prev))
+                                            {
+                                                <tr class="xfer-prev"><td colspan="7"><span class="xt-prev">“@prev”</span></td></tr>
                                             }
                                         }
                                     }
                                 </tbody>
                             </table>
 
-                            @if (_addPointFlowId == f.Id)
+                            @* Il form della riga nuova sta nel pannello a destra, come quello di modifica: è la
+                               stessa forma, e averla in due posti significava scriverla due volte. *@
+                            <div class="xt-foot">
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddPoint(f)">+ @L["Xfer_AddRowFull"]</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)"
+                                        title="@L["Xfer_CopyFromTitle"]" @onclick="() => OpenCopyFrom(f)">@L["Xfer_CopyFrom"]</button>
+                            </div>
+
+                            @if (_copyFromFlowId == f.Id)
                             {
-                                <div class="inline-form" style="margin-top:8px">
-                                    <div class="field narrow"><label>CoP <span class="muted" style="font-weight:400">@L["Xfer_CopListHint"]</span></label><input placeholder="VALMA / VALMA, ELB, TOP" @bind="_pCop" @bind:event="oninput" @onkeydown="e => TrySubmitPoint(f.Id, e)" /></div>
-                                    <div class="field narrow"><label>@L["Xfer_Constraint"]</label>
-                                        <select @bind="_pConstraint">
-                                            <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
-                                            <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
-                                            <option value="@LevelConstraint.Exact">@L["Xfer_Exact"]</option>
-                                            <option value="@LevelConstraint.Special">@L["Xfer_Special"]</option>
+                                @* Gli accordi di aeroporti vicini si somigliano: si sceglie il gruppo da cui
+                                   prendere le righe invece di ridigitarle una per una. *@
+                                <div class="inline-form xt-subform">
+                                    <div class="field"><label>@L["Xfer_CopyFromLabel"]</label>
+                                        <select @bind="_copySourceFlowId">
+                                            <option value="0">—</option>
+                                            @foreach (var src in _flows.Where(x => x.Id != f.Id && x.Points.Count > 0)
+                                                                       .OrderBy(x => x.OwningSectorCallsign).ThenBy(x => x.AirportIcao))
+                                            {
+                                                <option value="@src.Id">@src.OwningSectorCallsign · @(src.AirportIcao ?? "—") · @KindLabel(src.Kind) (@src.Points.Count)</option>
+                                            }
                                         </select>
                                     </div>
-                                    @if (_pConstraint == LevelConstraint.Special)
-                                    {
-                                        <div class="field"><label>@L["Xfer_LevelText"]</label><input placeholder="@L["Xfer_PerAirway"]" @bind="_pSpecial" /></div>
-                                    }
-                                    else
-                                    {
-                                        <div class="field narrow"><label>@L["Xfer_Value"]</label><input type="number" @bind="_pValue" /></div>
-                                        <div class="field narrow"><label>@L["Xfer_Unit"]</label>
-                                            <select @bind="_pUnit"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
-                                        </div>
-                                    }
-                                    <div class="field narrow"><label>@L["Xfer_Levels"] <span class="muted" style="font-weight:400">@L["Xfer_SemicircHint"]</span></label>
-                                        <select @bind="_pParity">
-                                            <option value="@LevelParity.Any">@L["Xfer_ParityAny"]</option>
-                                            <option value="@LevelParity.Even">@L["Xfer_ParityEven"]</option>
-                                            <option value="@LevelParity.Odd">@L["Xfer_ParityOdd"]</option>
-                                        </select>
-                                    </div>
-                                    <div class="field narrow"><label>@L["Xfer_VState"]</label>
-                                        <select @bind="_pVState">
-                                            <option value="@TransferVerticalState.Unspecified">@L["Xfer_VStateNone"]</option>
-                                            <option value="@TransferVerticalState.Level">@L["Xfer_VStateLevel"]</option>
-                                            <option value="@TransferVerticalState.Descending">@L["Xfer_VStateDescending"]</option>
-                                            <option value="@TransferVerticalState.Climbing">@L["Xfer_VStateClimbing"]</option>
-                                        </select>
-                                    </div>
-                                    <div class="field sector-pick-wrap"><label>@L["Xfer_ColReceiver"] <span class="muted" style="font-weight:400">@L["Xfer_EmptyUnicom"]</span></label>
-                                        <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_pNextText" @bind:event="oninput" @bind:after="ResolvePNext"
-                                               @onfocus="() => _pOpen = true" @onblur="() => _pOpen = false" />
-                                        @if (_pOpen)
-                                        {
-                                            <div class="sector-pick">
-                                                @foreach (var s in _all.Where(s => Match(s, _pNextText)).Take(50))
-                                                {
-                                                    <button type="button" class="sp-item @(s.Id == _pNext ? "on" : "")"
-                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickPNext(s)">@s.Callsign <span class="muted" style="font-size:11px">@s.AccCode</span></button>
-                                                }
-                                                @if (!_all.Any(s => Match(s, _pNextText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                                            </div>
-                                        }
-                                    </div>
-                                    @* --- Condizioni: tre dimensioni indipendenti (pista/e · area · personalizzata), tutte opzionali --- *@
-                                    <div class="field"><label>@L["Xfer_RunwaysInUse"] <span class="muted" style="font-weight:400">@L["Xfer_MultiSelectHint"]</span></label>
-                                        @if (_condRunways.Count > 0)
-                                        {
-                                            <select multiple size="4" @bind="_pCondRwys">@foreach (var r in _condRunways) { <option value="@r.Ident">@RwyLabel(r)</option> }</select>
-                                        }
-                                        else { <span class="muted" style="font-size:11.5px">@L["Xfer_NoRunwaysForApt"]</span> }
-                                    </div>
-                                    <div class="field sector-pick-wrap"><label>@L["Xfer_ActiveArea"] <span class="muted" style="font-weight:400">@L["Xfer_SearchHint"]</span></label>
-                                        <input placeholder="@L["Xfer_SearchArea"]" @bind="_pAreaText" @bind:event="oninput" @bind:after="ResolvePArea"
-                                               @onfocus="() => _pAreaOpen = true" @onblur="() => _pAreaOpen = false" />
-                                        @if (_pAreaOpen)
-                                        {
-                                            <div class="sector-pick">
-                                                <button type="button" class="sp-item" @onmousedown:preventDefault="true" @onmousedown="() => PickPArea(null)"><span class="muted">@L["Xfer_AreaNone"]</span></button>
-                                                @foreach (var a in MatchAreas(_pAreaText).Take(50))
-                                                {
-                                                    <button type="button" class="sp-item @(string.Equals(a.Name, _pCondAreaLabel, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                                            @onmousedown:preventDefault="true" @onmousedown="() => PickPArea(a)">@a.Name @if (!string.IsNullOrWhiteSpace(a.Type)) { <span class="muted" style="font-size:11px">@a.Type</span> }</button>
-                                                }
-                                                @if (!MatchAreas(_pAreaText).Any()) { <span class="sp-empty">@L["Xfer_NoArea"]</span> }
-                                            </div>
-                                        }
-                                    </div>
-                                    <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted" style="font-weight:400">@L["Xfer_FreeTextHint"]</span></label>
-                                        <input placeholder="@L["Xfer_CustomPh"]" @bind="_pCondCustomLabel" @bind:event="oninput" @onkeydown="e => TrySubmitPoint(f.Id, e)" />
-                                    </div>
-                                    <div style="flex-basis:100%">@FacetFields(_pFacet, inGroup: false)</div>
-                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => AddPoint(f.Id)">@L["Xfer_AddRow"]</button>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(f.Id, true)">＋ @L["Xfer_AddRowContinue"]</button>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _addPointFlowId = null">@L["Common_Cancel"]</button>
-                                    @{ var prevAdd = PreviewAdd(f); }
-                                    <div style="flex-basis:100%;margin-top:2px">
-                                        <span class="muted" style="font-size:11.5px"><b>@L["Xfer_PreviewLabel"]:</b> <span style="font-style:italic">@(string.IsNullOrWhiteSpace(prevAdd) ? L["Xfer_PreviewIncomplete"].Value : $"“{prevAdd}”")</span></span>
-                                    </div>
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || _copySourceFlowId == 0)"
+                                            @onclick="() => ConfirmCopyFrom(f)">@L["Xfer_CopyFromDo"]</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _copyFromFlowId = null">@L["Common_Cancel"]</button>
                                 </div>
-                            }
-                            else
-                            {
-                                <button class="btn ghost" style="margin-top:8px" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddPoint(f)">+ @L["Xfer_AddRowFull"]</button>
                             }
                         }
                         }
                     </div>
                 }
             }
+            </div>@* /xt-list *@
+            @* ---- Pannello: qui si scrive ---- *@
+            <aside class="detail-sticky xt-panel">
+                @PointPanel()
+            </aside>
+            </div>@* /xfe-layout *@
             }
+
         }
     }
 </div>
@@ -600,6 +515,20 @@
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
+    // Scadenza del lock: arriva a ogni battito (60s), che è anche la frequenza con cui l'avviso si aggiorna.
+    private DateTime? _lockExpiresUtc;
+    private void OnLockExpiry(DateTime? utc) { _lockExpiresUtc = utc; StateHasChanged(); }
+
+    /// <summary>
+    /// Il lock sta per scadere DAVVERO. La soglia è 60 secondi e non cinque minuti perché il TTL del lock è di
+    /// tre (<c>ResourceLockService.LockTtlMinutes</c>): a cinque minuti la condizione sarebbe sempre vera e
+    /// l'avviso sempre acceso — provato a schermo, compariva su ogni caricamento.
+    /// <para>Con l'heartbeat vivo (60s) il lock si rinnova e questo non scatta mai: scatta quando l'heartbeat
+    /// si è fermato, che è l'unico momento in cui l'avviso serve davvero.</para>
+    /// </summary>
+    private bool LockEndingSoon =>
+        _canEdit && _lockExpiresUtc is { } e && e - DateTime.UtcNow <= TimeSpan.FromSeconds(60) && e > DateTime.UtcNow;
+
     // Stato collasso (chiavi presenti = collassate): settore, aeroporto (settore|icao), gruppo arrivi/partenze (flowId).
     private readonly HashSet<string> _collapsedSec = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _collapsedApt = new(StringComparer.OrdinalIgnoreCase);
@@ -612,23 +541,72 @@
     private string _fApt = "", _fAptName = "", _fDesc = "";
     private string? _fAptMsg, _efAptMsg;   // esito lookup IVAO del nome aeroporto fuori DB (add / edit)
 
-    // form nuova riga (punto) del gruppo _addPointFlowId. _pNextText = ricerca callsign; _pNext = id risolto (0 = UNICOM).
+    // ---- Form della RIGA (punto), uno solo, in due istanze ----
+    // Prima erano due blocchi di campi paralleli con prefisso diverso (_p* per la riga nuova, _ep* per la
+    // modifica): dodici coppie da tenere allineate a mano, e dodici occasioni di aggiornarne una sola. Ora la
+    // forma è un tipo, e le due modalità sono due istanze — il markup del pannello è scritto una volta.
+    private sealed class PointForm
+    {
+        public string Cop { get; set; } = "";
+        public LevelConstraint Constraint { get; set; } = LevelConstraint.AtOrBelow;
+        public int? Value { get; set; }
+        public LevelUnit Unit { get; set; } = LevelUnit.Fl;
+        public string Special { get; set; } = "";
+        public LevelParity Parity { get; set; } = LevelParity.Any;
+        public TransferVerticalState VState { get; set; } = TransferVerticalState.Unspecified;
+        public int Next { get; set; }                    // 0 = UNICOM
+        public string NextText { get; set; } = "";
+        public bool NextOpen { get; set; }
+
+        // Condizione: tre dimensioni indipendenti (tutte opzionali).
+        public string[] Rwys { get; set; } = Array.Empty<string>();
+        public string AreaLabel { get; set; } = "";
+        public string AreaText { get; set; } = "";
+        public bool AreaOpen { get; set; }
+        public string CustomLabel { get; set; } = "";
+
+        public FacetForm Facet { get; } = new();
+
+        /// <summary>Firma dei valori: serve a dire se il form è stato TOCCATO. «Modifiche non salvate» deve
+        /// dire modifiche — legarlo al solo pannello aperto lo accendeva appena si apriva una riga.</summary>
+        public string Signature() => string.Join('', new[]
+        {
+            Cop, Constraint.ToString(), Value?.ToString() ?? "", Unit.ToString(), Special,
+            Parity.ToString(), VState.ToString(), Next.ToString(),
+            string.Join(',', Rwys), AreaLabel, CustomLabel,
+            Facet.Kind.ToString(), Facet.Label, Facet.LevelValue?.ToString() ?? "",
+            Facet.LevelUnit.ToString(), Facet.LevelConstraint.ToString(),
+            Facet.CommsKind.ToString(), Facet.CommsLabel,
+            Facet.SpeedValue?.ToString() ?? "", Facet.SpeedConstraint.ToString(), Facet.IsGroupWide.ToString(),
+        });
+
+        public void Reset()
+        {
+            Cop = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
+            Parity = LevelParity.Any; VState = TransferVerticalState.Unspecified;
+            Next = 0; NextText = ""; NextOpen = false;
+            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; AreaOpen = false; CustomLabel = "";
+            Facet.Reset();
+        }
+
+        public void LoadFrom(TransferPointRow p, Func<string?, string[]> parseRwys)
+        {
+            Cop = p.Cop; Constraint = p.LevelConstraint; Value = p.LevelValue; Unit = p.LevelUnit;
+            Special = p.LevelSpecial ?? ""; Parity = p.Parity; VState = p.VerticalState;
+            Next = p.NextSectorId ?? 0; NextText = p.NextSectorCallsign ?? ""; NextOpen = false;
+            Rwys = parseRwys(p.ConditionLabel);
+            AreaLabel = p.ConditionAreaLabel ?? ""; AreaText = p.ConditionAreaLabel ?? ""; AreaOpen = false;
+            CustomLabel = p.ConditionCustomLabel ?? "";
+            Facet.LoadFrom(p);
+        }
+    }
+
+    private readonly PointForm _addForm = new();    // riga nuova nel gruppo _addPointFlowId
+    private readonly PointForm _editForm = new();   // riga esistente _editPointId
     private int? _addPointFlowId;
-    private string _pCop = "";
-    private LevelConstraint _pConstraint = LevelConstraint.AtOrBelow;
-    private int? _pValue;
-    private LevelUnit _pUnit = LevelUnit.Fl;
-    private string _pSpecial = "";
-    private LevelParity _pParity = LevelParity.Any;
-    private TransferVerticalState _pVState = TransferVerticalState.Unspecified;
-    private int _pNext;
-    private string _pNextText = "";
-    // Condizione: tre dimensioni indipendenti (tutte opzionali).
-    private string[] _pCondRwys = Array.Empty<string>();   // piste selezionate (ident)
-    private string _pCondAreaLabel = "";                   // area attiva (nome)
-    private string _pAreaText = "";                        // testo ricerca area (typeahead)
-    private bool _pAreaOpen;                               // dropdown area aperto
-    private string _pCondCustomLabel = "";                 // condizione personalizzata
+
+    /// <summary>Il form aperto adesso: la modifica vince sull'aggiunta, come nell'ordine in cui li si apre.</summary>
+    private PointForm? ActiveForm => _editPointId is not null ? _editForm : _addPointFlowId is not null ? _addForm : null;
 
     // Piste reali dell'aeroporto del flusso in editing (opzioni condizione «Pista»); vuoto se fuori DB / non importate.
     private IReadOnlyList<RunwayRow> _condRunways = Array.Empty<RunwayRow>();
@@ -659,6 +637,93 @@
 
     /// <summary>Filtro «da rivedere»: mostra solo i flussi con almeno una riga da rivedere.</summary>
     private bool _toReviewOnly;
+
+    /// <summary>Filtro «senza ricevente»: una riga senza <c>Next</c> in frequenza finisce a UNICOM, e finché
+    /// non la si trova non la si corregge. Il badge sul gruppo c'era, il modo di elencarle no.</summary>
+    private bool _noReceiverOnly;
+
+    private void ResetFilters()
+    {
+        _flowFilter = string.Empty; _kindFilter = null; _toReviewOnly = false; _noReceiverOnly = false;
+    }
+
+    // ---- Selezione multipla e modifica in blocco ----
+    // Quando un settore cambia nome o ne assorbe un altro, il ricevente va cambiato su decine di righe: riga
+    // per riga sono decine di aperture del pannello, e basta saltarne una perché il documento dica due cose.
+    private readonly HashSet<int> _selected = new();
+    private int _bulkNext;
+    private string _bulkNextText = "";
+    private bool _bulkOpen;
+
+    private void ToggleSelect(int pointId)
+    {
+        if (!_selected.Remove(pointId)) _selected.Add(pointId);
+    }
+
+    private async Task ApplyBulkReceiver()
+    {
+        if (_selected.Count == 0) return;
+        var ids = _selected.ToList();
+        var n = 0;
+        await Guarded(async () =>
+        {
+            n = await Transfers.SetReceiverAsync(_acc!.Code, ids, _bulkNext == 0 ? null : _bulkNext);
+            _selected.Clear(); _bulkNext = 0; _bulkNextText = "";
+        }, null);
+        if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+    }
+
+    private Task DuplicateGroup(int pointId) =>
+        Guarded(async () =>
+        {
+            var n = await Transfers.DuplicateVariantGroupAsync(_acc!.Code, pointId);
+            _status = string.Format(L["Xfer_GroupDuplicated"].Value, n);
+        }, null);
+
+    // ---- Ordinamento della VISTA ----
+    // Cambia solo come si guarda l'elenco: l'ordine salvato è la struttura dell'outline e non si tocca mai
+    // da qui. Per questo l'ordinamento non-manuale disabilita il trascinamento: sarebbero due verità.
+    private enum RowSort { Manual, Cop, Level }
+    private RowSort _sort = RowSort.Manual;
+
+    private IReadOnlyList<TransferPointRow> SortedPoints(TransferFlowRow f) => _sort switch
+    {
+        RowSort.Cop => f.Points.OrderBy(p => string.IsNullOrWhiteSpace(p.Cop) ? "~" : p.Cop, StringComparer.OrdinalIgnoreCase).ToList(),
+        RowSort.Level => f.Points.OrderBy(p => p.LevelValue ?? int.MaxValue).ThenBy(p => p.Cop, StringComparer.OrdinalIgnoreCase).ToList(),
+        _ => f.Points,
+    };
+
+    /// <summary>Firma del form al momento in cui si è aperto: il confronto dice se è stato toccato.</summary>
+    private string _formOpenedAs = "";
+
+    /// <summary>Il pannello ha modifiche NON SALVATE: aperto non basta, deve essere cambiato qualcosa.</summary>
+    private bool HasOpenEdit => ActiveForm is { } f && f.Signature() != _formOpenedAs;
+
+    // ---- Riordino per trascinamento ----
+    // Con l'outline l'ordine è la struttura, e le quattro frecce per riga erano trentadue bersagli da 28px su un
+    // flusso di otto righe. Il gesto è quello che il progetto usa già in Frequenze, Regole pista e Struttura.
+    private int? _dragId, _dragOver;
+
+    private async Task DropOn(TransferPointRow target)
+    {
+        var src = _dragId; _dragId = null; _dragOver = null;
+        if (src is not int id || id == target.Id || !_canEdit || _busy) return;
+        await Guarded(() => Transfers.MovePointToAsync(_acc!.Code, id, target.Id), null);
+    }
+
+    /// <summary>Classe della riga: selezione, appartenenza a un gruppo, bersaglio del trascinamento.</summary>
+    private string RowClass(TransferPointRow p, bool selected)
+    {
+        var c = new List<string>(3);
+        if (p.VariantGroup is not null) c.Add("xfer-variant");
+        if (selected) c.Add("xt-sel");
+        if (_dragOver == p.Id && _dragId is not null && _dragId != p.Id) c.Add("xt-dragover");
+        return string.Join(' ', c);
+    }
+
+    /// <summary>Rientro della riga per profondità: una classe per livello, così non serve uno stile inline.</summary>
+    private static string DepthClass(TransferPointRow p) =>
+        p.VariantDepth <= 0 ? "" : $"xt-d{Math.Min(p.VariantDepth, 4)}";
 
     /// <summary>
     /// Una riga «da rivedere» è una riga che consegna a un APP e non dice ancora dove avviene il trasferimento.
@@ -693,22 +758,8 @@
         _efSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _efSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
     private void PickEfSector(GlobalSectorRow s) { _efSector = s.Id; _efSectorText = s.Callsign; _efOpen = false; }
 
-    // form edit riga (punto) in-place. _epNext = id risolto (0 = UNICOM).
+    /// <summary>Riga aperta in modifica nel pannello; null = nessuna (o si sta aggiungendo).</summary>
     private int? _editPointId;
-    private string _epCop = "";
-    private LevelConstraint _epConstraint = LevelConstraint.AtOrBelow;
-    private int? _epValue;
-    private LevelUnit _epUnit = LevelUnit.Fl;
-    private string _epSpecial = "";
-    private LevelParity _epParity = LevelParity.Any;
-    private TransferVerticalState _epVState = TransferVerticalState.Unspecified;
-    private int _epNext;
-    private string _epNextText = "";
-    private string[] _epCondRwys = Array.Empty<string>();   // piste selezionate (ident)
-    private string _epCondAreaLabel = "";                   // area attiva (nome)
-    private string _epAreaText = "";                        // testo ricerca area (typeahead)
-    private bool _epAreaOpen;                               // dropdown area aperto
-    private string _epCondCustomLabel = "";                 // condizione personalizzata
 
     /// <summary>
     /// Stato del form per la faccetta TRASFERIMENTO di una riga (dove passa il controllo, a che livello, dove
@@ -778,8 +829,6 @@
         };
     }
 
-    private readonly FacetForm _epFacet = new();   // modifica in-place
-    private readonly FacetForm _pFacet = new();    // nuova riga
 
     /// <summary>
     /// Campi della faccetta trasferimento, identici nei due form (modifica in-place e nuova riga). I campi
@@ -788,78 +837,282 @@
     /// <para><paramref name="inGroup"/> = la riga sta in un gruppo di varianti: solo lì «negli altri casi»
     /// significa qualcosa, perché solo lì esistono «gli altri casi».</para>
     /// </summary>
-    private RenderFragment FacetFields(FacetForm ff, bool inGroup) => __builder =>
+    /// <summary>
+    /// Il pannello di destra: è l'unico posto dove si scrive una riga. Vuoto mostra cosa fare, come il
+    /// pannello dettaglio di Struttura — una colonna che non dice niente sembra rotta.
+    /// </summary>
+    private RenderFragment PointPanel() => __builder =>
     {
-        <div class="xfer-facet">
-            <label>@L["Xfer_Handoff"]</label>
-            <select @bind="ff.Kind" title="@L["Xfer_HandoffTitle"]">
-                <option value="@TransferHandoffKind.Unspecified">@L["Xfer_HandoffNone"]</option>
-                <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
-                <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
-                <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
-            </select>
-            @if (ff.Kind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
-            {
-                <input style="width:130px" placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.Label" @bind:event="oninput" />
-            }
+        var form = ActiveForm;
+        var flow = CurrentFlow();
 
-            @if (ff.Kind != TransferHandoffKind.Unspecified)
+        if (form is null || flow is null)
+        {
+            <div class="xt-panel-empty">
+                <p class="ct">@L["Xfer_PanelEmptyTitle"]</p>
+                <p class="muted">@L["Xfer_PanelEmptyBody"]</p>
+            </div>
+            return;
+        }
+
+        var editing = _editPointId is not null;
+        var point = editing ? flow.Points.FirstOrDefault(x => x.Id == _editPointId) : null;
+
+        <div class="xt-panel-h">
+            <b>@(editing ? L["Xfer_PanelEdit"] : L["Xfer_PanelNew"])</b>
+            <span class="muted">@flow.OwningSectorCallsign@(string.IsNullOrWhiteSpace(flow.AirportIcao) ? "" : $" · {flow.AirportIcao}") · @KindLabel(flow.Kind)</span>
+            <button class="btn ghost xt-panel-x" title="@L["Common_Cancel"]" @onclick="ClosePanel">✕</button>
+        </div>
+
+        @* --- Identità: dove entra il traffico e a chi va --- *@
+        <div class="xt-grp"><span>@L["Xfer_GrpIdentity"]</span></div>
+        <div class="field">
+            <label>@(editing ? "CoP" : L["Xfer_ColCop"].Value)
+                @if (!editing) { <span class="muted xt-hint">@L["Xfer_CopListHint"]</span> }
+            </label>
+            <input placeholder="@(editing ? "VALMA / —" : "VALMA / VALMA, ELB, TOP")" @bind="form.Cop" @bind:event="oninput"
+                   @onkeydown="PanelKey" />
+        </div>
+        <div class="field sector-pick-wrap">
+            <label>@L["Xfer_ColReceiver"] <span class="muted xt-hint">@L["Xfer_EmptyUnicom"]</span></label>
+            <input placeholder="@L["Xfer_SearchCallsign"]" @bind="form.NextText" @bind:event="oninput" @bind:after="() => ResolveNext(form)"
+                   @onfocus="() => form.NextOpen = true" @onblur="() => form.NextOpen = false" @onkeydown="PanelKey" />
+            @if (form.NextOpen)
             {
-                <label>@L["Xfer_HandoffLevel"]</label>
-                <select @bind="ff.LevelConstraint" style="width:96px" title="@L["Xfer_HandoffLevelTitle"]">
-                    <option value="@LevelConstraint.Exact">@L["Xfer_HandoffPassing"]</option>
+                <div class="sector-pick">
+                    @foreach (var s in _all.Where(s => Match(s, form.NextText)).Take(50))
+                    {
+                        <button type="button" class="sp-item @(s.Id == form.Next ? "on" : "")"
+                                @onmousedown:preventDefault="true" @onmousedown="() => PickNext(form, s)">@s.Callsign <span class="muted xt-hint">@s.AccCode</span></button>
+                    }
+                    @if (!_all.Any(s => Match(s, form.NextText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
+                </div>
+            }
+        </div>
+
+        @* --- Livello autorizzato --- *@
+        <div class="xt-grp"><span>@L["Xfer_GrpCleared"]</span></div>
+        <div class="xt-row2">
+            <div class="field"><label>@L["Xfer_Constraint"]</label>
+                <select @bind="form.Constraint">
                     <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
                     <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
+                    <option value="@LevelConstraint.Exact">@L["Xfer_Exact"]</option>
+                    <option value="@LevelConstraint.Special">@L["Xfer_Special"]</option>
                 </select>
-                <input type="number" style="width:70px" @bind="ff.LevelValue" @bind:event="oninput" />
-                <select @bind="ff.LevelUnit" style="width:56px"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+            </div>
+            @if (form.Constraint == LevelConstraint.Special)
+            {
+                <div class="field"><label>@L["Xfer_LevelText"]</label>
+                    <input placeholder="@L["Xfer_PerAirway"]" @bind="form.Special" @bind:event="oninput" @onkeydown="PanelKey" />
+                </div>
+            }
+            else
+            {
+                <div class="field"><label>@L["Xfer_Value"]</label>
+                    <input type="number" @bind="form.Value" @bind:event="oninput" @onkeydown="PanelKey" />
+                </div>
+                <div class="field"><label>@L["Xfer_Unit"]</label>
+                    <select @bind="form.Unit"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+                </div>
+            }
+        </div>
+        <div class="xt-row2">
+            <div class="field"><label>@L["Xfer_Levels"] <span class="muted xt-hint">@L["Xfer_SemicircHint"]</span></label>
+                <select @bind="form.Parity">
+                    <option value="@LevelParity.Any">@L["Xfer_ParityAny"]</option>
+                    <option value="@LevelParity.Even">@L["Xfer_ParityEven"]</option>
+                    <option value="@LevelParity.Odd">@L["Xfer_ParityOdd"]</option>
+                </select>
+            </div>
+            <div class="field"><label>@L["Xfer_VState"]</label>
+                <select @bind="form.VState">
+                    <option value="@TransferVerticalState.Unspecified">@L["Xfer_VStateNone"]</option>
+                    <option value="@TransferVerticalState.Level">@L["Xfer_VStateLevel"]</option>
+                    <option value="@TransferVerticalState.Descending">@L["Xfer_VStateDescending"]</option>
+                    <option value="@TransferVerticalState.Climbing">@L["Xfer_VStateClimbing"]</option>
+                </select>
+            </div>
+        </div>
 
-                <label>@L["Xfer_Comms"]</label>
-                <select @bind="ff.CommsKind" title="@L["Xfer_CommsTitle"]">
-                    <option value="@TransferHandoffKind.Unspecified">@L["Xfer_CommsSame"]</option>
+        @* --- Trasferimento (faccetta ACC→APP) --- *@
+        <div class="xt-grp"><span>@L["Xfer_GrpHandoff"]</span></div>
+        @FacetFields(form.Facet, point?.VariantGroup is not null && point.VariantDepth == 0)
+
+        @* --- Condizione --- *@
+        <div class="xt-grp"><span>@L["Xfer_GrpCondition"]</span></div>
+        <div class="field"><label>@L["Xfer_RunwaysInUse"] <span class="muted xt-hint">@L["Xfer_MultiSelectHint"]</span></label>
+            @if (_condRunways.Count > 0)
+            {
+                <select multiple size="@Math.Min(4, _condRunways.Count)" @bind="form.Rwys">
+                    @foreach (var r in _condRunways) { <option value="@r.Ident">@RwyLabel(r)</option> }
+                </select>
+            }
+            else { <span class="muted xt-hint">@L["Xfer_NoRunwaysForApt"]</span> }
+        </div>
+        <div class="field sector-pick-wrap"><label>@L["Xfer_ActiveArea"] <span class="muted xt-hint">@L["Xfer_SearchHint"]</span></label>
+            <input placeholder="@L["Xfer_SearchArea"]" @bind="form.AreaText" @bind:event="oninput" @bind:after="() => ResolveArea(form)"
+                   @onfocus="() => form.AreaOpen = true" @onblur="() => form.AreaOpen = false" />
+            @if (form.AreaOpen)
+            {
+                <div class="sector-pick">
+                    <button type="button" class="sp-item" @onmousedown:preventDefault="true" @onmousedown="() => PickArea(form, null)"><span class="muted">@L["Xfer_AreaNone"]</span></button>
+                    @foreach (var a in MatchAreas(form.AreaText).Take(50))
+                    {
+                        <button type="button" class="sp-item @(string.Equals(a.Name, form.AreaLabel, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                                @onmousedown:preventDefault="true" @onmousedown="() => PickArea(form, a)">@a.Name @if (!string.IsNullOrWhiteSpace(a.Type)) { <span class="muted xt-hint">@a.Type</span> }</button>
+                    }
+                    @if (!MatchAreas(form.AreaText).Any()) { <span class="sp-empty">@L["Xfer_NoArea"]</span> }
+                </div>
+            }
+        </div>
+        <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted xt-hint">@L["Xfer_FreeTextHint"]</span></label>
+            <input placeholder="@L["Xfer_CustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
+        </div>
+
+        @* --- Anteprima: è il modo più diretto di accorgersi di una riga sbagliata --- *@
+        <div class="xt-preview">
+            <b>@L["Xfer_PreviewLabel"]:</b>
+            @{ var prev = PreviewForm(flow, form); }
+            <span class="xt-prev">@(string.IsNullOrWhiteSpace(prev) ? L["Xfer_PreviewIncomplete"].Value : $"“{prev}”")</span>
+        </div>
+
+        <div class="xt-panel-actions">
+            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SavePanel">💾 @L["Common_Save"]</button>
+            @if (!editing)
+            {
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(_addPointFlowId!.Value, true)">＋ @L["Xfer_AddRowContinue"]</button>
+            }
+            <button class="btn ghost" disabled="@_busy" @onclick="ClosePanel">@L["Common_Cancel"]</button>
+        </div>
+
+        @* Spostare, duplicare e sfilare vivono qui: nella riga erano sei icone da 28px senza nome. *@
+        @if (editing && point is not null)
+        {
+            <div class="xt-grp"><span>@L["Xfer_GrpRowActions"]</span></div>
+            <div class="xt-panel-actions">
+                <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[0].Id)" @onclick="() => Move(point.Id, true)">▲ @L["Xfer_MoveUp"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[^1].Id)" @onclick="() => Move(point.Id, false)">▼ @L["Xfer_MoveDown"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => CloneRow(flow, point)">⧉ @L["Xfer_DuplicateRow"]</button>
+                @if (point.VariantGroup is not null)
+                {
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => DetachVariant(point.Id)">⇤ @L["Xfer_DetachVariant"]</button>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateGroupTitle"]" @onclick="() => DuplicateGroup(point.Id)">@L["Xfer_DuplicateGroup"]</button>
+                }
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteRowAria"]" Disabled="@(_busy || !_canEdit)"
+                               Prompt="@L["Xfer_DeleteRowPrompt"]" OnConfirm="() => DeletePoint(point.Id)"><Trigger>✕ @L["Common_Delete"]</Trigger></InlineConfirm>
+            </div>
+        }
+    };
+
+    /// <summary>
+    /// Campi della faccetta trasferimento. Stessa forma degli altri blocchi del pannello — etichetta sopra,
+    /// campo sotto — perché prima erano etichette inline e la sezione sembrava appartenere a un'altra pagina.
+    /// I campi dipendenti compaiono solo quando servono: l'etichetta non si chiede per il confine dell'AoR, che
+    /// si descrive da sé, e il valore di velocità non si chiede senza vincolo.
+    /// <para><paramref name="inGroup"/> = la riga può scavalcare le alternative: solo dentro un gruppo, e solo
+    /// al primo livello, «vale per tutte» significa qualcosa.</para>
+    /// </summary>
+    private RenderFragment FacetFields(FacetForm ff, bool inGroup) => __builder =>
+    {
+        <div class="xt-row2">
+            <div class="field"><label>@L["Xfer_Handoff"]</label>
+                <select @bind="ff.Kind" title="@L["Xfer_HandoffTitle"]">
+                    <option value="@TransferHandoffKind.Unspecified">@L["Xfer_HandoffNone"]</option>
                     <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
                     <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
                     <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
                 </select>
-                @if (ff.CommsKind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
-                {
-                    <input style="width:130px" placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.CommsLabel" @bind:event="oninput" />
-                }
-            }
-
-            <label>@L["Xfer_Speed"]</label>
-            <select @bind="ff.SpeedConstraint" style="width:96px">
-                <option value="@SpeedConstraint.Unspecified">@L["Xfer_SpeedNone"]</option>
-                <option value="@SpeedConstraint.AtOrBelow">≤</option>
-                <option value="@SpeedConstraint.AtOrAbove">≥</option>
-                <option value="@SpeedConstraint.Exact">=</option>
-            </select>
-            @if (ff.SpeedConstraint != SpeedConstraint.Unspecified)
+            </div>
+            @if (ff.Kind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
             {
-                <input type="number" style="width:70px" placeholder="250" @bind="ff.SpeedValue" @bind:event="oninput" />
-                <span class="muted" style="font-size:11.5px">kt</span>
-            }
-
-            @if (inGroup)
-            {
-                <label class="xfer-otherwise" title="@L["Xfer_GroupWideTitle"]">
-                    <input type="checkbox" @bind="ff.IsGroupWide" /> @L["Xfer_GroupWide"]
-                </label>
+                <div class="field"><label>@L["Xfer_HandoffWhere"]</label>
+                    <input placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.Label" @bind:event="oninput" />
+                </div>
             }
         </div>
+
+        @if (ff.Kind != TransferHandoffKind.Unspecified)
+        {
+            <div class="xt-row2">
+                <div class="field"><label>@L["Xfer_HandoffLevel"]</label>
+                    <select @bind="ff.LevelConstraint" title="@L["Xfer_HandoffLevelTitle"]">
+                        <option value="@LevelConstraint.Exact">@L["Xfer_HandoffPassing"]</option>
+                        <option value="@LevelConstraint.AtOrBelow">≤ (-)</option>
+                        <option value="@LevelConstraint.AtOrAbove">≥ (+)</option>
+                    </select>
+                </div>
+                <div class="field"><label>@L["Xfer_Value"]</label>
+                    <input type="number" @bind="ff.LevelValue" @bind:event="oninput" />
+                </div>
+                <div class="field"><label>@L["Xfer_Unit"]</label>
+                    <select @bind="ff.LevelUnit"><option value="@LevelUnit.Fl">FL</option><option value="@LevelUnit.Feet">ft</option></select>
+                </div>
+            </div>
+            <div class="xt-row2">
+                <div class="field"><label>@L["Xfer_Comms"]</label>
+                    <select @bind="ff.CommsKind" title="@L["Xfer_CommsTitle"]">
+                        <option value="@TransferHandoffKind.Unspecified">@L["Xfer_CommsSame"]</option>
+                        <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
+                        <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
+                        <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
+                    </select>
+                </div>
+                @if (ff.CommsKind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
+                {
+                    <div class="field"><label>@L["Xfer_HandoffWhere"]</label>
+                        <input placeholder="@L["Xfer_HandoffLabelPh"]" @bind="ff.CommsLabel" @bind:event="oninput" />
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="xt-row2">
+            <div class="field"><label>@L["Xfer_Speed"]</label>
+                <select @bind="ff.SpeedConstraint">
+                    <option value="@SpeedConstraint.Unspecified">@L["Xfer_SpeedNone"]</option>
+                    <option value="@SpeedConstraint.AtOrBelow">≤</option>
+                    <option value="@SpeedConstraint.AtOrAbove">≥</option>
+                    <option value="@SpeedConstraint.Exact">=</option>
+                </select>
+            </div>
+            @if (ff.SpeedConstraint != SpeedConstraint.Unspecified)
+            {
+                <div class="field"><label>kt</label>
+                    <input type="number" placeholder="250" @bind="ff.SpeedValue" @bind:event="oninput" />
+                </div>
+            }
+        </div>
+
+        @if (inGroup)
+        {
+            <label class="xt-check xt-groupwide" title="@L["Xfer_GroupWideTitle"]">
+                <input type="checkbox" @bind="ff.IsGroupWide" /> @L["Xfer_GroupWide"]
+            </label>
+        }
     };
 
     // Aree filtrate per testo (typeahead): match sul nome (case-insensitive); vuoto = tutte.
     private IEnumerable<SpecialAreaPick> MatchAreas(string text) =>
         string.IsNullOrWhiteSpace(text) ? _areas : _areas.Where(a => a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    // Risoluzione/scelta area per la form nuova riga e per l'edit in-place.
-    private void ResolvePArea() =>
-        _pCondAreaLabel = _areas.FirstOrDefault(a => string.Equals(a.Name, _pAreaText.Trim(), StringComparison.OrdinalIgnoreCase))?.Name ?? "";
-    private void PickPArea(SpecialAreaPick? a) { _pCondAreaLabel = a?.Name ?? ""; _pAreaText = a?.Name ?? ""; _pAreaOpen = false; }
-    private void ResolveEpArea() =>
-        _epCondAreaLabel = _areas.FirstOrDefault(a => string.Equals(a.Name, _epAreaText.Trim(), StringComparison.OrdinalIgnoreCase))?.Name ?? "";
-    private void PickEpArea(SpecialAreaPick? a) { _epCondAreaLabel = a?.Name ?? ""; _epAreaText = a?.Name ?? ""; _epAreaOpen = false; }
+    // Risoluzione/scelta di area e ricevente: una coppia sola, perché il form è uno solo (in due istanze).
+    // Prima erano quattro metodi con prefisso diverso che facevano la stessa cosa.
+    private void ResolveArea(PointForm form) =>
+        form.AreaLabel = _areas.FirstOrDefault(a => string.Equals(a.Name, form.AreaText.Trim(), StringComparison.OrdinalIgnoreCase))?.Name ?? "";
+    private void PickArea(PointForm form, SpecialAreaPick? a) { form.AreaLabel = a?.Name ?? ""; form.AreaText = a?.Name ?? ""; form.AreaOpen = false; }
+
+    private void ResolveNext(PointForm form) =>
+        form.Next = _all.FirstOrDefault(s => string.Equals(s.Callsign, form.NextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    private void PickNext(PointForm form, GlobalSectorRow s)
+    {
+        form.Next = s.Id; form.NextText = s.Callsign; form.NextOpen = false;
+        // Preset: scegliendo un APP come ricevente, la riga è quasi sempre un accordo a due eventi. La faccetta
+        // si apre già sulla forma tipica invece di restare chiusa e obbligare a un giro in più. Solo se l'utente
+        // non l'ha già toccata — un preset che sovrascrive una scelta fatta è un bug, non una comodità.
+        if (s.Type == SectorType.App && form.Facet.Kind == TransferHandoffKind.Unspecified) form.Facet.Reset(preset: true);
+    }
 
     // Etichetta piste combinata ("16R / 16L"), in ordine di pista dell'aeroporto; soft-ref pista solo se singola.
     private string RunwaysLabel(string[] idents)
@@ -882,31 +1135,17 @@
             .ToArray();
 
     // Dropdown ricerca aperto?
-    private bool _fOpen, _pOpen, _aOpen, _epOpen;
-
-    private void ResolveEpNext() =>
-        _epNext = _all.FirstOrDefault(s => string.Equals(s.Callsign, _epNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
-
-    private void PickEpNext(GlobalSectorRow s) { _epNext = s.Id; _epNextText = s.Callsign; _epOpen = false; }
+    // Dropdown aperti dei picker che NON stanno nel form riga (nuovo gruppo, aeroporto): quelli del form
+    // vivono dentro PointForm, accanto ai valori che filtrano.
+    private bool _fOpen, _aOpen;
 
     private void ResolveFSector() =>
         _fSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _fSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
-
-    private void ResolvePNext() =>
-        _pNext = _all.FirstOrDefault(s => string.Equals(s.Callsign, _pNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
 
     private static bool Match(GlobalSectorRow s, string text) =>
         string.IsNullOrWhiteSpace(text) || s.Callsign.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void PickFSector(GlobalSectorRow s) { _fSector = s.Id; _fSectorText = s.Callsign; _fOpen = false; }
-    private void PickPNext(GlobalSectorRow s)
-    {
-        _pNext = s.Id; _pNextText = s.Callsign; _pOpen = false;
-        // Preset: scegliendo un APP come ricevente, la riga è quasi sempre un accordo a due eventi. La faccetta
-        // si apre già sulla forma tipica invece di restare chiusa e obbligare a un giro in più. Solo se l'utente
-        // non l'ha già toccata — un preset che sovrascrive una scelta fatta è un bug, non una comodità.
-        if (s.Type == SectorType.App && _pFacet.Kind == TransferHandoffKind.Unspecified) _pFacet.Reset(preset: true);
-    }
 
     private static bool MatchApt(AirportAdminRow a, string text) =>
         string.IsNullOrWhiteSpace(text)
@@ -1044,44 +1283,36 @@
     }
 
     // Anteprima frase di una riga esistente (lettura). Null = dati incompleti / UNICOM (nessuna frase, come la derivazione).
+    /// <summary>
+    /// Anteprima della riga che il pannello sta scrivendo. La catena delle condizioni parte dagli ANTENATI
+    /// SALVATI e finisce su quella in scrittura: l'anteprima deve mostrare la frase che il documento renderà,
+    /// e quella cumula. Coi soli campi del form direbbe «R403B attiva» dove il documento dirà «con pista 07 in
+    /// uso e R403B attiva».
+    /// </summary>
+    private string? PreviewForm(TransferFlowRow f, PointForm form)
+    {
+        var editing = f.Points.FirstOrDefault(x => x.Id == _editPointId);
+        var chain = editing is null
+            ? new List<ConditionClause>()
+            : CoordinationDerivation.ConditionChain(f.Points, editing).SkipLast(1).ToList();
+        chain.Add(new ConditionClause(
+            form.Rwys.Length == 0 ? null : RunwaysLabel(form.Rwys), form.AreaLabel, form.CustomLabel));
+
+        // In aggiunta il CoP può essere una lista: si mostra il primo come esempio.
+        var cop = _editPointId is null ? (SplitCops(form.Cop).FirstOrDefault() ?? "") : form.Cop;
+
+        return _preview?.Compose(f.OwningSectorCallsign, form.Next == 0 ? null : form.NextText, f.AirportIcao, f.Kind,
+            form.Constraint, form.Value, form.Unit, form.Special, form.Parity, form.VState, cop,
+            chain, form.Facet.ToFacet());
+    }
+
     private string? PreviewRow(TransferFlowRow f, TransferPointRow p) =>
         _preview?.Compose(f.OwningSectorCallsign, p.NextSectorCallsign, f.AirportIcao, f.Kind,
             p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.VerticalState, p.Cop,
             CoordinationDerivation.ConditionChain(f.Points, p),
             TransferHandoffFacet.From(p));
 
-    /// <summary>
-    /// Anteprima live della riga in EDIT (dai campi <c>_ep*</c>). Usa la label piste combinata come nel salvataggio.
-    /// <para>La catena parte dagli ANTENATI SALVATI e finisce sulla condizione che si sta scrivendo: l'anteprima
-    /// deve mostrare la frase che il documento renderà, e quella cumula. Prendere solo i campi del form direbbe
-    /// «R403B attiva» dove il documento dirà «con pista 07 in uso e R403B attiva».</para>
-    /// </summary>
-    private string? PreviewEdit(TransferFlowRow f)
-    {
-        var p = f.Points.FirstOrDefault(x => x.Id == _editPointId);
-        var chain = p is null
-            ? new List<ConditionClause>()
-            : CoordinationDerivation.ConditionChain(f.Points, p).SkipLast(1).ToList();
-        chain.Add(new ConditionClause(
-            _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
-            _epCondAreaLabel, _epCondCustomLabel));
 
-        return _preview?.Compose(f.OwningSectorCallsign, _epNext == 0 ? null : _epNextText, f.AirportIcao, f.Kind,
-            _epConstraint, _epValue, _epUnit, _epSpecial, _epParity, _epVState, _epCop,
-            chain, _epFacet.ToFacet());
-    }
-
-    // Anteprima live della riga in AGGIUNTA (dai campi _p*). Per liste di CoP usa il primo come esempio.
-    // La riga nuova nasce fuori da un gruppo, quindi non ha antenati: una clausola sola.
-    private string? PreviewAdd(TransferFlowRow f)
-    {
-        var cop = SplitCops(_pCop).FirstOrDefault() ?? "";
-        return _preview?.Compose(f.OwningSectorCallsign, _pNext == 0 ? null : _pNextText, f.AirportIcao, f.Kind,
-            _pConstraint, _pValue, _pUnit, _pSpecial, _pParity, _pVState, cop,
-            new[] { new ConditionClause(
-                _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys), _pCondAreaLabel, _pCondCustomLabel) },
-            _pFacet.ToFacet());
-    }
 
     /// <summary>Settori mittenti candidati: i settori di questo ACC + quelli degli ACC esteri confinanti (per la
     /// direzione estero→home nelle vLOA). Il flusso resta salvato sotto l'ACC italiano (lo gestisce lo staff IT).</summary>
@@ -1147,38 +1378,85 @@
         await AddFlow();
     }
 
-    private async Task TrySubmitPoint(int flowId, Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    /// <summary>
+    /// Tasti del pannello: Invio salva, Ctrl+Invio salva e riapre per la riga successiva, Esc chiude.
+    /// Invio non salva mentre il picker del ricevente è aperto — lì serve a scegliere.
+    /// </summary>
+    private async Task PanelKey(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
-        if (e.Key == "Escape") { _addPointFlowId = null; return; }   // Esc = annulla aggiunta
-        if (e.Key != "Enter") return;
-        if (_busy || !_canEdit) return;
-        // Ctrl+Invio = «Salva e aggiungi» (form aperto); Invio semplice aggiunge e chiude (non mentre un picker è aperto).
-        if (e.CtrlKey) { await AddPoint(flowId, keepOpen: true); return; }
-        if (_pOpen) return;
-        await AddPoint(flowId);
+        if (e.Key == "Escape") { ClosePanel(); return; }
+        if (e.Key != "Enter" || _busy || !_canEdit) return;
+        var form = ActiveForm;
+        if (form is null) return;
+        if (form.NextOpen && !e.CtrlKey) return;
+        if (_editPointId is null && e.CtrlKey) { await AddPoint(_addPointFlowId!.Value, keepOpen: true); return; }
+        await SavePanel();
     }
 
-    // Invio (o Ctrl+Invio) salva l'edit in-place della riga; Esc annulla. Invio semplice non salva mentre il picker
-    // ricevente è aperto (lì serve a scegliere); Ctrl+Invio salva comunque.
-    private async Task TrySavePoint(int pointId, Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape") { _editPointId = null; return; }   // Esc = annulla modifica
-        if (e.Key != "Enter") return;
-        if (_busy || !_canEdit) return;
-        if (_epOpen && !e.CtrlKey) return;
-        await SavePoint(pointId);
-    }
+    /// <summary>Salva ciò che il pannello sta mostrando: riga esistente o riga nuova.</summary>
+    private Task SavePanel() =>
+        _editPointId is int id ? SavePointAsync(id)
+        : _addPointFlowId is int flowId ? AddPoint(flowId)
+        : Task.CompletedTask;
+
+    /// <summary>Chiude il pannello. Non salva: la modifica non confermata si perde, e l'avviso lo dice.</summary>
+    private void ClosePanel() { _editPointId = null; _addPointFlowId = null; }
+
+    /// <summary>Il flusso a cui appartiene ciò che il pannello sta modificando.</summary>
+    private TransferFlowRow? CurrentFlow() =>
+        _editPointId is int id ? _flows.FirstOrDefault(f => f.Points.Any(p => p.Id == id))
+        : _addPointFlowId is int flowId ? _flows.FirstOrDefault(f => f.Id == flowId)
+        : null;
 
     private async Task OpenAddPoint(TransferFlowRow f)
     {
-        _editPointId = null; _editFlowId = null; _cloneFlowId = null;
+        _editPointId = null; _editFlowId = null; _cloneFlowId = null; _copyFromFlowId = null;
         _addPointFlowId = f.Id;
-        _pCop = ""; _pConstraint = LevelConstraint.AtOrBelow; _pValue = null; _pUnit = LevelUnit.Fl;
-        _pSpecial = ""; _pParity = LevelParity.Any; _pVState = TransferVerticalState.Unspecified; _pNext = 0; _pNextText = "";
-        _pCondRwys = Array.Empty<string>(); _pCondAreaLabel = ""; _pAreaText = ""; _pAreaOpen = false; _pCondCustomLabel = "";
-        _pFacet.Reset();
+        _addForm.Reset();
+        _formOpenedAs = _addForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
     }
+
+    // ---- Copia righe da un altro flusso ----
+    // Gli accordi di aeroporti vicini si somigliano: ricopiarli a mano riga per riga è il lavoro che questa
+    // pagina fa fare più spesso. Si sceglie il flusso sorgente e si prendono le sue righe così come sono.
+    private int? _copyFromFlowId;
+    private int _copySourceFlowId;
+
+    private void OpenCopyFrom(TransferFlowRow f)
+    {
+        ClosePanel();
+        _editFlowId = null; _cloneFlowId = null;
+        _copyFromFlowId = f.Id;
+        _copySourceFlowId = 0;
+    }
+
+    private async Task ConfirmCopyFrom(TransferFlowRow dest)
+    {
+        var src = _flows.FirstOrDefault(x => x.Id == _copySourceFlowId);
+        if (src is null) return;
+        await Guarded(async () =>
+        {
+            // Le righe arrivano piatte: il GRUPPO di varianti appartiene al flusso d'origine, e ricrearlo qui
+            // vorrebbe dire inventare legami che nessuno ha chiesto — come già per la clonazione di un gruppo.
+            foreach (var p in src.Points) await Transfers.AddPointAsync(_acc!.Code, dest.Id, FromRow(p));
+            _copyFromFlowId = null;
+        }, string.Format(L["Xfer_CopiedRows"].Value, src.Points.Count));
+    }
+
+    /// <summary>Una riga esistente → input di creazione. Copia tutto tranne la posizione nell'outline.</summary>
+    private static TransferPointInput FromRow(TransferPointRow p) => new()
+    {
+        Cop = p.Cop, LevelValue = p.LevelValue, LevelUnit = p.LevelUnit, LevelConstraint = p.LevelConstraint,
+        LevelSpecial = p.LevelSpecial, Parity = p.Parity, VerticalState = p.VerticalState, NextSectorId = p.NextSectorId,
+        ConditionLabel = p.ConditionLabel, ConditionRefId = p.ConditionRefId,
+        ConditionAreaLabel = p.ConditionAreaLabel, ConditionCustomLabel = p.ConditionCustomLabel,
+        HandoffKind = p.HandoffKind, HandoffLabel = p.HandoffLabel,
+        HandoffLevelValue = p.HandoffLevelValue, HandoffLevelUnit = p.HandoffLevelUnit,
+        HandoffLevelConstraint = p.HandoffLevelConstraint,
+        CommsHandoffKind = p.CommsHandoffKind, CommsHandoffLabel = p.CommsHandoffLabel,
+        SpeedValue = p.SpeedValue, SpeedConstraint = p.SpeedConstraint,
+    };
 
     private async Task AddFlow()
     {
@@ -1231,11 +1509,11 @@
     {
         _editPointId = null; _editFlowId = null; _cloneFlowId = null;
         _addPointFlowId = f.Id;
-        _pCop = p.Cop; _pConstraint = p.LevelConstraint; _pValue = p.LevelValue; _pUnit = p.LevelUnit;
-        _pSpecial = p.LevelSpecial ?? ""; _pParity = p.Parity; _pVState = p.VerticalState; _pNext = p.NextSectorId ?? 0; _pNextText = p.NextSectorCallsign ?? "";
-        _pCondRwys = ParseRwys(p.ConditionLabel); _pCondAreaLabel = p.ConditionAreaLabel ?? ""; _pAreaText = p.ConditionAreaLabel ?? ""; _pAreaOpen = false;
-        _pCondCustomLabel = p.ConditionCustomLabel ?? "";
-        _pFacet.LoadFrom(p);
+        _addForm.Cop = p.Cop; _addForm.Constraint = p.LevelConstraint; _addForm.Value = p.LevelValue; _addForm.Unit = p.LevelUnit;
+        _addForm.Special = p.LevelSpecial ?? ""; _addForm.Parity = p.Parity; _addForm.VState = p.VerticalState; _addForm.Next = p.NextSectorId ?? 0; _addForm.NextText = p.NextSectorCallsign ?? "";
+        _addForm.Rwys = ParseRwys(p.ConditionLabel); _addForm.AreaLabel = p.ConditionAreaLabel ?? ""; _addForm.AreaText = p.ConditionAreaLabel ?? ""; _addForm.AreaOpen = false;
+        _addForm.CustomLabel = p.ConditionCustomLabel ?? "";
+        _addForm.Facet.LoadFrom(p);
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
@@ -1292,11 +1570,8 @@
     {
         _editFlowId = null; _addPointFlowId = null; _cloneFlowId = null;
         _editPointId = p.Id;
-        _epCop = p.Cop; _epConstraint = p.LevelConstraint; _epValue = p.LevelValue; _epUnit = p.LevelUnit;
-        _epSpecial = p.LevelSpecial ?? ""; _epParity = p.Parity; _epVState = p.VerticalState; _epNext = p.NextSectorId ?? 0; _epNextText = p.NextSectorCallsign ?? "";
-        _epCondRwys = ParseRwys(p.ConditionLabel); _epCondAreaLabel = p.ConditionAreaLabel ?? ""; _epAreaText = p.ConditionAreaLabel ?? ""; _epAreaOpen = false;
-        _epCondCustomLabel = p.ConditionCustomLabel ?? "";
-        _epFacet.LoadFrom(p);
+        _editForm.LoadFrom(p, ParseRwys);
+        _formOpenedAs = _editForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
     }
 
@@ -1372,44 +1647,40 @@
         if (f.Points.Count > 0) await EditPoint(f, f.Points[0]);
     }
 
-    private async Task SavePoint(int pointId)
+    private async Task SavePointAsync(int pointId)
     {
         await Guarded(async () =>
         {
-            await Transfers.UpdatePointAsync(_acc!.Code, pointId, _epFacet.Apply(new TransferPointInput
-            {
-                Cop = _epCop, LevelValue = _epValue, LevelUnit = _epUnit, LevelConstraint = _epConstraint,
-                LevelSpecial = _epSpecial, Parity = _epParity, VerticalState = _epVState, NextSectorId = _epNext == 0 ? null : _epNext,
-                ConditionLabel = _epCondRwys.Length == 0 ? null : RunwaysLabel(_epCondRwys),
-                ConditionRefId = ResolveRwyRef(_epCondRwys),
-                ConditionAreaLabel = string.IsNullOrWhiteSpace(_epCondAreaLabel) ? null : _epCondAreaLabel,
-                ConditionCustomLabel = string.IsNullOrWhiteSpace(_epCondCustomLabel) ? null : _epCondCustomLabel,
-            }));
+            await Transfers.UpdatePointAsync(_acc!.Code, pointId, ToInput(_editForm, _editForm.Cop));
             _editPointId = null;
         }, L["Xfer_RowUpdated"]);
     }
 
+    /// <summary>Il form → l'input di salvataggio. Un posto solo: prima la stessa mappatura stava in due metodi,
+    /// e un campo aggiunto a uno solo dei due sarebbe sparito a seconda di come si apriva la riga.</summary>
+    private TransferPointInput ToInput(PointForm form, string cop) => form.Facet.Apply(new TransferPointInput
+    {
+        Cop = cop, LevelValue = form.Value, LevelUnit = form.Unit, LevelConstraint = form.Constraint,
+        LevelSpecial = form.Special, Parity = form.Parity, VerticalState = form.VState,
+        NextSectorId = form.Next == 0 ? null : form.Next,
+        ConditionLabel = form.Rwys.Length == 0 ? null : RunwaysLabel(form.Rwys),
+        ConditionRefId = ResolveRwyRef(form.Rwys),
+        ConditionAreaLabel = string.IsNullOrWhiteSpace(form.AreaLabel) ? null : form.AreaLabel,
+        ConditionCustomLabel = string.IsNullOrWhiteSpace(form.CustomLabel) ? null : form.CustomLabel,
+    });
+
     // keepOpen = «Salva e aggiungi»: lascia il form aperto e conserva livello/ricevente/condizioni, azzera solo il CoP
     // (inserimento in serie di righe simili). false = comportamento classico: chiude il form.
+    // keepOpen = «Salva e aggiungi»: lascia il pannello aperto e conserva livello/ricevente/condizioni, azzera
+    // solo il CoP (inserimento in serie di righe simili).
     private async Task AddPoint(int flowId, bool keepOpen = false)
     {
-        var cops = SplitCops(_pCop);
+        var cops = SplitCops(_addForm.Cop);
         await Guarded(async () =>
         {
-            foreach (var cop in cops)
-            {
-                await Transfers.AddPointAsync(_acc!.Code, flowId, _pFacet.Apply(new TransferPointInput
-                {
-                    Cop = cop, LevelValue = _pValue, LevelUnit = _pUnit, LevelConstraint = _pConstraint,
-                    LevelSpecial = _pSpecial, Parity = _pParity, VerticalState = _pVState, NextSectorId = _pNext == 0 ? null : _pNext,
-                    ConditionLabel = _pCondRwys.Length == 0 ? null : RunwaysLabel(_pCondRwys),
-                    ConditionRefId = ResolveRwyRef(_pCondRwys),
-                    ConditionAreaLabel = string.IsNullOrWhiteSpace(_pCondAreaLabel) ? null : _pCondAreaLabel,
-                    ConditionCustomLabel = string.IsNullOrWhiteSpace(_pCondCustomLabel) ? null : _pCondCustomLabel,
-                }));
-            }
-            if (keepOpen) { _pCop = ""; }   // pronto per la riga successiva (stesso livello/ricevente/condizioni)
-            else { _addPointFlowId = null; }
+            foreach (var cop in cops) await Transfers.AddPointAsync(_acc!.Code, flowId, ToInput(_addForm, cop));
+            if (keepOpen) _addForm.Cop = "";     // pronto per la riga successiva
+            else _addPointFlowId = null;
         }, cops.Count > 1 ? string.Format(L["Xfer_RowsAdded"].Value, cops.Count) : L["Xfer_RowAdded"].Value);
     }
 

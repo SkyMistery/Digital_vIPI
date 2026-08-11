@@ -290,7 +290,7 @@
   <data name="Coord_HandoffLevel" xml:space="preserve"><value>Transfer level</value></data>
   <data name="Coord_Comms" xml:space="preserve"><value>Communications</value></data>
   <data name="Coord_Speed" xml:space="preserve"><value>Speed</value></data>
-  <data name="Xfer_Handoff" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Xfer_Handoff" xml:space="preserve"><value>Where control passes</value></data>
   <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Where control passes, when it is not the entry point (ACC→APP agreements)</value></data>
   <data name="Xfer_HandoffNone" xml:space="preserve"><value>same as entry</value></data>
   <data name="Xfer_HandoffAor" xml:space="preserve"><value>AoR boundary</value></data>
@@ -1342,4 +1342,47 @@
   <data name="Apt_SelectAll" xml:space="preserve"><value>Select all shown rows</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Expand or collapse {0}</value></data>
   <data name="Struct_ToggleCard" xml:space="preserve"><value>Expand or collapse ACC {0}</value></data>
+  <data name="Xfer_ColCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>No row open</value></data>
+  <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Pick «✎» on a row to edit it, or «+ Row» to add one. Fields, sentence preview and row actions appear here.</value></data>
+  <data name="Xfer_PanelEdit" xml:space="preserve"><value>Edit row</value></data>
+  <data name="Xfer_PanelNew" xml:space="preserve"><value>New row</value></data>
+  <data name="Xfer_GrpIdentity" xml:space="preserve"><value>Entry and receiver</value></data>
+  <data name="Xfer_GrpCleared" xml:space="preserve"><value>Cleared level</value></data>
+  <data name="Xfer_GrpHandoff" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Xfer_GrpCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Xfer_GrpRowActions" xml:space="preserve"><value>Row actions</value></data>
+  <data name="Xfer_EditRowTitle" xml:space="preserve"><value>Open the row in the panel on the right</value></data>
+  <data name="Xfer_DetachVariant" xml:space="preserve"><value>Detach from group</value></data>
+  <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Delete the row</value></data>
+  <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Delete the row?</value></data>
+  <data name="Xfer_NoReceiverFilter" xml:space="preserve"><value>No receiver</value></data>
+  <data name="Xfer_NoReceiverTitle" xml:space="preserve"><value>Rows with no receiving sector: on frequency they end up at UNICOM</value></data>
+  <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copy rows from…</value></data>
+  <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copy another group&apos;s rows into this one (agreements of nearby airports look alike)</value></data>
+  <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Group to copy from</value></data>
+  <data name="Xfer_CopyFromDo" xml:space="preserve"><value>Copy the rows</value></data>
+  <data name="Xfer_CopiedRows" xml:space="preserve"><value>{0} rows copied.</value></data>
+  <data name="Xfer_UnsavedTitle" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Xfer_UnsavedBody" xml:space="preserve"><value>The panel has a row open with unsaved changes. Save it, or close to discard them.</value></data>
+  <data name="Xfer_LockEndingTitle" xml:space="preserve"><value>The edit lock is about to expire</value></data>
+  <data name="Xfer_LockEndingBody" xml:space="preserve"><value>It expires at {0}. Save what you have open: at expiry the page goes back to read-only.</value></data>
+  <data name="Xfer_SortBy" xml:space="preserve"><value>Sort</value></data>
+  <data name="Xfer_SortManual" xml:space="preserve"><value>manual</value></data>
+  <data name="Xfer_SortCop" xml:space="preserve"><value>by CoP</value></data>
+  <data name="Xfer_SortLevel" xml:space="preserve"><value>by level</value></data>
+  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorting only changes how you look at the list: the saved order — which in variants is the structure — is untouched.</value></data>
+  <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} rows selected</value></data>
+  <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Change receiver</value></data>
+  <data name="Xfer_BulkApply" xml:space="preserve"><value>Apply to all</value></data>
+  <data name="Xfer_BulkDone" xml:space="preserve"><value>{0} rows updated.</value></data>
+  <data name="Xfer_BulkClear" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="Xfer_DuplicateGroup" xml:space="preserve"><value>⧉ Duplicate variant group</value></data>
+  <data name="Xfer_DuplicateGroupTitle" xml:space="preserve"><value>Copy this row&apos;s whole variant group, with its structure</value></data>
+  <data name="Xfer_GroupDuplicated" xml:space="preserve"><value>Group duplicated: {0} rows.</value></data>
+  <data name="Common_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Xfer_GroupClone" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Xfer_GroupEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Xfer_GroupDelete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Xfer_HandoffWhere" xml:space="preserve"><value>Where</value></data>
 </root>
