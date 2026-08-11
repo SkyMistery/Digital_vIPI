@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 
@@ -104,6 +104,12 @@ public sealed class TransferService : ITransferService
         await _repo.MovePointToEndAsync(accCode, pointId, top, ct);
     }
 
+    public async Task MovePointToAsync(string accCode, int pointId, int targetPointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.MovePointToAsync(accCode, pointId, targetPointId, ct);
+    }
+
     public async Task<int> AddAlternativeAsync(string accCode, int pointId, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -114,6 +120,18 @@ public sealed class TransferService : ITransferService
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         return await _repo.AddExceptionAsync(accCode, pointId, ct);
+    }
+
+    public async Task<int> DuplicateVariantGroupAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.DuplicateVariantGroupAsync(accCode, pointId, ct);
+    }
+
+    public async Task<int> SetReceiverAsync(string accCode, IReadOnlyList<int> pointIds, int? nextSectorId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.SetReceiverAsync(accCode, pointIds, nextSectorId, ct);
     }
 
     public async Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default)

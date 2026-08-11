@@ -22,6 +22,12 @@ public interface ITransferRepository
     /// <summary>Sposta un punto in cima (<paramref name="top"/>=true) o in fondo al suo flusso, ricompattando gli <c>Order</c>. No-op se già all'estremo.</summary>
     Task MovePointToEndAsync(string accCode, int pointId, bool top, CancellationToken ct = default);
 
+    /// <summary>Sposta un punto (col suo sottoalbero) dove sta <paramref name="targetPointId"/>: è il gesto del
+    /// trascinamento, dove la posizione di arrivo è una riga e non una direzione. Scendendo si va DOPO il
+    /// bersaglio, salendo PRIMA — come si aspetta chi trascina. No-op fra flussi diversi: un accordo appartiene
+    /// al suo gruppo di traffico, e spostarlo altrove sarebbe un'altra operazione.</summary>
+    Task MovePointToAsync(string accCode, int pointId, int targetPointId, CancellationToken ct = default);
+
     /// <summary>Aggiunge un'ALTERNATIVA pari-grado alla riga indicata (stessa profondità), dopo tutto il suo
     /// sottoalbero: «pista 25» accanto a «pista 07». Copia l'intera riga tranne la condizione — che è ciò che
     /// l'alternativa deve dire di diverso. Se la riga non è ancora in un gruppo, il gruppo nasce qui: è il
@@ -32,6 +38,16 @@ public interface ITransferRepository
     /// <summary>Aggiunge un'ECCEZIONE della riga indicata: un livello più dentro, subito sotto. Stessa copia
     /// senza condizione dell'alternativa; cambia dove finisce nell'outline, cioè a chi appartiene.</summary>
     Task<int> AddExceptionAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Duplica il GRUPPO di varianti a cui la riga appartiene, con la sua struttura (profondità e
+    /// righe trasversali), in fondo allo stesso flusso. Un accordo con tre varianti si ricopiava tre volte a
+    /// mano, e la struttura andava ricostruita a mano dopo. Ritorna quante righe ha creato; 0 se la riga non
+    /// sta in un gruppo.</summary>
+    Task<int> DuplicateVariantGroupAsync(string accCode, int pointId, CancellationToken ct = default);
+
+    /// <summary>Cambia il ricevente di più righe in un colpo: serve quando un settore cambia nome o assorbe un
+    /// altro, e riga per riga sono decine di aperture del pannello. Ritorna quante righe ha toccato.</summary>
+    Task<int> SetReceiverAsync(string accCode, IReadOnlyList<int> pointIds, int? nextSectorId, CancellationToken ct = default);
 
     /// <summary>Sfila una riga <b>col suo sottoalbero</b> dal gruppo: le eccezioni descrivono la riga che le
     /// ospita, e lasciarle indietro le riassegnerebbe alla riga di sopra. Il pezzo staccato riparte da

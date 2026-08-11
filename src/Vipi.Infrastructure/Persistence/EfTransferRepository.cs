@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;      // ValidationException: la UI cattura questa, mai quella di DataAnnotations
 using Vipi.Application.Content;
@@ -136,30 +136,16 @@ public sealed class EfTransferRepository : ITransferRepository
         // L'eccezione va subito sotto la sorgente; l'alternativa dopo l'ultimo discendente della sorgente.
         var after = asException ? src : Subtree(rows, src)[^1];
 
-        var copy = new TransferPoint
-        {
-            FlowId = src.FlowId,
-            Cop = src.Cop,
-            LevelValue = src.LevelValue,
-            LevelUnit = src.LevelUnit,
-            LevelConstraint = src.LevelConstraint,
-            LevelSpecial = src.LevelSpecial,
-            Parity = src.Parity,
-            VerticalState = src.VerticalState,
-            NextSectorId = src.NextSectorId,
-            HandoffKind = src.HandoffKind,
-            HandoffLabel = src.HandoffLabel,
-            HandoffLevelValue = src.HandoffLevelValue,
-            HandoffLevelUnit = src.HandoffLevelUnit,
-            HandoffLevelConstraint = src.HandoffLevelConstraint,
-            CommsHandoffKind = src.CommsHandoffKind,
-            CommsHandoffLabel = src.CommsHandoffLabel,
-            SpeedValue = src.SpeedValue,
-            SpeedConstraint = src.SpeedConstraint,
-            VariantGroup = group,
-            VariantDepth = depth,
-            Order = after.Order + 1,
-        };
+        // Copia editoriale condivisa con la duplicazione del gruppo: i campi sono venti, e due elenchi
+        // paralleli sono due posti in cui dimenticare quello aggiunto ieri.
+        var copy = CopyOf(src);
+        copy.VariantGroup = group;
+        copy.VariantDepth = depth;
+        copy.Order = after.Order + 1;
+        // ⚠️ La CONDIZIONE no: è esattamente ciò che la riga nuova deve dire di diverso, e copiarla darebbe due
+        // righe identiche. CopyOf la porta perché serve alla duplicazione del gruppo, dove invece va tenuta.
+        copy.ConditionLabel = null; copy.ConditionRefId = null;
+        copy.ConditionAreaLabel = null; copy.ConditionCustomLabel = null;
 
         foreach (var x in await _db.TransferPoints.Where(x => x.FlowId == src.FlowId && x.Order > after.Order).ToListAsync(ct))
             x.Order++;
@@ -230,6 +216,104 @@ public sealed class EfTransferRepository : ITransferRepository
         rows.RemoveAll(x => block.Contains(x));
         if (top) rows.InsertRange(0, block); else rows.AddRange(block);
         for (var i = 0; i < rows.Count; i++) rows[i].Order = i + 1;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> DuplicateVariantGroupAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        var p = await PointInAccAsync(accCode, pointId, ct);
+        if (p.VariantGroup is not int group) return 0;
+
+        var rows = await GroupRowsInOrderAsync(p.FlowId, group, ct);
+        if (rows.Count == 0) return 0;
+
+        // Gruppo nuovo e Order in coda: la copia nasce accanto all'originale, non dentro.
+        var newGroup = (await _db.TransferPoints.Where(x => x.FlowId == p.FlowId)
+            .MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0) + 1;
+        var order = (await _db.TransferPoints.Where(x => x.FlowId == p.FlowId)
+            .MaxAsync(x => (int?)x.Order, ct) ?? 0);
+
+        foreach (var src in rows)
+        {
+            var copy = CopyOf(src);
+            copy.VariantGroup = newGroup;
+            // La struttura si copia com'è: profondità e righe trasversali sono ciò che rende utile duplicare
+            // un gruppo invece delle sue righe una per una.
+            copy.VariantDepth = src.VariantDepth;
+            copy.IsGroupWide = src.IsGroupWide;
+            copy.Order = ++order;
+            _db.TransferPoints.Add(copy);
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    public async Task<int> SetReceiverAsync(string accCode, IReadOnlyList<int> pointIds, int? nextSectorId, CancellationToken ct = default)
+    {
+        if (pointIds.Count == 0) return 0;
+        var rows = await _db.TransferPoints
+            .Where(x => pointIds.Contains(x.Id) && x.Flow!.Acc!.Code == accCode)
+            .ToListAsync(ct);
+
+        foreach (var r in rows) r.NextSectorId = nextSectorId;
+
+        // Il ricevente è l'identità dell'accordo, condivisa dal gruppo: cambiarlo su una riga lo cambia sulle
+        // sorelle, esattamente come fa UpdatePointAsync. Senza, una selezione parziale spaccherebbe l'invariante.
+        var groups = rows.Where(r => r.VariantGroup is not null).Select(r => (r.FlowId, r.VariantGroup)).Distinct().ToList();
+        foreach (var (flowId, group) in groups)
+            foreach (var s in await _db.TransferPoints.Where(x => x.FlowId == flowId && x.VariantGroup == group).ToListAsync(ct))
+                s.NextSectorId = nextSectorId;
+
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    /// <summary>Copia di una riga senza identità né posizione: i campi editoriali e basta.</summary>
+    private static TransferPoint CopyOf(TransferPoint src) => new()
+    {
+        FlowId = src.FlowId,
+        Cop = src.Cop,
+        LevelValue = src.LevelValue,
+        LevelUnit = src.LevelUnit,
+        LevelConstraint = src.LevelConstraint,
+        LevelSpecial = src.LevelSpecial,
+        Parity = src.Parity,
+        VerticalState = src.VerticalState,
+        NextSectorId = src.NextSectorId,
+        ConditionLabel = src.ConditionLabel,
+        ConditionRefId = src.ConditionRefId,
+        ConditionAreaLabel = src.ConditionAreaLabel,
+        ConditionCustomLabel = src.ConditionCustomLabel,
+        HandoffKind = src.HandoffKind,
+        HandoffLabel = src.HandoffLabel,
+        HandoffLevelValue = src.HandoffLevelValue,
+        HandoffLevelUnit = src.HandoffLevelUnit,
+        HandoffLevelConstraint = src.HandoffLevelConstraint,
+        CommsHandoffKind = src.CommsHandoffKind,
+        CommsHandoffLabel = src.CommsHandoffLabel,
+        SpeedValue = src.SpeedValue,
+        SpeedConstraint = src.SpeedConstraint,
+    };
+
+    public async Task MovePointToAsync(string accCode, int pointId, int targetPointId, CancellationToken ct = default)
+    {
+        var p = await PointInAccAsync(accCode, pointId, ct);
+        var target = await PointInAccAsync(accCode, targetPointId, ct);
+        if (p.Id == target.Id || p.FlowId != target.FlowId) return;
+
+        var rows = await _db.TransferPoints.Where(x => x.FlowId == p.FlowId).OrderBy(x => x.Order).ToListAsync(ct);
+        var block = Subtree(rows, p);
+        if (block.Any(x => x.Id == target.Id)) return;   // dentro sé stesso: non c'è dove andare
+
+        var scendendo = target.Order > p.Order;
+        rows.RemoveAll(x => block.Contains(x));
+        var at = rows.IndexOf(target);
+        if (at < 0) return;
+        // Scendendo si va DOPO il bersaglio, salendo PRIMA: è quello che si aspetta chi trascina.
+        rows.InsertRange(scendendo ? at + 1 : at, block);
+        for (var i = 0; i < rows.Count; i++) rows[i].Order = i + 1;
+
         await _db.SaveChangesAsync(ct);
     }
 

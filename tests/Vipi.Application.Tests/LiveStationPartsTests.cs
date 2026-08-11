@@ -1,4 +1,4 @@
-using Vipi.Application.Aor;
+﻿using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Application.Live;
 using Vipi.Domain;
@@ -176,9 +176,15 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task MovePointToEndAsync(string a, int p, bool top, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task MovePointToAsync(string a, int p, int t, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<int> AddAlternativeAsync(string a, int p, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> AddExceptionAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> DuplicateVariantGroupAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> SetReceiverAsync(string a, IReadOnlyList<int> ids, int? next, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DetachVariantAsync(string a, int p, CancellationToken ct = default) =>
             throw new NotSupportedException();
