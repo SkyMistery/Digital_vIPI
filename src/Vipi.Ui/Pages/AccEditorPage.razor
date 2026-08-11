@@ -1,6 +1,7 @@
-@page "/vsop/{Acc}/editor"
+﻿@page "/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@implements IDisposable
 @using System.Text.Json
 @inject IAccDocumentService AccDoc
 @inject IAccDerivationService Profile
@@ -164,7 +165,7 @@ else
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
-    private int _saveTick;
+    private readonly DelayedUiAction _dismissSaved = new();
 
     // Menu-sezioni laterale (TOC): raggruppato per blocco (Aerovia / gruppi APP); voci = sezioni figlie (anchor s-{Id}).
     private IReadOnlyList<EditorTocItem> BuildToc()
@@ -442,8 +443,16 @@ else
             if (!silent)
             {
                 _save = SaveState.Saved;
-                var tick = ++_saveTick;
-                _ = DismissSavedAsync(tick);
+                // Il badge «Salvato» si spegne da solo. Programmato con DelayedUiAction, che annulla il
+                // precedente e — a differenza del contatore che c'era prima — si ferma anche allo smontaggio
+                // del componente: senza, chi salvava e cambiava pagina entro due secondi lasciava un
+                // InvokeAsync su un renderer che non c'era più, dentro un task che nessuno osserva.
+                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
+                {
+                    if (_save != SaveState.Saved) return Task.CompletedTask;
+                    _save = SaveState.Idle;
+                    return InvokeAsync(StateHasChanged);
+                });
             }
         }
         catch (EditNotAllowedException) { _error = L["Acc_NoPerm"]; _save = SaveState.Idle; }
@@ -458,11 +467,8 @@ else
             Logger.LogError(ex, "Azione editor ACC fallita (documento {DocId}).", _docId);
         }
     }
-    private async Task DismissSavedAsync(int tick)
-    {
-        await Task.Delay(2000);
-        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
-    }
+    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
+    public void Dispose() => _dismissSaved.Dispose();
     private static string AsString(object? v) => v as string ?? "";
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 

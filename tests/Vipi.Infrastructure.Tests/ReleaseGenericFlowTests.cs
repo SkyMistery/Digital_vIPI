@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -48,6 +48,62 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     private IReleaseTargetRegistry Registry() =>
         new ReleaseTargetRegistry(new IReleaseTarget[] { new FakeReleaseTarget(_docId) });
 
+    /// <summary>
+    /// Repository vero, con un solo passo che si rifiuta di eseguire. Serve a provare che la pubblicazione è
+    /// atomica: senza transazione, la release del passo 1 resterebbe scritta e la promozione della bozza no.
+    /// </summary>
+    private sealed class RepoCheRompeAllaPromozione : IReleaseRepository
+    {
+        private readonly IReleaseRepository _vero;
+        public RepoCheRompeAllaPromozione(IReleaseRepository vero) => _vero = vero;
+
+        public Task PublishWorkingVersionAsync(ReleaseTargetType type, string key, int actorUserId, string airacCycle, CancellationToken ct = default) =>
+            throw new InvalidOperationException("guasto simulato fra la release e la promozione");
+
+        public Task<string?> SnapshotWorkingAsync(ReleaseTargetType type, string key, string airacCycle, CancellationToken ct = default) =>
+            _vero.SnapshotWorkingAsync(type, key, airacCycle, ct);
+        public Task<int> SaveReleaseAsync(ReleaseTargetType type, string key, string releaseCycle, DateTime effectiveUtc, string payloadJson, int createdByUserId, string? note, CancellationToken ct = default) =>
+            _vero.SaveReleaseAsync(type, key, releaseCycle, effectiveUtc, payloadJson, createdByUserId, note, ct);
+        public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            _vero.ListAsync(type, key, ct);
+        public Task<DocRelease?> GetEffectiveAsync(ReleaseTargetType type, string key, DateTime atUtc, CancellationToken ct = default) =>
+            _vero.GetEffectiveAsync(type, key, atUtc, ct);
+        public Task<DocRelease?> GetByIdAsync(int releaseId, CancellationToken ct = default) => _vero.GetByIdAsync(releaseId, ct);
+        public Task<(ReleaseTargetType Type, string Key)?> CancelAsync(int releaseId, CancellationToken ct = default) => _vero.CancelAsync(releaseId, ct);
+        public Task<string?> GetAuthAccCodeAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => _vero.GetAuthAccCodeAsync(type, key, ct);
+        public Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default) => _vero.PruneReleasesAsync(type, key, keepFromUtc, ct);
+        public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default) =>
+            _vero.SummariesAsync(targets, ct);
+    }
+
+    /// <summary>
+    /// Pubblicare è tre scritture: la release, la promozione della bozza, la potatura delle versioni
+    /// archiviate. Fino all'11 agosto 2026 erano tre <c>SaveChanges</c> separati, quindi un guasto in mezzo
+    /// lasciava una release pubblicata di un documento la cui bozza non era stata promossa — la pagina
+    /// pubblica col nuovo, l'editor col vecchio, e nessun errore da nessuna parte.
+    ///
+    /// <para>È l'operazione più importante che l'applicazione compie, ed era l'unica senza rete.</para>
+    /// </summary>
+    [Fact]
+    public async Task PublishNow_Non_Lascia_Release_Se_La_Promozione_Fallisce()
+    {
+        var vero = new EfReleaseRepository(_db, Registry());
+        var svc = new ReleaseService(new RepoCheRompeAllaPromozione(vero), new AllowAuthz(),
+            new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+            new EfUnitOfWork(_db));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.PublishNowAsync(FakeType, "fake-key", "review"));
+
+        // Il punto del test: la release del PRIMO passo non deve essere sopravvissuta al guasto del secondo.
+        Assert.Empty(await vero.ListAsync(FakeType, "fake-key"));
+        Assert.Null(await vero.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));
+    }
+
     [Fact]
     public async Task Engine_Snapshots_And_Authorizes_UnknownType_ViaDescriptorOnly()
     {
@@ -79,7 +135,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
 
@@ -102,7 +158,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
         // Il doc fittizio è Published SENZA release → il backfill ne genera una effettiva ora.
         Assert.Null(await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));
@@ -125,7 +181,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var svc = new ReleaseService(new EfReleaseRepository(_db, Registry()), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }));
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }), new EfUnitOfWork(_db));
 
         // Publish #1: promuove v2, archivia v1 → 1 Archived (al cap).
         await AddDraftAsync(2);

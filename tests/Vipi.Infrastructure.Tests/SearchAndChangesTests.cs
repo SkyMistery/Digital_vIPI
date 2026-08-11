@@ -76,6 +76,51 @@ public class SearchAndChangesTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Dall'11 agosto 2026 il filtro sul corpo dei blocchi sta nel <b>database</b>, non in memoria: prima
+    /// ogni ricerca leggeva l'intero contenuto pubblicato — Body e BodyJson, cioè poligoni AoR e tabelle di
+    /// configurazione — e poi buttava via quasi tutto.
+    ///
+    /// <para>La cosa che il cambio poteva rompere in silenzio è proprio questa: <c>LIKE</c> segue la
+    /// collation, e in produzione la collation è <c>utf8mb4_uca1400_as_cs</c>, cioè <b>case-sensitive</b>.
+    /// Per questo il filtro è scritto con <c>ToLower()</c> su entrambi i lati. Cercare in minuscolo un testo
+    /// scritto in maiuscolo deve continuare a funzionare — è come cerca chiunque.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("VALMA")]
+    [InlineData("valma")]
+    [InlineData("VaLmA")]
+    public async Task Search_Ignora_Le_Maiuscole_Anche_Filtrando_Nel_Database(string termine)
+    {
+        var hits = await _search.SearchAsync(termine, SearchScope.All, 50);
+        Assert.Contains(hits, h => h.Snippet.Contains("VALMA", System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Il rovescio: i blocchi che non contengono il termine non devono nemmeno uscire dal database. Si misura
+    /// dall'esito — un termine presente in UN blocco solo non può produrre più di un risultato di corpo — non
+    /// dal SQL, che è dettaglio del provider.
+    /// </summary>
+    [Fact]
+    public async Task Search_Non_Riporta_Blocchi_Che_Non_Contengono_Il_Termine()
+    {
+        var section = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId,
+            SectionId = section.Id,
+            Order = 9000,
+            Format = Vipi.Domain.BlockFormat.Prose,
+            Body = "Parola rarissima: xyzzyplugh.",
+        });
+        await _db.SaveChangesAsync();
+
+        var hits = await _search.SearchAsync("xyzzyplugh", SearchScope.All, 50);
+
+        Assert.Single(hits);
+        Assert.Contains("xyzzyplugh", hits[0].Snippet, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Un blocco immagine ha per testo il suo alternativo e la didascalia. Il BodyJson porta lo sha: se finisse
     /// nell'indice, cercare una sequenza qualsiasi pescherebbe immagini a caso e il risultato mostrerebbe JSON.
     /// </summary>

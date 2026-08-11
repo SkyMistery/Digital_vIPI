@@ -72,10 +72,11 @@ public sealed class ReleaseService : IReleaseService
     private readonly IEditingRepository _editing;
     private readonly IReleaseTargetRegistry _targets;
     private readonly ReleaseRetentionOptions _retention;
+    private readonly IUnitOfWork _uow;
 
     public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
         IFrozenSectionRegistry frozen, IDocumentAdminRepository admin, IEditingRepository editing,
-        IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention)
+        IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow)
     {
         _repo = repo;
         _authz = authz;
@@ -85,6 +86,7 @@ public sealed class ReleaseService : IReleaseService
         _editing = editing;
         _targets = targets;
         _retention = retention.Value;
+        _uow = uow;
     }
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
@@ -107,21 +109,39 @@ public sealed class ReleaseService : IReleaseService
         await SnapshotAndSaveAsync(type, key, releaseCycle, effectiveUtc, note, ct);
     }
 
+    /// <summary>
+    /// Pubblicazione immediata. <b>Tutta dentro una transazione</b>: sono tre scritture distinte, e uno stato
+    /// intermedio committato è incoerente in modo vistoso — una release pubblicata di un documento la cui
+    /// bozza non è stata promossa, cioè la pagina pubblica che mostra il nuovo e l'editor che mostra il
+    /// vecchio. È l'operazione più importante che l'applicazione compie, ed era l'unica senza rete.
+    ///
+    /// <para><see cref="IUnitOfWork"/> esisteva già ed era usato in due soli posti. Si occupa anche del caso
+    /// spinoso: su Neon la strategia di retry rifiuta le transazioni aperte a mano, quindi il blocco va
+    /// dentro <c>CreateExecutionStrategy</c> — e al retry il change-tracker va azzerato, o le entità del
+    /// tentativo fallito rientrano insieme a quelle del nuovo. Entrambe le cose sono in <c>EfUnitOfWork</c>.</para>
+    ///
+    /// <para>⚠️ L'autorizzazione resta <b>fuori</b> dalla transazione: negare un permesso non è una scrittura
+    /// da annullare, e tenerla dentro significherebbe aprire una transazione anche per rifiutare.</para>
+    /// </summary>
     public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(type, key, ct);
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
-        await SnapshotAndSaveAsync(type, key, cycle, now, note, ct);
-        // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
-        // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
-        // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
-        // il fallback live del viewer non c'è più — questo commento diceva ancora il contrario.
-        // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
-        await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, ct);
-        // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
-        // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
-        await PruneArchivedVersionsForTargetAsync(type, key, ct);
+
+        await _uow.ExecuteInTransactionAsync(async token =>
+        {
+            await SnapshotAndSaveAsync(type, key, cycle, now, note, token);
+            // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
+            // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
+            // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
+            // il fallback live del viewer non c'è più — questo commento diceva ancora il contrario.
+            // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
+            await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, token);
+            // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
+            // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
+            await PruneArchivedVersionsForTargetAsync(type, key, token);
+        }, ct);
     }
 
     public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)

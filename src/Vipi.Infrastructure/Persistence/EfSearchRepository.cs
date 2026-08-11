@@ -61,14 +61,42 @@ public sealed class EfSearchRepository : ISearchRepository
         }
 
         var versionIds = metas.Select(m => m.VersionId).ToList();
+
+        // Le SEZIONI si leggono tutte: servono intere sia per il percorso «padre › figlio» sia per calcolare i
+        // sottoalberi nascosti, e sono righe piccole (titolo e poco altro).
         var sections = await _db.DocumentSections.Where(s => versionIds.Contains(s.DocumentVersionId))
             .AsNoTracking().ToListAsync(ct);
-        var blocks = await _db.ContentBlocks.Where(b => versionIds.Contains(b.DocumentVersionId))
+
+        // I BLOCCHI no. Qui c'era la stessa lettura senza filtro, e i blocchi sono le righe grosse del
+        // database: Body e soprattutto BodyJson portano i poligoni AoR, le tabelle di configurazione e gli
+        // envelope delle immagini. Ogni ricerca — su una pagina pubblica e anonima, senza limitatore —
+        // trasferiva e allocava l'intero contenuto pubblicato, e poi buttava via quasi tutto in memoria.
+        //
+        // Il filtro va nel database. `ToLower().Contains(...)` diventa LOWER(col) LIKE '%…%' su tutti e tre i
+        // provider, ed è insensibile alle maiuscole **indipendentemente dalla collation** — che è quel che
+        // serve, perché su MariaDB la collation è `as_cs` e un LIKE nudo cambierebbe semantica in silenzio.
+        // Le maiuscole restano indifferenti e gli accenti restano significativi, esattamente come faceva
+        // OrdinalIgnoreCase in memoria.
+        //
+        // ⚠️ I blocchi IMMAGINE entrano comunque, senza filtro: il loro testo cercabile non è nella colonna
+        // (è l'alternativo + didascalia estratti dall'envelope) e nessun WHERE può guardarlo. Sono pochi.
+        var q = query.ToLowerInvariant();
+        var blocks = await _db.ContentBlocks
+            .Where(b => versionIds.Contains(b.DocumentVersionId))
+            .Where(b => b.Format == BlockFormat.Image
+                        || (b.Body != null && b.Body.ToLower().Contains(q))
+                        || (b.BodyJson != null && b.BodyJson.ToLower().Contains(q)))
             .AsNoTracking().ToListAsync(ct);
 
         var secById = sections.ToDictionary(s => s.Id);
         // Sezioni nascoste (e i loro sottoalberi): fuori dall'indice, come sono fuori dalla pagina.
         var hiddenSections = PublicDocumentGate.HiddenSectionIds(sections);
+
+        // Raggruppati una volta sola. Prima erano due `Where` dentro il ciclo sui documenti, cioè una
+        // riscansione completa delle liste per ogni documento: O(documenti × sezioni) e O(documenti × blocchi).
+        var sectionsByVersion = sections.ToLookup(s => s.DocumentVersionId);
+        var blocksByVersion = blocks.ToLookup(b => b.DocumentVersionId);
+
         var hits = new List<SearchHit>();
 
         bool Has(string? text) => !string.IsNullOrEmpty(text) && text.Contains(query, StringComparison.OrdinalIgnoreCase);
@@ -83,17 +111,19 @@ public sealed class EfSearchRepository : ISearchRepository
                 hits.Add(new SearchHit { DocTitle = m.Title, DocType = m.Type, Where = m.Title, Snippet = m.Title, Url = url });
 
             // 2) titoli sezione
-            foreach (var s in sections.Where(s => s.DocumentVersionId == m.VersionId && !hiddenSections.Contains(s.Id)))
+            foreach (var s in sectionsByVersion[m.VersionId])
             {
                 if (hits.Count >= limit) break;
+                if (hiddenSections.Contains(s.Id)) continue;
                 if (Has(s.Title))
                     hits.Add(Hit(m, secById, s.Id, s.Title, $"{url}#s-{s.Id}"));
             }
 
             // 3) corpo blocchi (Body + BodyJson)
-            foreach (var b in blocks.Where(b => b.DocumentVersionId == m.VersionId && !hiddenSections.Contains(b.SectionId)))
+            foreach (var b in blocksByVersion[m.VersionId])
             {
                 if (hits.Count >= limit) break;
+                if (hiddenSections.Contains(b.SectionId)) continue;
                 // Un blocco immagine ha per testo il suo alternativo e la didascalia: il BodyJson porta lo sha, e
                 // cercare "abc" non deve pescare un'immagine il cui sha contiene "abc" né mostrare JSON nel risultato.
                 var searchable = b.Format == BlockFormat.Image

@@ -122,6 +122,8 @@ public static class VipiModuleExtensions
         // «full» aggiunge il report di consistenza, che fa scansioni complete → solo su richiesta di un umano.
         // VipiReadinessCheck è anche un servizio a sé perché VipiHealthCheck lo riusa per le condizioni critiche.
         services.AddScoped<VipiReadinessCheck>();
+        // Singleton: la fotografia del report vale per tutte le richieste, non per una sola. Vedi la classe.
+        services.AddSingleton<ConsistencyReportCache>();
         services.AddHealthChecks()
             .AddCheck<VipiReadinessCheck>("vipi-ready", tags: new[] { ReadinessTag })
             .AddCheck<VipiHealthCheck>("vipi", tags: new[] { FullTag });

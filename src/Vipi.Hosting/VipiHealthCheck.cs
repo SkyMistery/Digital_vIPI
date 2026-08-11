@@ -18,12 +18,15 @@ public sealed class VipiHealthCheck : IHealthCheck
     private readonly VipiReadinessCheck _readiness;
     private readonly OnlineAtcCache _cache;
     private readonly IConsistencyReportService _consistency;
+    private readonly ConsistencyReportCache _reportCache;
 
-    public VipiHealthCheck(VipiReadinessCheck readiness, OnlineAtcCache cache, IConsistencyReportService consistency)
+    public VipiHealthCheck(VipiReadinessCheck readiness, OnlineAtcCache cache,
+        IConsistencyReportService consistency, ConsistencyReportCache reportCache)
     {
         _readiness = readiness;
         _cache = cache;
         _consistency = consistency;
+        _reportCache = reportCache;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
@@ -43,7 +46,8 @@ public sealed class VipiHealthCheck : IHealthCheck
         };
 
         // Incongruenze dati soft-ref (label/ref denormalizzati divergenti): degradato, la consultazione regge.
-        var findings = await _consistency.RunAsync(ct);
+        // Dalla cache: l'endpoint è anonimo e il report fa scansioni complete. Vedi ConsistencyReportCache.
+        var findings = await _reportCache.GetAsync(_consistency.RunAsync, ct);
         if (findings.Count > 0)
         {
             data["dataConsistencyFindings"] = findings.Count;

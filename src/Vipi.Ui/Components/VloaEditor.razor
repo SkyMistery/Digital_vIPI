@@ -1,4 +1,4 @@
-@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
+﻿@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
    bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
    Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
@@ -124,7 +124,7 @@ else
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
-    private int _saveTick;
+    private readonly DelayedUiAction _dismissSaved = new();
 
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IEditingService Editing = default!;
@@ -233,8 +233,14 @@ else
             if (!silent)
             {
                 _save = SaveState.Saved;
-                var tick = ++_saveTick;
-                _ = DismissSavedAsync(tick);
+                // Il badge «Salvato» si spegne da solo. DelayedUiAction annulla il precedente e — a
+                // differenza del contatore che c'era prima — si ferma anche allo smontaggio del componente.
+                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
+                {
+                    if (_save != SaveState.Saved) return Task.CompletedTask;
+                    _save = SaveState.Idle;
+                    return InvokeAsync(StateHasChanged);
+                });
             }
         }
         catch (EditNotAllowedException) { _error = L["Vle_NoEditPerm"]; _save = SaveState.Idle; }
@@ -250,10 +256,12 @@ else
         }
     }
 
-    private async Task DismissSavedAsync(int tick)
+    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
+    /// Override e non IDisposable a parte: OwningComponentBase possiede già il proprio scope DI da liberare.</summary>
+    protected override void Dispose(bool disposing)
     {
-        await Task.Delay(2000);
-        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
+        if (disposing) _dismissSaved.Dispose();
+        base.Dispose(disposing);
     }
 
     // ---- sezioni DERIVATE (data-driven): AoR / frequenze / coordinamenti ----
