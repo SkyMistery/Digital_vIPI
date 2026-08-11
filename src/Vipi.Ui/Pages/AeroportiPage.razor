@@ -81,14 +81,14 @@
                         }
                         <table class="res-table">
                             <thead><tr>
-                                <th class="col-chk"><input type="checkbox" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
+                                <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
                                 <th class="col-icao">ICAO</th><th>ACC</th><th>@L["Apt_ColSectors"]</th><th>@L["Common_State"]</th><th></th>
                             </tr></thead>
                             <tbody>
                                 @foreach (var a in ShownAssigned())
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
-                                        <td class="col-chk"><input type="checkbox" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
+                                        <td class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectRow", a.Icao]" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
                                         <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
                                         <td>
                                             <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
@@ -98,6 +98,10 @@
                                                 }
                                             </select>
                                         </td>
+                                        @* aria-hidden no: il contenuto (numero di settori, avviso «senza torre») va letto. Il click è
+                                           una comodità che duplica la checkbox della riga, la quale È raggiungibile da
+                                           tastiera e ora ha un nome. Dare il fuoco anche alla cella creerebbe tre fermate
+                                           di tabulazione per un solo comando: peggio, non meglio. *@
                                         <td class="sel-cell" @onclick="() => ClickAssigned(a.Id)">
                                             @a.Sectors
                                             @if (!a.HasTower)
@@ -177,7 +181,7 @@
                             }
                             <table class="res-table">
                                 <thead><tr>
-                                    <th class="col-chk"><input type="checkbox" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
+                                    <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
                                     <th class="col-icao">ICAO</th><th>@L["Apt_ColAccFromDb"]</th><th>@L["Apt_ColAssignment"]</th>
                                 </tr></thead>
                                 <tbody>
@@ -189,7 +193,7 @@
                                             <td class="col-chk">
                                                 @if (selectable)
                                                 {
-                                                    <input type="checkbox" checked="@_selIvao.Contains(ap.Icao)" @onchange="e => ToggleIvao(ap.Icao, (bool)e.Value!)" />
+                                                    <input type="checkbox" aria-label="@L["Apt_SelectRow", ap.Icao]" checked="@_selIvao.Contains(ap.Icao)" @onchange="e => ToggleIvao(ap.Icao, (bool)e.Value!)" />
                                                 }
                                             </td>
                                             <td class="col-icao @(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><b>@ap.Icao</b><br /><span class="muted" style="font-size:11px">@ap.Name</span></td>

@@ -1300,4 +1300,8 @@
   <data name="AorBlock_ConfigClear" xml:space="preserve"><value>clear</value></data>
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selecting a configuration highlights the matching settings under "Operational configurations".</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Selected runway</value></data>
+  <data name="Apt_SelectRow" xml:space="preserve"><value>Select {0}</value></data>
+  <data name="Apt_SelectAll" xml:space="preserve"><value>Select all shown rows</value></data>
+  <data name="Struct_ToggleNode" xml:space="preserve"><value>Expand or collapse {0}</value></data>
+  <data name="Struct_ToggleCard" xml:space="preserve"><value>Expand or collapse ACC {0}</value></data>
 </root>

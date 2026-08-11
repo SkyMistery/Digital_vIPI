@@ -101,14 +101,31 @@ app.Use(async (context, next) =>
     headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=(), usb=()";
 
-    // CSP in sola segnalazione, e per ora senza destinatario: serve a vedere che cosa romperebbe, non a
-    // rompere. Le due `unsafe-inline` sono debito reale e dichiarato — lo <script> dello zoom e gli
-    // `style="…"` sparsi nel markup — e vanno via prima di passare a Content-Security-Policy vero.
+    // CSP ancora in sola SEGNALAZIONE, e il perché è scritto qui sotto — non è dimenticanza.
+    //
+    // `script-src` ha perso `'unsafe-inline'`: i due <script> inline di App.razor (zoom e riaggancio dopo
+    // le navigazioni enhanced) sono diventati file, e una guardia E2E pretende che la pagina non ne
+    // contenga altri. È il pezzo che conta davvero, perché è quello che rende innocuo uno script iniettato.
+    //
+    // ⚠️ COSA MANCA PER PASSARE A `Content-Security-Policy` VERO, misurato l'11 agosto 2026:
+    //   • 17 gestori inline nel markup (`onclick="window.print()"`, `ondragover="event.preventDefault()"`,
+    //     `onclick="location.href=…"`): sono attributi HTML, quindi `script-src` li blocca esattamente come
+    //     uno <script> inline. Vanno convertiti in delega di eventi o in handler Blazor — e ognuno cambia il
+    //     comportamento di una pagina, quindi va guardato, non riscritto a tappeto.
+    //   • 554 attributi `style="…"` nel markup, che tengono in piedi `style-src 'unsafe-inline'`. Questa
+    //     clausola è molto meno grave della gemella sugli script, e può restare a lungo.
+    //   • una passata con un browser vero: una CSP che entra in vigore rompe in modo vistoso, e nessun test
+    //     qui dentro apre una pagina davvero.
+    //
+    // Finché quei 17 non sono spariti, mettere `Content-Security-Policy` senza `unsafe-inline` romperebbe
+    // la stampa, il drag&drop della struttura e tre elenchi. Con `unsafe-inline` non proteggerebbe da nulla.
+    // Report-Only dice la verità su entrambe le cose senza rompere niente.
+    //
     // ⚠️ `blazor.web.js` ha bisogno di `connect-src` verso il proprio origin (WebSocket): 'self' lo copre
     // per ws:// e wss:// sullo stesso host.
     headers["Content-Security-Policy-Report-Only"] =
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
+        "script-src 'self'; " +
         "style-src 'self' 'unsafe-inline'; " +
         // Le tessere della mappa vengono da CARTO e non si vendorizzano: è l'unico host esterno rimasto,
         // ed è dato pubblico di sfondo — i poligoni, che sono il nostro dato, li disegna Leaflet in locale.

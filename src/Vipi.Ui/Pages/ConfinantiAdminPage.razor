@@ -1,4 +1,4 @@
-@page "/vsop/admin/confinanti"
+﻿@page "/vsop/admin/confinanti"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INeighbourImportService Neighbours
@@ -53,10 +53,10 @@
                     <input class="htree-search" style="flex:1;min-width:220px;max-width:340px;margin:0"
                            value="@_q" @oninput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                        <span class="pill @(_statusFilter is null ? "blue" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(null)">@L["Common_All"]</span>
-                        <span class="pill @(_statusFilter == NeighbourCandidateStatus.Pending ? "blue" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Pending)">@L["Conf_Pending"]</span>
-                        <span class="pill @(_statusFilter == NeighbourCandidateStatus.Confirmed ? "green" : "grey")" style="cursor:pointer;user-select:none" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Confirmed)">@L["Conf_Confirmed"]</span>
-                        <span class="pill" style="cursor:pointer;user-select:none;@(_statusFilter == NeighbourCandidateStatus.Rejected ? "background:#ffe3e3;color:#b42318" : "background:#eceef5;color:#555")" @onclick="() => SetStatusFilter(NeighbourCandidateStatus.Rejected)">@L["Conf_Rejected"]</span>
+                        <Chip Class="@($"pill {(_statusFilter is null ? "blue" : "grey")}")" Active="_statusFilter is null" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(null)">@L["Common_All"]</Chip>
+                        <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Pending ? "blue" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Pending" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Pending)">@L["Conf_Pending"]</Chip>
+                        <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Confirmed ? "green" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Confirmed" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Confirmed)">@L["Conf_Confirmed"]</Chip>
+                        <Chip Class="pill" Active="_statusFilter == NeighbourCandidateStatus.Rejected" Style="@($"cursor:pointer;user-select:none;{(_statusFilter == NeighbourCandidateStatus.Rejected ? "background:#ffe3e3;color:#b42318" : "background:#eceef5;color:#555")}")" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Rejected)">@L["Conf_Rejected"]</Chip>
                     </div>
                     @if (IsFiltering)
                     {

@@ -1,4 +1,4 @@
-@page "/vsop/admin/sectorstructure"
+﻿@page "/vsop/admin/sectorstructure"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
@@ -98,7 +98,11 @@
                     if (_filtering && rows.Count == 0) { continue; }
                     var cardOpen = _filtering || !_collapsedCards.Contains(g.Code);
                     <div class="acc-grp">
-                        <div class="acc-grp-h" @onclick="() => ToggleCard(g.Code)">
+                        <div class="acc-grp-h" role="button" tabindex="0"
+                             aria-expanded="@cardOpen.ToString().ToLowerInvariant()"
+                             aria-label="@L["Struct_ToggleCard", g.Code]"
+                             @onclick="() => ToggleCard(g.Code)"
+                             @onkeydown="e => ToggleCardOnKey(e, g.Code)">
                             <span class="grp-chev">@(cardOpen ? "▾" : "▸")</span>
                             <span class="acc-grp-code">@g.Code</span> @g.Name
                             <span class="muted" style="font-weight:500">· @L["Struct_SectorsN", ForestCount(g.Roots)]</span>
@@ -121,7 +125,9 @@
                                      @onclick="() => Select(n.Kind, n.Id)">
                                     @if (n.HasChildren && !_filtering)
                                     {
-                                        <span class="htree-toggle" @onclick="() => Toggle(n.Callsign!)" @onclick:stopPropagation="true">@(_collapsed.Contains(n.Callsign!) ? "▸" : "▾")</span>
+                                        <button type="button" class="htree-toggle" aria-expanded="@((!_collapsed.Contains(n.Callsign!)).ToString().ToLowerInvariant())"
+                                                aria-label="@L["Struct_ToggleNode", n.Callsign!]"
+                                                @onclick="() => Toggle(n.Callsign!)" @onclick:stopPropagation="true">@(_collapsed.Contains(n.Callsign!) ? "▸" : "▾")</button>
                                     }
                                     else
                                     {
@@ -314,6 +320,19 @@
     private readonly HashSet<string> _collapsedCards = new(StringComparer.OrdinalIgnoreCase);   // card compresse (codice ACC)
     private void Toggle(string callsign) { if (!_collapsed.Add(callsign)) _collapsed.Remove(callsign); }
     private void ToggleCard(string code) { if (!_collapsedCards.Add(code)) _collapsedCards.Remove(code); }
+
+    /// <summary>
+    /// L'intestazione della scheda ACC apre e chiude il gruppo: è un comando, non un titolo. Era un
+    /// <c>&lt;div&gt;</c> col solo <c>@onclick</c>, cioè raggiungibile solo col mouse. Ora ha
+    /// <c>role="button"</c>, <c>tabindex</c> e questi due tasti.
+    /// <para>Non è diventata un <c>&lt;button&gt;</c> come il toggle del nodo perché contiene già altro
+    /// (codice, nome, conteggio settori): un pulsante che avvolge tre elementi si annuncia leggendoli tutti
+    /// di fila.</para>
+    /// </summary>
+    private void ToggleCardOnKey(KeyboardEventArgs e, string code)
+    {
+        if (e.Key is "Enter" or " ") ToggleCard(code);
+    }
     private void ExpandAll() { _collapsed.Clear(); _collapsedCards.Clear(); }
     private void CollapseAll()
     {

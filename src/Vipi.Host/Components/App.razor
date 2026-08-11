@@ -27,26 +27,11 @@
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:#f4f5f9}</style>
     <link rel="icon" type="image/png" href="favicon.png" />
-    <script>
-        // Zoom globale persistente (localStorage). Applicato subito e ri-applicato a ogni navigazione.
-        (function () {
-            var read = function () { var z = parseFloat(localStorage.getItem('vipiZoom') || '1'); return isNaN(z) ? 1 : z; };
-            window.vipiApplyZoom = function () {
-                var z = read();
-                document.documentElement.style.zoom = z;
-                var el = document.getElementById('vipiZoomPct');
-                if (el) el.textContent = Math.round(z * 100) + '%';
-            };
-            window.vipiSetZoom = function (v) {
-                v = Math.min(1.8, Math.max(0.7, Math.round(v * 100) / 100));
-                localStorage.setItem('vipiZoom', v);
-                window.vipiApplyZoom();
-            };
-            window.vipiZoom = function (d) { window.vipiSetZoom(read() + d); };
-            window.vipiZoomReset = function () { window.vipiSetZoom(1); };
-            window.vipiApplyZoom();
-        })();
-    </script>
+    @* Zoom persistente: in un FILE e non inline, perché uno <script> inline obbliga a tenere
+       `script-src 'unsafe-inline'` nella CSP — cioè la clausola che la rende quasi inutile.
+       Qui nel <head> e senza `defer`: deve girare prima del primo disegno, o la pagina compare alla
+       dimensione sbagliata e poi salta. *@
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-zoom.js")"></script>
     <HeadOutlet />
 </head>
 
@@ -66,18 +51,9 @@
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-editor.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-media.js")"></script>
-    <script>
-        // Ri-applica zoom e ricollega l'interattività dopo ogni navigazione "enhanced" di Blazor
-        // (che rimpiazza il DOM e perderebbe lo stile zoom inline e gli handler).
-        Blazor.addEventListener('enhancedload', function () {
-            window.vipiApplyZoom && window.vipiApplyZoom();
-            window.vipiWireUi && window.vipiWireUi();
-            window.vipiInitScreens && window.vipiInitScreens();
-            window.vipiInitAor && window.vipiInitAor();
-            window.vipiInitAor3d && window.vipiInitAor3d();
-            window.vipiMaybeTour && window.vipiMaybeTour();
-        });
-    </script>
+    @* Ricollega zoom e interattività dopo ogni navigazione «enhanced». In un file, come vipi-zoom.js:
+       dev'essere DOPO blazor.web.js, che è quello che definisce `Blazor`. *@
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-boot.js")"></script>
 </body>
 
 </html>

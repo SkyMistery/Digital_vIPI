@@ -1306,4 +1306,8 @@
   <data name="AorBlock_ConfigClear" xml:space="preserve"><value>azzera</value></data>
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selezionando una configurazione si evidenziano, in "Configurazioni operative", i setting corrispondenti.</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Pista selezionata</value></data>
+  <data name="Apt_SelectRow" xml:space="preserve"><value>Seleziona {0}</value></data>
+  <data name="Apt_SelectAll" xml:space="preserve"><value>Seleziona tutte le righe mostrate</value></data>
+  <data name="Struct_ToggleNode" xml:space="preserve"><value>Espandi o richiudi {0}</value></data>
+  <data name="Struct_ToggleCard" xml:space="preserve"><value>Espandi o richiudi l’ACC {0}</value></data>
 </root>

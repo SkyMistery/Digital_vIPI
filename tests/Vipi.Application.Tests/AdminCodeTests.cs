@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -57,6 +57,60 @@ public class AdminCodeTests
         Assert.True(IsAdmin("DE-DIR"));    // admin nella nuova divisione
         Assert.True(IsAdmin("DE-AOA3"));
         Assert.False(IsAdmin("IT-DIR"));   // la vecchia divisione non è più admin
+    }
+
+    /// <summary>
+    /// L'identità si risolve <b>una volta per scope</b>. Non è ottimizzazione fine a sé stessa: ogni
+    /// <c>Get()</c> rilegge i claim e rifà il parse dell'array JSON <c>userStaffPositions</c>, e le pagine
+    /// leggono <c>IsAdmin</c> dentro il markup — <c>StrutturaPage</c> sette volte per render, una delle
+    /// quali dentro il <c>foreach</c> sui nodi della gerarchia. Su ~300 callsign erano ~300 parse a ogni
+    /// ridisegno, per rispondere sempre la stessa cosa.
+    /// </summary>
+    [Fact]
+    public void L_identita_si_chiede_una_volta_sola_per_scope()
+    {
+        var provider = new FakeUserContatore(new CurrentUser(123, "Tester", "LIRR", new[] { "IT-AOC" }));
+        var authz = new EditAuthorizationService(provider, new FakeGrants(),
+            Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
+
+        for (var i = 0; i < 50; i++)
+        {
+            _ = authz.IsAdmin;
+            _ = authz.CurrentUserId;
+            _ = authz.CurrentName;
+        }
+
+        Assert.Equal(1, provider.Letture);
+        Assert.True(authz.IsAdmin);
+        Assert.Equal(123, authz.CurrentUserId);
+    }
+
+    /// <summary>
+    /// L'anonimo è il caso che si sbaglia per primo memoizzando: senza distinguere «non ancora chiesto» da
+    /// «chiesto, e non c'è nessuno», un <c>null</c> in cache sembra un valore mancante e il giro si rifà
+    /// ogni volta — cioè proprio il caso peggiore, perché le pagine pubbliche chiedono <c>IsAdmin</c> per
+    /// decidere se mostrare i comandi di editing.
+    /// </summary>
+    [Fact]
+    public void Anche_l_anonimo_si_chiede_una_volta_sola()
+    {
+        var provider = new FakeUserContatore(null);
+        var authz = new EditAuthorizationService(provider, new FakeGrants(),
+            Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
+
+        for (var i = 0; i < 50; i++) _ = authz.IsAdmin;
+
+        Assert.Equal(1, provider.Letture);
+        Assert.False(authz.IsAdmin);
+        Assert.Null(authz.CurrentUserId);
+    }
+
+    private sealed class FakeUserContatore : ICurrentUserProvider
+    {
+        private readonly CurrentUser? _u;
+        public FakeUserContatore(CurrentUser? u) => _u = u;
+        public int Letture { get; private set; }
+        public CurrentUser? Get() { Letture++; return _u; }
     }
 
     private sealed class FakeUser : ICurrentUserProvider

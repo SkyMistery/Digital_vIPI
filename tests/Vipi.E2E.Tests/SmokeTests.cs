@@ -243,6 +243,32 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         Assert.Contains("frame-ancestors 'none'", res.Headers.GetValues("Content-Security-Policy-Report-Only").Single());
     }
 
+    /// <summary>
+    /// Nessuno <c>&lt;script&gt;</c> inline nella pagina servita. È il presupposto di
+    /// <c>script-src 'self'</c> senza <c>'unsafe-inline'</c>: quella clausola è ciò che separa una CSP che
+    /// protegge da una che è solo un'intestazione in più.
+    ///
+    /// <para>I due che c'erano — lo zoom nel <c>&lt;head&gt;</c> e il riaggancio dopo le navigazioni
+    /// «enhanced» — sono diventati <c>vipi-zoom.js</c> e <c>vipi-boot.js</c>. Chi ne aggiunge un terzo lo
+    /// scopre qui invece che dal browser di un utente.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_pagina_non_contiene_script_inline()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+
+        var inline = Regex.Matches(html, @"<script\b(?<attributi>[^>]*)>(?<corpo>.*?)</script>", RegexOptions.Singleline)
+            .Where(m => !m.Groups["attributi"].Value.Contains("src=", StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.Groups["corpo"].Value.Trim().Length > 0)
+            .Select(m => m.Groups["corpo"].Value.Trim().Replace("\n", " ")[..Math.Min(120, m.Groups["corpo"].Value.Trim().Length)])
+            .ToList();
+
+        Assert.True(inline.Count == 0,
+            $"{inline.Count} <script> inline nella pagina: obbligano a tenere `script-src 'unsafe-inline'`, " +
+            "e con quella una CSP non ferma uno script iniettato. Si spostano in un file sotto " +
+            "wwwroot e si citano con AssetVersion.Url(...).\n  " + string.Join("\n  ", inline));
+    }
+
     /// <summary>Fabbrica gemella con il bridge acceso: il default resta spento per tutti gli altri test.</summary>
     public sealed class BridgeOnAppFactory : WebApplicationFactory<Program>
     {

@@ -5,7 +5,7 @@ voce è in fondo, in «[Esito dell'esecuzione](#esito-dellesecuzione--11-agosto-
 com'era stata scritta, **prima** di toccare il codice, perché la parte che vale rileggere è il ragionamento —
 e in due casi (M13, D4/D5) la misura ha poi ribaltato la conclusione.
 
-Suite dopo l'esecuzione: **2100 test verdi** — 1109 su net8, 991 su net10. Build pulita, zero avvisi.
+Suite dopo l'esecuzione: **2111 test verdi** — 1115 su net8, 996 su net10. Build pulita, zero avvisi.
 
 Audit indipendente di tutta l'applicazione: sicurezza, concorrenza, persistenza, scala, front-end, build e
 processo. Non riparte da `lavori-aperti.md` — quello dice cosa si sa già; questo cerca quello che non si sa.
@@ -796,8 +796,10 @@ a tappeto.
    riprodotto**: la correzione è la causa più probabile letta nel codice, più asserzioni che alla prossima
    occorrenza diranno che cosa è successo.
 2. 🟡 **M2 + la seconda metà di A3**: al primo login IVAO vero (con A10).
-3. 🟡 **CSP da segnalazione a vera**: prima vanno via lo `<script>` inline dello zoom e gli `style=` nel markup.
-4. 🟢 **D3 restante** (5 comandi), **D2** (file lunghi), **M3 punto 2** (identità del circuito).
+3. 🟡 **CSP da segnalazione a vera**: `script-src` è già stretto; restano **17 gestori inline** nel markup e
+   una passata con un browser vero. Vedi «Seguito 2».
+4. ✅ ~~**D3 restante**~~ e ~~**M3 punto 1**~~ — chiuse nel «Seguito 2». Restano **D2** (file lunghi) e
+   **M3 punto 2** (identità del circuito).
 5. 🟢 I numeri di **M10** (tetti dei circuiti) sono stime: vanno rivisti su un ciclo AIRAC vero.
 
 ### Seguito — le tre voci nate durante l'esecuzione, chiuse
@@ -852,3 +854,57 @@ avevano lock file. Fra questi c'è **`Vipi.DbSeed`**, cioè lo strumento con cui
 verso MariaDB: il pezzo dove la riproducibilità conta di più. Generati e committati.
 
 **Suite: 2100 test verdi** (net8 1109, net10 991).
+
+### Seguito 2 — un'omissione mia, e le voci a11y/CSP
+
+**Prima cosa: un'omissione.** Ricontrollando l'elenco, **M3 punto 1 — memoizzare `IsAdmin`** era nel piano
+come «subito e a costo zero» e non era stata fatta. Nell'esito non compariva né fra le chiuse né fra le
+rimandate: era semplicemente caduta.
+
+**M3 punto 1 — fatta.** `EditAuthorizationService` è `Scoped` e risolve l'identità **una volta per scope**.
+Ogni `ICurrentUserProvider.Get()` rilegge i claim e rifà il parse dell'array JSON `userStaffPositions`; le
+pagine leggono `IsAdmin` dentro il markup, e `StrutturaPage` lo valuta sette volte per render — una delle
+quali **dentro il `foreach` sui nodi**. Con ~300 callsign erano ~300 parse JSON a ogni ridisegno per
+rispondere sempre la stessa cosa. Due test **visti fallire** senza la memoizzazione: **150 letture invece di
+1**, e 50 invece di 1 per l'anonimo (il caso che si sbaglia per primo, se non si distingue «non ancora
+chiesto» da «chiesto, e non c'è nessuno»).
+
+Sicura perché lo scope è la richiesta HTTP o il circuito Blazor, e in un circuito l'identità **era già** di
+fatto fissa: viene dall'`HttpContext` della richiesta di upgrade. Un login o un logout aprono un circuito
+nuovo, quindi uno scope nuovo.
+
+**D3 — chiusa, e la guardia ha smentito una mia affermazione.** Il commit del passo 4 diceva «le 12 chip di
+filtro»: **erano 8**. Le quattro di `ConfinantiAdminPage` non erano state convertite, e me ne sono accorto
+solo perché la guardia nuova le ha trovate. Convertite.
+
+Sui 5 comandi che avevo lasciato indietro l'analisi ha cambiato il rimedio:
+
+- **Le 3 celle di `AeroportiPage` non vanno rese focalizzabili.** Entrambe le tabelle hanno **già** una
+  checkbox vera nella prima cella: il click sulla cella è una comodità per il mouse che duplica un comando
+  già raggiungibile. Dandole il fuoco si otterrebbero **tre fermate di tabulazione per un solo toggle** —
+  peggio, non meglio. Il difetto vero era un altro e non l'avevo visto: **quelle checkbox non avevano un
+  nome**. Uno screen reader annunciava «casella di controllo, non selezionata» venti volte di fila senza
+  dire di quale aeroporto — e quelle caselle comandano una cancellazione in blocco. Aggiunto `aria-label`
+  con l'ICAO, e `aria-label` anche sulle due «seleziona tutto».
+- **I 2 toggle di `StrutturaPage` sì**, quelli sono comandi veri senza equivalente da tastiera. Il toggle del
+  nodo è diventato un `<button>` (con reset CSS, perché il browser gli mette di suo sfondo, bordo, padding e
+  font); l'intestazione della scheda ACC ha preso `role="button"` + `tabindex` + Invio/Spazio — non un
+  `<button>` perché contiene già codice, nome e conteggio, e un pulsante che avvolge tre elementi si annuncia
+  leggendoli tutti di fila. Entrambi dichiarano `aria-expanded`, e c'è un `:focus-visible` visibile.
+
+Tre guardie nuove in `StructureAccessibilityTests`, con whitelist **dichiarata** per le celle-comodità.
+
+**CSP — metà, e dico quale metà.** `script-src` ha perso `'unsafe-inline'`: i due `<script>` inline di
+`App.razor` sono diventati `vipi-zoom.js` e `vipi-boot.js`, e una guardia E2E pretende che la pagina non ne
+contenga altri. È il pezzo che conta, perché è quello che rende innocuo uno script iniettato.
+
+**Resta in sola segnalazione**, e non per dimenticanza. Misurato: **17 gestori inline nel markup**
+(`onclick="window.print()"`, `ondragover="event.preventDefault()"`, `onclick="location.href=…"`) — sono
+attributi HTML, quindi `script-src` li blocca esattamente come uno `<script>` inline — e **554 attributi
+`style="…"`**, che tengono in piedi `style-src 'unsafe-inline'` (clausola molto meno grave della gemella
+sugli script). Finché i 17 non spariscono, una CSP in vigore **senza** `unsafe-inline` romperebbe la stampa,
+il drag&drop della struttura e tre elenchi; **con** `unsafe-inline` non proteggerebbe da niente. E il
+passaggio va comunque fatto con un browser vero davanti: una CSP che entra in vigore rompe in modo vistoso,
+e nessun test qui dentro apre una pagina davvero.
+
+**Suite: 2111 test verdi** (net8 1115, net10 996).

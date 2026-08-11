@@ -1,4 +1,4 @@
-/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font Nunito Sans + Poppins: link in Vipi.Host App.razor (self-host da valutare, PIANO §15.2).
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo). */
@@ -918,7 +918,14 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .grp-chev{flex:none;width:14px;text-align:center;font-size:11px;color:var(--ivao-blue)}
 .acc-grp-code{background:var(--ivao-blue);color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;letter-spacing:.04em}
 .acc-row{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #f0f2f8}
-.htree-toggle{flex:none;width:15px;text-align:center;color:var(--ink-soft);font-size:11px;cursor:pointer;user-select:none;border-radius:4px}
+/* Il toggle dell'albero è un <button>, non uno <span>: espandere un ramo è un comando, e da uno span
+   non si raggiunge col tabulatore né si attiva con Invio. Queste tre righe azzerano quel che il
+   browser mette di suo su un button (sfondo, bordo, padding, font) perché l'aspetto resti identico. */
+.htree-toggle{flex:none;width:15px;text-align:center;color:var(--ink-soft);font-size:11px;cursor:pointer;user-select:none;border-radius:4px;
+  background:none;border:0;padding:0;font-family:inherit;line-height:inherit}
+/* Il fuoco si deve VEDERE: senza, chi naviga da tastiera non sa dove si trova. :focus-visible non
+   disturba chi usa il mouse, che il contorno non lo vede mai. */
+.htree-toggle:focus-visible,.acc-grp-h:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 .htree-toggle:hover{background:#dbe2ff;color:var(--ivao-blue)}
 .htree-toggle.empty,.htree-toggle.empty:hover{cursor:default;background:transparent}
 .lnk-mini{border:1px solid var(--line);background:#fff;color:var(--ivao-blue);border-radius:6px;padding:2px 8px;font-family:var(--font-head);font-weight:700;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:6px}
