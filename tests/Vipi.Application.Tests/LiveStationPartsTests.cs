@@ -176,5 +176,9 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task MovePointToEndAsync(string a, int p, bool top, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<int> AddVariantAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DetachVariantAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 }

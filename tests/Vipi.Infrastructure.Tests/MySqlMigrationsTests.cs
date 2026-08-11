@@ -129,8 +129,17 @@ public class MySqlMigrationsTests
     /// Cerca la definizione di una colonna <b>dentro il blocco della sua tabella</b>. Cercarla nell'intero
     /// script per solo nome dà falsi positivi: <c>Status</c>, <c>Type</c> e <c>AiracCycle</c> esistono in
     /// più tabelle, indicizzate in una e libere in un'altra, e la prima riga trovata è quella sbagliata.
+    /// <para>Una colonna può però nascere in due modi: dentro il <c>CREATE TABLE</c> della migrazione che ha
+    /// creato la tabella, oppure con un <c>ALTER TABLE … ADD</c> di una migrazione successiva. Finché ogni
+    /// voce della mappa risaliva a <c>InitialCreate</c> si vedeva solo il primo caso, e la prima colonna
+    /// aggiunta dopo (la faccetta trasferimento, 11 agosto) risultava «assente dalla DDL» pur essendoci —
+    /// il test falliva sulla propria ricerca, non sul difetto che presidia.</para>
     /// </summary>
-    private static string? TrovaDefinizioneColonna(string sql, string tabella, string colonna)
+    private static string? TrovaDefinizioneColonna(string sql, string tabella, string colonna) =>
+        InCreateTable(sql, tabella, colonna) ?? InAlterTableAdd(sql, tabella, colonna);
+
+    /// <summary>La riga della colonna dentro il <c>CREATE TABLE</c> della tabella, se la crea lì.</summary>
+    private static string? InCreateTable(string sql, string tabella, string colonna)
     {
         var inizio = sql.IndexOf($"CREATE TABLE `{tabella}` (", StringComparison.Ordinal);
         if (inizio < 0) return null;
@@ -143,5 +152,12 @@ public class MySqlMigrationsTests
         return sql[inizio..fine].Split('\n')
             .FirstOrDefault(r => r.TrimStart().StartsWith($"`{colonna}` ", StringComparison.Ordinal));
     }
+
+    /// <summary>La riga dell'<c>ALTER TABLE … ADD</c> che aggiunge la colonna, per chi è arrivato dopo la
+    /// creazione della tabella. Il tipo store si legge lì esattamente come nel <c>CREATE TABLE</c>.</summary>
+    private static string? InAlterTableAdd(string sql, string tabella, string colonna) =>
+        sql.Split('\n')
+            .Select(r => r.Trim())
+            .FirstOrDefault(r => r.StartsWith($"ALTER TABLE `{tabella}` ADD `{colonna}` ", StringComparison.Ordinal));
 }
 #endif

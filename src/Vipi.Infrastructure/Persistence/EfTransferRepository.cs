@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;      // ValidationException: la UI cattura questa, mai quella di DataAnnotations
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -71,6 +72,26 @@ public sealed class EfTransferRepository : ITransferRepository
     {
         var p = await PointInAccAsync(accCode, pointId, ct);
         ApplyPoint(p, input);
+
+        if (p.VariantGroup is int group)
+        {
+            var siblings = await GroupSiblingsAsync(p, group, ct);
+
+            // «Negli altri casi» è il complemento delle sorelle: una sola per gruppo, altrimenti il lettore ha
+            // due catch-all e nessuna regola per sceglierne uno.
+            if (p.IsOtherwise && siblings.Any(s => s.IsOtherwise))
+                throw new ValidationException("Il gruppo di varianti ha già una riga «negli altri casi».");
+
+            // CoP e ricevente sono l'IDENTITÀ dell'accordo, condivisa da tutte le varianti: cambiarli su una riga
+            // li cambia sul gruppo. Propagare è meglio che rifiutare — l'invariante resta vera senza chiedere
+            // all'editore di ripetere la stessa modifica su ogni riga.
+            foreach (var s in siblings)
+            {
+                s.Cop = p.Cop;
+                s.NextSectorId = p.NextSectorId;
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
     }
 
@@ -78,7 +99,64 @@ public sealed class EfTransferRepository : ITransferRepository
     {
         var p = await _db.TransferPoints.FirstOrDefaultAsync(x => x.Id == pointId && x.Flow!.Acc!.Code == accCode, ct);
         if (p is null) return;
+        var group = p.VariantGroup;
         _db.TransferPoints.Remove(p);
+        if (group is int g) await DissolveIfAloneAsync(p.FlowId, g, ct);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        var src = await PointInAccAsync(accCode, pointId, ct);
+
+        // Il gruppo nasce alla prima variante: progressivo per flusso, indipendente dagli Id (leggibile e stabile).
+        if (src.VariantGroup is null)
+            src.VariantGroup = (await _db.TransferPoints.Where(x => x.FlowId == src.FlowId)
+                .MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0) + 1;
+
+        // La variante è una COPIA COMPLETA meno la condizione: i dati restano piatti (nessuna eredità di campo,
+        // che con LevelValue nullable sarebbe ambigua), ma chi scrive non ridigita dieci campi per cambiarne uno.
+        // La condizione resta vuota perché è esattamente ciò che la variante deve dire di diverso.
+        var copy = new TransferPoint
+        {
+            FlowId = src.FlowId,
+            Cop = src.Cop,
+            LevelValue = src.LevelValue,
+            LevelUnit = src.LevelUnit,
+            LevelConstraint = src.LevelConstraint,
+            LevelSpecial = src.LevelSpecial,
+            Parity = src.Parity,
+            VerticalState = src.VerticalState,
+            NextSectorId = src.NextSectorId,
+            HandoffKind = src.HandoffKind,
+            HandoffLabel = src.HandoffLabel,
+            HandoffLevelValue = src.HandoffLevelValue,
+            HandoffLevelUnit = src.HandoffLevelUnit,
+            HandoffLevelConstraint = src.HandoffLevelConstraint,
+            CommsHandoffKind = src.CommsHandoffKind,
+            CommsHandoffLabel = src.CommsHandoffLabel,
+            SpeedValue = src.SpeedValue,
+            SpeedConstraint = src.SpeedConstraint,
+            VariantGroup = src.VariantGroup,
+            Order = src.Order + 1,
+        };
+
+        // Spazio subito sotto la riga sorgente: le varianti stanno vicine, che è come si leggono.
+        var below = await _db.TransferPoints.Where(x => x.FlowId == src.FlowId && x.Order > src.Order).ToListAsync(ct);
+        foreach (var x in below) x.Order++;
+
+        _db.TransferPoints.Add(copy);
+        await _db.SaveChangesAsync(ct);
+        return copy.Id;
+    }
+
+    public async Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        var p = await PointInAccAsync(accCode, pointId, ct);
+        if (p.VariantGroup is not int group) return;
+        p.VariantGroup = null;
+        p.IsOtherwise = false;
+        await DissolveIfAloneAsync(p.FlowId, group, ct);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -118,6 +196,30 @@ public sealed class EfTransferRepository : ITransferRepository
         await _db.TransferPoints.FirstOrDefaultAsync(x => x.Id == pointId && x.Flow!.Acc!.Code == accCode, ct)
             ?? throw new InvalidOperationException($"Punto {pointId} non appartiene alla ACC {accCode}.");
 
+    /// <summary>Le altre righe dello stesso gruppo di varianti (la riga passata esclusa).</summary>
+    private Task<List<TransferPoint>> GroupSiblingsAsync(TransferPoint p, int group, CancellationToken ct) =>
+        _db.TransferPoints.Where(x => x.FlowId == p.FlowId && x.VariantGroup == group && x.Id != p.Id).ToListAsync(ct);
+
+    /// <summary>Scioglie un gruppo rimasto con una sola riga: un gruppo di uno non è un gruppo, e lasciarlo
+    /// significherebbe rendere una riga singola con l'intestazione di gruppo e un «negli altri casi» senza «casi».
+    /// Non salva: il chiamante è già dentro una sua <c>SaveChangesAsync</c>.</summary>
+    private async Task DissolveIfAloneAsync(int flowId, int group, CancellationToken ct)
+    {
+        var candidati = await _db.TransferPoints
+            .Where(x => x.FlowId == flowId && x.VariantGroup == group)
+            .ToListAsync(ct);
+
+        // La query filtra su ciò che sta NEL DATABASE, ma qui siamo prima della SaveChanges: la riga appena
+        // sfilata (VariantGroup = null) o appena rimossa torna comunque indietro dal SELECT. Va riletto lo
+        // stato in memoria, che è quello che sta per essere scritto — altrimenti il gruppo sembra ancora
+        // affollato e non si scioglie mai.
+        var remaining = candidati
+            .Where(x => x.VariantGroup == group && _db.Entry(x).State != EntityState.Deleted)
+            .ToList();
+        if (remaining.Count > 1) return;
+        foreach (var x in remaining) { x.VariantGroup = null; x.IsOtherwise = false; }
+    }
+
     private static void ApplyFlow(TransferFlow f, TransferFlowInput i)
     {
         f.OwningSectorId = i.OwningSectorId;
@@ -147,6 +249,24 @@ public sealed class EfTransferRepository : ITransferRepository
         p.ConditionRefId = p.ConditionLabel is null ? null : i.ConditionRefId;
         p.ConditionAreaLabel = NullIfBlank(i.ConditionAreaLabel);
         p.ConditionCustomLabel = NullIfBlank(i.ConditionCustomLabel);
+
+        // Faccetta trasferimento. Senza tipo non c'è trasferimento distinto: i campi correlati vengono azzerati,
+        // così una riga tornata a «coincide con l'ingresso» non si porta dietro un livello fantasma.
+        p.HandoffKind = i.HandoffKind;
+        p.HandoffLabel = i.HandoffKind == TransferHandoffKind.Unspecified ? null : NullIfBlank(i.HandoffLabel);
+        p.HandoffLevelValue = i.HandoffKind == TransferHandoffKind.Unspecified ? null : i.HandoffLevelValue;
+        p.HandoffLevelUnit = i.HandoffLevelUnit;
+        p.HandoffLevelConstraint = i.HandoffLevelConstraint;
+        p.CommsHandoffKind = i.CommsHandoffKind;
+        p.CommsHandoffLabel = i.CommsHandoffKind == TransferHandoffKind.Unspecified ? null : NullIfBlank(i.CommsHandoffLabel);
+
+        // Velocità: senza vincolo non c'è restrizione, e il valore residuo sparisce con essa.
+        p.SpeedConstraint = i.SpeedConstraint;
+        p.SpeedValue = i.SpeedConstraint == SpeedConstraint.Unspecified ? null : i.SpeedValue;
+
+        // «Negli altri casi» ha senso solo dentro un gruppo, e il gruppo lo assegna AddVariantAsync: qui il flag
+        // si accetta solo se la riga è già in un gruppo (VariantGroup non è un campo dell'input, apposta).
+        p.IsOtherwise = i.IsOtherwise && p.VariantGroup is not null;
     }
 
     private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -182,6 +302,17 @@ public sealed class EfTransferRepository : ITransferRepository
         ConditionRefId = p.ConditionRefId,
         ConditionAreaLabel = p.ConditionAreaLabel,
         ConditionCustomLabel = p.ConditionCustomLabel,
+        HandoffKind = p.HandoffKind,
+        HandoffLabel = p.HandoffLabel,
+        HandoffLevelValue = p.HandoffLevelValue,
+        HandoffLevelUnit = p.HandoffLevelUnit,
+        HandoffLevelConstraint = p.HandoffLevelConstraint,
+        CommsHandoffKind = p.CommsHandoffKind,
+        CommsHandoffLabel = p.CommsHandoffLabel,
+        SpeedValue = p.SpeedValue,
+        SpeedConstraint = p.SpeedConstraint,
+        VariantGroup = p.VariantGroup,
+        IsOtherwise = p.IsOtherwise,
         Order = p.Order,
     };
 }

@@ -246,6 +246,161 @@ public class TransferRepositoryTests : IAsyncLifetime
         Assert.Equal("UNICOM", h2);
     }
 
+    // ---- Faccetta trasferimento e velocità ----
+
+    [Fact]
+    public async Task Handoff_And_Speed_Roundtrip()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        await _repo.AddPointAsync("LIRR", flowId, Point("CHI", 160, _ftwrId) with
+        {
+            LevelConstraint = LevelConstraint.AtOrAbove,
+            VerticalState = TransferVerticalState.Descending,
+            HandoffKind = TransferHandoffKind.AorBoundary,
+            HandoffLevelValue = 110,
+            HandoffLevelConstraint = LevelConstraint.Exact,
+            SpeedValue = 250,
+            SpeedConstraint = SpeedConstraint.AtOrBelow,
+        });
+
+        var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+        Assert.Equal(TransferHandoffKind.AorBoundary, p.HandoffKind);
+        Assert.True(p.HasHandoff);
+        // Il livello autorizzato e quello al trasferimento sono due testi distinti: è tutto il punto della faccetta.
+        Assert.Equal("FL160+ ↓", p.LevelText);
+        Assert.Equal("FL110", p.HandoffLevelText);
+        Assert.Equal("≤250 kt", p.SpeedText);
+    }
+
+    [Fact]
+    public async Task Handoff_Cleared_Wipes_Its_Companions()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("CHI", 160, _ftwrId) with
+        {
+            HandoffKind = TransferHandoffKind.Point, HandoffLabel = "AVN", HandoffLevelValue = 110,
+            SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
+        });
+
+        // Tornare a «il trasferimento coincide con l'ingresso» non deve lasciare un livello fantasma.
+        await _repo.UpdatePointAsync("LIRR", id, Point("CHI", 160, _ftwrId));
+
+        var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+        Assert.False(p.HasHandoff);
+        Assert.Null(p.HandoffLabel);
+        Assert.Null(p.HandoffLevelValue);
+        Assert.Null(p.SpeedValue);
+        Assert.Equal("", p.HandoffLevelText);
+    }
+
+    // ---- Varianti ----
+
+    [Fact]
+    public async Task AddVariant_Copies_Everything_Except_Condition_And_Sits_Below()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with
+        {
+            HandoffKind = TransferHandoffKind.AorBoundary, HandoffLevelValue = 110,
+            ConditionLabel = "16R", SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
+        });
+        await _repo.AddPointAsync("LIRR", flowId, Point("ELKAP", 150, _ftwrId));   // riga che deve scalare sotto
+
+        await _repo.AddVariantAsync("LIRR", srcId);
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal(3, points.Count);
+        var (src, variant, other) = (points[0], points[1], points[2]);
+
+        // La variante nasce SUBITO SOTTO la sorgente: le alternative si leggono vicine.
+        Assert.Equal("BIRSU", variant.Cop);
+        Assert.Equal("ELKAP", other.Cop);
+        // Copia completa: livelli, faccetta trasferimento, velocità, ricevente.
+        Assert.Equal(150, variant.LevelValue);
+        Assert.Equal(TransferHandoffKind.AorBoundary, variant.HandoffKind);
+        Assert.Equal(110, variant.HandoffLevelValue);
+        Assert.Equal(250, variant.SpeedValue);
+        Assert.Equal(src.NextSectorId, variant.NextSectorId);
+        // Tranne la condizione, che è ciò che la variante deve dire di diverso.
+        Assert.Null(variant.ConditionLabel);
+        // Stesso gruppo per entrambe, ed è nato ora.
+        Assert.NotNull(src.VariantGroup);
+        Assert.Equal(src.VariantGroup, variant.VariantGroup);
+        Assert.Null(other.VariantGroup);
+    }
+
+    [Fact]
+    public async Task Group_Shares_Cop_And_Receiver_When_One_Row_Changes()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+
+        // CoP e ricevente sono l'identità dell'accordo: cambiarli su una riga li cambia sul gruppo.
+        await _repo.UpdatePointAsync("LIRR", variantId, Point("PISIP", 130, _tsId));
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.All(points, p => Assert.Equal("PISIP", p.Cop));
+        Assert.All(points, p => Assert.Equal(_tsId, p.NextSectorId));
+        // Il livello invece resta di ciascuna riga: è proprio ciò che la variante differenzia.
+        Assert.Equal(150, points[0].LevelValue);
+        Assert.Equal(130, points[1].LevelValue);
+    }
+
+    [Fact]
+    public async Task Only_One_Otherwise_Row_Per_Group()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+
+        await _repo.UpdatePointAsync("LIRR", variantId, Point("BIRSU", 130, _ftwrId) with { IsOtherwise = true });
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() =>
+            _repo.UpdatePointAsync("LIRR", srcId, Point("BIRSU", 150, _ftwrId) with { IsOtherwise = true }));
+    }
+
+    [Fact]
+    public async Task Otherwise_Flag_Ignored_Outside_A_Group()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId) with { IsOtherwise = true });
+
+        // Una riga singola non ha «altri casi» rispetto a cui essere il complemento.
+        var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+        Assert.False(p.IsOtherwise);
+        Assert.Null(p.VariantGroup);
+        Assert.Equal(id, p.Id);
+    }
+
+    [Fact]
+    public async Task Detaching_Leaves_No_Group_Of_One()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+        await _repo.UpdatePointAsync("LIRR", variantId, Point("BIRSU", 130, _ftwrId) with { IsOtherwise = true });
+
+        await _repo.DetachVariantAsync("LIRR", variantId);
+
+        var points = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.All(points, p => Assert.Null(p.VariantGroup));   // sciolto anche il superstite
+        Assert.All(points, p => Assert.False(p.IsOtherwise));
+    }
+
+    [Fact]
+    public async Task Deleting_The_Last_Sibling_Dissolves_The_Group()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var srcId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var variantId = await _repo.AddVariantAsync("LIRR", srcId);
+
+        await _repo.DeletePointAsync("LIRR", variantId);
+
+        var p = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+        Assert.Null(p.VariantGroup);
+    }
+
     [Fact]
     public async Task Seed_Populates_Demo_Flows()
     {

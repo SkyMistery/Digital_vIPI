@@ -116,8 +116,13 @@ public class TransferPoint
     public int FlowId { get; set; }
     public TransferFlow? Flow { get; set; }
 
-    public string Cop { get; set; } = default!;             // es. "VALMA", "—", "J1" (validazione soft)
+    /// <summary>Punto/rotta d'INGRESSO del traffico: es. "VALMA", "J1", una STAR, "ALL" (validazione soft).
+    /// Dove passa il controllo lo dice <see cref="HandoffKind"/>: quando è <c>Unspecified</c> i due coincidono,
+    /// che è il caso di un accordo ACC↔ACC.</summary>
+    public string Cop { get; set; } = default!;
 
+    // Livello AUTORIZZATO al punto d'ingresso («autorizza … a FL160 o superiore»). Su un accordo ACC↔ACC è anche
+    // il livello al trasferimento, perché i due eventi coincidono; su un ACC→APP no — vedi HandoffLevel*.
     public int? LevelValue { get; set; }                    // 130 / 2500 (null = nessun livello / speciale)
     public LevelUnit LevelUnit { get; set; }                // Fl | Feet
     public LevelConstraint LevelConstraint { get; set; }    // AtOrAbove(↑) | AtOrBelow(↓) | Exact | Special
@@ -138,6 +143,42 @@ public class TransferPoint
     public int? ConditionRefId { get; set; }                // soft-ref opzionale pista singola: AirportRunwayRule.Id/RunwayRow.Id; nessun FK
     public string? ConditionAreaLabel { get; set; }         // AREA attiva (SpecialArea.Name)
     public string? ConditionCustomLabel { get; set; }       // condizione PERSONALIZZATA (testo libero)
+
+    // ---- Faccetta TRASFERIMENTO (accordi ACC→APP) ----
+    // Tutta opzionale: HandoffKind = Unspecified ⇒ il trasferimento coincide con l'ingresso e la riga si comporta
+    // esattamente come prima (frase identica, colonne assenti). È l'invariante che rende sicure le righe storiche.
+
+    public TransferHandoffKind HandoffKind { get; set; }    // Unspecified | Point | AorBoundary | Custom
+    public string? HandoffLabel { get; set; }               // il fix, o il testo libero ("20 NM da AVN"); vuoto per AorBoundary
+
+    // Livello AL TRASFERIMENTO, distinto da quello autorizzato: «autorizza a FL160 … trasferisce passando FL110».
+    // Lo stato verticale di quel momento («in discesa») è già VerticalState e non si duplica qui.
+    public int? HandoffLevelValue { get; set; }
+    public LevelUnit HandoffLevelUnit { get; set; }
+    // Nessun inizializzatore: il valore di riposo è lo zero dell'enum, come per gli altri campi della faccetta.
+    // La forma di riferimento «passando FL110» (Exact) la propone l'EDITOR, non il modello — un default di
+    // proprietà diverso dallo zero dell'enum si scontrerebbe con HasDefaultValue, che su valore CLR di default
+    // omette la colonna in INSERT: una riga salvata AtOrAbove tornerebbe indietro come Exact.
+    public LevelConstraint HandoffLevelConstraint { get; set; }
+
+    // Trasferimento delle COMUNICAZIONI, quando avviene altrove rispetto al controllo. Vuoto = dove passa il controllo.
+    public TransferHandoffKind CommsHandoffKind { get; set; }
+    public string? CommsHandoffLabel { get; set; }
+
+    // Restrizione di VELOCITÀ al trasferimento (nodi IAS, unità implicita). Unspecified = nessuna restrizione.
+    public int? SpeedValue { get; set; }
+    public SpeedConstraint SpeedConstraint { get; set; }
+
+    // ---- VARIANTI ----
+    // Righe alternative dello stesso accordo, che differiscono per condizione: «FL80 con pista 16R, FL110 altrimenti».
+    // Il gruppo è una chiave sulla riga, non una tabella figlia: i consumatori a valle (matcher, bridge, vista live)
+    // continuano a vedere righe piatte, che per loro è la lettura giusta — due varianti SONO due candidati distinti.
+    // Le righe di un gruppo condividono flusso, Cop e NextSectorId; l'ordine è l'Order esistente (nessun secondo
+    // ordinamento che possa contraddirlo).
+    public int? VariantGroup { get; set; }                  // null = riga singola; progressivo per flusso
+    /// <summary>La riga «negli altri casi»: complemento delle condizioni delle sorelle, quindi non ne porta una.
+    /// Al più una per gruppo, resa sempre per ultima.</summary>
+    public bool IsOtherwise { get; set; }
 
     public int Order { get; set; }
 }

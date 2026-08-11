@@ -219,6 +219,24 @@ public class VipiDbContext : DbContext
             e.Property(x => x.ConditionLabel).HasMaxLength(80);
             e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
             e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
+            // Faccetta trasferimento: etichette denormalizzate come la condizione (fix, confine, testo libero).
+            e.Property(x => x.HandoffLabel).HasMaxLength(80);
+            e.Property(x => x.CommsHandoffLabel).HasMaxLength(80);
+            // ⚠️ Default DICHIARATI NEL MODELLO, non solo nella migrazione. Questi enum stanno su colonna
+            // testuale (conversione globale più sopra) e chi aggiunge la colonna a una tabella già piena deve
+            // scriverci un valore che l'enum sappia rileggere. I due percorsi sono due: la migrazione EF, e il
+            // PostgresSchemaReconciler del deploy Render — che senza un default dichiarato backfilla con ''
+            // (BackfillLiteral → DefaultLiteral) e la prima lettura andrebbe in eccezione. Dichiarandolo qui
+            // vale per entrambi. Vale solo perché ognuno di questi default È lo zero del proprio enum: con un
+            // default diverso, EF ometterebbe la colonna in INSERT sul valore CLR di default e la riga
+            // tornerebbe indietro cambiata.
+            e.Property(x => x.HandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
+            e.Property(x => x.CommsHandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
+            e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
+            e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
+            e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
+            // Varianti: il gruppo si legge sempre insieme al flusso, e le righe di un gruppo vanno tenute vicine.
+            e.HasIndex(x => new { x.FlowId, x.VariantGroup });
         });
 
         b.Entity<EditGrant>(e =>

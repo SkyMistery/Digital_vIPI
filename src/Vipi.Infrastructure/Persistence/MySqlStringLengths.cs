@@ -82,6 +82,15 @@ public static class MySqlStringLengths
             // quindi senza lunghezza non diventa varchar e la migrazione si ferma. Scoperto applicando
             // le migrazioni a un MySQL vero, non generando la DDL.
             [("DocumentSection", "RenderMode")] = 32,
+            // Stessa ragione del RenderMode qui sopra: enum-stringa con DEFAULT dichiarato, non indicizzati.
+            // Il default serve perché queste colonne nascono su una tabella già piena e le righe storiche
+            // devono leggersi (il valore di riposo è «la riga si comporta come prima»). Misurato: il nome
+            // più lungo è `Unspecified`, 11.
+            [("TransferPoint", "HandoffKind")] = 32,
+            [("TransferPoint", "CommsHandoffKind")] = 32,
+            [("TransferPoint", "HandoffLevelUnit")] = 32,
+            [("TransferPoint", "HandoffLevelConstraint")] = 32,
+            [("TransferPoint", "SpeedConstraint")] = 32,
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
             [("ImportState", "Category")] = 32,            // chiave primaria; misurato 13 (`AirportSector`)

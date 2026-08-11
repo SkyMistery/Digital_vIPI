@@ -104,6 +104,18 @@ public sealed class TransferService : ITransferService
         await _repo.MovePointToEndAsync(accCode, pointId, top, ct);
     }
 
+    public async Task<int> AddVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.AddVariantAsync(accCode, pointId, ct);
+    }
+
+    public async Task DetachVariantAsync(string accCode, int pointId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DetachVariantAsync(accCode, pointId, ct);
+    }
+
     // Validazione SOFT: solo i campi strutturali indispensabili. Il CoP fuori whitelist è un warning di UI, non un blocco.
     private static void ValidateFlow(TransferFlowInput i)
     {
@@ -119,5 +131,24 @@ public sealed class TransferService : ITransferService
         if (i.LevelConstraint != Domain.LevelConstraint.Special && i.LevelValue is null && string.IsNullOrWhiteSpace(i.Cop))
             throw new ValidationException("Indica almeno il CoP o un livello.");
         // Le tre dimensioni condizione (pista/area/personalizzata) sono tutte opzionali e indipendenti: nessun vincolo.
+
+        // Faccetta trasferimento: il tipo «punto» senza etichetta non dice dove, e resterebbe muto nella frase.
+        // «Confine dell'AoR» invece si descrive da sé, e l'etichetta lì non serve.
+        if (i.HandoffKind is Domain.TransferHandoffKind.Point or Domain.TransferHandoffKind.Custom
+            && string.IsNullOrWhiteSpace(i.HandoffLabel))
+            throw new ValidationException("Indica dove avviene il trasferimento (punto o testo).");
+        if (i.CommsHandoffKind is Domain.TransferHandoffKind.Point or Domain.TransferHandoffKind.Custom
+            && string.IsNullOrWhiteSpace(i.CommsHandoffLabel))
+            throw new ValidationException("Indica dove passano le comunicazioni (punto o testo).");
+
+        // Velocità: un vincolo senza numero non è una restrizione, è un campo lasciato a metà.
+        if (i.SpeedConstraint != Domain.SpeedConstraint.Unspecified && i.SpeedValue is null)
+            throw new ValidationException("Indica il valore della velocità, o togli il vincolo.");
+
+        // «Negli altri casi» è il complemento delle condizioni delle sorelle: portarne una sarebbe una contraddizione.
+        if (i.IsOtherwise && (!string.IsNullOrWhiteSpace(i.ConditionLabel)
+                              || !string.IsNullOrWhiteSpace(i.ConditionAreaLabel)
+                              || !string.IsNullOrWhiteSpace(i.ConditionCustomLabel)))
+            throw new ValidationException("La riga «negli altri casi» non porta condizioni: è il caso che resta.");
     }
 }

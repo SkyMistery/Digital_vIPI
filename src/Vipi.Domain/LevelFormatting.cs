@@ -35,6 +35,25 @@ public static class LevelFormatting
         _ => body,
     };
 
+    /// <summary>Livello AL TRASFERIMENTO come testo di tabella: «FL110», «FL110-», «3000 ft». Stringa VUOTA quando
+    /// non c'è un valore — la cella è opzionale, e chi la rende decide il segnaposto. Niente parità né freccia:
+    /// quelle qualificano il livello autorizzato e la crociera, non l'istante del trasferimento.</summary>
+    public static string FormatHandoffLevel(int? value, LevelUnit unit, LevelConstraint constraint) =>
+        value is int ? Body(value, unit, constraint, special: null) : "";
+
+    /// <summary>Restrizione di velocità come testo di tabella: «≤250 kt», «≥250 kt», «250 kt». Vuota se assente.</summary>
+    public static string FormatSpeed(int? value, SpeedConstraint constraint)
+    {
+        if (value is not int v || constraint == SpeedConstraint.Unspecified) return "";
+        var sign = constraint switch
+        {
+            SpeedConstraint.AtOrBelow => "≤",
+            SpeedConstraint.AtOrAbove => "≥",
+            _ => "",
+        };
+        return $"{sign}{v} kt";
+    }
+
     /// <summary>Etichetta italiana della parità: «pari» / «dispari» / "" per Any.</summary>
     public static string ParityLabel(LevelParity parity) => parity switch
     {
