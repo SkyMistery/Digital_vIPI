@@ -695,8 +695,12 @@
    L'altezza è calcolata e non 100vh: sopra le colonne restano la barra dell'applicazione, le briciole, la
    testata, la barra dei filtri e — a volte — l'avviso del lock. 260px di navigatore perché ci sta un callsign
    ACC intero («LIRR_W_CTR») senza andare a capo. */
+/* L'altezza vera la scrive vipiFitViewport, che misura dove il riquadro comincia: quanto spazio resta lo sa
+   solo il browser, e sopra ci sono barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e —
+   a volte — l'avviso del lock. Il calc qui è il valore di partenza prima che il JS misuri, non la verità: con
+   una stima fissa (era 250 px, il vero era 398) la pagina scorreva di 148. */
 .xfe-layout3{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:16px;align-items:stretch;
-  height:calc(100vh - 250px);min-height:420px}
+  height:calc(100vh - 400px);min-height:420px}
 /* I 70px di respiro in fondo alla pagina servono a un contenuto che finisce; qui il contenuto arriva al bordo
    dello schermo per costruzione, e diventerebbero 70px di scorrimento su una pagina che non deve scorrere. */
 .wrap.struct:has(.xfe-layout3){padding-bottom:18px}
@@ -706,8 +710,16 @@
    l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
    ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
 @media(max-width:1200px){
-  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto}
+  /* align-items:start e non stretch: senza, il riquadro di lavoro si allineava all'altezza del navigatore —
+     che qui è incastonato — e si ritrovava incastonato anche lui, con una barra di scorrimento interna dentro
+     una pagina che già scorre. Misurato: pane alto 378 px per una tabella da 2082. */
+  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto;align-items:start}
   .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
+  /* Il navigatore tiene il tetto anche qui, e da solo: senza, l'albero si srotolava per intero — misurato,
+     2174 px — e per arrivare al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere.
+     Il riquadro di lavoro invece resta libero di crescere: lì il contenuto È la pagina, e incastonarlo
+     vorrebbe dire due barre di scorrimento annidate. */
+  .xfe-layout3 .xt-nav{max-height:42vh}
 }
 @media(max-width:900px){
   .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:1fr}

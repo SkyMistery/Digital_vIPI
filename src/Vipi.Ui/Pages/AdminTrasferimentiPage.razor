@@ -807,7 +807,11 @@
         // cella e per nessun'altra. Senza, il salvataggio da Invio (che apre subito la cella dopo) veniva
         // seguito dallo sfocamento della cella vecchia, che scriveva il testo vecchio nella cella nuova.
         var epoch = _cellEpoch;
-        <input class="xt-celledit" @ref="_cellInput" @bind="_cellText" @bind:event="oninput"
+        @* size, e non solo la larghezza in CSS: in una tabella a colonne automatiche un <input> porta la propria
+           larghezza INTRINSECA (venti caratteri), e width:100% non la riduce — la colonna si allargava di un
+           centinaio di pixel all'apertura e le altre scivolavano di lato. Misurato: l'intestazione LIVELLO
+           saltava da 595 a 694. *@
+        <input class="xt-celledit" @ref="_cellInput" @bind="_cellText" @bind:event="oninput" size="8"
                list="@(cell.Cell == XferCell.Receiver ? "xt-callsigns" : null)"
                placeholder="@CellPlaceholder(cell.Cell)" disabled="@_busy"
                @onkeydown="e => CellKey(e, epoch)" @onblur="() => CommitCell(epoch)" />
@@ -2163,6 +2167,16 @@
         {
             _urlAs = UrlSignature();
             SyncUrl();
+        }
+
+        // Le tre colonne devono stare nello schermo, e quanto spazio resta lo sa solo il browser: sopra di loro
+        // ci sono barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e — a volte —
+        // l'avviso del lock. Misurato a schermo: 398 px dove la stima in CSS diceva 250, e la pagina scorreva
+        // di 148. Si rimisura a ogni render perché l'avviso del lock compare e sparisce da solo.
+        if (_acc is not null)
+        {
+            try { await JS.InvokeVoidAsync("vipiFitViewport", ".xfe-layout3", 1200); }
+            catch (JSDisconnectedException) { /* circuito chiuso: non c'è niente da adattare */ }
         }
 
         // Il fuoco si mette QUI: dentro il gestore del clic il campo non esiste ancora — la cella a schermo è
