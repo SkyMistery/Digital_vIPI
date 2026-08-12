@@ -331,16 +331,27 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
-    // Porta in vista un pannello di editing SOLO se non lo è già. Serve a schermo stretto, dove la griglia
-    // lista+pannello collassa a una colonna e il pannello finisce dopo tutta la lista: aprire una riga
-    // scriverebbe in un form fuori campo. Sul monitor largo il pannello è già agganciato e questa non muove
-    // niente — uno scorrimento non richiesto su una pagina che sta ferma è peggio del problema che risolve.
+    // Porta in vista un pannello di editing quando il suo PIEDE non lo è. Il bersaglio è il piede e non il
+    // riquadro: un pannello che comincia a schermo ma finisce sotto la piega ha il Salva fuori campo, ed è
+    // esattamente il caso misurato (pannello a 757 px, alto 906, viewport 1000 → Salva a 1609).
+    // Serve a schermo stretto, dove la griglia lista+pannello collassa a una colonna e il pannello sta dopo
+    // tutta la lista, e serve anche a schermo largo con la pagina in cima. Se il piede è già visibile non
+    // muove niente: uno scorrimento non richiesto su una pagina ferma è peggio del problema che risolve.
+    // Il pannello è STICKY: scorrere la pagina sposta anche lui, quindi una correzione sola non basta e
+    // scrollIntoView manca il bersaglio (misurato: lasciava il piede fuori di 15 px). Due o tre passate
+    // convergono, e se il piede è già a posto la prima esce subito senza muovere niente.
     window.vipiRevealPanel = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        var r = el.getBoundingClientRect();
-        var visible = r.top < window.innerHeight - 80 && r.bottom > 80;
-        if (!visible) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var foot = el.querySelector('.xt-panel-foot') || el;
+        for (var i = 0; i < 3; i++) {
+            var r = foot.getBoundingClientRect();
+            var d = 0;
+            if (r.bottom > window.innerHeight - 8) d = r.bottom - (window.innerHeight - 8);
+            else if (r.top < 8) d = r.top - 8;
+            if (Math.abs(d) < 2) break;
+            window.scrollBy(0, d);
+        }
     };
 
     var searchKeyWired = false;

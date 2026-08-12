@@ -451,10 +451,13 @@
                                                 }
                                                 @if (string.IsNullOrWhiteSpace(p.ConditionDisplay))
                                                 {
-                                                    @* La riga senza condizione dentro un gruppo NON è una riga vuota:
-                                                       è il caso che resta quando nessun'altra condizione vale. Un «—»
-                                                       lo faceva sembrare un dato mancante. *@
-                                                    @if (gv.InGroup && !p.IsGroupWide)
+                                                    @* La riga senza condizione fra le ALTERNATIVE non è una riga vuota:
+                                                       è il caso che resta quando nessun'altra condizione vale, e con
+                                                       il «—» sembrava un dato mancante. Un'ECCEZIONE senza condizione
+                                                       invece è davvero incompleta — non è il «negli altri casi» di
+                                                       niente — e resta un trattino. (Visto a schermo aggiungendo
+                                                       un'eccezione vera: nasceva marcata «negli altri casi».) *@
+                                                    @if (gv.InGroup && gv.Depth == 0 && !p.IsGroupWide)
                                                     {
                                                         <span class="pill xt-elsepill" title="@L["Xfer_CondOtherwiseTitle"]">@L["Xfer_CondOtherwise"]</span>
                                                     }
@@ -1527,7 +1530,7 @@
         _addForm.Reset();
         _formOpenedAs = _addForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
-        await RevealPanel();
+        _revealPanel = true;
     }
 
     // ---- Copia righe da un altro flusso ----
@@ -1686,17 +1689,24 @@
         _editForm.LoadFrom(p, ParseRwys);
         _formOpenedAs = _editForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
-        await RevealPanel();
+        _revealPanel = true;
     }
 
     /// <summary>
-    /// Porta il pannello in vista se non lo è. Serve sotto i 1080 px, dove la griglia collassa a una colonna e
-    /// il pannello sta DOPO tutta la lista: aprire una riga scriveva in un form fuori campo. Sul monitor largo
-    /// il pannello è già agganciato e la funzione non muove niente (il controllo è nel JS, che è l'unico a
-    /// sapere dov'è il pannello rispetto allo schermo).
+    /// Chiede di portare il pannello in vista al PROSSIMO render. Non subito: dentro il gestore dell'evento il
+    /// pannello a schermo è ancora quello di prima — spesso vuoto, senza piede — e la misura cadrebbe sul
+    /// riquadro sbagliato. Il render arriva quando il gestore finisce, e <see cref="OnAfterRenderAsync"/> è il
+    /// primo momento in cui il piede esiste davvero.
     /// </summary>
-    private async Task RevealPanel()
+    private bool _revealPanel;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!_revealPanel) return;
+        _revealPanel = false;
+        // Il JS è l'unico a sapere dov'è il pannello rispetto allo schermo: se il piede è già visibile non
+        // muove niente. Sotto i 1080 px il pannello sta dopo tutta la lista, e senza questo si scriveva in un
+        // form fuori campo.
         try { await JS.InvokeVoidAsync("vipiRevealPanel", "xt-panel"); }
         catch (JSDisconnectedException) { /* circuito chiuso mentre si apriva: non c'è nulla da mostrare */ }
     }

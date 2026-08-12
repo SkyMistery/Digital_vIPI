@@ -422,7 +422,8 @@
    si leggevano come uno solo. */
 .res-table tr.xt-g-a{--xt-rail:#4a63c8}
 .res-table tr.xt-g-b{--xt-rail:#1f9d8f}
-.res-table tr.xfer-variant>td{background:color-mix(in srgb,var(--line,#c2cbe8) 45%,transparent)}
+.res-table tr.xfer-variant>td,
+.res-table tr.xfer-prev.xt-g-a>td,.res-table tr.xfer-prev.xt-g-b>td{background:color-mix(in srgb,var(--line,#c2cbe8) 45%,transparent)}
 /* La guida sta sulla prima cella della riga; sull'anteprima, che ha una cella sola, cade sulla stessa. */
 .res-table tr.xt-g-a>td:first-child,.res-table tr.xt-g-b>td:first-child{box-shadow:inset 3px 0 0 var(--xt-rail)}
 .res-table tr.xt-g-first>td{border-top:2px solid var(--xt-rail)}
@@ -437,11 +438,14 @@
    di prima sembrava una riga da compilare. */
 .xt-elsepill{background:#fff3cf;color:var(--warn-ink,#6b4e00);border:1px dashed #e2b400}
 /* Rientro della colonna CONDIZIONE per profondità: come nella vista pubblica (CoordTable.Indent), che è dove
-   il lettore impara a leggere l'annidamento. Prima il rientro stava sulla cella del CoP. */
-.xt-ind1{padding-left:20px}
-.xt-ind2{padding-left:34px}
-.xt-ind3{padding-left:48px}
-.xt-ind4{padding-left:62px}
+   il lettore impara a leggere l'annidamento. Prima il rientro stava sulla cella del CoP.
+   Le misure partono dai 10 px di padding della cella: a 20 il rientro valeva dieci pixel e a schermo non si
+   vedeva — provato guardando, non calcolato. Il selettore porta anche `.res-table td` perché `.res-table
+   td{padding:7px 10px}` batte una classe sola: è la stessa trappola già annotata per `.sid-view`. */
+.res-table td.xt-ind1{padding-left:30px}
+.res-table td.xt-ind2{padding-left:48px}
+.res-table td.xt-ind3{padding-left:66px}
+.res-table td.xt-ind4{padding-left:84px}
 /* tip operativo (stile riquadro centrato) */
 .tip{background:#0a1f6b;color:#cdd6ff;border-radius:12px;padding:18px 22px;margin:16px 0;text-align:center;font-style:italic;font-size:13.5px;line-height:1.5}
 .tip p{margin:8px 0}
