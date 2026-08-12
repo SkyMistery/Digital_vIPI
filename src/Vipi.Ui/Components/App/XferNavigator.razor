@@ -1,0 +1,108 @@
+@inject IStringLocalizer<SharedResource> L
+
+@*
+    Colonna 1: l'albero dei gruppi. Settore ▸ aeroporto ▸ gruppo, e il gruppo è una FOGLIA — si sceglie, non si
+    apre. Prima erano tre livelli di collasso e la pagina rendeva tutte le tabelle una sotto l'altra: arrivare a
+    una riga costava tre clic, ogni volta, e da lì in giù si scorreva per migliaia di pixel.
+
+    Gli avvisi risalgono: un gruppo con righe senza ricevente accende il pallino sul proprio aeroporto e sul
+    proprio settore. Un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso.
+*@
+
+<div class="xt-nav">
+    <div class="xt-nav-head">
+        <b>@L["Xfer_NavTitle"]</b>
+        <span class="muted xt-hint">@(string.Format(L["Xfer_GroupsN"].Value, Sectors.Sum(s => s.FlowCount)))</span>
+    </div>
+
+    <div class="xt-nav-body">
+        @if (Sectors.Count == 0)
+        {
+            @* Elenco vuoto: senza questo la colonna sembra rotta, e — con i filtri accesi — non si capisce che
+               è il filtro a nascondere tutto invece che l'archivio a essere vuoto. *@
+            <p class="help xt-nav-empty">@(Filtered ? L["Xfer_NoFilterMatch"] : L["Xfer_NoFlows"])</p>
+        }
+        @foreach (var sec in Sectors)
+        {
+            var secOpen = ForceOpen || !CollapsedSectors.Contains(sec.Callsign);
+            <div class="xt-nav-sec xt-clickable" role="button" tabindex="0" aria-expanded="@secOpen"
+                 @onclick="() => OnToggleSector.InvokeAsync(sec.Callsign)"
+                 @onkeydown="e => Activate(e, () => OnToggleSector.InvokeAsync(sec.Callsign))">
+                <span class="xt-chev">@(secOpen ? "▾" : "▸")</span>
+                <span class="xt-nav-name">@sec.Callsign</span>
+                @if (sec.HasWarning) { <span class="xt-nav-warn" title="@L["Xfer_NavWarnTitle"]">●</span> }
+                <span class="xt-nav-count">@sec.FlowCount</span>
+            </div>
+            @if (!secOpen) { continue; }
+
+            foreach (var apt in sec.Airports)
+            {
+                var aptOpen = ForceOpen || !CollapsedAirports.Contains(apt.Key);
+                <div class="xt-nav-apt xt-clickable" role="button" tabindex="0" aria-expanded="@aptOpen"
+                     @onclick="() => OnToggleAirport.InvokeAsync(apt.Key)"
+                     @onkeydown="e => Activate(e, () => OnToggleAirport.InvokeAsync(apt.Key))">
+                    <span class="xt-chev">@(aptOpen ? "▾" : "▸")</span>
+                    <span class="xt-nav-name">@apt.Header</span>
+                </div>
+                @if (!aptOpen) { continue; }
+
+                foreach (var f in apt.Flows)
+                {
+                    <button type="button" class="xt-nav-flow @(f.Id == SelectedFlowId ? "on" : "")"
+                            title="@f.Description" @onclick="() => OnSelectFlow.InvokeAsync(f.Id)">
+                        <span class="xt-nav-kind">@XferLabels.Kind(L, f.Kind)</span>
+                        @if (!string.IsNullOrWhiteSpace(f.Description))
+                        {
+                            <span class="xt-nav-desc">@f.Description</span>
+                        }
+                        @if (f.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(f)">●</span> }
+                        <span class="xt-nav-count">@f.RowCount</span>
+                    </button>
+                }
+            }
+        }
+    </div>
+
+    @* Il tasto sta FUORI dal corpo che scorre, ed è l'unico modo di creare il primo gruppo: con l'archivio
+       vuoto l'albero non ha nodi, e un ingresso che vive dentro l'elenco non esisterebbe proprio quando serve. *@
+    <div class="xt-nav-foot">
+        <button class="btn ghost" disabled="@Disabled" @onclick="() => OnNewGroup.InvokeAsync()">+ @L["Xfer_Group"]</button>
+    </div>
+</div>
+
+@code {
+    /// <summary>L'albero già costruito dalla pagina (filtri applicati).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<XferNavSector> Sectors { get; set; } = Array.Empty<XferNavSector>();
+
+    /// <summary>Il gruppo aperto nel riquadro di lavoro.</summary>
+    [Parameter] public int? SelectedFlowId { get; set; }
+
+    [Parameter] public IReadOnlySet<string> CollapsedSectors { get; set; } = new HashSet<string>();
+    [Parameter] public IReadOnlySet<string> CollapsedAirports { get; set; } = new HashSet<string>();
+
+    /// <summary>Un filtro attivo apre l'albero: quello che resta va visto, non ricercato a mano cliccando.</summary>
+    [Parameter] public bool ForceOpen { get; set; }
+
+    /// <summary>C'è un filtro attivo: cambia cosa dice l'elenco vuoto.</summary>
+    [Parameter] public bool Filtered { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<string> OnToggleSector { get; set; }
+    [Parameter] public EventCallback<string> OnToggleAirport { get; set; }
+    [Parameter] public EventCallback<int> OnSelectFlow { get; set; }
+    [Parameter] public EventCallback OnNewGroup { get; set; }
+
+    /// <summary>Cosa dice il pallino d'avviso su un gruppo: quante righe finiscono a UNICOM, quante vanno riviste.</summary>
+    private string WarnTitle(XferNavFlow f)
+    {
+        var parts = new List<string>(2);
+        if (f.NoReceiver > 0) parts.Add($"{f.NoReceiver} · {L["Xfer_NoReceiverFilter"]}");
+        if (f.ToReview > 0) parts.Add($"{f.ToReview} · {L["Xfer_ToReview"]}");
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>Invio/Spazio sui nodi non-<c>button</c>: senza, l'albero si apre solo col mouse.</summary>
+    private static Task Activate(KeyboardEventArgs e, Func<Task> action) =>
+        e.Key is "Enter" or " " or "Spacebar" ? action() : Task.CompletedTask;
+}

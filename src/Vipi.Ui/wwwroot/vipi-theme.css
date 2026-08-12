@@ -689,8 +689,29 @@
 .childrow .ctag{margin-left:auto;font-size:10.5px;background:#eceef5;color:#666;border-radius:5px;padding:1px 7px;font-family:var(--font-head)}
 .childrow .drag{color:#b9c0d6;cursor:grab}
 /* editor trasferimenti (5c) */
-.xfe-layout{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
-@media(max-width:1080px){.xfe-layout{grid-template-columns:1fr}}
+/* Tre colonne: si sceglie · si lavora · si scrive. Ognuna scorre PER CONTO PROPRIO dentro l'altezza dello
+   schermo — è la differenza che toglie l'attrito più caro della pagina a due colonne: lì lista e pannello
+   condividevano lo scorrimento di pagina, e sotto la soglia il pannello finiva dopo tutta la lista.
+   L'altezza è calcolata e non 100vh: sopra le colonne restano la barra dell'applicazione, le briciole, la
+   testata, la barra dei filtri e — a volte — l'avviso del lock. 260px di navigatore perché ci sta un callsign
+   ACC intero («LIRR_W_CTR») senza andare a capo. */
+.xfe-layout3{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:16px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:420px}
+/* I 70px di respiro in fondo alla pagina servono a un contenuto che finisce; qui il contenuto arriva al bordo
+   dello schermo per costruzione, e diventerebbero 70px di scorrimento su una pagina che non deve scorrere. */
+.wrap.struct:has(.xfe-layout3){padding-bottom:18px}
+/* Vista a elenco: il navigatore non c'è, e la tabella si prende lo spazio che avanza. */
+.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px}
+/* Sotto i 1200 il pannello scende sotto le altre due; sotto i 900 resta una colonna sola. In entrambi i casi
+   l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
+   ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
+@media(max-width:1200px){
+  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto}
+  .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
+}
+@media(max-width:900px){
+  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:1fr}
+}
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:#fff}
 .xfe-table{width:100%;font-size:13px}
@@ -1339,13 +1360,68 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .area-alt{display:flex;gap:8px;align-items:baseline}
 
 /* ===== Editor trasferimenti =====================================================================
-   Pagina di editing come le altre del progetto: lista a sinistra, pannello a destra (.xfe-layout,
-   lo stesso di Permessi e Incarichi). Prima l'editing trasformava la riga in una fila di sei controlli
-   senza etichetta, e il multi-select delle piste copriva la riga sotto.
+   Pagina a TRE colonne (.xfe-layout3): navigatore · riquadro di lavoro · pannello riga. Prima erano due, con
+   l'albero completo e tutte le tabelle una sotto l'altra nella colonna di sinistra: arrivare a una riga
+   costava tre clic di collasso, e da lì in giù si scorreva per migliaia di pixel.
    Tutto ciò che segue nasce da stili che stavano inline nel markup: la CSP li vuole fuori, ed erano
    cinquantuno. */
 
-.xt-list{min-width:0}                                   /* la griglia non deve farsi allargare dalla tabella */
+/* ---- Colonna 1: il navigatore ----
+   Testata e piede fermi, corpo che scorre. Il piede tiene il «+ Gruppo», che è l'unico modo di creare il
+   primo gruppo: con l'archivio vuoto il corpo non ha nodi, e un ingresso che vivesse lì dentro non
+   esisterebbe proprio quando serve. */
+.xt-nav{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:12px;
+  background:#fff;overflow:hidden}
+.xt-nav-head{display:flex;align-items:baseline;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.xt-nav-head b{font-family:var(--font-head);color:var(--ivao-blue);font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em}
+.xt-nav-body{flex:1;min-height:0;overflow:auto;padding:6px}
+.xt-nav-empty{margin:8px 6px;font-size:12px}
+.xt-nav-foot{padding:8px;border-top:1px solid var(--line);background:#fff}
+.xt-nav-foot .btn{width:100%;justify-content:center}
+.xt-nav-sec,.xt-nav-apt{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;
+  font-size:12.5px;user-select:none}
+.xt-nav-sec{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
+.xt-nav-apt{padding-left:18px;color:var(--ink-soft)}
+.xt-nav-sec:hover,.xt-nav-apt:hover{background:#f2f5ff}
+.xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
+  padding:0 7px;flex:none}
+/* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
+.xt-nav-warn{color:#b3541e;font-size:11px;flex:none}
+/* La foglia è un bottone vero: si sceglie, e la scelta si vede. */
+.xt-nav-flow{display:flex;align-items:center;gap:6px;margin-left:30px;width:calc(100% - 30px);
+  padding:5px 8px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer;
+  font-family:var(--font-body);font-size:12.5px;color:var(--ink)}
+.xt-nav-flow:hover{background:#f2f5ff}
+.xt-nav-flow.on{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
+.xt-nav-kind{flex:none}
+.xt-nav-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:11.5px}
+
+/* ---- Colonna 2: il riquadro di lavoro ----
+   Stessa forma del pannello — testata ferma, corpo che scorre — e per la stessa ragione: le azioni in fondo
+   al gruppo non devono finire sotto la piega. */
+.xt-pane{display:flex;flex-direction:column;min-width:0;min-height:0;border:1px solid var(--line);
+  border-radius:12px;background:#fff;overflow:hidden}
+.xt-pane-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:#fff}
+.xt-pane-h b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-pane-body{flex:1;min-height:0;overflow:auto;padding:10px 12px}
+.xt-pane-empty{padding:26px 18px;color:var(--ink-soft);font-size:13px}
+.xt-pane-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
+/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato. */
+.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+/* Barra ACC: la scelta è un interruttore, e prendeva l'altezza di una sezione titolata sopra il lavoro vero. */
+.xt-accbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.xt-acclbl{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft);margin-right:2px}
+/* Commutatore di vista: due bottoni attaccati, così si leggono come un interruttore a due posizioni. */
+.xt-viewsw{display:flex;gap:2px}
+/* Cella scrivibile: il bersaglio è tutta la cella, perché quella VUOTA è proprio quella da riempire. */
+.xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:1px 4px;margin:-1px -4px;
+  cursor:text}
+.xt-cellclick:hover{background:#f2f5ff;box-shadow:inset 0 0 0 1px var(--line)}
+.xt-cellclick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 /* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
    fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
    scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva
@@ -1371,11 +1447,11 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   gap:4px;min-width:210px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;
   box-shadow:0 8px 26px rgba(10,31,107,.16)}
 .xt-actmenu .btn{justify-content:flex-start;text-align:left;width:100%}
-/* Sotto i 1080 la griglia collassa a una colonna e il pannello finisce DOPO tutta la lista: lì lo sticky non
-   può fare nulla (e sotto i 900 .detail-sticky torna statico e toglie il tetto all'altezza). Il tetto lo
-   rimette questa regola, così il piede resta agganciato anche a colonna singola; ad arrivarci ci pensa
+/* A schermo largo il tetto lo dà la griglia (le tre colonne hanno un'altezza definita e il pannello la
+   riempie). Sotto le soglie la griglia lascia perdere l'altezza fissa e il pannello scende: lì il tetto lo
+   rimette .xfe-layout3 nelle sue media query, così il piede resta agganciato; ad arrivarci ci pensa
    vipiRevealPanel, chiamato all'apertura di una riga. */
-@media(max-width:1080px){.xt-panel{max-height:80vh}}
+.xfe-layout3 .xt-panel{min-height:0}
 .xt-panel-empty{color:var(--ink-soft);font-size:13px}
 .xt-panel-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
 .xt-panel-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}

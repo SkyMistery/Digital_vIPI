@@ -805,7 +805,7 @@
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivi/Partenze richiedono un aeroporto</value></data>
   <data name="Xfer_AptNeedsName" xml:space="preserve"><value>Aeroporto fuori DB: indica il nome</value></data>
   <data name="Xfer_NewGroupHelp" xml:space="preserve"><value>L'aeroporto può essere di uno stato estero (ICAO libero). Sorvoli/VFR possono restare senza aeroporto: in quel caso è il &lt;b&gt;settore ricevente&lt;/b&gt; di ogni riga (interno o estero confinante) a farli comparire nei coordinamenti — senza ricevente la riga resta UNICOM e non viene derivata.</value></data>
-  <data name="Xfer_NoFlows" xml:space="preserve"><value>Nessun trasferimento per questo ACC. Aggiungi un gruppo qui sopra.</value></data>
+  <data name="Xfer_NoFlows" xml:space="preserve"><value>Nessun trasferimento per questo ACC. Creane uno col tasto in fondo all'albero.</value></data>
   <data name="Xfer_FilterPh" xml:space="preserve"><value>filtra: settore / aeroporto / CoP / ricevente…</value></data>
   <data name="Xfer_AllKinds" xml:space="preserve"><value>Tutti i tipi</value></data>
   <data name="Xfer_RowsCount" xml:space="preserve"><value>{0} righe</value></data>
@@ -1399,4 +1399,18 @@
   <data name="Xfer_GroupEdit" xml:space="preserve"><value>Modifica</value></data>
   <data name="Xfer_GroupDelete" xml:space="preserve"><value>Elimina</value></data>
   <data name="Xfer_HandoffWhere" xml:space="preserve"><value>Dove</value></data>
+  <data name="Xfer_ColSector" xml:space="preserve"><value>Settore</value></data>
+  <data name="Xfer_ColAirport" xml:space="preserve"><value>Aeroporto</value></data>
+  <data name="Xfer_CellEditTitle" xml:space="preserve"><value>Clic per scrivere qui</value></data>
+  <data name="Xfer_NavTitle" xml:space="preserve"><value>Gruppi</value></data>
+  <data name="Xfer_NavWarnTitle" xml:space="preserve"><value>Ci sono righe da sistemare qui dentro</value></data>
+  <data name="Xfer_ViewLabel" xml:space="preserve"><value>Vista</value></data>
+  <data name="Xfer_ViewTree" xml:space="preserve"><value>Albero</value></data>
+  <data name="Xfer_ViewFlat" xml:space="preserve"><value>Elenco</value></data>
+  <data name="Xfer_ViewTreeTitle" xml:space="preserve"><value>Un gruppo per volta: è il modo di scrivere</value></data>
+  <data name="Xfer_ViewFlatTitle" xml:space="preserve"><value>Tutte le righe dell'ACC in una tabella: è il modo di rivedere</value></data>
+  <data name="Xfer_PaneEmptyTitle" xml:space="preserve"><value>Scegli un gruppo</value></data>
+  <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>Dall'albero a sinistra: settore, aeroporto, tipo di flusso. Le sue righe compaiono qui.</value></data>
+  <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>Non c'è ancora nessun gruppo per questo ACC: creane uno col tasto in fondo all'albero.</value></data>
+  <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>Questo gruppo non ha ancora righe. Aggiungine una qui sotto.</value></data>
 </root>

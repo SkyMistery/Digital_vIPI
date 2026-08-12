@@ -802,7 +802,7 @@
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivals/Departures require an airport</value></data>
   <data name="Xfer_AptNeedsName" xml:space="preserve"><value>Airport out of DB: provide the name</value></data>
   <data name="Xfer_NewGroupHelp" xml:space="preserve"><value>The airport may belong to a foreign state (free ICAO). Overflights/VFR can stay without an airport: in that case it is the &lt;b&gt;receiving sector&lt;/b&gt; of each row (internal or neighbouring foreign) that makes them appear in the coordinations — without a receiver the row stays UNICOM and is not derived.</value></data>
-  <data name="Xfer_NoFlows" xml:space="preserve"><value>No transfer for this ACC. Add a group above.</value></data>
+  <data name="Xfer_NoFlows" xml:space="preserve"><value>No transfer for this ACC. Create one with the button at the bottom of the tree.</value></data>
   <data name="Xfer_FilterPh" xml:space="preserve"><value>filter: sector / airport / CoP / receiver…</value></data>
   <data name="Xfer_AllKinds" xml:space="preserve"><value>All kinds</value></data>
   <data name="Xfer_RowsCount" xml:space="preserve"><value>{0} rows</value></data>
@@ -1393,4 +1393,18 @@
   <data name="Xfer_GroupEdit" xml:space="preserve"><value>Edit</value></data>
   <data name="Xfer_GroupDelete" xml:space="preserve"><value>Delete</value></data>
   <data name="Xfer_HandoffWhere" xml:space="preserve"><value>Where</value></data>
+  <data name="Xfer_ColSector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Xfer_ColAirport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Xfer_CellEditTitle" xml:space="preserve"><value>Click to write here</value></data>
+  <data name="Xfer_NavTitle" xml:space="preserve"><value>Groups</value></data>
+  <data name="Xfer_NavWarnTitle" xml:space="preserve"><value>There are rows to fix in here</value></data>
+  <data name="Xfer_ViewLabel" xml:space="preserve"><value>View</value></data>
+  <data name="Xfer_ViewTree" xml:space="preserve"><value>Tree</value></data>
+  <data name="Xfer_ViewFlat" xml:space="preserve"><value>List</value></data>
+  <data name="Xfer_ViewTreeTitle" xml:space="preserve"><value>One group at a time: this is how you write</value></data>
+  <data name="Xfer_ViewFlatTitle" xml:space="preserve"><value>Every row of the ACC in one table: this is how you review</value></data>
+  <data name="Xfer_PaneEmptyTitle" xml:space="preserve"><value>Pick a group</value></data>
+  <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>From the tree on the left: sector, airport, flow kind. Its rows appear here.</value></data>
+  <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>No group yet for this ACC: create one with the button at the bottom of the tree.</value></data>
+  <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>This group has no rows yet. Add one below.</value></data>
 </root>

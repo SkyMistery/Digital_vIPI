@@ -1,0 +1,270 @@
+@inject IStringLocalizer<SharedResource> L
+
+@*
+    Tabella delle righe di trasferimento. UNA, usata sia dal gruppo scelto nell'albero sia dalla vista a elenco:
+    le due viste mostrano le stesse righe con lo stesso significato (blocchi di varianti, rientro, anteprima,
+    azioni), e scriverla due volte vorrebbe dire correggere due volte ogni difetto di lettura.
+
+    Le colonne di CONTESTO (settore · aeroporto · tipo) compaiono solo in elenco: nel gruppo sono le stesse su
+    ogni riga, e una colonna che ripete lo stesso valore per otto righe è rumore.
+
+    Il componente non calcola: riceve le righe già pronte (XferTableRow). Chi le costruisce è la pagina, perché
+    è lei a sapere se sta scorrendo un flusso o attraversandoli tutti.
+*@
+
+<table class="res-table xfe-table">
+    <thead>
+        <tr>
+            <th class="xt-drag"></th>
+            <th class="xt-pick"></th>
+            @if (ShowContext)
+            {
+                <th>@L["Xfer_ColSector"]</th>
+                <th>@L["Xfer_ColAirport"]</th>
+                <th>@L["Xfer_Kind"]</th>
+            }
+            <th>@L["Xfer_ColCop"]</th>
+            <th>@L["Xfer_ColLevel"]</th>
+            <th>@L["Xfer_ColReceiver"]</th>
+            <th>@L["Xfer_ColCondition"]</th>
+            <th class="xt-acts"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Rows)
+        {
+            var p = r.Point;
+            var gv = r.Group;
+            var sel = EditPointId == p.Id;
+            <tr class="@RowClass(r, sel)" @key="p.Id"
+                @ondragover:preventDefault="true"
+                @ondragenter="() => OnDragOver.InvokeAsync(p.Id)" @ondrop="() => OnDrop.InvokeAsync(p)">
+                @* Riordino per trascinamento: con l'outline l'ordine è la struttura, e quattro frecce per riga
+                   su otto righe erano trentadue bersagli. Vale solo dentro un flusso e con l'ordinamento
+                   manuale — in elenco l'ordine non significa niente, e trascinare fra flussi diversi
+                   scriverebbe una struttura che nessuno ha chiesto. *@
+                <td class="xt-drag">
+                    @if (CanDrag)
+                    {
+                        <span class="app-drag" draggable="@(Disabled ? "false" : "true")"
+                              title="@L["Common_DragReorder"]" @ondragstart="() => OnDragStart.InvokeAsync(p.Id)">⠿</span>
+                    }
+                </td>
+                <td class="xt-pick">
+                    <input type="checkbox" checked="@Selected.Contains(p.Id)"
+                           @onchange="() => OnToggleSelect.InvokeAsync(p.Id)" />
+                </td>
+                @if (ShowContext)
+                {
+                    @* In elenco il contesto è il dato che dice DI CHI è la riga: senza, l'elenco è un mucchio. *@
+                    <td class="xt-ctx">@r.Flow.OwningSectorCallsign</td>
+                    <td class="xt-ctx">@(string.IsNullOrWhiteSpace(r.Flow.AirportIcao) ? "—" : r.Flow.AirportIcao)</td>
+                    <td class="xt-ctx"><span class="pill blue">@XferLabels.Kind(L, r.Flow.Kind)</span></td>
+                }
+                @* CoP e ricevente sono l'IDENTITÀ dell'accordo e il salvataggio li propaga a tutto il gruppo:
+                   la pill sulla capofila dice che le righe che seguono sono casi della stessa cosa — e, per
+                   differenza, che due righe con una condizione ciascuna ma senza pill NON lo sono. *@
+                <td>
+                    @Cell(r, XferCell.Cop)
+                    @if (gv.First && gv.Count > 1)
+                    {
+                        <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]">⑂ @L["Xfer_VariantsN", gv.Count]</span>
+                    }
+                </td>
+                <td>
+                    @Cell(r, XferCell.Level)
+                    @* La faccetta si legge sotto il livello autorizzato: sono due livelli, e metterli sulla
+                       stessa riga confonde proprio ciò che distingue. *@
+                    @if (r.FacetSummary.Length > 0) { <div class="xt-facet">→ @r.FacetSummary</div> }
+                </td>
+                <td>@Cell(r, XferCell.Receiver)</td>
+                @* Una colonna sola, come nella vista pubblica: le tre separate erano vuote su 70 righe di 76, e
+                   la stessa condizione si leggeva in tre posti. Qui si legge anche il RUOLO della riga nel
+                   gruppo: una condizione da sola non dice se è un'alternativa, il caso che resta o l'eccezione
+                   di un'altra — ed era esattamente ciò che non si capiva a schermo. *@
+                <td class="@IndentClass(gv)">
+                    @if (gv.Depth > 0 && gv.Parent is { } parent)
+                    {
+                        <span class="xt-role">↳ @L["Xfer_CondExceptionOf", ParentLabel(parent)]</span>
+                    }
+                    @if (p.IsGroupWide)
+                    {
+                        <span class="pill neutral" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
+                    }
+                    @if (string.IsNullOrWhiteSpace(p.ConditionDisplay))
+                    {
+                        @* La riga senza condizione fra le ALTERNATIVE non è una riga vuota: è il caso che resta
+                           quando nessun'altra condizione vale, e con il «—» sembrava un dato mancante.
+                           Un'ECCEZIONE senza condizione invece è davvero incompleta e resta un trattino. *@
+                        @if (gv.InGroup && gv.Depth == 0 && !p.IsGroupWide)
+                        {
+                            <span class="pill xt-elsepill" title="@L["Xfer_CondOtherwiseTitle"]">@L["Xfer_CondOtherwise"]</span>
+                        }
+                        else if (!p.IsGroupWide)
+                        {
+                            <span class="muted">—</span>
+                        }
+                    }
+                    else
+                    {
+                        @if (gv.InGroup && gv.Depth == 0 && !p.IsGroupWide) { <span class="xt-role">@L["Xfer_CondIf"]</span> }
+                        <span class="pill neutral" title="@L["Xfer_ColCondition"]">@p.ConditionDisplay</span>
+                    }
+                </td>
+                <td class="xt-acts">
+                    @* Tre azioni, non nove: aggiungere, modificare, eliminare. Spostare, duplicare e sfilare
+                       stanno nel pannello, dove c'è posto per le parole. *@
+                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => OnAddAlternative.InvokeAsync(p.Id)">⑂</button>
+                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(p.Id)">↳</button>
+                    <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
+                </td>
+            </tr>
+            @if (r.HasPreview)
+            {
+                @* L'anteprima porta le classi del blocco: senza, la frase si infilava FRA due varianti e
+                   spezzava in tre quello che è un gruppo solo. *@
+                <tr class="xfer-prev @PreviewClass(gv)"><td colspan="@ColumnCount"><span class="xt-prev">“@r.Preview”</span></td></tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    /// <summary>Le righe da rendere, già composte dalla pagina.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<XferTableRow> Rows { get; set; } = Array.Empty<XferTableRow>();
+
+    /// <summary>Vista a elenco: aggiunge le colonne settore · aeroporto · tipo.</summary>
+    [Parameter] public bool ShowContext { get; set; }
+
+    /// <summary>Righe spuntate per la modifica in blocco (insieme della pagina, letto e basta).</summary>
+    [Parameter] public IReadOnlySet<int> Selected { get; set; } = new HashSet<int>();
+
+    /// <summary>La riga aperta nel pannello: si evidenzia, e con lei il suo blocco di varianti.</summary>
+    [Parameter] public int? EditPointId { get; set; }
+
+    /// <summary>Nessuna scrittura possibile (lock non tenuto, o operazione in corso).</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Il trascinamento ha senso qui: dentro un flusso e con l'ordinamento manuale.</summary>
+    [Parameter] public bool CanDrag { get; set; }
+
+    /// <summary>Riga su cui il trascinamento è sospeso adesso (bersaglio evidenziato).</summary>
+    [Parameter] public int? DragOverId { get; set; }
+
+    /// <summary>Riga che si sta trascinando: serve a non evidenziare sé stessa come bersaglio.</summary>
+    [Parameter] public int? DragId { get; set; }
+
+    /// <summary>La cella in scrittura adesso, o <c>null</c>.</summary>
+    [Parameter] public XferCellRef? EditingCell { get; set; }
+
+    /// <summary>Come si disegna la cella in scrittura. Non impostato = la tabella è in sola lettura, ed è il
+    /// caso di chi non tiene il lock: senza editor le celle non sono nemmeno cliccabili.</summary>
+    [Parameter] public RenderFragment<XferCellRef>? CellEditor { get; set; }
+
+    /// <summary>Apertura della scrittura in cella.</summary>
+    [Parameter] public EventCallback<XferCellRef> OnCellClick { get; set; }
+
+    [Parameter] public EventCallback<XferTableRow> OnEdit { get; set; }
+    [Parameter] public EventCallback<int> OnAddAlternative { get; set; }
+    [Parameter] public EventCallback<int> OnAddException { get; set; }
+    [Parameter] public EventCallback<int> OnToggleSelect { get; set; }
+    [Parameter] public EventCallback<int> OnDragStart { get; set; }
+    [Parameter] public EventCallback<int> OnDragOver { get; set; }
+    [Parameter] public EventCallback<TransferPointRow> OnDrop { get; set; }
+
+    /// <summary>Quante colonne ha la tabella: serve al <c>colspan</c> della riga di anteprima, che deve
+    /// attraversarle tutte — con un numero scritto a mano l'anteprima si scollava dalla tabella appena le
+    /// colonne di contesto comparivano.</summary>
+    private int ColumnCount => ShowContext ? 10 : 7;
+
+    /// <summary>
+    /// Cosa mostra una cella scrivibile. È l'unico posto che lo dice, e non è un dettaglio: la regola
+    /// dell'editing in cella è che <b>una casella scrive solo ciò che mostra</b>, quindi chi salva legge da qui
+    /// cosa la casella conteneva.
+    /// </summary>
+    public static string Display(TransferPointRow p, XferCell cell) => cell switch
+    {
+        XferCell.Cop => p.Cop,
+        XferCell.Level => p.LevelText,
+        _ => p.NextSectorCallsign ?? string.Empty,
+    };
+
+    /// <summary>La cella: il valore, oppure l'editor se è questa la cella aperta.</summary>
+    private RenderFragment Cell(XferTableRow r, XferCell cell) => __builder =>
+    {
+        var value = Display(r.Point, cell);
+        var shown = string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+        if (EditingCell is { } ec && ec.PointId == r.Point.Id && ec.Cell == cell && CellEditor is not null)
+        {
+            @CellEditor(ec)
+        }
+        else if (CellEditor is null)
+        {
+            @* Sola lettura: nessun bersaglio, nessun puntatore che promette una scrittura che non avverrà. *@
+            if (cell == XferCell.Cop) { <b>@shown</b> } else { @shown }
+        }
+        else
+        {
+            @* Un bersaglio pieno-cella e non un bottone attorno al testo: la cella vuota («—») deve essere
+               cliccabile quanto quella piena, ed è proprio quella che si vuole riempire. *@
+            <span class="xt-cellclick" role="button" tabindex="0" title="@L["Xfer_CellEditTitle"]"
+                  @onclick="() => OnCellClick.InvokeAsync(new XferCellRef(r.Point.Id, cell))"
+                  @onkeydown="e => CellKey(e, r, cell)">
+                @if (cell == XferCell.Cop) { <b>@shown</b> } else { @shown }
+            </span>
+        }
+    };
+
+    /// <summary>Invio/Spazio aprono la cella: il bersaglio non è un <c>button</c>, e senza questo la tabella
+    /// sarebbe scrivibile solo col mouse.</summary>
+    private Task CellKey(KeyboardEventArgs e, XferTableRow r, XferCell cell) =>
+        e.Key is "Enter" or " " or "Spacebar"
+            ? OnCellClick.InvokeAsync(new XferCellRef(r.Point.Id, cell))
+            : Task.CompletedTask;
+
+    /// <summary>Classe della riga: blocco di varianti, selezione, bersaglio del trascinamento.</summary>
+    private string RowClass(XferTableRow r, bool selected)
+    {
+        var gv = r.Group;
+        var c = new List<string>(6);
+        if (gv.InGroup)
+        {
+            c.Add("xfer-variant");
+            c.Add(gv.Odd ? "xt-g-b" : "xt-g-a");
+            if (gv.First) c.Add("xt-g-first");
+            // Con l'anteprima accesa è la frase a chiudere il blocco: il bordo qui taglierebbe in mezzo.
+            if (gv.Last && !r.HasPreview) c.Add("xt-g-last");
+            // Modificare una variante senza vedere le sorelle è il modo di scrivere due volte lo stesso caso.
+            // Il confronto è dentro il flusso: il numero di gruppo è progressivo PER FLUSSO, e due «1» di
+            // flussi diversi non sono lo stesso gruppo — cosa che in vista a elenco succede davvero.
+            if (EditPointId is int open
+                && r.Flow.Points.Any(x => x.Id == open && x.VariantGroup == r.Point.VariantGroup))
+                c.Add("xt-g-open");
+        }
+        if (selected) c.Add("xt-sel");
+        if (DragOverId == r.Point.Id && DragId is not null && DragId != r.Point.Id) c.Add("xt-dragover");
+        return string.Join(' ', c);
+    }
+
+    /// <summary>Classi della riga di anteprima: sta dentro il blocco, e se è l'ultima lo chiude.</summary>
+    private static string PreviewClass(XferGroupView gv)
+    {
+        if (!gv.InGroup) return "";
+        var c = new List<string>(3) { gv.Odd ? "xt-g-b" : "xt-g-a" };
+        if (gv.Last) c.Add("xt-g-last");
+        return string.Join(' ', c);
+    }
+
+    /// <summary>
+    /// Rientro della <b>colonna condizione</b> per profondità: è lì che si legge l'annidamento, come nella vista
+    /// pubblica (<c>CoordTable</c>). Prima il rientro stava sulla cella del CoP, cioè lontano dal dato che
+    /// qualifica — e la condizione dell'eccezione risultava allineata a quella della riga di cui è eccezione.
+    /// </summary>
+    private static string IndentClass(XferGroupView gv) =>
+        gv.Depth <= 0 ? "" : $"xt-ind{Math.Min(gv.Depth, 4)}";
+
+    /// <summary>Come si nomina la riga padre in «eccezione di X»: la sua condizione, o il caso base se non ne ha.</summary>
+    private string ParentLabel(TransferPointRow parent) =>
+        string.IsNullOrWhiteSpace(parent.ConditionDisplay) ? L["Xfer_CondBaseCase"].Value : parent.ConditionDisplay;
+}

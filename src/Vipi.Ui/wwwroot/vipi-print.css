@@ -87,6 +87,16 @@
   .vipi-root .toc,
   .vipi-root .doc-rail,
   .vipi-root .detail-sticky { position: static !important; max-height: none !important; }
+  /* Editor trasferimenti: le tre colonne hanno un'altezza legata al viewport e ognuna scorre per conto suo.
+     Sulla carta lo scorrimento non esiste: senza questo reset si stamperebbe solo la prima schermata di
+     ciascuna colonna. */
+  .vipi-root .xfe-layout3 { display: block !important; height: auto !important; min-height: 0 !important; }
+  .vipi-root .xt-nav,
+  .vipi-root .xt-pane,
+  .vipi-root .xt-panel { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .vipi-root .xt-nav-body,
+  .vipi-root .xt-pane-body,
+  .vipi-root .xt-panel-body { max-height: none !important; overflow: visible !important; }
   /* Contenitori a scorrimento (es. wrapper della tabella SID): in stampa lo scroll non esiste, taglia. */
   .vipi-root [style*="overflow:auto"],
   .vipi-root [style*="overflow: auto"] { overflow: visible !important; }
