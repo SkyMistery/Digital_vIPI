@@ -237,4 +237,63 @@ public class CoordinationDerivationTests
         // ConditionDisplay mette alle aree per distinguerle dalle piste in una cella breve.)
         Assert.Equal("area R403B", rows[1].ConditionLabel);
     }
+
+    // ---- Padre nell'outline ----
+    // La risalita posizionale serviva alla FRASE (ConditionChain) e ora serve anche alla TABELLA dell'editor,
+    // che deve dire «eccezione di quale riga». Una sola risalita, altrimenti due letture dello stesso outline
+    // possono raccontare due strutture diverse sullo stesso dato.
+
+    private static TransferPointRow Node(int id, int? group, int depth, string? runway = null, bool wide = false) => new()
+    {
+        Id = id, Cop = "BIRSU", LevelValue = 150, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+        LevelText = "FL150-", NextSectorCallsign = "LIRR_TS_CTR", Order = id,
+        ConditionLabel = runway, VariantGroup = group, VariantDepth = depth, IsGroupWide = wide,
+    };
+
+    [Fact]
+    public void ParentOf_Walks_Back_To_The_First_Shallower_Row_Of_The_Same_Group()
+    {
+        // 1 capofila · 2 sua eccezione · 3 eccezione dell'eccezione · 4 seconda eccezione della capofila
+        // · 5 riga di un ALTRO gruppo, annidata: la risalita non deve scavalcare il confine.
+        var a = Node(1, 1, 0, "07");
+        var b = Node(2, 1, 1, "25");
+        var c = Node(3, 1, 2, "34");
+        var d = Node(4, 1, 1, "16");
+        var e = Node(5, 2, 1, "18");
+        var pts = new[] { a, b, c, d, e };
+
+        Assert.Same(a, CoordinationDerivation.ParentOf(pts, b));
+        Assert.Same(b, CoordinationDerivation.ParentOf(pts, c));
+        Assert.Same(a, CoordinationDerivation.ParentOf(pts, d));   // pari-grado saltata: non è un antenato
+        Assert.Null(CoordinationDerivation.ParentOf(pts, e));      // il gruppo 2 non eredita dal gruppo 1
+    }
+
+    [Fact]
+    public void ParentOf_Is_Null_For_Peers_And_For_Group_Wide_Rows()
+    {
+        var head = Node(1, 1, 0, "07");
+        var peer = Node(2, 1, 0, "25");
+        var wide = Node(3, 1, 0, wide: true);
+        var alone = Node(4, null, 0, "34");
+        var pts = new[] { head, peer, wide, alone };
+
+        Assert.Null(CoordinationDerivation.ParentOf(pts, head));
+        Assert.Null(CoordinationDerivation.ParentOf(pts, peer));   // pari-grado: nessuna è lo standard dell'altra
+        Assert.Null(CoordinationDerivation.ParentOf(pts, wide));   // vale per tutte, quindi non sta dentro nessuna
+        Assert.Null(CoordinationDerivation.ParentOf(pts, alone));  // fuori da un gruppo non c'è outline
+    }
+
+    [Fact]
+    public void ConditionChain_Still_Returns_The_Same_Chain_After_Extraction()
+    {
+        // Caratterizzazione dell'estrazione: la catena della frase non cambia forma.
+        var a = Node(1, 1, 0, "07");
+        var b = Node(2, 1, 1, "25");
+        var c = Node(3, 1, 2, "34");
+        var pts = new[] { a, b, c };
+
+        Assert.Equal(new[] { "07" }, CoordinationDerivation.ConditionChain(pts, a).Select(x => x.Runway));
+        Assert.Equal(new[] { "07", "25" }, CoordinationDerivation.ConditionChain(pts, b).Select(x => x.Runway));
+        Assert.Equal(new[] { "07", "25", "34" }, CoordinationDerivation.ConditionChain(pts, c).Select(x => x.Runway));
+    }
 }

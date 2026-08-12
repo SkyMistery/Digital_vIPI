@@ -86,20 +86,33 @@ public static class CoordinationDerivation
     public static IReadOnlyList<ConditionClause> ConditionChain(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p)
     {
         var own = new ConditionClause(p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
-        if (p.VariantGroup is null || p.VariantDepth == 0 || p.IsGroupWide) return new[] { own };
-
         var chain = new List<ConditionClause> { own };
+        for (var a = ParentOf(flowPoints, p); a is not null; a = ParentOf(flowPoints, a))
+            chain.Insert(0, new ConditionClause(a.ConditionLabel, a.ConditionAreaLabel, a.ConditionCustomLabel));
+        return chain;
+    }
+
+    /// <summary>
+    /// La riga di cui <paramref name="p"/> è un'eccezione: la prima MENO PROFONDA che la precede nello stesso
+    /// gruppo. <c>null</c> se non ce n'è una — fuori da un gruppo, a profondità 0 (le alternative sono
+    /// pari-grado: nessuna è lo standard dell'altra) o su una riga che scavalca le alternative.
+    /// <para>È la risalita che <see cref="ConditionChain"/> faceva al proprio interno, estratta perché serve
+    /// anche alla TABELLA dell'editor, che deve dire di quale riga una condizione è l'eccezione. Due risalite
+    /// scritte a mano potrebbero leggere due strutture diverse dallo stesso outline.</para>
+    /// </summary>
+    public static TransferPointRow? ParentOf(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p)
+    {
+        if (p.VariantGroup is null || p.VariantDepth == 0 || p.IsGroupWide) return null;
+
         var i = flowPoints.ToList().FindIndex(x => x.Id == p.Id);
-        var depth = p.VariantDepth;
-        for (var k = i - 1; k >= 0 && depth > 0; k--)
+        for (var k = i - 1; k >= 0; k--)
         {
             var a = flowPoints[k];
-            if (a.VariantGroup != p.VariantGroup) break;      // fuori dal gruppo: la catena finisce qui
-            if (a.VariantDepth >= depth) continue;            // pari-grado o più profonda: non è un antenato
-            chain.Insert(0, new ConditionClause(a.ConditionLabel, a.ConditionAreaLabel, a.ConditionCustomLabel));
-            depth = a.VariantDepth;
+            if (a.VariantGroup != p.VariantGroup) return null;   // fuori dal gruppo: la catena finisce qui
+            if (a.VariantDepth >= p.VariantDepth) continue;      // pari-grado o più profonda: non è un antenato
+            return a;
         }
-        return chain;
+        return null;
     }
 
     public static IReadOnlyList<CoordinationEntry> Build(
