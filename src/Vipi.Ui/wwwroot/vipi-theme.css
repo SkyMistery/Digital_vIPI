@@ -1363,6 +1363,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
              radial-gradient(farthest-side at 50% 100%,rgba(10,31,107,.14),rgba(0,0,0,0)) bottom/100% 10px no-repeat scroll}
 .xt-panel-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;margin-top:10px;
   border-top:1px solid var(--line);background:#fff}
+/* «Azioni sulla riga» come menù del piede: in fondo al corpo restavano fuori dallo schermo su ogni schermo
+   (corpo 1324 px, visibili 781 · 501 · 401), perché una riga vera apre il pannello con faccetta e condizione
+   già piene. Il menù si apre VERSO L'ALTO e resta dentro il riquadro, che ha overflow:hidden. */
+.xt-actwrap{position:relative;margin-left:auto}
+.xt-actmenu{position:absolute;right:0;bottom:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;
+  gap:4px;min-width:210px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 8px 26px rgba(10,31,107,.16)}
+.xt-actmenu .btn{justify-content:flex-start;text-align:left;width:100%}
 /* Sotto i 1080 la griglia collassa a una colonna e il pannello finisce DOPO tutta la lista: lì lo sticky non
    può fare nulla (e sotto i 900 .detail-sticky torna statico e toglie il tetto all'altezza). Il tetto lo
    rimette questa regola, così il piede resta agganciato anche a colonna singola; ad arrivarci ci pensa

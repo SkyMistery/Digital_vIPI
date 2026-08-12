@@ -189,6 +189,27 @@ dentro il viewport (piede e testata compresi). In più il corpo ha ora l'**ombra
 `vipiRevealPanel` mira alla scheda intera quando ci sta, non al solo piede — mirando al piede restavano fuori i
 pixel di bordo sotto di lui.
 
+### Seconda coda — «sono tutto giù e ci sono tasti che non vedo»
+
+Segnalato di nuovo, e stavolta sul percorso **riga esistente**, che avevo misurato meno di quello della riga
+nuova. Riprodotto censendo **ogni** tasto del pannello su tre schermi: una riga vera apre il pannello con
+faccetta e condizione **già piene**, quindi le sezioni restano aperte (giustamente: non si nasconde un dato) e
+il corpo arriva a **1324 px**. Sei tasti fuori dallo schermo, gli stessi ovunque:
+
+| Schermo | Corpo visibile | Fuori | Tasti irraggiungibili |
+|---|---|---|---|
+| 1600 × 1000 | 781 px | 543 px | ▲ Sposta su · ▼ Sposta giù · ⧉ Duplica riga · ⇤ Sfila · ⧉ Duplica gruppo · ✕ Elimina |
+| 1366 × 720 | 501 px | 823 px | idem |
+| 1280 × 620 | 401 px | 923 px | idem |
+
+Erano in fondo al **corpo**, che scorre per conto suo: scorrere la **pagina** — anche fino in fondo — non li
+porta mai in vista, ed è esattamente ciò che si prova a fare. Ora sono un **menù del piede** («⋯ Azioni sulla
+riga») che si apre verso l'alto: il piede non scorre, quindi le sei azioni si raggiungono sempre, e tengono le
+loro parole invece di tornare icone. Misurato dopo: **zero** tasti fuori campo su tutti e tre gli schermi, a
+menù chiuso e aperto.
+
+Nel corpo restano i campi, e restano scorribili: quello è un dato che si legge, non un comando che si cerca.
+
 ### Tre difetti trovati guardando, che nessun test avrebbe visto
 
 - **Un'eccezione appena creata nasceva marcata «negli altri casi».** La pill vale per le alternative

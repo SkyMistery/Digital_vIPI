@@ -1097,25 +1097,6 @@
             <span class="xt-prev">@(string.IsNullOrWhiteSpace(prev) ? L["Xfer_PreviewIncomplete"].Value : $"“{prev}”")</span>
         </div>
 
-        @* Spostare, duplicare e sfilare stanno nel corpo, SOPRA il piede: sono azioni secondarie, e non devono
-           mettersi fra chi scrive e il bottone che scrive. *@
-        @if (editing && point is not null)
-        {
-            <div class="xt-grp"><span>@L["Xfer_GrpRowActions"]</span></div>
-            <div class="xt-panel-actions">
-                <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[0].Id)" @onclick="() => Move(point.Id, true)">▲ @L["Xfer_MoveUp"]</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[^1].Id)" @onclick="() => Move(point.Id, false)">▼ @L["Xfer_MoveDown"]</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => CloneRow(flow, point)">⧉ @L["Xfer_DuplicateRow"]</button>
-                @if (point.VariantGroup is not null)
-                {
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => DetachVariant(point.Id)">⇤ @L["Xfer_DetachVariant"]</button>
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateGroupTitle"]" @onclick="() => DuplicateGroup(point.Id)">@L["Xfer_DuplicateGroup"]</button>
-                }
-                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteRowAria"]" Disabled="@(_busy || !_canEdit)"
-                               Prompt="@L["Xfer_DeleteRowPrompt"]" OnConfirm="() => DeletePoint(point.Id)"><Trigger>✕ @L["Common_Delete"]</Trigger></InlineConfirm>
-            </div>
-        }
-
         </div>@* /xt-panel-body *@
 
         @* Il piede non scorre con i campi: il Salva è visibile appena il pannello lo è. *@
@@ -1126,6 +1107,33 @@
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(_addPointFlowId!.Value, true)">＋ @L["Xfer_AddRowContinue"]</button>
             }
             <button class="btn ghost" disabled="@_busy" @onclick="ClosePanel">@L["Common_Cancel"]</button>
+
+            @* Spostare, duplicare, sfilare ed eliminare stanno QUI, in un menù del piede, e non più in fondo al
+               corpo: una riga vera apre il pannello con faccetta e condizione già piene, il corpo arriva a 1324
+               px e questi sei tasti restavano fuori dallo schermo — su ogni schermo, misurato — dietro la barra
+               di scorrimento interna. Il piede non scorre: da qui si raggiungono sempre. *@
+            @if (editing && point is not null)
+            {
+                <div class="xt-actwrap">
+                    <button class="btn ghost" disabled="@_busy" aria-expanded="@_rowActionsOpen"
+                            title="@L["Xfer_GrpRowActions"]" @onclick="() => _rowActionsOpen = !_rowActionsOpen">⋯ @L["Xfer_GrpRowActions"]</button>
+                    @if (_rowActionsOpen)
+                    {
+                        <div class="xt-actmenu">
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[0].Id)" @onclick="() => RowAction(Move(point.Id, true))">▲ @L["Xfer_MoveUp"]</button>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit || point.Id == flow.Points[^1].Id)" @onclick="() => RowAction(Move(point.Id, false))">▼ @L["Xfer_MoveDown"]</button>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => RowAction(CloneRow(flow, point))">⧉ @L["Xfer_DuplicateRow"]</button>
+                            @if (point.VariantGroup is not null)
+                            {
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachVariantTitle"]" @onclick="() => RowAction(DetachVariant(point.Id))">⇤ @L["Xfer_DetachVariant"]</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateGroupTitle"]" @onclick="() => RowAction(DuplicateGroup(point.Id))">@L["Xfer_DuplicateGroup"]</button>
+                            }
+                            <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteRowAria"]" Disabled="@(_busy || !_canEdit)"
+                                           Prompt="@L["Xfer_DeleteRowPrompt"]" OnConfirm="() => RowAction(DeletePoint(point.Id))"><Trigger>✕ @L["Common_Delete"]</Trigger></InlineConfirm>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     };
 
@@ -1601,8 +1609,19 @@
         : _addPointFlowId is int flowId ? AddPoint(flowId)
         : Task.CompletedTask;
 
+    /// <summary>Menù «Azioni sulla riga» aperto nel piede del pannello.</summary>
+    private bool _rowActionsOpen;
+
+    /// <summary>Esegue un'azione del menù e lo richiude: un menù che resta aperto su una riga che intanto si è
+    /// spostata (o non c'è più) mostra bottoni che non valgono più per quello che si sta guardando.</summary>
+    private async Task RowAction(Task action)
+    {
+        _rowActionsOpen = false;
+        await action;
+    }
+
     /// <summary>Chiude il pannello. Non salva: la modifica non confermata si perde, e l'avviso lo dice.</summary>
-    private void ClosePanel() { _editPointId = null; _addPointFlowId = null; }
+    private void ClosePanel() { _editPointId = null; _addPointFlowId = null; _rowActionsOpen = false; }
 
     /// <summary>Il flusso a cui appartiene ciò che il pannello sta modificando.</summary>
     private TransferFlowRow? CurrentFlow() =>
@@ -1774,6 +1793,7 @@
     {
         _editFlowId = null; _addPointFlowId = null; _cloneFlowId = null;
         _editPointId = p.Id;
+        _rowActionsOpen = false;
         _editForm.LoadFrom(p, ParseRwys);
         ResetPanelSections(_editForm);
         _formOpenedAs = _editForm.Signature();

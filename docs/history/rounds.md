@@ -1423,3 +1423,16 @@ vede finché non ci passi sopra. Le sezioni «Trasferimento» e «Condizione» o
 vuote** — chi apre una riga nuova scrive CoP, ricevente e livello — con il **riassunto** di cosa contengono
 accanto al titolo, e restano aperte se un dato c'è già: 885 → **502 px**, zero fuori dalla vista su entrambi gli
 schermi. In più il corpo ha l'ombra che dice se sotto c'è dell'altro.
+
+**Seconda coda, dalla terza lettura:** «sono tutto giù e ci sono tasti che non vedo». Vero, e non sul percorso
+misurato: aprendo una riga **esistente** la faccetta e la condizione sono già piene, quindi le sezioni restano
+aperte e il corpo arriva a **1324 px**. Le sei azioni sulla riga (sposta su/giù, duplica, sfila, duplica gruppo,
+elimina) stavano in fondo a quel corpo: fuori dallo schermo con 543 px nascosti a 1600×1000, **823** a 1366×720,
+**923** a 1280×620 — e scorrere la *pagina*, che è quello che si prova a fare, non le porta mai in vista perché
+a scorrere è il corpo del pannello. Ora sono un **menù del piede** che si apre verso l'alto: il piede non
+scorre, le parole restano (non tornano icone), e il censimento di ogni tasto del pannello dà **zero** fuori
+campo su tutti e tre gli schermi, a menù chiuso e aperto.
+
+⚠️ **Terza occorrenza dell'intermittente del bridge**, con lo stesso profilo: 1 fallito su 78 nella corsa
+completa in parallelo, verde da solo e verde nella corsa completa successiva. Il nome è sfuggito di nuovo — la
+corsa che fallisce va lanciata scrivendo il log su file **fin dalla prima volta**, non dopo.
