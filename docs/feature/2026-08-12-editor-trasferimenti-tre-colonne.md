@@ -284,12 +284,20 @@ un principio; nel dato reale ha un solo effetto, ed è `TransferVerticalState.Le
 evitato una cancellazione silenziosa che nessun test avrebbe visto — e il test che lo documenta è scritto come
 limite, non come funzione, perché è quello che è.
 
-**Coda dall'uso: l'albero parte chiuso.** Lo avevo lasciato aperto sui settori ragionando che un albero chiuso
-«non fa capire che dentro c'è il lavoro». All'uso vero è il contrario, e la misura lo dice: aperto, i cinque
-settori di LIBB srotolano trentuno aeroporti e trentasei gruppi — **2078 px** da scorrere dentro 487 visibili per
-trovare il ramo che serve. Chiuso, i cinque settori stanno tutti a schermo e ognuno porta scritto quanti gruppi
-ha. Le due strade che devono restare aperte lo restano: un **link a un gruppo** apre il proprio percorso
-(`ExpandTo`), e un **filtro attivo** apre tutto (`_filtering`) — verificato a schermo su entrambe.
+**Coda dall'uso, in due passaggi: l'albero parte chiuso — ma solo sui settori.**
+
+Lo avevo lasciato tutto aperto ragionando che un albero chiuso «non fa capire che dentro c'è il lavoro».
+All'uso vero è il contrario, e la misura lo dice: aperto, i cinque settori di LIBB srotolano trentuno aeroporti
+e trentasei gruppi — **2078 px** da scorrere dentro 487 visibili per trovare il ramo che serve.
+
+Il primo tentativo ha chiuso **tutto**, e sbagliava di un livello: due clic per vedere un gruppo (settore, poi
+aeroporto). Lo stato giusto è **settori chiusi, aeroporti aperti dentro** — un clic, e i gruppi di quel settore
+sono lì. Provato a schermo: apertura 0 aeroporti e 0 gruppi in 487 px; un clic su `LDZO_CTR` → 3 aeroporti e
+**3 gruppi**.
+
+Il tasto ⊘ continua a chiudere *tutto*, aeroporti compresi: «chiudi tutto» deve voler dire tutto, e non lo stato
+di partenza. Le due strade che devono restare aperte lo restano: un **link a un gruppo** apre il proprio
+percorso (`ExpandTo`), un **filtro attivo** apre tutto (`_filtering`, 6 aeroporti e 6 gruppi su «PAPIZ»).
 
 **Un dato reale che si legge male, e non è di questo giro**: la riga `BEVIS` mostra livello `— (dispari)`, cioè
 un suffisso di parità appeso a un livello assente. È `Format` che si comporta così da sempre; il round-trip lo

@@ -1581,12 +1581,24 @@
         if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); _areas = Array.Empty<SpecialAreaPick>(); _preview = null; return; }
         _areas = await AccDeriv.ListSpecialAreasByAccAsync(_acc.Code);
         await LoadAsync();   // popola anche _preview
-        // Il navigatore parte CHIUSO, settori e aeroporti. Lo avevo lasciato aperto ragionando che un albero
-        // chiuso «non fa capire che dentro c'è il lavoro»; all'uso vero è il contrario: aperto, i cinque settori
-        // di LIBB srotolano trentuno aeroporti e trentasei gruppi, cioè 2078 px da scorrere per trovare il ramo
-        // che serve. Chiuso, i settori si contano a colpo d'occhio e ognuno porta scritto quanti gruppi ha.
-        // Chi arriva da un link non se ne accorge: ExpandTo apre il percorso fino al gruppo scelto.
-        CollapseAll();
+        CollapseSectors();
+    }
+
+    /// <summary>
+    /// Lo stato di partenza del navigatore: <b>settori chiusi, aeroporti aperti dentro</b>.
+    /// <para>Chiudere tutto era il primo tentativo, e costava due clic per vedere un gruppo — settore, poi
+    /// aeroporto. Chiudere solo i settori ne costa uno: si apre il settore e i suoi gruppi sono lì. Il livello
+    /// aeroporto resta richiudibile a mano, e il tasto ⊟ chiude ancora tutto.</para>
+    /// <para>Aperto del tutto non va: i cinque settori di LIBB srotolano trentuno aeroporti e trentasei gruppi,
+    /// cioè <b>2078 px</b> di albero dentro 487 visibili per trovare il ramo che serve.</para>
+    /// <para>Chi arriva da un link non se ne accorge comunque: <see cref="ExpandTo"/> apre il percorso fino al
+    /// gruppo scelto, e un filtro attivo apre tutto.</para>
+    /// </summary>
+    private void CollapseSectors()
+    {
+        _collapsedSec.Clear();
+        _collapsedApt.Clear();
+        foreach (var f in _flows) _collapsedSec.Add(f.OwningSectorCallsign);
     }
 
     private async Task LoadAsync()
