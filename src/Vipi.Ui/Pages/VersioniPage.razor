@@ -309,25 +309,11 @@
 
     private void ReadFiltersFromUrl()
     {
-        var q = ParseQuery(new Uri(Nav.Uri).Query);
+        var q = QueryStringUtil.Parse(new Uri(Nav.Uri).Query);
         if (q.TryGetValue("q", out var qv)) _q = qv;
-        if (q.TryGetValue("kind", out var kv) && Enum.TryParse<ManagedDocKind>(kv, out var k)) _kindFilter = k;
-        if (q.TryGetValue("stato", out var sv) && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
-        if (q.TryGetValue("rel", out var rv) && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
-    }
-
-    private static Dictionary<string, string> ParseQuery(string query)
-    {
-        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var i = part.IndexOf('=');
-            if (i <= 0) continue;
-            var name = Uri.UnescapeDataString(part[..i]);
-            var val = Uri.UnescapeDataString(part[(i + 1)..]);
-            d[name] = val;
-        }
-        return d;
+        if (q.Enum<ManagedDocKind>("kind") is { } k) _kindFilter = k;
+        if (q.Value("stato") is { } sv && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
+        if (q.Value("rel") is { } rv && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
     }
 
     // Lazy: versioni (solo Document) + release, caricate quando la riga è espansa.
