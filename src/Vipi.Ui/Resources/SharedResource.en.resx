@@ -308,6 +308,13 @@
   <data name="Xfer_SpeedNone" xml:space="preserve"><value>none</value></data>
   <data name="Xfer_GroupWide" xml:space="preserve"><value>in any case</value></data>
   <data name="Xfer_GroupWideTitle" xml:space="preserve"><value>The row overrides the alternatives: it applies to all of them («at night, any runway»). First level only, and it must say under which conditions it applies.</value></data>
+  <data name="Xfer_VariantsN" xml:space="preserve"><value>{0} variants</value></data>
+  <data name="Xfer_VariantsTitle" xml:space="preserve"><value>The rows in this block are the SAME agreement in different cases: CoP and receiving sector apply to all of them, and each row states the condition it applies under.</value></data>
+  <data name="Xfer_CondIf" xml:space="preserve"><value>if</value></data>
+  <data name="Xfer_CondOtherwise" xml:space="preserve"><value>otherwise</value></data>
+  <data name="Xfer_CondOtherwiseTitle" xml:space="preserve"><value>A row with no condition inside a group: it is the case that applies when none of the other conditions holds.</value></data>
+  <data name="Xfer_CondExceptionOf" xml:space="preserve"><value>exception to: {0}</value></data>
+  <data name="Xfer_CondBaseCase" xml:space="preserve"><value>base case</value></data>
   <data name="Xfer_Variant" xml:space="preserve"><value>variant</value></data>
   <data name="Xfer_VariantTitle" xml:space="preserve"><value>Row of the same agreement: same CoP and receiver, different condition. The indent says what it belongs to.</value></data>
   <data name="Xfer_AddAlternativeTitle" xml:space="preserve"><value>Add an alternative alongside this row, e.g. «runway 25» next to «runway 07» (copies everything but the condition)</value></data>

@@ -389,10 +389,20 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var p in SortedPoints(f))
+                                    @{ var pts = SortedPoints(f); }
+                                    @for (var ix = 0; ix < pts.Count; ix++)
                                     {
+                                        var p = pts[ix];
                                         var sel = _editPointId == p.Id;
-                                        <tr class="@RowClass(p, sel)" @key="p.Id"
+                                        @* Il blocco si disegna sull'ordine MOSTRATO (la guida deve chiudersi dove
+                                           finisce a schermo), il padre si legge sull'ordine SALVATO: quello è la
+                                           struttura, e un ordinamento della vista non la cambia. *@
+                                        var gv = Group(f, pts, ix);
+                                        @* L'anteprima si calcola PRIMA della riga: se c'è, è lei a chiudere il
+                                           blocco, altrimenti il bordo inferiore cadrebbe sopra una frase del gruppo. *@
+                                        var prev = _showPreviews ? PreviewRow(f, p) : null;
+                                        var hasPrev = !string.IsNullOrWhiteSpace(prev);
+                                        <tr class="@RowClass(f, p, sel, gv, hasPrev)" @key="p.Id"
                                             @ondragover:preventDefault="true"
                                             @ondragenter="() => _dragOver = p.Id" @ondrop="() => DropOn(p)">
                                             @* Riordino per trascinamento: con l'outline l'ordine è la struttura, e
@@ -410,12 +420,15 @@
                                                 <input type="checkbox" checked="@_selected.Contains(p.Id)"
                                                        @onchange="() => ToggleSelect(p.Id)" />
                                             </td>
-                                            <td class="@DepthClass(p)">
-                                                @if (p.VariantDepth > 0) { <span class="xt-nest">↳</span> }
+                                            @* CoP e ricevente sono l'IDENTITÀ dell'accordo e il salvataggio li
+                                               propaga a tutto il gruppo: la pill sulla capofila dice che le righe
+                                               che seguono sono casi della stessa cosa — e, per differenza, che due
+                                               righe con una condizione ciascuna ma senza pill NON lo sono. *@
+                                            <td>
                                                 <b>@(string.IsNullOrWhiteSpace(p.Cop) ? "—" : p.Cop)</b>
-                                                @if (p.IsGroupWide)
+                                                @if (gv.First && gv.Count > 1)
                                                 {
-                                                    <span class="pill neutral" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
+                                                    <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]">⑂ @L["Xfer_VariantsN", gv.Count]</span>
                                                 }
                                             </td>
                                             <td>
@@ -427,10 +440,38 @@
                                             </td>
                                             <td>@(p.NextSectorCallsign ?? "—")</td>
                                             @* Una colonna sola, come nella vista pubblica: le tre separate erano vuote
-                                               su 70 righe di 76, e la stessa condizione si leggeva in tre posti. *@
-                                            <td>
-                                                @if (string.IsNullOrWhiteSpace(p.ConditionDisplay)) { <span class="muted">—</span> }
-                                                else { <span class="pill neutral" title="@L["Xfer_ColCondition"]">@p.ConditionDisplay</span> }
+                                               su 70 righe di 76, e la stessa condizione si leggeva in tre posti.
+                                               Qui si legge anche il RUOLO della riga nel gruppo: una condizione da
+                                               sola non dice se è un'alternativa, il caso che resta o l'eccezione di
+                                               un'altra — ed era esattamente ciò che non si capiva a schermo. *@
+                                            <td class="@IndentClass(gv)">
+                                                @if (gv.Depth > 0 && gv.Parent is { } parent)
+                                                {
+                                                    <span class="xt-role">↳ @L["Xfer_CondExceptionOf", ParentLabel(parent)]</span>
+                                                }
+                                                @if (p.IsGroupWide)
+                                                {
+                                                    <span class="pill neutral" title="@L["Xfer_GroupWideTitle"]">@L["Xfer_GroupWide"]</span>
+                                                }
+                                                @if (string.IsNullOrWhiteSpace(p.ConditionDisplay))
+                                                {
+                                                    @* La riga senza condizione dentro un gruppo NON è una riga vuota:
+                                                       è il caso che resta quando nessun'altra condizione vale. Un «—»
+                                                       lo faceva sembrare un dato mancante. *@
+                                                    @if (gv.InGroup && !p.IsGroupWide)
+                                                    {
+                                                        <span class="pill xt-elsepill" title="@L["Xfer_CondOtherwiseTitle"]">@L["Xfer_CondOtherwise"]</span>
+                                                    }
+                                                    else if (!p.IsGroupWide)
+                                                    {
+                                                        <span class="muted">—</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    @if (gv.InGroup && gv.Depth == 0 && !p.IsGroupWide) { <span class="xt-role">@L["Xfer_CondIf"]</span> }
+                                                    <span class="pill neutral" title="@L["Xfer_ColCondition"]">@p.ConditionDisplay</span>
+                                                }
                                             </td>
                                             <td class="xt-acts">
                                                 @* Tre azioni, non nove: aggiungere, modificare, eliminare. Spostare,
@@ -440,13 +481,11 @@
                                                 <button class="btn @(sel ? "primary" : "ghost")" disabled="@(_busy || !_canEdit)" title="@L["Xfer_EditRowTitle"]" @onclick="() => EditPoint(f, p)">✎</button>
                                             </td>
                                         </tr>
-                                        @if (_showPreviews)
+                                        @if (hasPrev)
                                         {
-                                            var prev = PreviewRow(f, p);
-                                            @if (!string.IsNullOrWhiteSpace(prev))
-                                            {
-                                                <tr class="xfer-prev"><td colspan="7"><span class="xt-prev">“@prev”</span></td></tr>
-                                            }
+                                            @* L'anteprima porta le classi del blocco: senza, la frase si infilava
+                                               FRA due varianti e spezzava in tre quello che è un gruppo solo. *@
+                                            <tr class="xfer-prev @PreviewClass(gv)"><td colspan="7"><span class="xt-prev">“@prev”</span></td></tr>
                                         }
                                     }
                                 </tbody>
@@ -711,19 +750,84 @@
         await Guarded(() => Transfers.MovePointToAsync(_acc!.Code, id, target.Id), null);
     }
 
-    /// <summary>Classe della riga: selezione, appartenenza a un gruppo, bersaglio del trascinamento.</summary>
-    private string RowClass(TransferPointRow p, bool selected)
+    /// <summary>
+    /// Come si legge una riga dentro il suo gruppo di varianti. Le righe del gruppo sono lo <b>stesso accordo</b>
+    /// in casi diversi — il salvataggio propaga CoP e ricevente a tutte — e a schermo devono leggersi come un
+    /// blocco: prima della modifica del 12 agosto le distingueva solo una velatura uguale per ogni gruppo, e due
+    /// gruppi consecutivi si fondevano in uno.
+    /// </summary>
+    /// <param name="InGroup">La riga appartiene a un gruppo di varianti.</param>
+    /// <param name="First">È la prima del blocco <b>come si vede</b> (la guida verticale deve aprirsi qui).</param>
+    /// <param name="Last">È l'ultima del blocco come si vede.</param>
+    /// <param name="Odd">Gruppo di indice dispari: due tinte alternate, altrimenti due blocchi adiacenti si fondono.</param>
+    /// <param name="Count">Quante righe ha il gruppo nel flusso (non nella vista): è il numero che si annuncia.</param>
+    /// <param name="Depth">Profondità nell'outline: 0 = alternativa pari-grado, &gt; 0 = eccezione.</param>
+    /// <param name="Parent">La riga di cui questa è l'eccezione, letta sull'ordine SALVATO.</param>
+    private sealed record GroupView(bool InGroup, bool First, bool Last, bool Odd, int Count, int Depth,
+                                    TransferPointRow? Parent);
+
+    private static readonly GroupView NoGroup = new(false, false, false, false, 0, 0, null);
+
+    /// <summary>
+    /// Il blocco della riga in posizione <paramref name="ix"/> della vista.
+    /// <para>Apertura e chiusura si calcolano sull'ordine <b>mostrato</b> — la guida deve chiudersi dove il
+    /// blocco finisce a schermo, anche con la vista ordinata per CoP — mentre il padre si legge sull'ordine
+    /// <b>salvato</b> (<c>f.Points</c>): quello è la struttura, e ordinare la vista non la cambia.</para>
+    /// </summary>
+    private static GroupView Group(TransferFlowRow f, IReadOnlyList<TransferPointRow> shown, int ix)
     {
-        var c = new List<string>(3);
-        if (p.VariantGroup is not null) c.Add("xfer-variant");
+        var p = shown[ix];
+        if (p.VariantGroup is not int g) return NoGroup;
+
+        var first = ix == 0 || shown[ix - 1].VariantGroup != g;
+        var last = ix == shown.Count - 1 || shown[ix + 1].VariantGroup != g;
+        var count = f.Points.Count(x => x.VariantGroup == g);
+        return new GroupView(true, first, last, g % 2 == 1, count, p.VariantDepth,
+                             CoordinationDerivation.ParentOf(f.Points, p));
+    }
+
+    /// <summary>Classe della riga: blocco di varianti, selezione, bersaglio del trascinamento.</summary>
+    private string RowClass(TransferFlowRow f, TransferPointRow p, bool selected, GroupView gv, bool hasPreview)
+    {
+        var c = new List<string>(6);
+        if (gv.InGroup)
+        {
+            c.Add("xfer-variant");
+            c.Add(gv.Odd ? "xt-g-b" : "xt-g-a");
+            if (gv.First) c.Add("xt-g-first");
+            // Con l'anteprima accesa è la frase a chiudere il blocco: il bordo qui taglierebbe in mezzo.
+            if (gv.Last && !hasPreview) c.Add("xt-g-last");
+            // Modificare una variante senza vedere le sorelle è il modo di scrivere due volte lo stesso caso.
+            // Il confronto è dentro il flusso: il numero di gruppo è progressivo PER FLUSSO, e due «1» di flussi
+            // diversi non sono lo stesso gruppo.
+            if (_editPointId is int open && f.Points.Any(x => x.Id == open && x.VariantGroup == p.VariantGroup))
+                c.Add("xt-g-open");
+        }
         if (selected) c.Add("xt-sel");
         if (_dragOver == p.Id && _dragId is not null && _dragId != p.Id) c.Add("xt-dragover");
         return string.Join(' ', c);
     }
 
-    /// <summary>Rientro della riga per profondità: una classe per livello, così non serve uno stile inline.</summary>
-    private static string DepthClass(TransferPointRow p) =>
-        p.VariantDepth <= 0 ? "" : $"xt-d{Math.Min(p.VariantDepth, 4)}";
+    /// <summary>Classi della riga di anteprima: sta dentro il blocco, e se è l'ultima lo chiude.</summary>
+    private static string PreviewClass(GroupView gv)
+    {
+        if (!gv.InGroup) return "";
+        var c = new List<string>(3) { gv.Odd ? "xt-g-b" : "xt-g-a" };
+        if (gv.Last) c.Add("xt-g-last");
+        return string.Join(' ', c);
+    }
+
+    /// <summary>
+    /// Rientro della <b>colonna condizione</b> per profondità: è lì che si legge l'annidamento, come nella vista
+    /// pubblica (<c>CoordTable</c>). Prima il rientro stava sulla cella del CoP, cioè lontano dal dato che
+    /// qualifica — e la condizione dell'eccezione risultava allineata a quella della riga di cui è eccezione.
+    /// </summary>
+    private static string IndentClass(GroupView gv) =>
+        gv.Depth <= 0 ? "" : $"xt-ind{Math.Min(gv.Depth, 4)}";
+
+    /// <summary>Come si nomina la riga padre in «eccezione di X»: la sua condizione, o il caso base se non ne ha.</summary>
+    private string ParentLabel(TransferPointRow parent) =>
+        string.IsNullOrWhiteSpace(parent.ConditionDisplay) ? L["Xfer_CondBaseCase"].Value : parent.ConditionDisplay;
 
     /// <summary>
     /// Una riga «da rivedere» è una riga che consegna a un APP e non dice ancora dove avviene il trasferimento.
