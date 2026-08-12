@@ -4,6 +4,12 @@ Data: 2026-08-12 · Stato: **CHIUSO — suite 2203 verde, Release 0 warning su e
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [editor trasferimenti UX](2026-08-12-editor-trasferimenti-ux.md), stesso branch.
 
+> ⚠️ **Il collasso a colonna singola descritto al §«Il Salva» è cambiato lo stesso giorno**: la pagina è passata
+> a tre colonne (`.xfe-layout3`) in
+> [editor trasferimenti a tre colonne](2026-08-12-editor-trasferimenti-tre-colonne.md), dove l'altezza non è più
+> un `calc` ma una misura, e `vipiRevealPanel` serve solo sotto le soglie di collasso. Il pannello
+> testata · corpo · piede — il cuore di questa scheda — è rimasto quello.
+
 ## Obiettivo
 
 Due difetti riportati guardando la pagina reale, dopo il giro di ieri:

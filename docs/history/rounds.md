@@ -1436,3 +1436,67 @@ campo su tutti e tre gli schermi, a menù chiuso e aperto.
 ⚠️ **Terza occorrenza dell'intermittente del bridge**, con lo stesso profilo: 1 fallito su 78 nella corsa
 completa in parallelo, verde da solo e verde nella corsa completa successiva. Il nome è sfuggito di nuovo — la
 corsa che fallisce va lanciata scrivendo il log su file **fin dalla prima volta**, non dopo.
+
+## Feature: l'editor dei trasferimenti diventa tre colonne (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](../feature/2026-08-12-editor-trasferimenti-tre-colonne.md).
+
+Quinto giro sulla stessa pagina, aperto da un giudizio d'uso e non da un difetto: «ancora scomoda e poco fluida
+da usare». Prima di rispondere gli attriti sono stati **contati nel sorgente**, non stimati — e sono sei, di cui
+uno è un bug vero.
+
+**Il caro davvero era la forma.** La pagina rendeva *tutti* i gruppi dell'ACC con le loro tabelle, uno sotto
+l'altro, dietro tre livelli di collasso richiusi a ogni cambio ACC: arrivare a una riga costava **tre clic, ogni
+volta**, e da lì in giù si scorreva per migliaia di pixel con lista e pannello nello stesso scorrimento di
+pagina. Ora sono tre colonne — navigatore · riquadro di lavoro · pannello — e ognuna scorre per conto proprio
+dentro l'altezza dello schermo. Il gruppo smette di essere un terzo livello di collasso: nell'albero è una
+**foglia**, si sceglie. `_collapsedFlow` e `ToggleFlow` spariscono.
+
+**Una vista per rivedere, non per scrivere.** L'interruttore Albero ⇄ Elenco: l'elenco mostra tutte le righe
+dell'ACC in una tabella sola, con settore/aeroporto/tipo come colonne. Per la revisione l'albero è il nemico, e
+i due filtri diagnostici sono esattamente revisione.
+
+⚠️ **Il difetto che era lì da prima**: il filtro «senza ricevente» **non filtrava nulla**. `_noReceiverOnly` si
+accendeva, il tasto si illuminava, il conteggio era giusto, e `FilteredFlows()` non lo leggeva mai. A schermo
+sembrava «il filtro non ha trovato niente». Trovato **leggendo** il file per pianificare, non usandolo — ed è la
+ragione per cui il pre-flight vuole che si guardi il codice prima di proporre. Ora filtra i gruppi in albero e
+le **righe** in elenco, che è ciò che si vuole quando lo si accende: per questo accenderlo porta in elenco. Sul
+dato reale: 78 righe → 1.
+
+**Si scrive nella tabella.** CoP, livello e ricevente si scrivono in cella; Invio salva e scende, Tab passa alla
+colonna dopo, Esc annulla. Tre colonne e non sette: condizione e faccetta sono composte da più campi, e
+comprimerle in una casella è l'errore che questa pagina ha già fatto una volta — la riga che diventava «una fila
+di sei controlli senza etichetta». Il livello si scrive **come si legge**, perché `LevelFormatting` ha ora
+l'inverso di `Format`, la cui correttezza è una **proprietà** e non un elenco di casi: `Format(Parse(s)) == s`
+per ogni `s` che `Format` sappia produrre, 102 casi generati.
+
+La regola che tiene insieme la cosa — **una casella scrive solo ciò che mostra** — sembrava un principio e nel
+dato reale ha un solo effetto: `TransferVerticalState.Level` non lascia segno nel testo del livello, quindi
+riscrivere quel testo lo cancellerebbe in silenzio. Averlo cercato *prima* ha evitato una perdita di dato che
+nessun test avrebbe visto; il test che la documenta è scritto come **limite**, non come funzione.
+
+**Lo stato sta nell'URL**, e la divisione non è arbitraria: in URL ciò che identifica *cosa sto guardando* (ACC,
+vista, gruppo, riga, filtri), in `localStorage` ciò che è *come mi piace guardare* (anteprime, ordinamento) — che
+in un link condiviso sarebbe rumore. `vipiStoreGet`/`Set` esistevano dal round dell'editor e non erano mai stati
+chiamati da Razor: qui trovano il primo chiamante.
+
+**Tre difetti visibili solo a schermo**, tutti misurati sulla verifica live (LIBB, 36 gruppi, 78 righe):
+
+1. **La pagina scorreva di 148 px.** Il `calc(100vh - 250px)` era una stima; il valore vero è **398**, perché
+   sopra la griglia stanno barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e — a volte —
+   l'avviso del lock. In CSS puro non si esprime: `N` è proprio ciò che non si sa. Lo misura ora
+   `vipiFitViewport`, chiamato a ogni render, perché l'avviso del lock compare e sparisce da solo.
+2. **Il navigatore si srotolava a schermo stretto**: 2174 px di albero prima di arrivare al lavoro. Tetto 42vh
+   sotto i 1200 — e per lasciare libero il riquadro di lavoro serve `align-items:start`, senza il quale si
+   allineava all'altezza del navigatore incastonato e finiva incastonato anche lui (378 px per 2082 di tabella).
+3. **Aprire una cella spostava le colonne di ~100 px.** In una tabella a colonne automatiche un `<input>` porta
+   la propria larghezza **intrinseca** (venti caratteri) e `width:100%` non la riduce: `size="8"`, scostamento
+   da ~100 a 21.
+
+**Uno scostamento dalla carta.** Prometteva tre componenti; ne sono usciti due. Il pannello è rimasto nella
+pagina: estrarlo avrebbe significato passargli il form, le piste, le aree, il contesto anteprima, il
+localizzatore e otto callback per guadagnare righe di file — e la ragione per cui la tabella *doveva* uscire
+(due viste che la rendono) su di lui non vale. La tabella è **una**: scriverla due volte vorrebbe dire
+correggere due volte ogni difetto di lettura.
+
+Suite **2384** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.

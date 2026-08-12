@@ -5,6 +5,13 @@ Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [trasferimenti ACC↔APP](2026-08-11-trasferimenti-acc-app.md) e
 [varianti a livelli](2026-08-12-varianti-a-livelli.md), stesso branch.
 
+> ⚠️ **Il layout descritto qui è stato superato lo stesso giorno.** Le due colonne (`.xfe-layout`: lista a
+> sinistra, pannello sticky a destra) sono diventate **tre** (`.xfe-layout3`: navigatore · riquadro di lavoro ·
+> pannello, ognuna col proprio scorrimento) in
+> [editor trasferimenti a tre colonne](2026-08-12-editor-trasferimenti-tre-colonne.md), che spiega perché.
+> Tutto il resto di questa scheda — l'editing che esce dalla riga, le tre azioni per riga, gli stili inline
+> azzerati — resta vero.
+
 ## Obiettivo
 
 Due giri di lavoro hanno aggiunto alla riga di trasferimento la faccetta, la velocità e l'outline delle

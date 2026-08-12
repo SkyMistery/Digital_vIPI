@@ -1,6 +1,7 @@
 # Feature — Editor trasferimenti: tre colonne, vista elenco, stato in URL, editing in cella
 
-Data: 2026-08-12 · Stato: 🟡 **in corso** ·
+Data: 2026-08-12 · Stato: **CHIUSO — suite 2384 verde, Release 0 warning su entrambi i TFM,
+✅ verifica live eseguita** ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [varianti a livelli](2026-08-12-varianti-a-livelli.md) e
 [trasferimenti ACC↔APP](2026-08-11-trasferimenti-acc-app.md) · branch `feature/trasferimenti-acc-app`.
@@ -188,7 +189,10 @@ volta (la riga che diventava «una fila di sei controlli senza etichetta»).
 `LevelFormatting.Format(...)`: «FL150», «FL130-», «2500 ft», «FL280+ ↑ (dispari)», o un testo libero.
 Serve l'inverso, e la sua correttezza è una proprietà, non un elenco di casi:
 
-> per ogni livello rappresentabile, `TryParse(Format(x)) == x`.
+> per ogni livello rappresentabile, `Format(Parse(Format(x))) == Format(x)`.
+
+Round-trip **sul testo** e non sui campi, e la differenza ha un caso solo: `TransferVerticalState.Level` non
+lascia segno nel testo (nessuna freccia). Chi salva una cella deve quindi **conservarlo** — vedi sotto.
 
 Ciò che non è riconoscibile come livello **non è un errore**: diventa il livello «speciale» (testo libero), che
 è già una forma prevista dal modello (`LevelConstraint.Special`). Scrivere «per aerovia» nella cella deve
@@ -202,26 +206,91 @@ apposta. Serve una copia distinta, e le due vanno chiamate in modo che si capisc
 
 ## Componenti
 
-La pagina è a 1955 righe e questa carta le aggiungerebbe. Si estraggono tre componenti, che sono anche le tre
-colonne:
+La pagina è a 1955 righe e questa carta le aggiungerebbe. Si estraggono due componenti:
 
 | Componente | Cosa sa |
 |---|---|
-| `XferNavigator.razor` | l'albero settore ▸ aeroporto ▸ gruppo, il gruppo scelto, il conteggio, il tasto «+ Gruppo» |
+| `XferNavigator.razor` | l'albero settore ▸ aeroporto ▸ gruppo, il gruppo scelto, i conteggi, gli avvisi che risalgono, il tasto «+ Gruppo» |
 | `XferRowsTable.razor` | la tabella delle righe — **una sola**, usata sia dal gruppo che dalla vista elenco (le colonne di contesto compaiono solo in elenco) |
-| il pannello | resta nella pagina: legge e scrive `PointForm`, che è stato della pagina |
+| il pannello | **resta nella pagina**: legge e scrive `PointForm`, che è stato della pagina, e spostarlo sarebbe plumbing senza guadagno |
 
 Una tabella e non due: le due viste mostrano le stesse righe con lo stesso significato (blocchi, rientro,
 anteprima, azioni), e scriverla due volte vorrebbe dire correggere due volte ogni difetto di lettura — che è
 il debito che i nove doc refactor hanno appena finito di pagare.
 
+I componenti **non calcolano**: ricevono `XferTableRow` / `XferNavSector` già composti. Chi li compone è la
+pagina, perché è lei a sapere se sta scorrendo un flusso o attraversandoli tutti — e da lì in giù il codice che
+disegna è uno solo.
+
 ## Test
 
-- `LevelFormattingTests` — round-trip `TryParse(Format(x)) == x` su tutte le combinazioni di
-  vincolo × unità × parità × stato verticale, più i casi che *non* vengono da `Format`: testo libero, vuoto,
-  trattino, spazi, minuscole.
+- `LevelFormattingTests` — round-trip `Format(Parse(s)) == s` su tutte le combinazioni di
+  vincolo × unità × parità × stato verticale, generate (102 casi), più i casi che *non* vengono da `Format`:
+  testo libero, vuoto, trattino, spazi, minuscole, numero nudo, testo che finisce con «-».
+- Un test documenta il **limite**: `TransferVerticalState.Level` non sopravvive al giro, ed è la ragione per
+  cui la cella lo conserva.
 - La pagina non ha test (è Razor): la copertura sta nel round-trip e nella verifica live.
-- Nessun test esistente deve cambiare: il servizio non si tocca.
+- Nessun test esistente è cambiato: il servizio non si tocca.
+
+## ✅ Verifica live — eseguita il 12 agosto 2026
+
+Su copia del `vipi.db` reale, ACC **LIBB**: 36 gruppi, 78 righe, 5 settori mittenti. Edge + puppeteer-core,
+lock di struttura preso, tutto **misurato** a schermo.
+
+| Cosa | Esito |
+|---|---|
+| Tre colonne a 1700×1000 | `paginaScorre = false`; navigatore 2078 px di albero dentro 487, elenco 6246 dentro 538 |
+| Navigatore | avvisi che risalgono (● su `LDZO_CTR`, `LIBB_ES_CTR`), conteggi per nodo, «+ Gruppo» nel piede |
+| Scelta gruppo | URL `?acc=LIBB&gruppo=25`; testata «LDZO_CTR · Arrivals · ✈ LIBD — Bari Palese» + tre azioni |
+| Vista elenco | 78 righe, colonne Settore/Aeroporto/Tipo, **zero maniglie di trascinamento**; URL `vista=Flat` |
+| **Filtro «senza ricevente»** | 78 righe → **1**, e quella riga è davvero senza ricevente — il difetto §6 è chiuso sul dato reale |
+| Scrittura in cella | campo aperto **già a fuoco**; `AIOSA` → `ZZTEST` con Invio, e il campo si riapre da solo su `BEVIS`, la riga sotto |
+| Esc | chiude senza scrivere |
+| Frase derivata | si riscrive col valore nuovo («…stabile a livello 230 su **ZZTEST**») |
+| F5 | riapre ACC, vista, righe e gruppo dall'URL |
+| Pannello | testata «Edit row · LAAA_CTR · LIBD · Arrivals», **piede visibile** e Salva presente; URL `…&riga=63` |
+| Guardie | nessun errore di pagina, nessun letterale Razor, nessuna eccezione in console |
+
+### Tre difetti trovati **solo** a schermo
+
+1. **La pagina scorreva di 148 px.** Il `calc(100vh - 250px)` era una stima; il valore vero è **398**, perché
+   sopra la griglia stanno barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e — a volte —
+   l'avviso del lock. In CSS puro non si esprime: `N` è proprio ciò che non si sa. Lo misura `vipiFitViewport`,
+   chiamato **a ogni render** (l'avviso del lock compare e sparisce da solo, e la misura cambia con lui).
+2. **Il navigatore si srotolava a schermo stretto**: 2174 px di albero da scorrere prima di arrivare al lavoro.
+   Tetto `42vh` sotto i 1200. Il riquadro di lavoro invece resta libero — e per lasciarlo libero *davvero*
+   serve `align-items:start`, senza il quale si allineava all'altezza del navigatore incastonato e finiva
+   incastonato anche lui: 378 px per una tabella da 2082.
+3. **Aprire una cella spostava le colonne di un centinaio di pixel.** In una tabella a colonne automatiche un
+   `<input>` porta la propria larghezza **intrinseca** (venti caratteri) e `width:100%` non la riduce:
+   `size="8"`. Scostamento massimo da ~100 px a 21.
+
+Nessuno dei tre era visibile alla suite, e il primo non era nemmeno esprimibile senza misurare.
+
+## Esito — scostamenti dalla carta e cose imparate
+
+**Due componenti e non tre.** La carta ne prometteva tre; il pannello è rimasto nella pagina. Estrarlo avrebbe
+significato passargli `PointForm`, `_condRunways`, `_areas`, `_preview`, il localizzatore e otto callback per
+guadagnare righe di file e nient'altro: non è condiviso con nessuno, e la ragione per cui la tabella *doveva*
+uscire — due viste che la rendono — su di lui non vale.
+
+**`Parse` e non `TryParse`.** La carta diceva `TryParse`, cioè una lettura che può fallire. Scrivendola è
+venuto fuori che **non deve poter fallire**: ciò che non è un livello è il livello «speciale», che il modello
+già prevede. Un `bool` di ritorno avrebbe costretto ogni chiamante a decidere cosa fare di «per aerovia» — che
+è un livello valido.
+
+**Il caso che la carta aveva previsto si è rivelato l'unico.** «Una casella scrive solo ciò che mostra» sembrava
+un principio; nel dato reale ha un solo effetto, ed è `TransferVerticalState.Level`. Averlo cercato prima ha
+evitato una cancellazione silenziosa che nessun test avrebbe visto — e il test che lo documenta è scritto come
+limite, non come funzione, perché è quello che è.
+
+**Un dato reale che si legge male, e non è di questo giro**: la riga `BEVIS` mostra livello `— (dispari)`, cioè
+un suffisso di parità appeso a un livello assente. È `Format` che si comporta così da sempre; il round-trip lo
+regge (si rilegge identico), ma a schermo è una frase monca. Vale la pena guardarlo, in un altro giro.
+
+**Un vertical morto trovato per strada**: `ITransferService.MovePointToEndAsync` (con repository e test) non ha
+**nessun** chiamante dall'interfaccia — il wrapper nella pagina era già morto prima di questa carta ed è stato
+tolto. Il metodo di servizio resta: rimuoverlo è un'altra decisione, e non di questa scheda.
 
 ## Fuori scopo
 

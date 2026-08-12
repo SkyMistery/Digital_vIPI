@@ -759,8 +759,17 @@ Quarta, dalla prima lettura della pagina rifatta:
 casi» / «↳ eccezione di: X») e il **Salva si raggiunge**: il pannello diventa testata · corpo · piede, perché
 prima l'unico modo di arrivarci era una seconda barra di scorrimento dentro il riquadro.
 
-Suite 2203 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
-quattro i giri (quindici difetti trovati proprio lì, quasi nessuno visibile alla suite).
+Quinta, dall'uso vero della pagina («ancora scomoda e poco fluida»):
+[`feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](feature/2026-08-12-editor-trasferimenti-tre-colonne.md)
+— la pagina passa a **tre colonne** (navigatore · riquadro di lavoro · pannello, ognuna col proprio
+scorrimento), guadagna una **vista a elenco** per rivedere invece che per scrivere, tiene lo **stato in URL**
+(un gruppo si linka, un F5 non azzera) e lascia scrivere **CoP, livello e ricevente dentro la tabella**. Il
+gruppo smette di essere un terzo livello di collasso: arrivare a una riga costava tre clic, ogni volta.
+⚠️ Qui è stato chiuso un **difetto che c'era da prima**: il filtro «senza ricevente» si accendeva, contava
+giusto e **non filtrava nulla**.
+
+Suite 2384 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
+cinque i giri (diciotto difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
 avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al
