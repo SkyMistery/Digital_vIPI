@@ -787,9 +787,30 @@
         <XferRowsTable Rows="rows" ShowContext="showContext" CanDrag="canDrag"
                        Selected="_selected" EditPointId="_editPointId"
                        Disabled="@(_busy || !_canEdit)" DragId="_dragId" DragOverId="_dragOver"
+                       EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
                        OnEdit="OnEditRow" OnAddAlternative="AddAlternative" OnAddException="AddException"
                        OnToggleSelect="ToggleSelect"
                        OnDragStart="id => _dragId = id" OnDragOver="id => _dragOver = id" OnDrop="DropOn" />
+        @* Le opzioni del ricevente: una lista sola per tutta la tabella, e il completamento lo fa il browser.
+           Un typeahead nostro dentro una cella alta venti pixel coprirebbe le righe sotto — che è esattamente il
+           difetto per cui l'editing era stato tolto dalla tabella la prima volta. *@
+        <datalist id="xt-callsigns">
+            @foreach (var s in _all) { <option value="@s.Callsign" /> }
+        </datalist>
+    };
+
+    /// <summary>Il campo dentro la cella. Il tipo dice cosa si sta scrivendo: il ricevente ha l'elenco dei
+    /// callsign, gli altri due sono testo libero — e il livello lo è per davvero, «per aerovia» compreso.</summary>
+    private RenderFragment<XferCellRef> CellEditor => cell => __builder =>
+    {
+        // L'epoca si cattura QUI, al render: il gestore di sfocamento che ne nasce vale per QUESTA apertura di
+        // cella e per nessun'altra. Senza, il salvataggio da Invio (che apre subito la cella dopo) veniva
+        // seguito dallo sfocamento della cella vecchia, che scriveva il testo vecchio nella cella nuova.
+        var epoch = _cellEpoch;
+        <input class="xt-celledit" @ref="_cellInput" @bind="_cellText" @bind:event="oninput"
+               list="@(cell.Cell == XferCell.Receiver ? "xt-callsigns" : null)"
+               placeholder="@CellPlaceholder(cell.Cell)" disabled="@_busy"
+               @onkeydown="e => CellKey(e, epoch)" @onblur="() => CommitCell(epoch)" />
     };
 
     /// <summary>Il form del gruppo nuovo: settore mittente · aeroporto · tipo · descrizione.</summary>
@@ -1633,6 +1654,175 @@
     /// <summary>La matita sulla riga: apre il pannello sulla riga, qualunque vista la stia mostrando.</summary>
     private Task OnEditRow(XferTableRow r) => EditPoint(r.Flow, r.Point);
 
+    // ---- Scrittura in cella ----------------------------------------------------------------------------
+    // Tre colonne si scrivono nella tabella: CoP, livello, ricevente. Le altre no — condizione e faccetta sono
+    // composte da più campi, e comprimerle in una casella è l'errore che questa pagina ha già fatto una volta.
+    // Il pannello resta per quelle, e per tutto ciò che una riga è oltre le sue tre identità.
+    //
+    // La regola che tiene insieme il tutto: UNA CASELLA SCRIVE SOLO CIÒ CHE MOSTRA. Da qui discende il
+    // trattamento dello stato verticale «livellato», che nel testo del livello non lascia segno e quindi non
+    // può essere cancellato da chi riscrive quel testo.
+
+    private XferCellRef? _cellEdit;
+    private string _cellText = "";
+    private ElementReference _cellInput;
+
+    /// <summary>
+    /// Cambia a ogni apertura di cella, e i gestori la catturano al render. È ciò che distingue lo sfocamento
+    /// «ho finito con questa cella» da quello che arriva DOPO che Invio ne ha già aperta un'altra: senza,
+    /// scrivere in serie riportava il testo della cella precedente in quella nuova.
+    /// </summary>
+    private int _cellEpoch;
+
+    /// <summary>Il campo appena aperto va messo a fuoco: una cella che si apre e non prende i tasti è un clic
+    /// buttato, e in scrittura a raffica sono tutti.</summary>
+    private bool _focusCell;
+
+    private static string CellPlaceholder(XferCell cell) => cell switch
+    {
+        XferCell.Cop => "VALMA",
+        XferCell.Level => "FL130-",
+        _ => "LIRR_W_CTR",
+    };
+
+    private void OpenCell(XferCellRef cell)
+    {
+        if (!_canEdit || _busy) return;
+        var p = FindPoint(cell.PointId);
+        if (p is null) return;
+        _cellEpoch++;
+        _cellEdit = cell;
+        _cellText = XferRowsTable.Display(p, cell.Cell);
+        _focusCell = true;
+    }
+
+    private void CancelCell(int epoch)
+    {
+        if (epoch != _cellEpoch) return;
+        _cellEdit = null;
+        _cellEpoch++;
+    }
+
+    /// <summary>
+    /// Tasti dentro la cella: Invio scende nella stessa colonna, Tab passa alla colonna dopo, Esc annulla.
+    /// <para>Nessun <c>preventDefault</c>: su <c>keydown</c> bloccherebbe anche la battitura dei caratteri. Il
+    /// Tab del browser sposta il fuoco per conto suo, e a rimetterlo dove serve pensa <c>_focusCell</c>.</para>
+    /// </summary>
+    private async Task CellKey(KeyboardEventArgs e, int epoch)
+    {
+        if (epoch != _cellEpoch) return;
+
+        if (e.Key == "Escape") { CancelCell(epoch); return; }
+        if (e.Key is not ("Enter" or "Tab")) return;
+
+        var from = _cellEdit;
+        await CommitCell(epoch);
+        if (from is not { } cell) return;
+
+        if (e.Key == "Enter") MoveCell(cell, rowDelta: e.ShiftKey ? -1 : 1, columnDelta: 0);
+        else MoveCell(cell, rowDelta: 0, columnDelta: e.ShiftKey ? -1 : 1);
+    }
+
+    /// <summary>Le tre colonne scrivibili nell'ordine in cui stanno a schermo: è l'ordine che Tab percorre.</summary>
+    private static readonly XferCell[] EditableCells = { XferCell.Cop, XferCell.Level, XferCell.Receiver };
+
+    /// <summary>
+    /// Apre la cella accanto (Tab) o quella sotto (Invio), <b>nell'ordine mostrato</b> — che è l'unico che
+    /// l'utente vede. L'elenco si ricompone invece di essere ricordato: il salvataggio ha appena ricaricato i
+    /// flussi, e un elenco memorizzato prima punterebbe a righe di un caricamento passato.
+    /// </summary>
+    private void MoveCell(XferCellRef origin, int rowDelta, int columnDelta)
+    {
+        if (columnDelta != 0)
+        {
+            var c = Array.IndexOf(EditableCells, origin.Cell) + columnDelta;
+            // A fine riga ci si ferma: portare il fuoco sulla riga dopo saltando le colonne è un movimento che
+            // nessuno ha chiesto, e in una tabella si perde di vista subito.
+            if (c < 0 || c >= EditableCells.Length) return;
+            OpenCell(origin with { Cell = EditableCells[c] });
+            return;
+        }
+
+        var rows = _view == XferView.Flat ? FlatRows(FilteredFlows()) : SelectedFlowRows();
+        var i = -1;
+        for (var k = 0; k < rows.Count; k++) if (rows[k].Point.Id == origin.PointId) { i = k; break; }
+        if (i < 0) return;
+
+        var next = i + rowDelta;
+        if (next < 0 || next >= rows.Count) return;   // in fondo si esce dalla scrittura, non si torna in cima
+        OpenCell(new XferCellRef(rows[next].Point.Id, origin.Cell));
+    }
+
+    /// <summary>
+    /// Scrive la cella. Non fa nulla se il testo non è cambiato: ogni salvataggio ricarica i flussi dell'ACC, e
+    /// un giro di database per un clic che non ha modificato niente si sente.
+    /// </summary>
+    private async Task CommitCell(int epoch)
+    {
+        if (epoch != _cellEpoch || _cellEdit is not { } cell) return;
+        _cellEdit = null;
+        _cellEpoch++;
+
+        var p = FindPoint(cell.PointId);
+        if (p is null || !_canEdit) return;
+        if (string.Equals(_cellText.Trim(), XferRowsTable.Display(p, cell.Cell).Trim(), StringComparison.Ordinal)) return;
+
+        var input = CellInput(p, cell.Cell, _cellText.Trim());
+        if (input is null) return;   // il testo non si è lasciato interpretare: l'errore l'ha già detto
+        await Guarded(() => Transfers.UpdatePointAsync(_acc!.Code, cell.PointId, input), null);
+    }
+
+    /// <summary>
+    /// Il testo della cella → l'input di salvataggio. <c>null</c> = non si è lasciato interpretare.
+    /// <para>Si parte dalla riga intera e si cambia un campo: <c>UpdatePointAsync</c> vuole tutto, e per CoP e
+    /// ricevente <b>propaga al gruppo di varianti</b> — è l'identità dell'accordo, e chi la scrive su una
+    /// variante la scrive su tutte, esattamente come dal pannello.</para>
+    /// </summary>
+    private TransferPointInput? CellInput(TransferPointRow p, XferCell cell, string text)
+    {
+        var input = EditableCopy(p);
+        switch (cell)
+        {
+            case XferCell.Cop:
+                return input with { Cop = text };
+
+            case XferCell.Receiver:
+                if (text.Length == 0) return input with { NextSectorId = null };   // vuoto = UNICOM
+                var s = _all.FirstOrDefault(x => string.Equals(x.Callsign, text, StringComparison.OrdinalIgnoreCase));
+                if (s is null) { _error = string.Format(L["Xfer_UnknownCallsign"].Value, text); return null; }
+                return input with { NextSectorId = s.Id };
+
+            default:
+                var lv = LevelFormatting.Parse(text);
+                return input with
+                {
+                    LevelValue = lv.Value,
+                    LevelUnit = lv.Unit,
+                    LevelConstraint = lv.Constraint,
+                    LevelSpecial = lv.Constraint == LevelConstraint.Special ? lv.Special : null,
+                    Parity = lv.Parity,
+                    // «In volo livellato» non lascia segno nel testo del livello: rileggendolo tornerebbe
+                    // «non specificato», e la cella avrebbe cancellato un dato che non mostrava. Una casella
+                    // scrive solo ciò che mostra — quindi qui si conserva.
+                    VerticalState = lv.VerticalState == TransferVerticalState.Unspecified
+                                    && p.VerticalState == TransferVerticalState.Level
+                        ? TransferVerticalState.Level
+                        : lv.VerticalState,
+                };
+        }
+    }
+
+    private TransferPointRow? FindPoint(int pointId) =>
+        _flows.SelectMany(f => f.Points).FirstOrDefault(p => p.Id == pointId);
+
+    /// <summary>
+    /// Copia di una riga per MODIFICARLA. Non è <see cref="FromRow"/>: quella è la copia per <b>clonare</b>, e
+    /// lascia indietro «vale per tutte le varianti» apposta — una riga clonata altrove non appartiene al gruppo
+    /// di origine. Qui la riga resta sé stessa, quindi quel campo va conservato.
+    /// </summary>
+    private static TransferPointInput EditableCopy(TransferPointRow p) =>
+        FromRow(p) with { IsGroupWide = p.IsGroupWide };
+
     // Anteprima frase di una riga esistente (lettura). Null = dati incompleti / UNICOM (nessuna frase, come la derivazione).
     /// <summary>
     /// Anteprima della riga che il pannello sta scrivendo. La catena delle condizioni parte dagli ANTENATI
@@ -1973,6 +2163,17 @@
         {
             _urlAs = UrlSignature();
             SyncUrl();
+        }
+
+        // Il fuoco si mette QUI: dentro il gestore del clic il campo non esiste ancora — la cella a schermo è
+        // ancora il testo. Vale anche dopo un Tab, dove il browser ha già spostato il fuoco per conto suo e
+        // questo lo riporta sul campo appena aperto.
+        if (_focusCell)
+        {
+            _focusCell = false;
+            try { await _cellInput.FocusAsync(); }
+            catch (JSDisconnectedException) { /* circuito chiuso: non c'è nessun campo da mettere a fuoco */ }
+            catch (InvalidOperationException) { /* la cella si è già richiusa fra il render e qui */ }
         }
 
         if (!_revealPanel) return;

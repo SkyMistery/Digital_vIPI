@@ -1422,6 +1422,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   cursor:text}
 .xt-cellclick:hover{background:#f2f5ff;box-shadow:inset 0 0 0 1px var(--line)}
 .xt-cellclick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
+/* Il campo prende esattamente il posto del testo che sostituisce: se la cella cambiasse altezza, la riga
+   salterebbe a ogni apertura — e scrivendo a raffica salterebbe tutta la tabella. */
+.xt-celledit{width:100%;min-width:70px;border:1px solid var(--ivao-blue);border-radius:6px;padding:1px 4px;
+  margin:-1px -4px;font-family:var(--font-body);font-size:12.5px;background:#fff}
 /* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
    fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
    scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva

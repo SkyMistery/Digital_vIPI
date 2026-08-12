@@ -1407,4 +1407,5 @@
   <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>From the tree on the left: sector, airport, flow kind. Its rows appear here.</value></data>
   <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>No group yet for this ACC: create one with the button at the bottom of the tree.</value></data>
   <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>This group has no rows yet. Add one below.</value></data>
+  <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>No sector is called “{0}”: the row was left unchanged.</value></data>
 </root>
