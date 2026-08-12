@@ -1342,7 +1342,21 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    cinquantuno. */
 
 .xt-list{min-width:0}                                   /* la griglia non deve farsi allargare dalla tabella */
-.xt-panel{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 15px}
+/* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
+   fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
+   scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva
+   solo con la seconda barra di scorrimento, dentro il riquadro, che non si vede finché non ci passi sopra.
+   L'overflow qui annulla quello di .detail-sticky, che resta il contenitore agganciato. */
+.xt-panel{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 15px;
+  display:flex;flex-direction:column;overflow:hidden}
+.xt-panel-body{flex:1;min-height:0;overflow:auto}
+.xt-panel-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;margin-top:10px;
+  border-top:1px solid var(--line);background:#fff}
+/* Sotto i 1080 la griglia collassa a una colonna e il pannello finisce DOPO tutta la lista: lì lo sticky non
+   può fare nulla (e sotto i 900 .detail-sticky torna statico e toglie il tetto all'altezza). Il tetto lo
+   rimette questa regola, così il piede resta agganciato anche a colonna singola; ad arrivarci ci pensa
+   vipiRevealPanel, chiamato all'apertura di una riga. */
+@media(max-width:1080px){.xt-panel{max-height:80vh}}
 .xt-panel-empty{color:var(--ink-soft);font-size:13px}
 .xt-panel-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
 .xt-panel-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
@@ -1421,5 +1435,4 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .xt-bulkpick{margin:0;min-width:200px}
 .xt-bulkpick input{margin:0}
-.xt-unsaved{margin:0 0 12px}
 .xt-groupwide{margin-top:6px}

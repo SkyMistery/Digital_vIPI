@@ -331,6 +331,18 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
+    // Porta in vista un pannello di editing SOLO se non lo è già. Serve a schermo stretto, dove la griglia
+    // lista+pannello collassa a una colonna e il pannello finisce dopo tutta la lista: aprire una riga
+    // scriverebbe in un form fuori campo. Sul monitor largo il pannello è già agganciato e questa non muove
+    // niente — uno scorrimento non richiesto su una pagina che sta ferma è peggio del problema che risolve.
+    window.vipiRevealPanel = function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var r = el.getBoundingClientRect();
+        var visible = r.top < window.innerHeight - 80 && r.bottom > 80;
+        if (!visible) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     var searchKeyWired = false;
     function wireSearchKey() {
         // "/" mette a fuoco la barra di ricerca in header (se non stai già digitando).

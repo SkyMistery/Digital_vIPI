@@ -9,6 +9,7 @@
 @inject IAirportEditingService Airports
 @inject IAccDerivationService AccDeriv
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Xfer_Title"] · vIPI IVAO Italia</PageTitle>
 
@@ -52,14 +53,9 @@
             </div>
         }
 
-        @* Chiudere il pannello scarta: meglio dirlo mentre la riga è ancora aperta. *@
-        @if (HasOpenEdit)
-        {
-            <div class="callout info xt-unsaved">
-                <span class="cic">✎</span>
-                <div><p class="ct">@L["Xfer_UnsavedTitle"]</p>@L["Xfer_UnsavedBody"]</div>
-            </div>
-        }
+        @* L'avviso «modifiche non salvate» sta nella TESTATA DEL PANNELLO, non qui: chiudere il pannello scarta,
+           e il posto per dirlo è dove le modifiche si stanno scrivendo — qui era in cima alla pagina, cioè
+           anche migliaia di pixel più su. *@
 
         @* ---- Scelta ACC ---- *@
         <div class="section-title"><h3>ACC</h3><span class="ln"></span></div>
@@ -526,7 +522,7 @@
             }
             </div>@* /xt-list *@
             @* ---- Pannello: qui si scrive ---- *@
-            <aside class="detail-sticky xt-panel">
+            <aside id="xt-panel" class="detail-sticky xt-panel">
                 @PointPanel()
             </aside>
             </div>@* /xfe-layout *@
@@ -962,11 +958,19 @@
         var editing = _editPointId is not null;
         var point = editing ? flow.Points.FirstOrDefault(x => x.Id == _editPointId) : null;
 
+        @* Testata · corpo · piede. Il corpo è l'unica parte che scorre: le azioni stavano in fondo a 1426 px di
+           contenuto in 904 disponibili, e il Salva non compariva in NESSUNA posizione di scorrimento della
+           pagina — si raggiungeva solo con la seconda barra, dentro il riquadro, che non si vede finché non ci
+           passi sopra con la rotella. Misurato a schermo, non stimato. *@
         <div class="xt-panel-h">
             <b>@(editing ? L["Xfer_PanelEdit"] : L["Xfer_PanelNew"])</b>
             <span class="muted">@flow.OwningSectorCallsign@(string.IsNullOrWhiteSpace(flow.AirportIcao) ? "" : $" · {flow.AirportIcao}") · @KindLabel(flow.Kind)</span>
+            @* L'avviso vive dove vivono le modifiche: in cima alla pagina stava a migliaia di pixel da qui. *@
+            @if (HasOpenEdit) { <span class="pill xt-elsepill" title="@L["Xfer_UnsavedBody"]">✎ @L["Xfer_UnsavedTitle"]</span> }
             <button class="btn ghost xt-panel-x" title="@L["Common_Cancel"]" @onclick="ClosePanel">✕</button>
         </div>
+
+        <div class="xt-panel-body">
 
         @* --- Identità: dove entra il traffico e a chi va --- *@
         <div class="xt-grp"><span>@L["Xfer_GrpIdentity"]</span></div>
@@ -1081,16 +1085,8 @@
             <span class="xt-prev">@(string.IsNullOrWhiteSpace(prev) ? L["Xfer_PreviewIncomplete"].Value : $"“{prev}”")</span>
         </div>
 
-        <div class="xt-panel-actions">
-            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SavePanel">💾 @L["Common_Save"]</button>
-            @if (!editing)
-            {
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(_addPointFlowId!.Value, true)">＋ @L["Xfer_AddRowContinue"]</button>
-            }
-            <button class="btn ghost" disabled="@_busy" @onclick="ClosePanel">@L["Common_Cancel"]</button>
-        </div>
-
-        @* Spostare, duplicare e sfilare vivono qui: nella riga erano sei icone da 28px senza nome. *@
+        @* Spostare, duplicare e sfilare stanno nel corpo, SOPRA il piede: sono azioni secondarie, e non devono
+           mettersi fra chi scrive e il bottone che scrive. *@
         @if (editing && point is not null)
         {
             <div class="xt-grp"><span>@L["Xfer_GrpRowActions"]</span></div>
@@ -1107,6 +1103,18 @@
                                Prompt="@L["Xfer_DeleteRowPrompt"]" OnConfirm="() => DeletePoint(point.Id)"><Trigger>✕ @L["Common_Delete"]</Trigger></InlineConfirm>
             </div>
         }
+
+        </div>@* /xt-panel-body *@
+
+        @* Il piede non scorre con i campi: il Salva è visibile appena il pannello lo è. *@
+        <div class="xt-panel-foot">
+            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SavePanel">💾 @L["Common_Save"]</button>
+            @if (!editing)
+            {
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_AddRowContinueTitle"]" @onclick="() => AddPoint(_addPointFlowId!.Value, true)">＋ @L["Xfer_AddRowContinue"]</button>
+            }
+            <button class="btn ghost" disabled="@_busy" @onclick="ClosePanel">@L["Common_Cancel"]</button>
+        </div>
     };
 
     /// <summary>
@@ -1519,6 +1527,7 @@
         _addForm.Reset();
         _formOpenedAs = _addForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
+        await RevealPanel();
     }
 
     // ---- Copia righe da un altro flusso ----
@@ -1677,6 +1686,19 @@
         _editForm.LoadFrom(p, ParseRwys);
         _formOpenedAs = _editForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
+        await RevealPanel();
+    }
+
+    /// <summary>
+    /// Porta il pannello in vista se non lo è. Serve sotto i 1080 px, dove la griglia collassa a una colonna e
+    /// il pannello sta DOPO tutta la lista: aprire una riga scriveva in un form fuori campo. Sul monitor largo
+    /// il pannello è già agganciato e la funzione non muove niente (il controllo è nel JS, che è l'unico a
+    /// sapere dov'è il pannello rispetto allo schermo).
+    /// </summary>
+    private async Task RevealPanel()
+    {
+        try { await JS.InvokeVoidAsync("vipiRevealPanel", "xt-panel"); }
+        catch (JSDisconnectedException) { /* circuito chiuso mentre si apriva: non c'è nulla da mostrare */ }
     }
 
     /// <summary>Alternativa pari-grado alla riga (es. «pista 25» accanto a «pista 07»): nasce copiata tranne la
