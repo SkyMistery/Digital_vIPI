@@ -4,9 +4,30 @@
 MariaDB è in `main` dal 9 agosto, verificato; sezioni B, C e D chiuse, E sfoltita.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 DA DOVE SI RIPARTE (aggiornato l'11 agosto 2026)
+> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 12 agosto 2026)
 >
-> **⚠️ C'è un ramo pronto e non fuso: `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
+> **⚠️ DUE rami pronti e non fusi.**
+>
+> **1. `feature/trasferimenti-acc-app` — PR #13 aperta, 65 commit avanti a `main`.** Sei giri sullo stesso
+> filone, tutti chiusi con verifica live: il modello a due eventi (autorizzato / al trasferimento), le
+> varianti a **outline**, e poi tre giri sull'**editor** `/vsop/admin/trasferimenti`, che è passato da pagina
+> a scorrimento unico a **tre colonne** con vista a elenco, scrittura in cella, stato in URL, annulla e
+> modifica in blocco. Suite **2403** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.
+> Le carte stanno in `docs/feature/2026-08-11-trasferimenti-acc-app.md` e nelle cinque schede del 12 agosto;
+> l'ultima è [`editor-trasferimenti-rifiniture`](docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md).
+>
+> ⚠️ **Il corpo della PR #13 descrive solo il primo giro** e va riscritto prima di mandarla in revisione:
+> il titolo parla dei due eventi, il ramo nel frattempo ha rifatto l'editor tre volte.
+>
+> ⚠️ **Resta ai colleghi, non al codice:** le righe con ricevente APP che non dicono ancora *dove* avviene
+> il trasferimento vanno riviste a mano (15 nel DB di sviluppo, da rimisurare in produzione). Le elenca il
+> filtro «Da rivedere» della pagina, che ora ha anche una vista a elenco fatta apposta per quel lavoro.
+>
+> Due cose **viste e non toccate**: `ITransferService.MovePointToEndAsync` non ha chiamanti dall'interfaccia
+> (ha repository e test), e `LevelFormatting.Format` appende il suffisso di parità anche a un livello
+> assente — a schermo esce «— (dispari)», che il round-trip regge ma si legge male.
+>
+> **2. `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
 > verifica live fatta).
 >
 > ⚠️ **Quel ramo non compilava, e nessuno l'aveva visto.** L'audit dell'11 agosto ha trovato 14 chiavi
