@@ -284,6 +284,13 @@ un principio; nel dato reale ha un solo effetto, ed è `TransferVerticalState.Le
 evitato una cancellazione silenziosa che nessun test avrebbe visto — e il test che lo documenta è scritto come
 limite, non come funzione, perché è quello che è.
 
+**Coda dall'uso: l'albero parte chiuso.** Lo avevo lasciato aperto sui settori ragionando che un albero chiuso
+«non fa capire che dentro c'è il lavoro». All'uso vero è il contrario, e la misura lo dice: aperto, i cinque
+settori di LIBB srotolano trentuno aeroporti e trentasei gruppi — **2078 px** da scorrere dentro 487 visibili per
+trovare il ramo che serve. Chiuso, i cinque settori stanno tutti a schermo e ognuno porta scritto quanti gruppi
+ha. Le due strade che devono restare aperte lo restano: un **link a un gruppo** apre il proprio percorso
+(`ExpandTo`), e un **filtro attivo** apre tutto (`_filtering`) — verificato a schermo su entrambe.
+
 **Un dato reale che si legge male, e non è di questo giro**: la riga `BEVIS` mostra livello `— (dispari)`, cioè
 un suffisso di parità appeso a un livello assente. È `Format` che si comporta così da sempre; il round-trip lo
 regge (si rilegge identico), ma a schermo è una frase monca. Vale la pena guardarlo, in un altro giro.

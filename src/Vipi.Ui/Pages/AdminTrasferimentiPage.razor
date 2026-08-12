@@ -1581,10 +1581,12 @@
         if (_acc is null) { _flows = Array.Empty<TransferFlowRow>(); _areas = Array.Empty<SpecialAreaPick>(); _preview = null; return; }
         _areas = await AccDeriv.ListSpecialAreasByAccAsync(_acc.Code);
         await LoadAsync();   // popola anche _preview
-        // Il navigatore parte APERTO sui settori e chiuso sugli aeroporti: con l'albero tutto chiuso la prima
-        // cosa che si vede è una colonna di due voci, e non si capisce che dentro c'è tutto il lavoro.
-        _collapsedSec.Clear();
-        _collapsedApt.Clear();
+        // Il navigatore parte CHIUSO, settori e aeroporti. Lo avevo lasciato aperto ragionando che un albero
+        // chiuso «non fa capire che dentro c'è il lavoro»; all'uso vero è il contrario: aperto, i cinque settori
+        // di LIBB srotolano trentuno aeroporti e trentasei gruppi, cioè 2078 px da scorrere per trovare il ramo
+        // che serve. Chiuso, i settori si contano a colpo d'occhio e ognuno porta scritto quanti gruppi ha.
+        // Chi arriva da un link non se ne accorge: ExpandTo apre il percorso fino al gruppo scelto.
+        CollapseAll();
     }
 
     private async Task LoadAsync()
