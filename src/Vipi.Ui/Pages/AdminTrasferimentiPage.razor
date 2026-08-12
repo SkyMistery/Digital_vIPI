@@ -153,21 +153,10 @@
                     <span class="cic">☑</span>
                     <div class="xt-bulkbody">
                         <b>@(string.Format(L["Xfer_BulkSelected"].Value, _selected.Count))</b>
-                        <div class="field sector-pick-wrap xt-bulkpick">
-                            <input placeholder="@L["Xfer_BulkReceiver"]" @bind="_bulkNextText" @bind:event="oninput"
-                                   @bind:after="() => _bulkNext = _all.FirstOrDefault(x => string.Equals(x.Callsign, _bulkNextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0"
-                                   @onfocus="() => _bulkOpen = true" @onblur="() => _bulkOpen = false" />
-                            @if (_bulkOpen)
-                            {
-                                <div class="sector-pick">
-                                    @foreach (var sx in _all.Where(x => Match(x, _bulkNextText)).Take(50))
-                                    {
-                                        <button type="button" class="sp-item" @onmousedown:preventDefault="true"
-                                                @onmousedown="() => { _bulkNext = sx.Id; _bulkNextText = sx.Callsign; _bulkOpen = false; }">@sx.Callsign</button>
-                                    }
-                                </div>
-                            }
-                        </div>
+                        <TypeaheadPicker Class="xt-bulkpick" Placeholder="@L["Xfer_BulkReceiver"]"
+                                         Items="ReceiverItems(_bulkNextText)" @bind-Text="_bulkNextText"
+                                         @bind-Text:after="() => _bulkNext = ReceiverIdOf(_bulkNextText)"
+                                         OnPick="i => _bulkNext = ReceiverIdOf(i?.Value)" />
                         <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ApplyBulkReceiver">@L["Xfer_BulkApply"]</button>
                         <button class="btn ghost" @onclick="() => _selected.Clear()">@L["Xfer_BulkClear"]</button>
                     </div>
@@ -281,13 +270,11 @@
         public TransferVerticalState VState { get; set; } = TransferVerticalState.Unspecified;
         public int Next { get; set; }                    // 0 = UNICOM
         public string NextText { get; set; } = "";
-        public bool NextOpen { get; set; }
 
         // Condizione: tre dimensioni indipendenti (tutte opzionali).
         public string[] Rwys { get; set; } = Array.Empty<string>();
         public string AreaLabel { get; set; } = "";
         public string AreaText { get; set; } = "";
-        public bool AreaOpen { get; set; }
         public string CustomLabel { get; set; } = "";
 
         public FacetForm Facet { get; } = new();
@@ -309,8 +296,8 @@
         {
             Cop = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
             Parity = LevelParity.Any; VState = TransferVerticalState.Unspecified;
-            Next = 0; NextText = ""; NextOpen = false;
-            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; AreaOpen = false; CustomLabel = "";
+            Next = 0; NextText = "";
+            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; CustomLabel = "";
             Facet.Reset();
         }
 
@@ -318,9 +305,9 @@
         {
             Cop = p.Cop; Constraint = p.LevelConstraint; Value = p.LevelValue; Unit = p.LevelUnit;
             Special = p.LevelSpecial ?? ""; Parity = p.Parity; VState = p.VerticalState;
-            Next = p.NextSectorId ?? 0; NextText = p.NextSectorCallsign ?? ""; NextOpen = false;
+            Next = p.NextSectorId ?? 0; NextText = p.NextSectorCallsign ?? "";
             Rwys = parseRwys(p.ConditionLabel);
-            AreaLabel = p.ConditionAreaLabel ?? ""; AreaText = p.ConditionAreaLabel ?? ""; AreaOpen = false;
+            AreaLabel = p.ConditionAreaLabel ?? ""; AreaText = p.ConditionAreaLabel ?? "";
             CustomLabel = p.ConditionCustomLabel ?? "";
             Facet.LoadFrom(p);
         }
@@ -345,13 +332,11 @@
     private string _efApt = "", _efAptName = "", _efDesc = "";
     private int _efSector;
     private string _efSectorText = "";
-    private bool _efOpen;
 
     // form clona gruppo (righe incluse) verso un altro settore mittente. _cloneSector = id destinazione risolto.
     private int? _cloneFlowId;
     private int _cloneSector;
     private string _cloneSectorText = "";
-    private bool _cloneOpen;
 
     // Filtro elenco esistente.
     private string _flowFilter = "";
@@ -397,7 +382,6 @@
     private readonly HashSet<int> _selected = new();
     private int _bulkNext;
     private string _bulkNextText = "";
-    private bool _bulkOpen;
 
     private void ToggleSelect(int pointId)
     {
@@ -588,7 +572,6 @@
 
     private void ResolveEfSector() =>
         _efSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _efSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
-    private void PickEfSector(GlobalSectorRow s) { _efSector = s.Id; _efSectorText = s.Callsign; _efOpen = false; }
 
     /// <summary>Riga aperta in modifica nel pannello; null = nessuna (o si sta aggiungendo).</summary>
     private int? _editPointId;
@@ -822,39 +805,13 @@
     private RenderFragment NewGroupForm() => __builder =>
     {
         <div class="inline-form xt-flat">
-            <div class="field sector-pick-wrap"><label>@L["Xfer_SenderSector"]</label>
-                <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_fSectorText" @bind:event="oninput" @bind:after="ResolveFSector"
-                       @onfocus="() => _fOpen = true" @onblur="() => _fOpen = false" />
-                @if (_fOpen)
-                {
-                    <div class="sector-pick">
-                        @foreach (var s in OwnSectors().Where(s => Match(s, _fSectorText)).Take(50))
-                        {
-                            <button type="button" class="sp-item @(s.Id == _fSector ? "on" : "")"
-                                    @onmousedown:preventDefault="true" @onmousedown="() => PickFSector(s)">@s.Callsign@(IsForeignSender(s) ? $" · {s.AccCode} ({L["Xfer_Foreign"]})" : "")</button>
-                        }
-                        @if (!OwnSectors().Any(s => Match(s, _fSectorText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                    </div>
-                }
-            </div>
-            <div class="field sector-pick-wrap"><label>@L["Xfer_Airport"] <span class="muted xt-lbl-soft">@L["Xfer_AirportNewForeign"]</span></label>
-                <input placeholder="LIRF / LFPG" @bind="_fApt" @bind:event="oninput" title="@L["Xfer_IcaoForeignTitle"]" autocomplete="off"
-                       @onfocus="() => _aOpen = true" @onblur="OnAptBlur" />
-                @if (_aOpen)
-                {
-                    <div class="sector-pick">
-                        @foreach (var ap in _airports.Where(a => MatchApt(a, _fApt)).Take(50))
-                        {
-                            <button type="button" class="sp-item @(string.Equals(ap.Icao, _fApt, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                    @onmousedown:preventDefault="true" @onmousedown="() => PickApt(ap)"><b>@ap.Icao</b> <span class="muted xt-hint">@ap.Name · @ap.AccCode</span></button>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(_fApt) && !_airports.Any(a => string.Equals(a.Icao, _fApt.Trim(), StringComparison.OrdinalIgnoreCase)))
-                        {
-                            <span class="sp-empty">↵ @(string.Format(L["Xfer_UseNewApt"].Value, _fApt.Trim().ToUpperInvariant()))</span>
-                        }
-                    </div>
-                }
-            </div>
+            <TypeaheadPicker Label="@L["Xfer_SenderSector"]" Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="SenderItems(_fSectorText)" @bind-Text="_fSectorText" @bind-Text:after="ResolveFSector"
+                             OnPick="i => _fSector = SectorIdOf(i)" />
+            <TypeaheadPicker Label="@L["Xfer_Airport"]" Hint="@L["Xfer_AirportNewForeign"]" Title="@L["Xfer_IcaoForeignTitle"]"
+                             Placeholder="LIRF / LFPG" Items="AirportItems(_fApt)"
+                             @bind-Text="_fApt" NoMatch="@NewAptFooter(_fApt)" Footer="@NewAptFooter(_fApt)"
+                             OnPick="_ => { _fAptName = string.Empty; return MaybeAutoLookup(false); }" />
             @if (!string.IsNullOrWhiteSpace(_fApt) && !IsKnownApt(_fApt))
             {
                 <div class="field"><label>@L["Xfer_AptName"] <span class="muted xt-lbl-soft">@L["Xfer_OutOfDb"]</span></label>
@@ -887,21 +844,9 @@
     private RenderFragment EditFlowForm(TransferFlowRow f) => __builder =>
     {
         <div class="inline-form xt-mb">
-            <div class="field sector-pick-wrap"><label>@L["Xfer_SenderSector"]</label>
-                <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_efSectorText" @bind:event="oninput" @bind:after="ResolveEfSector"
-                       @onfocus="() => _efOpen = true" @onblur="() => _efOpen = false" />
-                @if (_efOpen)
-                {
-                    <div class="sector-pick">
-                        @foreach (var s in OwnSectors().Where(s => Match(s, _efSectorText)).Take(50))
-                        {
-                            <button type="button" class="sp-item @(s.Id == _efSector ? "on" : "")"
-                                    @onmousedown:preventDefault="true" @onmousedown="() => PickEfSector(s)">@s.Callsign <span class="muted xt-hint">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
-                        }
-                        @if (!OwnSectors().Any(s => Match(s, _efSectorText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                    </div>
-                }
-            </div>
+            <TypeaheadPicker Label="@L["Xfer_SenderSector"]" Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="SenderItems(_efSectorText)" @bind-Text="_efSectorText" @bind-Text:after="ResolveEfSector"
+                             OnPick="i => _efSector = SectorIdOf(i)" />
             <div class="field narrow"><label>@L["Xfer_Kind"]</label>
                 <select @bind="_efKind">
                     <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
@@ -934,21 +879,9 @@
     private RenderFragment CloneFlowForm(TransferFlowRow f) => __builder =>
     {
         <div class="inline-form xt-subform">
-            <div class="field sector-pick-wrap"><label>@L["Xfer_CloneToSender"]</label>
-                <input placeholder="@L["Xfer_SearchCallsign"]" @bind="_cloneSectorText" @bind:event="oninput" @bind:after="ResolveCloneSector"
-                       @onfocus="() => _cloneOpen = true" @onblur="() => _cloneOpen = false" />
-                @if (_cloneOpen)
-                {
-                    <div class="sector-pick">
-                        @foreach (var s in OwnSectors().Where(s => Match(s, _cloneSectorText)).Take(50))
-                        {
-                            <button type="button" class="sp-item @(s.Id == _cloneSector ? "on" : "")"
-                                    @onmousedown:preventDefault="true" @onmousedown="() => PickCloneSector(s)">@s.Callsign <span class="muted xt-hint">@s.AccCode@(IsForeignSender(s) ? " (" + L["Xfer_Foreign"] + ")" : "")</span></button>
-                        }
-                        @if (!OwnSectors().Any(s => Match(s, _cloneSectorText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                    </div>
-                }
-            </div>
+            <TypeaheadPicker Label="@L["Xfer_CloneToSender"]" Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="SenderItems(_cloneSectorText)" @bind-Text="_cloneSectorText" @bind-Text:after="ResolveCloneSector"
+                             OnPick="i => _cloneSector = SectorIdOf(i)" />
             <span class="muted xt-hint xt-selfc">@L["Xfer_Copy"] <b>@KindLabel(f.Kind)</b>@(string.IsNullOrWhiteSpace(f.AirportIcao) ? "" : $" · {f.AirportIcao}") @(string.Format(L["Xfer_WithRows"].Value, f.Points.Count))</span>
             <button class="btn primary" disabled="@(_busy || !_canEdit || _cloneSector == 0)" @onclick="() => ConfirmCloneFlow(f)">⧉ @L["Xfer_CloneHere"]</button>
             <button class="btn ghost" disabled="@_busy" @onclick="() => _cloneFlowId = null">@L["Common_Cancel"]</button>
@@ -1020,22 +953,10 @@
             <input placeholder="@(editing ? "VALMA / —" : "VALMA / VALMA, ELB, TOP")" @bind="form.Cop" @bind:event="oninput"
                    @onkeydown="PanelKey" />
         </div>
-        <div class="field sector-pick-wrap">
-            <label>@L["Xfer_ColReceiver"] <span class="muted xt-hint">@L["Xfer_EmptyUnicom"]</span></label>
-            <input placeholder="@L["Xfer_SearchCallsign"]" @bind="form.NextText" @bind:event="oninput" @bind:after="() => ResolveNext(form)"
-                   @onfocus="() => form.NextOpen = true" @onblur="() => form.NextOpen = false" @onkeydown="PanelKey" />
-            @if (form.NextOpen)
-            {
-                <div class="sector-pick">
-                    @foreach (var s in _all.Where(s => Match(s, form.NextText)).Take(50))
-                    {
-                        <button type="button" class="sp-item @(s.Id == form.Next ? "on" : "")"
-                                @onmousedown:preventDefault="true" @onmousedown="() => PickNext(form, s)">@s.Callsign <span class="muted xt-hint">@s.AccCode</span></button>
-                    }
-                    @if (!_all.Any(s => Match(s, form.NextText))) { <span class="sp-empty">@L["Xfer_NoSector"]</span> }
-                </div>
-            }
-        </div>
+        <TypeaheadPicker Label="@L["Xfer_ColReceiver"]" Hint="@L["Xfer_EmptyUnicom"]" Placeholder="@L["Xfer_SearchCallsign"]"
+                         Items="ReceiverItems(form.NextText)" Text="form.NextText"
+                         TextChanged="t => { form.NextText = t; ResolveNext(form); }"
+                         OnPick="i => PickNext(form, i?.Value)" OnUnhandledKey="PanelKey" />
 
         @* --- Livello autorizzato --- *@
         @PanelSection("level", L["Xfer_GrpCleared"], LevelSummary(form))
@@ -1105,22 +1026,10 @@
             }
             else { <span class="muted xt-hint">@L["Xfer_NoRunwaysForApt"]</span> }
         </div>
-        <div class="field sector-pick-wrap"><label>@L["Xfer_ActiveArea"] <span class="muted xt-hint">@L["Xfer_SearchHint"]</span></label>
-            <input placeholder="@L["Xfer_SearchArea"]" @bind="form.AreaText" @bind:event="oninput" @bind:after="() => ResolveArea(form)"
-                   @onfocus="() => form.AreaOpen = true" @onblur="() => form.AreaOpen = false" />
-            @if (form.AreaOpen)
-            {
-                <div class="sector-pick">
-                    <button type="button" class="sp-item" @onmousedown:preventDefault="true" @onmousedown="() => PickArea(form, null)"><span class="muted">@L["Xfer_AreaNone"]</span></button>
-                    @foreach (var a in MatchAreas(form.AreaText).Take(50))
-                    {
-                        <button type="button" class="sp-item @(string.Equals(a.Name, form.AreaLabel, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                @onmousedown:preventDefault="true" @onmousedown="() => PickArea(form, a)">@a.Name @if (!string.IsNullOrWhiteSpace(a.Type)) { <span class="muted xt-hint">@a.Type</span> }</button>
-                    }
-                    @if (!MatchAreas(form.AreaText).Any()) { <span class="sp-empty">@L["Xfer_NoArea"]</span> }
-                </div>
-            }
-        </div>
+        <TypeaheadPicker Label="@L["Xfer_ActiveArea"]" Hint="@L["Xfer_SearchHint"]" Placeholder="@L["Xfer_SearchArea"]"
+                         Items="AreaItems(form.AreaText)" EmptyOption="@L["Xfer_AreaNone"]" NoMatch="@L["Xfer_NoArea"]"
+                         Text="form.AreaText" TextChanged="t => { form.AreaText = t; ResolveArea(form); }"
+                         OnPick="i => PickArea(form, i?.Value)" />
         <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted xt-hint">@L["Xfer_FreeTextHint"]</span></label>
             <input placeholder="@L["Xfer_CustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
         </div>
@@ -1338,26 +1247,66 @@
         }
     };
 
-    // Aree filtrate per testo (typeahead): match sul nome (case-insensitive); vuoto = tutte.
-    private IEnumerable<SpecialAreaPick> MatchAreas(string text) =>
-        string.IsNullOrWhiteSpace(text) ? _areas : _areas.Where(a => a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase));
+    // ---- Voci dei picker ---------------------------------------------------------------------------------
+    // Il componente non filtra da sé: il criterio cambia (callsign, ICAO **o** nome, nome dell'area), e
+    // nasconderlo dentro il picker vorrebbe dire tre modi di cercare in una firma sola. Qui invece si legge.
+
+    /// <summary>Settori mittenti candidati (propri + esteri confinanti), filtrati per callsign.</summary>
+    private IReadOnlyList<TypeaheadPicker.Item> SenderItems(string text) =>
+        OwnSectors().Where(s => Match(s, text)).Take(50)
+            .Select(s => new TypeaheadPicker.Item(
+                s.Callsign, IsForeignSender(s) ? $"{s.AccCode} ({L["Xfer_Foreign"]})" : s.AccCode))
+            .ToList();
+
+    /// <summary>Riceventi: tutti i settori, anche di altri ACC (un trasferimento esce dall'ACC per definizione).</summary>
+    private IReadOnlyList<TypeaheadPicker.Item> ReceiverItems(string text) =>
+        _all.Where(s => Match(s, text)).Take(50)
+            .Select(s => new TypeaheadPicker.Item(s.Callsign, s.AccCode))
+            .ToList();
+
+    /// <summary>Aeroporti del catalogo, cercabili per ICAO <b>o</b> per nome.</summary>
+    private IReadOnlyList<TypeaheadPicker.Item> AirportItems(string text) =>
+        _airports.Where(a => MatchApt(a, text)).Take(50)
+            .Select(a => new TypeaheadPicker.Item(a.Icao, $"{a.Name} · {a.AccCode}", Strong: true))
+            .ToList();
+
+    /// <summary>Aree speciali dell'ACC, per nome.</summary>
+    private IReadOnlyList<TypeaheadPicker.Item> AreaItems(string text) =>
+        (string.IsNullOrWhiteSpace(text) ? _areas : _areas.Where(a => a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .Take(50).Select(a => new TypeaheadPicker.Item(a.Name, a.Type)).ToList();
+
+    /// <summary>La riga in fondo all'elenco aeroporti: un ICAO fuori catalogo si usa lo stesso (estero, nuovo).</summary>
+    private string? NewAptFooter(string icao) =>
+        !string.IsNullOrWhiteSpace(icao) && !IsKnownApt(icao)
+            ? "↵ " + string.Format(L["Xfer_UseNewApt"].Value, icao.Trim().ToUpperInvariant())
+            : null;
+
+    /// <summary>L'id del settore mittente scelto, 0 se la voce non corrisponde a nessuno.</summary>
+    private int SectorIdOf(TypeaheadPicker.Item? item) =>
+        item is null ? 0
+        : OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, item.Value, StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    /// <summary>L'id del ricevente per callsign, 0 = UNICOM.</summary>
+    private int ReceiverIdOf(string? callsign) =>
+        _all.FirstOrDefault(s => string.Equals(s.Callsign, (callsign ?? "").Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
 
     // Risoluzione/scelta di area e ricevente: una coppia sola, perché il form è uno solo (in due istanze).
-    // Prima erano quattro metodi con prefisso diverso che facevano la stessa cosa.
     private void ResolveArea(PointForm form) =>
         form.AreaLabel = _areas.FirstOrDefault(a => string.Equals(a.Name, form.AreaText.Trim(), StringComparison.OrdinalIgnoreCase))?.Name ?? "";
-    private void PickArea(PointForm form, SpecialAreaPick? a) { form.AreaLabel = a?.Name ?? ""; form.AreaText = a?.Name ?? ""; form.AreaOpen = false; }
 
-    private void ResolveNext(PointForm form) =>
-        form.Next = _all.FirstOrDefault(s => string.Equals(s.Callsign, form.NextText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+    private void PickArea(PointForm form, string? name) { form.AreaLabel = name ?? ""; form.AreaText = name ?? ""; }
 
-    private void PickNext(PointForm form, GlobalSectorRow s)
+    private void ResolveNext(PointForm form) => form.Next = ReceiverIdOf(form.NextText);
+
+    private void PickNext(PointForm form, string? callsign)
     {
-        form.Next = s.Id; form.NextText = s.Callsign; form.NextOpen = false;
+        form.NextText = callsign ?? "";
+        form.Next = ReceiverIdOf(callsign);
         // Preset: scegliendo un APP come ricevente, la riga è quasi sempre un accordo a due eventi. La faccetta
         // si apre già sulla forma tipica invece di restare chiusa e obbligare a un giro in più. Solo se l'utente
         // non l'ha già toccata — un preset che sovrascrive una scelta fatta è un bug, non una comodità.
-        if (s.Type == SectorType.App && form.Facet.Kind == TransferHandoffKind.Unspecified) form.Facet.Reset(preset: true);
+        var s = _all.FirstOrDefault(x => x.Id == form.Next);
+        if (s?.Type == SectorType.App && form.Facet.Kind == TransferHandoffKind.Unspecified) form.Facet.Reset(preset: true);
     }
 
     // Etichetta piste combinata ("16R / 16L"), in ordine di pista dell'aeroporto; soft-ref pista solo se singola.
@@ -1380,10 +1329,8 @@
             .Select(s => s.StartsWith("RWY ", StringComparison.OrdinalIgnoreCase) ? s[4..].Trim() : s)
             .ToArray();
 
-    // Dropdown ricerca aperto?
-    // Dropdown aperti dei picker che NON stanno nel form riga (nuovo gruppo, aeroporto): quelli del form
-    // vivono dentro PointForm, accanto ai valori che filtrano.
-    private bool _fOpen, _aOpen;
+    // L'apertura dell'elenco non è più stato di questa pagina: la tiene TypeaheadPicker, che è l'unico a
+    // sapere se il suo elenco è aperto. Erano sei flag paralleli, uno per copia del picker.
 
     private void ResolveFSector() =>
         _fSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _fSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
@@ -1391,14 +1338,12 @@
     private static bool Match(GlobalSectorRow s, string text) =>
         string.IsNullOrWhiteSpace(text) || s.Callsign.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
 
-    private void PickFSector(GlobalSectorRow s) { _fSector = s.Id; _fSectorText = s.Callsign; _fOpen = false; }
 
     private static bool MatchApt(AirportAdminRow a, string text) =>
         string.IsNullOrWhiteSpace(text)
         || a.Icao.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)
         || a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase);
 
-    private void PickApt(AirportAdminRow a) { _fApt = a.Icao; _fAptName = ""; _aOpen = false; }
 
     // Aeroporto fuori DB (nuovo/estero) senza nome: va bloccato, il nome è obbligatorio per gli aeroporti a mano.
     private bool NewAptMissingName(string icao, string name) =>
@@ -1436,12 +1381,6 @@
 
     // ICAO già cercati in auto (per non ripetere la chiamata IVAO a ogni blur dello stesso codice).
     private readonly HashSet<string> _autoLookedUp = new(StringComparer.OrdinalIgnoreCase);
-
-    private async Task OnAptBlur()
-    {
-        _aOpen = false;
-        await MaybeAutoLookup(false);
-    }
 
     // Aeroporto fuori DB e senza nome ancora: cerca il nome su IVAO senza attendere il click sul bottone 🔍.
     // Una sola volta per ICAO; il bottone manuale resta come re-trigger (bypassa il guard).
@@ -1954,7 +1893,9 @@
     // (lì Invio non deve inviare: la scelta del settore/aeroporto avviene dal dropdown).
     private async Task TrySubmitGroup(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
-        if (e.Key != "Enter" || _fOpen || _aOpen) return;
+        // L'elenco dei picker non serve più guardarlo: questo gestore sta sul campo «descrizione», e mentre un
+        // elenco è aperto il fuoco è nel picker, che i propri tasti se li tiene.
+        if (e.Key != "Enter") return;
         if (_busy || !_canEdit || _fSector == 0 || NewAptMissingName(_fApt, _fAptName)) return;
         await AddFlow();
     }
@@ -1969,7 +1910,6 @@
         if (e.Key != "Enter" || _busy || !_canEdit) return;
         var form = ActiveForm;
         if (form is null) return;
-        if (form.NextOpen && !e.CtrlKey) return;
         if (_editPointId is null && e.CtrlKey) { await AddPoint(_addPointFlowId!.Value, keepOpen: true); return; }
         await SavePanel();
     }
@@ -2079,7 +2019,7 @@
     {
         _editPointId = null; _addPointFlowId = null;
         _editFlowId = f.Id; _efKind = f.Kind; _efApt = f.AirportIcao ?? ""; _efAptName = f.AirportName ?? ""; _efDesc = f.Description ?? "";
-        _efSector = f.OwningSectorId; _efSectorText = f.OwningSectorCallsign; _efOpen = false;
+        _efSector = f.OwningSectorId; _efSectorText = f.OwningSectorCallsign;
     }
 
     private async Task SaveFlow(int flowId)
@@ -2104,7 +2044,7 @@
         _addPointFlowId = f.Id;
         _addForm.Cop = p.Cop; _addForm.Constraint = p.LevelConstraint; _addForm.Value = p.LevelValue; _addForm.Unit = p.LevelUnit;
         _addForm.Special = p.LevelSpecial ?? ""; _addForm.Parity = p.Parity; _addForm.VState = p.VerticalState; _addForm.Next = p.NextSectorId ?? 0; _addForm.NextText = p.NextSectorCallsign ?? "";
-        _addForm.Rwys = ParseRwys(p.ConditionLabel); _addForm.AreaLabel = p.ConditionAreaLabel ?? ""; _addForm.AreaText = p.ConditionAreaLabel ?? ""; _addForm.AreaOpen = false;
+        _addForm.Rwys = ParseRwys(p.ConditionLabel); _addForm.AreaLabel = p.ConditionAreaLabel ?? ""; _addForm.AreaText = p.ConditionAreaLabel ?? "";
         _addForm.CustomLabel = p.ConditionCustomLabel ?? "";
         _addForm.Facet.LoadFrom(p);
         await LoadCondRulesAsync(f.AirportIcao);
@@ -2114,12 +2054,11 @@
     {
         _editFlowId = null; _editPointId = null; _addPointFlowId = null;
         _cloneFlowId = f.Id;
-        _cloneSector = f.OwningSectorId; _cloneSectorText = f.OwningSectorCallsign; _cloneOpen = false;
+        _cloneSector = f.OwningSectorId; _cloneSectorText = f.OwningSectorCallsign;
     }
 
     private void ResolveCloneSector() =>
         _cloneSector = OwnSectors().FirstOrDefault(s => string.Equals(s.Callsign, _cloneSectorText.Trim(), StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
-    private void PickCloneSector(GlobalSectorRow s) { _cloneSector = s.Id; _cloneSectorText = s.Callsign; _cloneOpen = false; }
 
     // Clona l'intero gruppo (intestazione + tutte le righe) sul settore mittente scelto. Nome aeroporto: null se
     // in catalogo (viene da lì), altrimenti riporta il nome libero salvato sul flusso sorgente.

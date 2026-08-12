@@ -1,0 +1,163 @@
+@inject IStringLocalizer<SharedResource> L
+
+@*
+    Campo con elenco a digitazione. Nell'editor trasferimenti era scritto SEI volte — settore mittente (nuovo
+    gruppo, modifica, clona), ricevente (pannello, blocco), area — con differenze di sola etichetta: la regola
+    del 2 superata di quattro.
+
+    Scriverlo una volta non è solo meno righe: la TASTIERA va scritta una volta. Prima nessuno dei sei si usava
+    senza mouse, e in una pagina dove la tabella si scrive da tastiera il pannello che non lo fa è il punto in
+    cui si molla la tastiera.
+*@
+
+<div class="field sector-pick-wrap @Class">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label>@Label @if (!string.IsNullOrWhiteSpace(Hint)) { <span class="muted xt-hint">@Hint</span> }</label>
+    }
+    <input placeholder="@Placeholder" title="@Title" autocomplete="off" disabled="@Disabled"
+           value="@Text" @oninput="OnInput" @onfocus="() => Open(true)" @onblur="OnBlur" @onkeydown="OnKey" />
+    @if (_open && !Disabled)
+    {
+        <div class="sector-pick">
+            @* preventDefault su mousedown: in Blazor Server il blur chiude l'elenco PRIMA che il click arrivi,
+               e la scelta col mouse non avveniva mai. È la trappola pagata nel round 21. *@
+            @if (EmptyOption is { } none)
+            {
+                <button type="button" class="sp-item @(_active == -1 ? "on" : "")"
+                        @onmousedown:preventDefault="true" @onmousedown="() => Pick(null)"><span class="muted">@none</span></button>
+            }
+            @for (var i = 0; i < Visible.Count; i++)
+            {
+                var ix = i;
+                var it = Visible[ix];
+                <button type="button" class="sp-item @(ix == _active ? "on" : "")"
+                        @onmousedown:preventDefault="true" @onmousedown="() => Pick(it)">
+                    @if (it.Strong) { <b>@it.Value</b> } else { @it.Value }
+                    @if (!string.IsNullOrWhiteSpace(it.Hint)) { <span class="muted xt-hint">@it.Hint</span> }
+                </button>
+            }
+            @if (Visible.Count == 0)
+            {
+                <span class="sp-empty">@(string.IsNullOrWhiteSpace(NoMatch) ? L["Xfer_NoSector"].Value : NoMatch)</span>
+            }
+            else if (!string.IsNullOrWhiteSpace(Footer))
+            {
+                <span class="sp-empty">@Footer</span>
+            }
+        </div>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Una voce dell'elenco. <paramref name="Strong"/> = il valore si legge in grassetto (l'ICAO di un
+    /// aeroporto, dove il nome accanto è contorno).</summary>
+    public sealed record Item(string Value, string? Hint = null, bool Strong = false);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Item> Items { get; set; } = Array.Empty<Item>();
+
+    /// <summary>Il testo digitato. Il componente non filtra da sé: chi lo usa passa <see cref="Items"/> già
+    /// filtrate, perché il criterio cambia (callsign, ICAO **o** nome, nome dell'area).</summary>
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public EventCallback<string> TextChanged { get; set; }
+
+    /// <summary>Scelta fatta: la voce, o <c>null</c> se si è scelta <see cref="EmptyOption"/>.</summary>
+    [Parameter] public EventCallback<Item?> OnPick { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Testo della voce «nessuno» in cima (l'area che si toglie). Assente = niente voce.</summary>
+    [Parameter] public string? EmptyOption { get; set; }
+
+    /// <summary>Cosa dire quando non c'è nessuna corrispondenza.</summary>
+    [Parameter] public string? NoMatch { get; set; }
+
+    /// <summary>Riga in fondo all'elenco (es. «↵ usa LFPG, fuori catalogo»).</summary>
+    [Parameter] public string? Footer { get; set; }
+
+    /// <summary>Quante voci mostrare al massimo: un elenco più lungo dello schermo non si sceglie, si scorre.</summary>
+    [Parameter] public int Max { get; set; } = 50;
+
+    /// <summary>Contenuto extra dentro il campo (messaggi, bottoni accessori).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// I tasti che il picker non usa. Serve al pannello, dove Invio a elenco <b>chiuso</b> deve salvare la riga:
+    /// senza, il campo del ricevente sarebbe l'unico da cui Invio non fa niente, e la differenza — elenco
+    /// aperto o chiuso — non si vede finché non si prova.
+    /// </summary>
+    [Parameter] public EventCallback<KeyboardEventArgs> OnUnhandledKey { get; set; }
+
+    private bool _open;
+
+    /// <summary>Voce evidenziata: -1 = la voce «nessuno», 0..n-1 = l'elenco. È quella che Invio sceglie.</summary>
+    private int _active;
+
+    private IReadOnlyList<Item> Visible => Items.Count <= Max ? Items : Items.Take(Max).ToList();
+
+    private void Open(bool open)
+    {
+        _open = open;
+        // Aprendo, il primo risultato è già quello buono nella grande maggioranza dei casi: preselezionarlo
+        // rende Invio utile subito, senza una freccia in giù di rito.
+        if (open) _active = 0;
+    }
+
+    private void OnBlur() => _open = false;
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        Text = e.Value?.ToString() ?? "";
+        _open = true;
+        _active = 0;   // il filtro è cambiato: l'evidenza torna in cima, o punterebbe a una voce di prima
+        await TextChanged.InvokeAsync(Text);
+    }
+
+    /// <summary>
+    /// Frecce per scorrere, Invio per scegliere, Esc per chiudere.
+    /// <para>Esc chiude l'elenco e <b>si ferma lì</b>: non risale a chiudere il pannello. Chi preme Esc con un
+    /// elenco aperto vuole togliere di mezzo l'elenco — perdere anche il form sarebbe una sorpresa cara.</para>
+    /// </summary>
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        var min = EmptyOption is null ? 0 : -1;
+        var max = Visible.Count - 1;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _open = true;
+                if (_active < max) _active++;
+                return;
+
+            case "ArrowUp":
+                _open = true;
+                if (_active > min) _active--;
+                return;
+
+            case "Escape":
+                _open = false;
+                return;
+
+            case "Enter" when _open && (_active == -1 || (_active >= 0 && _active <= max)):
+                await Pick(_active == -1 ? null : Visible[_active]);
+                return;
+        }
+
+        await OnUnhandledKey.InvokeAsync(e);
+    }
+
+    private async Task Pick(Item? item)
+    {
+        _open = false;
+        Text = item?.Value ?? "";
+        await TextChanged.InvokeAsync(Text);
+        await OnPick.InvokeAsync(item);
+    }
+}
