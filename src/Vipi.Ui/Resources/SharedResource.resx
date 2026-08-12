@@ -1414,4 +1414,5 @@
   <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>Non c'è ancora nessun gruppo per questo ACC: creane uno col tasto in fondo all'albero.</value></data>
   <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>Questo gruppo non ha ancora righe. Aggiungine una qui sotto.</value></data>
   <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>Nessun settore si chiama «{0}»: la riga non è stata cambiata.</value></data>
+  <data name="Xfer_GoToGroupTitle" xml:space="preserve"><value>Vai al gruppo di questa riga (in albero, con le sue sorelle)</value></data>
 </root>

@@ -114,6 +114,13 @@
                 <td class="xt-acts">
                     @* Tre azioni, non nove: aggiungere, modificare, eliminare. Spostare, duplicare e sfilare
                        stanno nel pannello, dove c'è posto per le parole. *@
+                    @if (ShowContext)
+                    {
+                        @* Solo in elenco, e solo lì ha senso: si trova una riga col filtro «senza ricevente», la
+                           si sistema — e per sapere se è giusta bisogna vedere le sorelle, che l'elenco non
+                           mostra come blocco. Questo è il ponte fra le due viste. *@
+                        <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]" @onclick="() => OnGoToGroup.InvokeAsync(r)">↗</button>
+                    }
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => OnAddAlternative.InvokeAsync(p.Id)">⑂</button>
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(p.Id)">↳</button>
                     <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
@@ -165,6 +172,9 @@
     [Parameter] public EventCallback<XferCellRef> OnCellClick { get; set; }
 
     [Parameter] public EventCallback<XferTableRow> OnEdit { get; set; }
+
+    /// <summary>«Vai al gruppo di questa riga»: esiste solo in elenco, dove il gruppo non si vede.</summary>
+    [Parameter] public EventCallback<XferTableRow> OnGoToGroup { get; set; }
     [Parameter] public EventCallback<int> OnAddAlternative { get; set; }
     [Parameter] public EventCallback<int> OnAddException { get; set; }
     [Parameter] public EventCallback<int> OnToggleSelect { get; set; }

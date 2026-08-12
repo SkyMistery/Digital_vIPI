@@ -788,7 +788,8 @@
                        Selected="_selected" EditPointId="_editPointId"
                        Disabled="@(_busy || !_canEdit)" DragId="_dragId" DragOverId="_dragOver"
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
-                       OnEdit="OnEditRow" OnAddAlternative="AddAlternative" OnAddException="AddException"
+                       OnEdit="OnEditRow" OnGoToGroup="GoToGroup"
+                       OnAddAlternative="AddAlternative" OnAddException="AddException"
                        OnToggleSelect="ToggleSelect"
                        OnDragStart="id => _dragId = id" OnDragOver="id => _dragOver = id" OnDrop="DropOn" />
         @* Le opzioni del ricevente: una lista sola per tutta la tabella, e il completamento lo fa il browser.
@@ -1601,11 +1602,16 @@
         foreach (var f in _flows) _collapsedSec.Add(f.OwningSectorCallsign);
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// Ricarica i flussi dell'ACC, e — solo se serve — il contesto delle frasi.
+    /// <para><paramref name="withPreview"/> vale <c>true</c> alla prima apertura e su ogni scrittura che tocca i
+    /// gruppi. Vedi <see cref="Guarded"/> per il perché: dai flussi quel contesto prende soltanto i nomi liberi
+    /// degli aeroporti fuori catalogo, e costa sette query.</para>
+    /// </summary>
+    private async Task LoadAsync(bool withPreview = true)
     {
         _flows = await Transfers.ListFlowsByAccAsync(_acc!.Code);
-        // Rinfresca il contesto anteprima (mappe aeroporti/nomi) così le frasi riflettono l'ultima modifica.
-        _preview = await AccDeriv.GetPreviewContextAsync(_acc.Code);
+        if (withPreview || _preview is null) _preview = await AccDeriv.GetPreviewContextAsync(_acc.Code);
     }
 
     // Chiudi tutto: riempi i set di collasso con tutte le chiavi correnti. Il gruppo non c'è più fra i livelli
@@ -1671,6 +1677,21 @@
 
     /// <summary>La matita sulla riga: apre il pannello sulla riga, qualunque vista la stia mostrando.</summary>
     private Task OnEditRow(XferTableRow r) => EditPoint(r.Flow, r.Point);
+
+    /// <summary>
+    /// Dalla riga in elenco al suo gruppo, in albero. È il ponte che mancava fra le due viste: i filtri
+    /// diagnostici trovano una riga sbagliata, ma per sapere se la correzione è giusta bisogna vedere le
+    /// sorelle — e l'elenco, che attraversa i gruppi, non le mostra come blocco.
+    /// <para>La riga resta quella aperta nel pannello: si cambia il contorno, non ciò che si sta guardando.</para>
+    /// </summary>
+    private async Task GoToGroup(XferTableRow r)
+    {
+        _view = XferView.Tree;
+        _newGroupOpen = false;
+        _editFlowId = null; _cloneFlowId = null; _copyFromFlowId = null;
+        ExpandTo(r.Flow.Id);
+        await EditPoint(r.Flow, r.Point);
+    }
 
     // ---- Scrittura in cella ----------------------------------------------------------------------------
     // Tre colonne si scrivono nella tabella: CoP, livello, ricevente. Le altre no — condizione e faccetta sono
@@ -1751,20 +1772,27 @@
     /// </summary>
     private void MoveCell(XferCellRef origin, int rowDelta, int columnDelta)
     {
-        if (columnDelta != 0)
-        {
-            var c = Array.IndexOf(EditableCells, origin.Cell) + columnDelta;
-            // A fine riga ci si ferma: portare il fuoco sulla riga dopo saltando le colonne è un movimento che
-            // nessuno ha chiesto, e in una tabella si perde di vista subito.
-            if (c < 0 || c >= EditableCells.Length) return;
-            OpenCell(origin with { Cell = EditableCells[c] });
-            return;
-        }
-
         var rows = _view == XferView.Flat ? FlatRows(FilteredFlows()) : SelectedFlowRows();
         var i = -1;
         for (var k = 0; k < rows.Count; k++) if (rows[k].Point.Id == origin.PointId) { i = k; break; }
         if (i < 0) return;
+
+        if (columnDelta != 0)
+        {
+            var c = Array.IndexOf(EditableCells, origin.Cell) + columnDelta;
+            if (c >= 0 && c < EditableCells.Length)
+            {
+                OpenCell(origin with { Cell = EditableCells[c] });
+                return;
+            }
+            // Oltre l'ultima colonna si va a capo, come in un foglio: prima cella della riga sotto (e ultima
+            // della riga sopra, all'indietro). Fermarsi a fine riga costringeva a riprendere il mouse ogni
+            // tre celle, che è il gesto che questa pagina è fatta per togliere.
+            var wrapRow = i + (c < 0 ? -1 : 1);
+            if (wrapRow < 0 || wrapRow >= rows.Count) return;
+            OpenCell(new XferCellRef(rows[wrapRow].Point.Id, c < 0 ? EditableCells[^1] : EditableCells[0]));
+            return;
+        }
 
         var next = i + rowDelta;
         if (next < 0 || next >= rows.Count) return;   // in fondo si esce dalla scrittura, non si torna in cima
@@ -2037,12 +2065,12 @@
                 Description = string.IsNullOrWhiteSpace(_fDesc) ? null : _fDesc,
             });
             _fSector = 0; _fSectorText = ""; _fApt = ""; _fAptName = ""; _fDesc = "";
-        }, L["Xfer_GroupAdded"]);
+        }, L["Xfer_GroupAdded"], touchesFlows: true);
         if (newId > 0) ExpandTo(newId);   // rendi subito visibile il gruppo appena creato
     }
 
     private Task DeleteFlow(int id) => Guarded(() =>
-        Transfers.DeleteFlowAsync(_acc!.Code, id), L["Xfer_GroupDeleted"]);
+        Transfers.DeleteFlowAsync(_acc!.Code, id), L["Xfer_GroupDeleted"], touchesFlows: true);
 
     private Task Move(int pointId, bool up) => Guarded(() => Transfers.MovePointAsync(_acc!.Code, pointId, up), null);
 
@@ -2066,7 +2094,7 @@
                 Description = string.IsNullOrWhiteSpace(_efDesc) ? null : _efDesc,
             });
             _editFlowId = null;
-        }, L["Xfer_GroupUpdated"]);
+        }, L["Xfer_GroupUpdated"], touchesFlows: true);
     }
 
     // Clona riga: precompila il form "nuova riga" del flusso coi valori della riga sorgente (utente conferma/modifica).
@@ -2126,7 +2154,7 @@
                 });
             }
             _cloneFlowId = null;
-        }, string.Format(L["Xfer_GroupCloned"].Value, f.Points.Count));
+        }, string.Format(L["Xfer_GroupCloned"].Value, f.Points.Count), touchesFlows: true);
         if (clonedId > 0) ExpandTo(clonedId);   // mostra il gruppo clonato
     }
 
@@ -2335,10 +2363,24 @@
 
     private Task DeletePoint(int id) => Guarded(() => Transfers.DeletePointAsync(_acc!.Code, id), L["Xfer_RowDeleted"]);
 
-    private async Task Guarded(Func<Task> action, string? ok)
+    /// <summary>
+    /// Esegue una scrittura, ne riporta l'esito e ricarica ciò che è cambiato.
+    /// </summary>
+    /// <param name="action">La scrittura.</param>
+    /// <param name="ok">Il messaggio di riuscita, o <c>null</c> per non dire niente.</param>
+    /// <param name="touchesFlows">
+    /// La scrittura tocca i <b>gruppi</b> (crea, modifica, elimina, clona, ripristina un flusso) e non solo le
+    /// loro righe. Solo allora va rifatto il contesto anteprima, che dai flussi prende una cosa sola: i nomi
+    /// liberi degli aeroporti fuori catalogo (<c>MergeAirportNames</c>). Le altre quattro mappe che lo
+    /// compongono vengono dai settori e da questa pagina non cambiano mai.
+    /// <para>Non è micro-ottimizzazione: <c>GetPreviewContextAsync</c> costa <b>sette</b> query e ricarica i
+    /// flussi una seconda volta. Finché si salvava dal pannello si pagava di rado; da quando si scrive in
+    /// cella si paga a ogni Invio, e salvare una casella costava otto query per cambiarne una.</para>
+    /// </param>
+    private async Task Guarded(Func<Task> action, string? ok, bool touchesFlows = false)
     {
         _busy = true; _status = _error = null;
-        try { await action(); await LoadAsync(); if (ok is not null) _status = ok; }
+        try { await action(); await LoadAsync(touchesFlows); if (ok is not null) _status = ok; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (ValidationException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }

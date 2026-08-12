@@ -1408,4 +1408,5 @@
   <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>No group yet for this ACC: create one with the button at the bottom of the tree.</value></data>
   <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>This group has no rows yet. Add one below.</value></data>
   <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>No sector is called “{0}”: the row was left unchanged.</value></data>
+  <data name="Xfer_GoToGroupTitle" xml:space="preserve"><value>Go to this row's group (in the tree, with its siblings)</value></data>
 </root>
