@@ -163,6 +163,32 @@ comincia a 757 px e non ci sta, ma è il caso in cui l'editore ha deciso di guar
 resa nuova sarebbe rimasta non provata. È stata creata un'eccezione **vera** guidando l'editor sulla copia del
 DB — ed è così che sono venuti fuori i tre difetti sotto.
 
+### Coda — la scheda non ci stava, e il Salva non era tutto il problema
+
+Rileggendo la pagina è arrivato un terzo difetto, **lo stesso in un altro punto**: per vedere **tutta** la
+scheda di riga nuova bisognava scorrere. Misurato sul percorso «+ Riga», che prima non era stato misurato:
+
+| | 1600 × 1000 | 1366 × 720 (portatile) |
+|---|---|---|
+| Contenuto della scheda | 885 px | 885 px |
+| Spazio disponibile | 781 px | 501 px |
+| **Fuori dalla vista** | **104 px** | **384 px** |
+
+Il piede aveva risolto il Salva, non la scheda: il resto restava dietro la barra di scorrimento **interna**, che
+non si vede finché non ci passi sopra con la rotella — quindi si scorreva la pagina, che non c'entra.
+
+**Le sezioni del pannello si richiudono**, e partono chiuse **quando sono vuote**: chi apre una riga nuova
+scrive CoP, ricevente e livello, mentre trasferimento e condizione servono su una riga su quattro (misurato ieri:
+su 76 righe, pista 4 · area 2 · personalizzata 0). Una sezione chiusa **dice cosa contiene** con un riassunto
+accanto al titolo — «al confine dell'AoR · passando FL110», «25 · area Donald West», o «vuota» — perché una
+sezione che nasconde un dato senza dirlo è peggio di una scheda lunga. E una sezione che **ha** un dato resta
+aperta: non si nasconde ciò che qualcuno ha scritto.
+
+Risultato: contenuto **885 → 502 px**, **zero** fuori dalla vista su entrambi gli schermi, la scheda intera
+dentro il viewport (piede e testata compresi). In più il corpo ha ora l'**ombra** che dice se sotto c'è altro, e
+`vipiRevealPanel` mira alla scheda intera quando ci sta, non al solo piede — mirando al piede restavano fuori i
+pixel di bordo sotto di lui.
+
 ### Tre difetti trovati guardando, che nessun test avrebbe visto
 
 - **Un'eccezione appena creata nasceva marcata «negli altri casi».** La pill vale per le alternative
@@ -186,5 +212,5 @@ spezzavano in cinque un blocco solo, e ora prendono la velatura del gruppo.
   fondere le celle toglierebbe il bersaglio a chi deve cambiare il CoP di **una** variante.
 - **Riordinare il gruppo per mettere la trasversale in fondo** come fa il viewer: in editor l'ordine salvato è
   la struttura, e mostrarne un altro renderebbe bugiardo il trascinamento.
-- **Ridurre il numero di campi del pannello**: il pannello è lungo perché l'accordo ha quei campi; il difetto
-  era non poter salvare, non averne troppi.
+- **Togliere campi dal pannello**: l'accordo ha quei campi, e nessuno è di troppo. Quelli che servono di rado
+  ora partono **richiusi con il riassunto**, che è un'altra cosa dal toglierli.

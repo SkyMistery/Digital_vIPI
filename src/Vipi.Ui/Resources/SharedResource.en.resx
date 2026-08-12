@@ -315,6 +315,7 @@
   <data name="Xfer_CondOtherwiseTitle" xml:space="preserve"><value>A row with no condition inside a group: it is the case that applies when none of the other conditions holds.</value></data>
   <data name="Xfer_CondExceptionOf" xml:space="preserve"><value>exception to: {0}</value></data>
   <data name="Xfer_CondBaseCase" xml:space="preserve"><value>base case</value></data>
+  <data name="Xfer_SecEmpty" xml:space="preserve"><value>empty</value></data>
   <data name="Xfer_Variant" xml:space="preserve"><value>variant</value></data>
   <data name="Xfer_VariantTitle" xml:space="preserve"><value>Row of the same agreement: same CoP and receiver, different condition. The indent says what it belongs to.</value></data>
   <data name="Xfer_AddAlternativeTitle" xml:space="preserve"><value>Add an alternative alongside this row, e.g. «runway 25» next to «runway 07» (copies everything but the condition)</value></data>

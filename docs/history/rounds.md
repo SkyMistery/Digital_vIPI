@@ -1415,3 +1415,11 @@ rientro non si vedeva perché `.res-table td{padding:7px 10px}` batte una classe
 annotata nel tema per `.sid-view`.
 
 Suite **2203** verde, Release `--no-incremental` 0 warning su entrambi i TFM.
+
+**Coda dello stesso giro, dalla seconda lettura:** il piede aveva risolto il **Salva**, non la **scheda**. Per
+vedere tutto il form di riga nuova bisognava ancora scorrere — 885 px di campi in 781 disponibili a 1600×1000 e
+in **501** su un portatile 1366×720, cioè **384 px fuori**, dietro la barra di scorrimento interna che non si
+vede finché non ci passi sopra. Le sezioni «Trasferimento» e «Condizione» ora partono **richiuse quando sono
+vuote** — chi apre una riga nuova scrive CoP, ricevente e livello — con il **riassunto** di cosa contengono
+accanto al titolo, e restano aperte se un dato c'è già: 885 → **502 px**, zero fuori dalla vista su entrambi gli
+schermi. In più il corpo ha l'ombra che dice se sotto c'è dell'altro.

@@ -345,7 +345,10 @@
         if (!el) return;
         var foot = el.querySelector('.xt-panel-foot') || el;
         for (var i = 0; i < 3; i++) {
-            var r = foot.getBoundingClientRect();
+            // Se la scheda intera ci sta, il bersaglio è la scheda: mirando al solo piede restavano fuori i
+            // pixel di bordo e padding sotto di lui.
+            var target = el.getBoundingClientRect().height <= window.innerHeight - 16 ? el : foot;
+            var r = target.getBoundingClientRect();
             var d = 0;
             if (r.bottom > window.innerHeight - 8) d = r.bottom - (window.innerHeight - 8);
             else if (r.top < 8) d = r.top - 8;

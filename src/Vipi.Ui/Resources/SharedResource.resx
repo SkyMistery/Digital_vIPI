@@ -318,6 +318,7 @@
   <data name="Xfer_CondOtherwiseTitle" xml:space="preserve"><value>Riga senza condizione dentro un gruppo: è il caso che vale quando nessuna delle altre condizioni si verifica.</value></data>
   <data name="Xfer_CondExceptionOf" xml:space="preserve"><value>eccezione di: {0}</value></data>
   <data name="Xfer_CondBaseCase" xml:space="preserve"><value>caso base</value></data>
+  <data name="Xfer_SecEmpty" xml:space="preserve"><value>vuota</value></data>
   <data name="Xfer_Variant" xml:space="preserve"><value>variante</value></data>
   <data name="Xfer_VariantTitle" xml:space="preserve"><value>Riga dello stesso accordo: stesso CoP e stesso ricevente, condizione diversa. Il rientro dice a chi appartiene.</value></data>
   <data name="Xfer_AddAlternativeTitle" xml:space="preserve"><value>Aggiungi un'alternativa pari-grado a questa riga, es. «pista 25» accanto a «pista 07» (copia tutto tranne la condizione)</value></data>

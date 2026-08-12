@@ -1002,7 +1002,9 @@
         </div>
 
         @* --- Livello autorizzato --- *@
-        <div class="xt-grp"><span>@L["Xfer_GrpCleared"]</span></div>
+        @PanelSection("level", L["Xfer_GrpCleared"], LevelSummary(form))
+        @if (SectionOpen("level"))
+        {
         <div class="xt-row2">
             <div class="field"><label>@L["Xfer_Constraint"]</label>
                 <select @bind="form.Constraint">
@@ -1045,13 +1047,19 @@
                 </select>
             </div>
         </div>
+        }
 
         @* --- Trasferimento (faccetta ACC→APP) --- *@
-        <div class="xt-grp"><span>@L["Xfer_GrpHandoff"]</span></div>
-        @FacetFields(form.Facet, point?.VariantGroup is not null && point.VariantDepth == 0)
+        @PanelSection("handoff", L["Xfer_GrpHandoff"], HandoffSummary(form.Facet))
+        @if (SectionOpen("handoff"))
+        {
+            @FacetFields(form.Facet, point?.VariantGroup is not null && point.VariantDepth == 0)
+        }
 
         @* --- Condizione --- *@
-        <div class="xt-grp"><span>@L["Xfer_GrpCondition"]</span></div>
+        @PanelSection("cond", L["Xfer_GrpCondition"], CondSummary(form))
+        @if (SectionOpen("cond"))
+        {
         <div class="field"><label>@L["Xfer_RunwaysInUse"] <span class="muted xt-hint">@L["Xfer_MultiSelectHint"]</span></label>
             @if (_condRunways.Count > 0)
             {
@@ -1080,6 +1088,7 @@
         <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted xt-hint">@L["Xfer_FreeTextHint"]</span></label>
             <input placeholder="@L["Xfer_CustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
         </div>
+        }
 
         @* --- Anteprima: è il modo più diretto di accorgersi di una riga sbagliata --- *@
         <div class="xt-preview">
@@ -1119,6 +1128,84 @@
             <button class="btn ghost" disabled="@_busy" @onclick="ClosePanel">@L["Common_Cancel"]</button>
         </div>
     };
+
+    // ---- Sezioni richiudibili del pannello ----
+    // La scheda intera è 885 px di campi: su un portatile (viewport 720) ne restavano fuori 384, e l'unico modo
+    // di vederli era la barra di scorrimento DENTRO il riquadro, che non si vede finché non ci passi sopra.
+    // Chi apre una riga nuova scrive CoP, ricevente e livello; trasferimento e condizione servono su una riga
+    // su quattro. Chiuse partono chiuse — ma con il RIASSUNTO accanto al titolo, perché una sezione che
+    // nasconde un dato senza dirlo è peggio di una lunga.
+    private readonly HashSet<string> _panelClosed = new(StringComparer.Ordinal);
+
+    private bool SectionOpen(string key) => !_panelClosed.Contains(key);
+
+    private void ToggleSection(string key)
+    {
+        if (!_panelClosed.Remove(key)) _panelClosed.Add(key);
+    }
+
+    /// <summary>Decide quali sezioni sono chiuse all'apertura del form: una sezione VUOTA parte chiusa, una che
+    /// ha già un dato resta aperta — non si nasconde ciò che qualcuno ha scritto.</summary>
+    private void ResetPanelSections(PointForm form)
+    {
+        _panelClosed.Clear();
+        if (HandoffSummary(form.Facet).Length == 0) _panelClosed.Add("handoff");
+        if (CondSummary(form).Length == 0) _panelClosed.Add("cond");
+    }
+
+    /// <summary>Intestazione di sezione: titolo, chevron e — a sezione chiusa — il riassunto di cosa contiene.</summary>
+    private RenderFragment PanelSection(string key, string title, string summary) => __builder =>
+    {
+        var open = SectionOpen(key);
+        <div class="xt-grp xt-clickable" role="button" tabindex="0" aria-expanded="@open"
+             @onclick="() => ToggleSection(key)" @onkeydown="e => { if (IsActivationKey(e)) ToggleSection(key); }">
+            <span class="xt-chev">@(open ? "▾" : "▸")</span>
+            <span>@title</span>
+            @if (!open)
+            {
+                <span class="xt-secsum">@(summary.Length == 0 ? L["Xfer_SecEmpty"].Value : summary)</span>
+            }
+        </div>
+    };
+
+    /// <summary>Riassunto del livello autorizzato: è la riga che si legge quando la sezione è chiusa.</summary>
+    private string LevelSummary(PointForm f) =>
+        LevelFormatting.Format(f.Value, f.Unit, f.Constraint, f.Special, f.Parity) ?? "";
+
+    /// <summary>Riassunto della faccetta: dove passa il controllo, a che livello, dove le comunicazioni, velocità.
+    /// Vuoto = la sezione non contiene nulla, ed è il segnale per tenerla chiusa.</summary>
+    private string HandoffSummary(FacetForm ff)
+    {
+        var parts = new List<string>(4);
+        if (ff.Kind != TransferHandoffKind.Unspecified)
+        {
+            parts.Add(ff.Kind switch
+            {
+                TransferHandoffKind.AorBoundary => L["Xfer_HandoffAor"].Value,
+                _ => string.IsNullOrWhiteSpace(ff.Label) ? L["Xfer_HandoffPoint"].Value : ff.Label.Trim(),
+            });
+            if (ff.LevelValue is int v) parts.Add(LevelFormatting.Format(v, ff.LevelUnit, ff.LevelConstraint, null, LevelParity.Any) ?? "");
+            if (ff.CommsKind != TransferHandoffKind.Unspecified)
+                parts.Add(ff.CommsKind == TransferHandoffKind.AorBoundary
+                    ? L["Xfer_Comms"].Value + " " + L["Xfer_HandoffAor"].Value
+                    : L["Xfer_Comms"].Value + " " + (string.IsNullOrWhiteSpace(ff.CommsLabel) ? L["Xfer_HandoffPoint"].Value : ff.CommsLabel.Trim()));
+        }
+        if (ff.SpeedConstraint != SpeedConstraint.Unspecified && ff.SpeedValue is int kt)
+            parts.Add($"{SpeedSign(ff.SpeedConstraint)}{kt} kt");
+        if (ff.IsGroupWide) parts.Add(L["Xfer_GroupWide"].Value);
+        return string.Join(" · ", parts.Where(x => x.Length > 0));
+    }
+
+    private static string SpeedSign(SpeedConstraint c) => c switch
+    {
+        SpeedConstraint.AtOrBelow => "≤",
+        SpeedConstraint.AtOrAbove => "≥",
+        _ => "",
+    };
+
+    /// <summary>Riassunto della condizione: le stesse parole della colonna in tabella (una fonte sola).</summary>
+    private string CondSummary(PointForm f) =>
+        TransferConditionText.Display(string.Join(", ", f.Rwys), f.AreaLabel, f.CustomLabel) ?? "";
 
     /// <summary>
     /// Campi della faccetta trasferimento. Stessa forma degli altri blocchi del pannello — etichetta sopra,
@@ -1528,6 +1615,7 @@
         _editPointId = null; _editFlowId = null; _cloneFlowId = null; _copyFromFlowId = null;
         _addPointFlowId = f.Id;
         _addForm.Reset();
+        ResetPanelSections(_addForm);
         _formOpenedAs = _addForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
         _revealPanel = true;
@@ -1687,6 +1775,7 @@
         _editFlowId = null; _addPointFlowId = null; _cloneFlowId = null;
         _editPointId = p.Id;
         _editForm.LoadFrom(p, ParseRwys);
+        ResetPanelSections(_editForm);
         _formOpenedAs = _editForm.Signature();
         await LoadCondRulesAsync(f.AirportIcao);
         _revealPanel = true;

@@ -1353,7 +1353,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    L'overflow qui annulla quello di .detail-sticky, che resta il contenitore agganciato. */
 .xt-panel{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 15px;
   display:flex;flex-direction:column;overflow:hidden}
-.xt-panel-body{flex:1;min-height:0;overflow:auto}
+/* L'ombra in fondo al corpo dice che sotto c'è dell'altro: la barra di scorrimento interna non si vede finché
+   non ci passi sopra, e senza un segno la scheda sembrava finire dove finiva lo schermo. Sparisce da sola
+   quando si arriva in fondo (background-attachment:local sul gradiente). */
+.xt-panel-body{flex:1;min-height:0;overflow:auto;
+  background:linear-gradient(#fff 30%,rgba(255,255,255,0)) top/100% 24px no-repeat local,
+             linear-gradient(rgba(255,255,255,0),#fff 70%) bottom/100% 24px no-repeat local,
+             radial-gradient(farthest-side at 50% 0,rgba(10,31,107,.14),rgba(0,0,0,0)) top/100% 10px no-repeat scroll,
+             radial-gradient(farthest-side at 50% 100%,rgba(10,31,107,.14),rgba(0,0,0,0)) bottom/100% 10px no-repeat scroll}
 .xt-panel-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;margin-top:10px;
   border-top:1px solid var(--line);background:#fff}
 /* Sotto i 1080 la griglia collassa a una colonna e il pannello finisce DOPO tutta la lista: lì lo sticky non
@@ -1368,11 +1375,20 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-panel-h .muted{font-size:12px}
 .xt-panel-x{margin-left:auto;padding:2px 8px}
 .xt-panel-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-/* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue. */
+/* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue, e — quando la
+   sezione è richiudibile — apre e chiude. Il riassunto accanto al titolo è la ragione per cui una sezione può
+   partire chiusa senza nascondere niente. */
 .xt-grp{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
-.xt-grp span{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+.xt-grp>span{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
   letter-spacing:.04em;color:var(--ink-soft)}
-.xt-grp::after{content:"";flex:1;height:1px;background:var(--line)}
+.xt-grp::after{content:"";flex:1;height:1px;background:var(--line);order:9}
+.xt-grp.xt-clickable{cursor:pointer;user-select:none}
+.xt-grp.xt-clickable:hover>span{color:var(--ivao-blue)}
+.xt-grp .xt-chev{font-size:10px;color:var(--ink-soft)}
+.xt-secsum{font-family:var(--font-body)!important;font-weight:600!important;font-size:11.5px!important;
+  text-transform:none!important;letter-spacing:0!important;color:var(--ivao-blue)!important;
+  background:#eef1fb;border-radius:20px;padding:2px 9px;max-width:230px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
 .xt-row2{display:flex;gap:8px;flex-wrap:wrap}
 .xt-row2 .field{flex:1;min-width:90px}
 .xt-preview{margin-top:12px;padding:8px 10px;background:#f7f9ff;border:1px solid var(--line);border-radius:8px;font-size:11.5px}
