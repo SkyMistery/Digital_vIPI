@@ -1415,4 +1415,20 @@
   <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>Questo gruppo non ha ancora righe. Aggiungine una qui sotto.</value></data>
   <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>Nessun settore si chiama «{0}»: la riga non è stata cambiata.</value></data>
   <data name="Xfer_GoToGroupTitle" xml:space="preserve"><value>Vai al gruppo di questa riga (in albero, con le sue sorelle)</value></data>
+  <data name="Xfer_Undo" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Xfer_RowRestored" xml:space="preserve"><value>Riga rimessa dov'era.</value></data>
+  <data name="Xfer_RowsRestored" xml:space="preserve"><value>Righe rimesse dov'erano.</value></data>
+  <data name="Xfer_GroupRestored" xml:space="preserve"><value>Gruppo rimesso, con le sue righe e la loro struttura.</value></data>
+  <data name="Xfer_BulkLevel" xml:space="preserve"><value>livello: FL130-</value></data>
+  <data name="Xfer_BulkLevelTitle" xml:space="preserve"><value>Si scrive come si legge in tabella: FL130, FL130-, FL290+, 2500 ft, oppure un testo libero</value></data>
+  <data name="Xfer_BulkApplyLevel" xml:space="preserve"><value>Applica livello</value></data>
+  <data name="Xfer_BulkArea" xml:space="preserve"><value>area attiva…</value></data>
+  <data name="Xfer_BulkCustom" xml:space="preserve"><value>condizione libera…</value></data>
+  <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Applica condizione</value></data>
+  <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area e condizione libera. Le piste no: dipendono dall'aeroporto del gruppo</value></data>
+  <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Elimina le righe selezionate</value></data>
+  <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Eliminare {0} righe? Si potrà annullare finché il messaggio resta a schermo.</value></data>
+  <data name="Xfer_BulkDeleted" xml:space="preserve"><value>{0} righe eliminate.</value></data>
+  <data name="Xfer_SortAsc" xml:space="preserve"><value>crescente</value></data>
+  <data name="Xfer_SortDesc" xml:space="preserve"><value>decrescente</value></data>
 </root>

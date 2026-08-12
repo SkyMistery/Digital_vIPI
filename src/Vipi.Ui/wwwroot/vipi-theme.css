@@ -1438,6 +1438,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    salterebbe a ogni apertura — e scrivendo a raffica salterebbe tutta la tabella. */
 .xt-celledit{width:100%;min-width:70px;border:1px solid var(--ivao-blue);border-radius:6px;padding:1px 4px;
   margin:-1px -4px;font-family:var(--font-body);font-size:12.5px;background:#fff}
+/* Modifica in blocco: tre operazioni affiancate (ricevente · livello · condizione) più l'eliminazione in
+   fondo. I campi restano stretti perché la barra non deve andare a capo tre volte su uno schermo normale. */
+.xt-bulkfield{margin-bottom:0}
+.xt-bulkfield input{width:150px}
+.xt-bulk .xt-grow{min-width:8px}
+/* L'annulla sta DENTRO il messaggio che lo propone: è lì che si guarda quando ci si accorge dell'errore, ed è
+   anche la regola della sua durata — c'è il messaggio, c'è l'annulla. */
+.xt-undo{margin-left:10px;flex:none}
 /* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
    fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
    scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva

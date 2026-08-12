@@ -186,6 +186,16 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> SetReceiverAsync(string a, IReadOnlyList<int> ids, int? next, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, string? custom, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> DeletePointsAsync(string a, IReadOnlyList<int> ids, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> RestoreFlowAsync(string a, TransferFlowSnapshot s, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> RestorePointsAsync(string a, IReadOnlyList<TransferPointRestore> p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task DetachVariantAsync(string a, int p, CancellationToken ct = default) =>
             throw new NotSupportedException();
     }

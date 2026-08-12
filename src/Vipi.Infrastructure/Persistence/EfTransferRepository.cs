@@ -269,6 +269,146 @@ public sealed class EfTransferRepository : ITransferRepository
         return rows.Count;
     }
 
+    public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> pointIds, ParsedLevel level,
+        CancellationToken ct = default)
+    {
+        var rows = await RowsInAccAsync(accCode, pointIds, ct);
+        foreach (var r in rows)
+        {
+            r.LevelConstraint = level.Constraint;
+            r.LevelValue = level.Constraint == LevelConstraint.Special ? null : level.Value;
+            r.LevelSpecial = level.Constraint == LevelConstraint.Special ? NullIfBlank(level.Special) : null;
+            r.LevelUnit = level.Unit;
+            r.Parity = level.Parity;
+            r.VerticalState = level.VerticalState;
+        }
+
+        // Nessuna propagazione al gruppo, al contrario del ricevente: il livello è della singola riga, ed è
+        // proprio ciò che due varianti dicono diverso. Propagarlo le renderebbe tutte uguali.
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    public async Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> pointIds, string? areaLabel,
+        string? customLabel, CancellationToken ct = default)
+    {
+        var rows = await RowsInAccAsync(accCode, pointIds, ct);
+        foreach (var r in rows)
+        {
+            r.ConditionAreaLabel = NullIfBlank(areaLabel);
+            r.ConditionCustomLabel = NullIfBlank(customLabel);
+        }
+
+        // La pista non si tocca, e non è una dimenticanza: dipende dall'aeroporto del flusso, e la stessa
+        // sigla su aeroporti diversi è una pista diversa. Chi seleziona righe di gruppi diversi non può
+        // volerne una sola.
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    public async Task<int> DeletePointsAsync(string accCode, IReadOnlyList<int> pointIds,
+        CancellationToken ct = default)
+    {
+        var rows = await RowsInAccAsync(accCode, pointIds, ct);
+        if (rows.Count == 0) return 0;
+
+        var groups = rows.Where(r => r.VariantGroup is not null)
+            .Select(r => (r.FlowId, Group: r.VariantGroup!.Value)).Distinct().ToList();
+
+        _db.TransferPoints.RemoveRange(rows);
+        foreach (var (flowId, group) in groups) await DissolveIfAloneAsync(flowId, group, ct);
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    public async Task<int> RestoreFlowAsync(string accCode, TransferFlowSnapshot snapshot, CancellationToken ct = default)
+    {
+        var accId = await AccIdAsync(accCode, ct);
+        var nextOrder = (await _db.TransferFlows
+            .Where(f => f.AccId == accId && f.OwningSectorId == snapshot.Data.OwningSectorId)
+            .MaxAsync(f => (int?)f.Order, ct) ?? 0) + 1;
+
+        var flow = new TransferFlow { AccId = accId, Order = nextOrder };
+        ApplyFlow(flow, snapshot.Data);
+        _db.TransferFlows.Add(flow);
+        await _db.SaveChangesAsync(ct);
+
+        foreach (var p in snapshot.Points.OrderBy(x => x.Order))
+            _db.TransferPoints.Add(PointFrom(flow.Id, p));
+
+        await _db.SaveChangesAsync(ct);
+        EnsureOutlineIsSound(await _db.TransferPoints.Where(x => x.FlowId == flow.Id).OrderBy(x => x.Order).ToListAsync(ct));
+        return flow.Id;
+    }
+
+    public async Task<int> RestorePointsAsync(string accCode, IReadOnlyList<TransferPointRestore> points,
+        CancellationToken ct = default)
+    {
+        if (points.Count == 0) return 0;
+
+        // Solo i flussi che esistono ancora: un annulla che ricreasse il gruppo per rimetterci dentro una riga
+        // starebbe inventando un'intestazione che nessuno ha chiesto.
+        var flowIds = points.Select(p => p.FlowId).Distinct().ToList();
+        var alive = (await _db.TransferFlows
+            .Where(f => flowIds.Contains(f.Id) && f.Acc!.Code == accCode)
+            .Select(f => f.Id).ToListAsync(ct)).ToHashSet();
+
+        var restored = points.Where(p => alive.Contains(p.FlowId)).ToList();
+        foreach (var p in restored) _db.TransferPoints.Add(PointFrom(p.FlowId, p.Point));
+        await _db.SaveChangesAsync(ct);
+
+        foreach (var flowId in restored.Select(p => p.FlowId).Distinct())
+            EnsureOutlineIsSound(await _db.TransferPoints.Where(x => x.FlowId == flowId).OrderBy(x => x.Order).ToListAsync(ct));
+
+        return restored.Count;
+    }
+
+    /// <summary>Le righe indicate che appartengono davvero alla ACC: il filtro è la guardia, non un dettaglio.</summary>
+    private async Task<List<TransferPoint>> RowsInAccAsync(string accCode, IReadOnlyList<int> pointIds, CancellationToken ct) =>
+        pointIds.Count == 0
+            ? new List<TransferPoint>()
+            : await _db.TransferPoints.Where(x => pointIds.Contains(x.Id) && x.Flow!.Acc!.Code == accCode).ToListAsync(ct);
+
+    /// <summary>Una riga dalla sua fotografia: qui la posizione <b>viene dal dato</b>, ed è la differenza con
+    /// <see cref="AddPointAsync"/> — lì la decide il repository perché si sta scrivendo, qui si sta rimettendo.</summary>
+    private static TransferPoint PointFrom(int flowId, TransferPointSnapshot s)
+    {
+        var p = new TransferPoint
+        {
+            FlowId = flowId,
+            Order = s.Order,
+            VariantGroup = s.VariantGroup,
+            VariantDepth = s.VariantDepth,
+        };
+        ApplyPoint(p, s.Data);
+        p.IsGroupWide = s.Data.IsGroupWide;
+        return p;
+    }
+
+    /// <summary>
+    /// Gli invarianti dell'outline dopo un ripristino. Una fotografia può essere vecchia di un archivio che nel
+    /// frattempo è cambiato — la riga di cui era eccezione può non esserci più — e non deve poter rientrare
+    /// rotta: un'eccezione orfana descrive la riga sbagliata, senza nessun errore a dirlo.
+    /// </summary>
+    private static void EnsureOutlineIsSound(List<TransferPoint> rowsInOrder)
+    {
+        var depthByGroup = new Dictionary<int, int>();
+        foreach (var r in rowsInOrder)
+        {
+            if (r.VariantGroup is not int g) continue;
+
+            if (r.IsGroupWide && r.VariantDepth > 0)
+                throw new ValidationException("Una riga «in ogni caso» non può essere l'eccezione di un'altra riga.");
+
+            var previous = depthByGroup.TryGetValue(g, out var d) ? d : -1;
+            if (r.VariantDepth > previous + 1)
+                throw new ValidationException(
+                    $"La riga «{r.Cop}» sta a profondità {r.VariantDepth} senza una riga di profondità {r.VariantDepth - 1} che la preceda.");
+
+            depthByGroup[g] = r.VariantDepth;
+        }
+    }
+
     /// <summary>Copia di una riga senza identità né posizione: i campi editoriali e basta.</summary>
     private static TransferPoint CopyOf(TransferPoint src) => new()
     {

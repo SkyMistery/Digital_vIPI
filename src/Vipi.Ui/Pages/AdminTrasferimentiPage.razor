@@ -35,7 +35,19 @@
                 }
                 else
                 {
-                    <div class="callout success"><span class="cic">✓</span><div>@_status</div><button class="tclose" title="@L["Common_Close"]" @onclick="() => _status = null">✕</button></div>
+                    <div class="callout success">
+                        <span class="cic">✓</span>
+                        <div>@_status</div>
+                        @* L'annulla vive quanto il messaggio che lo propone: finché è a schermo funziona, la
+                           prima operazione successiva o la sua chiusura se lo portano via. Non un timer di
+                           dieci secondi — un timer va comunicato con un conto alla rovescia, altrimenti il
+                           tasto sparisce mentre lo si sta guardando; qui la regola è una sola, e si vede. *@
+                        @if (_undo is not null)
+                        {
+                            <button class="btn ghost xt-undo" disabled="@(_busy || !_canEdit)" @onclick="Undo">↺ @L["Xfer_Undo"]</button>
+                        }
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearToast">✕</button>
+                    </div>
                 }
             </div>
         }
@@ -153,11 +165,38 @@
                     <span class="cic">☑</span>
                     <div class="xt-bulkbody">
                         <b>@(string.Format(L["Xfer_BulkSelected"].Value, _selected.Count))</b>
+
+                        @* Ricevente: si propaga al gruppo di varianti, perché è identità dell'accordo. *@
                         <TypeaheadPicker Class="xt-bulkpick" Placeholder="@L["Xfer_BulkReceiver"]"
                                          Items="ReceiverItems(_bulkNextText)" @bind-Text="_bulkNextText"
                                          @bind-Text:after="() => _bulkNext = ReceiverIdOf(_bulkNextText)"
                                          OnPick="i => _bulkNext = ReceiverIdOf(i?.Value)" />
                         <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ApplyBulkReceiver">@L["Xfer_BulkApply"]</button>
+
+                        @* Livello: stessa sintassi della cella e della tabella — «FL130-», «2500 ft», «per
+                           aerovia». NON si propaga al gruppo: è ciò che due varianti dicono diverso. *@
+                        <div class="field xt-bulkfield">
+                            <input placeholder="@L["Xfer_BulkLevel"]" title="@L["Xfer_BulkLevelTitle"]"
+                                   @bind="_bulkLevelText" @bind:event="oninput" />
+                        </div>
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrWhiteSpace(_bulkLevelText))"
+                                @onclick="ApplyBulkLevel">@L["Xfer_BulkApplyLevel"]</button>
+
+                        @* Condizione: area + testo libero. Niente piste — dipendono dall'aeroporto del flusso,
+                           e la stessa sigla su aeroporti diversi è una pista diversa. *@
+                        <TypeaheadPicker Class="xt-bulkpick" Placeholder="@L["Xfer_BulkArea"]"
+                                         Items="AreaItems(_bulkAreaText)" EmptyOption="@L["Xfer_AreaNone"]"
+                                         NoMatch="@L["Xfer_NoArea"]" @bind-Text="_bulkAreaText" />
+                        <div class="field xt-bulkfield">
+                            <input placeholder="@L["Xfer_BulkCustom"]" @bind="_bulkCustomText" @bind:event="oninput" />
+                        </div>
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_BulkConditionTitle"]"
+                                @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
+
+                        <span class="ln xt-grow"></span>
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkDeleteAria"]" Disabled="@(_busy || !_canEdit)"
+                                       Prompt="@(string.Format(L["Xfer_BulkDeletePrompt"].Value, _selected.Count))"
+                                       OnConfirm="DeleteBulk"><Trigger><Icon Name="x" /> @L["Common_Delete"]</Trigger></InlineConfirm>
                         <button class="btn ghost" @onclick="() => _selected.Clear()">@L["Xfer_BulkClear"]</button>
                     </div>
                 </div>
@@ -388,6 +427,17 @@
         if (!_selected.Remove(pointId)) _selected.Add(pointId);
     }
 
+    // ---- Modifica in blocco ------------------------------------------------------------------------------
+    // Tre operazioni, non un modulo con tre interruttori: si comportano in modo diverso, ed è ciò che non
+    // vanno a nascondere. Il RICEVENTE è identità dell'accordo e si propaga al gruppo di varianti; livello e
+    // condizione sono della singola riga e non si propagano — è proprio ciò che due varianti dicono diverso.
+
+    /// <summary>Il livello in blocco si scrive <b>come si scrive in cella e come si legge in tabella</b>: una
+    /// sintassi sola in tutta la pagina, riletta da <c>LevelFormatting.Parse</c>.</summary>
+    private string _bulkLevelText = "";
+
+    private string _bulkAreaText = "", _bulkCustomText = "";
+
     private async Task ApplyBulkReceiver()
     {
         if (_selected.Count == 0) return;
@@ -399,6 +449,60 @@
             _selected.Clear(); _bulkNext = 0; _bulkNextText = "";
         }, null);
         if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+    }
+
+    private async Task ApplyBulkLevel()
+    {
+        if (_selected.Count == 0 || string.IsNullOrWhiteSpace(_bulkLevelText)) return;
+        var ids = _selected.ToList();
+        var level = LevelFormatting.Parse(_bulkLevelText);
+        var n = 0;
+        await Guarded(async () =>
+        {
+            n = await Transfers.SetLevelAsync(_acc!.Code, ids, level);
+            _selected.Clear(); _bulkLevelText = "";
+        }, null);
+        if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+    }
+
+    private async Task ApplyBulkCondition()
+    {
+        if (_selected.Count == 0) return;
+        var ids = _selected.ToList();
+        var area = _bulkAreaText.Trim();
+        var custom = _bulkCustomText.Trim();
+        var n = 0;
+        await Guarded(async () =>
+        {
+            n = await Transfers.SetConditionAsync(_acc!.Code, ids,
+                area.Length == 0 ? null : area, custom.Length == 0 ? null : custom);
+            _selected.Clear(); _bulkAreaText = ""; _bulkCustomText = "";
+        }, null);
+        if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+    }
+
+    private async Task DeleteBulk()
+    {
+        if (_selected.Count == 0) return;
+        var ids = _selected.ToList();
+
+        // Come per l'eliminazione singola: fotografia prima, annulla armato dopo, e solo se è andata.
+        var snaps = _flows
+            .SelectMany(f => f.Points.Where(p => _selected.Contains(p.Id))
+                              .Select(p => new TransferPointRestore(f.Id, SnapshotOf(p))))
+            .ToList();
+
+        var n = 0;
+        await Guarded(async () =>
+        {
+            n = await Transfers.DeletePointsAsync(_acc!.Code, ids);
+            _selected.Clear();
+        }, null);
+
+        if (_error is not null) return;
+        _status = string.Format(L["Xfer_BulkDeleted"].Value, n);
+        if (snaps.Count > 0)
+            _undo = (() => Transfers.RestorePointsAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
     }
 
     private Task DuplicateGroup(int pointId) =>
@@ -2009,8 +2113,16 @@
         if (newId > 0) ExpandTo(newId);   // rendi subito visibile il gruppo appena creato
     }
 
-    private Task DeleteFlow(int id) => Guarded(() =>
-        Transfers.DeleteFlowAsync(_acc!.Code, id), L["Xfer_GroupDeleted"], touchesFlows: true);
+    private async Task DeleteFlow(int id)
+    {
+        // La fotografia si scatta PRIMA (dopo, il gruppo non c'e' piu) ma l'annulla si arma DOPO, e solo se
+        // l'eliminazione e' andata: Guarded azzera l'annulla precedente all'inizio di ogni operazione, e
+        // offrire di annullare qualcosa che non e' successo sarebbe peggio che non offrirlo.
+        var snap = _flows.FirstOrDefault(f => f.Id == id) is { } f ? SnapshotOf(f) : null;
+        await Guarded(() => Transfers.DeleteFlowAsync(_acc!.Code, id), L["Xfer_GroupDeleted"], touchesFlows: true);
+        if (snap is not null && _error is null)
+            _undo = (() => Transfers.RestoreFlowAsync(_acc!.Code, snap), L["Xfer_GroupRestored"].Value);
+    }
 
     private Task Move(int pointId, bool up) => Guarded(() => Transfers.MovePointAsync(_acc!.Code, pointId, up), null);
 
@@ -2300,7 +2412,51 @@
         return parts.Count == 0 ? new List<string> { string.Empty } : parts;
     }
 
-    private Task DeletePoint(int id) => Guarded(() => Transfers.DeletePointAsync(_acc!.Code, id), L["Xfer_RowDeleted"]);
+    // ---- Annulla -----------------------------------------------------------------------------------------
+    // Vive nel circuito: se la pagina si ricarica, l'annulla non c'è più. È la scelta giusta e va detta — un
+    // annulla persistente è un cestino, cioè una colonna in più e un filtro in ogni lettura.
+    //
+    // ⚠️ Gli id cambiano: ciò che torna sono righe NUOVE con gli stessi dati e la stessa posizione. Un link
+    // «?riga=N» alla riga eliminata resta morto, ed è onesto.
+
+    /// <summary>Cosa rimettere, e come dirlo. Uno solo per volta: l'ultimo.</summary>
+    private (Func<Task> Restore, string Message)? _undo;
+
+    private void ClearToast() { _status = null; _undo = null; }
+
+    private async Task Undo()
+    {
+        if (_undo is not { } u) return;
+        var restore = u.Restore;
+        _undo = null;
+        await Guarded(restore, u.Message, touchesFlows: true);
+    }
+
+    /// <summary>La fotografia di una riga: i suoi dati <b>e</b> la sua posizione nell'outline. Senza la seconda
+    /// il ripristino la rimetterebbe piatta, che è il difetto che questa carta esiste per non avere.</summary>
+    private static TransferPointSnapshot SnapshotOf(TransferPointRow p) =>
+        new(EditableCopy(p), p.Order, p.VariantGroup, p.VariantDepth);
+
+    private static TransferFlowSnapshot SnapshotOf(TransferFlowRow f) => new(
+        new TransferFlowInput
+        {
+            OwningSectorId = f.OwningSectorId, Kind = f.Kind,
+            AirportIcao = f.AirportIcao, AirportName = f.AirportName, Description = f.Description,
+        },
+        f.Points.Select(SnapshotOf).ToList());
+
+    private async Task DeletePoint(int id)
+    {
+        var flow = _flows.FirstOrDefault(f => f.Points.Any(p => p.Id == id));
+        var row = flow?.Points.FirstOrDefault(p => p.Id == id);
+        var snap = flow is not null && row is not null
+            ? new TransferPointRestore(flow.Id, SnapshotOf(row))
+            : null;
+
+        await Guarded(() => Transfers.DeletePointAsync(_acc!.Code, id), L["Xfer_RowDeleted"]);
+        if (snap is not null && _error is null)
+            _undo = (() => Transfers.RestorePointsAsync(_acc!.Code, new[] { snap }), L["Xfer_RowRestored"].Value);
+    }
 
     /// <summary>
     /// Esegue una scrittura, ne riporta l'esito e ricarica ciò che è cambiato.
@@ -2318,7 +2474,9 @@
     /// </param>
     private async Task Guarded(Func<Task> action, string? ok, bool touchesFlows = false)
     {
-        _busy = true; _status = _error = null;
+        // L'annulla vale per l'ULTIMA operazione: qualunque altra scrittura se lo porta via, insieme al
+        // messaggio che lo proponeva. Chi lo arma lo fa dopo, a operazione riuscita.
+        _busy = true; _status = _error = null; _undo = null;
         try { await action(); await LoadAsync(touchesFlows); if (ok is not null) _status = ok; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (ValidationException ex) { _error = ex.Message; }

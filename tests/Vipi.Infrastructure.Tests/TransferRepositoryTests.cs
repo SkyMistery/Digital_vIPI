@@ -604,4 +604,204 @@ public class TransferRepositoryTests : IAsyncLifetime
         Assert.Contains(flows, f => f.OwningSectorCallsign == "LIRR_NE_CTR" && f.Kind == TransferFlowKind.Arrival
             && f.Points.Any(p => p.Cop == "VALMA" && p.LevelText == "FL130- ↓"));   // seed: ≤ → «-», stato backfill discesa → «↓»
     }
+
+    // ---- Ripristino: l'annulla deve rimettere l'OUTLINE, non solo le righe ----------------------------
+    // È il caso che la carta chiama delicato, ed è delicato per una ragione precisa: ricostruire un gruppo con
+    // AddPointAsync lo appiattirebbe — quel metodo scrive righe nuove e la posizione la decide lui. Un annulla
+    // che restituisce righe piatte non è un annulla: è un secondo danno con un nome rassicurante.
+
+    /// <summary>Un gruppo con un outline vero: capofila, sua eccezione, eccezione dell'eccezione, alternativa.</summary>
+    private async Task<int> SeedOutlineFlowAsync()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var baseId = await _repo.AddPointAsync("LIRR", flowId, Point("BIRSU", 150, _ftwrId));
+        var excId = await _repo.AddExceptionAsync("LIRR", baseId);        // profondità 1
+        await _repo.AddExceptionAsync("LIRR", excId);                     // profondità 2
+        await _repo.AddAlternativeAsync("LIRR", baseId);                  // profondità 0, pari-grado
+        return flowId;
+    }
+
+    /// <summary>La forma dell'outline come si legge: (profondità, «sta in un gruppo»), nell'ordine salvato.</summary>
+    private async Task<List<(int Depth, bool InGroup)>> ShapeAsync(int flowId)
+    {
+        var f = (await _repo.ListFlowsByAccAsync("LIRR")).Single(x => x.Id == flowId);
+        return f.Points.Select(p => (p.VariantDepth, p.VariantGroup is not null)).ToList();
+    }
+
+    private static TransferFlowSnapshot SnapshotOf(TransferFlowRow f) => new(
+        new TransferFlowInput
+        {
+            OwningSectorId = f.OwningSectorId, Kind = f.Kind,
+            AirportIcao = f.AirportIcao, AirportName = f.AirportName, Description = f.Description,
+        },
+        f.Points.Select(p => new TransferPointSnapshot(
+            new TransferPointInput
+            {
+                Cop = p.Cop, LevelValue = p.LevelValue, LevelUnit = p.LevelUnit,
+                LevelConstraint = p.LevelConstraint, LevelSpecial = p.LevelSpecial,
+                Parity = p.Parity, VerticalState = p.VerticalState, NextSectorId = p.NextSectorId,
+                ConditionLabel = p.ConditionLabel, ConditionRefId = p.ConditionRefId,
+                ConditionAreaLabel = p.ConditionAreaLabel, ConditionCustomLabel = p.ConditionCustomLabel,
+                HandoffKind = p.HandoffKind, HandoffLabel = p.HandoffLabel,
+                HandoffLevelValue = p.HandoffLevelValue, HandoffLevelUnit = p.HandoffLevelUnit,
+                HandoffLevelConstraint = p.HandoffLevelConstraint,
+                CommsHandoffKind = p.CommsHandoffKind, CommsHandoffLabel = p.CommsHandoffLabel,
+                SpeedValue = p.SpeedValue, SpeedConstraint = p.SpeedConstraint, IsGroupWide = p.IsGroupWide,
+            },
+            p.Order, p.VariantGroup, p.VariantDepth)).ToList());
+
+    [Fact]
+    public async Task Restoring_A_Deleted_Flow_Puts_The_Outline_Back()
+    {
+        var flowId = await SeedOutlineFlowAsync();
+        var before = await ShapeAsync(flowId);
+        Assert.Equal(new[] { (0, true), (1, true), (2, true), (0, true) }, before);   // l'outline c'è davvero
+
+        var snapshot = SnapshotOf((await _repo.ListFlowsByAccAsync("LIRR")).Single(x => x.Id == flowId));
+        await _repo.DeleteFlowAsync("LIRR", flowId);
+        Assert.Empty(await _repo.ListFlowsByAccAsync("LIRR"));
+
+        var restoredId = await _repo.RestoreFlowAsync("LIRR", snapshot);
+        Assert.Equal(before, await ShapeAsync(restoredId));
+
+        var restored = (await _repo.ListFlowsByAccAsync("LIRR")).Single();
+        Assert.Equal(new[] { "BIRSU", "BIRSU", "BIRSU", "BIRSU" }, restored.Points.Select(p => p.Cop).ToArray());
+        Assert.Equal("LIRF", restored.AirportIcao);
+    }
+
+    [Fact]
+    public async Task Restoring_A_Deleted_Row_Puts_It_Back_Where_It_Was()
+    {
+        var flowId = await SeedOutlineFlowAsync();
+        var f = (await _repo.ListFlowsByAccAsync("LIRR")).Single();
+        var deep = f.Points.Single(p => p.VariantDepth == 2);
+
+        var snap = new TransferPointRestore(flowId, new TransferPointSnapshot(
+            new TransferPointInput
+            {
+                Cop = deep.Cop, LevelValue = deep.LevelValue, LevelUnit = deep.LevelUnit,
+                LevelConstraint = deep.LevelConstraint, NextSectorId = deep.NextSectorId,
+            },
+            deep.Order, deep.VariantGroup, deep.VariantDepth));
+
+        await _repo.DeletePointAsync("LIRR", deep.Id);
+        Assert.Equal(new[] { (0, true), (1, true), (0, true) }, await ShapeAsync(flowId));
+
+        Assert.Equal(1, await _repo.RestorePointsAsync("LIRR", new[] { snap }));
+        Assert.Equal(new[] { (0, true), (1, true), (2, true), (0, true) }, await ShapeAsync(flowId));
+    }
+
+    [Fact]
+    public async Task Restoring_Into_A_Flow_That_No_Longer_Exists_Does_Nothing()
+    {
+        // Un annulla non deve INVENTARE il gruppo per rimetterci dentro una riga: sarebbe un'intestazione che
+        // nessuno ha chiesto, con un settore e un aeroporto scelti da noi.
+        var flowId = await SeedOutlineFlowAsync();
+        var snap = new TransferPointRestore(flowId, new TransferPointSnapshot(
+            new TransferPointInput { Cop = "ORFANA", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact },
+            1, null, 0));
+
+        await _repo.DeleteFlowAsync("LIRR", flowId);
+        Assert.Equal(0, await _repo.RestorePointsAsync("LIRR", new[] { snap }));
+        Assert.Empty(await _repo.ListFlowsByAccAsync("LIRR"));
+    }
+
+    [Fact]
+    public async Task A_Snapshot_That_Would_Break_The_Outline_Is_Refused()
+    {
+        // Una fotografia può essere vecchia di un archivio cambiato: un'eccezione senza la riga di cui è
+        // eccezione descrive la riga sbagliata, e non lo direbbe nessun errore. Va respinta all'ingresso.
+        var snapshot = new TransferFlowSnapshot(Flow(), new[]
+        {
+            new TransferPointSnapshot(
+                new TransferPointInput { Cop = "ORFANA", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact },
+                1, VariantGroup: 1, VariantDepth: 2),   // salto: nessuna riga di profondità 0 o 1 prima di lei
+        });
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _repo.RestoreFlowAsync("LIRR", snapshot));
+    }
+
+    // ---- Modifica in blocco: cosa si propaga e cosa no -----------------------------------------------
+
+    [Fact]
+    public async Task Bulk_Level_Does_Not_Spread_To_The_Variant_Group()
+    {
+        // Il ricevente si propaga alle sorelle (è identità dell'accordo); il livello NO — è proprio la cosa che
+        // due varianti dicono diversa, e propagarlo le renderebbe tutte uguali.
+        await SeedOutlineFlowAsync();
+        var f = (await _repo.ListFlowsByAccAsync("LIRR")).Single();
+        var one = f.Points.First(p => p.VariantDepth == 0);
+
+        Assert.Equal(1, await _repo.SetLevelAsync("LIRR", new[] { one.Id },
+            LevelFormatting.Parse("FL290+ (dispari)")));
+
+        var after = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points;
+        Assert.Equal("FL290+ (dispari)", after.Single(p => p.Id == one.Id).LevelText);
+        Assert.All(after.Where(p => p.Id != one.Id), p => Assert.Equal(150, p.LevelValue));
+    }
+
+    [Fact]
+    public async Task Bulk_Level_Accepts_Free_Text_As_A_Special_Level()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("VALMA", 130, _ftwrId));
+
+        await _repo.SetLevelAsync("LIRR", new[] { id }, LevelFormatting.Parse("per aerovia"));
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal(LevelConstraint.Special, p.LevelConstraint);
+        Assert.Equal("per aerovia", p.LevelSpecial);
+        Assert.Null(p.LevelValue);
+    }
+
+    [Fact]
+    public async Task Bulk_Condition_Sets_Area_And_Custom_And_Leaves_Runways_Alone()
+    {
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId,
+            Point("VALMA", 130, _ftwrId) with { ConditionLabel = "07" });
+
+        await _repo.SetConditionAsync("LIRR", new[] { id }, "LI R403B", "di notte");
+
+        var p = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Equal("LI R403B", p.ConditionAreaLabel);
+        Assert.Equal("di notte", p.ConditionCustomLabel);
+        // La pista resta: dipende dall'aeroporto del flusso, e in blocco non si può volerne una sola.
+        Assert.Equal("07", p.ConditionLabel);
+
+        await _repo.SetConditionAsync("LIRR", new[] { id }, null, null);   // null = togli
+        var cleared = (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single();
+        Assert.Null(cleared.ConditionAreaLabel);
+        Assert.Null(cleared.ConditionCustomLabel);
+        Assert.Equal("07", cleared.ConditionLabel);
+    }
+
+    [Fact]
+    public async Task Bulk_Delete_Dissolves_A_Group_Left_With_One_Row()
+    {
+        await SeedOutlineFlowAsync();
+        var f = (await _repo.ListFlowsByAccAsync("LIRR")).Single();
+        var toGo = f.Points.Skip(1).Select(p => p.Id).ToList();   // via tutto tranne una
+
+        Assert.Equal(3, await _repo.DeletePointsAsync("LIRR", toGo));
+
+        var left = Assert.Single((await _repo.ListFlowsByAccAsync("LIRR")).Single().Points);
+        Assert.Null(left.VariantGroup);
+        Assert.Equal(0, left.VariantDepth);
+    }
+
+    [Fact]
+    public async Task Bulk_Operations_Ignore_Rows_Of_Another_Acc()
+    {
+        // Il filtro sulla ACC è la guardia, non un dettaglio: un id indovinato non deve poter toccare
+        // l'archivio di qualcun altro.
+        var flowId = await _repo.AddFlowAsync("LIRR", Flow());
+        var id = await _repo.AddPointAsync("LIRR", flowId, Point("VALMA", 130, _ftwrId));
+
+        Assert.Equal(0, await _repo.SetLevelAsync("LIMM", new[] { id }, LevelFormatting.Parse("FL200")));
+        Assert.Equal(0, await _repo.SetConditionAsync("LIMM", new[] { id }, "X", "Y"));
+        Assert.Equal(0, await _repo.DeletePointsAsync("LIMM", new[] { id }));
+        Assert.Equal(130, (await _repo.ListFlowsByAccAsync("LIRR")).Single().Points.Single().LevelValue);
+    }
 }

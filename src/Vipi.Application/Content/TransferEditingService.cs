@@ -1,6 +1,7 @@
 ﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -126,6 +127,38 @@ public sealed class TransferService : ITransferService
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         return await _repo.DuplicateVariantGroupAsync(accCode, pointId, ct);
+    }
+
+    public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> pointIds, ParsedLevel level, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.SetLevelAsync(accCode, pointIds, level, ct);
+    }
+
+    public async Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> pointIds, string? areaLabel,
+        string? customLabel, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.SetConditionAsync(accCode, pointIds, areaLabel, customLabel, ct);
+    }
+
+    public async Task<int> DeletePointsAsync(string accCode, IReadOnlyList<int> pointIds,
+        CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.DeletePointsAsync(accCode, pointIds, ct);
+    }
+
+    public async Task<int> RestoreFlowAsync(string accCode, TransferFlowSnapshot snapshot, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.RestoreFlowAsync(accCode, snapshot, ct);
+    }
+
+    public async Task<int> RestorePointsAsync(string accCode, IReadOnlyList<TransferPointRestore> points, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.RestorePointsAsync(accCode, points, ct);
     }
 
     public async Task<int> SetReceiverAsync(string accCode, IReadOnlyList<int> pointIds, int? nextSectorId, CancellationToken ct = default)
