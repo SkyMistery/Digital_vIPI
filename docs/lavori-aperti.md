@@ -753,8 +753,14 @@ Terza scheda dello stesso filone: [`feature/2026-08-12-editor-trasferimenti-ux.m
 — la **pagina** che scrive quelle righe, rifatta col pattern del progetto (lista + pannello a destra), nove
 bottoni-icona per riga ridotti a tre, **51 stili inline azzerati** e dieci migliorie d'uso.
 
-Suite 2197 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e tre
-i giri (dodici difetti trovati proprio lì, quasi nessuno visibile alla suite).
+Quarta, dalla prima lettura della pagina rifatta:
+[`feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](feature/2026-08-12-trasferimenti-gruppi-e-salva.md) — il
+**gruppo di varianti si vede** (guida, bordi, pill, e la colonna Condizione che dice «se X» / «negli altri
+casi» / «↳ eccezione di: X») e il **Salva si raggiunge**: il pannello diventa testata · corpo · piede, perché
+prima l'unico modo di arrivarci era una seconda barra di scorrimento dentro il riquadro.
+
+Suite 2203 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
+quattro i giri (quindici difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
 avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al

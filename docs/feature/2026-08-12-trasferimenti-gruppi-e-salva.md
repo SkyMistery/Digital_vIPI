@@ -1,6 +1,6 @@
 # Feature — Trasferimenti: il gruppo si vede, il Salva si raggiunge
 
-Data: 2026-08-12 · Stato: **🟡 CARTA — da eseguire** ·
+Data: 2026-08-12 · Stato: **CHIUSO — suite 2203 verde, Release 0 warning su entrambi i TFM, ✅ verifica live** ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [editor trasferimenti UX](2026-08-12-editor-trasferimenti-ux.md), stesso branch.
 
@@ -94,7 +94,7 @@ colonna condizione: le classi vanno rimosse dal tema insieme al loro uso, non la
    | fuori gruppo | la condizione com'è oggi |
    | alternativa (prof. 0, con condizione) | `se <condizione>` |
    | alternativa senza condizione | pill **«negli altri casi»** (oggi è un `—` muto) |
-   | eccezione (prof. > 0) | `↳ eccezione di: <condizione del padre>` + **rientro della cella** `6 + 14·prof` px, come la vista pubblica |
+   | eccezione (prof. > 0) | `↳ eccezione di: <condizione del padre>` + **rientro della cella** 30/48/66/84 px, come la vista pubblica. Senza condizione propria resta un `—`: non è il «negli altri casi» di niente, è una riga incompleta |
    | trasversale (`IsGroupWide`) | pill «vale per tutte» — resta dov'è, ma nella colonna condizione come nel viewer |
 4. **Il gruppo aperto si illumina**: quando una riga è aperta nel pannello, le sue sorelle prendono una
    velatura leggera. Modificare una variante senza vedere le altre è il modo di scrivere due volte lo stesso caso.
@@ -113,20 +113,24 @@ Il pannello diventa **testata · corpo · piede**:
 Le **azioni sulla riga** (sposta, duplica, sfila, elimina) salgono nel corpo, sopra il piede: sono secondarie e
 non devono stare fra chi scrive e il bottone che scrive.
 
-Sotto i 1080 px, dove il pannello sta dopo la lista: all'apertura di una riga il pannello viene **portato in
-vista** se non lo è (`vipiRevealPanel`, una funzione accanto a `vipiScrollToId` in `vipi-ui.js`, che non fa
-nulla se il pannello è già visibile — sul monitor largo non si muove niente), e il pannello prende
-`max-height: 80vh` così il piede resta agganciato anche lì.
+All'apertura di una riga il pannello viene **portato in vista quando il suo piede non lo è** (`vipiRevealPanel`,
+accanto a `vipiScrollToId` in `vipi-ui.js`): serve sotto i 1080 px, dove il pannello sta dopo tutta la lista, e
+serve anche a schermo largo con la pagina in cima. Se il piede è già a posto non muove niente. Sotto i 1080 il
+pannello prende `max-height: 80vh`, così il piede resta agganciato anche a colonna singola (sotto i 900
+`.detail-sticky` toglieva il tetto all'altezza).
+
+La chiamata parte da `OnAfterRenderAsync`, non dal gestore del clic: dentro il gestore il pannello a schermo è
+ancora quello di prima — spesso vuoto, senza piede — e la misura cadrebbe sul riquadro sbagliato.
 
 ### C · Piccolo, ma è la stessa ferita
 
 L'avviso **«modifiche non salvate»** vive in cima alla pagina, a migliaia di pixel dal pannello che le
 contiene. Va nella **testata del pannello**, dove sta la modifica.
 
-## Test
+## Test — tre, scritti prima
 
 Il cuore nuovo è deterministico e senza IO: il **ruolo di una riga nell'outline**. In
-`tests/Vipi.Application.Tests` accanto a quelli della catena di condizioni:
+`tests/Vipi.Application.Tests/CoordinationDerivationTests.cs` accanto a quelli della catena di condizioni:
 
 | Test | Cosa tiene fermo |
 |---|---|
@@ -134,21 +138,47 @@ Il cuore nuovo è deterministico e senza IO: il **ruolo di una riga nell'outline
 | `ParentOf_Is_Null_For_Peers_And_For_Group_Wide_Rows` | pari-grado e trasversale non hanno padre: non sono eccezioni di nessuno |
 | `ConditionChain_Still_Returns_The_Same_Chain_After_Extraction` | l'estrazione non cambia la catena (caratterizzazione: si scrive **prima**) |
 
-## Verifica live
+Suite **2203 verde**, `dotnet build Vipi.slnx -c Release --no-incremental` **0 warning su entrambi i TFM**.
 
-Rifare la ricognizione con lo stesso script e confrontare:
+## ✅ Verifica live — eseguita il 12 agosto 2026
 
-| Misura | Prima | Atteso dopo |
+Stesso script della ricognizione, stessa istanza dedicata (copia del `vipi.db`, porta 5057), lock preso, LIBB.
+
+| Misura | Prima | Dopo |
 |---|---|---|
-| Salva visibile a pagina in cima / a metà / in fondo | no / no / no | **sì / sì / sì** |
-| Salva visibile a viewport 800 px di larghezza (colonna singola) | no | **sì**, dopo il richiamo del pannello |
-| Righe di gruppo distinguibili dalle righe con sola condizione | no | **sì** (pill sul gruppo, guida verticale) |
-| Riga «negli altri casi» riconoscibile | no (`—`) | **sì** (pill) |
+| Salva visibile **all'apertura di una riga** | no | **sì** (la pagina scorre da sé di 746 px, e solo se serve) |
+| Salva visibile a pagina scorsa a metà / in fondo | no / no | **sì / sì** |
+| Salva visibile a viewport 800 px (colonna singola) | no | **sì** |
+| Righe di gruppo distinguibili da righe con sola condizione | no | **sì**: 2 pill «⑂ n varianti», 2 blocchi che aprono e 2 che chiudono |
+| Riga «negli altri casi» riconoscibile | no (`—`) | **sì** (pill tratteggiata) |
+| Eccezione: si legge di quale riga lo è | no | **sì**: «↳ exception to: 25 · area Donald West» + rientro `xt-ind1` |
+| Sorelle del gruppo illuminate a riga aperta | no | **sì** (6 righe) |
 | Classi di rientro `.xt-d1..4` residue | 4 | **0** |
-| Stili inline nella pagina | 0 | **0** (invariato: tutto in classi) |
+| Stili inline nella pagina | 0 | **0** (invariato) |
+
+L'unica posizione in cui il Salva resta fuori è la pagina **scorsa a mano fino in cima**: lì il pannello
+comincia a 757 px e non ci sta, ma è il caso in cui l'editore ha deciso di guardare la testata, non il form.
+
+**Il caso «eccezione» non esisteva nei dati**: su 78 righe le profondità > 0 erano **zero**, quindi la
+resa nuova sarebbe rimasta non provata. È stata creata un'eccezione **vera** guidando l'editor sulla copia del
+DB — ed è così che sono venuti fuori i tre difetti sotto.
+
+### Tre difetti trovati guardando, che nessun test avrebbe visto
+
+- **Un'eccezione appena creata nasceva marcata «negli altri casi».** La pill vale per le alternative
+  pari-grado; un'eccezione senza condizione non è il caso che resta, è una riga incompleta. Ora resta il
+  trattino, e la pill compare solo a profondità 0.
+- **`vipiRevealPanel` mancava il bersaglio di 15 px.** Il pannello è sticky: scorrere la pagina sposta anche
+  lui, quindi `scrollIntoView` insegue una posizione che cambia mentre scorre. Due-tre passate convergono. E il
+  bersaglio è il **piede**, non il riquadro: un pannello che comincia a schermo ma finisce sotto la piega ha il
+  Salva fuori campo lo stesso.
+- **Il rientro delle eccezioni non si vedeva.** `.res-table td{padding:7px 10px}` batte una classe sola — la
+  stessa trappola già annotata nel tema per `.sid-view` — e a 20 px il rientro valeva dieci pixel. Ora
+  30/48/66/84 con `td` nel selettore.
 
 Più gli screenshot aperti a occhio (§6 della skill `verifica-live`): i numeri non dicono se un blocco *sembra*
-un blocco.
+un blocco. È da lì che è venuta l'ultima correzione — le anteprime bianche in mezzo alle righe grigie
+spezzavano in cinque un blocco solo, e ora prendono la velatura del gruppo.
 
 ## Fuori scopo
 

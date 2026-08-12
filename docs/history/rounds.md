@@ -1377,3 +1377,41 @@ corsa completa in parallelo della soluzione, mai da solo — otto giri isolati d
 seconda corsa completa sono verdi. Il nome del test non è stato catturato (il log della corsa non era su file):
 alla prossima occorrenza va tenuto il log intero, perché il sospetto ora è la **contesa** fra progetti, non il
 tempo dentro un test.
+
+## Feature: il gruppo di varianti si vede, e il Salva si raggiunge (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](../feature/2026-08-12-trasferimenti-gruppi-e-salva.md).
+
+Due difetti riportati alla **prima lettura della pagina rifatta**, ed entrambi misurati prima di toccare codice
+(Edge + puppeteer su istanza dedicata, LIBB, 78 righe, lock preso).
+
+**1. Non si vedeva quale condizione fosse eccezione o alternativa di quale.** Tre righe TOPNO con condizioni
+`25 · area Donald West`, `07`, `—` si distinguevano dalle altre solo per una velatura al **14%**, uguale per
+ogni gruppo: due gruppi consecutivi si fondevano, la riga con `—` sembrava un dato mancante invece che il
+«negli altri casi», e il rientro per profondità viveva sulla cella del **CoP**, lontano dal dato che qualifica.
+L'ambiguità valeva anche al contrario: due righe BIRSU con una condizione ciascuna **non** erano un gruppo, ma a
+occhio erano identiche a quelle che lo erano.
+
+Il modo giusto **era già nel progetto**: la vista pubblica (`CoordTable`) rende i gruppi come blocchi, con la
+tinta al 55% — portata lì per lo stesso motivo — e il rientro sulla colonna condizione. L'editor era l'unico
+posto dove lo stesso dato si leggeva peggio della pagina che lo pubblica.
+
+**2. Il Salva del pannello non compariva in nessuna posizione di scorrimento.** Non era lo sticky, che
+funzionava: era aritmetica. **1426 px** di contenuto in **904** disponibili, azioni in fondo → Salva a 1918 con
+la pagina in cima, 1239 a metà, 1185 in fondo, viewport 1000. Si raggiungeva solo con la **seconda** barra di
+scorrimento, dentro il riquadro, che non si vede finché non ci passi sopra con la rotella. Sotto i 1080 px, poi,
+la griglia collassa a una colonna e il pannello finisce dopo tutta la lista.
+
+**Una risalita sola.** Per dire «eccezione di X» serviva il padre nell'outline, che `ConditionChain` risaliva al
+proprio interno: estratto in `CoordinationDerivation.ParentOf`, con tre test di caratterizzazione scritti prima.
+Due risalite scritte a mano avrebbero potuto leggere due strutture diverse dallo stesso dato.
+
+⚠️ **Il caso «eccezione» non esisteva nei dati.** Su 78 righe le profondità > 0 erano **zero**: la resa nuova
+sarebbe rimasta non provata. È stata creata un'eccezione vera guidando l'editor sulla copia del DB — ed è da lì
+che sono venuti i tre difetti che nessun test avrebbe visto: l'eccezione appena creata nasceva marcata «negli
+altri casi» (la pill vale per le pari-grado); `vipiRevealPanel` mancava il bersaglio di 15 px perché il pannello
+è **sticky** e scorrere la pagina sposta anche lui, quindi `scrollIntoView` insegue una posizione che cambia; il
+rientro non si vedeva perché `.res-table td{padding:7px 10px}` batte una classe sola — la stessa trappola già
+annotata nel tema per `.sid-view`.
+
+Suite **2203** verde, Release `--no-incremental` 0 warning su entrambi i TFM.
