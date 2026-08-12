@@ -10,6 +10,7 @@
 @inject IAccDerivationService AccDeriv
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>@L["Xfer_Title"] · vIPI IVAO Italia</PageTitle>
 
@@ -1448,6 +1449,95 @@
         _airports = await Struct.ListAllAirportsAsync();
         // Coppie confinanti: abilitano i settori esteri come MITTENTI (direzione estero→home nelle vLOA).
         _candidates = await Neighbours.ListAsync();
+
+        await RestoreFromUrl();
+    }
+
+    // ---- Stato in URL e preferenze -------------------------------------------------------------------
+    // La divisione non è arbitraria: in URL sta ciò che identifica COSA STO GUARDANDO — ACC, vista, gruppo,
+    // riga, filtri — cioè quello che ha senso mandare a un collega e ritrovare dopo un F5. In localStorage sta
+    // ciò che è COME MI PIACE GUARDARE — anteprime, ordinamento — che è preferenza della persona, non del
+    // contenuto, e in un link condiviso sarebbe rumore.
+
+    private const string PrefPreviews = "vipiXferPreviews";
+    private const string PrefSort = "vipiXferSort";
+
+    /// <summary>Ricostruisce lo stato dall'URL. Se il link porta un ACC, la pagina si apre già lì: prima
+    /// ricominciava sempre dalla scelta dell'ACC, e un link a un gruppo non esisteva proprio.</summary>
+    private async Task RestoreFromUrl()
+    {
+        var q = QueryStringUtil.Parse(new Uri(Nav.Uri).Query);
+
+        _flowFilter = q.Value("q") ?? "";
+        _kindFilter = q.Enum<TransferFlowKind>("tipo");
+        _toReviewOnly = q.Flag("rev");
+        _noReceiverOnly = q.Flag("norx");
+        if (q.Enum<XferView>("vista") is { } v) _view = v;
+
+        var acc = q.Value("acc");
+        if (string.IsNullOrWhiteSpace(acc)) return;
+
+        _accCode = acc;
+        await OnAccChanged();   // azzera gruppo e riga: la scelta dal link va rimessa DOPO
+
+        // Il gruppo va scelto solo se esiste ancora: un link vecchio a un gruppo eliminato deve aprire la
+        // pagina sull'ACC giusto, non lasciarla in uno stato che non corrisponde a niente.
+        if (q.Id("gruppo") is int flowId && _flows.Any(f => f.Id == flowId)) ExpandTo(flowId);
+
+        if (q.Id("riga") is int pointId)
+        {
+            var f = _flows.FirstOrDefault(x => x.Points.Any(p => p.Id == pointId));
+            var p = f?.Points.FirstOrDefault(x => x.Id == pointId);
+            if (f is not null && p is not null) await EditPoint(f, p);
+        }
+    }
+
+    /// <summary>Riscrive la querystring senza navigare. <c>replace</c> e non un'altra voce di cronologia: si
+    /// cambia gruppo decine di volte in una sessione, e col push il tasto «indietro» diventerebbe inutilizzabile.</summary>
+    private void SyncUrl()
+    {
+        if (_acc is null) return;
+        Nav.NavigateTo(Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["acc"] = _acc.Code,
+            ["vista"] = _view == XferView.Tree ? null : _view.ToString(),
+            ["gruppo"] = _view == XferView.Tree ? _selectedFlowId : null,
+            ["riga"] = _editPointId,
+            ["q"] = string.IsNullOrWhiteSpace(_flowFilter) ? null : _flowFilter,
+            ["tipo"] = _kindFilter?.ToString(),
+            ["rev"] = _toReviewOnly ? "1" : null,
+            ["norx"] = _noReceiverOnly ? "1" : null,
+        }), forceLoad: false, replace: true);
+    }
+
+    /// <summary>
+    /// Preferenze di vista da <c>localStorage</c>.
+    /// <para>⚠️ Si leggono al PRIMO RENDER e non in <c>OnInitializedAsync</c>: durante il prerender non c'è
+    /// JavaScript, e l'interop lì fallisce. È la trappola che rende le preferenze «a volte» perse.</para>
+    /// </summary>
+    private async Task RestorePreferences()
+    {
+        try
+        {
+            var previews = await JS.InvokeAsync<string?>("vipiStoreGet", PrefPreviews);
+            if (previews is not null) _showPreviews = previews != "0";
+
+            var sort = await JS.InvokeAsync<string?>("vipiStoreGet", PrefSort);
+            if (Enum.TryParse<RowSort>(sort, out var s)) _sort = s;
+        }
+        catch (JSDisconnectedException) { /* circuito chiuso: nessuna preferenza da applicare */ }
+        catch (JSException) { /* localStorage negato (privacy/quota): si resta sui valori predefiniti */ }
+    }
+
+    private async Task SavePreferences()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("vipiStoreSet", PrefPreviews, _showPreviews ? "1" : "0");
+            await JS.InvokeVoidAsync("vipiStoreSet", PrefSort, _sort.ToString());
+        }
+        catch (JSDisconnectedException) { /* niente da salvare su un circuito chiuso */ }
+        catch (JSException) { /* localStorage negato: la preferenza vale per questa sessione e basta */ }
     }
 
     private Task SelectAcc(string code)
@@ -1852,13 +1942,44 @@
     /// </summary>
     private bool _revealPanel;
 
+    // Firme dell'ultimo stato già scritto fuori (URL / preferenze): il confronto dice se c'è qualcosa da
+    // scrivere. Un solo punto che sincronizza, invece di una chiamata sparsa in ognuno dei dodici gestori che
+    // possono cambiare lo stato — e di dodici occasioni di dimenticarne una.
+    private string _urlAs = "", _prefsAs = "";
+
+    private string UrlSignature() =>
+        $"{_accCode}|{_view}|{_selectedFlowId}|{_editPointId}|{_flowFilter}|{_kindFilter}|{_toReviewOnly}|{_noReceiverOnly}";
+
+    private string PrefSignature() => $"{_showPreviews}|{_sort}";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            // Le preferenze si leggono QUI e non in OnInitializedAsync: durante il prerender non c'è
+            // JavaScript, e l'interop lì fallisce. È la trappola che le fa perdere «a volte».
+            await RestorePreferences();
+            _prefsAs = PrefSignature();
+            _urlAs = UrlSignature();
+            StateHasChanged();
+        }
+        else if (PrefSignature() != _prefsAs)
+        {
+            _prefsAs = PrefSignature();
+            await SavePreferences();
+        }
+
+        if (UrlSignature() != _urlAs)
+        {
+            _urlAs = UrlSignature();
+            SyncUrl();
+        }
+
         if (!_revealPanel) return;
         _revealPanel = false;
         // Il JS è l'unico a sapere dov'è il pannello rispetto allo schermo: se il piede è già visibile non
-        // muove niente. Sotto i 1080 px il pannello sta dopo tutta la lista, e senza questo si scriveva in un
-        // form fuori campo.
+        // muove niente. Sotto le soglie di collasso il pannello sta dopo le altre colonne, e senza questo si
+        // scriveva in un form fuori campo.
         try { await JS.InvokeVoidAsync("vipiRevealPanel", "xt-panel"); }
         catch (JSDisconnectedException) { /* circuito chiuso mentre si apriva: non c'è nulla da mostrare */ }
     }
