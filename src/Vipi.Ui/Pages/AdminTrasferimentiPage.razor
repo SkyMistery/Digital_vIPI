@@ -145,14 +145,20 @@
                     <button class="btn ghost" title="@L["Xfer_ExpandAll"]" @onclick="ExpandAll">⊞</button>
                     <button class="btn ghost" title="@L["Xfer_CollapseAll"]" @onclick="CollapseAll">⊟</button>
                 }
-                <label class="muted xt-check" title="@L["Xfer_SortNote"]">
-                    @L["Xfer_SortBy"]
-                    <select @bind="_sort">
-                        <option value="@RowSort.Manual">@L["Xfer_SortManual"]</option>
-                        <option value="@RowSort.Cop">@L["Xfer_SortCop"]</option>
-                        <option value="@RowSort.Level">@L["Xfer_SortLevel"]</option>
-                    </select>
-                </label>
+                @* La tendina resta all'ALBERO. In elenco ordinano le intestazioni, e due comandi per la stessa
+                   cosa nello stesso posto sarebbero due verità; per giunta quattro delle sette chiavi (settore,
+                   aeroporto, tipo, ricevente) qui non avrebbero senso — dentro un gruppo sono costanti. *@
+                @if (_view == XferView.Tree)
+                {
+                    <label class="muted xt-check" title="@L["Xfer_SortNote"]">
+                        @L["Xfer_SortBy"]
+                        <select @bind="_sort">
+                            <option value="@RowSort.Manual">@L["Xfer_SortManual"]</option>
+                            <option value="@RowSort.Cop">@L["Xfer_SortCop"]</option>
+                            <option value="@RowSort.Level">@L["Xfer_SortLevel"]</option>
+                        </select>
+                    </label>
+                }
                 <label class="muted xt-check" title="@L["Xfer_ShowPreviewsTitle"]">
                     <input type="checkbox" checked="@_showPreviews" @onchange="TogglePreviews" /> @L["Xfer_ShowPreviews"]
                 </label>
@@ -206,7 +212,9 @@
                Ognuna scorre per conto proprio dentro l'altezza dello schermo. È la differenza che toglie
                l'attrito più caro della pagina vecchia: il pannello non finisce mai «dopo la lista», perché
                sopra di lui non c'è più una lista. *@
-            <div class="xfe-layout3 @(_view == XferView.Flat ? "xt-noNav" : "")">
+            @* Il pannello vuoto si ritira SOLO in elenco, dove la tabella ha dieci colonne e ha bisogno della
+               larghezza. In albero resta: lì lo spazio c'è, e una colonna che dice cosa fare vale più di 380 px. *@
+            <div class="xfe-layout3 @(_view == XferView.Flat ? "xt-noNav" : "") @(_view == XferView.Flat && ActiveForm is null ? "xt-noPanel" : "")">
                 @if (_view == XferView.Tree)
                 {
                     <XferNavigator Sectors="BuildNav(shown)" SelectedFlowId="_selectedFlowId"
@@ -220,9 +228,12 @@
                     @WorkPane(shown, tableRows)
                 </section>
 
-                <aside id="xt-panel" class="xt-panel">
-                    @PointPanel()
-                </aside>
+                @if (_view == XferView.Tree || ActiveForm is not null)
+                {
+                    <aside id="xt-panel" class="xt-panel">
+                        @PointPanel()
+                    </aside>
+                }
             </div>
         }
     }
@@ -515,8 +526,31 @@
     // ---- Ordinamento della VISTA ----
     // Cambia solo come si guarda l'elenco: l'ordine salvato è la struttura dell'outline e non si tocca mai
     // da qui. Per questo l'ordinamento non-manuale disabilita il trascinamento: sarebbero due verità.
-    private enum RowSort { Manual, Cop, Level }
+    /// <summary>
+    /// Come si ordina la vista.
+    /// <para>Le prime tre valgono ovunque; <c>Sector</c>, <c>Airport</c>, <c>Kind</c> e <c>Receiver</c> solo in
+    /// <b>elenco</b> — dentro un gruppo settore, aeroporto e tipo sono costanti, e offrirle sarebbe offrire un
+    /// comando che non fa niente. Per questo la tendina resta all'albero e in elenco ordinano le intestazioni:
+    /// due comandi per la stessa cosa nello stesso posto sarebbero due verità.</para>
+    /// </summary>
+    private enum RowSort { Manual, Cop, Level, Sector, Airport, Kind, Receiver }
+
     private RowSort _sort = RowSort.Manual;
+
+    /// <summary>Verso dell'ordinamento in elenco: lo stesso clic sull'intestazione lo rovescia.</summary>
+    private bool _sortDesc;
+
+    /// <summary>
+    /// Clic su un'intestazione: la prima volta ordina, la seconda rovescia. Tornare a «manuale» al terzo clic
+    /// sarebbe un ciclo a tre stati di cui il terzo non si vede — e in elenco «manuale» è comunque l'ordine
+    /// dell'albero appiattito, che ha la sua intestazione.
+    /// </summary>
+    private void SortBy(RowSort column)
+    {
+        if (_sort == column) { _sortDesc = !_sortDesc; return; }
+        _sort = column;
+        _sortDesc = false;
+    }
 
     private IReadOnlyList<TransferPointRow> SortedPoints(TransferFlowRow f) => _sort switch
     {
@@ -573,20 +607,39 @@
             .Where(x => !_noReceiverOnly || x.Point.NextSectorId is null)
             .Where(x => !_toReviewOnly || NeedsReview(x.Point));
 
-        pairs = _sort switch
+        // «Manuale» in elenco non può essere l'ordine dell'outline (è per-flusso): è l'ordine dell'albero
+        // appiattito — settore, aeroporto, tipo — e dentro il flusso l'outline vero. È anche il riordino di
+        // partenza a cui gli altri si aggiungono come chiave secondaria, così due righe pari restano stabili
+        // invece di ballare a ogni ricarico.
+        var ordered = pairs
+            .OrderBy(x => x.Flow.OwningSectorCallsign, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Flow.AirportIcao ?? "~", StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Flow.Kind)
+            .ThenBy(x => x.Point.Order);
+
+        ordered = _sort switch
         {
-            RowSort.Cop => pairs.OrderBy(x => string.IsNullOrWhiteSpace(x.Point.Cop) ? "~" : x.Point.Cop, StringComparer.OrdinalIgnoreCase),
-            RowSort.Level => pairs.OrderBy(x => x.Point.LevelValue ?? int.MaxValue).ThenBy(x => x.Point.Cop, StringComparer.OrdinalIgnoreCase),
-            // «Manuale» in elenco non può essere l'ordine dell'outline (è per-flusso): è l'ordine dell'albero
-            // appiattito — settore, aeroporto, tipo — e dentro il flusso l'outline vero.
-            _ => pairs.OrderBy(x => x.Flow.OwningSectorCallsign, StringComparer.OrdinalIgnoreCase)
-                      .ThenBy(x => x.Flow.AirportIcao ?? "~", StringComparer.OrdinalIgnoreCase)
-                      .ThenBy(x => x.Flow.Kind)
-                      .ThenBy(x => x.Point.Order),
+            RowSort.Cop => Direct(ordered, x => string.IsNullOrWhiteSpace(x.Point.Cop) ? "~" : x.Point.Cop),
+            RowSort.Level => Direct(ordered, x => (x.Point.LevelValue ?? int.MaxValue).ToString("D6")),
+            RowSort.Sector => Direct(ordered, x => x.Flow.OwningSectorCallsign),
+            RowSort.Airport => Direct(ordered, x => x.Flow.AirportIcao ?? "~"),
+            RowSort.Kind => Direct(ordered, x => XferLabels.Kind(L, x.Flow.Kind)),
+            RowSort.Receiver => Direct(ordered, x => x.Point.NextSectorCallsign ?? "~"),
+            _ => ordered,
         };
 
-        return BuildRows(pairs.ToList());
+        return BuildRows(ordered.ToList());
     }
+
+    /// <summary>Applica la chiave scelta <b>sopra</b> l'ordine di base, nel verso corrente. Il confronto è per
+    /// stringa anche sul livello (imbottito a sei cifre): una chiave sola tiene insieme i sette casi, e un
+    /// numero ordinato come testo con la stessa larghezza si ordina come numero.</summary>
+    private IOrderedEnumerable<(TransferFlowRow Flow, TransferPointRow Point)> Direct(
+        IOrderedEnumerable<(TransferFlowRow Flow, TransferPointRow Point)> rows,
+        Func<(TransferFlowRow Flow, TransferPointRow Point), string> key) =>
+        _sortDesc
+            ? rows.OrderByDescending(key, StringComparer.OrdinalIgnoreCase)
+            : rows.OrderBy(key, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Le righe pronte da rendere: blocco di varianti, anteprima e riassunto della faccetta già composti.</summary>
     private List<XferTableRow> BuildRows(IReadOnlyList<(TransferFlowRow Flow, TransferPointRow Point)> src)
@@ -774,7 +827,19 @@
     {
         if (_view == XferView.Flat)
         {
-            @PaneHead(L["Xfer_ViewFlat"].Value, string.Format(L["Xfer_RowsCount"].Value, rows.Count), null)
+            <div class="xt-pane-h">
+                <b>@L["Xfer_ViewFlat"]</b>
+                <span class="muted xt-hint">@(string.Format(L["Xfer_RowsCount"].Value, rows.Count))</span>
+                @* «+ Riga» compare quando un gruppo È scelto — la scelta si conserva passando da albero a
+                   elenco. Senza un gruppo non compare: una riga deve appartenere a uno, e chiederlo con un
+                   secondo selettore sarebbe un giro più lungo del tornare all'albero (che è il tasto ↗). *@
+                @if (SelectedFlow() is { } target)
+                {
+                    <span class="ln xt-grow"></span>
+                    <span class="muted xt-hint">@target.OwningSectorCallsign · @KindLabel(target.Kind)</span>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddPoint(target)">+ @L["Xfer_AddRowFull"]</button>
+                }
+            </div>
             <div class="xt-pane-body">
                 @if (rows.Count == 0)
                 {
@@ -872,6 +937,8 @@
     private RenderFragment RowsTable(IReadOnlyList<XferTableRow> rows, bool showContext, bool canDrag) => __builder =>
     {
         <XferRowsTable Rows="rows" ShowContext="showContext" CanDrag="canDrag"
+                       SortColumn="@_sort.ToString()" SortDescending="_sortDesc"
+                       OnSort="c => SortBy(Enum.Parse<RowSort>(c))"
                        Selected="_selected" EditPointId="_editPointId"
                        Disabled="@(_busy || !_canEdit)" DragId="_dragId" DragOverId="_dragOver"
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
@@ -1530,6 +1597,7 @@
 
     private const string PrefPreviews = "vipiXferPreviews";
     private const string PrefSort = "vipiXferSort";
+    private const string PrefSortDesc = "vipiXferSortDesc";
 
     /// <summary>Ricostruisce lo stato dall'URL. Se il link porta un ACC, la pagina si apre già lì: prima
     /// ricominciava sempre dalla scelta dell'ACC, e un link a un gruppo non esisteva proprio.</summary>
@@ -1593,6 +1661,9 @@
 
             var sort = await JS.InvokeAsync<string?>("vipiStoreGet", PrefSort);
             if (Enum.TryParse<RowSort>(sort, out var s)) _sort = s;
+
+            var desc = await JS.InvokeAsync<string?>("vipiStoreGet", PrefSortDesc);
+            _sortDesc = desc == "1";
         }
         catch (JSDisconnectedException) { /* circuito chiuso: nessuna preferenza da applicare */ }
         catch (JSException) { /* localStorage negato (privacy/quota): si resta sui valori predefiniti */ }
@@ -1604,6 +1675,7 @@
         {
             await JS.InvokeVoidAsync("vipiStoreSet", PrefPreviews, _showPreviews ? "1" : "0");
             await JS.InvokeVoidAsync("vipiStoreSet", PrefSort, _sort.ToString());
+            await JS.InvokeVoidAsync("vipiStoreSet", PrefSortDesc, _sortDesc ? "1" : "0");
         }
         catch (JSDisconnectedException) { /* niente da salvare su un circuito chiuso */ }
         catch (JSException) { /* localStorage negato: la preferenza vale per questa sessione e basta */ }
@@ -1714,6 +1786,12 @@
         if (_view == view) return;
         _view = view;
         _newGroupOpen = false;
+
+        // Tornando all'albero, una chiave di ordinamento che vale solo in elenco (settore, aeroporto, tipo,
+        // ricevente) non ha più significato: dentro un gruppo le prime tre sono costanti. Lasciarla vorrebbe
+        // dire una tendina che mostra «manuale» mentre l'ordine è un altro — cioè un comando che mente.
+        if (view == XferView.Tree && _sort is not (RowSort.Manual or RowSort.Cop or RowSort.Level))
+            _sort = RowSort.Manual;
     }
 
     private void TogglePreviews() => _showPreviews = !_showPreviews;
@@ -2237,7 +2315,7 @@
     private string UrlSignature() =>
         $"{_accCode}|{_view}|{_selectedFlowId}|{_editPointId}|{_flowFilter}|{_kindFilter}|{_toReviewOnly}|{_noReceiverOnly}";
 
-    private string PrefSignature() => $"{_showPreviews}|{_sort}";
+    private string PrefSignature() => $"{_showPreviews}|{_sort}|{_sortDesc}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

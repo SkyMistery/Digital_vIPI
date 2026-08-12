@@ -19,13 +19,13 @@
             <th class="xt-pick"></th>
             @if (ShowContext)
             {
-                <th>@L["Xfer_ColSector"]</th>
-                <th>@L["Xfer_ColAirport"]</th>
-                <th>@L["Xfer_Kind"]</th>
+                <th>@Head(L["Xfer_ColSector"], "Sector")</th>
+                <th>@Head(L["Xfer_ColAirport"], "Airport")</th>
+                <th>@Head(L["Xfer_Kind"], "Kind")</th>
             }
-            <th>@L["Xfer_ColCop"]</th>
-            <th>@L["Xfer_ColLevel"]</th>
-            <th>@L["Xfer_ColReceiver"]</th>
+            <th>@Head(L["Xfer_ColCop"], "Cop")</th>
+            <th>@Head(L["Xfer_ColLevel"], "Level")</th>
+            <th>@Head(L["Xfer_ColReceiver"], "Receiver")</th>
             <th>@L["Xfer_ColCondition"]</th>
             <th class="xt-acts"></th>
         </tr>
@@ -181,6 +181,40 @@
     [Parameter] public EventCallback<int> OnDragStart { get; set; }
     [Parameter] public EventCallback<int> OnDragOver { get; set; }
     [Parameter] public EventCallback<TransferPointRow> OnDrop { get; set; }
+
+    /// <summary>La colonna che ordina adesso (nome del valore di <c>RowSort</c>), o <c>null</c> se nessuna.</summary>
+    [Parameter] public string? SortColumn { get; set; }
+
+    /// <summary>Verso corrente dell'ordinamento.</summary>
+    [Parameter] public bool SortDescending { get; set; }
+
+    /// <summary>Clic su un'intestazione ordinabile. Non impostato = le intestazioni non ordinano.</summary>
+    [Parameter] public EventCallback<string> OnSort { get; set; }
+
+    /// <summary>
+    /// Un'intestazione che ordina — <b>solo</b> dove ordinare significa qualcosa.
+    /// <para>In albero le intestazioni restano testo: la tabella mostra un gruppo solo, dove settore, aeroporto
+    /// e tipo sono costanti, e ordinare per CoP o livello lo fa già la tendina della barra. Renderle cliccabili
+    /// anche lì darebbe due comandi per la stessa cosa, che è il modo di averne due che si contraddicono.</para>
+    /// </summary>
+    private RenderFragment Head(string label, string column) => __builder =>
+    {
+        if (!ShowContext || !OnSort.HasDelegate)
+        {
+            @label
+            return;
+        }
+
+        var active = string.Equals(SortColumn, column, StringComparison.Ordinal);
+        <button type="button" class="xt-sorth @(active ? "on" : "")"
+                title="@(active ? $"{label} · {(SortDescending ? L["Xfer_SortDesc"] : L["Xfer_SortAsc"])}" : label)"
+                @onclick="() => OnSort.InvokeAsync(column)">
+            @label
+            @* La freccia solo sulla colonna attiva: una freccia grigia su ognuna direbbe «ordinabile», che è
+               già detto dal puntatore, e nasconderebbe quale sta ordinando davvero. *@
+            @if (active) { <span class="xt-sortdir">@(SortDescending ? "▾" : "▴")</span> }
+        </button>
+    };
 
     /// <summary>Quante colonne ha la tabella: serve al <c>colspan</c> della riga di anteprima, che deve
     /// attraversarle tutte — con un numero scritto a mano l'anteprima si scollava dalla tabella appena le

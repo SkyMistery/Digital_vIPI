@@ -706,6 +706,10 @@
 .wrap.struct:has(.xfe-layout3){padding-bottom:18px}
 /* Vista a elenco: il navigatore non c'è, e la tabella si prende lo spazio che avanza. */
 .xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px}
+/* …e se non c'è nemmeno una riga aperta, si prende anche i 380 px del pannello: in elenco la tabella ha dieci
+   colonne, e una colonna vuota che dice «scegli una riga» è la cosa meno utile a cui darli. In albero il
+   pannello vuoto RESTA — lì lo spazio c'è, e dire cosa fare vale più della larghezza. */
+.xfe-layout3.xt-noNav.xt-noPanel{grid-template-columns:minmax(0,1fr)}
 /* Sotto i 1200 il pannello scende sotto le altre due; sotto i 900 resta una colonna sola. In entrambi i casi
    l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
    ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
@@ -1446,6 +1450,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* L'annulla sta DENTRO il messaggio che lo propone: è lì che si guarda quando ci si accorge dell'errore, ed è
    anche la regola della sua durata — c'è il messaggio, c'è l'annulla. */
 .xt-undo{margin-left:10px;flex:none}
+/* Intestazione che ordina: un bottone che non sembra un bottone finché non ci si passa sopra — la tabella
+   deve restare una tabella, e l'ordinamento è un'azione che si scopre, non un ornamento su ogni colonna. */
+.xt-sorth{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;gap:3px;text-transform:inherit;letter-spacing:inherit}
+.xt-sorth:hover{color:var(--ivao-blue)}
+.xt-sorth.on{color:var(--ivao-blue)}
+.xt-sortdir{font-size:9px}
 /* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
    fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
    scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva
