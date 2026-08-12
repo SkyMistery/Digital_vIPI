@@ -1,4 +1,4 @@
-﻿# Lavori aperti — elenco unico
+# Lavori aperti — elenco unico
 
 **Aggiornato:** 11 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
@@ -768,8 +768,14 @@ gruppo smette di essere un terzo livello di collasso: arrivare a una riga costav
 ⚠️ Qui è stato chiuso un **difetto che c'era da prima**: il filtro «senza ricevente» si accendeva, contava
 giusto e **non filtrava nulla**.
 
-Suite 2384 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
-cinque i giri (diciotto difetti trovati proprio lì, quasi nessuno visibile alla suite).
+Sesto giro, dalle rifiniture chieste sul risultato:
+[`feature/2026-08-12-editor-trasferimenti-rifiniture.md`](feature/2026-08-12-editor-trasferimenti-rifiniture.md)
+— il **costo per gesto** (salvare una cella da 8 query a 1), la **tastiera** nei picker (sei copie → un
+componente), l'**annulla** dopo un'eliminazione che rimette anche l'outline, la **modifica in blocco** su
+livello e condizione, l'ordinamento per intestazione in elenco.
+
+Suite 2403 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
+sei i giri (ventuno difetti trovati proprio lì, quasi nessuno visibile alla suite).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
 avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al

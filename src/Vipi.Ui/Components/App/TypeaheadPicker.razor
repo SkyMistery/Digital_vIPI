@@ -13,7 +13,9 @@
 <div class="field sector-pick-wrap @Class">
     @if (!string.IsNullOrWhiteSpace(Label))
     {
-        <label>@Label @if (!string.IsNullOrWhiteSpace(Hint)) { <span class="muted xt-hint">@Hint</span> }</label>
+        @* Lo stacco fra etichetta e suggerimento lo dà il CSS (.xt-pickhint), non uno spazio nel markup: fra
+           un'espressione e un tag Razor lo spazio lo mangia, e a schermo usciva «RICEVENTE(vuoto = UNICOM)». *@
+        <label>@Label@if (!string.IsNullOrWhiteSpace(Hint)) { <span class="muted xt-hint xt-pickhint">@Hint</span> }</label>
     }
     <input placeholder="@Placeholder" title="@Title" autocomplete="off" disabled="@Disabled"
            value="@Text" @oninput="OnInput" @onfocus="() => Open(true)" @onblur="OnBlur" @onkeydown="OnKey" />
@@ -34,7 +36,8 @@
                 <button type="button" class="sp-item @(ix == _active ? "on" : "")"
                         @onmousedown:preventDefault="true" @onmousedown="() => Pick(it)">
                     @if (it.Strong) { <b>@it.Value</b> } else { @it.Value }
-                    @if (!string.IsNullOrWhiteSpace(it.Hint)) { <span class="muted xt-hint">@it.Hint</span> }
+                    @* Stesso motivo dell'etichetta: senza lo stacco in CSS la voce si leggeva «LIBB_ES_CTRLIBB». *@
+                    @if (!string.IsNullOrWhiteSpace(it.Hint)) { <span class="muted xt-hint xt-pickhint">@it.Hint</span> }
                 </button>
             }
             @if (Visible.Count == 0)

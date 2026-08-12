@@ -1125,7 +1125,7 @@
                    @onkeydown="PanelKey" />
         </div>
         <TypeaheadPicker Label="@L["Xfer_ColReceiver"]" Hint="@L["Xfer_EmptyUnicom"]" Placeholder="@L["Xfer_SearchCallsign"]"
-                         Items="ReceiverItems(form.NextText)" Text="form.NextText"
+                         Items="ReceiverItems(form.NextText)" Text="@form.NextText"
                          TextChanged="t => { form.NextText = t; ResolveNext(form); }"
                          OnPick="i => PickNext(form, i?.Value)" OnUnhandledKey="PanelKey" />
 
@@ -1199,7 +1199,7 @@
         </div>
         <TypeaheadPicker Label="@L["Xfer_ActiveArea"]" Hint="@L["Xfer_SearchHint"]" Placeholder="@L["Xfer_SearchArea"]"
                          Items="AreaItems(form.AreaText)" EmptyOption="@L["Xfer_AreaNone"]" NoMatch="@L["Xfer_NoArea"]"
-                         Text="form.AreaText" TextChanged="t => { form.AreaText = t; ResolveArea(form); }"
+                         Text="@form.AreaText" TextChanged="t => { form.AreaText = t; ResolveArea(form); }"
                          OnPick="i => PickArea(form, i?.Value)" />
         <div class="field"><label>@L["Xfer_ColCustom"] <span class="muted xt-hint">@L["Xfer_FreeTextHint"]</span></label>
             <input placeholder="@L["Xfer_CustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
@@ -1664,6 +1664,11 @@
 
             var desc = await JS.InvokeAsync<string?>("vipiStoreGet", PrefSortDesc);
             _sortDesc = desc == "1";
+
+            // La preferenza può portare una chiave che vale solo in elenco (l'ultima sessione ordinava per
+            // settore) mentre la pagina si apre in albero: lì la tendina non ha quell'opzione e si mostrava
+            // VUOTA, cioè un comando che non dice cosa sta facendo. Visto a schermo, non nei test.
+            NormalizeSortForView();
         }
         catch (JSDisconnectedException) { /* circuito chiuso: nessuna preferenza da applicare */ }
         catch (JSException) { /* localStorage negato (privacy/quota): si resta sui valori predefiniti */ }
@@ -1787,10 +1792,19 @@
         _view = view;
         _newGroupOpen = false;
 
-        // Tornando all'albero, una chiave di ordinamento che vale solo in elenco (settore, aeroporto, tipo,
-        // ricevente) non ha più significato: dentro un gruppo le prime tre sono costanti. Lasciarla vorrebbe
-        // dire una tendina che mostra «manuale» mentre l'ordine è un altro — cioè un comando che mente.
-        if (view == XferView.Tree && _sort is not (RowSort.Manual or RowSort.Cop or RowSort.Level))
+        NormalizeSortForView();
+    }
+
+    /// <summary>
+    /// In albero le chiavi che valgono solo in elenco (settore, aeroporto, tipo, ricevente) non hanno
+    /// significato: dentro un gruppo le prime tre sono costanti, e la tendina non le offre nemmeno. Lasciarne
+    /// una attiva dava una tendina <b>vuota</b> — un comando che non dice cosa sta facendo.
+    /// <para>Serve in due momenti, e per questo è un metodo: quando si commuta la vista, e quando la
+    /// preferenza salvata dall'ultima sessione arriva su una pagina che si apre in albero.</para>
+    /// </summary>
+    private void NormalizeSortForView()
+    {
+        if (_view == XferView.Tree && _sort is not (RowSort.Manual or RowSort.Cop or RowSort.Level))
             _sort = RowSort.Manual;
     }
 

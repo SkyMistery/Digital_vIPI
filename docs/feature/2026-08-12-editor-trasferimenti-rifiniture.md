@@ -1,6 +1,7 @@
 # Feature — Editor trasferimenti: il costo per gesto, la tastiera, l'annulla, il blocco
 
-Data: 2026-08-12 · Stato: 🟡 **in corso** ·
+Data: 2026-08-12 · Stato: **CHIUSO — suite 2403 verde, Release 0 warning su entrambi i TFM,
+✅ verifica live eseguita** ·
 Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [editor trasferimenti a tre colonne](2026-08-12-editor-trasferimenti-tre-colonne.md), stesso branch
 `feature/trasferimenti-acc-app`.
@@ -150,3 +151,53 @@ giusta — un annulla persistente è un cestino, cioè un'altra carta.
   filtro in ogni lettura.
 - **Sposta in blocco fra gruppi**: muove l'outline, ed è la cosa più delicata di quest'area.
 - **Piste nella condizione in blocco**: dipendono dall'aeroporto, vedi §1.
+
+## ✅ Verifica live — eseguita il 12 agosto 2026
+
+Su copia del `vipi.db` reale, ACC **LIBB** (36 gruppi, 78 righe), lock preso, Edge + puppeteer-core.
+
+| Cosa | Esito |
+|---|---|
+| **Annulla su gruppo eliminato** | gruppo da 7 righe con outline vero → «Group deleted · ↺ Undo» → «Group put back, with its rows and their structure» → 36 gruppi come prima |
+| Ordinamento per intestazione | 6 intestazioni ordinabili in elenco; primo clic ▴, secondo ▾ e l'ordine si rovescia (LAAA… → LYTV…) |
+| Tendina di ordinamento | assente in elenco, presente in albero — un comando solo per posto |
+| Pannello che si ritira | in elenco senza riga aperta il riquadro passa a **1636 px** di larghezza piena |
+| Tastiera nel picker | ↓ apre ed evidenzia, Invio sceglie e chiude, il valore finisce nel campo |
+| Barra del blocco | ricevente · livello · area · condizione libera · elimina · deseleziona, tutto su una riga |
+| Guardie | nessun errore di pagina, nessuna eccezione in console |
+
+### Tre difetti trovati **solo** a schermo, tutti della stessa famiglia
+
+1. **`Text="form.NextText"` passava la stringa letterale.** È *la* trappola che il runbook di verifica
+   documenta al §7 — un attributo di componente di tipo `string` senza `@` non è una variabile — e a schermo
+   il campo del ricevente conteneva davvero le parole `form.NextText`. **Nessun test l'avrebbe vista**: compila,
+   gira, e mente. Due occorrenze (ricevente e area).
+2. **La tendina di ordinamento si mostrava vuota.** La preferenza dell'ultima sessione poteva essere una chiave
+   che vale solo in elenco (settore) mentre la pagina si apre in albero, dove quell'opzione non esiste: un
+   comando che non dice cosa sta facendo. La normalizzazione c'era sul cambio di vista, mancava al
+   ricaricamento delle preferenze — ed è diventata un metodo proprio perché serve in due momenti.
+3. **Etichetta e suggerimento si toccavano**: «RECEIVING SECTOR(EMPTY = UNICOM)», «LIBB_ES_CTRLIBB». Fra
+   un'espressione e un tag Razor lo spazio scritto nel markup viene mangiato — e anche un `<text> </text>` non
+   è bastato. Lo stacco è passato al CSS (`.xt-pickhint`), dov'è deterministico e dove la spaziatura appartiene.
+
+## Esito — scostamenti dalla carta e cose imparate
+
+**`DeletePointsAsync` non restituisce le fotografie.** La carta lo prevedeva; scrivendolo è venuto fuori che la
+fotografia deve scattarla **chi chiama**, perché è lui a sapere quali righe stava mostrando. Farla scattare al
+repository vorrebbe dire fidarsi che le due cose coincidano — e se non coincidessero, l'annulla rimetterebbe
+righe che l'utente non aveva selezionato. Meno superficie e una garanzia in più.
+
+**Il caso che la carta chiamava delicato lo era davvero, e il test lo dimostra.** `Restoring_A_Deleted_Flow_Puts_The_Outline_Back`
+costruisce capofila → eccezione → eccezione dell'eccezione → alternativa, elimina e ripristina, e confronta la
+**forma** — non il numero di righe. Ricostruito con `AddPointAsync` sarebbe tornato piatto e il conteggio
+sarebbe stato giusto lo stesso: è esattamente il modo in cui un annulla sbagliato passa inosservato.
+
+**L'estrazione del picker ha ripagato due volte.** Una in righe (sei copie → una), e una perché la build con
+avvisi=errori ha trovato da sola tre campi «elenco aperto» rimasti orfani (CS0414/CS0169). Gli altri residui
+— quattro metodi `Pick*`, `NextOpen`/`AreaOpen`, `OnAptBlur`, `MatchAreas` — li ha trovati il grep della
+domanda 4, che è il motivo per cui quella domanda esiste.
+
+**Un limite dell'annulla, dichiarato e non nascosto**: vive nel circuito e gli id cambiano. Ricaricando la
+pagina l'annulla non c'è più, e un link `?riga=N` alla riga eliminata resta morto. Un annulla che
+sopravvivesse al ricaricamento è un **cestino**, cioè una colonna in più e un filtro in ogni lettura: un'altra
+carta, non un parametro di questa.

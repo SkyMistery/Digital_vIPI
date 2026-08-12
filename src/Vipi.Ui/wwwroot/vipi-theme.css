@@ -1457,6 +1457,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-sorth:hover{color:var(--ivao-blue)}
 .xt-sorth.on{color:var(--ivao-blue)}
 .xt-sortdir{font-size:9px}
+/* Suggerimento accanto a un'etichetta o a una voce del picker. Lo stacco sta QUI e non come spazio nel markup:
+   fra un'espressione e un tag Razor lo spazio viene mangiato, e a schermo uscivano «RICEVENTE(vuoto = UNICOM)»
+   e «LIBB_ES_CTRLIBB». La spaziatura è presentazione, e in CSS è deterministica. */
+.xt-pickhint{margin-left:6px}
 /* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
    fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
    scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva

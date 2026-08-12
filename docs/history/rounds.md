@@ -1500,3 +1500,58 @@ localizzatore e otto callback per guadagnare righe di file — e la ragione per 
 correggere due volte ogni difetto di lettura.
 
 Suite **2384** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.
+
+## Feature: il costo per gesto, la tastiera, l'annulla, il blocco (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-rifiniture.md`](../feature/2026-08-12-editor-trasferimenti-rifiniture.md).
+
+Sesto giro sulla stessa pagina, chiesto guardando il risultato del quinto. Nove attriti, di nuovo **contati nel
+sorgente** prima di proporre — e il più caro era un **debito contratto dal giro precedente**.
+
+**Il costo per gesto.** Ogni scrittura passava da `Guarded` → `LoadAsync` → flussi **più** contesto anteprima,
+che ricarica i flussi una seconda volta e aggiunge sei mappe: **otto query**, due delle quali caricano tutti i
+punti dell'ACC. Finché si salvava dal pannello si pagava di rado; da quando si scrive in cella si paga a ogni
+Invio. Di quel contesto **solo i nomi liberi degli aeroporti** dipendono dai flussi, e cambiano quando cambia un
+**gruppo**: il ricaricamento segue quella condizione, che è nota e vale un parametro — non una cache a scadenza,
+che sarebbe l'approssimazione di qualcosa che sappiamo. Salvare una casella: **da 8 query a 1**.
+
+**Il picker era scritto sei volte, e nessuna copia prendeva i tasti.** Regola del 2 superata di quattro. Estrarlo
+non è stato solo meno righe: la tastiera va scritta **una volta**, e in una pagina dove la tabella si scrive da
+tastiera il pannello che non lo fa è il punto in cui si molla la tastiera. Frecce, Invio, Esc, primo risultato
+già evidenziato. Esc chiude l'elenco e si ferma lì — perdere anche il form sarebbe una sorpresa cara.
+
+**L'annulla: il punto non è il tasto, è cosa torna.** `TransferPointInput` non porta gruppo, profondità e
+ordine, ed è una scelta scritta nel tipo: la posizione la decide il repository, così che nessun editor possa
+creare a mano una riga orfana. Quindi ricostruire un gruppo eliminato con `AddFlowAsync` + `AddPointAsync`
+**appiattirebbe l'outline in silenzio** — la clonazione lo fa apposta e lo dichiara. Un annulla che restituisce
+righe diverse da quelle tolte non è un annulla: è un secondo danno con un nome rassicurante. Serve una via
+distinta, e la distinzione è di **intenzione**: `AddPointAsync` scrive, `RestorePointsAsync` rimette — e nella
+seconda la posizione viaggia col dato, con gli invarianti rivalidati all'ingresso.
+
+L'annulla **vive quanto il messaggio che lo propone**, non dieci secondi: un timer va comunicato con un conto
+alla rovescia, altrimenti il tasto sparisce mentre lo si guarda. Vive nel circuito, e gli id cambiano: sono
+limiti dichiarati, non nascosti — un annulla che sopravvive al ricaricamento è un cestino, cioè un'altra carta.
+
+**Il blocco: tre metodi e non un modulo con tre interruttori**, perché non si comportano allo stesso modo. Il
+ricevente è identità dell'accordo e si propaga al gruppo di varianti; livello e condizione sono della singola
+riga — il livello è proprio ciò che due varianti dicono diverso, e propagarlo le renderebbe tutte uguali. Una
+firma sola nasconderebbe questa differenza. Il livello in blocco si scrive con la **stessa sintassi** della
+cella e della tabella (`ParsedLevel`): una sola in tutta la pagina.
+
+⚠️ **Tre difetti visti solo a schermo, tutti della stessa famiglia.**
+
+1. **`Text="form.NextText"` passava la stringa letterale** — *la* trappola del §7 del runbook di verifica: un
+   attributo di componente di tipo `string` senza `@` non è una variabile. A schermo il campo del ricevente
+   conteneva davvero le parole `form.NextText`. **Nessun test l'avrebbe vista**: compila, gira, e mente.
+2. **La tendina di ordinamento si mostrava vuota**: la preferenza salvata poteva essere una chiave che vale solo
+   in elenco mentre la pagina si apre in albero. La normalizzazione c'era sul cambio di vista e mancava al
+   ricaricamento delle preferenze — ed è diventata un metodo proprio perché serve in due momenti.
+3. **Etichetta e suggerimento si toccavano** («RECEIVING SECTOR(EMPTY = UNICOM)»): fra un'espressione e un tag
+   Razor lo spazio scritto nel markup viene mangiato, e nemmeno un `<text> </text>` è bastato. Lo stacco è
+   passato al CSS, dov'è deterministico e dove la spaziatura appartiene.
+
+**Uno scostamento dalla carta**: `DeletePointsAsync` doveva restituire le fotografie, e invece la fotografia la
+scatta **chi chiama** — è lui a sapere quali righe stava mostrando, e farla scattare al repository vorrebbe dire
+fidarsi che le due cose coincidano. Meno superficie e una garanzia in più.
+
+Suite **2403** verde su entrambi i TFM (nove test nuovi nel repository), `Release --no-incremental` **0 warning**.
