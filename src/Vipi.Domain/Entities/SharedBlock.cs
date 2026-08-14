@@ -9,5 +9,5 @@ public class SharedBlock
     public BlockFormat Format { get; set; }
     public string? Body { get; set; }
     public string? BodyJson { get; set; }
-    public byte[]? RowVersion { get; set; }
+    // Nessun RowVersion: last-write-wins voluto (14 ago 2026). Vedi VipiDbContext, commento su SharedBlock.
 }

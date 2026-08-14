@@ -39,6 +39,26 @@ public static class MySqlStringLengths
     /// </summary>
     public const int MaxIndexableChars = 768;
 
+    /// <summary>
+    /// Lunghezza data a <b>ogni</b> enum salvato come stringa che non abbia già una voce esplicita in
+    /// <see cref="Map"/>. Non è una misura sui dati: il valore più lungo dell'intero dominio è
+    /// <c>Unspecified</c> (11 caratteri), e 32 lascia spazio a nomi nuovi senza avvicinarsi a niente.
+    ///
+    /// <para><b>Perché una regola e non altre trenta righe nella mappa.</b> Fino al 14 agosto 2026 si
+    /// dimensionavano solo le colonne <i>indicizzate</i> (più quelle con un <c>DEFAULT</c>, eccezione già
+    /// aggiunta una volta per necessità). Tutto il resto nasceva <c>longtext</c>: 128 colonne, di cui una
+    /// trentina erano enum a valori corti e chiusi. Il problema non erano le prestazioni — a 4 800 righe non
+    /// esistono — ma il fatto che <b>nessuna di quelle colonne è indicizzabile senza una migrazione di
+    /// tipo</b>: il giorno in cui servisse un indice su <c>DocumentVersion.Status</c>, non si aggiunge un
+    /// indice, si riscrive una tabella su un database di produzione altrui, in DDL non transazionale.
+    /// Dimensionarle adesso costa zero perché il cutover non è ancora avvenuto e cambia solo la DDL di
+    /// <c>InitialCreate</c>. Vedi <c>docs/history/audit-2026-08-14-database-mariadb.md</c> §D1.</para>
+    ///
+    /// <para>Una mappa a mano avrebbe richiesto di ricordarsene a ogni enum nuovo; la regola non si dimentica.
+    /// Il suo unico presupposto — nessun nome di valore supera i 32 caratteri — è presidiato da un test.</para>
+    /// </summary>
+    public const int EnumChars = 32;
+
     /// <summary>Lunghezza per <c>(nome entità, nome proprietà)</c>.</summary>
     public static readonly IReadOnlyDictionary<(string Entity, string Property), int> Map =
         new Dictionary<(string, string), int>
@@ -124,12 +144,39 @@ public static class MySqlStringLengths
     /// <summary>
     /// Applica le lunghezze al modello. Da chiamare <b>solo</b> quando il provider è MySQL: su Postgres
     /// sarebbe un cambio di tipo colonna che il reconciler non sa applicare (vedi il commento del tipo).
+    ///
+    /// <para>Due fonti, in ordine: la voce esplicita in <see cref="Map"/> vince sempre, e a seguire la regola
+    /// sugli enum (<see cref="EnumChars"/>). L'ordine conta: alcune voci della mappa <i>sono</i> enum —
+    /// <c>Document.Type</c>, <c>TransferPoint.HandoffKind</c> — e stanno lì con una misura propria e un
+    /// commento che la giustifica.</para>
+    ///
+    /// <para>⚠️ Dev'essere chiamata <b>dopo</b> la conversione globale enum→stringa di
+    /// <c>OnModelCreating</c>: la regola riconosce un enum dal suo tipo provider, che prima di quella
+    /// conversione non è ancora <c>string</c>.</para>
     /// </summary>
     public static void Apply(ModelBuilder b)
     {
         foreach (var entity in b.Model.GetEntityTypes())
             foreach (var prop in entity.GetProperties())
+            {
                 if (Map.TryGetValue((entity.ClrType.Name, prop.Name), out var lunghezza))
+                {
                     prop.SetMaxLength(lunghezza);
+                    continue;
+                }
+
+                if (EUnEnumSalvatoComeStringa(prop)) prop.SetMaxLength(EnumChars);
+            }
+    }
+
+    /// <summary>
+    /// Un enum che finisce in una colonna testuale. Il tipo CLR non basta a riconoscerlo — la conversione la
+    /// fa <c>SetProviderClrType</c> in <c>OnModelCreating</c> — quindi si guardano entrambi: enum di là,
+    /// stringa di qua.
+    /// </summary>
+    private static bool EUnEnumSalvatoComeStringa(Microsoft.EntityFrameworkCore.Metadata.IMutableProperty prop)
+    {
+        var tipoClr = Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
+        return tipoClr.IsEnum && prop.GetProviderClrType() == typeof(string);
     }
 }

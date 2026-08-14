@@ -13,6 +13,59 @@ public class VipiDbContext : DbContext
 {
     public VipiDbContext(DbContextOptions<VipiDbContext> options) : base(options) { }
 
+    // ─── Concorrenza ottimistica: la rotazione del token sta QUI, non nei repository ────────────────────
+    //
+    // Il RowVersion è un byte[] gestito dall'applicazione: MariaDB non ha un `rowversion` automatico e
+    // nessuna delle tre configurazioni chiede a EF di generarlo. Se non lo riscrive nessuno, il token resta
+    // costante (o NULL), la clausola `WHERE … AND RowVersion = @old` è sempre vera, e il secondo editor che
+    // salva sovrascrive il primo SENZA che venga sollevata una DbUpdateConcurrencyException.
+    //
+    // Fino al 14 agosto 2026 era esattamente così: sette entità dichiaravano il token, e a ruotarlo era un
+    // metodo solo (EfEditingRepository.UpdateBlockAsync). La garanzia che serve non è «un repository si
+    // ricorda di farlo» — è «passare dal context basta», perché i percorsi di scrittura sono decine e ne
+    // nascono di nuovi. Vedi docs/history/audit-2026-08-14-database-mariadb.md §A1 e
+    // ConcorrenzaOttimisticaTests, che prima di questo blocco erano otto test rossi.
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        RuotaTokenDiConcorrenza();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        RuotaTokenDiConcorrenza();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Assegna un token nuovo a ogni entità in inserimento o modifica che ne dichiari uno.
+    ///
+    /// <para>⚠️ Tocca <c>CurrentValue</c> e <b>mai</b> <c>OriginalValue</c>: l'originale è il valore che
+    /// finisce nella <c>WHERE</c>, cioè il confronto stesso. <c>EfEditingRepository</c> lo imposta a mano con
+    /// il token arrivato dal browser (per accorgersi di una modifica avvenuta mentre l'editor era aperto, non
+    /// solo mentre la richiesta era in volo), e quel percorso deve continuare a funzionare.</para>
+    ///
+    /// <para>Le due sovrascritture con parametro <c>bool</c> bastano a coprire anche <c>SaveChanges()</c> e
+    /// <c>SaveChangesAsync(ct)</c> senza argomenti: EF li implementa delegando a queste.</para>
+    ///
+    /// <para>⚠️ Restano fuori <c>ExecuteUpdate</c>/<c>ExecuteDelete</c>, che non passano dal change-tracker
+    /// né da qui. Oggi è innocuo — l'unica entità che li usa (<c>EditResourceLock</c>) non ha token, e ha un
+    /// meccanismo di esclusione suo — ma è la condizione da ricontrollare prima di convertire una scrittura
+    /// su entità versionata in ExecuteUpdate.</para>
+    /// </summary>
+    private void RuotaTokenDiConcorrenza()
+    {
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified)) continue;
+
+            foreach (var prop in entry.Properties)
+                if (prop.Metadata.IsConcurrencyToken && prop.Metadata.ClrType == typeof(byte[]))
+                    prop.CurrentValue = Guid.NewGuid().ToByteArray();
+        }
+    }
+
     public DbSet<Acc> Accs => Set<Acc>();
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
@@ -136,10 +189,11 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Document).WithMany(d => d.Sectors).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.SetNull);
         });
 
+        // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per TransferFlow,
+        // SharedBlock e DocumentProfile. Vedi il commento esteso su SharedBlock più sotto.
         b.Entity<UnificationRule>(e =>
         {
             e.HasIndex(x => new { x.AccId, x.Priority });
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasOne(x => x.Acc).WithMany(f => f.UnificationRules).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -186,10 +240,20 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.SharedBlock).WithMany().HasForeignKey(x => x.SharedBlockId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        // ─── Perché queste quattro entità NON hanno un token di concorrenza ─────────────────────────────
+        // SharedBlock, UnificationRule, TransferFlow e DocumentProfile dichiaravano un RowVersion che
+        // nessun percorso di scrittura ha mai valorizzato: colonna sempre NULL, `WHERE … AND RowVersion IS
+        // NULL` sempre vera, quindi una difesa solo nominale. Messi davanti alla scelta — ruotarlo o
+        // toglierlo — il 14 agosto 2026 si è deciso di toglierlo: sono modificate da un editor alla volta,
+        // sotto il lock di editing, e lì il last-write-wins è il comportamento voluto.
+        //
+        // La dichiarazione è sparita insieme alla colonna (DropColumn nelle due serie di migrazioni): una
+        // difesa dichiarata e non funzionante è peggio della sua assenza, perché fa contare su qualcosa che
+        // non c'è. A tenere ferma la decisione è ConcorrenzaOttimisticaTests, che verifica l'elenco esatto
+        // delle entità con token — così la prossima non ne eredita uno per copia da qui.
         b.Entity<SharedBlock>(e =>
         {
             e.HasIndex(x => x.Key).IsUnique();
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
         });
 
         b.Entity<NavReference>().HasIndex(x => new { x.Type, x.Ident, x.AiracCycle });
@@ -203,7 +267,7 @@ public class VipiDbContext : DbContext
         b.Entity<TransferFlow>(e =>
         {
             e.HasIndex(x => new { x.AccId, x.OwningSectorId, x.Order });
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
+            // Niente token di concorrenza: vedi il commento su SharedBlock.
             e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
             // Il flusso segue il proprio settore: se il settore sparisce, sparisce il flusso.
             e.HasOne(x => x.OwningSector).WithMany().HasForeignKey(x => x.OwningSectorId).OnDelete(DeleteBehavior.Cascade);
@@ -323,7 +387,7 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.DocumentId).IsUnique();
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
-            e.Property(x => x.RowVersion).IsConcurrencyToken();
+            // Niente token di concorrenza: vedi il commento su SharedBlock.
         });
 
         // --- Immagini dei documenti (blocchi Image). Content-addressed: lo sha256 È l'identità, quindi unico. ---

@@ -230,7 +230,7 @@ public class UnificationRule
     public string ConditionJson { get; set; } = "{}";  // predicato su callsign online
     public string AssignmentJson { get; set; } = "{}"; // mappa settore→ownerCallsign
     public bool IsActive { get; set; } = true;
-    public byte[]? RowVersion { get; set; }
+    // Nessun RowVersion: last-write-wins voluto (14 ago 2026). Vedi VipiDbContext, commento su SharedBlock.
 }
 
 // =========================================================================================

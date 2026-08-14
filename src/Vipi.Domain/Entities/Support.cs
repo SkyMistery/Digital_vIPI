@@ -99,7 +99,7 @@ public class TransferFlow
     public string? AirportName { get; set; }                // nome per aeroporti fuori DB (nuovi/esteri); null se in DB (nome dal catalogo)
     public string? Description { get; set; }                // prosa "… trasferisce … riceve …"
     public int Order { get; set; }
-    public byte[]? RowVersion { get; set; }
+    // Nessun RowVersion: last-write-wins voluto (14 ago 2026). Vedi VipiDbContext, commento su SharedBlock.
 
     public ICollection<TransferPoint> Points { get; set; } = new List<TransferPoint>();
 }

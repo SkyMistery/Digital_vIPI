@@ -110,6 +110,75 @@ public class IndexedStringLengthTests
             "FK fra colonne stringa di lunghezza diversa (MySQL errno 150):\n  " + string.Join("\n  ", disallineate));
     }
 
+    /// <summary>
+    /// Il presupposto della regola sugli enum (<see cref="MySqlStringLengths.EnumChars"/>): nessun nome di
+    /// valore supera i 32 caratteri. Se qualcuno ne aggiungesse uno più lungo, su MariaDB in strict mode la
+    /// scrittura <b>lancerebbe</b>, e — peggio — su un server non-strict <b>troncherebbe in silenzio</b>,
+    /// producendo una stringa che l'enum non sa più rileggere. Il difetto arriverebbe alla prima riga
+    /// salvata con quel valore, cioè lontano da qui.
+    ///
+    /// <para>Il controllo gira sull'insieme reale del modello, non su un elenco scritto a mano: sono gli
+    /// enum che <c>OnModelCreating</c> converte in stringa, quindi comprende anche quelli aggiunti domani.</para>
+    /// </summary>
+    [Fact]
+    public void Nessun_nome_di_valore_di_enum_supera_la_lunghezza_della_regola()
+    {
+        using var db = Model();
+
+        var troppoLunghi = db.Model.GetEntityTypes()
+            .SelectMany(et => et.GetProperties())
+            .Select(p => Nullable.GetUnderlyingType(p.ClrType) ?? p.ClrType)
+            .Where(t => t.IsEnum)
+            .Distinct()
+            .SelectMany(t => Enum.GetNames(t).Select(n => (Tipo: t.Name, Nome: n)))
+            .Where(x => x.Nome.Length > MySqlStringLengths.EnumChars)
+            .ToList();
+
+        Assert.True(troppoLunghi.Count == 0,
+            $"valori di enum più lunghi di {MySqlStringLengths.EnumChars} caratteri, cioè della lunghezza " +
+            "che MySqlStringLengths dà a ogni colonna enum: in strict mode la scrittura fallisce, senza " +
+            "strict mode tronca in silenzio e il valore non si rilegge più.\n  " +
+            string.Join("\n  ", troppoLunghi.Select(x => $"{x.Tipo}.{x.Nome} ({x.Nome.Length} caratteri)")));
+    }
+
+    /// <summary>
+    /// L'altra metà: la regola deve <b>arrivare</b>, non solo esistere. Applicata su un modello MySQL, ogni
+    /// enum salvato come stringa dev'essere uscito con una lunghezza — dalla mappa o dalla regola. Senza
+    /// questo controllo, un errore nell'ordine delle due fonti in <c>Apply</c> passerebbe inosservato fino
+    /// alla DDL.
+    /// </summary>
+    [Fact]
+    public void Ogni_enum_del_modello_esce_con_una_lunghezza()
+    {
+        var builder = new ModelBuilder();
+        // Si riproduce la sequenza di OnModelCreating: prima la conversione enum→stringa, poi le lunghezze.
+        // Costruire qui il modello (invece di aprire un context MySQL) tiene il test su entrambi i TFM.
+        builder.Entity<Vipi.Domain.Entities.Document>();
+        builder.Entity<Vipi.Domain.Entities.ContentBlock>();
+        builder.Entity<Vipi.Domain.Entities.DocumentVersion>();
+        builder.Entity<Vipi.Domain.Entities.TransferFlow>();
+
+        foreach (var et in builder.Model.GetEntityTypes())
+            foreach (var p in et.GetProperties())
+            {
+                var t = Nullable.GetUnderlyingType(p.ClrType) ?? p.ClrType;
+                if (t.IsEnum) p.SetProviderClrType(typeof(string));
+            }
+
+        MySqlStringLengths.Apply(builder);
+
+        var senzaLunghezza = builder.Model.GetEntityTypes()
+            .SelectMany(et => et.GetProperties().Select(p => (Et: et, P: p)))
+            .Where(x => ((Nullable.GetUnderlyingType(x.P.ClrType) ?? x.P.ClrType)).IsEnum)
+            .Where(x => x.P.GetMaxLength() is null)
+            .Select(x => $"{x.Et.ClrType.Name}.{x.P.Name}")
+            .ToList();
+
+        Assert.True(senzaLunghezza.Count == 0,
+            "enum salvati come stringa rimasti senza lunghezza dopo MySqlStringLengths.Apply (su MySQL " +
+            "nascerebbero longtext): " + string.Join(", ", senzaLunghezza));
+    }
+
     // ---- enumerazione del modello ------------------------------------------------------------------
 
     private record Colonna(string Entity, string Property, string Motivo, int? Lunghezza);
