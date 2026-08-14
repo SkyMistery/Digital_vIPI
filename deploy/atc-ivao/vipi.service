@@ -17,6 +17,13 @@ RestartSec=10
 User=vipi
 Group=vipi
 
+# Crea /var/lib/vipi (owner vipi) e la conserva fra i riavvii e gli aggiornamenti. Ci vivono le chiavi
+# Data Protection, che firmano il cookie di autenticazione e il token antiforgery: NON stanno nel database,
+# che è del committente e da cui sarebbero leggibili in chiaro (vedi DataProtection:KeyRingPath in
+# appsettings.Production.json). Non stanno nemmeno in /opt/vipi, dove si scompatta lo zip a ogni
+# aggiornamento: lì sparirebbero a ogni deploy, sloggando tutti ogni volta.
+StateDirectory=vipi
+
 # Il processo non ha motivo di scrivere fuori dalla propria cartella.
 NoNewPrivileges=true
 PrivateTmp=true

@@ -167,11 +167,25 @@ dotnet run --project tools/Vipi.DbSeed -- --from-postgres "<connstring Neon>" \
   --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=<password>"
 ```
 
-```powershell
-# 2. MariaDB locale → .sql
-& "<bin>\mariadb-dump.exe" -u itivao_atc -p'<password>' -h 127.0.0.1 -P 3399 `
-  --no-tablespaces --single-transaction --hex-blob --default-character-set=utf8mb4 `
+⚠️ **Il dump NON si scrive con la redirezione di PowerShell.** `>` e `Out-File` in Windows PowerShell 5.1
+scrivono UTF-8 **con BOM** e convertono i fine riga in CRLF. Il BOM finisce davanti alla prima istruzione
+del file, e sul loro Linux `mariadb < file.sql` muore con un `ERROR 1064` alla riga 1 che parla di sintassi
+e non di codifica. Verificato il 14 agosto 2026: **tutti e tre i dump prodotti fino ad allora — 6, 7 e 9
+agosto — hanno il BOM**, quindi il difetto era nella ricetta, non in una svista. Si usa una shell che scrive
+i byte grezzi (Git Bash, `cmd`), oppure `[System.IO.File]::WriteAllBytes`.
+
+```sh
+# 2. MariaDB locale → .sql   (Git Bash o cmd: redirezione a byte grezzi, niente BOM, fine riga LF)
+"<bin>/mariadb-dump.exe" -u itivao_atc -p'<password>' -h 127.0.0.1 -P 3399 \
+  --no-tablespaces --single-transaction --hex-blob --default-character-set=utf8mb4 \
   --ignore-table=itivao_atc.DataProtectionKeys itivao_atc > vipi-atc-it-ivao-aero-<data>.sql
+```
+
+Il controllo che smaschera il problema, da fare **sempre** prima di consegnare (i primi byte devono essere
+`2f 2a 4d 21`, cioè `/*M!`, e non `ef bb bf`):
+
+```sh
+od -A n -t x1 -N 4 vipi-atc-it-ivao-aero-<data>.sql
 ```
 
 Perché ognuna di queste opzioni:
@@ -181,8 +195,14 @@ Perché ognuna di queste opzioni:
 - **`--hex-blob`** — le immagini dei blocchi (`MediaAssets`) sono byte nel database: in esadecimale
   attraversano indenni qualunque conversione di charset per strada.
 - **`--ignore-table=…DataProtectionKeys`** — quelle chiavi **decifrano i cookie di sessione**: sono un
-  segreto della *nostra* installazione locale, non un dato da consegnare. La tabella se la ricrea l'host al
-  primo avvio (`UseVipiDataProtection`).
+  segreto della *nostra* installazione locale, non un dato da consegnare.
+  ⚠️ **Dal 14 agosto 2026 quella tabella sul loro server non nasce affatto**: il deploy `atc-ivao` tiene il
+  key-ring in `/var/lib/vipi/keys` (`DataProtection:KeyRingPath` + `StateDirectory=vipi`), proprio perché in
+  un database che non è nostro sarebbe leggibile in chiaro da chiunque abbia `SELECT`. L'esclusione resta
+  giusta — la tabella esiste ancora *in locale*, dove il provider è lo stesso e la cartella non è
+  configurata — ma la frase «se la ricrea l'host al primo avvio» **non vale più** per la produzione.
+  Conseguenza per la consegna: il pacchetto ha ora **due** cose da mettere nei backup, il database e la
+  cartella delle chiavi.
 - Niente `--databases`: così il dump non porta `CREATE DATABASE`/`USE` e si importa nel database che hanno
   già, comunque si chiami.
 

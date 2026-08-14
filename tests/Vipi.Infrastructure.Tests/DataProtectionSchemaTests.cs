@@ -15,12 +15,71 @@ public class DataProtectionSchemaTests
     [Theory]
     [InlineData(PersistenceProvider.Postgres)]
     [InlineData(PersistenceProvider.MySql)]
-    public void I_due_deploy_tengono_le_chiavi_nel_database(PersistenceProvider provider)
-        => Assert.True(DataProtectionSchema.UsesDatabaseKeyRing(provider));
+    public void Senza_cartella_configurata_i_due_deploy_tengono_le_chiavi_nel_database(PersistenceProvider provider)
+        => Assert.Equal(DataProtectionSchema.KeyRingStore.Database,
+            DataProtectionSchema.ResolveStore(provider, null));
 
     [Fact]
     public void In_sviluppo_su_Sqlite_resta_il_file_store()
-        => Assert.False(DataProtectionSchema.UsesDatabaseKeyRing(PersistenceProvider.Sqlite));
+        => Assert.Equal(DataProtectionSchema.KeyRingStore.DefaultFileSystem,
+            DataProtectionSchema.ResolveStore(PersistenceProvider.Sqlite, null));
+
+    /// <summary>
+    /// La regola che tiene le chiavi fuori dal database del committente. Su <c>atc.it.ivao.aero</c> il
+    /// key-ring è XML in chiaro in una tabella di un database che non è nostro: chi ha <c>SELECT</c> lì può
+    /// firmare un cookie di sessione per qualunque VID. La cartella configurata deve vincere <b>su ogni
+    /// provider</b>, MySQL compreso — che è l'unico caso che conta davvero.
+    /// </summary>
+    [Theory]
+    [InlineData(PersistenceProvider.MySql)]
+    [InlineData(PersistenceProvider.Postgres)]
+    [InlineData(PersistenceProvider.Sqlite)]
+    public void Una_cartella_configurata_vince_su_qualunque_provider(PersistenceProvider provider)
+        => Assert.Equal(DataProtectionSchema.KeyRingStore.ConfiguredFolder,
+            DataProtectionSchema.ResolveStore(provider, "/var/lib/vipi/keys"));
+
+    /// <summary>
+    /// Una cartella vuota o di soli spazi non è una cartella: deve valere come «non configurata», o un
+    /// <c>DataProtection__KeyRingPath=</c> lasciato vuoto nell'ambiente manderebbe le chiavi in una
+    /// directory dal nome vuoto invece che nel posto previsto.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Una_cartella_vuota_vale_come_non_configurata(string? percorso)
+        => Assert.Equal(DataProtectionSchema.KeyRingStore.Database,
+            DataProtectionSchema.ResolveStore(PersistenceProvider.MySql, percorso));
+
+    /// <summary>
+    /// Il file di deploy vero deve configurare la cartella: è lì che la decisione ha effetto. Un test sulla
+    /// funzione pura non direbbe niente se poi in produzione la chiave di configurazione mancasse.
+    /// </summary>
+    [Fact]
+    public void Il_deploy_di_produzione_tiene_le_chiavi_fuori_dal_database()
+    {
+        var percorso = Path.Combine(RadiceRepo(), "deploy", "atc-ivao", "appsettings.Production.json");
+        Assert.True(File.Exists(percorso), $"atteso il file di deploy in {percorso}");
+
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(percorso));
+        Assert.True(doc.RootElement.TryGetProperty("DataProtection", out var dp),
+            "appsettings.Production.json non configura DataProtection: le chiavi finirebbero nel database " +
+            "del committente, dove sono leggibili in chiaro.");
+
+        var keyRing = dp.GetProperty("KeyRingPath").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(keyRing));
+        Assert.StartsWith("/var/lib/", keyRing, StringComparison.Ordinal);
+        // NON dentro la cartella di deploy: lì si scompatta lo zip a ogni aggiornamento.
+        Assert.DoesNotContain("/opt/vipi", keyRing, StringComparison.Ordinal);
+    }
+
+    private static string RadiceRepo()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Vipi.slnx"))) dir = dir.Parent;
+        Assert.NotNull(dir);
+        return dir!.FullName;
+    }
 
     /// <summary>
     /// Ogni provider che dichiara di tenere le chiavi nel DB deve avere una DDL: è la coppia che si
