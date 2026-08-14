@@ -31,5 +31,5 @@ public class DocumentProfile
     /// <summary>Id dei settori sorgente dei link frequenza extra (JSON array di int).</summary>
     public string? FreqLinksJson { get; set; }
 
-    public byte[]? RowVersion { get; set; }
+    // Nessun RowVersion: last-write-wins voluto (14 ago 2026). Vedi VipiDbContext, commento su SharedBlock.
 }

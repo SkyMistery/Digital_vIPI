@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -790,10 +790,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("HiddenSectionsJson")
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId")
@@ -1303,10 +1299,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1467,10 +1459,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("OwningSectorId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwningSectorId");
@@ -1571,10 +1559,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("Priority")
                         .HasColumnType("INTEGER");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
 
                     b.HasKey("Id");
 
