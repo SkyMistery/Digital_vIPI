@@ -142,16 +142,15 @@ app.Use(async (context, next) =>
 // Crea la tabella delle chiavi Data Protection se manca (idempotente; no-op se il modulo non è attivo).
 app.UseVipiDataProtection();
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
+// CRITICA: un guasto qui deve fermare l'avvio. Servire pagine su uno schema che non è quello atteso dal
+// codice significa scoprirlo a runtime, come colonna mancante, lontano dalla causa.
 app.MigrateVipiDatabase();
-// Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
-app.ReconcileVipiDocuments();
-// Riallinea i settori proiettati ai cataloghi: fa entrare in vigore i cambi alla regola di derivazione della
-// gerarchia senza aspettare il prossimo import (idempotente).
-app.ProjectVipiSectors();
-// Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
-app.BackfillVipiReleases();
-// Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
-app.PruneVipiReleases();
+
+// Le quattro manutenzioni non critiche (riconciliazioni documentali, proiezione settori, backfill e potatura
+// delle release), ognuna isolata dalle altre: un guasto viene registrato — log + diagnostica, quindi
+// /vsop/health in Degraded — e l'avvio prosegue. Prima erano quattro chiamate nude, e con Restart=always nel
+// servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
+app.RunVipiStartupMaintenance();
 
 if (!app.Environment.IsDevelopment())
 {

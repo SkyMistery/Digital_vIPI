@@ -96,6 +96,11 @@ public static class VipiModuleExtensions
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
 
+        // Registro dei guasti delle manutenzioni d'avvio. Singleton: è la fotografia di QUESTO avvio, scritta
+        // una volta da RunVipiStartupMaintenance e letta poi dal report di consistenza.
+        services.AddSingleton<Vipi.Application.Diagnostics.IStartupMaintenanceReport,
+            Vipi.Application.Diagnostics.StartupMaintenanceReport>();
+
         // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
         services.AddSingleton<RequestRateLimiter>();
@@ -343,6 +348,61 @@ public static class VipiModuleExtensions
         }
 
         return host;
+    }
+
+    /// <summary>
+    /// Esegue le quattro manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
+    /// fallisce viene registrata e l'avvio prosegue con le successive.
+    ///
+    /// <para><b>Perché non basta lasciarle esplodere.</b> Sono passate idempotenti che rigirano a ogni
+    /// avvio, e sono l'ultimo pezzo di <c>Program.cs</c> prima che l'app cominci a servire. Con
+    /// <c>Restart=always</c> e <c>RestartSec=10</c> in <c>vipi.service</c>, un guasto lì non è un degrado:
+    /// è un <b>ciclo di riavvii</b>, cioè il sito giù per un difetto in una riconciliazione di dati storici.
+    /// Un sito che parte con una riconciliazione saltata è sempre meglio di un sito che non parte.</para>
+    ///
+    /// <para><b>Perché proseguire è lecito.</b> Ognuna è idempotente e nessuna è un prerequisito
+    /// dell'altra — le dipendenze d'ordine vere stanno <i>dentro</i>
+    /// <see cref="ReconcileVipiDocuments"/>, che resta atomica dal punto di vista di chi chiama: se fallisce
+    /// a metà, salta per intero. E un riavvio riuscito le rifà da capo.</para>
+    ///
+    /// <para>⚠️ <b><see cref="MigrateVipiDatabase"/> resta fuori, e deve restarci.</b> Lì un guasto è
+    /// critico: proseguire significherebbe servire pagine su uno schema che non è quello che il codice si
+    /// aspetta, e il difetto uscirebbe come colonna mancante a runtime, lontano dalla causa.</para>
+    ///
+    /// <para>Il guasto non finisce solo nel log: passa da <c>IStartupMaintenanceReport</c> al report di
+    /// consistenza, quindi si vede in <c>/vsop/admin/diagnostica</c> e manda <c>/vsop/health</c> in
+    /// Degraded. Un «logga e prosegui» che si ferma al log è un modo per non accorgersene mai.</para>
+    /// </summary>
+    public static IHost RunVipiStartupMaintenance(this IHost host)
+    {
+        var log = host.Services.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.StartupMaintenance");
+        var report = host.Services.GetService<Vipi.Application.Diagnostics.IStartupMaintenanceReport>();
+
+        Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
+        Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
+        Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        Isolata(host, log, report, "potatura delle release superate", h => h.PruneVipiReleases());
+
+        return host;
+    }
+
+    private static void Isolata(IHost host, Microsoft.Extensions.Logging.ILogger? log,
+        Vipi.Application.Diagnostics.IStartupMaintenanceReport? report, string nome, Func<IHost, IHost> passata)
+    {
+        try
+        {
+            passata(host);
+        }
+        catch (Exception ex)
+        {
+            report?.Record(nome, ex);
+            if (log is not null)
+                Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                    log, ex,
+                    "Manutenzione d'avvio «{Passata}» fallita: l'avvio prosegue e la segnalazione entra nella " +
+                    "diagnostica. È idempotente: un riavvio riuscito la rifà.", nome);
+        }
     }
 
     /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la
