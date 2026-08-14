@@ -26,15 +26,59 @@ public static class DataProtectionSchema
     /// </summary>
     public const string TableName = "DataProtectionKeys";
 
+    /// <summary>Chiave di configurazione della cartella del key-ring. Valorizzarla vince su tutto il resto.</summary>
+    public const string KeyRingPathConfigKey = "DataProtection:KeyRingPath";
+
+    /// <summary>Dove finiscono le chiavi Data Protection.</summary>
+    public enum KeyRingStore
+    {
+        /// <summary>File-store predefinito di ASP.NET (profilo utente / <c>%LOCALAPPDATA%</c>): lo sviluppo.</summary>
+        DefaultFileSystem,
+
+        /// <summary>Tabella <c>DataProtectionKeys</c> nel database del modulo.</summary>
+        Database,
+
+        /// <summary>Cartella indicata da <see cref="KeyRingPathConfigKey"/>, che il servizio deve poter scrivere.</summary>
+        ConfiguredFolder,
+    }
+
     /// <summary>
-    /// Se il key-ring di questo provider deve vivere nel database.
+    /// Dove tenere il key-ring, dato il provider e la cartella eventualmente configurata.
     ///
-    /// <para><see cref="PersistenceProvider.Sqlite"/> è lo sviluppo su una macchina sola, dove il file-store
-    /// predefinito è adeguato e non aggiunge tabelle al DB di lavoro. Gli altri due sono deploy dove il
-    /// processo può ripartire su un disco che non ricorda niente.</para>
+    /// <para><b>La regola, e il perché di ognuna delle tre.</b></para>
+    /// <list type="number">
+    ///   <item><description>Una cartella <b>configurata vince sempre</b>. È il caso di
+    ///   <c>atc.it.ivao.aero</c>: lì il database è del committente, e le chiavi Data Protection firmano il
+    ///   cookie di autenticazione — chi può fare <c>SELECT</c> sulla tabella può fabbricare una sessione
+    ///   valida per qualunque VID, admin compresi, scavalcando tutto il modello di autorizzazione. Il dump di
+    ///   consegna esclude già la tabella con questa motivazione; vale identica per la tabella viva sul loro
+    ///   server. Su una macchina con systemd e una cartella di stato stabile il motivo per cui il key-ring
+    ///   era finito nel database — il disco effimero — semplicemente non c'è.</description></item>
+    ///   <item><description><see cref="PersistenceProvider.Sqlite"/> senza cartella: file-store predefinito.
+    ///   È lo sviluppo su una macchina sola, e non aggiunge tabelle al DB di lavoro.</description></item>
+    ///   <item><description>Gli altri due senza cartella: <b>database</b>. È il caso di Render, dove il
+    ///   container riparte su un filesystem che non ricorda niente e una cartella non c'è: lì il database è
+    ///   l'unico posto persistente, ed è comunque il <i>nostro</i>.</description></item>
+    /// </list>
+    ///
+    /// <para>⚠️ La cartella dev'essere <b>fuori</b> dalla directory di deploy: su <c>atc.it.ivao.aero</c> si
+    /// distribuisce scompattando uno zip sopra <c>/opt/vipi</c>, quindi delle chiavi tenute lì sopravvivono
+    /// esattamente fino al primo aggiornamento. Il posto giusto è <c>/var/lib/vipi/keys</c>, che systemd sa
+    /// creare e assegnare al servizio con <c>StateDirectory=vipi</c>. Perdere il key-ring non è un guasto
+    /// grave — sono tutti sloggati una volta — ma è un guasto che si ripeterebbe a ogni deploy.</para>
+    /// </summary>
+    public static KeyRingStore ResolveStore(PersistenceProvider provider, string? configuredPath) =>
+        !string.IsNullOrWhiteSpace(configuredPath) ? KeyRingStore.ConfiguredFolder
+        : provider is PersistenceProvider.Postgres or PersistenceProvider.MySql ? KeyRingStore.Database
+        : KeyRingStore.DefaultFileSystem;
+
+    /// <summary>
+    /// Se il key-ring di questo provider vive nel database <b>quando nessuna cartella è configurata</b>.
+    /// Conservata perché è la domanda a cui risponde <see cref="CreateTableSql"/>: la tabella si crea solo
+    /// dove potrebbe servire.
     /// </summary>
     public static bool UsesDatabaseKeyRing(PersistenceProvider provider)
-        => provider is PersistenceProvider.Postgres or PersistenceProvider.MySql;
+        => ResolveStore(provider, null) == KeyRingStore.Database;
 
     /// <summary>
     /// DDL idempotente della tabella delle chiavi, nella forma attesa da
