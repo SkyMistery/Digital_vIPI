@@ -1,23 +1,33 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 agosto 2026 — audit full-stack **eseguito** sul ramo del doc 13; il cutover
-MariaDB è in `main` dal 9 agosto, verificato; sezioni B, C e D chiuse, E sfoltita.
+**Ultimo aggiornamento:** 15 agosto 2026 — trasferimenti ACC↔APP e audit database **fusi in `main`**, e da
+lì generato il pacchetto di deploy del 15 agosto per la consegna a Ivao.It.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 12 agosto 2026)
+> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 15 agosto 2026)
 >
-> **⚠️ DUE rami pronti e non fusi.**
+> **La consegna a Ivao.It è in corso, ed è lì che sta il lavoro.** Il database è stato caricato sul loro
+> server; il pacchetto dell'applicazione va su via **FTP/FileZilla**, non da console — procedura in
+> [`deploy/atc-ivao/LEGGIMI-FTP.md`](deploy/atc-ivao/LEGGIMI-FTP.md).
 >
-> **1. `feature/trasferimenti-acc-app` — PR #13 aperta, 65 commit avanti a `main`.** Sei giri sullo stesso
-> filone, tutti chiusi con verifica live: il modello a due eventi (autorizzato / al trasferimento), le
-> varianti a **outline**, e poi tre giri sull'**editor** `/vsop/admin/trasferimenti`, che è passato da pagina
-> a scorrimento unico a **tre colonne** con vista a elenco, scrittura in cella, stato in URL, annulla e
-> modifica in blocco. Suite **2403** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.
-> Le carte stanno in `docs/feature/2026-08-11-trasferimenti-acc-app.md` e nelle cinque schede del 12 agosto;
-> l'ultima è [`editor-trasferimenti-rifiniture`](docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md).
+> **Pacchetto:** `artifacts/publish/vipi-linux-x64-mariadb-20260815.zip`, 48,1 MB, 407 file, self-contained
+> net8, sha256 `BE791013A1388B7CAA70058EF8684508608E25E73EB0099EC2E27AA62030BEE9`. Costruito da `main`
+> dopo i due merge, con `Release --no-incremental` a **0 warning** e **2465 test verdi** (net8 + net10).
+> ⚠️ Il pacchetto del 9 agosto e quello del 5 vanno **ritirati**: il primo non ha trasferimenti né audit
+> database, il secondo non parla proprio MariaDB.
 >
-> ⚠️ **Il corpo della PR #13 descrive solo il primo giro** e va riscritto prima di mandarla in revisione:
-> il titolo parla dei due eventi, il ramo nel frattempo ha rifatto l'editor tre volte.
+> ⚠️ **Chi carica non fa partire.** L'FTP non trasporta il bit di esecuzione e non installa servizi: serve
+> qualcuno con shell per `chmod +x Vipi.Host`, `vipi.service` in systemd e nginx col WebSocket.
+>
+> ⚠️ **Se il loro database viene dal `.sql` del 9 agosto**, questa build applica da sé al primo avvio la
+> migrazione `20260814092329_EnumLengthsAndDropUnusedTokens` — servono ALTER e DROP sul database.
+>
+> **⚠️ Un solo ramo resta pronto e non fuso.**
+>
+> ✅ **`feature/trasferimenti-acc-app` è stata fusa il 15 agosto** (72 commit), insieme a
+> `fix/audit-database-14ago`. Nella collisione fra le due copie della stessa migrazione si è tenuta quella
+> del ramo trasferimenti, l'unica il cui `Designer` descrive il modello fuso. La **PR #13 resta aperta** e
+> va chiusa a mano dopo il push.
 >
 > ⚠️ **Resta ai colleghi, non al codice:** le righe con ricevente APP che non dicono ancora *dove* avviene
 > il trasferimento vanno riviste a mano (15 nel DB di sviluppo, da rimisurare in produzione). Le elenca il
@@ -27,7 +37,7 @@ MariaDB è in `main` dal 9 agosto, verificato; sezioni B, C e D chiuse, E sfolti
 > (ha repository e test), e `LevelFormatting.Format` appende il suffisso di parità anche a un livello
 > assente — a schermo esce «— (dispari)», che il round-trip regge ma si legge male.
 >
-> **2. `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
+> **Non fuso: `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
 > verifica live fatta).
 >
 > ⚠️ **Quel ramo non compilava, e nessuno l'aveva visto.** L'audit dell'11 agosto ha trovato 14 chiavi

@@ -1,7 +1,7 @@
 ﻿# vIPI — build self-contained linux-x64
 
-Build del **9 agosto 2026**, branch `feat/persistenza-mysql`. Self-contained: **non serve installare .NET**,
-il runtime è nel pacchetto (~111 MB scompattato, 47,8 MB compresso).
+Build del **15 agosto 2026**, da `main`. Self-contained: **non serve installare .NET**, il runtime è nel
+pacchetto (113 MB scompattato in 407 file, ~48 MB compresso).
 
 Il database di destinazione è **MariaDB** — quella del vostro server, 11.4.10 — e l'applicazione ci parla
 col provider Pomelo. Il login è già predisposto: c'è un `appsettings.Production.json` pronto, in cui restano
@@ -34,9 +34,14 @@ da riempire solo i valori segreti.
 ### 1. Scompatta
 
 ```sh
-sudo mkdir -p /opt/vipi && sudo unzip vipi-linux-x64-mariadb-20260809.zip -d /opt/vipi
+sudo mkdir -p /opt/vipi && sudo unzip vipi-linux-x64-mariadb-20260815.zip -d /opt/vipi
 sudo chmod +x /opt/vipi/Vipi.Host
 ```
+
+ℹ️ **Se i file arrivano via FTP/SFTP invece che come zip**, la procedura è la stessa ma con due accortezze,
+scritte per esteso in [`LEGGIMI-FTP.md`](LEGGIMI-FTP.md): il trasferimento va in **binario** (in ASCII i
+`.so` e l'eseguibile arrivano corrotti, e il guasto si vede solo all'avvio) e il **bit di esecuzione** va
+rimesso a mano su `Vipi.Host` e `createdump`, perché l'FTP non lo trasporta.
 
 ### 2. Riempi `appsettings.Production.json`
 
@@ -90,6 +95,13 @@ mysql -u itivao_atc -p itivao_atc < vipi-atc-it-ivao-aero-<data>.sql
 Il file porta con sé anche lo **schema** e la tabella di storia delle migrazioni, quindi l'applicazione al
 primo avvio non riapplica nulla e trova tutto pronto. Non contiene le chiavi di sessione, che l'app si
 ricrea da sé.
+
+ℹ️ **Se avete importato il `.sql` datato 9 agosto**, questa build ne è più recente: al primo avvio applica
+da sé **una** migrazione (`20260814092329_EnumLengthsAndDropUnusedTokens`), che porta 48 colonne enum da
+`longtext` a `varchar(32)` e toglie quattro colonne `RowVersion` mai valorizzate. Sono `ALTER TABLE` su
+tabelle di poche righe — il database intero sta sotto le 5000 — ma **servono i permessi ALTER e DROP** sul
+database, che `GRANT ALL ON itivao_atc.*` comprende. Non c'è niente da lanciare a mano: la storia delle
+migrazioni nel `.sql` dice all'applicazione a che punto è, e lei fa il resto.
 
 Se invece partite da un database vuoto, l'applicazione crea lo schema da sé al primo avvio (38 tabelle) —
 ma il sito sarà **vuoto**: gli ACC e i settori si importano poi dalle pagine di amministrazione, e i
@@ -174,7 +186,12 @@ proprio database — le stesse condizioni del vostro server):
   storia di EF, innocua); `LIRF` e `lirf` convivono nello stesso indice unico e il `WHERE` li distingue;
 - **travaso dei dati veri** e `.sql` **riletto in un database vuoto**: 39 tabelle su 39 con conteggi
   identici all'origine, e nessuna migrazione riapplicata all'avvio;
-- le **chiavi di sessione** sopravvivono a un riavvio (stanno nel database, non su disco);
+- le **chiavi di sessione** sopravvivono a un riavvio. ⚠️ Dal 14 agosto **non stanno più nel database** ma
+  in una cartella, `/var/lib/vipi/keys` (`DataProtection:KeyRingPath`): sono XML in chiaro e chi le legge
+  può fabbricare una sessione valida per qualunque VID, compresi gli admin — nel vostro database sarebbero
+  leggibili da chiunque abbia accesso al database. La cartella la crea `systemd` (`StateDirectory=vipi` in
+  `vipi.service`) e sta **fuori** da `/opt/vipi` apposta, perché lì si scompatta lo zip a ogni
+  aggiornamento. **Va nei backup**: perderla slogga tutti, una volta sola;
 - **flussi editoriali guidati sull'applicazione vera**: import di ACC, settori e aeroporti; import delle SID
   per singolo aeroporto; **pubblicazione di tutti e tre i tipi di documento** (vIPI ACC, aeroporto, vLOA);
   lock di modifica; ricerca globale; vista live; caricamento e rilettura di un'immagine, byte per byte
@@ -188,5 +205,9 @@ proprio database — le stesse condizioni del vostro server):
   primo avvio da voi è anche la prima prova su quel sistema;
 - il login IVAO completo fino al ritorno sul dominio definitivo: manca la registrazione dei redirect.
 
-⚠️ Il branch `feat/persistenza-mysql` non è ancora fuso in `main`: questa è la build del passaggio a
-MariaDB, non una release ordinaria.
+ℹ️ **Che cosa c'è dentro rispetto alla build del 9 agosto.** Questa viene da `main` con tutto il lavoro
+fuso: i **trasferimenti ACC↔APP** (autorizzazione e trasferimento come due eventi distinti, con livello,
+velocità e punto propri; editor rifatto) e l'**audit di database del 14 agosto** (colonne enum
+dimensionate, chiavi di sessione fuori dal vostro database, `MaximumPoolSize=20` con ritentativo sui
+guasti transitori, e una sonda che all'avvio verifica `max_allowed_packet` e `sql_mode` invece di darli per
+buoni). Compilata con avvisi trattati come errori: **0 avvisi**, e **2465 test verdi** su net8 e net10.
