@@ -1,36 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 11 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
-
-> ### 🆕 11 agosto 2026 — audit full-stack, eseguito
-> Carta ed esito in [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md).
-> 34 voci esaminate, 23 chiuse, 3 ribaltate dalla misura, 5 non fatte con la ragione scritta. Suite da 1391 a
-> **2111** test verdi (net8 1115, net10 996). Sei commit, tutti spinti.
->
-> **Due cose toccano direttamente questo elenco:**
-> - ⚠️ **B5 era mergiabile solo in apparenza.** Il ramo `refactor/13-tre-documenti` portava 14 chiavi
->   duplicate nei `.resx`: con `-warnaserror` il job CI `build-net8` dava **28 errori**, e nessuno l'aveva
->   visto perché il ramo non era mai stato spinto. Corretto, con tre guardie. La decisione di merge resta
->   vostra, ma adesso il ramo compila davvero.
-> - ⚠️ **Su net8 — cioè la produzione — girava un solo progetto di test su sette.** Gli altri sei erano
->   net10, ~1000 test che non toccavano mai il runtime del cutover. Ora sono 1102 su net8.
->
-> **Voci nuove, ancora aperte:** la CSP è in sola segnalazione finché non spariscono lo `<script>` inline
-> dello zoom e gli `style=` nel markup; la mappa dei claim OIDC e il nonce vanno con **A10**, perché
-> richiedono un login IVAO vero.
->
-> **Chiuso nel seguito dello stesso giorno**, cercando il test intermittente del bridge: `TimeoutMs` di
-> `AuroraClient` **non copriva la connessione**, solo l'attesa della risposta. Un host che tace invece di
-> rifiutare teneva il tool fermo **21,1 secondi** contro i 500 ms richiesti. Riprodotto e corretto. Il test
-> intermittente in sé resta **non riprodotto** in 9 giri ulteriori: chiuso sull'ipotesi più probabile letta
-> nel codice, con asserzioni che alla prossima occorrenza diranno che cosa è successo.
->
-> ⚠️ **Ricomparso il 12 agosto**, e con un dato nuovo: fallisce **solo** nella corsa completa in parallelo della
-> soluzione, mai da solo — otto giri isolati del progetto e una seconda corsa completa sono verdi. Il sospetto
-> si sposta dal tempo dentro un test alla **contesa fra progetti** (porta, file temporaneo, cartella condivisa).
-> Il nome del test non è stato catturato perché il log della corsa non era su file: alla prossima occorrenza
-> **tenere il log intero** (`dotnet test Vipi.slnx > log.txt 2>&1`), il nome sta nella riga sopra
-> «Error Message».
+**Aggiornato:** 15 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -38,15 +8,46 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 **Legenda del blocco:** 🟢 si può fare subito · 🟡 dipende da un'altra voce · 🔴 dipende da qualcun altro
 (Ivao.It, il portale IVAO, l'owner).
 
+> ### 🆕 15 agosto 2026 — trasferimenti e audit database **fusi in `main`**, per la consegna
+> `main` non è più fermo al 9 agosto: ci sono dentro sia i **trasferimenti ACC↔APP** (ex
+> `feature/trasferimenti-acc-app`, PR #13 — B6, E6) sia l'**audit di database del 14 agosto** (§G). Il merge
+> è stato fatto in quest'ordine apposta: le due migrazioni del 14 agosto esistevano in **due copie con lo
+> stesso identificativo**, una per ramo, e al secondo merge si è tenuta quella che porta dentro il modello
+> coi trasferimenti (l'altra ne aveva uno più povero, e lo `ModelSnapshot` deve descrivere il modello fuso).
+>
+> Resta fuori da `main` un solo ramo: **`refactor/13-tre-documenti`** (B5), che è una decisione, non lavoro.
+>
+> - **11 agosto — audit full-stack, eseguito** (sta in B5). 34 voci, 23 chiuse, 3 ribaltate dalla misura.
+>   Tre regole di build che cambiano: `TreatWarningsAsErrors` in `Directory.Build.props`, i test che
+>   **girano davvero su net8** (da 347 a 1115) e i `packages.lock.json` committati con restore in locked
+>   mode. ⚠️ `dotnet test` **non** applica il flag degli avvisi: suite verde e build di produzione rotta
+>   possono convivere, quindi prima di un push serve `dotnet build Vipi.slnx -c Release --no-incremental`.
+>   Esito in [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md).
+>
+> ⚠️ **Il primo effetto da leggere prima di consegnare:** i dump del 6, 7 e 9 agosto (A3) sono **tutti
+> inutilizzabili**, e sembravano perfetti. Vedi A3.
+>
+> ⚠️ **Un test intermittente non chiuso** (bridge Aurora): fallisce **solo** nella corsa completa in
+> parallelo della soluzione, mai da solo — otto giri isolati e una seconda corsa completa sono verdi. Il
+> sospetto è la **contesa fra progetti** (porta, file temporaneo, cartella condivisa), non il tempo dentro
+> un test. Alla prossima occorrenza **tenere il log intero** (`dotnet test Vipi.slnx > log.txt 2>&1`): il
+> nome del test sta nella riga sopra «Error Message».
+
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
 tenuta aperta con la ragione scritta) e **D** (verifiche live arretrate) sono **chiuse**. La **E** è stata
 sfoltita: metà delle voci erano già fatte o non avevano più senso — ricontrollare un elenco prima di
-lavorarci si è rivelato più produttivo che eseguirlo.
+lavorarci si è rivelato più produttivo che eseguirlo. Dal 14 agosto c'è una sezione **G**: l'audit del
+database, chiuso lato codice.
 
-⚠️ **Quel che resta è quasi tutto fuori dal codice**: consegnare `.sql` e pacchetto, le risposte di Ivao.It
-(A9/A10), la rotazione della password Neon, e quattro decisioni di contenuto — la SID `BANA8A`, le 33 torri
-senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release* debba scrivere audit.
+⚠️ **Quel che resta è quasi tutto fuori dal codice**: rifare e consegnare il `.sql` (i tre dump esistenti
+hanno il BOM) e il pacchetto, le risposte di Ivao.It (A9/A10) — fra cui **chi fa il backup**, domanda a cui
+oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decisioni di contenuto: la SID
+`BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
+debba scrivere audit.
+
+⚠️ **Una decisione di merge** resta lavoro di nessuno finché qualcuno non la prende: **B5**. (B6 è stata
+presa il 15 agosto: fusa.)
 
 ---
 
@@ -187,10 +188,25 @@ quello su Render risultava stale il 5 agosto. Esito: «ACC: 0 create, 7 aggiorna
 non c'è nemmeno il catch-all che su net10 darebbe altro). Il bottone è inoltre inerte finché non si prende
 il **lock di risorsa** dalla barra in cima: `OnLockChanged(mine)` è ciò che accende `_canEdit`.
 
+⚠️⚠️ **14 agosto: tutti e tre i dump — 6, 7 e 9 agosto — hanno il BOM, e sono da rifare.** La ricetta usava
+la redirezione di PowerShell 5.1, che scrive UTF-8 **con BOM** e converte i fine riga in CRLF. Quei tre byte
+finiscono davanti alla prima istruzione del file, e sul loro Linux `mariadb < file.sql` muore con un
+`ERROR 1064` **alla riga 1** — un errore che parla di sintassi mentre il problema è la codifica, cioè il
+modo peggiore di scoprirlo, in call con loro il giorno del cutover. Non era una svista di un giorno: era
+nella ricetta, quindi in tutti i dump prodotti fin qui.
+
+Si rifà da una shell che scrive byte grezzi (Git Bash, `cmd`) e **si controlla prima di consegnare**: i primi
+quattro byte devono essere `2f 2a 4d 21` (`/*M!`) e non `ef bb bf`.
+```sh
+od -A n -t x1 -N 4 vipi-atc-it-ivao-aero-<data>.sql
+```
+Ricetta corretta e spiegazione in [`../deploy/mariadb/README.md`](../deploy/mariadb/README.md) §6.
+
 **Cosa resta, e non è lavoro tecnico:**
 - **Consegnarlo**, per il canale che concorderanno (A9) — con 4 MB va verificato che phpMyAdmin regga.
 - **Rifarlo poco prima del cutover**: fra oggi e il passaggio, Render continua a essere modificato. Stesso
   comando, due minuti — e prima di rifarlo, premere «Importa da sorgente» e ricontrollare quei due conteggi.
+  ⚠️ Va comunque rifatto **subito**, BOM o no: quello in mano oggi non è consegnabile.
 - Escluso di proposito dal dump: `DataProtectionKeys`. Sono le chiavi che decifrano i cookie della nostra
   installazione locale, non un dato da consegnare; l'host se le ricrea al primo avvio.
 
@@ -340,9 +356,16 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
 - **I privilegi dell'utente `itivao_atc`**, in dettaglio: la migrazione iniziale apre con
   `ALTER DATABASE CHARACTER SET utf8mb4;` (lo emette Pomelo, non noi). Con `GRANT ALL ON itivao_atc.*`
   passa — verificato in locale il 6 agosto — ma con una lista ritagliata è la prima riga che si pianta.
-- Che il database `itivao_atc` entri nel loro **piano di backup**.
+- ⚠️ **Chi fa il backup di `itivao_atc`, e con che frequenza.** Non è una conferma di cortesia: al 14 agosto
+  2026 **nessuno sa rispondere**, e finché la risposta è «non lo so» va trattato come «il backup non esiste».
+  Il database tiene **tutto** lo stato dell'app, immagini comprese (ADR-0007): non c'è una seconda copia
+  altrove da cui ricostruire. La `ReleaseRetention` **non** è un backup — pota di proposito. Se la risposta
+  tarda, il paracadute è uno script `mariadb-dump` in cron, da concordare con loro.
+- ⚠️ **Nei backup vanno due cose, non una**: il database e la **cartella delle chiavi** Data Protection,
+  `/var/lib/vipi/keys` (§G). Perderla slogga tutti una volta sola, ma è un file solo ed è banale includerlo.
 - Sulla macchina: **WebSocket** sul reverse proxy (senza, Blazor Server apre le pagine e resta muto),
-  header inoltrati, supervisione del processo, percorso persistente o key-ring su DB.
+  header inoltrati, supervisione del processo, e il **percorso persistente** per il key-ring (che dal 14
+  agosto non sta più sul database: §G).
 
 ### A10 🔴 Redirect OIDC sul portale IVAO
 `https://atc.it.ivao.aero/signin-oidc` e `/signout-callback-oidc`, esatti. E recuperare
@@ -354,31 +377,43 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 ## B. Branch non fusi — decisioni, non lavoro
 
 ### B5 🟡 `refactor/13-tre-documenti` — pronto, in attesa di un ok
-
 25 commit, suite **2111** verde su entrambi i TFM, **verifica live fatta** sui tre documenti (copia del
-`vipi.db` reale).
-
-⚠️ **«Build senza errori» era falso fino all'11 agosto 2026**, e la riga qui sopra lo diceva lo stesso: il
-job CI che compila con `-warnaserror` dava **28 errori** per 14 chiavi duplicate nei `.resx`. Il ramo non
-era mai stato spinto dopo il commit che le ha introdotte, quindi la CI non l'aveva mai visto, e la suite
-locale restava verde perché `dotnet test` non usa quel flag. Corretto, con tre guardie che leggono i `.resx`
-dal disco. Adesso la frase è vera. È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA,
-nato dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
+`vipi.db` reale). È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA, nato
+dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
 
 Perché conviene farlo entrare: due difetti **uscivano dal documento** — la pagina APP pubblica derivava le
 configurazioni dalla versione di lavoro (bozza in pubblico, contro l'invariante del doc 10), e ricerca e
-«Cosa è cambiato» indicizzavano documenti nascosti, **sezioni** nascoste e contenuto senza release
-effettiva. Il resto è uniformità: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria»,
-vLOA dal catalogo, ciclo AIRAC del documento invece che di oggi, pannello release uguale nei quattro
-editor, una sola resa per sezione comune, testi localizzati, codice morto rimosso.
+«Cosa è cambiato» indicizzavano documenti nascosti, **sezioni** nascoste e contenuto senza release effettiva.
+Il resto è uniformità: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria», ciclo AIRAC del
+documento invece che di oggi, pannello release uguale nei quattro editor.
+
+⚠️ **«Build senza errori» è stato falso fino all'11 agosto 2026.** Il ramo portava 14 chiavi duplicate nei
+`.resx`: con `-warnaserror` la CI dava **28 errori**, e nessuno l'aveva visto perché il ramo non era mai
+stato spinto e la suite locale resta verde (`dotnet test` non usa quel flag). Corretto, con tre guardie che
+leggono i `.resx` dal disco.
 
 Da sapere prima del merge: al primo avvio girano **tre riconciliazioni one-shot** (chiavi delle direzioni
 vLOA + «Purpose», placeholder vuoti di «minima», sezioni di catalogo mancanti su APP/vLOA). Sul DB di
 sviluppo hanno toccato 15 sezioni e rimosso 18 blocchi. Sono idempotenti e non toccano le release già
-pubblicate — il viewer sa leggere anche gli snapshot nella forma vecchia.
+pubblicate.
 
 **Decisione da prendere:** merge in `main` (serve l'ok esplicito, come per il doc 10) e push.
 
+### B6 ✅ FUSA — `feature/trasferimenti-acc-app`, fusa in `main` il 15 agosto 2026
+72 commit, suite **2403** verde su entrambi i TFM, `Release --no-incremental` 0 warning, verifica live su
+copia del `vipi.db` reale in **tutti e sei** i giri (ventuno difetti trovati proprio lì, quasi nessuno
+visibile alla suite). Contenuto in **E6**; sei schede in `docs/feature/`, l'ultima è
+`2026-08-12-editor-trasferimenti-rifiniture.md`. Fusa perché la consegna a Ivao.It parte da `main` e il
+committente ha chiesto che partisse **con tutto dentro**.
+
+⚠️ Il ramo portava anche il proprio giro dell'audit database (§G) nella forma nata lì: le due migrazioni
+avevano **lo stesso identificativo** di quelle rigenerate su `main`, apposta. Al merge si sono scontrate sullo
+stesso percorso, e si è tenuta **la copia del ramo trasferimenti**, non quella di `main`: è l'unica il cui
+`Designer` descrive il modello fuso (l'altra non conosceva le colonne dei trasferimenti). L'unica differenza
+nel corpo delle due migrazioni era il commento.
+
+⚠️ La **PR #13 resta aperta con un corpo vecchio** (descrive il primo giro, «autorizzazione e trasferimento
+sono due eventi», quando i giri sono diventati sei). Va chiusa a mano dopo il push di `main`.
 
 ### B1 ✅ FUSA — `feature/aree-speciali-hardening`, verificata il 6 agosto e fusa il 7 agosto 2026
 **Fusa in `main` in fast-forward** (21 commit, `bbbbf2b` → `7557ec4`) e da lì nel ramo del cutover
@@ -740,67 +775,20 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
 - 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
   con chi la userà prima di essere scritta.
 
-### E6 ✅ Trasferimenti ACC↔APP — **chiuso l'11-12 agosto 2026, verifica live eseguita**
-Due schede, in sequenza sullo stesso branch:
-[`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md) (autorizzazione e
-trasferimento separati, velocità, derivazione estesa) e
-[`feature/2026-08-12-varianti-a-livelli.md`](feature/2026-08-12-varianti-a-livelli.md) (il gruppo di varianti
-diventa un **outline**: alternative pari-grado, eccezioni annidate a profondità libera, righe che scavalcano).
-La seconda **corregge** la parte «varianti» della prima, decisa dal committente alla prima lettura e fatta
-prima del merge, quindi a costo di dati zero.
+### E6 ✅ Trasferimenti ACC↔APP — chiuso l'11-12 agosto 2026, **in `main` dal 15 agosto** (B6)
+Il modello descriveva **un evento con un livello**: basta per un accordo ACC↔ACC, non per un ACC→APP —
+«autorizzo a FL160 via CHI, trasferisco al confine dell'AoR passando FL110» non era esprimibile. Sei giri
+sullo stesso ramo, ognuno con la propria scheda in `docs/feature/`: due eventi separati con velocità e punto
+di trasferimento propri; il gruppo di varianti diventato un **outline** (alternative pari grado, eccezioni
+annidate); la pagina rifatta col pattern del progetto, poi a **tre colonne** con vista a elenco, stato in URL
+e scrittura dentro la tabella; infine le rifiniture d'uso (costo per gesto da 8 query a 1, tastiera nei
+picker, annulla che rimette l'outline, modifica in blocco).
 
-Terza scheda dello stesso filone: [`feature/2026-08-12-editor-trasferimenti-ux.md`](feature/2026-08-12-editor-trasferimenti-ux.md)
-— la **pagina** che scrive quelle righe, rifatta col pattern del progetto (lista + pannello a destra), nove
-bottoni-icona per riga ridotti a tre, **51 stili inline azzerati** e dieci migliorie d'uso.
-
-Quarta, dalla prima lettura della pagina rifatta:
-[`feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](feature/2026-08-12-trasferimenti-gruppi-e-salva.md) — il
-**gruppo di varianti si vede** (guida, bordi, pill, e la colonna Condizione che dice «se X» / «negli altri
-casi» / «↳ eccezione di: X») e il **Salva si raggiunge**: il pannello diventa testata · corpo · piede, perché
-prima l'unico modo di arrivarci era una seconda barra di scorrimento dentro il riquadro.
-
-Quinta, dall'uso vero della pagina («ancora scomoda e poco fluida»):
-[`feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](feature/2026-08-12-editor-trasferimenti-tre-colonne.md)
-— la pagina passa a **tre colonne** (navigatore · riquadro di lavoro · pannello, ognuna col proprio
-scorrimento), guadagna una **vista a elenco** per rivedere invece che per scrivere, tiene lo **stato in URL**
-(un gruppo si linka, un F5 non azzera) e lascia scrivere **CoP, livello e ricevente dentro la tabella**. Il
-gruppo smette di essere un terzo livello di collasso: arrivare a una riga costava tre clic, ogni volta.
-⚠️ Qui è stato chiuso un **difetto che c'era da prima**: il filtro «senza ricevente» si accendeva, contava
-giusto e **non filtrava nulla**.
-
-Sesto giro, dalle rifiniture chieste sul risultato:
-[`feature/2026-08-12-editor-trasferimenti-rifiniture.md`](feature/2026-08-12-editor-trasferimenti-rifiniture.md)
-— il **costo per gesto** (salvare una cella da 8 query a 1), la **tastiera** nei picker (sei copie → un
-componente), l'**annulla** dopo un'eliminazione che rimette anche l'outline, la **modifica in blocco** su
-livello e condizione, l'ordinamento per intestazione in elenco.
-
-Suite 2403 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
-sei i giri (ventuno difetti trovati proprio lì, quasi nessuno visibile alla suite).
-
-⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
-avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al
-trasferimento» e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
-elenca e ne tiene il conto. Il numero va rimisurato sulla produzione MariaDB, dove i dati sono altri.
-
-Il modello dei trasferimenti descrive **un evento con un livello**, che basta per un accordo ACC↔ACC e non
-basta per un ACC→APP: «autorizzo a FL160 via CHI, trasferisco al confine dell'AoR passando FL110» oggi non è
-esprimibile. Cinque cose in un giro solo, perché vivono tutte sulla stessa riga:
-
-1. livello **autorizzato** e livello **al trasferimento** separati, con punto di trasferimento proprio
-   (confine AoR / fix / testo libero) e **comunicazioni** su colonna distinta dal controllo;
-2. **velocità** al trasferimento (`valore + ≤/≥/=`), oggi assente dal modello;
-3. **gruppo di varianti** (`VariantGroup` sulla riga, non una tabella figlia) più la riga «negli altri casi»:
-   le alternative per condizione oggi sono righe scollegate, e il caso reale è già in archivio — righe 76/77,
-   `BIRSU FL150 con pista 07` e `BIRSU FL130 in discesa con pista 25`, la stessa riga con condizioni diverse
-   che il modello non sa legare;
-4. il passo 2 di `CoordinationDerivation.Build` filtra `Arrival` + owner `Ctr`, quindi **l'ACC non vede le
-   partenze** che gli APP gli consegnano. Decisione: nella sezione estesa ci va tutto ciò che entra o esce;
-5. filtro «righe da rivedere» nell'editor, perché le righe ACC→APP esistenti si rivedono a mano (16 nel DB di
-   sviluppo, da rimisurare in produzione).
-
-⚠️ Due punti da leggere **prima** di stimare, non durante: `TransferMatcher` pesa la graduatoria su «un punto,
-un livello», e `TransferResolveContract.CandidateLevel` è un contratto verso Aurora — con due livelli va deciso
-quale finisce nell'etichetta quota.
+⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora
+dove avviene il trasferimento vanno riviste **a mano** — il loro livello può voler dire «autorizzato» o «al
+trasferimento», e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
+elenca e ne tiene il conto. ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15 è il conteggio sul DB
+di sviluppo.
 
 ---
 
@@ -812,3 +800,35 @@ distanza fra i due scenari è minima. Lavoro aperto in
 [`guide/integrazione-ivao-it-da-fare.md`](guide/integrazione-ivao-it-da-fare.md): runtime EF Core 8 mai
 eseguito (⚠️ ora lo sarà, in produzione), doppia localizzazione, Bootstrap del sito che sbava dentro
 `.vipi-root`.
+
+---
+
+## G. Audit del database — 14 agosto 2026, chiuso lato codice
+
+Carta ed esito in [`history/audit-2026-08-14-database-mariadb.md`](history/audit-2026-08-14-database-mariadb.md).
+Sei commit **in questo ramo**. Cinque cose cambiano il comportamento in esercizio:
+
+- **La concorrenza ottimistica era dichiarata e inerte.** `IsConcurrencyToken()` su sette `RowVersion`,
+  funzionante su **uno**. Ora la rotazione la fa `VipiDbContext.SaveChangesAsync` — cioè il modello, non un
+  repository che deve ricordarsene — e quattro entità hanno perso token e colonna, perché lì il
+  last-write-wins è voluto.
+- **Le chiavi Data Protection escono dal database del committente**: `/var/lib/vipi/keys` +
+  `StateDirectory=vipi`. Stavano in chiaro in `DataProtectionKeys`, e chi ha `SELECT` su quel database
+  potrebbe fabbricare un cookie valido per qualunque VID, admin compresi.
+- **Pool a 20 + `EnableRetryOnFailure`** sul ramo MySQL: il default era **100**, contro un
+  `max_user_connections` tipico di 25÷50.
+- **Le quattro manutenzioni d'avvio non critiche sono isolate** (`RunVipiStartupMaintenance`): con
+  `Restart=always` un guasto lì non era un degrado ma un ciclo di riavvii. `MigrateVipiDatabase` resta fatale.
+- **`MySqlServerSettingsProbe`** verifica `sql_mode` e `max_allowed_packet`, provata guastando il server vero.
+
+**La misura che ha deciso le priorità:** il `vipi.db` reale ha **~4 800 righe** (tabella più grossa
+`AirportSids` 1481, corpo totale dei `ContentBlocks` **20 KB**, `AuditLogs` 20 righe). A questa scala **non
+esiste un problema di prestazioni**: indici, cache e denormalizzazioni sono elencate in §E della carta come
+scartate apposta, così non vengono riscoperte come idee nuove.
+
+**Cosa resta aperto:** nulla di codice. Restano il **backup** (A9) e la **consegna del `.sql`** (A3).
+
+ℹ️ Una regola che vale oltre questo caso: *«nessuno ha ancora applicato quella migrazione» è un'affermazione
+sul mondo, non sul repository*. La carta proponeva di rigenerare `InitialCreate` MySQL perché nessun database
+l'aveva vista; la MariaDB locale ce l'aveva già in `__EFMigrationsHistory`, e rigenerarla l'avrebbe resa non
+aggiornabile.
