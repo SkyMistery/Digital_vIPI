@@ -1,0 +1,158 @@
+@* Tabella dei coordinamenti, condivisa da vIPI ACC, vIPI APP e vLOA.
+   Prima viveva due volte, quasi identica, in AccCoordinationView e AppCoordinationView: con la faccetta
+   trasferimento le colonne sono diventate otto e le regole di comparsa non banali, quindi due copie sarebbero
+   state due verità da tenere d'accordo a mano.
+
+   Regola unica delle colonne: UNA COLONNA SI MOSTRA SE ALMENO UNA RIGA LA COMPILA. Mai uno switch sul tipo di
+   ente — un blocco ACC↔ACC che non usa niente di nuovo deve restare identico a prima, e un ACC che volesse i
+   due livelli deve poterli avere.
+
+   Varianti: le righe dello stesso gruppo (stesso flusso + stesso numero) sono alternative dello stesso accordo.
+   Si rendono insieme, con CoP e ricevente scritti una volta sola in rowspan: quello che resta per riga È il
+   delta, ed è quello che il lettore deve confrontare. La riga «negli altri casi» va sempre in fondo al gruppo. *@
+@inject IStringLocalizer<SharedResource> L
+
+@{
+    var blocks = Blocks();
+    var hasCond = Rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
+    var hasHandoff = Rows.Any(x => !string.IsNullOrWhiteSpace(x.Handoff));
+    var hasHandoffLevel = Rows.Any(x => !string.IsNullOrWhiteSpace(x.HandoffLevel));
+    var hasComms = Rows.Any(x => !string.IsNullOrWhiteSpace(x.CommsHandoff));
+    var hasSpeed = Rows.Any(x => !string.IsNullOrWhiteSpace(x.Speed));
+    // Con due livelli in tabella «Livello» non basta più a dire quale: diventa «Autorizzato».
+    var levelHeader = hasHandoffLevel ? T("Coord_Cleared", "Cleared") : T("AppCoord_Level", "Level");
+}
+
+@foreach (var r in Rows.Where(x => !string.IsNullOrWhiteSpace(x.Sentence)))
+{
+    <p class="coord-sentence">@r.Sentence</p>
+}
+
+@* Le classi c-* fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel tema): le colonne opzionali
+   cadono in posizioni diverse da una tabella all'altra, e larghezze per posizione non allineerebbero niente. *@
+<table class="coord-table">
+    <thead>
+        <tr>
+            @if (ShowKind) { <th class="c-flow">@T("AppCoord_Flow", "Flow")</th> }
+            <th class="c-cop">@(hasHandoff ? T("Coord_Via", "Via") : "CoP")</th>
+            <th class="c-level">@levelHeader</th>
+            @if (hasHandoff) { <th class="c-handoff">@T("Coord_Handoff", "Transfer")</th> }
+            @if (hasHandoffLevel) { <th class="c-hlevel">@T("Coord_HandoffLevel", "Transfer level")</th> }
+            @if (hasComms) { <th class="c-comms">@T("Coord_Comms", "Communications")</th> }
+            @if (hasSpeed) { <th class="c-speed">@T("Coord_Speed", "Speed")</th> }
+            <th class="c-next">@(LastColHeader ?? T("AppCoord_Next", "Next"))</th>
+            @if (hasCond) { <th class="c-cond">@T("AppCoord_Condition", "Condition")</th> }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var block in blocks)
+        {
+            var grouped = block.Count > 1;
+            // rowspan solo quando serve davvero: su una riga singola sarebbe un attributo "1" che non dice niente.
+            int? span = grouped ? block.Count : null;
+            @for (var i = 0; i < block.Count; i++)
+            {
+                var r = block[i];
+                var first = i == 0;
+                @* Il rientro dice l'annidamento: una riga a profondità 1 è un'eccezione della riga meno
+                   profonda che la precede. Le alternative (profondità 0) restano allineate fra loro, perché
+                   sono pari-grado — nessuna è lo standard dell'altra. *@
+                <tr class="@RowClass(grouped, first, r)">
+                    @if (ShowKind && first) { <td rowspan="@span">@TransferFlowKindLabels.Label(r.Kind)</td> }
+                    @* CoP e ricevente sono l'identità dell'accordo, uguali per tutto il gruppo: scritti una volta. *@
+                    @if (first) { <td rowspan="@span">@Dash(r.Cop)</td> }
+                    <td>@Dash(r.Level)</td>
+                    @if (hasHandoff) { <td>@Dash(r.Handoff)</td> }
+                    @if (hasHandoffLevel) { <td>@Dash(r.HandoffLevel)</td> }
+                    @if (hasComms) { <td>@Dash(r.CommsHandoff)</td> }
+                    @if (hasSpeed) { <td>@Dash(r.Speed)</td> }
+                    @if (first) { <td rowspan="@span">@Dash(r.Next)</td> }
+                    @* Il marcatore della riga trasversale arriva già dentro ConditionLabel, nella lingua del
+                       template (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con
+                       il chrome della pagina. Qui la riga non ha nulla di speciale da rendere. *@
+                    @if (hasCond)
+                    {
+                        <td style="@Indent(r)">@Dash(r.ConditionLabel)</td>
+                    }
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AppCoordRow> Rows { get; set; } = Array.Empty<AppCoordRow>();
+
+    /// <summary>Etichette in inglese a prescindere dalla cultura (vLOA, documenti bilaterali). Default false =
+    /// localizzato come il resto della pagina.</summary>
+    [Parameter] public bool English { get; set; }
+
+    /// <summary>Mostra la colonna «Flusso» (tabelle che mescolano arrivi e partenze).</summary>
+    [Parameter] public bool ShowKind { get; set; }
+
+    /// <summary>Intestazione dell'ultima colonna: «Prossimo» per ciò che esce, «Da» per ciò che entra.</summary>
+    [Parameter] public string? LastColHeader { get; set; }
+
+    private string T(string key, string en) => English ? en : L[key];
+
+    private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+
+    /// <summary>Classe della riga: la capofila del blocco apre, le annidate si distinguono dalle alternative
+    /// (che sono pari-grado e non continuazioni), la trasversale ha il proprio segno perché scavalca tutto.</summary>
+    private static string? RowClass(bool grouped, bool first, AppCoordRow r)
+    {
+        if (!grouped) return null;
+        if (r.IsGroupWide) return "coord-variant-wide";
+        if (first) return "coord-variant-head";
+        return r.VariantDepth > 0 ? "coord-variant" : "coord-variant-alt";
+    }
+
+    // Rientro proporzionale alla profondità, sulla sola colonna condizione: è lì che si legge l'annidamento,
+    // e rientrare l'intera riga spezzerebbe l'allineamento delle colonne numeriche che si confrontano a occhio.
+    private static string? Indent(AppCoordRow r) =>
+        r.VariantDepth > 0 ? $"padding-left:{6 + r.VariantDepth * 14}px" : null;
+
+    /// <summary>
+    /// Raggruppa le righe in blocchi da rendere insieme, nell'ordine di prima apparizione. Una riga senza
+    /// gruppo è un blocco da sola.
+    /// <para>La chiave è <b>(flusso, gruppo)</b> e non il solo gruppo: il numero è progressivo per flusso, e
+    /// una tabella raccoglie righe di più flussi — due gruppi «1» di flussi diversi finirebbero fusi in uno.</para>
+    /// <para>Il raggruppamento NON richiede che le righe siano contigue: se qualcuno sposta una riga fuori dal
+    /// blocco, il gruppo resta intero e si rende dov'è la sua prima riga, invece di spezzarsi in due.</para>
+    /// </summary>
+    private IReadOnlyList<List<AppCoordRow>> Blocks()
+    {
+        var blocks = new List<List<AppCoordRow>>();
+        var byGroup = new Dictionary<(int Flow, int Group), List<AppCoordRow>>();
+
+        foreach (var r in Rows)
+        {
+            if (r.VariantGroup is not int g)
+            {
+                blocks.Add(new List<AppCoordRow> { r });
+                continue;
+            }
+            var key = (r.FlowId, g);
+            if (!byGroup.TryGetValue(key, out var list))
+            {
+                list = new List<AppCoordRow>();
+                byGroup[key] = list;
+                blocks.Add(list);       // il gruppo occupa il posto della sua prima riga
+            }
+            list.Add(r);
+        }
+
+        // ⚠️ L'ordine dentro un blocco NON si tocca: in un outline è la struttura, non la presentazione — una
+        // riga appartiene all'ultima meno profonda che la precede, e riordinarla la riassegnerebbe a un'altra
+        // capofila. L'unica eccezione sono le righe che scavalcano le alternative: non appartengono a nessuna,
+        // quindi si leggono in fondo, dopo i casi che scavalcano. OrderBy è stabile: il resto non si muove.
+        foreach (var b in blocks.Where(b => b.Count > 1 && b.Any(r => r.IsGroupWide)).ToList())
+        {
+            var sorted = b.OrderBy(r => r.IsGroupWide ? 1 : 0).ToList();
+            b.Clear();
+            b.AddRange(sorted);
+        }
+
+        return blocks;
+    }
+}

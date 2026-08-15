@@ -21,7 +21,20 @@ StartupDiagnostics.WriteConfigurationSummary(builder);
 builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: false);
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(o =>
+    {
+        // Tetti espliciti invece dei default (100 circuiti trattenuti per 3 minuti). La scala decisa è UNA
+        // istanza (audit 22 luglio, voce A2, e il vincolo è scritto in nginx-vipi.conf): il limite di memoria
+        // di quel processo è quindi l'unica cosa che regge il sito, e un circuito disconnesso porta con sé
+        // tutto lo stato della pagina editor che aveva aperta.
+        // ⚠️ Numeri stimati sul traffico atteso (decine di persone, non migliaia): da rivedere dopo il primo
+        // ciclo AIRAC pubblicato dal server nuovo, quando ci sarà una misura al posto di una stima.
+        o.DisconnectedCircuitMaxRetained = 25;
+        o.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(2);
+
+        // Scritto, non ereditato: con true le eccezioni non gestite arrivano al browser con lo stack.
+        o.DetailedErrors = builder.Environment.IsDevelopment();
+    });
 
 // Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /vsop/live/atc
 // usa DisableBuffering() e dev'essere consegnata subito, non compressa/bufferizzata.
@@ -59,25 +72,85 @@ var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
 };
-// Su net8 la collezione si chiama KnownNetworks (KnownIPNetworks è .NET 9+): stesso scopo, svuotarla
-// significa «fidati dell'header da qualunque proxy», che è quel che serve dietro un proxy dall'IP non fisso.
+
+// Su net8 la collezione si chiama KnownNetworks (KnownIPNetworks è .NET 9+).
+//
+// Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed è quel che serve su Render, dove
+// l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
+// loopback. Lasciarle vuote lì vorrebbe dire che l'IP del chiamante lo sceglie il chiamante — e su
+// quell'IP si regge il tetto per-IP del bridge Aurora, oltre a ogni riga di log che dice «da dove».
+//
+// Perciò: in Production ci si fida SOLO del loopback; altrove resta il comportamento di prima.
 forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
+if (app.Environment.IsProduction())
+{
+    forwardedOptions.KnownProxies.Add(System.Net.IPAddress.Loopback);       // 127.0.0.1
+    forwardedOptions.KnownProxies.Add(System.Net.IPAddress.IPv6Loopback);   // ::1
+}
 app.UseForwardedHeaders(forwardedOptions);
+
+// Intestazioni di sicurezza. Non chiudono una falla nota — le due funzioni che costruiscono HTML a mano
+// (MarkdownLite, AorBlock.BuildSvg) encodano prima e costruiscono dopo — ma rendono innocuo l'errore di
+// domani, che è la difesa che costa meno di tutte. Prima di UseStaticFiles, così valgono anche per gli asset.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers.XContentTypeOptions = "nosniff";
+    headers["X-Frame-Options"] = "DENY";                        // nessuna pagina vIPI va dentro un iframe
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=(), usb=()";
+
+    // CSP ancora in sola SEGNALAZIONE, e il perché è scritto qui sotto — non è dimenticanza.
+    //
+    // `script-src` ha perso `'unsafe-inline'`: i due <script> inline di App.razor (zoom e riaggancio dopo
+    // le navigazioni enhanced) sono diventati file, e una guardia E2E pretende che la pagina non ne
+    // contenga altri. È il pezzo che conta davvero, perché è quello che rende innocuo uno script iniettato.
+    //
+    // ⚠️ COSA MANCA PER PASSARE A `Content-Security-Policy` VERO, misurato l'11 agosto 2026:
+    //   • 17 gestori inline nel markup (`onclick="window.print()"`, `ondragover="event.preventDefault()"`,
+    //     `onclick="location.href=…"`): sono attributi HTML, quindi `script-src` li blocca esattamente come
+    //     uno <script> inline. Vanno convertiti in delega di eventi o in handler Blazor — e ognuno cambia il
+    //     comportamento di una pagina, quindi va guardato, non riscritto a tappeto.
+    //   • 554 attributi `style="…"` nel markup, che tengono in piedi `style-src 'unsafe-inline'`. Questa
+    //     clausola è molto meno grave della gemella sugli script, e può restare a lungo.
+    //   • una passata con un browser vero: una CSP che entra in vigore rompe in modo vistoso, e nessun test
+    //     qui dentro apre una pagina davvero.
+    //
+    // Finché quei 17 non sono spariti, mettere `Content-Security-Policy` senza `unsafe-inline` romperebbe
+    // la stampa, il drag&drop della struttura e tre elenchi. Con `unsafe-inline` non proteggerebbe da nulla.
+    // Report-Only dice la verità su entrambe le cose senza rompere niente.
+    //
+    // ⚠️ `blazor.web.js` ha bisogno di `connect-src` verso il proprio origin (WebSocket): 'self' lo copre
+    // per ws:// e wss:// sullo stesso host.
+    headers["Content-Security-Policy-Report-Only"] =
+        "default-src 'self'; " +
+        "script-src 'self'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        // Le tessere della mappa vengono da CARTO e non si vendorizzano: è l'unico host esterno rimasto,
+        // ed è dato pubblico di sfondo — i poligoni, che sono il nostro dato, li disegna Leaflet in locale.
+        "img-src 'self' data: blob: https://*.basemaps.cartocdn.com; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'";
+
+    await next();
+});
 
 // Crea la tabella delle chiavi Data Protection se manca (idempotente; no-op se il modulo non è attivo).
 app.UseVipiDataProtection();
 // Crea/migra il DB del modulo. Nessun seed: i dati reali si inseriscono dall'app (editor/struttura).
+// CRITICA: un guasto qui deve fermare l'avvio. Servire pagine su uno schema che non è quello atteso dal
+// codice significa scoprirlo a runtime, come colonna mancante, lontano dalla causa.
 app.MigrateVipiDatabase();
-// Riconciliazioni documentali (doc 11): chiavi univoche per le sezioni libere storiche (idempotente).
-app.ReconcileVipiDocuments();
-// Riallinea i settori proiettati ai cataloghi: fa entrare in vigore i cambi alla regola di derivazione della
-// gerarchia senza aspettare il prossimo import (idempotente).
-app.ProjectVipiSectors();
-// Migrazione A (doc 10 §3f): garantisce una release effettiva per i documenti pubblicati (idempotente).
-app.BackfillVipiReleases();
-// Retention pubblicazione: pota release Superseded oltre soglia e versioni Archived oltre N (idempotente).
-app.PruneVipiReleases();
+
+// Le quattro manutenzioni non critiche (riconciliazioni documentali, proiezione settori, backfill e potatura
+// delle release), ognuna isolata dalle altre: un guasto viene registrato — log + diagnostica, quindi
+// /vsop/health in Degraded — e l'avvio prosegue. Prima erano quattro chiamate nude, e con Restart=always nel
+// servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
+app.RunVipiStartupMaintenance();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -118,8 +191,6 @@ app.UseStaticFiles(new StaticFileOptions
     },
 });
 
-app.UseAntiforgery();
-
 // Auth standalone (scenario C): serve il ClaimsPrincipal alle richieste. Prima di UseVipiModule,
 // così lo StaffLoginTrackingMiddleware vede già l'utente autenticato. Montato solo se attivo.
 if (authEnabled)
@@ -128,6 +199,13 @@ if (authEnabled)
     app.UseAuthorization();
     app.MapVipiStandaloneAuth();
 }
+
+// DOPO UseAuthentication/UseAuthorization, come chiede la guida Blazor — e non prima, com'era fino
+// all'11 agosto 2026. Il token antiforgery va legato all'identità che lo chiede: girando prima, il
+// middleware lo emette quando l'utente non è ancora montato, e il token resta valido attraverso un
+// cambio di utente sulla stessa sessione. Nessun exploit da mostrare; solo un ordine che non aveva
+// motivo di essere quello.
+app.UseAntiforgery();
 
 // Middleware del modulo (registrazione login staff nel roster).
 app.UseVipiModule();

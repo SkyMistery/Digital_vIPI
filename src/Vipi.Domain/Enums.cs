@@ -89,6 +89,17 @@ public enum LevelConstraint { AtOrAbove, AtOrBelow, Exact, Special }
 /// «a 130 o inferiore» non implica una discesa). <c>Unspecified</c> = nessuna parola di stato nella frase.</summary>
 public enum TransferVerticalState { Unspecified, Level, Descending, Climbing }
 
+/// <summary>Dove avviene il trasferimento (del controllo o delle comunicazioni), quando NON coincide con il punto
+/// d'ingresso del traffico. <c>Unspecified</c> = coincide con l'ingresso, cioè il comportamento storico di un
+/// accordo ACC↔ACC: al CoP il traffico entra e lì passa il controllo. Gli altri valori servono agli accordi
+/// ACC→APP, dove ingresso e trasferimento sono due eventi distinti («via CHI … al confine dell'AoR»).</summary>
+public enum TransferHandoffKind { Unspecified, Point, AorBoundary, Custom }
+
+/// <summary>Vincolo di una restrizione di velocità al trasferimento. <c>Unspecified</c> = nessuna restrizione.
+/// Enum dedicato e non riuso di <see cref="LevelConstraint"/>: quello porta un valore <c>Special</c> («per
+/// aerovia») che su una velocità non significa niente.</summary>
+public enum SpeedConstraint { Unspecified, AtOrBelow, AtOrAbove, Exact }
+
 /// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
 /// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da
 /// <see cref="DateParity"/> (parità del giorno del mese per le piste): stessa forma, semantica diversa.</summary>

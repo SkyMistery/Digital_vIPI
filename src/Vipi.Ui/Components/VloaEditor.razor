@@ -1,4 +1,4 @@
-@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
+﻿@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
    bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
    Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject ILogger<VloaEditor> Logger
 @inject IStringLocalizer<SharedResource> L
+@inject IEditAuthorizationService Authz
 @* Editing e Vloa risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash
    "second operation" sotto latenza Postgres. Vedi [[EditLockBar]]. *@
 
@@ -86,15 +87,12 @@ else
         </RightRail>
     </DocumentSectionsEditor>
 
-    @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f). Prima l'editor vLOA era
-       l'unico senza pannello release — la si poteva pubblicare solo da /vsop/versioni — e l'unico con un
-       «Pubblica» di versione. «Pubblica ora» fa snapshot + promozione della bozza. *@
-    <div class="block" id="@_releaseAnchor">
-        <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
-        <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
-                      ShowDiff="true" PreviewUrlFactory="ReleasePreviewUrl"
-                      Published="LoadAsync" />
-    </div>
+    @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f), con gli STESSI parametri
+       (doc 13 §3i) — mancavano l'aiuto e, per gli admin, l'annullo di una release. *@
+    <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
+                  ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                  PreviewUrlFactory="ReleasePreviewUrl"
+                  Published="LoadAsync" />
 }
 
 @code {
@@ -111,22 +109,22 @@ else
     private bool _notFound, _denied, _editing;
     private string? _error;
 
-    // Titoli delle sezioni OBBLIGATORIE (mockup 3d): bloccate (no rinomina/sposta/elimina).
-    private IReadOnlySet<string> _mandatory = new HashSet<string>();
-    private bool IsMandatory(EditableSection s) => _mandatory.Contains(s.Title);
+    // Sezioni OBBLIGATORIE: quelle fisse del catalogo (doc 13 §3c). Prima erano riconosciute per TITOLO — una
+    // rinomina perdeva lo stato e due titoli uguali collidevano, esattamente ciò che il doc 11 §3a aveva vietato
+    // per «nascosta» ma che qui era rimasto.
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Vloa, s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
 
-    private const string _releaseAnchor = "p-release";
     // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor), come nell'editor APP.
-    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
     private string ReleasePreviewUrl(int releaseId) =>
         $"/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
-    private int _saveTick;
+    private readonly DelayedUiAction _dismissSaved = new();
 
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IEditingService Editing = default!;
@@ -145,7 +143,6 @@ else
 
         var home = (Home ?? "").Trim().ToUpperInvariant();
         var foreign = (Foreign ?? "").Trim().ToUpperInvariant();
-        _mandatory = VloaSections.MandatoryTitles(home, foreign);
         _docId = await Editing.ResolveVloaIdByPairAsync(home, foreign);
         if (_docId is null) { _notFound = true; return; }
 
@@ -186,12 +183,11 @@ else
         _freq = await Vloa.DeriveFrequenciesAsync(_docId!.Value);
     });
 
-    // Sezione derivata (data-driven) da renderizzare come vista, non come blocchi statici.
-    // Derivata = il corpo lo produce il viewer/editor dai dati, non i blocchi. La sezione PADRE dei coordinamenti
-    // è derivata quanto le due figlie (doc 11 §3f): l'editor offriva blocchi lì, ma il viewer li sostituisce con le
-    // due direzioni e non li mostra mai.
+    // Sezione il cui corpo lo produce l'editor dai dati, non i blocchi. Lo dice il catalogo per il profilo vLOA
+    // (doc 13 §3a). La sezione PADRE dei coordinamenti lo è quanto le due figlie (doc 11 §3f): l'editor offriva
+    // blocchi lì, ma il viewer li sostituisce con le due direzioni e non li mostra mai.
     private static bool IsDerived(EditableSection s) =>
-        s.SectionKey is "aor" or "frequencies" or "coordination";
+        SectionCatalog.IsHostRendered(SectionProfile.Vloa, s.SectionKey);
 
     // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
     private async Task StartEditing()
@@ -237,8 +233,14 @@ else
             if (!silent)
             {
                 _save = SaveState.Saved;
-                var tick = ++_saveTick;
-                _ = DismissSavedAsync(tick);
+                // Il badge «Salvato» si spegne da solo. DelayedUiAction annulla il precedente e — a
+                // differenza del contatore che c'era prima — si ferma anche allo smontaggio del componente.
+                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
+                {
+                    if (_save != SaveState.Saved) return Task.CompletedTask;
+                    _save = SaveState.Idle;
+                    return InvokeAsync(StateHasChanged);
+                });
             }
         }
         catch (EditNotAllowedException) { _error = L["Vle_NoEditPerm"]; _save = SaveState.Idle; }
@@ -254,10 +256,12 @@ else
         }
     }
 
-    private async Task DismissSavedAsync(int tick)
+    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
+    /// Override e non IDisposable a parte: OwningComponentBase possiede già il proprio scope DI da liberare.</summary>
+    protected override void Dispose(bool disposing)
     {
-        await Task.Delay(2000);
-        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
+        if (disposing) _dismissSaved.Dispose();
+        base.Dispose(disposing);
     }
 
     // ---- sezioni DERIVATE (data-driven): AoR / frequenze / coordinamenti ----
@@ -271,17 +275,39 @@ else
             case "frequencies":
                 @FreqView()
                 break;
-            case "coordination":
+            case SectionKeys.Coordination:
                 // La sezione PADRE non porta una direzione: le due direzioni sono le sue SOTTO-sezioni, rese qui
-                // sotto dall'editor condiviso. Renderla come se fosse una direzione duplicava l'albero — e per
-                // giunta quello sbagliato: il titolo «Coordination» non inizia col codice Home, quindi cadeva
-                // sempre su ForeignToHome. (Nel viewer è il padre a rendere ENTRAMBE le direzioni e le figlie non
-                // si rendono: là la sequenza è un'altra.)
-                if (s.Depth == 0) break;
-                var homeToForeign = s.Title.StartsWith(Home ?? "", StringComparison.OrdinalIgnoreCase);
-                <AccCoordinationView Coord="@(homeToForeign ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
+                // sotto dall'editor condiviso. Renderla come se fosse una direzione duplicava l'albero.
+                // (Nel viewer è il padre a rendere ENTRAMBE le direzioni e le figlie non si rendono: là la
+                // sequenza è un'altra.)
+                break;
+            // Direzione riconosciuta dalla CHIAVE (doc 13 §3c). Prima si guardava il titolo — «Coordination» non
+            // inizia col codice Home, quindi il padre cadeva sempre su ForeignToHome, e una coppia rinominata
+            // avrebbe invertito i versi in silenzio.
+            case SectionKeys.CoordinationOut:
+                <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
+                break;
+            case SectionKeys.CoordinationIn:
+                <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                 break;
         }
+    };
+
+    // Righe di un lato: in modifica tutte (le escluse attenuate), in lettura solo quelle nel documento.
+    private RenderFragment FreqSide(bool foreign) => __builder =>
+    {
+        var side = _freq.Rows.Where(r => r.IsForeign == foreign).Where(r => _editing || !r.Hidden).ToList();
+        var hidden = side.Where(r => r.Hidden).Select(r => r.Row.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        <AppFrequencies Rows="side.Select(r => r.Row).ToList()"
+                        IsDimmed="row => hidden.Contains(row.Callsign)"
+                        RowActions="@(_editing ? FreqToggle(hidden) : null)" />
+    };
+
+    private RenderFragment<AppFreqRow> FreqToggle(IReadOnlySet<string> hidden) => row => __builder =>
+    {
+        <button class="btn ghost" @onclick="() => ToggleFreq(row.Callsign)">
+            @(hidden.Contains(row.Callsign) ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])
+        </button>
     };
 
     private RenderFragment AorView() => __builder =>
@@ -311,52 +337,12 @@ else
         }
         else
         {
+            @* Stessa tabella del documento (doc 13 §3l). In modifica si vedono anche le frequenze escluse,
+               attenuate, col loro interruttore: l'editor deve mostrare ciò che il viewer mostrerà, più i comandi. *@
             <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
-            @FreqTable(_freq.Rows.Where(r => !r.IsForeign).ToList())
+            @FreqSide(foreign: false)
             <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
-            @FreqTable(_freq.Rows.Where(r => r.IsForeign).ToList())
+            @FreqSide(foreign: true)
         }
     };
-
-    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted" style="margin:0">@L["Vle_NoFreq"]</p>
-        }
-        else
-        {
-            <table class="cfg-table" style="table-layout:fixed;width:100%">
-                <colgroup>
-                    <col style="width:32px" />
-                    <col style="width:auto" />
-                    <col style="width:26%" />
-                    <col style="width:120px" />
-                    @if (_editing) { <col style="width:104px" /> }
-                </colgroup>
-                <thead>
-                    <tr><th></th><th>@L["Airport_Name"]</th><th>Callsign</th><th>@L["Vle_Frequency"]</th>@if (_editing) { <th></th> }</tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        @if (_editing || !r.Hidden)
-                        {
-                            <tr style="@(r.Hidden ? "opacity:.45" : "")">
-                                <td>@(r.Row.IsPrimary ? "★" : "")</td>
-                                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
-                                <td>@r.Row.Callsign</td>
-                                <td>@r.Row.FrequencyMhz</td>
-                                @if (_editing)
-                                {
-                                    <td><button class="btn ghost" @onclick="() => ToggleFreq(r.Row.Callsign)">@(r.Hidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button></td>
-                                }
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        }
-    };
-
 }

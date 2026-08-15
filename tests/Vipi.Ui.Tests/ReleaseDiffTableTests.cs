@@ -39,49 +39,49 @@ public class ReleaseDiffTableTests : TestContext
     [Fact]
     public void Nessuna_Differenza_Mostra_Il_Messaggio_Dedicato()
     {
-        var cut = Render(new ReleaseDiff(true, "AIRAC 2607", Array.Empty<ReleaseDiffRow>()));
+        var cut = Render(new ReleaseDiff(true, "2607", Array.Empty<ReleaseDiffRow>()));
 
         Assert.Contains("Rel_NoDiff", cut.Markup);
-        Assert.Contains("AIRAC 2607", cut.Markup);   // la baseline si mostra comunque
+        Assert.Contains("Rel_BaselineCycle", cut.Markup);   // la baseline si mostra comunque
         Assert.Empty(cut.FindAll("table"));
     }
 
     [Fact]
     public void Rende_Una_Riga_Per_Differenza()
     {
-        var diff = new ReleaseDiff(true, "AIRAC 2607", new[]
+        var diff = new ReleaseDiff(true, "2607", new[]
         {
-            new ReleaseDiffRow("Separazioni", "Modificata", "3 NM → 5 NM"),
-            new ReleaseDiffRow("Sezione VFR", "Aggiunta", null),
-            new ReleaseDiffRow("Minime", "Rimossa", "non più pubblicata"),
+            new ReleaseDiffRow("Separazioni", ReleaseChangeKind.Modified, 3, 5),
+            new ReleaseDiffRow("Sezione VFR", ReleaseChangeKind.Added, null, 2),
+            new ReleaseDiffRow("Minime", ReleaseChangeKind.Removed, 1, null),
         });
 
         var cut = Render(diff);
 
         Assert.Equal(3, cut.FindAll("tbody tr").Count);
         Assert.Contains("Separazioni", cut.Markup);
-        Assert.Contains("3 NM → 5 NM", cut.Markup);
+        // I conteggi li formatta la UI (doc 13 §3k): il service consegna numeri, non frasi italiane.
+        Assert.Contains("Rel_DiffItemsFromTo", cut.Markup);
+        Assert.Contains("Rel_DiffItems", cut.Markup);
     }
 
     [Theory]
-    [InlineData("Aggiunta", "green")]
-    [InlineData("Rimossa", "grey")]
-    [InlineData("Modificata", "blue")]
-    [InlineData("Qualcos'altro", "blue")]     // tipo non previsto: colore neutro, non un errore
-    public void Il_Colore_Della_Pill_Segue_Il_Tipo_Di_Modifica(string change, string expectedPill)
+    [InlineData(ReleaseChangeKind.Added, "green")]
+    [InlineData(ReleaseChangeKind.Removed, "grey")]
+    [InlineData(ReleaseChangeKind.Modified, "blue")]
+    public void Il_Colore_Della_Pill_Segue_Il_Tipo_Di_Modifica(ReleaseChangeKind change, string expectedPill)
     {
-        var cut = Render(new ReleaseDiff(true, "b", new[] { new ReleaseDiffRow("X", change, null) }));
+        var cut = Render(new ReleaseDiff(true, "2607", new[] { new ReleaseDiffRow("X", change, 1, 2) }));
 
         Assert.Contains(expectedPill, cut.Find("tbody tr span.pill").ClassName);
     }
 
     [Fact]
-    public void Il_Tipo_Non_Previsto_Viene_Mostrato_Cosi_Come_E()
+    public void Senza_Baseline_Si_Dice_Che_Non_Ce_Una_Release_In_Vigore()
     {
-        // I valori noti passano dal dizionario delle traduzioni; uno sconosciuto non deve sparire dalla vista.
-        var cut = Render(new ReleaseDiff(true, "b", new[] { new ReleaseDiffRow("X", "Spostata", null) }));
+        var cut = Render(new ReleaseDiff(false, null, Array.Empty<ReleaseDiffRow>()));
 
-        Assert.Contains("Spostata", cut.Markup);
+        Assert.Contains("Rel_BaselineNone", cut.Markup);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class ReleaseDiffTableTests : TestContext
         // dai contenuti editoriali, quindi non devono poter iniettare markup.
         var diff = new ReleaseDiff(true, "<b>base</b>", new[]
         {
-            new ReleaseDiffRow("<script>alert(1)</script>", "Aggiunta", "<img src=x onerror=1>"),
+            new ReleaseDiffRow("<script>alert(1)</script>", ReleaseChangeKind.Added, null, 1),
         });
 
         var cut = Render(diff);

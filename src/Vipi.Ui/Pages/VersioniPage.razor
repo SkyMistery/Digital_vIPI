@@ -1,4 +1,4 @@
-@page "/vsop/versioni"
+﻿@page "/vsop/versioni"
 @page "/vsop/{Acc}/versioni"
 @layout SopLayout
 @rendermode InteractiveServer
@@ -10,7 +10,7 @@
 @inject Vipi.Application.Abstractions.IAuditLogReader Audit
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@inject Vipi.Ui.Shared.Routing.IDocRoutesRegistry DocRoutes
+@inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Nd_Drafts"] · IVAO Italia</PageTitle>
@@ -53,17 +53,17 @@
             <span>@L["Ver_KindLabel"]</span>
             @foreach (var (k, lab) in KindFilters)
             {
-                <span class="pill @(_kindFilter == k ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetKind(k)">@lab</span>
+                <Chip Class="@($"pill {(_kindFilter == k ? "blue" : "grey")}")" Active="_kindFilter == k" Style="cursor:pointer" OnActivate="() => SetKind(k)">@lab</Chip>
             }
             <span style="margin-left:6px">@L["Ver_StatusLabel"]</span>
             @foreach (var (s, lab) in StatusFilters)
             {
-                <span class="pill @(_statusFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetStatus(s)">@lab</span>
+                <Chip Class="@($"pill {(_statusFilter == s ? "blue" : "grey")}")" Active="_statusFilter == s" Style="cursor:pointer" OnActivate="() => SetStatus(s)">@lab</Chip>
             }
             <span style="margin-left:6px">@L["Ver_ReleaseLabel"]</span>
             @foreach (var (s, lab) in ReleaseFilters)
             {
-                <span class="pill @(_releaseFilter == s ? "blue" : "grey")" style="cursor:pointer" @onclick="() => SetRelease(s)">@lab</span>
+                <Chip Class="@($"pill {(_releaseFilter == s ? "blue" : "grey")}")" Active="_releaseFilter == s" Style="cursor:pointer" OnActivate="() => SetRelease(s)">@lab</Chip>
             }
         </div>
 
@@ -309,25 +309,11 @@
 
     private void ReadFiltersFromUrl()
     {
-        var q = ParseQuery(new Uri(Nav.Uri).Query);
+        var q = QueryStringUtil.Parse(new Uri(Nav.Uri).Query);
         if (q.TryGetValue("q", out var qv)) _q = qv;
-        if (q.TryGetValue("kind", out var kv) && Enum.TryParse<ManagedDocKind>(kv, out var k)) _kindFilter = k;
-        if (q.TryGetValue("stato", out var sv) && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
-        if (q.TryGetValue("rel", out var rv) && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
-    }
-
-    private static Dictionary<string, string> ParseQuery(string query)
-    {
-        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var i = part.IndexOf('=');
-            if (i <= 0) continue;
-            var name = Uri.UnescapeDataString(part[..i]);
-            var val = Uri.UnescapeDataString(part[(i + 1)..]);
-            d[name] = val;
-        }
-        return d;
+        if (q.Enum<ManagedDocKind>("kind") is { } k) _kindFilter = k;
+        if (q.Value("stato") is { } sv && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
+        if (q.Value("rel") is { } rv && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
     }
 
     // Lazy: versioni (solo Document) + release, caricate quando la riga è espansa.
@@ -341,11 +327,15 @@
                 _versions[key] = await Editing.ListVersionsAsync(docId);
             if (!_releases.ContainsKey(key))
                 _releases[key] = await Releases.ListAsync(d.ReleaseTarget, d.ReleaseKey);
-            // Storia modifiche (audit) solo per i profili ACC/APP: non hanno version-list.
-            if ((d.Kind is ManagedDocKind.AccVipi or ManagedDocKind.AppVipi) && !_history.ContainsKey(key))
+            // Storia modifiche: vale per TUTTE le famiglie (doc 13 §3i). L'audit lo si scrive per DocumentVersion,
+            // quindi la storia di un documento è l'unione di quella delle sue versioni. Prima si interrogavano i
+            // bersagli «AccProfile»/«AppProfile» — lo storage per-tipo droppato dal doc 08i: quelle righe non le
+            // scrive più nessuno, e il riquadro diceva sempre «nessuna storia» per ACC e APP e non c'era altrove.
+            if (d.DocumentId is int historyDocId && !_history.ContainsKey(key))
             {
-                var (etype, eid) = AuditRefOf(d);
-                _history[key] = await Audit.ListForEntityAsync(etype, eid);
+                var versionIds = (_versions.TryGetValue(key, out var vs) ? vs : await Editing.ListVersionsAsync(historyDocId))
+                    .Select(v => v.Id.ToString()).ToList();
+                _history[key] = await Audit.ListForEntitiesAsync("DocumentVersion", versionIds);
             }
             await ResolveAuthorsAsync(key);
         }
@@ -367,14 +357,6 @@
 
     private string Author(int vid) =>
         _authorNames.TryGetValue(vid, out var n) ? $"{n} (VID {vid})" : $"VID {vid}";
-
-    // Chiave audit del profilo: ACC = codice ACC; APP = callsign (= ReleaseKey). Normalizzati upper.
-    private static (string EntityType, string EntityId) AuditRefOf(ManagedDoc d) => d.Kind switch
-    {
-        ManagedDocKind.AccVipi => ("AccProfile", (d.AccCode ?? "").ToUpperInvariant()),
-        ManagedDocKind.AppVipi => ("AppProfile", d.ReleaseKey.ToUpperInvariant()),
-        _ => ("", ""),
-    };
 
     // Riepilogo leggero delle aree toccate dal DetailsJson {"Areas":[...],"Saves":N}.
     private string HistoryDetail(string? json)
@@ -432,7 +414,7 @@
             }
         }
 
-        @if (d.Kind is ManagedDocKind.AccVipi or ManagedDocKind.AppVipi)
+        @if (d.DocumentId is not null)
         {
             <div class="block" style="margin-top:8px">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">

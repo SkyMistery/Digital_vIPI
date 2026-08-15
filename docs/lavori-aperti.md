@@ -1,6 +1,36 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 9 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 11 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+
+> ### 🆕 11 agosto 2026 — audit full-stack, eseguito
+> Carta ed esito in [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md).
+> 34 voci esaminate, 23 chiuse, 3 ribaltate dalla misura, 5 non fatte con la ragione scritta. Suite da 1391 a
+> **2111** test verdi (net8 1115, net10 996). Sei commit, tutti spinti.
+>
+> **Due cose toccano direttamente questo elenco:**
+> - ⚠️ **B5 era mergiabile solo in apparenza.** Il ramo `refactor/13-tre-documenti` portava 14 chiavi
+>   duplicate nei `.resx`: con `-warnaserror` il job CI `build-net8` dava **28 errori**, e nessuno l'aveva
+>   visto perché il ramo non era mai stato spinto. Corretto, con tre guardie. La decisione di merge resta
+>   vostra, ma adesso il ramo compila davvero.
+> - ⚠️ **Su net8 — cioè la produzione — girava un solo progetto di test su sette.** Gli altri sei erano
+>   net10, ~1000 test che non toccavano mai il runtime del cutover. Ora sono 1102 su net8.
+>
+> **Voci nuove, ancora aperte:** la CSP è in sola segnalazione finché non spariscono lo `<script>` inline
+> dello zoom e gli `style=` nel markup; la mappa dei claim OIDC e il nonce vanno con **A10**, perché
+> richiedono un login IVAO vero.
+>
+> **Chiuso nel seguito dello stesso giorno**, cercando il test intermittente del bridge: `TimeoutMs` di
+> `AuroraClient` **non copriva la connessione**, solo l'attesa della risposta. Un host che tace invece di
+> rifiutare teneva il tool fermo **21,1 secondi** contro i 500 ms richiesti. Riprodotto e corretto. Il test
+> intermittente in sé resta **non riprodotto** in 9 giri ulteriori: chiuso sull'ipotesi più probabile letta
+> nel codice, con asserzioni che alla prossima occorrenza diranno che cosa è successo.
+>
+> ⚠️ **Ricomparso il 12 agosto**, e con un dato nuovo: fallisce **solo** nella corsa completa in parallelo della
+> soluzione, mai da solo — otto giri isolati del progetto e una seconda corsa completa sono verdi. Il sospetto
+> si sposta dal tempo dentro un test alla **contesa fra progetti** (porta, file temporaneo, cartella condivisa).
+> Il nome del test non è stato catturato perché il log della corsa non era su file: alla prossima occorrenza
+> **tenere il log intero** (`dotnet test Vipi.slnx > log.txt 2>&1`), il nome sta nella riga sopra
+> «Error Message».
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -322,6 +352,33 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 ---
 
 ## B. Branch non fusi — decisioni, non lavoro
+
+### B5 🟡 `refactor/13-tre-documenti` — pronto, in attesa di un ok
+
+25 commit, suite **2111** verde su entrambi i TFM, **verifica live fatta** sui tre documenti (copia del
+`vipi.db` reale).
+
+⚠️ **«Build senza errori» era falso fino all'11 agosto 2026**, e la riga qui sopra lo diceva lo stesso: il
+job CI che compila con `-warnaserror` dava **28 errori** per 14 chiavi duplicate nei `.resx`. Il ramo non
+era mai stato spinto dopo il commit che le ha introdotte, quindi la CI non l'aveva mai visto, e la suite
+locale restava verde perché `dotnet test` non usa quel flag. Corretto, con tre guardie che leggono i `.resx`
+dal disco. Adesso la frase è vera. È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA,
+nato dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
+
+Perché conviene farlo entrare: due difetti **uscivano dal documento** — la pagina APP pubblica derivava le
+configurazioni dalla versione di lavoro (bozza in pubblico, contro l'invariante del doc 10), e ricerca e
+«Cosa è cambiato» indicizzavano documenti nascosti, **sezioni** nascoste e contenuto senza release
+effettiva. Il resto è uniformità: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria»,
+vLOA dal catalogo, ciclo AIRAC del documento invece che di oggi, pannello release uguale nei quattro
+editor, una sola resa per sezione comune, testi localizzati, codice morto rimosso.
+
+Da sapere prima del merge: al primo avvio girano **tre riconciliazioni one-shot** (chiavi delle direzioni
+vLOA + «Purpose», placeholder vuoti di «minima», sezioni di catalogo mancanti su APP/vLOA). Sul DB di
+sviluppo hanno toccato 15 sezioni e rimosso 18 blocchi. Sono idempotenti e non toccano le release già
+pubblicate — il viewer sa leggere anche gli snapshot nella forma vecchia.
+
+**Decisione da prendere:** merge in `main` (serve l'ok esplicito, come per il doc 10) e push.
+
 
 ### B1 ✅ FUSA — `feature/aree-speciali-hardening`, verificata il 6 agosto e fusa il 7 agosto 2026
 **Fusa in `main` in fast-forward** (21 commit, `bbbbf2b` → `7557ec4`) e da lì nel ramo del cutover
@@ -682,6 +739,68 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
 - 🟢 **Test property-based sull'AoR** — non c'è ancora alcuna libreria property-based nel progetto.
 - 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
   con chi la userà prima di essere scritta.
+
+### E6 ✅ Trasferimenti ACC↔APP — **chiuso l'11-12 agosto 2026, verifica live eseguita**
+Due schede, in sequenza sullo stesso branch:
+[`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md) (autorizzazione e
+trasferimento separati, velocità, derivazione estesa) e
+[`feature/2026-08-12-varianti-a-livelli.md`](feature/2026-08-12-varianti-a-livelli.md) (il gruppo di varianti
+diventa un **outline**: alternative pari-grado, eccezioni annidate a profondità libera, righe che scavalcano).
+La seconda **corregge** la parte «varianti» della prima, decisa dal committente alla prima lettura e fatta
+prima del merge, quindi a costo di dati zero.
+
+Terza scheda dello stesso filone: [`feature/2026-08-12-editor-trasferimenti-ux.md`](feature/2026-08-12-editor-trasferimenti-ux.md)
+— la **pagina** che scrive quelle righe, rifatta col pattern del progetto (lista + pannello a destra), nove
+bottoni-icona per riga ridotti a tre, **51 stili inline azzerati** e dieci migliorie d'uso.
+
+Quarta, dalla prima lettura della pagina rifatta:
+[`feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](feature/2026-08-12-trasferimenti-gruppi-e-salva.md) — il
+**gruppo di varianti si vede** (guida, bordi, pill, e la colonna Condizione che dice «se X» / «negli altri
+casi» / «↳ eccezione di: X») e il **Salva si raggiunge**: il pannello diventa testata · corpo · piede, perché
+prima l'unico modo di arrivarci era una seconda barra di scorrimento dentro il riquadro.
+
+Quinta, dall'uso vero della pagina («ancora scomoda e poco fluida»):
+[`feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](feature/2026-08-12-editor-trasferimenti-tre-colonne.md)
+— la pagina passa a **tre colonne** (navigatore · riquadro di lavoro · pannello, ognuna col proprio
+scorrimento), guadagna una **vista a elenco** per rivedere invece che per scrivere, tiene lo **stato in URL**
+(un gruppo si linka, un F5 non azzera) e lascia scrivere **CoP, livello e ricevente dentro la tabella**. Il
+gruppo smette di essere un terzo livello di collasso: arrivare a una riga costava tre clic, ogni volta.
+⚠️ Qui è stato chiuso un **difetto che c'era da prima**: il filtro «senza ricevente» si accendeva, contava
+giusto e **non filtrava nulla**.
+
+Sesto giro, dalle rifiniture chieste sul risultato:
+[`feature/2026-08-12-editor-trasferimenti-rifiniture.md`](feature/2026-08-12-editor-trasferimenti-rifiniture.md)
+— il **costo per gesto** (salvare una cella da 8 query a 1), la **tastiera** nei picker (sei copie → un
+componente), l'**annulla** dopo un'eliminazione che rimette anche l'outline, la **modifica in blocco** su
+livello e condizione, l'ordinamento per intestazione in elenco.
+
+Suite 2403 verde, Release 0 warning su entrambi i TFM, verifica live su copia del `vipi.db` reale in tutti e
+sei i giri (ventuno difetti trovati proprio lì, quasi nessuno visibile alla suite).
+
+⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora dove
+avviene il trasferimento vanno riviste a mano — il loro livello può voler dire «autorizzato» o «al
+trasferimento» e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
+elenca e ne tiene il conto. Il numero va rimisurato sulla produzione MariaDB, dove i dati sono altri.
+
+Il modello dei trasferimenti descrive **un evento con un livello**, che basta per un accordo ACC↔ACC e non
+basta per un ACC→APP: «autorizzo a FL160 via CHI, trasferisco al confine dell'AoR passando FL110» oggi non è
+esprimibile. Cinque cose in un giro solo, perché vivono tutte sulla stessa riga:
+
+1. livello **autorizzato** e livello **al trasferimento** separati, con punto di trasferimento proprio
+   (confine AoR / fix / testo libero) e **comunicazioni** su colonna distinta dal controllo;
+2. **velocità** al trasferimento (`valore + ≤/≥/=`), oggi assente dal modello;
+3. **gruppo di varianti** (`VariantGroup` sulla riga, non una tabella figlia) più la riga «negli altri casi»:
+   le alternative per condizione oggi sono righe scollegate, e il caso reale è già in archivio — righe 76/77,
+   `BIRSU FL150 con pista 07` e `BIRSU FL130 in discesa con pista 25`, la stessa riga con condizioni diverse
+   che il modello non sa legare;
+4. il passo 2 di `CoordinationDerivation.Build` filtra `Arrival` + owner `Ctr`, quindi **l'ACC non vede le
+   partenze** che gli APP gli consegnano. Decisione: nella sezione estesa ci va tutto ciò che entra o esce;
+5. filtro «righe da rivedere» nell'editor, perché le righe ACC→APP esistenti si rivedono a mano (16 nel DB di
+   sviluppo, da rimisurare in produzione).
+
+⚠️ Due punti da leggere **prima** di stimare, non durante: `TransferMatcher` pesa la graduatoria su «un punto,
+un livello», e `TransferResolveContract.CandidateLevel` è un contratto verso Aurora — con due livelli va deciso
+quale finisce nell'etichetta quota.
 
 ---
 

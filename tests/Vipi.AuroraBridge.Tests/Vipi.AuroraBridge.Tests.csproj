@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net8 e basta: Vipi.AuroraBridge.Core è net8 soltanto (Avalonia), quindi su net10 questi test
+         giravano in roll-forward su un runtime che il tool desktop non vede mai. -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 

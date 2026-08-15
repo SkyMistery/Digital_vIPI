@@ -53,6 +53,23 @@ public static class VipiStandaloneAuthExtensions
                 o.ExpireTimeSpan = TimeSpan.FromDays(7);
                 o.SlidingExpiration = true;
                 o.LoginPath = "/vsop/auth/login";
+
+                // Scritte invece che ereditate. HttpOnly e SameSite=Lax sono già i default, ma un default
+                // è una cosa che cambia con la versione del framework e questo cookie è l'unica credenziale
+                // che il sito emette. Lax e non Strict: il ritorno da IVAO è una navigazione cross-site, e
+                // con Strict il cookie non verrebbe mandato al primo salto dopo il login.
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SameSite = SameSiteMode.Lax;
+                // Always fuori da Development, e non SameAsRequest: dietro il reverse proxy il salto interno
+                // è in chiaro, e SameAsRequest ne concluderebbe che il cookie può viaggiare senza TLS.
+                // UseForwardedHeaders gira prima e di norma corregge lo schema, ma «di norma» non è la parola
+                // giusta per l'unica credenziale che il sito emette.
+                // ⚠️ In sviluppo resta SameAsRequest: l'host locale ascolta in http, e con Always il browser
+                // scarterebbe il cookie — login che gira a vuoto senza dire perché. È lo scenario in cui si
+                // prova il login vero (A6), quindi la deroga serve davvero.
+                o.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest
+                    : CookieSecurePolicy.Always;
             })
             .AddOpenIdConnect(IvaoScheme, "IVAO Single Sign-On", oidc =>
             {
@@ -64,7 +81,16 @@ public static class VipiStandaloneAuthExtensions
                 oidc.ResponseType = OpenIdConnectResponseType.Code;
                 oidc.UsePkce = true;
                 oidc.GetClaimsFromUserInfoEndpoint = true;
-                oidc.SaveTokens = true;
+
+                // SaveTokens = FALSE, e non è una svista: con true l'handler infila id_token, access_token e
+                // refresh_token dentro il cookie di autenticazione, che poi viaggia a ogni richiesta e a ogni
+                // handshake SignalR. Cercato chi li rilegge: nessuno — `GetTokenAsync` non compare nella
+                // soluzione, e le chiamate all'API IVAO passano da tutt'altra strada (IvaoTokenProvider, con
+                // le credenziali dell'APPLICAZIONE). Erano quindi credenziali di un utente vero, riemesse a
+                // ogni login, spedite a ogni richiesta, per una funzione che non esiste.
+                // Se un giorno servisse agire per conto dell'utente, si riaccende — e quel giorno c'è un
+                // consumatore che lo giustifica.
+                oidc.SaveTokens = false;
 
                 // Callback registrati sul portale IVAO (default OIDC): /signin-oidc e /signout-callback-oidc.
                 if (!string.IsNullOrWhiteSpace(opt.CallbackPath)) oidc.CallbackPath = opt.CallbackPath;
@@ -78,6 +104,13 @@ public static class VipiStandaloneAuthExtensions
                 oidc.ProtocolValidator = new IvaoOidcProtocolValidator(shouldValidateNonce: false) { RequireState = false };
 
                 // Porta a claim TUTTI i campi del profilo IVAO (id, centerId, userStaffPositions, ...).
+                //
+                // ⚠️ Resta MapAll() di proposito, pur essendo più largo del necessario: il modulo legge
+                // cinque claim soli (`id`, `centerId`, `userStaffPositions`, `name`, e `sub` di ripiego —
+                // vedi HostIdentityOptions). Restringere qui è la cosa giusta MA non è verificabile senza un
+                // login IVAO vero, e sbagliare il nome di un campo non lancia: toglie l'admin, in silenzio,
+                // al primo accesso dopo il cutover. Da fare insieme alla verifica di A10, non prima.
+                // Il grosso del cookie erano comunque i token, ed è già andato via con SaveTokens = false.
                 oidc.ClaimActions.MapAll();
 
                 oidc.TokenValidationParameters = new TokenValidationParameters
@@ -142,11 +175,32 @@ public static class VipiStandaloneAuthExtensions
         return app;
     }
 
-    /// <summary>Consente solo redirect locali (anti open-redirect); fallback a /vsop.</summary>
-    private static string SafeReturn(string? returnUrl) =>
-        !string.IsNullOrEmpty(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
-            ? returnUrl
-            : "/vsop";
+    /// <summary>
+    /// Consente solo redirect locali (anti open-redirect); ripiego su <c>/vsop</c>.
+    ///
+    /// <para>⚠️ Il controllo «comincia per <c>/</c> e non per <c>//</c>» NON basta, ed è quello che c'era
+    /// prima: i browser normalizzano la barra rovescia in barra <b>prima</b> di risolvere l'URL, quindi
+    /// <c>/\evil.com</c> diventa <c>//evil.com</c> e porta fuori. Un salto del genere è un ottimo attrezzo
+    /// da phishing proprio perché il primo passo — il login — è autentico.</para>
+    ///
+    /// <para>Qui si accetta solo ciò che è inequivocabilmente un percorso di questo sito: una barra sola,
+    /// e il secondo carattere che non sia né <c>/</c> né <c>\</c>. <c>/</c> nudo compreso.</para>
+    /// </summary>
+    internal static string SafeReturn(string? returnUrl)
+    {
+        const string ripiego = "/vsop";
+        if (string.IsNullOrEmpty(returnUrl)) return ripiego;
+
+        // Un URL assoluto o uno schema (http:, javascript:, data:) non comincia per '/': cade da sé.
+        if (returnUrl[0] != '/') return ripiego;
+        if (returnUrl.Length > 1 && (returnUrl[1] == '/' || returnUrl[1] == '\\')) return ripiego;
+
+        // Controllo di caratteri: un CR/LF in un Location è response splitting, e non c'è percorso
+        // legittimo che li contenga.
+        if (returnUrl.Any(c => c is '\r' or '\n' or '\t' || char.IsControl(c))) return ripiego;
+
+        return returnUrl;
+    }
 }
 
 /// <summary>Config dello scenario di login autonomo (sezione "VipiAuth"). Assente/Enabled=false ⇒ modulo spento.</summary>

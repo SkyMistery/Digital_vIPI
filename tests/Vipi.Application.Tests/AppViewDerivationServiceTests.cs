@@ -14,6 +14,24 @@ public class AppViewDerivationServiceTests
 {
     private static AppFreqRow Freq(string cs) => new(null, cs, cs, "121.500", "", true, false);
 
+    /// <summary>Documento mostrato, con la sezione «configurations» e il suo BodyJson (o senza).</summary>
+    private static DocumentView Doc(string? configurationsJson = null) => new()
+    {
+        Title = "LIRP_APP",
+        AiracCycle = "2609",
+        Sections = new[]
+        {
+            new SectionView
+            {
+                Id = "s-1", Title = "Configurazioni", Depth = 0, SectionKey = "configurations",
+                Blocks = configurationsJson is null
+                    ? Array.Empty<BlockView>()
+                    : new[] { new BlockView { Id = 1, Format = BlockFormat.Table, State = RenderState.Expanded, BodyJson = configurationsJson } },
+                Children = Array.Empty<SectionView>(),
+            },
+        },
+    };
+
     [Fact]
     public async Task Frozen_Wins_When_UseFrozen_And_Captured()
     {
@@ -21,7 +39,7 @@ public class AppViewDerivationServiceTests
         var reader = new FakeReader { Frozen = { ["frequencies"] = new List<AppFreqRow> { Freq("A"), Freq("B") } } };
         var svc = new AppViewDerivationService(new FakeApp(), reader);
 
-        var d = await svc.ResolveForViewAsync("LIRP_APP", useFrozen: true);
+        var d = await svc.ResolveForViewAsync("LIRP_APP", Doc(), useFrozen: true);
 
         Assert.Equal(2, d.Freqs.Count);   // frozen
         Assert.Empty(d.Aor.Sectors);      // reader null per "aor" → live (AccAorView.Empty)
@@ -33,7 +51,7 @@ public class AppViewDerivationServiceTests
         var reader = new FakeReader { Frozen = { ["frequencies"] = new List<AppFreqRow> { Freq("A"), Freq("B") } } };
         var svc = new AppViewDerivationService(new FakeApp(), reader);
 
-        var d = await svc.ResolveForViewAsync("LIRP_APP", useFrozen: false);
+        var d = await svc.ResolveForViewAsync("LIRP_APP", Doc(), useFrozen: false);
 
         Assert.Single(d.Freqs);            // live, reader non consultato
         Assert.False(reader.WasQueried);
@@ -84,11 +102,64 @@ public class AppViewDerivationServiceTests
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveConfigurationsAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
+        /// <summary>Configurazioni con cui la pagina ha chiesto la tabella: è ciò che il test vuole osservare.</summary>
+        public IReadOnlyList<AccConfiguration>? ConfigsAsked { get; private set; }
+
+        public Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string a, CancellationToken ct = default) =>
+            throw new InvalidOperationException("La vista non deve mai chiedere le configurazioni della versione di lavoro.");
+
+        public Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string a, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
+        {
+            ConfigsAsked = configs;
+            return Task.FromResult<IReadOnlyList<AccConfigTableView>>(
+                configs.Select(c => new AccConfigTableView(c.Key, c.Name, Array.Empty<AccConfigTableRow>())).ToList());
+        }
         public Task<RegulatedSelection> GetRegulatedAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveRegulatedAsync(string a, RegulatedSelection s, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<SpecialAreaPick>> ListOtherAccSpecialAreasAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccSpecialAreaView>> ResolveRegulatedAreasAsync(RegulatedSelection s, CancellationToken ct = default) => throw new NotImplementedException();
+    }
+
+    // ---- doc 13 §3g: la tabella «Configurazioni» viene dal documento mostrato ----
+
+    [Fact]
+    public async Task Config_table_is_derived_from_the_configurations_of_the_shown_document()
+    {
+        var app = new FakeApp();
+        var svc = new AppViewDerivationService(app, new FakeReader());
+        var shown = Doc("""[{"Key":"nord","Name":"Nord","OpenCallsigns":["LIRP_APP"]}]""");
+
+        var d = await svc.ResolveForViewAsync("LIRP_APP", shown, useFrozen: true);
+
+        var asked = Assert.Single(app.ConfigsAsked!);
+        Assert.Equal("nord", asked.Key);
+        Assert.Equal("Nord", Assert.Single(d.ConfigTable).ConfigName);
+    }
+
+    [Fact]
+    public async Task The_working_version_is_never_asked_for_the_configurations()
+    {
+        // Il difetto era esattamente questo: la pagina chiedeva le configurazioni al service, che risolve la
+        // versione di LAVORO (bozza se esiste) — e la pagina pubblica mostrava configurazioni mai pubblicate.
+        // Il fake fa esplodere l'overload che legge la versione di lavoro: se qualcuno lo rimette, si vede qui.
+        var app = new FakeApp();
+        var svc = new AppViewDerivationService(app, new FakeReader());
+
+        await svc.ResolveForViewAsync("LIRP_APP", Doc(), useFrozen: true);
+
+        Assert.Empty(app.ConfigsAsked!);
+    }
+
+    [Fact]
+    public async Task A_document_without_the_configurations_section_yields_an_empty_table()
+    {
+        var app = new FakeApp();
+        var svc = new AppViewDerivationService(app, new FakeReader());
+        var noSection = new DocumentView { Title = "x", AiracCycle = "2609", Sections = Array.Empty<SectionView>() };
+
+        var d = await svc.ResolveForViewAsync("LIRP_APP", noSection, useFrozen: true);
+
+        Assert.Empty(d.ConfigTable);
     }
 }

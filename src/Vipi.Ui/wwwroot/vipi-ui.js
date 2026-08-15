@@ -331,6 +331,65 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
+    // Porta in vista un pannello di editing quando il suo PIEDE non lo è. Il bersaglio è il piede e non il
+    // riquadro: un pannello che comincia a schermo ma finisce sotto la piega ha il Salva fuori campo, ed è
+    // esattamente il caso misurato (pannello a 757 px, alto 906, viewport 1000 → Salva a 1609).
+    // Serve a schermo stretto, dove la griglia lista+pannello collassa a una colonna e il pannello sta dopo
+    // tutta la lista, e serve anche a schermo largo con la pagina in cima. Se il piede è già visibile non
+    // muove niente: uno scorrimento non richiesto su una pagina ferma è peggio del problema che risolve.
+    // Il pannello è STICKY: scorrere la pagina sposta anche lui, quindi una correzione sola non basta e
+    // scrollIntoView manca il bersaglio (misurato: lasciava il piede fuori di 15 px). Due o tre passate
+    // convergono, e se il piede è già a posto la prima esce subito senza muovere niente.
+    // Adatta un riquadro allo spazio che resta sotto di lui: altezza = fondo dello schermo meno dove comincia.
+    //
+    // Serve alle pagine a colonne indipendenti (editor trasferimenti), dove ogni colonna deve scorrere per conto
+    // proprio DENTRO lo schermo e la pagina non deve scorrere affatto. In CSS puro non si esprime: un
+    // calc(100vh - N) richiede di sapere N, e N è tutto ciò che sta sopra — barra dell'applicazione, briciole,
+    // testata, barra ACC, barra dei filtri, e l'avviso del lock che compare e sparisce. Misurato a schermo il
+    // valore vero era 398 px dove la stima diceva 250: la pagina scorreva di 148.
+    //
+    // Si rimisura a ogni chiamata (l'editor la chiama a ogni render) e al ridimensionamento della finestra.
+    // Sotto la soglia in cui la griglia collassa l'altezza fissa va TOLTA: lì il riquadro sta dentro una pagina
+    // che scorre, e bloccarlo creerebbe due barre di scorrimento annidate.
+    var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
+    var fitTargets = [];
+
+    function fitOne(sel, collapseBelow) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        if (window.innerWidth <= collapseBelow) { el.style.height = ''; return; }
+        var top = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
+        var h = Math.round(window.innerHeight - top - 18);
+        el.style.height = h >= fitMin ? h + 'px' : '';
+    }
+
+    window.vipiFitViewport = function (selector, collapseBelow) {
+        var below = collapseBelow || 0;
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below });
+        fitOne(selector, below);
+    };
+
+    window.addEventListener('resize', function () {
+        fitTargets.forEach(function (t) { fitOne(t.sel, t.below); });
+    });
+
+    window.vipiRevealPanel = function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var foot = el.querySelector('.xt-panel-foot') || el;
+        for (var i = 0; i < 3; i++) {
+            // Se la scheda intera ci sta, il bersaglio è la scheda: mirando al solo piede restavano fuori i
+            // pixel di bordo e padding sotto di lui.
+            var target = el.getBoundingClientRect().height <= window.innerHeight - 16 ? el : foot;
+            var r = target.getBoundingClientRect();
+            var d = 0;
+            if (r.bottom > window.innerHeight - 8) d = r.bottom - (window.innerHeight - 8);
+            else if (r.top < 8) d = r.top - 8;
+            if (Math.abs(d) < 2) break;
+            window.scrollBy(0, d);
+        }
+    };
+
     var searchKeyWired = false;
     function wireSearchKey() {
         // "/" mette a fuoco la barra di ricerca in header (se non stai già digitando).

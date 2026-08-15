@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -10,6 +11,9 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfDocumentMaintenance : IDocumentMaintenance
 {
     private const string HiddenSectionsProperty = "HiddenSections";
+    private const string MinimaKey = "minima";
+    private const string PurposeKey = "purpose";
+    private const string PurposeTitle = "Purpose";
 
     private readonly VipiDbContext _db;
 
@@ -37,6 +41,89 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         var touched = await FromDocumentProfilesAsync(ct);
         touched += await FromAccBlockMetaAsync(ct);
         return touched;
+    }
+
+    public async Task<int> ReconcileVloaSectionKeysAsync(CancellationToken ct = default)
+    {
+        var touched = await ReconcileCoordinationDirectionsAsync(ct);
+        touched += await ReconcilePurposeKeyAsync(ct);
+        if (touched > 0) await _db.SaveChangesAsync(ct);
+        return touched;
+    }
+
+    /// <summary>Le due figlie di «coordination» prendono una chiave per direzione, nell'ordine in cui il registro
+    /// le semina (prima Home→vicino). Idempotente: cerca solo le figlie che ripetono ancora la chiave del padre.</summary>
+    private async Task<int> ReconcileCoordinationDirectionsAsync(CancellationToken ct)
+    {
+        var parentIds = await _db.DocumentSections
+            .Where(s => s.SectionKey == SectionKeys.Coordination && s.ParentSectionId == null)
+            .Select(s => s.Id).ToListAsync(ct);
+        if (parentIds.Count == 0) return 0;
+
+        var children = await _db.DocumentSections
+            .Where(s => s.ParentSectionId != null && parentIds.Contains(s.ParentSectionId!.Value)
+                        && s.SectionKey == SectionKeys.Coordination)
+            .ToListAsync(ct);
+        if (children.Count == 0) return 0;
+
+        var touched = 0;
+        foreach (var group in children.GroupBy(s => s.ParentSectionId!.Value))
+        {
+            var ordered = group.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                // Oltre le due direzioni non c'è nulla da riconciliare: una terza figlia con la chiave del padre
+                // non è una direzione, e inventarle un verso sarebbe peggio che lasciarla libera.
+                if (i > 1) break;
+                ordered[i].SectionKey = i == 0 ? SectionKeys.CoordinationOut : SectionKeys.CoordinationIn;
+                ordered[i].RowVersion = Guid.NewGuid().ToByteArray();
+                touched++;
+            }
+        }
+
+        // I blocchi delle direzioni non li rende nessuno (il corpo lo produce la pagina): erano i due paragrafi
+        // seminati dal registro, scritti nel DB di ogni vLOA e invisibili ovunque.
+        var directionIds = children.Select(s => s.Id).ToList();
+        var orphanBlocks = await _db.ContentBlocks.Where(b => directionIds.Contains(b.SectionId)).ToListAsync(ct);
+        if (orphanBlocks.Count > 0) _db.ContentBlocks.RemoveRange(orphanBlocks);
+
+        return touched;
+    }
+
+    /// <summary>«Purpose» nasceva con una chiave libera perché il catalogo non la conosceva: la si riconosce per
+    /// titolo — è l'unico appiglio rimasto, ed è legittimo in una riconciliazione one-shot — e solo dentro le vLOA.</summary>
+    private async Task<int> ReconcilePurposeKeyAsync(CancellationToken ct)
+    {
+        var candidates = await _db.DocumentSections
+            .Where(s => s.ParentSectionId == null
+                        && s.Title == PurposeTitle
+                        && s.DocumentVersion!.Document!.Type == Vipi.Domain.DocumentType.Vloa)
+            .ToListAsync(ct);
+
+        var touched = 0;
+        foreach (var s in candidates)
+        {
+            if (!SectionKeys.IsCustom(s.SectionKey)) continue;   // già riconciliata
+            s.SectionKey = PurposeKey;
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+            touched++;
+        }
+        return touched;
+    }
+
+    public async Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default)
+    {
+        // Solo i placeholder: blocco senza testo E senza JSON. Un blocco con contenuto è roba di un editore e resta.
+        var stale = await _db.ContentBlocks
+            .Where(b => b.Section!.SectionKey == MinimaKey
+                        && (b.Body == null || b.Body == "")
+                        && (b.BodyJson == null || b.BodyJson == ""))
+            .ToListAsync(ct);
+        if (stale.Count == 0) return 0;
+
+        _db.ContentBlocks.RemoveRange(stale);
+        await _db.SaveChangesAsync(ct);
+        return stale.Count;
     }
 
     /// <summary>APP (chiavi) e vLOA (titoli): un'unica colonna <c>DocumentProfiles.HiddenSectionsJson</c>, per
@@ -134,5 +221,69 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonNode.Parse(json) as JsonObject; }
         catch (JsonException) { return null; }
+    }
+
+    public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
+    {
+        // Solo APP standalone e vLOA: l'aeroporto non partecipa al catalogo (struttura propria) e la vIPI ACC ha
+        // le sezioni sotto i BLOCCHI, dove la rete a view-time dell'assembler continua a coprirla — serve anche
+        // agli snapshot di release vecchi, che non si riscrivono.
+        var docs = await _db.Documents
+            .Include(d => d.Sectors)
+            .Where(d => d.Type == Vipi.Domain.DocumentType.Vloa
+                        || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
+                                              && x.ApproachKind == ApproachKind.Standalone))
+            .ToListAsync(ct);
+        if (docs.Count == 0) return 0;
+
+        var added = 0;
+        foreach (var doc in docs)
+        {
+            var profile = doc.Type == Vipi.Domain.DocumentType.Vloa ? SectionProfile.Vloa : SectionProfile.App;
+
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == doc.Id)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is null) continue;
+
+            var roots = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == versionId && x.ParentSectionId == null)
+                .OrderBy(x => x.Order).ToListAsync(ct);
+
+            var present = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var missing = SectionCatalog.For(profile).Where(d => !present.Contains(d.Key)).OrderBy(d => d.Order).ToList();
+            if (missing.Count == 0) continue;
+
+            var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
+            foreach (var desc in missing)
+            {
+                var section = new DocumentSection
+                {
+                    DocumentVersion = version,
+                    ParentSection = null,
+                    Title = desc.Title,
+                    Order = 0,   // riassegnato sotto, insieme a tutti
+                    Depth = 0,
+                    SectionKey = desc.Key,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
+                };
+                // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
+                // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
+                var at = roots.FindIndex(x => SectionCatalog.Find(profile, x.SectionKey) is { } f && f.Order > desc.Order);
+                roots.Insert(at < 0 ? roots.Count : at, section);
+                _db.DocumentSections.Add(section);
+                added++;
+            }
+
+            for (var i = 0; i < roots.Count; i++)
+            {
+                if (roots[i].Order == i + 1) continue;
+                roots[i].Order = i + 1;
+                roots[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+        }
+
+        if (added > 0) await _db.SaveChangesAsync(ct);
+        return added;
     }
 }

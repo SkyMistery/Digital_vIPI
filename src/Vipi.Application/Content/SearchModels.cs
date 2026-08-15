@@ -1,9 +1,10 @@
-﻿using Vipi.Domain;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Filtro per tipo nella ricerca full-text.</summary>
-public enum SearchScope { All, Vipi, Airport, Vloa }
+/// <summary>Filtro per tipo nella ricerca full-text. <see cref="Vipi"/> = la vIPI di ACC; gli APP non remotizzati
+/// hanno il loro (doc 13 §3e), prima finivano mescolati alle ACC.</summary>
+public enum SearchScope { All, Vipi, App, Airport, Vloa }
 
 /// <summary>Singolo risultato di ricerca con contesto e deep-link.</summary>
 public sealed class SearchHit

@@ -110,16 +110,28 @@ public static class StartupDiagnostics
     }
 
     /// <summary>
-    /// Scrive accanto all'eseguibile; se la cartella non è scrivibile — capita con host che la montano in
-    /// sola lettura — ripiega sulla temporanea, e in ogni caso stampa dove è finito. Non solleva mai: un
-    /// problema nel raccontare l'errore non deve diventare l'errore.
+    /// Sottocartella dei due file. <b>Non</b> accanto all'eseguibile, com'era fino all'11 agosto 2026:
+    /// <see cref="CrashFileName"/> contiene lo stack trace intero — è il contenuto giusto per chi deve
+    /// capire e quello sbagliato da lasciare in una cartella che, su un hosting a pannello o FTP, può
+    /// stare dentro il documento radice. Una cartella sola è anche una riga sola da negare nel proxy:
+    /// <c>location ~ ^/diagnostica/ { deny all; }</c>, che è in <c>deploy/atc-ivao/nginx-vipi.conf</c>.
+    /// </summary>
+    public const string CartellaDiagnostica = "diagnostica";
+
+    /// <summary>
+    /// Scrive nella sottocartella <see cref="CartellaDiagnostica"/> accanto all'eseguibile; se non è
+    /// scrivibile — capita con host che montano l'applicazione in sola lettura — ripiega sulla temporanea,
+    /// e in ogni caso stampa dove è finito. Non solleva mai: un problema nel raccontare l'errore non deve
+    /// diventare l'errore.
     /// </summary>
     private static void Write(string nomeFile, string contenuto)
     {
-        foreach (var cartella in new[] { AppContext.BaseDirectory, Path.GetTempPath() })
+        foreach (var radice in new[] { AppContext.BaseDirectory, Path.GetTempPath() })
         {
             try
             {
+                var cartella = Path.Combine(radice, CartellaDiagnostica);
+                Directory.CreateDirectory(cartella);
                 var percorso = Path.Combine(cartella, nomeFile);
                 // UTF-8 CON BOM: questi file finiscono per email e vengono aperti col Blocco note su
                 // Windows, che senza BOM li interpreta in ANSI e sfregia ogni accento. Il BOM non dà

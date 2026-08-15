@@ -790,10 +790,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("HiddenSectionsJson")
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId")
@@ -1303,10 +1299,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1467,10 +1459,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("OwningSectorId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwningSectorId");
@@ -1485,6 +1473,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CommsHandoffKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
+
+                    b.Property<string>("CommsHandoffLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionAreaLabel")
                         .HasMaxLength(80)
@@ -1506,6 +1504,34 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("FlowId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("HandoffKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
+
+                    b.Property<string>("HandoffLabel")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HandoffLevelConstraint")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("AtOrAbove");
+
+                    b.Property<string>("HandoffLevelUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Fl");
+
+                    b.Property<int?>("HandoffLevelValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsGroupWide")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("LevelConstraint")
@@ -1532,6 +1558,21 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SpeedConstraint")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
+
+                    b.Property<int?>("SpeedValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VariantDepth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("VariantGroup")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("VerticalState")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1541,6 +1582,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("NextSectorId");
 
                     b.HasIndex("FlowId", "Order");
+
+                    b.HasIndex("FlowId", "VariantGroup", "Order");
 
                     b.ToTable("TransferPoints");
                 });
@@ -1571,10 +1614,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("Priority")
                         .HasColumnType("INTEGER");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("BLOB");
 
                     b.HasKey("Id");
 

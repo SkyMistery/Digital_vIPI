@@ -32,8 +32,16 @@ Referenziare i progetti del modulo (o i futuri pacchetti NuGet):
 ### Target framework
 I cinque progetti del modulo sono **multi-target `net8.0;net10.0`**: un host net8 consuma il ramo
 net8 (stack EF Core 8 / ASP.NET Core 8), un host net10 il ramo net10. Nessuna differenza di API o di
-comportamento fra i due — cambia solo la versione dei pacchetti tirati. `Vipi.Host` (l'app autonoma
-di sviluppo) e i progetti di test restano **net10.0 soli**.
+comportamento fra i due — cambia solo la versione dei pacchetti tirati. `Vipi.Host` è **net8.0 solo**
+(è l'host che va in produzione, e Pomelo esiste solo lì).
+
+**I progetti di test dall'11 agosto 2026** — prima erano net10 soli tranne uno:
+
+| Progetto | TFM | perché |
+|---|---|---|
+| `Vipi.Application.Tests`, `Vipi.Domain.Tests`, `Vipi.Hosting.Tests`, `Vipi.Ui.Tests`, `Vipi.Infrastructure.Tests` | `net8.0;net10.0` | provano librerie multi-target: vanno provate su entrambi |
+| `Vipi.E2E.Tests` | `net8.0` | avvia `Vipi.Host`, che è net8 solo |
+| `Vipi.AuroraBridge.Tests` | `net8.0` | prova `AuroraBridge.Core`, net8 solo (Avalonia) |
 
 Conseguenze pratiche per chi tocca il codice del modulo:
 - Sotto net8 il compilatore scende a **C# 12**: niente sintassi C# 13/14 nelle cinque librerie.
@@ -41,9 +49,16 @@ Conseguenze pratiche per chi tocca il codice del modulo:
   usare `Convert.ToHexString(...).ToLowerInvariant()`.
 - Le migration sono generate con EF Core 10 ma **applicate anche da EF Core 8** (verificato: le 65
   migration si applicano su SQLite sotto EF 8.0.29). Restano SQLite-flavored — vedi `config.md`.
-- ⚠️ **Non è più vero che il ramo net8 non sia coperto dai test.** Da quando l'host di produzione è net8,
-  `Vipi.Infrastructure.Tests` è multi-target e la suite gira su **entrambi** i TFM (331 test su net8, 322 su
-  net10), e la CI applica lo schema a una MariaDB 11.4.10 vera su Linux.
+- ⚠️ **Il ramo net8 è coperto dai test, e dall'11 agosto 2026 lo è davvero.** Fino a quel giorno solo
+  `Vipi.Infrastructure.Tests` girava su net8: **347 test su ~1400**, mentre logica editoriale, resa e smoke
+  di avvio vivevano esclusivamente su net10 — cioè sul runtime che *non* va in produzione. Ora la suite gira
+  su entrambi i TFM (**1115 test su net8**, 996 su net10), la CI ha un job `test-net8` che li **esegue**
+  invece di limitarsi a compilare, e applica lo schema a una MariaDB 11.4.10 vera su Linux.
+- ⚠️ **Gli avvisi sono errori** (`Directory.Build.props`, `TreatWarningsAsErrors`). Vale per tutti i
+  progetti, non solo per la CI: un avviso nuovo ferma la build sulla macchina di chi scrive.
+- ⚠️ **Le dipendenze sono bloccate** (`packages.lock.json` committati, restore in «locked mode» in CI). Se
+  il restore della CI si ferma, il rimedio è `dotnet restore --force-evaluate` in locale e un commit dei
+  lock aggiornati: serve a rendere visibile un aggiornamento invece di subirlo.
 
 ## Wiring (Program.cs dell'host)
 ```csharp
@@ -56,7 +71,8 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.Environment.IsDevelopment());
 
 var app = builder.Build();
-app.MigrateVipiDatabase();          // crea/migra il DB del modulo
+app.MigrateVipiDatabase();          // crea/migra il DB del modulo — CRITICO: un guasto qui deve fermare l'avvio
+app.RunVipiStartupMaintenance();    // riconciliazioni/proiezione/release: idempotenti, isolate, non fatali
 
 app.UseAuthentication();            // l'auth dell'host PRIMA del modulo
 app.UseAuthorization();

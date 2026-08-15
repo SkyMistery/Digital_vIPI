@@ -62,7 +62,20 @@ public static class DependencyInjection
                         // Senza questa riga EF cercherebbe le migrazioni in Vipi.Infrastructure e ci
                         // troverebbe le 68 SQLite-flavored, applicandole a MariaDB. È il modo silenzioso in
                         // cui questa configurazione può sbagliare: non manca niente, c'è la cosa sbagliata.
-                        .MigrationsAssembly(Persistence.MySqlSchema.MigrationsAssemblyName)));
+                        .MigrationsAssembly(Persistence.MySqlSchema.MigrationsAssemblyName)
+                        // Ritenta i guasti transitori. La ragione NON è quella di Neon — lì il compute si
+                        // sospende e la prima query dopo l'inattività fallisce — perché MariaDB su
+                        // atc.it.ivao.aero è un server dedicato e sempre acceso. Sono gli altri modi in cui
+                        // una connessione del pool muore senza che l'app abbia sbagliato niente: il riavvio
+                        // di mariadb.service dopo un aggiornamento, il wait_timeout del server che chiude le
+                        // idle, un KILL da pannello di gestione. Senza retry, ognuno di questi diventa una
+                        // pagina di errore per chi stava editando.
+                        //
+                        // Retry-safe come su Npgsql, e per lo stesso motivo: l'unico punto che apre
+                        // transazioni esplicite è EfUnitOfWork, che le avvolge in CreateExecutionStrategy()
+                        // e azzera il change-tracker a ogni tentativo. Prima di aprire una transazione
+                        // altrove, rileggere quel file.
+                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
                 break;
 #else
                 // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a
@@ -107,6 +120,9 @@ public static class DependencyInjection
         // Drift di schema: registrato sempre, si disattiva da sé fuori da Npgsql (dove le migrazioni EF girano
         // davvero e il drift non si accumula). Confluisce nel report di consistenza. Vedi ADR-0007.
         services.AddScoped<Vipi.Application.Diagnostics.ISchemaDriftProbe, Persistence.PostgresSchemaDriftProbe>();
+        // Impostazioni del server che l'app assume e non può imporre (sql_mode, max_allowed_packet).
+        // Registrata sempre e no-op fuori da MySQL, come la sonda di drift qui sopra.
+        services.AddScoped<Vipi.Application.Diagnostics.IServerSettingsProbe, Persistence.MySqlServerSettingsProbe>();
         services.AddScoped<Vipi.Application.Abstractions.IAccAdminRepository, EfAccAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.INeighbourRepository, EfNeighbourRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IVloaDerivationRepository, EfVloaDerivationRepository>();

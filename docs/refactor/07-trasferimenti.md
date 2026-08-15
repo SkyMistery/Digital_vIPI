@@ -1,4 +1,4 @@
-# 07 — Trasferimenti (punto 8) 🟢✅
+﻿# 07 — Trasferimenti (punto 8) 🟢✅
 
 > **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/07-transfers`, 222 test).
 > `ITransferService` + 6 DTO estratti in file singoli (§4.1); porta di lettura
@@ -145,3 +145,80 @@ una salita. Ora lo stato verticale è una **dimensione indipendente**.
   selettore vincolo mostrano `≤ (-)` / `≥ (+)`; le opzioni stato verticale mostrano `↓ In discesa` / `↑ In salita`.
 - Test: composer (stato scelto a mano IT/EN, regressione «constraint senza stato»), EF round-trip. Suite verde
   (450 tot, 0 warning).
+
+## 8. Autorizzazione e trasferimento separati, varianti, velocità (2026-08-11)
+
+Carta ed esito completi: [`../feature/2026-08-11-trasferimenti-acc-app.md`](../feature/2026-08-11-trasferimenti-acc-app.md);
+schema autorevole: `../spec/modello-dati.md` §9.20-bis. Qui solo cosa cambia per quest'area.
+
+Il modello descriveva **un evento con un livello**. Regge un accordo ACC↔ACC — al CoP il traffico entra e lì
+passa il controllo — e non regge un ACC→APP, dove i due eventi sono distinti: «autorizza via CHI a FL160 o
+superiore, trasferisce al confine dell'AoR passando FL110 in discesa, a 250 kt o inferiore».
+
+- **Semantica chiarita, non cambiata**: `Cop` = punto/rotta d'**ingresso**; `Level*` = livello **autorizzato**.
+  Su un ACC↔ACC sono anche il punto e il livello del trasferimento, perché i due eventi coincidono.
+- **Faccetta trasferimento** su `TransferPoint`: dove passa il controllo (`HandoffKind` + `HandoffLabel`), a che
+  livello (`HandoffLevel*`), dove passano le **comunicazioni** se altrove (`CommsHandoff*`), più la
+  **velocità** (`SpeedValue`/`SpeedConstraint`). `HandoffKind = Unspecified` ⇒ riga identica a prima, frase
+  compresa: è l'invariante che ha reso la migrazione un no-op sulle 73 righe in archivio.
+- **Gruppo di varianti** (`VariantGroup` + `VariantDepth` + `IsGroupWide`): le righe dello stesso accordo,
+  prima scollegate. Chiave sulla riga e non tabella figlia — vedi la carta per il perché. Righe piatte a valle:
+  matcher, bridge e vista live continuano a vedere candidati distinti, che per loro è la lettura giusta.
+  ⚠️ La **forma** del gruppo è cambiata il giorno dopo, prima del merge: vedi §9 qui sotto.
+- **Frase**: con la faccetta cambia il **verbo**, quindi cambia template (`TemplateCleared` con `{handoff}` e
+  `{handoffLevel}`). Velocità e comunicazioni sono code separate da virgola. Le parole del trasferimento
+  vivono in `TransferHandoffText`, condiviso con la
+  derivazione: le colonne arrivano alla vista **già a parole**, perché la lingua sta nel template (IT e EN).
+- **Derivazione — la sezione estesa porta tutto ciò che entra o esce.** `CoordinationDerivation.Build`, passo 2,
+  accettava solo `Kind == Arrival` da un `Ctr`: l'ACC **non vedeva le partenze** che i suoi APP gli consegnano.
+  Il filtro è caduto. Nel bucketing dell'APP sono emerse due categorie che cadevano in silenzio — le partenze
+  verso una torre e **qualunque** coordinamento con un altro APP — e quest'ultima ha ora il suo gruppo
+  (`AppCoordination.TowardApps`).
+- **Tabella condivisa.** `CoordTable.razor` rende la tabella dei coordinamenti per vIPI ACC, vIPI APP e vLOA:
+  colonne **per presenza di dati** (mai uno switch su `SectorType`), gruppi di varianti con `rowspan` su CoP e
+  ricevente così che a schermo resti il **delta**. Supera la
+  nota del refactor 13 «resta di proposito la doppia resa dei coordinamenti»: restano due **viste** (l'albero è
+  diverso), non più due tabelle.
+- **Editor**: la faccetta sta su una riga propria della tabella di modifica (in linea non ci starebbe), «⑂»
+  aggiunge una variante copiando tutto tranne la condizione, «⇤» la sfila; avviso non bloccante sui gruppi
+  senza caso normale; filtro **«da rivedere»** = righe con ricevente APP e faccetta ancora vuota (le
+  righe scritte prima, il cui livello può voler dire due cose e solo chi le ha scritte lo sa).
+- **Aurora**: `CandidateLevel` porta ora entrambi i livelli, e l'etichetta `#LBALT` prende quello **al
+  trasferimento** quando c'è — è la quota che il traffico ha nel momento in cui passa di mano.
+
+## 9. Il gruppo di varianti diventa un outline (2026-08-12)
+
+Carta ed esito: [`../feature/2026-08-12-varianti-a-livelli.md`](../feature/2026-08-12-varianti-a-livelli.md);
+schema `../spec/modello-dati.md` §9.20-ter. Cambio deciso **prima del merge** del giorno prima, quindi a costo
+di dati zero.
+
+Il gruppo introdotto ieri aveva una forma sola — una capofila più subordinate, con «negli altri casi» in fondo
+— e alla prima lettura del committente sono usciti tre difetti, di cui il terzo dice che la forma era proprio
+quella sbagliata:
+
+1. **l'ordine era rovesciato**: un accordo si legge come una norma, prima la regola generale e poi le
+   eccezioni. La condizione standard va in testa;
+2. **le alternative non sono subordinate a nessuno**: pista 07 e pista 25 sono pari-grado, e il dato reale in
+   archivio è esattamente quello (righe 76/77, arrivi LIBD). Il modello non lo sapeva dire;
+3. **due livelli non bastano**: «con area attiva» e, dentro, «con area attiva **e di notte**».
+
+Più una quarta cosa chiesta esplicitamente: l'**eccezione trasversale**, che scavalca le alternative («di
+notte, qualunque pista») e quindi non è né un'alternativa né l'eccezione di una capofila.
+
+`IsOtherwise` lascia il posto a `VariantDepth` (int) + `IsGroupWide` (bool). Il gruppo diventa un **outline**:
+l'ordine È la struttura, una riga appartiene all'ultima meno profonda che la precede, e il rango lo decide chi
+scrive — non il tipo di condizione, perché «giorno/notte» sono pari-grado e sono `custom`, non pista.
+
+Due conseguenze che valgono più della sintassi:
+
+- **Tutto ciò che sposta una riga deve spostare il sottoalbero.** Una capofila che si muove lasciando indietro
+  le sue eccezioni le riassegna a un'altra alternativa **senza nessun errore**: nessuna eccezione, nessun log,
+  solo un accordo che dice un'altra cosa. `Subtree` è usato da spostamenti, distacco e inserimenti.
+- **Frase e tabella divergono apposta.** In tabella si legge il delta (il rientro dà il contesto); nella frase
+  si cumula la catena, perché viaggia da sola nella prosa. E la catena si **fonde** in una clausola prima di
+  diventare parole: comporre un pezzo per livello ripeteva la preposizione — «con pista 07 in uso **e con**
+  R403B attiva» — mentre la condizione cumulata è un AND unico, che la fraseologia approvata già sa dire.
+
+L'avviso «alternativa con eccezioni ma senza un caso normale» scatta sul dato vero appena lo si apre nella
+forma nuova: la riga 77 porta pista 25 **e** area R403B e non ha una «pista 25, normalmente». Il modello di
+ieri non permetteva nemmeno di accorgersene.

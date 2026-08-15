@@ -1,4 +1,4 @@
-/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font Nunito Sans + Poppins: link in Vipi.Host App.razor (self-host da valutare, PIANO §15.2).
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo). */
@@ -386,6 +386,66 @@
 .coord-table th.c-level{width:21%}
 .coord-table th.c-cond{width:27%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
+
+/* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze
+   fisse qui sopra sommano già 78% con quattro colonne, quindi non c'è spazio da spartire fra le altre quattro
+   senza ridurre «Prossimo» a una colonna che spezza i callsign a metà parola.
+   La scelta è togliere il layout fisso proprio a queste tabelle: la ragione delle larghezze fisse era allineare
+   fra loro le DECINE di tabelle uguali di un documento ACC, che sono quelle SENZA faccetta e restano com'erano.
+   Le tabelle con faccetta sono poche e si leggono una per volta, quindi si dimensionano sul contenuto — con il
+   nowrap sulle celle corte, che sono numeriche e non devono mai andare a capo. */
+.coord-table:has(th.c-handoff),
+.coord-table:has(th.c-hlevel),
+.coord-table:has(th.c-speed){table-layout:auto}
+.coord-table th.c-hlevel,.coord-table th.c-speed{white-space:nowrap}
+
+/* Gruppo di varianti = un OUTLINE. Tre nature di riga, tre segni diversi, perché dicono cose diverse:
+   — `coord-variant-alt`: ALTERNATIVA pari-grado (pista 07 · pista 25). Nessuna è lo standard dell'altra,
+     quindi niente tinta: sono allo stesso livello e si leggono come righe intere;
+   — `coord-variant`: ECCEZIONE annidata. La tinta dice «questa qualifica la riga sopra, non è un accordo
+     nuovo», e il rientro (inline, proporzionale alla profondità) dice quanto è dentro;
+   — `coord-variant-wide`: riga che SCAVALCA le alternative. Va in fondo e ha un segno proprio, altrimenti si
+     confonde con un'alternativa in più.
+   La tinta è al 55% di --line (#e3e5ee): al 14% era invisibile a schermo — misurato, non stimato. */
+.coord-table tr.coord-variant>td{background:color-mix(in srgb,var(--line,#e3e5ee) 55%,transparent)}
+.coord-table tr.coord-variant-head>td{border-top:2px solid var(--line,#e3e5ee)}
+.coord-table tr.coord-variant-alt>td{border-top:1px dashed var(--line,#e3e5ee)}
+.coord-table tr.coord-variant-wide>td{border-top:1px solid var(--accent,#2f4bd0);font-style:italic}
+
+/* Righe di un gruppo di varianti nella tabella dell'editor: sono lo STESSO accordo in casi diversi (il
+   salvataggio propaga CoP e ricevente a tutto il gruppo), quindi devono leggersi come un BLOCCO.
+   Nell'editor le righe restano piatte — si modificano una per una — quindi non c'è il rowspan della vista, e
+   il blocco lo disegnano una guida verticale a sinistra e i bordi che lo aprono e lo chiudono.
+   La velatura sale dal 14% al 45%: al 14% era invisibile a schermo, come nella vista pubblica dove era già
+   stata portata al 55% — misurato, non stimato.
+   Le due tinte della guida si alternano fra un gruppo e il successivo: con una sola, due blocchi adiacenti
+   si leggevano come uno solo. */
+.res-table tr.xt-g-a{--xt-rail:#4a63c8}
+.res-table tr.xt-g-b{--xt-rail:#1f9d8f}
+.res-table tr.xfer-variant>td,
+.res-table tr.xfer-prev.xt-g-a>td,.res-table tr.xfer-prev.xt-g-b>td{background:color-mix(in srgb,var(--line,#c2cbe8) 45%,transparent)}
+/* La guida sta sulla prima cella della riga; sull'anteprima, che ha una cella sola, cade sulla stessa. */
+.res-table tr.xt-g-a>td:first-child,.res-table tr.xt-g-b>td:first-child{box-shadow:inset 3px 0 0 var(--xt-rail)}
+.res-table tr.xt-g-first>td{border-top:2px solid var(--xt-rail)}
+.res-table tr.xt-g-last>td{border-bottom:2px solid var(--xt-rail)}
+/* Il gruppo della riga aperta nel pannello: si modifica una variante guardando le sorelle, non al buio. */
+.res-table tr.xt-g-open>td{background:color-mix(in srgb,var(--ivao-lightblue,#4a63c8) 12%,transparent)}
+/* Ruolo della riga nel gruppo, nella colonna condizione: «se», «↳ eccezione di X». Piccolo e su riga propria,
+   perché qualifica la condizione che segue invece di essere un dato in più. */
+.xt-role{display:block;color:var(--ink-soft);font-size:11px;line-height:1.3}
+.xt-grouppill{margin-left:6px;font-weight:700}
+/* «Negli altri casi» NON è un dato mancante: è il caso che resta quando nessuna condizione vale. Con il «—»
+   di prima sembrava una riga da compilare. */
+.xt-elsepill{background:#fff3cf;color:var(--warn-ink,#6b4e00);border:1px dashed #e2b400}
+/* Rientro della colonna CONDIZIONE per profondità: come nella vista pubblica (CoordTable.Indent), che è dove
+   il lettore impara a leggere l'annidamento. Prima il rientro stava sulla cella del CoP.
+   Le misure partono dai 10 px di padding della cella: a 20 il rientro valeva dieci pixel e a schermo non si
+   vedeva — provato guardando, non calcolato. Il selettore porta anche `.res-table td` perché `.res-table
+   td{padding:7px 10px}` batte una classe sola: è la stessa trappola già annotata per `.sid-view`. */
+.res-table td.xt-ind1{padding-left:30px}
+.res-table td.xt-ind2{padding-left:48px}
+.res-table td.xt-ind3{padding-left:66px}
+.res-table td.xt-ind4{padding-left:84px}
 /* tip operativo (stile riquadro centrato) */
 .tip{background:#0a1f6b;color:#cdd6ff;border-radius:12px;padding:18px 22px;margin:16px 0;text-align:center;font-style:italic;font-size:13.5px;line-height:1.5}
 .tip p{margin:8px 0}
@@ -629,8 +689,45 @@
 .childrow .ctag{margin-left:auto;font-size:10.5px;background:#eceef5;color:#666;border-radius:5px;padding:1px 7px;font-family:var(--font-head)}
 .childrow .drag{color:#b9c0d6;cursor:grab}
 /* editor trasferimenti (5c) */
-.xfe-layout{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
-@media(max-width:1080px){.xfe-layout{grid-template-columns:1fr}}
+/* Tre colonne: si sceglie · si lavora · si scrive. Ognuna scorre PER CONTO PROPRIO dentro l'altezza dello
+   schermo — è la differenza che toglie l'attrito più caro della pagina a due colonne: lì lista e pannello
+   condividevano lo scorrimento di pagina, e sotto la soglia il pannello finiva dopo tutta la lista.
+   L'altezza è calcolata e non 100vh: sopra le colonne restano la barra dell'applicazione, le briciole, la
+   testata, la barra dei filtri e — a volte — l'avviso del lock. 260px di navigatore perché ci sta un callsign
+   ACC intero («LIRR_W_CTR») senza andare a capo. */
+/* L'altezza vera la scrive vipiFitViewport, che misura dove il riquadro comincia: quanto spazio resta lo sa
+   solo il browser, e sopra ci sono barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e —
+   a volte — l'avviso del lock. Il calc qui è il valore di partenza prima che il JS misuri, non la verità: con
+   una stima fissa (era 250 px, il vero era 398) la pagina scorreva di 148. */
+.xfe-layout3{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:16px;align-items:stretch;
+  height:calc(100vh - 400px);min-height:420px}
+/* I 70px di respiro in fondo alla pagina servono a un contenuto che finisce; qui il contenuto arriva al bordo
+   dello schermo per costruzione, e diventerebbero 70px di scorrimento su una pagina che non deve scorrere. */
+.wrap.struct:has(.xfe-layout3){padding-bottom:18px}
+/* Vista a elenco: il navigatore non c'è, e la tabella si prende lo spazio che avanza. */
+.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px}
+/* …e se non c'è nemmeno una riga aperta, si prende anche i 380 px del pannello: in elenco la tabella ha dieci
+   colonne, e una colonna vuota che dice «scegli una riga» è la cosa meno utile a cui darli. In albero il
+   pannello vuoto RESTA — lì lo spazio c'è, e dire cosa fare vale più della larghezza. */
+.xfe-layout3.xt-noNav.xt-noPanel{grid-template-columns:minmax(0,1fr)}
+/* Sotto i 1200 il pannello scende sotto le altre due; sotto i 900 resta una colonna sola. In entrambi i casi
+   l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
+   ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
+@media(max-width:1200px){
+  /* align-items:start e non stretch: senza, il riquadro di lavoro si allineava all'altezza del navigatore —
+     che qui è incastonato — e si ritrovava incastonato anche lui, con una barra di scorrimento interna dentro
+     una pagina che già scorre. Misurato: pane alto 378 px per una tabella da 2082. */
+  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto;align-items:start}
+  .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
+  /* Il navigatore tiene il tetto anche qui, e da solo: senza, l'albero si srotolava per intero — misurato,
+     2174 px — e per arrivare al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere.
+     Il riquadro di lavoro invece resta libero di crescere: lì il contenuto È la pagina, e incastonarlo
+     vorrebbe dire due barre di scorrimento annidate. */
+  .xfe-layout3 .xt-nav{max-height:42vh}
+}
+@media(max-width:900px){
+  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:1fr}
+}
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:#fff}
 .xfe-table{width:100%;font-size:13px}
@@ -918,7 +1015,14 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .grp-chev{flex:none;width:14px;text-align:center;font-size:11px;color:var(--ivao-blue)}
 .acc-grp-code{background:var(--ivao-blue);color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;letter-spacing:.04em}
 .acc-row{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #f0f2f8}
-.htree-toggle{flex:none;width:15px;text-align:center;color:var(--ink-soft);font-size:11px;cursor:pointer;user-select:none;border-radius:4px}
+/* Il toggle dell'albero è un <button>, non uno <span>: espandere un ramo è un comando, e da uno span
+   non si raggiunge col tabulatore né si attiva con Invio. Queste tre righe azzerano quel che il
+   browser mette di suo su un button (sfondo, bordo, padding, font) perché l'aspetto resti identico. */
+.htree-toggle{flex:none;width:15px;text-align:center;color:var(--ink-soft);font-size:11px;cursor:pointer;user-select:none;border-radius:4px;
+  background:none;border:0;padding:0;font-family:inherit;line-height:inherit}
+/* Il fuoco si deve VEDERE: senza, chi naviga da tastiera non sa dove si trova. :focus-visible non
+   disturba chi usa il mouse, che il contorno non lo vede mai. */
+.htree-toggle:focus-visible,.acc-grp-h:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 .htree-toggle:hover{background:#dbe2ff;color:var(--ivao-blue)}
 .htree-toggle.empty,.htree-toggle.empty:hover{cursor:default;background:transparent}
 .lnk-mini{border:1px solid var(--line);background:#fff;color:var(--ivao-blue);border-radius:6px;padding:2px 8px;font-family:var(--font-head);font-weight:700;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:6px}
@@ -1270,3 +1374,208 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .area-map{height:190px;width:100%;border:1px solid #f4d5d5;border-radius:10px;overflow:hidden}
 .area-noshape{display:grid;place-items:center;font-size:13px}
 .area-alt{display:flex;gap:8px;align-items:baseline}
+
+/* ===== Editor trasferimenti =====================================================================
+   Pagina a TRE colonne (.xfe-layout3): navigatore · riquadro di lavoro · pannello riga. Prima erano due, con
+   l'albero completo e tutte le tabelle una sotto l'altra nella colonna di sinistra: arrivare a una riga
+   costava tre clic di collasso, e da lì in giù si scorreva per migliaia di pixel.
+   Tutto ciò che segue nasce da stili che stavano inline nel markup: la CSP li vuole fuori, ed erano
+   cinquantuno. */
+
+/* ---- Colonna 1: il navigatore ----
+   Testata e piede fermi, corpo che scorre. Il piede tiene il «+ Gruppo», che è l'unico modo di creare il
+   primo gruppo: con l'archivio vuoto il corpo non ha nodi, e un ingresso che vivesse lì dentro non
+   esisterebbe proprio quando serve. */
+.xt-nav{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:12px;
+  background:#fff;overflow:hidden}
+.xt-nav-head{display:flex;align-items:baseline;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.xt-nav-head b{font-family:var(--font-head);color:var(--ivao-blue);font-size:12px;text-transform:uppercase;
+  letter-spacing:.04em}
+.xt-nav-body{flex:1;min-height:0;overflow:auto;padding:6px}
+.xt-nav-empty{margin:8px 6px;font-size:12px}
+.xt-nav-foot{padding:8px;border-top:1px solid var(--line);background:#fff}
+.xt-nav-foot .btn{width:100%;justify-content:center}
+.xt-nav-sec,.xt-nav-apt{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;
+  font-size:12.5px;user-select:none}
+.xt-nav-sec{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
+.xt-nav-apt{padding-left:18px;color:var(--ink-soft)}
+.xt-nav-sec:hover,.xt-nav-apt:hover{background:#f2f5ff}
+.xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
+  padding:0 7px;flex:none}
+/* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
+.xt-nav-warn{color:#b3541e;font-size:11px;flex:none}
+/* La foglia è un bottone vero: si sceglie, e la scelta si vede. */
+.xt-nav-flow{display:flex;align-items:center;gap:6px;margin-left:30px;width:calc(100% - 30px);
+  padding:5px 8px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer;
+  font-family:var(--font-body);font-size:12.5px;color:var(--ink)}
+.xt-nav-flow:hover{background:#f2f5ff}
+.xt-nav-flow.on{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
+.xt-nav-kind{flex:none}
+.xt-nav-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:11.5px}
+
+/* ---- Colonna 2: il riquadro di lavoro ----
+   Stessa forma del pannello — testata ferma, corpo che scorre — e per la stessa ragione: le azioni in fondo
+   al gruppo non devono finire sotto la piega. */
+.xt-pane{display:flex;flex-direction:column;min-width:0;min-height:0;border:1px solid var(--line);
+  border-radius:12px;background:#fff;overflow:hidden}
+.xt-pane-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:#fff}
+.xt-pane-h b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-pane-body{flex:1;min-height:0;overflow:auto;padding:10px 12px}
+.xt-pane-empty{padding:26px 18px;color:var(--ink-soft);font-size:13px}
+.xt-pane-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
+/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato. */
+.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+/* Barra ACC: la scelta è un interruttore, e prendeva l'altezza di una sezione titolata sopra il lavoro vero. */
+.xt-accbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.xt-acclbl{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft);margin-right:2px}
+/* Commutatore di vista: due bottoni attaccati, così si leggono come un interruttore a due posizioni. */
+.xt-viewsw{display:flex;gap:2px}
+/* Cella scrivibile: il bersaglio è tutta la cella, perché quella VUOTA è proprio quella da riempire. */
+.xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:1px 4px;margin:-1px -4px;
+  cursor:text}
+.xt-cellclick:hover{background:#f2f5ff;box-shadow:inset 0 0 0 1px var(--line)}
+.xt-cellclick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
+/* Il campo prende esattamente il posto del testo che sostituisce: se la cella cambiasse altezza, la riga
+   salterebbe a ogni apertura — e scrivendo a raffica salterebbe tutta la tabella. */
+.xt-celledit{width:100%;min-width:70px;border:1px solid var(--ivao-blue);border-radius:6px;padding:1px 4px;
+  margin:-1px -4px;font-family:var(--font-body);font-size:12.5px;background:#fff}
+/* Modifica in blocco: tre operazioni affiancate (ricevente · livello · condizione) più l'eliminazione in
+   fondo. I campi restano stretti perché la barra non deve andare a capo tre volte su uno schermo normale. */
+.xt-bulkfield{margin-bottom:0}
+.xt-bulkfield input{width:150px}
+.xt-bulk .xt-grow{min-width:8px}
+/* L'annulla sta DENTRO il messaggio che lo propone: è lì che si guarda quando ci si accorge dell'errore, ed è
+   anche la regola della sua durata — c'è il messaggio, c'è l'annulla. */
+.xt-undo{margin-left:10px;flex:none}
+/* Intestazione che ordina: un bottone che non sembra un bottone finché non ci si passa sopra — la tabella
+   deve restare una tabella, e l'ordinamento è un'azione che si scopre, non un ornamento su ogni colonna. */
+.xt-sorth{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;gap:3px;text-transform:inherit;letter-spacing:inherit}
+.xt-sorth:hover{color:var(--ivao-blue)}
+.xt-sorth.on{color:var(--ivao-blue)}
+.xt-sortdir{font-size:9px}
+/* Suggerimento accanto a un'etichetta o a una voce del picker. Lo stacco sta QUI e non come spazio nel markup:
+   fra un'espressione e un tag Razor lo spazio viene mangiato, e a schermo uscivano «RICEVENTE(vuoto = UNICOM)»
+   e «LIBB_ES_CTRLIBB». La spaziatura è presentazione, e in CSS è deterministica. */
+.xt-pickhint{margin-left:6px}
+/* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
+   fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
+   scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva
+   solo con la seconda barra di scorrimento, dentro il riquadro, che non si vede finché non ci passi sopra.
+   L'overflow qui annulla quello di .detail-sticky, che resta il contenitore agganciato. */
+.xt-panel{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 15px;
+  display:flex;flex-direction:column;overflow:hidden}
+/* L'ombra in fondo al corpo dice che sotto c'è dell'altro: la barra di scorrimento interna non si vede finché
+   non ci passi sopra, e senza un segno la scheda sembrava finire dove finiva lo schermo. Sparisce da sola
+   quando si arriva in fondo (background-attachment:local sul gradiente). */
+.xt-panel-body{flex:1;min-height:0;overflow:auto;
+  background:linear-gradient(#fff 30%,rgba(255,255,255,0)) top/100% 24px no-repeat local,
+             linear-gradient(rgba(255,255,255,0),#fff 70%) bottom/100% 24px no-repeat local,
+             radial-gradient(farthest-side at 50% 0,rgba(10,31,107,.14),rgba(0,0,0,0)) top/100% 10px no-repeat scroll,
+             radial-gradient(farthest-side at 50% 100%,rgba(10,31,107,.14),rgba(0,0,0,0)) bottom/100% 10px no-repeat scroll}
+.xt-panel-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;margin-top:10px;
+  border-top:1px solid var(--line);background:#fff}
+/* «Azioni sulla riga» come menù del piede: in fondo al corpo restavano fuori dallo schermo su ogni schermo
+   (corpo 1324 px, visibili 781 · 501 · 401), perché una riga vera apre il pannello con faccetta e condizione
+   già piene. Il menù si apre VERSO L'ALTO e resta dentro il riquadro, che ha overflow:hidden. */
+.xt-actwrap{position:relative;margin-left:auto}
+.xt-actmenu{position:absolute;right:0;bottom:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;
+  gap:4px;min-width:210px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 8px 26px rgba(10,31,107,.16)}
+.xt-actmenu .btn{justify-content:flex-start;text-align:left;width:100%}
+/* A schermo largo il tetto lo dà la griglia (le tre colonne hanno un'altezza definita e il pannello la
+   riempie). Sotto le soglie la griglia lascia perdere l'altezza fissa e il pannello scende: lì il tetto lo
+   rimette .xfe-layout3 nelle sue media query, così il piede resta agganciato; ad arrivarci ci pensa
+   vipiRevealPanel, chiamato all'apertura di una riga. */
+.xfe-layout3 .xt-panel{min-height:0}
+.xt-panel-empty{color:var(--ink-soft);font-size:13px}
+.xt-panel-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
+.xt-panel-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.xt-panel-h b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-panel-h .muted{font-size:12px}
+.xt-panel-x{margin-left:auto;padding:2px 8px}
+.xt-panel-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+/* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue, e — quando la
+   sezione è richiudibile — apre e chiude. Il riassunto accanto al titolo è la ragione per cui una sezione può
+   partire chiusa senza nascondere niente. */
+.xt-grp{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
+.xt-grp>span{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-soft)}
+.xt-grp::after{content:"";flex:1;height:1px;background:var(--line);order:9}
+.xt-grp.xt-clickable{cursor:pointer;user-select:none}
+.xt-grp.xt-clickable:hover>span{color:var(--ivao-blue)}
+.xt-grp .xt-chev{font-size:10px;color:var(--ink-soft)}
+.xt-secsum{font-family:var(--font-body)!important;font-weight:600!important;font-size:11.5px!important;
+  text-transform:none!important;letter-spacing:0!important;color:var(--ivao-blue)!important;
+  background:#eef1fb;border-radius:20px;padding:2px 9px;max-width:230px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.xt-row2{display:flex;gap:8px;flex-wrap:wrap}
+.xt-row2 .field{flex:1;min-width:90px}
+.xt-preview{margin-top:12px;padding:8px 10px;background:#f7f9ff;border:1px solid var(--line);border-radius:8px;font-size:11.5px}
+.xt-preview b{font-family:var(--font-head);color:var(--ivao-blue)}
+.xt-prev{font-style:italic;color:var(--ink-soft)}
+
+/* Tabella: sola lettura, quindi le colonne possono restare strette e leggibili. */
+.xt-drag{width:26px;text-align:center}
+.xt-acts{width:118px;white-space:nowrap;text-align:right}
+.xt-facet{color:var(--ink-soft);font-size:11.5px}
+.res-table tr.xt-sel>td{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
+
+.xt-bar{align-items:center;margin:6px 0 12px}
+.xt-search{flex:1;min-width:180px;margin-bottom:0}
+.xt-count{font-size:12px;white-space:nowrap}
+.xt-grow{flex:1}
+.xt-check{font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
+.xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.xt-subform{margin:0 0 8px;background:#f2f5ff;border-radius:6px;padding:8px}
+.xt-warn{margin:0 0 6px;font-size:12.5px}
+
+/* Utilità nate dagli stili inline della pagina. */
+.xt-h2{margin-bottom:2px}
+.xt-chips{display:flex;flex-wrap:wrap;gap:8px}
+.xt-lbl-soft{font-weight:400}
+.xt-hint{font-size:11.5px}
+.xt-nowrap{white-space:nowrap}
+.xt-btnrow{display:flex;gap:6px}
+.xt-selfc{align-self:center}
+.xt-mt0{margin-top:0}
+.xt-m0{margin:0}
+.xt-my{margin:6px 0}
+.xt-mb{margin:0 0 8px}
+.xt-flat{border-top:0;padding-top:0;margin-top:0}
+.xt-clickable{cursor:pointer}
+.xt-chev{display:inline-block;width:1em}
+.xt-desc{font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:38ch;display:inline-block;vertical-align:bottom}
+.xt-warnpill{background:#f4c542;color:#3a2f00;border:0;cursor:pointer}
+.xt-w56{width:56px}
+.xt-w70{width:70px}
+.xt-w96{width:96px}
+.xt-w130{width:130px}
+
+/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina. */
+.sector-pick-wrap{position:relative}
+.sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
+  border:1px solid #c4cadb;border-radius:6px;background:#fff;box-shadow:0 6px 18px rgba(13,44,153,.14)}
+.sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
+  background:transparent;padding:5px 9px;font-size:13px;cursor:pointer}
+.sector-pick .sp-item:last-child{border-bottom:0}
+.sector-pick .sp-item:hover{background:#f2f5ff}
+.sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
+.sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
+.toast-fixed{position:fixed;right:18px;bottom:18px;z-index:60;max-width:380px;
+  box-shadow:0 8px 24px rgba(13,44,153,.22);border-radius:8px}
+.toast-fixed .callout{margin:0}
+.toast-fixed .tclose{margin-left:auto;border:0;background:transparent;cursor:pointer;font-size:15px;
+  line-height:1;color:inherit;opacity:.6}
+.toast-fixed .tclose:hover{opacity:1}
+.xt-pick{width:26px;text-align:center}
+.xt-bulk{margin:0 0 12px}
+.xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.xt-bulkpick{margin:0;min-width:200px}
+.xt-bulkpick input{margin:0}
+.xt-groupwide{margin-top:6px}

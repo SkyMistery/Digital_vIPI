@@ -1,6 +1,7 @@
-@page "/vsop/{Acc}/apps/editor"
+﻿@page "/vsop/{Acc}/apps/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@implements IDisposable
 @using System.Text.Json
 @inject IAppDocumentService AppDoc
 @inject IEditingService Editing
@@ -89,7 +90,12 @@ else
                 </RightRail>
             </DocumentSectionsEditor>
 
-            @Release()
+            @* Release AIRAC: involucro, aiuto, diff, annulla e anteprima li porta il pannello condiviso
+               (doc 13 §3i). Prima ogni editor si costruiva il proprio contorno, e infatti erano diversi. *@
+            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
+                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          PreviewUrlFactory="ReleasePreviewUrl"
+                          Published="LoadAsync" />
         }
     </div>
 }
@@ -111,7 +117,7 @@ else
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
-    private int _saveTick;
+    private readonly DelayedUiAction _dismissSaved = new();
 
     // Derivate/editoriali-strutturate (data-driven), rese via DerivedContent per SectionKey.
     private List<AppSeparationRow> _separations = new();
@@ -141,14 +147,8 @@ else
     private string _freqSearch = "";
     private int? _freqDragIndex;
 
-    // Release AIRAC (target App): la timeline e la pubblicazione sono nel componente condiviso ReleasePanel,
-    // come negli editor ACC e aeroporto. Qui resta solo il ciclo corrente per il testo d'aiuto.
-    private string _currentCycle = "";
-    private const string _releaseAnchor = "p-release";
-    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor).
-    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(_releaseAnchor, L["App_VersionsReleases"]) };
-
-    protected override void OnInitialized() => _currentCycle = Releases.CurrentCycle();
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor); ancora e titolo li possiede il pannello.
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
     protected override async Task OnParametersSetAsync()
     {
@@ -238,14 +238,13 @@ else
         }
     }
 
-    // ---- sezioni derivate / editoriali-strutturate ----
-    private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination", "regulated" };
-
-    private static bool IsDerived(EditableSection s) => s.Depth == 0 && Special.Contains(s.SectionKey);
+    // ---- sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate) ----
+    // L'insieme lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie.
+    private static bool IsDerived(EditableSection s) =>
+        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.App, s.SectionKey);
 
     // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
-    private bool IsMandatory(EditableSection s) => SectionCatalog.Find(SectionProfile.App, s.SectionKey) is not null;
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.App, s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
     // ---- editoriali-strutturate (persist immediato via AppDocumentService) ----
@@ -353,8 +352,16 @@ else
             if (!silent)
             {
                 _save = SaveState.Saved;
-                var tick = ++_saveTick;
-                _ = DismissSavedAsync(tick);
+                // Il badge «Salvato» si spegne da solo. Programmato con DelayedUiAction, che annulla il
+                // precedente e — a differenza del contatore che c'era prima — si ferma anche allo smontaggio
+                // del componente: senza, chi salvava e cambiava pagina entro due secondi lasciava un
+                // InvokeAsync su un renderer che non c'era più, dentro un task che nessuno osserva.
+                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
+                {
+                    if (_save != SaveState.Saved) return Task.CompletedTask;
+                    _save = SaveState.Idle;
+                    return InvokeAsync(StateHasChanged);
+                });
             }
         }
         catch (EditNotAllowedException) { _error = L["App_NoEditPerm"]; _save = SaveState.Idle; }
@@ -370,11 +377,8 @@ else
         }
     }
 
-    private async Task DismissSavedAsync(int tick)
-    {
-        await Task.Delay(2000);
-        if (tick == _saveTick && _save == SaveState.Saved) { _save = SaveState.Idle; await InvokeAsync(StateHasChanged); }
-    }
+    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
+    public void Dispose() => _dismissSaved.Dispose();
 
     private static string AsString(object? v) => v as string ?? "";
 
@@ -395,13 +399,13 @@ else
                 @if (_editing)
                 {
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">Shape aggiuntive</h4>
-                        <p class="help" style="margin:0 0 8px">Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</p>
+                        <h4 style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h4>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
                         <AorExtraShapePicker Selected="_aorExtras" Catalog="_shapeCatalog" Editing="_editing" SelectedChanged="SaveAorExtras" />
                     </div>
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">Colori dei settori</h4>
-                        <p class="help" style="margin:0 0 8px">Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</p>
+                        <h4 style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h4>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
                         <AorColorEditor Sectors="_aorView.Sectors" Editing="_editing" ColorChanged="SaveAorColor" />
                     </div>
                 }
@@ -414,9 +418,6 @@ else
                 break;
             case "vfr":
                 <AppVfr Content="_vfr" Editing="_editing" ContentChanged="SaveVfr" />
-                break;
-            case "minima":
-                <AppMinima />
                 break;
             case "coordination":
                 <AppCoordinationView Coord="_coord" />
@@ -455,23 +456,6 @@ else
     };
 
     // ---- release AIRAC (target App) ----
-    // La pagina fornisce solo l'involucro di sezione (ancora TOC + titolo + aiuto); timeline, selettore ciclo,
-    // diff, annulla e pubblicazione sono nel componente condiviso ReleasePanel, come in AccEditorPage e
-    // AeroportoEditorPage. Prima questa pagina era l'unica dei tre editor con una copia inline.
-    private RenderFragment Release() => __builder =>
-    {
-        <div class="block" id="@_releaseAnchor">
-            <h3 style="margin-top:0"><Icon Name="calendar" /> @L["App_VersionsReleases"]</h3>
-            <p class="help">@((MarkupString)string.Format(L["App_ReleaseHelp"].Value, _currentCycle))</p>
-
-            @* Published: ricarica lo stato documento dopo la pubblicazione (la pill «Bozza vN» del rail sarebbe stantia). *@
-            <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
-                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
-                          PreviewUrlFactory="ReleasePreviewUrl"
-                          Published="LoadAsync" />
-        </div>
-    };
-
     private string ReleasePreviewUrl(int releaseId) =>
         $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
 

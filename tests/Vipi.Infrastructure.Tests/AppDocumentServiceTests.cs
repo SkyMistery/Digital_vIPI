@@ -127,7 +127,8 @@ public class AppDocumentServiceTests : IAsyncLifetime
         // Arrivo verso torre (LIRP_TWR): va in TowardTowers.
         var fArr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Arrival });
         await tr.AddPointAsync("LIRR", fArr, Point("", 2000, _ptwrId, feet: true));
-        // Partenza verso torre: NON deve comparire (verso torri = solo arrivi).
+        // Partenza verso torre: dall'11 agosto 2026 COMPARE. La sezione estesa porta tutto ciò che entra o esce
+        // dall'ente; prima veniva scartata in silenzio, e il documento diceva metà dell'accordo con la torre.
         var fDepTwr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Departure });
         await tr.AddPointAsync("LIRR", fDepTwr, Point("XYZ", 3000, _ptwrId, feet: true));
 
@@ -139,8 +140,9 @@ public class AppDocumentServiceTests : IAsyncLifetime
 
         var twr = Assert.Single(coord.TowardTowers);
         Assert.Equal("LIRP_TWR", twr.TargetCallsign);
-        var row = Assert.Single(twr.Rows);
-        Assert.Equal(TransferFlowKind.Arrival, row.Kind);   // la partenza-verso-torre è esclusa
+        Assert.Equal(2, twr.Rows.Count);
+        Assert.Single(twr.Rows, r => r.Kind == TransferFlowKind.Arrival);
+        Assert.Single(twr.Rows, r => r.Kind == TransferFlowKind.Departure);
     }
 
     [Fact]

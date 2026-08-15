@@ -53,7 +53,14 @@ public sealed class AuroraClient : IAsyncDisposable
         try
         {
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(_options.Host, _options.Port, ct).ConfigureAwait(false);
+            // TimeoutMs vale ANCHE per la connessione, non solo per l'attesa della risposta. Senza, un host
+            // che non rifiuta ma tace — firewall che scarta i SYN invece di rispondere, macchina spenta con
+            // l'IP ancora assegnato — lascia il tool fermo per il timeout del sistema operativo (una ventina
+            // di secondi su Windows) mentre l'opzione dice 3000 ms. Con Aurora sulla stessa macchina non
+            // capita quasi mai; quando capita, sembra che il tool si sia piantato.
+            using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            connectTimeout.CancelAfter(_options.TimeoutMs);
+            await tcp.ConnectAsync(_options.Host, _options.Port, connectTimeout.Token).ConfigureAwait(false);
 
             _tcp = tcp;
             _stream = tcp.GetStream();

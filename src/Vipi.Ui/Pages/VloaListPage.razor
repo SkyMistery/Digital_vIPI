@@ -12,7 +12,7 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_foreign.Length > 0)
 {
@@ -20,16 +20,16 @@ else if (_foreign.Length > 0)
     @if (_view is null)
     {
         <div class="wrap">
-            <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>—</b></div>
+            <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>—</b></div>
             @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
     }
     else
     {
-        <PageTitle>@(_mode.Kind == PreviewKind.Draft ? "[Bozza] " : _mode.Kind == PreviewKind.Release ? "[Anteprima] " : "")@_view.Title · IVAO Italia</PageTitle>
+        <PageTitle>@PreviewTitlePrefix()@_view.Title · IVAO Italia</PageTitle>
         <div class="wrap">
-            <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a> › <b>@_view.Title</b></div>
+            <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>@_view.Title</b></div>
             @if (_mode.IsPreview)
             {
                 <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
@@ -43,15 +43,15 @@ else if (_foreign.Length > 0)
 else
 {
     @* ---- elenco vLOA della ACC ---- *@
-    <PageTitle>vLOA @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["Vloa_Title"] @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vLoA</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Vloa_Title"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">vLoA — @_acc.Name - @_acc.Code</h2></div>
+            <div><h2 style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_visibleVloas.Count == 0)
         {
-            <EmptyState Title="Nessuna vLoA">Non ci sono ancora lettere di accordo pubblicate per questa ACC.</EmptyState>
+            <EmptyState Title="@L["Vloa_EmptyTitle"]">@L["Vloa_EmptyBody"]</EmptyState>
         }
         else
         {
@@ -69,7 +69,7 @@ else
                                 <h4>@neigh</h4>
                                 <span class="country-tag">@g.Key</span>
                             </div>
-                            <p class="muted">@(v.Neighbour ?? "Lettera di accordo bilaterale")</p>
+                            <p class="muted">@(v.Neighbour ?? L["Vloa_BilateralDefault"].Value)</p>
                             <div class="vloa-online">
                                 <span class="onl-badge @(homeOnline > 0 ? "on" : "off")"><span class="dot"></span> @_acc.Code@(homeOnline > 0 ? $" · {homeOnline}" : "")</span>
                                 <span class="onl-badge @(neighOnline > 0 ? "on" : "off")"><span class="dot"></span> @neigh@(neighOnline > 0 ? $" · {neighOnline}" : "")</span>
@@ -188,14 +188,25 @@ else
         return snap.Callsigns.Count(cs => cs.Split('_', 2)[0].Equals(code, StringComparison.OrdinalIgnoreCase));
     }
 
+    private string PreviewTitlePrefix() => _mode.Kind switch
+    {
+        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
+        _ => "",
+    };
+
     private static string Prefix(string? code) => code is { Length: >= 2 } ? code[..2].ToUpperInvariant() : "??";
 
-    // Paese dal prefisso ICAO dell'ACC confinante (per raggruppamento + tag). Fallback: il prefisso stesso.
-    private static string Country(string prefix) => prefix switch
+    // Paese dal prefisso ICAO dell'ACC confinante (per raggruppamento + tag), dalle risorse: i nomi dei paesi
+    // cambiano con la lingua della pagina. Prefisso senza traduzione = si mostra il prefisso stesso.
+    //
+    // Si chiede al localizzatore se la chiave esiste (ResourceNotFound) invece di tenere qui una lista dei
+    // prefissi noti. Quella lista era una seconda copia dei nomi paese che stanno nel .resx, e le due
+    // potevano scollarsi in un modo silenzioso e a senso unico: aggiungere un paese SOLO nelle risorse dava
+    // una pagina che mostra «LB» invece di «Libano», senza che niente lo segnalasse.
+    private string Country(string prefix)
     {
-        "LF" => "Francia", "LS" => "Svizzera", "LO" => "Austria", "LD" => "Croazia", "LJ" => "Slovenia",
-        "LG" => "Grecia", "LM" => "Malta", "LA" => "Albania", "LW" => "Macedonia del Nord", "LQ" => "Bosnia ed Erzegovina",
-        "LY" => "Serbia/Montenegro", "LU" => "Moldavia", "DA" => "Algeria", "DT" => "Tunisia", "LI" => "Italia",
-        _ => prefix,
-    };
+        var tradotto = L["Country_" + prefix];
+        return tradotto.ResourceNotFound ? prefix : tradotto.Value;
+    }
 }

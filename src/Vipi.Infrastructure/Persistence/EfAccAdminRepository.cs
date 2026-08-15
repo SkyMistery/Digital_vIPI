@@ -181,18 +181,33 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         var links = await _db.SpecialAreaCenters.Where(l => l.CenterId == accCode).ToListAsync(ct);
         var remove = links.Where(l => !keep.Contains(l.IvaoId)).ToList();
         if (remove.Count == 0) return 0;
+
+        // Le due rimozioni — legami e aree rimaste orfane — stanno in UN SOLO SaveChanges, quindi in una
+        // sola transazione implicita. Prima erano due: fra l'una e l'altra un guasto (rete, riavvio del
+        // server) lasciava i legami cancellati e le aree orfane in archivio, cioè righe che nessun ente
+        // elenca più e che nessuna passata successiva sarebbe tornata a guardare.
+        //
+        // Per farlo, le orfane si calcolano PRIMA di cancellare: la vecchia versione chiedeva al database
+        // «quali aree non hanno più legami», domanda che ha senso solo dopo che la cancellazione è stata
+        // scritta — ed era la ragione per cui i SaveChanges dovevano essere due. Qui si guarda invece se
+        // resta qualche legame di un ALTRO ente, che è la stessa cosa senza dover scrivere prima: la chiave
+        // primaria di SpecialAreaCenter è (IvaoId, CenterId), quindi per questo ACC il legame è al più uno,
+        // ed è fra quelli che stiamo togliendo.
+        var idsToccati = remove.Select(l => l.IvaoId).ToList();
+        var conAltriEnti = await _db.SpecialAreaCenters
+            .Where(l => idsToccati.Contains(l.IvaoId) && l.CenterId != accCode)
+            .Select(l => l.IvaoId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var orfane = await _db.SpecialAreas
+            .Where(a => idsToccati.Contains(a.IvaoId) && !conAltriEnti.Contains(a.IvaoId))
+            .ToListAsync(ct);
+
         _db.SpecialAreaCenters.RemoveRange(remove);
+        if (orfane.Count > 0) _db.SpecialAreas.RemoveRange(orfane);
         await _db.SaveChangesAsync(ct);
 
-        var orphanIds = remove.Select(l => l.IvaoId).ToList();
-        var orphans = await _db.SpecialAreas
-            .Where(a => orphanIds.Contains(a.IvaoId) && !a.Centers.Any())
-            .ToListAsync(ct);
-        if (orphans.Count > 0)
-        {
-            _db.SpecialAreas.RemoveRange(orphans);
-            await _db.SaveChangesAsync(ct);
-        }
         return remove.Count;
     }
 

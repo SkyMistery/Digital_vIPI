@@ -251,6 +251,13 @@ public static class TransferMatcher
                 Parity = p.Parity.ToString(),
                 VerticalState = p.VerticalState.ToString(),
                 Text = p.LevelText,
+                HandoffKind = p.HandoffKind.ToString(),
+                HandoffLabel = p.HandoffLabel,
+                TransferValue = p.HandoffLevelValue,
+                TransferUnit = p.HandoffLevelValue is null ? null : p.HandoffLevelUnit.ToString(),
+                TransferConstraint = p.HandoffLevelValue is null ? null : p.HandoffLevelConstraint.ToString(),
+                TransferText = p.HandoffLevelText,
+                Speed = p.SpeedText,
             },
             NextSectorCallsign = p.NextSectorCallsign,
             ResolvedHandler = handler,
@@ -368,10 +375,20 @@ public static class TransferMatcher
         return TransferOnlineResolver.Resolve(chain, online);
     }
 
-    /// <summary>Compone la stringa per <c>#LBALT</c>. I livelli «Special» sono scrivibili (Aurora accetta testo),
-    /// ma vanno ripuliti: il «;» è il separatore del protocollo e non può entrare in un argomento.</summary>
+    /// <summary>
+    /// Compone la stringa per <c>#LBALT</c>. I livelli «Special» sono scrivibili (Aurora accetta testo),
+    /// ma vanno ripuliti: il «;» è il separatore del protocollo e non può entrare in un argomento.
+    ///
+    /// <para>Quando la riga distingue i due eventi (accordi ACC→APP), l'etichetta porta il livello <b>al
+    /// trasferimento</b> e non quello autorizzato: nel tag il controllore scrive la quota che il traffico ha
+    /// quando passa di mano — su una riga «autorizzato FL160, trasferito passando FL110» scrivere 160
+    /// direbbe una cosa che non succede. Senza faccetta i due coincidono e non cambia niente.</para>
+    /// </summary>
     private static (string? Value, bool Writable) ComposeLabel(TransferPointRow p, AuroraLabelConvention convention)
     {
+        if (p.HandoffLevelValue is int h)
+            return (Format(h, p.HandoffLevelUnit, convention), true);
+
         if (p.LevelConstraint == LevelConstraint.Special)
         {
             var special = Sanitize(p.LevelSpecial);
@@ -380,11 +397,13 @@ public static class TransferMatcher
 
         if (p.LevelValue is not int v) return (null, false);
 
-        var text = p.LevelUnit == LevelUnit.Fl && convention == AuroraLabelConvention.FlPrefixed
-            ? $"FL{v}"
-            : v.ToString(CultureInfo.InvariantCulture);
-        return (text, true);
+        return (Format(v, p.LevelUnit, convention), true);
     }
+
+    private static string Format(int value, LevelUnit unit, AuroraLabelConvention convention) =>
+        unit == LevelUnit.Fl && convention == AuroraLabelConvention.FlPrefixed
+            ? $"FL{value}"
+            : value.ToString(CultureInfo.InvariantCulture);
 
     private static string? Sanitize(string? text)
     {

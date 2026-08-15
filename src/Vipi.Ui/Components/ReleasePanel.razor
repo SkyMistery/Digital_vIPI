@@ -8,7 +8,14 @@
    (es. AeroportoEditorPage.RebuildDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
    spezzerebbe il publish su due context → hang. Deve condividere il context del circuito con la pagina. *@
 
-<div class="block" style="margin-top:10px" data-tour="release">
+@* Involucro di sezione (ancora TOC + titolo + aiuto): sta QUI e non in ogni editor, o torna a divergere —
+   l'editor ACC non lo aveva affatto, quello vLOA non aveva l'aiuto (doc 13 §3i). *@
+<div class="block" style="margin-top:10px" id="@SectionAnchor" data-tour="release">
+    @if (ShowSectionHeader)
+    {
+        <h3 style="margin-top:0"><Icon Name="calendar" /> @L["Rel_SectionTitle"]</h3>
+        <p class="help">@((MarkupString)string.Format(L["Rel_SectionHelp"].Value, _currentCycle))</p>
+    }
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
         <HelpHint Href="/vsop/guida#editor-release" AriaLabel="Aiuto sulla pubblicazione">
@@ -90,6 +97,13 @@
     [Parameter] public bool AllowCancel { get; set; }
     /// <summary>Costruisce l'URL di anteprima release per id (l'host conosce l'ACC). Null = usa il default per-target.</summary>
     [Parameter] public Func<int, string?>? PreviewUrlFactory { get; set; }
+
+    /// <summary>Ancora della sezione «Versioni &amp; release», condivisa dagli editor per la voce di menu.</summary>
+    public const string SectionAnchor = "p-release";
+
+    /// <summary>Mostra titolo e testo d'aiuto della sezione. Falso solo dove il pannello è già dentro un
+    /// involucro suo (l'editor aeroporto ha il proprio &lt;details&gt;).</summary>
+    [Parameter] public bool ShowSectionHeader { get; set; } = true;
 
     /// <summary>Notificata dopo una pubblicazione riuscita. Serve perché «Pubblica ora» promuove la bozza a versione
     /// pubblicata (<c>PublishWorkingVersionAsync</c>) ma questo pannello ricarica solo le PROPRIE release: senza

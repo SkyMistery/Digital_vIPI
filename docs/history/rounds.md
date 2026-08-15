@@ -1162,3 +1162,396 @@ Tre punti aperti dall'analisi del percorso «aree speciali», chiusi insieme
 
 Chiusura: 9 commit sul branch `feature/aree-speciali-hardening`, suite 951 verde, build 0 warning, due migration
 provate su copia del `vipi.db` reale. Resta la **verifica live** (quattro punti elencati in fondo alla carta).
+
+## 2026-08-10 — Audit dei tre documenti (doc [13](../refactor/13-audit-tre-documenti.md))
+
+Partiti da un'osservazione dell'owner — «la sezione delle versioni dovrebbe essere la stessa per tutti e
+tre i documenti, e non lo è» — e da lì un audit completo di vIPI ACC, vIPI APP e vLOA. La radice era una
+sola: il doc 11 aveva reso uguale **come** i tre viewer leggono il documento, ma non **chi decide** il
+comportamento di una sezione. Quella risposta viveva in sei `HashSet` di pagina, tre implementazioni di
+«obbligatoria» (una delle quali confrontava i **titoli**) e un registro parallelo per la vLOA, di cui il
+catalogo non sapeva nulla.
+
+**Fondamenta.** `SectionCatalog` diventa fonte unica anche di *chi rende il corpo*
+(`SectionBodySource {Blocks, Host}`, per profilo: «regulated» è un picker sulla vIPI ACC/APP e testo
+bilaterale sulla vLOA) e di *quali sezioni sono obbligatorie*. La vLOA nasce dal catalogo come le altre
+due — `VloaSections` resta solo la sorgente dei contenuti iniziali — e le due direzioni dei coordinamenti
+prendono una chiave per verso (`coordination:out`/`:in`) invece di ripetere quella del padre: da lì
+sparisce la cattura frozen fatta tre volte e l'identificazione della direzione per titolo (editor) o per
+posizione (viewer), due modi diversi per la stessa cosa.
+
+**I due difetti che uscivano dal documento.** La pagina APP pubblica derivava la tabella «Configurazioni»
+dalla **versione di lavoro**: le configurazioni di una bozza mai pubblicata erano pubbliche, contro
+l'invariante del doc 10. E ricerca e «Cosa è cambiato» partivano da «ha una versione corrente» e basta:
+uscivano documenti nascosti dall'admin, **sezioni** marcate nascoste col loro estratto, e contenuto di
+versioni senza release effettiva — che nessuna pagina serve. Ora il gate è quello della pagina, in un
+posto solo.
+
+**Il resto, in breve.** «Minime di vettoramento» torna una sezione in cui si può scrivere (era dichiarata
+derivata senza derivare nulla, e proprio per questo l'editor non offriva i blocchi); il viewer vLOA rende
+le sotto-sezioni di «Coordination», l'unico ramo che le buttava via; il ciclo AIRAC scritto in pagina è
+quello del documento e non quello di oggi; `IDocRoutesRegistry` diventa l'unica porta per «dove si
+raggiunge questo documento» — la ricerca mandava ogni APP sulla vIPI di ACC — con l'ancora `#s-{id}`
+uguale ovunque e un filtro APP suo; il pannello release si porta dietro il proprio involucro e i quattro
+editor passano gli stessi parametri; la landing ACC non promette più una vIPI senza release. Localizzati
+i testi rimasti indietro (`AppsListPage` non usava il localizer nemmeno una volta) e tolto il codice che
+nessuno chiamava più (`BuildAccVipiAsync`, `BuildVloaByPairAsync`, `SectionCatalog.Reconcile`).
+
+**La verifica live ha trovato due cose che i test non vedevano** — ed è il motivo per cui il runbook la
+chiede. «Aree regolamentate» nasceva aperta sull'APP e chiusa sulle altre due famiglie (un ramo che non
+chiedeva al catalogo). E soprattutto: sulle vLOA **già pubblicate** le due direzioni dei coordinamenti
+comparivano due volte, perché il viewer pubblico legge lo snapshot della release — congelato *prima* della
+riconciliazione, quindi con entrambe le figlie ancora sulla chiave del padre. Regressione introdotta dal
+passo che rendeva le sotto-sezioni, invisibile finché quel ramo le buttava via. Da qui una regola:
+**una riconciliazione sistema i documenti, mai le release già pubblicate**, e sono quelle che il pubblico
+legge.
+
+**Coda dell'11 agosto, da una domanda dell'owner:** «la sezione AoR è uguale in tutti, e se la modifico si
+modifica ovunque?». La risposta — *definizione e resa condivise, contenuto per documento* — è quella
+giusta, ma verificandola su **tutte** le sezioni comuni sono uscite due copie che il giro non aveva
+toccato. «Configurazioni»: il viewer della vIPI ACC ripeteva riga per riga il componente che il suo stesso
+editor già usava, e le due copie erano già divergenti (solo una diceva «nessun settore aperto», solo
+l'altra aveva il proprio messaggio di elenco vuoto) — quindi nell'editor si vedeva una cosa e nel
+documento pubblicato un'altra. «Frequenze»: la vLOA aveva una tabella tutta sua, ed è il motivo per cui le
+intestazioni erano andate per conto loro. Ora `AppFrequencies` sa attenuare una riga e portare una colonna
+di azioni, e la vLOA la invoca una volta per lato. Resta di proposito la doppia resa dei **coordinamenti**:
+`AccCoordinationView` e `AppCoordinationView` servono due modelli di dati diversi, perché un avvicinamento
+non ha settori sotto di sé.
+
+Chiusura: 20 commit sul branch `refactor/13-tre-documenti`, suite **1335 → 1391** verde, build senza
+errori, verifica live dei tre documenti su copia del `vipi.db` reale.
+
+## Feature: trasferimenti ACC↔APP — autorizzazione e trasferimento separati (11 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-11-trasferimenti-acc-app.md`](../feature/2026-08-11-trasferimenti-acc-app.md);
+schema `../spec/modello-dati.md` §9.20-bis; area [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §8.
+
+Il modello dei trasferimenti descriveva **un evento con un livello**: regge un accordo ACC↔ACC, non regge un
+ACC→APP, dove autorizzazione e trasferimento sono due momenti diversi. «Padova Military autorizza il traffico
+con destinazione Aviano LIPA via CHI a FL160 o superiore e lo trasferisce ad Aviano Approach al confine dell'AoR
+passando FL110 in discesa» non era esprimibile — non per come veniva reso, per come era fatto il modello.
+
+Chiuse cinque cose nello stesso giro, perché vivono tutte sulla stessa riga: i due livelli con il proprio punto
+di trasferimento (e le **comunicazioni** su colonna distinta dal controllo), la **velocità**, il **gruppo di
+varianti** con la riga «negli altri casi», la sezione estesa che mostra **tutto ciò che entra o esce** da un
+ente, e il filtro «da rivedere» per le righe scritte prima.
+
+**Quattro difetti veri trovati strada facendo**, tre invisibili ai test:
+
+- Lo scaffolding EF proponeva `defaultValue: ""` per cinque colonne enum-su-testo: le 73 righe in archivio
+  sarebbero nate con una stringa illeggibile e la **prima lettura sarebbe andata in eccezione**. Chiuso
+  dichiarando i default nel modello, che copre anche il `PostgresSchemaReconciler` del deploy Render.
+- Una guardia esistente (`IndexedStringLengthTests`) ha fermato il giro sul fatto che su MySQL una stringa con
+  DEFAULT nasce `longtext`, e `longtext` un default non può averlo. La guardia era però cieca a metà: cercava le
+  colonne solo dentro il `CREATE TABLE` e le nostre arrivano con un `ALTER TABLE ADD` — falliva sulla propria
+  ricerca, non sul difetto che presidia. Estesa.
+- Lo scioglimento di un gruppo rimasto con una riga sola interrogava il database **prima** della `SaveChanges`,
+  quindi vedeva ancora la riga appena sfilata e non scioglieva mai niente.
+- Il mittente perdeva il codice di posizione quando non era un CTR: da quando la sezione estesa mostra ciò che
+  entra da un APP, la frase diventava «Roma Radar trasferisce a Roma Radar TS». Nessun test esistente si è
+  rotto correggendolo, il che dice quanto era coperto quel ramo.
+
+**Un rischio si è sgonfiato leggendo il codice**: `TransferMatcher` sembrava il punto più esposto, ma il livello
+non entra in nessun criterio di punteggio — serve solo a comporre l'etichetta quota, che ora prende quella al
+trasferimento. Era una riga, non una revisione.
+
+**Duplicazioni chiuse**: `CoordTable.razor` (la tabella dei coordinamenti era due volte, quasi identica, in
+`AccCoordinationView` e `AppCoordinationView`) e `CoordinationDerivation.ToRow` (la vLOA si costruiva la riga a
+mano). ⚠️ Supera la nota del refactor 13 «resta di proposito la doppia resa dei coordinamenti»: restano due
+**viste**, perché l'albero è diverso; la tabella è una.
+
+Suite **2111 → 2173** verde, `dotnet build -c Release --no-incremental` 0 warning su entrambi i TFM.
+Migrazione unica `AddTransferHandoffSpeedAndVariants`, additiva, provata su copia del `vipi.db` reale.
+
+**✅ Verifica live eseguita nella stessa giornata**, su copia del `vipi.db` reale (il DB del progetto è rimasto
+intatto). Confermati a schermo: la frase a due eventi («autorizza … via BIRSU … e lo trasferisce … al confine
+dell'AoR passando FL110»), il gruppo di varianti col `rowspan` e «negli altri casi» in fondo, le colonne che
+compaiono **solo** dove servono (2 tabelle su 35 nella vIPI ACC, 1 su 9 nella vLOA), la vLOA interamente in
+inglese, i tre flussi di `LYTV_APP` che ora l'ACC vede, il gruppo APP nuovo «verso altri APP», e la stampa
+misurata a **larghezza carta** (636px su 760 disponibili, nessuno scorrimento).
+
+**Altri tre difetti presi lì, nessuno visibile alla suite:** il vincolo del livello di trasferimento partiva da
+«o superiore» invece che da «passando» su una riga che la faccetta non aveva mai usato (l'editor caricava lo
+zero dell'enum come se fosse una scelta); «negli altri casi» era detto in due lingue nella stessa schermata,
+perché la cella veniva dalle risorse dell'interfaccia e la frase dal template (ora entrambe dal template: è
+contenuto, non chrome); e una testata mezza tradotta, con «PROSSIMO» in mezzo alle colonne inglesi. Più la
+tinta delle righe-variante, che al 14% di `--line` a schermo **non si vedeva**: portata al 55% e misurata.
+
+⚠️ **Una correzione a questa stessa scheda.** La carta aveva sostenuto che le righe BIRSU 76/77 fossero *senza
+condizione*, e quindi che il lettore non sapesse quale applicare: falso, l'avevo dedotto da un conteggio
+aggregato senza guardare le colonne della riga. Le due condizioni del DB sono proprio le loro. Il caso resta il
+buon esempio del **legame** fra varianti; non lo è mai stato di un'ambiguità. *Un aggregato non è una riga.*
+
+⚠️ **Resta ai colleghi, non al codice:** le 15 righe con ricevente APP e faccetta vuota vanno riviste a mano —
+il loro livello può voler dire «autorizzato» o «al trasferimento». Il filtro «Da rivedere» in
+`/vsop/admin/trasferimenti` le elenca; il numero va rimisurato sulla produzione.
+
+## Feature: le varianti diventano un outline (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-varianti-a-livelli.md`](../feature/2026-08-12-varianti-a-livelli.md);
+schema `../spec/modello-dati.md` §9.20-ter; area [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §9.
+
+Il gruppo di varianti del giorno prima aveva **una forma sola** — una capofila più subordinate, con «negli
+altri casi» in fondo. Alla prima lettura del committente sono usciti tre difetti, e il terzo dice che la forma
+era proprio quella sbagliata: l'ordine era rovesciato (un accordo si legge come una norma: prima la regola,
+poi le eccezioni); le alternative **non sono subordinate a nessuno** (pista 07 e pista 25 sono pari-grado, ed
+è esattamente il dato che sta in archivio); e due livelli non bastano, perché serve «con area attiva» e,
+dentro, «con area attiva **e di notte**». Più l'eccezione **trasversale**, che scavalca le alternative.
+
+`IsOtherwise` lascia il posto a `VariantDepth` + `IsGroupWide`: il gruppo diventa un outline dove l'ordine È
+la struttura. Fatto **prima del merge** della scheda di ieri, quindi a costo di dati zero — dopo sarebbe stata
+una migrazione dati.
+
+**Due cose che valgono più della sintassi:**
+
+- **Chi sposta una riga deve spostarne il sottoalbero.** Una capofila che si muove lasciando indietro le sue
+  eccezioni le riassegna a un'altra alternativa **senza nessun errore**: nessuna eccezione, nessun log, solo un
+  accordo che dice un'altra cosa. È il prezzo dell'appartenenza per ordine, e ha un test che lo presidia.
+- **Frase e tabella divergono apposta.** In tabella si legge il delta (il rientro dà il contesto); la frase
+  cumula la catena, perché viaggia da sola nella prosa. E la catena si **fonde** in una clausola prima di
+  diventare parole: comporre un pezzo per livello ripeteva la preposizione — «con pista 07 in uso **e con**
+  R403B attiva» — mentre la condizione cumulata è un AND unico, che la fraseologia approvata già sa dire.
+
+⚠️ **Lo scaffolding EF proponeva un `RenameColumn` da `IsOtherwise`, e lo proponeva diverso nei due provider**:
+SQLite verso `VariantDepth`, MySQL verso `IsGroupWide`. Due inferenze incompatibili dalla stessa modifica —
+la prova che il rename è una supposizione sui tipi, non un'intenzione letta dal modello. Un `true`
+sopravvissuto sarebbe diventato «profondità 1» di là e «riga che scavalca tutto» di qua, in silenzio. Riscritte
+entrambe come drop + add.
+
+**Verifica live sul caso vero**, costruito guidando l'editor: pista 07 → eccezione «area LI R403B» → eccezione
+dell'eccezione «di notte» → riga trasversale. Le tre frasi cumulano («con pista 07 in uso e LI R403B attiva e
+in condizione di notte»), la tabella rientra 20/34px e tiene CoP e ricevente in `rowspan` su tutto il gruppo, e
+l'avviso «alternativa senza caso normale» **scatta sul dato reale** — la riga 77 porta «pista 25 + area R403B»
+e non ha una «pista 25, normalmente». Il modello di ieri non permetteva nemmeno di accorgersene.
+
+Un difetto di lingua preso leggendo, non prevedendo: il marcatore trasversale accostava due preposizioni («in
+ogni caso **in** condizione …»). Ora c'è la virgola.
+
+Suite **2173 → 2185** verde, `dotnet build -c Release --no-incremental` 0 warning su entrambi i TFM.
+
+## Feature: l'editor dei trasferimenti prende la forma delle altre pagine (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-ux.md`](../feature/2026-08-12-editor-trasferimenti-ux.md).
+
+Due giri avevano aggiunto alla riga la faccetta, la velocità e l'outline delle varianti; la pagina che le scrive
+no. Guardandola a schermo: la riga in modifica era **una fila di sei controlli senza etichette**, il
+multi-select delle piste **copriva la riga sotto**, le azioni erano **nove bottoni-icona da 28px** per riga, tre
+bottoni dicevano tutti «Gruppo», le colonne di condizione erano tre e vuote su 70 righe di 76, e gli stili
+inline erano **51** più un `<style>` dentro il markup.
+
+Soprattutto: il progetto **ha già** il pattern per una pagina di editing admin — `.xfe-layout` (lista + pannello
+a destra) in Permessi e Incarichi, `.gerarchia-2col` + `.detail-sticky` in Struttura — e Trasferimenti era
+l'unica che trasformava la riga in un form. «Conforme al resto» non era una questione di colori.
+
+Ora l'editing sta nel **pannello a destra**, coi campi etichettati e raggruppati e l'anteprima in fondo; in
+tabella restano tre azioni; una colonna di condizione; **zero** stili inline. I due blocchi di campi paralleli
+del form (`_p*` e `_ep*`) diventano **un tipo in due istanze**: dodici coppie da tenere allineate a mano erano
+dodici occasioni di aggiornarne una sola.
+
+Dieci migliorie d'uso, tutte quelle proposte: trascinamento che sposta il **sottoalbero**, duplicazione di un
+gruppo di varianti **con la sua struttura**, modifica in blocco del ricevente, filtro «senza ricevente», avviso
+di modifiche non salvate, avviso di lock in scadenza, anteprima sempre accesa, copia righe da un altro gruppo,
+ordinamento della **vista** (mai dell'ordine salvato — nell'outline è la struttura, e per questo l'ordinamento
+non-manuale spegne il trascinamento), tasti Esc/Invio/Ctrl+Invio.
+
+⚠️ **Due avvisi nati rumorosi, corretti guardandoli.** Quello di scadenza del lock era **sempre acceso**: soglia
+a cinque minuti su un TTL di tre, quindi vero a ogni caricamento — ora è a 60 secondi, e con l'heartbeat vivo
+non scatta mai (scatta quando l'heartbeat si è fermato, l'unico caso in cui serve). Quello di «modifiche non
+salvate» si accendeva **aprendo** una riga, prima di toccarla: ora confronta una firma del form con quella di
+quando si è aperto.
+
+⚠️ **Una regressione presa al volo**: estraendo `CopyOf` per condividere la copia di riga fra duplicazione di
+gruppo e creazione di variante, la variante ha cominciato a copiare anche la **condizione** — che è esattamente
+ciò che deve dire di diverso. Le due operazioni condividono venti campi e ne vogliono diciannove.
+
+Le tre operazioni nuove del repository hanno **sei test** (`TransferRepositoryTests`): trascinamento nelle due
+direzioni, trascinamento che porta il sottoalbero e rifiuta di entrare in sé stesso, no-op fra flussi diversi,
+duplicazione che copia l'outline (profondità e riga trasversale) **e la condizione**, duplicazione fuori da un
+gruppo, ricevente in blocco che raggiunge le sorelle non selezionate. Quello sulla condizione è scritto per
+tenere ferma la differenza con l'alternativa, che invece la azzera: è la regressione di `CopyOf` messa in guardia.
+
+Suite **2197** verde (2185 + 12: sei test × due TFM), Release `--no-incremental` 0 warning su entrambi i TFM.
+
+⚠️ **L'intermittente del bridge è ricomparso** una volta, e dice qualcosa di nuovo: fallisce **solo** nella
+corsa completa in parallelo della soluzione, mai da solo — otto giri isolati di `Vipi.AuroraBridge.Tests` e una
+seconda corsa completa sono verdi. Il nome del test non è stato catturato (il log della corsa non era su file):
+alla prossima occorrenza va tenuto il log intero, perché il sospetto ora è la **contesa** fra progetti, non il
+tempo dentro un test.
+
+## Feature: il gruppo di varianti si vede, e il Salva si raggiunge (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](../feature/2026-08-12-trasferimenti-gruppi-e-salva.md).
+
+Due difetti riportati alla **prima lettura della pagina rifatta**, ed entrambi misurati prima di toccare codice
+(Edge + puppeteer su istanza dedicata, LIBB, 78 righe, lock preso).
+
+**1. Non si vedeva quale condizione fosse eccezione o alternativa di quale.** Tre righe TOPNO con condizioni
+`25 · area Donald West`, `07`, `—` si distinguevano dalle altre solo per una velatura al **14%**, uguale per
+ogni gruppo: due gruppi consecutivi si fondevano, la riga con `—` sembrava un dato mancante invece che il
+«negli altri casi», e il rientro per profondità viveva sulla cella del **CoP**, lontano dal dato che qualifica.
+L'ambiguità valeva anche al contrario: due righe BIRSU con una condizione ciascuna **non** erano un gruppo, ma a
+occhio erano identiche a quelle che lo erano.
+
+Il modo giusto **era già nel progetto**: la vista pubblica (`CoordTable`) rende i gruppi come blocchi, con la
+tinta al 55% — portata lì per lo stesso motivo — e il rientro sulla colonna condizione. L'editor era l'unico
+posto dove lo stesso dato si leggeva peggio della pagina che lo pubblica.
+
+**2. Il Salva del pannello non compariva in nessuna posizione di scorrimento.** Non era lo sticky, che
+funzionava: era aritmetica. **1426 px** di contenuto in **904** disponibili, azioni in fondo → Salva a 1918 con
+la pagina in cima, 1239 a metà, 1185 in fondo, viewport 1000. Si raggiungeva solo con la **seconda** barra di
+scorrimento, dentro il riquadro, che non si vede finché non ci passi sopra con la rotella. Sotto i 1080 px, poi,
+la griglia collassa a una colonna e il pannello finisce dopo tutta la lista.
+
+**Una risalita sola.** Per dire «eccezione di X» serviva il padre nell'outline, che `ConditionChain` risaliva al
+proprio interno: estratto in `CoordinationDerivation.ParentOf`, con tre test di caratterizzazione scritti prima.
+Due risalite scritte a mano avrebbero potuto leggere due strutture diverse dallo stesso dato.
+
+⚠️ **Il caso «eccezione» non esisteva nei dati.** Su 78 righe le profondità > 0 erano **zero**: la resa nuova
+sarebbe rimasta non provata. È stata creata un'eccezione vera guidando l'editor sulla copia del DB — ed è da lì
+che sono venuti i tre difetti che nessun test avrebbe visto: l'eccezione appena creata nasceva marcata «negli
+altri casi» (la pill vale per le pari-grado); `vipiRevealPanel` mancava il bersaglio di 15 px perché il pannello
+è **sticky** e scorrere la pagina sposta anche lui, quindi `scrollIntoView` insegue una posizione che cambia; il
+rientro non si vedeva perché `.res-table td{padding:7px 10px}` batte una classe sola — la stessa trappola già
+annotata nel tema per `.sid-view`.
+
+Suite **2203** verde, Release `--no-incremental` 0 warning su entrambi i TFM.
+
+**Coda dello stesso giro, dalla seconda lettura:** il piede aveva risolto il **Salva**, non la **scheda**. Per
+vedere tutto il form di riga nuova bisognava ancora scorrere — 885 px di campi in 781 disponibili a 1600×1000 e
+in **501** su un portatile 1366×720, cioè **384 px fuori**, dietro la barra di scorrimento interna che non si
+vede finché non ci passi sopra. Le sezioni «Trasferimento» e «Condizione» ora partono **richiuse quando sono
+vuote** — chi apre una riga nuova scrive CoP, ricevente e livello — con il **riassunto** di cosa contengono
+accanto al titolo, e restano aperte se un dato c'è già: 885 → **502 px**, zero fuori dalla vista su entrambi gli
+schermi. In più il corpo ha l'ombra che dice se sotto c'è dell'altro.
+
+**Seconda coda, dalla terza lettura:** «sono tutto giù e ci sono tasti che non vedo». Vero, e non sul percorso
+misurato: aprendo una riga **esistente** la faccetta e la condizione sono già piene, quindi le sezioni restano
+aperte e il corpo arriva a **1324 px**. Le sei azioni sulla riga (sposta su/giù, duplica, sfila, duplica gruppo,
+elimina) stavano in fondo a quel corpo: fuori dallo schermo con 543 px nascosti a 1600×1000, **823** a 1366×720,
+**923** a 1280×620 — e scorrere la *pagina*, che è quello che si prova a fare, non le porta mai in vista perché
+a scorrere è il corpo del pannello. Ora sono un **menù del piede** che si apre verso l'alto: il piede non
+scorre, le parole restano (non tornano icone), e il censimento di ogni tasto del pannello dà **zero** fuori
+campo su tutti e tre gli schermi, a menù chiuso e aperto.
+
+⚠️ **Terza occorrenza dell'intermittente del bridge**, con lo stesso profilo: 1 fallito su 78 nella corsa
+completa in parallelo, verde da solo e verde nella corsa completa successiva. Il nome è sfuggito di nuovo — la
+corsa che fallisce va lanciata scrivendo il log su file **fin dalla prima volta**, non dopo.
+
+## Feature: l'editor dei trasferimenti diventa tre colonne (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](../feature/2026-08-12-editor-trasferimenti-tre-colonne.md).
+
+Quinto giro sulla stessa pagina, aperto da un giudizio d'uso e non da un difetto: «ancora scomoda e poco fluida
+da usare». Prima di rispondere gli attriti sono stati **contati nel sorgente**, non stimati — e sono sei, di cui
+uno è un bug vero.
+
+**Il caro davvero era la forma.** La pagina rendeva *tutti* i gruppi dell'ACC con le loro tabelle, uno sotto
+l'altro, dietro tre livelli di collasso richiusi a ogni cambio ACC: arrivare a una riga costava **tre clic, ogni
+volta**, e da lì in giù si scorreva per migliaia di pixel con lista e pannello nello stesso scorrimento di
+pagina. Ora sono tre colonne — navigatore · riquadro di lavoro · pannello — e ognuna scorre per conto proprio
+dentro l'altezza dello schermo. Il gruppo smette di essere un terzo livello di collasso: nell'albero è una
+**foglia**, si sceglie. `_collapsedFlow` e `ToggleFlow` spariscono.
+
+**Una vista per rivedere, non per scrivere.** L'interruttore Albero ⇄ Elenco: l'elenco mostra tutte le righe
+dell'ACC in una tabella sola, con settore/aeroporto/tipo come colonne. Per la revisione l'albero è il nemico, e
+i due filtri diagnostici sono esattamente revisione.
+
+⚠️ **Il difetto che era lì da prima**: il filtro «senza ricevente» **non filtrava nulla**. `_noReceiverOnly` si
+accendeva, il tasto si illuminava, il conteggio era giusto, e `FilteredFlows()` non lo leggeva mai. A schermo
+sembrava «il filtro non ha trovato niente». Trovato **leggendo** il file per pianificare, non usandolo — ed è la
+ragione per cui il pre-flight vuole che si guardi il codice prima di proporre. Ora filtra i gruppi in albero e
+le **righe** in elenco, che è ciò che si vuole quando lo si accende: per questo accenderlo porta in elenco. Sul
+dato reale: 78 righe → 1.
+
+**Si scrive nella tabella.** CoP, livello e ricevente si scrivono in cella; Invio salva e scende, Tab passa alla
+colonna dopo, Esc annulla. Tre colonne e non sette: condizione e faccetta sono composte da più campi, e
+comprimerle in una casella è l'errore che questa pagina ha già fatto una volta — la riga che diventava «una fila
+di sei controlli senza etichetta». Il livello si scrive **come si legge**, perché `LevelFormatting` ha ora
+l'inverso di `Format`, la cui correttezza è una **proprietà** e non un elenco di casi: `Format(Parse(s)) == s`
+per ogni `s` che `Format` sappia produrre, 102 casi generati.
+
+La regola che tiene insieme la cosa — **una casella scrive solo ciò che mostra** — sembrava un principio e nel
+dato reale ha un solo effetto: `TransferVerticalState.Level` non lascia segno nel testo del livello, quindi
+riscrivere quel testo lo cancellerebbe in silenzio. Averlo cercato *prima* ha evitato una perdita di dato che
+nessun test avrebbe visto; il test che la documenta è scritto come **limite**, non come funzione.
+
+**Lo stato sta nell'URL**, e la divisione non è arbitraria: in URL ciò che identifica *cosa sto guardando* (ACC,
+vista, gruppo, riga, filtri), in `localStorage` ciò che è *come mi piace guardare* (anteprime, ordinamento) — che
+in un link condiviso sarebbe rumore. `vipiStoreGet`/`Set` esistevano dal round dell'editor e non erano mai stati
+chiamati da Razor: qui trovano il primo chiamante.
+
+**Tre difetti visibili solo a schermo**, tutti misurati sulla verifica live (LIBB, 36 gruppi, 78 righe):
+
+1. **La pagina scorreva di 148 px.** Il `calc(100vh - 250px)` era una stima; il valore vero è **398**, perché
+   sopra la griglia stanno barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e — a volte —
+   l'avviso del lock. In CSS puro non si esprime: `N` è proprio ciò che non si sa. Lo misura ora
+   `vipiFitViewport`, chiamato a ogni render, perché l'avviso del lock compare e sparisce da solo.
+2. **Il navigatore si srotolava a schermo stretto**: 2174 px di albero prima di arrivare al lavoro. Tetto 42vh
+   sotto i 1200 — e per lasciare libero il riquadro di lavoro serve `align-items:start`, senza il quale si
+   allineava all'altezza del navigatore incastonato e finiva incastonato anche lui (378 px per 2082 di tabella).
+3. **Aprire una cella spostava le colonne di ~100 px.** In una tabella a colonne automatiche un `<input>` porta
+   la propria larghezza **intrinseca** (venti caratteri) e `width:100%` non la riduce: `size="8"`, scostamento
+   da ~100 a 21.
+
+**Uno scostamento dalla carta.** Prometteva tre componenti; ne sono usciti due. Il pannello è rimasto nella
+pagina: estrarlo avrebbe significato passargli il form, le piste, le aree, il contesto anteprima, il
+localizzatore e otto callback per guadagnare righe di file — e la ragione per cui la tabella *doveva* uscire
+(due viste che la rendono) su di lui non vale. La tabella è **una**: scriverla due volte vorrebbe dire
+correggere due volte ogni difetto di lettura.
+
+Suite **2384** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.
+
+## Feature: il costo per gesto, la tastiera, l'annulla, il blocco (12 ago 2026)
+
+Carta ed esito: [`../feature/2026-08-12-editor-trasferimenti-rifiniture.md`](../feature/2026-08-12-editor-trasferimenti-rifiniture.md).
+
+Sesto giro sulla stessa pagina, chiesto guardando il risultato del quinto. Nove attriti, di nuovo **contati nel
+sorgente** prima di proporre — e il più caro era un **debito contratto dal giro precedente**.
+
+**Il costo per gesto.** Ogni scrittura passava da `Guarded` → `LoadAsync` → flussi **più** contesto anteprima,
+che ricarica i flussi una seconda volta e aggiunge sei mappe: **otto query**, due delle quali caricano tutti i
+punti dell'ACC. Finché si salvava dal pannello si pagava di rado; da quando si scrive in cella si paga a ogni
+Invio. Di quel contesto **solo i nomi liberi degli aeroporti** dipendono dai flussi, e cambiano quando cambia un
+**gruppo**: il ricaricamento segue quella condizione, che è nota e vale un parametro — non una cache a scadenza,
+che sarebbe l'approssimazione di qualcosa che sappiamo. Salvare una casella: **da 8 query a 1**.
+
+**Il picker era scritto sei volte, e nessuna copia prendeva i tasti.** Regola del 2 superata di quattro. Estrarlo
+non è stato solo meno righe: la tastiera va scritta **una volta**, e in una pagina dove la tabella si scrive da
+tastiera il pannello che non lo fa è il punto in cui si molla la tastiera. Frecce, Invio, Esc, primo risultato
+già evidenziato. Esc chiude l'elenco e si ferma lì — perdere anche il form sarebbe una sorpresa cara.
+
+**L'annulla: il punto non è il tasto, è cosa torna.** `TransferPointInput` non porta gruppo, profondità e
+ordine, ed è una scelta scritta nel tipo: la posizione la decide il repository, così che nessun editor possa
+creare a mano una riga orfana. Quindi ricostruire un gruppo eliminato con `AddFlowAsync` + `AddPointAsync`
+**appiattirebbe l'outline in silenzio** — la clonazione lo fa apposta e lo dichiara. Un annulla che restituisce
+righe diverse da quelle tolte non è un annulla: è un secondo danno con un nome rassicurante. Serve una via
+distinta, e la distinzione è di **intenzione**: `AddPointAsync` scrive, `RestorePointsAsync` rimette — e nella
+seconda la posizione viaggia col dato, con gli invarianti rivalidati all'ingresso.
+
+L'annulla **vive quanto il messaggio che lo propone**, non dieci secondi: un timer va comunicato con un conto
+alla rovescia, altrimenti il tasto sparisce mentre lo si guarda. Vive nel circuito, e gli id cambiano: sono
+limiti dichiarati, non nascosti — un annulla che sopravvive al ricaricamento è un cestino, cioè un'altra carta.
+
+**Il blocco: tre metodi e non un modulo con tre interruttori**, perché non si comportano allo stesso modo. Il
+ricevente è identità dell'accordo e si propaga al gruppo di varianti; livello e condizione sono della singola
+riga — il livello è proprio ciò che due varianti dicono diverso, e propagarlo le renderebbe tutte uguali. Una
+firma sola nasconderebbe questa differenza. Il livello in blocco si scrive con la **stessa sintassi** della
+cella e della tabella (`ParsedLevel`): una sola in tutta la pagina.
+
+⚠️ **Tre difetti visti solo a schermo, tutti della stessa famiglia.**
+
+1. **`Text="form.NextText"` passava la stringa letterale** — *la* trappola del §7 del runbook di verifica: un
+   attributo di componente di tipo `string` senza `@` non è una variabile. A schermo il campo del ricevente
+   conteneva davvero le parole `form.NextText`. **Nessun test l'avrebbe vista**: compila, gira, e mente.
+2. **La tendina di ordinamento si mostrava vuota**: la preferenza salvata poteva essere una chiave che vale solo
+   in elenco mentre la pagina si apre in albero. La normalizzazione c'era sul cambio di vista e mancava al
+   ricaricamento delle preferenze — ed è diventata un metodo proprio perché serve in due momenti.
+3. **Etichetta e suggerimento si toccavano** («RECEIVING SECTOR(EMPTY = UNICOM)»): fra un'espressione e un tag
+   Razor lo spazio scritto nel markup viene mangiato, e nemmeno un `<text> </text>` è bastato. Lo stacco è
+   passato al CSS, dov'è deterministico e dove la spaziatura appartiene.
+
+**Uno scostamento dalla carta**: `DeletePointsAsync` doveva restituire le fotografie, e invece la fotografia la
+scatta **chi chiama** — è lui a sapere quali righe stava mostrando, e farla scattare al repository vorrebbe dire
+fidarsi che le due cose coincidano. Meno superficie e una garanzia in più.
+
+Suite **2403** verde su entrambi i TFM (nove test nuovi nel repository), `Release --no-incremental` **0 warning**.

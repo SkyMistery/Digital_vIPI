@@ -156,6 +156,19 @@ public static class PolygonGeometry
         if (items.Count == 0) return new();
 
         // Annidamento di un livello (es. [[[lng,lat],…]]): scendi al primo anello.
+        //
+        // ⚠️ In GeoJSON quel livello è l'elenco dei poligoni (MultiPolygon) o degli anelli (esterno + buchi).
+        // Prendendo solo `items[0]` un settore composto da due aree disgiunte entrerebbe con la SOLA prima,
+        // in silenzio — e da lì alimenterebbe la mappa AoR, il calcolo di adiacenza dei confinanti e i
+        // poligoni pubblicati. Un settore che perde metà della propria forma sbaglia i vicini, e i vicini
+        // decidono i coordinamenti.
+        //
+        // <b>Misurato l'11 agosto 2026 sui dati reali</b> (`vipi.db`, 1338 poligoni fra AccSectors,
+        // AirportSectors e SpecialAreas): <b>zero</b> casi con più di un anello a questo livello. 1273
+        // anelli singoli, 50 colonne vuote, 15 array vuoti `[]`. Quindi oggi il ramo non perde niente.
+        // Resta una trappola per domani, non un difetto di adesso — e per questo la si lascia com'è invece
+        // di far restituire più anelli a `ToRing`, che vorrebbe dire toccare tutti i consumatori per un caso
+        // che non si verifica. Se la misura cambia, questa è la riga da cui ripartire.
         if (items[0].ValueKind == JsonValueKind.Array &&
             items[0].EnumerateArray().FirstOrDefault().ValueKind == JsonValueKind.Array)
             return ExtractPoints(items[0]);

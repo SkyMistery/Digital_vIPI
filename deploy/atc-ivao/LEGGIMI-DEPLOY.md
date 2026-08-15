@@ -1,4 +1,4 @@
-# vIPI — build self-contained linux-x64
+﻿# vIPI — build self-contained linux-x64
 
 Build del **9 agosto 2026**, branch `feat/persistenza-mysql`. Self-contained: **non serve installare .NET**,
 il runtime è nel pacchetto (~111 MB scompattato, 47,8 MB compresso).
@@ -9,13 +9,20 @@ da riempire solo i valori segreti.
 
 > ## 🔎 Se qualcosa non parte, guardate qui prima di tutto
 >
-> A ogni avvio l'applicazione scrive, **accanto all'eseguibile**, due file di testo:
+> A ogni avvio l'applicazione scrive, nella sottocartella **`diagnostica/`** accanto all'eseguibile, due
+> file di testo:
 >
-> - **`avvio-diagnostica.txt`** — con quale configurazione ha provato a partire. Scritto sempre, anche
->   quando l'avvio riesce.
-> - **`avvio-errore.txt`** — l'eccezione che ha impedito l'avvio. Se questo file non c'è, l'applicazione è
->   partita (o non è arrivata nemmeno a scriverlo: in quel caso la cartella non è scrivibile e il file
->   finisce in `/tmp`).
+> - **`diagnostica/avvio-diagnostica.txt`** — con quale configurazione ha provato a partire. Scritto sempre,
+>   anche quando l'avvio riesce.
+> - **`diagnostica/avvio-errore.txt`** — l'eccezione che ha impedito l'avvio. Se questo file non c'è,
+>   l'applicazione è partita (o non è arrivata nemmeno a scriverlo: in quel caso la cartella non è scrivibile
+>   e i file finiscono nella temporanea di sistema; il percorso esatto lo stampa a video all'avvio).
+>
+> ⚠️ **Quella cartella non va servita dal web.** `avvio-errore.txt` contiene lo stack trace completo: è il
+> contenuto giusto per chi deve capire, e quello sbagliato da lasciare raggiungibile da fuori. Se
+> l'eseguibile sta dentro il documento radice del sito, la riga che serve è già in `nginx-vipi.conf`:
+> `location ~ ^/diagnostica/ { deny all; }`. Dall'11 agosto 2026 stanno in sottocartella proprio per poterli
+> negare con una riga sola.
 >
 > Sono pensati per essere **spediti così come sono**: password, ClientId e ClientSecret non ci finiscono
 > mai. Della configurazione si riporta solo *se* un valore c'è, non quale.
@@ -58,7 +65,12 @@ stessa app IVAO, usata per due scopi (il login degli utenti e il token applicati
 
 ⚠️ Il ClientId va scritto due volte: **copia-incolla, non ribattere.** Se sbagliate solo `Ivao.ClientId` il
 login funziona benissimo e sembra tutto a posto, ma non partono ATC live, roster e **import** — cioè il
-modo in cui il sito si popola. (`avvio-diagnostica.txt` segnala se i due sono diversi.)
+modo in cui il sito si popola. (`diagnostica/avvio-diagnostica.txt` segnala se i due sono diversi.)
+
+ℹ️ Nel file c'è anche **`AllowedHosts: "atc.it.ivao.aero"`**: il sito risponde solo a quel nome. È un valore
+in più da ricordare **se il dominio cambia** — con un nome diverso l'applicazione risponde `400`. Il default
+di ASP.NET Core sarebbe `*`, che accetta qualunque `Host`, e da quello l'handler OIDC costruisce il
+`redirect_uri` del login.
 
 Contiene segreti: `sudo chown vipi:vipi /opt/vipi/appsettings.Production.json && sudo chmod 600 …`
 
@@ -137,8 +149,8 @@ strumenti che «normalizzano» i nomi.
 
 | Sintomo | Causa |
 |---|---|
-| Il servizio **non parte** | leggete `avvio-errore.txt`: la prima riga è quasi sempre la causa |
-| `/vsop/auth/login` risponde **404** | `VipiAuth.Enabled` non è arrivato a `true`. Quell'indirizzo **non esiste** finché il login non è attivo: non è una pagina rotta, è una rotta che l'applicazione non registra. Quasi sempre significa che `appsettings.Production.json` non viene letto — vedi `avvio-diagnostica.txt` |
+| Il servizio **non parte** | leggete `diagnostica/avvio-errore.txt`: la prima riga è quasi sempre la causa |
+| `/vsop/auth/login` risponde **404** | `VipiAuth.Enabled` non è arrivato a `true`. Quell'indirizzo **non esiste** finché il login non è attivo: non è una pagina rotta, è una rotta che l'applicazione non registra. Quasi sempre significa che `appsettings.Production.json` non viene letto — vedi `diagnostica/avvio-diagnostica.txt` |
 | Le pagine si aprono ma non rispondono | WebSocket non inoltrati dal proxy |
 | Le pagine cadono in «riconnessione» a ripetizione | più di un processo dietro il proxy (vedi passo 4), oppure timeout del proxy troppo brevi |
 | Il login torna in `http://` e fallisce | manca `X-Forwarded-Proto` |

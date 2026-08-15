@@ -18,7 +18,7 @@
 }
 else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotFoundTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {
@@ -38,7 +38,7 @@ else
             </aside>
             <div>
                 <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {L["Appn_Subtitle"]}")"
-                           AiracCycle="@(_relCycle ?? Airac.GetCycle(DateTime.UtcNow))" />
+                           AiracCycle="@Cycle()" />
                 <div class="doc-head">
                     <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
@@ -67,7 +67,11 @@ else
                     }
                     else if (IsSpecial(s.SectionKey))
                     {
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)">
+                        @* Alcune sezioni nascono chiuse (doc 11 §3i): lo dice il catalogo, e vale per tutte e tre
+                           le famiglie. Questo ramo era l'unico a non chiederglielo, quindi «Aree regolamentate»
+                           nasceva aperta sull'APP e chiusa su vIPI ACC e vLOA. *@
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                             <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
                                 @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
@@ -82,7 +86,6 @@ else
                                     case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
                                     case "frequencies": <AppFrequencies Rows="_freqs" />; break;
                                     case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
-                                    case "minima": <AppMinima />; break;
                                     case "coordination": <AppCoordinationView Coord="_coord" />; break;
                                     case "regulated": <RegulatedAreas Areas="_areas" />; break;
                                 }
@@ -99,7 +102,8 @@ else
                     {
                         @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali (prima passava
                            da SectionNode senza pill né opacità, e non si capiva che era fuori dal pubblico). *@
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65">
+                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                             <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
                             <ChildContent><SectionBody Section="s" /></ChildContent>
                         </CollapsibleBlock>
@@ -114,7 +118,9 @@ else
             <aside class="doc-rail">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
-                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Airac.GetCycle(DateTime.UtcNow)</b></div>
+                    @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): lo snapshot
+                       lo porta con sé, e la pagina ce l'aveva sotto mano senza usarlo. *@
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
                     <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
                         @{ var n = OnlineApp(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
@@ -142,6 +148,10 @@ else
     private PreviewMode _mode;   // pubblica | bozza | release
     private string? _relCycle;   // ciclo AIRAC della release (banner)
 
+    /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato (lo snapshot lo porta con sé); in mancanza,
+    /// quello corrente.</summary>
+    private string Cycle() => _relCycle ?? _view?.AiracCycle ?? Airac.GetCycle(DateTime.UtcNow);
+
     private AccInfo? _acc;
     private string _app = "";
     private string _displayName = "";
@@ -158,12 +168,13 @@ else
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
     private IReadOnlyList<AccSpecialAreaView> _areas = Array.Empty<AccSpecialAreaView>();
 
-    // Sezioni "speciali" rese da componenti dedicati (derivate live + editoriali-strutturate); le altre via SectionNode.
-    private static readonly HashSet<string> Special = new(StringComparer.OrdinalIgnoreCase)
-        { "separations", "configurations", "aor", "frequencies", "vfr", "minima", "coordination", "regulated" };
-    private static bool IsSpecial(string key) => Special.Contains(key);
+    // Sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate); le altre via SectionNode.
+    // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
+    private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.App, key);
 
-    private string AnchorOf(SectionView s) => IsSpecial(s.SectionKey) ? $"p-{s.SectionKey}" : s.Id;
+    // Ancora di sezione: «s-{Id}» per TUTTE, comprese quelle rese dalla pagina (doc 13 §3e). Prima le speciali
+    // usavano «p-{chiave}», e i deep-link della ricerca — che indicizza per Id — cadevano in cima alla pagina.
+    private static string AnchorOf(SectionView s) => s.Id;
     private IEnumerable<SectionView> VisibleSections() =>
         _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
 
@@ -235,11 +246,13 @@ else
         if (_view is null) return;
 
         // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
-        var derived = await AppView.ResolveForViewAsync(_app, _useFrozen);
+        // Il documento mostrato viaggia col resolver: la tabella «Configurazioni» si deriva dalle configurazioni
+        // di QUESTA versione, non da quella di lavoro — prima la pagina pubblica mostrava quelle della bozza.
+        var derived = await AppView.ResolveForViewAsync(_app, _view, _useFrozen);
         _freqs = derived.Freqs.ToList();
         _coord = derived.Coord;
         _aorView = derived.Aor;
-        _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // deriva da config già congelata → sempre live
+        _configTable = derived.ConfigTable;
 
         // Aree regolamentate: gli id li porta il documento mostrato (pubblico/bozza/release), i dettagli e le shape
         // vengono dai cataloghi correnti — come nella vIPI ACC.

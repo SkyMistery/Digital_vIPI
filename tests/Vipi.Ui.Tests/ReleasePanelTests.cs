@@ -29,7 +29,7 @@ public class ReleasePanelTests : TestContext
     {
         public List<ReleaseInfo> Releases { get; } = new();
         public ReleaseDiff Diff { get; set; } =
-            new(true, "AIRAC 2607", new[] { new ReleaseDiffRow("Separazioni", "Modificata", "3 NM → 5 NM") });
+            new(true, "2607", new[] { new ReleaseDiffRow("Separazioni", ReleaseChangeKind.Modified, 3, 5) });
 
         public int Published, PublishedNow, Canceled, DiffCalls;
         public string? LastCycle, LastNote;
@@ -175,12 +175,12 @@ public class ReleasePanelTests : TestContext
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
 
         Assert.Equal(1, fake.DiffCalls);
-        Assert.Contains("3 NM → 5 NM", cut.Markup);
-        Assert.Contains("AIRAC 2607", cut.Markup);            // etichetta della baseline
+        Assert.Contains("Separazioni", cut.Markup);
+        Assert.Contains("Rel_BaselineCycle", cut.Markup);      // etichetta della baseline, composta dalla UI
 
         // Chiudi e riapri: il diff è già in cache, non si richiama il service.
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
-        Assert.DoesNotContain("3 NM → 5 NM", cut.Markup);
+        Assert.DoesNotContain("Separazioni", cut.Markup);
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
         Assert.Equal(1, fake.DiffCalls);
     }
@@ -319,5 +319,35 @@ public class ReleasePanelTests : TestContext
         var cut = Render();
 
         Assert.NotNull(cut.Find("[data-tour=release]"));
+    }
+
+    // ---- doc 13 §3i: l'involucro della sezione lo porta il pannello, non ogni editor ----
+
+    [Fact]
+    public void The_panel_carries_its_own_anchor_title_and_help()
+    {
+        Arrange();
+
+        var cut = Render();
+
+        // L'ancora serve alla voce di menu degli editor: era ricostruita a mano in due editor su quattro e
+        // mancava del tutto in quello della vIPI ACC.
+        Assert.Contains($"id=\"{ReleasePanel.SectionAnchor}\"", cut.Markup);
+        Assert.Contains("Rel_SectionTitle", cut.Markup);
+        Assert.Contains("Rel_SectionHelp", cut.Markup);
+    }
+
+    [Fact]
+    public void The_header_can_be_left_to_the_host_that_already_has_one()
+    {
+        Arrange();
+
+        var cut = RenderComponent<ReleasePanel>(p => p
+            .Add(x => x.Target, ReleaseTargetType.Airport)
+            .Add(x => x.Key, "LIRF")
+            .Add(x => x.ShowSectionHeader, false));
+
+        Assert.DoesNotContain("Rel_SectionHelp", cut.Markup);
+        Assert.Contains($"id=\"{ReleasePanel.SectionAnchor}\"", cut.Markup);   // l'ancora resta
     }
 }

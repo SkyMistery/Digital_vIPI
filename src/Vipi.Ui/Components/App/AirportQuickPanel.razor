@@ -1,4 +1,4 @@
-@* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
+﻿@* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
    documento pubblico dell'aeroporto (release-aware), coerente con /vsop/{acc}/airports?icao=:
    - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
    - Piste suggerite + SID → dal profilo strutturato (come /airports)
@@ -12,6 +12,7 @@
 @inherits OwningComponentBase
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject Vipi.Domain.Services.IAiracService Airac
+@inject IStringLocalizer<SharedResource> L
 @* ViewService e AirportProfile risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 @if (_view is null)
@@ -49,13 +50,13 @@ else
 
         @if (_runways.Count > 0)
         {
-            <p class="muted" style="font-size:12.5px;margin:14px 0 6px">Pista selezionata</p>
+            <p class="muted" style="font-size:12.5px;margin:14px 0 6px">@L["Aqp_SelectedRunway"]</p>
             <div class="rap-quick" style="margin-bottom:12px">
-                <span class="sid-pill @(_selRwy == "all" ? "on" : "")" @onclick='() => _selRwy = "all"'>Tutte</span>
+                <Chip Class="@($"sid-pill {(_selRwy == "all" ? "on" : "")}")" Active='_selRwy == "all"' OnActivate='() => _selRwy = "all"'>@L["Common_All"]</Chip>
                 @foreach (var r in _runways)
                 {
                     var rwy = r;
-                    <span class="sid-pill @(_selRwy == rwy ? "on" : "")" @onclick="() => _selRwy = rwy">@rwy</span>
+                    <Chip Class="@($"sid-pill {(_selRwy == rwy ? "on" : "")}")" Active="_selRwy == rwy" OnActivate="() => _selRwy = rwy">@rwy</Chip>
                 }
             </div>
         }

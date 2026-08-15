@@ -1,4 +1,4 @@
-using Vipi.Application.Aor;
+﻿using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Application.Live;
 using Vipi.Domain;
@@ -175,6 +175,28 @@ public class LiveStationPartsTests
         public Task MovePointAsync(string a, int p, bool up, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task MovePointToEndAsync(string a, int p, bool top, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task MovePointToAsync(string a, int p, int t, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> AddAlternativeAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> AddExceptionAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> DuplicateVariantGroupAsync(string a, int p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> SetReceiverAsync(string a, IReadOnlyList<int> ids, int? next, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, string? custom, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> DeletePointsAsync(string a, IReadOnlyList<int> ids, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> RestoreFlowAsync(string a, TransferFlowSnapshot s, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> RestorePointsAsync(string a, IReadOnlyList<TransferPointRestore> p, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DetachVariantAsync(string a, int p, CancellationToken ct = default) =>
             throw new NotSupportedException();
     }
 }

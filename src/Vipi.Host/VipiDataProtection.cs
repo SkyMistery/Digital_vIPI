@@ -12,21 +12,53 @@ namespace Vipi.Host;
 /// riprovisionata — si perde a ogni riavvio, e il sintomo non parla di chiavi ma di utenti sloggati e di form
 /// che rispondono «antiforgery token non valido».
 ///
-/// <para>Attivo su <b>Postgres</b> e <b>MySQL/MariaDB</b>, cioè i due deploy; in sviluppo (SQLite) resta il
-/// file-store predefinito, adeguato a una macchina sola e senza tabelle in più nel DB di lavoro. Chi decide è
-/// <see cref="DataProtectionSchema.UsesDatabaseKeyRing"/>: qui c'è solo il wiring.</para>
+/// <para>Chi decide è <see cref="DataProtectionSchema.ResolveStore"/>: qui c'è solo il wiring. Tre esiti —
+/// una <b>cartella configurata</b> (<c>DataProtection:KeyRingPath</c>) vince su tutto ed è ciò che usa
+/// <c>atc.it.ivao.aero</c>; senza cartella, i due deploy tengono le chiavi <b>nel database</b> e lo sviluppo
+/// su SQLite resta sul file-store predefinito.</para>
+///
+/// <para>⚠️ <b>Perché su atc.it.ivao.aero le chiavi NON stanno nel database.</b> Quel database è del
+/// committente. Il key-ring è XML in chiaro — su Linux non c'è DPAPI e nulla lo cifra — quindi chi ha
+/// <c>SELECT</c> su <c>itivao_atc</c> può fabbricare un cookie di sessione valido per qualunque VID, admin
+/// compresi: l'intero modello di autorizzazione poggia sui claim del login IVAO, e questo lo scavalca. Il
+/// dump di consegna esclude già la tabella per questa ragione; la tabella viva sul loro server è lo stesso
+/// segreto. Su una macchina con systemd la cartella persistente c'è, quindi il motivo per cui il key-ring
+/// era finito nel DB — il disco effimero di Render — lì non si applica.</para>
 ///
 /// <para>Il context è separato da <see cref="VipiDbContext"/> per non toccarne modello e migrazioni: la sua
 /// unica tabella non compare né fra le entità né nei due set di migrazioni, e si crea a mano all'avvio.</para>
 /// </summary>
 public static class VipiDataProtection
 {
-    /// <summary>Se il provider tiene le chiavi nel DB, registra il key-store. Ritorna <c>true</c> se attivato.</summary>
+    /// <summary>
+    /// Registra il key-store dove <see cref="DataProtectionSchema.ResolveStore"/> dice che debba stare.
+    /// Ritorna <c>true</c> se le chiavi finiscono <b>nel database</b>, cioè se
+    /// <see cref="UseVipiDataProtection"/> avrà una tabella da creare.
+    /// </summary>
     public static bool AddVipiDataProtection(this WebApplicationBuilder builder)
     {
         var provider = PersistenceProviderResolver.Resolve(
             builder.Configuration[PersistenceProviderResolver.ProviderConfigKey]);
-        if (!DataProtectionSchema.UsesDatabaseKeyRing(provider)) return false;
+        var cartella = builder.Configuration[DataProtectionSchema.KeyRingPathConfigKey];
+        var store = DataProtectionSchema.ResolveStore(provider, cartella);
+
+        // Cartella configurata: le chiavi non toccano il database. È il caso di atc.it.ivao.aero, dove il
+        // database è del committente e un key-ring leggibile di lì basta a fabbricare una sessione valida
+        // per qualunque VID.
+        if (store == DataProtectionSchema.KeyRingStore.ConfiguredFolder)
+        {
+            // Creata qui e non lasciata a Data Protection: se il percorso non è scrivibile — permessi del
+            // servizio, StateDirectory mancante — si scopre all'avvio invece che al primo login, dove il
+            // sintomo sarebbe «Correlation failed» e non parlerebbe di cartelle.
+            var dir = Directory.CreateDirectory(cartella!);
+            builder.Services.AddDataProtection()
+                .SetApplicationName("vIPI")
+                .PersistKeysToFileSystem(dir);
+            return false;
+        }
+
+        // Nessuna cartella: sullo sviluppo (SQLite) resta il file-store predefinito, e non c'è nulla da fare.
+        if (store == DataProtectionSchema.KeyRingStore.DefaultFileSystem) return false;
 
         var connectionString = builder.Configuration.GetConnectionString("Vipi");
         if (string.IsNullOrWhiteSpace(connectionString)) return false;

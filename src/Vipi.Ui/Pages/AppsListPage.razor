@@ -1,5 +1,6 @@
 @page "/vsop/{Acc}/apps"
 @layout SopLayout
+@inject IStringLocalizer<SharedResource> L
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
 @inject IDocumentAdminService Docs
@@ -8,23 +9,23 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">ACC sconosciuto</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else
 {
-    <PageTitle>Avvicinamenti non remotizzati @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["Apps_Title"] @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">Home</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>Avvicinamenti non remotizzati</b></div>
+        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Apps_Title"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">Avvicinamenti non remotizzati — @_acc.Name - @_acc.Code</h2></div>
+            <div><h2 style="margin-bottom:2px">@L["Apps_Title"] — @_acc.Name - @_acc.Code</h2></div>
         </div>
         @if (_canEdit)
         {
-            <p class="help" style="margin-top:2px">Staff: vedi <b>tutti</b> gli APP non remotizzati. Quelli senza documento (o in bozza) sono cliccabili per crearlo/editarlo; il pubblico vede solo i pubblicati.</p>
+            <p class="help" style="margin-top:2px">@((MarkupString)L["Apps_StaffHelp"].Value)</p>
         }
         @if (_apps.Count == 0)
         {
-            <EmptyState Title="Nessun APP non remotizzato">Non ci sono ancora avvicinamenti con documento dedicato per questa ACC.</EmptyState>
+            <EmptyState Title="@L["Apps_EmptyTitle"]">@L["Apps_EmptyBody"]</EmptyState>
         }
         else
         {
@@ -40,21 +41,21 @@ else
                     <a class="choice apt-card" href="@href">
                         <div class="apt-top">
                             <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
-                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n} online" : "offline")</span>
+                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_NOnline", n].Value : L["Common_Offline"].Value)</span>
                         </div>
                         <p class="muted">@ap.Name</p>
                         <span class="apt-tag">@ap.Callsign</span>
                         @if (st == AppState.None)
                         {
-                            <span class="apt-tag" style="background:var(--ivao-blue);color:#fff;margin-left:6px">＋ crea documento</span>
+                            <span class="apt-tag" style="background:var(--ivao-blue);color:#fff;margin-left:6px">＋ @L["Apps_CreateDoc"]</span>
                         }
                         else if (st == AppState.Draft)
                         {
-                            <span class="apt-tag" style="background:#b8860b;color:#fff;margin-left:6px">bozza</span>
+                            <span class="apt-tag" style="background:#b8860b;color:#fff;margin-left:6px">@L["Apps_Draft"]</span>
                         }
                         else if (st == AppState.Hidden)
                         {
-                            <span class="apt-tag" style="margin-left:6px">nascosto</span>
+                            <span class="apt-tag" style="margin-left:6px">@L["Apps_Hidden"]</span>
                         }
                     </a>
                 }

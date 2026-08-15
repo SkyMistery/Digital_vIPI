@@ -1,10 +1,47 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 agosto 2026 — **il cutover MariaDB è in `main`**, verificato; sezioni B, C e D
-chiuse, E sfoltita.
+**Ultimo aggiornamento:** 11 agosto 2026 — audit full-stack **eseguito** sul ramo del doc 13; il cutover
+MariaDB è in `main` dal 9 agosto, verificato; sezioni B, C e D chiuse, E sfoltita.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 9 agosto 2026)
+> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 12 agosto 2026)
+>
+> **⚠️ DUE rami pronti e non fusi.**
+>
+> **1. `feature/trasferimenti-acc-app` — PR #13 aperta, 65 commit avanti a `main`.** Sei giri sullo stesso
+> filone, tutti chiusi con verifica live: il modello a due eventi (autorizzato / al trasferimento), le
+> varianti a **outline**, e poi tre giri sull'**editor** `/vsop/admin/trasferimenti`, che è passato da pagina
+> a scorrimento unico a **tre colonne** con vista a elenco, scrittura in cella, stato in URL, annulla e
+> modifica in blocco. Suite **2403** verde su entrambi i TFM, `Release --no-incremental` **0 warning**.
+> Le carte stanno in `docs/feature/2026-08-11-trasferimenti-acc-app.md` e nelle cinque schede del 12 agosto;
+> l'ultima è [`editor-trasferimenti-rifiniture`](docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md).
+>
+> ⚠️ **Il corpo della PR #13 descrive solo il primo giro** e va riscritto prima di mandarla in revisione:
+> il titolo parla dei due eventi, il ramo nel frattempo ha rifatto l'editor tre volte.
+>
+> ⚠️ **Resta ai colleghi, non al codice:** le righe con ricevente APP che non dicono ancora *dove* avviene
+> il trasferimento vanno riviste a mano (15 nel DB di sviluppo, da rimisurare in produzione). Le elenca il
+> filtro «Da rivedere» della pagina, che ora ha anche una vista a elenco fatta apposta per quel lavoro.
+>
+> Due cose **viste e non toccate**: `ITransferService.MovePointToEndAsync` non ha chiamanti dall'interfaccia
+> (ha repository e test), e `LevelFormatting.Format` appende il suffisso di parità anche a un livello
+> assente — a schermo esce «— (dispari)», che il round-trip regge ma si legge male.
+>
+> **2. `refactor/13-tre-documenti`** (suite **2111** verde su due TFM,
+> verifica live fatta).
+>
+> ⚠️ **Quel ramo non compilava, e nessuno l'aveva visto.** L'audit dell'11 agosto ha trovato 14 chiavi
+> duplicate nei `.resx`: il job CI che compila con `-warnaserror` dava **28 errori**, mentre la suite locale
+> restava verde — *1391 test verdi e build di produzione rotta convivevano*. Corretto, con tre guardie.
+> Adesso il ramo compila davvero, e la decisione di merge è di nuovo solo vostra. È il [doc 13](docs/refactor/13-audit-tre-documenti.md), l'audit dei tre documenti:
+> catalogo fonte unica anche di «chi rende il corpo» e «quale sezione è obbligatoria», vLOA finalmente dal
+> catalogo, gate pubblico su ricerca e «Cosa è cambiato», pannello release uguale nei quattro editor, una
+> sola resa per ogni sezione comune. Dentro ci sono **due difetti che uscivano dal documento**: la pagina
+> APP pubblica mostrava le configurazioni della bozza, e gli indici servivano documenti nascosti, sezioni
+> nascoste e contenuto senza release. Il merge in `main` **aspetta l'ok esplicito** (come per il doc 10).
+>
+> Al primo avvio dopo il merge girano tre riconciliazioni one-shot (chiavi vLOA, placeholder «minima»,
+> sezioni di catalogo mancanti): sul DB di sviluppo hanno toccato 15 sezioni e 18 blocchi.
 >
 > **Il ramo `feat/persistenza-mysql` è stato fuso in `main`**: il cutover non è più un ramo a parte. `main` è
 > ora **net8 + Pomelo + MariaDB**, il Dockerfile pubblica su `aspnet:8.0`, e il deploy Render+Neon resta in
@@ -19,6 +56,28 @@ chiuse, E sfoltita.
 > l'app**, non dai test — fra cui tre pagine che morivano su MariaDB, una direttiva nginx inesistente che
 > avrebbe bloccato la consegna, e l'ATIS contato come chi controlla un aeroporto. Prima di dichiarare fatta
 > una cosa, aprirla: la skill `verifica-live` esiste per questo.
+
+> ## 🔬 AUDIT FULL-STACK — 11 agosto 2026, eseguito
+>
+> Carta ed esito: [`docs/history/audit-2026-08-11-crepe-full-stack.md`](docs/history/audit-2026-08-11-crepe-full-stack.md).
+> 34 voci: **23 chiuse**, 3 **ribaltate dalla misura**, 5 rimandate con la ragione scritta. Sei commit.
+>
+> **Tre cose cambiano le regole, non solo il codice** — chi lavora qui le incontra subito:
+> 1. **Gli avvisi sono errori** (`Directory.Build.props`). Un avviso nuovo ferma la build, in locale non solo
+>    in CI. ⚠️ Un `--` dentro un commento XML rende quel file illeggibile e **tutte** le proprietà spariscono
+>    in silenzio: c'è una guardia, ma vale saperlo.
+> 2. **I test girano su net8**, che è la produzione: da **347** a **1115**. Prima ~1000 test non toccavano mai
+>    il runtime del cutover.
+> 3. **Le dipendenze sono bloccate** (`packages.lock.json` + restore in «locked mode»). Se la CI si ferma sul
+>    restore: `dotnet restore --force-evaluate` e committa i lock.
+>
+> **Metodo che ha pagato, di nuovo:** tre voci sono state *ribaltate dalla misura* — i multi-poligono (zero
+> casi su 1338 reali), la retention dell'audit (19 righe in tre settimane), le immagini orfane (1 riga).
+> Misurare prima di toccare ha evitato tre lavori inutili. E due guardie nuove hanno **smentito affermazioni
+> mie**: le chip a11y erano 8 e non 12, e tre progetti in `tools/` erano senza lock file.
+>
+> **Aperto dall'audit:** i 17 gestori inline che bloccano la CSP vera, `MapAll()` e il nonce OIDC (vanno con
+> A10, servono un login IVAO vero), i file da 1500 righe, l'identità del circuito.
 
 > ## 📋 COSA MANCA DA FARE → [`docs/lavori-aperti.md`](docs/lavori-aperti.md)
 >
@@ -307,7 +366,7 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 
 **Editing persistente (✅):** `Application/Content/EditingService.cs` + `Infrastructure/Persistence/EfEditingRepository.cs`:
 - Workflow **bozza→pubblicato** (clona versione, audit, archivia precedente). CRUD **blocchi e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli). `EditorPage` (`/{acc}/editor`, anche `?doc={id}`), `VersioniPage`.
-- Editor specializzati: `AdminTrasferimentiPage` (trasferimenti, pagina admin globale `/vsop/admin/trasferimenti`: selettore ACC + flussi/punti nidificati, Next cross-ACC; ex per-ACC `XferEditorPage` rimosso) — **round 22:** flussi e punti **editabili in-place** (bottone ✎, oltre a ✕) via `ITransferService.UpdateFlowAsync`/`UpdatePointAsync`. `VloaEditorPage` (redirect all'editor generico). Gerarchia di copertura in `StrutturaPage` (`/vsop/admin/sectorstructure`).
+- Editor specializzati: `AdminTrasferimentiPage` (trasferimenti, pagina admin globale `/vsop/admin/trasferimenti`: selettore ACC + flussi/punti, Next cross-ACC; ex per-ACC `XferEditorPage` rimosso) — **round 22:** flussi e punti **editabili in-place** via `ITransferService.UpdateFlowAsync`/`UpdatePointAsync`. **12 ago 2026 — la pagina è a TRE COLONNE**: navigatore (`XferNavigator`, albero Settore ▸ Aeroporto ▸ gruppo, dove il gruppo è una **foglia** e non un livello di collasso) · riquadro di lavoro (il gruppo scelto) · pannello riga; ognuna scorre per conto proprio, e l'altezza la misura `vipiFitViewport` perché in CSS non è esprimibile. Interruttore **Albero ⇄ Elenco** (`XferRowsTable` è **una** tabella per entrambe le viste, con le colonne di contesto solo in elenco). **CoP, livello e ricevente si scrivono in cella**; il livello si rilegge con `LevelFormatting.Parse` (round-trip provato). Stato in URL (`?acc=&vista=&gruppo=&riga=&q=&tipo=&rev=&norx=`), preferenze di vista in `localStorage`. Secondo giro: **annulla** dopo un'eliminazione — con `RestoreFlowAsync`/`RestorePointsAsync`, che rimettono anche l'outline (ricostruire con `AddPointAsync` lo appiattirebbe in silenzio) — **modifica in blocco** su ricevente/livello/condizione/eliminazione, ordinamento per intestazione in elenco, e i sei picker a digitazione ridotti a un componente solo (`TypeaheadPicker`, con frecce/Invio/Esc). ⚠️ Salvare una cella costava **8 query**: il contesto delle frasi ora si rifa solo sulle scritture di gruppo. Carte: [`docs/feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](docs/feature/2026-08-12-editor-trasferimenti-tre-colonne.md) e [`docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md`](docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md). `VloaEditorPage` (redirect all'editor generico). Gerarchia di copertura in `StrutturaPage` (`/vsop/admin/sectorstructure`).
 - **Editor APP non remotizzati (✅ round 21):** `AppEditorPage` (`/vsop/{acc}/apps/editor?app=`) WYSIWYG con 6 sezioni fisse (Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti) + custom, riordino drag-and-drop+tasti, nascondi sezioni; viewer `AppnPage` data-driven. Entità `AppProfile`/`AppFrequencyLink` (modello §9.13), service `IAppProfileService` (freq/coord/AOR **derivate live**), `AorPolygonProjector`, registry `AppSections`, componenti `Vipi.Ui/Components/App/*`, mappa AOR Leaflet (`vipi-aor.js`). Instradamento via `DocumentSummary.IsStandaloneApp`. **Round 22:** «Trasferimenti verso ACC» suddiviso in sottosezioni **Partenze/Arrivi** (`AppCoordinationView`, split per `Kind`); **AOR** mostra anche le **shape delle TWR** dello stesso aeroporto come overlay Leaflet con toggle «Shape torre» (`GetTowerPolygonsAsync`). ⚠️ **`TopologiaPage` rimossa** (`/vsop/{acc}/topologia`): gerarchia → `sectorstructure`; le regole di unificazione + simulatore AoR erano legacy e non hanno più UI (motore `IAorService` + `UnificationRule` + test S1–S10 **restano**).
 
 **Sicurezza/permessi (✅):** `Application/Auth/EditAuthorizationService.cs`:

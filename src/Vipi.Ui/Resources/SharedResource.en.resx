@@ -50,6 +50,47 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppFreq_Callsign" xml:space="preserve"><value>Callsign</value></data>
+  <data name="AppFreq_Position" xml:space="preserve"><value>Position</value></data>
+  <data name="Apps_Title" xml:space="preserve"><value>Non-remotized approaches</value></data>
+  <data name="Apps_StaffHelp" xml:space="preserve"><value>Staff: you see &lt;b&gt;all&lt;/b&gt; non-remotized approaches. Those without a document (or still draft) are clickable to create/edit it; the public only sees published ones.</value></data>
+  <data name="Apps_EmptyTitle" xml:space="preserve"><value>No non-remotized approach</value></data>
+  <data name="Apps_EmptyBody" xml:space="preserve"><value>There are no approaches with their own document for this ACC yet.</value></data>
+  <data name="Apps_CreateDoc" xml:space="preserve"><value>create document</value></data>
+  <data name="Apps_Draft" xml:space="preserve"><value>draft</value></data>
+  <data name="Apps_Hidden" xml:space="preserve"><value>hidden</value></data>
+  <data name="Common_NOnline" xml:space="preserve"><value>{0} online</value></data>
+  <data name="Vloa_Title" xml:space="preserve"><value>vLoA</value></data>
+  <data name="Vloa_EmptyTitle" xml:space="preserve"><value>No vLoA</value></data>
+  <data name="Vloa_EmptyBody" xml:space="preserve"><value>No letters of agreement have been published for this ACC yet.</value></data>
+  <data name="Vloa_BilateralDefault" xml:space="preserve"><value>Bilateral letter of agreement</value></data>
+  <data name="Vloa_SubtitleDefault" xml:space="preserve"><value>Letter of Agreement (EN)</value></data>
+  <data name="Vloa_BilateralNoteTitle" xml:space="preserve"><value>Bilateral document</value></data>
+  <data name="Vloa_BilateralNoteBody" xml:space="preserve"><value>Editable on the Italian side only (staff). The neighbour side is read-only.</value></data>
+  <data name="Aor_ExtraShapesTitle" xml:space="preserve"><value>Additional shapes</value></data>
+  <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Add shapes of other units (foreign ones or towers too) taken from the database: they appear as toggleable rings on the map and can be selected in the configurations.</value></data>
+  <data name="Aor_ColorsTitle" xml:space="preserve"><value>Sector colours</value></data>
+  <data name="Aor_ColorsHelp" xml:space="preserve"><value>Each unit has a default colour by type (towers in red, for instance). Change it here per sector; "default" restores the type colour.</value></data>
+  <data name="AppCfg_PickHint" xml:space="preserve"><value>Open a configuration; selecting it on the AoR opens it here automatically.</value></data>
+  <data name="AppCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
+  <data name="AppCfg_Range" xml:space="preserve"><value>Range</value></data>
+  <data name="AppCfg_NoOpenSector" xml:space="preserve"><value>No open sector.</value></data>
+  <data name="Appn_AppNotAvailTitle" xml:space="preserve"><value>Approach not available</value></data>
+  <data name="Country_LF" xml:space="preserve"><value>France</value></data>
+  <data name="Country_LS" xml:space="preserve"><value>Switzerland</value></data>
+  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
+  <data name="Country_LD" xml:space="preserve"><value>Croatia</value></data>
+  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
+  <data name="Country_LG" xml:space="preserve"><value>Greece</value></data>
+  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
+  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
+  <data name="Country_LW" xml:space="preserve"><value>North Macedonia</value></data>
+  <data name="Country_LQ" xml:space="preserve"><value>Bosnia and Herzegovina</value></data>
+  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
+  <data name="Country_LU" xml:space="preserve"><value>Moldova</value></data>
+  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
+  <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
   <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
   <data name="Chrome_SkipToContent" xml:space="preserve"><value>Skip to content</value></data>
   <data name="Chrome_AccNav" xml:space="preserve"><value>ACC navigation</value></data>
@@ -92,6 +133,7 @@
   <data name="Search_ResultsFor" xml:space="preserve"><value>{0} results for</value></data>
   <data name="Search_NoResults" xml:space="preserve"><value>No results.</value></data>
   <data name="Search_ScopeVipi" xml:space="preserve"><value>vIPI</value></data>
+  <data name="Search_ScopeApp" xml:space="preserve"><value>APP</value></data>
   <data name="Search_ScopeVloa" xml:space="preserve"><value>vLOA</value></data>
   <data name="Search_ScopeAirports" xml:space="preserve"><value>Airports</value></data>
   <!-- Common viewer -->
@@ -231,8 +273,6 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Unified sector</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>No frequency in the subtree.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Frequencies derive from the sector tree: change the hierarchy and they change here. Reorder by dragging ⠿ or with ↑/↓; add external frequencies with «Link frequency».</value></data>
-  <data name="AppMinima_Title" xml:space="preserve"><value>Minimum vectoring altitudes</value></data>
-  <data name="AppMinima_Body" xml:space="preserve"><value>MVA charts are not imported from the sectorfile: it does not say which sector each area belongs to, and assigning a minimum to the wrong sector would be worse than not having it. If they are needed, they are written here as document content.</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Approach sector transfers: towards ACCs and towards the tower(s). Derived from the configured flows.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>No coordination configured for this APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Transfers towards ACC</value></data>
@@ -241,6 +281,52 @@
   <data name="AppCoord_Flow" xml:space="preserve"><value>Flow</value></data>
   <data name="AppCoord_Level" xml:space="preserve"><value>Level</value></data>
   <data name="AppCoord_Condition" xml:space="preserve"><value>Condition</value></data>
+  <data name="AppCoord_TowardApps" xml:space="preserve"><value>Transfers towards other APPs</value></data>
+  <data name="AppCoord_Next" xml:space="preserve"><value>Next</value></data>
+  <data name="AppCoord_From" xml:space="preserve"><value>From</value></data>
+  <data name="Coord_Via" xml:space="preserve"><value>Via</value></data>
+  <data name="Coord_Cleared" xml:space="preserve"><value>Cleared</value></data>
+  <data name="Coord_Handoff" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Coord_HandoffLevel" xml:space="preserve"><value>Transfer level</value></data>
+  <data name="Coord_Comms" xml:space="preserve"><value>Communications</value></data>
+  <data name="Coord_Speed" xml:space="preserve"><value>Speed</value></data>
+  <data name="Xfer_Handoff" xml:space="preserve"><value>Where control passes</value></data>
+  <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Where control passes, when it is not the entry point (ACC→APP agreements)</value></data>
+  <data name="Xfer_HandoffNone" xml:space="preserve"><value>same as entry</value></data>
+  <data name="Xfer_HandoffAor" xml:space="preserve"><value>AoR boundary</value></data>
+  <data name="Xfer_HandoffPoint" xml:space="preserve"><value>point</value></data>
+  <data name="Xfer_HandoffCustom" xml:space="preserve"><value>free text</value></data>
+  <data name="Xfer_HandoffLabelPh" xml:space="preserve"><value>AVN / 20 NM from AVN</value></data>
+  <data name="Xfer_HandoffLevel" xml:space="preserve"><value>Transfer level</value></data>
+  <data name="Xfer_HandoffLevelTitle" xml:space="preserve"><value>Level at transfer, distinct from the cleared level</value></data>
+  <data name="Xfer_HandoffPassing" xml:space="preserve"><value>passing</value></data>
+  <data name="Xfer_Comms" xml:space="preserve"><value>Communications</value></data>
+  <data name="Xfer_CommsShort" xml:space="preserve"><value>comms</value></data>
+  <data name="Xfer_CommsTitle" xml:space="preserve"><value>Where communications pass, if different from where control passes</value></data>
+  <data name="Xfer_CommsSame" xml:space="preserve"><value>where control does</value></data>
+  <data name="Xfer_Speed" xml:space="preserve"><value>Speed</value></data>
+  <data name="Xfer_SpeedNone" xml:space="preserve"><value>none</value></data>
+  <data name="Xfer_GroupWide" xml:space="preserve"><value>in any case</value></data>
+  <data name="Xfer_GroupWideTitle" xml:space="preserve"><value>The row overrides the alternatives: it applies to all of them («at night, any runway»). First level only, and it must say under which conditions it applies.</value></data>
+  <data name="Xfer_VariantsN" xml:space="preserve"><value>{0} variants</value></data>
+  <data name="Xfer_VariantsTitle" xml:space="preserve"><value>The rows in this block are the SAME agreement in different cases: CoP and receiving sector apply to all of them, and each row states the condition it applies under.</value></data>
+  <data name="Xfer_CondIf" xml:space="preserve"><value>if</value></data>
+  <data name="Xfer_CondOtherwise" xml:space="preserve"><value>otherwise</value></data>
+  <data name="Xfer_CondOtherwiseTitle" xml:space="preserve"><value>A row with no condition inside a group: it is the case that applies when none of the other conditions holds.</value></data>
+  <data name="Xfer_CondExceptionOf" xml:space="preserve"><value>exception to: {0}</value></data>
+  <data name="Xfer_CondBaseCase" xml:space="preserve"><value>base case</value></data>
+  <data name="Xfer_SecEmpty" xml:space="preserve"><value>empty</value></data>
+  <data name="Xfer_Variant" xml:space="preserve"><value>variant</value></data>
+  <data name="Xfer_VariantTitle" xml:space="preserve"><value>Row of the same agreement: same CoP and receiver, different condition. The indent says what it belongs to.</value></data>
+  <data name="Xfer_AddAlternativeTitle" xml:space="preserve"><value>Add an alternative alongside this row, e.g. «runway 25» next to «runway 07» (copies everything but the condition)</value></data>
+  <data name="Xfer_AddExceptionTitle" xml:space="preserve"><value>Add an exception INSIDE this row: it applies only within its case, and the sentence will state both conditions</value></data>
+  <data name="Xfer_DetachVariantTitle" xml:space="preserve"><value>Detach the row, with its exceptions, from its variant group</value></data>
+  <data name="Xfer_AlternativeAdded" xml:space="preserve"><value>Alternative added: write the condition that tells it apart.</value></data>
+  <data name="Xfer_ExceptionAdded" xml:space="preserve"><value>Exception added: write only what changes from the row that hosts it.</value></data>
+  <data name="Xfer_VariantDetached" xml:space="preserve"><value>Row detached from its variant group.</value></data>
+  <data name="Xfer_AltNoNormalCase" xml:space="preserve"><value>«{0}» has exceptions but does not say what applies in its normal case: a reader falling into none of them finds no instruction.</value></data>
+  <data name="Xfer_ToReview" xml:space="preserve"><value>To review</value></data>
+  <data name="Xfer_ToReviewTitle" xml:space="preserve"><value>Rows with an APP receiver that do not yet say where the transfer happens</value></data>
   <data name="AppVfr_IntroLabel" xml:space="preserve"><value>Introduction (markdown)</value></data>
   <data name="AppVfr_Situation" xml:space="preserve"><value>Situation</value></data>
   <data name="AppVfr_Procedure" xml:space="preserve"><value>Procedure</value></data>
@@ -432,6 +518,7 @@
   <data name="AccLanding_MainDoc" xml:space="preserve"><value>Main document</value></data>
   <data name="AccLanding_VipiOf" xml:space="preserve"><value>vIPI of {0}</value></data>
   <data name="AccLanding_VipiDesc" xml:space="preserve"><value>ACC document: separations, AoR, configurations, frequencies, minima and coordination. Includes remotized APPs.</value></data>
+  <data name="AccLanding_VipiUnpublished" xml:space="preserve"><value>Not published yet: open it in the editor and publish it.</value></data>
   <data name="AccLanding_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI of individual airports under the ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Standalone approaches</value></data>
@@ -466,20 +553,9 @@
   <data name="Home_PermsDesc" xml:space="preserve"><value>Grant a VID (CH or not) the right to edit documents per ACC.</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>yes</value></data>
   <data name="Common_UnexpectedError" xml:space="preserve"><value>Unexpected error: </value></data>
-  <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
-  <data name="Country_LF" xml:space="preserve"><value>France</value></data>
-  <data name="Country_LS" xml:space="preserve"><value>Switzerland</value></data>
-  <data name="Country_LO" xml:space="preserve"><value>Austria</value></data>
-  <data name="Country_LD" xml:space="preserve"><value>Croatia</value></data>
-  <data name="Country_LJ" xml:space="preserve"><value>Slovenia</value></data>
-  <data name="Country_LG" xml:space="preserve"><value>Greece</value></data>
-  <data name="Country_LM" xml:space="preserve"><value>Malta</value></data>
-  <data name="Country_LA" xml:space="preserve"><value>Albania</value></data>
-  <data name="Country_LQ" xml:space="preserve"><value>Bosnia</value></data>
-  <data name="Country_LY" xml:space="preserve"><value>Serbia/Montenegro</value></data>
-  <data name="Country_LW" xml:space="preserve"><value>North Macedonia</value></data>
-  <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
-  <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
+  <!-- Country names live ONCE, further up (Country_LF … Country_LI). A second, near-identical list used to
+       sit here: the resource compiler dropped the duplicates with 14 MSB3568 per file, and -warnaserror broke
+       the production build. Add new countries up there. -->
   <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Centers imported from the source. All active: hide some if needed.</value></data>
   <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Import/update ACCs and ACC sectors from the data source</value></data>
   <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Import from source</value></data>
@@ -726,7 +802,7 @@
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivals/Departures require an airport</value></data>
   <data name="Xfer_AptNeedsName" xml:space="preserve"><value>Airport out of DB: provide the name</value></data>
   <data name="Xfer_NewGroupHelp" xml:space="preserve"><value>The airport may belong to a foreign state (free ICAO). Overflights/VFR can stay without an airport: in that case it is the &lt;b&gt;receiving sector&lt;/b&gt; of each row (internal or neighbouring foreign) that makes them appear in the coordinations — without a receiver the row stays UNICOM and is not derived.</value></data>
-  <data name="Xfer_NoFlows" xml:space="preserve"><value>No transfer for this ACC. Add a group above.</value></data>
+  <data name="Xfer_NoFlows" xml:space="preserve"><value>No transfer for this ACC. Create one with the button at the bottom of the tree.</value></data>
   <data name="Xfer_FilterPh" xml:space="preserve"><value>filter: sector / airport / CoP / receiver…</value></data>
   <data name="Xfer_AllKinds" xml:space="preserve"><value>All kinds</value></data>
   <data name="Xfer_RowsCount" xml:space="preserve"><value>{0} rows</value></data>
@@ -860,6 +936,10 @@
   <data name="Rel_ChangeAdded" xml:space="preserve"><value>Added</value></data>
   <data name="Rel_ChangeRemoved" xml:space="preserve"><value>Removed</value></data>
   <data name="Rel_ChangeModified" xml:space="preserve"><value>Modified</value></data>
+  <data name="Rel_DiffItems" xml:space="preserve"><value>{0} items</value></data>
+  <data name="Rel_DiffItemsFromTo" xml:space="preserve"><value>{0} → {1} items</value></data>
+  <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Rel_BaselineNone" xml:space="preserve"><value>current state (no release in force)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Compared with:</value></data>
   <data name="Rel_NoDiff" xml:space="preserve"><value>No structural difference detected.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Item</value></data>
@@ -1043,8 +1123,8 @@
   <data name="App_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this APP.</value></data>
   <data name="App_RemoveConfigConfirm" xml:space="preserve"><value>Remove the «{0}» configuration?</value></data>
   <data name="App_LinkFreqPh" xml:space="preserve"><value>Link frequency (search callsign/ICAO)…</value></data>
-  <data name="App_VersionsReleases" xml:space="preserve"><value>Versions &amp; AIRAC releases</value></data>
-  <data name="App_ReleaseHelp" xml:space="preserve"><value>Publish the current editorial state &lt;b&gt;now&lt;/b&gt; (review on the current cycle) or &lt;b&gt;schedule it&lt;/b&gt; to a future AIRAC cycle. The public sees the release effective at the current cycle ({0}).</value></data>
+  <data name="Rel_SectionTitle" xml:space="preserve"><value>Versions &amp; AIRAC releases</value></data>
+  <data name="Rel_SectionHelp" xml:space="preserve"><value>Publish the current editorial state &lt;b&gt;now&lt;/b&gt; (review on the current cycle) or &lt;b&gt;schedule it&lt;/b&gt; to a future AIRAC cycle. The public sees the release effective at the current cycle ({0}).</value></data>
   <data name="Acc_EditorTitle" xml:space="preserve"><value>vIPI editor</value></data>
   <data name="Acc_DeniedBody" xml:space="preserve"><value>You do not have permission for ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Loading vIPI editor…</value></data>
@@ -1259,4 +1339,90 @@
   <data name="MediaClean_DeletePrompt_One" xml:space="preserve"><value>Delete the image?</value></data>
   <data name="MediaClean_Deleted_One" xml:space="preserve"><value>Deleted 1 image.</value></data>
   <data name="MediaClean_ColPreview" xml:space="preserve"><value>Preview</value></data>
+  <data name="AorBlock_All" xml:space="preserve"><value>All</value></data>
+  <data name="AorBlock_None" xml:space="preserve"><value>None</value></data>
+  <data name="AorBlock_OverlapLegend" xml:space="preserve"><value>Overlap = boundary shared by the visible sectors. Turn a sector off to isolate how the others interact.</value></data>
+  <data name="AorBlock_ConfigLabel" xml:space="preserve"><value>Configuration:</value></data>
+  <data name="AorBlock_ConfigClear" xml:space="preserve"><value>clear</value></data>
+  <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selecting a configuration highlights the matching settings under "Operational configurations".</value></data>
+  <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Selected runway</value></data>
+  <data name="Apt_SelectRow" xml:space="preserve"><value>Select {0}</value></data>
+  <data name="Apt_SelectAll" xml:space="preserve"><value>Select all shown rows</value></data>
+  <data name="Struct_ToggleNode" xml:space="preserve"><value>Expand or collapse {0}</value></data>
+  <data name="Struct_ToggleCard" xml:space="preserve"><value>Expand or collapse ACC {0}</value></data>
+  <data name="Xfer_ColCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>No row open</value></data>
+  <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Pick «✎» on a row to edit it, or «+ Row» to add one. Fields, sentence preview and row actions appear here.</value></data>
+  <data name="Xfer_PanelEdit" xml:space="preserve"><value>Edit row</value></data>
+  <data name="Xfer_PanelNew" xml:space="preserve"><value>New row</value></data>
+  <data name="Xfer_GrpIdentity" xml:space="preserve"><value>Entry and receiver</value></data>
+  <data name="Xfer_GrpCleared" xml:space="preserve"><value>Cleared level</value></data>
+  <data name="Xfer_GrpHandoff" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Xfer_GrpCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Xfer_GrpRowActions" xml:space="preserve"><value>Row actions</value></data>
+  <data name="Xfer_EditRowTitle" xml:space="preserve"><value>Open the row in the panel on the right</value></data>
+  <data name="Xfer_DetachVariant" xml:space="preserve"><value>Detach from group</value></data>
+  <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Delete the row</value></data>
+  <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Delete the row?</value></data>
+  <data name="Xfer_NoReceiverFilter" xml:space="preserve"><value>No receiver</value></data>
+  <data name="Xfer_NoReceiverTitle" xml:space="preserve"><value>Rows with no receiving sector: on frequency they end up at UNICOM</value></data>
+  <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copy rows from…</value></data>
+  <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copy another group&apos;s rows into this one (agreements of nearby airports look alike)</value></data>
+  <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Group to copy from</value></data>
+  <data name="Xfer_CopyFromDo" xml:space="preserve"><value>Copy the rows</value></data>
+  <data name="Xfer_CopiedRows" xml:space="preserve"><value>{0} rows copied.</value></data>
+  <data name="Xfer_UnsavedTitle" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Xfer_UnsavedBody" xml:space="preserve"><value>The panel has a row open with unsaved changes. Save it, or close to discard them.</value></data>
+  <data name="Xfer_LockEndingTitle" xml:space="preserve"><value>The edit lock is about to expire</value></data>
+  <data name="Xfer_LockEndingBody" xml:space="preserve"><value>It expires at {0}. Save what you have open: at expiry the page goes back to read-only.</value></data>
+  <data name="Xfer_SortBy" xml:space="preserve"><value>Sort</value></data>
+  <data name="Xfer_SortManual" xml:space="preserve"><value>manual</value></data>
+  <data name="Xfer_SortCop" xml:space="preserve"><value>by CoP</value></data>
+  <data name="Xfer_SortLevel" xml:space="preserve"><value>by level</value></data>
+  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorting only changes how you look at the list: the saved order — which in variants is the structure — is untouched.</value></data>
+  <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} rows selected</value></data>
+  <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Change receiver</value></data>
+  <data name="Xfer_BulkApply" xml:space="preserve"><value>Apply to all</value></data>
+  <data name="Xfer_BulkDone" xml:space="preserve"><value>{0} rows updated.</value></data>
+  <data name="Xfer_BulkClear" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="Xfer_DuplicateGroup" xml:space="preserve"><value>⧉ Duplicate variant group</value></data>
+  <data name="Xfer_DuplicateGroupTitle" xml:space="preserve"><value>Copy this row&apos;s whole variant group, with its structure</value></data>
+  <data name="Xfer_GroupDuplicated" xml:space="preserve"><value>Group duplicated: {0} rows.</value></data>
+  <data name="Common_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Xfer_GroupClone" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Xfer_GroupEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Xfer_GroupDelete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Xfer_HandoffWhere" xml:space="preserve"><value>Where</value></data>
+  <data name="Xfer_ColSector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Xfer_ColAirport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Xfer_CellEditTitle" xml:space="preserve"><value>Click to write here</value></data>
+  <data name="Xfer_NavTitle" xml:space="preserve"><value>Groups</value></data>
+  <data name="Xfer_NavWarnTitle" xml:space="preserve"><value>There are rows to fix in here</value></data>
+  <data name="Xfer_ViewLabel" xml:space="preserve"><value>View</value></data>
+  <data name="Xfer_ViewTree" xml:space="preserve"><value>Tree</value></data>
+  <data name="Xfer_ViewFlat" xml:space="preserve"><value>List</value></data>
+  <data name="Xfer_ViewTreeTitle" xml:space="preserve"><value>One group at a time: this is how you write</value></data>
+  <data name="Xfer_ViewFlatTitle" xml:space="preserve"><value>Every row of the ACC in one table: this is how you review</value></data>
+  <data name="Xfer_PaneEmptyTitle" xml:space="preserve"><value>Pick a group</value></data>
+  <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>From the tree on the left: sector, airport, flow kind. Its rows appear here.</value></data>
+  <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>No group yet for this ACC: create one with the button at the bottom of the tree.</value></data>
+  <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>This group has no rows yet. Add one below.</value></data>
+  <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>No sector is called “{0}”: the row was left unchanged.</value></data>
+  <data name="Xfer_GoToGroupTitle" xml:space="preserve"><value>Go to this row's group (in the tree, with its siblings)</value></data>
+  <data name="Xfer_Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Xfer_RowRestored" xml:space="preserve"><value>Row put back where it was.</value></data>
+  <data name="Xfer_RowsRestored" xml:space="preserve"><value>Rows put back where they were.</value></data>
+  <data name="Xfer_GroupRestored" xml:space="preserve"><value>Group put back, with its rows and their structure.</value></data>
+  <data name="Xfer_BulkLevel" xml:space="preserve"><value>level: FL130-</value></data>
+  <data name="Xfer_BulkLevelTitle" xml:space="preserve"><value>Written the way the table reads it: FL130, FL130-, FL290+, 2500 ft, or free text</value></data>
+  <data name="Xfer_BulkApplyLevel" xml:space="preserve"><value>Apply level</value></data>
+  <data name="Xfer_BulkArea" xml:space="preserve"><value>active area…</value></data>
+  <data name="Xfer_BulkCustom" xml:space="preserve"><value>free condition…</value></data>
+  <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Apply condition</value></data>
+  <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area and free condition. Not runways: those depend on the group's airport</value></data>
+  <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Delete the selected rows</value></data>
+  <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Delete {0} rows? You can undo while the message stays on screen.</value></data>
+  <data name="Xfer_BulkDeleted" xml:space="preserve"><value>{0} rows deleted.</value></data>
+  <data name="Xfer_SortAsc" xml:space="preserve"><value>ascending</value></data>
+  <data name="Xfer_SortDesc" xml:space="preserve"><value>descending</value></data>
 </root>

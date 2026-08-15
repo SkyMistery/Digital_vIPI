@@ -18,6 +18,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     private readonly IConsistencyReportRepository _repo;
     private readonly ISchemaDriftProbe? _schema;
     private readonly Auth.IAdminCoverageService? _admin;
+    private readonly IServerSettingsProbe? _server;
+    private readonly IStartupMaintenanceReport? _startup;
 
     /// <param name="schema">
     /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
@@ -31,12 +33,26 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// può editare e non lo si rimedia da dentro. Agganciato qui perché è l'unico punto letto sia dalla
     /// diagnostica sia dall'health check.
     /// </param>
+    /// <param name="server">
+    /// Opzionale, e non è un'incongruenza di dati né di schema ma delle <b>impostazioni del server di
+    /// database</b> — <c>sql_mode</c> e <c>max_allowed_packet</c>, che l'applicazione assume e non può
+    /// imporre. Agganciato qui per la stessa ragione degli altri: è il punto letto sia dalla diagnostica sia
+    /// dall'health check.
+    /// </param>
+    /// <param name="startup">
+    /// Opzionale: i guasti delle manutenzioni d'avvio non critiche. Quelle passate ora catturano gli errori
+    /// e lasciano proseguire l'avvio (un guasto lì, con <c>Restart=always</c>, era un ciclo di riavvii);
+    /// perché «proseguire» non diventi «nessuno lo sa», il guasto esce di qui.
+    /// </param>
     public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null,
-        Auth.IAdminCoverageService? admin = null)
+        Auth.IAdminCoverageService? admin = null, IServerSettingsProbe? server = null,
+        IStartupMaintenanceReport? startup = null)
     {
         _repo = repo;
         _schema = schema;
         _admin = admin;
+        _server = server;
+        _startup = startup;
     }
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
@@ -45,6 +61,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
 
         if (_schema is not null) findings.AddRange(await _schema.RunAsync(ct));
         if (_admin is not null) findings.AddRange(await _admin.RunAsync(ct));
+        if (_server is not null) findings.AddRange(await _server.RunAsync(ct));
+        // Non è una sonda: è già successo, all'avvio. Qui si legge soltanto.
+        if (_startup is not null) findings.AddRange(_startup.Findings);
 
         return findings;
     }

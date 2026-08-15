@@ -10,7 +10,7 @@
 
 <div class="doc-layout">
     <aside class="toc">
-        <p class="toc-h">Contents</p>
+        <p class="toc-h">@L["Common_Contents"]</p>
         <ul>
             @foreach (var s in View.Sections)
             {
@@ -20,12 +20,11 @@
     </aside>
 
     <div>
-        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle"
-                   Subtitle="@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)" />
+        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" />
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
-                <span class="muted">@(string.IsNullOrWhiteSpace(Subtitle) ? "Letter of Agreement (EN)" : Subtitle)</span>
+                <span class="muted">@SubtitleOrDefault()</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
@@ -35,7 +34,7 @@
                 }
             </div>
         </div>
-        <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">Bilateral document</p>Editable on the Italian side only (staff). The neighbour side is read-only.</div></div>
+        <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">@L["Vloa_BilateralNoteTitle"]</p>@L["Vloa_BilateralNoteBody"]</div></div>
 
         @foreach (var s in View.Sections)
         {
@@ -47,36 +46,42 @@
             {
                 @* Anteprima bozza: la sezione nascosta si vede, marcata — come ACC e APP (doc 11 §3c). Prima
                    spariva anche in bozza, quindi non c'era modo di rivedere cosa si era nascosto. *@
-                <CollapsibleBlock Id="@s.Id" Style="opacity:.65">
+                <CollapsibleBlock Id="@s.Id" Style="opacity:.65"
+                                  InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                     <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
                     <ChildContent><SectionBody Section="s" /></ChildContent>
                 </CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "aor")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "frequencies")
             {
-                <CollapsibleBlock Id="@s.Id"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
             }
             else if (_derive && s.SectionKey == "coordination")
             {
-                <CollapsibleBlock Id="@s.Id">
+                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                     <Header><h3 style="margin-top:0">@s.Title</h3></Header>
                     <ChildContent>
-                        @* Le due direzioni sono sotto-sezioni del documento: si mostrano se la loro sezione non è
-                           nascosta (prima il confronto era sul TITOLO composto, che una rinomina rompeva). *@
-                        @if (DirectionVisible(s, 0))
+                        @* Le sotto-sezioni EXTRA (quelle che non sono una direzione) sono contenuto del documento
+                           come in ogni altra sezione resa dalla pagina: prima questo ramo — solo questo — non le
+                           rendeva affatto, pur essendo creabili dall'editor con «+ sotto-sez» (doc 11 §3b). *@
+                        @SubSections(WithoutDirections(s), SectionSlot.Before)
+                        @* Le due direzioni, riconosciute dalla CHIAVE (doc 13 §3c): prima erano la figlia [0] e la
+                           figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa. *@
+                        @if (DirectionVisible(s, SectionKeys.CoordinationOut))
                         {
                             <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
                             <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
                         }
-                        @if (DirectionVisible(s, 1))
+                        @if (DirectionVisible(s, SectionKeys.CoordinationIn))
                         {
                             <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
                             <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
                         }
+                        @SubSections(WithoutDirections(s), SectionSlot.After)
                     </ChildContent>
                 </CollapsibleBlock>
             }
@@ -148,12 +153,60 @@
         VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
     }
 
-    // Direzione dei coordinamenti: visibile se la sotto-sezione corrispondente esiste e non è nascosta (in bozza
-    // si mostra comunque). Se il documento non ha sotto-sezioni (vLOA vecchie) si mostrano entrambe.
-    private bool DirectionVisible(SectionView coordination, int index)
+    /// <summary>Sottotitolo del documento; in mancanza, la dicitura di default della lettera d'accordo.</summary>
+    private string SubtitleOrDefault() =>
+        string.IsNullOrWhiteSpace(Subtitle) ? L["Vloa_SubtitleDefault"].Value : Subtitle!;
+
+    /// <summary>
+    /// La sotto-sezione è una delle due DIREZIONI dei coordinamenti (resa dal corpo), non una sotto-sezione extra.
+    /// <para>
+    /// Due forme, e vanno riconosciute entrambe. Quella corrente ha una chiave per verso
+    /// (<c>coordination:out</c>/<c>:in</c>, doc 13 §3c). Quella STORICA ripete la chiave del padre: la
+    /// riconciliazione al boot sistema i documenti, ma non gli <b>snapshot di release già pubblicati</b>, che
+    /// restano com'erano — e sono proprio ciò che il pubblico legge. Guardare solo le chiavi nuove faceva
+    /// comparire le direzioni <b>due volte</b> su ogni vLOA pubblicata prima del doc 13: una dal corpo e una come
+    /// sotto-sezione, quest'ultima col paragrafo segnaposto che nessuna vista aveva mai mostrato.
+    /// </para>
+    /// </summary>
+    private static bool IsDirection(SectionView child) =>
+        child.SectionKey.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase)
+        || child.SectionKey.Equals(SectionKeys.CoordinationIn, StringComparison.OrdinalIgnoreCase)
+        || child.SectionKey.Equals(SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>La stessa sezione senza le due direzioni fra le figlie: quelle le rende il corpo, le altre sono
+    /// sotto-sezioni normali e vanno rese negli slot come ovunque (doc 11 §3g).</summary>
+    private static SectionView WithoutDirections(SectionView s) => new()
     {
-        if (coordination.Children.Count <= index) return true;
-        return IsDraft || !coordination.Children[index].IsHidden;
+        Id = s.Id,
+        Title = s.Title,
+        Depth = s.Depth,
+        SectionKey = s.SectionKey,
+        IsHidden = s.IsHidden,
+        BeforeParentBody = s.BeforeParentBody,
+        Blocks = s.Blocks,
+        Children = s.Children.Where(c => !IsDirection(c)).ToList(),
+    };
+
+    /// <summary>
+    /// Direzione dei coordinamenti: visibile se la sua sotto-sezione non è nascosta (in bozza si mostra comunque).
+    /// La si cerca per chiave; sugli snapshot storici, dove entrambe portano quella del padre, si ricade
+    /// sull'ordine — è l'unico appiglio che quella fotografia offre. Se la sotto-sezione non c'è affatto, la
+    /// direzione si mostra: meglio un coordinamento in più che una lettera d'accordo monca.
+    /// </summary>
+    private bool DirectionVisible(SectionView coordination, string key)
+    {
+        var directions = coordination.Children.Where(IsDirection).ToList();
+        var child = directions.FirstOrDefault(c => string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase))
+            ?? LegacyByPosition(directions, key);
+        return child is null || IsDraft || !child.IsHidden;
+
+        static SectionView? LegacyByPosition(IReadOnlyList<SectionView> directions, string key)
+        {
+            if (!directions.All(c => c.SectionKey.Equals(SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase)))
+                return null;
+            var index = key.Equals(SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+            return index < directions.Count ? directions[index] : null;
+        }
     }
 
     // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
@@ -189,6 +242,10 @@
         _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && await Authz.CanEditAccAsync(HomeAcc!);
     }
 
+    /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>
+    private static IReadOnlyList<AppFreqRow> Rows(IReadOnlyList<VloaFreqRow> rows, bool foreign) =>
+        rows.Where(r => r.IsForeign == foreign).Select(r => r.Row).ToList();
+
     private RenderFragment ReadAor() => __builder =>
     {
         <AccAor View="_aor.Map" Id="@($"vloa-aor-view-{DocId}")" />
@@ -203,42 +260,12 @@
         }
         else
         {
+            @* Stessa tabella della vIPI ACC e dell'APP, invocata una volta per lato (doc 13 §3l): qui c'era una
+               copia inline, che infatti aveva finito per chiamare le colonne in un altro modo. *@
             <h4 style="margin:8px 0 4px">@_freq.HomeCountry - @_freq.HomeAcc</h4>
-            @FreqTable(visible.Where(r => !r.IsForeign).ToList())
+            <AppFrequencies Rows="Rows(visible, foreign: false)" />
             <h4 style="margin:14px 0 4px">@_freq.ForeignCountry - @_freq.ForeignAcc</h4>
-            @FreqTable(visible.Where(r => r.IsForeign).ToList())
+            <AppFrequencies Rows="Rows(visible, foreign: true)" />
         }
     };
-
-    private RenderFragment FreqTable(IReadOnlyList<VloaFreqRow> rows) => __builder =>
-    {
-        @if (rows.Count == 0)
-        {
-            <p class="muted" style="margin:0">@L["Vloa_NoFreq"]</p>
-        }
-        else
-        {
-            <table class="cfg-table" style="table-layout:fixed;width:100%">
-                <colgroup>
-                    <col style="width:32px" />
-                    <col style="width:auto" />
-                    <col style="width:26%" />
-                    <col style="width:120px" />
-                </colgroup>
-                <thead><tr><th></th><th>Callsign</th><th>Position</th><th>Frequenza</th></tr></thead>
-                <tbody>
-                    @foreach (var r in rows)
-                    {
-                        <tr>
-                            <td>@(r.Row.IsPrimary ? "★" : "")</td>
-                            <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@r.Row.Name</td>
-                            <td>@r.Row.Callsign</td>
-                            <td>@r.Row.FrequencyMhz</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    };
-
 }

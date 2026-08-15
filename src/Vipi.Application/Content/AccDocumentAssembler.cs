@@ -90,7 +90,7 @@ public static class AccDocumentAssembler
 
         // Documenti vecchi (o snapshot) senza una sezione-catalogo: la si accoda comunque, così le derivate
         // (frequenze/AoR/coordinamenti) restano visibili come prima della riconciliazione d'ordine.
-        var profile = kind == AccBlockKind.Aerovia ? SectionProfile.AccAerovia : SectionProfile.AccAppBlock;
+        var profile = SectionCatalog.ProfileOfAccBlock(kind);
         var present = sections.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
             if (!present.Contains(desc.Key))

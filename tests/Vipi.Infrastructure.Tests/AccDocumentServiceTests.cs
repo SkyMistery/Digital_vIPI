@@ -181,6 +181,10 @@ public class AccDocumentServiceTests : IAsyncLifetime
         var configs = Assert.Single(view!.Blocks).Block.Configurations;
         Assert.Equal("Conf A", Assert.Single(configs).Name);
 
+        // …e col ciclo AIRAC di QUELLA release (doc 13 §3h): la pagina scriveva il ciclo di oggi accanto a un
+        // contenuto congelato a un ciclo diverso.
+        Assert.Equal("2607", view.AiracCycle);
+
         // LoadForRelease per Id ritorna lo stesso snapshot col ciclo.
         var relId = await _db.DocReleases.Where(r => r.TargetKey == key).Select(r => r.Id).FirstAsync();
         var rv = await _service.LoadForReleaseAsync(Acc, relId);

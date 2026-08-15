@@ -71,8 +71,15 @@ public interface IAppDocumentService
     /// <summary>Salva le configurazioni nel blocco keyed <c>configurations</c> del Document (garantisce prima il documento; ACC-gated).</summary>
     Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
-    /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero APP.</summary>
+    /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero
+    /// APP a partire dalle configurazioni della versione di LAVORO. Per l'editor: chi mostra un documento pubblicato
+    /// deve passare le configurazioni di QUEL documento (overload sotto), o servirebbe la bozza al pubblico.</summary>
     Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Come sopra ma sulle configurazioni date, non su quelle della versione di lavoro: le passa chi rende
+    /// un documento (pubblico, bozza o anteprima release) leggendole dal documento che sta mostrando. Doc 13 §3g.</summary>
+    Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
+        string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
     /// <summary>Selezione salvata delle aree regolamentate (sezione <c>regulated</c>). Vuota se assente: l'APP non ha
     /// aree di default (<c>OwnAuto</c> è sempre falso, a differenza del blocco Aerovia della vIPI ACC).</summary>
@@ -125,8 +132,10 @@ public sealed class AppDocumentService : IAppDocumentService
 
     // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
     // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
+    // «minima» non c'è più (doc 13 §3b): è una sezione editoriale come le altre e un blocco tabella vuoto
+    // le darebbe un editor di tabella che nessuno ha chiesto.
     private static readonly string[] LiveKeys =
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
+        { "separations", "configurations", "aor", "frequencies", "vfr", "coordination", "regulated" };
 
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
@@ -188,8 +197,12 @@ public sealed class AppDocumentService : IAppDocumentService
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
+        var towardApp = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var overflights = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
 
+        // Ogni entry deve trovare un cesto: la sezione estesa porta tutto ciò che entra o esce dall'ente.
+        // Prima ne cadevano due categorie in silenzio — le partenze verso una torre, e qualunque coordinamento
+        // con un altro APP (TMA confinanti), che non aveva proprio un cesto dove andare.
         foreach (var e in entries)
         {
             // Sorvoli/VFR/altro (senza aeroporto) → gruppo dedicato per etichetta di tipo.
@@ -198,12 +211,19 @@ public sealed class AppDocumentService : IAppDocumentService
             // Arrivi/partenze verso un ACC (CTR) → verso ACC; il counterpart è la chiave del gruppo.
             else if (e.CounterpartType == SectorType.Ctr)
                 Bucket(towardAcc, e.CounterpartCallsign).Add(e.Row);
-            // Arrivi verso una torre → verso torri (le partenze verso torre non si mostrano).
-            else if (e.CounterpartType is SectorType.Twr or SectorType.ITwr && e.Kind == TransferFlowKind.Arrival)
+            else if (e.CounterpartType is SectorType.Twr or SectorType.ITwr)
                 Bucket(towardTwr, e.CounterpartCallsign).Add(e.Row);
+            else if (e.CounterpartType == SectorType.App)
+                Bucket(towardApp, e.CounterpartCallsign).Add(e.Row);
         }
 
-        return new AppCoordination { TowardAcc = ToGroups(towardAcc), TowardTowers = ToGroups(towardTwr), Overflights = ToGroups(overflights) };
+        return new AppCoordination
+        {
+            TowardAcc = ToGroups(towardAcc),
+            TowardTowers = ToGroups(towardTwr),
+            TowardApps = ToGroups(towardApp),
+            Overflights = ToGroups(overflights),
+        };
 
         static List<AppCoordRow> Bucket(Dictionary<string, List<AppCoordRow>> d, string key) =>
             d.TryGetValue(key, out var list) ? list : d[key] = new List<AppCoordRow>();
@@ -418,11 +438,14 @@ public sealed class AppDocumentService : IAppDocumentService
         await _editing.SaveSectionBlockJsonAsync(docId, "configurations", json, _authz.CurrentUserId ?? 0, ct);
     }
 
-    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default) =>
+        await DeriveConfigTableAsync(appCallsign, await GetConfigurationsAsync(Norm(appCallsign), ct), ct);
+
+    public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
+        string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
         var app = Norm(appCallsign);
-        var configs = await GetConfigurationsAsync(app, ct);
-        if (configs.Count == 0) return Array.Empty<AccConfigTableView>();
+        if (configs is null || configs.Count == 0) return Array.Empty<AccConfigTableView>();
 
         var topo = await _topology.BuildGlobalAsync(ct);
         var sectors = await AppSectorsOfAsync(app, ct);

@@ -1,7 +1,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 
-namespace Vipi.Ui.Shared.Routing;
+namespace Vipi.Application.Routing;
 
 /// <summary>Rotte vIPI aeroporto (doc 09 §3b): keyed sull'ICAO.</summary>
 public sealed class AirportDocRoutes : IDocKindRoutes

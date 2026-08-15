@@ -195,6 +195,80 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             string.Join("\n  ", versioni.Select(v => $"{v.File} -> {v.Impronta}")));
     }
 
+    /// <summary>
+    /// Niente codice di terzi caricato a runtime. Fino all'11 agosto 2026 Leaflet arrivava da
+    /// <c>unpkg.com</c>: l'SRI copriva la manomissione, non la <b>disponibilità</b> — CDN irraggiungibile
+    /// significava tutte le mappe vuote, senza ripiego — ed era l'unica eccezione in un progetto dove font e
+    /// three.js sono self-hosted apposta.
+    ///
+    /// <para>Il test guarda <c>src</c> e <c>href</c> degli elementi che eseguono o disegnano
+    /// (<c>&lt;script&gt;</c>, <c>&lt;link&gt;</c>): un <c>&lt;a href&gt;</c> verso l'esterno è un
+    /// collegamento, non una dipendenza.</para>
+    /// </summary>
+    [Fact]
+    public async Task Nessuna_dipendenza_esterna_caricata_dalla_pagina()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+
+        var esterni = Regex.Matches(html, @"<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
+            .Select(m => m.Groups["url"].Value)
+            .Where(u => u.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                        u.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                        u.StartsWith("//", StringComparison.Ordinal))
+            .Distinct()
+            .ToList();
+
+        Assert.True(esterni.Count == 0,
+            "la pagina carica codice o fogli di stile da host esterni: il sito deve funzionare anche quando " +
+            "quegli host non rispondono, e ogni host in più è una voce da aprire nella CSP.\n  " +
+            string.Join("\n  ", esterni));
+    }
+
+    /// <summary>
+    /// Le intestazioni di sicurezza ci sono su OGNI risposta, non solo su quelle che qualcuno si ricorda.
+    /// Non chiudono una falla nota — le due funzioni che costruiscono HTML a mano encodano prima e
+    /// costruiscono dopo — ma rendono innocuo l'errore di domani.
+    /// </summary>
+    [Theory]
+    [InlineData("/vsop")]
+    [InlineData("/vsop/health/ready")]
+    public async Task Le_intestazioni_di_sicurezza_ci_sono(string percorso)
+    {
+        var res = await _factory.CreateClient().GetAsync(percorso);
+
+        Assert.Equal("nosniff", res.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("DENY", res.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Equal("strict-origin-when-cross-origin", res.Headers.GetValues("Referrer-Policy").Single());
+        // Report-only finché le due `unsafe-inline` non sono state tolte: vedi Program.cs.
+        Assert.Contains("frame-ancestors 'none'", res.Headers.GetValues("Content-Security-Policy-Report-Only").Single());
+    }
+
+    /// <summary>
+    /// Nessuno <c>&lt;script&gt;</c> inline nella pagina servita. È il presupposto di
+    /// <c>script-src 'self'</c> senza <c>'unsafe-inline'</c>: quella clausola è ciò che separa una CSP che
+    /// protegge da una che è solo un'intestazione in più.
+    ///
+    /// <para>I due che c'erano — lo zoom nel <c>&lt;head&gt;</c> e il riaggancio dopo le navigazioni
+    /// «enhanced» — sono diventati <c>vipi-zoom.js</c> e <c>vipi-boot.js</c>. Chi ne aggiunge un terzo lo
+    /// scopre qui invece che dal browser di un utente.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_pagina_non_contiene_script_inline()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+
+        var inline = Regex.Matches(html, @"<script\b(?<attributi>[^>]*)>(?<corpo>.*?)</script>", RegexOptions.Singleline)
+            .Where(m => !m.Groups["attributi"].Value.Contains("src=", StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.Groups["corpo"].Value.Trim().Length > 0)
+            .Select(m => m.Groups["corpo"].Value.Trim().Replace("\n", " ")[..Math.Min(120, m.Groups["corpo"].Value.Trim().Length)])
+            .ToList();
+
+        Assert.True(inline.Count == 0,
+            $"{inline.Count} <script> inline nella pagina: obbligano a tenere `script-src 'unsafe-inline'`, " +
+            "e con quella una CSP non ferma uno script iniettato. Si spostano in un file sotto " +
+            "wwwroot e si citano con AssetVersion.Url(...).\n  " + string.Join("\n  ", inline));
+    }
+
     /// <summary>Fabbrica gemella con il bridge acceso: il default resta spento per tutti gli altri test.</summary>
     public sealed class BridgeOnAppFactory : WebApplicationFactory<Program>
     {

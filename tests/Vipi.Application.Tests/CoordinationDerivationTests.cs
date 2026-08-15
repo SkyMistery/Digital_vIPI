@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -136,5 +136,164 @@ public class CoordinationDerivationTests
         Assert.Equal("LIRR_TS_CTR", e.OurSectorCallsign);
         Assert.Equal("LIBB_ES_CTR", e.CounterpartCallsign);
         Assert.StartsWith("Brindisi Radar ES trasferisce a Roma Radar TS", e.Row.Sentence);
+    }
+
+    // ---- La sezione estesa porta tutto ciò che entra o esce (11 agosto 2026) ----
+
+    [Fact]
+    public void Incoming_departure_from_an_app_reaches_the_acc()
+    {
+        // Prima del 11 agosto il passo «entranti» accettava solo Arrival da un Ctr: una partenza che un APP
+        // consegna all'ACC non compariva da nessuna parte nel documento dell'ACC — l'accordo si vedeva da un
+        // lato solo. È il caso che il committente ha chiesto di chiudere.
+        var flows = new[] { Flow("LIRN_US0_APP", TransferFlowKind.Departure, "LIRN",
+            Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
+
+        var e = Assert.Single(Build(flows, "LIRR_TS_CTR"));
+        Assert.True(e.IsIncoming);
+        Assert.Equal("LIRR_TS_CTR", e.OurSectorCallsign);
+        Assert.Equal("LIRN_US0_APP", e.CounterpartCallsign);
+        Assert.Equal(SectorType.App, e.CounterpartType);
+        Assert.Equal(TransferFlowKind.Departure, e.Kind);
+        Assert.StartsWith("Roma Radar US0 trasferisce a Roma Radar TS", e.Row.Sentence);
+    }
+
+    [Fact]
+    public void Both_sides_of_an_agreement_can_coexist_without_being_merged()
+    {
+        // Se ACC e APP hanno scritto ciascuno la propria riga per lo stesso accordo, compaiono entrambe:
+        // sono due DICHIARAZIONI distinte, e fonderle nasconderebbe anche il caso in cui divergono.
+        var flows = new[]
+        {
+            Flow("LIRR_TS_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRN_US0_APP")),
+            Flow("LIRN_US0_APP", TransferFlowKind.Departure, "LIRN", Point("NILTO", 150, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")),
+        };
+
+        var entries = Build(flows, "LIRR_TS_CTR");
+        Assert.Equal(2, entries.Count);
+        Assert.Single(entries, x => !x.IsIncoming);
+        Assert.Single(entries, x => x.IsIncoming);
+    }
+
+    // ---- Faccetta trasferimento nelle colonne ----
+
+    [Fact]
+    public void Handoff_columns_arrive_already_worded()
+    {
+        var pt = new TransferPointRow
+        {
+            Id = 0, Cop = "CHI", LevelValue = 160, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
+            LevelText = "FL160+", NextSectorCallsign = "LIRN_US0_APP", Order = 1,
+            HandoffKind = TransferHandoffKind.AorBoundary,
+            HandoffLevelValue = 110, HandoffLevelConstraint = LevelConstraint.Exact,
+            CommsHandoffKind = TransferHandoffKind.Point, CommsHandoffLabel = "AVN",
+            SpeedValue = 250, SpeedConstraint = SpeedConstraint.AtOrBelow,
+        };
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", pt) };
+
+        var e = Assert.Single(Build(flows, "LIBB_ES_CTR"));
+        // Le colonne arrivano alla vista GIÀ a parole: la lingua sta nel template, non nel markup.
+        Assert.Equal("al confine dell'AoR", e.Row.Handoff);
+        Assert.Equal("passando FL110", e.Row.HandoffLevel);
+        Assert.Equal("su AVN", e.Row.CommsHandoff);
+        Assert.Equal("a 250 kt o inferiore", e.Row.Speed);
+        Assert.Contains("autorizza il traffico", e.Row.Sentence);
+    }
+
+    [Fact]
+    public void Rows_without_the_facet_leave_the_new_columns_empty()
+    {
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 260, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
+        var e = Assert.Single(Build(flows, "LIBB_ES_CTR"));
+        Assert.Equal("", e.Row.Handoff);
+        Assert.Equal("", e.Row.HandoffLevel);
+        Assert.Equal("", e.Row.CommsHandoff);
+        Assert.Equal("", e.Row.Speed);
+        Assert.Null(e.Row.VariantGroup);
+    }
+
+    [Fact]
+    public void The_sentence_cumulates_the_chain_while_the_table_shows_the_delta()
+    {
+        TransferPointRow V(int? level, string? runway, string? area, int depth, int order) => new()
+        {
+            Id = order, Cop = "BIRSU", LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+            LevelText = $"FL{level}-", NextSectorCallsign = "LIRR_TS_CTR", Order = order,
+            ConditionLabel = runway, ConditionAreaLabel = area, VariantGroup = 1, VariantDepth = depth,
+        };
+        // Outline: pista 07 · sua eccezione con R403B attiva · pista 25 pari-grado alla 07.
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN",
+            V(150, "07", null, 0, 1), V(130, null, "R403B", 1, 2), V(130, "25", null, 0, 3)) };
+
+        var rows = Build(flows, "LIBB_ES_CTR").Select(x => x.Row).ToList();
+        Assert.All(rows, r => Assert.Equal(1, r.VariantGroup));
+        Assert.Equal(new[] { 0, 1, 0 }, rows.Select(r => r.VariantDepth));
+
+        // La FRASE cumula la catena: l'eccezione vale solo dentro la pista 07, e viaggia da sola nella prosa.
+        Assert.EndsWith("con pista 07 in uso.", rows[0].Sentence);
+        Assert.EndsWith("con pista 07 in uso e R403B attiva.", rows[1].Sentence);
+        Assert.EndsWith("con pista 25 in uso.", rows[2].Sentence);
+        // In TABELLA invece si legge il solo delta: il rientro dà il contesto. («area » è il prefisso che
+        // ConditionDisplay mette alle aree per distinguerle dalle piste in una cella breve.)
+        Assert.Equal("area R403B", rows[1].ConditionLabel);
+    }
+
+    // ---- Padre nell'outline ----
+    // La risalita posizionale serviva alla FRASE (ConditionChain) e ora serve anche alla TABELLA dell'editor,
+    // che deve dire «eccezione di quale riga». Una sola risalita, altrimenti due letture dello stesso outline
+    // possono raccontare due strutture diverse sullo stesso dato.
+
+    private static TransferPointRow Node(int id, int? group, int depth, string? runway = null, bool wide = false) => new()
+    {
+        Id = id, Cop = "BIRSU", LevelValue = 150, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
+        LevelText = "FL150-", NextSectorCallsign = "LIRR_TS_CTR", Order = id,
+        ConditionLabel = runway, VariantGroup = group, VariantDepth = depth, IsGroupWide = wide,
+    };
+
+    [Fact]
+    public void ParentOf_Walks_Back_To_The_First_Shallower_Row_Of_The_Same_Group()
+    {
+        // 1 capofila · 2 sua eccezione · 3 eccezione dell'eccezione · 4 seconda eccezione della capofila
+        // · 5 riga di un ALTRO gruppo, annidata: la risalita non deve scavalcare il confine.
+        var a = Node(1, 1, 0, "07");
+        var b = Node(2, 1, 1, "25");
+        var c = Node(3, 1, 2, "34");
+        var d = Node(4, 1, 1, "16");
+        var e = Node(5, 2, 1, "18");
+        var pts = new[] { a, b, c, d, e };
+
+        Assert.Same(a, CoordinationDerivation.ParentOf(pts, b));
+        Assert.Same(b, CoordinationDerivation.ParentOf(pts, c));
+        Assert.Same(a, CoordinationDerivation.ParentOf(pts, d));   // pari-grado saltata: non è un antenato
+        Assert.Null(CoordinationDerivation.ParentOf(pts, e));      // il gruppo 2 non eredita dal gruppo 1
+    }
+
+    [Fact]
+    public void ParentOf_Is_Null_For_Peers_And_For_Group_Wide_Rows()
+    {
+        var head = Node(1, 1, 0, "07");
+        var peer = Node(2, 1, 0, "25");
+        var wide = Node(3, 1, 0, wide: true);
+        var alone = Node(4, null, 0, "34");
+        var pts = new[] { head, peer, wide, alone };
+
+        Assert.Null(CoordinationDerivation.ParentOf(pts, head));
+        Assert.Null(CoordinationDerivation.ParentOf(pts, peer));   // pari-grado: nessuna è lo standard dell'altra
+        Assert.Null(CoordinationDerivation.ParentOf(pts, wide));   // vale per tutte, quindi non sta dentro nessuna
+        Assert.Null(CoordinationDerivation.ParentOf(pts, alone));  // fuori da un gruppo non c'è outline
+    }
+
+    [Fact]
+    public void ConditionChain_Still_Returns_The_Same_Chain_After_Extraction()
+    {
+        // Caratterizzazione dell'estrazione: la catena della frase non cambia forma.
+        var a = Node(1, 1, 0, "07");
+        var b = Node(2, 1, 1, "25");
+        var c = Node(3, 1, 2, "34");
+        var pts = new[] { a, b, c };
+
+        Assert.Equal(new[] { "07" }, CoordinationDerivation.ConditionChain(pts, a).Select(x => x.Runway));
+        Assert.Equal(new[] { "07", "25" }, CoordinationDerivation.ConditionChain(pts, b).Select(x => x.Runway));
+        Assert.Equal(new[] { "07", "25", "34" }, CoordinationDerivation.ConditionChain(pts, c).Select(x => x.Runway));
     }
 }

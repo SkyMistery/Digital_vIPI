@@ -35,6 +35,16 @@ public static class VipiModuleExtensions
     public const string FullTag = "full";
 
     /// <summary>
+    /// Tetto alle connessioni SSE contemporanee su <c>/vsop/live/atc</c>. Costante e non configurazione:
+    /// la scala è una divisione, il numero giusto non dipende dall'installazione, e un'opzione in più è
+    /// un'opzione in più da spiegare. Oltre il tetto si risponde 503 con <c>Retry-After</c>.
+    /// </summary>
+    private const int MaxSseConcorrenti = 300;
+
+    /// <summary>Connessioni SSE attualmente aperte. Vive quanto il processo, come l'endpoint.</summary>
+    private static int _sseAperti;
+
+    /// <summary>
     /// Registra tutti i servizi del modulo (Application, Infrastructure/EF, polling IVAO, opzioni,
     /// identità). <paramref name="useDevIdentity"/> = true monta l'utente fittizio di sviluppo;
     /// altrimenti l'identità è letta dal sito ospitante via <see cref="HostIdentityCurrentUserProvider"/>.
@@ -83,15 +93,13 @@ public static class VipiModuleExtensions
             services.AddScoped<ICurrentUserProvider, HostIdentityCurrentUserProvider>();
         }
 
-        // Rotte viewer/editor per tipo di documento (doc 09 §3b): i consumatori UI consultano il registry.
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.VloaDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AppDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AccVipiDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocKindRoutes, Vipi.Ui.Shared.Routing.AirportDocRoutes>();
-        services.AddSingleton<Vipi.Ui.Shared.Routing.IDocRoutesRegistry, Vipi.Ui.Shared.Routing.DocRoutesRegistry>();
-
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
+
+        // Registro dei guasti delle manutenzioni d'avvio. Singleton: è la fotografia di QUESTO avvio, scritta
+        // una volta da RunVipiStartupMaintenance e letta poi dal report di consistenza.
+        services.AddSingleton<Vipi.Application.Diagnostics.IStartupMaintenanceReport,
+            Vipi.Application.Diagnostics.StartupMaintenanceReport>();
 
         // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
@@ -119,6 +127,8 @@ public static class VipiModuleExtensions
         // «full» aggiunge il report di consistenza, che fa scansioni complete → solo su richiesta di un umano.
         // VipiReadinessCheck è anche un servizio a sé perché VipiHealthCheck lo riusa per le condizioni critiche.
         services.AddScoped<VipiReadinessCheck>();
+        // Singleton: la fotografia del report vale per tutte le richieste, non per una sola. Vedi la classe.
+        services.AddSingleton<ConsistencyReportCache>();
         services.AddHealthChecks()
             .AddCheck<VipiReadinessCheck>("vipi-ready", tags: new[] { ReadinessTag })
             .AddCheck<VipiHealthCheck>("vipi", tags: new[] { FullTag });
@@ -162,12 +172,27 @@ public static class VipiModuleExtensions
         // ADR-0003. Read-only, nessun dato sensibile.
         endpoints.MapGet("/vsop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, CancellationToken ct) =>
         {
+            // Tetto alle connessioni contemporanee. Ogni stream è una richiesta che resta aperta finché il
+            // browser la tiene, e l'endpoint è pubblico e anonimo: senza un tetto, il numero di richieste
+            // aperte su un processo solo — la scala decisa è UNA istanza — lo sceglie chi chiama.
+            // Il numero di persone che guardano la vista live è noto e piccolo (una divisione, decine di
+            // controllori): superare di molto questa soglia significa che sta succedendo altro.
+            if (Interlocked.Increment(ref _sseAperti) > MaxSseConcorrenti)
+            {
+                Interlocked.Decrement(ref _sseAperti);
+                ctx.Response.Headers.RetryAfter = "30";
+                ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                return;
+            }
+
             ctx.Response.Headers.ContentType = "text/event-stream";
             ctx.Response.Headers.CacheControl = "no-cache";
             ctx.Response.Headers.Connection = "keep-alive";
             ctx.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-            var signal = new SemaphoreSlim(0);
+            // `using`: il semaforo alloca il proprio handle di attesa alla prima WaitAsync con timeout, che
+            // è esattamente quel che fa il ciclo qui sotto. Senza Dispose restava a ogni connessione chiusa.
+            using var signal = new SemaphoreSlim(0);
             void OnChanged() => signal.Release();
             cache.Changed += OnChanged;
 
@@ -195,7 +220,11 @@ public static class VipiModuleExtensions
                 }
             }
             catch (OperationCanceledException) { /* client disconnesso */ }
-            finally { cache.Changed -= OnChanged; }
+            finally
+            {
+                cache.Changed -= OnChanged;
+                Interlocked.Decrement(ref _sseAperti);
+            }
         });
 
         // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in
@@ -321,6 +350,61 @@ public static class VipiModuleExtensions
         return host;
     }
 
+    /// <summary>
+    /// Esegue le quattro manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
+    /// fallisce viene registrata e l'avvio prosegue con le successive.
+    ///
+    /// <para><b>Perché non basta lasciarle esplodere.</b> Sono passate idempotenti che rigirano a ogni
+    /// avvio, e sono l'ultimo pezzo di <c>Program.cs</c> prima che l'app cominci a servire. Con
+    /// <c>Restart=always</c> e <c>RestartSec=10</c> in <c>vipi.service</c>, un guasto lì non è un degrado:
+    /// è un <b>ciclo di riavvii</b>, cioè il sito giù per un difetto in una riconciliazione di dati storici.
+    /// Un sito che parte con una riconciliazione saltata è sempre meglio di un sito che non parte.</para>
+    ///
+    /// <para><b>Perché proseguire è lecito.</b> Ognuna è idempotente e nessuna è un prerequisito
+    /// dell'altra — le dipendenze d'ordine vere stanno <i>dentro</i>
+    /// <see cref="ReconcileVipiDocuments"/>, che resta atomica dal punto di vista di chi chiama: se fallisce
+    /// a metà, salta per intero. E un riavvio riuscito le rifà da capo.</para>
+    ///
+    /// <para>⚠️ <b><see cref="MigrateVipiDatabase"/> resta fuori, e deve restarci.</b> Lì un guasto è
+    /// critico: proseguire significherebbe servire pagine su uno schema che non è quello che il codice si
+    /// aspetta, e il difetto uscirebbe come colonna mancante a runtime, lontano dalla causa.</para>
+    ///
+    /// <para>Il guasto non finisce solo nel log: passa da <c>IStartupMaintenanceReport</c> al report di
+    /// consistenza, quindi si vede in <c>/vsop/admin/diagnostica</c> e manda <c>/vsop/health</c> in
+    /// Degraded. Un «logga e prosegui» che si ferma al log è un modo per non accorgersene mai.</para>
+    /// </summary>
+    public static IHost RunVipiStartupMaintenance(this IHost host)
+    {
+        var log = host.Services.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.StartupMaintenance");
+        var report = host.Services.GetService<Vipi.Application.Diagnostics.IStartupMaintenanceReport>();
+
+        Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
+        Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
+        Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        Isolata(host, log, report, "potatura delle release superate", h => h.PruneVipiReleases());
+
+        return host;
+    }
+
+    private static void Isolata(IHost host, Microsoft.Extensions.Logging.ILogger? log,
+        Vipi.Application.Diagnostics.IStartupMaintenanceReport? report, string nome, Func<IHost, IHost> passata)
+    {
+        try
+        {
+            passata(host);
+        }
+        catch (Exception ex)
+        {
+            report?.Record(nome, ex);
+            if (log is not null)
+                Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                    log, ex,
+                    "Manutenzione d'avvio «{Passata}» fallita: l'avvio prosegue e la segnalazione entra nella " +
+                    "diagnostica. È idempotente: un riavvio riuscito la rifà.", nome);
+        }
+    }
+
     /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la
     /// chiave storica <c>"custom"</c>. Idempotente: sicuro a ogni avvio.</summary>
     public static IHost ReconcileVipiDocuments(this IHost host)
@@ -340,6 +424,25 @@ public static class VipiModuleExtensions
         if (hidden > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Migrate {Count} sezioni nascoste sul flag versionato della sezione.", hidden);
+
+        // vLOA sulle chiavi del catalogo (doc 13 §3c): direzioni dei coordinamenti e «Purpose».
+        var vloaKeys = maintenance.ReconcileVloaSectionKeysAsync().GetAwaiter().GetResult();
+        if (vloaKeys > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliate {Count} sezioni vLOA sulle chiavi del catalogo.", vloaKeys);
+
+        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA già creati (doc 13 §3d).
+        var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
+        if (catalog > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA.", catalog);
+
+        // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
+        // da derivata, o l'editor mostrerebbe una tabella senza colonne.
+        var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();
+        if (minima > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rimossi {Count} blocchi placeholder dalle sezioni «minima».", minima);
 
         // Aree regolamentate: appartenenza agli ACC dalla vecchia colonna singola alla tabella dei legami.
         var areas = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISpecialAreaMaintenance>();

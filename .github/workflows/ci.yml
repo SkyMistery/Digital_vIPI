@@ -17,14 +17,28 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      - run: dotnet restore Vipi.slnx
+      # --locked-mode: usa i packages.lock.json committati e FALLISCE se una versione è cambiata senza che
+      # nessuno l'abbia scritta. Con le wildcard nei csproj (8.0.*, 10.0.*) è l'unica cosa che rende
+      # riproducibile il pacchetto consegnato: senza, lo stesso commit compilato fra due mesi è un altro
+      # binario. Se la CI si ferma qui, il rimedio è un `dotnet restore --force-evaluate` locale e un commit
+      # dei lock aggiornati — cioè rendere visibile l'aggiornamento invece di subirlo.
+      - run: dotnet restore Vipi.slnx --locked-mode
+      # Gli avvisi sono errori (Directory.Build.props): non serve più -warnaserror qui né in un job a parte.
       - run: dotnet build Vipi.slnx --no-restore -c Release
+      # Dall'11 agosto 2026 questa riga esegue ENTRAMBI i TFM di ogni progetto multi-target: prima erano
+      # net10 tutti tranne Vipi.Infrastructure.Tests, cioè ~1000 test che non toccavano mai il runtime di
+      # produzione. Vedi il job net8 qui sotto per il perché conti.
       - run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal
 
   # Il ramo net8.0 è la PRODUZIONE: Vipi.Host su atc.it.ivao.aero è net8, perché Pomelo — l'unico provider
-  # che regge MariaDB — non esiste per EF Core 10 (ADR-0007 §D4-ter). Questo job aggiunge -warnaserror, che
-  # la build della solution non fa: senza, un'API .NET 9+ o una sintassi C# 13+ entrerebbe con la CI verde.
-  build-net8:
+  # che regge MariaDB — non esiste per EF Core 10 (ADR-0007 §D4-ter).
+  #
+  # ⚠️ Questo job ESEGUE i test, non li compila soltanto. Fino all'11 agosto 2026 faceva `dotnet build` di
+  # Vipi.Hosting e basta: una compilazione riuscita diceva che il codice esisteva su net8, non che
+  # funzionasse. Le due differenze fra i runtime che ci hanno già morso — il catch-all che risponde 405 su
+  # net10 e 404 su net8, KnownIPNetworks che su net8 si chiama KnownNetworks — sono esattamente la classe
+  # che un test coglie e una build no.
+  test-net8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,9 +47,13 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      # Vipi.Hosting tira gli altri quattro progetti del modulo: basta lui per coprire tutto il ramo net8.
-      - run: dotnet restore src/Vipi.Hosting/Vipi.Hosting.csproj -p:TargetFramework=net8.0
-      - run: dotnet build src/Vipi.Hosting/Vipi.Hosting.csproj -f net8.0 --no-restore -c Release -warnaserror
+      # --locked-mode: usa i packages.lock.json committati e FALLISCE se una versione è cambiata senza che
+      # nessuno l'abbia scritta. Con le wildcard nei csproj (8.0.*, 10.0.*) è l'unica cosa che rende
+      # riproducibile il pacchetto consegnato: senza, lo stesso commit compilato fra due mesi è un altro
+      # binario. Se la CI si ferma qui, il rimedio è un `dotnet restore --force-evaluate` locale e un commit
+      # dei lock aggiornati — cioè rendere visibile l'aggiornamento invece di subirlo.
+      - run: dotnet restore Vipi.slnx --locked-mode
+      - run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal
 
   # Lo schema di produzione contro un MariaDB VERO. È la classe di guasti che i test unitari non vedono: la
   # collation risultava presente e corretta nei metadati EF mentre nella DDL non c'era affatto (vedi

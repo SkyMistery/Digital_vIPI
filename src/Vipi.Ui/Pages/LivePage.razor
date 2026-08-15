@@ -1,4 +1,4 @@
-@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
+﻿@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
    un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
    /vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
    /vsop/live/{callsign} = quella postazione, in consultazione *@
@@ -7,7 +7,7 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Live
-@using Vipi.Ui.Shared.Routing
+@using Vipi.Application.Routing
 @inject ILiveViewService Live
 @inject IDocRoutesRegistry DocRoutes
 @inject Microsoft.JSInterop.IJSRuntime JS
@@ -135,7 +135,7 @@
         {
             <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
             <div class="apt-quick" style="margin-bottom:22px">
-                <span class="ch sw @(_selectedApt is null ? "on" : "")" @onclick="() => _selectedApt = null">📡 @L["Live_MySector"]</span>
+                <Chip Class="@($"ch sw {(_selectedApt is null ? "on" : "")}")" Active="_selectedApt is null" OnActivate="() => _selectedApt = null">📡 @L["Live_MySector"]</Chip>
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;

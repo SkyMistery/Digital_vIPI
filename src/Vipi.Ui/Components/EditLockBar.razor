@@ -1,4 +1,4 @@
-@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
+﻿@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
    ResourceKey e ascolta LockChanged per abilitare/disabilitare i controlli della pagina. Heartbeat 60s finché la
    scheda è aperta (TTL corto lato service → la chiusura scheda libera da sé in pochi minuti). Rilascio su teardown. *@
 @using Vipi.Application.Content
@@ -8,6 +8,7 @@
 @implements IAsyncDisposable
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+@inject ILogger<EditLockBar> Logger
 @*
    Locks NON è @inject: viene risolto dallo scope DI PROPRIO del componente (OwningComponentBase.ScopedServices)
    così usa un VipiDbContext isolato da quello del circuito/pagina. Senza questo, sotto latenza (Postgres) il render
@@ -45,6 +46,11 @@
     [Parameter, EditorRequired] public string ResourceKey { get; set; } = default!;
     /// <summary>Notifica la pagina ad ogni cambio: true = l'utente corrente tiene il lock (può modificare).</summary>
     [Parameter] public EventCallback<bool> LockChanged { get; set; }
+
+    /// <summary>Quando scade il lock (UTC), a ogni battito. Serve alle pagine che vogliono avvisare prima della
+    /// scadenza invece di lasciare che l'editing torni in sola lettura mentre si sta scrivendo. Additivo: chi non
+    /// lo aggancia non cambia comportamento.</summary>
+    [Parameter] public EventCallback<DateTime?> ExpiresChanged { get; set; }
 
     private LockInfo _lock = LockInfo.Free();
     private CancellationTokenSource? _beat;
@@ -129,13 +135,32 @@
                 // Lo stato del lock si legge DENTRO InvokeAsync, sul contesto del renderer: è lì che _lock viene
                 // scritto, e leggerlo dal thread del timer sarebbe una lettura non sincronizzata.
                 var stillMine = true;
-                await InvokeAsync(async () =>
+                try
                 {
-                    var was = _lock.IsMine;
-                    _lock = await Locks.HeartbeatAsync(ResourceKey);
-                    stillMine = _lock.IsMine;
-                    if (_lock.IsMine != was) { await NotifyAsync(); StateHasChanged(); }
-                });
+                    await InvokeAsync(async () =>
+                    {
+                        var was = _lock.IsMine;
+                        _lock = await Locks.HeartbeatAsync(ResourceKey);
+                        stillMine = _lock.IsMine;
+                        if (_lock.IsMine != was) { await NotifyAsync(); StateHasChanged(); }
+                    });
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (ObjectDisposedException) { throw; }
+                // Un guasto TRANSITORIO del database non deve uccidere il battito. Senza questo catch, un
+                // timeout di MariaDB usciva dal ciclo e finiva in un task che nessuno osserva: nessun errore a
+                // schermo, e il lock scadeva dopo tre minuti mentre l'utente stava ancora scrivendo. Al
+                // salvataggio successivo compariva «Lock scaduto o preso da un altro editor», che è il
+                // messaggio giusto per la causa sbagliata.
+                // Si salta il colpo e si riprova al tick dopo: con TTL 3 minuti e periodo 60 secondi restano
+                // due tentativi di recupero prima che il lock scada davvero — che è il margine per cui quei
+                // due numeri sono stati scelti.
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Heartbeat del lock «{Chiave}» fallito; riprovo al prossimo giro.", ResourceKey);
+                    continue;
+                }
+
                 if (!stillMine) { StopIfCurrent(cts); break; }
             }
         }
@@ -145,7 +170,11 @@
         catch (ObjectDisposedException) { }
     }
 
-    private Task NotifyAsync() => LockChanged.InvokeAsync(_lock.IsMine);
+    private async Task NotifyAsync()
+    {
+        await LockChanged.InvokeAsync(_lock.IsMine);
+        await ExpiresChanged.InvokeAsync(_lock.IsMine ? _lock.ExpiresUtc : null);
+    }
 
     public ValueTask DisposeAsync()
     {
