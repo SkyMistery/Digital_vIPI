@@ -11,8 +11,16 @@ lì generato il pacchetto di deploy del 15 agosto per la consegna a Ivao.It.
 > [`deploy/atc-ivao/LEGGIMI-FTP.md`](deploy/atc-ivao/LEGGIMI-FTP.md).
 >
 > **Pacchetto:** `artifacts/publish/vipi-linux-x64-mariadb-20260815.zip`, 48,1 MB, 407 file, self-contained
-> net8, sha256 `BE791013A1388B7CAA70058EF8684508608E25E73EB0099EC2E27AA62030BEE9`. Costruito da `main`
+> net8, sha256 `28063F5E513A052C036593078FD2E3053165B174859246843CF56537B01C78EE`. Costruito da `main`
 > dopo i due merge, con `Release --no-incremental` a **0 warning** e **2465 test verdi** (net8 + net10).
+>
+> ⚠️ **La trappola M14 si è materializzata proprio qui, ed è utile saperlo per il prossimo pacchetto.** Il
+> restore di `publish -r linux-x64` **rivaluta le wildcard** `8.0.*`/`10.0.*` e riscrive i lock dei soli
+> progetti `src/`: il pacchetto è nato con EF Core **8.0.30** mentre i progetti di test restavano a 8.0.29,
+> e la corsa successiva della suite è morta con `CS1705` («uses a higher version than referenced
+> assembly»). Rimesso in riga con `dotnet restore Vipi.slnx -p:RestoreForceEvaluate=true`, che aggiorna
+> **tutti** i lock insieme, poi ricompilato, ri-testato e ripubblicato. Regola: dopo un `publish` con RID,
+> guardare `git status` sui `packages.lock.json` **prima** di credere ai numeri della suite.
 > ⚠️ Il pacchetto del 9 agosto e quello del 5 vanno **ritirati**: il primo non ha trasferimenti né audit
 > database, il secondo non parla proprio MariaDB.
 >
