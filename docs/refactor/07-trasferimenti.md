@@ -1,5 +1,11 @@
 ﻿# 07 — Trasferimenti (punto 8) 🟢✅
 
+> 🟡 **IN CORSO dal 16 agosto 2026 — il modello viene SOSTITUITO.** `TransferFlow` + `TransferPoint` lasciano il
+> posto a un **accordo** fra due parti, a due direzioni: vedi §10 in fondo e la carta
+> [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
+> Tutto ciò che segue descrive il modello **fino a quella data** e resta valido come storia dell'area — ma
+> quando §10 sarà chiusa, `TransferFlow`/`TransferPoint` non esisteranno più come storage.
+
 > **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/07-transfers`, 222 test).
 > `ITransferService` + 6 DTO estratti in file singoli (§4.1); porta di lettura
 > `INeighbourReader` (ISP) — `AdminTrasferimentiPage` non dipende più dal service import
@@ -222,3 +228,31 @@ Due conseguenze che valgono più della sintassi:
 L'avviso «alternativa con eccezioni ma senza un caso normale» scatta sul dato vero appena lo si apre nella
 forma nuova: la riga 77 porta pista 25 **e** area R403B e non ha una «pista 25, normalmente». Il modello di
 ieri non permetteva nemmeno di accorgersene.
+
+## 10. Il modello diventa un **accordo** (dal 16 agosto 2026) 🟡
+
+Carta, pre-flight e registro delle lacune:
+[`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
+Qui solo cosa cambia per quest'area.
+
+Il modello descrive **un flusso di un settore verso un aeroporto**, e una riga dentro. Regge finché l'accordo è
+uno solo, con un punto, un aeroporto e un mittente — e non è la forma di nessun documento reale. Nella LoA
+EUROCONTROL (Annex D.2) e nell'IPI ENAV la tabella canonica è `rotta │ CoP │ livello │ condizioni`, **una per
+direzione**, con gli aeroporti raccolti in un gruppo («LIRF-LIRA-LIRU-LIRE») e i punti in un elenco.
+
+- **Sostituzione, non affiancamento**: `CoordinationAgreement` (+ `AgreementParty`, `AgreementAirport`,
+  `AgreementClause`) prende il posto di `TransferFlow`/`TransferPoint`, che spariscono dallo schema.
+- **`TransferFlowRow`/`TransferPointRow` restano e cambiano ruolo**: da DTO di lettura dello storage a
+  **proiezione** dell'accordo, prodotta da `AgreementExpansion`. È perché `CoordinationDerivation`, il composer
+  delle frasi, `CoordTable`, la vista live e il matcher Aurora **non si toccano**. Stesso schema dei settori
+  (cataloghi = fonte unica, `Sector` = proiezione).
+- **Cinque duplicazioni chiuse dal modello**: aeroporto, punto, settore mittente, direzione, ACC. Le prime
+  quattro erano visibili nell'archivio; la quarta era già degenerata (i sorvoli LIBB↔LGGG elencano punti diversi
+  nei due versi, e niente lo segnalava).
+- **La rete viene prima del modello.** `CoordinationCharacterizationTests` deriva i **flussi veri** (37/78,
+  congelati in `tests/Vipi.Application.Tests/Fixtures/`) e confronta righe e frasi con un file approvato, in
+  italiano e in inglese. L'invariante del lavoro è che resti verde.
+- **Parità di campi in questo giro.** I sette campi che i documenti reali richiedono e che oggi mancano — rotta
+  distinta dal punto, *release*, modo di coordinamento, nota per clausola, default in testa, condizione come
+  intestazione, clausole in prosa — sono un **secondo giro dichiarato** (§5 della carta), progettato ora nel
+  posto dove atterrerà.
