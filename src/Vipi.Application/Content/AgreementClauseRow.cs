@@ -1,0 +1,52 @@
+using Vipi.Domain;
+
+namespace Vipi.Application.Content;
+
+/// <summary>
+/// Una clausola di un accordo in lettura: i punti a cui si applica, il livello, la faccetta trasferimento, la
+/// condizione, la posizione nell'outline delle varianti.
+/// <para>È l'ex <see cref="TransferPointRow"/> meno il ricevente — che è il lato opposto dell'accordo — e con i
+/// punti in <b>elenco</b> (<see cref="CopList"/>) invece che uno solo.</para>
+/// </summary>
+public sealed record AgreementClauseRow
+{
+    public required int Id { get; init; }
+
+    /// <summary>In quale verso vale. L'outline delle varianti vive DENTRO una direzione: le clausole del verso
+    /// opposto non sono alternative delle prime.</summary>
+    public required AgreementDirection Direction { get; init; }
+
+    /// <summary>I punti d'ingresso, in elenco (vedi <see cref="CopList"/>).</summary>
+    public required string Cops { get; init; }
+
+    public int? LevelValue { get; init; }
+    public required LevelUnit LevelUnit { get; init; }
+    public required LevelConstraint LevelConstraint { get; init; }
+    public string? LevelSpecial { get; init; }
+    public LevelParity Parity { get; init; } = LevelParity.Any;
+    public TransferVerticalState VerticalState { get; init; } = TransferVerticalState.Unspecified;
+
+    // Condizione operativa: tre dimensioni indipendenti (pista/e · area · personalizzata).
+    public string? ConditionLabel { get; init; }
+    public int? ConditionRefId { get; init; }
+    public string? ConditionAreaLabel { get; init; }
+    public string? ConditionCustomLabel { get; init; }
+
+    // Faccetta trasferimento. Unspecified = il trasferimento coincide con l'ingresso.
+    public TransferHandoffKind HandoffKind { get; init; } = TransferHandoffKind.Unspecified;
+    public string? HandoffLabel { get; init; }
+    public int? HandoffLevelValue { get; init; }
+    public LevelUnit HandoffLevelUnit { get; init; } = LevelUnit.Fl;
+    public LevelConstraint HandoffLevelConstraint { get; init; } = LevelConstraint.Exact;
+    public TransferHandoffKind CommsHandoffKind { get; init; } = TransferHandoffKind.Unspecified;
+    public string? CommsHandoffLabel { get; init; }
+    public int? SpeedValue { get; init; }
+    public SpeedConstraint SpeedConstraint { get; init; } = SpeedConstraint.Unspecified;
+
+    // Varianti a outline: l'ordine è la struttura.
+    public int? VariantGroup { get; init; }
+    public int VariantDepth { get; init; }
+    public bool IsGroupWide { get; init; }
+
+    public required int Order { get; init; }
+}
