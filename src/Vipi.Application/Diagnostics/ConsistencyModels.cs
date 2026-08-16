@@ -6,7 +6,7 @@ public enum ConsistencySeverity { Warning, Error }
 /// <summary>Una singola incongruenza dati rilevata dal report di consistenza.</summary>
 /// <param name="Category">Famiglia del controllo (es. «Pista orfana», «Gerarchia dangling»).</param>
 /// <param name="Severity">Gravità.</param>
-/// <param name="Entity">Riferimento leggibile all'entità coinvolta (es. «TransferPoint #42 (LIRR)»).</param>
+/// <param name="Entity">Riferimento leggibile all'entità coinvolta (es. «Clausola #42 (LIRR, punti EKMUR)»).</param>
 /// <param name="Detail">Spiegazione del disallineamento e come si è prodotto.</param>
 public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity, string Detail);
 

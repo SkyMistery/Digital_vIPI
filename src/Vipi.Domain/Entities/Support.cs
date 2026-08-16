@@ -80,9 +80,18 @@ public class AuditLog
 }
 
 /// <summary>
-/// Flusso di traffico di un settore proprio nei coordinamenti (SPEC §7.4): es. «Roma NE · Traffico Dest LIRF».
-/// Raggruppa una serie di punti di trasferimento (CoP/livello/ricevente). Reso nella sezione Coordinamenti
-/// del documento (settore proprio → flusso → tabella) e nella vista live (risoluzione live del ricevente).
+/// ⚠️ <b>ARCHIVIO STORICO, IN SOLA LETTURA.</b> Fino al 16 agosto 2026 questa era l'unità di scrittura dei
+/// coordinamenti: un flusso di traffico di un settore proprio, con i suoi punti. Dal 17 agosto 2026 la scrittura
+/// è su <see cref="CoordinationAgreement"/>, e queste due tabelle restano solo perché il <b>travaso</b>
+/// (<c>IAgreementMaintenance.MigrateFlowsToAgreementsAsync</c>) deve poterle leggere.
+///
+/// <para><b>Nessuno le scrive più</b>: la porta di scrittura è stata rimossa, resta
+/// <c>ILegacyFlowReader</c>. Non aggiungere qui campi nuovi — andrebbero su <see cref="AgreementClause"/>.</para>
+///
+/// <para><b>Spariscono con la migrazione che le droppa</b>, che va in una release SUCCESSIVA a quella in cui il
+/// travaso ha girato in produzione: le migrazioni girano prima della manutenzione d'avvio, e nella stessa
+/// release il travaso non troverebbe più niente da leggere. Vedi
+/// <c>docs/feature/2026-08-16-accordi-di-coordinamento.md</c>.</para>
 /// </summary>
 public class TransferFlow
 {
@@ -105,10 +114,10 @@ public class TransferFlow
 }
 
 /// <summary>
-/// Riga della tabella di un <see cref="TransferFlow"/>: un Coordination Point con il suo vincolo di livello
-/// e il settore ricevente (Next). Il livello è strutturato (valore + unità + vincolo) con escape «speciale»
-/// (testo libero tipo «per aerovia»). Il ricevente live si risolve dal Next nominale risalendo la gerarchia
-/// di copertura (ParentCallsign); se nessuno è online fino in cima → UNICOM.
+/// ⚠️ <b>ARCHIVIO STORICO, IN SOLA LETTURA</b> — vedi <see cref="TransferFlow"/>. Riga della tabella di un
+/// flusso: un Coordination Point col suo vincolo di livello e il settore ricevente. Il suo posto è preso da
+/// <see cref="AgreementClause"/>, che porta gli stessi campi meno il ricevente (è il lato B dell'accordo) e in
+/// più la direzione e l'elenco dei punti.
 /// </summary>
 public class TransferPoint
 {

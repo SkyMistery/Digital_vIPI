@@ -1,10 +1,15 @@
 ﻿# 07 — Trasferimenti (punto 8) 🟢✅
 
-> 🟡 **IN CORSO dal 16 agosto 2026 — il modello viene SOSTITUITO.** `TransferFlow` + `TransferPoint` lasciano il
-> posto a un **accordo** fra due parti, a due direzioni: vedi §10 in fondo e la carta
+> ✅ **MODELLO SOSTITUITO — 16/17 agosto 2026** (ramo `feature/accordi-coordinamento`, non ancora in `main`).
+> `TransferFlow` + `TransferPoint` hanno lasciato il posto a un **accordo** fra due parti, a due direzioni:
+> vedi §10 in fondo e la carta
 > [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
-> Tutto ciò che segue descrive il modello **fino a quella data** e resta valido come storia dell'area — ma
-> quando §10 sarà chiusa, `TransferFlow`/`TransferPoint` non esisteranno più come storage.
+>
+> ⚠️ **Tutto ciò che segue (§1–§9) è STORIA**: descrive il modello fino a quella data. Le *decisioni* restano
+> valide e sono state portate sull'entità nuova — l'outline delle varianti, la condizione a tre dimensioni, la
+> faccetta trasferimento, la direzione owner→next — ma i **nomi** e il posto dove i campi stanno sono cambiati.
+> Le due tabelle esistono ancora, in **sola lettura**, finché la migrazione che le droppa non gira in una
+> release successiva al travaso in produzione.
 
 > **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/07-transfers`, 222 test).
 > `ITransferService` + 6 DTO estratti in file singoli (§4.1); porta di lettura
@@ -252,7 +257,28 @@ direzione**, con gli aeroporti raccolti in un gruppo («LIRF-LIRA-LIRU-LIRE») e
 - **La rete viene prima del modello.** `CoordinationCharacterizationTests` deriva i **flussi veri** (37/78,
   congelati in `tests/Vipi.Application.Tests/Fixtures/`) e confronta righe e frasi con un file approvato, in
   italiano e in inglese. L'invariante del lavoro è che resti verde.
-- **Parità di campi in questo giro.** I sette campi che i documenti reali richiedono e che oggi mancano — rotta
+- **Parità di campi in questo giro.** I campi che i documenti reali richiedono e che ancora mancano — rotta
   distinta dal punto, *release*, modo di coordinamento, nota per clausola, default in testa, condizione come
-  intestazione, clausole in prosa — sono un **secondo giro dichiarato** (§5 della carta), progettato ora nel
-  posto dove atterrerà.
+  intestazione, clausole in prosa — sono un **secondo giro dichiarato** (§5 della carta), progettato nel posto
+  dove atterrerà.
+
+### 10.1 Cosa è stato fatto, in ordine
+
+| # | Cosa | Verificato |
+|---|---|---|
+| 0 | Carta, registro delle lacune, **rete di caratterizzazione** sui 78 punti veri | invariante «frasi e righe identiche prima/dopo» |
+| 1 | Quattro entità + migrazione nei due provider + `CopList`/`FlowsToAgreements`/`AgreementExpansion` + porta di scrittura | il **cancello**: giro completo lossless sull'archivio |
+| 2 | Travaso armato all'avvio, lettori sugli accordi, editor riscritto, vecchia scrittura rimossa | live: 41 accordi, albero per controparte, due versi |
+| 3 | Punti richiusi in una riga, prosa a scelta della sezione, colonna «Anche per» | live: otto celle con l'elenco dei punti |
+| 4 | Riceventi proposti · incolla-tabella · cruscotto delle lacune | live: **due asimmetrie vere** trovate |
+| 5 | Propagazione: spec, lavori aperti, guida, memorie, nomi e commenti | — |
+
+### 10.2 Cosa resta
+
+1. ⚠️ La migrazione che **droppa `TransferFlows`/`TransferPoints`**, in una release **successiva** a quella in
+   cui il travaso ha girato in produzione. Le migrazioni girano *prima* della manutenzione d'avvio: nella stessa
+   release il travaso non troverebbe più niente da leggere.
+2. Le **due asimmetrie** che il cruscotto ha trovato — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti,
+   mai notata prima) — le decidono i colleghi: il travaso non le ha risolte apposta.
+3. Il **secondo giro** dei campi mancanti (§5 della carta).
+4. **Merge in `main`**: serve l'ok esplicito.

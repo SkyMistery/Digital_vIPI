@@ -1500,4 +1500,6 @@
   <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confirmed neighbour with no agreement</value></data>
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>no arrival agreement</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>appears in no agreement</value></data>
+  <data name="Xfer_HelpAria" xml:space="preserve"><value>Help on coordination agreements</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. A bilateral agreement has clauses &lt;b&gt;both ways&lt;/b&gt;. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work.</value></data>
 </root>

@@ -348,6 +348,50 @@
                several sector trees (CTR + APP of the area, even cross-ACC). From here you also set what to
                <b>""Feature""</b> on the ACC landing (airports, APPs, vLOAs — max 3 each).</p>"),
 
+        new Sec("accordi", "refresh", "Accordi di coordinamento", "Coordination agreements",
+            @"<p>Un <b>accordo</b> lega <b>due elenchi di enti</b> per un tipo di traffico, su <b>tutti gli
+               aeroporti</b> elencati. Dentro ci sono le <b>clausole</b>: ognuna dice su quali <b>punti</b> vale,
+               a quale quota, dove avviene il trasferimento e a quali condizioni.</p>
+              <ul>
+                <li><b>Un accordo, non un flusso per aeroporto.</b> Gli arrivi su Fiumicino, Ciampino, Urbe e
+                    Pratica con lo stesso punto e la stessa quota sono <i>un</i> accordo con quattro aeroporti.
+                    Nel documento la riga porta la colonna «Anche per», che lo dice.</li>
+                <li><b>Una clausola, non una riga per punto.</b> «EKMUR, PISIP» si scrive in una clausola sola:
+                    il documento la rende come due righe, ma tu ne scrivi una.</li>
+                <li><b>Due versi.</b> Un accordo bilaterale ha clausole in entrambi i sensi, con quote diverse.
+                    Il tasto «copia dall'altro verso» dà un <i>punto di partenza</i>: le quote vanno riviste,
+                    quasi mai coincidono.</li>
+                <li><b>Le varianti</b> restano un elenco rientrato: alternative pari-grado (pista 07 · pista 25)
+                    ed eccezioni annidate. Muovendo una riga si muove tutto il suo rientro.</li>
+              </ul>
+              <p><b>Per riempire in fretta:</b> il picker del lato che riceve <b>propone</b> gli enti probabili
+                 col loro perché; «Incolla tabella» legge una tabella copiata da una LoA o da un IPI e te la fa
+                 rileggere riga per riga prima di scrivere; <b>«Lacune»</b> dice dove lavorare — a partire dagli
+                 accordi che mandano traffico a UNICOM e dai confini scritti in un verso solo.</p>
+              <p>La prosa sopra ogni tabella si sceglie per sezione: <b>distesa</b> (una frase per clausola) o
+                 <b>capofila</b> (una frase che introduce la tabella, come nelle LoA vere).</p>",
+            @"<p>An <b>agreement</b> binds <b>two lists of units</b> for one kind of traffic, over <b>every
+               airport</b> listed. Inside are the <b>clauses</b>: each says which <b>points</b> it applies to, at
+               what level, where the transfer happens and under which conditions.</p>
+              <ul>
+                <li><b>One agreement, not one flow per airport.</b> Arrivals into Fiumicino, Ciampino, Urbe and
+                    Pratica over the same point at the same level are <i>one</i> agreement with four airports.
+                    In the document the row carries an «Also for» column that says so.</li>
+                <li><b>One clause, not one row per point.</b> «EKMUR, PISIP» is a single clause: the document
+                    renders it as two rows, but you write one.</li>
+                <li><b>Two directions.</b> A bilateral agreement has clauses both ways, with different levels.
+                    «Copy from the other direction» gives you a <i>starting point</i>: the levels must be
+                    reviewed, they hardly ever match.</li>
+                <li><b>Variants</b> are still an indented list: same-rank alternatives (runway 07 · runway 25)
+                    and nested exceptions. Moving a row moves everything indented under it.</li>
+              </ul>
+              <p><b>To fill in quickly:</b> the receiving-side picker <b>suggests</b> the likely units with the
+                 reason why; «Paste table» reads a table copied from a LoA or an IPI and makes you review it row
+                 by row before writing; <b>«Gaps»</b> tells you where to work — starting from agreements that
+                 send traffic to UNICOM and borders written one way only.</p>
+              <p>The prose above each table is chosen per section: <b>spread</b> (one sentence per clause) or
+                 <b>lead</b> (one sentence introducing the table, as in real LoAs).</p>"),
+
         new Sec("admin", "grid", "Aree admin", "Admin areas",
             @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
               <ul>

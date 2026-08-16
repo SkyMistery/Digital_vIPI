@@ -3,7 +3,7 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>Riga CoP di un flusso (lettura). <see cref="LevelText"/> è il livello già formattato.
-/// <para><c>record</c> come <see cref="TransferPointInput"/> e per la stessa ragione: con la faccetta
+/// <para><c>record</c> come <see cref="AgreementClauseInput"/> e per la stessa ragione: con la faccetta
 /// trasferimento i campi sono venticinque, e chi ne varia uno — un test, una proiezione — deve poter scrivere
 /// <c>with</c> invece di ricopiarli tutti e sbagliarne uno in silenzio.</para></summary>
 public sealed record TransferPointRow : IOutlineRow

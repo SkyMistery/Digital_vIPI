@@ -5,7 +5,7 @@ namespace Vipi.Application.Abstractions;
 
 /// <summary>
 /// Porta (lettura + scrittura) agli **accordi di coordinamento**. Prende il posto di
-/// <see cref="ITransferRepository"/>; impl. EF in Infrastructure.
+/// <c>ITransferRepository</c> (rimosso col modello vecchio); impl. EF in Infrastructure.
 ///
 /// <para><b>Cosa cambia rispetto alla porta di prima.</b> Il ricevente non è più un campo di riga da tenere
 /// d'accordo fra le sorelle: è il lato B dell'accordo, quindi <c>SetReceiverAsync</c> non esiste e la sua

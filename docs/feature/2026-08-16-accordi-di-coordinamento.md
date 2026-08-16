@@ -1,4 +1,4 @@
-# Accordi di coordinamento — carta (16 agosto 2026) 🟡
+# Accordi di coordinamento — carta ed esito (16-17 agosto 2026) 🟢
 
 > Sostituisce `TransferFlow` + `TransferPoint` con un **accordo** fra due parti, a due direzioni.
 > Area: [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10. Voce: `lavori-aperti.md` E6.
@@ -160,7 +160,7 @@ gerarchia di copertura copre già il caso. Scritto qui perché non venga riscope
 | 2 | Editor sugli accordi (guscio a tre colonne e gesti conservati) + **scambio**: travaso armato, lettori sugli accordi, vecchia scrittura rimossa | ✅ |
 | 3 | Lettura: punti richiusi in una riga, **prosa a scelta della sezione** (distesa ⇄ capofila), colonna «Anche per» | ✅ |
 | 4 | Riempimento: riceventi proposti · incolla-tabella · **cruscotto lacune** | ✅ |
-| 5 | Propagazione doc/spec/memorie e chiusura | ⬜ |
+| 5 | Propagazione doc/spec/memorie e chiusura | ✅ |
 
 ### Esito del riempimento (17 agosto, verificato live)
 

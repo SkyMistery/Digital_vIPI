@@ -15,7 +15,7 @@ namespace Vipi.Application.Tests;
 /// (<c>TransferFlow</c>/<c>TransferPoint</c> → Accordi): la derivazione di questi dati non deve cambiare di un
 /// carattere. Un fixture inventato non avrebbe potuto dirlo — i casi che rompono sono quelli scritti dai
 /// colleghi, non quelli scritti da chi rifà il modello.</para>
-/// <para>La costruzione delle righe ricalca <c>EfTransferRepository.MapFlow/MapPoint</c>: se quella cambia,
+/// <para>La costruzione delle righe ricalca <c>EfLegacyFlowReader.MapFlow/MapPoint</c>: se quella cambia,
 /// questa va cambiata con lei, ed è voluto che se ne accorga il compilatore.</para>
 /// </summary>
 internal static class RealCoordinationFixture

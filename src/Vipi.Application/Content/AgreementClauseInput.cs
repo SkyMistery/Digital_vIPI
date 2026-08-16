@@ -3,7 +3,8 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Una clausola in scrittura. È l'ex <see cref="TransferPointInput"/> con due differenze: i punti sono un
+/// Una clausola in scrittura. È l'ex <c>TransferPointInput</c> (rimosso col modello vecchio) con due
+/// differenze: i punti sono un
 /// <b>elenco</b> (<see cref="CopList"/>) e il ricevente <b>non c'è</b> — è il lato opposto dell'accordo, e
 /// ripeterlo su ogni clausola era il modo di lasciarle contraddire fra loro.
 /// <para>Come prima, <b>gruppo, profondità e ordine non stanno qui</b>: li decide il repository quando la

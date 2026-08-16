@@ -4,7 +4,7 @@ namespace Vipi.Application.Content;
 
 /// <summary>
 /// Use-case degli **accordi di coordinamento**: lettura aperta, scrittura ACC-gated con validazione soft.
-/// Prende il posto di <see cref="ITransferService"/>.
+/// Prende il posto di <c>ITransferService</c> (rimosso col modello vecchio).
 ///
 /// <para>Espone due letture, e la differenza è il cuore del disegno: <see cref="ListByAccAsync"/> dà gli
 /// <b>accordi</b>, che è ciò su cui si scrive; <see cref="ListFlowsByAccAsync"/> dà le <b>righe piatte</b>

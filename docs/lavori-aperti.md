@@ -786,9 +786,31 @@ picker, annulla che rimette l'outline, modifica in blocco).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora
 dove avviene il trasferimento vanno riviste **a mano** — il loro livello può voler dire «autorizzato» o «al
-trasferimento», e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
-elenca e ne tiene il conto. ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15 è il conteggio sul DB
-di sviluppo.
+trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle lacune** in
+`/vsop/admin/trasferimenti` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
+è il conteggio sul DB di sviluppo.
+
+### E6-bis 🟡 Accordi di coordinamento — il modello sostituito (ramo `feature/accordi-coordinamento`, 16-17 ago 2026)
+Carta ed esito: [`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md);
+schema `spec/modello-dati.md` §9.25-9.26; area `refactor/07-trasferimenti.md` §10.
+
+`TransferFlow` + `TransferPoint` **non sono più l'unità di scrittura**: al loro posto un **accordo** fra due
+parti, con più mittenti, più aeroporti, più punti per clausola e fino a **due versi**. La forma viene dai
+documenti veri (`RealDOCS/`: LoA ACC Roma ↔ Marseille, IPI ACC Roma, Common Format LoA EUROCONTROL), non dalla
+duplicazione nel DB di sviluppo — che pure la conferma su cinque assi.
+
+Cinque fasi, tutte verificate **guidando l'app** su copia del `vipi.db` reale: rete di caratterizzazione sui
+flussi veri (l'invariante «frasi e righe identiche prima e dopo»), modello + migrazione nei due provider,
+travaso + scambio dei lettori + editor, richiusura dei punti in lettura, tre ausili di riempimento.
+
+**Cosa resta, ed è il motivo per cui la voce è 🟡:**
+1. ⚠️ **La migrazione che droppa `TransferFlows`/`TransferPoints`** va in una release **successiva** a quella in
+   cui il travaso ha girato in produzione. Le migrazioni girano *prima* della manutenzione d'avvio: nella stessa
+   release il travaso non troverebbe più niente da leggere.
+2. **Le due asimmetrie trovate dal cruscotto** vanno decise dai colleghi, non dal codice: `LGGG ⇄ LIBB`
+   (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo, **che nessuno aveva notato**). Il travaso non le
+   ha risolte apposta — accoppiare i due versi vorrebbe dire scegliere quale dei due valga.
+3. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
 
 ---
 

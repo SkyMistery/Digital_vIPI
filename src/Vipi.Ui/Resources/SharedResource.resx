@@ -1506,4 +1506,6 @@
   <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confinante confermato senza accordi</value></data>
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>nessun accordo di arrivo</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>non compare in nessun accordo</value></data>
+  <data name="Xfer_HelpAria" xml:space="preserve"><value>Aiuto sugli accordi di coordinamento</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; lega due elenchi di enti per un traffico, su tutti gli aeroporti elencati; le &lt;b&gt;clausole&lt;/b&gt; dicono su quali punti vale e a quale quota. Un accordo bilaterale ha clausole nei &lt;b&gt;due versi&lt;/b&gt;. Il tasto &lt;b&gt;Lacune&lt;/b&gt; dice dove lavorare.</value></data>
 </root>

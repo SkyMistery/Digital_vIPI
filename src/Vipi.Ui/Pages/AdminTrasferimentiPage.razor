@@ -28,6 +28,11 @@
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Xfer_Title"]</b></div>
     <div class="doc-head">
         <div><h2 class="xt-h2">@L["Xfer_Heading"]</h2><span class="muted">@((MarkupString)L["Xfer_Subtitle"].Value)</span></div>
+        @* Il «?» porta alla sezione di guida di quest'area: la pagina ha cambiato modello, e chi la riapre dopo
+           settimane deve poter ritrovare il perche' senza cercarlo. *@
+        <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_HelpAria"]">
+            @((MarkupString)L["Xfer_HelpBody"].Value)
+        </HelpHint>
     </div>
 
     @if (!Authz.IsAdmin)
