@@ -1474,4 +1474,30 @@
   <data name="Dse_ProseSpread" xml:space="preserve"><value>prose: spread</value></data>
   <data name="Dse_ProseLeadTitle" xml:space="preserve"><value>Switch to LEAD prose: a single sentence introducing the table, as in real LoAs and IPIs. Useful where there are many clauses.</value></data>
   <data name="Dse_ProseSpreadTitle" xml:space="preserve"><value>Back to SPREAD prose: one sentence per clause above the table. Useful where clauses are few and each is worth reading in full.</value></data>
+  <data name="Xfer_WhyApproach" xml:space="preserve"><value>approach for the airport</value></data>
+  <data name="Xfer_WhyAirportUnit" xml:space="preserve"><value>unit of the airport</value></data>
+  <data name="Xfer_WhyNeighbour" xml:space="preserve"><value>confirmed neighbour</value></data>
+  <data name="Xfer_WhyCounterpart" xml:space="preserve"><value>already a counterpart</value></data>
+  <data name="Xfer_Paste" xml:space="preserve"><value>Paste table</value></data>
+  <data name="Xfer_PasteTitle" xml:space="preserve"><value>Paste a table taken from a LoA or an IPI: you review it row by row before it is written.</value></data>
+  <data name="Xfer_PasteLabel" xml:space="preserve"><value>Table to paste</value></data>
+  <data name="Xfer_PasteHint" xml:space="preserve"><value>(one row per clause: points · level · receiving unit · condition — separated by TAB, «;» or «|»)</value></data>
+  <data name="Xfer_PastePh" xml:space="preserve"><value>EKMUR&#9;FL130-&#9;LIBD_CS0_APP&#10;BIRSU, TOPNO&#9;FL150&#9;LIBD_CS0_APP</value></data>
+  <data name="Xfer_PasteImport" xml:space="preserve"><value>Import {0} clauses</value></data>
+  <data name="Xfer_PasteDone" xml:space="preserve"><value>Imported {0} clauses: read them again before publishing.</value></data>
+  <data name="Xfer_PasteManyReceivers" xml:space="preserve"><value>The rows name different receiving units ({0}): those are DIFFERENT agreements. Here they all go into this one — import one receiver at a time, or fix it afterwards.</value></data>
+  <data name="Xfer_PasteOtherReceiver" xml:space="preserve"><value>The rows name «{0}», which is not this agreement&apos;s receiving unit. The receiver is NOT applied: it belongs to the agreement, and changing it here would change it for every clause.</value></data>
+  <data name="Xfer_Gaps" xml:space="preserve"><value>Gaps</value></data>
+  <data name="Xfer_GapsTitle" xml:space="preserve"><value>What is missing in this ACC, worst first. None of these is an error: they are things that probably ought to be written.</value></data>
+  <data name="Xfer_GapsHeading" xml:space="preserve"><value>Where to work</value></data>
+  <data name="Xfer_GapNoReceiver" xml:space="preserve"><value>to UNICOM</value></data>
+  <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>directions differ</value></data>
+  <data name="Xfer_GapNeighbour" xml:space="preserve"><value>border unwritten</value></data>
+  <data name="Xfer_GapAirport" xml:space="preserve"><value>no arrivals</value></data>
+  <data name="Xfer_GapSector" xml:space="preserve"><value>silent sector</value></data>
+  <data name="Xfer_GapClauses" xml:space="preserve"><value>{0} clauses</value></data>
+  <data name="Xfer_GapOnlyOneWay" xml:space="preserve"><value>one way only: {0}</value></data>
+  <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confirmed neighbour with no agreement</value></data>
+  <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>no arrival agreement</value></data>
+  <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>appears in no agreement</value></data>
 </root>

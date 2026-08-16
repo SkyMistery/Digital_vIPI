@@ -135,6 +135,12 @@
                         ⚠ @L["Xfer_ToReview"] (@toReview)
                     </button>
                 }
+                @{ var lacune = Gaps(); }
+                @if (lacune.Count > 0)
+                {
+                    <button class="btn @(_gapsOpen ? "primary" : "ghost")" title="@L["Xfer_GapsTitle"]"
+                            @onclick="() => _gapsOpen = !_gapsOpen">◎ @L["Xfer_Gaps"] (@lacune.Count)</button>
+                }
                 @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
                 <span class="ln xt-grow"></span>
                 @* I due filtri diagnostici attraversano gli accordi: in ALBERO si trova l'accordo e si apre, in
@@ -169,6 +175,41 @@
                     <input type="checkbox" checked="@_showPreviews" @onchange="TogglePreviews" /> @L["Xfer_ShowPreviews"]
                 </label>
             </div>
+
+            @* ---- Cruscotto delle lacune ----
+               Dice DOVE lavorare. Nessuna di queste voci e' un errore: sono cose che probabilmente andrebbero
+               scritte, e chi guarda decide. La prima e' l'unica che succede ORA (traffico a UNICOM); la seconda
+               e' l'unica che nessuno vedrebbe guardando una pagina alla volta. *@
+            @if (_gapsOpen)
+            {
+                <div class="callout info xt-bulk">
+                    <span class="cic">◎</span>
+                    <div class="xt-bulkbody xt-gaps">
+                        <b>@L["Xfer_GapsHeading"]</b>
+                        <table class="res-table">
+                            <tbody>
+                                @foreach (var g in Gaps())
+                                {
+                                    <tr>
+                                        <td><span class="pill @(GapPill(g.Kind))">@GapLabel(g.Kind)</span></td>
+                                        <td><b>@g.Subject</b></td>
+                                        @* Il dettaglio si compone QUI, dove ci sono le risorse: la lacuna porta
+                                           un numero e un elenco, non una frase. *@
+                                        <td class="muted">@GapDetail(g)</td>
+                                        <td>
+                                            @if (g.AgreementId is int id)
+                                            {
+                                                <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]"
+                                                        @onclick="() => GoToGap(id)">↗</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
 
             @* ---- Modifica in blocco ----
                ⚠️ Il RICEVENTE non è più qui, e non è una dimenticanza: era un campo di riga, adesso è il lato B
@@ -512,6 +553,61 @@
     private void ResetFilters()
     {
         _filter = string.Empty; _kindFilter = null; _toReviewOnly = false; _noReceiverOnly = false;
+    }
+
+    // ---- Cruscotto delle lacune ---------------------------------------------------------------------
+
+    private bool _gapsOpen;
+
+    /// <summary>Cosa manca, in ordine di gravita'. Si ricalcola a ogni render: e' una scansione di quaranta
+    /// accordi in memoria, e tenerla in cache vorrebbe dire tenerla d'accordo con ogni scrittura.</summary>
+    private IReadOnlyList<AgreementGap> Gaps() =>
+        _acc is null
+            ? Array.Empty<AgreementGap>()
+            : AgreementGaps.Find(_acc.Code, _agreements, SuggestionSectors(),
+                _airports.Where(a => string.Equals(a.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
+                         .Select(a => a.Icao).ToList(),
+                ConfirmedNeighbourAccs(),
+                _all.ToDictionary(s => s.Callsign, s => s.Type, StringComparer.OrdinalIgnoreCase));
+
+    private string GapLabel(AgreementGapKind k) => k switch
+    {
+        AgreementGapKind.NoReceiver => L["Xfer_GapNoReceiver"],
+        AgreementGapKind.AsymmetricDirections => L["Xfer_GapAsymmetric"],
+        AgreementGapKind.ToReview => L["Xfer_ToReview"],
+        AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbour"],
+        AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirport"],
+        _ => L["Xfer_GapSector"],
+    };
+
+    /// <summary>Il colore dice la gravita': rosso = succede adesso, giallo = una verita' a meta', neutro = una
+    /// scrittura che manca.</summary>
+    private static string GapPill(AgreementGapKind k) => k switch
+    {
+        // Le classi sono quelle del tema, non inventate qui: «future» e' l'unica gialla che esiste, e la usa
+        // gia' la pill di una release programmata. Un colore nuovo per questa tabella sarebbe un secondo
+        // vocabolario di gravita' accanto a quello che il resto del sito ha gia'.
+        AgreementGapKind.NoReceiver => "future",
+        AgreementGapKind.AsymmetricDirections or AgreementGapKind.ToReview => "grey",
+        _ => "neutral",
+    };
+
+    /// <summary>Il dettaglio di una lacuna, a parole. Sta qui e non in <c>AgreementGaps</c> perche' e' LINGUA,
+    /// e questa pagina esiste anche in inglese.</summary>
+    private string GapDetail(AgreementGap g) => g.Kind switch
+    {
+        AgreementGapKind.NoReceiver or AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
+        AgreementGapKind.AsymmetricDirections => L["Xfer_GapOnlyOneWay", string.Join(", ", g.Items)],
+        AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbourDetail"],
+        AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirportDetail"],
+        _ => L["Xfer_GapSectorDetail"],
+    };
+
+    private void GoToGap(int agreementId)
+    {
+        SetView(XferView.Tree);
+        SelectAgreement(agreementId);
+        _gapsOpen = false;
     }
 
     // ---- Selezione multipla e modifica in blocco ----
@@ -936,9 +1032,113 @@
 
             <div class="xt-foot">
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(ag)">+ @L["Xfer_AddClause"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
+                        @onclick="() => TogglePaste(ag)">⎘ @L["Xfer_Paste"]</button>
+            </div>
+
+            @if (_pasteAgreementId == ag.Id) { @PasteForm(ag) }
+        </div>
+    };
+
+    // ---- Incolla-tabella ----------------------------------------------------------------------------
+    // Riempire l'Italia a mano significa ridigitare tabelle che esistono gia', scritte da qualcun altro, in un
+    // PDF. Qui si incollano e si guardano PRIMA di salvare: un incolla che salvasse direttamente metterebbe in
+    // archivio la propria interpretazione di un testo che nessuno ha riletto.
+
+    private int? _pasteAgreementId;
+    private string _pasteText = "";
+
+    private void TogglePaste(AgreementRow a)
+    {
+        ClosePanel();
+        _pasteAgreementId = _pasteAgreementId == a.Id ? null : a.Id;
+        _pasteText = "";
+    }
+
+    private RenderFragment PasteForm(AgreementRow a) => __builder =>
+    {
+        var parsed = ClausePaste.Parse(_pasteText);
+        var buone = parsed.Count(p => p.Ok);
+        var riceventi = ClausePaste.DistinctReceivers(parsed);
+
+        <div class="xt-subform">
+            <div class="field">
+                <label>@L["Xfer_PasteLabel"] <span class="muted xt-lbl-soft">@L["Xfer_PasteHint"]</span></label>
+                <textarea rows="6" placeholder="@L["Xfer_PastePh"]" @bind="_pasteText" @bind:event="oninput"></textarea>
+            </div>
+
+            @if (parsed.Count > 0)
+            {
+                @* L'anteprima mostra il livello RESO, non quello scritto: LevelFormatting.Parse non fallisce
+                   mai — cio' che non e' un livello diventa il livello «speciale» — quindi l'unico modo di
+                   accorgersi che una colonna e' finita nel posto sbagliato e' vedere come e' stata capita. *@
+                <table class="res-table">
+                    <thead><tr><th>#</th><th>@L["Xfer_ColPoints"]</th><th>@L["Xfer_ColLevel"]</th><th>@L["Xfer_ColReceiver"]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var p in parsed)
+                        {
+                            <tr class="@(p.Ok ? null : "xt-sel")">
+                                <td class="muted">@p.Line</td>
+                                @if (p.Ok)
+                                {
+                                    <td><b>@p.Clause!.Cops</b></td>
+                                    <td>@LevelFormatting.Format(p.Clause!.LevelValue, p.Clause!.LevelUnit,
+                                            p.Clause!.LevelConstraint, p.Clause!.LevelSpecial, p.Clause!.Parity,
+                                            p.Clause!.VerticalState)</td>
+                                    <td class="muted">@(p.Receiver ?? "—")</td>
+                                    <td class="muted">@p.Clause!.ConditionCustomLabel</td>
+                                }
+                                else
+                                {
+                                    <td colspan="4" class="muted">@p.Raw — <b>@p.Error</b></td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @* Righe con riceventi diversi sono ACCORDI diversi: dirlo prima di scrivere e' l'unico modo di
+                   non ricreare il difetto che il modello nuovo ha appena chiuso. *@
+                @if (riceventi.Count > 1)
+                {
+                    <div class="callout warning">
+                        <span class="cic">⚠</span>
+                        <div>@(string.Format(L["Xfer_PasteManyReceivers"].Value, string.Join(", ", riceventi)))</div>
+                    </div>
+                }
+                else if (riceventi.Count == 1 && !a.Parties.Any(x => x.Side == AgreementSide.B
+                             && string.Equals(x.Callsign, riceventi[0], StringComparison.OrdinalIgnoreCase)))
+                {
+                    <div class="callout info">
+                        <span class="cic">ℹ</span>
+                        <div>@(string.Format(L["Xfer_PasteOtherReceiver"].Value, riceventi[0]))</div>
+                    </div>
+                }
+            }
+
+            <div class="xt-foot">
+                <button class="btn primary" disabled="@(_busy || !_canEdit || buone == 0)"
+                        @onclick="() => ConfirmPaste(a)">@(string.Format(L["Xfer_PasteImport"].Value, buone))</button>
+                <button class="btn ghost" disabled="@_busy" @onclick="() => _pasteAgreementId = null">@L["Common_Cancel"]</button>
             </div>
         </div>
     };
+
+    /// <summary>Scrive le clausole lette, in coda al verso mostrato. Il ricevente scritto sulle righe NON si
+    /// applica: e' del lato B dell'accordo, e cambiarlo da qui cambierebbe l'accordo intero senza dirlo.</summary>
+    private async Task ConfirmPaste(AgreementRow a)
+    {
+        var parsed = ClausePaste.Parse(_pasteText).Where(p => p.Ok).ToList();
+        if (parsed.Count == 0) return;
+
+        await Guarded(async () =>
+        {
+            foreach (var p in parsed)
+                await Agreements.AddClauseAsync(_acc!.Code, a.Id, _direction, p.Clause!);
+            _pasteAgreementId = null;
+            _pasteText = "";
+        }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));
+    }
 
     /// <summary>I campi dell'intestazione: i due lati, il tipo, gli aeroporti, la descrizione. Uno solo per
     /// entrambe le istanze del form — due markup paralleli sono due occasioni di aggiornarne uno solo.</summary>
@@ -1015,7 +1215,8 @@
                 }
                 @if (list.Count == 0) { <span class="muted">—</span> }
             </div>
-            <TypeaheadPicker Placeholder="@L["Xfer_SearchCallsign"]" Items="SectorItems(text)"
+            <TypeaheadPicker Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="@(side == AgreementSide.B ? ReceiverItems(form, text) : SectorItems(text))"
                              Text="@text"
                              TextChanged="t => { if (side == AgreementSide.A) form.SideAText = t; else form.SideBText = t; }"
                              OnPick="i => AddParty(form, side, i?.Value)" />
@@ -1508,6 +1709,66 @@
             .Select(s => new TypeaheadPicker.Item(s.Callsign, s.AccCode))
             .ToList();
 
+    /// <summary>
+    /// Le voci del picker del lato che RICEVE: le proposte in cima, col loro perche', poi tutti gli altri.
+    /// <para>⚠️ Le proposte non FILTRANO l'elenco, lo precedono. Un accordo puo' legare due enti che nessuna
+    /// regola prevede — e' successo con LGKR_APP, aggiunto a mano — e un elenco che li nascondesse renderebbe
+    /// impossibile scrivere proprio i casi che valeva la pena scrivere.</para>
+    /// <para>La RAGIONE viaggia accanto alla voce: una proposta senza il suo perche' e' indistinguibile da un
+    /// dato, e verrebbe accettata anche quando e' sbagliata.</para>
+    /// </summary>
+    private IReadOnlyList<TypeaheadPicker.Item> ReceiverItems(HeaderForm form, string text)
+    {
+        var proposte = AgreementSuggestions.ForReceivingSide(
+            form.Kind,
+            form.Airports.Select(a => a.Icao).ToList(),
+            SuggestionSectors(),
+            AirportParents(),
+            ConfirmedNeighbourAccs(),
+            new HashSet<string>(form.SideA.Concat(form.SideB), StringComparer.OrdinalIgnoreCase));
+
+        var inCima = proposte
+            .Where(x => string.IsNullOrWhiteSpace(text)
+                        || x.Callsign.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Take(8)
+            .Select(x => new TypeaheadPicker.Item(x.Callsign, SuggestionReason(x.Reason), Strong: true))
+            .ToList();
+
+        var visti = inCima.Select(x => x.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return inCima.Concat(SectorItems(text).Where(x => !visti.Contains(x.Value))).ToList();
+    }
+
+    /// <summary>I settori nella forma minima che serve a proporre.</summary>
+    private IReadOnlyList<SuggestionSector> SuggestionSectors() =>
+        _all.Select(s => new SuggestionSector(s.Callsign, s.AccCode, s.Type)).ToList();
+
+    /// <summary>ICAO → ente che copre l'aeroporto, dichiarato nella gerarchia. E' il ricevente piu' probabile
+    /// di un arrivo, e viene prima di qualunque deduzione dal callsign.</summary>
+    private IReadOnlyDictionary<string, string> AirportParents() => _airportParents;
+
+    /// <summary>Gli ACC esteri confinanti CONFERMATI: le coppie in attesa o rifiutate non sono un confine.</summary>
+    private IReadOnlySet<string> ConfirmedNeighbourAccs() =>
+        _candidates
+            .Where(c => c.Status == NeighbourCandidateStatus.Confirmed
+                        && string.Equals(c.HomeAccCode, _acc?.Code, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.ForeignAccCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Il perche' di una proposta, a parole. Sta qui e non nell'enum perche' e' LINGUA, e questa
+    /// interfaccia esiste anche in inglese.</summary>
+    private string SuggestionReason(AgreementSuggestionReason r) => r switch
+    {
+        AgreementSuggestionReason.AirportApproach => L["Xfer_WhyApproach"],
+        AgreementSuggestionReason.AirportUnit => L["Xfer_WhyAirportUnit"],
+        AgreementSuggestionReason.ConfirmedNeighbour => L["Xfer_WhyNeighbour"],
+        _ => L["Xfer_WhyCounterpart"],
+    };
+
+    /// <summary>ICAO → ente che lo copre. Caricata alla scelta dell'ACC: e' una mappa piccola e non cambia
+    /// mentre si scrive.</summary>
+    private IReadOnlyDictionary<string, string> _airportParents =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     private IReadOnlyList<TypeaheadPicker.Item> AirportItems(string text) =>
         _airports.Where(a => MatchApt(a, text)).Take(50)
             .Select(a => new TypeaheadPicker.Item(a.Icao, a.Name + " - " + a.AccCode, Strong: true))
@@ -1802,6 +2063,15 @@
         await Guarded(async () =>
         {
             _areas = await AccDeriv.ListSpecialAreasByAccAsync(_acc.Code);
+            // ICAO -> ente che copre lo scalo: sta sul nodo Aeroporto della struttura, non sulle sue posizioni
+            // (scaletta DEL->GND->TWR->APP). Si legge da li' invece di dedurlo dal callsign, perche' uno scalo
+            // puo' essere coperto da un ente con un altro prefisso — ed e' proprio il caso in cui la deduzione
+            // dal callsign non basterebbe.
+            var struttura = await Struct.LoadAsync(_acc.Code);
+            _airportParents = struttura?.Airports
+                .Where(a => !string.IsNullOrWhiteSpace(a.ParentCallsign))
+                .ToDictionary(a => a.Icao, a => a.ParentCallsign!, StringComparer.OrdinalIgnoreCase)
+                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             await LoadAsync();
         }, null);
     }

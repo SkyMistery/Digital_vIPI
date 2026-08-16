@@ -159,8 +159,41 @@ gerarchia di copertura copre già il caso. Scritto qui perché non venga riscope
 | 1 | Entità + migrazione nei due provider + convertitore + espansione + porta di scrittura | ✅ |
 | 2 | Editor sugli accordi (guscio a tre colonne e gesti conservati) + **scambio**: travaso armato, lettori sugli accordi, vecchia scrittura rimossa | ✅ |
 | 3 | Lettura: punti richiusi in una riga, **prosa a scelta della sezione** (distesa ⇄ capofila), colonna «Anche per» | ✅ |
-| 4 | Riempimento: riceventi proposti · incolla-tabella · cruscotto lacune | ⬜ |
+| 4 | Riempimento: riceventi proposti · incolla-tabella · **cruscotto lacune** | ✅ |
 | 5 | Propagazione doc/spec/memorie e chiusura | ⬜ |
+
+### Esito del riempimento (17 agosto, verificato live)
+
+I tre ausili sono **funzioni pure** perché sono tre **giudizi** — «probabilmente vuoi la torre di Bari»,
+«questa colonna è un livello», «questo aeroporto dovrebbe avere degli arrivi» — e un giudizio va potuto provare
+e smentire senza un database.
+
+- **Riceventi proposti**: in cima al picker del lato che riceve, ognuno **con la sua ragione** («avvicinamento
+  dell'aeroporto», «confinante confermato»). Non filtrano l'elenco, lo precedono: un accordo può legare due enti
+  che nessuna regola prevede — è successo con LGKR_APP — e nasconderli renderebbe impossibile scrivere proprio
+  i casi che valeva la pena scrivere.
+- **Incolla-tabella**: si incolla da una LoA o da un IPI, si vede l'esito **riga per riga** col numero di riga
+  del proprio appunto, e solo dopo si scrive. L'anteprima mostra il livello **reso**, non quello scritto:
+  `LevelFormatting.Parse` non fallisce mai, quindi l'unico modo di accorgersi che una colonna è finita nel posto
+  sbagliato è vedere come è stata capita. Righe con riceventi diversi fanno scattare un avviso — sono accordi
+  diversi, ed è il difetto che il modello nuovo ha appena chiuso.
+- **Cruscotto lacune**: 24 voci su LIBB, in ordine di gravità.
+
+⚠️ **Due difetti trovati proprio guardandolo, non previsti:**
+1. **L'asimmetria non si vedeva.** Il controllo cercava i due versi *dentro* un accordo, ma il travaso li lascia
+   in **accordi separati** — accoppiarli avrebbe voluto dire scegliere quale valesse. Il caso per cui il
+   cruscotto esiste era quindi l'unico che non poteva trovare. Ora il confronto attraversa gli accordi, per
+   coppia di enti senza verso.
+2. **Poi urlava troppo**: sei segnalazioni su otto erano ACC→APP, e un arrivo **non ha un reciproco** — il
+   traffico scende verso uno scalo e basta. Ristretto ai traffici senza aeroporto. Una categoria che urla sempre
+   insegna a non guardarla.
+
+Con entrambe le correzioni trova **le due asimmetrie vere** dell'archivio: `LGGG ⇄ LIBB` (BELIX, OLGAT — quella
+già nota) e `LDZO ⇄ LIBB` (sei punti da un lato solo, **che nessuno aveva notato**).
+
+Nello stesso giro le **parole sono uscite da `Application`**: `AgreementGap` porta un numero e un elenco, non
+una frase. Una frase composta lì uscirebbe in italiano dentro la pagina inglese — lo stesso motivo per cui la
+frase di coordinamento vive nel template.
 
 ### Esito della lettura (16 agosto, verificato live)
 

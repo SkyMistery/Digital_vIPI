@@ -1480,4 +1480,30 @@
   <data name="Dse_ProseSpread" xml:space="preserve"><value>prosa: distesa</value></data>
   <data name="Dse_ProseLeadTitle" xml:space="preserve"><value>Passa alla prosa CAPOFILA: una frase sola che introduce la tabella, come nelle LoA e negli IPI veri. Utile dove le clausole sono tante.</value></data>
   <data name="Dse_ProseSpreadTitle" xml:space="preserve"><value>Torna alla prosa DISTESA: una frase per clausola sopra la tabella. Utile dove le clausole sono poche e ognuna va letta per intero.</value></data>
+  <data name="Xfer_WhyApproach" xml:space="preserve"><value>avvicinamento dell&apos;aeroporto</value></data>
+  <data name="Xfer_WhyAirportUnit" xml:space="preserve"><value>ente dell&apos;aeroporto</value></data>
+  <data name="Xfer_WhyNeighbour" xml:space="preserve"><value>confinante confermato</value></data>
+  <data name="Xfer_WhyCounterpart" xml:space="preserve"><value>gia&apos; controparte</value></data>
+  <data name="Xfer_Paste" xml:space="preserve"><value>Incolla tabella</value></data>
+  <data name="Xfer_PasteTitle" xml:space="preserve"><value>Incolla una tabella presa da una LoA o da un IPI: la si guarda riga per riga prima di scrivere.</value></data>
+  <data name="Xfer_PasteLabel" xml:space="preserve"><value>Tabella da incollare</value></data>
+  <data name="Xfer_PasteHint" xml:space="preserve"><value>(una riga per clausola: punti · livello · ricevente · condizione — separati da TAB, «;» o «|»)</value></data>
+  <data name="Xfer_PastePh" xml:space="preserve"><value>EKMUR&#9;FL130-&#9;LIBD_CS0_APP&#10;BIRSU, TOPNO&#9;FL150&#9;LIBD_CS0_APP</value></data>
+  <data name="Xfer_PasteImport" xml:space="preserve"><value>Importa {0} clausole</value></data>
+  <data name="Xfer_PasteDone" xml:space="preserve"><value>Importate {0} clausole: rileggile prima di pubblicare.</value></data>
+  <data name="Xfer_PasteManyReceivers" xml:space="preserve"><value>Le righe citano riceventi diversi ({0}): sono accordi DIVERSI. Qui entrano tutte in questo accordo — importa un ricevente per volta, oppure sistema dopo.</value></data>
+  <data name="Xfer_PasteOtherReceiver" xml:space="preserve"><value>Le righe citano «{0}», che non e&apos; il ricevente di questo accordo. Il ricevente NON viene applicato: e&apos; dell&apos;accordo, e cambiarlo da qui lo cambierebbe per tutte le clausole.</value></data>
+  <data name="Xfer_Gaps" xml:space="preserve"><value>Lacune</value></data>
+  <data name="Xfer_GapsTitle" xml:space="preserve"><value>Cosa manca in questo ACC, in ordine di gravita&apos;. Nessuna e&apos; un errore: sono cose che probabilmente andrebbero scritte.</value></data>
+  <data name="Xfer_GapsHeading" xml:space="preserve"><value>Dove lavorare</value></data>
+  <data name="Xfer_GapNoReceiver" xml:space="preserve"><value>a UNICOM</value></data>
+  <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>versi diversi</value></data>
+  <data name="Xfer_GapNeighbour" xml:space="preserve"><value>confine scoperto</value></data>
+  <data name="Xfer_GapAirport" xml:space="preserve"><value>senza arrivi</value></data>
+  <data name="Xfer_GapSector" xml:space="preserve"><value>settore muto</value></data>
+  <data name="Xfer_GapClauses" xml:space="preserve"><value>{0} clausole</value></data>
+  <data name="Xfer_GapOnlyOneWay" xml:space="preserve"><value>da un lato solo: {0}</value></data>
+  <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confinante confermato senza accordi</value></data>
+  <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>nessun accordo di arrivo</value></data>
+  <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>non compare in nessun accordo</value></data>
 </root>
