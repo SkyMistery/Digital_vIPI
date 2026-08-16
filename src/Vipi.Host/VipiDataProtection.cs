@@ -50,7 +50,30 @@ public static class VipiDataProtection
             // Creata qui e non lasciata a Data Protection: se il percorso non è scrivibile — permessi del
             // servizio, StateDirectory mancante — si scopre all'avvio invece che al primo login, dove il
             // sintomo sarebbe «Correlation failed» e non parlerebbe di cartelle.
-            var dir = Directory.CreateDirectory(cartella!);
+            //
+            // L'eccezione viene riscritta perché quella originale dice solo «Access to the path X is denied»:
+            // vera ma muta su ciò che serve fare. Successo il 15 agosto 2026 su atc.it.ivao.aero, dove il
+            // percorso era ancora /var/lib/vipi/keys — scritto per il deploy systemd — mentre l'host reale è
+            // Plesk + Phusion Passenger e il processo gira come utente della sottoscrizione, che sotto
+            // /var/lib non può creare nulla. Il messaggio nomina utente e chiave di configurazione perché
+            // chi legge (spesso via FTP, dal file avvio-errore.txt) possa agire senza rimbalzare a noi.
+            DirectoryInfo dir;
+            try
+            {
+                dir = Directory.CreateDirectory(cartella!);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            {
+                throw new InvalidOperationException(
+                    $"Non riesco a creare o usare la cartella delle chiavi Data Protection: «{cartella}». " +
+                    $"Il processo gira come utente '{Environment.UserName}', che su quel percorso non ha i " +
+                    $"permessi di scrittura. Indicare in appsettings.Production.json una cartella che " +
+                    $"QUELL'utente possa scrivere, sotto la chiave '{DataProtectionSchema.KeyRingPathConfigKey}' " +
+                    $"— fuori dalla cartella di deploy (altrimenti sparisce a ogni aggiornamento) e fuori dal " +
+                    $"documento radice del sito (il key-ring è XML in chiaro: chi lo scarica fabbrica una " +
+                    $"sessione valida per qualunque VID).", ex);
+            }
+
             builder.Services.AddDataProtection()
                 .SetApplicationName("vIPI")
                 .PersistKeysToFileSystem(dir);

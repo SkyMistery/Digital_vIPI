@@ -68,9 +68,22 @@ public class DataProtectionSchemaTests
 
         var keyRing = dp.GetProperty("KeyRingPath").GetString();
         Assert.False(string.IsNullOrWhiteSpace(keyRing));
-        Assert.StartsWith("/var/lib/", keyRing, StringComparison.Ordinal);
-        // NON dentro la cartella di deploy: lì si scompatta lo zip a ogni aggiornamento.
-        Assert.DoesNotContain("/opt/vipi", keyRing, StringComparison.Ordinal);
+
+        // Percorso assoluto: uno relativo si risolverebbe rispetto alla directory di lavoro del processo,
+        // che su un host a pannello non è detto sia quella dell'applicazione.
+        Assert.StartsWith("/", keyRing, StringComparison.Ordinal);
+
+        // NON dentro la cartella dell'applicazione, che si sovrascrive a ogni aggiornamento: lì le chiavi
+        // sopravvivrebbero fino al primo deploy (tutti sloggati, ogni volta) e sarebbero per giunta
+        // scaricabili via HTTP dove il documento radice coincide con la cartella dell'applicazione.
+        //
+        // ⚠️ Il vincolo era «sotto /var/lib/», che era la cartella di stato creata da systemd. Non regge
+        // più dal 15 agosto 2026: atc.it.ivao.aero gira su Plesk+Passenger come utente della
+        // sottoscrizione, che sotto /var/lib non può creare nulla — e l'applicazione moriva all'avvio con
+        // «Access to the path '/var/lib/vipi' is denied». L'invariante vera non è mai stata QUALE cartella,
+        // ma che stia fuori da quella di deploy.
+        foreach (var cartellaDiDeploy in new[] { "/opt/vipi", "public_atc" })
+            Assert.DoesNotContain(cartellaDiDeploy, keyRing, StringComparison.Ordinal);
     }
 
     private static string RadiceRepo()

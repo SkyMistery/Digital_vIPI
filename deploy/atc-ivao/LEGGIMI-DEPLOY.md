@@ -27,6 +27,37 @@ da riempire solo i valori segreti.
 > Sono pensati per essere **spediti così come sono**: password, ClientId e ClientSecret non ci finiscono
 > mai. Della configurazione si riporta solo *se* un valore c'è, non quale.
 
+> ## 📌 Se il sito gira su Plesk con Phusion Passenger (non con systemd)
+>
+> Questo documento descrive il deploy con **systemd**: applicazione in `/opt/vipi`, servizio `vipi.service`,
+> nginx come proxy. Se invece l'applicazione è avviata da **Passenger** dentro Plesk — start command
+> `dotnet …/Vipi.Host.dll`, cartella tipo `/var/www/vhosts/it.ivao.aero/public_atc` — cambiano **due cose**,
+> e solo quelle. Il resto (database, segreti, login) è identico.
+>
+> **1. La cartella delle chiavi.** Con systemd la creava il servizio in `/var/lib/vipi/keys`; con Passenger
+> il processo gira come **utente della sottoscrizione** (`itivao`), che sotto `/var/lib` non può creare
+> nulla — e l'avvio muore con *«Access to the path '/var/lib/vipi' is denied»*. Va creata a mano, **accanto**
+> a `public_atc` e non dentro:
+>
+> ```
+> /var/www/vhosts/it.ivao.aero/
+>   ├── public_atc/      ← l'applicazione (si sovrascrive a ogni aggiornamento)
+>   └── vipi-keys/       ← le chiavi (da creare una volta, via FTP va bene; da mettere nei backup)
+> ```
+>
+> e va indicata in `appsettings.Production.json`:
+> `"DataProtection": { "KeyRingPath": "/var/www/vhosts/it.ivao.aero/vipi-keys" }`.
+> **Accanto e non dentro** per due motivi: dentro sparirebbe al primo aggiornamento (tutti sloggati, ogni
+> volta), e dentro sarebbe **scaricabile via HTTP** se il documento radice coincide con la cartella
+> dell'applicazione — e chi scarica il key-ring fabbrica una sessione valida per qualunque VID.
+>
+> **2. Il riavvio e i file da non pubblicare.** Passenger si riavvia toccando `tmp/restart.txt` dentro la
+> cartella dell'applicazione, non con `systemctl`. E `nginx-vipi.conf` non viene usato: le regole che
+> negano `/diagnostica/`, `appsettings*.json`, `*.dll` e `*.pdb` vanno messe fra le **direttive nginx
+> aggiuntive** del sito in Plesk. ⚠️ Da verificare subito, con un browser: se
+> `https://atc.it.ivao.aero/appsettings.Production.json` restituisce il file invece di un errore, la
+> password del database è pubblica e va cambiata dopo aver chiuso l'accesso.
+
 ---
 
 ## In cinque passi
@@ -187,11 +218,11 @@ proprio database — le stesse condizioni del vostro server):
 - **travaso dei dati veri** e `.sql` **riletto in un database vuoto**: 39 tabelle su 39 con conteggi
   identici all'origine, e nessuna migrazione riapplicata all'avvio;
 - le **chiavi di sessione** sopravvivono a un riavvio. ⚠️ Dal 14 agosto **non stanno più nel database** ma
-  in una cartella, `/var/lib/vipi/keys` (`DataProtection:KeyRingPath`): sono XML in chiaro e chi le legge
-  può fabbricare una sessione valida per qualunque VID, compresi gli admin — nel vostro database sarebbero
-  leggibili da chiunque abbia accesso al database. La cartella la crea `systemd` (`StateDirectory=vipi` in
-  `vipi.service`) e sta **fuori** da `/opt/vipi` apposta, perché lì si scompatta lo zip a ogni
-  aggiornamento. **Va nei backup**: perderla slogga tutti, una volta sola;
+  in una cartella (`DataProtection:KeyRingPath`): sono XML in chiaro e chi le legge può fabbricare una
+  sessione valida per qualunque VID, compresi gli admin — nel vostro database sarebbero leggibili da
+  chiunque abbia accesso al database. La cartella sta **fuori** dalla cartella dell'applicazione apposta,
+  perché lì si sovrascrive tutto a ogni aggiornamento. **Va nei backup**: perderla slogga tutti, una volta
+  sola. Il percorso dipende da come è ospitato il sito: vedi il riquadro qui sotto;
 - **flussi editoriali guidati sull'applicazione vera**: import di ACC, settori e aeroporti; import delle SID
   per singolo aeroporto; **pubblicazione di tutti e tre i tipi di documento** (vIPI ACC, aeroporto, vLOA);
   lock di modifica; ricerca globale; vista live; caricamento e rilettura di un'immagine, byte per byte
