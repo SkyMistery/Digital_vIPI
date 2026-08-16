@@ -68,9 +68,33 @@ public class DataProtectionSchemaTests
 
         var keyRing = dp.GetProperty("KeyRingPath").GetString();
         Assert.False(string.IsNullOrWhiteSpace(keyRing));
-        Assert.StartsWith("/var/lib/", keyRing, StringComparison.Ordinal);
-        // NON dentro la cartella di deploy: lì si scompatta lo zip a ogni aggiornamento.
-        Assert.DoesNotContain("/opt/vipi", keyRing, StringComparison.Ordinal);
+
+        // Percorso assoluto: uno relativo si risolverebbe rispetto alla directory di lavoro del processo,
+        // che su un host a pannello non è detto sia quella dell'applicazione.
+        Assert.StartsWith("/", keyRing, StringComparison.Ordinal);
+
+        // NON dentro wwwroot: è l'unica cartella che ASP.NET serve come contenuto statico, quindi lì le
+        // chiavi sarebbero scaricabili da chiunque — e chi le scarica fabbrica una sessione valida per
+        // qualunque VID. Questo vincolo vale su ogni host e non dipende da come è configurato il proxy.
+        Assert.DoesNotContain("wwwroot", keyRing, StringComparison.Ordinal);
+
+        // ⚠️ Storia di questo test, perché due volte in due giorni ha presidiato la cosa sbagliata.
+        //
+        // Chiedeva «sotto /var/lib/», che era la cartella di stato creata da systemd: il 15 agosto 2026
+        // l'avvio su atc.it.ivao.aero è morto con «Access to the path '/var/lib/vipi' is denied», perché
+        // l'host vero è Plesk+Passenger e il processo gira come utente della sottoscrizione.
+        //
+        // È stato allora riscritto per chiedere «fuori dalla cartella di deploy» — la ragione vera per cui
+        // /var/lib era stato scelto. Il 16 agosto è caduta anche quella: l'accesso FTP a quel server è
+        // CONFINATO alla cartella dell'applicazione, quindi una cartella al livello superiore non è
+        // creabile e il key-ring sta in .../public_atc/vipi-keys. Il rischio che il vincolo copriva —
+        // sparire a ogni aggiornamento — resta, ma si governa non cancellandola (è scritto in
+        // LEGGIMI-FTP.md, che è dove si guarda mentre si aggiorna), e il danno è comunque «tutti sloggati
+        // una volta, nessun dato perso».
+        //
+        // La lezione, per chi verrà: il vincolo verificabile qui è solo ciò che vale ovunque. Dove
+        // esattamente possa stare una cartella lo decide il server, e un test su un file di configurazione
+        // non lo sa.
     }
 
     private static string RadiceRepo()
