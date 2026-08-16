@@ -126,6 +126,22 @@ public class FlowsToAgreementsTests
     }
 
     [Fact]
+    public void Due_varianti_identiche_non_si_fondono()
+    {
+        // Trovato dal test sul database, non previsto: due varianti appena create sono identiche in TUTTO —
+        // la condizione e' esattamente cio' che chi le ha create deve ancora scrivere — quindi la fusione le
+        // scambiava per la stessa riga scritta due volte, e SCIOGLIEVA il gruppo. Dentro un gruppo ogni riga
+        // e' un'alternativa distinta anche quando non ha ancora niente da dire di diverso.
+        var flow = Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIBD",
+            Point(1, "BIRSU", 150, "LIBD_CS0_APP") with { VariantGroup = 1, VariantDepth = 0, Order = 1 },
+            Point(2, "BIRSU", 150, "LIBD_CS0_APP") with { VariantGroup = 1, VariantDepth = 0, Order = 2 });
+
+        var a = Assert.Single(FlowsToAgreements.Convert(new[] { flow }));
+        Assert.Equal(2, a.Clauses.Count);
+        Assert.All(a.Clauses, c => Assert.Equal(1, c.VariantGroup));
+    }
+
+    [Fact]
     public void I_due_versi_non_vengono_accoppiati_dal_travaso()
     {
         // Sarebbe la fusione piu' vistosa, ed e' proprio per questo che non si fa da sola: in archivio le due

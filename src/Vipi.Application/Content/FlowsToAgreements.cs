@@ -199,7 +199,7 @@ public static class FlowsToAgreements
 
         foreach (var p in points)
         {
-            if (open is not null && ClauseSignature(open) == ClauseSignature(p))
+            if (open is not null && CanMerge(open, p))
             {
                 cops.Add(p.Cop);
                 continue;
@@ -212,6 +212,17 @@ public static class FlowsToAgreements
 
         return clauses;
     }
+
+    /// <summary>
+    /// Due righe consecutive si fondono in una clausola con l'elenco dei punti solo se dicono la stessa cosa —
+    /// e se <b>nessuna delle due sta in un gruppo di varianti</b>.
+    /// <para>⚠️ La seconda metà non è una cautela: due varianti appena create sono identiche in tutto (la
+    /// condizione è esattamente ciò che chi le ha create deve ancora scrivere), quindi la fusione le
+    /// scambierebbe per la stessa riga scritta due volte e <b>scioglierebbe il gruppo</b>. Dentro un gruppo
+    /// ogni riga è un'alternativa distinta anche quando non ha ancora niente da dire di diverso.</para>
+    /// </summary>
+    private static bool CanMerge(TransferPointRow a, TransferPointRow b) =>
+        a.VariantGroup is null && b.VariantGroup is null && ClauseSignature(a) == ClauseSignature(b);
 
     private static AgreementClauseRow ToClause(TransferPointRow p, string cops, int order) => new()
     {

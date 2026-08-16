@@ -33,4 +33,12 @@ public static class ImportCategories
     /// aree di un ACC estero che l'admin ha appena abilitato.
     /// </summary>
     public const string SpecialAreaForeignOptOut = "SpecialAreaForeignOptOut";
+
+    /// <summary>
+    /// Nemmeno questo è un import periodico: è il segnaposto del travaso one-shot dei flussi di trasferimento
+    /// negli accordi di coordinamento (<c>IAgreementMaintenance.MigrateFlowsToAgreementsAsync</c>). Serve un
+    /// registro «già fatto» persistente, e non basta guardare se la tabella degli accordi è vuota: chi li
+    /// cancellasse tutti da editor si ritroverebbe l'archivio vecchio rimesso dentro al riavvio.
+    /// </summary>
+    public const string TransferFlowsToAgreements = "TransferFlowsToAgreements";
 }
