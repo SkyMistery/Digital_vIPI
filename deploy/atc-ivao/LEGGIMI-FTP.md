@@ -63,6 +63,13 @@ password del database e le chiavi IVAO: se lo sovrascrivete a ogni aggiornamento
 ma **su SQLite, con un database vuoto**, e sembra che il sito abbia perso tutti i contenuti. In un
 aggiornamento, escludetelo dall'upload o rimettetelo subito dopo.
 
+⚠️ **Non cancellate la cartella `vipi-keys`.** Su `atc.it.ivao.aero` sta **dentro** la cartella
+dell'applicazione (`.../public_atc/vipi-keys`), in mezzo ai file che si sovrascrivono, perché l'accesso FTP
+è confinato lì e non permette di crearla al livello superiore, che sarebbe il posto giusto. Contiene le
+chiavi che firmano i cookie di sessione: **sovrascriverla non fa danno, cancellarla sì** — tutti gli utenti
+collegati vengono disconnessi e devono rientrare. Una volta sola, nessun dato perso, ma è evitabile. Se
+aggiornate cancellando prima la cartella remota, salvatela e rimettetela.
+
 ---
 
 ## 4. Dopo l'upload: i permessi

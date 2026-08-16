@@ -36,20 +36,28 @@ da riempire solo i valori segreti.
 >
 > **1. La cartella delle chiavi.** Con systemd la creava il servizio in `/var/lib/vipi/keys`; con Passenger
 > il processo gira come **utente della sottoscrizione** (`itivao`), che sotto `/var/lib` non può creare
-> nulla — e l'avvio muore con *«Access to the path '/var/lib/vipi' is denied»*. Va creata a mano, **accanto**
-> a `public_atc` e non dentro:
+> nulla — e l'avvio muore con *«Access to the path '/var/lib/vipi' is denied»*. **Risolto il 16 agosto
+> 2026** così:
 >
 > ```
-> /var/www/vhosts/it.ivao.aero/
->   ├── public_atc/      ← l'applicazione (si sovrascrive a ogni aggiornamento)
->   └── vipi-keys/       ← le chiavi (da creare una volta, via FTP va bene; da mettere nei backup)
+> /var/www/vhosts/it.ivao.aero/public_atc/     ← radice dell'accesso FTP: ci si entra direttamente
+>   ├── wwwroot/  content/  diagnostica/  …    ← i 369 file del pacchetto
+>   └── vipi-keys/                             ← le chiavi (creata a mano una volta; nei backup)
 > ```
 >
-> e va indicata in `appsettings.Production.json`:
-> `"DataProtection": { "KeyRingPath": "/var/www/vhosts/it.ivao.aero/vipi-keys" }`.
-> **Accanto e non dentro** per due motivi: dentro sparirebbe al primo aggiornamento (tutti sloggati, ogni
-> volta), e dentro sarebbe **scaricabile via HTTP** se il documento radice coincide con la cartella
-> dell'applicazione — e chi scarica il key-ring fabbrica una sessione valida per qualunque VID.
+> indicata in `appsettings.Production.json` come
+> `"KeyRingPath": "/var/www/vhosts/it.ivao.aero/public_atc/vipi-keys"`.
+>
+> ⚠️ **Sta dentro la cartella dell'applicazione per necessità, non per scelta.** Il posto giusto sarebbe il
+> livello superiore, fuori da ciò che si sovrascrive; ma l'accesso FTP di quel server è **confinato** alla
+> cartella dell'applicazione, e da lì una cartella sopra non è creabile. Il rischio che ne resta è uno solo
+> — sparire se un aggiornamento cancella e ricarica — e si governa non cancellandola: l'avviso è in
+> [`LEGGIMI-FTP.md`](LEGGIMI-FTP.md), che è il foglio che si ha davanti mentre si aggiorna. L'altro rischio,
+> essere scaricabile via HTTP, **è stato verificato e non c'è**: `/appsettings.json` risponde `403`, quindi
+> nginx non serve i file di quella cartella.
+>
+> Se un domani l'accesso al server fosse meno ristretto, il posto giusto torna a essere
+> `/var/www/vhosts/it.ivao.aero/vipi-keys`, accanto a `public_atc`.
 >
 > **2. Il riavvio e i file da non pubblicare.** Passenger si riavvia toccando `tmp/restart.txt` dentro la
 > cartella dell'applicazione, non con `systemctl`. E `nginx-vipi.conf` non viene usato: le regole che
