@@ -115,6 +115,7 @@ public sealed class VipiViewService : IVipiViewService
             SectionKey = s.SectionKey,
             IsHidden = s.IsHidden,
             BeforeParentBody = s.BeforeParentBody,
+            LeadSentence = s.LeadSentence,
             Blocks = blocks,
             Children = children,
         };

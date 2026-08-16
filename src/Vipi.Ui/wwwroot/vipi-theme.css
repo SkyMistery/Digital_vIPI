@@ -385,6 +385,10 @@
 .coord-table th.c-cop{width:17%}
 .coord-table th.c-level{width:21%}
 .coord-table th.c-cond{width:27%}
+/* «Anche per» (gli altri aeroporti dell'accordo): quattro ICAO separati dal punto mediano stanno in 15%, e la
+   colonna compare solo quando un accordo ne copre piu' d'uno — dove ne copre uno, quello e' gia' il nodo sotto
+   cui la riga si legge. */
+.coord-table th.c-apts{width:15%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
 
 /* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze

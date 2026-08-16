@@ -1475,4 +1475,9 @@
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Sfila dal gruppo di varianti (col suo sottoalbero)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Anteprima</value></data>
   <data name="Xfer_RowSaved" xml:space="preserve"><value>Clausola salvata.</value></data>
+  <data name="Coord_AlsoFor" xml:space="preserve"><value>Anche per</value></data>
+  <data name="Dse_ProseLead" xml:space="preserve"><value>prosa: capofila</value></data>
+  <data name="Dse_ProseSpread" xml:space="preserve"><value>prosa: distesa</value></data>
+  <data name="Dse_ProseLeadTitle" xml:space="preserve"><value>Passa alla prosa CAPOFILA: una frase sola che introduce la tabella, come nelle LoA e negli IPI veri. Utile dove le clausole sono tante.</value></data>
+  <data name="Dse_ProseSpreadTitle" xml:space="preserve"><value>Torna alla prosa DISTESA: una frase per clausola sopra la tabella. Utile dove le clausole sono poche e ognuna va letta per intero.</value></data>
 </root>

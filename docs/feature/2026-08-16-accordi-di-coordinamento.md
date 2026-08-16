@@ -158,9 +158,23 @@ gerarchia di copertura copre già il caso. Scritto qui perché non venga riscope
 | 0 | Carta, registro lacune, **rete di caratterizzazione** sui flussi veri | ✅ |
 | 1 | Entità + migrazione nei due provider + convertitore + espansione + porta di scrittura | ✅ |
 | 2 | Editor sugli accordi (guscio a tre colonne e gesti conservati) + **scambio**: travaso armato, lettori sugli accordi, vecchia scrittura rimossa | ✅ |
-| 3 | Lettura: riga per clausola; **prosa a scelta della sezione** (distesa come oggi ⇄ capofila come i documenti veri); nodo multi-aeroporto | ⬜ |
+| 3 | Lettura: punti richiusi in una riga, **prosa a scelta della sezione** (distesa ⇄ capofila), colonna «Anche per» | ✅ |
 | 4 | Riempimento: riceventi proposti · incolla-tabella · cruscotto lacune | ⬜ |
 | 5 | Propagazione doc/spec/memorie e chiusura | ⬜ |
+
+### Esito della lettura (16 agosto, verificato live)
+
+- **I punti si richiudono**: sulla derivazione live otto celle portano ora l'elenco («EKMUR, PISIP»,
+  «DINOB, RUTOM, LORNO, BELIX»), e la frase è **una per clausola** invece di una per punto.
+- ⚠️ **La richiusura NON si applica ai documenti già pubblicati**, ed è la scoperta che conta: la vista pubblica
+  legge lo **snapshot congelato**, catturato prima di questa modifica e senza la provenienza. Le righe senza
+  clausola passano intatte apposta — un documento pubblicato non deve cambiare forma perché il codice è andato
+  avanti. Si ricompatterà alla prossima release, che è il momento in cui un documento cambia.
+- La colonna **«Anche per»** compare solo dove un accordo copre più scali: l'accordo con Tivat la mostra
+  («LIBD · LIBR»), quelli su un aeroporto solo no.
+- La **prosa a capofila** è un flag per-sezione (`DocumentSection.LeadSentence`), quarto dopo `RenderMode`,
+  `IsHidden` e `BeforeParentBody`, con l'interruttore sulla sola sezione «coordinamenti» — offrirlo altrove
+  sarebbe un comando che non fa niente.
 
 ### Esito dello scambio (16 agosto, verificato live su copia del `vipi.db` reale)
 

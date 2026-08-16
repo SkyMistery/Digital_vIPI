@@ -29,6 +29,16 @@ public class DocumentSection
     /// per-sezione con <see cref="RenderMode"/> e <see cref="IsHidden"/>: versionato e catturato nello snapshot.</summary>
     public bool BeforeParentBody { get; set; }
 
+    /// <summary>
+    /// Come si legge la PROSA di una sezione derivata a tabelle (i coordinamenti): <c>false</c> = distesa, una
+    /// frase per clausola sopra la tabella — il comportamento storico; <c>true</c> = capofila, UNA frase che
+    /// introduce la tabella, che è la forma dei documenti veri (LoA EUROCONTROL, IPI ENAV).
+    /// <para>Quarto flag per-sezione con <see cref="RenderMode"/>, <see cref="IsHidden"/> e
+    /// <see cref="BeforeParentBody"/>, e per la stessa ragione: è una scelta editoriale, quindi è versionata e
+    /// finisce nello snapshot di release. Default false, così nessuna sezione già scritta cambia da sola.</para>
+    /// </summary>
+    public bool LeadSentence { get; set; }
+
     public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
 
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();

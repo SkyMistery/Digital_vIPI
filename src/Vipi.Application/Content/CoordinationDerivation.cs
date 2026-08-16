@@ -50,7 +50,7 @@ public static class CoordinationDerivation
     /// </summary>
     public static AppCoordRow ToRow(
         CoordinationSentenceTemplate tpl, TransferPointRow p, TransferFlowRow flow,
-        string next, TransferFlowKind kind, string ownerCallsign, string? sentence) =>
+        string next, TransferFlowKind kind, string ownerCallsign, string? sentence, string? lead = null) =>
         new(p.Cop, p.LevelText, next, kind)
         {
             OwnerCallsign = ownerCallsign,
@@ -71,6 +71,11 @@ public static class CoordinationDerivation
             CommsHandoff = TransferHandoffText.CommsPlace(tpl, TransferHandoffFacet.From(p)),
             Speed = TransferHandoffText.Speed(tpl, p.SpeedValue, p.SpeedConstraint),
             FlowId = flow.Id,
+            // La provenienza: da quale clausola viene la riga, e cosa diceva quella clausola per intero.
+            ClauseId = p.ClauseId,
+            Points = p.Cops,
+            LeadSentence = lead,
+            AgreementAirports = p.AgreementAirports,
             VariantGroup = p.VariantGroup,
             VariantDepth = p.VariantDepth,
             IsGroupWide = p.IsGroupWide,
@@ -109,9 +114,17 @@ public static class CoordinationDerivation
                 p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
                 ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p));
 
+        // La frase CAPOFILA: chi trasferisce a chi e che traffico, senza livello ne' punto — quelli sono cio' che
+        // la tabella dice riga per riga. Si compone qui, dove ci sono le mappe, perche' la lingua vive nel
+        // template e la vista non deve rimetterla insieme da se'.
+        string? Lead(string sender, string receiver, TransferFlowRow flow, TransferFlowKind kind)
+            => CoordinationSentences.ComposeLead(tpl, types, nameMap, codeMap, airportMap, atcMap,
+                sender, receiver, flow.AirportIcao, kind);
+
         AppCoordRow Row(TransferPointRow p, string next, TransferFlowRow flow, string sentenceOwner, string sentenceTarget,
             TransferFlowKind kind) =>
-            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow, p, kind));
+            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow, p, kind),
+                  Lead(sentenceOwner, sentenceTarget, flow, kind));
 
         // 1) Flussi POSSEDUTI dai settori del blocco/dominio (qualsiasi Next: ACC/APP/torre; qualsiasi tipo).
         foreach (var flow in flows.Where(f => owners.Contains(f.OwningSectorCallsign)))

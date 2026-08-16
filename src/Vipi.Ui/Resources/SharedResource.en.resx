@@ -1469,4 +1469,9 @@
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Detach from the variant group (with its subtree)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Preview</value></data>
   <data name="Xfer_RowSaved" xml:space="preserve"><value>Clause saved.</value></data>
+  <data name="Coord_AlsoFor" xml:space="preserve"><value>Also for</value></data>
+  <data name="Dse_ProseLead" xml:space="preserve"><value>prose: lead</value></data>
+  <data name="Dse_ProseSpread" xml:space="preserve"><value>prose: spread</value></data>
+  <data name="Dse_ProseLeadTitle" xml:space="preserve"><value>Switch to LEAD prose: a single sentence introducing the table, as in real LoAs and IPIs. Useful where there are many clauses.</value></data>
+  <data name="Dse_ProseSpreadTitle" xml:space="preserve"><value>Back to SPREAD prose: one sentence per clause above the table. Useful where clauses are few and each is worth reading in full.</value></data>
 </root>

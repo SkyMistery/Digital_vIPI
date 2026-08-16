@@ -135,6 +135,14 @@ else
     });
 
     // Sposta la sotto-sezione prima/dopo il corpo del padre (doc 11 §3g): stato per-sezione, versionato.
+    /// <summary>Commuta la prosa fra distesa e capofila. La scelta sta sulla sezione, quindi è versionata e
+    /// finisce nello snapshot di release: un documento pubblicato non cambia forma perché qualcuno l'ha
+    /// commutata nella bozza.</summary>
+    private Task ToggleLeadSentence(EditableSection s) => Run(async () =>
+    {
+        await Editing.SetSectionLeadSentenceAsync(s.Id, !s.LeadSentence);
+    });
+
     private Task ToggleBeforeParentBody(EditableSection s) => Run(async () =>
     {
         await Editing.SetSectionBeforeParentBodyAsync(s.Id, !s.BeforeParentBody);
@@ -251,6 +259,16 @@ else
             {
                 <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
                         @onclick="() => ToggleHidden(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
+            }
+            @* Prosa della sezione: distesa (una frase per clausola) o CAPOFILA (una frase che introduce la
+               tabella, come i documenti veri). Solo sui COORDINAMENTI: è l'unica sezione che rende una prosa
+               derivata riga per riga, e offrire l'interruttore altrove sarebbe un comando che non fa niente. *@
+            @if (IsEditing && s.SectionKey == "coordination")
+            {
+                <button class="btn ghost" title="@(s.LeadSentence ? L["Dse_ProseSpreadTitle"] : L["Dse_ProseLeadTitle"])"
+                        @onclick="() => ToggleLeadSentence(s)">
+                    @(s.LeadSentence ? "¶ " + L["Dse_ProseLead"] : "¶ " + L["Dse_ProseSpread"])
+                </button>
             }
             @* Posizione rispetto al corpo del padre: solo per le SOTTO-sezioni (una sezione di primo livello non ha
                un corpo che la preceda). Doc 11 §3g. *@

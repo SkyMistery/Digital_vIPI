@@ -61,12 +61,25 @@ public sealed class CoordinationSentenceTemplate
     /// <summary>Reso quando il CoP è «ALL to X»: tutti i punti verso una nazione/FIR. Placeholder {dest}.</summary>
     public string FallbackAllToward { get; init; } = "tutti i punti verso {dest}";
 
+    /// <summary>
+    /// La frase CAPOFILA: una sola, che introduce l'intera tabella invece di descriverne una riga. È la forma dei
+    /// documenti veri — «TS EXE trasferisce a US1 EXE il traffico secondo la seguente tabella:» — e serve alle
+    /// sezioni dove le righe sono tante e la prosa, ripetuta per ognuna, si legge due volte per scoprire che
+    /// dice la stessa cosa.
+    /// <para>Placeholder: <c>{owner}</c>, <c>{target}</c>, <c>{airport}</c>. Non porta livello né punto,
+    /// <b>apposta</b>: quelli sono ciò che la tabella dice riga per riga, e ripeterli qui vorrebbe dire scegliere
+    /// quale riga è più importante delle altre.</para>
+    /// </summary>
+    public string TemplateLead { get; init; } =
+        "{owner} trasferisce a {target} il traffico {airport} secondo la tabella seguente:";
+
     public static CoordinationSentenceTemplate Default { get; } = new();
 
     /// <summary>Template inglese (usato dalle vLOA, documenti bilaterali in EN). Stessi placeholder, testi in inglese.</summary>
     public static CoordinationSentenceTemplate English { get; } = new()
     {
         Template = "{owner} transfers to {target} the traffic {airport} {stato} {fl} over {point}.",
+        TemplateLead = "{owner} transfers to {target} the traffic {airport} as per the table below:",
         AirportArrival = "inbound to {name} {icao}",
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState

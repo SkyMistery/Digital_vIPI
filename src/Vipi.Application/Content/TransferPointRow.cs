@@ -58,4 +58,22 @@ public sealed record TransferPointRow : IOutlineRow
     public bool IsGroupWide { get; init; }
 
     public required int Order { get; init; }
+
+    // ---- provenienza ----
+    // Da quale CLAUSOLA viene la riga, e cosa diceva quella clausola per intero. L'espansione apre un elenco di
+    // punti in tante righe perche' e' la lettura giusta per il matcher e per la vista live; la TABELLA del
+    // documento vuole richiuderlo, e senza sapere da dove viene ogni riga dovrebbe indovinarlo confrontando
+    // quindici campi — cioe' ricostruire per somiglianza un legame che il dato conosce.
+
+    /// <summary>La clausola da cui la riga e' stata proiettata; <c>null</c> per le righe che non vengono da un
+    /// accordo (nessuna, oggi: resta nullable perche' il tipo e' una proiezione e non un'entita').</summary>
+    public int? ClauseId { get; init; }
+
+    /// <summary>L'elenco completo dei punti della clausola («EKMUR, PISIP»); vuoto se la riga non viene da una.</summary>
+    public string? Cops { get; init; }
+
+    /// <summary>Gli aeroporti dell'accordo, quando sono <b>piu' d'uno</b> — vuoto altrimenti. Dice al lettore che
+    /// questa riga non riguarda solo lo scalo sotto cui la sta leggendo: e' un accordo solo, non quattro
+    /// coincidenze.</summary>
+    public string? AgreementAirports { get; init; }
 }

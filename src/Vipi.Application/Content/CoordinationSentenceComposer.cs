@@ -5,8 +5,11 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Dati risolti per comporre una frase di coordinamento (una per riga CoP).</summary>
-public sealed class CoordinationSentenceData
+/// <summary>Dati risolti per comporre una frase di coordinamento (una per riga CoP).
+/// <para><c>record</c> e non <c>class</c>: la parte che non dipende dalla riga — mittente, destinatario,
+/// aeroporto — si risolve una volta in <c>CoordinationSentences.BuildData</c> e poi si completa con <c>with</c>.
+/// Ricopiarne otto campi a mano sarebbe otto occasioni di dimenticarne uno.</para></summary>
+public sealed record CoordinationSentenceData
 {
     public required string OwnerName { get; init; }
     public required string TargetName { get; init; }
@@ -43,6 +46,19 @@ public sealed class CoordinationSentenceData
 /// <summary>Compone la frase di coordinamento sostituendo i placeholder del template. Funzione pura.</summary>
 public static class CoordinationSentenceComposer
 {
+    /// <summary>
+    /// La frase CAPOFILA di una tabella: chi trasferisce a chi, che traffico, e basta. Niente livello e niente
+    /// punto — quelli sono ciò che la tabella dice riga per riga, e anticiparne uno vorrebbe dire eleggere una
+    /// riga a rappresentante delle altre.
+    /// <para>Passa dagli stessi slot della frase distesa (<c>{owner}</c>, <c>{target}</c>, <c>{airport}</c>),
+    /// quindi la lingua resta una sola e le vLOA la ottengono in inglese senza codice dedicato.</para>
+    /// </summary>
+    public static string ComposeLead(CoordinationSentenceTemplate tpl, CoordinationSentenceData d) =>
+        Normalize(tpl.TemplateLead
+            .Replace("{owner}", d.OwnerName)
+            .Replace("{target}", Target(tpl, d))
+            .Replace("{airport}", Airport(tpl, d)));
+
     public static string Compose(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
     {
         // Stato verticale scelto a mano (indipendente dal vincolo di livello): «a 130 o inferiore» non è una discesa.
@@ -56,19 +72,8 @@ public static class CoordinationSentenceComposer
 
         var fl = BuildFl(tpl, d);
 
-        var code = (d.TargetCode ?? "").Trim();
-        var target = (d.OmitTargetCode || code.Length == 0)
-            ? tpl.TargetNoCode.Replace("{name}", d.TargetName)
-            : tpl.TargetWithCode.Replace("{name}", d.TargetName).Replace("{code}", code);
-
-        // La relazione aeroporto dipende dal tipo di flusso: arrivo = «con destinazione», partenza = «in partenza da».
-        var airportTpl = d.Kind switch
-        {
-            TransferFlowKind.Departure => tpl.AirportDeparture,
-            TransferFlowKind.Arrival => tpl.AirportArrival,
-            _ => tpl.Airport,   // overflight/VFR/altro: relazione neutra
-        };
-        var airport = airportTpl.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
+        var target = Target(tpl, d);
+        var airport = Airport(tpl, d);
         var point = ResolvePoint((d.Point ?? "").Trim(), tpl);
 
         // Con una faccetta trasferimento la frase cambia VERBO («autorizza … e lo trasferisce»), quindi cambia
@@ -93,6 +98,28 @@ public static class CoordinationSentenceComposer
         return AppendTail(withCondition,
             TransferHandoffText.Speed(tpl, d.Facet.SpeedValue, d.Facet.SpeedConstraint),
             BuildComms(tpl, d));
+    }
+
+    /// <summary>Il destinatario come lo scrive il template: col codice di posizione quando ne ha uno.</summary>
+    private static string Target(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
+    {
+        var code = (d.TargetCode ?? "").Trim();
+        return (d.OmitTargetCode || code.Length == 0)
+            ? tpl.TargetNoCode.Replace("{name}", d.TargetName)
+            : tpl.TargetWithCode.Replace("{name}", d.TargetName).Replace("{code}", code);
+    }
+
+    /// <summary>La relazione con l'aeroporto: arrivo = «con destinazione», partenza = «in partenza da», il resto
+    /// neutro. Condivisa fra la frase distesa e la capofila, che devono dirlo allo stesso modo.</summary>
+    private static string Airport(CoordinationSentenceTemplate tpl, CoordinationSentenceData d)
+    {
+        var t = d.Kind switch
+        {
+            TransferFlowKind.Departure => tpl.AirportDeparture,
+            TransferFlowKind.Arrival => tpl.AirportArrival,
+            _ => tpl.Airport,   // overflight/VFR/altro: relazione neutra
+        };
+        return t.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
     }
 
     // Le parole del trasferimento stanno in TransferHandoffText: le usa anche la derivazione per riempire le
@@ -289,11 +316,44 @@ public static class CoordinationSentences
         TransferHandoffFacet? facet = null)
     {
         facet ??= TransferHandoffFacet.None;
-        // Senza mittente o destinatario la frase è priva di soggetto/oggetto → riga incompleta, nessuna frase
-        // (coerente col contratto «dati incompleti → null»; evita anche lookup con chiave vuota più sotto).
+        // Chi trasferisce, a chi, su quale aeroporto: la parte che non dipende dalla riga. null = dati
+        // incompleti, e il contratto e' «dati incompleti -> nessuna frase».
+        var b = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,
+            ownerCallsign, targetCallsign, airportIcao, kind);
+        if (b is null) return null;
+
+        return CoordinationSentenceComposer.Compose(tpl, b with
+        {
+            Constraint = constraint,
+            VerticalState = verticalState,
+            LevelValue = levelValue,
+            LevelUnit = levelUnit,
+            LevelSpecial = levelSpecial,
+            Parity = parity,
+            Point = cop,
+            Conditions = conditions ?? Array.Empty<ConditionClause>(),
+            Facet = facet,
+        });
+    }
+
+    /// <summary>
+    /// La parte della frase che NON dipende dalla riga: chi trasferisce, a chi, e su quale aeroporto. Estratta
+    /// perche' la usano sia la frase distesa sia la capofila, e due copie potrebbero divergere proprio su chi
+    /// porta il codice di posizione — che e' la regola meno ovvia di tutte.
+    /// <para><c>null</c> = dati incompleti, nessuna frase: senza mittente o destinatario manca il soggetto, e un
+    /// arrivo/partenza senza aeroporto avrebbe un «con destinazione» orfano.</para>
+    /// </summary>
+    private static CoordinationSentenceData? BuildData(
+        CoordinationSentenceTemplate tpl,
+        IReadOnlyDictionary<string, SectorType> types,
+        IReadOnlyDictionary<string, string> nameMap,
+        IReadOnlyDictionary<string, string> codeMap,
+        IReadOnlyDictionary<string, string> airportMap,
+        IReadOnlyDictionary<string, string> atcMap,
+        string ownerCallsign, string targetCallsign, string? airportIcao, TransferFlowKind kind)
+    {
         if (string.IsNullOrWhiteSpace(ownerCallsign) || string.IsNullOrWhiteSpace(targetCallsign)) return null;
 
-        // Arrivi/partenze senza aeroporto = «con destinazione»/«in partenza da» orfano → nessuna frase.
         // Sorvoli/VFR/altro usano la relazione neutra e reggono anche senza aeroporto.
         var hasAirport = !string.IsNullOrWhiteSpace(airportIcao);
         if (!hasAirport && kind is TransferFlowKind.Arrival or TransferFlowKind.Departure) return null;
@@ -307,19 +367,19 @@ public static class CoordinationSentences
                    && string.IsNullOrWhiteSpace(targetCode);
 
         // Mittente: nome base + codice di posizione quando ne ha uno (es. «Roma Radar» + «NE»). Il ricevente
-        // porta il proprio codice nello slot del template (targetWithCode), quindi qui il target è senza.
+        // porta il proprio codice nello slot del template, quindi qui il target e' senza.
         //
-        // La regola era ristretta ai soli CTR, e reggeva finché il mittente era sempre un CTR. Da quando la
-        // sezione estesa mostra anche ciò che ENTRA da un APP (11 agosto 2026), un APP consolidato può essere
+        // La regola era ristretta ai soli CTR, e reggeva finche' il mittente era sempre un CTR. Da quando la
+        // sezione estesa mostra anche cio' che ENTRA da un APP (11 agosto 2026), un APP consolidato puo' essere
         // il mittente: senza codice la frase diventava «Roma Radar trasferisce a Roma Radar TS», due enti
-        // diversi con lo stesso nome. Ora la regola è la stessa dei due lati: il codice si mostra se c'è.
+        // diversi con lo stesso nome. Ora la regola e' la stessa dei due lati: il codice si mostra se c'e'.
         var ownerBase = BaseName(ownerCallsign, nameMap, atcMap);
         var ownerMid = codeMap.GetValueOrDefault(ownerCallsign) ?? "";
         var ownerName = (ownerMid.Length > 0 && ownerBase.IndexOf(ownerMid, StringComparison.OrdinalIgnoreCase) < 0)
             ? $"{ownerBase} {ownerMid}"
             : ownerBase;
 
-        return CoordinationSentenceComposer.Compose(tpl, new CoordinationSentenceData
+        return new CoordinationSentenceData
         {
             OwnerName = ownerName,
             TargetName = BaseName(targetCallsign, nameMap, atcMap),
@@ -328,16 +388,28 @@ public static class CoordinationSentences
             AirportName = hasAirport ? airportMap.GetValueOrDefault(airportIcao!, airportIcao!) : "",
             AirportIcao = airportIcao ?? "",
             Kind = kind,
-            Constraint = constraint,
-            VerticalState = verticalState,
-            LevelValue = levelValue,
-            LevelUnit = levelUnit,
-            LevelSpecial = levelSpecial,
-            Parity = parity,
-            Point = cop,
-            Conditions = conditions ?? Array.Empty<ConditionClause>(),
-            Facet = facet,
-        });
+            Point = "",
+        };
+    }
+
+    /// <summary>
+    /// La frase CAPOFILA per una tabella di coordinamenti. Stesse mappe e stesso template della frase distesa:
+    /// e' la stessa cosa detta una volta per tutte invece che riga per riga, quindi mittente, destinatario e
+    /// aeroporto devono uscire identici.
+    /// </summary>
+    public static string? ComposeLead(
+        CoordinationSentenceTemplate tpl,
+        IReadOnlyDictionary<string, SectorType> types,
+        IReadOnlyDictionary<string, string> nameMap,
+        IReadOnlyDictionary<string, string> codeMap,
+        IReadOnlyDictionary<string, string> airportMap,
+        IReadOnlyDictionary<string, string> atcMap,
+        string ownerCallsign, string targetCallsign, string? airportIcao,
+        TransferFlowKind kind)
+    {
+        var d = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,
+            ownerCallsign, targetCallsign, airportIcao, kind);
+        return d is null ? null : CoordinationSentenceComposer.ComposeLead(tpl, d);
     }
 
     // Nome base: AtcCallsign IVAO (es. «Pisa Approach»), altrimenti Sector.Name se risolto (≠ callsign),

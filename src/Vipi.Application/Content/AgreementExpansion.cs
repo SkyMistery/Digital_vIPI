@@ -50,6 +50,12 @@ public static class AgreementExpansion
                 ? a.Airports.OrderBy(x => x.Order).Select(x => ((string?)x.Icao, x.Name)).ToList()
                 : new List<(string? Icao, string? Name)> { (null, null) };
 
+            // L'elenco degli scali si porta sulle righe solo quando sono PIU' D'UNO: con uno solo ripeterebbe
+            // il nodo sotto cui la riga si legge gia'.
+            var airportLabel = a.Airports.Count > 1
+                ? string.Join(" · ", a.Airports.OrderBy(x => x.Order).Select(x => x.Icao))
+                : null;
+
             foreach (var direction in Directions(a))
             {
                 var senders = direction == AgreementDirection.AtoB ? sideA : sideB;
@@ -72,11 +78,11 @@ public static class AgreementExpansion
                             {
                                 if (receivers.Count == 0)
                                 {
-                                    points.Add(Point(nextPointId++, order++, c, cop, null));
+                                    points.Add(Point(nextPointId++, order++, c, cop, null, airportLabel));
                                     continue;
                                 }
                                 foreach (var r in receivers)
-                                    points.Add(Point(nextPointId++, order++, c, cop, r));
+                                    points.Add(Point(nextPointId++, order++, c, cop, r, airportLabel));
                             }
 
                         flows.Add(new TransferFlowRow
@@ -110,11 +116,15 @@ public static class AgreementExpansion
         if (a.Clauses.Any(c => c.Direction == AgreementDirection.BtoA)) yield return AgreementDirection.BtoA;
     }
 
-    private static TransferPointRow Point(int id, int order, AgreementClauseRow c, string cop, AgreementPartyRow? receiver) =>
+    private static TransferPointRow Point(int id, int order, AgreementClauseRow c, string cop,
+        AgreementPartyRow? receiver, string? airportLabel) =>
         new()
         {
             Id = id,
             Cop = cop,
+            ClauseId = c.Id,
+            Cops = c.Cops,
+            AgreementAirports = airportLabel,
             LevelValue = c.LevelValue,
             LevelUnit = c.LevelUnit,
             LevelConstraint = c.LevelConstraint,
