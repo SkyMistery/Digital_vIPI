@@ -156,11 +156,25 @@ gerarchia di copertura copre già il caso. Scritto qui perché non venga riscope
 | Fase | Cosa | Stato |
 |---|---|---|
 | 0 | Carta, registro lacune, **rete di caratterizzazione** sui flussi veri | ✅ |
-| 1 | Entità + migrazione nei due provider + convertitore + espansione; `ITransferService` reimplementato sopra gli accordi ⇒ **nessun cambiamento visibile** | 🟡 |
-| 2 | Editor sugli accordi (guscio a tre colonne e gesti conservati) | ⬜ |
+| 1 | Entità + migrazione nei due provider + convertitore + espansione + porta di scrittura | ✅ |
+| 2 | Editor sugli accordi (guscio a tre colonne e gesti conservati) + **scambio**: travaso armato, lettori sugli accordi, vecchia scrittura rimossa | ✅ |
 | 3 | Lettura: riga per clausola; **prosa a scelta della sezione** (distesa come oggi ⇄ capofila come i documenti veri); nodo multi-aeroporto | ⬜ |
 | 4 | Riempimento: riceventi proposti · incolla-tabella · cruscotto lacune | ⬜ |
 | 5 | Propagazione doc/spec/memorie e chiusura | ⬜ |
+
+### Esito dello scambio (16 agosto, verificato live su copia del `vipi.db` reale)
+
+- Il travaso ha prodotto **41 accordi** dai 37 flussi / 78 punti, e al secondo avvio **non è ripartito**.
+- `/vsop/admin/trasferimenti` apre **40 accordi / 63 clausole** per LIBB (il quarantunesimo è di LIRR e si vede
+  da lì), l'albero è per **controparte**, e l'accordo `LIBB_ES_CTR → LIBD_CS0_APP` mostra i due versi «(3)» e «(0)».
+- La sua prima clausola porta i punti **«EKMUR, PISIP»**, e nel documento vIPI ACC quella clausola torna a essere
+  **due righe** con le frasi di sempre. È l'invariante vista a schermo, non asserita.
+- ⚠️ Le tabelle `TransferFlows`/`TransferPoints` **restano in piedi**: la migrazione che le droppa va in una
+  release **successiva**, perché le migrazioni girano prima della manutenzione d'avvio e nella stessa release il
+  travaso non troverebbe più niente da leggere.
+- Difetti trovati **guardando lo schermo**: una dozzina di testi descriveva ancora il modello vecchio («per ogni
+  settore … raggruppati per aeroporto», «Scegli un gruppo», «+ Riga»). Aggiornati in italiano e in inglese
+  insieme alla voce della guida.
 
 **Decisioni del committente (16 agosto):** modello sostituito; bilaterale a due direzioni; parità di campi in
 questo giro; le due rese di prosa a scelta della sezione; configurazioni chiuse; i tre ausili di riempimento si
