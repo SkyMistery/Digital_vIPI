@@ -43,7 +43,7 @@ public class AccProfileTests : IAsyncLifetime
         _repo = new EfAccDerivationRepository(_db);
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
-        var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
+        var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
         _service = new AccDerivationService(_repo, new EfSpecialAreaRepository(_db), transfers, topo,
             new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
     }
@@ -81,15 +81,13 @@ public class AccProfileTests : IAsyncLifetime
     [Fact]
     public async Task Derive_Coordination_Classifies_Acc_App_Towers()
     {
-        var tr = new EfTransferRepository(_db);
+        var tr = new EfAgreementRepository(_db);
         var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
         var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
         var app = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRP_APP")).Id;
 
-        var fAcc = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ne, Kind = TransferFlowKind.Departure });
-        await tr.AddPointAsync(Acc, fAcc, Point("VALMA", 250, ew));         // NE → EW (CTR) = verso ACC
-        var fApp = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ne, Kind = TransferFlowKind.Arrival });
-        await tr.AddPointAsync(Acc, fApp, Point("MAREL", 110, app));        // NE → LIRP_APP = verso APP
+        await Agreement(tr, ne, ew, TransferFlowKind.Departure, null, "VALMA", 250);   // NE → EW (CTR) = verso ACC
+        await Agreement(tr, ne, app, TransferFlowKind.Arrival, null, "MAREL", 110);   // NE → LIRP_APP = verso APP
 
         var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
         var coord = await _service.DeriveCoordinationAsync(Acc, block, "LIRR_NE_CTR");   // albero NE (owner NE)
@@ -105,14 +103,13 @@ public class AccProfileTests : IAsyncLifetime
     [Fact]
     public async Task Owned_Flow_Sentence_Reads_Owner_As_Sender()
     {
-        var tr = new EfTransferRepository(_db);
+        var tr = new EfAgreementRepository(_db);
         var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
         var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
 
         // Flusso POSSEDUTO da EW (settore del blocco) con next = NE: EW detiene il traffico e lo cede a NE, quindi
         // la frase deve avere EW come mittente e NE come destinatario (owner→next, come la pagina trasferimenti).
-        var fArr = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ew, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRP" });
-        await tr.AddPointAsync(Acc, fArr, Point("PISIP", 140, ne));
+        await Agreement(tr, ew, ne, TransferFlowKind.Arrival, "LIRP", "PISIP", 140);
 
         var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
         var coord = await _service.DeriveCoordinationAsync(Acc, block, "LIRR_NE_CTR");
@@ -128,15 +125,18 @@ public class AccProfileTests : IAsyncLifetime
     [Fact]
     public async Task Overflight_without_airport_appears_under_sorvoli_node()
     {
-        var tr = new EfTransferRepository(_db);
+        var tr = new EfAgreementRepository(_db);
         var ew = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_EW_CTR")).Id;
         var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
 
         // Sorvolo POSSEDUTO da EW, senza aeroporto, verso NE. Deve comparire nel nodo «Sorvoli», non fra gli aeroporti.
-        var f = await tr.AddFlowAsync(Acc, new TransferFlowInput { OwningSectorId = ew, Kind = TransferFlowKind.Overflight });
-        await tr.AddPointAsync(Acc, f, new TransferPointInput
+        var f = await tr.AddAgreementAsync(Acc, new AgreementInput
         {
-            Cop = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia", NextSectorId = ne,
+            TrafficKind = TransferFlowKind.Overflight, SideA = new[] { ew }, SideB = new[] { ne },
+        });
+        await tr.AddClauseAsync(Acc, f, AgreementDirection.AtoB, new AgreementClauseInput
+        {
+            Cops = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia",
         });
 
         var block = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
@@ -310,11 +310,23 @@ public class AccProfileTests : IAsyncLifetime
         ComposePosition = compose, CenterId = "LIRR", RegionMapPolygon = poly,
     };
 
-    private static TransferPointInput Point(string cop, int level, int next) => new()
+    /// <summary>Un accordo con una clausola sola: la forma piu' corta di un caso di prova, adesso che il
+    /// ricevente e' dell'accordo e non della riga.</summary>
+    private static async Task Agreement(EfAgreementRepository tr, int from, int to, TransferFlowKind kind,
+        string? icao, string cops, int level)
     {
-        Cop = cop, LevelValue = level, LevelUnit = LevelUnit.Fl,
-        LevelConstraint = LevelConstraint.AtOrAbove, NextSectorId = next,
-    };
+        var id = await tr.AddAgreementAsync(Acc, new AgreementInput
+        {
+            TrafficKind = kind,
+            SideA = new[] { from },
+            SideB = new[] { to },
+            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
+        });
+        await tr.AddClauseAsync(Acc, id, AgreementDirection.AtoB, new AgreementClauseInput
+        {
+            Cops = cops, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
+        });
+    }
 
     private sealed class AllowAuthz : IEditAuthorizationService
     {

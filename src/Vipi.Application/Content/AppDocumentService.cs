@@ -108,13 +108,13 @@ public sealed class AppDocumentService : IAppDocumentService
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
-    private readonly ITransferService _transfers;
+    private readonly IAgreementService _transfers;
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IDocumentProfileRepository _docProfiles;
     private readonly Aor.IAorService _aor;
 
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
-        IEditAuthorizationService authz, ITopologyProvider topology, ITransferService transfers,
+        IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor)
     {
         _apps = apps;

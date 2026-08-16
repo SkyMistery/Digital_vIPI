@@ -8,7 +8,7 @@ namespace Vipi.Application.Content;
 /// <para>È l'ex <see cref="TransferPointRow"/> meno il ricevente — che è il lato opposto dell'accordo — e con i
 /// punti in <b>elenco</b> (<see cref="CopList"/>) invece che uno solo.</para>
 /// </summary>
-public sealed record AgreementClauseRow
+public sealed record AgreementClauseRow : IOutlineRow
 {
     public required int Id { get; init; }
 
@@ -49,4 +49,26 @@ public sealed record AgreementClauseRow
     public bool IsGroupWide { get; init; }
 
     public required int Order { get; init; }
+
+    // ---- come si legge -------------------------------------------------------------------------------
+    // Le stesse proprietà calcolate di TransferPointRow, e per la stessa ragione: tabella, frase e vista live
+    // confrontano questi testi a occhio, quindi la formattazione vive in un posto solo (LevelFormatting).
+
+    /// <summary>Il livello autorizzato già formattato («FL130- ↓ (pari)»).</summary>
+    public string LevelText =>
+        LevelFormatting.Format(LevelValue, LevelUnit, LevelConstraint, LevelSpecial, Parity, VerticalState);
+
+    /// <summary>Livello al trasferimento già formattato («FL110»); vuoto se la clausola non lo porta.</summary>
+    public string HandoffLevelText =>
+        LevelFormatting.FormatHandoffLevel(HandoffLevelValue, HandoffLevelUnit, HandoffLevelConstraint);
+
+    /// <summary>Velocità già formattata («≤250 kt»); vuota se assente.</summary>
+    public string SpeedText => LevelFormatting.FormatSpeed(SpeedValue, SpeedConstraint);
+
+    /// <summary>True se la clausola usa la faccetta trasferimento.</summary>
+    public bool HasHandoff => HandoffKind != TransferHandoffKind.Unspecified;
+
+    /// <summary>Etichetta condizione combinata per il display (pista · area · personalizzata); vuota se nessuna.</summary>
+    public string? ConditionDisplay =>
+        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionCustomLabel);
 }

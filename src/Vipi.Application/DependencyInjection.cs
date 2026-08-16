@@ -76,8 +76,6 @@ public static class DependencyInjection
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
-        services.AddScoped<ITransferService, TransferService>();
-        // Accordi: convivono con i flussi finche' il travaso non e' fatto e l'editor non e' portato.
         services.AddScoped<IAgreementService, AgreementService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();

@@ -10,10 +10,10 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAgreementMaintenance : IAgreementMaintenance
 {
     private readonly VipiDbContext _db;
-    private readonly ITransferRepository _flows;
+    private readonly ILegacyFlowReader _flows;
     private readonly IImportStateStore _states;
 
-    public EfAgreementMaintenance(VipiDbContext db, ITransferRepository flows, IImportStateStore states)
+    public EfAgreementMaintenance(VipiDbContext db, ILegacyFlowReader flows, IImportStateStore states)
     {
         _db = db;
         _flows = flows;

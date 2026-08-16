@@ -1,84 +1,84 @@
 @inject IStringLocalizer<SharedResource> L
 
 @*
-    Colonna 1: l'albero dei gruppi. Settore ▸ aeroporto ▸ gruppo, e il gruppo è una FOGLIA — si sceglie, non si
-    apre. Prima erano tre livelli di collasso e la pagina rendeva tutte le tabelle una sotto l'altra: arrivare a
-    una riga costava tre clic, ogni volta, e da lì in giù si scorreva per migliaia di pixel.
+    Colonna 1: l'albero degli accordi. Controparte ▸ accordo, e l'accordo è una FOGLIA — si sceglie, non si apre.
 
-    Gli avvisi risalgono: un gruppo con righe senza ricevente accende il pallino sul proprio aeroporto e sul
-    proprio settore. Un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso.
+    L'asse è cambiato con il modello: prima era settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello
+    vecchio costringeva a SCRIVERE. Adesso è la controparte, che è il modo in cui un accordo viene in mente —
+    «l'accordo con Roma», non «il flusso del settore ES verso l'aeroporto di Bari». Un livello in meno, e
+    l'aeroporto smette di essere un ramo: è un attributo dell'accordo, che può averne quattro.
+
+    Gli avvisi risalgono: un accordo senza ricevente accende il pallino sulla propria controparte. Un avviso che
+    si vede solo dopo aver aperto il ramo giusto non è un avviso.
 *@
 
 <div class="xt-nav">
     <div class="xt-nav-head">
         <b>@L["Xfer_NavTitle"]</b>
-        <span class="muted xt-hint">@(string.Format(L["Xfer_GroupsN"].Value, Sectors.Sum(s => s.FlowCount)))</span>
+        <span class="muted xt-hint">@(string.Format(L["Xfer_GroupsN"].Value, Counterparts.Sum(c => c.AgreementCount)))</span>
     </div>
 
     <div class="xt-nav-body">
-        @if (Sectors.Count == 0)
+        @if (Counterparts.Count == 0)
         {
             @* Elenco vuoto: senza questo la colonna sembra rotta, e — con i filtri accesi — non si capisce che
                è il filtro a nascondere tutto invece che l'archivio a essere vuoto. *@
             <p class="help xt-nav-empty">@(Filtered ? L["Xfer_NoFilterMatch"] : L["Xfer_NoFlows"])</p>
         }
-        @foreach (var sec in Sectors)
+        @foreach (var cp in Counterparts)
         {
-            var secOpen = ForceOpen || !CollapsedSectors.Contains(sec.Callsign);
-            <div class="xt-nav-sec xt-clickable" role="button" tabindex="0" aria-expanded="@secOpen"
-                 @onclick="() => OnToggleSector.InvokeAsync(sec.Callsign)"
-                 @onkeydown="e => Activate(e, () => OnToggleSector.InvokeAsync(sec.Callsign))">
-                <span class="xt-chev">@(secOpen ? "▾" : "▸")</span>
-                <span class="xt-nav-name">@sec.Callsign</span>
-                @if (sec.HasWarning) { <span class="xt-nav-warn" title="@L["Xfer_NavWarnTitle"]">●</span> }
-                <span class="xt-nav-count">@sec.FlowCount</span>
+            var open = ForceOpen || !Collapsed.Contains(cp.Key);
+            <div class="xt-nav-sec xt-clickable" role="button" tabindex="0" aria-expanded="@open"
+                 @onclick="() => OnToggle.InvokeAsync(cp.Key)"
+                 @onkeydown="e => Activate(e, () => OnToggle.InvokeAsync(cp.Key))">
+                <span class="xt-chev">@(open ? "▾" : "▸")</span>
+                <span class="xt-nav-name">@cp.Label</span>
+                @if (cp.HasWarning) { <span class="xt-nav-warn" title="@L["Xfer_NavWarnTitle"]">●</span> }
+                <span class="xt-nav-count">@cp.AgreementCount</span>
             </div>
-            @if (!secOpen) { continue; }
+            @if (!open) { continue; }
 
-            foreach (var apt in sec.Airports)
+            foreach (var a in cp.Agreements)
             {
-                var aptOpen = ForceOpen || !CollapsedAirports.Contains(apt.Key);
-                <div class="xt-nav-apt xt-clickable" role="button" tabindex="0" aria-expanded="@aptOpen"
-                     @onclick="() => OnToggleAirport.InvokeAsync(apt.Key)"
-                     @onkeydown="e => Activate(e, () => OnToggleAirport.InvokeAsync(apt.Key))">
-                    <span class="xt-chev">@(aptOpen ? "▾" : "▸")</span>
-                    <span class="xt-nav-name">@apt.Header</span>
-                </div>
-                @if (!aptOpen) { continue; }
-
-                foreach (var f in apt.Flows)
-                {
-                    <button type="button" class="xt-nav-flow @(f.Id == SelectedFlowId ? "on" : "")"
-                            title="@f.Description" @onclick="() => OnSelectFlow.InvokeAsync(f.Id)">
-                        <span class="xt-nav-kind">@XferLabels.Kind(L, f.Kind)</span>
-                        @if (!string.IsNullOrWhiteSpace(f.Description))
-                        {
-                            <span class="xt-nav-desc">@f.Description</span>
-                        }
-                        @if (f.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(f)">●</span> }
-                        <span class="xt-nav-count">@f.RowCount</span>
-                    </button>
-                }
+                <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
+                        title="@a.Description" @onclick="() => OnSelect.InvokeAsync(a.Id)">
+                    <span class="xt-nav-kind">@XferLabels.Kind(L, a.Kind)</span>
+                    @* Gli aeroporti stanno QUI e non su un ramo proprio: un accordo può averne quattro, e
+                       quattro rami che portano tutti alla stessa tabella sarebbero quattro modi di aprire la
+                       stessa cosa. *@
+                    @if (a.Airports.Length > 0)
+                    {
+                        <span class="xt-nav-desc">@a.Airports</span>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(a.Description))
+                    {
+                        <span class="xt-nav-desc">@a.Description</span>
+                    }
+                    @* Due versi = accordo bilaterale, e si vede senza aprirlo: è l'informazione che dice se il
+                       reciproco è già stato scritto o è ancora da fare. *@
+                    @if (a.Directions > 1) { <span class="pill blue xt-nav-bi" title="@L["Xfer_BidirectionalTitle"]">⇄</span> }
+                    @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
+                    <span class="xt-nav-count">@a.ClauseCount</span>
+                </button>
             }
         }
     </div>
 
-    @* Il tasto sta FUORI dal corpo che scorre, ed è l'unico modo di creare il primo gruppo: con l'archivio
+    @* Il tasto sta FUORI dal corpo che scorre, ed è l'unico modo di creare il primo accordo: con l'archivio
        vuoto l'albero non ha nodi, e un ingresso che vive dentro l'elenco non esisterebbe proprio quando serve. *@
     <div class="xt-nav-foot">
-        <button class="btn ghost" disabled="@Disabled" @onclick="() => OnNewGroup.InvokeAsync()">+ @L["Xfer_Group"]</button>
+        <button class="btn ghost" disabled="@Disabled" @onclick="() => OnNew.InvokeAsync()">+ @L["Xfer_Agreement"]</button>
     </div>
 </div>
 
 @code {
     /// <summary>L'albero già costruito dalla pagina (filtri applicati).</summary>
-    [Parameter, EditorRequired] public IReadOnlyList<XferNavSector> Sectors { get; set; } = Array.Empty<XferNavSector>();
+    [Parameter, EditorRequired] public IReadOnlyList<XferNavCounterpart> Counterparts { get; set; } = Array.Empty<XferNavCounterpart>();
 
-    /// <summary>Il gruppo aperto nel riquadro di lavoro.</summary>
-    [Parameter] public int? SelectedFlowId { get; set; }
+    /// <summary>L'accordo aperto nel riquadro di lavoro.</summary>
+    [Parameter] public int? SelectedId { get; set; }
 
-    [Parameter] public IReadOnlySet<string> CollapsedSectors { get; set; } = new HashSet<string>();
-    [Parameter] public IReadOnlySet<string> CollapsedAirports { get; set; } = new HashSet<string>();
+    [Parameter] public IReadOnlySet<string> Collapsed { get; set; } = new HashSet<string>();
 
     /// <summary>Un filtro attivo apre l'albero: quello che resta va visto, non ricercato a mano cliccando.</summary>
     [Parameter] public bool ForceOpen { get; set; }
@@ -88,17 +88,16 @@
 
     [Parameter] public bool Disabled { get; set; }
 
-    [Parameter] public EventCallback<string> OnToggleSector { get; set; }
-    [Parameter] public EventCallback<string> OnToggleAirport { get; set; }
-    [Parameter] public EventCallback<int> OnSelectFlow { get; set; }
-    [Parameter] public EventCallback OnNewGroup { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+    [Parameter] public EventCallback<int> OnSelect { get; set; }
+    [Parameter] public EventCallback OnNew { get; set; }
 
-    /// <summary>Cosa dice il pallino d'avviso su un gruppo: quante righe finiscono a UNICOM, quante vanno riviste.</summary>
-    private string WarnTitle(XferNavFlow f)
+    /// <summary>Cosa dice il pallino d'avviso: il traffico finisce a UNICOM, o ci sono clausole da rivedere.</summary>
+    private string WarnTitle(XferNavAgreement a)
     {
         var parts = new List<string>(2);
-        if (f.NoReceiver > 0) parts.Add($"{f.NoReceiver} · {L["Xfer_NoReceiverFilter"]}");
-        if (f.ToReview > 0) parts.Add($"{f.ToReview} · {L["Xfer_ToReview"]}");
+        if (a.NoReceiver) parts.Add(L["Xfer_NoReceiverFilter"]);
+        if (a.ToReview > 0) parts.Add($"{a.ToReview} · {L["Xfer_ToReview"]}");
         return string.Join(" · ", parts);
     }
 

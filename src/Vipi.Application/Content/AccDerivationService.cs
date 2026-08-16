@@ -63,12 +63,12 @@ public sealed class AccDerivationService : IAccDerivationService
 {
     private readonly IAccDerivationRepository _repo;
     private readonly ISpecialAreaRepository _areas;
-    private readonly ITransferService _transfers;
+    private readonly IAgreementService _transfers;
     private readonly ITopologyProvider _topology;
     private readonly Aor.IAorService _aor;
     private readonly ICoordinationSentenceTemplate _sentence;
 
-    public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, ITransferService transfers,
+    public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence)
     {
         _repo = repo;

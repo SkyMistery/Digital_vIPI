@@ -77,43 +77,18 @@ public static class CoordinationDerivation
         };
 
     /// <summary>
-    /// La catena delle condizioni che valgono per una riga: quelle dei suoi antenati nell'outline più la
-    /// propria, dalla capofila in giù. Una riga fuori da un gruppo, o a profondità 0, ha solo la propria.
-    /// <para>Gli antenati si risalgono per POSIZIONE — l'ordine è la struttura — cercando all'indietro la prima
-    /// riga meno profonda: è la stessa lettura che fa l'occhio davanti a una lista rientrata.</para>
-    /// <para>Una riga che scavalca le alternative NON eredita: vale per tutte, quindi non sta dentro nessuna.</para>
+    /// La catena delle condizioni che valgono per una riga, dalla capofila dell'outline alla riga stessa.
+    /// <para>La risalita vive in <see cref="Outline"/>: la fa anche l'editor, su una forma diversa, e due
+    /// risalite scritte a mano potrebbero leggere due strutture diverse dallo stesso outline.</para>
     /// </summary>
-    public static IReadOnlyList<ConditionClause> ConditionChain(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p)
-    {
-        var own = new ConditionClause(p.ConditionLabel, p.ConditionAreaLabel, p.ConditionCustomLabel);
-        var chain = new List<ConditionClause> { own };
-        for (var a = ParentOf(flowPoints, p); a is not null; a = ParentOf(flowPoints, a))
-            chain.Insert(0, new ConditionClause(a.ConditionLabel, a.ConditionAreaLabel, a.ConditionCustomLabel));
-        return chain;
-    }
+    public static IReadOnlyList<ConditionClause> ConditionChain(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p) =>
+        Outline.ConditionChain(flowPoints, p,
+            x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionCustomLabel));
 
-    /// <summary>
-    /// La riga di cui <paramref name="p"/> è un'eccezione: la prima MENO PROFONDA che la precede nello stesso
-    /// gruppo. <c>null</c> se non ce n'è una — fuori da un gruppo, a profondità 0 (le alternative sono
-    /// pari-grado: nessuna è lo standard dell'altra) o su una riga che scavalca le alternative.
-    /// <para>È la risalita che <see cref="ConditionChain"/> faceva al proprio interno, estratta perché serve
-    /// anche alla TABELLA dell'editor, che deve dire di quale riga una condizione è l'eccezione. Due risalite
-    /// scritte a mano potrebbero leggere due strutture diverse dallo stesso outline.</para>
-    /// </summary>
-    public static TransferPointRow? ParentOf(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p)
-    {
-        if (p.VariantGroup is null || p.VariantDepth == 0 || p.IsGroupWide) return null;
-
-        var i = flowPoints.ToList().FindIndex(x => x.Id == p.Id);
-        for (var k = i - 1; k >= 0; k--)
-        {
-            var a = flowPoints[k];
-            if (a.VariantGroup != p.VariantGroup) return null;   // fuori dal gruppo: la catena finisce qui
-            if (a.VariantDepth >= p.VariantDepth) continue;      // pari-grado o più profonda: non è un antenato
-            return a;
-        }
-        return null;
-    }
+    /// <summary>La riga di cui <paramref name="p"/> è un'eccezione, o <c>null</c>. Serve anche alla TABELLA
+    /// dell'editor, che deve dire di quale riga una condizione è l'eccezione.</summary>
+    public static TransferPointRow? ParentOf(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p) =>
+        Outline.ParentOf(flowPoints, p);
 
     public static IReadOnlyList<CoordinationEntry> Build(
         IReadOnlyList<TransferFlowRow> flows,

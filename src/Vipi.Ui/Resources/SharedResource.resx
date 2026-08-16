@@ -312,7 +312,7 @@
   <data name="Xfer_GroupWide" xml:space="preserve"><value>in ogni caso</value></data>
   <data name="Xfer_GroupWideTitle" xml:space="preserve"><value>La riga scavalca le alternative: vale per tutte («di notte, qualunque pista»). Solo al primo livello, e deve dire a quali condizioni vale.</value></data>
   <data name="Xfer_VariantsN" xml:space="preserve"><value>{0} varianti</value></data>
-  <data name="Xfer_VariantsTitle" xml:space="preserve"><value>Le righe di questo blocco sono lo STESSO accordo in casi diversi: CoP e ricevente valgono per tutte, e ogni riga dice a quale condizione si applica.</value></data>
+  <data name="Xfer_VariantsTitle" xml:space="preserve"><value>Le clausole di questo blocco sono lo STESSO accordo in casi diversi: i punti valgono per tutte, e ognuna dice a quale condizione si applica. Il ricevente è dell&apos;accordo, quindi non può differire.</value></data>
   <data name="Xfer_CondIf" xml:space="preserve"><value>se</value></data>
   <data name="Xfer_CondOtherwise" xml:space="preserve"><value>negli altri casi</value></data>
   <data name="Xfer_CondOtherwiseTitle" xml:space="preserve"><value>Riga senza condizione dentro un gruppo: è il caso che vale quando nessuna delle altre condizioni si verifica.</value></data>
@@ -329,7 +329,7 @@
   <data name="Xfer_VariantDetached" xml:space="preserve"><value>Riga sfilata dal gruppo di varianti.</value></data>
   <data name="Xfer_AltNoNormalCase" xml:space="preserve"><value>«{0}» ha eccezioni ma non dice cosa vale nel suo caso normale: chi legge e non ricade in nessuna eccezione non trova un'istruzione.</value></data>
   <data name="Xfer_ToReview" xml:space="preserve"><value>Da rivedere</value></data>
-  <data name="Xfer_ToReviewTitle" xml:space="preserve"><value>Righe con ricevente APP che non dicono ancora dove avviene il trasferimento</value></data>
+  <data name="Xfer_ToReviewTitle" xml:space="preserve"><value>Clausole verso un APP che non dicono ancora dove avviene il trasferimento</value></data>
   <data name="AppVfr_IntroLabel" xml:space="preserve"><value>Introduzione (markdown)</value></data>
   <data name="AppVfr_Situation" xml:space="preserve"><value>Situazione</value></data>
   <data name="AppVfr_Procedure" xml:space="preserve"><value>Procedura</value></data>
@@ -530,7 +530,7 @@
   <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Vista operativa di {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</value></data>
-  <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Flussi e punti di coordinamento (pagina admin).</value></data>
+  <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Accordi di coordinamento fra enti (pagina admin).</value></data>
   <!-- Home / landing (/vsop) -->
   <data name="Home_Heading" xml:space="preserve"><value>Documentazione operativa</value></data>
   <data name="Home_Intro" xml:space="preserve"><value>Seleziona un ACC per consultare le vIPI, gli aeroporti e gli avvicinamenti. Oppure cerca direttamente una postazione dalla barra in alto.</value></data>
@@ -551,7 +551,7 @@
   <data name="Home_StructTitle" xml:space="preserve"><value>Struttura settori</value></data>
   <data name="Home_StructDesc" xml:space="preserve"><value>Gestisci settori, contenimento, frequenze e documenti.</value></data>
   <data name="Home_TransfersTitle" xml:space="preserve"><value>Trasferimenti</value></data>
-  <data name="Home_TransfersDesc" xml:space="preserve"><value>Flussi e punti di coordinamento tra settori, per ACC.</value></data>
+  <data name="Home_TransfersDesc" xml:space="preserve"><value>Accordi di coordinamento fra enti: punti, quote e condizioni, per ACC.</value></data>
   <data name="Home_PermsTitle" xml:space="preserve"><value>Permessi editing</value></data>
   <data name="Home_PermsDesc" xml:space="preserve"><value>Concedi a VID (CH o non) il diritto di editare i documenti per ACC.</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>sì</value></data>
@@ -774,8 +774,8 @@
   <data name="Apt_AssignedOk" xml:space="preserve"><value>Assegnati {0} aeroporti a {1}</value></data>
   <data name="Apt_AssignedFail" xml:space="preserve"><value>, {0} non assegnati.</value></data>
   <data name="Xfer_Title" xml:space="preserve"><value>Trasferimenti</value></data>
-  <data name="Xfer_Heading" xml:space="preserve"><value>Trasferimenti tra settori</value></data>
-  <data name="Xfer_Subtitle" xml:space="preserve"><value>Per ogni &lt;b&gt;settore&lt;/b&gt; i trasferimenti sono raggruppati per &lt;b&gt;aeroporto&lt;/b&gt; e per &lt;b&gt;tipo&lt;/b&gt; (arrivi/partenze); ogni riga indica il &lt;b&gt;punto&lt;/b&gt;, la &lt;b&gt;quota&lt;/b&gt; e il &lt;b&gt;settore ricevente&lt;/b&gt;. Nella vista operativa, se un settore è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</value></data>
+  <data name="Xfer_Heading" xml:space="preserve"><value>Accordi di coordinamento</value></data>
+  <data name="Xfer_Subtitle" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; vale fra due elenchi di enti, per un tipo di traffico, su tutti gli &lt;b&gt;aeroporti&lt;/b&gt; elencati; ogni &lt;b&gt;clausola&lt;/b&gt; dice su quali &lt;b&gt;punti&lt;/b&gt; si applica e a quale &lt;b&gt;quota&lt;/b&gt;. Un accordo bilaterale ha clausole nei &lt;b&gt;due versi&lt;/b&gt;. Nella vista operativa, se un ente è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</value></data>
   <data name="Xfer_NoAccImport" xml:space="preserve"><value>Nessun ACC. Importa dalla &lt;a href="/vsop/admin/acc"&gt;pagina ACC&lt;/a&gt;.</value></data>
   <data name="Xfer_ChooseAcc" xml:space="preserve"><value>Scegli un ACC per gestirne i trasferimenti.</value></data>
   <data name="Xfer_NewGroup" xml:space="preserve"><value>Nuovo gruppo di trasferimenti</value></data>
@@ -805,18 +805,18 @@
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivi/Partenze richiedono un aeroporto</value></data>
   <data name="Xfer_AptNeedsName" xml:space="preserve"><value>Aeroporto fuori DB: indica il nome</value></data>
   <data name="Xfer_NewGroupHelp" xml:space="preserve"><value>L'aeroporto può essere di uno stato estero (ICAO libero). Sorvoli/VFR possono restare senza aeroporto: in quel caso è il &lt;b&gt;settore ricevente&lt;/b&gt; di ogni riga (interno o estero confinante) a farli comparire nei coordinamenti — senza ricevente la riga resta UNICOM e non viene derivata.</value></data>
-  <data name="Xfer_NoFlows" xml:space="preserve"><value>Nessun trasferimento per questo ACC. Creane uno col tasto in fondo all'albero.</value></data>
-  <data name="Xfer_FilterPh" xml:space="preserve"><value>filtra: settore / aeroporto / CoP / ricevente…</value></data>
+  <data name="Xfer_NoFlows" xml:space="preserve"><value>Nessun accordo per questo ACC. Creane uno col tasto in fondo all&apos;albero.</value></data>
+  <data name="Xfer_FilterPh" xml:space="preserve"><value>filtra: ente / aeroporto / punto…</value></data>
   <data name="Xfer_AllKinds" xml:space="preserve"><value>Tutti i tipi</value></data>
   <data name="Xfer_RowsCount" xml:space="preserve"><value>{0} righe</value></data>
   <data name="Xfer_Reset" xml:space="preserve"><value>azzera</value></data>
   <data name="Xfer_NoFilterMatch" xml:space="preserve"><value>Nessun trasferimento corrisponde al filtro.</value></data>
-  <data name="Xfer_GroupsN" xml:space="preserve"><value>{0} gruppi</value></data>
+  <data name="Xfer_GroupsN" xml:space="preserve"><value>{0} accordi</value></data>
   <data name="Xfer_GroupsN_1" xml:space="preserve"><value>{0} gruppo</value></data>
-  <data name="Xfer_UnicomTitle" xml:space="preserve"><value>Ogni riga è UNICOM: senza settore ricevente il flusso non compare nei coordinamenti derivati. Clic per assegnare un ricevente.</value></data>
+  <data name="Xfer_UnicomTitle" xml:space="preserve"><value>Nessun ente sul lato che riceve: l&apos;accordo non compare nei coordinamenti derivati. Modifica l&apos;accordo per aggiungerlo.</value></data>
   <data name="Xfer_NoReceiver" xml:space="preserve"><value>nessun ricevente</value></data>
   <data name="Xfer_CloneGroupTitle" xml:space="preserve"><value>Clona gruppo (righe incluse) su un altro settore mittente</value></data>
-  <data name="Xfer_DeleteGroupAria" xml:space="preserve"><value>Elimina gruppo</value></data>
+  <data name="Xfer_DeleteGroupAria" xml:space="preserve"><value>Elimina accordo</value></data>
   <data name="Xfer_DeleteGroupPrompt" xml:space="preserve"><value>Eliminare? {0} righe</value></data>
   <data name="Xfer_CloneToSender" xml:space="preserve"><value>Clona su settore mittente</value></data>
   <data name="Xfer_Copy" xml:space="preserve"><value>copia</value></data>
@@ -1357,8 +1357,8 @@
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Espandi o richiudi {0}</value></data>
   <data name="Struct_ToggleCard" xml:space="preserve"><value>Espandi o richiudi l’ACC {0}</value></data>
   <data name="Xfer_ColCondition" xml:space="preserve"><value>Condizione</value></data>
-  <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>Nessuna riga aperta</value></data>
-  <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Scegli «✎» su una riga per modificarla, oppure «+ Riga» per aggiungerne una. Qui compaiono i campi, l&apos;anteprima della frase e le azioni.</value></data>
+  <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>Nessuna clausola aperta</value></data>
+  <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Scegli «✎» su una clausola per modificarla, oppure «+ Clausola» per aggiungerne una. Qui compaiono i campi, l&apos;anteprima della frase e le azioni.</value></data>
   <data name="Xfer_PanelEdit" xml:space="preserve"><value>Modifica riga</value></data>
   <data name="Xfer_PanelNew" xml:space="preserve"><value>Nuova riga</value></data>
   <data name="Xfer_GrpIdentity" xml:space="preserve"><value>Ingresso e ricevente</value></data>
@@ -1371,7 +1371,7 @@
   <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Elimina la riga</value></data>
   <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Eliminare la riga?</value></data>
   <data name="Xfer_NoReceiverFilter" xml:space="preserve"><value>Senza ricevente</value></data>
-  <data name="Xfer_NoReceiverTitle" xml:space="preserve"><value>Righe senza settore ricevente: in frequenza finiscono a UNICOM</value></data>
+  <data name="Xfer_NoReceiverTitle" xml:space="preserve"><value>Accordi senza nessuno sul lato che riceve: in frequenza il traffico finisce a UNICOM</value></data>
   <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copia righe da…</value></data>
   <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copia in questo gruppo le righe di un altro gruppo (gli accordi di aeroporti vicini si somigliano)</value></data>
   <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Gruppo da cui copiare</value></data>
@@ -1383,10 +1383,10 @@
   <data name="Xfer_LockEndingBody" xml:space="preserve"><value>Scade alle {0}. Salva quello che hai aperto: alla scadenza la pagina torna in sola lettura.</value></data>
   <data name="Xfer_SortBy" xml:space="preserve"><value>Ordina</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manuale</value></data>
-  <data name="Xfer_SortCop" xml:space="preserve"><value>per CoP</value></data>
+  <data name="Xfer_SortCop" xml:space="preserve"><value>punti</value></data>
   <data name="Xfer_SortLevel" xml:space="preserve"><value>per livello</value></data>
   <data name="Xfer_SortNote" xml:space="preserve"><value>L&apos;ordinamento cambia solo come guardi l&apos;elenco: l&apos;ordine salvato — che nelle varianti è la struttura — non si tocca.</value></data>
-  <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} righe selezionate</value></data>
+  <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} clausole selezionate</value></data>
   <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Cambia ricevente</value></data>
   <data name="Xfer_BulkApply" xml:space="preserve"><value>Applica a tutte</value></data>
   <data name="Xfer_BulkDone" xml:space="preserve"><value>Aggiornate {0} righe.</value></data>
@@ -1402,16 +1402,16 @@
   <data name="Xfer_ColSector" xml:space="preserve"><value>Settore</value></data>
   <data name="Xfer_ColAirport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Xfer_CellEditTitle" xml:space="preserve"><value>Clic per scrivere qui</value></data>
-  <data name="Xfer_NavTitle" xml:space="preserve"><value>Gruppi</value></data>
+  <data name="Xfer_NavTitle" xml:space="preserve"><value>Controparti</value></data>
   <data name="Xfer_NavWarnTitle" xml:space="preserve"><value>Ci sono righe da sistemare qui dentro</value></data>
   <data name="Xfer_ViewLabel" xml:space="preserve"><value>Vista</value></data>
   <data name="Xfer_ViewTree" xml:space="preserve"><value>Albero</value></data>
   <data name="Xfer_ViewFlat" xml:space="preserve"><value>Elenco</value></data>
-  <data name="Xfer_ViewTreeTitle" xml:space="preserve"><value>Un gruppo per volta: è il modo di scrivere</value></data>
-  <data name="Xfer_ViewFlatTitle" xml:space="preserve"><value>Tutte le righe dell'ACC in una tabella: è il modo di rivedere</value></data>
-  <data name="Xfer_PaneEmptyTitle" xml:space="preserve"><value>Scegli un gruppo</value></data>
-  <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>Dall'albero a sinistra: settore, aeroporto, tipo di flusso. Le sue righe compaiono qui.</value></data>
-  <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>Non c'è ancora nessun gruppo per questo ACC: creane uno col tasto in fondo all'albero.</value></data>
+  <data name="Xfer_ViewTreeTitle" xml:space="preserve"><value>Un accordo per volta: è il modo di scrivere</value></data>
+  <data name="Xfer_ViewFlatTitle" xml:space="preserve"><value>Tutte le clausole dell&apos;ACC in una tabella: è il modo di rivedere</value></data>
+  <data name="Xfer_PaneEmptyTitle" xml:space="preserve"><value>Scegli un accordo</value></data>
+  <data name="Xfer_PaneEmptyBody" xml:space="preserve"><value>Dall&apos;albero a sinistra: prima la controparte, poi l&apos;accordo. Le sue clausole compaiono qui.</value></data>
+  <data name="Xfer_PaneEmptyFirst" xml:space="preserve"><value>Non c&apos;è ancora nessun accordo per questo ACC: creane uno col tasto in fondo all&apos;albero.</value></data>
   <data name="Xfer_NoRowsInGroup" xml:space="preserve"><value>Questo gruppo non ha ancora righe. Aggiungine una qui sotto.</value></data>
   <data name="Xfer_UnknownCallsign" xml:space="preserve"><value>Nessun settore si chiama «{0}»: la riga non è stata cambiata.</value></data>
   <data name="Xfer_GoToGroupTitle" xml:space="preserve"><value>Vai al gruppo di questa riga (in albero, con le sue sorelle)</value></data>
@@ -1427,8 +1427,52 @@
   <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Applica condizione</value></data>
   <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area e condizione libera. Le piste no: dipendono dall'aeroporto del gruppo</value></data>
   <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Elimina le righe selezionate</value></data>
-  <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Eliminare {0} righe? Si potrà annullare finché il messaggio resta a schermo.</value></data>
+  <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Eliminare {0} clausole? Si potrà annullare finché il messaggio resta a schermo.</value></data>
   <data name="Xfer_BulkDeleted" xml:space="preserve"><value>{0} righe eliminate.</value></data>
   <data name="Xfer_SortAsc" xml:space="preserve"><value>crescente</value></data>
   <data name="Xfer_SortDesc" xml:space="preserve"><value>decrescente</value></data>
+  <data name="Xfer_Agreement" xml:space="preserve"><value>Accordo</value></data>
+  <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} accordi</value></data>
+  <data name="Xfer_NewAgreement" xml:space="preserve"><value>Nuovo accordo di coordinamento</value></data>
+  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Un accordo vale fra i due elenchi di enti, per il traffico scelto, su tutti gli aeroporti elencati. Gli aeroporti possono essere esteri (ICAO libero); sorvoli e VFR possono restare senza. Senza nessuno sul &lt;b&gt;secondo lato&lt;/b&gt; il traffico finisce a UNICOM e le clausole non vengono derivate.</value></data>
+  <data name="Xfer_SideA" xml:space="preserve"><value>Primo lato</value></data>
+  <data name="Xfer_SideB" xml:space="preserve"><value>Secondo lato</value></data>
+  <data name="Xfer_RemoveParty" xml:space="preserve"><value>Togli questo ente</value></data>
+  <data name="Xfer_AirportsLabel" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Xfer_AirportsHint" xml:space="preserve"><value>(anche più d'uno)</value></data>
+  <data name="Xfer_AddAirport" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Xfer_RemoveAirport" xml:space="preserve"><value>Togli questo aeroporto</value></data>
+  <data name="Xfer_AgreementEdit" xml:space="preserve"><value>Modifica accordo</value></data>
+  <data name="Xfer_AgreementDelete" xml:space="preserve"><value>Elimina accordo</value></data>
+  <data name="Xfer_AgreementAdded" xml:space="preserve"><value>Accordo creato.</value></data>
+  <data name="Xfer_AgreementUpdated" xml:space="preserve"><value>Accordo aggiornato.</value></data>
+  <data name="Xfer_AgreementDeleted" xml:space="preserve"><value>Accordo eliminato.</value></data>
+  <data name="Xfer_AgreementRestored" xml:space="preserve"><value>Accordo ripristinato.</value></data>
+  <data name="Xfer_DeleteAgreementPrompt" xml:space="preserve"><value>Eliminare l'accordo e le sue {0} clausole?</value></data>
+  <data name="Xfer_AddClause" xml:space="preserve"><value>Clausola</value></data>
+  <data name="Xfer_ClausesCount" xml:space="preserve"><value>{0} clausole</value></data>
+  <data name="Xfer_NoClausesHere" xml:space="preserve"><value>Nessuna clausola in questo verso. Aggiungine una col tasto in fondo, o copia il verso opposto.</value></data>
+  <data name="Xfer_ColPoints" xml:space="preserve"><value>Punti</value></data>
+  <data name="Xfer_ColSender" xml:space="preserve"><value>Mittente</value></data>
+  <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
+  <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— senza ricevente</value></data>
+  <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Accordo bilaterale: ha clausole nei due versi</value></data>
+  <data name="Xfer_DirectionLabel" xml:space="preserve"><value>Verso dell'accordo</value></data>
+  <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copia dall'altro verso</value></data>
+  <data name="Xfer_CopyDirectionTitle" xml:space="preserve"><value>Copia qui le clausole del verso opposto come punto di partenza: i livelli dei due versi sono quasi sempre diversi e vanno rivisti.</value></data>
+  <data name="Xfer_DirectionCopied" xml:space="preserve"><value>Copiate {0} clausole nel verso opposto: i livelli vanno rivisti.</value></data>
+  <data name="Xfer_CommsWhere" xml:space="preserve"><value>Comunicazioni</value></data>
+  <data name="Xfer_CommsSameAsControl" xml:space="preserve"><value>dove passa il controllo</value></data>
+  <data name="Xfer_HandoffSameAsEntry" xml:space="preserve"><value>coincide con l'ingresso</value></data>
+  <data name="Xfer_HandoffLabel" xml:space="preserve"><value>Dove</value></data>
+  <data name="Xfer_HandoffSet" xml:space="preserve"><value>trasferimento distinto</value></data>
+  <data name="Xfer_SpeedKt" xml:space="preserve"><value>kt</value></data>
+  <data name="Xfer_CondRunway" xml:space="preserve"><value>Pista in uso</value></data>
+  <data name="Xfer_CondArea" xml:space="preserve"><value>Area attiva</value></data>
+  <data name="Xfer_CondCustom" xml:space="preserve"><value>Condizione personalizzata</value></data>
+  <data name="Xfer_CondCustomPh" xml:space="preserve"><value>di notte / con traffico militare</value></data>
+  <data name="Xfer_NoRunways" xml:space="preserve"><value>(nessuna pista importata)</value></data>
+  <data name="Xfer_DetachTitle" xml:space="preserve"><value>Sfila dal gruppo di varianti (col suo sottoalbero)</value></data>
+  <data name="Xfer_Preview" xml:space="preserve"><value>Anteprima</value></data>
+  <data name="Xfer_RowSaved" xml:space="preserve"><value>Clausola salvata.</value></data>
 </root>

@@ -12,11 +12,11 @@ namespace Vipi.Application.Live;
 public sealed class LiveStationParts
 {
     private readonly IAccDerivationService _acc;
-    private readonly ITransferService _transfers;
+    private readonly IAgreementService _transfers;
     private readonly IAorService _aor;
     private readonly IDocumentAdminService _docs;
 
-    public LiveStationParts(IAccDerivationService acc, ITransferService transfers, IAorService aor,
+    public LiveStationParts(IAccDerivationService acc, IAgreementService transfers, IAorService aor,
         IDocumentAdminService docs)
     {
         _acc = acc;

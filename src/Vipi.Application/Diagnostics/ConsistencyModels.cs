@@ -10,8 +10,10 @@ public enum ConsistencySeverity { Warning, Error }
 /// <param name="Detail">Spiegazione del disallineamento e come si è prodotto.</param>
 public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity, string Detail);
 
-/// <summary>Riga di condizione di un punto di trasferimento (soft-ref a pista/area denormalizzate).</summary>
-public sealed record TransferConditionRow(int PointId, string AccCode, string Cop,
+/// <summary>Condizione di una clausola di accordo (soft-ref a pista/area denormalizzate).</summary>
+/// <param name="Points">I punti della clausola, come si leggono: servono solo a dire QUALE clausola nel
+/// messaggio del report.</param>
+public sealed record TransferConditionRow(int ClauseId, string AccCode, string Points,
     int? ConditionRefId, string? ConditionLabel, string? ConditionAreaLabel);
 
 /// <summary>Nodo dei cataloghi che dichiara un padre di copertura per callsign (soft-ref cross-catalogo, no FK).</summary>
