@@ -111,6 +111,16 @@ public static class MySqlStringLengths
             [("TransferPoint", "HandoffLevelUnit")] = 32,
             [("TransferPoint", "HandoffLevelConstraint")] = 32,
             [("TransferPoint", "SpeedConstraint")] = 32,
+            // Gli stessi enum sull'entità che prende il posto di TransferPoint, più i due che qui sono
+            // INDICIZZATI e prima non esistevano: la direzione entra nella chiave di lettura delle clausole
+            // (l'outline vive dentro una direzione) e il lato entra in quella delle parti.
+            [("AgreementClause", "Direction")] = 32,       // indice, oltre che default
+            [("AgreementClause", "HandoffKind")] = 32,
+            [("AgreementClause", "CommsHandoffKind")] = 32,
+            [("AgreementClause", "HandoffLevelUnit")] = 32,
+            [("AgreementClause", "HandoffLevelConstraint")] = 32,
+            [("AgreementClause", "SpeedConstraint")] = 32,
+            [("AgreementParty", "Side")] = 32,             // indice; misurato 1 (`A`/`B`)
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
             [("ImportState", "Category")] = 32,            // chiave primaria; misurato 13 (`AirportSector`)

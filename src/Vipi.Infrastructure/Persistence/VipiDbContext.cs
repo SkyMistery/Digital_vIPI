@@ -83,6 +83,10 @@ public class VipiDbContext : DbContext
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
     public DbSet<TransferFlow> TransferFlows => Set<TransferFlow>();
     public DbSet<TransferPoint> TransferPoints => Set<TransferPoint>();
+    public DbSet<CoordinationAgreement> CoordinationAgreements => Set<CoordinationAgreement>();
+    public DbSet<AgreementParty> AgreementParties => Set<AgreementParty>();
+    public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
+    public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
@@ -303,6 +307,63 @@ public class VipiDbContext : DbContext
             // L'Order entra nell'indice perché in un outline l'ordine NON è solo presentazione: è la struttura
             // (una riga appartiene all'ultima meno profonda che la precede), quindi si legge sempre ordinato.
             e.HasIndex(x => new { x.FlowId, x.VariantGroup, x.Order });
+        });
+
+        // ─── Accordi di coordinamento ──────────────────────────────────────────────────────────────────
+        // Prendono il posto di TransferFlow/TransferPoint (carta: docs/feature/2026-08-16-accordi-di-
+        // coordinamento.md). Le due coppie convivono finché il travaso non è fatto e l'editor non è portato:
+        // due scrittori sugli stessi dati sarebbero due verità, quindi il passaggio avviene in un colpo solo.
+        b.Entity<CoordinationAgreement>(e =>
+        {
+            e.HasIndex(x => new { x.OwnerAccId, x.Order });
+            // Niente token di concorrenza: vedi il commento su SharedBlock.
+            e.HasOne(x => x.OwnerAcc).WithMany().HasForeignKey(x => x.OwnerAccId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AgreementParty>(e =>
+        {
+            e.HasIndex(x => new { x.AgreementId, x.Side, x.Order });
+            e.HasOne(x => x.Agreement).WithMany(a => a.Parties).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
+            // Sparisce il settore, sparisce la PARTE — non l'accordo. Prima spariva il flusso intero, cioè
+            // l'accordo con tutte le sue righe: un accordo con un capo solo è incompleto e va segnalato, ma
+            // buttarlo via perché un ente è stato rinominato è una perdita di lavoro editoriale.
+            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AgreementAirport>(e =>
+        {
+            e.HasIndex(x => new { x.AgreementId, x.Order });
+            e.HasOne(x => x.Agreement).WithMany(a => a.Airports).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
+            // ICAO come soft-ref, esattamente come TransferFlow.AirportIcao: nessun FK (gli accordi citano anche
+            // scali esteri fuori catalogo) e nessun indice, quindi nessuna lunghezza da dimensionare per MySQL.
+        });
+
+        b.Entity<AgreementClause>(e =>
+        {
+            e.HasOne(x => x.Agreement).WithMany(a => a.Clauses).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
+            // La direzione entra nella chiave di lettura perché l'outline vive DENTRO una direzione: le clausole
+            // del verso opposto non sono alternative delle prime, sono un'altra tabella (Annex D.2 ne ha due).
+            e.HasIndex(x => new { x.AgreementId, x.Direction, x.Order });
+            e.HasIndex(x => new { x.AgreementId, x.Direction, x.VariantGroup, x.Order });
+
+            // Elenco dei punti: una stringa con separatore, come ConditionLabel fa già per le multi-pista.
+            // Dimensionata anche fuori da MySQL perché è una lista corta per natura, non prosa.
+            e.Property(x => x.Cops).HasMaxLength(200);
+            e.Property(x => x.ConditionLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
+            e.Property(x => x.HandoffLabel).HasMaxLength(80);
+            e.Property(x => x.CommsHandoffLabel).HasMaxLength(80);
+
+            // ⚠️ Default DICHIARATI NEL MODELLO, per la stessa ragione spiegata su TransferPoint: coprono sia la
+            // migrazione EF sia il PostgresSchemaReconciler, e valgono solo perché ognuno È lo zero del proprio
+            // enum. Qui la tabella nasce vuota, ma il travaso ci scrive dentro e il reconciler la vede uguale.
+            e.Property(x => x.HandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
+            e.Property(x => x.CommsHandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
+            e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
+            e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
+            e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
+            e.Property(x => x.Direction).HasDefaultValue(AgreementDirection.AtoB);
         });
 
         b.Entity<EditGrant>(e =>

@@ -100,6 +100,16 @@ public enum TransferHandoffKind { Unspecified, Point, AorBoundary, Custom }
 /// aerovia») che su una velocità non significa niente.</summary>
 public enum SpeedConstraint { Unspecified, AtOrBelow, AtOrAbove, Exact }
 
+/// <summary>Quale dei due capi di un <see cref="Entities.CoordinationAgreement"/>. I lati non hanno un verso
+/// proprio — quello lo dice <see cref="AgreementDirection"/> sulla singola clausola — e non sono «mittente» e
+/// «ricevente»: in un accordo bilaterale ognuno dei due è entrambe le cose, a seconda della direzione.</summary>
+public enum AgreementSide { A, B }
+
+/// <summary>Il verso di una clausola: dal lato A al lato B, o viceversa. È la partizione con cui i documenti
+/// veri aprono la tabella dei coordinamenti (EUROCONTROL Annex D.2: «Flights from [unit 1] to [unit 2]» e il
+/// suo gemello opposto).</summary>
+public enum AgreementDirection { AtoB, BtoA }
+
 /// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
 /// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da
 /// <see cref="DateParity"/> (parità del giorno del mese per le piste): stessa forma, semantica diversa.</summary>
