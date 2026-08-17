@@ -343,6 +343,66 @@ public sealed class EfAgreementRepository : IAgreementRepository
         return source.Count;
     }
 
+    public async Task<int> AbsorbAsReverseAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
+    {
+        if (keepId == absorbId) return 0;
+
+        // ⚠️ Serve il grafo COMPLETO, e non basta la testata: il confronto è sui callsign delle parti (quindi
+        // servono i Sector) e sui versi occupati (quindi servono le clausole). Con le parti caricate ma senza il
+        // settore, Map ripiega su «#id» e due accordi specchiati non si riconoscerebbero mai.
+        var keep = await FullAgreementAsync(accCode, keepId, ct);
+        var absorb = await FullAgreementAsync(accCode, absorbId, ct);
+
+        // ⚠️ Le condizioni si RIVALIDANO qui e non si dànno per buone dalla proposta: fra il momento in cui il
+        // candidato è stato calcolato e il momento in cui si preme, qualcun altro può aver scritto nel verso che
+        // deve restare libero — e accodare due scritture nella stessa tabella è proprio la scelta che il travaso
+        // si era rifiutato di fare.
+        var keepRow = Map(keep);
+        var absorbRow = Map(absorb);
+        if (!AgreementMerge.IsReverseOf(keepRow, absorbRow))
+            throw new InvalidOperationException(
+                $"Gli accordi {keepId} e {absorbId} non sono i due versi della stessa relazione.");
+        if (!AgreementMerge.TargetFree(keepRow, absorbRow))
+            throw new InvalidOperationException(
+                $"L'accordo {keepId} ha già clausole nel verso in cui andrebbero quelle di {absorbId}.");
+
+        var moving = await _db.AgreementClauses.Where(x => x.AgreementId == absorbId)
+            .OrderBy(x => x.Direction).ThenBy(x => x.Order).ToListAsync(ct);
+        if (moving.Count == 0) return 0;
+
+        // I gruppi di varianti si rinumerano: sono progressivi per ACCORDO, e riusarli qui farebbe sembrare le
+        // clausole arrivate varianti di quelle che c'erano già.
+        var nextGroup = await _db.AgreementClauses.Where(x => x.AgreementId == keepId)
+            .MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0;
+        var groupMap = new Dictionary<int, int>();
+
+        foreach (var gruppo in moving.GroupBy(x => x.Direction))
+        {
+            var verso = AgreementMerge.Flip(gruppo.Key);
+            var order = 0;
+            foreach (var c in gruppo)
+            {
+                c.AgreementId = keepId;
+                // Il verso si ribalta perché i due accordi hanno i lati scambiati: un A→B di là è un B→A di qua.
+                c.Direction = verso;
+                c.Order = ++order;
+                if (c.VariantGroup is int g)
+                {
+                    if (!groupMap.TryGetValue(g, out var mapped)) groupMap[g] = mapped = ++nextGroup;
+                    c.VariantGroup = mapped;
+                }
+            }
+        }
+
+        // Il guscio se ne va DOPO che le clausole hanno cambiato padre: cancellarlo prima le porterebbe con sé
+        // in cascade, e l'unione perderebbe proprio ciò che doveva salvare.
+        await _db.SaveChangesAsync(ct);
+        _db.CoordinationAgreements.Remove(absorb);
+        await _db.SaveChangesAsync(ct);
+
+        return moving.Count;
+    }
+
     // ---- modifica in blocco -------------------------------------------------------------------------
 
     public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level,
@@ -605,6 +665,17 @@ public sealed class EfAgreementRepository : IAgreementRepository
         await AgreementsOf(accCode)
             .Include(x => x.Parties)
             .Include(x => x.Airports)
+            .FirstOrDefaultAsync(x => x.Id == agreementId, ct)
+        ?? throw new InvalidOperationException($"Accordo {agreementId} non riguarda la ACC {accCode}.");
+
+    /// <summary>L'accordo col grafo completo e tracciato — parti <b>coi loro settori</b>, aeroporti, clausole.
+    /// Serve a chi deve <b>confrontare</b> due accordi, non solo scrivere su uno.</summary>
+    private async Task<CoordinationAgreement> FullAgreementAsync(string accCode, int agreementId, CancellationToken ct) =>
+        await AgreementsOf(accCode)
+            .Include(x => x.OwnerAcc)
+            .Include(x => x.Parties).ThenInclude(p => p.Sector)
+            .Include(x => x.Airports)
+            .Include(x => x.Clauses)
             .FirstOrDefaultAsync(x => x.Id == agreementId, ct)
         ?? throw new InvalidOperationException($"Accordo {agreementId} non riguarda la ACC {accCode}.");
 

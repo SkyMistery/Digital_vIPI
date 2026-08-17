@@ -600,6 +600,7 @@
     {
         AgreementGapKind.NoReceiver => L["Xfer_GapNoReceiver"],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapAsymmetric"],
+        AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApart"],
         AgreementGapKind.ToReview => L["Xfer_ToReview"],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbour"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirport"],
@@ -614,7 +615,8 @@
         // gia' la pill di una release programmata. Un colore nuovo per questa tabella sarebbe un secondo
         // vocabolario di gravita' accanto a quello che il resto del sito ha gia'.
         AgreementGapKind.NoReceiver => "future",
-        AgreementGapKind.AsymmetricDirections or AgreementGapKind.ToReview => "grey",
+        AgreementGapKind.AsymmetricDirections or AgreementGapKind.ToReview
+            or AgreementGapKind.ReverseInSeparateAgreement => "grey",
         _ => "neutral",
     };
 
@@ -624,6 +626,7 @@
     {
         AgreementGapKind.NoReceiver or AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapOnlyOneWay", string.Join(", ", g.Items)],
+        AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApartDetail", g.Count],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbourDetail"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirportDetail"],
         _ => L["Xfer_GapSectorDetail"],
@@ -634,6 +637,30 @@
         SetView(XferView.Tree);
         SelectAgreement(agreementId);
         _gapsOpen = false;
+    }
+
+    // ---- Il reciproco scritto a parte ---------------------------------------------------------------
+
+    /// <summary>La coppia da unire che riguarda questo accordo, se c'è. Il calcolo è la funzione pura di
+    /// <c>AgreementMerge</c>: la stessa che alimenta la voce del cruscotto, non un secondo giudizio.</summary>
+    private ReverseAgreementPair? MergeCandidateFor(AgreementRow a) =>
+        AgreementMerge.Candidates(_agreements, _lens)
+            .FirstOrDefault(p => p.KeepId == a.Id || p.AbsorbId == a.Id);
+
+    /// <summary>Unisce i due versi. <b>Irreversibile riga per riga</b> — due accordi diventano uno — quindi passa
+    /// dalla conferma in linea, e dopo si apre quello che resta: lasciare a schermo un accordo cancellato sarebbe
+    /// il modo più rapido di far credere che l'unione non sia avvenuta.</summary>
+    private async Task AbsorbReverse(ReverseAgreementPair pair)
+    {
+        var n = 0;
+        await Guarded(async () =>
+        {
+            n = await Agreements.AbsorbAsReverseAsync(_acc!.Code, pair.KeepId, pair.AbsorbId);
+        }, null);
+        if (_error is not null) return;
+
+        _status = string.Format(L["Xfer_Merged"].Value, n);
+        SelectAgreement(pair.KeepId);
     }
 
     // ---- Selezione multipla e modifica in blocco ----
@@ -1065,6 +1092,31 @@
                 <div class="callout xt-warn">
                     <span class="cic">⚠</span>
                     <div>@(string.Format(L["Xfer_UnpairedPoints"].Value, string.Join(", ", spaiati)))</div>
+                </div>
+            }
+
+            @* Il reciproco scritto in un ACCORDO A PARTE — come il travaso ha lasciato l'archivio. Va detto qui,
+               perché coi due versi a vista questo accordo mostra un verso vuoto mentre il suo contenuto sta nel
+               nodo accanto: chi guarda conclude che il reciproco manca, e lo riscrive una terza volta.
+               L'unione si vede PRIMA di scriverla — le due tabelle ci sono già, una sotto l'altra. *@
+            @if (MergeCandidateFor(ag) is { } pair)
+            {
+                var keepId = pair.KeepId;
+                var altroId = ag.Id == keepId ? pair.AbsorbId : keepId;
+                var altro = _agreements.FirstOrDefault(x => x.Id == altroId);
+                <div class="callout info xt-warn">
+                    <span class="cic">⇄</span>
+                    <div>
+                        @(string.Format(
+                            ag.Id == keepId ? L["Xfer_ReverseApartHere"].Value : L["Xfer_ReverseApartThere"].Value,
+                            altro is null ? $"#{altroId}" : DirectionPair(altro, AgreementDirection.AtoB),
+                            pair.Clauses))
+                    </div>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)"
+                            @onclick="() => GoToGap(altroId)">↗ @L["Xfer_ReverseApartOpen"]</button>
+                    <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_MergeAria"]" Disabled="@(_busy || !_canEdit)"
+                                   Prompt="@(string.Format(L["Xfer_MergePrompt"].Value, pair.Clauses))"
+                                   OnConfirm="() => AbsorbReverse(pair)"><Trigger>⇄ @L["Xfer_Merge"]</Trigger></InlineConfirm>
                 </div>
             }
 

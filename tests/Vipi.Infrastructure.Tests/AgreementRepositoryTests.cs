@@ -253,6 +253,84 @@ public class AgreementRepositoryTests : IAsyncLifetime
         Assert.Equal(0, await _repo.CopyDirectionAsync("LIRR", id, AgreementDirection.AtoB));
     }
 
+    // ---- il reciproco scritto a parte ----------------------------------------------------------------
+
+    [Fact]
+    public async Task Unire_i_due_versi_porta_le_clausole_di_la_RIBALTATE()
+    {
+        var (andata, ritorno) = await CoppiaSpecchiataAsync();
+
+        var mossi = await _repo.AbsorbAsReverseAsync("LIRR", andata, ritorno);
+
+        Assert.Equal(1, mossi);
+        var a = Assert.Single(await _repo.ListByAccAsync("LIRR"));
+        Assert.Equal(andata, a.Id);
+        // Il verso si ribalta perché i due accordi avevano i lati scambiati: un A→B di là è un B→A di qua.
+        Assert.Equal(new[] { AgreementDirection.AtoB, AgreementDirection.BtoA },
+                     a.Clauses.OrderBy(c => c.Direction).Select(c => c.Direction));
+        Assert.Equal("OLGAT", a.Clauses.Single(c => c.Direction == AgreementDirection.BtoA).Cops);
+    }
+
+    [Fact]
+    public async Task Unire_non_tocca_due_accordi_che_non_sono_specchiati()
+    {
+        var (andata, _) = await CoppiaSpecchiataAsync();
+        // Stessi enti, ma nello stesso verso: non è il reciproco, è un doppione — e va riletto, non fuso.
+        var gemello = await _repo.AddAgreementAsync("LIRR", Header(sideB: new[] { _ftwrId }));
+        await _repo.AddClauseAsync("LIRR", gemello, AgreementDirection.AtoB, Clause("TARQU", 90));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _repo.AbsorbAsReverseAsync("LIRR", andata, gemello));
+    }
+
+    [Fact]
+    public async Task Unire_si_rifiuta_se_il_verso_di_destinazione_non_e_piu_libero()
+    {
+        // Fra la proposta e il tasto qualcun altro può aver scritto: accodare due scritture nella stessa tabella
+        // è la scelta che il travaso si era rifiutato di fare, e nessun errore direbbe quale delle due valga.
+        var (andata, ritorno) = await CoppiaSpecchiataAsync();
+        await _repo.AddClauseAsync("LIRR", andata, AgreementDirection.BtoA, Clause("QUALCOSA", 100));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _repo.AbsorbAsReverseAsync("LIRR", andata, ritorno));
+    }
+
+    [Fact]
+    public async Task Unendo_i_gruppi_di_varianti_si_rinumerano()
+    {
+        // I numeri di gruppo sono progressivi per ACCORDO: riusarli farebbe sembrare le clausole arrivate
+        // varianti di quelle che c'erano già.
+        var (andata, ritorno) = await CoppiaSpecchiataAsync();
+        var capofila = (await _repo.ListByAccAsync("LIRR")).Single(x => x.Id == andata).Clauses[0];
+        await _repo.AddAlternativeAsync("LIRR", capofila.Id);
+
+        await _repo.AbsorbAsReverseAsync("LIRR", andata, ritorno);
+
+        var a = Assert.Single(await _repo.ListByAccAsync("LIRR"));
+        var gruppiAndata = a.Clauses.Where(c => c.Direction == AgreementDirection.AtoB)
+            .Select(c => c.VariantGroup).Distinct().ToList();
+        var gruppiRitorno = a.Clauses.Where(c => c.Direction == AgreementDirection.BtoA)
+            .Select(c => c.VariantGroup).Where(g => g is not null).Distinct().ToList();
+        Assert.Empty(gruppiAndata.Intersect(gruppiRitorno));
+    }
+
+    /// <summary>Due accordi che sono i due versi della stessa relazione, come li ha lasciati il travaso.</summary>
+    private async Task<(int Andata, int Ritorno)> CoppiaSpecchiataAsync()
+    {
+        var andata = await _repo.AddAgreementAsync("LIRR", Header(sideB: new[] { _ftwrId }));
+        await _repo.AddClauseAsync("LIRR", andata, AgreementDirection.AtoB, Clause("VALMA", 130));
+
+        var ritorno = await _repo.AddAgreementAsync("LIRR", new AgreementInput
+        {
+            TrafficKind = TransferFlowKind.Arrival,
+            SideA = new[] { _ftwrId },
+            SideB = new[] { _neId },
+            Airports = new[] { new AgreementAirportInput("LIRF") },
+        });
+        await _repo.AddClauseAsync("LIRR", ritorno, AgreementDirection.AtoB, Clause("OLGAT", 110));
+        return (andata, ritorno);
+    }
+
     // ---- ripristino ----------------------------------------------------------------------------------
 
     [Fact]

@@ -191,6 +191,8 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> CopyDirectionAsync(string a, int id, Vipi.Domain.AgreementDirection from, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<int> AbsorbAsReverseAsync(string a, int keep, int absorb, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, string? custom, CancellationToken ct = default) =>

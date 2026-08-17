@@ -63,6 +63,16 @@ public interface IAgreementRepository
     /// destinazione ne ha già.</summary>
     Task<int> CopyDirectionAsync(string accCode, int agreementId, AgreementDirection from, CancellationToken ct = default);
 
+    /// <summary>
+    /// Porta le clausole di <paramref name="absorbId"/> nel verso libero di <paramref name="keepId"/>, <b>ribaltate</b>,
+    /// e cancella il guscio rimasto vuoto. Ritorna quante clausole ha spostato.
+    /// <para>Serve dove il travaso ha lasciato i due versi in accordi separati. Le condizioni le decide
+    /// <see cref="AgreementMerge"/>, ma vanno rivalidate qui: fra la proposta e il tasto l'archivio può essere
+    /// cambiato, e un'unione su un verso non più libero accoderebbe due scritture diverse nella stessa tabella.</para>
+    /// <para>⚠️ Non è invertibile riga per riga: due accordi diventano uno, e il <c>Down</c> di niente li rifà.</para>
+    /// </summary>
+    Task<int> AbsorbAsReverseAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default);
+
     /// <summary>Cambia il livello autorizzato di più clausole. <b>Non</b> si propaga al gruppo: il livello è
     /// della singola clausola, ed è proprio ciò che due varianti dicono diverso.</summary>
     Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default);

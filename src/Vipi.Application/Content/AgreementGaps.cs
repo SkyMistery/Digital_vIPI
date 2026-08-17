@@ -12,13 +12,16 @@ namespace Vipi.Application.Content;
 /// <param name="Items">I pezzi che qualificano la lacuna — i punti che stanno da un lato solo. Vuoto se non
 /// servono.</param>
 /// <param name="AgreementId">L'accordo da aprire per sistemarla, quando ce n'è uno.</param>
+/// <param name="PairAgreementId">Il <b>secondo</b> accordo, quando la lacuna è una relazione fra due — il
+/// reciproco scritto a parte. Senza di lui la voce potrebbe solo indicare, non offrire di sistemare.</param>
 /// <remarks>
 /// ⚠️ Nessun campo porta <b>parole</b>: le lacune si mostrano in un'interfaccia che esiste anche in inglese, e
 /// una frase composta qui uscirebbe in italiano dentro una pagina inglese. È lo stesso motivo per cui la frase
 /// di coordinamento vive nel template e non nella vista.
 /// </remarks>
 public sealed record AgreementGap(
-    AgreementGapKind Kind, string Subject, int Count, IReadOnlyList<string> Items, int? AgreementId);
+    AgreementGapKind Kind, string Subject, int Count, IReadOnlyList<string> Items, int? AgreementId,
+    int? PairAgreementId = null);
 
 /// <summary>
 /// I generi di lacuna, in ordine di gravità. L'ordine dell'enum <b>è</b> l'ordine di presentazione: la prima è
@@ -32,6 +35,15 @@ public enum AgreementGapKind
     /// <summary>Due enti hanno accordi solo in un verso, e i punti dei due versi <b>non coincidono</b>. È il caso
     /// che nessuno vede a occhio, ed è già successo in archivio (BELIX di qua, OLGAT di là).</summary>
     AsymmetricDirections,
+
+    /// <summary>
+    /// Il reciproco di un accordo è scritto in un <b>accordo a parte</b> invece che nel suo verso opposto: stessi
+    /// enti a lati scambiati, stesso traffico, stessi aeroporti.
+    /// <para>Sta qui e non più in basso perché è <b>sistemabile in un gesto</b> e perché, coi due versi a vista,
+    /// quei due accordi mostrano ognuno un verso vuoto mentre il contenuto sta nel nodo accanto: chi guarda
+    /// conclude che il reciproco manca, e lo riscrive una terza volta.</para>
+    /// </summary>
+    ReverseInSeparateAgreement,
 
     /// <summary>Una clausola verso un APP che non dice ancora dove avviene il trasferimento: il suo livello può
     /// voler dire «autorizzato» o «al trasferimento», e solo chi l'ha scritta lo sa.</summary>
@@ -104,6 +116,17 @@ public static class AgreementGaps
             // sotto la stessa controparte.
             gaps.Add(new AgreementGap(AgreementGapKind.AsymmetricDirections,
                 $"{g.Key.A} ⇄ {g.Key.B}", spaiati.Count, spaiati, versi[0].AgreementId));
+        }
+
+        // 2-bis) Il reciproco scritto in un accordo A PARTE. È come il travaso ha lasciato l'archivio, e coi due
+        //        versi a vista diventa attivamente ingannevole: entrambi gli accordi mostrano un verso vuoto
+        //        mentre il contenuto sta nell'altro nodo. Qui si propone di unirli — la proposta è strettissima
+        //        (parti specchiate, stesso traffico, STESSI aeroporti), sennò urla dove non deve.
+        foreach (var p in AgreementMerge.Candidates(agreements, new AgreementViewpoint(accCode, accSectors)))
+        {
+            var keep = agreements.First(a => a.Id == p.KeepId);
+            gaps.Add(new AgreementGap(AgreementGapKind.ReverseInSeparateAgreement, Describe(keep), p.Clauses,
+                Array.Empty<string>(), p.KeepId, p.AbsorbId));
         }
 
         // 3) Clausole verso un APP senza faccetta trasferimento.

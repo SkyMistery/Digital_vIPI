@@ -46,6 +46,10 @@ public interface IAgreementService
     /// <summary>Copia le clausole di un verso nell'altro, come punto di partenza per il reciproco.</summary>
     Task<int> CopyDirectionAsync(string accCode, int agreementId, AgreementDirection from, CancellationToken ct = default);
 
+    /// <summary>Unisce due accordi che sono i due versi della stessa relazione: le clausole dell'assorbito passano
+    /// ribaltate nel verso libero di quello che resta. Candidati da <see cref="AgreementMerge"/>.</summary>
+    Task<int> AbsorbAsReverseAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default);
+
     Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default);
     Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel, string? customLabel,
         CancellationToken ct = default);

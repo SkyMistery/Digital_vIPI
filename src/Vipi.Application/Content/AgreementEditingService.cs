@@ -140,6 +140,14 @@ public sealed class AgreementService : IAgreementService
         return await _repo.CopyDirectionAsync(accCode, agreementId, from, ct);
     }
 
+    public async Task<int> AbsorbAsReverseAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        if (keepId == absorbId)
+            throw new ValidationException("Un accordo non può assorbire sé stesso.");
+        return await _repo.AbsorbAsReverseAsync(accCode, keepId, absorbId, ct);
+    }
+
     public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);

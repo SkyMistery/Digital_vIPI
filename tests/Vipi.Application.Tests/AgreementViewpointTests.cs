@@ -181,6 +181,99 @@ public class AgreementViewpointTests
         Assert.Empty(AgreementPoints.UnpairedWithin(a));
     }
 
+    // ---- il reciproco scritto in un accordo a parte ---------------------------------------------------
+
+    [Fact]
+    public void Due_accordi_specchiati_si_propongono_per_l_unione()
+    {
+        // È la coppia #17/#28 dell'archivio: LIBB→LDZO e LDZO→LIBB, sorvoli, senza aeroporti.
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var ritorno = Reverse(andata, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB));
+
+        var p = Assert.Single(AgreementMerge.Candidates(new[] { andata, ritorno }, From("LIBB")));
+        // Resta quello che da qui si legge nel verso di casa: l'accordo unito non nasce già girato al contrario.
+        Assert.Equal(1, p.KeepId);
+        Assert.Equal(2, p.AbsorbId);
+        Assert.Equal(1, p.Clauses);
+    }
+
+    [Fact]
+    public void Da_LDZO_resta_l_altro_accordo()
+    {
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var ritorno = Reverse(andata, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB));
+
+        var p = Assert.Single(AgreementMerge.Candidates(new[] { andata, ritorno }, From("LDZO")));
+        Assert.Equal(2, p.KeepId);
+    }
+
+    [Fact]
+    public void Aeroporti_diversi_non_sono_lo_stesso_accordo()
+    {
+        // Sono cinque casi in archivio: arrivi per gruppo di scali, scritti nei due sensi su scali diversi.
+        // Proporli insegnerebbe a ignorare la proposta.
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB))
+            with { Airports = new[] { new AgreementAirportRow("LIBD", null, 1) } };
+        var ritorno = Reverse(andata, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB))
+            with { Airports = new[] { new AgreementAirportRow("LIBR", null, 1) } };
+
+        Assert.Empty(AgreementMerge.Candidates(new[] { andata, ritorno }, From("LIBB")));
+    }
+
+    [Fact]
+    public void Un_tipo_di_traffico_diverso_non_si_propone()
+    {
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var ritorno = Reverse(andata, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB))
+            with { TrafficKind = TransferFlowKind.Arrival };
+
+        Assert.Empty(AgreementMerge.Candidates(new[] { andata, ritorno }, From("LIBB")));
+    }
+
+    [Fact]
+    public void Un_verso_di_destinazione_occupato_ferma_la_proposta()
+    {
+        // Unire accoderebbe due scritture nella stessa tabella, e nessuno saprebbe più quale valga: è la scelta
+        // che il travaso si era rifiutato di fare.
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR",
+            Clause(1, "BELIX", AgreementDirection.AtoB),
+            Clause(2, "TIGRA", AgreementDirection.BtoA));
+        var ritorno = Reverse(andata, id: 2, Clause(3, "OLGAT", AgreementDirection.AtoB));
+
+        Assert.Empty(AgreementMerge.Candidates(new[] { andata, ritorno }, From("LIBB")));
+    }
+
+    [Fact]
+    public void Un_guscio_vuoto_non_e_un_reciproco()
+    {
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var vuoto = Reverse(andata, id: 2);
+
+        Assert.Empty(AgreementMerge.Candidates(new[] { andata, vuoto }, From("LIBB")));
+    }
+
+    [Fact]
+    public void Un_accordo_senza_controparte_non_ha_un_rovescio()
+    {
+        // Il traffico va a UNICOM: mancherebbe chi scrive il verso opposto.
+        var a = Agreement("LIBB_ES_CTR", null, Clause(1, "BELIX", AgreementDirection.AtoB));
+        var b = Agreement("LIBB_ES_CTR", null, Clause(2, "OLGAT", AgreementDirection.AtoB)) with { Id = 2 };
+
+        Assert.Empty(AgreementMerge.Candidates(new[] { a, b }, From("LIBB")));
+    }
+
+    [Fact]
+    public void Ogni_accordo_entra_in_una_coppia_sola()
+    {
+        // Tre accordi specchiati a due a due: due proposte sovrapposte lascerebbero premere la seconda su un
+        // accordo che la prima ha già cancellato.
+        var uno = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var due = Reverse(uno, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB));
+        var tre = Reverse(uno, id: 3, Clause(3, "RUTOM", AgreementDirection.AtoB));
+
+        Assert.Single(AgreementMerge.Candidates(new[] { uno, due, tre }, From("LIBB")));
+    }
+
     // ---- attrezzi ------------------------------------------------------------------------------------
 
     private static AgreementRow Agreement(string sideA, string? sideB, params AgreementClauseRow[] clauses)
@@ -196,6 +289,17 @@ public class AgreementViewpointTests
             Clauses = clauses,
         };
     }
+
+    /// <summary>Lo stesso accordo coi lati scambiati: è come il travaso ha lasciato i reciproci.</summary>
+    private static AgreementRow Reverse(AgreementRow a, int id, params AgreementClauseRow[] clauses) => a with
+    {
+        Id = id,
+        Parties = a.Parties.Select(p => p with
+        {
+            Side = p.Side == AgreementSide.A ? AgreementSide.B : AgreementSide.A,
+        }).ToList(),
+        Clauses = clauses,
+    };
 
     private static AgreementClauseRow Clause(int id, string cops, AgreementDirection d) => new()
     {
