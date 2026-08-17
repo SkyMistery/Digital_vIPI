@@ -1,15 +1,20 @@
 @inject IStringLocalizer<SharedResource> L
 
 @*
-    Colonna 1: l'albero degli accordi. Controparte ▸ accordo, e l'accordo è una FOGLIA — si sceglie, non si apre.
+    Colonna 1: l'albero degli accordi. ACC della controparte ▸ suo ente ▸ accordo, e l'accordo è una FOGLIA —
+    si sceglie, non si apre.
 
-    L'asse è cambiato con il modello: prima era settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello
-    vecchio costringeva a SCRIVERE. Adesso è la controparte, che è il modo in cui un accordo viene in mente —
-    «l'accordo con Roma», non «il flusso del settore ES verso l'aeroporto di Bari». Un livello in meno, e
-    l'aeroporto smette di essere un ramo: è un attributo dell'accordo, che può averne quattro.
+    L'asse è cambiato due volte. Prima era settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello vecchio
+    costringeva a SCRIVERE. Poi «la controparte», ma con la chiave sul lato B dell'accordo: e per gli accordi in
+    cui la ACC aperta È il lato B — 13 su 40 per LIBB, 10 su 11 per LIRR — il ramo prendeva il nome dei nostri
+    stessi settori, cioè la pagina rimetteva in cima l'asse che il modello nuovo aveva appena tolto. Adesso la
+    chiave è l'ACC della controparte letta dalla lente, che è il modo in cui un accordo viene in mente:
+    «l'accordo con Roma», da qualunque capo sia stato scritto.
 
-    Gli avvisi risalgono: un accordo senza ricevente accende il pallino sulla propria controparte. Un avviso che
-    si vede solo dopo aver aperto il ramo giusto non è un avviso.
+    Un livello si apre (l'ACC), l'altro no (l'ente): sotto Roma stanno quattro enti diversi e distinguerli
+    serve, ma farli aprire uno per uno costerebbe due gesti per arrivare a una foglia che ne chiede uno.
+
+    Gli avvisi risalgono fino all'ACC: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso.
 *@
 
 <div class="xt-nav">
@@ -33,33 +38,43 @@
                  @onkeydown="e => Activate(e, () => OnToggle.InvokeAsync(cp.Key))">
                 <span class="xt-chev">@(open ? "▾" : "▸")</span>
                 <span class="xt-nav-name">@cp.Label</span>
+                @if (!string.IsNullOrWhiteSpace(cp.Note)) { <span class="muted xt-nav-note">@cp.Note</span> }
                 @if (cp.HasWarning) { <span class="xt-nav-warn" title="@L["Xfer_NavWarnTitle"]">●</span> }
                 <span class="xt-nav-count">@cp.AgreementCount</span>
             </div>
             @if (!open) { continue; }
 
-            foreach (var a in cp.Agreements)
+            foreach (var ent in cp.Entities)
             {
-                <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
-                        title="@a.Description" @onclick="() => OnSelect.InvokeAsync(a.Id)">
-                    <span class="xt-nav-kind">@XferLabels.Kind(L, a.Kind)</span>
-                    @* Gli aeroporti stanno QUI e non su un ramo proprio: un accordo può averne quattro, e
-                       quattro rami che portano tutti alla stessa tabella sarebbero quattro modi di aprire la
-                       stessa cosa. *@
-                    @if (a.Airports.Length > 0)
-                    {
-                        <span class="xt-nav-desc">@a.Airports</span>
-                    }
-                    else if (!string.IsNullOrWhiteSpace(a.Description))
-                    {
-                        <span class="xt-nav-desc">@a.Description</span>
-                    }
-                    @* Due versi = accordo bilaterale, e si vede senza aprirlo: è l'informazione che dice se il
-                       reciproco è già stato scritto o è ancora da fare. *@
-                    @if (a.Directions > 1) { <span class="pill blue xt-nav-bi" title="@L["Xfer_BidirectionalTitle"]">⇄</span> }
-                    @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
-                    <span class="xt-nav-count">@a.ClauseCount</span>
-                </button>
+                @* L'ente non è un nodo da aprire: è l'intestazione degli accordi che lo riguardano. Compare
+                   anche quando è l'unico, perché è lì che si legge CON CHI è l'accordo — l'ACC da sola non
+                   distingue LIRR_TS_CTR da LIRN_US0_APP. *@
+                <div class="xt-nav-ent">@ent.Label</div>
+
+                foreach (var a in ent.Agreements)
+                {
+                    <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
+                            title="@a.Description" @onclick="() => OnSelect.InvokeAsync(a.Id)">
+                        <span class="xt-nav-kind">@XferLabels.Kind(L, a.Kind)</span>
+                        @* Gli aeroporti stanno QUI e non su un ramo proprio: un accordo può averne quattro, e
+                           quattro rami che portano tutti alla stessa tabella sarebbero quattro modi di aprire la
+                           stessa cosa. *@
+                        @if (a.Airports.Length > 0)
+                        {
+                            <span class="xt-nav-desc">@a.Airports</span>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(a.Description))
+                        {
+                            <span class="xt-nav-desc">@a.Description</span>
+                        }
+                        @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
+                        @* I DUE conteggi, non il totale: «3 ⇄ 0» dice che il reciproco non è scritto, «3» no.
+                           In archivio i reciproci scritti sono zero, e il totale è il motivo per cui nessuno se
+                           n'era accorto. *@
+                        <span class="xt-nav-count @(a.IsBilateral ? "xt-nav-bi" : null)"
+                              title="@DirectionsTitle(a)">@a.Outbound ⇄ @a.Inbound</span>
+                    </button>
+                }
             }
         }
     </div>
@@ -72,7 +87,7 @@
 </div>
 
 @code {
-    /// <summary>L'albero già costruito dalla pagina (filtri applicati).</summary>
+    /// <summary>L'albero già costruito dalla pagina (filtri applicati, orientamento risolto).</summary>
     [Parameter, EditorRequired] public IReadOnlyList<XferNavCounterpart> Counterparts { get; set; } = Array.Empty<XferNavCounterpart>();
 
     /// <summary>L'accordo aperto nel riquadro di lavoro.</summary>
@@ -100,6 +115,10 @@
         if (a.ToReview > 0) parts.Add($"{a.ToReview} · {L["Xfer_ToReview"]}");
         return string.Join(" · ", parts);
     }
+
+    /// <summary>Cosa dicono i due conteggi: bilaterale, o reciproco ancora da scrivere.</summary>
+    private string DirectionsTitle(XferNavAgreement a) =>
+        a.IsBilateral ? L["Xfer_BidirectionalTitle"] : L["Xfer_NavMissingReciprocal"];
 
     /// <summary>Invio/Spazio sui nodi non-<c>button</c>: senza, l'albero si apre solo col mouse.</summary>
     private static Task Activate(KeyboardEventArgs e, Func<Task> action) =>

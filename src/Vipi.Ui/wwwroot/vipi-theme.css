@@ -1399,14 +1399,20 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-empty{margin:8px 6px;font-size:12px}
 .xt-nav-foot{padding:8px;border-top:1px solid var(--line);background:#fff}
 .xt-nav-foot .btn{width:100%;justify-content:center}
-.xt-nav-sec,.xt-nav-apt{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;
-  font-size:12.5px;user-select:none}
-.xt-nav-sec{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
-.xt-nav-apt{padding-left:18px;color:var(--ink-soft)}
-.xt-nav-sec:hover,.xt-nav-apt:hover{background:#f2f5ff}
+.xt-nav-sec{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;font-size:12.5px;
+  user-select:none;font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
+.xt-nav-sec:hover{background:#f2f5ff}
 .xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Qualifica del ramo («interni»): sta accanto al nome e non deve pesare come il nome. */
+.xt-nav-note{font-size:11px;font-weight:400;font-family:var(--font-body)}
+/* L'ente della controparte è un'INTESTAZIONE, non un nodo: sotto Roma stanno quattro enti e distinguerli serve,
+   ma farli aprire uno per uno costerebbe due gesti per una foglia che ne chiede uno. */
+.xt-nav-ent{margin:4px 6px 1px 18px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
   padding:0 7px;flex:none}
+/* Bilaterale davvero: clausole nei due versi. «3 ⇄ 0» resta neutro, perché è un lavoro da fare, non un pregio. */
+.xt-nav-bi{background:#e6f0e8;color:#2f6b3a}
 /* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
 .xt-nav-warn{color:#b3541e;font-size:11px;flex:none}
 /* La foglia è un bottone vero: si sceglie, e la scelta si vede. */

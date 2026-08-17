@@ -289,6 +289,13 @@
     private AccInfo? _acc;
     private IReadOnlyList<AgreementRow> _agreements = Array.Empty<AgreementRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
+
+    /// <summary>
+    /// La lente con cui questa ACC guarda i propri accordi: chi è «noi», chi è «loro», quale verso esce di casa.
+    /// <para>Serve perché il lato A e il lato B in archivio non dicono «noi» e «loro» — dicono chi ha scritto
+    /// l'accordo per primo. Si ricostruisce alla scelta dell'ACC, non a ogni render.</para>
+    /// </summary>
+    private AgreementViewpoint _lens = new("", Array.Empty<SuggestionSector>());
     private IReadOnlyList<AirportAdminRow> _airports = Array.Empty<AirportAdminRow>();
     private IReadOnlyList<NeighbourCandidateRow> _candidates = Array.Empty<NeighbourCandidateRow>();
     private bool _busy;
@@ -812,28 +819,66 @@
                                  Outline.ParentOf(siblings, c));
     }
 
-    /// <summary>L'albero del navigatore: controparte ▸ accordo, con gli avvisi già contati.</summary>
+    /// <summary>
+    /// L'albero del navigatore: <b>ACC della controparte ▸ suo ente ▸ accordo</b>, con gli avvisi già contati.
+    /// <para>La chiave del ramo è l'ACC dell'<b>altro capo letto dalla lente</b>, non il lato B: per i 13 accordi
+    /// di LIBB (10 su 11 di LIRR) in cui la ACC aperta <i>è</i> il lato B, il ramo prendeva il nome dei nostri
+    /// stessi settori.</para>
+    /// </summary>
     private IReadOnlyList<XferNavCounterpart> BuildNav(IReadOnlyList<AgreementRow> agreements) =>
-        agreements.GroupBy(CounterpartLabel, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+        agreements.GroupBy(NavKey, StringComparer.OrdinalIgnoreCase)
             .Select(g => new XferNavCounterpart(
                 g.Key,
-                g.Key,
-                g.OrderBy(a => a.TrafficKind).ThenBy(a => XferLabels.Airports(a), StringComparer.OrdinalIgnoreCase)
-                 .Select(a => new XferNavAgreement(
-                     a.Id, a.TrafficKind, XferLabels.Airports(a), a.Description,
-                     a.Clauses.Count,
-                     a.Clauses.Select(c => c.Direction).Distinct().Count(),
-                     NoReceiver(a),
-                     a.Clauses.Count(c => NeedsReview(a, c))))
+                NavGroupLabel(g.First()),
+                NavGroupNote(g.First()),
+                NavGroupOrder(g.First()),
+                g.GroupBy(CounterpartLabel, StringComparer.OrdinalIgnoreCase)
+                 .OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
+                 .Select(e => new XferNavEntity(
+                     e.Key,
+                     e.OrderBy(a => a.TrafficKind).ThenBy(a => XferLabels.Airports(a), StringComparer.OrdinalIgnoreCase)
+                      .Select(NavAgreement).ToList()))
                  .ToList()))
+            // I due casi particolari — accordi interni e accordi senza controparte — stanno in fondo: sono
+            // elenchi brevi, e non sono un confine con cui si lavora.
+            .OrderBy(c => c.SortOrder).ThenBy(c => c.Label, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    /// <summary>Come si legge la controparte di un accordo: il lato B, o l'avviso che non c'è nessuno.</summary>
+    private XferNavAgreement NavAgreement(AgreementRow a)
+    {
+        var o = _lens.Orient(a);
+        return new XferNavAgreement(
+            a.Id, a.TrafficKind, XferLabels.Airports(a), a.Description,
+            a.Clauses.Count(c => c.Direction == o.Outbound),
+            a.Clauses.Count(c => c.Direction == o.Inbound),
+            NoReceiver(a),
+            a.Clauses.Count(c => NeedsReview(a, c)));
+    }
+
+    /// <summary>La chiave di collasso: l'ACC della controparte. Deve essere <b>stabile</b>, perché i nodi chiusi
+    /// vivono in un insieme di chiavi e un'etichetta localizzata cambierebbe albero cambiando lingua.</summary>
+    private string NavKey(AgreementRow a)
+    {
+        var o = _lens.Orient(a);
+        if (o.IsInternal) return $"acc:{_accCode}:interni";
+        return _lens.FarAccCode(a) is { Length: > 0 } acc ? $"acc:{acc}" : "acc:";
+    }
+
+    private string NavGroupLabel(AgreementRow a) =>
+        _lens.FarAccCode(a) is { Length: > 0 } acc ? acc : L["Xfer_NoCounterpart"];
+
+    private string? NavGroupNote(AgreementRow a) =>
+        _lens.Orient(a).IsInternal ? L["Xfer_NavInternal"].Value : null;
+
+    private int NavGroupOrder(AgreementRow a) =>
+        _lens.Orient(a).IsInternal ? 1 : _lens.FarAccCode(a) is { Length: > 0 } ? 0 : 2;
+
+    /// <summary>Come si legge la controparte di un accordo: gli enti dell'<b>altro capo rispetto a noi</b>, o
+    /// l'avviso che non c'è nessuno.</summary>
     private string CounterpartLabel(AgreementRow a)
     {
-        var b = XferLabels.Side(a, AgreementSide.B);
-        return b.Length > 0 ? b : L["Xfer_NoCounterpart"];
+        var far = _lens.Far(a);
+        return far.Count > 0 ? string.Join(" · ", far) : L["Xfer_NoCounterpart"];
     }
 
     private static string SenderLabel(AgreementRow a, AgreementClauseRow c) =>
@@ -2065,6 +2110,7 @@
         }
 
         _selectedId = null; _newOpen = false; _selected.Clear(); ClosePanel();
+        _lens = new AgreementViewpoint(_acc.Code, SuggestionSectors());
         await Guarded(async () =>
         {
             _areas = await AccDeriv.ListSpecialAreasByAccAsync(_acc.Code);
@@ -2093,7 +2139,7 @@
     private void CollapseAllButSelected()
     {
         if (_collapsed.Count > 0) return;
-        var open = SelectedAgreement() is { } a ? CounterpartLabel(a) : null;
+        var open = SelectedAgreement() is { } a ? NavKey(a) : null;
         foreach (var cp in BuildNav(_agreements))
             if (!string.Equals(cp.Key, open, StringComparison.OrdinalIgnoreCase)) _collapsed.Add(cp.Key);
     }
@@ -2121,7 +2167,7 @@
         if (a is not null && !a.Clauses.Any(c => c.Direction == _direction))
             _direction = a.Clauses.Any(c => c.Direction == AgreementDirection.BtoA)
                 ? AgreementDirection.BtoA : AgreementDirection.AtoB;
-        if (a is not null) _collapsed.Remove(CounterpartLabel(a));
+        if (a is not null) _collapsed.Remove(NavKey(a));
     }
 
     private void OpenNewAgreement()

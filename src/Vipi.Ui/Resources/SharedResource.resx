@@ -1456,6 +1456,8 @@
   <data name="Xfer_ColSender" xml:space="preserve"><value>Mittente</value></data>
   <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— senza ricevente</value></data>
+  <data name="Xfer_NavInternal" xml:space="preserve"><value>interni</value></data>
+  <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>Il verso opposto non è ancora scritto</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Accordo bilaterale: ha clausole nei due versi</value></data>
   <data name="Xfer_DirectionLabel" xml:space="preserve"><value>Verso dell'accordo</value></data>
   <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copia dall'altro verso</value></data>

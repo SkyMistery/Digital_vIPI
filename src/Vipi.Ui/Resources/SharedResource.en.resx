@@ -1450,6 +1450,8 @@
   <data name="Xfer_ColSender" xml:space="preserve"><value>Transferring</value></data>
   <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— no receiving unit</value></data>
+  <data name="Xfer_NavInternal" xml:space="preserve"><value>internal</value></data>
+  <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>The opposite direction is not written yet</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Bilateral agreement: it has clauses both ways</value></data>
   <data name="Xfer_DirectionLabel" xml:space="preserve"><value>Direction of the agreement</value></data>
   <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copy from the other direction</value></data>
