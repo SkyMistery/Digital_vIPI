@@ -793,6 +793,7 @@ trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle 
 ### E6-bis 🟡 Accordi di coordinamento — il modello sostituito (ramo `feature/accordi-coordinamento`, 16-17 ago 2026)
 Carta ed esito: [`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md);
 schema `spec/modello-dati.md` §9.25-9.26; area `refactor/07-trasferimenti.md` §10.
+**Per riprendere da freddo**: [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md).
 
 `TransferFlow` + `TransferPoint` **non sono più l'unità di scrittura**: al loro posto un **accordo** fra due
 parti, con più mittenti, più aeroporti, più punti per clausola e fino a **due versi**. La forma viene dai

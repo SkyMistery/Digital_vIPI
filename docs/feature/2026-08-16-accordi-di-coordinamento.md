@@ -2,7 +2,7 @@
 
 > Sostituisce `TransferFlow` + `TransferPoint` con un **accordo** fra due parti, a due direzioni.
 > Area: [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10. Voce: `lavori-aperti.md` E6.
-> Ramo `feature/accordi-coordinamento`.
+> Ramo `feature/accordi-coordinamento`. Per riprendere da freddo: [`../history/handoff-accordi-coordinamento.md`](../history/handoff-accordi-coordinamento.md).
 
 ## 1. Perché
 
