@@ -107,7 +107,9 @@
         else
         {
             var shown = FilteredAgreements();
-            var tableRows = _view == XferView.Flat ? FlatRows(shown) : SelectedAgreementRows();
+            @* In albero le righe si costruiscono DENTRO ogni blocco di verso: sono due tabelle, e una lista sola
+               calcolata qui dovrebbe poi essere spezzata in due — cioè lo stesso conto fatto due volte. *@
+            var tableRows = _view == XferView.Flat ? FlatRows(shown) : Array.Empty<XferTableRow>();
             var shownClauses = _view == XferView.Flat ? tableRows.Count : shown.Sum(a => a.Clauses.Count);
 
             @* ---- Barra: filtri, vista, ordinamento ---- *@
@@ -343,8 +345,20 @@
     /// <summary>Il riquadro di lavoro sta mostrando il form dell'accordo nuovo.</summary>
     private bool _newOpen;
 
-    /// <summary>Il verso che si sta guardando. Un accordo a un verso solo non mostra il selettore.</summary>
-    private AgreementDirection _direction = AgreementDirection.AtoB;
+    /// <summary>
+    /// Il verso dell'<b>ultima cosa toccata</b> — non «il verso che si sta guardando»: i due versi si vedono
+    /// sempre entrambi.
+    ///
+    /// <para>Serviva a sette operazioni che lo leggevano implicitamente, e con due tabelle a vista quello stato
+    /// diventava una bugia: la pagina mostrava due versi e la variabile ne nominava uno. Adesso il verso è
+    /// <b>parametro</b> di chi ne ha bisogno, e qui resta solo per due cose che un parametro non copre: quale
+    /// verso prende una clausola aperta nel pannello, e cosa si ritrova da un link salvato.</para>
+    /// </summary>
+    private AgreementDirection _focusDirection = AgreementDirection.AtoB;
+
+    /// <summary>Blocchi di verso richiusi a mano, per <c>{accordo}:{verso}</c>. Un verso <b>vuoto</b> nasce
+    /// comunque aperto: il vuoto è l'informazione, e nasconderlo rifarebbe il difetto dell'interruttore.</summary>
+    private readonly HashSet<string> _collapsedDirs = new(StringComparer.Ordinal);
 
     // ---- Form dell'INTESTAZIONE dell'accordo ---------------------------------------------------------
     // Un tipo e non venti campi sciolti: le istanze sono due (nuovo e modifica) e i campi sono elenchi, che
@@ -721,12 +735,10 @@
     private AgreementRow? SelectedAgreement() =>
         _selectedId is int id ? _agreements.FirstOrDefault(a => a.Id == id) : null;
 
-    /// <summary>Le clausole del verso mostrato, nell'ordine della vista.</summary>
-    private IReadOnlyList<XferTableRow> SelectedAgreementRows()
+    /// <summary>Le clausole di <b>un verso</b> di un accordo, nell'ordine della vista.</summary>
+    private IReadOnlyList<XferTableRow> RowsFor(AgreementRow a, AgreementDirection d)
     {
-        var a = SelectedAgreement();
-        if (a is null) return Array.Empty<XferTableRow>();
-        var clauses = SortedClauses(a.Clauses.Where(c => c.Direction == _direction).ToList());
+        var clauses = SortedClauses(a.Clauses.Where(c => c.Direction == d).ToList());
         return BuildRows(clauses.Select(c => (a, c)).ToList());
     }
 
@@ -950,7 +962,9 @@
                 {
                     <span class="ln xt-grow"></span>
                     <span class="muted xt-hint">@CounterpartLabel(target) · @KindLabel(target.TrafficKind)</span>
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(target)">+ @L["Xfer_AddClause"]</button>
+                    @* In elenco non c'è un blocco che dica il verso: si usa quello dell'ultima cosa toccata, che
+                       è il verso della riga da cui si è arrivati qui. *@
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(target, _focusDirection)">+ @L["Xfer_AddClause"]</button>
                 }
             </div>
             <div class="xt-pane-body">
@@ -993,16 +1007,23 @@
             return;
         }
 
-        var versi = ag.Clauses.Select(c => c.Direction).Distinct().ToList();
+        var orient = _lens.Orient(ag);
+        var bilaterale = ag.Clauses.Select(c => c.Direction).Distinct().Count() > 1;
 
         @* Testata dell'accordo: i DUE CAPI uno accanto all'altro, il traffico, gli aeroporti. È la differenza
            che si vede appena si apre: prima il mittente era nell'intestazione e il ricevente in ogni riga, e
-           per sapere con chi fosse l'accordo bisognava guardare la tabella. *@
+           per sapere con chi fosse l'accordo bisognava guardare la tabella.
+           ⚠️ L'ordine è «noi · loro», che NON è sempre «A · B»: per 13 accordi di LIBB (10 su 11 di LIRR) la ACC
+           aperta è il lato B, e leggerli nell'ordine di archivio significava leggere sé stessi come controparte. *@
         <div class="xt-pane-h">
-            <b>@Dash(XferLabels.Side(ag, AgreementSide.A))</b>
-            <span class="xt-dir">@(versi.Count > 1 ? "⇄" : "→")</span>
-            <b>@Dash(XferLabels.Side(ag, AgreementSide.B))</b>
+            <b>@Dash(XferLabels.Side(ag, orient.NearSide))</b>
+            <span class="xt-dir">@(bilaterale ? "⇄" : "→")</span>
+            <b>@Dash(XferLabels.Side(ag, orient.FarSide))</b>
             <span class="pill blue">@KindLabel(ag.TrafficKind)</span>
+            @if (orient.IsInternal)
+            {
+                <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
+            }
             @if (XferLabels.Airports(ag).Length > 0)
             {
                 <span class="muted xt-hint">@XferLabels.Airports(ag)</span>
@@ -1034,61 +1055,122 @@
                 </div>
             }
 
-            @* Selettore del verso: compare quando l'accordo è bilaterale, o quando lo si può rendere tale.
-               Due tabelle e non una sola con due metà, come Annex D.2 — le clausole del verso opposto non sono
-               alternative delle prime. *@
-            <div class="xt-dirbar">
-                <div class="xt-viewsw" role="group" aria-label="@L["Xfer_DirectionLabel"]">
-                    <button class="btn @(_direction == AgreementDirection.AtoB ? "primary" : "ghost")"
-                            @onclick="() => _direction = AgreementDirection.AtoB">
-                        @DirectionLabel(ag, AgreementDirection.AtoB)
-                    </button>
-                    <button class="btn @(_direction == AgreementDirection.BtoA ? "primary" : "ghost")"
-                            @onclick="() => _direction = AgreementDirection.BtoA">
-                        @DirectionLabel(ag, AgreementDirection.BtoA)
-                    </button>
-                </div>
-                @* Copiare il verso è un PUNTO DI PARTENZA, non un «rendi bilaterale»: i livelli dei due versi
-                   sono diversi quasi sempre, e indovinarli sarebbe scrivere un accordo che nessuno ha
-                   concordato. Compare solo quando il verso mostrato è vuoto e l'altro no. *@
-                @if (ag.Clauses.Any(c => c.Direction != _direction) && !ag.Clauses.Any(c => c.Direction == _direction))
-                {
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CopyDirectionTitle"]"
-                            @onclick="() => CopyDirection(ag)">⇄ @L["Xfer_CopyDirection"]</button>
-                }
-            </div>
-
-            @* Avviso NON bloccante: un gruppo di varianti senza «negli altri casi» lascia scoperti i casi che
-               nessuna condizione copre, e chi legge non sa che fare. Può essere legittimo (le condizioni possono
-               essere esaustive), quindi si segnala, non si impedisce. *@
-            @foreach (var w in AlternativesWithoutNormalCase(ag))
+            @* I punti che stanno da UN LATO SOLO. È la domanda che ha prodotto le asimmetrie vere dell'archivio
+               (BELIX di qua, OLGAT di là), e ora che i due versi sono uno sotto l'altro va detta qui invece che
+               nel cruscotto, che è il posto dove si cerca — non dove si scrive. Il conto è lo stesso della voce
+               del cruscotto: AgreementPoints, una funzione sola. *@
+            @{ var spaiati = AgreementPoints.UnpairedWithin(ag); }
+            @if (spaiati.Count > 0)
             {
                 <div class="callout xt-warn">
                     <span class="cic">⚠</span>
-                    <div>@(string.Format(L["Xfer_AltNoNormalCase"].Value, w))</div>
+                    <div>@(string.Format(L["Xfer_UnpairedPoints"].Value, string.Join(", ", spaiati)))</div>
                 </div>
             }
 
-            @if (rows.Count == 0)
-            {
-                <p class="help">@L["Xfer_NoClausesHere"]</p>
-            }
-            else
-            {
-                @* Il trascinamento vale solo con l'ordinamento manuale: riordinare una vista ordinata per punto
-                   scriverebbe un ordine che non è quello che si vede. *@
-                @RowsTable(rows, showContext: false, canDrag: _sort == RowSort.Manual)
-            }
-
-            <div class="xt-foot">
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(ag)">+ @L["Xfer_AddClause"]</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
-                        @onclick="() => TogglePaste(ag)">⎘ @L["Xfer_Paste"]</button>
-            </div>
-
-            @if (_pasteAgreementId == ag.Id) { @PasteForm(ag) }
+            @* DUE TABELLE, sempre, come EUROCONTROL Annex D.2 (D.2.1 unit1→unit2, D.2.2 unit2→unit1). Prima era
+               un interruttore, e non pagava: in archivio non esiste NESSUN accordo bilaterale, quindi il tasto
+               dell'altro verso portava sempre a una tabella vuota — e il reciproco non si scriveva proprio perché
+               non si vedeva che mancava. Il verso di casa per primo: è quello su cui si lavora. *@
+            @DirectionBlock(ag, orient.Outbound, outbound: true)
+            @DirectionBlock(ag, orient.Inbound, outbound: false)
         </div>
     };
+
+    /// <summary>
+    /// Un verso dell'accordo: intestazione, avvisi, tabella, e i suoi tasti.
+    ///
+    /// <para>⚠️ I tasti stanno <b>in testa</b> al blocco e non a piede. Il piede-che-tiene-i-tasti è la misura
+    /// che è costata sei giri, e vale per <b>un</b> corpo che scorre: con due blocchi il piede del primo
+    /// finirebbe a metà pagina, che è peggio del problema che risolveva.</para>
+    ///
+    /// <para>Un blocco vuoto nasce comunque <b>aperto</b>: il vuoto è l'informazione — dice che il reciproco non
+    /// è scritto — e nasconderlo rifarebbe il difetto dell'interruttore.</para>
+    /// </summary>
+    private RenderFragment DirectionBlock(AgreementRow ag, AgreementDirection d, bool outbound) => __builder =>
+    {
+        var rows = RowsFor(ag, d);
+        var key = DirKey(ag.Id, d);
+        var open = !_collapsedDirs.Contains(key);
+        var altro = ag.Clauses.Any(c => c.Direction != d);
+
+        <section class="xt-dirblock @(outbound ? "xt-out" : "xt-in")">
+            <div class="xt-dirhead">
+                <button type="button" class="xt-dirtoggle" aria-expanded="@open"
+                        @onclick="() => ToggleDirection(key)">
+                    <span class="xt-chev">@(open ? "▾" : "▸")</span>
+                    <span class="xt-dirway">@(outbound ? L["Xfer_DirOutbound"] : L["Xfer_DirInbound"])</span>
+                    <span class="xt-dirpair">@DirectionPair(ag, d)</span>
+                </button>
+                @* Il tipo del verso opposto è CALCOLATO — da un avvicinamento verso l'area salgono partenze, non
+                   arrivi — e va detto che è calcolato: passerebbe per una scelta di chi ha scritto l'accordo.
+                   Il posto dove metterlo per davvero è una colonna sulla clausola, se mai servirà. *@
+                @if (!outbound && TrafficKinds.HasDistinctReciprocal(ag.TrafficKind))
+                {
+                    <span class="pill neutral xt-dirkind" title="@L["Xfer_ReciprocalKindTitle"]">
+                        @KindLabel(TrafficKinds.Reciprocal(ag.TrafficKind)) *
+                    </span>
+                }
+                <span class="muted xt-hint">@(string.Format(L["Xfer_ClausesCount"].Value, rows.Count))</span>
+                <span class="ln xt-grow"></span>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)"
+                        @onclick="() => OpenAddClause(ag, d)">+ @L["Xfer_AddClause"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
+                        @onclick="() => TogglePaste(ag, d)">⎘ @L["Xfer_Paste"]</button>
+                @* Copiare il verso è un PUNTO DI PARTENZA, non un «rendi bilaterale»: i livelli dei due versi
+                   sono quasi sempre diversi, e indovinarli sarebbe scrivere un accordo che nessuno ha concordato.
+                   Compare solo dove serve: questo verso vuoto, l'altro no. *@
+                @if (rows.Count == 0 && altro)
+                {
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CopyDirectionTitle"]"
+                            @onclick="() => CopyDirection(ag, d)">⇄ @L["Xfer_CopyDirection"]</button>
+                }
+            </div>
+
+            @if (open)
+            {
+                @* Avviso NON bloccante: un gruppo di varianti senza «negli altri casi» lascia scoperti i casi che
+                   nessuna condizione copre, e chi legge non sa che fare. Può essere legittimo (le condizioni
+                   possono essere esaustive), quindi si segnala, non si impedisce. *@
+                @foreach (var w in AlternativesWithoutNormalCase(ag, d))
+                {
+                    <div class="callout xt-warn">
+                        <span class="cic">⚠</span>
+                        <div>@(string.Format(L["Xfer_AltNoNormalCase"].Value, w))</div>
+                    </div>
+                }
+
+                @if (rows.Count == 0)
+                {
+                    <p class="help xt-dirempty">@(altro ? L["Xfer_NoReciprocalYet"] : L["Xfer_NoClausesHere"])</p>
+                }
+                else
+                {
+                    @* Il trascinamento vale solo con l'ordinamento manuale: riordinare una vista ordinata per
+                       punto scriverebbe un ordine che non è quello che si vede. Fra versi diversi il repository
+                       lo rifiuta già, e i due blocchi sono due tabelle separate: il gesto non li attraversa. *@
+                    @RowsTable(rows, showContext: false, canDrag: _sort == RowSort.Manual)
+                }
+
+                @if (_pasteAgreementId == ag.Id && _pasteDirection == d) { @PasteForm(ag, d) }
+            }
+        </section>
+    };
+
+    private static string DirKey(int agreementId, AgreementDirection d) => $"{agreementId}:{d}";
+
+    private void ToggleDirection(string key)
+    {
+        if (!_collapsedDirs.Remove(key)) _collapsedDirs.Add(key);
+    }
+
+    /// <summary>«da → a» coi callsign veri di questo verso. «A→B» non direbbe niente a nessuno.</summary>
+    private string DirectionPair(AgreementRow a, AgreementDirection d)
+    {
+        var from = Dash(SenderLabelForDirection(a, d));
+        var to = XferLabels.Side(a, d == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A);
+        return $"{from} → {(to.Length > 0 ? to : L["Xfer_Unicom"].Value)}";
+    }
 
     // ---- Incolla-tabella ----------------------------------------------------------------------------
     // Riempire l'Italia a mano significa ridigitare tabelle che esistono gia', scritte da qualcun altro, in un
@@ -1096,16 +1178,22 @@
     // archivio la propria interpretazione di un testo che nessuno ha riletto.
 
     private int? _pasteAgreementId;
+
+    /// <summary>In quale verso si incolla. Con due tabelle a vista il verso non può venire da uno stato di
+    /// pagina: viene dal blocco in cui si è premuto, o si incollerebbe dove la pagina si ricorda di essere.</summary>
+    private AgreementDirection _pasteDirection = AgreementDirection.AtoB;
     private string _pasteText = "";
 
-    private void TogglePaste(AgreementRow a)
+    private void TogglePaste(AgreementRow a, AgreementDirection d)
     {
         ClosePanel();
-        _pasteAgreementId = _pasteAgreementId == a.Id ? null : a.Id;
+        var giaAperto = _pasteAgreementId == a.Id && _pasteDirection == d;
+        _pasteAgreementId = giaAperto ? null : a.Id;
+        _pasteDirection = d;
         _pasteText = "";
     }
 
-    private RenderFragment PasteForm(AgreementRow a) => __builder =>
+    private RenderFragment PasteForm(AgreementRow a, AgreementDirection d) => __builder =>
     {
         var parsed = ClausePaste.Parse(_pasteText);
         var buone = parsed.Count(p => p.Ok);
@@ -1168,15 +1256,16 @@
 
             <div class="xt-foot">
                 <button class="btn primary" disabled="@(_busy || !_canEdit || buone == 0)"
-                        @onclick="() => ConfirmPaste(a)">@(string.Format(L["Xfer_PasteImport"].Value, buone))</button>
+                        @onclick="() => ConfirmPaste(a, d)">@(string.Format(L["Xfer_PasteImport"].Value, buone))</button>
                 <button class="btn ghost" disabled="@_busy" @onclick="() => _pasteAgreementId = null">@L["Common_Cancel"]</button>
             </div>
         </div>
     };
 
-    /// <summary>Scrive le clausole lette, in coda al verso mostrato. Il ricevente scritto sulle righe NON si
-    /// applica: e' del lato B dell'accordo, e cambiarlo da qui cambierebbe l'accordo intero senza dirlo.</summary>
-    private async Task ConfirmPaste(AgreementRow a)
+    /// <summary>Scrive le clausole lette, in coda al verso <b>del blocco</b> in cui si è incollato. Il ricevente
+    /// scritto sulle righe NON si applica: e' del lato B dell'accordo, e cambiarlo da qui cambierebbe l'accordo
+    /// intero senza dirlo.</summary>
+    private async Task ConfirmPaste(AgreementRow a, AgreementDirection d)
     {
         var parsed = ClausePaste.Parse(_pasteText).Where(p => p.Ok).ToList();
         if (parsed.Count == 0) return;
@@ -1184,7 +1273,7 @@
         await Guarded(async () =>
         {
             foreach (var p in parsed)
-                await Agreements.AddClauseAsync(_acc!.Code, a.Id, _direction, p.Clause!);
+                await Agreements.AddClauseAsync(_acc!.Code, a.Id, d, p.Clause!);
             _pasteAgreementId = null;
             _pasteText = "";
         }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));
@@ -1615,7 +1704,7 @@
         var fake = new AgreementClauseRow
         {
             Id = _editClauseId ?? 0,
-            Direction = _direction,
+            Direction = PanelDirection,
             Cops = draft.Cops,
             LevelValue = draft.LevelValue, LevelUnit = draft.LevelUnit, LevelConstraint = draft.LevelConstraint,
             LevelSpecial = draft.LevelSpecial, Parity = draft.Parity, VerticalState = draft.VerticalState,
@@ -1883,25 +1972,20 @@
 
     private string KindLabel(TransferFlowKind k) => XferLabels.Kind(L, k);
 
-    private string SenderOf(AgreementRow a) => Dash(SenderLabelForDirection(a, _direction));
+    /// <summary>Il verso di ciò che il pannello sta scrivendo: quello della clausola aperta, o — per una clausola
+    /// nuova — quello del blocco da cui è stato premuto «+».</summary>
+    private AgreementDirection PanelDirection => CurrentClause()?.Direction ?? _focusDirection;
+
+    private string SenderOf(AgreementRow a) => Dash(SenderLabelForDirection(a, PanelDirection));
     private string ReceiverOf(AgreementRow a)
     {
-        var side = _direction == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A;
+        var side = PanelDirection == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A;
         var s = XferLabels.Side(a, side);
         return s.Length > 0 ? s : L["Xfer_Unicom"];
     }
 
     private static string SenderLabelForDirection(AgreementRow a, AgreementDirection d) =>
         XferLabels.Side(a, d == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);
-
-    /// <summary>L'etichetta di un verso: «da → a», coi callsign veri. «A→B» non direbbe niente a nessuno.</summary>
-    private string DirectionLabel(AgreementRow a, AgreementDirection d)
-    {
-        var from = Dash(SenderLabelForDirection(a, d));
-        var to = XferLabels.Side(a, d == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A);
-        var n = a.Clauses.Count(c => c.Direction == d);
-        return $"{from} → {(to.Length > 0 ? to : L["Xfer_Unicom"].Value)} ({n})";
-    }
 
     private string AgreementsCountLabel(int n) => string.Format(L["Xfer_AgreementsN"].Value, n);
 
@@ -1956,7 +2040,7 @@
     // In URL sta cio' che identifica COSA STO GUARDANDO — ACC, vista, accordo, verso, filtri — cioe' quello
     // che ha senso mandare a un collega e ritrovare dopo un F5. In localStorage sta cio' che e' COME MI PIACE
     // GUARDARE — anteprime, ordinamento — che e' preferenza della persona, non del contenuto.
-    private string UrlSignature() => $"{_accCode}|{_selectedId}|{_view}|{_direction}|{_filter}|{_kindFilter}|{_toReviewOnly}|{_noReceiverOnly}";
+    private string UrlSignature() => $"{_accCode}|{_selectedId}|{_view}|{_filter}|{_kindFilter}|{_toReviewOnly}|{_noReceiverOnly}";
     private string PrefSignature() => $"{_showPreviews}|{_sort}|{_sortDesc}";
     private string _lastUrl = "", _lastPref = "";
 
@@ -1970,7 +2054,9 @@
             ["acc"] = _acc.Code,
             ["vista"] = _view == XferView.Tree ? null : _view.ToString(),
             ["accordo"] = _selectedId,
-            ["verso"] = _direction == AgreementDirection.AtoB ? null : _direction.ToString(),
+            // «verso» non si scrive più: i due versi si vedono entrambi, quindi non c'è un verso da ritrovare.
+            // In LETTURA resta accettata — i link salvati la portano — e mette a fuoco il blocco giusto.
+            ["verso"] = null,
             ["q"] = string.IsNullOrWhiteSpace(_filter) ? null : _filter,
             ["tipo"] = _kindFilter?.ToString(),
             ["rev"] = _toReviewOnly ? "1" : null,
@@ -1988,7 +2074,7 @@
         _toReviewOnly = q.Flag("rev");
         _noReceiverOnly = q.Flag("norx");
         if (q.Enum<XferView>("vista") is { } v) _view = v;
-        if (q.Enum<AgreementDirection>("verso") is { } d) _direction = d;
+        if (q.Enum<AgreementDirection>("verso") is { } d) _focusDirection = d;
 
         var acc = q.Value("acc");
         if (string.IsNullOrWhiteSpace(acc)) return;
@@ -2161,13 +2247,12 @@
         _selectedId = id;
         _newOpen = false;
         ClosePanel();
-        // Il verso mostrato riparte da quello che l'accordo ha davvero: aprire un accordo a un verso solo sul
-        // verso vuoto farebbe sembrare che non abbia clausole.
+        // Non c'è più niente da «riportare sul verso giusto»: i due versi si vedono entrambi. Resta il fuoco,
+        // che riparte dal verso di casa — è quello su cui si lavora.
         var a = SelectedAgreement();
-        if (a is not null && !a.Clauses.Any(c => c.Direction == _direction))
-            _direction = a.Clauses.Any(c => c.Direction == AgreementDirection.BtoA)
-                ? AgreementDirection.BtoA : AgreementDirection.AtoB;
-        if (a is not null) _collapsed.Remove(NavKey(a));
+        if (a is null) return;
+        _focusDirection = _lens.Orient(a).Outbound;
+        _collapsed.Remove(NavKey(a));
     }
 
     private void OpenNewAgreement()
@@ -2193,8 +2278,10 @@
     private async Task GoToAgreement(XferTableRow r)
     {
         SetView(XferView.Tree);
-        _direction = r.Clause.Direction;
         SelectAgreement(r.Agreement.Id);
+        // Dopo SelectAgreement, che riporta il fuoco sul verso di casa: qui il verso che conta è quello della
+        // riga da cui si è partiti, e la clausola che si apre subito dopo è la sua.
+        _focusDirection = r.Clause.Direction;
         await OnEditRow(r);
     }
 
@@ -2244,19 +2331,23 @@
         }
     }
 
-    private Task CopyDirection(AgreementRow a) =>
+    /// <summary>Copia nel verso <paramref name="into"/> le clausole dell'altro, come punto di partenza.</summary>
+    private Task CopyDirection(AgreementRow a, AgreementDirection into) =>
         Guarded(async () =>
         {
-            var from = _direction == AgreementDirection.AtoB ? AgreementDirection.BtoA : AgreementDirection.AtoB;
+            var from = into == AgreementDirection.AtoB ? AgreementDirection.BtoA : AgreementDirection.AtoB;
             var n = await Agreements.CopyDirectionAsync(_acc!.Code, a.Id, from);
             _status = string.Format(L["Xfer_DirectionCopied"].Value, n);
         }, null);
 
-    private async Task OpenAddClause(AgreementRow a)
+    private async Task OpenAddClause(AgreementRow a, AgreementDirection d)
     {
         _editClauseId = null; _editHeaderId = null;
         _addClauseAgreementId = a.Id;
         _selectedId = a.Id;
+        // Il verso lo porta il blocco in cui si è premuto: è l'unica cosa che distingue «+ clausola» qui da
+        // «+ clausola» venti pixel più in basso.
+        _focusDirection = d;
         _addClause.Reset();
         // La faccetta parte già aperta sul caso più comune quando si consegna a un APP: «al confine dell'AoR».
         _addClause.Facet.Reset(preset: ReceivesApp(a));
@@ -2270,7 +2361,7 @@
     {
         _addClauseAgreementId = null; _editHeaderId = null;
         _selectedId = a.Id;
-        _direction = c.Direction;
+        _focusDirection = c.Direction;
         _editClauseId = c.Id;
         _editClause.LoadFrom(c, ParseRwys);
         ResetPanelSections(_editClause);
@@ -2307,7 +2398,7 @@
     {
         await Guarded(async () =>
         {
-            await Agreements.AddClauseAsync(_acc!.Code, agreementId, _direction, ToClauseInput(_addClause));
+            await Agreements.AddClauseAsync(_acc!.Code, agreementId, _focusDirection, ToClauseInput(_addClause));
             _addClause.Reset();
             _formOpenedAs = _addClause.Signature();
         }, L["Xfer_RowAdded"]);
@@ -2436,11 +2527,13 @@
     }
 
     /// <summary>Un gruppo di alternative senza «negli altri casi»: i casi che nessuna condizione copre restano
-    /// scoperti, e chi legge non sa che fare. Può essere legittimo, quindi si segnala e non si impedisce.</summary>
-    private IReadOnlyList<string> AlternativesWithoutNormalCase(AgreementRow a)
+    /// scoperti, e chi legge non sa che fare. Può essere legittimo, quindi si segnala e non si impedisce.
+    /// <para>Per verso, e non per accordo: l'outline vive dentro una direzione, e un avviso che uscisse dal verso
+    /// sbagliato manderebbe a cercare un gruppo nella tabella dove non c'è.</para></summary>
+    private IReadOnlyList<string> AlternativesWithoutNormalCase(AgreementRow a, AgreementDirection d)
     {
         var avvisi = new List<string>();
-        foreach (var g in a.Clauses.Where(c => c.Direction == _direction && c.VariantGroup is not null)
+        foreach (var g in a.Clauses.Where(c => c.Direction == d && c.VariantGroup is not null)
                      .GroupBy(c => c.VariantGroup!.Value))
         {
             var alternative = g.Where(c => c.VariantDepth == 0 && !c.IsGroupWide).ToList();

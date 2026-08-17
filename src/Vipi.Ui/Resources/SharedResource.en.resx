@@ -1445,7 +1445,13 @@
   <data name="Xfer_DeleteAgreementPrompt" xml:space="preserve"><value>Delete the agreement and its {0} clauses?</value></data>
   <data name="Xfer_AddClause" xml:space="preserve"><value>Clause</value></data>
   <data name="Xfer_ClausesCount" xml:space="preserve"><value>{0} clauses</value></data>
-  <data name="Xfer_NoClausesHere" xml:space="preserve"><value>No clause in this direction. Add one with the button below, or copy the opposite direction.</value></data>
+  <data name="Xfer_NoClausesHere" xml:space="preserve"><value>No clause in this direction: add one with the button above.</value></data>
+  <data name="Xfer_NoReciprocalYet" xml:space="preserve"><value>The reciprocal is not written yet. Add a clause, or copy the opposite direction as a starting point — levels usually differ between the two directions, so it must be reviewed.</value></data>
+  <data name="Xfer_DirOutbound" xml:space="preserve"><value>us → them</value></data>
+  <data name="Xfer_DirInbound" xml:space="preserve"><value>them → us</value></data>
+  <data name="Xfer_ReciprocalKindTitle" xml:space="preserve"><value>Computed kind: the opposite direction of an arrival is a departure. The written kind is the agreement's.</value></data>
+  <data name="Xfer_InternalTitle" xml:space="preserve"><value>Agreement internal to the ACC: both ends are its own, so «them» is side B by convention.</value></data>
+  <data name="Xfer_UnpairedPoints" xml:space="preserve"><value>Points present in one direction only: {0}. It may be correct, but it is the difference nobody spots when comparing two tables written at different times.</value></data>
   <data name="Xfer_ColPoints" xml:space="preserve"><value>Points</value></data>
   <data name="Xfer_ColSender" xml:space="preserve"><value>Transferring</value></data>
   <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
@@ -1453,7 +1459,6 @@
   <data name="Xfer_NavInternal" xml:space="preserve"><value>internal</value></data>
   <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>The opposite direction is not written yet</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Bilateral agreement: it has clauses both ways</value></data>
-  <data name="Xfer_DirectionLabel" xml:space="preserve"><value>Direction of the agreement</value></data>
   <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copy from the other direction</value></data>
   <data name="Xfer_CopyDirectionTitle" xml:space="preserve"><value>Copy the opposite direction's clauses here as a starting point: levels almost always differ between directions and must be reviewed.</value></data>
   <data name="Xfer_DirectionCopied" xml:space="preserve"><value>Copied {0} clauses into the opposite direction: levels must be reviewed.</value></data>
@@ -1503,5 +1508,5 @@
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>no arrival agreement</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>appears in no agreement</value></data>
   <data name="Xfer_HelpAria" xml:space="preserve"><value>Help on coordination agreements</value></data>
-  <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. A bilateral agreement has clauses &lt;b&gt;both ways&lt;/b&gt;. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work.</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. &lt;b&gt;Both directions&lt;/b&gt; are always visible, and «us/them» depends on the ACC you opened — not on how the agreement was written. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work.</value></data>
 </root>

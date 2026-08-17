@@ -1544,6 +1544,24 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-subform{margin:0 0 8px;background:#f2f5ff;border-radius:6px;padding:8px}
 .xt-warn{margin:0 0 6px;font-size:12.5px}
 
+/* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
+   ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
+   con due blocchi il piede del primo finirebbe a metà pagina, che è peggio del problema che risolveva. */
+.xt-dirblock{margin:0 0 14px}
+.xt-dirblock:last-child{margin-bottom:0}
+.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 6px;margin-bottom:4px;
+  border-bottom:1px solid var(--line)}
+/* Il verso di casa porta il filo blu: è quello su cui si lavora, e l'occhio deve trovarlo senza leggere. */
+.xt-out>.xt-dirhead{border-bottom-color:var(--ivao-blue)}
+.xt-dirtoggle{display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;
+  font-family:var(--font-body);color:var(--ink);text-align:left}
+.xt-dirway{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ivao-blue);white-space:nowrap}
+.xt-dirpair{font-size:12.5px;color:var(--ink)}
+/* L'asterisco dice «calcolato»: senza, il tipo del verso opposto passa per una scelta di chi ha scritto. */
+.xt-dirkind{font-size:11px}
+.xt-dirempty{margin:6px 0 0;font-size:12px}
+
 /* Utilità nate dagli stili inline della pagina. */
 .xt-h2{margin-bottom:2px}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}

@@ -1451,7 +1451,13 @@
   <data name="Xfer_DeleteAgreementPrompt" xml:space="preserve"><value>Eliminare l'accordo e le sue {0} clausole?</value></data>
   <data name="Xfer_AddClause" xml:space="preserve"><value>Clausola</value></data>
   <data name="Xfer_ClausesCount" xml:space="preserve"><value>{0} clausole</value></data>
-  <data name="Xfer_NoClausesHere" xml:space="preserve"><value>Nessuna clausola in questo verso. Aggiungine una col tasto in fondo, o copia il verso opposto.</value></data>
+  <data name="Xfer_NoClausesHere" xml:space="preserve"><value>Nessuna clausola in questo verso: aggiungine una col tasto qui sopra.</value></data>
+  <data name="Xfer_NoReciprocalYet" xml:space="preserve"><value>Il reciproco non è ancora scritto. Aggiungi una clausola, oppure copia il verso opposto come punto di partenza — i livelli dei due versi sono quasi sempre diversi, quindi va riletto.</value></data>
+  <data name="Xfer_DirOutbound" xml:space="preserve"><value>noi → loro</value></data>
+  <data name="Xfer_DirInbound" xml:space="preserve"><value>loro → noi</value></data>
+  <data name="Xfer_ReciprocalKindTitle" xml:space="preserve"><value>Tipo calcolato: il verso opposto di un arrivo è una partenza. Il tipo scritto è quello dell'accordo.</value></data>
+  <data name="Xfer_InternalTitle" xml:space="preserve"><value>Accordo interno alla ACC: entrambi i capi sono suoi, quindi «loro» è per convenzione il lato B.</value></data>
+  <data name="Xfer_UnpairedPoints" xml:space="preserve"><value>Punti presenti in un verso solo: {0}. Può essere corretto, ma è la differenza che nessuno vede confrontando due tabelle scritte in momenti diversi.</value></data>
   <data name="Xfer_ColPoints" xml:space="preserve"><value>Punti</value></data>
   <data name="Xfer_ColSender" xml:space="preserve"><value>Mittente</value></data>
   <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
@@ -1459,7 +1465,6 @@
   <data name="Xfer_NavInternal" xml:space="preserve"><value>interni</value></data>
   <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>Il verso opposto non è ancora scritto</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Accordo bilaterale: ha clausole nei due versi</value></data>
-  <data name="Xfer_DirectionLabel" xml:space="preserve"><value>Verso dell'accordo</value></data>
   <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copia dall'altro verso</value></data>
   <data name="Xfer_CopyDirectionTitle" xml:space="preserve"><value>Copia qui le clausole del verso opposto come punto di partenza: i livelli dei due versi sono quasi sempre diversi e vanno rivisti.</value></data>
   <data name="Xfer_DirectionCopied" xml:space="preserve"><value>Copiate {0} clausole nel verso opposto: i livelli vanno rivisti.</value></data>
@@ -1509,5 +1514,5 @@
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>nessun accordo di arrivo</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>non compare in nessun accordo</value></data>
   <data name="Xfer_HelpAria" xml:space="preserve"><value>Aiuto sugli accordi di coordinamento</value></data>
-  <data name="Xfer_HelpBody" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; lega due elenchi di enti per un traffico, su tutti gli aeroporti elencati; le &lt;b&gt;clausole&lt;/b&gt; dicono su quali punti vale e a quale quota. Un accordo bilaterale ha clausole nei &lt;b&gt;due versi&lt;/b&gt;. Il tasto &lt;b&gt;Lacune&lt;/b&gt; dice dove lavorare.</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; lega due elenchi di enti per un traffico, su tutti gli aeroporti elencati; le &lt;b&gt;clausole&lt;/b&gt; dicono su quali punti vale e a quale quota. I &lt;b&gt;due versi&lt;/b&gt; si vedono sempre entrambi, e «noi/loro» dipende dalla ACC aperta — non da come l'accordo è stato scritto. Il tasto &lt;b&gt;Lacune&lt;/b&gt; dice dove lavorare.</value></data>
 </root>
