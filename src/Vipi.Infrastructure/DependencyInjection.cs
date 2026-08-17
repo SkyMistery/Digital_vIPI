@@ -110,9 +110,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();
         // I flussi storici restano leggibili finche' il travaso non e' stato eseguito ovunque: la
         // migrazione che droppa le due tabelle arriva DOPO, in una release sua.
-        services.AddScoped<Vipi.Application.Abstractions.ILegacyFlowReader, EfLegacyFlowReader>();
         services.AddScoped<Vipi.Application.Abstractions.IAgreementRepository, EfAgreementRepository>();
-        services.AddScoped<Vipi.Application.Content.IAgreementMaintenance, EfAgreementMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();

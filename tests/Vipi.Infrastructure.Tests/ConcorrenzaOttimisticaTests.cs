@@ -127,9 +127,9 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
 
         await db.SaveChangesAsync();
 
-        db.TransferFlows.Add(new TransferFlow
+        db.CoordinationAgreements.Add(new CoordinationAgreement
         {
-            AccId = acc.Id, OwningSectorId = settore.Id, Kind = TransferFlowKind.Arrival,
+            OwnerAccId = acc.Id, TrafficKind = TransferFlowKind.Arrival,
             Description = "descrizione iniziale", Order = 0,
         });
         await db.SaveChangesAsync();
@@ -186,11 +186,14 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
     /// «ci siamo dimenticati di ruotare il token», che a schermo si assomigliano. Se un giorno una di queste
     /// quattro tornasse a dichiarare un token senza che nessuno lo ruoti, la rotazione centralizzata di
     /// <c>SaveChangesAsync</c> lo renderebbe comunque efficace e questo test lo direbbe.
+    /// <para>Il caso era <c>TransferFlow</c> fino al 17 agosto 2026; è passato a
+    /// <see cref="CoordinationAgreement"/>, che ne prende il posto <b>con la stessa decisione</b>. Sostituito e
+    /// non cancellato apposta: togliere il caso insieme all'entità avrebbe perso silenziosamente la garanzia.</para>
     /// </summary>
     [Theory]
     [InlineData(nameof(SharedBlock))]
     [InlineData(nameof(UnificationRule))]
-    [InlineData(nameof(TransferFlow))]
+    [InlineData(nameof(CoordinationAgreement))]
     [InlineData(nameof(DocumentProfile))]
     public async Task Dove_il_last_write_wins_e_voluto_il_secondo_salvataggio_passa(string entita)
     {
@@ -198,7 +201,7 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
         {
             nameof(SharedBlock) => await ConflittoFraDueEditor(db => db.SharedBlocks.FirstAsync(), (x, s) => x.Body = s),
             nameof(UnificationRule) => await ConflittoFraDueEditor(db => db.UnificationRules.FirstAsync(), (x, s) => x.Name = s),
-            nameof(TransferFlow) => await ConflittoFraDueEditor(db => db.TransferFlows.FirstAsync(), (x, s) => x.Description = s),
+            nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Description = s),
             _ => await ConflittoFraDueEditor(db => db.DocumentProfiles.FirstAsync(), (x, s) => x.FreqOrderJson = s),
         };
 

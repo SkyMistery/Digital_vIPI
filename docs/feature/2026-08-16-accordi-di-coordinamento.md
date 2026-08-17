@@ -226,3 +226,36 @@ frase di coordinamento vive nel template.
 **Decisioni del committente (16 agosto):** modello sostituito; bilaterale a due direzioni; parità di campi in
 questo giro; le due rese di prosa a scelta della sezione; configurazioni chiuse; i tre ausili di riempimento si
 fanno.
+
+
+## 12. Il drop — e perché non ha dovuto aspettare una release (17 agosto 2026)
+
+La carta prevedeva che la migrazione di drop andasse in una release **successiva** a quella del travaso, e la
+ragione era di sequenza: le migrazioni girano prima della manutenzione d'avvio (`Program.cs` righe 147 e 153),
+quindi nella stessa release il travaso troverebbe le tabelle già sparite, scriverebbe zero accordi e i
+coordinamenti si perderebbero senza un errore.
+
+Quel vincolo è caduto perché **è caduta la sua premessa**, non perché si sia deciso di correre il rischio: il
+committente sostituisce il database di produzione con quello di sviluppo. Non c'è nessun archivio in produzione
+da preservare, quindi non c'è nessun travaso che debba girare là.
+
+L'ordine effettivamente eseguito:
+
+1. **il travaso è girato sul `vipi.db` vero** (non su una copia): 37 flussi / 78 punti → **41 accordi · 80 parti
+   · 35 aeroporti · 63 clausole**, gli stessi numeri misurati sulla copia. Documenti verificati a schermo prima
+   e dopo: vIPI ACC LIBB rende 33 tabelle, 57 righe, 57 frasi, identiche;
+2. **la migrazione `DropLegacyTransferTables`** nei due provider — che concordano, stavolta: `DropTable`
+   `TransferPoints` poi `TransferFlows`;
+3. **il macchinario del travaso è stato rimosso**: `ILegacyFlowReader`, `IAgreementMaintenance`,
+   `FlowsToAgreements`, le due implementazioni EF, la passata d'avvio e la categoria `ImportStates`. Non è
+   pulizia estetica — tenerlo sarebbe stato **pericoloso**: su un database dove non fosse ancora girato avrebbe
+   letto una tabella droppata e fatto **crashare l'avvio**, e su ogni altro sarebbe stato codice irraggiungibile.
+
+Il 41° accordo è di LIRR e non ha clausole: viene dal flusso #10 (`LIRR_NE_CTR`, sorvolo) che **era già vuoto**,
+senza punti, prima del travaso. Il cruscotto delle lacune lo segnala; non è una perdita.
+
+**Cosa si è perso per davvero, ed era voluto:** le due tabelle non tornano indietro. Il `Down` delle migrazioni
+le ricrea vuote — fa tornare lo schema, non l'archivio — perché la conversione non è invertibile riga per riga
+(più flussi confluiscono in un accordo, più punti in una clausola). L'ultima copia di quei dati nella loro forma
+originale è `tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`, ed è il motivo per cui la rete di
+caratterizzazione può ancora dire «la derivazione non è cambiata» adesso che la sorgente non esiste più.

@@ -15,8 +15,9 @@ namespace Vipi.Application.Tests;
 /// (<c>TransferFlow</c>/<c>TransferPoint</c> → Accordi): la derivazione di questi dati non deve cambiare di un
 /// carattere. Un fixture inventato non avrebbe potuto dirlo — i casi che rompono sono quelli scritti dai
 /// colleghi, non quelli scritti da chi rifà il modello.</para>
-/// <para>La costruzione delle righe ricalca <c>EfLegacyFlowReader.MapFlow/MapPoint</c>: se quella cambia,
-/// questa va cambiata con lei, ed è voluto che se ne accorga il compilatore.</para>
+/// <para>Le tabelle da cui vengono non esistono più (droppate il 17 agosto 2026, dopo il travaso): questo TSV
+/// <b>è</b> l'ultima copia di quei dati nella loro forma originale, ed è il solo motivo per cui la rete di
+/// caratterizzazione può ancora dire «la derivazione non è cambiata».</para>
 /// </summary>
 internal static class RealCoordinationFixture
 {

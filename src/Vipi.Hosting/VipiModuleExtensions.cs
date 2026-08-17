@@ -379,9 +379,6 @@ public static class VipiModuleExtensions
             ?.CreateLogger("Vipi.StartupMaintenance");
         var report = host.Services.GetService<Vipi.Application.Diagnostics.IStartupMaintenanceReport>();
 
-        // ⚠️ PRIMA delle altre: finché i flussi non sono diventati accordi, i coordinamenti derivati sarebbero
-        // vuoti — e una riconciliazione che gira su documenti senza coordinamenti non se ne accorgerebbe.
-        Isolata(host, log, report, "travaso dei trasferimenti in accordi", h => h.MigrateVipiTransfers());
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
@@ -406,28 +403,6 @@ public static class VipiModuleExtensions
                     "Manutenzione d'avvio «{Passata}» fallita: l'avvio prosegue e la segnalazione entra nella " +
                     "diagnostica. È idempotente: un riavvio riuscito la rifà.", nome);
         }
-    }
-
-    /// <summary>
-    /// Travaso one-shot dei flussi di trasferimento negli <b>accordi di coordinamento</b>. Idempotente: il
-    /// segnaposto in <c>ImportStates</c> lo ferma dopo la prima passata riuscita.
-    /// <para>⚠️ Le tabelle storiche <c>TransferFlows</c>/<c>TransferPoints</c> restano finché questa passata non
-    /// è girata ovunque: la migrazione che le droppa arriva in una release successiva, perché le migrazioni
-    /// girano PRIMA della manutenzione d'avvio e nella stessa release il travaso non troverebbe più niente da
-    /// leggere.</para>
-    /// </summary>
-    public static IHost MigrateVipiTransfers(this IHost host)
-    {
-        using var scope = host.Services.CreateScope();
-        var maintenance = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IAgreementMaintenance>();
-        var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
-            ?.CreateLogger("Vipi.AgreementMaintenance");
-
-        var created = maintenance.MigrateFlowsToAgreementsAsync().GetAwaiter().GetResult();
-        if (created > 0 && log is not null)
-            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Travasati i flussi di trasferimento in {Count} accordi di coordinamento.", created);
-        return host;
     }
 
     /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la

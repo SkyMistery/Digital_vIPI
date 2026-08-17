@@ -106,12 +106,7 @@ public static class MySqlStringLengths
             // Il default serve perché queste colonne nascono su una tabella già piena e le righe storiche
             // devono leggersi (il valore di riposo è «la riga si comporta come prima»). Misurato: il nome
             // più lungo è `Unspecified`, 11.
-            [("TransferPoint", "HandoffKind")] = 32,
-            [("TransferPoint", "CommsHandoffKind")] = 32,
-            [("TransferPoint", "HandoffLevelUnit")] = 32,
-            [("TransferPoint", "HandoffLevelConstraint")] = 32,
-            [("TransferPoint", "SpeedConstraint")] = 32,
-            // Gli stessi enum sull'entità che prende il posto di TransferPoint, più i due che qui sono
+            // Gli enum dell'accordo, più i due che qui sono
             // INDICIZZATI e prima non esistevano: la direzione entra nella chiave di lettura delle clausole
             // (l'outline vive dentro una direzione) e il lato entra in quella delle parti.
             [("AgreementClause", "Direction")] = 32,       // indice, oltre che default
@@ -157,7 +152,7 @@ public static class MySqlStringLengths
     ///
     /// <para>Due fonti, in ordine: la voce esplicita in <see cref="Map"/> vince sempre, e a seguire la regola
     /// sugli enum (<see cref="EnumChars"/>). L'ordine conta: alcune voci della mappa <i>sono</i> enum —
-    /// <c>Document.Type</c>, <c>TransferPoint.HandoffKind</c> — e stanno lì con una misura propria e un
+    /// <c>Document.Type</c>, <c>AgreementClause.HandoffKind</c> — e stanno lì con una misura propria e un
     /// commento che la giustifica.</para>
     ///
     /// <para>⚠️ Dev'essere chiamata <b>dopo</b> la conversione globale enum→stringa di

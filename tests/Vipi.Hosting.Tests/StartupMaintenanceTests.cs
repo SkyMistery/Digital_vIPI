@@ -49,11 +49,12 @@ public class StartupMaintenanceTests
 
         host.RunVipiStartupMaintenance();
 
-        // Tutte e CINQUE hanno provato e fallito: se il guasto della prima avesse fermato la sequenza, qui ci
-        // sarebbe una segnalazione sola. Il numero cresce con le passate — dal 16 agosto 2026 la prima e' il
-        // travaso dei trasferimenti in accordi — ed e' voluto che aggiungerne una faccia fallire questo test:
-        // e' il promemoria che una passata nuova va anche isolata, o il suo guasto porterebbe giu' l'avvio.
-        Assert.Equal(5, report.Findings.Count);
+        // Tutte e QUATTRO hanno provato e fallito: se il guasto della prima avesse fermato la sequenza, qui ci
+        // sarebbe una segnalazione sola. Il numero segue le passate — erano cinque finche' c'era il travaso dei
+        // flussi in accordi, tolto il 17 agosto 2026 con le tabelle che leggeva — ed e' voluto che aggiungerne
+        // o toglierne una faccia fallire questo test: e' il promemoria che una passata nuova va anche isolata,
+        // o il suo guasto porterebbe giu' l'avvio.
+        Assert.Equal(4, report.Findings.Count);
     }
 
     /// <summary>

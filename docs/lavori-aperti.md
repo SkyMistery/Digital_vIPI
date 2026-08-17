@@ -803,14 +803,29 @@ Cinque fasi, tutte verificate **guidando l'app** su copia del `vipi.db` reale: r
 flussi veri (l'invariante «frasi e righe identiche prima e dopo»), modello + migrazione nei due provider,
 travaso + scambio dei lettori + editor, richiusura dei punti in lettura, tre ausili di riempimento.
 
+**Il modello vecchio è stato droppato** (17 ago 2026, `DropLegacyTransferTables` nei due provider) — e la
+regola della release successiva **non si applica più**, perché è caduta la sua premessa: il committente
+sostituisce il DB di produzione con quello di sviluppo, già travasato. Il travaso è stato quindi *eseguito* sul
+`vipi.db` vero (37 flussi / 78 punti → 41 accordi / 63 clausole) e poi *rimosso col suo macchinario*
+(`ILegacyFlowReader`, `IAgreementMaintenance`, `FlowsToAgreements` e le due impl. EF): con le tabelle droppate
+dalla migrazione — che gira **prima** della manutenzione — non avrebbe più potuto leggere niente, e su un DB
+dove non fosse ancora girato avrebbe fatto **crashare l'avvio**. Tenerlo sarebbe stato codice irraggiungibile
+e pericoloso insieme. L'ultima copia di quei dati nella forma originale è
+`tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`.
+
 **Cosa resta, ed è il motivo per cui la voce è 🟡:**
-1. ⚠️ **La migrazione che droppa `TransferFlows`/`TransferPoints`** va in una release **successiva** a quella in
-   cui il travaso ha girato in produzione. Le migrazioni girano *prima* della manutenzione d'avvio: nella stessa
-   release il travaso non troverebbe più niente da leggere.
-2. **Le due asimmetrie trovate dal cruscotto** vanno decise dai colleghi, non dal codice: `LGGG ⇄ LIBB`
+1. **Le due asimmetrie trovate dal cruscotto** vanno decise dai colleghi, non dal codice: `LGGG ⇄ LIBB`
    (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo, **che nessuno aveva notato**). Il travaso non le
    ha risolte apposta — accoppiare i due versi vorrebbe dire scegliere quale dei due valga.
-3. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
+2. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+
+### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
+Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge
+toccato). In isolamento passa due volte su tre. Il test lancia due `SendAsync` insieme contro un
+`FakeAuroraServer` su socket TCP di loopback e pretende che ognuna riceva la propria risposta: la serializzazione
+che verifica è giusta, ma la prova dipende dai tempi del socket. Un rosso qui **non** significa che il client
+mescoli le richieste. Va reso deterministico (attesa esplicita invece che implicita nei tempi di rete) prima che
+qualcuno impari a rilanciare la suite finché diventa verde — che è il vero danno di un test ballerino.
 
 ---
 
