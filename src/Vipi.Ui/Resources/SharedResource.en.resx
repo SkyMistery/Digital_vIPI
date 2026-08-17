@@ -1464,6 +1464,7 @@
   <data name="Xfer_ReverseApartThere" xml:space="preserve"><value>This agreement is the reciprocal of «{0}», written apart. Merging moves its {1} clauses there, flipped, and this shell disappears.</value></data>
   <data name="Xfer_ReverseApartOpen" xml:space="preserve"><value>Open the other</value></data>
   <data name="Xfer_Merge" xml:space="preserve"><value>Merge the two directions</value></data>
+  <data name="Xfer_MergeConfirm" xml:space="preserve"><value>Yes, merge</value></data>
   <data name="Xfer_MergeAria" xml:space="preserve"><value>Merge the two agreements into one</value></data>
   <data name="Xfer_MergePrompt" xml:space="preserve"><value>You move {0} clauses and delete the agreement left empty. This cannot be undone: look at both tables first.</value></data>
   <data name="Xfer_Merged" xml:space="preserve"><value>Merged: {0} clauses moved into the opposite direction.</value></data>

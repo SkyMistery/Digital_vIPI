@@ -814,11 +814,31 @@ dove non fosse ancora girato avrebbe fatto **crashare l'avvio**. Tenerlo sarebbe
 e pericoloso insieme. L'ultima copia di quei dati nella forma originale è
 `tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`.
 
+**Secondo giro, 17 agosto — l'editor a valle del modello.** Carta ed esito:
+[`feature/2026-08-17-editor-accordi-per-relazione.md`](feature/2026-08-17-editor-accordi-per-relazione.md).
+L'editor aveva conservato due assi del modello vecchio: l'albero indicizzato sul **lato B** (per LIRR dieci
+accordi su undici finivano sotto rami chiamati coi propri settori) e il verso come **interruttore** (che portava
+sempre a una tabella vuota, perché di accordi bilaterali in archivio non ce n'era **nessuno**). Ora l'albero è
+**ACC controparte ▸ ente ▸ accordo** letto da una lente `AgreementViewpoint` — A e B in archivio non si toccano
+— e i **due versi si vedono sempre entrambi**, come le due tabelle di EUROCONTROL Annex D.2. Più: il tipo del
+verso opposto calcolato e marcato tale, i punti presenti da un lato solo detti sopra le tabelle, e il comando
+**«unisci i due versi»** per i tre reciproci che il travaso aveva lasciato in accordi separati.
+
 **Cosa resta, ed è il motivo per cui la voce è 🟡:**
-1. **Le due asimmetrie trovate dal cruscotto** vanno decise dai colleghi, non dal codice: `LGGG ⇄ LIBB`
-   (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo, **che nessuno aveva notato**). Il travaso non le
-   ha risolte apposta — accoppiare i due versi vorrebbe dire scegliere quale dei due valga.
-2. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+1. **Le asimmetriche restano da decidere ai colleghi**, ma ora sono **una in meno da cercare**: `LGGG ⇄ LIBB`
+   (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) sono elencate dal cruscotto **e** compaiono dentro
+   il riquadro appena i due versi coesistono. Restano tre coppie da unire in produzione — la fusione è stata
+   provata su una **copia** del DB, non sul `vipi.db` del progetto, che è ancora a 41 accordi.
+2. **La stessa relazione spezzata in due accordi** (`#26/#27`, arrivi LIBD): il cruscotto la segnala, ma unirli
+   **cambia il documento** (due tabelle diventano una) e nessun comando lo fa da sé. Decisione editoriale.
+3. **Tre difetti di `LevelFormatting`**, tutti pre-esistenti e ora più visibili: `— (dispari)` su livello
+   assente, la parità appesa anche a un livello *speciale* che la dice già a parole, e L10 (parità non tradotta
+   in tabella). Sono **congelati nell'approvato** della rete di caratterizzazione: un giro loro, con la
+   riapprovazione guardata riga per riga.
+4. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», in italiano e cablato nel componente**: nella
+   pagina inglese ogni conferma in linea che non passa l'etichetta lo dice in italiano. Trovato guidando la
+   fusione (dove diceva «elimina» per un'operazione che unisce, corretto lì); è più largo di quest'area.
+5. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
 
 ### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
 Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge

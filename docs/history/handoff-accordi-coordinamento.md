@@ -1,7 +1,13 @@
 # HANDOFF — Accordi di coordinamento (16-17 agosto 2026)
 
-> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`, 11 commit,
-> allineato col remoto, **non ancora in `main`**.
+> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`, **non ancora in
+> `main`**.
+>
+> ⚠️ **Aggiornato il 17 agosto (secondo giro): l'editor.** Carta ed esito
+> [`../feature/2026-08-17-editor-accordi-per-relazione.md`](../feature/2026-08-17-editor-accordi-per-relazione.md).
+> L'albero non è più indicizzato sul lato B ma sull'**ACC della controparte** letta dalla lente
+> `AgreementViewpoint`, e i **due versi si vedono sempre entrambi** (via l'interruttore). Chi legge qui sotto
+> «selettore del verso» sta leggendo lo stato del 16.
 >
 > Carta ed esito completi: [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md)
 > · Schema: [`../spec/modello-dati.md`](../spec/modello-dati.md) §9.25-9.26 · Area: [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10
@@ -23,6 +29,10 @@ più settori per lato, più aeroporti, più punti per clausola e fino a **due ve
 | Editor | `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor` — rotta **invariata** `/vsop/admin/trasferimenti` |
 | Lettura | `src/Vipi.Ui/Components/App/CoordTable.razor` |
 | Ausili | `AgreementSuggestions.cs` · `ClausePaste.cs` · `AgreementGaps.cs` (tutti puri, in Application) |
+| Orientamento | `AgreementViewpoint.cs` — «noi/loro» rispetto alla ACC aperta; `TrafficKinds.Reciprocal` in Domain |
+| Punti spaiati | `AgreementPoints.cs` — un conto solo, letto dal cruscotto **e** dal riquadro |
+| Fusione dei versi | `AgreementMerge.cs` (proposta, pura) + `IAgreementRepository.AbsorbAsReverseAsync` |
+| Albero | `XferNavigator.razor` + `XferNavModel.cs` — ACC controparte ▸ ente ▸ accordo |
 
 ## Le tre cose da NON riscoprire a mani nude
 
@@ -31,6 +41,11 @@ dell'accordo, prodotta da `AgreementExpansion`. È lo stesso schema dei settori 
 `Sector` = proiezione). Per questo derivazione, frasi, vista live, stampa e matcher Aurora non sono stati
 toccati: leggono tutti quella forma. Chi cerca «dove si salva un coordinamento» deve trovare **un** posto, e
 quel posto è l'accordo.
+
+**1-bis. «Noi» e «loro» sono una LENTE, non un dato.** A e B in archivio dicono chi ha scritto l'accordo per
+primo, non da che parte stiamo: 13 accordi di LIBB e **10 su 11 di LIRR** hanno la ACC sul lato B. La vista li
+orienta con `AgreementViewpoint`; **non** si riscrive l'archivio per raddrizzarli — cambierebbe di significato le
+clausole di entrambi i versi e le release congelate, e un accordo di confine non ha un verso giusto.
 
 **2. L'outline vive dentro `(accordo, verso)`.** Spostare, annidare, sciogliere: tutto ragiona su una direzione
 sola. Le clausole del verso opposto non sono alternative delle prime, sono **un'altra tabella** (EUROCONTROL
@@ -78,16 +93,27 @@ tornare lo schema, non l'archivio.
 ## Stato del DB di sviluppo
 
 `src/Vipi.Host/vipi.db` è **già travasato e già droppato**: 41 accordi · 80 parti · 35 aeroporti · 63 clausole,
-zero `TransferFlows`/`TransferPoints`. È il DB che va in produzione.
+zero `TransferFlows`/`TransferPoints`. È il DB che va in produzione. ⚠️ **Non contiene nessun accordo bilaterale**:
+le 63 clausole sono tutte in un verso. Le fusioni provate il 17 agosto sono girate su una **copia**.
+
+⚠️ **Prima di credere a ciò che si vede guidando l'app**, controllare l'ora di
+`src/Vipi.Host/bin/Debug/net8.0/Vipi.Application.dll`: `dotnet build src/Vipi.Ui` **non** aggiorna la copia dentro
+`bin` dell'host, e `dotnet run --no-build` parte da lì. Il 17 agosto questo ha fatto misurare 27 lacune invece di
+28 e concludere che una voce nuova non funzionasse.
 
 Il 41° accordo non ha clausole ed **è corretto**: viene dal flusso #10 (`LIRR_NE_CTR`, sorvolo) che era già
 vuoto prima del travaso. Il cruscotto delle lacune lo segnala.
 
 ## Cosa resta aperto
 
+0. **Tre reciproci ancora in accordi separati** (`#13/#32` LGGG · `#17/#28` LDZO · `#23/#38` LAAA): il comando
+   «unisci i due versi» c'è ed è stato provato **su una copia**, non sul `vipi.db` del progetto — che resta a 41
+   accordi. Va fatto in produzione, guardando le due tabelle prima di premere. Il cruscotto li elenca sotto
+   «reciproco a parte».
 1. **Due asimmetrie fra i versi**, da decidere dai colleghi e non dal codice: `LGGG ⇄ LIBB` (BELIX di qua, OLGAT
    di là) e `LDZO ⇄ LIBB` (sei punti scritti da un lato solo, **che nessuno aveva notato**). Il travaso non le ha
-   risolte apposta: accoppiare i due versi vorrebbe dire scegliere quale valga.
+   risolte apposta: accoppiare i due versi vorrebbe dire scegliere quale valga. Dopo la fusione compaiono
+   **dentro il riquadro**, sopra le due tabelle, non solo nel cruscotto.
 2. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
 3. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** (E6-ter) — due passate su tre in
    isolamento, su codice che questo lavoro non tocca. Test su socket TCP di loopback. Slegato, ma da rendere
@@ -96,9 +122,13 @@ vuoto prima del travaso. Il cruscotto delle lacune lo segnala.
    additivo, non una seconda chirurgia): rotta separata dal punto, *Release* (climb/descent/turn), modo di
    coordinamento, nota per clausola, default in testa all'accordo, condizione come intestazione, clausole in
    prosa e spaziatura, voce «riceve da», etichetta del gruppo di aeroporti.
-5. ⚠️ **Difetto pre-esistente L10**, congelato nell'approvato apposta: nella resa **inglese** la colonna livello
-   esce `FL260 (pari)` — `LevelFormatting` non conosce la lingua. Nella frase la parità è tradotta, in tabella
-   no. Si corregge in un giro suo.
+5. ⚠️ **Tre difetti di `LevelFormatting`**, congelati nell'approvato apposta e ora tutti **visti a schermo**:
+   L10 (nella resa inglese la colonna livello esce `FL260 (pari)` — `LevelFormatting` non conosce la lingua);
+   `— (dispari)`, cioè la parità appesa a un livello **assente**; e la parità appesa anche a un livello
+   **speciale** che la dice già a parole (`Pari (Nord) - Dispari (Sud) (dispari)`). Un giro loro, insieme, con la
+   riapprovazione guardata riga per riga.
+6. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», italiano e cablato**: nella pagina inglese ogni
+   conferma in linea che non passa l'etichetta lo dice in italiano. Fuori da quest'area, ma trovato qui.
 
 ## Comandi
 

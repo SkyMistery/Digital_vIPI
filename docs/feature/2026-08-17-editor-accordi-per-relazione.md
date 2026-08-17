@@ -1,4 +1,4 @@
-# Editor accordi: per relazione, e con i due versi sempre a vista — carta (17 agosto 2026) 🟡
+# Editor accordi: per relazione, e con i due versi sempre a vista — carta ed esito (17 agosto 2026) 🟢
 
 > Secondo giro sull'editor, **a valle** del modello nuovo: [`2026-08-16-accordi-di-coordinamento.md`](2026-08-16-accordi-di-coordinamento.md).
 > Ramo di partenza `feature/accordi-coordinamento` (non ancora in `main`).
@@ -305,3 +305,44 @@ Un commit per fase, build verde a ogni commit.
 3. **I5 = subito** — la riga «solo da un lato» sopra i due blocchi, con i punti presenti in un verso e non
    nell'altro. Il calcolo è quello che `AgreementGaps` fa già per la voce dell'asimmetria: **una sola
    funzione**, letta in due posti, non due conti che possono divergere.
+
+## 10. Esito, verificato a schermo (17 agosto 2026)
+
+Guidato con la skill `verifica-live` su una **copia** del `vipi.db` reale (il DB del progetto è rimasto a 41
+accordi: controllato dopo). Sei pagine, due giri, zero errori di console e zero risposte ≥ 400.
+
+| Cosa | Atteso | Visto |
+|---|---|---|
+| Albero **LIRR** | non più i propri settori come controparti | `LIBB (10)` · `— senza ricevente (1)`. Prima erano dieci rami chiamati `LIRR_US_CTR`, `LIRR_TS_CTR`, … |
+| Albero **LIBB** | 7 rami | `LAAA 6 · LDZO 7 · LGGG 9 · LIRR 10 · LYBA 4 · LIBB «interni» 3 · «— senza ricevente» 1` = 40 |
+| Accordo **#13** | due blocchi, `3 ⇄ 0` | `NOI → LORO` 3 clausole · `LORO → NOI` 0 con «il reciproco non è ancora scritto» |
+| Tipo reciproco (**#26**, ACC→APP arrivi) | «Partenze» marcato calcolato | `Partenze *` nel blocco entrante, con il perché nel tooltip |
+| Cruscotto lacune | 24 → 28 voci, due generi nuovi | **28**: 3 «reciproco a parte» + 1 «relazione spezzata» accanto alle precedenti |
+| **Fusione** #13 ⇄ #32 | un accordo, `3 ⇄ 4` | testata `LIBB_ES_CTR ⇄ LGGG_W_CTR`, LGGG da 9 a 8, totale da 40 a 39, toast «Uniti: 4 clausole spostate nel verso opposto» |
+| Punti spaiati (I5) | compaiono **dopo** la fusione | «⚠ Punti presenti in un verso solo: **BELIX, OLGAT**» — l'asimmetria nota, finalmente dentro il riquadro dove si scrive |
+
+Le frasi del verso entrante si compongono da sé e sono giuste: «Athinai Radar West trasferisce a Brindisi
+Radar ES il traffico stabile per un livello pari su OLGAT». È la prova che la proiezione non è stata toccata.
+
+### Due difetti trovati **guardando**, non dai test
+
+1. ⚠️ **La conferma della fusione diceva «Sì, elimina».** `InlineConfirm.ConfirmLabel` ha per default
+   `"Sì, elimina"` — giusto per il novanta per cento dei suoi usi, sbagliato qui: nessuno elimina niente, si
+   unisce. Corretto passando l'etichetta (`Xfer_MergeConfirm`). ⚠️ **Quel default è italiano e cablato nel
+   componente**: nella pagina inglese *ogni* conferma in linea che non passa l'etichetta dice «Sì, elimina» in
+   italiano. Difetto pre-esistente e più largo di quest'area — non toccato qui, ma va saputo.
+2. ⚠️ **Stavo misurando la build sbagliata.** Il primo giro mostrava 27 lacune invece di 28 e nessuna
+   «relazione spezzata»: `dotnet build src/Vipi.Ui` non aggiorna la copia di `Vipi.Application.dll` dentro
+   `src/Vipi.Host/bin`, e `dotnet run --no-build` parte da lì. È la stessa trappola già pagata a luglio con le
+   DLL bloccate: **prima di credere a ciò che si vede, controllare l'ora del `.dll` dentro `bin` dell'host.**
+
+### Difetti pre-esistenti che i due versi rendono più visibili (non toccati)
+
+- **`— (dispari)`**: `LevelFormatting.Format` appende la parità anche a un livello **assente**. Già noto (handoff
+  del 15 agosto), ma prima si vedeva in una tabella per volta; adesso in due.
+- **`Pari (Nord) - Dispari (Sud) (dispari)`**: stessa famiglia — la parità si appende anche a un livello
+  *speciale* che la dice già a parole.
+- **L10**, la parità non tradotta in tabella (`FL150- (pari)` nella pagina inglese), è confermata a schermo.
+
+Tutti e tre stanno in `LevelFormatting` e sono **congelati nell'approvato** della rete di caratterizzazione:
+si correggono in un giro loro, insieme, con la riapprovazione guardata riga per riga.

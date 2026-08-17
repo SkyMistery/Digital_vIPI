@@ -1470,6 +1470,7 @@
   <data name="Xfer_ReverseApartThere" xml:space="preserve"><value>Questo accordo è il reciproco di «{0}», scritto a parte. Unendoli le sue {1} clausole passano là, ribaltate, e questo guscio sparisce.</value></data>
   <data name="Xfer_ReverseApartOpen" xml:space="preserve"><value>Apri l'altro</value></data>
   <data name="Xfer_Merge" xml:space="preserve"><value>Unisci i due versi</value></data>
+  <data name="Xfer_MergeConfirm" xml:space="preserve"><value>Sì, unisci</value></data>
   <data name="Xfer_MergeAria" xml:space="preserve"><value>Unisci i due accordi in uno</value></data>
   <data name="Xfer_MergePrompt" xml:space="preserve"><value>Sposti {0} clausole e cancelli l'accordo che resta vuoto. Non si annulla: guarda le due tabelle prima.</value></data>
   <data name="Xfer_Merged" xml:space="preserve"><value>Uniti: {0} clausole spostate nel verso opposto.</value></data>

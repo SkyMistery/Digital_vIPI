@@ -1116,8 +1116,11 @@
                     </div>
                     <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                             @onclick="() => GoToGap(altroId)">↗ @L["Xfer_ReverseApartOpen"]</button>
+                    @* ⚠️ L'etichetta di conferma va passata: il default di InlineConfirm è «Sì, elimina», e qui
+                       non si elimina niente — si unisce. Trovato guidando l'app, non dai test. *@
                     <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_MergeAria"]" Disabled="@(_busy || !_canEdit)"
                                    Prompt="@(string.Format(L["Xfer_MergePrompt"].Value, pair.Clauses))"
+                                   ConfirmLabel="@L["Xfer_MergeConfirm"]" CancelLabel="@L["Common_Cancel"]"
                                    OnConfirm="() => AbsorbReverse(pair)"><Trigger>⇄ @L["Xfer_Merge"]</Trigger></InlineConfirm>
                 </div>
             }

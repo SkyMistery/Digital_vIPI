@@ -273,12 +273,45 @@ direzione**, con gli aeroporti raccolti in un gruppo («LIRF-LIRA-LIRU-LIRE») e
 | 4 | Riceventi proposti · incolla-tabella · cruscotto delle lacune | live: **due asimmetrie vere** trovate |
 | 5 | Propagazione: spec, lavori aperti, guida, memorie, nomi e commenti | — |
 
+### 10.3 L'editor a valle del modello (17 agosto 2026)
+
+Carta ed esito: [`../feature/2026-08-17-editor-accordi-per-relazione.md`](../feature/2026-08-17-editor-accordi-per-relazione.md).
+
+Il modello era nuovo, l'editor no: aveva conservato **due assi del modello vecchio**, e le misure sul `vipi.db`
+vero li hanno resi indiscutibili.
+
+- **L'albero era indicizzato sul lato B**, non sulla controparte. Per 13 accordi di LIBB e **10 su 11 di LIRR**
+  la ACC aperta *è* il lato B, quindi il ramo prendeva il nome dei nostri stessi settori: la pagina rimetteva in
+  cima l'asse «per settore» che il modello aveva appena tolto. Ora è **ACC controparte ▸ ente ▸ accordo**, letto
+  dalla lente `AgreementViewpoint` (7 rami per LIBB invece di 17).
+- ⚠️ **L'orientamento è una lente, non un dato**: A e B in archivio non si toccano. Raddrizzarli cambierebbe di
+  significato le clausole di **entrambi** i versi e le release congelate — e un accordo di confine non ha un
+  verso giusto, dipende da chi lo apre.
+- **Il verso era un interruttore**, e non pagava: in archivio i bilaterali erano **zero**, quindi il tasto
+  dell'altro verso portava sempre a una tabella vuota — e il reciproco non si scriveva perché non si vedeva che
+  mancava. Ora i due versi sono **due blocchi sempre a vista**, come Annex D.2.1/D.2.2. ⚠️ I tasti stanno in
+  **testa** a ogni blocco: il piede-che-tiene-i-tasti vale per *un* corpo che scorre.
+- **`AgreementDirection` smette di essere stato di pagina** e diventa parametro: sette operazioni lo leggevano
+  implicitamente, e con due tabelle a vista quello stato era una bugia.
+- **Il tipo di traffico del verso opposto è calcolato** (`TrafficKinds.Reciprocal`) e **marcato come calcolato**:
+  da un APP verso l'area salgono partenze, non arrivi. Il tipo *per verso* resta nel registro delle lacune.
+- **Due voci nuove nel cruscotto**: «reciproco a parte» (3 casi, con il comando che li unisce) e «relazione
+  spezzata» (1 caso, `#26/#27`, **senza** comando: unirli cambia il documento). Le condizioni della fusione si
+  **rivalidano nel repository**, non si dànno per buone dalla proposta.
+- **I punti presenti da un lato solo** si dicono sopra le due tabelle, con lo **stesso conto** del cruscotto
+  (`AgreementPoints`).
+
 ### 10.2 Cosa resta
 
-1. ⚠️ La migrazione che **droppa `TransferFlows`/`TransferPoints`**, in una release **successiva** a quella in
-   cui il travaso ha girato in produzione. Le migrazioni girano *prima* della manutenzione d'avvio: nella stessa
-   release il travaso non troverebbe più niente da leggere.
+1. ✅ La migrazione che droppa `TransferFlows`/`TransferPoints` è **girata** il 17 agosto: la regola della
+   release successiva è caduta con la sua premessa (il DB di produzione viene sostituito con quello di sviluppo,
+   già travasato).
 2. Le **due asimmetrie** che il cruscotto ha trovato — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti,
-   mai notata prima) — le decidono i colleghi: il travaso non le ha risolte apposta.
-3. Il **secondo giro** dei campi mancanti (§5 della carta).
-4. **Merge in `main`**: serve l'ok esplicito.
+   mai notata prima) — le decidono i colleghi: il travaso non le ha risolte apposta. Dopo la fusione dei versi
+   compaiono **dentro il riquadro di lavoro**, non solo nel cruscotto.
+3. **Tre reciproci da unire in produzione** (`#13/#32`, `#17/#28`, `#23/#38`): il comando c'è, provato su una
+   copia del DB. Il `vipi.db` del progetto è ancora a 41 accordi.
+4. Il **secondo giro** dei campi mancanti (§5 della carta).
+5. **Tre difetti di `LevelFormatting`** (L10 + parità su livello assente + parità su livello speciale), congelati
+   nell'approvato: un giro loro, con la riapprovazione guardata riga per riga.
+6. **Merge in `main`**: serve l'ok esplicito.
