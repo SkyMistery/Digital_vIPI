@@ -23,7 +23,7 @@ Non è un giudizio estetico. Ecco le misure, prese sul `vipi.db` vero (41 accord
 | M3 | Rami dell'albero per LIBB, oggi (chiave = lato B) | **17**, il più grosso è `LIBB_ES_CTR` con 11 |
 | M4 | Accordi **bilaterali** in archivio | **0** — le 63 clausole sono tutte `AtoB` |
 | M5 | Coppie di accordi che sono i **due versi della stessa relazione** (stessi enti, stesso tipo, stessi aeroporti) | **3**: `#13/#32` LGGG · `#17/#28` LDZO · `#23/#38` LAAA |
-| M6 | Gruppi di accordi **duplicati nello stesso verso** (stessi enti + stesso tipo) | **6**: `#2/#26/#27` · `#4/#14` · `#5/#6` · `#7/#9` · `#8/#10` · `#29/#31` |
+| M6 | Gruppi di accordi che scrivono la **stessa relazione** (stessi enti, tipo **e aeroporti**) | **1**: `#26/#27` |
 | M7 | Clausole per `(accordo, verso)` | min 1 · media 1,6 · **max 6** |
 | M8 | Lati con più di un ente · aeroporti per accordo | 0 · max 2 |
 
@@ -150,8 +150,11 @@ pannello e al ripristino dal link.
 ### 3.5 La vista a elenco resta com'è
 
 In elenco le colonne sono mittente/ricevente **reali** e vanno lasciate così: lì si attraversano gli accordi
-di dieci controparti diverse, e «noi/loro» sarebbe un orientamento senza un soggetto. L'unica aggiunta è la
-colonna del **verso**, che oggi ordina ma non si vede.
+di dieci controparti diverse, e «noi/loro» sarebbe un orientamento senza un soggetto.
+
+⚠️ **La colonna «verso» era prevista e non si fa.** Guardando `XferRowsTable` si vede che mittente e ricevente
+sono già calcolati *sulla direzione della clausola* (`SenderLabel`/`ReceiverLabel` leggono `c.Direction`):
+il verso in elenco **si legge già**, e una colonna in più direbbe la stessa cosa una seconda volta.
 
 ## 4. Le altre idee, con il loro costo
 
@@ -187,20 +190,26 @@ Tre strade:
 il reciproco calcolato è esatto su tutto ciò che esiste. (b) resta nel registro delle lacune, dove sta già la
 sua famiglia (L1-L9), e si fa se e quando qualcuno scriverà un verso di tipo diverso.
 
-### I3 — Duplicati nello stesso verso: sesta voce del cruscotto · **da fare**
+### I3 — La stessa relazione scritta in più accordi: voce del cruscotto · **fatta**
 
-M6: sei gruppi di accordi con la **stessa relazione, stesso tipo e stesso verso**, fra cui `#26/#27` che hanno
-anche gli stessi aeroporti e tre clausole per uno. Sono i gemelli di «clona gruppo» del modello vecchio, la
-cosa che l'accordo doveva chiudere: fin quando restano, la vIPI rende due tabelle dove ne serve una.
+⚠️ **Il numero di M6 era sbagliato in prima stesura, e la misura l'ha corretto.** Contando anche gli aeroporti
+il gruppo è **uno solo**, non sei: `#26/#27`, `LIBB_ES_CTR → LIBD_CS0_APP`, arrivi su LIBD, tre clausole
+ciascuno. Gli altri cinque «gruppi» venivano da una chiave che ignorava gli aeroporti — arrivi su scali diversi
+fra gli stessi enti sono legittimamente due accordi, ed è lo stesso errore che avrebbe reso rumorosa I1.
 
-Il cruscotto sa già dire «dove lavorare», e questa è una voce che nessuno vede guardando una pagina alla
-volta — lo stesso argomento per cui esiste la voce dell'asimmetria. **Si segnala, non si fonde da sé**: due
-accordi identici possono avere condizioni che li distinguono, e la fusione è una lettura, non un calcolo.
+E non sono **doppioni**: guardandone le clausole, `#26` porta EKMUR/PISIP/BIRSU e `#27` porta TOPNO. Sono un
+accordo solo spezzato per **gruppo di punti** — la frammentazione che il modello nuovo permette di chiudere.
+Quindi la voce **segnala e non offre nessun comando**: unirli è giusto, ma nel documento due tabelle diventano
+una, e quella è una decisione editoriale, non un calcolo.
 
-### I4 — La lacuna punta al verso, non all'accordo · **incluso, costo nullo**
+### I4 — La lacuna punta al verso · **caduta, e la ragione conta**
 
-`AgreementGap.AgreementId` porta a un accordo. Con due blocchi identificabili può portare al **blocco**, che
-è dove sta la cosa da sistemare. Un campo nullable in più su un record puro.
+Era «costo nullo», ma con i due versi **sempre aperti** il beneficio è nullo anche lui: aprire l'accordo mostra
+già entrambe le tabelle, alte al massimo sei righe (M7). Un campo `Direction?` in più su `AgreementGap` sarebbe
+un dato che nessuno legge — e un campo che non cambia niente è debito, non completezza.
+
+`AgreementGap` ha invece guadagnato un secondo **id**: serve a I1, dove la lacuna riguarda *due* accordi e senza
+quello la voce potrebbe solo indicare, non offrire di sistemare.
 
 ### I5 — Il confronto dei punti fra i due versi · **da valutare dopo la 3.3**
 

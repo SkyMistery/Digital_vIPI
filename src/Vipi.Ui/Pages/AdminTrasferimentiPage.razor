@@ -601,6 +601,7 @@
         AgreementGapKind.NoReceiver => L["Xfer_GapNoReceiver"],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapAsymmetric"],
         AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApart"],
+        AgreementGapKind.SameRelationSplit => L["Xfer_GapSplitRelation"],
         AgreementGapKind.ToReview => L["Xfer_ToReview"],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbour"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirport"],
@@ -616,7 +617,7 @@
         // vocabolario di gravita' accanto a quello che il resto del sito ha gia'.
         AgreementGapKind.NoReceiver => "future",
         AgreementGapKind.AsymmetricDirections or AgreementGapKind.ToReview
-            or AgreementGapKind.ReverseInSeparateAgreement => "grey",
+            or AgreementGapKind.ReverseInSeparateAgreement or AgreementGapKind.SameRelationSplit => "grey",
         _ => "neutral",
     };
 
@@ -627,6 +628,7 @@
         AgreementGapKind.NoReceiver or AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapOnlyOneWay", string.Join(", ", g.Items)],
         AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApartDetail", g.Count],
+        AgreementGapKind.SameRelationSplit => L["Xfer_GapSplitRelationDetail", g.Count],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbourDetail"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirportDetail"],
         _ => L["Xfer_GapSectorDetail"],

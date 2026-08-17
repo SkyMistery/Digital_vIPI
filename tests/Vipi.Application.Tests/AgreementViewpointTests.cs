@@ -274,7 +274,49 @@ public class AgreementViewpointTests
         Assert.Single(AgreementMerge.Candidates(new[] { uno, due, tre }, From("LIBB")));
     }
 
+    // ---- la stessa relazione in più accordi -----------------------------------------------------------
+
+    [Fact]
+    public void La_stessa_relazione_scritta_in_due_accordi_si_segnala()
+    {
+        // È la coppia #26/#27 dell'archivio: stessi enti, stessi arrivi, stesso scalo, ma clausole DIVERSE —
+        // un accordo spezzato per gruppo di punti, non un doppione.
+        var uno = Arrivi(1, "EKMUR, PISIP");
+        var due = Arrivi(2, "TOPNO");
+
+        var g = Assert.Single(AgreementMerge.SplitRelations(new[] { uno, due }));
+        Assert.Equal(new[] { 1, 2 }, g);
+    }
+
+    [Fact]
+    public void Aeroporti_diversi_sono_relazioni_diverse()
+    {
+        // Arrivi su LIBD e arrivi su LIBR fra gli stessi enti sono legittimamente due accordi.
+        var uno = Arrivi(1, "EKMUR");
+        var due = Arrivi(2, "TOPNO") with { Airports = new[] { new AgreementAirportRow("LIBR", null, 1) } };
+
+        Assert.Empty(AgreementMerge.SplitRelations(new[] { uno, due }));
+    }
+
+    [Fact]
+    public void Due_accordi_specchiati_non_sono_una_relazione_spezzata()
+    {
+        // Hanno i lati scambiati: sono i due versi, e per quelli c'è la proposta di unione.
+        var andata = Agreement("LIBB_ES_CTR", "LDZO_CTR", Clause(1, "BELIX", AgreementDirection.AtoB));
+        var ritorno = Reverse(andata, id: 2, Clause(2, "OLGAT", AgreementDirection.AtoB));
+
+        Assert.Empty(AgreementMerge.SplitRelations(new[] { andata, ritorno }));
+    }
+
     // ---- attrezzi ------------------------------------------------------------------------------------
+
+    private static AgreementRow Arrivi(int id, string cops) =>
+        Agreement("LIBB_ES_CTR", "LIBD_CS0_APP", Clause(id, cops, AgreementDirection.AtoB)) with
+        {
+            Id = id,
+            TrafficKind = TransferFlowKind.Arrival,
+            Airports = new[] { new AgreementAirportRow("LIBD", null, 1) },
+        };
 
     private static AgreementRow Agreement(string sideA, string? sideB, params AgreementClauseRow[] clauses)
     {

@@ -1456,6 +1456,8 @@
   <data name="Xfer_ColSender" xml:space="preserve"><value>Transferring</value></data>
   <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— no receiving unit</value></data>
+  <data name="Xfer_GapSplitRelation" xml:space="preserve"><value>relation split</value></data>
+  <data name="Xfer_GapSplitRelationDetail" xml:space="preserve"><value>The same units, traffic and airports are written in {0} agreements: in the document they become that many tables. They could be one — move the clauses by hand, because merging changes the document.</value></data>
   <data name="Xfer_GapReverseApart" xml:space="preserve"><value>reciprocal apart</value></data>
   <data name="Xfer_GapReverseApartDetail" xml:space="preserve"><value>The opposite direction is written in a separate agreement ({0} clauses): they can be merged into one.</value></data>
   <data name="Xfer_ReverseApartHere" xml:space="preserve"><value>The reciprocal of this agreement is written apart, as «{0}» ({1} clauses). Merging moves its clauses into this one's free direction, flipped.</value></data>

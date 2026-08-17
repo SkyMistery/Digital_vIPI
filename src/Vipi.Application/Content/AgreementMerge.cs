@@ -65,6 +65,29 @@ public static class AgreementMerge
     }
 
     /// <summary>
+    /// La stessa relazione scritta in <b>più accordi</b>: stessi lati (non specchiati), stesso traffico, stessi
+    /// aeroporti. Ritorna gli id di ogni gruppo, dal più piccolo.
+    ///
+    /// <para>Non è un doppione da cancellare, ed è la ragione per cui qui non c'è nessun comando: in archivio
+    /// <c>#26</c> e <c>#27</c> — <c>LIBB_ES_CTR → LIBD_CS0_APP</c>, arrivi su LIBD — hanno clausole <b>diverse</b>
+    /// (EKMUR/PISIP/BIRSU da una parte, TOPNO dall'altra). Sono un accordo solo spezzato in due per gruppo di
+    /// punti: unirli è giusto, ma cambia il documento — due tabelle diventano una — e quella è una decisione
+    /// editoriale, non un calcolo.</para>
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyList<int>> SplitRelations(IReadOnlyList<AgreementRow> agreements) =>
+        agreements
+            .Where(a => Side(a, AgreementSide.A).Count > 0)
+            .GroupBy(a => (
+                A: string.Join("|", Side(a, AgreementSide.A).OrderBy(x => x, StringComparer.OrdinalIgnoreCase)),
+                B: string.Join("|", Side(a, AgreementSide.B).OrderBy(x => x, StringComparer.OrdinalIgnoreCase)),
+                a.TrafficKind,
+                Apt: string.Join("|", Airports(a).OrderBy(x => x, StringComparer.OrdinalIgnoreCase))))
+            .Where(g => g.Count() > 1)
+            .Select(g => (IReadOnlyList<int>)g.Select(a => a.Id).OrderBy(x => x).ToList())
+            .OrderBy(g => g[0])
+            .ToList();
+
+    /// <summary>
     /// <paramref name="y"/> dice la stessa cosa di <paramref name="x"/> al rovescio: parti specchiate, stesso
     /// traffico, stessi aeroporti.
     /// </summary>

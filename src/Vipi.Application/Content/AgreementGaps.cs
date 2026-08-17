@@ -45,6 +45,14 @@ public enum AgreementGapKind
     /// </summary>
     ReverseInSeparateAgreement,
 
+    /// <summary>
+    /// La stessa relazione è scritta in <b>più accordi</b> (stessi lati, stesso traffico, stessi aeroporti).
+    /// <para>Non è un doppione da cancellare: in archivio i due accordi che fanno scattare questa voce hanno
+    /// clausole diverse, e sono un accordo solo spezzato per gruppo di punti. Unirli è giusto e <b>cambia il
+    /// documento</b> — due tabelle diventano una — quindi si segnala e si lascia decidere.</para>
+    /// </summary>
+    SameRelationSplit,
+
     /// <summary>Una clausola verso un APP che non dice ancora dove avviene il trasferimento: il suo livello può
     /// voler dire «autorizzato» o «al trasferimento», e solo chi l'ha scritta lo sa.</summary>
     ToReview,
@@ -127,6 +135,16 @@ public static class AgreementGaps
             var keep = agreements.First(a => a.Id == p.KeepId);
             gaps.Add(new AgreementGap(AgreementGapKind.ReverseInSeparateAgreement, Describe(keep), p.Clauses,
                 Array.Empty<string>(), p.KeepId, p.AbsorbId));
+        }
+
+        // 2-ter) La stessa relazione scritta in più accordi. Nessun comando: i due accordi che la fanno scattare in
+        //        archivio hanno clausole DIVERSE — è un accordo spezzato per gruppo di punti, non un doppione — e
+        //        unirli cambia il documento (due tabelle diventano una), che è una decisione editoriale.
+        foreach (var group in AgreementMerge.SplitRelations(agreements))
+        {
+            var primo = agreements.First(a => a.Id == group[0]);
+            gaps.Add(new AgreementGap(AgreementGapKind.SameRelationSplit, Describe(primo), group.Count,
+                Array.Empty<string>(), group[0], group.Count == 2 ? group[1] : null));
         }
 
         // 3) Clausole verso un APP senza faccetta trasferimento.
