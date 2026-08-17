@@ -95,12 +95,9 @@ public static class AgreementGaps
                      .Where(g => g.Count() > 1))
         {
             var versi = g.ToList();
-            var tutti = versi.SelectMany(v => v.Points).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            // Solo i punti che NON sono in tutti i versi: quelli comuni sono l'accordo che regge.
-            var spaiati = tutti
-                .Where(pt => versi.Any(v => !v.Points.Contains(pt)))
-                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            // Il confronto è lo stesso che il riquadro di lavoro fa fra i due versi di un accordo: un conto
+            // solo, in AgreementPoints, letto da due posti.
+            var spaiati = AgreementPoints.Unpaired(versi.Select(v => (IReadOnlySet<string>)v.Points).ToList());
             if (spaiati.Count == 0) continue;
 
             // L'accordo da aprire è quello del primo verso: da lì si raggiunge l'altro capo, che nell'albero è
@@ -172,10 +169,7 @@ public static class AgreementGaps
         foreach (var a in agreements)
             foreach (var d in new[] { AgreementDirection.AtoB, AgreementDirection.BtoA })
             {
-                var points = a.Clauses.Where(c => c.Direction == d)
-                    .SelectMany(c => CopList.Parse(c.Cops))
-                    .Where(p => p.Length > 0)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var points = AgreementPoints.Of(a, d);
                 if (points.Count == 0) continue;
 
                 var from = Side(a, d == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);
