@@ -819,7 +819,9 @@ e pericoloso insieme. L'ultima copia di quei dati nella forma originale è
 L'editor aveva conservato due assi del modello vecchio: l'albero indicizzato sul **lato B** (per LIRR dieci
 accordi su undici finivano sotto rami chiamati coi propri settori) e il verso come **interruttore** (che portava
 sempre a una tabella vuota, perché di accordi bilaterali in archivio non ce n'era **nessuno**). Ora l'albero è
-**ACC controparte ▸ ente ▸ accordo** letto da una lente `AgreementViewpoint` — A e B in archivio non si toccano
+**ACC controparte ▸ relazione (noi ⇄ loro) ▸ accordo** letto da una lente `AgreementViewpoint` — la coppia e non
+il solo lato lontano, perché l'identità di un accordo è «due parti · tipo · gruppo di aeroporti»; A e B in
+archivio non si toccano
 — e i **due versi si vedono sempre entrambi**, come le due tabelle di EUROCONTROL Annex D.2. Più: il tipo del
 verso opposto calcolato e marcato tale, i punti presenti da un lato solo detti sopra le tabelle, e il comando
 **«unisci i due versi»** per i tre reciproci che il travaso aveva lasciato in accordi separati.

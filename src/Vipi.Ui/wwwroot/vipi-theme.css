@@ -1405,10 +1405,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Qualifica del ramo («interni»): sta accanto al nome e non deve pesare come il nome. */
 .xt-nav-note{font-size:11px;font-weight:400;font-family:var(--font-body)}
-/* L'ente della controparte è un'INTESTAZIONE, non un nodo: sotto Roma stanno quattro enti e distinguerli serve,
-   ma farli aprire uno per uno costerebbe due gesti per una foglia che ne chiede uno. */
-.xt-nav-ent{margin:4px 6px 1px 18px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
-  color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* La RELAZIONE (noi ⇄ loro) è un'INTESTAZIONE, non un nodo: sotto Roma stanno cinque relazioni e distinguerle
+   serve, ma farle aprire una per una costerebbe due gesti per una foglia che ne chiede uno.
+   Due callsign interi in 380 px non ci stanno sempre: il NOSTRO capo è quello che cede la larghezza — è lo stesso
+   su quasi tutte le relazioni di una ACC — mentre la controparte, che è il nome che si sta cercando, non si taglia
+   mai. Il titolo porta comunque la coppia piena. */
+.xt-nav-rel{display:flex;align-items:baseline;gap:4px;margin:5px 6px 1px 18px;font-size:11px;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
+.xt-nav-relnear{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.xt-nav-relway{flex:none;color:var(--ivao-blue)}
+.xt-nav-relfar{flex:none;font-weight:700;color:var(--ink)}
 .xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
   padding:0 7px;flex:none}
 /* Bilaterale davvero: clausole nei due versi. «3 ⇄ 0» resta neutro, perché è un lavoro da fare, non un pregio. */
@@ -1423,6 +1429,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-flow.on{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
 .xt-nav-kind{flex:none}
 .xt-nav-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:11.5px}
+/* Il gruppo di aeroporti: sotto una coppia è il discriminante fra le foglie, non una nota a margine — quindi si
+   legge come dato. È anche ciò che rende visibile una relazione spezzata: due foglie identiche di fila. */
+.xt-nav-apts{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:11.5px;
+  font-weight:600}
 
 /* ---- Colonna 2: il riquadro di lavoro ----
    Stessa forma del pannello — testata ferma, corpo che scorre — e per la stessa ragione: le azioni in fondo

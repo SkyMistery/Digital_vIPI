@@ -861,10 +861,15 @@
     }
 
     /// <summary>
-    /// L'albero del navigatore: <b>ACC della controparte ▸ suo ente ▸ accordo</b>, con gli avvisi già contati.
+    /// L'albero del navigatore: <b>ACC della controparte ▸ relazione (noi ⇄ loro) ▸ accordo</b>, con gli avvisi
+    /// già contati.
     /// <para>La chiave del ramo è l'ACC dell'<b>altro capo letto dalla lente</b>, non il lato B: per i 13 accordi
     /// di LIBB (10 su 11 di LIRR) in cui la ACC aperta <i>è</i> il lato B, il ramo prendeva il nome dei nostri
     /// stessi settori.</para>
+    /// <para>Il secondo livello è la <b>coppia</b> e non il solo ente lontano, perché l'identità di un accordo è
+    /// «due parti · tipo · gruppo di aeroporti» — la tripla di <c>AgreementMerge</c>. Sotto la coppia le foglie
+    /// si distinguono per tipo e aeroporti, che è ciò che resta della tripla: due foglie identiche sotto la
+    /// stessa coppia <b>sono</b> la «relazione spezzata» del cruscotto.</para>
     /// </summary>
     private IReadOnlyList<XferNavCounterpart> BuildNav(IReadOnlyList<AgreementRow> agreements) =>
         agreements.GroupBy(NavKey, StringComparer.OrdinalIgnoreCase)
@@ -873,10 +878,13 @@
                 NavGroupLabel(g.First()),
                 NavGroupNote(g.First()),
                 NavGroupOrder(g.First()),
-                g.GroupBy(CounterpartLabel, StringComparer.OrdinalIgnoreCase)
-                 .OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
-                 .Select(e => new XferNavEntity(
-                     e.Key,
+                g.GroupBy(RelationKey, StringComparer.OrdinalIgnoreCase)
+                 // L'ordine è per CONTROPARTE e poi per il nostro capo: è il nome che si sta cercando, e il
+                 // nostro lato è quasi sempre lo stesso su tutte le relazioni di una ACC.
+                 .OrderBy(e => FarLabel(e.First()), StringComparer.OrdinalIgnoreCase)
+                 .ThenBy(e => NearLabel(e.First()), StringComparer.OrdinalIgnoreCase)
+                 .Select(e => new XferNavRelation(
+                     NearLabel(e.First()), FarLabel(e.First()),
                      e.OrderBy(a => a.TrafficKind).ThenBy(a => XferLabels.Airports(a), StringComparer.OrdinalIgnoreCase)
                       .Select(NavAgreement).ToList()))
                  .ToList()))
@@ -921,6 +929,31 @@
         var far = _lens.Far(a);
         return far.Count > 0 ? string.Join(" · ", far) : L["Xfer_NoCounterpart"];
     }
+
+    /// <summary>Il nostro capo dell'accordo, come si legge.</summary>
+    private string NearLabel(AgreementRow a) => Dash(string.Join(" · ", _lens.Near(a)));
+
+    /// <summary>
+    /// La controparte nell'intestazione della <b>relazione</b>: gli enti, o <b>UNICOM</b> — che è dove il
+    /// traffico finisce davvero.
+    /// <para>Diverso da <see cref="CounterpartLabel"/>, che dice «senza ricevente», e la differenza è voluta: al
+    /// livello dell'ACC quello è il <i>nome del ramo</i> («qui stanno gli accordi senza nessuno»), mentre in una
+    /// coppia serve l'altro capo — e l'altro capo, quando non c'è nessuno, è UNICOM. Reso in maiuscoletto,
+    /// «— SENZA RICEVENTE» urlava dentro una riga che dovrebbe leggersi come due callsign.</para>
+    /// </summary>
+    private string FarLabel(AgreementRow a)
+    {
+        var far = _lens.Far(a);
+        return far.Count > 0 ? string.Join(" · ", far) : L["Xfer_Unicom"];
+    }
+
+    /// <summary>
+    /// La chiave del secondo livello: la <b>coppia</b> di enti, nel verso in cui si legge.
+    /// <para>È mezza tripla dell'identità di un accordo («due parti · tipo · gruppo di aeroporti»); l'altra metà
+    /// distingue le foglie sotto di lei. Il solo ente lontano — che era la chiave prima — non basta: sugli
+    /// accordi interni è un nostro settore, e compariva come se fosse la controparte.</para>
+    /// </summary>
+    private string RelationKey(AgreementRow a) => $"{NearLabel(a)}|{FarLabel(a)}";
 
     private static string SenderLabel(AgreementRow a, AgreementClauseRow c) =>
         XferLabels.Side(a, c.Direction == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);

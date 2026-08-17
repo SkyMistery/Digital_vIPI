@@ -1,18 +1,26 @@
 @inject IStringLocalizer<SharedResource> L
 
 @*
-    Colonna 1: l'albero degli accordi. ACC della controparte ▸ suo ente ▸ accordo, e l'accordo è una FOGLIA —
-    si sceglie, non si apre.
+    Colonna 1: l'albero degli accordi. ACC della controparte ▸ RELAZIONE (noi ⇄ loro) ▸ accordo, e l'accordo è
+    una FOGLIA — si sceglie, non si apre.
 
-    L'asse è cambiato due volte. Prima era settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello vecchio
-    costringeva a SCRIVERE. Poi «la controparte», ma con la chiave sul lato B dell'accordo: e per gli accordi in
-    cui la ACC aperta È il lato B — 13 su 40 per LIBB, 10 su 11 per LIRR — il ramo prendeva il nome dei nostri
-    stessi settori, cioè la pagina rimetteva in cima l'asse che il modello nuovo aveva appena tolto. Adesso la
-    chiave è l'ACC della controparte letta dalla lente, che è il modo in cui un accordo viene in mente:
-    «l'accordo con Roma», da qualunque capo sia stato scritto.
+    L'asse è cambiato tre volte. Prima settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello vecchio
+    costringeva a SCRIVERE. Poi «la controparte», ma con la chiave sul lato B: e per gli accordi in cui la ACC
+    aperta È il lato B — 13 su 40 per LIBB, 10 su 11 per LIRR — il ramo prendeva il nome dei nostri stessi
+    settori. Adesso il primo livello è l'ACC della controparte letta dalla lente («l'accordo con Roma», da
+    qualunque capo sia stato scritto) e il secondo è la COPPIA di enti.
 
-    Un livello si apre (l'ACC), l'altro no (l'ente): sotto Roma stanno quattro enti diversi e distinguerli
-    serve, ma farli aprire uno per uno costerebbe due gesti per arrivare a una foglia che ne chiede uno.
+    Perché la coppia e non il solo ente lontano: l'identità di un accordo nel modello è (le due parti · il tipo
+    di traffico · il gruppo di aeroporti) — la stessa tripla con cui AgreementMerge decide che due accordi dicono
+    la stessa cosa. Il solo lato lontano era mezza chiave, e sugli accordi INTERNI mentiva: con entrambi i capi
+    in casa mostrava un nostro settore come se fosse la controparte.
+
+    Sotto la coppia le foglie si distinguono per traffico e GRUPPO DI AEROPORTI, che è ciò che resta della
+    tripla. Due foglie identiche sotto la stessa coppia sono la «relazione spezzata» del cruscotto, e ora si
+    vede senza aprirlo.
+
+    Un livello si apre (l'ACC), l'altro no (la relazione): sotto Roma stanno cinque relazioni e distinguerle
+    serve, ma farle aprire una per una costerebbe due gesti per una foglia che ne chiede uno.
 
     Gli avvisi risalgono fino all'ACC: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso.
 *@
@@ -44,24 +52,32 @@
             </div>
             @if (!open) { continue; }
 
-            foreach (var ent in cp.Entities)
+            foreach (var rel in cp.Relations)
             {
-                @* L'ente non è un nodo da aprire: è l'intestazione degli accordi che lo riguardano. Compare
-                   anche quando è l'unico, perché è lì che si legge CON CHI è l'accordo — l'ACC da sola non
-                   distingue LIRR_TS_CTR da LIRN_US0_APP. *@
-                <div class="xt-nav-ent">@ent.Label</div>
+                @* La relazione non è un nodo da aprire: è l'intestazione degli accordi che ci stanno dentro.
+                   Compare anche quando è l'unica, perché è lì che si legge FRA CHI è l'accordo — l'ACC da sola
+                   non distingue LIRR_TS_CTR da LIRN_US0_APP, e il solo ente lontano non dice qual è il nostro.
+                   ⚠️ I callsign sono INTERI: abbreviarli in «ES ⇄ CS0» sarebbe un secondo modo di nominare gli
+                   enti in una colonna che già li scrive per esteso. Se lo spazio stringe taglia il CSS, e il
+                   titolo porta la coppia piena. *@
+                <div class="xt-nav-rel" title="@($"{rel.Near} ⇄ {rel.Far}")">
+                    <span class="xt-nav-relnear">@rel.Near</span>
+                    <span class="xt-nav-relway">⇄</span>
+                    <span class="xt-nav-relfar">@rel.Far</span>
+                </div>
 
-                foreach (var a in ent.Agreements)
+                foreach (var a in rel.Agreements)
                 {
                     <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
                             title="@a.Description" @onclick="() => OnSelect.InvokeAsync(a.Id)">
                         <span class="xt-nav-kind">@XferLabels.Kind(L, a.Kind)</span>
-                        @* Gli aeroporti stanno QUI e non su un ramo proprio: un accordo può averne quattro, e
+                        @* Il GRUPPO di aeroporti, non un ramo per aeroporto: un accordo può averne quattro, e
                            quattro rami che portano tutti alla stessa tabella sarebbero quattro modi di aprire la
-                           stessa cosa. *@
+                           stessa cosa. Sotto una coppia è il discriminante principale, quindi si legge come dato
+                           e non come nota a margine. *@
                         @if (a.Airports.Length > 0)
                         {
-                            <span class="xt-nav-desc">@a.Airports</span>
+                            <span class="xt-nav-apts">@a.Airports</span>
                         }
                         else if (!string.IsNullOrWhiteSpace(a.Description))
                         {

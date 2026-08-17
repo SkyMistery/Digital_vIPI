@@ -87,21 +87,42 @@ un accordo di confine non ha un verso «giusto» — dipende da chi lo apre. L'o
 Gli accordi interni alla ACC (`LIBB_ES_CTR ↔ LIBD_CS0_APP`: tre in archivio) non hanno un «loro»: la
 convenzione è `Near = A`, con la testata che li marca come interni. Convenzione dichiarata, non implicita.
 
-### 3.2 L'albero: controparte reale, su due livelli
+### 3.2 L'albero: ACC controparte ▸ relazione ▸ accordo
 
-| | Oggi | Proposto |
+| | Prima | Adesso |
 |---|---|---|
-| Chiave del ramo | lato B, callsign concatenati | **ACC della controparte** ▸ **ente** della controparte |
-| Rami per LIBB | 17 | **7** (`LAAA` 6 · `LDZO` 7 · `LGGG` 9 · `LIRR` 10 · `LYBA` 4 · `LIBB` 3 interni · «a UNICOM» 1) |
-| Accordi con la ACC sul lato B | ramo col nostro nome | sotto la controparte, dove chi cerca li cerca |
+| Livello 1 | lato B, callsign concatenati | **ACC della controparte**, letta dalla lente |
+| Livello 2 | — | la **relazione**: `noi ⇄ loro`, la coppia di enti |
+| Foglia | tipo + aeroporti | tipo + **gruppo di aeroporti** + i due conteggi (`3 ⇄ 0`) |
+| Rami per LIBB | 17 | **7** (`LAAA` 6 · `LDZO` 7 · `LGGG` 9 · `LIRR` 10 · `LYBA` 4 · `LIBB` interni 4 · «senza ricevente» 1) |
 
-Il primo livello è l'**ACC controparte**, perché «l'accordo con Roma» è il modo in cui un accordo viene in
-mente; il secondo è l'**ente**, perché sotto Roma stanno `LIRR_US_CTR`, `LIRR_TS_CTR`, `LIRN_US0_APP`,
-`LICA_ES0_APP` e non è la stessa cosa. La foglia resta l'accordo, con tipo, aeroporti e i **due conteggi di
-clausola** (`3 ⇄ 0`), che dicono senza aprirlo se il reciproco è scritto.
+Il primo livello è l'**ACC controparte**, perché «l'accordo con Roma» è il modo in cui un accordo viene in mente.
 
-Il ramo «a UNICOM» (accordi senza lato B) e il ramo «interni» restano in fondo: sono elenchi brevi e non
-hanno una controparte da cui pendere.
+⚠️ **Il secondo livello è la coppia, non il solo ente lontano — e la prima stesura sbagliava.** L'identità di un
+accordo nel modello è **(le due parti · il tipo di traffico · il gruppo di aeroporti)**: è la chiave con cui
+`AgreementMerge.SplitRelations` decide che due accordi dicono la stessa cosa, e la tripla che la proposta di
+fusione pretende identica prima di offrire il comando. Indicizzare sul solo lato lontano usava **mezza** di
+quella chiave, e su due casi mentiva:
+
+- sugli accordi **interni** «l'ente lontano» è un *nostro* settore, e compariva come se fosse la controparte —
+  è il difetto che il committente ha visto per primo, sotto «LIBB interni»;
+- sotto una ACC, due relazioni con capi nostri **diversi** finivano nello stesso mucchio: in archivio
+  `LIBB_ES_CTR ⇄ LDZO_CTR` e `LIBD_CS0_APP ⇄ LDZO_CTR` stavano sotto l'unica intestazione `LDZO_CTR`, che non
+  diceva che una delle due parte dal nostro **avvicinamento** e non dall'area.
+
+Sotto la coppia le foglie si distinguono per **tipo e gruppo di aeroporti**, cioè per ciò che resta della
+tripla — e due foglie identiche di fila **sono** la «relazione spezzata» del cruscotto, visibile senza aprirlo.
+
+⚠️ **Callsign interi, non `ES ⇄ CS0`.** Abbreviare sarebbe un secondo modo di nominare gli enti in una colonna
+che già li scrive per esteso, e due notazioni sono due verità. Se lo spazio stringe cede il **nostro** capo —
+è lo stesso su quasi tutte le relazioni di una ACC — mentre la controparte, che è il nome che si sta cercando,
+non si taglia mai; il titolo porta comunque la coppia piena. Misurato a 1800 px: nessun taglio.
+
+Il ramo «senza ricevente» e quello «interni» restano in fondo: sono elenchi brevi e non sono un confine con cui
+si lavora. ⚠️ Nella relazione senza controparte l'altro capo si legge **UNICOM**, non «— senza ricevente»: al
+livello dell'ACC quello è il *nome del ramo*, ma in una coppia serve l'altro capo — e l'altro capo, quando non
+c'è nessuno, è UNICOM. Reso in maiuscoletto «— SENZA RICEVENTE» urlava dentro una riga che deve leggersi come
+due callsign.
 
 ### 3.3 Il riquadro di lavoro: due tabelle, sempre
 
@@ -346,3 +367,26 @@ Radar ES il traffico stabile per un livello pari su OLGAT». È la prova che la 
 
 Tutti e tre stanno in `LevelFormatting` e sono **congelati nell'approvato** della rete di caratterizzazione:
 si correggono in un giro loro, insieme, con la riapprovazione guardata riga per riga.
+
+### Terzo giro, dopo la revisione del committente (17 agosto, sera)
+
+> «Sotto LIBB interni c'è un solo settore; l'idea sarebbe raggrupparle per accordo tipo ES⇄CS0 e sotto l'elenco
+> degli aeroporti.»
+
+Aveva ragione, e la ragione era **nel modello**, non nell'estetica: il livello 2 usava mezza chiave d'identità.
+Rifatto come descritto in §3.2 e riverificato a schermo (`report3.json`, `rel-libb.png`, `rel-lirr.png`):
+
+| Cosa | Visto |
+|---|---|
+| LIBB interni | due relazioni leggibili — `LIBD_CS0_APP ⇄ LIBB_ES_CTR` e `LIBB_ES_CTR ⇄ LIBD_CS0_APP` — dove prima c'era un `LIBB_ES_CTR` solitario che si spacciava per controparte |
+| Relazione spezzata | sotto `LIBB_ES_CTR ⇄ LIBD_CS0_APP` due foglie **`Arrivi LIBD 3 ⇄ 0`** identiche di fila: `#26/#27`, a occhio |
+| LDZO | `LIBB_ES_CTR ⇄ LDZO_CTR` **e** `LIBD_CS0_APP ⇄ LDZO_CTR`, prima confuse sotto l'unica intestazione `LDZO_CTR` |
+| LIRR | sei relazioni, tutte col **nostro** capo per primo (`LICA_ES0_APP ⇄ LIBB_ES_CTR`, …) |
+| Larghezza | nessun callsign tagliato dall'ellissi a 1800 px (misurato con `scrollWidth > clientWidth`) |
+
+Difetto trovato guardando e corretto subito: la relazione senza controparte leggeva **`— SENZA RICEVENTE`** in
+maiuscoletto. Ora legge `UNICOM`, che è dove il traffico finisce davvero — vedi §3.2.
+
+⚠️ Trappola ripagata: il primo tentativo di ricompilare l'host è morto con **MSB3021** perché il *mio* host di
+verifica teneva i DLL. Fermare prima, compilare dopo. E la verifica è girata su **porta 5035**: il committente ha
+il suo host sulla 5034, e prendergli la porta gli avrebbe rotto la pagina sotto le mani.

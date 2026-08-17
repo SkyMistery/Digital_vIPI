@@ -5,8 +5,8 @@
 >
 > ⚠️ **Aggiornato il 17 agosto (secondo giro): l'editor.** Carta ed esito
 > [`../feature/2026-08-17-editor-accordi-per-relazione.md`](../feature/2026-08-17-editor-accordi-per-relazione.md).
-> L'albero non è più indicizzato sul lato B ma sull'**ACC della controparte** letta dalla lente
-> `AgreementViewpoint`, e i **due versi si vedono sempre entrambi** (via l'interruttore). Chi legge qui sotto
+> L'albero non è più indicizzato sul lato B ma su **ACC della controparte ▸ relazione (noi ⇄ loro) ▸ accordo**,
+> letto dalla lente `AgreementViewpoint`, e i **due versi si vedono sempre entrambi** (via l'interruttore). Chi legge qui sotto
 > «selettore del verso» sta leggendo lo stato del 16.
 >
 > Carta ed esito completi: [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md)
@@ -32,7 +32,7 @@ più settori per lato, più aeroporti, più punti per clausola e fino a **due ve
 | Orientamento | `AgreementViewpoint.cs` — «noi/loro» rispetto alla ACC aperta; `TrafficKinds.Reciprocal` in Domain |
 | Punti spaiati | `AgreementPoints.cs` — un conto solo, letto dal cruscotto **e** dal riquadro |
 | Fusione dei versi | `AgreementMerge.cs` (proposta, pura) + `IAgreementRepository.AbsorbAsReverseAsync` |
-| Albero | `XferNavigator.razor` + `XferNavModel.cs` — ACC controparte ▸ ente ▸ accordo |
+| Albero | `XferNavigator.razor` + `XferNavModel.cs` — ACC controparte ▸ **relazione** (`XferNavRelation`) ▸ accordo |
 
 ## Le tre cose da NON riscoprire a mani nude
 
