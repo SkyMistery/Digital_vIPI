@@ -1087,7 +1087,30 @@
             <b>@Dash(XferLabels.Side(ag, orient.NearSide))</b>
             <span class="xt-dir">@(bilaterale ? "⇄" : "→")</span>
             <b>@Dash(XferLabels.Side(ag, orient.FarSide))</b>
-            <span class="pill blue">@KindLabel(ag.TrafficKind)</span>
+            @* Il tipo si sceglie DA QUI: la creazione dice solo fra chi, e un accordo nasce «altro» finché
+               qualcuno non lo classifica — davanti alle sue clausole, che è dove si sa cos'è. In sola lettura
+               resta la pill di sempre. *@
+            @if (_canEdit)
+            {
+                @* ⚠️ La chiave porta l'EPOCA, non solo il tipo: se il cambio viene rifiutato (arrivi senza
+                   aeroporto) il tipo salvato non cambia, quindi l'albero di render non cambia, quindi Blazor non
+                   riscrive l'attributo e la tendina resta sulla scelta rifiutata — a schermo diceva «Arrivi» su
+                   un accordo rimasto «Altro». Cambiando la chiave l'elemento si ricrea, e torna la verità. *@
+                <select @key="(ag.Id, ag.TrafficKind, _kindEpoch)"
+                        class="xt-kindsel @(ag.TrafficKind == TransferFlowKind.Other ? "xt-unset" : "")"
+                        disabled="@_busy" title="@L["Xfer_Kind"]"
+                        value="@ag.TrafficKind" @onchange="e => ChangeKind(ag, e)">
+                    <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
+                    <option value="@TransferFlowKind.Departure">@L["Xfer_KindDeparture"]</option>
+                    <option value="@TransferFlowKind.Overflight">@L["Xfer_KindOverflight"]</option>
+                    <option value="@TransferFlowKind.Vfr">@L["Xfer_KindVfr"]</option>
+                    <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
+                </select>
+            }
+            else
+            {
+                <span class="pill blue">@KindLabel(ag.TrafficKind)</span>
+            }
             @if (orient.IsInternal)
             {
                 <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
@@ -1296,7 +1319,7 @@
             @* Stessa regola del form: il tasto compare dove gli aeroporti servono — arrivi e partenze — oppure
                dove ce ne sono già. Offrirlo su un sorvolo sarebbe invitare a scrivere un dato che il modello non
                vuole; toglierlo a un sorvolo che ne ha uno sarebbe nasconderne la rimozione. *@
-            @if (_canEdit && (AirportRequiredKind(ag.TrafficKind) || ag.Airports.Count > 0))
+            @if (_canEdit && AirportsRelevant(ag.TrafficKind, ag.Airports.Count))
             {
                 <button class="btn ghost xt-aptadd" disabled="@_busy" title="@L["Xfer_AddAirportTitle"]"
                         @onclick="() => ToggleAptPicker(ag)">@(aperto ? "✕" : "+ " + L["Xfer_Airport"])</button>
@@ -1345,6 +1368,33 @@
         foreach (var apt in ag.Airports.OrderBy(x => x.Order))
             if (_airportParents.TryGetValue(apt.Icao, out var parent) && !riceventi.Contains(parent))
                 yield return (apt.Icao, parent);
+    }
+
+    /// <summary>
+    /// Cambia il tipo di traffico dell'accordo.
+    /// <para>⚠️ Passa dalla porta di scrittura come tutto il resto, quindi la regola vale: passare ad
+    /// <b>arrivi</b> o <b>partenze</b> un accordo senza aeroporti <b>non va a buon fine</b>, e lo dice. È
+    /// scomodo di un passo e giusto: il tipo e l'aeroporto sono la stessa affermazione detta in due campi.</para>
+    /// </summary>
+    private int _kindEpoch;
+
+    private Task ChangeKind(AgreementRow ag, ChangeEventArgs e)
+    {
+        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind) || kind == ag.TrafficKind)
+            return Task.CompletedTask;
+
+        // L'epoca avanza a ogni tentativo, riuscito o no: è ciò che fa ricreare la tendina e riallinearla al
+        // tipo davvero salvato.
+        _kindEpoch++;
+        return Guarded(() => Agreements.UpdateAgreementAsync(_acc!.Code, ag.Id, new AgreementInput
+        {
+            TrafficKind = kind,
+            Description = ag.Description,
+            SideA = SectorIds(ag, AgreementSide.A),
+            SideB = SectorIds(ag, AgreementSide.B),
+            Airports = ag.Airports.OrderBy(x => x.Order)
+                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+        }), null);
     }
 
     private Task AddAirportTo(AgreementRow ag)
@@ -1525,6 +1575,14 @@
             @PartyPicker(form, AgreementSide.A)
             @PartyPicker(form, AgreementSide.B)
 
+            @* ⚠️ Creare un accordo è dire CHI, e basta. Tipo e aeroporti sono il «cosa», e si mettono nella
+               testata dell'accordo — che è dove si torna comunque a metterli a punto. Un form che chiede sei
+               cose per fare la prima è un form che si compila male e si corregge dopo.
+               L'accordo nasce «Altro» — la categoria che esiste già ed è onestamente «non ancora classificato» —
+               così NON nasce mai invalido: arrivi e partenze pretendono un aeroporto, e chi non è ancora un
+               arrivo non deve niente a nessuno. *@
+            @if (!isNew)
+            {
             <div class="field narrow"><label>@L["Xfer_Kind"]</label>
                 <select @bind="form.Kind">
                     <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
@@ -1577,9 +1635,9 @@
             }
 
             <div class="field"><label>@L["Xfer_DescOpt"]</label>
-                <input placeholder="@L["Xfer_DescPh"]" @bind="form.Description" @bind:event="oninput"
-                       @onkeydown="@(isNew ? TrySubmitNew : (Func<KeyboardEventArgs, Task>)(_ => Task.CompletedTask))" />
+                <input placeholder="@L["Xfer_DescPh"]" @bind="form.Description" @bind:event="oninput" />
             </div>
+            }
         </div>
     };
 
@@ -2247,13 +2305,24 @@
     private static bool AirportRequiredKind(TransferFlowKind k) =>
         k is TransferFlowKind.Arrival or TransferFlowKind.Departure;
 
+    /// <summary>Il tipo di traffico non vuole aeroporti: un sorvolo attraversa, non consegna.</summary>
+    private static bool AirportlessKind(TransferFlowKind k) =>
+        k is TransferFlowKind.Overflight or TransferFlowKind.Vfr;
+
     private static bool AirportRequiredMissing(HeaderForm f) =>
         AirportRequiredKind(f.Kind) && f.Airports.Count == 0;
 
-    /// <summary>Il campo aeroporti ha senso in questo form: il tipo li vuole, <b>oppure</b> ce ne sono già — e
-    /// quelli non si nascondono mai, o si perdono senza che nessuno lo veda.</summary>
-    private static bool AirportsRelevant(HeaderForm f) =>
-        AirportRequiredKind(f.Kind) || f.Airports.Count > 0;
+    /// <summary>
+    /// Il campo aeroporti ha senso: il tipo non li esclude, <b>oppure</b> ce ne sono già — e quelli non si
+    /// nascondono mai, o si perdono senza che nessuno lo veda.
+    /// <para>⚠️ Include «altro», ed è il punto: è il tipo con cui un accordo <b>nasce</b>. Restringere il campo
+    /// ai soli arrivi e partenze creava un <b>catch-22</b> — per dire «arrivi» serve un aeroporto, e per
+    /// aggiungerlo serviva aver già detto «arrivi». Trovato guidando la creazione, non dai test.</para>
+    /// </summary>
+    private static bool AirportsRelevant(TransferFlowKind kind, int airports) =>
+        !AirportlessKind(kind) || airports > 0;
+
+    private static bool AirportsRelevant(HeaderForm f) => AirportsRelevant(f.Kind, f.Airports.Count);
 
     private void PickRunways(ClauseForm form, ChangeEventArgs e) =>
         form.Rwys = e.Value is string[] v ? v : Array.Empty<string>();
@@ -2523,6 +2592,9 @@
         ClosePanel();
         _editHeaderId = null;
         _newForm.Reset();
+        // Non è il tipo che si vuole: è il tipo che non pretende nient'altro, così l'accordo nasce valido e la
+        // classificazione si fa dove ci sono le informazioni per farla — davanti alle sue clausole.
+        _newForm.Kind = TransferFlowKind.Other;
         _newOpen = true;
     }
 
@@ -2719,13 +2791,6 @@
     }
 
     private Task RowAction(Func<Task> action) => Guarded(action, null);
-
-    /// <summary>Invio nel form dell'accordo nuovo: lo crea, se ha almeno un mittente.</summary>
-    private async Task TrySubmitNew(KeyboardEventArgs e)
-    {
-        if (e.Key != "Enter" || _busy || !_canEdit || _newForm.SideA.Count == 0) return;
-        await AddAgreement();
-    }
 
     /// <summary>Invio nel pannello: salva. Il gesto più frequente della pagina non deve richiedere il mouse.</summary>
     private async Task PanelKey(KeyboardEventArgs e)

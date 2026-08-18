@@ -1433,7 +1433,7 @@
   <data name="Xfer_Agreement" xml:space="preserve"><value>Accordo</value></data>
   <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} accordi</value></data>
   <data name="Xfer_NewAgreement" xml:space="preserve"><value>Nuovo accordo di coordinamento</value></data>
-  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Un accordo vale fra i due elenchi di enti, per il traffico scelto, su tutti gli aeroporti elencati. Gli aeroporti possono essere esteri (ICAO libero); sorvoli e VFR possono restare senza. Senza nessuno sul &lt;b&gt;secondo lato&lt;/b&gt; il traffico finisce a UNICOM e le clausole non vengono derivate.</value></data>
+  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Qui si dice solo &lt;b&gt;fra chi&lt;/b&gt;: ogni lato può portare più enti. Tipo di traffico, aeroporti e descrizione si mettono nella testata dell'accordo appena creato — l'accordo nasce come «altro» finché non lo classifichi.</value></data>
   <data name="Xfer_SideA" xml:space="preserve"><value>Primo lato</value></data>
   <data name="Xfer_SideB" xml:space="preserve"><value>Secondo lato</value></data>
   <data name="Xfer_RemoveParty" xml:space="preserve"><value>Togli questo ente</value></data>

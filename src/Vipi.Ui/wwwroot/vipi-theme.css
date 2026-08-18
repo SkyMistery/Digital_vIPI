@@ -1628,3 +1628,8 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-aptpick input{margin-bottom:0}
 /* L'asterisco del campo obbligatorio: si vede, non urla. */
 .xt-req{color:#b3541e;font-weight:700}
+/* Il tipo di traffico, scelto dalla testata: ha il peso di una pill, non di un campo di form. */
+.xt-kindsel{margin:0;padding:1px 6px;height:auto;font-size:11.5px;border-radius:20px;
+  border:1px solid var(--ivao-blue);background:#eef2ff;color:var(--ivao-blue);font-weight:600}
+/* «Altro» è il tipo con cui un accordo NASCE: si legge come da fare, non come scelto. */
+.xt-kindsel.xt-unset{border-style:dashed;background:#fff;color:var(--ink-soft)}

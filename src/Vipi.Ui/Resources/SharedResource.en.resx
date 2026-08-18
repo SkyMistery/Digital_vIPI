@@ -1427,7 +1427,7 @@
   <data name="Xfer_Agreement" xml:space="preserve"><value>Agreement</value></data>
   <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} agreements</value></data>
   <data name="Xfer_NewAgreement" xml:space="preserve"><value>New coordination agreement</value></data>
-  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>An agreement holds between the two lists of units, for the chosen traffic, over every airport listed. Airports may be foreign (free ICAO); overflights and VFR may have none. With nobody on the &lt;b&gt;second side&lt;/b&gt; traffic ends up on UNICOM and the clauses are not derived.</value></data>
+  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Here you only say &lt;b&gt;between whom&lt;/b&gt;: each side may carry several units. Kind of traffic, airports and description go in the header of the agreement once created — it is born as «other» until you classify it.</value></data>
   <data name="Xfer_SideA" xml:space="preserve"><value>First side</value></data>
   <data name="Xfer_SideB" xml:space="preserve"><value>Second side</value></data>
   <data name="Xfer_RemoveParty" xml:space="preserve"><value>Remove this unit</value></data>

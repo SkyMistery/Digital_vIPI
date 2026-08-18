@@ -458,3 +458,45 @@ ente di copertura: senza dato, nessuna affermazione.
 Difetto trovato guardando: dopo l'aggiunta **il picker restava aperto**, e a campo vuoto la tendina proponeva
 l'intero catalogo — cinquanta scali stesi sulla testata. Ora si chiude: aggiungerne due di fila è raro quanto
 riaprirlo è economico.
+
+### Quinto giro: creare un accordo è dire CHI, e basta (18 agosto)
+
+> «Quando creo un agreement mi deve chiedere solo chi sono i due enti in gioco, poi gli aeroporti li aggiungo
+> nella finestra dell'agreement.»
+
+Il quarto giro aveva alleggerito il form solo per sorvoli e VFR, perché la regola dura «arrivi e partenze
+pretendono un aeroporto» — tenuta per decisione del committente — sembrava obbligare a chiedere l'aeroporto
+subito. **Non obbligava.** Basta che un accordo non nasca *già* arrivi:
+
+- il form di creazione chiede **i due lati e nient'altro**;
+- l'accordo nasce **«Altro»** — la categoria che esiste già ed è onestamente *non ancora classificato* — quindi
+  non nasce mai invalido, e la regola dura resta intatta;
+- **tipo e aeroporti si mettono nella testata**, dove ci sono le clausole davanti e si sa cosa si sta scrivendo.
+  Il tipo è un selettore in linea, tratteggiato finché è «Altro»: si legge come *da fare*, non come scelto.
+
+Passare a arrivi/partenze un accordo senza aeroporti **non va a buon fine**, e lo dice: tipo e aeroporto sono la
+stessa affermazione detta in due campi.
+
+Cadono con il form anche `TrySubmitNew` (l'invio nel campo descrizione, che nel form nuovo non c'è più) e il
+testo d'aiuto, che descriveva sei campi.
+
+#### Due difetti trovati guidando la creazione, non dai test
+
+1. ⚠️ **Catch-22.** Il tasto «+ Aeroporto» compariva solo per arrivi e partenze: per dire «arrivi» serviva un
+   aeroporto, e per aggiungerlo serviva aver già detto «arrivi». Un accordo appena creato era **inclassificabile**.
+   La regola giusta non è «dove servono» ma «dove **non sono esclusi**»: sorvoli e VFR non li vogliono, tutto il
+   resto — «altro» compreso, che è come si nasce — sì.
+2. ⚠️ **La tendina restava sulla scelta rifiutata.** Il tipo salvato non cambia, quindi l'albero di render non
+   cambia, quindi Blazor non riscrive l'attributo: a schermo diceva «Arrivi» su un accordo rimasto «Altro» —
+   una bugia peggiore dell'errore che l'aveva causata. La chiave del `<select>` porta ora un'**epoca** che
+   avanza a ogni tentativo, riuscito o no, così l'elemento si ricrea e torna la verità.
+
+#### Verificato a schermo (porta 5035, copia del DB)
+
+| Passo | Visto |
+|---|---|
+| Form nuovo accordo | due soli campi: `Primo lato *` · `Secondo lato *`, **zero** tendine |
+| Dopo la creazione | testata `LIBB_ES_CTR → LIRR_TS_CTR`, tipo `Altro` tratteggiato, `+ Aeroporto` presente |
+| «Arrivi» senza aeroporti | errore «Arrivi e Partenze richiedono almeno un aeroporto…» **e la tendina torna su «Altro»** |
+| Aggiunta di `LIRF` dalla testata | chip `LIRF ✕` |
+| «Arrivi» dopo l'aeroporto | passa, e il tratteggio sparisce |
