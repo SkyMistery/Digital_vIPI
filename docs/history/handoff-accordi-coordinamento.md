@@ -120,15 +120,24 @@ tornare lo schema, non l'archivio.
 
 ## Stato del DB di sviluppo
 
-`src/Vipi.Host/vipi.db` è **già travasato e già droppato**: **42 accordi** · 63 clausole, zero
-`TransferFlows`/`TransferPoints`. È il DB che va in produzione.
+`src/Vipi.Host/vipi.db` è **già travasato e già droppato** — zero `TransferFlows`/`TransferPoints` — ed è il DB
+che va in produzione.
 
-⚠️ **Non contiene nessun accordo bilaterale**: le 63 clausole sono tutte in **un** verso. Tutte le fusioni e le
-scritture di prova del 17-18 agosto sono girate su una **copia** nello scratchpad, mai sul DB del progetto —
-controllato dopo ogni giro.
+⚠️ **I suoi numeri non si scrivono qui, si misurano.** Il committente lo modifica **dal vivo** dal proprio host:
+mentre si chiudeva questo giro sono passati da 42 a 40 accordi (spariti `#12` e `#18`), e questo documento aveva
+già i numeri vecchi dopo dieci minuti. Gli **id degli accordi citati più sotto valgono allo stesso modo**: sono
+un appiglio per ritrovare il caso, non un riferimento stabile.
 
-⚠️ Il **42° accordo l'ha creato il committente** provando la pagina (`LIBD_CS0_APP → LIBB_ES_CTR`, partenze,
-LIBD·LIBR, **senza clausole**). Non è un residuo del lavoro: è dato suo, e va completato o cancellato da lui.
+```
+sqlite3 src/Vipi.Host/vipi.db "select count(*) from CoordinationAgreements; select count(*) from AgreementClauses;"
+```
+
+Quel che al 18 agosto era vero **per costruzione**, e va saputo: **nessun accordo bilaterale**, cioè tutte le
+clausole in un verso solo. Il primo reciproco lo scrive chi usa «unisci i due versi» o «+ clausola» nel blocco
+entrante.
+
+⚠️ Tutte le fusioni e le scritture di prova del 17-18 agosto sono girate su una **copia** nello scratchpad, mai
+sul DB del progetto — controllato dopo ogni giro.
 
 ⚠️ **Prima di credere a ciò che si vede guidando l'app**, controllare l'ora di
 `src/Vipi.Host/bin/Debug/net8.0/Vipi.Application.dll`: `dotnet build src/Vipi.Ui` **non** aggiorna la copia dentro
@@ -143,7 +152,8 @@ si rompe la pagina sotto le mani mentre la sta guardando.
 
 ## Cosa resta aperto
 
-0. **Tre reciproci ancora in accordi separati** (`#13/#32` LGGG · `#17/#28` LDZO · `#23/#38` LAAA): il comando
+0. **Reciproci ancora in accordi separati** — al 18 agosto tre coppie (`#13/#32` LGGG · `#17/#28` LDZO ·
+   `#23/#38` LAAA, **id da riverificare**, li elenca il cruscotto sotto «reciproco a parte»): il comando
    «unisci i due versi» c'è ed è stato provato **su una copia**, non sul `vipi.db` del progetto — che resta a 41
    accordi. Va fatto in produzione, guardando le due tabelle prima di premere. Il cruscotto li elenca sotto
    «reciproco a parte».
@@ -151,8 +161,9 @@ si rompe la pagina sotto le mani mentre la sta guardando.
    di là) e `LDZO ⇄ LIBB` (sei punti scritti da un lato solo, **che nessuno aveva notato**). Il travaso non le ha
    risolte apposta: accoppiare i due versi vorrebbe dire scegliere quale valga. Dopo la fusione compaiono
    **dentro il riquadro**, sopra le due tabelle, non solo nel cruscotto.
-2. ⚠️ **Due accordi ereditati senza ricevente** — `#18` (`LIBB_ES_CTR`, sorvolo Zagabria, 1 clausola) e `#41`
-   (`LIRR_NE_CTR`, vuota). Dal 18 agosto un accordo **non si crea e non si salva senza entrambi i capi**, ma il
+2. ⚠️ **Accordi ereditati senza ricevente.** Erano due; il committente ne ha già cancellato uno, e al momento
+   resta `#41` (`LIRR_NE_CTR`, vuota) — **l'elenco vero lo dà il cruscotto**, voce «senza ricevente», non questo
+   documento. Dal 18 agosto un accordo **non si crea e non si salva senza entrambi i capi**, ma il
    **ripristino è fuori dalla regola di proposito** (`RestoreAgreementAsync` non valida) così l'annulla continua
    a funzionare — c'è un test che lo fissa, non «sistemarlo» per simmetria. Quelle due si riparano aprendole: il
    salvataggio chiede il ricevente.

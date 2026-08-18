@@ -19,9 +19,14 @@ editor rifatto sopra (17-18 ago), sul ramo `feature/accordi-coordinamento`, **no
 > Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (0 avvisi) e `dotnet test Vipi.slnx`
 > (**2581** verdi su net8 e net10).
 >
-> ⚠️ **Il `vipi.db` di sviluppo è il DB che va in produzione** ed è già travasato: 42 accordi, 63 clausole,
-> zero bilaterali. Tutte le prove di scrittura girano su una **copia** nello scratchpad, e il committente tiene
-> il suo host sulla **5034** — per la verifica live si usa un'altra porta.
+> ⚠️ **Il `vipi.db` di sviluppo è il DB che va in produzione** ed è già travasato. **I suoi numeri non si
+> scrivono nei documenti**: il committente lo modifica dal vivo dal proprio host sulla **5034** — mentre si
+> chiudeva questo giro sono spariti due accordi — quindi si **misura** quando serve, non si cita. Tutte le
+> prove di scrittura girano su una **copia** nello scratchpad; per la verifica live si usa un'altra porta.
+>
+> L'unica cosa che al 18 agosto era ancora vera per costruzione: **nessun accordo bilaterale**, cioè tutte le
+> clausole in un verso solo. Il primo reciproco lo scrive chi usa «unisci i due versi» o «+ clausola» nel
+> blocco entrante.
 >
 > Sotto resta lo stato del **15 agosto**, che riguarda la consegna a Ivao.It e vale ancora per tutto ciò che
 > non è quest'area.
