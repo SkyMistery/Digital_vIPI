@@ -868,7 +868,6 @@
   <data name="Xfer_Unit" xml:space="preserve"><value>Unit</value></data>
   <data name="Xfer_Levels" xml:space="preserve"><value>Levels</value></data>
   <data name="Xfer_SemicircHint" xml:space="preserve"><value>(semicircular)</value></data>
-  <data name="Xfer_EmptyUnicom" xml:space="preserve"><value>(empty = UNICOM)</value></data>
   <data name="Xfer_RunwaysInUse" xml:space="preserve"><value>Runway(s) in use</value></data>
   <data name="Xfer_MultiSelectHint" xml:space="preserve"><value>(multi-select: Ctrl/⌘)</value></data>
   <data name="Xfer_NoRunwaysForApt" xml:space="preserve"><value>No runway for this airport (out of DB or not yet imported from IVAO).</value></data>
@@ -1468,6 +1467,14 @@
   <data name="Xfer_MergeAria" xml:space="preserve"><value>Merge the two agreements into one</value></data>
   <data name="Xfer_MergePrompt" xml:space="preserve"><value>You move {0} clauses and delete the agreement left empty. This cannot be undone: look at both tables first.</value></data>
   <data name="Xfer_Merged" xml:space="preserve"><value>Merged: {0} clauses moved into the opposite direction.</value></data>
+  <data name="Xfer_SelectReceiverHint" xml:space="preserve"><value>Select the receiving unit to enable</value></data>
+  <data name="Xfer_SideRequiredTitle" xml:space="preserve"><value>Required: an agreement has two ends. If the traffic must end up on UNICOM there is nothing to write — the operational view does that when nobody is online.</value></data>
+  <data name="Xfer_AirportsNotForKind" xml:space="preserve"><value>Overflights, VFR and «other» need no airports: these stay written, but serve no purpose.</value></data>
+  <data name="Xfer_AddAirportTitle" xml:space="preserve"><value>Add an airport to this agreement</value></data>
+  <data name="Xfer_NoAirport" xml:space="preserve"><value>no airport</value></data>
+  <data name="Xfer_AptAlreadyThere" xml:space="preserve"><value>{0} is already among this agreement's airports.</value></data>
+  <data name="Xfer_AptNotCovered" xml:space="preserve"><value>{0} is covered by {1}, which is not among the receivers</value></data>
+  <data name="Xfer_AptNotCoveredTitle" xml:space="preserve"><value>The unit covering the airport, per the hierarchy, does not receive this traffic: either it is the wrong agreement, or the wrong receiver.</value></data>
   <data name="Xfer_NavInternal" xml:space="preserve"><value>internal</value></data>
   <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>The opposite direction is not written yet</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Bilateral agreement: it has clauses both ways</value></data>

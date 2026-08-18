@@ -871,7 +871,6 @@
   <data name="Xfer_Unit" xml:space="preserve"><value>Unità</value></data>
   <data name="Xfer_Levels" xml:space="preserve"><value>Livelli</value></data>
   <data name="Xfer_SemicircHint" xml:space="preserve"><value>(semicircolare)</value></data>
-  <data name="Xfer_EmptyUnicom" xml:space="preserve"><value>(vuoto = UNICOM)</value></data>
   <data name="Xfer_RunwaysInUse" xml:space="preserve"><value>Pista/e in uso</value></data>
   <data name="Xfer_MultiSelectHint" xml:space="preserve"><value>(multi-selezione: Ctrl/⌘)</value></data>
   <data name="Xfer_NoRunwaysForApt" xml:space="preserve"><value>Nessuna pista per questo aeroporto (fuori DB o non ancora importate da IVAO).</value></data>
@@ -1474,6 +1473,14 @@
   <data name="Xfer_MergeAria" xml:space="preserve"><value>Unisci i due accordi in uno</value></data>
   <data name="Xfer_MergePrompt" xml:space="preserve"><value>Sposti {0} clausole e cancelli l'accordo che resta vuoto. Non si annulla: guarda le due tabelle prima.</value></data>
   <data name="Xfer_Merged" xml:space="preserve"><value>Uniti: {0} clausole spostate nel verso opposto.</value></data>
+  <data name="Xfer_SelectReceiverHint" xml:space="preserve"><value>Seleziona l'ente che riceve per abilitare</value></data>
+  <data name="Xfer_SideRequiredTitle" xml:space="preserve"><value>Obbligatorio: un accordo ha due capi. Se il traffico deve finire a UNICOM non serve scriverlo — lo fa la vista operativa quando nessuno è online.</value></data>
+  <data name="Xfer_AirportsNotForKind" xml:space="preserve"><value>Sorvoli, VFR e «altro» non hanno bisogno di aeroporti: questi restano scritti, ma non servono a niente.</value></data>
+  <data name="Xfer_AddAirportTitle" xml:space="preserve"><value>Aggiungi un aeroporto a questo accordo</value></data>
+  <data name="Xfer_NoAirport" xml:space="preserve"><value>nessun aeroporto</value></data>
+  <data name="Xfer_AptAlreadyThere" xml:space="preserve"><value>{0} è già fra gli aeroporti di questo accordo.</value></data>
+  <data name="Xfer_AptNotCovered" xml:space="preserve"><value>{0} è coperto da {1}, che non è fra i riceventi</value></data>
+  <data name="Xfer_AptNotCoveredTitle" xml:space="preserve"><value>L'ente che copre lo scalo, secondo la gerarchia, non riceve questo traffico: o è l'accordo sbagliato, o è il ricevente sbagliato.</value></data>
   <data name="Xfer_NavInternal" xml:space="preserve"><value>interni</value></data>
   <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>Il verso opposto non è ancora scritto</value></data>
   <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Accordo bilaterale: ha clausole nei due versi</value></data>

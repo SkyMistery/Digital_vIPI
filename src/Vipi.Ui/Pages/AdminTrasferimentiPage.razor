@@ -376,6 +376,9 @@
         public string SideAText { get; set; } = "";
         public string SideBText { get; set; } = "";
 
+        /// <summary>Un accordo ha due capi: senza uno dei due non compare in nessun documento.</summary>
+        public bool HasBothSides => SideA.Count > 0 && SideB.Count > 0;
+
         /// <summary>Gli aeroporti (ICAO → nome libero per quelli fuori catalogo).</summary>
         public List<AgreementAirportInput> Airports { get; } = new();
         public string AirportText { get; set; } = "";
@@ -1048,8 +1051,11 @@
             <div class="xt-pane-body">
                 @HeaderFields(_newForm, isNew: true)
                 <div class="xt-foot">
-                    <button class="btn primary" disabled="@(_busy || !_canEdit || _newForm.SideA.Count == 0)" @onclick="AddAgreement">+ @L["Xfer_Agreement"]</button>
+                    @* Servono i DUE capi: un accordo con un lato solo non compare in nessun documento, e prima si
+                       poteva creare. Il suggerimento dice quale manca invece di un «compila i campi» generico. *@
+                    <button class="btn primary" disabled="@(_busy || !_canEdit || !_newForm.HasBothSides)" @onclick="AddAgreement">+ @L["Xfer_Agreement"]</button>
                     @if (_canEdit && _newForm.SideA.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectSenderHint"]</span> }
+                    else if (_canEdit && _newForm.SideB.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectReceiverHint"]</span> }
                     else if (_canEdit && AirportRequiredMissing(_newForm)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
                 </div>
                 <p class="help xt-mt0">@((MarkupString)L["Xfer_NewAgreementHelp"].Value)</p>
@@ -1086,10 +1092,10 @@
             {
                 <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
             }
-            @if (XferLabels.Airports(ag).Length > 0)
-            {
-                <span class="muted xt-hint">@XferLabels.Airports(ag)</span>
-            }
+            @* Gli aeroporti si aggiungono DA QUI, sull'accordo scelto: prima l'unico modo era entrare in
+               «✎ Modifica accordo», cioè aprire un form di sei campi per toccarne uno. Il gruppo di aeroporti è
+               ciò che si mette a punto più spesso — «anche per LIBR» — e merita un gesto suo. *@
+            @AirportChips(ag)
             @if (!string.IsNullOrWhiteSpace(ag.Description))
             {
                 <span class="muted xt-desc" title="@ag.Description">— @ag.Description</span>
@@ -1110,9 +1116,12 @@
                 <div class="xt-subform">
                     @HeaderFields(_editForm, isNew: false)
                     <div class="xt-foot">
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SaveHeader(ag)">💾 @L["Common_Save"]</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_editForm.HasBothSides)" @onclick="() => SaveHeader(ag)">💾 @L["Common_Save"]</button>
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editHeaderId = null">@L["Common_Cancel"]</button>
-                        @if (_canEdit && AirportRequiredMissing(_editForm)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                        @* ⚠️ Anche in modifica servono i due capi. Le due righe che in archivio non li hanno si
+                           sistemano proprio così: aprendole, il salvataggio chiede il ricevente. *@
+                        @if (_canEdit && _editForm.SideB.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectReceiverHint"]</span> }
+                        else if (_canEdit && AirportRequiredMissing(_editForm)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
                     </div>
                 </div>
             }
@@ -1246,6 +1255,145 @@
             }
         </section>
     };
+
+    // ---- Gli aeroporti dell'accordo, dalla testata --------------------------------------------------
+    // Il gruppo di aeroporti è ciò che si mette a punto più spesso: «vale anche per Brindisi». Prima si toccava
+    // solo entrando in «✎ Modifica accordo» — un form di sei campi per cambiarne uno — e per i sorvoli non lo si
+    // toccava affatto, perché il campo non c'era.
+
+    private int? _aptOpenId;
+    private string _aptText = "", _aptName = "";
+
+    private void ToggleAptPicker(AgreementRow a)
+    {
+        _aptOpenId = _aptOpenId == a.Id ? null : a.Id;
+        _aptText = ""; _aptName = "";
+    }
+
+    /// <summary>Le chip degli aeroporti nella testata, col picker in linea per aggiungerne e togliere.</summary>
+    private RenderFragment AirportChips(AgreementRow ag) => __builder =>
+    {
+        var aperto = _aptOpenId == ag.Id;
+
+        <span class="xt-hdr-apts">
+            @foreach (var apt in ag.Airports.OrderBy(x => x.Order))
+            {
+                var icao = apt.Icao;
+                <span class="pill neutral xt-apt" title="@apt.Name">@icao
+                    @if (_canEdit)
+                    {
+                        <button type="button" class="xt-chipx" title="@L["Xfer_RemoveAirport"]" disabled="@_busy"
+                                @onclick="() => RemoveAirportFrom(ag, icao)">✕</button>
+                    }
+                </span>
+            }
+            @* Per arrivi e partenze l'aeroporto è obbligatorio: se non c'è, la testata lo dice invece di
+               lasciare un vuoto che sembra una scelta. *@
+            @if (ag.Airports.Count == 0 && AirportRequiredKind(ag.TrafficKind))
+            {
+                <span class="pill xt-warnpill" title="@L["Xfer_AirportRequired"]">⚠ @L["Xfer_NoAirport"]</span>
+            }
+            @* Stessa regola del form: il tasto compare dove gli aeroporti servono — arrivi e partenze — oppure
+               dove ce ne sono già. Offrirlo su un sorvolo sarebbe invitare a scrivere un dato che il modello non
+               vuole; toglierlo a un sorvolo che ne ha uno sarebbe nasconderne la rimozione. *@
+            @if (_canEdit && (AirportRequiredKind(ag.TrafficKind) || ag.Airports.Count > 0))
+            {
+                <button class="btn ghost xt-aptadd" disabled="@_busy" title="@L["Xfer_AddAirportTitle"]"
+                        @onclick="() => ToggleAptPicker(ag)">@(aperto ? "✕" : "+ " + L["Xfer_Airport"])</button>
+            }
+        </span>
+
+        @if (aperto)
+        {
+            <span class="xt-aptpick">
+                <TypeaheadPicker Placeholder="LIRF / LFPG" Items="AirportItems(_aptText)"
+                                 @bind-Text="_aptText" NoMatch="@NewAptFooter(_aptText)" Footer="@NewAptFooter(_aptText)" />
+                @if (!string.IsNullOrWhiteSpace(_aptText) && !IsKnownApt(_aptText))
+                {
+                    <input placeholder="@L["Xfer_AptNamePh"]" @bind="_aptName" title="@L["Xfer_AptNameTitle"]" />
+                }
+                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_aptText))"
+                        @onclick="() => AddAirportTo(ag)">+ @L["Xfer_AddAirport"]</button>
+            </span>
+        }
+
+        @* La proposta «l'avvicinamento dell'aeroporto» nasce dall'ICAO, e alla creazione l'ICAO può non esserci
+           ancora. Qui la stessa conoscenza torna come VERIFICA: se lo scalo è coperto da un ente che non è fra i
+           riceventi, o è l'accordo sbagliato o è il ricevente sbagliato — e in entrambi i casi va guardato. *@
+        @foreach (var (icao, parent) in UncoveredAirports(ag))
+        {
+            <span class="pill xt-warnpill" title="@L["Xfer_AptNotCoveredTitle"]">
+                ⚠ @(string.Format(L["Xfer_AptNotCovered"].Value, icao, parent))
+            </span>
+        }
+    };
+
+    /// <summary>
+    /// Gli aeroporti dell'accordo il cui <b>ente di copertura</b> non è fra i riceventi.
+    /// <para>Solo per arrivi e partenze: un sorvolo non consegna a nessuno scalo, e per lui la domanda non ha
+    /// senso. Il legame ICAO → ente sta sul nodo Aeroporto della struttura (<c>_airportParents</c>), non dedotto
+    /// dal callsign — uno scalo può essere coperto da un ente con un altro prefisso.</para>
+    /// </summary>
+    private IEnumerable<(string Icao, string Parent)> UncoveredAirports(AgreementRow ag)
+    {
+        if (!AirportRequiredKind(ag.TrafficKind)) yield break;
+
+        var riceventi = ag.Parties.Where(p => p.Side == AgreementSide.B)
+            .Select(p => p.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (riceventi.Count == 0) yield break;   // lo dice già la pill «senza ricevente»
+
+        foreach (var apt in ag.Airports.OrderBy(x => x.Order))
+            if (_airportParents.TryGetValue(apt.Icao, out var parent) && !riceventi.Contains(parent))
+                yield return (apt.Icao, parent);
+    }
+
+    private Task AddAirportTo(AgreementRow ag)
+    {
+        var icao = _aptText.Trim().ToUpperInvariant();
+        if (icao.Length == 0) return Task.CompletedTask;
+        if (ag.Airports.Any(x => string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase)))
+        {
+            _error = string.Format(L["Xfer_AptAlreadyThere"].Value, icao);
+            return Task.CompletedTask;
+        }
+
+        var lista = ag.Airports.OrderBy(x => x.Order)
+            .Select(x => new AgreementAirportInput(x.Icao, x.Name))
+            .Append(new AgreementAirportInput(icao, NullIfBlank(_aptName)))
+            .ToList();
+        // Il picker si CHIUDE: a campo vuoto la tendina propone l'intero catalogo — cinquanta scali che
+        // coprono la testata — e aggiungerne due di fila è raro quanto riaprirlo è economico.
+        _aptOpenId = null; _aptText = ""; _aptName = "";
+        return SaveAirports(ag, lista);
+    }
+
+    private Task RemoveAirportFrom(AgreementRow ag, string icao)
+    {
+        var lista = ag.Airports.OrderBy(x => x.Order)
+            .Where(x => !string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase))
+            .Select(x => new AgreementAirportInput(x.Icao, x.Name))
+            .ToList();
+        return SaveAirports(ag, lista);
+    }
+
+    /// <summary>Riscrive il solo elenco aeroporti, lasciando il resto dell'intestazione come sta. Passa dalla
+    /// stessa porta di scrittura del form, quindi le regole valgono anche qui: togliere l'ultimo aeroporto a un
+    /// accordo di arrivi <b>non passa</b>, e lo dice.</summary>
+    private async Task SaveAirports(AgreementRow ag, IReadOnlyList<AgreementAirportInput> airports)
+    {
+        await Guarded(() => Agreements.UpdateAgreementAsync(_acc!.Code, ag.Id, new AgreementInput
+        {
+            TrafficKind = ag.TrafficKind,
+            Description = ag.Description,
+            SideA = SectorIds(ag, AgreementSide.A),
+            SideB = SectorIds(ag, AgreementSide.B),
+            Airports = airports,
+        }), null);
+        await LoadRunwaysAsync(SelectedAgreement());
+    }
+
+    private IReadOnlyList<int> SectorIds(AgreementRow a, AgreementSide side) =>
+        a.Parties.Where(p => p.Side == side).OrderBy(p => p.Order).Select(p => p.SectorId).ToList();
 
     private static string DirKey(int agreementId, AgreementDirection d) => $"{agreementId}:{d}";
 
@@ -1388,7 +1536,13 @@
             </div>
 
             @* Aeroporti: un elenco, non un campo. È l'asse che il modello vecchio costringeva a moltiplicare —
-               quattro flussi identici per quattro scali di Roma — e i documenti veri lo scrivono già così. *@
+               quattro flussi identici per quattro scali di Roma — e i documenti veri lo scrivono già così.
+               ⚠️ Compare solo dove SERVE: arrivi e partenze sono definiti rispetto a un aeroporto e senza non si
+               salvano, mentre per sorvoli/VFR/altro il campo è un invito a scrivere un dato che il modello non
+               vuole. Ma se degli aeroporti ci sono già, il campo resta a vista anche col tipo cambiato — un campo
+               nascosto che tiene dati è il modo più rapido di perderli senza accorgersene. *@
+            @if (AirportsRelevant(form))
+            {
             <div class="field">
                 <label>@L["Xfer_AirportsLabel"] <span class="muted xt-lbl-soft">@L["Xfer_AirportsHint"]</span></label>
                 <div class="xt-chips">
@@ -1414,7 +1568,13 @@
                     <button type="button" class="btn ghost" disabled="@(string.IsNullOrWhiteSpace(form.AirportText))"
                             @onclick="() => AddAirport(form)">+ @L["Xfer_AddAirport"]</button>
                 </div>
+                @* Gli aeroporti restati addosso a un tipo che non li vuole: si dicono, non si cancellano da soli. *@
+                @if (form.Airports.Count > 0 && !AirportRequiredKind(form.Kind))
+                {
+                    <span class="muted xt-hint">@L["Xfer_AirportsNotForKind"]</span>
+                }
             </div>
+            }
 
             <div class="field"><label>@L["Xfer_DescOpt"]</label>
                 <input placeholder="@L["Xfer_DescPh"]" @bind="form.Description" @bind:event="oninput"
@@ -1430,9 +1590,12 @@
         var text = side == AgreementSide.A ? form.SideAText : form.SideBText;
 
         <div class="field">
+            @* ⚠️ Nessuno dei due lati è opzionale, e l'etichetta «(vuoto = UNICOM)» che stava qui insegnava il
+               contrario: UNICOM lo calcola la vista operativa quando il ricevente è offline, non si scrive. Un
+               lato B vuoto voleva dire «non finito», e un accordo così non compare in nessun documento. *@
             <label>
                 @(side == AgreementSide.A ? L["Xfer_SideA"] : L["Xfer_SideB"])
-                @if (side == AgreementSide.B) { <span class="muted xt-lbl-soft">@L["Xfer_EmptyUnicom"]</span> }
+                <span class="xt-req" title="@L["Xfer_SideRequiredTitle"]">*</span>
             </label>
             <div class="xt-chips">
                 @foreach (var cs in list.ToList())
@@ -2079,8 +2242,18 @@
 
     private string AgreementsCountLabel(int n) => string.Format(L["Xfer_AgreementsN"].Value, n);
 
+    /// <summary>Il tipo di traffico pretende almeno un aeroporto: arrivi e partenze sono definiti rispetto a uno
+    /// scalo, e senza la frase resterebbe orfana.</summary>
+    private static bool AirportRequiredKind(TransferFlowKind k) =>
+        k is TransferFlowKind.Arrival or TransferFlowKind.Departure;
+
     private static bool AirportRequiredMissing(HeaderForm f) =>
-        f.Kind is TransferFlowKind.Arrival or TransferFlowKind.Departure && f.Airports.Count == 0;
+        AirportRequiredKind(f.Kind) && f.Airports.Count == 0;
+
+    /// <summary>Il campo aeroporti ha senso in questo form: il tipo li vuole, <b>oppure</b> ce ne sono già — e
+    /// quelli non si nascondono mai, o si perdono senza che nessuno lo veda.</summary>
+    private static bool AirportsRelevant(HeaderForm f) =>
+        AirportRequiredKind(f.Kind) || f.Airports.Count > 0;
 
     private void PickRunways(ClauseForm form, ChangeEventArgs e) =>
         form.Rwys = e.Value is string[] v ? v : Array.Empty<string>();

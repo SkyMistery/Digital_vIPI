@@ -390,3 +390,71 @@ maiuscoletto. Ora legge `UNICOM`, che è dove il traffico finisce davvero — ve
 ⚠️ Trappola ripagata: il primo tentativo di ricompilare l'host è morto con **MSB3021** perché il *mio* host di
 verifica teneva i DLL. Fermare prima, compilare dopo. E la verifica è girata su **porta 5035**: il committente ha
 il suo host sulla 5034, e prendergli la porta gli avrebbe rotto la pagina sotto le mani.
+
+### Quarto giro: due capi obbligatori, e gli aeroporti sull'accordo (18 agosto)
+
+> «Non deve essere possibile creare relazioni senza controparte. E quando creo un accordo devo indicare solo le
+> due controparti, poi seleziono l'accordo e aggiungo un aeroporto o un gruppo di aeroporti.»
+
+**Nel modello non cambia niente**: lo schema regge già 0..n parti per lato e 0..n aeroporti, e passare a «1..n» è
+una **regola**, non una tabella. Nessuna migrazione.
+
+#### Il lato B diventa obbligatorio, e il motivo non è di gusto
+
+Un accordo senza lato B **non produce niente**: `CoordinationDerivation` scarta la riga — è la policy che la rete
+di caratterizzazione ha già fotografato (delle 78 righe vere ne derivano 77, la riga GISAM di Zagabria non ha
+ricevente). E «a UNICOM» **non è un capo che si scrive**: è ciò che `TransferOnlineResolver` calcola a runtime
+quando il ricevente è offline, risalendo la gerarchia. L'etichetta `(vuoto = UNICOM)` sul picker insegnava il
+contrario, e ora non c'è più.
+
+- Regola in `ValidateAgreement`: **entrambi** i lati con almeno un ente.
+- ⚠️ **Il ripristino ne è fuori di proposito.** In archivio due righe la violano — `#18` (`LIBB_ES_CTR`, sorvolo
+  Zagabria, 1 clausola) e `#41` (`LIRR_NE_CTR`, vuota) — e un annulla che rifiutasse di rimettere l'accordo appena
+  cancellato sarebbe peggio della regola. `RestoreAgreementAsync` non passa dalla validazione, e un test lo
+  fissa perché nessuno lo «sistemi» per simmetria.
+- La voce «senza ricevente» del cruscotto resta e cambia mestiere: da difetto che può ricomparire a **rilevatore
+  di eredità**. Il percorso di riparazione è aprire l'accordo — verificato a schermo su `#18`: il salvataggio
+  resta bloccato con «Seleziona l'ente che riceve per abilitare».
+
+#### Gli aeroporti: dove servono nel form, sempre sull'accordo
+
+**Decisione del committente: la regola dura resta.** Arrivi e partenze continuano a pretendere un aeroporto, e
+quindi il form di creazione lo chiede ancora — ma **solo dove serve**: per sorvoli, VFR e «altro» il campo
+sparisce, ed erano l'unico posto in cui invitava a scrivere un dato che il modello non vuole.
+
+⚠️ **Il campo resta però visibile se degli aeroporti ci sono già**, anche col tipo cambiato: un campo nascosto
+che tiene dati è il modo più rapido di perderli senza accorgersene. Stessa regola per il tasto «+ Aeroporto»
+nella testata.
+
+E il pezzo che chiudeva la richiesta: **gli aeroporti si aggiungono e si tolgono dalla testata dell'accordo
+scelto**, con chip e picker in linea. Prima l'unico modo era entrare in «✎ Modifica accordo» — un form di sei
+campi per toccarne uno — e il gruppo di aeroporti è ciò che si mette a punto più spesso («vale anche per
+Brindisi»). La scrittura passa dalla **stessa porta** del form, quindi le regole valgono anche lì: togliere
+l'ultimo aeroporto a un accordo di arrivi non passa, e lo dice.
+
+#### La proposta persa, tornata come verifica
+
+Il picker del ricevente propone «l'avvicinamento dell'aeroporto» a partire dall'ICAO. Con la regola dura tenuta
+quella proposta **non si perde** alla creazione — l'aeroporto è ancora lì. Ma gli aeroporti aggiunti *dopo* non
+la incontrerebbero mai, e allora la stessa conoscenza torna come **controllo**: se lo scalo è coperto da un ente
+che non è fra i riceventi, la testata lo dice. Verificato a schermo: aggiungendo `LIBD` all'accordo `#1`
+(`LIBB_ES_CTR → LIRR_NC_CTR`) compare **«⚠ LIBD è coperto da LIBD_CS0_APP, che non è fra i riceventi»**.
+
+Vale solo per arrivi e partenze — un sorvolo non consegna a nessuno scalo — e solo dove la gerarchia dichiara un
+ente di copertura: senza dato, nessuna affermazione.
+
+#### Verificato a schermo (porta 5035, copia del DB)
+
+| Cosa | Visto |
+|---|---|
+| Form nuovo accordo, arrivi | `Primo lato *` · `Secondo lato *` · `Tipo` · `Aeroporti` · `Descrizione` |
+| Form nuovo accordo, sorvoli | il campo aeroporti **non c'è** |
+| Tasto «+ Accordo» | disabilitato, col suggerimento che dice **quale** capo manca |
+| Testata di `#26` | chip `LIBD ✕` più `+ Aeroporto` |
+| Aggiunta di `LIBR` dalla testata | chip `LIBD ✕` `LIBR ✕`, salvata dalla porta di scrittura |
+| Avviso di copertura | «⚠ LIBD è coperto da LIBD_CS0_APP, che non è fra i riceventi» |
+| `#18`, eredità senza ricevente | pill «⚠ nessun ricevente», salvataggio bloccato col suggerimento |
+
+Difetto trovato guardando: dopo l'aggiunta **il picker restava aperto**, e a campo vuoto la tendina proponeva
+l'intero catalogo — cinquanta scali stesi sulla testata. Ora si chiude: aggiungerne due di fila è raro quanto
+riaprirlo è economico.

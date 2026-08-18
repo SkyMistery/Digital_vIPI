@@ -15,12 +15,20 @@ public sealed record AgreementInput
     public required TransferFlowKind TrafficKind { get; init; }
     public string? Description { get; init; }
 
-    /// <summary>Gli enti del lato A, nell'ordine voluto. Vuoto = accordo senza un capo, che è incompleto ma
-    /// scrivibile: un'intestazione a metà è lavoro in corso, non un errore da rifiutare.</summary>
+    /// <summary>Gli enti del lato A, nell'ordine voluto. <b>Almeno uno</b>: un accordo ha due capi.</summary>
     public IReadOnlyList<int> SideA { get; init; } = Array.Empty<int>();
 
-    /// <summary>Gli enti del lato B. Vuoto = il traffico va rilasciato a UNICOM, ed è il caso che il filtro
-    /// «senza ricevente» deve poter trovare.</summary>
+    /// <summary>
+    /// Gli enti del lato B, nell'ordine voluto. <b>Almeno uno.</b>
+    /// <para>⚠️ Vuoto <b>non</b> significa «a UNICOM», e prima l'interfaccia lo insegnava. UNICOM è ciò che
+    /// <c>TransferOnlineResolver</c> <b>calcola a runtime</b> quando il ricevente è offline, risalendo la
+    /// gerarchia di copertura: non è un capo che si scrive. Un lato B vuoto significava «non finito», e un
+    /// accordo così non produce <b>niente</b> — la derivazione scarta la riga (è la policy che la rete di
+    /// caratterizzazione ha fotografato: delle 78 righe vere ne derivano 77).</para>
+    /// <para>Restano <b>due righe in archivio</b> che lo violano, e la regola vale su crea e modifica ma non sul
+    /// ripristino: un annulla che rifiutasse di rimettere l'accordo appena cancellato sarebbe peggio della
+    /// regola. Le trova la voce «senza ricevente» del cruscotto, che da qui in poi è un rilevatore di eredità.</para>
+    /// </summary>
     public IReadOnlyList<int> SideB { get; init; } = Array.Empty<int>();
 
     /// <summary>Gli aeroporti a cui l'accordo si applica, nell'ordine voluto. Vuoto = accordo senza aeroporto

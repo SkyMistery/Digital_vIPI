@@ -300,6 +300,15 @@ vero li hanno resi indiscutibili.
   **rivalidano nel repository**, non si dànno per buone dalla proposta.
 - **I punti presenti da un lato solo** si dicono sopra le due tabelle, con lo **stesso conto** del cruscotto
   (`AgreementPoints`).
+- **Un accordo ha due capi, e ora è una regola** (18 agosto): senza lato B non produce niente — la derivazione
+  scarta la riga — e «a UNICOM» non è un capo che si scrive, è ciò che `TransferOnlineResolver` calcola quando il
+  ricevente è offline. L'etichetta `(vuoto = UNICOM)` insegnava il contrario ed è sparita. ⚠️ Il **ripristino** è
+  fuori dalla regola di proposito: in archivio restano due righe che la violano, e un annulla che rifiutasse di
+  rimettere l'accordo appena cancellato sarebbe peggio della regola.
+- **Gli aeroporti si aggiungono dalla testata dell'accordo**, non solo dentro il form dell'intestazione; e nel
+  form il campo compare **dove serve** (arrivi e partenze) o dove ce ne sono già — un campo nascosto che tiene
+  dati è il modo più rapido di perderli. La regola dura «arrivi e partenze pretendono un aeroporto» **resta**,
+  per decisione del committente.
 
 ### 10.2 Cosa resta
 

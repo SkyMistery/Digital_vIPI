@@ -840,7 +840,12 @@ verso opposto calcolato e marcato tale, i punti presenti da un lato solo detti s
 4. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», in italiano e cablato nel componente**: nella
    pagina inglese ogni conferma in linea che non passa l'etichetta lo dice in italiano. Trovato guidando la
    fusione (dove diceva «elimina» per un'operazione che unisce, corretto lì); è più largo di quest'area.
-5. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+5. ⚠️ **Due accordi ereditati senza ricevente** — `#18` (`LIBB_ES_CTR`, sorvolo Zagabria, 1 clausola) e `#41`
+   (`LIRR_NE_CTR`, vuota). Dal 18 agosto un accordo **non si crea e non si salva senza entrambi i capi**: quelli
+   non producono niente (la derivazione scarta la riga) e «a UNICOM» lo calcola la vista operativa, non si
+   scrive. Il ripristino resta fuori dalla regola di proposito, così l'annulla continua a funzionare. Si
+   sistemano aprendoli: il salvataggio chiede il ricevente.
+6. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
 
 ### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
 Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge

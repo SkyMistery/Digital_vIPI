@@ -1617,3 +1617,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-bulkpick{margin:0;min-width:200px}
 .xt-bulkpick input{margin:0}
 .xt-groupwide{margin-top:6px}
+
+/* ---- Aeroporti dell'accordo, dalla testata ----
+   Il gruppo di aeroporti è ciò che si mette a punto più spesso («vale anche per Brindisi»): prima si toccava solo
+   entrando nel form di sei campi, e per i sorvoli non si toccava affatto perché il campo non c'era. */
+.xt-hdr-apts{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.xt-hdr-apts .xt-apt{font-variant-numeric:tabular-nums}
+.xt-aptadd{padding:1px 7px;font-size:11px}
+.xt-aptpick{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.xt-aptpick input{margin-bottom:0}
+/* L'asterisco del campo obbligatorio: si vede, non urla. */
+.xt-req{color:#b3541e;font-weight:700}

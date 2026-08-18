@@ -185,6 +185,24 @@ public sealed class AgreementService : IAgreementService
 
     private static void ValidateAgreement(AgreementInput i)
     {
+        // Un accordo ha DUE capi, e nessuno dei due è opzionale.
+        //
+        // ⚠️ Un lato B vuoto non ha mai voluto dire «a UNICOM», anche se l'interfaccia lo insegnava: UNICOM lo
+        // calcola TransferOnlineResolver a runtime quando il ricevente è offline. Voleva dire «non finito», e un
+        // accordo così non produce niente — la derivazione scarta la riga. Rifiutarlo qui non toglie lavoro in
+        // corso all'archivio: toglie righe che nessun documento mostrerà mai.
+        //
+        // La regola vale su crea e modifica; il RIPRISTINO ne è fuori di proposito (RestoreAgreementAsync non
+        // passa da qui), perché un annulla che rifiuta di rimettere ciò che ha appena cancellato è peggio della
+        // regola. Le due righe in archivio che la violano le trova il cruscotto.
+        if (i.SideA.Count == 0)
+            throw new ValidationException("Indica almeno un ente sul lato che trasferisce.");
+        if (i.SideB.Count == 0)
+            throw new ValidationException(
+                "Indica almeno un ente sul lato che riceve: un accordo senza ricevente non compare in nessun "
+                + "documento. Se il traffico deve finire a UNICOM non serve scriverlo — lo fa la vista operativa "
+                + "quando nessuno è online.");
+
         // Arrivi e partenze sono definiti RISPETTO a un aeroporto: senza, la frase resta orfana («con
         // destinazione …») e la derivazione scarta la riga. È lo stesso vincolo di prima, spostato dal flusso
         // all'accordo.
