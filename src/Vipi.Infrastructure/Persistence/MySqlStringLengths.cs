@@ -109,13 +109,15 @@ public static class MySqlStringLengths
             // Gli enum dell'accordo, più i due che qui sono
             // INDICIZZATI e prima non esistevano: la direzione entra nella chiave di lettura delle clausole
             // (l'outline vive dentro una direzione) e il lato entra in quella delle parti.
-            [("AgreementClause", "Direction")] = 32,       // indice, oltre che default
+            // Il verso e il traffico stanno sulla SEZIONE dal 18 agosto 2026, e sono in un indice:
+            // «l'accordo ha già una sezione così?» è la domanda che l'editor fa a ogni render del riquadro.
+            [("AgreementSection", "Kind")] = 32,           // indice, oltre che default
+            [("AgreementSection", "Direction")] = 32,      // indice, oltre che default
             [("AgreementClause", "HandoffKind")] = 32,
             [("AgreementClause", "CommsHandoffKind")] = 32,
             [("AgreementClause", "HandoffLevelUnit")] = 32,
             [("AgreementClause", "HandoffLevelConstraint")] = 32,
             [("AgreementClause", "SpeedConstraint")] = 32,
-            [("AgreementParty", "Side")] = 32,             // indice; misurato 1 (`A`/`B`)
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
             [("ImportState", "Category")] = 32,            // chiave primaria; misurato 13 (`AirportSector`)

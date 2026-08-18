@@ -61,10 +61,10 @@
                 @if (ShowContext)
                 {
                     @* In elenco il contesto è il dato che dice DI CHI è la riga: senza, l'elenco è un mucchio. *@
-                    <td class="xt-ctx">@Dash(XferLabels.Side(r.Agreement, SenderSide(c)))</td>
-                    <td class="xt-ctx">@Receiver(r)</td>
-                    <td class="xt-ctx">@Dash(XferLabels.Airports(r.Agreement))</td>
-                    <td class="xt-ctx"><span class="pill blue">@XferLabels.Kind(L, r.Agreement.TrafficKind)</span></td>
+                    <td class="xt-ctx">@Dash(XferLabels.Sender(r.Agreement, r.Section))</td>
+                    <td class="xt-ctx">@Dash(XferLabels.Receiver(r.Agreement, r.Section))</td>
+                    <td class="xt-ctx">@Dash(XferLabels.Airports(r.Section))</td>
+                    <td class="xt-ctx"><span class="pill blue">@XferLabels.Kind(L, r.Section.Kind)</span></td>
                 }
                 @* I punti sono l'IDENTITÀ dell'accordo dentro il gruppo e il salvataggio li propaga a tutte le
                    sorelle: la pill sulla capofila dice che le righe che seguono sono casi della stessa cosa — e,
@@ -235,19 +235,6 @@
         _ => c.LevelText,
     };
 
-    /// <summary>Il lato da cui parte il traffico di questa clausola: dipende dal VERSO, non dall'accordo.</summary>
-    private static AgreementSide SenderSide(AgreementClauseRow c) =>
-        c.Direction == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B;
-
-    /// <summary>Chi riceve: il lato opposto a quello che cede. Vuoto = UNICOM, e va detto — un trattino qui
-    /// sembrerebbe un dato mancante invece di un rilascio.</summary>
-    private string Receiver(XferTableRow r)
-    {
-        var side = SenderSide(r.Clause) == AgreementSide.A ? AgreementSide.B : AgreementSide.A;
-        var names = XferLabels.Side(r.Agreement, side);
-        return names.Length > 0 ? names : L["Xfer_Unicom"];
-    }
-
     private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
 
     /// <summary>La cella: il valore, oppure l'editor se è questa la cella aperta.</summary>
@@ -297,11 +284,10 @@
             // Con l'anteprima accesa è la frase a chiudere il blocco: il bordo qui taglierebbe in mezzo.
             if (gv.Last && !r.HasPreview) c.Add("xt-g-last");
             // Modificare una variante senza vedere le sorelle è il modo di scrivere due volte lo stesso caso.
-            // Il confronto è dentro l'accordo E dentro il verso: il numero di gruppo è progressivo per accordo,
-            // e in vista a elenco due gruppi di accordi diversi si toccano davvero.
+            // Il confronto è dentro la SEZIONE: il numero di gruppo è progressivo per accordo, e in vista a
+            // elenco due gruppi di sezioni diverse si toccano davvero.
             if (EditClauseId is int open
-                && r.Agreement.Clauses.Any(x => x.Id == open && x.VariantGroup == r.Clause.VariantGroup
-                                                && x.Direction == r.Clause.Direction))
+                && r.Section.Clauses.Any(x => x.Id == open && x.VariantGroup == r.Clause.VariantGroup))
                 c.Add("xt-g-open");
         }
         if (selected) c.Add("xt-sel");

@@ -1,88 +1,102 @@
 # HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 
-> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`, allineato col
-> remoto, **non ancora in `main`**. Ultimo commit: `Accordi: creare è dire CHI, e basta`.
+> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`,
+> **non ancora in `main`**.
 >
-> **Due carte, e servono entrambe:**
-> [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md) — il
-> **modello** (le quattro entità, il travaso, il drop) ·
+> **Tre carte, e la terza è quella in vigore:**
+> [`../feature/2026-08-18-accordi-a-sezioni.md`](../feature/2026-08-18-accordi-a-sezioni.md) — **il modello di
+> adesso**: un accordo per coppia, il traffico nelle sezioni ·
+> [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md) —
+> l'accordo al posto del flusso (storia, ma le sue decisioni valgono) ·
 > [`../feature/2026-08-17-editor-accordi-per-relazione.md`](../feature/2026-08-17-editor-accordi-per-relazione.md) —
-> l'**editor**, cinque giri fra il 17 e il 18 agosto, ognuno con la sua misura e i difetti trovati a schermo.
+> l'editor a tre colonne, cinque giri fra il 17 e il 18.
 >
-> Schema: [`../spec/modello-dati.md`](../spec/modello-dati.md) §9.25-9.26 · Area:
+> Schema: [`../spec/modello-dati.md`](../spec/modello-dati.md) **§9.25-bis** (§9.25 è storia) · Area:
 > [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10 · Voci aperte:
-> [`../lavori-aperti.md`](../lavori-aperti.md) E6-bis, E6-ter
+> [`../lavori-aperti.md`](../lavori-aperti.md)
 
 ## In una riga
 
-`TransferFlow` + `TransferPoint` **non esistono più** (droppate). Al loro posto un **accordo** fra due parti, con
-più settori per lato, più aeroporti, più punti per clausola e fino a **due versi**.
+Un **accordo per coppia di enti**, sempre bidirezionale, con **un solo ente per lato**. Il traffico — arrivi,
+partenze, sorvoli nei due versi — sta nelle **sezioni** dentro l'accordo, una per tabella. Le clausole stanno
+nelle sezioni.
 
-## L'editor com'è adesso (18 agosto) — leggere prima di toccarlo
-
-`/vsop/admin/trasferimenti?acc=LIBB`. Cinque giri, e ognuno ha tolto un'abitudine del modello vecchio. Chi
-riapre la pagina trova questo:
-
-| | Com'è | Perché, in una riga |
-|---|---|---|
-| **Albero** | ACC controparte ▸ **relazione** (`noi ⇄ loro`) ▸ accordo | l'identità di un accordo è «due parti · tipo · gruppo di aeroporti»: il solo lato lontano era mezza chiave |
-| **Orientamento** | «noi/loro» calcolato da `AgreementViewpoint` | A e B dicono chi ha scritto per primo, non da che parte stiamo |
-| **Versi** | **due tabelle sempre a vista**, coi tasti in testa a ognuna | l'interruttore portava sempre a una tabella vuota, e il reciproco non si scriveva perché non si vedeva mancare |
-| **Tipo del verso opposto** | calcolato e **marcato** tale (`TrafficKinds.Reciprocal`) | da un APP verso l'area salgono partenze, non arrivi |
-| **Creazione** | **solo i due lati**; l'accordo nasce «Altro» | creare è dire *chi*; tipo e aeroporti sono il *cosa* e stanno nella testata |
-| **Tipo e aeroporti** | si cambiano **dalla testata** dell'accordo | è ciò che si mette a punto più spesso, e stava dietro un form di sei campi |
-| **Regole** | **entrambi i lati obbligatori**; arrivi/partenze pretendono un aeroporto | un accordo senza ricevente non compare in nessun documento |
-
-⚠️ **Quattro trappole pagate qui, tutte invisibili ai test:**
-
-1. **Catch-22 sugli aeroporti.** Il tasto «+ Aeroporto» ristretto ad arrivi/partenze rendeva **inclassificabile**
-   un accordo appena creato: per dire «arrivi» serve un aeroporto, per aggiungerlo serviva aver detto «arrivi».
-   La regola è «dove **non sono esclusi**» (tutto tranne sorvoli e VFR), non «dove servono».
-2. **Un `<select>` non torna indietro da solo.** Se il salvataggio è rifiutato il valore memorizzato non cambia,
-   quindi l'albero di render non cambia, quindi Blazor **non riscrive l'attributo**: la tendina resta sulla
-   scelta rifiutata e mente. Serve una **chiave con un'epoca** che avanza a ogni tentativo.
-3. **`return` dentro un elemento aperto** in un `RenderFragment` lascia il `RenderTreeBuilder` con l'elemento non
-   chiuso: si **avvolge** in un `@if`, non si esce.
-4. **Un campo nascosto che tiene dati** è il modo più rapido di perderli: il blocco aeroporti resta a vista se
-   ce ne sono, anche col tipo che non li vuole.
-
-## Il modello, dove guardare
-
-| Cosa | Dove |
-|---|---|
-| Entità | `src/Vipi.Domain/Entities/CoordinationAgreement.cs` — `CoordinationAgreement` · `AgreementParty` (Side A/B) · `AgreementAirport` · `AgreementClause` |
-| Enum | `src/Vipi.Domain/Enums.cs` — `AgreementSide`, `AgreementDirection` |
-| Porta | `IAgreementRepository` (Abstractions) · `IAgreementService` (Content) · impl. `EfAgreementRepository` (~700 righe: outline, ordini, sottoalbero) |
-| Proiezione | `src/Vipi.Application/Content/AgreementExpansion.cs` → `TransferFlowRow`/`TransferPointRow` |
-| Editor | `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor` — rotta **invariata** `/vsop/admin/trasferimenti` |
-| Lettura | `src/Vipi.Ui/Components/App/CoordTable.razor` |
-| Ausili | `AgreementSuggestions.cs` · `ClausePaste.cs` · `AgreementGaps.cs` (tutti puri, in Application) |
-| Orientamento | `AgreementViewpoint.cs` — «noi/loro» rispetto alla ACC aperta; `TrafficKinds.Reciprocal` in Domain |
-| Punti spaiati | `AgreementPoints.cs` — un conto solo, letto dal cruscotto **e** dal riquadro |
-| Fusione dei versi | `AgreementMerge.cs` (proposta, pura) + `IAgreementRepository.AbsorbAsReverseAsync` |
-| Albero | `XferNavigator.razor` + `XferNavModel.cs` — ACC controparte ▸ **relazione** (`XferNavRelation`) ▸ accordo |
+```
+CoordinationAgreement   OwnerAcc · SideASectorId ⇄ SideBSectorId (canonici) · Note
+└── AgreementSection    Kind · Direction · Description
+    ├── AgreementAirport
+    └── AgreementClause  (invariata, meno Direction, più SectionId)
+```
 
 ## Le tre cose da NON riscoprire a mani nude
 
-**1. `TransferFlowRow`/`TransferPointRow` esistono ancora, ma NON sono storage.** Sono la **proiezione**
-dell'accordo, prodotta da `AgreementExpansion`. È lo stesso schema dei settori (cataloghi = fonte unica,
-`Sector` = proiezione). Per questo derivazione, frasi, vista live, stampa e matcher Aurora non sono stati
-toccati: leggono tutti quella forma. Chi cerca «dove si salva un coordinamento» deve trovare **un** posto, e
-quel posto è l'accordo.
+**1. `TransferFlowRow`/`TransferPointRow` esistono ancora, ma NON sono storage.** Sono la **proiezione** delle
+sezioni, prodotta da `AgreementExpansion`. È lo stesso schema dei settori (cataloghi = fonte unica, `Sector` =
+proiezione). Per questo derivazione, frasi, vista live, stampa e matcher Aurora non sono mai stati toccati:
+leggono tutti quella forma. Chi cerca «dove si salva un coordinamento» deve trovare **un** posto.
 
-**1-bis. «Noi» e «loro» sono una LENTE, non un dato.** A e B in archivio dicono chi ha scritto l'accordo per
-primo, non da che parte stiamo: 13 accordi di LIBB e **10 su 11 di LIRR** hanno la ACC sul lato B. La vista li
-orienta con `AgreementViewpoint`; **non** si riscrive l'archivio per raddrizzarli — cambierebbe di significato le
-clausole di entrambi i versi e le release congelate, e un accordo di confine non ha un verso giusto.
+**2. A e B non significano niente per chi legge — e il verso NON è più sulla clausola.** I due lati stanno in
+**forma canonica** (id minore = A) perché l'unicità della coppia è un indice e in SQL non esiste «insieme di
+due». Girare i lati è **senza perdita** solo perché `Direction` vive sulla **sezione** e si ribalta con loro
+(`UpdateAgreementAsync`). Fino a ferragosto era vietato, e a ragione: col verso sulla clausola, scambiare i lati
+capovolgeva il significato di tutto. «Noi/loro» resta una **lente** (`AgreementViewpoint`), non un dato.
 
-**2. L'outline vive dentro `(accordo, verso)`.** Spostare, annidare, sciogliere: tutto ragiona su una direzione
-sola. Le clausole del verso opposto non sono alternative delle prime, sono **un'altra tabella** (EUROCONTROL
-Annex D.2 ne ha due). L'ordine **è** struttura: una riga appartiene all'ultima meno profonda che la precede,
-quindi spostarla deve spostare il suo sottoalbero.
+**3. L'outline vive dentro la SEZIONE.** Spostare, annidare, sciogliere: tutto ragiona su una sezione sola. Le
+clausole di un'altra sezione non sono alternative di queste, sono **un'altra tabella** (EUROCONTROL Annex D.2 ne
+ha due). L'ordine **è** struttura: una riga appartiene all'ultima meno profonda che la precede, quindi spostarla
+deve spostare il suo sottoalbero.
 
-**3. Vincolo snapshot.** Le release congelate serializzano `AccCoordination`/`AppCoordination` in JSON.
+**3-bis. Vincolo snapshot.** Le release congelate serializzano `AccCoordination`/`AppCoordination` in JSON.
 `AppCoordRow` si tocca **solo in modo additivo** — mai rinominare o cambiare tipo a un campo esistente, o le
 release vecchie non si rileggono.
+
+## Dove guardare
+
+| Cosa | Dove |
+|---|---|
+| Entità | `src/Vipi.Domain/Entities/CoordinationAgreement.cs` — `CoordinationAgreement` · `AgreementSection` · `AgreementAirport` · `AgreementClause` |
+| Enum | `src/Vipi.Domain/Enums.cs` — `AgreementSide`, `AgreementDirection`, `TransferFlowKind` |
+| Porta | `IAgreementRepository` (Abstractions) · `IAgreementService` (Content) · impl. `EfAgreementRepository` |
+| Proiezione | `src/Vipi.Application/Content/AgreementExpansion.cs` → `TransferFlowRow`/`TransferPointRow` |
+| Conversione | `src/Vipi.Application/Content/AgreementsToSections.cs` (**pura**) + `tools/Vipi.AgreementsToSections` (il comando) |
+| Verso proposto | `src/Vipi.Application/Content/SectionDirection.cs` (puro) |
+| Ordine sezioni | `src/Vipi.Application/Content/AgreementSectionOrder.cs` (puro, imposto) |
+| Editor | `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor` — rotta **invariata** `/vsop/admin/trasferimenti` |
+| Lettura | `src/Vipi.Ui/Components/App/CoordTable.razor` |
+| Ausili | `AgreementSuggestions.cs` · `ClausePaste.cs` · `AgreementGaps.cs` · `AgreementPoints.cs` (tutti puri) |
+| Albero | `XferNavigator.razor` + `XferNavModel.cs` — **due livelli**: ACC controparte ▸ accordo |
+
+## L'editor com'è adesso (18 agosto) — leggere prima di toccarlo
+
+`/vsop/admin/trasferimenti?acc=LIBB`. Sei giri fra il 16 e il 18, e ognuno ha tolto un'abitudine del modello
+precedente.
+
+| | Com'è | Perché, in una riga |
+|---|---|---|
+| **Albero** | ACC controparte ▸ **accordo** (foglia) | il livello «relazione» esisteva perché una coppia poteva avere più accordi: adesso non può |
+| **Foglia** | i due capi per esteso + «N sezioni ▤ M clausole» | sei sezioni e due clausole = scritto a metà, e il solo «2» non lo direbbe |
+| **Riquadro** | testata coi due capi, poi **le sezioni**, ognuna con la sua tabella | un accordo con arrivi, partenze e due versi di sorvoli non ha «un» tipo |
+| **Ordine sezioni** | **imposto**: aeroporto (arrivi poi partenze) ▸ sorvoli (due versi) ▸ VFR ▸ Altro | non è struttura come l'ordine delle clausole; a mano si potrebbe nascondere una partenza lontano dai suoi arrivi |
+| **Verso** | **proposto dall'aeroporto**, salvato, correggibile col tasto `⇄` | «arrivi verso LIRF» va verso chi ha LIRF; non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no |
+| **Reciproco mancante** | blocco **vuoto** sotto la sezione, coi tasti «copia l'altro verso» e «+ sezione» | il vuoto **è** l'informazione: l'interruttore di ferragosto nascondeva ciò che mancava, e per questo il reciproco non si scriveva mai |
+| **Gemelle** | **avviso** + tasto «unisci», non errore | due arrivi a LIRF a condizioni diverse si scrivono con le **varianti**; vietare la seconda sezione non lo insegnerebbe a nessuno |
+| **Creazione** | accordo = **due enti**; sezione = tipo (+ aeroporti) | creare è dire *chi*; il traffico è il *cosa*, e sta dentro |
+| **Coppia già scritta** | il form **apre quella che c'è**, non dà errore | un doppione è una domanda a cui esiste una risposta migliore di «no» |
+
+⚠️ **Sei trappole pagate qui, quasi tutte invisibili ai test:**
+
+1. **Un `<select>` non torna indietro da solo.** Se il salvataggio è rifiutato il valore memorizzato non cambia,
+   quindi l'albero di render non cambia, quindi Blazor **non riscrive l'attributo**: la tendina resta sulla
+   scelta rifiutata e mente. Serve una **chiave con un'epoca** che avanza a ogni tentativo (`_kindEpoch`).
+2. **`return` dentro un elemento aperto** in un `RenderFragment` lascia il `RenderTreeBuilder` con l'elemento non
+   chiuso: si **avvolge** in un `@if`, non si esce.
+3. **Un campo nascosto che tiene dati** è il modo più rapido di perderli: il blocco aeroporti resta a vista se ce
+   ne sono, anche col tipo che non li vuole.
+4. **Catch-22 sugli aeroporti** (ferragosto): la regola è «dove **non sono esclusi**» — tutto tranne i sorvoli —
+   non «dove servono».
+5. **Attributo componente `string` senza `@` = letterale** (`Key="x"` ≠ `Key="@x"`) → render vuoto senza errore.
+6. **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina»**, italiano e cablato: chi non passa l'etichetta
+   la mostra così anche nella pagina inglese, e anche per azioni che non eliminano niente (il tasto «unisci»).
 
 ## La rete che protegge tutto
 
@@ -92,111 +106,93 @@ release vecchie non si rileggono.
 > **Invariante:** frasi composte e righe derivate identiche, carattere per carattere, sui dati veri. Finché è
 > verde, vIPI ACC, vIPI APP, vLOA, vista live, stampa e matcher Aurora non possono essersi rotti.
 
-⚠️ **`real-flows.tsv` è l'ultima copia dei dati vecchi nella loro forma originale.** Le tabelle da cui vengono
-non esistono più: quel file è il solo motivo per cui la rete può ancora dire «la derivazione non è cambiata».
-Non cancellarlo, non «rigenerarlo».
+⚠️ **`real-flows.tsv` è l'ultima copia dei dati vecchi nella loro forma originale.** Non cancellarlo, non
+«rigenerarlo». Il file approvato **non si riapprova da sé**: a differenza fallita scrive un `.received.txt`
+accanto e dice dov'è, così la differenza si guarda prima di accettarla.
 
-Il file approvato **non si riapprova da sé**: a differenza fallita scrive un `.received.txt` accanto e dice
-dov'è, così la differenza si guarda prima di accettarla.
+⚠️ **Il 18 agosto l'approvato non si è mosso di un carattere**, ed è la prova che la conversione è corretta: se
+si muovesse per un riordino, la tentazione sarebbe riapprovare.
 
-## Il travaso non c'è più, e va saputo
+## La conversione — come si esegue, in ordine
 
-Il travaso è **girato** sul `vipi.db` di sviluppo (37 flussi / 78 punti → 41 accordi / 63 clausole) e poi è stato
-**rimosso col suo macchinario** (`ILegacyFlowReader`, `IAgreementMaintenance`, `FlowsToAgreements`, le due impl.
-EF, la passata d'avvio, la categoria `ImportStates`).
-
-⚠️ **La trappola di sequenza, se mai si ripresentasse su un'altra area:** le migrazioni girano **prima** della
-manutenzione d'avvio (`src/Vipi.Host/Program.cs`, righe 147 e 153). Una migrazione che droppa + una passata che
-legge quella tabella nella **stessa release** = la passata non trova niente, scrive zero, e i dati spariscono
-**senza un errore**. E tenere la passata *dopo* il drop è peggio che inutile: su un DB non ancora convertito
-legge una tabella inesistente e fa **crashare l'avvio**.
-
-Qui si è potuto fare in un colpo solo per una ragione precisa: **il DB di produzione viene sostituito con quello
-di sviluppo, già convertito.** Non è una regola generale.
-
-Backup pre-travaso, **fuori dal repo**: `../../vipi.db.bak-pre-travaso-20260817` (cioè in
-`D:\Programmazione\IVAO_Test\vIPI Ivao Italy\`). Il `Down` delle migrazioni ricrea le tabelle **vuote** — fa
-tornare lo schema, non l'archivio.
-
-## Stato del DB di sviluppo
-
-`src/Vipi.Host/vipi.db` è **già travasato e già droppato** — zero `TransferFlows`/`TransferPoints` — ed è il DB
-che va in produzione.
-
-⚠️ **I suoi numeri non si scrivono qui, si misurano.** Il committente lo modifica **dal vivo** dal proprio host:
-mentre si chiudeva questo giro sono passati da 42 a 40 accordi (spariti `#12` e `#18`), e questo documento aveva
-già i numeri vecchi dopo dieci minuti. Gli **id degli accordi citati più sotto valgono allo stesso modo**: sono
-un appiglio per ritrovare il caso, non un riferimento stabile.
+⚠️ **Il `vipi.db` del progetto è ancora NON convertito**: la prova è girata su una copia nello scratchpad. Va
+fatta sul DB vero, a host spento, dopo il backup.
 
 ```
-sqlite3 src/Vipi.Host/vipi.db "select count(*) from CoordinationAgreements; select count(*) from AgreementClauses;"
+# 0. backup, FUORI dal repo
+cp src/Vipi.Host/vipi.db ../vipi.db.bak-pre-sezioni-20260818
+
+# 1. schema nuovo, tutto nullable: non tocca niente di ciò che c'è
+dotnet ef database update 20260818115830_AgreementSectionsAdditive \
+  --project src/Vipi.Infrastructure --startup-project src/Vipi.Infrastructure --framework net8.0
+
+# 2. i dati. SENZA --apply stampa il piano e non scrive: si guarda PRIMA.
+dotnet run --project tools/Vipi.AgreementsToSections -- --sqlite src/Vipi.Host/vipi.db
+dotnet run --project tools/Vipi.AgreementsToSections -- --sqlite src/Vipi.Host/vipi.db --apply
+
+# 3. NOT NULL, indice unico, via il vecchio
+dotnet ef database update 20260818115838_AgreementSectionsFinalize \
+  --project src/Vipi.Infrastructure --startup-project src/Vipi.Infrastructure --framework net8.0
 ```
 
-Quel che al 18 agosto era vero **per costruzione**, e va saputo: **nessun accordo bilaterale**, cioè tutte le
-clausole in un verso solo. Il primo reciproco lo scrive chi usa «unisci i due versi» o «+ clausola» nel blocco
-entrante.
+Su MariaDB: `--mysql "<conn>"` e le due migrazioni gemelle di `Vipi.Infrastructure.MySqlMigrations`.
 
-⚠️ Tutte le fusioni e le scritture di prova del 17-18 agosto sono girate su una **copia** nello scratchpad, mai
-sul DB del progetto — controllato dopo ogni giro.
+**Cosa deve dire il rapporto** (misurato sulla copia del `vipi.db` del 18 agosto):
+40 accordi / 60 clausole → **16 accordi, 38 sezioni, 60 clausole**, una fusione di gemelle (`#26`+`#27`, arrivi
+LIBD), un guscio scartato (`#41`), 35 aeroporti. E in fondo: *«Clausole: tutte e 60 ritrovate, nessuna persa e
+nessuna inventata»* — che è la riga da leggere davvero.
 
-⚠️ **Prima di credere a ciò che si vede guidando l'app**, controllare l'ora di
-`src/Vipi.Host/bin/Debug/net8.0/Vipi.Application.dll`: `dotnet build src/Vipi.Ui` **non** aggiorna la copia dentro
-`bin` dell'host, e `dotnet run --no-build` parte da lì. Il 17 agosto questo ha fatto misurare 27 lacune invece di
-28 e concludere che una voce nuova non funzionasse.
+⚠️ **Il passo 3 fallisce se il passo 2 non è girato**, ed è la protezione: `NOT NULL` su colonne ancora nulle,
+indice unico su coppie ancora doppie. Un fallimento rumoroso è l'unica difesa che vale — la trappola di
+ferragosto era una passata che «non trova niente, scrive zero, e i dati spariscono senza un errore».
 
-L'accordo `#41` non ha clausole ed **è corretto**: viene dal flusso #10 (`LIRR_NE_CTR`, sorvolo) che era già
-vuoto prima del travaso. Il cruscotto delle lacune lo segnala.
-
-⚠️ **Il committente tiene il suo host sulla 5034.** Per la verifica live usare **un'altra porta** (5035), o gli
-si rompe la pagina sotto le mani mentre la sta guardando.
+⚠️ **Il tool si rifiuta di girare due volte.** Una seconda passata rileggerebbe le righe già convertite come se
+fossero ancora vecchie, rifondendo accordi già fusi e mescolandone gli aeroporti.
 
 ## Cosa resta aperto
 
-0. **Reciproci ancora in accordi separati** — al 18 agosto tre coppie (`#13/#32` LGGG · `#17/#28` LDZO ·
-   `#23/#38` LAAA, **id da riverificare**, li elenca il cruscotto sotto «reciproco a parte»): il comando
-   «unisci i due versi» c'è ed è stato provato **su una copia**, non sul `vipi.db` del progetto — che resta a 41
-   accordi. Va fatto in produzione, guardando le due tabelle prima di premere. Il cruscotto li elenca sotto
-   «reciproco a parte».
-1. **Due asimmetrie fra i versi**, da decidere dai colleghi e non dal codice: `LGGG ⇄ LIBB` (BELIX di qua, OLGAT
-   di là) e `LDZO ⇄ LIBB` (sei punti scritti da un lato solo, **che nessuno aveva notato**). Il travaso non le ha
-   risolte apposta: accoppiare i due versi vorrebbe dire scegliere quale valga. Dopo la fusione compaiono
-   **dentro il riquadro**, sopra le due tabelle, non solo nel cruscotto.
-2. ⚠️ **Accordi ereditati senza ricevente.** Erano due; il committente ne ha già cancellato uno, e al momento
-   resta `#41` (`LIRR_NE_CTR`, vuota) — **l'elenco vero lo dà il cruscotto**, voce «senza ricevente», non questo
-   documento. Dal 18 agosto un accordo **non si crea e non si salva senza entrambi i capi**, ma il
-   **ripristino è fuori dalla regola di proposito** (`RestoreAgreementAsync` non valida) così l'annulla continua
-   a funzionare — c'è un test che lo fissa, non «sistemarlo» per simmetria. Quelle due si riparano aprendole: il
-   salvataggio chiede il ricevente.
-3. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
-4. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** (E6-ter) — due passate su tre in
-   isolamento, su codice che questo lavoro non tocca. Test su socket TCP di loopback. Slegato, ma da rendere
-   deterministico prima che qualcuno impari a rilanciare la suite finché diventa verde.
-5. **Il secondo giro dei campi**, già progettato nella carta §5 con il posto dove ognuno atterra (quindi
-   additivo, non una seconda chirurgia): rotta separata dal punto, *Release* (climb/descent/turn), modo di
-   coordinamento, nota per clausola, default in testa all'accordo, condizione come intestazione, clausole in
-   prosa e spaziatura, voce «riceve da», etichetta del gruppo di aeroporti.
-6. ⚠️ **Tre difetti di `LevelFormatting`**, congelati nell'approvato apposta e ora tutti **visti a schermo**:
-   L10 (nella resa inglese la colonna livello esce `FL260 (pari)` — `LevelFormatting` non conosce la lingua);
-   `— (dispari)`, cioè la parità appesa a un livello **assente**; e la parità appesa anche a un livello
-   **speciale** che la dice già a parole (`Pari (Nord) - Dispari (Sud) (dispari)`). Un giro loro, insieme, con la
-   riapprovazione guardata riga per riga.
-7. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», italiano e cablato**: nella pagina inglese ogni
-   conferma in linea che non passa l'etichetta lo dice in italiano. Fuori da quest'area, ma trovato qui.
+1. 🟡 **Verifica live dell'editor** — è il solo passo della carta non fatto. Va guidata a schermo
+   (skill `.claude/skills/verifica-live/`) su **porta 5035**: la 5034 è del committente, e usarla gli rompe la
+   pagina sotto le mani. Da provare: creare un accordo dai due enti, aggiungere una sezione di arrivi e
+   controllare che il verso proposto sia quello giusto, il tasto `⇄`, il blocco vuoto del reciproco, «unisci» su
+   due gemelle, il deep-link `?sezione=`.
+2. 🟡 **`Vipi.Host` e `Vipi.E2E.Tests` non hanno potuto compilare** durante l'ultimo giro: l'host del committente
+   era acceso e teneva i DLL (`MSB3021`). Da rifare a host spento.
+3. **Le due asimmetrie note NON sono state toccate** — `LGGG ⇄ LIBB` (BELIX di qua, OLGAT di là) e
+   `LDZO ⇄ LIBB` (sei punti da un lato solo). Adesso stanno nello **stesso accordo**, una sezione sotto l'altra,
+   quindi finalmente si **vedono**; sceglierne una è una decisione dei colleghi, non una migrazione.
+4. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
+5. ⚠️ **Tre difetti di `LevelFormatting`**, congelati nell'approvato apposta e tutti visti a schermo: L10
+   (`FL260 (pari)` nella resa inglese — `LevelFormatting` non conosce la lingua); `— (dispari)`, cioè la parità
+   appesa a un livello **assente**; e la parità appesa anche a un livello **speciale** che la dice già a parole
+   (`Pari (Nord) - Dispari (Sud) (dispari)`). Un giro loro, insieme, con la riapprovazione guardata riga per riga.
+6. ⚠️ **`InlineConfirm.ConfirmLabel`** con default «Sì, elimina», italiano e cablato. Fuori da quest'area.
+7. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** — due passate su tre in
+   isolamento, su codice che questo lavoro non tocca. Da rendere deterministico prima che qualcuno impari a
+   rilanciare la suite finché diventa verde.
 
 ## Comandi
 
 ```
-dotnet build Vipi.slnx -c Release --no-incremental     # il cancello vero: avvisi = errori
-dotnet test Vipi.slnx                                  # 2581 verdi su net8 e net10
+dotnet build Vipi.slnx -c Release --no-incremental     # il cancello vero: avvisi = errori, DUE TFM
+dotnet test Vipi.slnx                                  # 2062 verdi al 18 agosto (Host/E2E esclusi, vedi §2)
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure \
   --startup-project src/Vipi.Infrastructure --output-dir Persistence/Migrations --framework net8.0
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure.MySqlMigrations \
   --startup-project src/Vipi.Infrastructure.MySqlMigrations --output-dir Migrations --framework net8.0
 ```
 
-⚠️ `--framework net8.0` è **obbligatorio** (i progetti sono multi-target, altrimenti `MSB4057`). Le migrazioni
-si emettono **due volte** e **si leggono**: su quest'area lo scaffolding ha già proposto un `RenameColumn`
-*diverso nei due provider*. Fermare `Vipi.Host` prima di compilare, o è `MSB3021` sui DLL bloccati.
+⚠️ `--framework net8.0` è **obbligatorio** (progetti multi-target, altrimenti `MSB4057`). Le migrazioni si
+emettono **due volte** e **si leggono**: su quest'area lo scaffolding ha già proposto, due volte, un
+`RenameColumn` che avrebbe lasciato dati validi ma **sbagliati** — a ferragosto un rename diverso nei due
+provider, il 18 agosto un `AgreementId` spacciato per `SectionId`.
+
+⚠️ **Fermare `Vipi.Host` prima di compilare**, o è `MSB3021` sui DLL bloccati. E prima di credere a ciò che si
+vede a schermo, controllare l'ora di `src/Vipi.Host/bin/Debug/net8.0/Vipi.Application.dll`:
+`dotnet build src/Vipi.Ui` **non** aggiorna la copia dentro `bin` dell'host, e `dotnet run --no-build` parte da lì.
+
+⚠️ **Il committente tiene il suo host sulla 5034**: per la verifica live usare **un'altra porta** (5035). Ogni
+prova di scrittura va su una **copia** nello scratchpad.
 
 Verifica a schermo: skill di progetto `.claude/skills/verifica-live/`. La rotta di una vIPI ACC è
 `/vsop/{Acc}/vipi` (**non** `/vsop/acc/...`), l'editor è `/vsop/admin/trasferimenti?acc=LIBB`.

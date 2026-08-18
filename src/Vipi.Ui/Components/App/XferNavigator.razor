@@ -1,26 +1,18 @@
 @inject IStringLocalizer<SharedResource> L
 
 @*
-    Colonna 1: l'albero degli accordi. ACC della controparte ▸ RELAZIONE (noi ⇄ loro) ▸ accordo, e l'accordo è
-    una FOGLIA — si sceglie, non si apre.
+    Colonna 1: l'albero degli accordi. ACC della controparte ▸ ACCORDO, e l'accordo è una FOGLIA — si sceglie,
+    non si apre. Dentro ci sono le sue sezioni, che stanno nel riquadro di lavoro.
 
-    L'asse è cambiato tre volte. Prima settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello vecchio
-    costringeva a SCRIVERE. Poi «la controparte», ma con la chiave sul lato B: e per gli accordi in cui la ACC
-    aperta È il lato B — 13 su 40 per LIBB, 10 su 11 per LIRR — il ramo prendeva il nome dei nostri stessi
-    settori. Adesso il primo livello è l'ACC della controparte letta dalla lente («l'accordo con Roma», da
-    qualunque capo sia stato scritto) e il secondo è la COPPIA di enti.
+    L'asse è cambiato quattro volte. Prima settore ▸ aeroporto ▸ gruppo, cioè l'ordine in cui il modello di
+    luglio costringeva a SCRIVERE. Poi «la controparte», ma con la chiave sul lato B: e per gli accordi in cui la
+    ACC aperta È il lato B — 13 su 40 per LIBB, 10 su 11 per LIRR — il ramo prendeva il nome dei nostri stessi
+    settori. Poi ACC ▸ relazione ▸ accordo, perché una coppia poteva avere PIÙ accordi (LIBB ⇄ LGGG ne aveva
+    otto). Dal 18 agosto 2026 non può: la relazione È l'accordo, e il livello in mezzo è sparito insieme alla
+    ragione che lo teneva in piedi.
 
-    Perché la coppia e non il solo ente lontano: l'identità di un accordo nel modello è (le due parti · il tipo
-    di traffico · il gruppo di aeroporti) — la stessa tripla con cui AgreementMerge decide che due accordi dicono
-    la stessa cosa. Il solo lato lontano era mezza chiave, e sugli accordi INTERNI mentiva: con entrambi i capi
-    in casa mostrava un nostro settore come se fosse la controparte.
-
-    Sotto la coppia le foglie si distinguono per traffico e GRUPPO DI AEROPORTI, che è ciò che resta della
-    tripla. Due foglie identiche sotto la stessa coppia sono la «relazione spezzata» del cruscotto, e ora si
-    vede senza aprirlo.
-
-    Un livello si apre (l'ACC), l'altro no (la relazione): sotto Roma stanno cinque relazioni e distinguerle
-    serve, ma farle aprire una per una costerebbe due gesti per una foglia che ne chiede uno.
+    I callsign sono INTERI: abbreviarli in «ES ⇄ CS0» sarebbe un secondo modo di nominare gli enti in una
+    colonna che già li scrive per esteso. Se lo spazio stringe taglia il CSS, e il titolo porta la coppia piena.
 
     Gli avvisi risalgono fino all'ACC: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso.
 *@
@@ -52,45 +44,24 @@
             </div>
             @if (!open) { continue; }
 
-            foreach (var rel in cp.Relations)
+            foreach (var a in cp.Agreements)
             {
-                @* La relazione non è un nodo da aprire: è l'intestazione degli accordi che ci stanno dentro.
-                   Compare anche quando è l'unica, perché è lì che si legge FRA CHI è l'accordo — l'ACC da sola
-                   non distingue LIRR_TS_CTR da LIRN_US0_APP, e il solo ente lontano non dice qual è il nostro.
-                   ⚠️ I callsign sono INTERI: abbreviarli in «ES ⇄ CS0» sarebbe un secondo modo di nominare gli
-                   enti in una colonna che già li scrive per esteso. Se lo spazio stringe taglia il CSS, e il
-                   titolo porta la coppia piena. *@
-                <div class="xt-nav-rel" title="@($"{rel.Near} ⇄ {rel.Far}")">
-                    <span class="xt-nav-relnear">@rel.Near</span>
+                <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
+                        title="@($"{a.Near} ⇄ {a.Far}")" @onclick="() => OnSelect.InvokeAsync(a.Id)">
+                    @* La COPPIA, per esteso: è ciò che identifica l'accordo adesso che ne esiste uno solo per
+                       relazione. L'ACC da sola non distingue LIRR_TS_CTR da LIRN_US0_APP. *@
+                    <span class="xt-nav-relnear">@a.Near</span>
                     <span class="xt-nav-relway">⇄</span>
-                    <span class="xt-nav-relfar">@rel.Far</span>
-                </div>
-
-                foreach (var a in rel.Agreements)
-                {
-                    <button type="button" class="xt-nav-flow @(a.Id == SelectedId ? "on" : "")"
-                            title="@a.Description" @onclick="() => OnSelect.InvokeAsync(a.Id)">
-                        <span class="xt-nav-kind">@XferLabels.Kind(L, a.Kind)</span>
-                        @* Il GRUPPO di aeroporti, non un ramo per aeroporto: un accordo può averne quattro, e
-                           quattro rami che portano tutti alla stessa tabella sarebbero quattro modi di aprire la
-                           stessa cosa. Sotto una coppia è il discriminante principale, quindi si legge come dato
-                           e non come nota a margine. *@
-                        @if (a.Airports.Length > 0)
-                        {
-                            <span class="xt-nav-apts">@a.Airports</span>
-                        }
-                        else if (!string.IsNullOrWhiteSpace(a.Description))
-                        {
-                            <span class="xt-nav-desc">@a.Description</span>
-                        }
-                        @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
-                        @* I DUE conteggi, non il totale: «3 ⇄ 0» dice che il reciproco non è scritto, «3» no.
-                           In archivio i reciproci scritti sono zero, e il totale è il motivo per cui nessuno se
-                           n'era accorto. *@
-                        <span class="xt-nav-count @(a.IsBilateral ? "xt-nav-bi" : null)"
-                              title="@DirectionsTitle(a)">@a.Outbound ⇄ @a.Inbound</span>
-                    </button>
-                }
+                    <span class="xt-nav-relfar">@a.Far</span>
+                    @if (!string.IsNullOrWhiteSpace(a.Note))
+                    {
+                        <span class="xt-nav-desc">@a.Note</span>
+                    }
+                    @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
+                    @* SEZIONI e clausole, non il totale delle sole clausole: un accordo con sei sezioni e due
+                       clausole è scritto a metà, e il solo «2» non lo direbbe. *@
+                    <span class="xt-nav-count" title="@CountsTitle(a)">@a.Sections ▤ @a.Clauses</span>
+                </button>
             }
         }
     </div>
@@ -123,18 +94,18 @@
     [Parameter] public EventCallback<int> OnSelect { get; set; }
     [Parameter] public EventCallback OnNew { get; set; }
 
-    /// <summary>Cosa dice il pallino d'avviso: il traffico finisce a UNICOM, o ci sono clausole da rivedere.</summary>
+    /// <summary>Cosa dice il pallino d'avviso: un reciproco che manca, o clausole da rivedere.</summary>
     private string WarnTitle(XferNavAgreement a)
     {
         var parts = new List<string>(2);
-        if (a.NoReceiver) parts.Add(L["Xfer_NoReceiverFilter"]);
+        if (a.MissingReverse > 0) parts.Add(L["Xfer_NavMissingReciprocal"]);
         if (a.ToReview > 0) parts.Add($"{a.ToReview} · {L["Xfer_ToReview"]}");
         return string.Join(" · ", parts);
     }
 
-    /// <summary>Cosa dicono i due conteggi: bilaterale, o reciproco ancora da scrivere.</summary>
-    private string DirectionsTitle(XferNavAgreement a) =>
-        a.IsBilateral ? L["Xfer_BidirectionalTitle"] : L["Xfer_NavMissingReciprocal"];
+    /// <summary>Cosa dicono i due conteggi della foglia.</summary>
+    private string CountsTitle(XferNavAgreement a) =>
+        $"{string.Format(L["Xfer_SectionsN"].Value, a.Sections)} · {string.Format(L["Xfer_ClausesCount"].Value, a.Clauses)}";
 
     /// <summary>Invio/Spazio sui nodi non-<c>button</c>: senza, l'albero si apre solo col mouse.</summary>
     private static Task Activate(KeyboardEventArgs e, Func<Task> action) =>

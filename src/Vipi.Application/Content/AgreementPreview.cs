@@ -17,29 +17,26 @@ namespace Vipi.Application.Content;
 /// </summary>
 public static class AgreementPreview
 {
-    /// <summary>La frase per una clausola, o <c>null</c> se i dati non bastano a farne una (nessun mittente,
-    /// nessun ricevente, o un arrivo/partenza senza aeroporto) — esattamente come la derivazione reale, che in
-    /// quel caso non rende la riga.</summary>
-    public static string? Compose(CoordinationPreviewContext ctx, AgreementRow agreement, AgreementClauseRow clause)
+    /// <summary>La frase per una clausola, o <c>null</c> se i dati non bastano a farne una (un arrivo o una
+    /// partenza senza aeroporto) — esattamente come la derivazione reale, che in quel caso non rende la riga.
+    /// I due capi ci sono sempre: sono lo schema.</summary>
+    public static string? Compose(CoordinationPreviewContext ctx, AgreementRow agreement,
+        AgreementSectionRow section, AgreementClauseRow clause)
     {
-        var senders = Side(agreement, clause.Direction == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);
-        var receivers = Side(agreement, clause.Direction == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A);
+        var sender = agreement.Sender(section.Direction);
+        var receiver = agreement.Receiver(section.Direction);
 
-        var sender = senders.FirstOrDefault();
-        if (sender is null) return null;
-
-        var airport = agreement.Airports.OrderBy(x => x.Order).FirstOrDefault();
+        var airport = section.Airports.OrderBy(x => x.Order).FirstOrDefault();
         var cop = CopList.Parse(clause.Cops)[0];
 
-        // La catena si legge sulle clausole dello STESSO VERSO: quelle dell'altro non sono antenati, sono
+        // La catena si legge sulle clausole della STESSA SEZIONE: quelle di un'altra non sono antenati, sono
         // un'altra tabella.
-        var siblings = agreement.Clauses.Where(c => c.Direction == clause.Direction)
-            .OrderBy(c => c.Order).ToList();
+        var siblings = section.Clauses.OrderBy(c => c.Order).ToList();
         var chain = Outline.ConditionChain(siblings, clause,
             x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionCustomLabel));
 
         return ctx.Compose(
-            sender.Callsign, receivers.FirstOrDefault()?.Callsign, airport?.Icao, agreement.TrafficKind,
+            sender.Callsign, receiver.Callsign, airport?.Icao, section.Kind,
             clause.LevelConstraint, clause.LevelValue, clause.LevelUnit, clause.LevelSpecial,
             clause.Parity, clause.VerticalState, cop, chain, Facet(clause));
     }
@@ -48,7 +45,4 @@ public static class AgreementPreview
     public static TransferHandoffFacet Facet(AgreementClauseRow c) => new(
         c.HandoffKind, c.HandoffLabel, c.HandoffLevelValue, c.HandoffLevelUnit, c.HandoffLevelConstraint,
         c.CommsHandoffKind, c.CommsHandoffLabel, c.SpeedValue, c.SpeedConstraint, c.IsGroupWide);
-
-    private static List<AgreementPartyRow> Side(AgreementRow a, AgreementSide side) =>
-        a.Parties.Where(p => p.Side == side).OrderBy(p => p.Order).ToList();
 }

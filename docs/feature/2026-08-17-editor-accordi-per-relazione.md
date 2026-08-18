@@ -4,6 +4,7 @@
 > Ramo di partenza `feature/accordi-coordinamento` (non ancora in `main`).
 > Area: [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10 · Voce: `lavori-aperti.md` E6-bis.
 > Ripartenza da freddo: [`../history/handoff-accordi-coordinamento.md`](../history/handoff-accordi-coordinamento.md).
+> ⚠️ **Superata dal 18 agosto 2026** da [`2026-08-18-accordi-a-sezioni.md`](2026-08-18-accordi-a-sezioni.md): l'accordo è diventato la **coppia** (un ente per lato, uno solo per relazione) e il traffico è sceso nelle **sezioni**, che portano tipo e verso. Le decisioni di questa carta restano valide dove non contraddette.
 
 ## 1. Perché — il modello è cambiato, la pagina no
 

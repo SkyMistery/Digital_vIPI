@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
@@ -22,7 +23,7 @@ public class AgreementValidationTests : IAsyncLifetime
     private VipiDbContext _db = default!;
     private EfAgreementRepository _repo = default!;
     private AgreementService _svc = default!;
-    private int _neId, _tsId, _ftwrId;
+    private int _neId, _ftwrId;
 
     public async Task InitializeAsync()
     {
@@ -36,7 +37,6 @@ public class AgreementValidationTests : IAsyncLifetime
 
         var sectors = await _db.Sectors.ToListAsync();
         _neId = sectors.First(s => s.Callsign == "LIRR_NE_CTR").Id;
-        _tsId = sectors.First(s => s.Callsign == "LIRR_TS_CTR").Id;
         _ftwrId = sectors.First(s => s.Callsign == "LIRF_TWR").Id;
     }
 
@@ -47,90 +47,119 @@ public class AgreementValidationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Un_accordo_senza_ricevente_non_si_salva()
+    public async Task Un_accordo_senza_uno_dei_due_capi_non_si_salva()
     {
         // Non produce niente: la derivazione scarta la riga. E «a UNICOM» non è un capo che si scrive — lo calcola
-        // la vista operativa quando il ricevente è offline.
-        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _svc.AddAgreementAsync("LIRR", Input(sideB: Array.Empty<int>())));
-        Assert.Contains("riceve", ex.Message);
+        // la vista operativa quando il ricevente è offline. Dal 18 agosto 2026 è anche di schema (NOT NULL), e
+        // questa regola resta perché l'errore arrivi come una frase e non come una violazione di vincolo.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _svc.AddAgreementAsync("LIRR", Pair(sideB: 0)));
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _svc.AddAgreementAsync("LIRR", Pair(sideA: 0)));
     }
 
     [Fact]
-    public async Task Un_accordo_senza_chi_trasferisce_non_si_salva()
+    public async Task Lo_stesso_ente_sui_due_lati_non_e_una_relazione()
     {
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _svc.AddAgreementAsync("LIRR", Input(sideA: Array.Empty<int>())));
+            () => _svc.AddAgreementAsync("LIRR", Pair(sideB: _neId)));
     }
 
     [Fact]
     public async Task Con_i_due_capi_si_salva()
     {
-        var id = await _svc.AddAgreementAsync("LIRR", Input());
-        Assert.True(id > 0);
-    }
-
-    [Fact]
-    public async Task Togliere_il_ricevente_a_un_accordo_esistente_non_passa()
-    {
-        // È il percorso con cui si sistemano le due righe ereditate: aprendole, il salvataggio chiede il
-        // ricevente. Deve valere anche al contrario — non si può svuotare un accordo sano.
-        var id = await _svc.AddAgreementAsync("LIRR", Input());
-
-        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _svc.UpdateAgreementAsync("LIRR", id, Input(sideB: Array.Empty<int>())));
+        Assert.True(await _svc.AddAgreementAsync("LIRR", Pair()) > 0);
     }
 
     [Fact]
     public async Task L_annulla_rimette_anche_un_accordo_che_non_si_potrebbe_piu_scrivere()
     {
-        // ⚠️ Il ripristino è FUORI dalla regola di proposito: in archivio esistono due accordi senza ricevente, e
-        // un annulla che rifiutasse di rimettere ciò che ha appena cancellato sarebbe peggio della regola.
+        // ⚠️ Il ripristino è FUORI dalle regole di proposito: un annulla che rifiutasse di rimettere ciò che ha
+        // appena cancellato sarebbe peggio della regola. Qui la sezione è un sorvolo con un aeroporto — che la
+        // creazione rifiuta — e deve rientrare lo stesso.
         var snapshot = new AgreementSnapshot(
-            new AgreementInput
+            Pair(),
+            new[]
             {
-                TrafficKind = TransferFlowKind.Overflight,
-                SideA = new[] { _neId },
-                SideB = Array.Empty<int>(),
-                Airports = Array.Empty<AgreementAirportInput>(),
-            },
-            new[] { new AgreementClauseSnapshot(Clause("GISAM"), AgreementDirection.AtoB, 1, null, 0) });
+                new AgreementSectionSnapshot(
+                    new AgreementSectionInput
+                    {
+                        Kind = TransferFlowKind.Overflight,
+                        Direction = AgreementDirection.AtoB,
+                        Airports = new[] { new AgreementAirportInput("LIRF") },
+                    },
+                    1,
+                    new[] { new AgreementClauseSnapshot(Clause("GISAM"), 1, null, 0) }),
+            });
 
         var id = await _svc.RestoreAgreementAsync("LIRR", snapshot);
 
         var a = Assert.Single(await _svc.ListByAccAsync("LIRR"));
         Assert.Equal(id, a.Id);
-        Assert.DoesNotContain(a.Parties, p => p.Side == AgreementSide.B);
+        Assert.Equal(new[] { "LIRF" }, Assert.Single(a.Sections).Airports.Select(x => x.Icao));
     }
+
+    // ---- le regole della SEZIONE ---------------------------------------------------------------------
 
     [Fact]
     public async Task Gli_arrivi_continuano_a_pretendere_un_aeroporto()
     {
-        // La regola dura resta: il committente ha scelto di tenerla, e il form chiede l'aeroporto dove serve.
+        // La regola dura resta: il committente ha scelto di tenerla, e adesso vive sulla sezione — che è dove il
+        // tipo di traffico è finito.
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _svc.AddAgreementAsync("LIRR", Input(kind: TransferFlowKind.Arrival,
-                                                      airports: Array.Empty<AgreementAirportInput>())));
+            () => _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Arrival)));
     }
 
     [Fact]
-    public async Task Un_sorvolo_non_pretende_aeroporti()
+    public async Task Un_sorvolo_non_vuole_aeroporti()
     {
-        var id = await _svc.AddAgreementAsync("LIRR", Input(kind: TransferFlowKind.Overflight,
-                                                           airports: Array.Empty<AgreementAirportInput>()));
-        Assert.True(id > 0);
+        // Il traffico che sorvola non ha relazione con lo scalo: la frase userebbe comunque la forma neutra,
+        // e lo scalo scritto lì sarebbe una contraddizione muta.
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+
+        Assert.True(await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight)) > 0);
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight, "LIRF")));
+    }
+
+    [Fact]
+    public async Task Il_VFR_puo_avere_aeroporti_ma_non_li_pretende()
+    {
+        // ⚠️ È la regola «dove non sono esclusi» — decisione del committente, 18 agosto 2026 — e non «dove
+        // servono»: restringere il campo ai soli arrivi e partenze è ciò che a ferragosto aveva creato un
+        // catch-22.
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+
+        Assert.True(await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Vfr)) > 0);
+        Assert.True(await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Vfr, "LIRF")) > 0);
+    }
+
+    [Fact]
+    public async Task Lo_stesso_scalo_due_volte_nella_stessa_sezione_e_un_errore_di_battitura()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Arrival, "LIRF", "LIRF")));
     }
 
     // ---- attrezzi ------------------------------------------------------------------------------------
 
-    private AgreementInput Input(TransferFlowKind kind = TransferFlowKind.Arrival,
-        IReadOnlyList<int>? sideA = null, IReadOnlyList<int>? sideB = null,
-        IReadOnlyList<AgreementAirportInput>? airports = null) => new()
-        {
-            TrafficKind = kind,
-            SideA = sideA ?? new[] { _neId },
-            SideB = sideB ?? new[] { _ftwrId },
-            Airports = airports ?? new[] { new AgreementAirportInput("LIRF") },
-        };
+    /// <summary>I due capi. <c>0</c> = capo mancante, che è ciò che le regole devono rifiutare.</summary>
+    private AgreementInput Pair(int? sideA = null, int? sideB = null) => new()
+    {
+        SideASectorId = sideA ?? _neId,
+        SideBSectorId = sideB ?? _ftwrId,
+    };
+
+    private static AgreementSectionInput Section(TransferFlowKind kind, params string[] icaos) => new()
+    {
+        Kind = kind,
+        Direction = AgreementDirection.AtoB,
+        Airports = icaos.Select(x => new AgreementAirportInput(x)).ToList(),
+    };
 
     private static AgreementClauseInput Clause(string cops) => new()
     {

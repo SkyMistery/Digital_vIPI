@@ -19,7 +19,7 @@ public static class AgreementPoints
     /// <summary>I punti di un verso, senza ripetizioni e senza il segnaposto vuoto che <see cref="CopList.Parse"/>
     /// restituisce per una clausola senza punti indicati.</summary>
     public static HashSet<string> Of(AgreementRow a, AgreementDirection direction) =>
-        a.Clauses.Where(c => c.Direction == direction)
+        a.Sections.Where(s => s.Direction == direction).SelectMany(s => s.Clauses)
             .SelectMany(c => CopList.Parse(c.Cops))
             .Where(p => p.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -41,6 +41,12 @@ public static class AgreementPoints
             .ToList();
     }
 
+    /// <summary>I punti di una singola sezione.</summary>
+    public static HashSet<string> Of(AgreementSectionRow s) =>
+        s.Clauses.SelectMany(c => CopList.Parse(c.Cops))
+            .Where(p => p.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>I punti spaiati fra i due versi di <b>un</b> accordo: la riga d'avviso in testa al riquadro.</summary>
     public static IReadOnlyList<string> UnpairedWithin(AgreementRow a) =>
         Unpaired(new IReadOnlySet<string>[]
@@ -48,4 +54,9 @@ public static class AgreementPoints
             Of(a, AgreementDirection.AtoB),
             Of(a, AgreementDirection.BtoA),
         });
+
+    /// <summary>I punti spaiati fra due sezioni speculari (i due versi dei sorvoli): è lì che l'asimmetria si
+    /// vede, ora che stanno nello stesso accordo una sotto l'altra.</summary>
+    public static IReadOnlyList<string> UnpairedBetween(AgreementSectionRow x, AgreementSectionRow y) =>
+        Unpaired(new IReadOnlySet<string>[] { Of(x), Of(y) });
 }

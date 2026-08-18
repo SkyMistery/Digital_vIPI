@@ -181,11 +181,8 @@ public class AppDocumentServiceTests : IAsyncLifetime
     public async Task Overflight_without_airport_goes_to_overflights_group()
     {
         var tr = new EfAgreementRepository(_db);
-        var fOvf = await tr.AddAgreementAsync("LIRR", new AgreementInput
-        {
-            TrafficKind = TransferFlowKind.Overflight, SideA = new[] { _appId }, SideB = new[] { _neId },
-        });
-        await tr.AddClauseAsync("LIRR", fOvf, AgreementDirection.AtoB, new AgreementClauseInput
+        var sec = await SectionAsync(tr, _appId, _neId, TransferFlowKind.Overflight, null);
+        await tr.AddClauseAsync("LIRR", sec, new AgreementClauseInput
         {
             Cops = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia",
         });
@@ -377,17 +374,34 @@ public class AppDocumentServiceTests : IAsyncLifetime
     private static async Task Agreement(EfAgreementRepository tr, int from, int to, TransferFlowKind kind,
         string? icao, string cops, int level, bool feet = false)
     {
-        var id = await tr.AddAgreementAsync("LIRR", new AgreementInput
-        {
-            TrafficKind = kind,
-            SideA = new[] { from },
-            SideB = new[] { to },
-            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
-        });
-        await tr.AddClauseAsync("LIRR", id, AgreementDirection.AtoB, new AgreementClauseInput
+        var sec = await SectionAsync(tr, from, to, kind, icao);
+        await tr.AddClauseAsync("LIRR", sec, new AgreementClauseInput
         {
             Cops = cops, LevelValue = level, LevelUnit = feet ? LevelUnit.Feet : LevelUnit.Fl,
             LevelConstraint = feet ? LevelConstraint.Exact : LevelConstraint.AtOrAbove,
+        });
+    }
+
+    /// <summary>
+    /// La sezione dove finiranno le clausole: l'accordo fra i due enti (riusato se c'è già — ne esiste UNO solo
+    /// per coppia) e dentro una sezione col traffico e lo scalo.
+    /// <para>⚠️ Il verso si legge dall'accordo SALVATO perché i lati stanno in forma canonica: «chi cede» può
+    /// essere finito su A o su B, e darlo per scontato scriverebbe il contrario di ciò che il caso intende.</para>
+    /// </summary>
+    private static async Task<int> SectionAsync(EfAgreementRepository tr, int from, int to,
+        TransferFlowKind kind, string? icao)
+    {
+        var id = await tr.FindByPairAsync("LIRR", from, to)
+                 ?? await tr.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = from, SideBSectorId = to });
+
+        var a = (await tr.ListByAccAsync("LIRR")).First(x => x.Id == id);
+        var direction = a.SideA.SectorId == from ? AgreementDirection.AtoB : AgreementDirection.BtoA;
+
+        return await tr.AddSectionAsync("LIRR", id, new AgreementSectionInput
+        {
+            Kind = kind,
+            Direction = direction,
+            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
         });
     }
 

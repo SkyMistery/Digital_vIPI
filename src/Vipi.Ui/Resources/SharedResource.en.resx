@@ -810,8 +810,6 @@
   <data name="Xfer_NoFilterMatch" xml:space="preserve"><value>No transfer matches the filter.</value></data>
   <data name="Xfer_GroupsN" xml:space="preserve"><value>{0} agreements</value></data>
   <data name="Xfer_GroupsN_1" xml:space="preserve"><value>{0} group</value></data>
-  <data name="Xfer_UnicomTitle" xml:space="preserve"><value>No unit on the receiving side: the agreement does not appear in the derived coordinations. Edit the agreement to add one.</value></data>
-  <data name="Xfer_NoReceiver" xml:space="preserve"><value>no receiver</value></data>
   <data name="Xfer_CloneGroupTitle" xml:space="preserve"><value>Clone group (rows included) to another sender sector</value></data>
   <data name="Xfer_DeleteGroupAria" xml:space="preserve"><value>Delete agreement</value></data>
   <data name="Xfer_DeleteGroupPrompt" xml:space="preserve"><value>Delete? {0} rows</value></data>
@@ -1363,8 +1361,6 @@
   <data name="Xfer_DetachVariant" xml:space="preserve"><value>Detach from group</value></data>
   <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Delete the row</value></data>
   <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Delete the row?</value></data>
-  <data name="Xfer_NoReceiverFilter" xml:space="preserve"><value>No receiver</value></data>
-  <data name="Xfer_NoReceiverTitle" xml:space="preserve"><value>Agreements with nobody on the receiving side: on frequency the traffic ends up at UNICOM</value></data>
   <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copy rows from…</value></data>
   <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copy another group&apos;s rows into this one (agreements of nearby airports look alike)</value></data>
   <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Group to copy from</value></data>
@@ -1428,8 +1424,6 @@
   <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} agreements</value></data>
   <data name="Xfer_NewAgreement" xml:space="preserve"><value>New coordination agreement</value></data>
   <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Here you only say &lt;b&gt;between whom&lt;/b&gt;: each side may carry several units. Kind of traffic, airports and description go in the header of the agreement once created — it is born as «other» until you classify it.</value></data>
-  <data name="Xfer_SideA" xml:space="preserve"><value>First side</value></data>
-  <data name="Xfer_SideB" xml:space="preserve"><value>Second side</value></data>
   <data name="Xfer_RemoveParty" xml:space="preserve"><value>Remove this unit</value></data>
   <data name="Xfer_AirportsLabel" xml:space="preserve"><value>Airports</value></data>
   <data name="Xfer_AirportsHint" xml:space="preserve"><value>(more than one allowed)</value></data>
@@ -1446,22 +1440,11 @@
   <data name="Xfer_ClausesCount" xml:space="preserve"><value>{0} clauses</value></data>
   <data name="Xfer_NoClausesHere" xml:space="preserve"><value>No clause in this direction: add one with the button above.</value></data>
   <data name="Xfer_NoReciprocalYet" xml:space="preserve"><value>The reciprocal is not written yet. Add a clause, or copy the opposite direction as a starting point — levels usually differ between the two directions, so it must be reviewed.</value></data>
-  <data name="Xfer_DirOutbound" xml:space="preserve"><value>us → them</value></data>
-  <data name="Xfer_DirInbound" xml:space="preserve"><value>them → us</value></data>
-  <data name="Xfer_ReciprocalKindTitle" xml:space="preserve"><value>Computed kind: the opposite direction of an arrival is a departure. The written kind is the agreement's.</value></data>
   <data name="Xfer_InternalTitle" xml:space="preserve"><value>Agreement internal to the ACC: both ends are its own, so «them» is side B by convention.</value></data>
   <data name="Xfer_UnpairedPoints" xml:space="preserve"><value>Points present in one direction only: {0}. It may be correct, but it is the difference nobody spots when comparing two tables written at different times.</value></data>
   <data name="Xfer_ColPoints" xml:space="preserve"><value>Points</value></data>
   <data name="Xfer_ColSender" xml:space="preserve"><value>Transferring</value></data>
-  <data name="Xfer_Unicom" xml:space="preserve"><value>UNICOM</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— no receiving unit</value></data>
-  <data name="Xfer_GapSplitRelation" xml:space="preserve"><value>relation split</value></data>
-  <data name="Xfer_GapSplitRelationDetail" xml:space="preserve"><value>The same units, traffic and airports are written in {0} agreements: in the document they become that many tables. They could be one — move the clauses by hand, because merging changes the document.</value></data>
-  <data name="Xfer_GapReverseApart" xml:space="preserve"><value>reciprocal apart</value></data>
-  <data name="Xfer_GapReverseApartDetail" xml:space="preserve"><value>The opposite direction is written in a separate agreement ({0} clauses): they can be merged into one.</value></data>
-  <data name="Xfer_ReverseApartHere" xml:space="preserve"><value>The reciprocal of this agreement is written apart, as «{0}» ({1} clauses). Merging moves its clauses into this one's free direction, flipped.</value></data>
-  <data name="Xfer_ReverseApartThere" xml:space="preserve"><value>This agreement is the reciprocal of «{0}», written apart. Merging moves its {1} clauses there, flipped, and this shell disappears.</value></data>
-  <data name="Xfer_ReverseApartOpen" xml:space="preserve"><value>Open the other</value></data>
   <data name="Xfer_Merge" xml:space="preserve"><value>Merge the two directions</value></data>
   <data name="Xfer_MergeConfirm" xml:space="preserve"><value>Yes, merge</value></data>
   <data name="Xfer_MergeAria" xml:space="preserve"><value>Merge the two agreements into one</value></data>
@@ -1477,7 +1460,6 @@
   <data name="Xfer_AptNotCoveredTitle" xml:space="preserve"><value>The unit covering the airport, per the hierarchy, does not receive this traffic: either it is the wrong agreement, or the wrong receiver.</value></data>
   <data name="Xfer_NavInternal" xml:space="preserve"><value>internal</value></data>
   <data name="Xfer_NavMissingReciprocal" xml:space="preserve"><value>The opposite direction is not written yet</value></data>
-  <data name="Xfer_BidirectionalTitle" xml:space="preserve"><value>Bilateral agreement: it has clauses both ways</value></data>
   <data name="Xfer_CopyDirection" xml:space="preserve"><value>Copy from the other direction</value></data>
   <data name="Xfer_CopyDirectionTitle" xml:space="preserve"><value>Copy the opposite direction's clauses here as a starting point: levels almost always differ between directions and must be reviewed.</value></data>
   <data name="Xfer_DirectionCopied" xml:space="preserve"><value>Copied {0} clauses into the opposite direction: levels must be reviewed.</value></data>
@@ -1516,7 +1498,6 @@
   <data name="Xfer_Gaps" xml:space="preserve"><value>Gaps</value></data>
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>What is missing in this ACC, worst first. None of these is an error: they are things that probably ought to be written.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Where to work</value></data>
-  <data name="Xfer_GapNoReceiver" xml:space="preserve"><value>to UNICOM</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>directions differ</value></data>
   <data name="Xfer_GapNeighbour" xml:space="preserve"><value>border unwritten</value></data>
   <data name="Xfer_GapAirport" xml:space="preserve"><value>no arrivals</value></data>
@@ -1528,4 +1509,30 @@
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>appears in no agreement</value></data>
   <data name="Xfer_HelpAria" xml:space="preserve"><value>Help on coordination agreements</value></data>
   <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. &lt;b&gt;Both directions&lt;/b&gt; are always visible, and «us/them» depends on the ACC you opened — not on how the agreement was written. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work.</value></data>
+  <data name="Xfer_Section" xml:space="preserve"><value>Section</value></data>
+  <data name="Xfer_SectionsN" xml:space="preserve"><value>{0} sections</value></data>
+  <data name="Xfer_NewSection" xml:space="preserve"><value>New section</value></data>
+  <data name="Xfer_NoSectionsYet" xml:space="preserve"><value>No sections yet: add arrivals, departures or overflights with «+ Section».</value></data>
+  <data name="Xfer_SectionAdded" xml:space="preserve"><value>Section added.</value></data>
+  <data name="Xfer_SectionUpdated" xml:space="preserve"><value>Section updated.</value></data>
+  <data name="Xfer_SectionDeleted" xml:space="preserve"><value>Section deleted.</value></data>
+  <data name="Xfer_SectionRestored" xml:space="preserve"><value>Section restored.</value></data>
+  <data name="Xfer_SectionEditTitle" xml:space="preserve"><value>Edit the section traffic, direction and airports</value></data>
+  <data name="Xfer_SectionDeleteAria" xml:space="preserve"><value>Delete section</value></data>
+  <data name="Xfer_SectionDeletePrompt" xml:space="preserve"><value>Delete the section and its {0} clauses?</value></data>
+  <data name="Xfer_Direction" xml:space="preserve"><value>Direction</value></data>
+  <data name="Xfer_FlipDirectionTitle" xml:space="preserve"><value>Flip the direction: the transferring unit becomes the receiving one. The proposed direction comes from the airport, and it is only a proposal.</value></data>
+  <data name="Xfer_SideNear" xml:space="preserve"><value>Our unit</value></data>
+  <data name="Xfer_SideFar" xml:space="preserve"><value>Counterpart</value></data>
+  <data name="Xfer_NoteOpt" xml:space="preserve"><value>Note (optional)</value></data>
+  <data name="Xfer_NotePh" xml:space="preserve"><value>Note about this agreement</value></data>
+  <data name="Xfer_PairEditHint" xml:space="preserve"><value>Changing a unit adjusts the direction of every section accordingly.</value></data>
+  <data name="Xfer_PairAlreadyThere" xml:space="preserve"><value>An agreement between these two units already exists: here it is.</value></data>
+  <data name="Xfer_TwinSections" xml:space="preserve"><value>Another section says the same thing ({0} clauses): same traffic, same direction, same airports. Merge them, or tell them apart with variants.</value></data>
+  <data name="Xfer_GapMissingReverse" xml:space="preserve"><value>missing reciprocal</value></data>
+  <data name="Xfer_GapMissingReverseDetail" xml:space="preserve"><value>The opposite direction is not written ({0} clauses on this side).</value></data>
+  <data name="Xfer_GapTwinSections" xml:space="preserve"><value>twin sections</value></data>
+  <data name="Xfer_GapTwinSectionsDetail" xml:space="preserve"><value>Two sections say the same thing ({0} clauses in total): they can be merged.</value></data>
+  <data name="Xfer_GapEmptySection" xml:space="preserve"><value>empty section</value></data>
+  <data name="Xfer_GapEmptySectionDetail" xml:space="preserve"><value>The section has no clauses: the document will render nothing.</value></data>
 </root>

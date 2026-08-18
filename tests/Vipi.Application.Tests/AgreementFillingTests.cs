@@ -184,103 +184,93 @@ public class AgreementFillingTests
         Sectors.ToDictionary(s => s.Callsign, s => s.Type, StringComparer.OrdinalIgnoreCase);
 
     [Fact]
-    public void Un_accordo_senza_ricevente_e_la_lacuna_piu_grave()
+    public void Due_sezioni_speculari_con_punti_diversi_sono_una_lacuna()
     {
-        var a = Agreement(1, sideB: null, kind: TransferFlowKind.Arrival, icao: "LIBD", cops: "EKMUR");
-        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD" }, Set(), Types);
+        // Il caso vero in archivio: BELIX di qua, OLGAT di la'. Fino al 18 agosto 2026 i due versi vivevano in
+        // ACCORDI diversi e nessuno lo vedeva; adesso stanno nello stesso accordo, una sezione sotto l'altra.
+        var a = Agreement(1, "LGGG_W_CTR",
+            Section(1, TransferFlowKind.Overflight, AgreementDirection.AtoB, null, "TIGRA, BELIX"),
+            Section(2, TransferFlowKind.Overflight, AgreementDirection.BtoA, null, "TIGRA, OLGAT"));
 
-        // Prima di tutte: manda traffico a UNICOM adesso, mentre le altre sono scritture che mancano.
-        Assert.Equal(AgreementGapKind.NoReceiver, gaps[0].Kind);
-        Assert.Equal(1, gaps[0].AgreementId);
-    }
-
-    [Fact]
-    public void I_due_versi_con_punti_diversi_sono_una_lacuna()
-    {
-        // Il caso vero in archivio: BELIX di qua, OLGAT di la'. Nessuno lo vede guardando una pagina alla
-        // volta, ed e' la ragione per cui questo cruscotto esiste.
-        var a = Agreement(1, sideB: "LGGG_W_CTR", kind: TransferFlowKind.Overflight, icao: null,
-            cops: "TIGRA, BELIX", cops2: "TIGRA, OLGAT");
         var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, Array.Empty<string>(), Set(), Types);
 
         var asim = Assert.Single(gaps, g => g.Kind == AgreementGapKind.AsymmetricDirections);
         // Il dettaglio NON e' una frase: e' l'elenco dei punti spaiati. Le parole le mette l'interfaccia, che
         // esiste anche in inglese.
         Assert.Equal(new[] { "BELIX", "OLGAT" }, asim.Items);
+        // Porta ENTRAMBE le sezioni: senza la seconda la voce potrebbe solo indicare, non far confrontare.
+        Assert.Equal(1, asim.SectionId);
+        Assert.Equal(2, asim.PairSectionId);
     }
 
     [Fact]
-    public void I_due_versi_con_gli_stessi_punti_non_sono_una_lacuna()
+    public void Due_sezioni_speculari_con_gli_stessi_punti_non_sono_una_lacuna()
     {
-        var a = Agreement(1, sideB: "LGGG_W_CTR", kind: TransferFlowKind.Overflight, icao: null,
-            cops: "TIGRA, NOSTO", cops2: "NOSTO, TIGRA");   // stesso insieme, altro ordine
+        var a = Agreement(1, "LGGG_W_CTR",
+            Section(1, TransferFlowKind.Overflight, AgreementDirection.AtoB, null, "TIGRA, NOSTO"),
+            Section(2, TransferFlowKind.Overflight, AgreementDirection.BtoA, null, "NOSTO, TIGRA"));
+
         var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, Array.Empty<string>(), Set(), Types);
 
         Assert.DoesNotContain(gaps, g => g.Kind == AgreementGapKind.AsymmetricDirections);
     }
 
     [Fact]
-    public void L_asimmetria_si_vede_anche_fra_due_accordi_separati()
+    public void Un_sorvolo_scritto_in_un_verso_solo_chiede_il_reciproco()
     {
-        // ⚠️ E' il caso VERO in archivio, e cercare solo dentro un accordo lo faceva mancare: il travaso non
-        // accoppia i versi — accoppiarli avrebbe voluto dire scegliere quale dei due valesse — quindi
-        // LIBB->LGGG e LGGG->LIBB sono due accordi distinti che dicono punti diversi.
-        var andata = Agreement(1, sideB: "LGGG_W_CTR", kind: TransferFlowKind.Overflight, icao: null,
-            cops: "TIGRA, BELIX");
-        var ritorno = new AgreementRow
-        {
-            Id = 2, OwnerAccCode = "LIBB", TrafficKind = TransferFlowKind.Overflight, Order = 2,
-            Parties = new[]
-            {
-                new AgreementPartyRow(AgreementSide.A, 30, "LGGG_W_CTR", 1),
-                new AgreementPartyRow(AgreementSide.B, 10, "LIBB_ES_CTR", 1),
-            },
-            Airports = Array.Empty<AgreementAirportRow>(),
-            Clauses = new[] { Clause(9, "TIGRA, OLGAT", AgreementDirection.AtoB) },
-        };
+        // Prima non si poteva nemmeno porre la domanda: i due versi stavano in accordi diversi, e «manca» era
+        // indistinguibile da «e' scritto nel nodo accanto».
+        var a = Agreement(1, "LGGG_W_CTR",
+            Section(1, TransferFlowKind.Overflight, AgreementDirection.AtoB, null, "TIGRA"));
 
-        var gaps = AgreementGaps.Find("LIBB", new[] { andata, ritorno }, Sectors,
-            Array.Empty<string>(), Set(), Types);
+        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, Array.Empty<string>(), Set(), Types);
 
-        var asim = Assert.Single(gaps, g => g.Kind == AgreementGapKind.AsymmetricDirections);
-        Assert.Equal(new[] { "BELIX", "OLGAT" }, asim.Items);
-        // TIGRA sta da entrambe le parti: e' l'accordo che regge, e non va segnalato.
-        Assert.DoesNotContain("TIGRA", asim.Items);
+        var mancante = Assert.Single(gaps, g => g.Kind == AgreementGapKind.MissingReverse);
+        Assert.Equal(1, mancante.SectionId);
     }
 
     [Fact]
-    public void Un_arrivo_non_ha_un_reciproco_e_non_e_un_asimmetria()
+    public void Un_arrivo_non_ha_un_reciproco_e_non_lo_chiede()
     {
         // Il traffico scende verso uno scalo e basta: un ACC->APP e' a senso unico per natura. Segnalarlo
         // riempiva il cruscotto di falsi — sei su sette sull'archivio vero — e una categoria che urla sempre
         // insegna a non guardarla.
-        var arrivi = Agreement(1, sideB: "LIBD_CS0_APP", kind: TransferFlowKind.Arrival, icao: "LIBD",
-            cops: "EKMUR, PISIP");
-        var partenze = new AgreementRow
-        {
-            Id = 2, OwnerAccCode = "LIBB", TrafficKind = TransferFlowKind.Departure, Order = 2,
-            Parties = new[]
-            {
-                new AgreementPartyRow(AgreementSide.A, 20, "LIBD_CS0_APP", 1),
-                new AgreementPartyRow(AgreementSide.B, 10, "LIBB_ES_CTR", 1),
-            },
-            Airports = new[] { new AgreementAirportRow("LIBD", null, 1) },
-            Clauses = new[] { Clause(9, "TOPNO", AgreementDirection.AtoB) },
-        };
+        var a = Agreement(1, "LIBD_CS0_APP",
+            Section(1, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "EKMUR, PISIP"));
 
-        var gaps = AgreementGaps.Find("LIBB", new[] { arrivi, partenze }, Sectors, new[] { "LIBD" }, Set(), Types);
+        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD" }, Set(), Types);
 
-        Assert.DoesNotContain(gaps, g => g.Kind == AgreementGapKind.AsymmetricDirections);
+        Assert.DoesNotContain(gaps, g => g.Kind is AgreementGapKind.AsymmetricDirections or AgreementGapKind.MissingReverse);
     }
 
     [Fact]
-    public void Un_verso_solo_non_e_un_asimmetria()
+    public void Due_sezioni_gemelle_si_segnalano_e_si_possono_unire()
     {
-        // Un accordo a un verso solo e' la norma, non un difetto: il reciproco puo' non esistere proprio.
-        var a = Agreement(1, sideB: "LGGG_W_CTR", kind: TransferFlowKind.Overflight, icao: null, cops: "TIGRA");
-        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, Array.Empty<string>(), Set(), Types);
+        // Stesso traffico, stesso verso, stessi scali: e' la «relazione spezzata» che il travaso ha ereditato
+        // (#26/#27 in archivio). ⚠️ E' un AVVISO, non un errore: due arrivi a LIBD a condizioni diverse si
+        // scrivono con le varianti, e vietare la seconda sezione non lo insegnerebbe a nessuno.
+        var a = Agreement(1, "LIBD_CS0_APP",
+            Section(1, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "EKMUR"),
+            Section(2, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "PISIP"));
 
-        Assert.DoesNotContain(gaps, g => g.Kind == AgreementGapKind.AsymmetricDirections);
+        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD" }, Set(), Types);
+
+        var gemelle = Assert.Single(gaps, g => g.Kind == AgreementGapKind.TwinSections);
+        Assert.Equal(1, gemelle.SectionId);
+        Assert.Equal(2, gemelle.PairSectionId);
+        Assert.Equal(2, gemelle.Count);
+    }
+
+    [Fact]
+    public void Una_sezione_senza_clausole_si_vede()
+    {
+        var a = Agreement(1, "LIBD_CS0_APP",
+            Section(1, TransferFlowKind.Departure, AgreementDirection.BtoA, "LIBD"));
+
+        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD" }, Set(), Types);
+
+        var vuota = Assert.Single(gaps, g => g.Kind == AgreementGapKind.EmptySection);
+        Assert.Equal(1, vuota.SectionId);
     }
 
     [Fact]
@@ -296,7 +286,9 @@ public class AgreementFillingTests
     [Fact]
     public void Un_aeroporto_senza_arrivi_si_vede_ma_uno_con_arrivi_no()
     {
-        var a = Agreement(1, sideB: "LIBD_CS0_APP", kind: TransferFlowKind.Arrival, icao: "LIBD", cops: "EKMUR");
+        var a = Agreement(1, "LIBD_CS0_APP",
+            Section(1, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "EKMUR"));
+
         var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD", "LIBR" }, Set(), Types);
 
         var senza = gaps.Where(g => g.Kind == AgreementGapKind.AirportWithoutArrivals).Select(g => g.Subject);
@@ -316,30 +308,32 @@ public class AgreementFillingTests
 
     // ---- attrezzi ------------------------------------------------------------------------------------
 
-    private static AgreementRow Agreement(int id, string? sideB, TransferFlowKind kind, string? icao,
-        string cops, string? cops2 = null)
+    private static AgreementRow Agreement(int id, string sideB, params AgreementSectionRow[] sections) => new()
     {
-        var parties = new List<AgreementPartyRow>
-        {
-            new(AgreementSide.A, 10, "LIBB_ES_CTR", 1),
-        };
-        if (sideB is not null) parties.Add(new AgreementPartyRow(AgreementSide.B, 20, sideB, 1));
+        Id = id,
+        OwnerAccCode = "LIBB",
+        SideA = new AgreementEndpoint(10, "LIBB_ES_CTR"),
+        SideB = new AgreementEndpoint(20, sideB),
+        Order = id,
+        Sections = sections,
+    };
 
-        var clauses = new List<AgreementClauseRow> { Clause(1, cops, AgreementDirection.AtoB) };
-        if (cops2 is not null) clauses.Add(Clause(2, cops2, AgreementDirection.BtoA));
-
-        return new AgreementRow
-        {
-            Id = id, OwnerAccCode = "LIBB", TrafficKind = kind, Order = id,
-            Parties = parties,
-            Airports = icao is null ? Array.Empty<AgreementAirportRow>() : new[] { new AgreementAirportRow(icao, null, 1) },
-            Clauses = clauses,
-        };
-    }
-
-    private static AgreementClauseRow Clause(int id, string cops, AgreementDirection d) => new()
+    private static AgreementSectionRow Section(int id, TransferFlowKind kind, AgreementDirection direction,
+        string? icao, params string[] cops) => new()
     {
-        Id = id, Direction = d, Cops = cops, LevelValue = 130,
+        Id = id,
+        Kind = kind,
+        Direction = direction,
+        Order = id,
+        Airports = icao is null
+            ? Array.Empty<AgreementAirportRow>()
+            : new[] { new AgreementAirportRow(icao, null, 1) },
+        Clauses = cops.Select((c, i) => Clause(id * 100 + i, id, c)).ToList(),
+    };
+
+    private static AgreementClauseRow Clause(int id, int sectionId, string cops) => new()
+    {
+        Id = id, SectionId = sectionId, Cops = cops, LevelValue = 130,
         LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow, Order = id,
     };
 }

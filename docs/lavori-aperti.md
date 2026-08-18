@@ -790,62 +790,54 @@ trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle 
 `/vsop/admin/trasferimenti` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
 è il conteggio sul DB di sviluppo.
 
-### E6-bis 🟡 Accordi di coordinamento — il modello sostituito (ramo `feature/accordi-coordinamento`, 16-17 ago 2026)
-Carta ed esito: [`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md);
-schema `spec/modello-dati.md` §9.25-9.26; area `refactor/07-trasferimenti.md` §10.
+### E6-bis 🟡 Accordi di coordinamento — un accordo per COPPIA, il traffico nelle sezioni (ramo `feature/accordi-coordinamento`, 16-18 ago 2026)
+Carte, in ordine di vigore:
+[`feature/2026-08-18-accordi-a-sezioni.md`](feature/2026-08-18-accordi-a-sezioni.md) **(il modello di adesso)** ·
+[`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md) ·
+[`feature/2026-08-17-editor-accordi-per-relazione.md`](feature/2026-08-17-editor-accordi-per-relazione.md).
+Schema `spec/modello-dati.md` **§9.25-bis**; area `refactor/07-trasferimenti.md` **§11**.
 **Per riprendere da freddo**: [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md).
 
-`TransferFlow` + `TransferPoint` **non sono più l'unità di scrittura**: al loro posto un **accordo** fra due
-parti, con più mittenti, più aeroporti, più punti per clausola e fino a **due versi**. La forma viene dai
-documenti veri (`RealDOCS/`: LoA ACC Roma ↔ Marseille, IPI ACC Roma, Common Format LoA EUROCONTROL), non dalla
-duplicazione nel DB di sviluppo — che pure la conferma su cinque assi.
+Tre giri, e ognuno ha tolto un asse del modello precedente. **Ferragosto**: `TransferFlow`+`TransferPoint`
+lasciano il posto all'**accordo** fra due parti (droppate il 17 con `DropLegacyTransferTables`; l'ultima copia di
+quei dati nella forma originale è `tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`). **17 agosto**:
+l'editor, che aveva ancora l'albero sul lato B e il verso come interruttore. **18 agosto**: l'accordo diventa la
+**relazione fra due enti** — uno solo per coppia, un ente per lato — e il traffico scende nelle **sezioni**.
 
-Cinque fasi, tutte verificate **guidando l'app** su copia del `vipi.db` reale: rete di caratterizzazione sui
-flussi veri (l'invariante «frasi e righe identiche prima e dopo»), modello + migrazione nei due provider,
-travaso + scambio dei lettori + editor, richiusura dei punti in lettura, tre ausili di riempimento.
+Le misure che hanno deciso il terzo giro, sul `vipi.db` vero: **40 accordi stavano in 16 coppie** (la sola
+`LGGG ⇄ LIBB` ne teneva otto); il **verso** si esprimeva *orientando* l'accordo — 60 clausole su 60 `AtoB` —
+quindi i due sensi finivano in accordi diversi; e **nessun accordo aveva più di un ente per lato**.
 
-**Il modello vecchio è stato droppato** (17 ago 2026, `DropLegacyTransferTables` nei due provider) — e la
-regola della release successiva **non si applica più**, perché è caduta la sua premessa: il committente
-sostituisce il DB di produzione con quello di sviluppo, già travasato. Il travaso è stato quindi *eseguito* sul
-`vipi.db` vero (37 flussi / 78 punti → 41 accordi / 63 clausole) e poi *rimosso col suo macchinario*
-(`ILegacyFlowReader`, `IAgreementMaintenance`, `FlowsToAgreements` e le due impl. EF): con le tabelle droppate
-dalla migrazione — che gira **prima** della manutenzione — non avrebbe più potuto leggere niente, e su un DB
-dove non fosse ancora girato avrebbe fatto **crashare l'avvio**. Tenerlo sarebbe stato codice irraggiungibile
-e pericoloso insieme. L'ultima copia di quei dati nella forma originale è
-`tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`.
-
-**Secondo giro, 17 agosto — l'editor a valle del modello.** Carta ed esito:
-[`feature/2026-08-17-editor-accordi-per-relazione.md`](feature/2026-08-17-editor-accordi-per-relazione.md).
-L'editor aveva conservato due assi del modello vecchio: l'albero indicizzato sul **lato B** (per LIRR dieci
-accordi su undici finivano sotto rami chiamati coi propri settori) e il verso come **interruttore** (che portava
-sempre a una tabella vuota, perché di accordi bilaterali in archivio non ce n'era **nessuno**). Ora l'albero è
-**ACC controparte ▸ relazione (noi ⇄ loro) ▸ accordo** letto da una lente `AgreementViewpoint` — la coppia e non
-il solo lato lontano, perché l'identità di un accordo è «due parti · tipo · gruppo di aeroporti»; A e B in
-archivio non si toccano
-— e i **due versi si vedono sempre entrambi**, come le due tabelle di EUROCONTROL Annex D.2. Più: il tipo del
-verso opposto calcolato e marcato tale, i punti presenti da un lato solo detti sopra le tabelle, e il comando
-**«unisci i due versi»** per i tre reciproci che il travaso aveva lasciato in accordi separati.
+Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSections` → migrazione distruttiva:
+**40 accordi / 60 clausole → 16 accordi / 38 sezioni / 60 clausole**, con `real-coordination.approved.txt`
+**invariato carattere per carattere**.
 
 **Cosa resta, ed è il motivo per cui la voce è 🟡:**
-1. **Le asimmetriche restano da decidere ai colleghi**, ma ora sono **una in meno da cercare**: `LGGG ⇄ LIBB`
-   (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) sono elencate dal cruscotto **e** compaiono dentro
-   il riquadro appena i due versi coesistono. Restano tre coppie da unire in produzione — la fusione è stata
-   provata su una **copia** del DB, non sul `vipi.db` del progetto, che è ancora a 41 accordi.
-2. **La stessa relazione spezzata in due accordi** (`#26/#27`, arrivi LIBD): il cruscotto la segnala, ma unirli
-   **cambia il documento** (due tabelle diventano una) e nessun comando lo fa da sé. Decisione editoriale.
-3. **Tre difetti di `LevelFormatting`**, tutti pre-esistenti e ora più visibili: `— (dispari)` su livello
-   assente, la parità appesa anche a un livello *speciale* che la dice già a parole, e L10 (parità non tradotta
-   in tabella). Sono **congelati nell'approvato** della rete di caratterizzazione: un giro loro, con la
-   riapprovazione guardata riga per riga.
-4. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», in italiano e cablato nel componente**: nella
-   pagina inglese ogni conferma in linea che non passa l'etichetta lo dice in italiano. Trovato guidando la
-   fusione (dove diceva «elimina» per un'operazione che unisce, corretto lì); è più largo di quest'area.
-5. ⚠️ **Due accordi ereditati senza ricevente** — `#18` (`LIBB_ES_CTR`, sorvolo Zagabria, 1 clausola) e `#41`
-   (`LIRR_NE_CTR`, vuota). Dal 18 agosto un accordo **non si crea e non si salva senza entrambi i capi**: quelli
-   non producono niente (la derivazione scarta la riga) e «a UNICOM» lo calcola la vista operativa, non si
-   scrive. Il ripristino resta fuori dalla regola di proposito, così l'annulla continua a funzionare. Si
-   sistemano aprendoli: il salvataggio chiede il ricevente.
-6. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+1. 🟡 **Verifica live dell'editor**: il solo passo della carta non fatto. Va guidata a schermo sulla **porta
+   5035** — la 5034 è del committente, e usarla gli rompe la pagina sotto le mani.
+2. 🟡 **La conversione sul `vipi.db` vero**: è girata su una **copia** nello scratchpad. Va fatta a host spento,
+   dopo il backup, leggendo il rapporto prima di dare `--apply`.
+3. 🟡 **`Vipi.Host` e `Vipi.E2E.Tests` da ricompilare a host spento**: l'ultimo giro li ha saltati per
+   `MSB3021` sui DLL bloccati. Tutto il resto è verde — **2062 test**, e `dotnet build -c Release
+   --no-incremental` a 0 warning su due TFM.
+4. **Le due asimmetrie** — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) — le
+   decidono i colleghi. Adesso stanno nello **stesso accordo**, una sezione sotto l'altra, quindi si vedono.
+5. ✅ **I tre reciproci separati** (`#13/#32`, `#17/#28`, `#23/#38`) e la **relazione spezzata** (`#26/#27`) si
+   sono chiusi da soli: i due versi della stessa coppia **sono** lo stesso accordo, e le gemelle le ha unite la
+   conversione. Anche i **due accordi senza ricevente** sono spariti — il lato è ora una colonna `NOT NULL`.
+6. **Tre difetti di `LevelFormatting`**, pre-esistenti e congelati nell'approvato: `— (dispari)` su livello
+   assente, la parità appesa a un livello *speciale* che la dice già a parole, e L10 (parità non tradotta). Un
+   giro loro, con la riapprovazione guardata riga per riga.
+7. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», in italiano e cablato nel componente**: nella
+   pagina inglese ogni conferma in linea che non passa l'etichetta lo dice in italiano, anche per azioni che non
+   eliminano. È più largo di quest'area.
+8. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+
+⚠️ **Due difetti trovati eseguendo, e che nessun test vedeva** — valgono fuori da quest'area: fra le due
+migrazioni lo schema è **misto**, e cancellare un guscio si portava via clausole già riappese correttamente (60
+→ 23, in silenzio); e lo scaffolding EF ha proposto, per la seconda volta su quest'area, un `RenameColumn` che
+avrebbe prodotto dati **validi e sbagliati** (`AgreementId` spacciato per `SectionId`). Le migrazioni si
+leggono, non si accettano.
 
 ### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
 Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge

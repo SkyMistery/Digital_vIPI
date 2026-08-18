@@ -74,8 +74,8 @@ public sealed class AgreementViewpoint
     /// </summary>
     public AgreementOrientation Orient(AgreementRow a)
     {
-        var homeA = a.Parties.Any(p => p.Side == AgreementSide.A && IsHome(p.Callsign));
-        var homeB = a.Parties.Any(p => p.Side == AgreementSide.B && IsHome(p.Callsign));
+        var homeA = IsHome(a.SideA.Callsign);
+        var homeB = IsHome(a.SideB.Callsign);
 
         if (homeA && homeB) return new AgreementOrientation(AgreementSide.A, IsInternal: true, IsDetached: false);
         if (homeB) return new AgreementOrientation(AgreementSide.B, IsInternal: false, IsDetached: false);
@@ -83,25 +83,18 @@ public sealed class AgreementViewpoint
         return new AgreementOrientation(AgreementSide.A, IsInternal: false, IsDetached: !homeA);
     }
 
-    /// <summary>Gli enti del lato di casa, nell'ordine scritto.</summary>
-    public IReadOnlyList<string> Near(AgreementRow a) => PartiesOn(a, Orient(a).NearSide);
+    /// <summary>L'ente di casa.</summary>
+    public string Near(AgreementRow a) => a.Side(Orient(a).NearSide).Callsign;
 
-    /// <summary>Gli enti della controparte, nell'ordine scritto. Vuoto = il traffico finisce a UNICOM.</summary>
-    public IReadOnlyList<string> Far(AgreementRow a) => PartiesOn(a, Orient(a).FarSide);
+    /// <summary>L'ente della controparte. Su un accordo interno è l'altro nostro settore, non «loro».</summary>
+    public string Far(AgreementRow a) => a.Side(Orient(a).FarSide).Callsign;
 
     /// <summary>
     /// La ACC della controparte: <b>primo livello dell'albero</b>, perché «l'accordo con Roma» è il modo in cui
-    /// un accordo viene in mente. <c>null</c> quando non c'è controparte (a UNICOM) o quando è fuori catalogo.
+    /// un accordo viene in mente. <c>null</c> quando la controparte è fuori catalogo.
     /// </summary>
-    /// <remarks>Se la controparte ha enti di ACC diverse (un lato può portare più enti) vince quella del primo
-    /// ente scritto: l'ordine delle parti è deciso da chi ha scritto l'accordo, ed è l'unico criterio che non
-    /// inventa una gerarchia fra due centri.</remarks>
-    public string? FarAccCode(AgreementRow a) =>
-        Far(a).Select(AccOf).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+    public string? FarAccCode(AgreementRow a) => AccOf(Far(a));
 
-    /// <summary>Il verso di una clausola letto da qui: vero se il traffico esce di casa.</summary>
-    public bool IsOutbound(AgreementRow a, AgreementClauseRow c) => c.Direction == Orient(a).Outbound;
-
-    private static IReadOnlyList<string> PartiesOn(AgreementRow a, AgreementSide side) =>
-        a.Parties.Where(p => p.Side == side).OrderBy(p => p.Order).Select(p => p.Callsign).ToList();
+    /// <summary>Il verso di una sezione letto da qui: vero se il traffico esce di casa.</summary>
+    public bool IsOutbound(AgreementRow a, AgreementSectionRow s) => s.Direction == Orient(a).Outbound;
 }

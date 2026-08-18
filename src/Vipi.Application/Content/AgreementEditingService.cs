@@ -57,6 +57,9 @@ public sealed class AgreementService : IAgreementService
         }).ToList();
     }
 
+    public Task<int?> FindByPairAsync(string accCode, int sectorX, int sectorY, CancellationToken ct = default) =>
+        _repo.FindByPairAsync(accCode, sectorX, sectorY, ct);
+
     public async Task<int> AddAgreementAsync(string accCode, AgreementInput input, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -77,12 +80,48 @@ public sealed class AgreementService : IAgreementService
         await _repo.DeleteAgreementAsync(accCode, agreementId, ct);
     }
 
-    public async Task<int> AddClauseAsync(string accCode, int agreementId, AgreementDirection direction,
-        AgreementClauseInput input, CancellationToken ct = default)
+    public async Task<int> AddSectionAsync(string accCode, int agreementId, AgreementSectionInput input,
+        CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        ValidateSection(input);
+        return await _repo.AddSectionAsync(accCode, agreementId, input, ct);
+    }
+
+    public async Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input,
+        CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        ValidateSection(input);
+        await _repo.UpdateSectionAsync(accCode, sectionId, input, ct);
+    }
+
+    public async Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.DeleteSectionAsync(accCode, sectionId, ct);
+    }
+
+    public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.CopySectionToReverseAsync(accCode, sectionId, ct);
+    }
+
+    public async Task<int> MergeSectionsAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        if (keepId == absorbId)
+            throw new ValidationException("Una sezione non può assorbire sé stessa.");
+        return await _repo.MergeSectionsAsync(accCode, keepId, absorbId, ct);
+    }
+
+    public async Task<int> AddClauseAsync(string accCode, int sectionId, AgreementClauseInput input,
+        CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         ValidateClause(input);
-        return await _repo.AddClauseAsync(accCode, agreementId, direction, input, ct);
+        return await _repo.AddClauseAsync(accCode, sectionId, input, ct);
     }
 
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
@@ -134,20 +173,6 @@ public sealed class AgreementService : IAgreementService
         await _repo.DetachVariantAsync(accCode, clauseId, ct);
     }
 
-    public async Task<int> CopyDirectionAsync(string accCode, int agreementId, AgreementDirection from, CancellationToken ct = default)
-    {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
-        return await _repo.CopyDirectionAsync(accCode, agreementId, from, ct);
-    }
-
-    public async Task<int> AbsorbAsReverseAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
-    {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
-        if (keepId == absorbId)
-            throw new ValidationException("Un accordo non può assorbire sé stesso.");
-        return await _repo.AbsorbAsReverseAsync(accCode, keepId, absorbId, ct);
-    }
-
     public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -173,6 +198,12 @@ public sealed class AgreementService : IAgreementService
         return await _repo.RestoreAgreementAsync(accCode, snapshot, ct);
     }
 
+    public async Task<int?> RestoreSectionAsync(string accCode, AgreementSectionRestore section, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        return await _repo.RestoreSectionAsync(accCode, section, ct);
+    }
+
     public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses, CancellationToken ct = default)
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -187,41 +218,46 @@ public sealed class AgreementService : IAgreementService
     {
         // Un accordo ha DUE capi, e nessuno dei due è opzionale.
         //
-        // ⚠️ Un lato B vuoto non ha mai voluto dire «a UNICOM», anche se l'interfaccia lo insegnava: UNICOM lo
+        // ⚠️ Un lato vuoto non ha mai voluto dire «a UNICOM», anche se l'interfaccia lo insegnava: UNICOM lo
         // calcola TransferOnlineResolver a runtime quando il ricevente è offline. Voleva dire «non finito», e un
-        // accordo così non produce niente — la derivazione scarta la riga. Rifiutarlo qui non toglie lavoro in
-        // corso all'archivio: toglie righe che nessun documento mostrerà mai.
-        //
-        // La regola vale su crea e modifica; il RIPRISTINO ne è fuori di proposito (RestoreAgreementAsync non
-        // passa da qui), perché un annulla che rifiuta di rimettere ciò che ha appena cancellato è peggio della
-        // regola. Le due righe in archivio che la violano le trova il cruscotto.
-        if (i.SideA.Count == 0)
-            throw new ValidationException("Indica almeno un ente sul lato che trasferisce.");
-        if (i.SideB.Count == 0)
-            throw new ValidationException(
-                "Indica almeno un ente sul lato che riceve: un accordo senza ricevente non compare in nessun "
-                + "documento. Se il traffico deve finire a UNICOM non serve scriverlo — lo fa la vista operativa "
-                + "quando nessuno è online.");
+        // accordo così non produceva niente — la derivazione scartava la riga. Dal 18 agosto 2026 la regola è
+        // anche di schema (due colonne NOT NULL), e questa validazione resta perché l'errore arrivi come una
+        // frase e non come una violazione di vincolo.
+        if (i.SideASectorId <= 0 || i.SideBSectorId <= 0)
+            throw new ValidationException("Indica tutti e due gli enti dell'accordo.");
 
+        if (i.SideASectorId == i.SideBSectorId)
+            throw new ValidationException("Un ente non può stare su entrambi i lati dello stesso accordo.");
+    }
+
+    /// <summary>
+    /// Cosa una sezione deve dire per non mentire. La regola degli aeroporti è quella di sempre, spostata
+    /// dall'accordo alla sezione — che è il posto dove il tipo di traffico adesso vive.
+    /// </summary>
+    private static void ValidateSection(AgreementSectionInput i)
+    {
         // Arrivi e partenze sono definiti RISPETTO a un aeroporto: senza, la frase resta orfana («con
-        // destinazione …») e la derivazione scarta la riga. È lo stesso vincolo di prima, spostato dal flusso
-        // all'accordo.
-        if (i.TrafficKind is TransferFlowKind.Arrival or TransferFlowKind.Departure && i.Airports.Count == 0)
+        // destinazione …») e la derivazione scarta la riga. È una scelta del committente, riconfermata il
+        // 18 agosto 2026.
+        if (i.Kind is TransferFlowKind.Arrival or TransferFlowKind.Departure && i.Airports.Count == 0)
             throw new ValidationException(
-                "Arrivi e Partenze richiedono almeno un aeroporto. Per gli accordi senza aeroporto usa Sorvoli/VFR/Altro.");
+                "Arrivi e Partenze richiedono almeno un aeroporto. Per il traffico senza aeroporto usa Sorvoli/VFR/Altro.");
+
+        // Un sorvolo con un aeroporto sarebbe una contraddizione scritta: il traffico che sorvola non ha
+        // relazione con lo scalo, e la frase userebbe comunque la forma neutra ignorandolo. VFR e Altro invece
+        // possono averne — è la regola «dove non sono esclusi», già pagata una volta col catch-22 di ferragosto.
+        if (i.Kind == TransferFlowKind.Overflight && i.Airports.Count > 0)
+            throw new ValidationException("I sorvoli non hanno aeroporti: il traffico attraversa, non atterra.");
 
         if (i.Airports.Any(a => string.IsNullOrWhiteSpace(a.Icao)))
-            throw new ValidationException("Ogni aeroporto dell'accordo deve avere un ICAO.");
+            throw new ValidationException("Ogni aeroporto della sezione deve avere un ICAO.");
 
         // Lo stesso scalo due volte non aggiunge niente e moltiplica le righe derivate: è un errore di
         // digitazione, non una scelta.
         var duplicati = i.Airports.GroupBy(a => a.Icao.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
         if (duplicati.Count > 0)
-            throw new ValidationException($"Aeroporto ripetuto nell'accordo: {string.Join(", ", duplicati)}.");
-
-        if (i.SideA.Intersect(i.SideB).Any())
-            throw new ValidationException("Un ente non può stare su entrambi i lati dello stesso accordo.");
+            throw new ValidationException($"Aeroporto ripetuto nella sezione: {string.Join(", ", duplicati)}.");
     }
 
     private static void ValidateClause(AgreementClauseInput i)

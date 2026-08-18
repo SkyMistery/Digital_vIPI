@@ -82,7 +82,7 @@ public class VipiDbContext : DbContext
     public DbSet<VectoringMinimaSet> VectoringMinimaSets => Set<VectoringMinimaSet>();
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
     public DbSet<CoordinationAgreement> CoordinationAgreements => Set<CoordinationAgreement>();
-    public DbSet<AgreementParty> AgreementParties => Set<AgreementParty>();
+    public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
@@ -275,33 +275,48 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => new { x.OwnerAccId, x.Order });
             // Niente token di concorrenza: vedi il commento su SharedBlock.
             e.HasOne(x => x.OwnerAcc).WithMany().HasForeignKey(x => x.OwnerAccId).OnDelete(DeleteBehavior.Cascade);
+
+            // ⚠️ UNA scheda per coppia di enti. I lati stanno in forma canonica (id minore = A) perché in SQL
+            // non esiste «insieme di due»: l'unicità di una coppia non orientata è un indice su due colonne
+            // ordinate. Girare i lati non perde niente — il verso vive sulla SEZIONE e si ribalta con loro.
+            e.HasIndex(x => new { x.SideASectorId, x.SideBSectorId }).IsUnique();
+
+            // ⚠️ Restrict e non Cascade: sparire un settore non deve portarsi via l'accordo con tutte le sue
+            // sezioni e clausole. Prima spariva solo la PARTE e l'accordo restava monco; adesso il capo è una
+            // colonna NOT NULL, quindi il solo modo di non perdere lavoro editoriale è impedire la
+            // cancellazione del settore finché un accordo lo cita.
+            e.HasOne(x => x.SideASector).WithMany().HasForeignKey(x => x.SideASectorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SideBSector).WithMany().HasForeignKey(x => x.SideBSectorId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        b.Entity<AgreementParty>(e =>
+        b.Entity<AgreementSection>(e =>
         {
-            e.HasIndex(x => new { x.AgreementId, x.Side, x.Order });
-            e.HasOne(x => x.Agreement).WithMany(a => a.Parties).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
-            // Sparisce il settore, sparisce la PARTE — non l'accordo. Prima spariva il flusso intero, cioè
-            // l'accordo con tutte le sue righe: un accordo con un capo solo è incompleto e va segnalato, ma
-            // buttarlo via perché un ente è stato rinominato è una perdita di lavoro editoriale.
-            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Agreement).WithMany(a => a.Sections).HasForeignKey(x => x.AgreementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.AgreementId, x.Order });
+            // Il traffico e il verso entrano nella chiave di lettura: l'editor cerca «la sezione gemella» e «il
+            // verso opposto» a ogni render del riquadro.
+            e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
         });
 
         b.Entity<AgreementAirport>(e =>
         {
-            e.HasIndex(x => new { x.AgreementId, x.Order });
-            e.HasOne(x => x.Agreement).WithMany(a => a.Airports).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.SectionId, x.Order });
+            e.HasOne(x => x.Section).WithMany(s => s.Airports).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
             // ICAO come soft-ref, esattamente come TransferFlow.AirportIcao: nessun FK (gli accordi citano anche
             // scali esteri fuori catalogo) e nessun indice, quindi nessuna lunghezza da dimensionare per MySQL.
         });
 
         b.Entity<AgreementClause>(e =>
         {
-            e.HasOne(x => x.Agreement).WithMany(a => a.Clauses).HasForeignKey(x => x.AgreementId).OnDelete(DeleteBehavior.Cascade);
-            // La direzione entra nella chiave di lettura perché l'outline vive DENTRO una direzione: le clausole
-            // del verso opposto non sono alternative delle prime, sono un'altra tabella (Annex D.2 ne ha due).
-            e.HasIndex(x => new { x.AgreementId, x.Direction, x.Order });
-            e.HasIndex(x => new { x.AgreementId, x.Direction, x.VariantGroup, x.Order });
+            e.HasOne(x => x.Section).WithMany(s => s.Clauses).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // L'outline vive DENTRO una sezione: le clausole di un'altra non sono alternative delle prime, sono
+            // un'altra tabella (Annex D.2 ne ha due). Fino al 18 agosto 2026 lo scopo era (accordo, verso), che
+            // è la stessa cosa detta con due chiavi.
+            e.HasIndex(x => new { x.SectionId, x.Order });
+            e.HasIndex(x => new { x.SectionId, x.VariantGroup, x.Order });
 
             // Elenco dei punti: una stringa con separatore, come ConditionLabel fa già per le multi-pista.
             // Dimensionata anche fuori da MySQL perché è una lista corta per natura, non prosa.
@@ -320,14 +335,11 @@ public class VipiDbContext : DbContext
             // vale per entrambi. Vale solo perché ognuno di questi default È lo zero del proprio enum: con un
             // default diverso, EF ometterebbe la colonna in INSERT sul valore CLR di default e la riga
             // tornerebbe indietro cambiata.
-            // (Stava su TransferPoint fino al 17 agosto 2026; è stata riportata qui per intero quando quella
-            //  tabella è sparita, invece di lasciare un rinvio a un commento che non esiste più.)
             e.Property(x => x.HandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
             e.Property(x => x.CommsHandoffKind).HasDefaultValue(TransferHandoffKind.Unspecified);
             e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
             e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
             e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
-            e.Property(x => x.Direction).HasDefaultValue(AgreementDirection.AtoB);
         });
 
         b.Entity<EditGrant>(e =>

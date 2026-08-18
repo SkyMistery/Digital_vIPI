@@ -110,7 +110,9 @@
             @* In albero le righe si costruiscono DENTRO ogni blocco di verso: sono due tabelle, e una lista sola
                calcolata qui dovrebbe poi essere spezzata in due — cioè lo stesso conto fatto due volte. *@
             var tableRows = _view == XferView.Flat ? FlatRows(shown) : Array.Empty<XferTableRow>();
-            var shownClauses = _view == XferView.Flat ? tableRows.Count : shown.Sum(a => a.Clauses.Count);
+            var shownClauses = _view == XferView.Flat
+                ? tableRows.Count
+                : shown.Sum(a => a.Sections.Sum(x => x.Clauses.Count));
 
             @* ---- Barra: filtri, vista, ordinamento ---- *@
             <div class="xfe-filters xt-bar">
@@ -125,13 +127,6 @@
                     <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
                 </select>
                 <span class="muted xt-count">@AgreementsCountLabel(shown.Count) · @(string.Format(L["Xfer_ClausesCount"].Value, shownClauses))</span>
-                @* Un accordo senza ricevente manda il traffico a UNICOM: va trovato, non cercato. *@
-                @{ var noRecv = _agreements.Count(NoReceiver); }
-                @if (noRecv > 0 || _noReceiverOnly)
-                {
-                    <button class="btn @(_noReceiverOnly ? "primary" : "ghost")" title="@L["Xfer_NoReceiverTitle"]"
-                            @onclick="ToggleNoReceiverFilter">⚠ @L["Xfer_NoReceiverFilter"] (@noRecv)</button>
-                }
                 @* Le clausole ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
                    vanno riviste a mano: senza un modo di elencarle, la revisione si perde per strada. *@
                 @{ var toReview = ToReviewCount(); }
@@ -204,10 +199,22 @@
                                            un numero e un elenco, non una frase. *@
                                         <td class="muted">@GapDetail(g)</td>
                                         <td>
-                                            @if (g.AgreementId is int id)
+                                            @if (g.AgreementId is not null)
                                             {
                                                 <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]"
-                                                        @onclick="() => GoToGap(id)">↗</button>
+                                                        @onclick="() => GoToGap(g)">↗</button>
+                                            }
+                                            @* Le gemelle si uniscono da qui: la voce le ha già in mano, e
+                                               mandare a cercarle nell'accordo sarebbe un giro in più per un
+                                               gesto che il cruscotto sa fare. *@
+                                            @if (g.Kind == AgreementGapKind.TwinSections
+                                                 && g.SectionId is int keep && g.PairSectionId is int absorb)
+                                            {
+                                                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_MergeAria"]"
+                                                               Disabled="@(_busy || !_canEdit)"
+                                                               Prompt="@(string.Format(L["Xfer_MergePrompt"].Value, g.Count))"
+                                                               ConfirmLabel="@L["Xfer_MergeConfirm"]" CancelLabel="@L["Common_Cancel"]"
+                                                               OnConfirm="() => MergeSections(keep, absorb)"><Trigger>⧉</Trigger></InlineConfirm>
                                             }
                                         </td>
                                     </tr>
@@ -346,67 +353,92 @@
     private bool _newOpen;
 
     /// <summary>
-    /// Il verso dell'<b>ultima cosa toccata</b> — non «il verso che si sta guardando»: i due versi si vedono
-    /// sempre entrambi.
+    /// L'<b>ultima sezione toccata</b> — non «la sezione che si sta guardando»: le sezioni si vedono tutte.
     ///
-    /// <para>Serviva a sette operazioni che lo leggevano implicitamente, e con due tabelle a vista quello stato
-    /// diventava una bugia: la pagina mostrava due versi e la variabile ne nominava uno. Adesso il verso è
-    /// <b>parametro</b> di chi ne ha bisogno, e qui resta solo per due cose che un parametro non copre: quale
-    /// verso prende una clausola aperta nel pannello, e cosa si ritrova da un link salvato.</para>
+    /// <para>Resta per due cose che un parametro non copre: in quale tabella finisce una clausola aperta dal
+    /// pannello, e cosa si ritrova da un link salvato.</para>
     /// </summary>
-    private AgreementDirection _focusDirection = AgreementDirection.AtoB;
+    private int? _focusSectionId;
 
-    /// <summary>Blocchi di verso richiusi a mano, per <c>{accordo}:{verso}</c>. Un verso <b>vuoto</b> nasce
-    /// comunque aperto: il vuoto è l'informazione, e nasconderlo rifarebbe il difetto dell'interruttore.</summary>
-    private readonly HashSet<string> _collapsedDirs = new(StringComparer.Ordinal);
+    /// <summary>Sezioni richiuse a mano. Una sezione <b>vuota</b> nasce comunque aperta: il vuoto è
+    /// l'informazione, e nasconderlo rifarebbe il difetto dell'interruttore di ferragosto.</summary>
+    private readonly HashSet<int> _collapsedSections = new();
 
-    // ---- Form dell'INTESTAZIONE dell'accordo ---------------------------------------------------------
-    // Un tipo e non venti campi sciolti: le istanze sono due (nuovo e modifica) e i campi sono elenchi, che
-    // duplicati a mano sono due occasioni di aggiornarne uno solo.
+    // ---- Form della COPPIA (l'accordo) --------------------------------------------------------------
+    // Creare un accordo è dire CHI, e basta: due enti. Il traffico sta nelle sezioni, che si aggiungono dentro.
 
-    private sealed class HeaderForm
+    private sealed class PairForm
     {
-        public TransferFlowKind Kind { get; set; } = TransferFlowKind.Arrival;
-        public string Description { get; set; } = "";
-
-        /// <summary>Gli enti dei due lati, per callsign: l'id lo risolve la pagina al salvataggio, così un
-        /// callsign scritto a mano e poi corretto non lascia in giro un id vecchio.</summary>
-        public List<string> SideA { get; } = new();
-        public List<string> SideB { get; } = new();
+        /// <summary>I due capi, per callsign: l'id lo risolve la pagina al salvataggio, così un callsign
+        /// scritto a mano e poi corretto non lascia in giro un id vecchio.</summary>
+        public string SideA { get; set; } = "";
+        public string SideB { get; set; } = "";
         public string SideAText { get; set; } = "";
         public string SideBText { get; set; } = "";
+        public string Note { get; set; } = "";
 
-        /// <summary>Un accordo ha due capi: senza uno dei due non compare in nessun documento.</summary>
-        public bool HasBothSides => SideA.Count > 0 && SideB.Count > 0;
+        /// <summary>Un accordo ha due capi: senza uno dei due non è una relazione.</summary>
+        public bool HasBothSides => SideA.Length > 0 && SideB.Length > 0;
+
+        public void Reset() { SideA = ""; SideB = ""; SideAText = ""; SideBText = ""; Note = ""; }
+
+        /// <summary>⚠️ Carica nell'ordine «noi · loro», che NON è sempre «A · B»: i lati in archivio stanno in
+        /// forma canonica (id minore = A), che non ha significato editoriale. Quale sia A lo decide il
+        /// repository al salvataggio, e il verso delle sezioni lo segue.</summary>
+        public void LoadFrom(AgreementRow a, AgreementViewpoint lens)
+        {
+            Reset();
+            var o = lens.Orient(a);
+            SideA = a.Side(o.NearSide).Callsign;
+            SideB = a.Side(o.FarSide).Callsign;
+            Note = a.Note ?? "";
+        }
+    }
+
+    private readonly PairForm _newPair = new();
+    private readonly PairForm _editPair = new();
+
+    /// <summary>L'accordo di cui si stanno modificando i capi in-place; null = nessuno.</summary>
+    private int? _editHeaderId;
+
+    // ---- Form della SEZIONE -------------------------------------------------------------------------
+    // Il traffico, il verso, gli aeroporti: è il «cosa» dell'accordo, e vive qui dentro.
+
+    private sealed class SectionForm
+    {
+        public TransferFlowKind Kind { get; set; } = TransferFlowKind.Arrival;
+        public AgreementDirection Direction { get; set; } = AgreementDirection.AtoB;
+        public string Description { get; set; } = "";
 
         /// <summary>Gli aeroporti (ICAO → nome libero per quelli fuori catalogo).</summary>
         public List<AgreementAirportInput> Airports { get; } = new();
         public string AirportText { get; set; } = "";
         public string AirportName { get; set; } = "";
 
+        /// <summary>Arrivi e partenze sono definiti rispetto a uno scalo: senza, la sezione non si salva.</summary>
+        public bool Ready => !AirportRequiredKind(Kind) || Airports.Count > 0;
+
         public void Reset()
         {
-            Kind = TransferFlowKind.Arrival; Description = "";
-            SideA.Clear(); SideB.Clear(); SideAText = ""; SideBText = "";
+            Kind = TransferFlowKind.Arrival; Direction = AgreementDirection.AtoB; Description = "";
             Airports.Clear(); AirportText = ""; AirportName = "";
         }
 
-        public void LoadFrom(AgreementRow a)
+        public void LoadFrom(AgreementSectionRow s)
         {
             Reset();
-            Kind = a.TrafficKind;
-            Description = a.Description ?? "";
-            SideA.AddRange(a.Parties.Where(p => p.Side == AgreementSide.A).OrderBy(p => p.Order).Select(p => p.Callsign));
-            SideB.AddRange(a.Parties.Where(p => p.Side == AgreementSide.B).OrderBy(p => p.Order).Select(p => p.Callsign));
-            Airports.AddRange(a.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)));
+            Kind = s.Kind; Direction = s.Direction; Description = s.Description ?? "";
+            Airports.AddRange(s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)));
         }
     }
 
-    private readonly HeaderForm _newForm = new();
-    private readonly HeaderForm _editForm = new();
+    private readonly SectionForm _sectionForm = new();
 
-    /// <summary>L'accordo di cui si sta modificando l'intestazione in-place; null = nessuno.</summary>
-    private int? _editHeaderId;
+    /// <summary>L'accordo in cui si sta creando una sezione; null = nessuna creazione in corso.</summary>
+    private int? _newSectionFor;
+
+    /// <summary>La sezione di cui si sta modificando l'intestazione; null = nessuna.</summary>
+    private int? _editSectionId;
 
     // ---- Form della CLAUSOLA ------------------------------------------------------------------------
     // Come prima, un tipo solo in due istanze. Rispetto alla riga di ieri manca il RICEVENTE: è dell'accordo.
@@ -533,14 +565,16 @@
 
     private readonly ClauseForm _addClause = new();
     private readonly ClauseForm _editClause = new();
-    private int? _addClauseAgreementId;
+
+    /// <summary>La SEZIONE in cui sta nascendo una clausola: è la tabella che la ospiterà.</summary>
+    private int? _addClauseSectionId;
     private int? _editClauseId;
 
     /// <summary>Il form aperto adesso: la modifica vince sull'aggiunta, come nell'ordine in cui li si apre.</summary>
-    private ClauseForm? _clauseForm => _editClauseId is not null ? _editClause : _addClauseAgreementId is not null ? _addClause : null;
+    private ClauseForm? _clauseForm => _editClauseId is not null ? _editClause : _addClauseSectionId is not null ? _addClause : null;
 
-    /// <summary>Piste reali degli aeroporti dell'accordo in editing (opzioni condizione «Pista»). Un accordo può
-    /// avere più scali: le piste si uniscono, e quando gli scali sono più d'uno la sigla porta il suo ICAO —
+    /// <summary>Piste reali degli aeroporti della SEZIONE in editing (opzioni condizione «Pista»). Una sezione
+    /// può avere più scali: le piste si uniscono, e quando gli scali sono più d'uno la sigla porta il suo ICAO —
     /// «16R» su due aeroporti diversi sono due piste diverse.</summary>
     private IReadOnlyList<RunwayOption> _condRunways = Array.Empty<RunwayOption>();
 
@@ -557,22 +591,17 @@
 
     /// <summary>Un filtro attivo espande l'albero: quello che resta va visto, non ricercato a mano cliccando.</summary>
     private bool _filtering =>
-        !string.IsNullOrWhiteSpace(_filter) || _kindFilter is not null || _toReviewOnly || _noReceiverOnly;
+        !string.IsNullOrWhiteSpace(_filter) || _kindFilter is not null || _toReviewOnly;
 
     private bool _toReviewOnly;
-    private bool _noReceiverOnly;
 
     /// <summary>
-    /// I due filtri diagnostici parlano di CLAUSOLE (o di accordi interi, per il ricevente): accendendoli si
-    /// vuole vedere quelle righe, non l'accordo che le contiene insieme a tutte le altre. Per questo
-    /// l'accensione porta direttamente in elenco.
+    /// Il filtro diagnostico parla di CLAUSOLE: accendendolo si vogliono vedere quelle righe, non l'accordo che
+    /// le contiene insieme a tutte le altre. Per questo l'accensione porta direttamente in elenco.
+    /// <para>⚠️ Il filtro «senza ricevente» che gli stava accanto non c'è più: quella condizione non può più
+    /// esistere (i due capi sono colonne NOT NULL), e un filtro che non trova mai niente insegna a non
+    /// guardare i filtri.</para>
     /// </summary>
-    private void ToggleNoReceiverFilter()
-    {
-        _noReceiverOnly = !_noReceiverOnly;
-        if (_noReceiverOnly) SetView(XferView.Flat);
-    }
-
     private void ToggleToReviewFilter()
     {
         _toReviewOnly = !_toReviewOnly;
@@ -581,7 +610,7 @@
 
     private void ResetFilters()
     {
-        _filter = string.Empty; _kindFilter = null; _toReviewOnly = false; _noReceiverOnly = false;
+        _filter = string.Empty; _kindFilter = null; _toReviewOnly = false;
     }
 
     // ---- Cruscotto delle lacune ---------------------------------------------------------------------
@@ -601,26 +630,27 @@
 
     private string GapLabel(AgreementGapKind k) => k switch
     {
-        AgreementGapKind.NoReceiver => L["Xfer_GapNoReceiver"],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapAsymmetric"],
-        AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApart"],
-        AgreementGapKind.SameRelationSplit => L["Xfer_GapSplitRelation"],
+        AgreementGapKind.MissingReverse => L["Xfer_GapMissingReverse"],
+        AgreementGapKind.TwinSections => L["Xfer_GapTwinSections"],
         AgreementGapKind.ToReview => L["Xfer_ToReview"],
+        AgreementGapKind.EmptySection => L["Xfer_GapEmptySection"],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbour"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirport"],
         _ => L["Xfer_GapSector"],
     };
 
-    /// <summary>Il colore dice la gravita': rosso = succede adesso, giallo = una verita' a meta', neutro = una
-    /// scrittura che manca.</summary>
+    /// <summary>Il colore dice la gravita': giallo = una verita' a meta', neutro = una scrittura che manca.
+    /// <para>⚠️ Il rosso non c'è più, e non è una svista: la voce che lo portava era «accordo senza ricevente»,
+    /// cioè il traffico che finisce a UNICOM ADESSO. Dal 18 agosto 2026 non può più esistere — i due capi sono
+    /// colonne NOT NULL — e tenere il colore per qualcos'altro sarebbe alzare la voce a tutte le altre.</para></summary>
     private static string GapPill(AgreementGapKind k) => k switch
     {
         // Le classi sono quelle del tema, non inventate qui: «future» e' l'unica gialla che esiste, e la usa
         // gia' la pill di una release programmata. Un colore nuovo per questa tabella sarebbe un secondo
         // vocabolario di gravita' accanto a quello che il resto del sito ha gia'.
-        AgreementGapKind.NoReceiver => "future",
-        AgreementGapKind.AsymmetricDirections or AgreementGapKind.ToReview
-            or AgreementGapKind.ReverseInSeparateAgreement or AgreementGapKind.SameRelationSplit => "grey",
+        AgreementGapKind.AsymmetricDirections or AgreementGapKind.MissingReverse => "future",
+        AgreementGapKind.ToReview or AgreementGapKind.TwinSections or AgreementGapKind.EmptySection => "grey",
         _ => "neutral",
     };
 
@@ -628,44 +658,37 @@
     /// e questa pagina esiste anche in inglese.</summary>
     private string GapDetail(AgreementGap g) => g.Kind switch
     {
-        AgreementGapKind.NoReceiver or AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
+        AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapOnlyOneWay", string.Join(", ", g.Items)],
-        AgreementGapKind.ReverseInSeparateAgreement => L["Xfer_GapReverseApartDetail", g.Count],
-        AgreementGapKind.SameRelationSplit => L["Xfer_GapSplitRelationDetail", g.Count],
+        AgreementGapKind.MissingReverse => L["Xfer_GapMissingReverseDetail", g.Count],
+        AgreementGapKind.TwinSections => L["Xfer_GapTwinSectionsDetail", g.Count],
+        AgreementGapKind.EmptySection => L["Xfer_GapEmptySectionDetail"],
         AgreementGapKind.NeighbourWithoutAgreement => L["Xfer_GapNeighbourDetail"],
         AgreementGapKind.AirportWithoutArrivals => L["Xfer_GapAirportDetail"],
         _ => L["Xfer_GapSectorDetail"],
     };
 
-    private void GoToGap(int agreementId)
+    /// <summary>Apre l'accordo della lacuna, e — se la lacuna è di una sezione — apre anche quella.</summary>
+    private void GoToGap(AgreementGap g)
     {
+        if (g.AgreementId is not int id) return;
         SetView(XferView.Tree);
-        SelectAgreement(agreementId);
+        SelectAgreement(id);
+        if (g.SectionId is int sec)
+        {
+            _collapsedSections.Remove(sec);
+            _focusSectionId = sec;
+        }
         _gapsOpen = false;
     }
 
-    // ---- Il reciproco scritto a parte ---------------------------------------------------------------
-
-    /// <summary>La coppia da unire che riguarda questo accordo, se c'è. Il calcolo è la funzione pura di
-    /// <c>AgreementMerge</c>: la stessa che alimenta la voce del cruscotto, non un secondo giudizio.</summary>
-    private ReverseAgreementPair? MergeCandidateFor(AgreementRow a) =>
-        AgreementMerge.Candidates(_agreements, _lens)
-            .FirstOrDefault(p => p.KeepId == a.Id || p.AbsorbId == a.Id);
-
-    /// <summary>Unisce i due versi. <b>Irreversibile riga per riga</b> — due accordi diventano uno — quindi passa
-    /// dalla conferma in linea, e dopo si apre quello che resta: lasciare a schermo un accordo cancellato sarebbe
-    /// il modo più rapido di far credere che l'unione non sia avvenuta.</summary>
-    private async Task AbsorbReverse(ReverseAgreementPair pair)
+    /// <summary>Unisce due sezioni gemelle. <b>Irreversibile riga per riga</b> — due tabelle diventano una —
+    /// quindi passa dalla conferma in linea.</summary>
+    private async Task MergeSections(int keepId, int absorbId)
     {
         var n = 0;
-        await Guarded(async () =>
-        {
-            n = await Agreements.AbsorbAsReverseAsync(_acc!.Code, pair.KeepId, pair.AbsorbId);
-        }, null);
-        if (_error is not null) return;
-
-        _status = string.Format(L["Xfer_Merged"].Value, n);
-        SelectAgreement(pair.KeepId);
+        await Guarded(async () => { n = await Agreements.MergeSectionsAsync(_acc!.Code, keepId, absorbId); }, null);
+        if (_error is null) _status = string.Format(L["Xfer_Merged"].Value, n);
     }
 
     // ---- Selezione multipla e modifica in blocco ----
@@ -714,8 +737,9 @@
 
         // Fotografia prima, annulla armato dopo, e solo se è andata.
         var snaps = _agreements
-            .SelectMany(a => a.Clauses.Where(c => _selected.Contains(c.Id))
-                              .Select(c => new AgreementClauseRestore(a.Id, SnapshotOf(c))))
+            .SelectMany(a => a.Sections)
+            .SelectMany(sec => sec.Clauses.Where(c => _selected.Contains(c.Id))
+                                  .Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))))
             .ToList();
 
         var n = 0;
@@ -764,14 +788,24 @@
 
     // ---- Costruzione di ciò che si vede -------------------------------------------------------------
 
+    /// <summary>La sezione a fuoco, col suo accordo: è dove finisce una clausola nuova.</summary>
+    private (AgreementRow Agreement, AgreementSectionRow Section)? FocusSection()
+    {
+        if (_focusSectionId is not int id) return null;
+        foreach (var a in _agreements)
+            foreach (var sec in a.Sections)
+                if (sec.Id == id) return (a, sec);
+        return null;
+    }
+
     private AgreementRow? SelectedAgreement() =>
         _selectedId is int id ? _agreements.FirstOrDefault(a => a.Id == id) : null;
 
-    /// <summary>Le clausole di <b>un verso</b> di un accordo, nell'ordine della vista.</summary>
-    private IReadOnlyList<XferTableRow> RowsFor(AgreementRow a, AgreementDirection d)
+    /// <summary>Le clausole di <b>una sezione</b>, nell'ordine della vista.</summary>
+    private IReadOnlyList<XferTableRow> RowsFor(AgreementRow a, AgreementSectionRow s)
     {
-        var clauses = SortedClauses(a.Clauses.Where(c => c.Direction == d).ToList());
-        return BuildRows(clauses.Select(c => (a, c)).ToList());
+        var clauses = SortedClauses(s.Clauses);
+        return BuildRows(clauses.Select(c => (Agreement: a, Section: s, Clause: c)).ToList());
     }
 
     private IReadOnlyList<AgreementClauseRow> SortedClauses(IReadOnlyList<AgreementClauseRow> clauses) => _sort switch
@@ -783,33 +817,30 @@
 
     /// <summary>
     /// Tutte le clausole degli accordi mostrati, per la vista a elenco.
-    /// <para>Qui i due filtri diagnostici valgono davvero <b>sulle clausole</b>: in albero possono solo
-    /// restringere gli accordi, e un accordo con una clausola da rivedere su otto continuava a mostrarne otto.</para>
+    /// <para>Qui il filtro «da rivedere» vale davvero <b>sulle clausole</b>: in albero può solo restringere gli
+    /// accordi, e un accordo con una clausola da rivedere su otto continuava a mostrarne otto.</para>
     /// </summary>
     private IReadOnlyList<XferTableRow> FlatRows(IReadOnlyList<AgreementRow> agreements)
     {
-        var pairs = agreements
-            .SelectMany(a => a.Clauses.Select(c => (Agreement: a, Clause: c)))
-            .Where(x => !_noReceiverOnly || NoReceiver(x.Agreement))
-            .Where(x => !_toReviewOnly || NeedsReview(x.Agreement, x.Clause));
+        var triples = agreements
+            .SelectMany(a => a.Sections.SelectMany(s => s.Clauses.Select(c => (Agreement: a, Section: s, Clause: c))))
+            .Where(x => !_toReviewOnly || NeedsReview(x.Agreement, x.Section, x.Clause));
 
-        // «Manuale» in elenco non può essere l'ordine dell'outline (è per accordo e per verso): è l'ordine
-        // dell'albero appiattito — controparte, tipo, aeroporti — e dentro l'accordo l'outline vero.
-        var ordered = pairs
+        // «Manuale» in elenco non può essere l'ordine dell'outline (è per sezione): è l'ordine dell'albero
+        // appiattito — controparte, sezione — e dentro la sezione l'outline vero.
+        var ordered = triples
             .OrderBy(x => CounterpartLabel(x.Agreement), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(x => x.Agreement.TrafficKind)
-            .ThenBy(x => XferLabels.Airports(x.Agreement), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(x => x.Clause.Direction)
+            .ThenBy(x => x.Section.Order)
             .ThenBy(x => x.Clause.Order);
 
         ordered = _sort switch
         {
             RowSort.Points => Direct(ordered, x => string.IsNullOrWhiteSpace(x.Clause.Cops) ? "~" : x.Clause.Cops),
             RowSort.Level => Direct(ordered, x => (x.Clause.LevelValue ?? int.MaxValue).ToString("D6")),
-            RowSort.Sender => Direct(ordered, x => SenderLabel(x.Agreement, x.Clause)),
-            RowSort.Receiver => Direct(ordered, x => ReceiverLabel(x.Agreement, x.Clause)),
-            RowSort.Airport => Direct(ordered, x => XferLabels.Airports(x.Agreement)),
-            RowSort.Kind => Direct(ordered, x => XferLabels.Kind(L, x.Agreement.TrafficKind)),
+            RowSort.Sender => Direct(ordered, x => XferLabels.Sender(x.Agreement, x.Section)),
+            RowSort.Receiver => Direct(ordered, x => XferLabels.Receiver(x.Agreement, x.Section)),
+            RowSort.Airport => Direct(ordered, x => x.Section.AirportsLabel),
+            RowSort.Kind => Direct(ordered, x => XferLabels.Kind(L, x.Section.Kind)),
             _ => ordered,
         };
 
@@ -819,22 +850,22 @@
     /// <summary>Applica la chiave scelta <b>sopra</b> l'ordine di base, nel verso corrente. Il confronto è per
     /// stringa anche sul livello (imbottito a sei cifre): una chiave sola tiene insieme i casi, e un numero
     /// ordinato come testo con la stessa larghezza si ordina come numero.</summary>
-    private IOrderedEnumerable<(AgreementRow Agreement, AgreementClauseRow Clause)> Direct(
-        IOrderedEnumerable<(AgreementRow Agreement, AgreementClauseRow Clause)> rows,
-        Func<(AgreementRow Agreement, AgreementClauseRow Clause), string> key) =>
+    private IOrderedEnumerable<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> Direct(
+        IOrderedEnumerable<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> rows,
+        Func<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause), string> key) =>
         _sortDesc
             ? rows.OrderByDescending(key, StringComparer.OrdinalIgnoreCase)
             : rows.OrderBy(key, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Le righe pronte da rendere: blocco di varianti, anteprima e riassunto della faccetta composti.</summary>
-    private List<XferTableRow> BuildRows(IReadOnlyList<(AgreementRow Agreement, AgreementClauseRow Clause)> src)
+    private List<XferTableRow> BuildRows(IReadOnlyList<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> src)
     {
         var rows = new List<XferTableRow>(src.Count);
         for (var i = 0; i < src.Count; i++)
         {
-            var (a, c) = src[i];
-            rows.Add(new XferTableRow(a, c, GroupViewOf(src, i),
-                                      _showPreviews ? PreviewOf(a, c) : null, FacetSummary(c)));
+            var (a, s, c) = (src[i].Agreement, src[i].Section, src[i].Clause);
+            rows.Add(new XferTableRow(a, s, c, GroupViewOf(src, i),
+                                      _showPreviews ? PreviewOf(a, s, c) : null, FacetSummary(c)));
         }
         return rows;
     }
@@ -844,35 +875,31 @@
     /// <para>Apertura e chiusura si calcolano sull'ordine <b>mostrato</b> — la guida deve chiudersi dove il
     /// blocco finisce a schermo — mentre il padre si legge sull'ordine <b>salvato</b>: quello è la struttura, e
     /// ordinare la vista non la cambia.</para>
-    /// <para>⚠️ Due righe adiacenti stanno nello stesso blocco solo se vengono dallo stesso accordo <b>e dallo
-    /// stesso verso</b>: il numero di gruppo è progressivo per accordo, e in elenco due gruppi diversi si
-    /// toccano davvero — senza questo controllo si fonderebbero in un blocco che non esiste.</para>
+    /// <para>⚠️ Due righe adiacenti stanno nello stesso blocco solo se vengono dalla stessa <b>sezione</b>: il
+    /// numero di gruppo è progressivo per accordo, e in elenco due gruppi di sezioni diverse si toccano davvero
+    /// — senza questo controllo si fonderebbero in un blocco che non esiste.</para>
     /// </summary>
-    private static XferGroupView GroupViewOf(IReadOnlyList<(AgreementRow Agreement, AgreementClauseRow Clause)> shown, int ix)
+    private static XferGroupView GroupViewOf(IReadOnlyList<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> shown, int ix)
     {
-        var (a, c) = shown[ix];
+        var (s, c) = (shown[ix].Section, shown[ix].Clause);
         if (c.VariantGroup is not int g) return XferGroupView.None;
 
         bool SameBlock(int j) =>
-            j >= 0 && j < shown.Count && shown[j].Agreement.Id == a.Id
-            && shown[j].Clause.Direction == c.Direction && shown[j].Clause.VariantGroup == g;
+            j >= 0 && j < shown.Count && shown[j].Section.Id == s.Id && shown[j].Clause.VariantGroup == g;
 
-        var siblings = a.Clauses.Where(x => x.Direction == c.Direction).OrderBy(x => x.Order).ToList();
+        var siblings = s.Clauses.OrderBy(x => x.Order).ToList();
         var count = siblings.Count(x => x.VariantGroup == g);
         return new XferGroupView(true, !SameBlock(ix - 1), !SameBlock(ix + 1), g % 2 == 1, count, c.VariantDepth,
                                  Outline.ParentOf(siblings, c));
     }
 
     /// <summary>
-    /// L'albero del navigatore: <b>ACC della controparte ▸ relazione (noi ⇄ loro) ▸ accordo</b>, con gli avvisi
-    /// già contati.
+    /// L'albero del navigatore: <b>ACC della controparte ▸ accordo</b>, con gli avvisi già contati.
+    /// <para>Due livelli e non tre: la relazione <i>è</i> l'accordo — ce n'è uno solo per coppia — e il livello
+    /// che stava in mezzo è sparito con la ragione che lo teneva in piedi.</para>
     /// <para>La chiave del ramo è l'ACC dell'<b>altro capo letto dalla lente</b>, non il lato B: per i 13 accordi
     /// di LIBB (10 su 11 di LIRR) in cui la ACC aperta <i>è</i> il lato B, il ramo prendeva il nome dei nostri
     /// stessi settori.</para>
-    /// <para>Il secondo livello è la <b>coppia</b> e non il solo ente lontano, perché l'identità di un accordo è
-    /// «due parti · tipo · gruppo di aeroporti» — la tripla di <c>AgreementMerge</c>. Sotto la coppia le foglie
-    /// si distinguono per tipo e aeroporti, che è ciò che resta della tripla: due foglie identiche sotto la
-    /// stessa coppia <b>sono</b> la «relazione spezzata» del cruscotto.</para>
     /// </summary>
     private IReadOnlyList<XferNavCounterpart> BuildNav(IReadOnlyList<AgreementRow> agreements) =>
         agreements.GroupBy(NavKey, StringComparer.OrdinalIgnoreCase)
@@ -881,31 +908,38 @@
                 NavGroupLabel(g.First()),
                 NavGroupNote(g.First()),
                 NavGroupOrder(g.First()),
-                g.GroupBy(RelationKey, StringComparer.OrdinalIgnoreCase)
-                 // L'ordine è per CONTROPARTE e poi per il nostro capo: è il nome che si sta cercando, e il
-                 // nostro lato è quasi sempre lo stesso su tutte le relazioni di una ACC.
-                 .OrderBy(e => FarLabel(e.First()), StringComparer.OrdinalIgnoreCase)
-                 .ThenBy(e => NearLabel(e.First()), StringComparer.OrdinalIgnoreCase)
-                 .Select(e => new XferNavRelation(
-                     NearLabel(e.First()), FarLabel(e.First()),
-                     e.OrderBy(a => a.TrafficKind).ThenBy(a => XferLabels.Airports(a), StringComparer.OrdinalIgnoreCase)
-                      .Select(NavAgreement).ToList()))
+                // L'ordine è per CONTROPARTE e poi per il nostro capo: è il nome che si sta cercando, e il
+                // nostro lato è quasi sempre lo stesso su tutte le relazioni di una ACC.
+                g.Select(NavAgreement)
+                 .OrderBy(a => a.Far, StringComparer.OrdinalIgnoreCase)
+                 .ThenBy(a => a.Near, StringComparer.OrdinalIgnoreCase)
                  .ToList()))
-            // I due casi particolari — accordi interni e accordi senza controparte — stanno in fondo: sono
+            // I due casi particolari — accordi interni e controparti fuori catalogo — stanno in fondo: sono
             // elenchi brevi, e non sono un confine con cui si lavora.
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Label, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    private XferNavAgreement NavAgreement(AgreementRow a)
-    {
-        var o = _lens.Orient(a);
-        return new XferNavAgreement(
-            a.Id, a.TrafficKind, XferLabels.Airports(a), a.Description,
-            a.Clauses.Count(c => c.Direction == o.Outbound),
-            a.Clauses.Count(c => c.Direction == o.Inbound),
-            NoReceiver(a),
-            a.Clauses.Count(c => NeedsReview(a, c)));
-    }
+    private XferNavAgreement NavAgreement(AgreementRow a) =>
+        new(a.Id, _lens.Near(a), _lens.Far(a), a.Note,
+            a.Sections.Count,
+            a.Sections.Sum(s => s.Clauses.Count),
+            MissingReverseCount(a),
+            a.Sections.Sum(s => s.Clauses.Count(c => NeedsReview(a, s, c))));
+
+    /// <summary>Quante sezioni hanno un reciproco che avrebbe senso e non è scritto. Solo dove il reciproco
+    /// esiste davvero: un arrivo non ne ha uno — il traffico scende verso lo scalo e basta.</summary>
+    private static int MissingReverseCount(AgreementRow a) =>
+        a.Sections.Count(s => Mirrorable(s.Kind) && s.Clauses.Count > 0 && ReverseOf(a, s) is null);
+
+    /// <summary>La sezione speculare: stesso traffico, stessi scali, verso opposto.</summary>
+    private static AgreementSectionRow? ReverseOf(AgreementRow a, AgreementSectionRow s) =>
+        a.Sections.FirstOrDefault(x => x.Id != s.Id && x.Kind == s.Kind && x.Direction != s.Direction
+                                       && string.Equals(x.AirportsLabel, s.AirportsLabel, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Il traffico ha un reciproco: sorvoli, VFR, altro. Arrivi e partenze no — il loro «contrario» è
+    /// una sezione di tipo diverso, e per quella l'accostamento per aeroporto basta a farla vedere.</summary>
+    private static bool Mirrorable(TransferFlowKind k) =>
+        k is not (TransferFlowKind.Arrival or TransferFlowKind.Departure);
 
     /// <summary>La chiave di collasso: l'ACC della controparte. Deve essere <b>stabile</b>, perché i nodi chiusi
     /// vivono in un insieme di chiavi e un'etichetta localizzata cambierebbe albero cambiando lingua.</summary>
@@ -925,78 +959,48 @@
     private int NavGroupOrder(AgreementRow a) =>
         _lens.Orient(a).IsInternal ? 1 : _lens.FarAccCode(a) is { Length: > 0 } ? 0 : 2;
 
-    /// <summary>Come si legge la controparte di un accordo: gli enti dell'<b>altro capo rispetto a noi</b>, o
-    /// l'avviso che non c'è nessuno.</summary>
-    private string CounterpartLabel(AgreementRow a)
-    {
-        var far = _lens.Far(a);
-        return far.Count > 0 ? string.Join(" · ", far) : L["Xfer_NoCounterpart"];
-    }
+    /// <summary>Come si legge la controparte di un accordo: l'<b>altro capo rispetto a noi</b>.</summary>
+    private string CounterpartLabel(AgreementRow a) => _lens.Far(a);
 
     /// <summary>Il nostro capo dell'accordo, come si legge.</summary>
-    private string NearLabel(AgreementRow a) => Dash(string.Join(" · ", _lens.Near(a)));
-
-    /// <summary>
-    /// La controparte nell'intestazione della <b>relazione</b>: gli enti, o <b>UNICOM</b> — che è dove il
-    /// traffico finisce davvero.
-    /// <para>Diverso da <see cref="CounterpartLabel"/>, che dice «senza ricevente», e la differenza è voluta: al
-    /// livello dell'ACC quello è il <i>nome del ramo</i> («qui stanno gli accordi senza nessuno»), mentre in una
-    /// coppia serve l'altro capo — e l'altro capo, quando non c'è nessuno, è UNICOM. Reso in maiuscoletto,
-    /// «— SENZA RICEVENTE» urlava dentro una riga che dovrebbe leggersi come due callsign.</para>
-    /// </summary>
-    private string FarLabel(AgreementRow a)
-    {
-        var far = _lens.Far(a);
-        return far.Count > 0 ? string.Join(" · ", far) : L["Xfer_Unicom"];
-    }
-
-    /// <summary>
-    /// La chiave del secondo livello: la <b>coppia</b> di enti, nel verso in cui si legge.
-    /// <para>È mezza tripla dell'identità di un accordo («due parti · tipo · gruppo di aeroporti»); l'altra metà
-    /// distingue le foglie sotto di lei. Il solo ente lontano — che era la chiave prima — non basta: sugli
-    /// accordi interni è un nostro settore, e compariva come se fosse la controparte.</para>
-    /// </summary>
-    private string RelationKey(AgreementRow a) => $"{NearLabel(a)}|{FarLabel(a)}";
-
-    private static string SenderLabel(AgreementRow a, AgreementClauseRow c) =>
-        XferLabels.Side(a, c.Direction == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);
-
-    private static string ReceiverLabel(AgreementRow a, AgreementClauseRow c) =>
-        XferLabels.Side(a, c.Direction == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A);
-
-    /// <summary>L'accordo non ha nessuno che riceva: il traffico finisce a UNICOM e la derivazione lo scarta.</summary>
-    private static bool NoReceiver(AgreementRow a) => a.Parties.All(p => p.Side != AgreementSide.B);
+    private string NearLabel(AgreementRow a) => _lens.Near(a);
 
     /// <summary>
     /// Una clausola «da rivedere» consegna a un APP e non dice ancora dove avviene il trasferimento. Prima
     /// della faccetta quel dato non esisteva, quindi il suo livello poteva voler dire due cose diverse
     /// (autorizzato o al trasferimento) e solo chi l'ha scritta lo sa: vanno riaperte a mano.
     /// </summary>
-    private bool NeedsReview(AgreementRow a, AgreementClauseRow c)
+    private bool NeedsReview(AgreementRow a, AgreementSectionRow s, AgreementClauseRow c)
     {
         if (c.HandoffKind != TransferHandoffKind.Unspecified) return false;
-        var side = c.Direction == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A;
-        return a.Parties.Where(p => p.Side == side)
-            .Any(p => _all.FirstOrDefault(s => s.Id == p.SectorId)?.Type == SectorType.App);
+        var receiver = a.Receiver(s.Direction);
+        return _all.FirstOrDefault(x => x.Id == receiver.SectorId)?.Type == SectorType.App;
     }
 
-    private int ToReviewCount() => _agreements.Sum(a => a.Clauses.Count(c => NeedsReview(a, c)));
+    private int ToReviewCount() =>
+        _agreements.Sum(a => a.Sections.Sum(s => s.Clauses.Count(c => NeedsReview(a, s, c))));
 
-    /// <summary>Accordi filtrati per testo (parti/aeroporti/descrizione/punti), tipo e filtri diagnostici.</summary>
+    /// <summary>Accordi filtrati per testo (capi/aeroporti/nota/punti), tipo di traffico e «da rivedere».</summary>
     private IReadOnlyList<AgreementRow> FilteredAgreements()
     {
         var q = _filter.Trim();
         return _agreements.Where(a =>
-            (_kindFilter is null || a.TrafficKind == _kindFilter)
-            && (!_toReviewOnly || a.Clauses.Any(c => NeedsReview(a, c)))
-            && (!_noReceiverOnly || NoReceiver(a))
+            (_kindFilter is null || a.Sections.Any(s => s.Kind == _kindFilter))
+            && (!_toReviewOnly || a.Sections.Any(s => s.Clauses.Any(c => NeedsReview(a, s, c))))
             && (q.Length == 0
-                || a.Parties.Any(p => p.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase))
-                || a.Airports.Any(x => x.Icao.Contains(q, StringComparison.OrdinalIgnoreCase))
-                || (a.Description?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
-                || a.Clauses.Any(c => c.Cops.Contains(q, StringComparison.OrdinalIgnoreCase))))
+                || a.SideA.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || a.SideB.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || (a.Note?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                || a.Sections.Any(s => s.Airports.Any(x => x.Icao.Contains(q, StringComparison.OrdinalIgnoreCase))
+                                       || (s.Description?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                                       || s.Clauses.Any(c => c.Cops.Contains(q, StringComparison.OrdinalIgnoreCase)))))
             .ToList();
     }
+
+    /// <summary>Le sezioni dell'accordo che passano il filtro per tipo: in albero il filtro restringe ciò che si
+    /// vede dentro l'accordo, non solo quali accordi compaiono.</summary>
+    private IReadOnlyList<AgreementSectionRow> VisibleSections(AgreementRow a) =>
+        _kindFilter is null ? a.Sections : a.Sections.Where(s => s.Kind == _kindFilter).ToList();
 
     // ---- Colonna 2: il riquadro di lavoro -----------------------------------------------------------
 
@@ -1020,16 +1024,14 @@
             <div class="xt-pane-h">
                 <b>@L["Xfer_ViewFlat"]</b>
                 <span class="muted xt-hint">@(string.Format(L["Xfer_ClausesCount"].Value, rows.Count))</span>
-                @* «+ Clausola» compare quando un accordo È scelto — la scelta si conserva passando da albero a
-                   elenco. Senza un accordo non compare: una clausola deve appartenere a uno, e chiederlo con un
-                   secondo selettore sarebbe un giro più lungo del tornare all'albero (che è il tasto ↗). *@
-                @if (SelectedAgreement() is { } target)
+                @* «+ Clausola» compare quando una SEZIONE è a fuoco — la si porta dietro passando da albero a
+                   elenco. Senza, non comparirebbe: una clausola appartiene a una tabella, e chiedere quale con
+                   un secondo selettore sarebbe un giro più lungo del tornare all'albero (che è il tasto ↗). *@
+                @if (FocusSection() is { } target)
                 {
                     <span class="ln xt-grow"></span>
-                    <span class="muted xt-hint">@CounterpartLabel(target) · @KindLabel(target.TrafficKind)</span>
-                    @* In elenco non c'è un blocco che dica il verso: si usa quello dell'ultima cosa toccata, che
-                       è il verso della riga da cui si è arrivati qui. *@
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(target, _focusDirection)">+ @L["Xfer_AddClause"]</button>
+                    <span class="muted xt-hint">@CounterpartLabel(target.Agreement) · @XferLabels.Section(L, target.Section)</span>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenAddClause(target.Agreement, target.Section)">+ @L["Xfer_AddClause"]</button>
                 }
             </div>
             <div class="xt-pane-body">
@@ -1049,14 +1051,13 @@
         {
             @PaneHead(L["Xfer_NewAgreement"].Value, null, EventCallback.Factory.Create(this, CloseNew))
             <div class="xt-pane-body">
-                @HeaderFields(_newForm, isNew: true)
+                @PairFields(_newPair)
                 <div class="xt-foot">
-                    @* Servono i DUE capi: un accordo con un lato solo non compare in nessun documento, e prima si
-                       poteva creare. Il suggerimento dice quale manca invece di un «compila i campi» generico. *@
-                    <button class="btn primary" disabled="@(_busy || !_canEdit || !_newForm.HasBothSides)" @onclick="AddAgreement">+ @L["Xfer_Agreement"]</button>
-                    @if (_canEdit && _newForm.SideA.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectSenderHint"]</span> }
-                    else if (_canEdit && _newForm.SideB.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectReceiverHint"]</span> }
-                    else if (_canEdit && AirportRequiredMissing(_newForm)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                    @* Servono i DUE capi: un accordo è una relazione, e con un capo solo non lo è. Il
+                       suggerimento dice quale manca invece di un «compila i campi» generico. *@
+                    <button class="btn primary" disabled="@(_busy || !_canEdit || !_newPair.HasBothSides)" @onclick="AddAgreement">+ @L["Xfer_Agreement"]</button>
+                    @if (_canEdit && _newPair.SideA.Length == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectSenderHint"]</span> }
+                    else if (_canEdit && _newPair.SideB.Length == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectReceiverHint"]</span> }
                 </div>
                 <p class="help xt-mt0">@((MarkupString)L["Xfer_NewAgreementHelp"].Value)</p>
             </div>
@@ -1076,185 +1077,181 @@
         }
 
         var orient = _lens.Orient(ag);
-        var bilaterale = ag.Clauses.Select(c => c.Direction).Distinct().Count() > 1;
+        var sezioni = VisibleSections(ag);
 
-        @* Testata dell'accordo: i DUE CAPI uno accanto all'altro, il traffico, gli aeroporti. È la differenza
-           che si vede appena si apre: prima il mittente era nell'intestazione e il ricevente in ogni riga, e
-           per sapere con chi fosse l'accordo bisognava guardare la tabella.
-           ⚠️ L'ordine è «noi · loro», che NON è sempre «A · B»: per 13 accordi di LIBB (10 su 11 di LIRR) la ACC
-           aperta è il lato B, e leggerli nell'ordine di archivio significava leggere sé stessi come controparte. *@
+        @* Testata dell'accordo: i DUE CAPI, e basta. Il traffico non è più qui — sta nelle sezioni, una per
+           tabella — perché un accordo con arrivi, partenze e due versi di sorvoli non ha «un» tipo.
+           ⚠️ L'ordine è «noi · loro», che NON è l'ordine di archivio: i lati stanno in forma canonica (id minore
+           = A), che non significa niente per chi legge. *@
         <div class="xt-pane-h">
-            <b>@Dash(XferLabels.Side(ag, orient.NearSide))</b>
-            <span class="xt-dir">@(bilaterale ? "⇄" : "→")</span>
-            <b>@Dash(XferLabels.Side(ag, orient.FarSide))</b>
-            @* Il tipo si sceglie DA QUI: la creazione dice solo fra chi, e un accordo nasce «altro» finché
-               qualcuno non lo classifica — davanti alle sue clausole, che è dove si sa cos'è. In sola lettura
-               resta la pill di sempre. *@
-            @if (_canEdit)
-            {
-                @* ⚠️ La chiave porta l'EPOCA, non solo il tipo: se il cambio viene rifiutato (arrivi senza
-                   aeroporto) il tipo salvato non cambia, quindi l'albero di render non cambia, quindi Blazor non
-                   riscrive l'attributo e la tendina resta sulla scelta rifiutata — a schermo diceva «Arrivi» su
-                   un accordo rimasto «Altro». Cambiando la chiave l'elemento si ricrea, e torna la verità. *@
-                <select @key="(ag.Id, ag.TrafficKind, _kindEpoch)"
-                        class="xt-kindsel @(ag.TrafficKind == TransferFlowKind.Other ? "xt-unset" : "")"
-                        disabled="@_busy" title="@L["Xfer_Kind"]"
-                        value="@ag.TrafficKind" @onchange="e => ChangeKind(ag, e)">
-                    <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
-                    <option value="@TransferFlowKind.Departure">@L["Xfer_KindDeparture"]</option>
-                    <option value="@TransferFlowKind.Overflight">@L["Xfer_KindOverflight"]</option>
-                    <option value="@TransferFlowKind.Vfr">@L["Xfer_KindVfr"]</option>
-                    <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
-                </select>
-            }
-            else
-            {
-                <span class="pill blue">@KindLabel(ag.TrafficKind)</span>
-            }
+            <b>@ag.Side(orient.NearSide).Callsign</b>
+            <span class="xt-dir">⇄</span>
+            <b>@ag.Side(orient.FarSide).Callsign</b>
             @if (orient.IsInternal)
             {
                 <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
             }
-            @* Gli aeroporti si aggiungono DA QUI, sull'accordo scelto: prima l'unico modo era entrare in
-               «✎ Modifica accordo», cioè aprire un form di sei campi per toccarne uno. Il gruppo di aeroporti è
-               ciò che si mette a punto più spesso — «anche per LIBR» — e merita un gesto suo. *@
-            @AirportChips(ag)
-            @if (!string.IsNullOrWhiteSpace(ag.Description))
+            <span class="muted xt-hint">@(string.Format(L["Xfer_SectionsN"].Value, ag.Sections.Count))</span>
+            @if (!string.IsNullOrWhiteSpace(ag.Note))
             {
-                <span class="muted xt-desc" title="@ag.Description">— @ag.Description</span>
-            }
-            @if (NoReceiver(ag))
-            {
-                <span class="pill xt-warnpill" title="@L["Xfer_UnicomTitle"]">⚠ @L["Xfer_NoReceiver"]</span>
+                <span class="muted xt-desc" title="@ag.Note">— @ag.Note</span>
             }
             <span class="ln xt-grow"></span>
+            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenNewSection(ag)">+ @L["Xfer_Section"]</button>
             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenEditHeader(ag)">✎ @L["Xfer_AgreementEdit"]</button>
             <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteGroupAria"]" Disabled="@(_busy || !_canEdit)"
-                           Prompt="@(string.Format(L["Xfer_DeleteAgreementPrompt"].Value, ag.Clauses.Count))" OnConfirm="() => DeleteAgreement(ag)"><Trigger><Icon Name="x" /> @L["Xfer_AgreementDelete"]</Trigger></InlineConfirm>
+                           Prompt="@(string.Format(L["Xfer_DeleteAgreementPrompt"].Value, ag.Sections.Sum(x => x.Clauses.Count)))" OnConfirm="() => DeleteAgreement(ag)"><Trigger><Icon Name="x" /> @L["Xfer_AgreementDelete"]</Trigger></InlineConfirm>
         </div>
 
         <div class="xt-pane-body">
             @if (_editHeaderId == ag.Id)
             {
                 <div class="xt-subform">
-                    @HeaderFields(_editForm, isNew: false)
+                    @PairFields(_editPair)
                     <div class="xt-foot">
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_editForm.HasBothSides)" @onclick="() => SaveHeader(ag)">💾 @L["Common_Save"]</button>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_editPair.HasBothSides)" @onclick="() => SaveHeader(ag)">💾 @L["Common_Save"]</button>
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _editHeaderId = null">@L["Common_Cancel"]</button>
-                        @* ⚠️ Anche in modifica servono i due capi. Le due righe che in archivio non li hanno si
-                           sistemano proprio così: aprendole, il salvataggio chiede il ricevente. *@
-                        @if (_canEdit && _editForm.SideB.Count == 0) { <span class="muted xt-hint xt-selfc">@L["Xfer_SelectReceiverHint"]</span> }
-                        else if (_canEdit && AirportRequiredMissing(_editForm)) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                        @* ⚠️ Cambiare un capo può ribaltare i versi di tutte le sezioni: i lati si tengono in
+                           forma canonica, e il verso li segue. È detto qui perché non sia una sorpresa. *@
+                        <span class="muted xt-hint xt-selfc">@L["Xfer_PairEditHint"]</span>
                     </div>
                 </div>
             }
 
-            @* I punti che stanno da UN LATO SOLO. È la domanda che ha prodotto le asimmetrie vere dell'archivio
-               (BELIX di qua, OLGAT di là), e ora che i due versi sono uno sotto l'altro va detta qui invece che
-               nel cruscotto, che è il posto dove si cerca — non dove si scrive. Il conto è lo stesso della voce
-               del cruscotto: AgreementPoints, una funzione sola. *@
-            @{ var spaiati = AgreementPoints.UnpairedWithin(ag); }
-            @if (spaiati.Count > 0)
+            @if (_newSectionFor == ag.Id)
             {
-                <div class="callout xt-warn">
-                    <span class="cic">⚠</span>
-                    <div>@(string.Format(L["Xfer_UnpairedPoints"].Value, string.Join(", ", spaiati)))</div>
-                </div>
-            }
-
-            @* Il reciproco scritto in un ACCORDO A PARTE — come il travaso ha lasciato l'archivio. Va detto qui,
-               perché coi due versi a vista questo accordo mostra un verso vuoto mentre il suo contenuto sta nel
-               nodo accanto: chi guarda conclude che il reciproco manca, e lo riscrive una terza volta.
-               L'unione si vede PRIMA di scriverla — le due tabelle ci sono già, una sotto l'altra. *@
-            @if (MergeCandidateFor(ag) is { } pair)
-            {
-                var keepId = pair.KeepId;
-                var altroId = ag.Id == keepId ? pair.AbsorbId : keepId;
-                var altro = _agreements.FirstOrDefault(x => x.Id == altroId);
-                <div class="callout info xt-warn">
-                    <span class="cic">⇄</span>
-                    <div>
-                        @(string.Format(
-                            ag.Id == keepId ? L["Xfer_ReverseApartHere"].Value : L["Xfer_ReverseApartThere"].Value,
-                            altro is null ? $"#{altroId}" : DirectionPair(altro, AgreementDirection.AtoB),
-                            pair.Clauses))
+                <div class="xt-subform">
+                    <b>@L["Xfer_NewSection"]</b>
+                    @SectionFields(ag)
+                    <div class="xt-foot">
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_sectionForm.Ready)" @onclick="() => AddSection(ag)">+ @L["Xfer_Section"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _newSectionFor = null">@L["Common_Cancel"]</button>
+                        @if (_canEdit && !_sectionForm.Ready) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
                     </div>
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)"
-                            @onclick="() => GoToGap(altroId)">↗ @L["Xfer_ReverseApartOpen"]</button>
-                    @* ⚠️ L'etichetta di conferma va passata: il default di InlineConfirm è «Sì, elimina», e qui
-                       non si elimina niente — si unisce. Trovato guidando l'app, non dai test. *@
-                    <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_MergeAria"]" Disabled="@(_busy || !_canEdit)"
-                                   Prompt="@(string.Format(L["Xfer_MergePrompt"].Value, pair.Clauses))"
-                                   ConfirmLabel="@L["Xfer_MergeConfirm"]" CancelLabel="@L["Common_Cancel"]"
-                                   OnConfirm="() => AbsorbReverse(pair)"><Trigger>⇄ @L["Xfer_Merge"]</Trigger></InlineConfirm>
                 </div>
             }
 
-            @* DUE TABELLE, sempre, come EUROCONTROL Annex D.2 (D.2.1 unit1→unit2, D.2.2 unit2→unit1). Prima era
-               un interruttore, e non pagava: in archivio non esiste NESSUN accordo bilaterale, quindi il tasto
-               dell'altro verso portava sempre a una tabella vuota — e il reciproco non si scriveva proprio perché
-               non si vedeva che mancava. Il verso di casa per primo: è quello su cui si lavora. *@
-            @DirectionBlock(ag, orient.Outbound, outbound: true)
-            @DirectionBlock(ag, orient.Inbound, outbound: false)
+            @if (sezioni.Count == 0)
+            {
+                <p class="help">@(_kindFilter is not null ? L["Xfer_NoFilterMatch"] : L["Xfer_NoSectionsYet"])</p>
+            }
+
+            @* Le sezioni nell'ordine in cui si leggono — aeroporto per aeroporto (arrivi poi partenze), poi i
+               sorvoli nei due versi, poi il resto. L'ordine è IMPOSTO (AgreementSectionOrder): non è struttura
+               come l'ordine delle clausole, e lasciarlo a mano vorrebbe dire poter nascondere una partenza in
+               fondo, lontano dai suoi arrivi. *@
+            @foreach (var sec in sezioni)
+            {
+                @SectionBlock(ag, sec)
+
+                @* Il reciproco che manca si vede come un blocco VUOTO, subito sotto. È la stessa regola dei due
+                   versi sempre a vista di ferragosto: l'interruttore nascondeva ciò che mancava, e per questo il
+                   reciproco non si scriveva mai. Vale solo dove un reciproco esiste davvero — un arrivo non ne
+                   ha uno. *@
+                @if (Mirrorable(sec.Kind) && sec.Clauses.Count > 0 && ReverseOf(ag, sec) is null)
+                {
+                    @MissingReverseBlock(ag, sec)
+                }
+            }
         </div>
     };
 
     /// <summary>
-    /// Un verso dell'accordo: intestazione, avvisi, tabella, e i suoi tasti.
+    /// Una sezione dell'accordo: intestazione, avvisi, tabella, e i suoi tasti.
     ///
     /// <para>⚠️ I tasti stanno <b>in testa</b> al blocco e non a piede. Il piede-che-tiene-i-tasti è la misura
-    /// che è costata sei giri, e vale per <b>un</b> corpo che scorre: con due blocchi il piede del primo
+    /// che è costata sei giri, e vale per <b>un</b> corpo che scorre: con più blocchi il piede del primo
     /// finirebbe a metà pagina, che è peggio del problema che risolveva.</para>
-    ///
-    /// <para>Un blocco vuoto nasce comunque <b>aperto</b>: il vuoto è l'informazione — dice che il reciproco non
-    /// è scritto — e nasconderlo rifarebbe il difetto dell'interruttore.</para>
     /// </summary>
-    private RenderFragment DirectionBlock(AgreementRow ag, AgreementDirection d, bool outbound) => __builder =>
+    private RenderFragment SectionBlock(AgreementRow ag, AgreementSectionRow sec) => __builder =>
     {
-        var rows = RowsFor(ag, d);
-        var key = DirKey(ag.Id, d);
-        var open = !_collapsedDirs.Contains(key);
-        var altro = ag.Clauses.Any(c => c.Direction != d);
+        var rows = RowsFor(ag, sec);
+        var open = !_collapsedSections.Contains(sec.Id);
+        var gemella = TwinOf(ag, sec);
 
-        <section class="xt-dirblock @(outbound ? "xt-out" : "xt-in")">
+        <section class="xt-dirblock @(_lens.IsOutbound(ag, sec) ? "xt-out" : "xt-in")">
             <div class="xt-dirhead">
                 <button type="button" class="xt-dirtoggle" aria-expanded="@open"
-                        @onclick="() => ToggleDirection(key)">
+                        @onclick="() => ToggleSection(sec.Id)">
                     <span class="xt-chev">@(open ? "▾" : "▸")</span>
-                    <span class="xt-dirway">@(outbound ? L["Xfer_DirOutbound"] : L["Xfer_DirInbound"])</span>
-                    <span class="xt-dirpair">@DirectionPair(ag, d)</span>
+                    <span class="xt-dirway">@XferLabels.Kind(L, sec.Kind)</span>
+                    <span class="xt-dirpair">@DirectionPair(ag, sec)</span>
                 </button>
-                @* Il tipo del verso opposto è CALCOLATO — da un avvicinamento verso l'area salgono partenze, non
-                   arrivi — e va detto che è calcolato: passerebbe per una scelta di chi ha scritto l'accordo.
-                   Il posto dove metterlo per davvero è una colonna sulla clausola, se mai servirà. *@
-                @if (!outbound && TrafficKinds.HasDistinctReciprocal(ag.TrafficKind))
+
+                @* Il verso si CORREGGE da qui: alla creazione è una proposta (lo dice l'aeroporto), e una
+                   proposta deve poter essere smentita in un gesto. *@
+                @if (_canEdit)
                 {
-                    <span class="pill neutral xt-dirkind" title="@L["Xfer_ReciprocalKindTitle"]">
-                        @KindLabel(TrafficKinds.Reciprocal(ag.TrafficKind)) *
-                    </span>
+                    <button class="btn ghost xt-flip" disabled="@_busy" title="@L["Xfer_FlipDirectionTitle"]"
+                            @onclick="() => FlipDirection(sec)">⇄</button>
                 }
+
+                @AirportChips(ag, sec)
+
                 <span class="muted xt-hint">@(string.Format(L["Xfer_ClausesCount"].Value, rows.Count))</span>
                 <span class="ln xt-grow"></span>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)"
-                        @onclick="() => OpenAddClause(ag, d)">+ @L["Xfer_AddClause"]</button>
+                        @onclick="() => OpenAddClause(ag, sec)">+ @L["Xfer_AddClause"]</button>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
-                        @onclick="() => TogglePaste(ag, d)">⎘ @L["Xfer_Paste"]</button>
-                @* Copiare il verso è un PUNTO DI PARTENZA, non un «rendi bilaterale»: i livelli dei due versi
-                   sono quasi sempre diversi, e indovinarli sarebbe scrivere un accordo che nessuno ha concordato.
-                   Compare solo dove serve: questo verso vuoto, l'altro no. *@
-                @if (rows.Count == 0 && altro)
-                {
-                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CopyDirectionTitle"]"
-                            @onclick="() => CopyDirection(ag, d)">⇄ @L["Xfer_CopyDirection"]</button>
-                }
+                        @onclick="() => TogglePaste(sec)">⎘ @L["Xfer_Paste"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SectionEditTitle"]"
+                        @onclick="() => OpenEditSection(sec)">✎</button>
+                <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
+                               Prompt="@(string.Format(L["Xfer_SectionDeletePrompt"].Value, sec.Clauses.Count))"
+                               OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             </div>
+
+            @if (_editSectionId == sec.Id)
+            {
+                <div class="xt-subform">
+                    @SectionFields(ag)
+                    <div class="xt-foot">
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_sectionForm.Ready)" @onclick="() => SaveSection(sec)">💾 @L["Common_Save"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _editSectionId = null">@L["Common_Cancel"]</button>
+                        @if (_canEdit && !_sectionForm.Ready) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                    </div>
+                </div>
+            }
 
             @if (open)
             {
+                @* Gemelle: due sezioni che dicono la stessa cosa. È un AVVISO e non un errore (decisione del
+                   18 agosto 2026): due arrivi a LIRF che valgono a condizioni diverse si scrivono con le
+                   VARIANTI dentro una sezione sola, ma vietare la seconda non lo insegnerebbe a nessuno. *@
+                @if (gemella is not null && sec.Order < gemella.Order)
+                {
+                    <div class="callout info xt-warn">
+                        <span class="cic">⧉</span>
+                        <div>@(string.Format(L["Xfer_TwinSections"].Value, gemella.Clauses.Count))</div>
+                        @* ⚠️ L'etichetta di conferma va passata: il default di InlineConfirm è «Sì, elimina», e
+                           qui non si elimina niente — si unisce. *@
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_MergeAria"]" Disabled="@(_busy || !_canEdit)"
+                                       Prompt="@(string.Format(L["Xfer_MergePrompt"].Value, gemella.Clauses.Count))"
+                                       ConfirmLabel="@L["Xfer_MergeConfirm"]" CancelLabel="@L["Common_Cancel"]"
+                                       OnConfirm="() => MergeSections(sec.Id, gemella.Id)"><Trigger>⧉ @L["Xfer_Merge"]</Trigger></InlineConfirm>
+                    </div>
+                }
+
+                @* I punti che stanno da UN LATO SOLO fra due sezioni speculari. È la domanda che ha prodotto le
+                   asimmetrie vere dell'archivio (BELIX di qua, OLGAT di là), e ora che le due sezioni stanno
+                   nello stesso accordo si può porre qui invece che nel cruscotto — che è il posto dove si
+                   cerca, non dove si scrive. *@
+                @if (ReverseOf(ag, sec) is { } opposto && sec.Direction == AgreementDirection.AtoB)
+                {
+                    var spaiati = AgreementPoints.UnpairedBetween(sec, opposto);
+                    @if (spaiati.Count > 0)
+                    {
+                        <div class="callout xt-warn">
+                            <span class="cic">⚠</span>
+                            <div>@(string.Format(L["Xfer_UnpairedPoints"].Value, string.Join(", ", spaiati)))</div>
+                        </div>
+                    }
+                }
+
                 @* Avviso NON bloccante: un gruppo di varianti senza «negli altri casi» lascia scoperti i casi che
                    nessuna condizione copre, e chi legge non sa che fare. Può essere legittimo (le condizioni
                    possono essere esaustive), quindi si segnala, non si impedisce. *@
-                @foreach (var w in AlternativesWithoutNormalCase(ag, d))
+                @foreach (var w in AlternativesWithoutNormalCase(sec))
                 {
                     <div class="callout xt-warn">
                         <span class="cic">⚠</span>
@@ -1264,65 +1261,88 @@
 
                 @if (rows.Count == 0)
                 {
-                    <p class="help xt-dirempty">@(altro ? L["Xfer_NoReciprocalYet"] : L["Xfer_NoClausesHere"])</p>
+                    <p class="help xt-dirempty">@L["Xfer_NoClausesHere"]</p>
                 }
                 else
                 {
                     @* Il trascinamento vale solo con l'ordinamento manuale: riordinare una vista ordinata per
-                       punto scriverebbe un ordine che non è quello che si vede. Fra versi diversi il repository
-                       lo rifiuta già, e i due blocchi sono due tabelle separate: il gesto non li attraversa. *@
+                       punto scriverebbe un ordine che non è quello che si vede. Fra sezioni diverse il
+                       repository lo rifiuta già, e i blocchi sono tabelle separate: il gesto non li attraversa. *@
                     @RowsTable(rows, showContext: false, canDrag: _sort == RowSort.Manual)
                 }
 
-                @if (_pasteAgreementId == ag.Id && _pasteDirection == d) { @PasteForm(ag, d) }
+                @if (_pasteSectionId == sec.Id) { @PasteForm(ag, sec) }
             }
         </section>
     };
 
-    // ---- Gli aeroporti dell'accordo, dalla testata --------------------------------------------------
-    // Il gruppo di aeroporti è ciò che si mette a punto più spesso: «vale anche per Brindisi». Prima si toccava
-    // solo entrando in «✎ Modifica accordo» — un form di sei campi per cambiarne uno — e per i sorvoli non lo si
-    // toccava affatto, perché il campo non c'era.
+    /// <summary>
+    /// Il posto del reciproco che non c'è: un blocco vuoto col tasto per scriverlo.
+    /// <para>Il vuoto <b>è</b> l'informazione. Nasconderlo rifarebbe il difetto dell'interruttore di ferragosto:
+    /// in archivio i reciproci scritti erano zero, e nessuno se n'era accorto perché non si vedeva che
+    /// mancavano.</para>
+    /// </summary>
+    private RenderFragment MissingReverseBlock(AgreementRow ag, AgreementSectionRow sec) => __builder =>
+    {
+        <section class="xt-dirblock xt-ghost">
+            <div class="xt-dirhead">
+                <span class="xt-dirway">@XferLabels.Kind(L, sec.Kind)</span>
+                <span class="xt-dirpair">@ReversePair(ag, sec)</span>
+                <span class="muted xt-hint">@L["Xfer_NoReciprocalYet"]</span>
+                <span class="ln xt-grow"></span>
+                @* Copiare è un PUNTO DI PARTENZA, non un «rendi bilaterale»: i livelli dei due versi sono quasi
+                   sempre diversi, e indovinarli sarebbe scrivere un accordo che nessuno ha concordato. *@
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_CopyDirectionTitle"]"
+                        @onclick="() => CopyToReverse(sec)">⇄ @L["Xfer_CopyDirection"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)"
+                        @onclick="() => OpenNewReverseSection(ag, sec)">+ @L["Xfer_Section"]</button>
+            </div>
+        </section>
+    };
+
+    // ---- Gli aeroporti della sezione ----------------------------------------------------------------
+    // Il gruppo di aeroporti è ciò che si mette a punto più spesso: «vale anche per Brindisi». Sta nella testata
+    // della sezione perché è lì che si legge, e perché aprire un form di quattro campi per toccarne uno è il
+    // costo che il giro di ferragosto aveva già tolto.
 
     private int? _aptOpenId;
     private string _aptText = "", _aptName = "";
 
-    private void ToggleAptPicker(AgreementRow a)
+    private void ToggleAptPicker(AgreementSectionRow s)
     {
-        _aptOpenId = _aptOpenId == a.Id ? null : a.Id;
+        _aptOpenId = _aptOpenId == s.Id ? null : s.Id;
         _aptText = ""; _aptName = "";
     }
 
-    /// <summary>Le chip degli aeroporti nella testata, col picker in linea per aggiungerne e togliere.</summary>
-    private RenderFragment AirportChips(AgreementRow ag) => __builder =>
+    /// <summary>Le chip degli aeroporti nella testata della sezione, col picker in linea.</summary>
+    private RenderFragment AirportChips(AgreementRow ag, AgreementSectionRow sec) => __builder =>
     {
-        var aperto = _aptOpenId == ag.Id;
+        var aperto = _aptOpenId == sec.Id;
 
         <span class="xt-hdr-apts">
-            @foreach (var apt in ag.Airports.OrderBy(x => x.Order))
+            @foreach (var apt in sec.Airports.OrderBy(x => x.Order))
             {
                 var icao = apt.Icao;
                 <span class="pill neutral xt-apt" title="@apt.Name">@icao
                     @if (_canEdit)
                     {
                         <button type="button" class="xt-chipx" title="@L["Xfer_RemoveAirport"]" disabled="@_busy"
-                                @onclick="() => RemoveAirportFrom(ag, icao)">✕</button>
+                                @onclick="() => RemoveAirportFrom(sec, icao)">✕</button>
                     }
                 </span>
             }
             @* Per arrivi e partenze l'aeroporto è obbligatorio: se non c'è, la testata lo dice invece di
                lasciare un vuoto che sembra una scelta. *@
-            @if (ag.Airports.Count == 0 && AirportRequiredKind(ag.TrafficKind))
+            @if (sec.Airports.Count == 0 && AirportRequiredKind(sec.Kind))
             {
                 <span class="pill xt-warnpill" title="@L["Xfer_AirportRequired"]">⚠ @L["Xfer_NoAirport"]</span>
             }
-            @* Stessa regola del form: il tasto compare dove gli aeroporti servono — arrivi e partenze — oppure
-               dove ce ne sono già. Offrirlo su un sorvolo sarebbe invitare a scrivere un dato che il modello non
-               vuole; toglierlo a un sorvolo che ne ha uno sarebbe nasconderne la rimozione. *@
-            @if (_canEdit && AirportsRelevant(ag.TrafficKind, ag.Airports.Count))
+            @* Il tasto compare dove gli aeroporti NON sono esclusi: tutto tranne i sorvoli, che attraversano e
+               non atterrano. Offrirlo su un sorvolo sarebbe invitare a scrivere un dato che il modello rifiuta. *@
+            @if (_canEdit && AirportsRelevant(sec.Kind, sec.Airports.Count))
             {
                 <button class="btn ghost xt-aptadd" disabled="@_busy" title="@L["Xfer_AddAirportTitle"]"
-                        @onclick="() => ToggleAptPicker(ag)">@(aperto ? "✕" : "+ " + L["Xfer_Airport"])</button>
+                        @onclick="() => ToggleAptPicker(sec)">@(aperto ? "✕" : "+ " + L["Xfer_Airport"])</button>
             }
         </span>
 
@@ -1336,14 +1356,14 @@
                     <input placeholder="@L["Xfer_AptNamePh"]" @bind="_aptName" title="@L["Xfer_AptNameTitle"]" />
                 }
                 <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_aptText))"
-                        @onclick="() => AddAirportTo(ag)">+ @L["Xfer_AddAirport"]</button>
+                        @onclick="() => AddAirportTo(sec)">+ @L["Xfer_AddAirport"]</button>
             </span>
         }
 
-        @* La proposta «l'avvicinamento dell'aeroporto» nasce dall'ICAO, e alla creazione l'ICAO può non esserci
-           ancora. Qui la stessa conoscenza torna come VERIFICA: se lo scalo è coperto da un ente che non è fra i
-           riceventi, o è l'accordo sbagliato o è il ricevente sbagliato — e in entrambi i casi va guardato. *@
-        @foreach (var (icao, parent) in UncoveredAirports(ag))
+        @* La proposta «l'avvicinamento dell'aeroporto» nasce dall'ICAO. Qui la stessa conoscenza torna come
+           VERIFICA: se lo scalo è coperto da un ente che non è il ricevente di questa sezione, o è la sezione
+           sbagliata o è il verso sbagliato — e in entrambi i casi va guardato. *@
+        @foreach (var (icao, parent) in UncoveredAirports(ag, sec))
         {
             <span class="pill xt-warnpill" title="@L["Xfer_AptNotCoveredTitle"]">
                 ⚠ @(string.Format(L["Xfer_AptNotCovered"].Value, icao, parent))
@@ -1352,136 +1372,142 @@
     };
 
     /// <summary>
-    /// Gli aeroporti dell'accordo il cui <b>ente di copertura</b> non è fra i riceventi.
-    /// <para>Solo per arrivi e partenze: un sorvolo non consegna a nessuno scalo, e per lui la domanda non ha
-    /// senso. Il legame ICAO → ente sta sul nodo Aeroporto della struttura (<c>_airportParents</c>), non dedotto
-    /// dal callsign — uno scalo può essere coperto da un ente con un altro prefisso.</para>
+    /// Gli aeroporti della sezione il cui <b>ente di copertura</b> non è chi riceve.
+    /// <para>Solo per gli arrivi: è il traffico che allo scalo ci arriva davvero. Per le partenze l'ente di
+    /// copertura è chi CEDE, e la verifica direbbe il contrario di ciò che serve. Il legame ICAO → ente sta sul
+    /// nodo Aeroporto della struttura (<c>_airportParents</c>), non dedotto dal callsign — uno scalo può essere
+    /// coperto da un ente con un altro prefisso.</para>
     /// </summary>
-    private IEnumerable<(string Icao, string Parent)> UncoveredAirports(AgreementRow ag)
+    private IEnumerable<(string Icao, string Parent)> UncoveredAirports(AgreementRow ag, AgreementSectionRow sec)
     {
-        if (!AirportRequiredKind(ag.TrafficKind)) yield break;
+        if (sec.Kind != TransferFlowKind.Arrival) yield break;
+        var ricevente = ag.Receiver(sec.Direction).Callsign;
 
-        var riceventi = ag.Parties.Where(p => p.Side == AgreementSide.B)
-            .Select(p => p.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (riceventi.Count == 0) yield break;   // lo dice già la pill «senza ricevente»
-
-        foreach (var apt in ag.Airports.OrderBy(x => x.Order))
-            if (_airportParents.TryGetValue(apt.Icao, out var parent) && !riceventi.Contains(parent))
+        foreach (var apt in sec.Airports.OrderBy(x => x.Order))
+            if (_airportParents.TryGetValue(apt.Icao, out var parent)
+                && !string.Equals(parent, ricevente, StringComparison.OrdinalIgnoreCase))
                 yield return (apt.Icao, parent);
     }
 
-    /// <summary>
-    /// Cambia il tipo di traffico dell'accordo.
-    /// <para>⚠️ Passa dalla porta di scrittura come tutto il resto, quindi la regola vale: passare ad
-    /// <b>arrivi</b> o <b>partenze</b> un accordo senza aeroporti <b>non va a buon fine</b>, e lo dice. È
-    /// scomodo di un passo e giusto: il tipo e l'aeroporto sono la stessa affermazione detta in due campi.</para>
-    /// </summary>
-    private int _kindEpoch;
-
-    private Task ChangeKind(AgreementRow ag, ChangeEventArgs e)
-    {
-        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind) || kind == ag.TrafficKind)
-            return Task.CompletedTask;
-
-        // L'epoca avanza a ogni tentativo, riuscito o no: è ciò che fa ricreare la tendina e riallinearla al
-        // tipo davvero salvato.
-        _kindEpoch++;
-        return Guarded(() => Agreements.UpdateAgreementAsync(_acc!.Code, ag.Id, new AgreementInput
-        {
-            TrafficKind = kind,
-            Description = ag.Description,
-            SideA = SectorIds(ag, AgreementSide.A),
-            SideB = SectorIds(ag, AgreementSide.B),
-            Airports = ag.Airports.OrderBy(x => x.Order)
-                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
-        }), null);
-    }
-
-    private Task AddAirportTo(AgreementRow ag)
+    private Task AddAirportTo(AgreementSectionRow sec)
     {
         var icao = _aptText.Trim().ToUpperInvariant();
         if (icao.Length == 0) return Task.CompletedTask;
-        if (ag.Airports.Any(x => string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase)))
+        if (sec.Airports.Any(x => string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase)))
         {
             _error = string.Format(L["Xfer_AptAlreadyThere"].Value, icao);
             return Task.CompletedTask;
         }
 
-        var lista = ag.Airports.OrderBy(x => x.Order)
+        var lista = sec.Airports.OrderBy(x => x.Order)
             .Select(x => new AgreementAirportInput(x.Icao, x.Name))
             .Append(new AgreementAirportInput(icao, NullIfBlank(_aptName)))
             .ToList();
         // Il picker si CHIUDE: a campo vuoto la tendina propone l'intero catalogo — cinquanta scali che
         // coprono la testata — e aggiungerne due di fila è raro quanto riaprirlo è economico.
         _aptOpenId = null; _aptText = ""; _aptName = "";
-        return SaveAirports(ag, lista);
+        return SaveAirports(sec, lista);
     }
 
-    private Task RemoveAirportFrom(AgreementRow ag, string icao)
+    private Task RemoveAirportFrom(AgreementSectionRow sec, string icao)
     {
-        var lista = ag.Airports.OrderBy(x => x.Order)
+        var lista = sec.Airports.OrderBy(x => x.Order)
             .Where(x => !string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase))
             .Select(x => new AgreementAirportInput(x.Icao, x.Name))
             .ToList();
-        return SaveAirports(ag, lista);
+        return SaveAirports(sec, lista);
     }
 
-    /// <summary>Riscrive il solo elenco aeroporti, lasciando il resto dell'intestazione come sta. Passa dalla
-    /// stessa porta di scrittura del form, quindi le regole valgono anche qui: togliere l'ultimo aeroporto a un
-    /// accordo di arrivi <b>non passa</b>, e lo dice.</summary>
-    private async Task SaveAirports(AgreementRow ag, IReadOnlyList<AgreementAirportInput> airports)
+    /// <summary>Riscrive il solo elenco aeroporti, lasciando il resto della sezione com'è. Passa dalla stessa
+    /// porta di scrittura del form, quindi le regole valgono anche qui: togliere l'ultimo aeroporto a una
+    /// sezione di arrivi <b>non passa</b>, e lo dice.</summary>
+    private async Task SaveAirports(AgreementSectionRow sec, IReadOnlyList<AgreementAirportInput> airports)
     {
-        await Guarded(() => Agreements.UpdateAgreementAsync(_acc!.Code, ag.Id, new AgreementInput
+        await Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
         {
-            TrafficKind = ag.TrafficKind,
-            Description = ag.Description,
-            SideA = SectorIds(ag, AgreementSide.A),
-            SideB = SectorIds(ag, AgreementSide.B),
+            Kind = sec.Kind,
+            Direction = sec.Direction,
+            Description = sec.Description,
             Airports = airports,
         }), null);
-        await LoadRunwaysAsync(SelectedAgreement());
+        await LoadRunwaysAsync(FocusSection()?.Section);
     }
 
-    private IReadOnlyList<int> SectorIds(AgreementRow a, AgreementSide side) =>
-        a.Parties.Where(p => p.Side == side).OrderBy(p => p.Order).Select(p => p.SectorId).ToList();
+    /// <summary>
+    /// Cambia il tipo di traffico della sezione.
+    /// <para>⚠️ Passa dalla porta di scrittura come tutto il resto, quindi le regole valgono: passare ad
+    /// <b>arrivi</b> o <b>partenze</b> una sezione senza aeroporti <b>non va a buon fine</b>, e lo dice.</para>
+    /// </summary>
+    private int _kindEpoch;
 
-    private static string DirKey(int agreementId, AgreementDirection d) => $"{agreementId}:{d}";
-
-    private void ToggleDirection(string key)
+    private Task ChangeKind(AgreementSectionRow sec, ChangeEventArgs e)
     {
-        if (!_collapsedDirs.Remove(key)) _collapsedDirs.Add(key);
+        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind) || kind == sec.Kind)
+            return Task.CompletedTask;
+
+        // L'epoca avanza a ogni tentativo, riuscito o no: è ciò che fa ricreare la tendina e riallinearla al
+        // tipo davvero salvato. Un <select> il cui valore memorizzato non cambia dopo un rifiuto non viene
+        // riscritto da Blazor, e resta sulla scelta rifiutata — mentendo.
+        _kindEpoch++;
+        return Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
+        {
+            Kind = kind,
+            Direction = sec.Direction,
+            Description = sec.Description,
+            Airports = sec.Airports.OrderBy(x => x.Order)
+                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+        }), null);
     }
 
-    /// <summary>«da → a» coi callsign veri di questo verso. «A→B» non direbbe niente a nessuno.</summary>
-    private string DirectionPair(AgreementRow a, AgreementDirection d)
+    /// <summary>Ribalta il verso della sezione: la proposta dell'aeroporto è una proposta, e va potuta
+    /// smentire in un gesto.</summary>
+    private Task FlipDirection(AgreementSectionRow sec) =>
+        Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
+        {
+            Kind = sec.Kind,
+            Direction = SectionDirection.Flip(sec.Direction),
+            Description = sec.Description,
+            Airports = sec.Airports.OrderBy(x => x.Order)
+                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+        }), null);
+
+    /// <summary>La sezione gemella: stesso traffico, stesso verso, stessi scali. Null se non ce n'è.</summary>
+    private static AgreementSectionRow? TwinOf(AgreementRow a, AgreementSectionRow s) =>
+        a.Sections.FirstOrDefault(x => x.Id != s.Id && x.Kind == s.Kind && x.Direction == s.Direction
+                                       && string.Equals(x.AirportsLabel, s.AirportsLabel, StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleSection(int sectionId)
     {
-        var from = Dash(SenderLabelForDirection(a, d));
-        var to = XferLabels.Side(a, d == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A);
-        return $"{from} → {(to.Length > 0 ? to : L["Xfer_Unicom"].Value)}";
+        if (!_collapsedSections.Remove(sectionId)) _collapsedSections.Add(sectionId);
     }
+
+    /// <summary>«da → a» coi callsign veri del verso della sezione. «A→B» non direbbe niente a nessuno.</summary>
+    private static string DirectionPair(AgreementRow a, AgreementSectionRow s) =>
+        $"{a.Sender(s.Direction).Callsign} → {a.Receiver(s.Direction).Callsign}";
+
+    /// <summary>La coppia del verso OPPOSTO: è quella del reciproco che manca.</summary>
+    private static string ReversePair(AgreementRow a, AgreementSectionRow s) =>
+        $"{a.Receiver(s.Direction).Callsign} → {a.Sender(s.Direction).Callsign}";
 
     // ---- Incolla-tabella ----------------------------------------------------------------------------
     // Riempire l'Italia a mano significa ridigitare tabelle che esistono gia', scritte da qualcun altro, in un
     // PDF. Qui si incollano e si guardano PRIMA di salvare: un incolla che salvasse direttamente metterebbe in
     // archivio la propria interpretazione di un testo che nessuno ha riletto.
 
-    private int? _pasteAgreementId;
-
-    /// <summary>In quale verso si incolla. Con due tabelle a vista il verso non può venire da uno stato di
-    /// pagina: viene dal blocco in cui si è premuto, o si incollerebbe dove la pagina si ricorda di essere.</summary>
-    private AgreementDirection _pasteDirection = AgreementDirection.AtoB;
+    /// <summary>La sezione in cui si sta incollando; null = nessun incolla aperto. È la SEZIONE e non
+    /// l'accordo: si incolla in una tabella, e quale sia lo dice il blocco in cui si è premuto — non uno stato
+    /// di pagina, che si ricorderebbe l'ultima invece della presente.</summary>
+    private int? _pasteSectionId;
     private string _pasteText = "";
 
-    private void TogglePaste(AgreementRow a, AgreementDirection d)
+    private void TogglePaste(AgreementSectionRow sec)
     {
         ClosePanel();
-        var giaAperto = _pasteAgreementId == a.Id && _pasteDirection == d;
-        _pasteAgreementId = giaAperto ? null : a.Id;
-        _pasteDirection = d;
+        _pasteSectionId = _pasteSectionId == sec.Id ? null : sec.Id;
         _pasteText = "";
     }
 
-    private RenderFragment PasteForm(AgreementRow a, AgreementDirection d) => __builder =>
+    private RenderFragment PasteForm(AgreementRow a, AgreementSectionRow sec) => __builder =>
     {
         var parsed = ClausePaste.Parse(_pasteText);
         var buone = parsed.Count(p => p.Ok);
@@ -1532,8 +1558,8 @@
                         <div>@(string.Format(L["Xfer_PasteManyReceivers"].Value, string.Join(", ", riceventi)))</div>
                     </div>
                 }
-                else if (riceventi.Count == 1 && !a.Parties.Any(x => x.Side == AgreementSide.B
-                             && string.Equals(x.Callsign, riceventi[0], StringComparison.OrdinalIgnoreCase)))
+                else if (riceventi.Count == 1 && !string.Equals(riceventi[0], a.Receiver(sec.Direction).Callsign,
+                             StringComparison.OrdinalIgnoreCase))
                 {
                     <div class="callout info">
                         <span class="cic">ℹ</span>
@@ -1544,16 +1570,16 @@
 
             <div class="xt-foot">
                 <button class="btn primary" disabled="@(_busy || !_canEdit || buone == 0)"
-                        @onclick="() => ConfirmPaste(a, d)">@(string.Format(L["Xfer_PasteImport"].Value, buone))</button>
-                <button class="btn ghost" disabled="@_busy" @onclick="() => _pasteAgreementId = null">@L["Common_Cancel"]</button>
+                        @onclick="() => ConfirmPaste(sec)">@(string.Format(L["Xfer_PasteImport"].Value, buone))</button>
+                <button class="btn ghost" disabled="@_busy" @onclick="() => _pasteSectionId = null">@L["Common_Cancel"]</button>
             </div>
         </div>
     };
 
-    /// <summary>Scrive le clausole lette, in coda al verso <b>del blocco</b> in cui si è incollato. Il ricevente
-    /// scritto sulle righe NON si applica: e' del lato B dell'accordo, e cambiarlo da qui cambierebbe l'accordo
-    /// intero senza dirlo.</summary>
-    private async Task ConfirmPaste(AgreementRow a, AgreementDirection d)
+    /// <summary>Scrive le clausole lette, in coda alla SEZIONE in cui si è incollato. Il ricevente scritto sulle
+    /// righe NON si applica: è il capo opposto dell'accordo, e cambiarlo da qui cambierebbe l'accordo intero
+    /// senza dirlo.</summary>
+    private async Task ConfirmPaste(AgreementSectionRow sec)
     {
         var parsed = ClausePaste.Parse(_pasteText).Where(p => p.Ok).ToList();
         if (parsed.Count == 0) return;
@@ -1561,30 +1587,74 @@
         await Guarded(async () =>
         {
             foreach (var p in parsed)
-                await Agreements.AddClauseAsync(_acc!.Code, a.Id, d, p.Clause!);
-            _pasteAgreementId = null;
+                await Agreements.AddClauseAsync(_acc!.Code, sec.Id, p.Clause!);
+            _pasteSectionId = null;
             _pasteText = "";
         }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));
     }
 
-    /// <summary>I campi dell'intestazione: i due lati, il tipo, gli aeroporti, la descrizione. Uno solo per
-    /// entrambe le istanze del form — due markup paralleli sono due occasioni di aggiornarne uno solo.</summary>
-    private RenderFragment HeaderFields(HeaderForm form, bool isNew) => __builder =>
+    /// <summary>I campi dell'accordo: i due capi e una nota. Nient'altro — il traffico sta nelle sezioni.</summary>
+    private RenderFragment PairFields(PairForm form) => __builder =>
     {
         <div class="inline-form xt-flat">
-            @PartyPicker(form, AgreementSide.A)
-            @PartyPicker(form, AgreementSide.B)
+            @SidePicker(form, near: true)
+            @SidePicker(form, near: false)
+            <div class="field"><label>@L["Xfer_NoteOpt"]</label>
+                <input placeholder="@L["Xfer_NotePh"]" @bind="form.Note" @bind:event="oninput" />
+            </div>
+        </div>
+    };
 
-            @* ⚠️ Creare un accordo è dire CHI, e basta. Tipo e aeroporti sono il «cosa», e si mettono nella
-               testata dell'accordo — che è dove si torna comunque a metterli a punto. Un form che chiede sei
-               cose per fare la prima è un form che si compila male e si corregge dopo.
-               L'accordo nasce «Altro» — la categoria che esiste già ed è onestamente «non ancora classificato» —
-               così NON nasce mai invalido: arrivi e partenze pretendono un aeroporto, e chi non è ancora un
-               arrivo non deve niente a nessuno. *@
-            @if (!isNew)
-            {
+    /// <summary>Un capo dell'accordo: la chip dell'ente scelto più il picker per cambiarlo.</summary>
+    private RenderFragment SidePicker(PairForm form, bool near) => __builder =>
+    {
+        var current = near ? form.SideA : form.SideB;
+        var text = near ? form.SideAText : form.SideBText;
+
+        <div class="field">
+            @* ⚠️ Nessuno dei due capi è opzionale, e l'etichetta «(vuoto = UNICOM)» che stava qui insegnava il
+               contrario: UNICOM lo calcola la vista operativa quando il ricevente è offline, non si scrive.
+               Adesso è anche di schema — due colonne NOT NULL. *@
+            <label>
+                @(near ? L["Xfer_SideNear"] : L["Xfer_SideFar"])
+                <span class="xt-req" title="@L["Xfer_SideRequiredTitle"]">*</span>
+            </label>
+            <div class="xt-chips">
+                @if (current.Length > 0)
+                {
+                    <span class="pill neutral">@current
+                        <button type="button" class="xt-chipx" title="@L["Xfer_RemoveParty"]"
+                                @onclick="() => SetSide(form, near, string.Empty)">✕</button>
+                    </span>
+                }
+                else { <span class="muted">—</span> }
+            </div>
+            <TypeaheadPicker Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="@(near ? SectorItems(text) : CounterpartItems(form, text))"
+                             Text="@text"
+                             TextChanged="t => { if (near) form.SideAText = t; else form.SideBText = t; }"
+                             OnPick="i => SetSide(form, near, i?.Value)" />
+        </div>
+    };
+
+    private void SetSide(PairForm form, bool near, string? callsign)
+    {
+        var cs = (callsign ?? "").Trim();
+        // Un solo ente per capo: sceglierne un altro SOSTITUISCE, non aggiunge. È la decisione del 18 agosto
+        // 2026 — la forma «TS EXE cede a PS EXE / PN EXE» si scrive come due accordi.
+        if (near) { form.SideA = cs; form.SideAText = ""; }
+        else { form.SideB = cs; form.SideBText = ""; }
+    }
+
+    /// <summary>I campi di una sezione: il traffico, il verso, gli aeroporti, la prosa. Uno solo per creazione e
+    /// modifica — due markup paralleli sono due occasioni di aggiornarne uno solo.</summary>
+    private RenderFragment SectionFields(AgreementRow ag) => __builder =>
+    {
+        var form = _sectionForm;
+
+        <div class="inline-form xt-flat">
             <div class="field narrow"><label>@L["Xfer_Kind"]</label>
-                <select @bind="form.Kind">
+                <select value="@form.Kind" @onchange="e => PickSectionKind(ag, e)">
                     <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
                     <option value="@TransferFlowKind.Departure">@L["Xfer_KindDeparture"]</option>
                     <option value="@TransferFlowKind.Overflight">@L["Xfer_KindOverflight"]</option>
@@ -1593,13 +1663,21 @@
                 </select>
             </div>
 
-            @* Aeroporti: un elenco, non un campo. È l'asse che il modello vecchio costringeva a moltiplicare —
+            @* Il verso: PROPOSTO dall'aeroporto (chi non ha lo scalo cede a chi ce l'ha) e correggibile con un
+               clic. Non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no — si salva. *@
+            <div class="field narrow"><label>@L["Xfer_Direction"]</label>
+                <div class="xt-btnrow">
+                    <span class="pill blue">@DirectionPairOf(ag, form.Direction)</span>
+                    <button type="button" class="btn ghost" title="@L["Xfer_FlipDirectionTitle"]"
+                            @onclick="() => form.Direction = SectionDirection.Flip(form.Direction)">⇄</button>
+                </div>
+            </div>
+
+            @* Aeroporti: un elenco, non un campo. È l'asse che il modello di luglio costringeva a moltiplicare —
                quattro flussi identici per quattro scali di Roma — e i documenti veri lo scrivono già così.
-               ⚠️ Compare solo dove SERVE: arrivi e partenze sono definiti rispetto a un aeroporto e senza non si
-               salvano, mentre per sorvoli/VFR/altro il campo è un invito a scrivere un dato che il modello non
-               vuole. Ma se degli aeroporti ci sono già, il campo resta a vista anche col tipo cambiato — un campo
-               nascosto che tiene dati è il modo più rapido di perderli senza accorgersene. *@
-            @if (AirportsRelevant(form))
+               ⚠️ Compare dove NON è escluso: tutto tranne i sorvoli. E se degli aeroporti ci sono già resta a
+               vista anche col tipo cambiato — un campo nascosto che tiene dati è il modo più rapido di perderli. *@
+            @if (AirportsRelevant(form.Kind, form.Airports.Count))
             {
             <div class="field">
                 <label>@L["Xfer_AirportsLabel"] <span class="muted xt-lbl-soft">@L["Xfer_AirportsHint"]</span></label>
@@ -1621,13 +1699,13 @@
                     {
                         <input placeholder="@L["Xfer_AptNamePh"]" @bind="form.AirportName" title="@L["Xfer_AptNameTitle"]" />
                         <button type="button" class="btn ghost xt-nowrap" disabled="@_busy"
-                                @onclick="() => LookupApt(form)" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
+                                @onclick="LookupApt" title="@L["Xfer_LookupTitle"]"><Icon Name="search" /> IVAO</button>
                     }
                     <button type="button" class="btn ghost" disabled="@(string.IsNullOrWhiteSpace(form.AirportText))"
-                            @onclick="() => AddAirport(form)">+ @L["Xfer_AddAirport"]</button>
+                            @onclick="() => AddAirportToForm(ag)">+ @L["Xfer_AddAirport"]</button>
                 </div>
                 @* Gli aeroporti restati addosso a un tipo che non li vuole: si dicono, non si cancellano da soli. *@
-                @if (form.Airports.Count > 0 && !AirportRequiredKind(form.Kind))
+                @if (form.Airports.Count > 0 && form.Kind == TransferFlowKind.Overflight)
                 {
                     <span class="muted xt-hint">@L["Xfer_AirportsNotForKind"]</span>
                 }
@@ -1637,39 +1715,6 @@
             <div class="field"><label>@L["Xfer_DescOpt"]</label>
                 <input placeholder="@L["Xfer_DescPh"]" @bind="form.Description" @bind:event="oninput" />
             </div>
-            }
-        </div>
-    };
-
-    /// <summary>Un lato dell'accordo: le chip degli enti scelti più il picker per aggiungerne.</summary>
-    private RenderFragment PartyPicker(HeaderForm form, AgreementSide side) => __builder =>
-    {
-        var list = side == AgreementSide.A ? form.SideA : form.SideB;
-        var text = side == AgreementSide.A ? form.SideAText : form.SideBText;
-
-        <div class="field">
-            @* ⚠️ Nessuno dei due lati è opzionale, e l'etichetta «(vuoto = UNICOM)» che stava qui insegnava il
-               contrario: UNICOM lo calcola la vista operativa quando il ricevente è offline, non si scrive. Un
-               lato B vuoto voleva dire «non finito», e un accordo così non compare in nessun documento. *@
-            <label>
-                @(side == AgreementSide.A ? L["Xfer_SideA"] : L["Xfer_SideB"])
-                <span class="xt-req" title="@L["Xfer_SideRequiredTitle"]">*</span>
-            </label>
-            <div class="xt-chips">
-                @foreach (var cs in list.ToList())
-                {
-                    <span class="pill neutral">@cs
-                        <button type="button" class="xt-chipx" title="@L["Xfer_RemoveParty"]"
-                                @onclick="() => list.Remove(cs)">✕</button>
-                    </span>
-                }
-                @if (list.Count == 0) { <span class="muted">—</span> }
-            </div>
-            <TypeaheadPicker Placeholder="@L["Xfer_SearchCallsign"]"
-                             Items="@(side == AgreementSide.B ? ReceiverItems(form, text) : SectorItems(text))"
-                             Text="@text"
-                             TextChanged="t => { if (side == AgreementSide.A) form.SideAText = t; else form.SideBText = t; }"
-                             OnPick="i => AddParty(form, side, i?.Value)" />
         </div>
     };
 
@@ -1716,8 +1761,9 @@
     {
         var form = _clauseForm;
         var ag = CurrentAgreement();
+        var sec = CurrentSection();
 
-        if (form is null || ag is null)
+        if (form is null || ag is null || sec is null)
         {
             <div class="xt-panel-empty">
                 <p class="ct">@L["Xfer_PanelEmptyTitle"]</p>
@@ -1733,7 +1779,7 @@
            pagina. Misurato a schermo, non stimato. *@
         <div class="xt-panel-h">
             <b>@(editing ? L["Xfer_PanelEdit"] : L["Xfer_PanelNew"])</b>
-            <span class="muted">@SenderOf(ag) → @ReceiverOf(ag) · @KindLabel(ag.TrafficKind)</span>
+            <span class="muted">@SenderOf(ag, sec) → @ReceiverOf(ag, sec) · @XferLabels.Section(L, sec)</span>
             @* L'avviso vive dove vivono le modifiche: in cima alla pagina stava a migliaia di pixel da qui. *@
             @if (HasOpenEdit) { <span class="pill xt-elsepill" title="@L["Xfer_UnsavedBody"]">✎ @L["Xfer_UnsavedTitle"]</span> }
             <button class="btn ghost xt-panel-x" title="@L["Common_Cancel"]" @onclick="ClosePanel">✕</button>
@@ -1905,7 +1951,7 @@
         @if (_preview is not null)
         {
             <div class="xt-grp"><span>@L["Xfer_Preview"]</span></div>
-            <p class="xt-prev">“@(PreviewForm(ag, form) ?? L["Xfer_PreviewIncomplete"].Value)”</p>
+            <p class="xt-prev">“@(PreviewForm(ag, sec, form) ?? L["Xfer_PreviewIncomplete"].Value)”</p>
         }
 
         </div>
@@ -2002,20 +2048,20 @@
 
     // ---- Anteprima ----------------------------------------------------------------------------------
 
-    private string? PreviewOf(AgreementRow a, AgreementClauseRow c) =>
-        _preview is null ? null : AgreementPreview.Compose(_preview, a, c);
+    private string? PreviewOf(AgreementRow a, AgreementSectionRow s, AgreementClauseRow c) =>
+        _preview is null ? null : AgreementPreview.Compose(_preview, a, s, c);
 
     /// <summary>L'anteprima di ciò che si sta scrivendo <b>adesso</b>: la clausola del form, non quella salvata.
     /// Si costruisce una clausola finta e la si passa allo stesso composer del documento — un'anteprima che si
     /// compone da sé è l'anteprima che prima o poi mente.</summary>
-    private string? PreviewForm(AgreementRow a, ClauseForm form)
+    private string? PreviewForm(AgreementRow a, AgreementSectionRow sec, ClauseForm form)
     {
         if (_preview is null) return null;
         var draft = ToClauseInput(form);
         var fake = new AgreementClauseRow
         {
             Id = _editClauseId ?? 0,
-            Direction = PanelDirection,
+            SectionId = sec.Id,
             Cops = draft.Cops,
             LevelValue = draft.LevelValue, LevelUnit = draft.LevelUnit, LevelConstraint = draft.LevelConstraint,
             LevelSpecial = draft.LevelSpecial, Parity = draft.Parity, VerticalState = draft.VerticalState,
@@ -2034,10 +2080,10 @@
             Order = CurrentClause()?.Order ?? int.MaxValue,
         };
 
-        // La clausola finta prende il posto di quella salvata dentro l'accordo, così la risalita dell'outline
+        // La clausola finta prende il posto di quella salvata dentro la SEZIONE, così la risalita dell'outline
         // trova gli stessi antenati che troverà il documento.
-        var clauses = a.Clauses.Where(x => x.Id != fake.Id).Append(fake).OrderBy(x => x.Order).ToList();
-        return AgreementPreview.Compose(_preview, a with { Clauses = clauses }, fake);
+        var clauses = sec.Clauses.Where(x => x.Id != fake.Id).Append(fake).OrderBy(x => x.Order).ToList();
+        return AgreementPreview.Compose(_preview, a, sec with { Clauses = clauses }, fake);
     }
 
     // ---- Scrittura in cella -------------------------------------------------------------------------
@@ -2122,10 +2168,16 @@
     }
 
     private AgreementClauseRow? FindClause(int clauseId) =>
-        _agreements.SelectMany(a => a.Clauses).FirstOrDefault(c => c.Id == clauseId);
+        _agreements.SelectMany(a => a.AllClauses).FirstOrDefault(c => c.Id == clauseId);
 
     private AgreementRow? AgreementOf(int clauseId) =>
-        _agreements.FirstOrDefault(a => a.Clauses.Any(c => c.Id == clauseId));
+        _agreements.FirstOrDefault(a => a.AllClauses.Any(c => c.Id == clauseId));
+
+    private AgreementSectionRow? SectionOf(int clauseId) =>
+        _agreements.SelectMany(a => a.Sections).FirstOrDefault(s => s.Clauses.Any(c => c.Id == clauseId));
+
+    private AgreementSectionRow? SectionById(int sectionId) =>
+        _agreements.SelectMany(a => a.Sections).FirstOrDefault(s => s.Id == sectionId);
 
     /// <summary>Una clausola esistente → input di modifica. Copia tutto: chi ne cambia un campo usa <c>with</c>.</summary>
     private static AgreementClauseInput EditableCopy(AgreementClauseRow c) => new()
@@ -2160,22 +2212,27 @@
             .ToList();
 
     /// <summary>
-    /// Le voci del picker del lato che RICEVE: le proposte in cima, col loro perche', poi tutti gli altri.
+    /// Le voci del picker della CONTROPARTE: le proposte in cima, col loro perche', poi tutti gli altri.
     /// <para>⚠️ Le proposte non FILTRANO l'elenco, lo precedono. Un accordo puo' legare due enti che nessuna
     /// regola prevede — e' successo con LGKR_APP, aggiunto a mano — e un elenco che li nascondesse renderebbe
     /// impossibile scrivere proprio i casi che valeva la pena scrivere.</para>
     /// <para>La RAGIONE viaggia accanto alla voce: una proposta senza il suo perche' e' indistinguibile da un
     /// dato, e verrebbe accettata anche quando e' sbagliata.</para>
+    /// <para>⚠️ Le proposte «per aeroporto» qui non arrivano più, ed è una conseguenza voluta del modello: alla
+    /// creazione l'accordo non ha un traffico né uno scalo — li portano le sezioni — quindi restano il confine
+    /// confermato e la controparte già usata. Chi cerca l'avvicinamento di uno scalo lo trova dalla sezione,
+    /// dove l'ICAO c'è: la stessa conoscenza torna là come <b>verifica</b>.</para>
     /// </summary>
-    private IReadOnlyList<TypeaheadPicker.Item> ReceiverItems(HeaderForm form, string text)
+    private IReadOnlyList<TypeaheadPicker.Item> CounterpartItems(PairForm form, string text)
     {
         var proposte = AgreementSuggestions.ForReceivingSide(
-            form.Kind,
-            form.Airports.Select(a => a.Icao).ToList(),
+            TransferFlowKind.Other,
+            Array.Empty<string>(),
             SuggestionSectors(),
             AirportParents(),
             ConfirmedNeighbourAccs(),
-            new HashSet<string>(form.SideA.Concat(form.SideB), StringComparer.OrdinalIgnoreCase));
+            new HashSet<string>(new[] { form.SideA, form.SideB }.Where(x => x.Length > 0),
+                                StringComparer.OrdinalIgnoreCase));
 
         var inCima = proposte
             .Where(x => string.IsNullOrWhiteSpace(text)
@@ -2245,34 +2302,16 @@
             ? "\u21b5 " + string.Format(L["Xfer_UseNewApt"].Value, icao.Trim().ToUpperInvariant())
             : null;
 
-    private void AddParty(HeaderForm form, AgreementSide side, string? callsign)
-    {
-        var cs = (callsign ?? "").Trim();
-        if (cs.Length == 0) return;
-        var list = side == AgreementSide.A ? form.SideA : form.SideB;
-        if (!list.Contains(cs, StringComparer.OrdinalIgnoreCase)) list.Add(cs);
-        if (side == AgreementSide.A) form.SideAText = ""; else form.SideBText = "";
-    }
-
-    private void AddAirport(HeaderForm form)
-    {
-        var icao = form.AirportText.Trim().ToUpperInvariant();
-        if (icao.Length == 0) return;
-        if (!form.Airports.Any(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase)))
-            form.Airports.Add(new AgreementAirportInput(icao, IsKnownApt(icao) ? null : NullIfBlank(form.AirportName)));
-        form.AirportText = ""; form.AirportName = "";
-    }
-
     /// <summary>Il nome dell'aeroporto fuori catalogo, chiesto a IVAO. Riempie solo il campo libero: lo scalo
     /// NON entra nel catalogo, che è il vincolo — niente documenti su scali non italiani nei picker.</summary>
-    private async Task LookupApt(HeaderForm form)
+    private async Task LookupApt()
     {
-        var icao = form.AirportText.Trim().ToUpperInvariant();
+        var icao = _sectionForm.AirportText.Trim().ToUpperInvariant();
         if (icao.Length < 4) return;
         await Guarded(async () =>
         {
             var info = await Struct.LookupExternalAirportAsync(icao);
-            form.AirportName = info?.Name ?? "";
+            _sectionForm.AirportName = info?.Name ?? "";
             if (info is null) _error = string.Format(L["Xfer_NotFoundIvao"].Value, icao);
         }, null);
     }
@@ -2283,20 +2322,8 @@
 
     private string KindLabel(TransferFlowKind k) => XferLabels.Kind(L, k);
 
-    /// <summary>Il verso di ciò che il pannello sta scrivendo: quello della clausola aperta, o — per una clausola
-    /// nuova — quello del blocco da cui è stato premuto «+».</summary>
-    private AgreementDirection PanelDirection => CurrentClause()?.Direction ?? _focusDirection;
-
-    private string SenderOf(AgreementRow a) => Dash(SenderLabelForDirection(a, PanelDirection));
-    private string ReceiverOf(AgreementRow a)
-    {
-        var side = PanelDirection == AgreementDirection.AtoB ? AgreementSide.B : AgreementSide.A;
-        var s = XferLabels.Side(a, side);
-        return s.Length > 0 ? s : L["Xfer_Unicom"];
-    }
-
-    private static string SenderLabelForDirection(AgreementRow a, AgreementDirection d) =>
-        XferLabels.Side(a, d == AgreementDirection.AtoB ? AgreementSide.A : AgreementSide.B);
+    private static string SenderOf(AgreementRow a, AgreementSectionRow s) => a.Sender(s.Direction).Callsign;
+    private static string ReceiverOf(AgreementRow a, AgreementSectionRow s) => a.Receiver(s.Direction).Callsign;
 
     private string AgreementsCountLabel(int n) => string.Format(L["Xfer_AgreementsN"].Value, n);
 
@@ -2305,12 +2332,10 @@
     private static bool AirportRequiredKind(TransferFlowKind k) =>
         k is TransferFlowKind.Arrival or TransferFlowKind.Departure;
 
-    /// <summary>Il tipo di traffico non vuole aeroporti: un sorvolo attraversa, non consegna.</summary>
-    private static bool AirportlessKind(TransferFlowKind k) =>
-        k is TransferFlowKind.Overflight or TransferFlowKind.Vfr;
+    /// <summary>Il tipo di traffico non vuole aeroporti: un sorvolo attraversa, non consegna. VFR e Altro
+    /// invece possono averne — decisione del 18 agosto 2026, ed è la regola «dove non sono esclusi».</summary>
+    private static bool AirportlessKind(TransferFlowKind k) => k is TransferFlowKind.Overflight;
 
-    private static bool AirportRequiredMissing(HeaderForm f) =>
-        AirportRequiredKind(f.Kind) && f.Airports.Count == 0;
 
     /// <summary>
     /// Il campo aeroporti ha senso: il tipo non li esclude, <b>oppure</b> ce ne sono già — e quelli non si
@@ -2321,8 +2346,6 @@
     /// </summary>
     private static bool AirportsRelevant(TransferFlowKind kind, int airports) =>
         !AirportlessKind(kind) || airports > 0;
-
-    private static bool AirportsRelevant(HeaderForm f) => AirportsRelevant(f.Kind, f.Airports.Count);
 
     private void PickRunways(ClauseForm form, ChangeEventArgs e) =>
         form.Rwys = e.Value is string[] v ? v : Array.Empty<string>();
@@ -2338,18 +2361,18 @@
             : label.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>
-    /// Le piste selezionabili per la condizione: l'unione di quelle degli aeroporti dell'accordo.
+    /// Le piste selezionabili per la condizione: l'unione di quelle degli aeroporti della sezione.
     /// <para>⚠️ Con più di uno scalo la sigla porta il proprio ICAO: «16R» su Fiumicino e su Malpensa sono due
     /// piste diverse, e un elenco che le confondesse produrrebbe condizioni che valgono per l'aeroporto
     /// sbagliato.</para>
     /// </summary>
-    private async Task LoadRunwaysAsync(AgreementRow? a)
+    private async Task LoadRunwaysAsync(AgreementSectionRow? sec)
     {
-        if (a is null || a.Airports.Count == 0) { _condRunways = Array.Empty<RunwayOption>(); return; }
+        if (sec is null || sec.Airports.Count == 0) { _condRunways = Array.Empty<RunwayOption>(); return; }
 
-        var many = a.Airports.Count > 1;
+        var many = sec.Airports.Count > 1;
         var list = new List<RunwayOption>();
-        foreach (var apt in a.Airports.OrderBy(x => x.Order))
+        foreach (var apt in sec.Airports.OrderBy(x => x.Order))
         {
             if (!IsKnownApt(apt.Icao)) continue;
             try
@@ -2372,7 +2395,7 @@
     // In URL sta cio' che identifica COSA STO GUARDANDO — ACC, vista, accordo, verso, filtri — cioe' quello
     // che ha senso mandare a un collega e ritrovare dopo un F5. In localStorage sta cio' che e' COME MI PIACE
     // GUARDARE — anteprime, ordinamento — che e' preferenza della persona, non del contenuto.
-    private string UrlSignature() => $"{_accCode}|{_selectedId}|{_view}|{_filter}|{_kindFilter}|{_toReviewOnly}|{_noReceiverOnly}";
+    private string UrlSignature() => $"{_accCode}|{_selectedId}|{_focusSectionId}|{_view}|{_filter}|{_kindFilter}|{_toReviewOnly}";
     private string PrefSignature() => $"{_showPreviews}|{_sort}|{_sortDesc}";
     private string _lastUrl = "", _lastPref = "";
 
@@ -2386,13 +2409,15 @@
             ["acc"] = _acc.Code,
             ["vista"] = _view == XferView.Tree ? null : _view.ToString(),
             ["accordo"] = _selectedId,
-            // «verso» non si scrive più: i due versi si vedono entrambi, quindi non c'è un verso da ritrovare.
-            // In LETTURA resta accettata — i link salvati la portano — e mette a fuoco il blocco giusto.
+            // La SEZIONE: è ciò che si sta guardando dentro l'accordo, e serve alla verifica a schermo e
+            // all'aiuto in-app per portare qualcuno esattamente sulla tabella di cui si parla.
+            ["sezione"] = _focusSectionId,
+            // «verso» non si scrive più: il verso è della sezione, e la sezione ha un id.
             ["verso"] = null,
             ["q"] = string.IsNullOrWhiteSpace(_filter) ? null : _filter,
             ["tipo"] = _kindFilter?.ToString(),
             ["rev"] = _toReviewOnly ? "1" : null,
-            ["norx"] = _noReceiverOnly ? "1" : null,
+            ["norx"] = null,
         }), forceLoad: false, replace: true);
     }
 
@@ -2404,9 +2429,7 @@
         _filter = q.Value("q") ?? "";
         _kindFilter = q.Enum<TransferFlowKind>("tipo");
         _toReviewOnly = q.Flag("rev");
-        _noReceiverOnly = q.Flag("norx");
         if (q.Enum<XferView>("vista") is { } v) _view = v;
-        if (q.Enum<AgreementDirection>("verso") is { } d) _focusDirection = d;
 
         var acc = q.Value("acc");
         if (string.IsNullOrWhiteSpace(acc)) return;
@@ -2418,6 +2441,11 @@
         // non lasciarla su un riquadro che parla di qualcosa che non c'e'.
         if (int.TryParse(q.Value("accordo"), out var id) && _agreements.Any(a => a.Id == id))
             SelectAgreement(id);
+
+        // La sezione si mette a fuoco solo se esiste ancora, come l'accordo: un link vecchio deve aprire la
+        // pagina, non lasciarla su un riquadro che parla di una tabella cancellata.
+        if (int.TryParse(q.Value("sezione"), out var sec) && SectionById(sec) is not null)
+            _focusSectionId = sec;
     }
 
     /// <summary>⚠️ <c>localStorage</c> si legge al PRIMO RENDER, mai in <c>OnInitializedAsync</c>: durante il
@@ -2579,22 +2607,22 @@
         _selectedId = id;
         _newOpen = false;
         ClosePanel();
-        // Non c'è più niente da «riportare sul verso giusto»: i due versi si vedono entrambi. Resta il fuoco,
-        // che riparte dal verso di casa — è quello su cui si lavora.
+        _newSectionFor = null; _editSectionId = null; _editHeaderId = null; _pasteSectionId = null;
         var a = SelectedAgreement();
         if (a is null) return;
-        _focusDirection = _lens.Orient(a).Outbound;
+        // Il fuoco riparte dalla prima sezione: è quella in cima, e con essa «+ clausola» in elenco sa dove
+        // scrivere anche appena arrivati.
+        _focusSectionId = a.Sections.FirstOrDefault()?.Id;
         _collapsed.Remove(NavKey(a));
     }
 
     private void OpenNewAgreement()
     {
         ClosePanel();
-        _editHeaderId = null;
-        _newForm.Reset();
-        // Non è il tipo che si vuole: è il tipo che non pretende nient'altro, così l'accordo nasce valido e la
-        // classificazione si fa dove ci sono le informazioni per farla — davanti alle sue clausole.
-        _newForm.Kind = TransferFlowKind.Other;
+        _editHeaderId = null; _newSectionFor = null; _editSectionId = null;
+        _newPair.Reset();
+        // Creare è dire CHI: un accordo nasce senza nemmeno una sezione, e non può nascere invalido perché non
+        // c'è niente da validare oltre ai due capi.
         _newOpen = true;
     }
 
@@ -2614,23 +2642,39 @@
     {
         SetView(XferView.Tree);
         SelectAgreement(r.Agreement.Id);
-        // Dopo SelectAgreement, che riporta il fuoco sul verso di casa: qui il verso che conta è quello della
-        // riga da cui si è partiti, e la clausola che si apre subito dopo è la sua.
-        _focusDirection = r.Clause.Direction;
+        // Dopo SelectAgreement, che riporta il fuoco sulla prima sezione: qui la sezione che conta è quella
+        // della riga da cui si è partiti, e la clausola che si apre subito dopo è la sua.
+        _focusSectionId = r.Section.Id;
+        _collapsedSections.Remove(r.Section.Id);
         await OnEditRow(r);
     }
 
-    private Task OnEditRow(XferTableRow r) => EditClause(r.Agreement, r.Clause);
+    private Task OnEditRow(XferTableRow r) => EditClause(r.Agreement, r.Section, r.Clause);
 
     // ---- Scritture ----------------------------------------------------------------------------------
 
     private async Task AddAgreement()
     {
+        var a = SectorIdOf(_newPair.SideA);
+        var b = SectorIdOf(_newPair.SideB);
+
+        // ⚠️ Una coppia già scritta non è un errore dell'utente: è una domanda a cui esiste una risposta
+        // migliore di «no». Si apre l'accordo che c'è — e le sezioni si aggiungono lì.
+        var esistente = a > 0 && b > 0 ? await Agreements.FindByPairAsync(_acc!.Code, a, b) : null;
+        if (esistente is int already)
+        {
+            _newOpen = false;
+            _newPair.Reset();
+            SelectAgreement(already);
+            _status = L["Xfer_PairAlreadyThere"];
+            return;
+        }
+
         var newId = 0;
         await Guarded(async () =>
         {
-            newId = await Agreements.AddAgreementAsync(_acc!.Code, ToInput(_newForm));
-            _newForm.Reset();
+            newId = await Agreements.AddAgreementAsync(_acc!.Code, ToPairInput(_newPair));
+            _newPair.Reset();
             _newOpen = false;
         }, L["Xfer_AgreementAdded"]);
         if (newId > 0) SelectAgreement(newId);
@@ -2639,7 +2683,8 @@
     private void OpenEditHeader(AgreementRow a)
     {
         ClosePanel();
-        _editForm.LoadFrom(a);
+        _newSectionFor = null; _editSectionId = null;
+        _editPair.LoadFrom(a, _lens);
         _editHeaderId = a.Id;
     }
 
@@ -2647,10 +2692,9 @@
     {
         await Guarded(async () =>
         {
-            await Agreements.UpdateAgreementAsync(_acc!.Code, a.Id, ToInput(_editForm));
+            await Agreements.UpdateAgreementAsync(_acc!.Code, a.Id, ToPairInput(_editPair));
             _editHeaderId = null;
         }, L["Xfer_AgreementUpdated"]);
-        await LoadRunwaysAsync(SelectedAgreement());
     }
 
     private async Task DeleteAgreement(AgreementRow a)
@@ -2666,74 +2710,196 @@
         }
     }
 
-    /// <summary>Copia nel verso <paramref name="into"/> le clausole dell'altro, come punto di partenza.</summary>
-    private Task CopyDirection(AgreementRow a, AgreementDirection into) =>
+    // ---- sezioni ------------------------------------------------------------------------------------
+
+    private void OpenNewSection(AgreementRow a)
+    {
+        ClosePanel();
+        _editHeaderId = null; _editSectionId = null;
+        _sectionForm.Reset();
+        _newSectionFor = a.Id;
+    }
+
+    /// <summary>Apre il form già impostato sul <b>reciproco</b> che manca: stesso traffico, stessi scali, verso
+    /// opposto. È il gesto «scrivilo da zero» accanto a «copia l'altro verso».</summary>
+    private void OpenNewReverseSection(AgreementRow a, AgreementSectionRow sec)
+    {
+        OpenNewSection(a);
+        _sectionForm.LoadFrom(sec);
+        _sectionForm.Description = "";
+        _sectionForm.Direction = SectionDirection.Flip(sec.Direction);
+    }
+
+    private async Task AddSection(AgreementRow a)
+    {
+        var newId = 0;
+        await Guarded(async () =>
+        {
+            newId = await Agreements.AddSectionAsync(_acc!.Code, a.Id, ToSectionInput(_sectionForm));
+            _newSectionFor = null;
+        }, L["Xfer_SectionAdded"]);
+        if (newId > 0) _focusSectionId = newId;
+    }
+
+    private void OpenEditSection(AgreementSectionRow sec)
+    {
+        ClosePanel();
+        _editHeaderId = null; _newSectionFor = null;
+        _sectionForm.LoadFrom(sec);
+        _editSectionId = sec.Id;
+        _collapsedSections.Remove(sec.Id);
+    }
+
+    private async Task SaveSection(AgreementSectionRow sec)
+    {
+        await Guarded(async () =>
+        {
+            await Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, ToSectionInput(_sectionForm));
+            _editSectionId = null;
+        }, L["Xfer_SectionUpdated"]);
+        await LoadRunwaysAsync(FocusSection()?.Section);
+    }
+
+    private async Task DeleteSection(AgreementRow a, AgreementSectionRow sec)
+    {
+        var snap = new AgreementSectionRestore(a.Id, SnapshotOf(sec));
+        await Guarded(() => Agreements.DeleteSectionAsync(_acc!.Code, sec.Id), L["Xfer_SectionDeleted"].Value);
+        if (_error is null)
+        {
+            if (_focusSectionId == sec.Id) _focusSectionId = null;
+            _undo = (() => Agreements.RestoreSectionAsync(_acc!.Code, snap), L["Xfer_SectionRestored"].Value);
+        }
+    }
+
+    /// <summary>Copia la sezione nel verso opposto, come punto di partenza per il reciproco.</summary>
+    private Task CopyToReverse(AgreementSectionRow sec) =>
         Guarded(async () =>
         {
-            var from = into == AgreementDirection.AtoB ? AgreementDirection.BtoA : AgreementDirection.AtoB;
-            var n = await Agreements.CopyDirectionAsync(_acc!.Code, a.Id, from);
-            _status = string.Format(L["Xfer_DirectionCopied"].Value, n);
+            var newId = await Agreements.CopySectionToReverseAsync(_acc!.Code, sec.Id);
+            if (newId is int id) { _focusSectionId = id; _status = string.Format(L["Xfer_DirectionCopied"].Value, sec.Clauses.Count); }
         }, null);
 
-    private async Task OpenAddClause(AgreementRow a, AgreementDirection d)
+    /// <summary>Il tipo scelto nel form propone anche il VERSO: cambiare da arrivi a partenze sullo stesso
+    /// scalo ribalta chi cede e chi riceve, ed è la parte che nessuno ricorda di girare a mano.</summary>
+    private void PickSectionKind(AgreementRow ag, ChangeEventArgs e)
     {
-        _editClauseId = null; _editHeaderId = null;
-        _addClauseAgreementId = a.Id;
+        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind)) return;
+        _sectionForm.Kind = kind;
+        _sectionForm.Direction = ProposeDirection(ag, kind, _sectionForm.Airports.FirstOrDefault()?.Icao);
+    }
+
+    private void AddAirportToForm(AgreementRow ag)
+    {
+        var icao = _sectionForm.AirportText.Trim().ToUpperInvariant();
+        if (icao.Length == 0) return;
+        if (!_sectionForm.Airports.Any(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase)))
+            _sectionForm.Airports.Add(new AgreementAirportInput(icao,
+                IsKnownApt(icao) ? null : NullIfBlank(_sectionForm.AirportName)));
+
+        // Il primo scalo PROPONE il verso: «arrivi verso LIRF» va verso chi ha LIRF, e chi scrive non deve
+        // ricordarsi di girare la freccia. Resta una proposta — la freccia è lì accanto, e si clicca.
+        if (_sectionForm.Airports.Count == 1)
+            _sectionForm.Direction = ProposeDirection(ag, _sectionForm.Kind, icao);
+
+        _sectionForm.AirportText = ""; _sectionForm.AirportName = "";
+    }
+
+    /// <summary>
+    /// Il verso proposto per una sezione, dall'aeroporto: la funzione pura di <c>SectionDirection</c>, con i
+    /// dati che questa pagina ha già in mano (la catena di copertura dello scalo e la sua ACC).
+    /// </summary>
+    private AgreementDirection ProposeDirection(AgreementRow ag, TransferFlowKind kind, string? icao)
+    {
+        if (string.IsNullOrWhiteSpace(icao)) return SectionDirection.Propose(kind, (AgreementSide?)null);
+
+        var chain = new List<string>();
+        var cursor = _airportParents.TryGetValue(icao!, out var parent)
+            ? _all.FirstOrDefault(x => string.Equals(x.Callsign, parent, StringComparison.OrdinalIgnoreCase))
+            : null;
+        // La catena si risale finché c'è un padre; il tetto a otto è una guardia contro un anello nei dati,
+        // non un limite di disegno.
+        for (var i = 0; cursor is not null && i < 8; i++)
+        {
+            chain.Add(cursor.Callsign);
+            cursor = cursor.ParentSectorId is int pid ? _all.FirstOrDefault(x => x.Id == pid) : null;
+        }
+
+        var accOfAirport = _airports.FirstOrDefault(x => string.Equals(x.Icao, icao, StringComparison.OrdinalIgnoreCase))?.AccCode;
+        var owner = SectionDirection.OwningSide(
+            new AgreementSideHint(ag.SideA.Callsign, _lens.AccOf(ag.SideA.Callsign)),
+            new AgreementSideHint(ag.SideB.Callsign, _lens.AccOf(ag.SideB.Callsign)),
+            new AirportCoverageHint(chain, accOfAirport));
+
+        return SectionDirection.Propose(kind, owner);
+    }
+
+    /// <summary>«da → a» per un verso che non è ancora salvato: serve al form della sezione.</summary>
+    private static string DirectionPairOf(AgreementRow a, AgreementDirection d) =>
+        $"{a.Sender(d).Callsign} → {a.Receiver(d).Callsign}";
+
+    // ---- clausole -----------------------------------------------------------------------------------
+
+    private async Task OpenAddClause(AgreementRow a, AgreementSectionRow sec)
+    {
+        _editClauseId = null; _editHeaderId = null; _newSectionFor = null; _editSectionId = null;
+        _addClauseSectionId = sec.Id;
         _selectedId = a.Id;
-        // Il verso lo porta il blocco in cui si è premuto: è l'unica cosa che distingue «+ clausola» qui da
-        // «+ clausola» venti pixel più in basso.
-        _focusDirection = d;
+        _focusSectionId = sec.Id;
         _addClause.Reset();
         // La faccetta parte già aperta sul caso più comune quando si consegna a un APP: «al confine dell'AoR».
-        _addClause.Facet.Reset(preset: ReceivesApp(a));
+        _addClause.Facet.Reset(preset: ReceivesApp(a, sec));
         ResetPanelSections(_addClause);
         _formOpenedAs = _addClause.Signature();
-        await LoadRunwaysAsync(a);
+        await LoadRunwaysAsync(sec);
         _revealPanel = true;
     }
 
-    private async Task EditClause(AgreementRow a, AgreementClauseRow c)
+    private async Task EditClause(AgreementRow a, AgreementSectionRow sec, AgreementClauseRow c)
     {
-        _addClauseAgreementId = null; _editHeaderId = null;
+        _addClauseSectionId = null; _editHeaderId = null; _newSectionFor = null; _editSectionId = null;
         _selectedId = a.Id;
-        _focusDirection = c.Direction;
+        _focusSectionId = sec.Id;
         _editClauseId = c.Id;
         _editClause.LoadFrom(c, ParseRwys);
         ResetPanelSections(_editClause);
         _formOpenedAs = _editClause.Signature();
-        await LoadRunwaysAsync(a);
+        await LoadRunwaysAsync(sec);
         _revealPanel = true;
     }
 
-    private void ClosePanel() { _editClauseId = null; _addClauseAgreementId = null; }
+    private void ClosePanel() { _editClauseId = null; _addClauseSectionId = null; }
 
     private AgreementRow? CurrentAgreement() =>
         _editClauseId is int id ? AgreementOf(id)
-        : _addClauseAgreementId is int add ? _agreements.FirstOrDefault(a => a.Id == add)
+        : _addClauseSectionId is int add ? _agreements.FirstOrDefault(a => a.Sections.Any(s => s.Id == add))
+        : null;
+
+    private AgreementSectionRow? CurrentSection() =>
+        _editClauseId is int id ? SectionOf(id)
+        : _addClauseSectionId is int add ? SectionById(add)
         : null;
 
     private AgreementClauseRow? CurrentClause() => _editClauseId is int id ? FindClause(id) : null;
 
     private bool InGroup() => CurrentClause()?.VariantGroup is not null;
 
-    private bool ReceivesApp(AgreementRow a) =>
-        a.Parties.Where(p => p.Side == AgreementSide.B)
-            .Any(p => _all.FirstOrDefault(s => s.Id == p.SectorId)?.Type == SectorType.App);
+    private bool ReceivesApp(AgreementRow a, AgreementSectionRow sec) =>
+        _all.FirstOrDefault(x => x.Id == a.Receiver(sec.Direction).SectorId)?.Type == SectorType.App;
 
     private Task SavePanel() =>
         _editClauseId is int id
             ? SaveClauseAsync(id)
-            : _addClauseAgreementId is int agreementId ? AddClause(agreementId) : Task.CompletedTask;
+            : _addClauseSectionId is int sectionId ? AddClause(sectionId) : Task.CompletedTask;
 
     private Task SaveClauseAsync(int clauseId) =>
         Guarded(() => Agreements.UpdateClauseAsync(_acc!.Code, clauseId, ToClauseInput(_editClause)),
                 L["Xfer_RowSaved"].Value);
 
-    private async Task AddClause(int agreementId)
+    private async Task AddClause(int sectionId)
     {
         await Guarded(async () =>
         {
-            await Agreements.AddClauseAsync(_acc!.Code, agreementId, _focusDirection, ToClauseInput(_addClause));
+            await Agreements.AddClauseAsync(_acc!.Code, sectionId, ToClauseInput(_addClause));
             _addClause.Reset();
             _formOpenedAs = _addClause.Signature();
         }, L["Xfer_RowAdded"]);
@@ -2743,10 +2909,10 @@
     {
         if (_editClauseId is not int id) return;
         var c = FindClause(id);
-        var a = AgreementOf(id);
-        if (c is null || a is null) return;
+        var sec = SectionOf(id);
+        if (c is null || sec is null) return;
 
-        var snap = new AgreementClauseRestore(a.Id, SnapshotOf(c));
+        var snap = new AgreementClauseRestore(sec.Id, SnapshotOf(c));
         await Guarded(() => Agreements.DeleteClauseAsync(_acc!.Code, id), L["Xfer_RowDeleted"].Value);
         if (_error is null)
         {
@@ -2787,7 +2953,8 @@
 
         var c = FindClause(newId);
         var a = AgreementOf(newId);
-        if (c is not null && a is not null) await EditClause(a, c);
+        var sec = SectionOf(newId);
+        if (c is not null && a is not null && sec is not null) await EditClause(a, sec, c);
     }
 
     private Task RowAction(Func<Task> action) => Guarded(action, null);
@@ -2801,13 +2968,24 @@
 
     // ---- Input ---------------------------------------------------------------------------------------
 
-    private AgreementInput ToInput(HeaderForm f) => new()
+    private AgreementInput ToPairInput(PairForm f) => new()
     {
-        TrafficKind = f.Kind,
+        SideASectorId = SectorIdOf(f.SideA),
+        SideBSectorId = SectorIdOf(f.SideB),
+        Note = NullIfBlank(f.Note),
+    };
+
+    private static AgreementSectionInput ToSectionInput(SectionForm f) => new()
+    {
+        Kind = f.Kind,
+        Direction = f.Direction,
         Description = NullIfBlank(f.Description),
-        SideA = f.SideA.Select(SectorIdOf).Where(id => id > 0).ToList(),
-        SideB = f.SideB.Select(SectorIdOf).Where(id => id > 0).ToList(),
-        Airports = f.Airports.ToList(),
+        // I sorvoli non hanno scali: se ne erano rimasti addosso cambiando tipo, la sezione non si salverebbe.
+        // Si tolgono qui e non a ogni digitazione, perché un campo che si svuota da solo mentre lo si guarda è
+        // il modo più rapido di perdere un dato senza accorgersene.
+        Airports = f.Kind == TransferFlowKind.Overflight
+            ? Array.Empty<AgreementAirportInput>()
+            : f.Airports.ToList(),
     };
 
     private int SectorIdOf(string callsign) =>
@@ -2830,18 +3008,27 @@
     // ---- Fotografie e annulla ------------------------------------------------------------------------
 
     private static AgreementClauseSnapshot SnapshotOf(AgreementClauseRow c) =>
-        new(EditableCopy(c), c.Direction, c.Order, c.VariantGroup, c.VariantDepth);
+        new(EditableCopy(c), c.Order, c.VariantGroup, c.VariantDepth);
+
+    private static AgreementSectionSnapshot SnapshotOf(AgreementSectionRow s) => new(
+        new AgreementSectionInput
+        {
+            Kind = s.Kind,
+            Direction = s.Direction,
+            Description = s.Description,
+            Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+        },
+        s.Order,
+        s.Clauses.OrderBy(c => c.Order).Select(SnapshotOf).ToList());
 
     private static AgreementSnapshot SnapshotOf(AgreementRow a) => new(
         new AgreementInput
         {
-            TrafficKind = a.TrafficKind,
-            Description = a.Description,
-            SideA = a.Parties.Where(p => p.Side == AgreementSide.A).OrderBy(p => p.Order).Select(p => p.SectorId).ToList(),
-            SideB = a.Parties.Where(p => p.Side == AgreementSide.B).OrderBy(p => p.Order).Select(p => p.SectorId).ToList(),
-            Airports = a.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+            SideASectorId = a.SideA.SectorId,
+            SideBSectorId = a.SideB.SectorId,
+            Note = a.Note,
         },
-        a.Clauses.OrderBy(c => c.Direction).ThenBy(c => c.Order).Select(SnapshotOf).ToList());
+        a.Sections.OrderBy(s => s.Order).Select(SnapshotOf).ToList());
 
     private (Func<Task> Restore, string Message)? _undo;
 
@@ -2856,12 +3043,12 @@
 
     /// <summary>Un gruppo di alternative senza «negli altri casi»: i casi che nessuna condizione copre restano
     /// scoperti, e chi legge non sa che fare. Può essere legittimo, quindi si segnala e non si impedisce.
-    /// <para>Per verso, e non per accordo: l'outline vive dentro una direzione, e un avviso che uscisse dal verso
-    /// sbagliato manderebbe a cercare un gruppo nella tabella dove non c'è.</para></summary>
-    private IReadOnlyList<string> AlternativesWithoutNormalCase(AgreementRow a, AgreementDirection d)
+    /// <para>Per SEZIONE, e non per accordo: l'outline vive dentro una sezione, e un avviso che uscisse dalla
+    /// tabella sbagliata manderebbe a cercare un gruppo dove non c'è.</para></summary>
+    private static IReadOnlyList<string> AlternativesWithoutNormalCase(AgreementSectionRow sec)
     {
         var avvisi = new List<string>();
-        foreach (var g in a.Clauses.Where(c => c.Direction == d && c.VariantGroup is not null)
+        foreach (var g in sec.Clauses.Where(c => c.VariantGroup is not null)
                      .GroupBy(c => c.VariantGroup!.Value))
         {
             var alternative = g.Where(c => c.VariantDepth == 0 && !c.IsGroupWide).ToList();

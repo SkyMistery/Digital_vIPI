@@ -18,7 +18,8 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
         // tabelle storiche direbbe cose vere di un archivio che nessuno modifica piu'.
         var conditions = await (
             from c in _db.AgreementClauses.AsNoTracking()
-            join g in _db.CoordinationAgreements.AsNoTracking() on c.AgreementId equals g.Id
+            join s in _db.AgreementSections.AsNoTracking() on c.SectionId equals s.Id
+            join g in _db.CoordinationAgreements.AsNoTracking() on s.AgreementId equals g.Id
             join a in _db.Accs.AsNoTracking() on g.OwnerAccId equals a.Id
             where c.ConditionRefId != null || c.ConditionAreaLabel != null
             select new TransferConditionRow(c.Id, a.Code, c.Cops, c.ConditionRefId, c.ConditionLabel, c.ConditionAreaLabel)

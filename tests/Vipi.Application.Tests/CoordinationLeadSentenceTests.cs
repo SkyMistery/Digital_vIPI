@@ -143,10 +143,16 @@ public class CoordinationLeadSentenceTests
 
         var quattro = uno with
         {
-            Airports = new[]
+            Sections = new[]
             {
-                new AgreementAirportRow("LIRF", null, 1), new AgreementAirportRow("LIRA", null, 2),
-                new AgreementAirportRow("LIRU", null, 3), new AgreementAirportRow("LIRE", null, 4),
+                uno.Sections[0] with
+                {
+                    Airports = new[]
+                    {
+                        new AgreementAirportRow("LIRF", null, 1), new AgreementAirportRow("LIRA", null, 2),
+                        new AgreementAirportRow("LIRU", null, 3), new AgreementAirportRow("LIRE", null, 4),
+                    },
+                },
             },
         };
         Assert.All(AgreementExpansion.Expand(new[] { quattro }).SelectMany(f => f.Points),
@@ -157,19 +163,28 @@ public class CoordinationLeadSentenceTests
 
     private static AgreementRow Agreement(params AgreementClauseRow[] clauses) => new()
     {
-        Id = 1, OwnerAccCode = "LIBB", TrafficKind = TransferFlowKind.Arrival, Order = 1,
-        Parties = new[]
+        Id = 1,
+        OwnerAccCode = "LIBB",
+        SideA = new AgreementEndpoint(10, "LIBB_ES_CTR"),
+        SideB = new AgreementEndpoint(20, "LIBD_CS0_APP"),
+        Order = 1,
+        Sections = new[]
         {
-            new AgreementPartyRow(AgreementSide.A, 10, "LIBB_ES_CTR", 1),
-            new AgreementPartyRow(AgreementSide.B, 20, "LIBD_CS0_APP", 1),
+            new AgreementSectionRow
+            {
+                Id = 1,
+                Kind = TransferFlowKind.Arrival,
+                Direction = AgreementDirection.AtoB,
+                Order = 1,
+                Airports = new[] { new AgreementAirportRow("LIBD", null, 1) },
+                Clauses = clauses,
+            },
         },
-        Airports = new[] { new AgreementAirportRow("LIBD", null, 1) },
-        Clauses = clauses,
     };
 
     private static AgreementClauseRow Clause(int id, string cops, int level) => new()
     {
-        Id = id, Direction = AgreementDirection.AtoB, Cops = cops, LevelValue = level,
+        Id = id, SectionId = 1, Cops = cops, LevelValue = level,
         LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow, Order = id,
     };
 }

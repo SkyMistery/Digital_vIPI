@@ -6,15 +6,15 @@ namespace Vipi.Application.Content;
 /// Una clausola di un accordo in lettura: i punti a cui si applica, il livello, la faccetta trasferimento, la
 /// condizione, la posizione nell'outline delle varianti.
 /// <para>È l'ex <see cref="TransferPointRow"/> meno il ricevente — che è il lato opposto dell'accordo — e con i
-/// punti in <b>elenco</b> (<see cref="CopList"/>) invece che uno solo.</para>
+/// punti in <b>elenco</b> (<see cref="CopList"/>) invece che uno solo. Il <b>verso</b> non è qui: lo dice la
+/// sezione che la ospita.</para>
 /// </summary>
 public sealed record AgreementClauseRow : IOutlineRow
 {
     public required int Id { get; init; }
 
-    /// <summary>In quale verso vale. L'outline delle varianti vive DENTRO una direzione: le clausole del verso
-    /// opposto non sono alternative delle prime.</summary>
-    public required AgreementDirection Direction { get; init; }
+    /// <summary>La sezione che la ospita: è lo scopo dentro cui l'ordine e l'outline hanno significato.</summary>
+    public required int SectionId { get; init; }
 
     /// <summary>I punti d'ingresso, in elenco (vedi <see cref="CopList"/>).</summary>
     public required string Cops { get; init; }

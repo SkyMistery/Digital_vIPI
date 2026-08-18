@@ -77,7 +77,13 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
             Callsign = "LIRR_NE_CTR", Name = "Roma Nord-Est", AccId = acc.Id,
             Type = SectorType.Ctr, Kind = SectorKind.Acc,
         };
+        var altro = new Sector
+        {
+            Callsign = "LIRR_TS_CTR", Name = "Roma Tirreno Sud", AccId = acc.Id,
+            Type = SectorType.Ctr, Kind = SectorKind.Acc,
+        };
         db.Sectors.Add(settore);
+        db.Sectors.Add(altro);
 
         var doc = new Document
         {
@@ -129,8 +135,8 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
 
         db.CoordinationAgreements.Add(new CoordinationAgreement
         {
-            OwnerAccId = acc.Id, TrafficKind = TransferFlowKind.Arrival,
-            Description = "descrizione iniziale", Order = 0,
+            OwnerAccId = acc.Id, SideASectorId = settore.Id, SideBSectorId = altro.Id,
+            Note = "nota iniziale", Order = 0,
         });
         await db.SaveChangesAsync();
     }
@@ -201,7 +207,7 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
         {
             nameof(SharedBlock) => await ConflittoFraDueEditor(db => db.SharedBlocks.FirstAsync(), (x, s) => x.Body = s),
             nameof(UnificationRule) => await ConflittoFraDueEditor(db => db.UnificationRules.FirstAsync(), (x, s) => x.Name = s),
-            nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Description = s),
+            nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Note = s),
             _ => await ConflittoFraDueEditor(db => db.DocumentProfiles.FirstAsync(), (x, s) => x.FreqOrderJson = s),
         };
 

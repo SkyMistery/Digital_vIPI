@@ -171,7 +171,21 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task DeleteAgreementAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> AddClauseAsync(string a, int id, Vipi.Domain.AgreementDirection d, AgreementClauseInput i, CancellationToken ct = default) =>
+        public Task<int> AddClauseAsync(string a, int id, AgreementClauseInput i, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int?> FindByPairAsync(string a, int x, int y, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> AddSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task UpdateSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DeleteSectionAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int?> CopySectionToReverseAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> MergeSectionsAsync(string a, int keep, int absorb, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int?> RestoreSectionAsync(string a, AgreementSectionRestore s, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task UpdateClauseAsync(string a, int id, AgreementClauseInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
@@ -188,10 +202,6 @@ public class LiveStationPartsTests
         public Task<int> DuplicateVariantGroupAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DetachVariantAsync(string a, int id, CancellationToken ct = default) =>
-            throw new NotSupportedException();
-        public Task<int> CopyDirectionAsync(string a, int id, Vipi.Domain.AgreementDirection from, CancellationToken ct = default) =>
-            throw new NotSupportedException();
-        public Task<int> AbsorbAsReverseAsync(string a, int keep, int absorb, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
             throw new NotSupportedException();

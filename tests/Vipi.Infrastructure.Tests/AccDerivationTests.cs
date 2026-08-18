@@ -130,11 +130,8 @@ public class AccProfileTests : IAsyncLifetime
         var ne = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR")).Id;
 
         // Sorvolo POSSEDUTO da EW, senza aeroporto, verso NE. Deve comparire nel nodo «Sorvoli», non fra gli aeroporti.
-        var f = await tr.AddAgreementAsync(Acc, new AgreementInput
-        {
-            TrafficKind = TransferFlowKind.Overflight, SideA = new[] { ew }, SideB = new[] { ne },
-        });
-        await tr.AddClauseAsync(Acc, f, AgreementDirection.AtoB, new AgreementClauseInput
+        var sec = await SectionAsync(tr, ew, ne, TransferFlowKind.Overflight, null);
+        await tr.AddClauseAsync(Acc, sec, new AgreementClauseInput
         {
             Cops = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia",
         });
@@ -315,16 +312,34 @@ public class AccProfileTests : IAsyncLifetime
     private static async Task Agreement(EfAgreementRepository tr, int from, int to, TransferFlowKind kind,
         string? icao, string cops, int level)
     {
-        var id = await tr.AddAgreementAsync(Acc, new AgreementInput
-        {
-            TrafficKind = kind,
-            SideA = new[] { from },
-            SideB = new[] { to },
-            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
-        });
-        await tr.AddClauseAsync(Acc, id, AgreementDirection.AtoB, new AgreementClauseInput
+        var sec = await SectionAsync(tr, from, to, kind, icao);
+        await tr.AddClauseAsync(Acc, sec, new AgreementClauseInput
         {
             Cops = cops, LevelValue = level, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove,
+        });
+    }
+
+    /// <summary>
+    /// La sezione dove finiranno le clausole: l'accordo fra i due enti (riusato se c'è già — ne esiste UNO solo
+    /// per coppia) e dentro una sezione col traffico e lo scalo.
+    /// <para>⚠️ Il verso si sceglie a mano perché <paramref name="from"/> dice chi cede, e dopo la canonizzazione
+    /// dei lati «chi cede» può essere finito su A o su B: leggerlo dall'accordo salvato è l'unico modo di non
+    /// scrivere il contrario di ciò che il caso di prova intende.</para>
+    /// </summary>
+    private static async Task<int> SectionAsync(EfAgreementRepository tr, int from, int to,
+        TransferFlowKind kind, string? icao)
+    {
+        var id = await tr.FindByPairAsync(Acc, from, to)
+                 ?? await tr.AddAgreementAsync(Acc, new AgreementInput { SideASectorId = from, SideBSectorId = to });
+
+        var a = (await tr.ListByAccAsync(Acc)).First(x => x.Id == id);
+        var direction = a.SideA.SectorId == from ? AgreementDirection.AtoB : AgreementDirection.BtoA;
+
+        return await tr.AddSectionAsync(Acc, id, new AgreementSectionInput
+        {
+            Kind = kind,
+            Direction = direction,
+            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
         });
     }
 
