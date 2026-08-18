@@ -12,8 +12,19 @@
 > l'editor a tre colonne, cinque giri fra il 17 e il 18.
 >
 > Schema: [`../spec/modello-dati.md`](../spec/modello-dati.md) **§9.25-bis** (§9.25 è storia) · Area:
-> [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §10 · Voci aperte:
+> [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §11 · Voci aperte:
 > [`../lavori-aperti.md`](../lavori-aperti.md)
+
+> ## ⚠️ Il `vipi.db` di sviluppo è CONVERTITO — e adesso vuole questo ramo
+>
+> La conversione è girata sull'archivio vero il **18 agosto 2026**: 40 accordi / 60 clausole →
+> **16 accordi / 38 sezioni / 60 clausole**, `integrity_check` ok, zero orfani, zero violazioni di FK.
+>
+> ⚠️ **Da qui in poi `src/Vipi.Host/vipi.db` gira solo con `feature/accordi-coordinamento`.** Il codice di
+> `main` cerca ancora `AgreementParties`, che non esiste più: tornare indietro **senza rimettere il backup**
+> fa crashare l'avvio. Il backup è **fuori dal repo**, in `../vipi.db.bak-pre-sezioni-20260818` (5,1 MB) — e il
+> `vipi.db` **non è tracciato in git**, quindi quel file è l'unica copia dello stato precedente.
+
 
 ## In una riga
 
@@ -121,10 +132,15 @@ accanto e dice dov'è, così la differenza si guarda prima di accettarla.
 ⚠️ **Il 18 agosto l'approvato non si è mosso di un carattere**, ed è la prova che la conversione è corretta: se
 si muovesse per un riordino, la tentazione sarebbe riapprovare.
 
-## La conversione — come si esegue, in ordine
+## La conversione — com'è stata eseguita, e come si rifà altrove
 
-⚠️ **Il `vipi.db` del progetto è ancora NON convertito**: la prova è girata su una copia nello scratchpad. Va
-fatta sul DB vero, a host spento, dopo il backup.
+✅ **Fatta sul `vipi.db` di sviluppo il 18 agosto 2026.** Quello che segue serve a rifarla su un altro archivio
+— la **MariaDB di produzione**, o una copia — con `--mysql "<conn>"` al posto di `--sqlite` e le due migrazioni
+gemelle di `Vipi.Infrastructure.MySqlMigrations`.
+
+⚠️ **Il percorso del DB va ASSOLUTO.** `--connection "Data Source=src/Vipi.Host/vipi.db"` fallisce con
+`SQLite Error 14: unable to open database file`: il relativo si risolve dalla cartella del progetto di
+startup, non da dove si è lanciato il comando. Fallisce senza toccare niente, ma fa perdere un giro.
 
 ```
 # 0. backup, FUORI dal repo

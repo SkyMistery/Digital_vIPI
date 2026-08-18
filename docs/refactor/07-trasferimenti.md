@@ -393,5 +393,13 @@ trovato tre cose che il DOM non diceva:
 
 ### 11.3 Cosa resta
 
-1. 🟡 **La conversione sul `vipi.db` vero**: è girata due volte su copia, mai sull'archivio del progetto.
-2. **Merge in `main`**: serve l'ok esplicito.
+1. ✅ **Conversione eseguita sul `vipi.db` di sviluppo** (18 agosto): 16 accordi, 38 sezioni, 60 clausole,
+   integrità verificata e app guidata a schermo sull'archivio convertito. ⚠️ Quel DB adesso **vuole questo
+   ramo**; il backup è fuori dal repo e non è in git.
+2. 🟡 **La conversione sulla MariaDB di produzione**, con `--mysql` e le due migrazioni gemelle.
+3. **Merge in `main`**: serve l'ok esplicito.
+
+⚠️ **Due incongruenze del report di consistenza NON vengono da qui**: le clausole `#38`/`#39` puntano a piste
+(`ConditionRefId` 215/216) re-importate con altri Id. Verificato sul **backup pre-conversione**, dove erano
+identiche. L'etichetta denormalizzata (`07`/`25`) c'è, quindi i documenti rendono bene — è esattamente la
+ragione per cui quella verità è denormalizzata. Da sistemare a mano dall'editor, quando si vuole.

@@ -817,8 +817,13 @@ Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSec
    imposto, verso proposto dall'aeroporto, blocco fantasma del reciproco, gemelle e deep-link — e ha trovato
    **tre difetti invisibili ai test**, corretti: l'avviso «scalo non coperto» che urlava su 3 sezioni su 8, lo
    stesso avviso che dalla testata mandava i tasti a capo, e cinque etichette rimaste sull'operazione vecchia.
-2. 🟡 **La conversione sul `vipi.db` vero**: è girata due volte su **copia**, mai sull'archivio del progetto. Va
-   fatta a host spento, dopo il backup, leggendo il rapporto prima di dare `--apply`.
+2. ✅ **Conversione eseguita sul `vipi.db` di sviluppo** (18 agosto): 40 accordi / 60 clausole →
+   **16 accordi / 38 sezioni / 60 clausole**, `integrity_check` ok, zero orfani, zero violazioni di FK, e
+   l'app ci gira sopra (vIPI ACC LIBB: 37 tabelle, 76 righe di coordinamento).
+   ⚠️ **Da qui in poi quel DB vuole questo ramo**: il codice di `main` cerca ancora `AgreementParties`. Il
+   backup sta **fuori dal repo** in `../vipi.db.bak-pre-sezioni-20260818`, ed è l'unica copia dello stato
+   precedente perché il `vipi.db` non è tracciato in git.
+   ⚠️ Resta da fare sulla **MariaDB di produzione**, con `--mysql` e le migrazioni gemelle.
 3. ✅ **Suite completa 2094 verdi** (E2E inclusi) e `dotnet build -c Release --no-incremental` a **0 warning**
    su due TFM.
 4. **Le due asimmetrie** — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) — le

@@ -461,3 +461,35 @@ a fine giro).
 **Difetto pre-esistente lasciato lì**, perché è fuori dal giro e vale in tutte e due le lingue: `Xfer_ClausesCount`
 rende «1 clauses» / «1 clausole» — plurale su uno.
 
+## L'esecuzione sull'archivio vero (18 agosto)
+
+Backup fuori dal repo (`../vipi.db.bak-pre-sezioni-20260818`, 5,1 MB), poi i tre passi, poi le verifiche.
+
+```
+40 accordi · 79 parti · 36 aeroporti · 60 clausole
+      ↓
+16 accordi · 38 sezioni · 35 aeroporti · 60 clausole
+```
+
+| Controllo | Esito |
+|---|---|
+| Clausole ritrovate | **60 su 60**, nessuna persa e nessuna inventata |
+| Clausole / aeroporti / sezioni orfani | 0 · 0 · 0 |
+| Lati mancanti · coppie duplicate · canonico violato | 0 · 0 · 0 |
+| `AgreementParties` | droppata |
+| `pragma integrity_check` · `foreign_key_check` | `ok` · 0 violazioni |
+| L'app ci gira | vIPI ACC LIBB: 37 tabelle, **76 righe** di coordinamento; editor: 16 accordi, 60 clausole |
+| `/vsop/health/ready` | `Healthy` |
+
+⚠️ **`/vsop/health` dice `Degraded`, e non viene da qui**: sono due piste orfane
+(clausole `#38`/`#39`, `ConditionRefId` 215/216, re-importate con altri Id). Verificato sul **backup
+pre-conversione**, dove erano identiche. È contenuto, non codice.
+
+⚠️ **Da qui in poi `src/Vipi.Host/vipi.db` gira solo con questo ramo**: `main` cerca ancora
+`AgreementParties`. E il `vipi.db` **non è tracciato in git**, quindi il backup fuori dal repo è l'unica copia
+dello stato precedente.
+
+⚠️ **Il percorso del DB va ASSOLUTO** in `dotnet ef database update --connection`: il relativo si risolve dalla
+cartella del progetto di startup e dà `SQLite Error 14: unable to open database file`. Fallisce senza toccare
+niente, ma fa perdere un giro.
+
