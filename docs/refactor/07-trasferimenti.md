@@ -377,8 +377,21 @@ Sui dati veri: **40 accordi / 60 clausole → 16 accordi / 38 sezioni / 60 claus
    nuova **id di accordi** spacciati per id di sezioni. È la seconda volta su quest'area che un rename automatico
    produce dati validi e sbagliati. **Le migrazioni si leggono, non si accettano.**
 
-### 11.2 Cosa resta
+### 11.2 La verifica live, e i tre difetti che ha trovato
 
-1. 🟡 **Verifica live dell'editor**, sulla **5035** (la 5034 è del committente).
-2. 🟡 **La conversione sul `vipi.db` vero**: è girata su una copia, non sull'archivio del progetto.
-3. `Vipi.Host` e `Vipi.E2E.Tests` da ricompilare a host spento (`MSB3021` sui DLL bloccati).
+Guidata sulla **5035** su una copia già convertita. Ha confermato tutto ciò che il modello promette — albero a
+due livelli, le otto schede di `LIBB ⇄ LGGG` diventate una foglia, arrivi e partenze dello stesso scalo
+accostati, verso che **gira digitando l'ICAO**, blocco fantasma del reciproco, gemelle unite, deep-link — e ha
+trovato tre cose che il DOM non diceva:
+
+1. ⚠️ **L'avviso «scalo non coperto» urlava su tre sezioni su otto**, tutte scritte bene: un'**area** che riceve
+   arrivi e poi li gira all'avvicinamento è il caso **normale**. Ristretto ai riceventi APP/torre. *Una
+   categoria che urla sempre non si guarda più* — seconda volta su questa pagina.
+2. **Lo stesso avviso, nella testata, mandava a capo i tasti della sezione.** Sceso nel corpo, con gli altri.
+3. **Cinque etichette descrivevano l'operazione vecchia**: «unisci i due **versi**» dove si uniscono due
+   **sezioni gemelle dello stesso verso**.
+
+### 11.3 Cosa resta
+
+1. 🟡 **La conversione sul `vipi.db` vero**: è girata due volte su copia, mai sull'archivio del progetto.
+2. **Merge in `main`**: serve l'ok esplicito.

@@ -329,7 +329,7 @@ irrevisionabile.
 | 4 | `EfAgreementRepository` + `IAgreementRepository`/`IAgreementService` (sezioni, outline per sezione, snapshot annidato) | le scritture funzionano sul nuovo modello | ✅ |
 | 5 | Conversione one-shot su **copia** del `vipi.db`, rapporto letto riga per riga | dati convertiti, e la prova che sono gli stessi | ✅ 60/60 clausole |
 | 6 | Migrazioni **distruttive** + rimozione di ciò che muore (`AgreementParties`, `AgreementMerge`, `TrafficKinds`, due voci del cruscotto) | nessun nome morto | ✅ |
-| 7 | Editor: albero a due livelli, riquadro a sezioni, form di creazione, deep-link | ⚠️ **verifica live sulla 5035** (la 5034 è del committente) | 🟡 **da fare** |
+| 7 | Editor: albero a due livelli, riquadro a sezioni, form di creazione, deep-link | ⚠️ **verifica live sulla 5035** (la 5034 è del committente) | ✅ guidata a schermo |
 | 8 | Doc, spec, handoff, memoria | tracciamento coerente | ✅ |
 
 **Cancelli:** `dotnet build Vipi.slnx -c Release --no-incremental` (avvisi = errori, **due TFM**) e
@@ -422,3 +422,42 @@ dotnet ef database update 20260818115838_AgreementSectionsFinalize \
 ancora nulle e l'indice unico non passa se due accordi descrivono ancora la stessa coppia. Un fallimento
 rumoroso è l'unica difesa che vale — la trappola di ferragosto era una passata che «non trova niente, scrive
 zero, e i dati spariscono senza un errore».
+
+## La verifica live — cosa ha detto lo schermo
+
+Guidata con Edge+puppeteer sulla **5035**, su una copia del `vipi.db` già convertita nelle tre fasi.
+
+**Ha confermato**, e non erano cose che i test potessero dire:
+
+| Cosa | Esito |
+|---|---|
+| Albero a **due** livelli | 6 rami ACC, 16 accordi, **zero** `.xt-nav-rel` superstiti |
+| L'accordo che erano otto schede | `LIBB_ES_CTR ⇄ LGGG_W_CTR` — **una foglia, «8 ▤ 13»** |
+| **Ordine imposto** | LGKF · **LIBD arrivi+partenze accostate** · LIBG · **LIBR arrivi+partenze accostate** · sorvoli nei due versi |
+| **Verso proposto dall'aeroporto** | arrivi a LGKF (greco) → `noi→loro`; a LIBD/LIBG/LIBR (italiani) → `loro→noi` |
+| Il verso **gira digitando lo scalo** | form su accordo LYBA: nasce `LIBB→LYBA`, aggiungo **LIBD**, diventa `LYBA→LIBB` |
+| Tasto **⇄** | rigira la proposta e la rigira indietro |
+| **Reciproco mancante** | blocco fantasma `LYBA_CTR → LIBB_ES_CTR` sotto il sorvolo scritto in un verso solo |
+| «copia l'altro verso» | *«Copied 1 clauses into the opposite direction: levels must be reviewed»*, e il fantasma diventa sezione |
+| **Gemelle** | seconda sezione identica → avviso + tasto; unite, l'avviso **sparisce** e le sezioni tornano 4 |
+| **Deep-link** | `?acc=LIBB&accordo=4&sezione=6` ricaricato riproduce le 8 sezioni |
+| Conteggi vivi | 60→61 clausole dopo la copia, Gaps 23→22 |
+
+**E ha trovato tre difetti che il DOM non diceva** — due miei, uno di etichetta:
+
+1. ⚠️ **L'avviso «LIBD è coperto da LIBD_CS0_APP, che non è fra i riceventi» urlava su tre sezioni su otto**, e
+   tutte e tre erano scritte bene: un'**area** che riceve arrivi e poi li gira all'avvicinamento è il caso
+   **normale**. Ristretto ai riceventi di tipo **APP o torre**. *Una categoria che urla sempre non si guarda
+   più* — è la seconda volta che questa pagina lo impara, dopo il cruscotto delle lacune.
+2. **L'avviso stava nella TESTATA della sezione** e mandava a capo «Paste table ✎ ✕» sotto «+ Clause»: la riga
+   porta già traffico, coppia, freccia, scali, conteggio e quattro tasti. Sceso nel **corpo**, come gli altri.
+3. **Cinque etichette descrivevano l'operazione vecchia**: il tasto delle gemelle diceva «Merge the two
+   **directions**» / «Unisci i due **versi**» — ma lì non si uniscono due versi, si uniscono due **sezioni
+   gemelle dello stesso verso**. Riscritte nelle due lingue.
+
+⚠️ Il `vipi.db` del progetto è rimasto **intatto**: tutto è girato sulla copia (`git status` pulito su quel file
+a fine giro).
+
+**Difetto pre-esistente lasciato lì**, perché è fuori dal giro e vale in tutte e due le lingue: `Xfer_ClausesCount`
+rende «1 clauses» / «1 clausole» — plurale su uno.
+

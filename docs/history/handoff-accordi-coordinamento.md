@@ -83,7 +83,7 @@ precedente.
 | **Creazione** | accordo = **due enti**; sezione = tipo (+ aeroporti) | creare è dire *chi*; il traffico è il *cosa*, e sta dentro |
 | **Coppia già scritta** | il form **apre quella che c'è**, non dà errore | un doppione è una domanda a cui esiste una risposta migliore di «no» |
 
-⚠️ **Sei trappole pagate qui, quasi tutte invisibili ai test:**
+⚠️ **Nove trappole pagate qui, quasi tutte invisibili ai test** — le ultime tre le ha trovate la verifica live, non il DOM:
 
 1. **Un `<select>` non torna indietro da solo.** Se il salvataggio è rifiutato il valore memorizzato non cambia,
    quindi l'albero di render non cambia, quindi Blazor **non riscrive l'attributo**: la tendina resta sulla
@@ -97,6 +97,14 @@ precedente.
 5. **Attributo componente `string` senza `@` = letterale** (`Key="x"` ≠ `Key="@x"`) → render vuoto senza errore.
 6. **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina»**, italiano e cablato: chi non passa l'etichetta
    la mostra così anche nella pagina inglese, e anche per azioni che non eliminano niente (il tasto «unisci»).
+7. ⚠️ **Un avviso che scatta sul caso normale non è un avviso.** «Lo scalo è coperto da un ente che non è fra i
+   riceventi» urlava su **tre sezioni su otto**, e tutte e tre erano scritte bene: un'**area** che riceve arrivi e
+   poi li gira all'avvicinamento è la norma. Vale solo se a ricevere è un **APP o una torre**. Seconda volta che
+   questa pagina lo impara, dopo il cruscotto delle lacune.
+8. **La testata di una sezione è piena**: traffico, coppia, freccia, scali, conteggio e quattro tasti. Una pill
+   lunga in più manda «Paste table ✎ ✕» a capo sotto «+ Clause». Gli avvisi stanno nel **corpo**.
+9. **Le etichette sopravvivono all'operazione che descrivevano**: il tasto delle gemelle diceva ancora «unisci i
+   due **versi**» dove si uniscono due **sezioni**. Le stringhe vanno rilette quando cambia ciò che fanno.
 
 ## La rete che protegge tutto
 
@@ -151,13 +159,15 @@ fossero ancora vecchie, rifondendo accordi già fusi e mescolandone gli aeroport
 
 ## Cosa resta aperto
 
-1. 🟡 **Verifica live dell'editor** — è il solo passo della carta non fatto. Va guidata a schermo
-   (skill `.claude/skills/verifica-live/`) su **porta 5035**: la 5034 è del committente, e usarla gli rompe la
-   pagina sotto le mani. Da provare: creare un accordo dai due enti, aggiungere una sezione di arrivi e
-   controllare che il verso proposto sia quello giusto, il tasto `⇄`, il blocco vuoto del reciproco, «unisci» su
-   due gemelle, il deep-link `?sezione=`.
-2. 🟡 **`Vipi.Host` e `Vipi.E2E.Tests` non hanno potuto compilare** durante l'ultimo giro: l'host del committente
-   era acceso e teneva i DLL (`MSB3021`). Da rifare a host spento.
+1. ✅ **Verifica live fatta** (18 agosto, porta 5035, copia del DB convertita): albero a due livelli, le otto
+   schede di LGGG diventate una foglia «8 ▤ 13», ordine imposto con arrivi e partenze dello stesso scalo
+   accostati, verso proposto dall'aeroporto che **gira digitando l'ICAO**, tasto `⇄`, blocco fantasma del
+   reciproco + «copia l'altro verso», gemelle create e unite, deep-link `?sezione=`. Ha trovato **tre difetti**
+   invisibili al DOM, tutti corretti: l'avviso «scalo non coperto» che urlava su 3 sezioni su 8 (ora solo se a
+   ricevere è un APP o una torre — un'**area** che gira gli arrivi all'avvicinamento è il caso normale), lo
+   stesso avviso che dalla testata mandava i tasti a capo (sceso nel corpo), e cinque etichette che dicevano
+   ancora «unisci i due **versi**» dove si uniscono due **sezioni**.
+2. ✅ **`Vipi.Host` e `Vipi.E2E.Tests` ricompilati** a host spento: suite completa **2094 verdi**.
 3. **Le due asimmetrie note NON sono state toccate** — `LGGG ⇄ LIBB` (BELIX di qua, OLGAT di là) e
    `LDZO ⇄ LIBB` (sei punti da un lato solo). Adesso stanno nello **stesso accordo**, una sezione sotto l'altra,
    quindi finalmente si **vedono**; sceglierne una è una decisione dei colleghi, non una migrazione.
@@ -175,7 +185,7 @@ fossero ancora vecchie, rifondendo accordi già fusi e mescolandone gli aeroport
 
 ```
 dotnet build Vipi.slnx -c Release --no-incremental     # il cancello vero: avvisi = errori, DUE TFM
-dotnet test Vipi.slnx                                  # 2062 verdi al 18 agosto (Host/E2E esclusi, vedi §2)
+dotnet test Vipi.slnx                                  # 2094 verdi al 18 agosto (E2E inclusi)
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure \
   --startup-project src/Vipi.Infrastructure --output-dir Persistence/Migrations --framework net8.0
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure.MySqlMigrations \

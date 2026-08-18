@@ -1232,6 +1232,20 @@
                     </div>
                 }
 
+                @* La proposta «l'avvicinamento dell'aeroporto» nasce dall'ICAO; qui la stessa conoscenza torna
+                   come VERIFICA. ⚠️ Sta nel CORPO e non nella testata: là la riga porta già traffico, coppia,
+                   freccia, scali, conteggio e quattro tasti, e una pill lunga mandava «Paste table ✎ ✕» a capo
+                   sotto «+ Clause». Visto a schermo, su tre sezioni su otto. *@
+                @foreach (var (icao, parent) in UncoveredAirports(ag, sec))
+                {
+                    <div class="callout xt-warn">
+                        <span class="cic">⚠</span>
+                        <div title="@L["Xfer_AptNotCoveredTitle"]">
+                            @(string.Format(L["Xfer_AptNotCovered"].Value, icao, parent))
+                        </div>
+                    </div>
+                }
+
                 @* I punti che stanno da UN LATO SOLO fra due sezioni speculari. È la domanda che ha prodotto le
                    asimmetrie vere dell'archivio (BELIX di qua, OLGAT di là), e ora che le due sezioni stanno
                    nello stesso accordo si può porre qui invece che nel cruscotto — che è il posto dove si
@@ -1360,32 +1374,35 @@
             </span>
         }
 
-        @* La proposta «l'avvicinamento dell'aeroporto» nasce dall'ICAO. Qui la stessa conoscenza torna come
-           VERIFICA: se lo scalo è coperto da un ente che non è il ricevente di questa sezione, o è la sezione
-           sbagliata o è il verso sbagliato — e in entrambi i casi va guardato. *@
-        @foreach (var (icao, parent) in UncoveredAirports(ag, sec))
-        {
-            <span class="pill xt-warnpill" title="@L["Xfer_AptNotCoveredTitle"]">
-                ⚠ @(string.Format(L["Xfer_AptNotCovered"].Value, icao, parent))
-            </span>
-        }
     };
 
     /// <summary>
-    /// Gli aeroporti della sezione il cui <b>ente di copertura</b> non è chi riceve.
-    /// <para>Solo per gli arrivi: è il traffico che allo scalo ci arriva davvero. Per le partenze l'ente di
-    /// copertura è chi CEDE, e la verifica direbbe il contrario di ciò che serve. Il legame ICAO → ente sta sul
-    /// nodo Aeroporto della struttura (<c>_airportParents</c>), non dedotto dal callsign — uno scalo può essere
-    /// coperto da un ente con un altro prefisso.</para>
+    /// Gli aeroporti della sezione il cui <b>ente di copertura</b> non è chi riceve — quando la cosa è davvero
+    /// sospetta.
+    ///
+    /// <para>Solo per gli <b>arrivi</b>: è il traffico che allo scalo ci arriva davvero. Per le partenze l'ente
+    /// di copertura è chi CEDE, e la verifica direbbe il contrario di ciò che serve.</para>
+    ///
+    /// <para>⚠️ <b>E solo quando a ricevere è un ente di AEROPORTO</b> (APP o torre). Un'<b>area</b> che riceve
+    /// arrivi e poi li gira all'avvicinamento è il caso <b>normale</b>, non un difetto: visto a schermo
+    /// sull'accordo `LIBB ⇄ LGGG`, l'avviso scattava su <b>tre sezioni su otto</b> — LIBD, LIBG e LIBR verso
+    /// `LIBB_ES_CTR</b> — e tutte e tre erano scritte bene. Una categoria che urla sempre non si guarda più:
+    /// è già successo col cruscotto delle lacune, ed è la seconda volta che questa pagina lo impara.</para>
+    ///
+    /// <para>Il legame ICAO → ente sta sul nodo Aeroporto della struttura (<c>_airportParents</c>), non dedotto
+    /// dal callsign — uno scalo può essere coperto da un ente con un altro prefisso.</para>
     /// </summary>
     private IEnumerable<(string Icao, string Parent)> UncoveredAirports(AgreementRow ag, AgreementSectionRow sec)
     {
         if (sec.Kind != TransferFlowKind.Arrival) yield break;
-        var ricevente = ag.Receiver(sec.Direction).Callsign;
+
+        var ricevente = ag.Receiver(sec.Direction);
+        var tipo = _all.FirstOrDefault(x => x.Id == ricevente.SectorId)?.Type;
+        if (tipo is not (SectorType.App or SectorType.Twr)) yield break;
 
         foreach (var apt in sec.Airports.OrderBy(x => x.Order))
             if (_airportParents.TryGetValue(apt.Icao, out var parent)
-                && !string.Equals(parent, ricevente, StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(parent, ricevente.Callsign, StringComparison.OrdinalIgnoreCase))
                 yield return (apt.Icao, parent);
     }
 

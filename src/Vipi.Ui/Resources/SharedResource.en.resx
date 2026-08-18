@@ -1445,11 +1445,11 @@
   <data name="Xfer_ColPoints" xml:space="preserve"><value>Points</value></data>
   <data name="Xfer_ColSender" xml:space="preserve"><value>Transferring</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— no receiving unit</value></data>
-  <data name="Xfer_Merge" xml:space="preserve"><value>Merge the two directions</value></data>
+  <data name="Xfer_Merge" xml:space="preserve"><value>Merge the two sections</value></data>
   <data name="Xfer_MergeConfirm" xml:space="preserve"><value>Yes, merge</value></data>
-  <data name="Xfer_MergeAria" xml:space="preserve"><value>Merge the two agreements into one</value></data>
-  <data name="Xfer_MergePrompt" xml:space="preserve"><value>You move {0} clauses and delete the agreement left empty. This cannot be undone: look at both tables first.</value></data>
-  <data name="Xfer_Merged" xml:space="preserve"><value>Merged: {0} clauses moved into the opposite direction.</value></data>
+  <data name="Xfer_MergeAria" xml:space="preserve"><value>Merge the two twin sections into one</value></data>
+  <data name="Xfer_MergePrompt" xml:space="preserve"><value>You move {0} clauses into the other section and delete the one left empty. This cannot be undone: look at both tables first.</value></data>
+  <data name="Xfer_Merged" xml:space="preserve"><value>Merged: {0} clauses moved into the section that stays.</value></data>
   <data name="Xfer_SelectReceiverHint" xml:space="preserve"><value>Select the receiving unit to enable</value></data>
   <data name="Xfer_SideRequiredTitle" xml:space="preserve"><value>Required: an agreement has two ends. If the traffic must end up on UNICOM there is nothing to write — the operational view does that when nobody is online.</value></data>
   <data name="Xfer_AirportsNotForKind" xml:space="preserve"><value>Overflights, VFR and «other» need no airports: these stay written, but serve no purpose.</value></data>

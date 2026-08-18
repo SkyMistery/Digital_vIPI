@@ -1451,11 +1451,11 @@
   <data name="Xfer_ColPoints" xml:space="preserve"><value>Punti</value></data>
   <data name="Xfer_ColSender" xml:space="preserve"><value>Mittente</value></data>
   <data name="Xfer_NoCounterpart" xml:space="preserve"><value>— senza ricevente</value></data>
-  <data name="Xfer_Merge" xml:space="preserve"><value>Unisci i due versi</value></data>
+  <data name="Xfer_Merge" xml:space="preserve"><value>Unisci le due sezioni</value></data>
   <data name="Xfer_MergeConfirm" xml:space="preserve"><value>Sì, unisci</value></data>
-  <data name="Xfer_MergeAria" xml:space="preserve"><value>Unisci i due accordi in uno</value></data>
-  <data name="Xfer_MergePrompt" xml:space="preserve"><value>Sposti {0} clausole e cancelli l'accordo che resta vuoto. Non si annulla: guarda le due tabelle prima.</value></data>
-  <data name="Xfer_Merged" xml:space="preserve"><value>Uniti: {0} clausole spostate nel verso opposto.</value></data>
+  <data name="Xfer_MergeAria" xml:space="preserve"><value>Unisci le due sezioni gemelle in una</value></data>
+  <data name="Xfer_MergePrompt" xml:space="preserve"><value>Sposti {0} clausole nell'altra sezione e cancelli quella che resta vuota. Non si annulla: guarda le due tabelle prima.</value></data>
+  <data name="Xfer_Merged" xml:space="preserve"><value>Unite: {0} clausole spostate nella sezione che resta.</value></data>
   <data name="Xfer_SelectReceiverHint" xml:space="preserve"><value>Seleziona l'ente che riceve per abilitare</value></data>
   <data name="Xfer_SideRequiredTitle" xml:space="preserve"><value>Obbligatorio: un accordo ha due capi. Se il traffico deve finire a UNICOM non serve scriverlo — lo fa la vista operativa quando nessuno è online.</value></data>
   <data name="Xfer_AirportsNotForKind" xml:space="preserve"><value>Sorvoli, VFR e «altro» non hanno bisogno di aeroporti: questi restano scritti, ma non servono a niente.</value></data>

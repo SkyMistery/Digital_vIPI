@@ -813,13 +813,14 @@ Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSec
 **invariato carattere per carattere**.
 
 **Cosa resta, ed è il motivo per cui la voce è 🟡:**
-1. 🟡 **Verifica live dell'editor**: il solo passo della carta non fatto. Va guidata a schermo sulla **porta
-   5035** — la 5034 è del committente, e usarla gli rompe la pagina sotto le mani.
-2. 🟡 **La conversione sul `vipi.db` vero**: è girata su una **copia** nello scratchpad. Va fatta a host spento,
-   dopo il backup, leggendo il rapporto prima di dare `--apply`.
-3. 🟡 **`Vipi.Host` e `Vipi.E2E.Tests` da ricompilare a host spento**: l'ultimo giro li ha saltati per
-   `MSB3021` sui DLL bloccati. Tutto il resto è verde — **2062 test**, e `dotnet build -c Release
-   --no-incremental` a 0 warning su due TFM.
+1. ✅ **Verifica live fatta** (porta 5035, copia del DB convertita). Ha confermato albero a due livelli, ordine
+   imposto, verso proposto dall'aeroporto, blocco fantasma del reciproco, gemelle e deep-link — e ha trovato
+   **tre difetti invisibili ai test**, corretti: l'avviso «scalo non coperto» che urlava su 3 sezioni su 8, lo
+   stesso avviso che dalla testata mandava i tasti a capo, e cinque etichette rimaste sull'operazione vecchia.
+2. 🟡 **La conversione sul `vipi.db` vero**: è girata due volte su **copia**, mai sull'archivio del progetto. Va
+   fatta a host spento, dopo il backup, leggendo il rapporto prima di dare `--apply`.
+3. ✅ **Suite completa 2094 verdi** (E2E inclusi) e `dotnet build -c Release --no-incremental` a **0 warning**
+   su due TFM.
 4. **Le due asimmetrie** — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) — le
    decidono i colleghi. Adesso stanno nello **stesso accordo**, una sezione sotto l'altra, quindi si vedono.
 5. ✅ **I tre reciproci separati** (`#13/#32`, `#17/#28`, `#23/#38`) e la **relazione spezzata** (`#26/#27`) si
