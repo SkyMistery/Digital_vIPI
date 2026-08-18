@@ -1,10 +1,32 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 15 agosto 2026 — trasferimenti ACC↔APP e audit database **fusi in `main`**, e da
-lì generato il pacchetto di deploy del 15 agosto per la consegna a Ivao.It.
+**Ultimo aggiornamento:** 18 agosto 2026 — **accordi di coordinamento**: modello sostituito (16-17 ago) ed
+editor rifatto sopra (17-18 ago), sul ramo `feature/accordi-coordinamento`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 DA DOVE SI RIPARTE (aggiornato il 15 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (18 agosto 2026)
+>
+> **Il lavoro vivo è sul ramo `feature/accordi-coordinamento`**, allineato col remoto e **non fuso**. Per
+> riprendere da freddo si legge **un** file:
+> [`docs/history/handoff-accordi-coordinamento.md`](docs/history/handoff-accordi-coordinamento.md) — cosa c'è,
+> cosa non va riscoperto a mani nude, cosa resta aperto.
+>
+> In due righe: `TransferFlow`/`TransferPoint` **non esistono più**, al loro posto un **accordo** fra due parti
+> con due versi; e l'editor `/vsop/admin/trasferimenti` è stato rifatto sopra al modello — albero per
+> **relazione** (`noi ⇄ loro`), **due versi sempre a vista**, creazione che chiede **solo i due enti**, tipo e
+> aeroporti nella testata, **entrambi i lati obbligatori**.
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (0 avvisi) e `dotnet test Vipi.slnx`
+> (**2581** verdi su net8 e net10).
+>
+> ⚠️ **Il `vipi.db` di sviluppo è il DB che va in produzione** ed è già travasato: 42 accordi, 63 clausole,
+> zero bilaterali. Tutte le prove di scrittura girano su una **copia** nello scratchpad, e il committente tiene
+> il suo host sulla **5034** — per la verifica live si usa un'altra porta.
+>
+> Sotto resta lo stato del **15 agosto**, che riguarda la consegna a Ivao.It e vale ancora per tutto ciò che
+> non è quest'area.
+
+> ## 🧭 DA DOVE SI RIPARTIVA IL 15 AGOSTO (consegna a Ivao.It)
 >
 > **La consegna a Ivao.It è in corso, ed è lì che sta il lavoro.** Il database è stato caricato sul loro
 > server; il pacchetto dell'applicazione va su via **FTP/FileZilla**, non da console — procedura in
