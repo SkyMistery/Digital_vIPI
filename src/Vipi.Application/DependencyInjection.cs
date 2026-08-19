@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain.Services;
@@ -21,6 +21,9 @@ public static class DependencyInjection
         services.AddSingleton<IAiracService, AiracService>();
         services.AddSingleton<IAorService, AorService>();
         services.AddSingleton<IContentService, ContentService>();
+        // Singleton: dice a TUTTE le sessioni che il catalogo ACC e' cambiato. Vedi IStationCatalogVersion —
+        // senza, la cache del resolver (scoped = per CIRCUITO in Blazor Server) invecchia per ore.
+        services.AddSingleton<IStationCatalogVersion, StationCatalogVersion>();
         services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
