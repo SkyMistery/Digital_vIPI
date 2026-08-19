@@ -1,4 +1,4 @@
-@inject IStringLocalizer<SharedResource> L
+﻿@inject IStringLocalizer<SharedResource> L
 
 @*
     Tabella delle clausole. UNA, usata sia dall'accordo scelto nell'albero sia dalla vista a elenco: le due viste
@@ -44,7 +44,7 @@
             <col class="xt-c-lvl" />
         }
         <col />
-        <col class="xt-c-acts" />
+        <col class="@(ShowContext ? "xt-c-acts-ctx" : "xt-c-acts")" />
     </colgroup>
     <thead>
         <tr>

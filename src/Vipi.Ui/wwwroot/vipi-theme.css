@@ -742,7 +742,8 @@
 .xfe-table{width:100%;font-size:13px;table-layout:fixed}
 .xt-c-drag{width:26px}
 .xt-c-pick{width:26px}
-.xt-c-acts{width:118px}
+.xt-c-acts{width:132px}
+.xt-c-acts-ctx{width:168px}
 .xt-c-pts{width:34%}
 .xt-c-lvl{width:20%}
 /* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */
@@ -1573,7 +1574,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 
 /* Tabella: sola lettura, quindi le colonne possono restare strette e leggibili. */
 .xt-drag{width:26px;text-align:center}
-.xt-acts{width:118px;white-space:nowrap;text-align:right}
+/* La larghezza la decide il colgroup (profilo albero o elenco): qui resta solo la forma. In albero le
+   azioni sono TRE, in elenco QUATTRO — la quarta è il salto all'accordo — e una misura sola per due
+   contenuti diversi tagliava l'ultimo tasto. Misurate a schermo: servono 128px e 163px. */
+.xt-acts{white-space:nowrap;text-align:right}
 .xt-facet{color:var(--ink-soft);font-size:11.5px}
 .res-table tr.xt-sel>td{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
@@ -1649,9 +1653,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    righe — il difetto si vedeva a ogni «nuova sezione». Gli aeroporti scendono su una riga PROPRIA (`flex-basis`
    100% + `order` in coda, così restano gli ultimi anche quando il tipo di traffico li fa sparire), e in prima
    riga stanno le tre cose brevi: traffico, verso, descrizione.
-   Flex e non griglia: sotto ai 900 px continua ad andare a capo da sé, senza una media query in più. */
-.xt-secform{align-items:flex-end}
-.xt-secform .xt-f-apts{order:9;flex:1 0 100%;min-width:0}
+   Flex e non griglia: sotto ai 900 px continua ad andare a capo da sé, senza una media query in più.
+   ⚠️ Il selettore è lungo apposta: `.struct .inline-form .field{flex:1}` vale tre classi, e un `.xt-secform
+   .xt-f-apts` da due perdeva in silenzio — misurato a schermo, gli aeroporti restavano in riga con la
+   descrizione e il buco era ancora lì. */
+.struct .inline-form.xt-secform{align-items:flex-end}
+.struct .inline-form.xt-secform .field.xt-f-apts{order:9;flex:1 0 100%;min-width:0}
 /* Chip e comandi d'aggiunta sulla stessa riga: erano due blocchi impilati, e la riga in più non la chiedeva
    lo spazio — la chiedeva il fatto che fossero due contenitori. */
 .xt-aptline{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
