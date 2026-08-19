@@ -33,6 +33,9 @@
     }
     else
     {
+        @* «Sola lettura» e basta: la spiegazione (prendi il lock, una persona alla volta) la dà il «?» qui
+           accanto al clic, e ripeterla in barra costava 150px di riga — abbastanza da mandare a capo la
+           testata di Struttura, dove la barra sta in riga col titolo e i collegamenti. *@
         <span class="lb-state muted">@L["Lock_ReadOnly"]</span>
         <button class="btn primary" @onclick="Acquire">✎ @L["Lock_StartEdit"]</button>
         <HelpHint Href="/vsop/guida#editor-lock" AriaLabel="Aiuto sul lock di modifica">

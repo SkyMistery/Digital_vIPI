@@ -390,23 +390,27 @@
   <!-- Structure (/vsop/admin/sectorstructure) -->
   <data name="Struct_PageTitle" xml:space="preserve"><value>Structure (ACC, sectors)</value></data>
   <data name="Struct_Title" xml:space="preserve"><value>Structure</value></data>
-  <data name="Struct_Subtitle" xml:space="preserve"><value>Global coverage hierarchy + documents</value></data>
-  <data name="Struct_NavNewDoc" xml:space="preserve"><value>New document</value></data>
-  <data name="Struct_NavAcc" xml:space="preserve"><value>Manage ACC</value></data>
-  <data name="Struct_NavAirports" xml:space="preserve"><value>Manage airports</value></data>
-  <data name="Struct_NavNeighbours" xml:space="preserve"><value>Neighbouring ACCs (vLOA)</value></data>
-  <data name="Struct_NavSources" xml:space="preserve"><value>Data sources</value></data>
+  <data name="Struct_HelpAria" xml:space="preserve"><value>Help on the Structure page</value></data>
+  <data name="Struct_HelpBody" xml:space="preserve"><value>The division-wide &lt;b&gt;coverage hierarchy&lt;/b&gt;, plus the way in to the &lt;b&gt;documents&lt;/b&gt; and to the other admin pages (the six buttons next to this). Here you only set the &lt;b&gt;parent&lt;/b&gt; of each node: airports and sectors are imported from their own pages. The editing lock is the one Transfers uses: one person at a time.</value></data>
+  <data name="Struct_NavNewDoc" xml:space="preserve"><value>New doc</value></data>
+  <data name="Struct_NavAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Struct_NavAirports" xml:space="preserve"><value>Airports</value></data>
+  <data name="Struct_NavNeighbours" xml:space="preserve"><value>Neighbours</value></data>
+  <data name="Struct_NavSources" xml:space="preserve"><value>Sources</value></data>
   <data name="Struct_CoverageHierarchy" xml:space="preserve"><value>Coverage hierarchy</value></data>
   <data name="Struct_Division" xml:space="preserve"><value>division</value></data>
   <data name="Struct_HierarchyHelp" xml:space="preserve"><value>Single fallback tree for the whole division (&lt;b&gt;cross-ACC&lt;/b&gt;): &lt;b&gt;Airport → APP → ACC sector&lt;/b&gt;. The airport is the leaf (DEL/GND/TWR share its quick view). Sectors are imported/edited from the &lt;a href="/vsop/admin/acc"&gt;ACC page&lt;/a&gt;; here you only set the &lt;b&gt;parents&lt;/b&gt; (the immediate fallback), also across different ACCs.</value></data>
+  <data name="Struct_HierarchyHelpAria" xml:space="preserve"><value>Help on the coverage hierarchy</value></data>
   <data name="Struct_TreesByAcc" xml:space="preserve"><value>Trees by ACC</value></data>
   <data name="Struct_Expand" xml:space="preserve"><value>⊞ expand</value></data>
   <data name="Struct_Collapse" xml:space="preserve"><value>⊟ collapse</value></data>
   <data name="Struct_ExpandAllTitle" xml:space="preserve"><value>Expand all</value></data>
   <data name="Struct_CollapseAllTitle" xml:space="preserve"><value>Collapse all cards</value></data>
-  <data name="Struct_Complete" xml:space="preserve"><value>✓ structure complete: every airport and APP has a parent</value></data>
+  <data name="Struct_Complete" xml:space="preserve"><value>✓ all attached</value></data>
+  <data name="Struct_CompleteTitle" xml:space="preserve"><value>Structure complete: every airport and every APP has a parent</value></data>
   <data name="Struct_ShowUnassignedTitle" xml:space="preserve"><value>Show only nodes to attach</value></data>
   <data name="Struct_AptToAssign1" xml:space="preserve"><value>{0} airport to assign</value></data>
+  <data name="Struct_ToAttachN" xml:space="preserve"><value>{0} to attach</value></data>
   <data name="Struct_AptToAssignN" xml:space="preserve"><value>{0} airports to assign</value></data>
   <data name="Struct_AppOrphan1" xml:space="preserve"><value>{0} orphan APP</value></data>
   <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} orphan APPs</value></data>
@@ -417,7 +421,6 @@
   <data name="Struct_OptInherit" xml:space="preserve"><value>inherit from the ladder ({0})</value></data>
   <data name="Struct_ShowPositions" xml:space="preserve"><value>Airport positions</value></data>
   <data name="Struct_ShowPositionsTitle" xml:space="preserve"><value>Also show towers, ground and delivery in the tree</value></data>
-  <data name="Struct_ShowAll" xml:space="preserve"><value>↺ show all</value></data>
   <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>search callsign / ACC…</value></data>
   <data name="Struct_FilterCountry" xml:space="preserve"><value>Filter by country</value></data>
   <data name="Struct_AllCountries" xml:space="preserve"><value>all countries</value></data>
@@ -902,7 +905,7 @@
   <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (until {0})</value></data>
   <data name="Lock_ForceTitle" xml:space="preserve"><value>Unlock anyway and take control (admin)</value></data>
   <data name="Lock_ForceUnlock" xml:space="preserve"><value>Force unlock</value></data>
-  <data name="Lock_ReadOnly" xml:space="preserve"><value>Read-only. Take the lock to edit (one person at a time).</value></data>
+  <data name="Lock_ReadOnly" xml:space="preserve"><value>Read-only</value></data>
   <data name="Lock_StartEdit" xml:space="preserve"><value>Start editing</value></data>
   <data name="Review_Recommended" xml:space="preserve"><value>Review recommended</value></data>
   <data name="Review_DefaultReason" xml:space="preserve"><value>Derived content potentially stale.</value></data>

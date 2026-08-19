@@ -1,4 +1,4 @@
-@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
+﻿@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
    usa CollapsibleBlock (<details> nativo) → nessun circuito, cercabile con Ctrl+F, ancore deep-link.
    La lingua è scelta dal parametro di query ?lang=it|en (toggle in cima); default = cultura corrente del browser.
    Contenuto DATA-DRIVEN (liste _consult/_modify): un'unica sorgente per corpo pagina e indice. *@
@@ -415,6 +415,46 @@
                  send traffic to UNICOM and borders written one way only.</p>
               <p>The prose above each table is chosen per section: <b>spread</b> (one sentence per clause) or
                  <b>lead</b> (one sentence introducing the table, as in real LoAs).</p>"),
+
+        new Sec("struttura", "link", "Struttura: la gerarchia di copertura", "Structure: the coverage hierarchy",
+            @"<p>La pagina <b>Struttura</b> (<code>/vsop/admin/sectorstructure</code>) tiene l'<b>albero di fallback
+               unico</b> di tutta la divisione, anche fra ACC diversi: <b>Aeroporto → APP → settore ACC</b>.
+               L'aeroporto è la <b>foglia</b> (DEL/GND/TWR condividono la sua vista rapida): quando un ente è
+               chiuso, la vista live risale questa catena fino al primo online, altrimenti UNICOM.</p>
+              <p>Qui si imposta <b>soltanto il padre</b> di ogni nodo — il fallback immediato. Settori e
+               aeroporti si <b>importano</b> dalle loro pagine (<code>/admin/acc</code>,
+               <code>/admin/airports</code>): quello che si vede qui è la proiezione dei cataloghi.</p>
+              <ul>
+                <li>Il padre si cambia in due modi: <b>trascinando</b> un nodo su un altro, oppure dal pannello
+                    di <b>dettaglio</b> a destra (elenco dei padri ammessi, poi <b>Applica</b>).</li>
+                <li>Chi non ha padre scritto eredita dalla <b>scaletta d'aeroporto</b> (DEL → GND → TWR → APP) ed
+                    è marcato <b>«ereditato»</b>: assegnarne uno lo fissa.</li>
+                <li>Il chip <b>«da agganciare»</b> conta aeroporti e APP senza padre risolvibile e, cliccato,
+                    mostra solo quelli. A zero resta lì, spento.</li>
+                <li>Torri, ground e delivery sono spenti di default (sono ~110 nodi su ~250): si accendono col
+                    chip <b>Posizioni aeroporto</b>.</li>
+              </ul>
+              <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
+               coordinamento compresi.</p>",
+            @"<p>The <b>Structure</b> page (<code>/vsop/admin/sectorstructure</code>) holds the <b>single fallback
+               tree</b> for the whole division, across ACCs too: <b>Airport → APP → ACC sector</b>. The airport is
+               the <b>leaf</b> (DEL/GND/TWR share its quick view): when a unit is closed, the live view climbs this
+               chain up to the first online one, otherwise UNICOM.</p>
+              <p>Here you set <b>only the parent</b> of each node — the immediate fallback. Sectors and airports are
+               <b>imported</b> from their own pages (<code>/admin/acc</code>, <code>/admin/airports</code>): what you
+               see here is the projection of those catalogues.</p>
+              <ul>
+                <li>The parent changes in two ways: <b>drag</b> a node onto another, or use the <b>detail</b> panel
+                    on the right (list of eligible parents, then <b>Apply</b>).</li>
+                <li>Nodes with no parent set inherit from the <b>airport ladder</b> (DEL → GND → TWR → APP) and are
+                    marked <b>""inherited""</b>: assigning one pins it.</li>
+                <li>The <b>""to attach""</b> chip counts airports and APPs with no resolvable parent and, when
+                    clicked, shows only those. At zero it stays put, switched off.</li>
+                <li>Towers, ground and delivery are off by default (~110 nodes out of ~250): the <b>Airport
+                    positions</b> chip turns them on.</li>
+              </ul>
+              <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
+               agreements included.</p>"),
 
         new Sec("admin", "grid", "Aree admin", "Admin areas",
             @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>

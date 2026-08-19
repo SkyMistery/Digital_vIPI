@@ -1027,12 +1027,26 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .htree li.live-out{opacity:.35}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-top:12px}
 
-/* editor gerarchia settori (albero + dettaglio) */
-.gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
-@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr}}
-/* il pannello dettaglio segue lo scroll (sticky), sotto la topbar (62px) così il titolo resta visibile */
-.detail-sticky{position:sticky;top:78px;align-self:start;max-height:calc(100vh - 94px);overflow:auto}
-@media(max-width:900px){.detail-sticky{position:static;max-height:none}}
+/* ---- editor gerarchia settori (albero + dettaglio) ----
+   L'altezza vera la scrive vipiFitViewport, che misura dove il riquadro comincia: quanto spazio resta lo sa
+   solo il browser, e sopra ci sono barra dell'applicazione, briciole, testata e — a volte — un avviso.
+   Il calc qui è il valore di PARTENZA prima che il JS misuri, non la verità.
+   Il pannello dettaglio era `.detail-sticky`, agganciato mentre la pagina scorreva: qui la pagina non scorre
+   più, i due pannelli sono alti uguali e scorre solo il loro corpo. */
+.gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 330px);min-height:420px}
+/* Il contenuto arriva al bordo dello schermo per costruzione: i 70px di respiro in fondo diventerebbero
+   70px di scorrimento su una pagina che non deve scorrere. */
+.wrap.struct:has(.gerarchia-2col){padding-bottom:18px}
+/* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
+   un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
+@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr;height:auto;min-height:0}}
+/* Pannello incastonato: intestazione e barra dei filtri ferme, corpo che scorre.
+   `min-height:0` è obbligatorio — senza, un figlio che scorre dentro un flex si rifiuta di rimpicciolirsi
+   sotto il proprio contenuto e il riquadro cresce oltre l'altezza misurata. */
+.st-pane{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.st-scroll{flex:1;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px}
+@media(max-width:900px){.st-pane{overflow:visible}.st-scroll{overflow:visible}}
 /* campo di ricerca dell'albero, stile brand */
 .htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:var(--font-body);font-size:13px;background:#fff url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
 .htree-search:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px #e2e8ff}
@@ -1091,14 +1105,28 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .node-badge.fss{background:#f0e8ff;color:var(--nbr-ink)}
 .node-badge.apt{background:#dafbe7;color:#1a7f37}
 .acc-tag{font-size:10px;color:#888;font-family:var(--font-head);font-weight:700;letter-spacing:.03em;margin-right:2px}
-/* editor struttura: strip completezza, dot online, drop-target drag&drop */
-.struct-health{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.struct-health .sh-ok{font-size:12.5px;font-weight:600;color:var(--ok-ink);background:#dafbe7;border:1px solid #a7e9c1;border-radius:20px;padding:5px 12px}
-.struct-health .sh-chip{font-size:12px;font-weight:600;color:var(--ink-soft);background:#eceef5;border:1px solid var(--line);border-radius:20px;padding:5px 11px}
-.struct-health button.sh-chip{cursor:pointer;transition:.12s}
-.struct-health .sh-chip.warn{background:#fff3cf;color:var(--warn-ink);border-color:#e2b400}
-.struct-health .sh-chip.warn:hover{background:#ffe9a8}
-.struct-health .sh-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
+/* ---- editor struttura: barra unica dei filtri, dot online, drop-target drag&drop ----
+   Erano due fasce (chip di salute, poi ricerca) per comandi che si usano nello stesso gesto: qui si legge
+   da sinistra a destra come si lavora — cosa cerco → come guardo → come sto.
+   ⚠️ `.htree-search`/`.htree-select` portano `margin-bottom:12px` (erano fasce per conto loro): si azzera
+   QUI, dentro la barra, non nelle regole di base — la ricerca dell'albero la usano anche altre viste. */
+.struct-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.struct-bar .htree-search{flex:1 1 240px;width:auto;margin-bottom:0}
+/* I chip scendono INSIEME quando la riga non li tiene: il gruppo si spezza in un punto solo. */
+.struct-bar .sb-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.struct-bar .htree-select{margin-bottom:0;flex:none}
+.struct-bar .lnk-mini{margin-left:0}
+.struct-bar .sb-count{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+/* Separatore fra i tre gruppi: dice dove finisce «cerco» e comincia «guardo» senza scrivere un'etichetta. */
+.struct-bar .sb-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+.sh-chip{font-size:12px;font-weight:600;color:var(--ink-soft);background:#eceef5;border:1px solid var(--line);border-radius:20px;padding:5px 11px}
+button.sh-chip{cursor:pointer;transition:.12s}
+/* A zero il chip resta al suo posto, spento: se comparisse col contatore, all'ultimo nodo agganciato la
+   riga si accorcerebbe sotto il puntatore mentre ci si sta mirando. */
+button.sh-chip:disabled{cursor:default;background:#dafbe7;color:var(--ok-ink);border-color:#a7e9c1}
+.sh-chip.warn{background:#fff3cf;color:var(--warn-ink);border-color:#e2b400}
+button.sh-chip.warn:hover{background:#ffe9a8}
+.sh-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
 .onl-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ivao-green);display:inline-block;box-shadow:0 0 0 2px #dafbe7}
 .acc-row[draggable="true"]{cursor:grab}
 .acc-row.drop-ok{background:#dafbe7;box-shadow:inset 0 0 0 2px var(--ivao-green)}
@@ -1356,6 +1384,8 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .help-more:hover{text-decoration:underline}
 /* accanto a controlli allineati a destra: apri il popover verso sinistra */
 .help-hint.left .help-pop{left:auto;right:0}
+/* Aiuti lunghi (un paragrafo che prima stava in pagina): a 270px diventavano una colonna di dodici righe. */
+.help-hint.wide .help-pop{width:360px}
 
 /* ── Pagina Guida ─────────────────────────────────────────────────────────────── */
 .guida-toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 18px;margin:6px 0 24px;
@@ -1657,6 +1687,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-head .xt-h2{margin:0}
 .xt-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
 .xt-head .lockbar .btn{margin-left:0}
+/* ---- Struttura: stessa testata in una riga (titolo · «?» · sei tasti · lock) ----
+   Le ragioni sono quelle di `.xt-head` qui sopra, lock compreso; cambia solo che in mezzo ci sono i sei
+   collegamenti alle altre pagine admin. Perdono il `max-width:560px` e l'allineamento a destra che avevano
+   da blocco a sé, e si stringono per stare in riga: sotto ~1280px vanno a capo sotto il titolo. */
+.st-head{justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.st-head .st-h2{margin:0}
+.st-head .struct-nav{max-width:none;justify-content:flex-start;gap:6px}
+.st-head .struct-nav .btn{padding:5px 9px;font-size:12px}
+.st-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
+.st-head .lockbar .btn{margin-left:0}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
 .xt-lbl-soft{font-weight:400}
 .xt-hint{font-size:11.5px}

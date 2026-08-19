@@ -12,8 +12,16 @@
 
 <div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <b>@L["Struct_Title"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Struct_Title"]</h2><span class="muted">@L["Struct_Subtitle"]</span></div>
+    @* ---- Testata in UNA riga: titolo · «?» · i sei tasti · stato del lock ----
+       Come nei Trasferimenti (.xt-head). Il sottotitolo non c'è più: diceva in prosa sempre a schermo ciò che
+       il «?» dice al clic, e qui l'altezza è albero — ogni fascia tolta in testa diventa nodi visibili, perché
+       l'altezza del riquadro la MISURA vipiFitViewport a ogni render. La barra del lock sale sulla stessa
+       riga per la stessa ragione: è uno stato, non una sezione. *@
+    <div class="doc-head st-head">
+        <h2 class="st-h2">@L["Struct_Title"]</h2>
+        <HelpHint Href="/vsop/guida#struttura" AriaLabel="@L["Struct_HelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["Struct_HelpBody"].Value)
+        </HelpHint>
         @if (Authz.IsAdmin)
         {
             <nav class="struct-nav">
@@ -24,6 +32,9 @@
                 <a class="btn ghost" href="/vsop/admin/trasferimenti"><Icon Name="refresh" /> @L["Home_TransfersTitle"]</a>
                 <a class="btn ghost" href="/vsop/admin/sorgenti"><Icon Name="plug" /> @L["Struct_NavSources"]</a>
             </nav>
+            @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
+               azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
     </div>
 
@@ -32,43 +43,30 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
     }
 
-    @if (Authz.IsAdmin)
-    {
-        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
-    }
-
-    <div class="section-title"><h3>@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h3><span class="ln"></span></div>
-    <p class="help" style="margin-top:0">@((MarkupString)L["Struct_HierarchyHelp"].Value)</p>
+    @* Il testo dell'albero di fallback è lo stesso di prima, parola per parola: cambia solo dove si legge —
+       dal clic sul «?» invece che da tre righe di prosa sempre a schermo. *@
+    <div class="section-title">
+        <h3>@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h3>
+        <HelpHint Href="/vsop/guida#struttura" AriaLabel="@L["Struct_HierarchyHelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["Struct_HierarchyHelp"].Value)
+        </HelpHint>
+        <span class="ln"></span>
+    </div>
 
     <div class="gerarchia-2col">
         @* --- Settori per ACC (card con alberi) --- *@
-        <div class="panel">
-            <div class="sub-h">@L["Struct_TreesByAcc"]<span class="ln" style="flex:1"></span>
-                <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="@L["Struct_ExpandAllTitle"]">@L["Struct_Expand"]</button>
-                <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="@L["Struct_CollapseAllTitle"]">@L["Struct_Collapse"]</button>
-            </div>
-            @{ var aptOrphans = OrphanAirports().Count; var appOrphans = OrphanApps().Count; var accRoots = AccRoots().Count; }
-            <div class="struct-health @(aptOrphans == 0 && appOrphans == 0 ? "ok" : "")">
-                @if (aptOrphans == 0 && appOrphans == 0)
-                {
-                    <span class="sh-ok">@L["Struct_Complete"]</span>
-                }
-                else
-                {
-                    <button class="sh-chip warn @(_orphansOnly ? "on" : "")" @onclick="ToggleOrphans" title="@L["Struct_ShowUnassignedTitle"]">
-                        ⚠ @OrphansLabel(aptOrphans, appOrphans)
-                    </button>
-                }
-                <span class="sh-chip" title="@L["Struct_AccRootsTitle"]">@L["Struct_AccRootsN", accRoots]</span>
-                <button class="sh-chip @(_showAirportPositions ? "on" : "")" title="@L["Struct_ShowPositionsTitle"]"
-                        @onclick="() => _showAirportPositions = !_showAirportPositions">@L["Struct_ShowPositions"]</button>
-                @if (_orphansOnly)
-                {
-                    <button class="lnk-mini" @onclick="() => _orphansOnly = false">@L["Struct_ShowAll"]</button>
-                }
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-                <input class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" value="@_treeFilter" @oninput="OnSearchInput" style="flex:1" />
+        <div class="panel st-pane">
+            <div class="sub-h">@L["Struct_TreesByAcc"]<span class="ln" style="flex:1"></span></div>
+            @{ var aptOrphans = OrphanAirports().Count; var appOrphans = OrphanApps().Count; var accRoots = AccRoots().Count; var orphans = aptOrphans + appOrphans; }
+            @* ---- UNA barra sola: cosa cerco → come guardo → come sto ----
+               Erano due fasce (chip di salute sopra, ricerca sotto) per tre gruppi di comandi che si usano
+               nello stesso gesto. Qui l'altezza è albero: una fascia in meno sono nodi visibili.
+               ⚠️ I chip ci sono SEMPRE, anche a zero (spenti): quello degli orfani compariva col contatore e
+               all'ultimo nodo agganciato la riga si accorciava sotto il puntatore. Per la stessa ragione
+               sparisce «mostra tutti»: il chip È già l'interruttore del filtro, e due comandi per lo stesso
+               stato sono uno di troppo. *@
+            <div class="struct-bar">
+                <input class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" value="@_treeFilter" @oninput="OnSearchInput" />
                 <select class="htree-select" @bind="_countryFilter" title="@L["Struct_FilterCountry"]">
                     <option value="">@L["Struct_AllCountries"]</option>
                     @foreach (var c in CountryOptions())
@@ -76,8 +74,29 @@
                         <option value="@c.Prefix">@c.Name</option>
                     }
                 </select>
-                @if (_searching) { <span class="muted" style="font-size:12px;white-space:nowrap">@L["Struct_ResultsN", _tree.Count(Matches)]</span> }
+                @if (_searching) { <span class="sb-count">@L["Struct_ResultsN", _tree.Count(Matches)]</span> }
+                <span class="sb-sep"></span>
+                <button class="lnk-mini" disabled="@_searching" @onclick="ExpandAll" title="@L["Struct_ExpandAllTitle"]">@L["Struct_Expand"]</button>
+                <button class="lnk-mini" disabled="@_searching" @onclick="CollapseAll" title="@L["Struct_CollapseAllTitle"]">@L["Struct_Collapse"]</button>
+                @* I tre chip sono UN gruppo: quando la barra va a capo scendono insieme, e la riga di sotto è
+                   sempre la stessa. Sciolti, andava a capo l'ultimo da solo e il taglio cambiava con la
+                   larghezza del pannello — la barra sembrava rotta, non stretta. *@
+                <span class="sb-chips">
+                @* Il chip dice QUANTI e basta: la ripartizione aeroporti/APP è la cosa più larga della barra e
+                   non cambia il gesto (si clicca comunque per vederli). Sta nel title, insieme a cosa fa il clic. *@
+                <button class="sh-chip @(orphans > 0 ? "warn" : "") @(_orphansOnly ? "on" : "")" disabled="@(orphans == 0)"
+                        @onclick="ToggleOrphans"
+                        title="@(orphans > 0 ? $"{OrphansLabel(aptOrphans, appOrphans)} — {L["Struct_ShowUnassignedTitle"].Value}" : L["Struct_CompleteTitle"].Value)">
+                    @(orphans > 0 ? $"⚠ {string.Format(L["Struct_ToAttachN"].Value, orphans)}" : L["Struct_Complete"].Value)
+                </button>
+                <span class="sh-chip" title="@L["Struct_AccRootsTitle"]">@L["Struct_AccRootsN", accRoots]</span>
+                <button class="sh-chip @(_showAirportPositions ? "on" : "")" title="@L["Struct_ShowPositionsTitle"]"
+                        @onclick="() => _showAirportPositions = !_showAirportPositions">@L["Struct_ShowPositions"]</button>
+                </span>
             </div>
+            @* Scorre SOLO il corpo: barra dei filtri e intestazione restano ferme mentre si cerca un nodo
+               fra i ~250 dell'albero. L'altezza del riquadro la scrive vipiFitViewport. *@
+            <div class="st-scroll">
             @{ var groups = RootGroups(); }
             @if (groups.Count == 0)
             {
@@ -156,11 +175,16 @@
                     </div>
                 }
             }
+            </div>
         </div>
 
-        @* --- Dettaglio nodo --- *@
-        <div class="panel detail-sticky">
+        @* --- Dettaglio nodo ---
+           Era `.detail-sticky`: agganciato mentre la pagina scorreva. Ora la pagina non scorre più — il
+           riquadro è alto quanto lo schermo meno ciò che gli sta sopra — e il pannello è un `.st-pane` come
+           l'altro, con il solo corpo che scorre. La classe vecchia è sparita col meccanismo che descriveva. *@
+        <div class="panel st-pane">
             <div class="sub-h">@L["Struct_Detail"]</div>
+            <div class="st-scroll">
             @if (Selected() is not HierarchyNode sel)
             {
                 <p class="help">@L["Struct_SelectHint"]</p>
@@ -201,6 +225,7 @@
                     </div>
                 </div>
             }
+            </div>
         </div>
     </div>
 </div>
@@ -264,6 +289,12 @@
             if (first is not null)
                 await JS.InvokeVoidAsync("vipiScrollToId", RowId(first.Kind, first.Id));
         }
+
+        // ⚠️ L'altezza «schermo meno ciò che sta sopra» non è esprimibile in CSS: N è proprio ciò che non si
+        // sa. Si misura, e si rimisura a OGNI render perché sopra ci sono cose che compaiono e spariscono da
+        // sole (avviso del lock, callout d'errore). Sotto i 900px la griglia è a una colonna e l'altezza fissa
+        // va TOLTA: un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate.
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".gerarchia-2col", 900); } catch (Exception) { }
     }
 
     private async Task ReloadTreeAsync()

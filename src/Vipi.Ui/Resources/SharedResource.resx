@@ -393,23 +393,27 @@
   <!-- Struttura (/vsop/admin/sectorstructure) -->
   <data name="Struct_PageTitle" xml:space="preserve"><value>Struttura (ACC, settori)</value></data>
   <data name="Struct_Title" xml:space="preserve"><value>Struttura</value></data>
-  <data name="Struct_Subtitle" xml:space="preserve"><value>Gerarchia di copertura globale + documenti</value></data>
-  <data name="Struct_NavNewDoc" xml:space="preserve"><value>Nuovo documento</value></data>
-  <data name="Struct_NavAcc" xml:space="preserve"><value>Gestione ACC</value></data>
-  <data name="Struct_NavAirports" xml:space="preserve"><value>Gestione aeroporti</value></data>
-  <data name="Struct_NavNeighbours" xml:space="preserve"><value>ACC confinanti (vLOA)</value></data>
-  <data name="Struct_NavSources" xml:space="preserve"><value>Sorgenti dati</value></data>
+  <data name="Struct_HelpAria" xml:space="preserve"><value>Aiuto sulla pagina Struttura</value></data>
+  <data name="Struct_HelpBody" xml:space="preserve"><value>&lt;b&gt;Gerarchia di copertura&lt;/b&gt; di tutta la divisione, più l'ingresso ai &lt;b&gt;documenti&lt;/b&gt; e alle altre pagine admin (i sei tasti qui accanto). Qui si imposta solo il &lt;b&gt;padre&lt;/b&gt; di ogni nodo: aeroporti e settori si importano dalle loro pagine. Il lock di modifica è lo stesso dei Trasferimenti: una persona alla volta.</value></data>
+  <data name="Struct_NavNewDoc" xml:space="preserve"><value>Nuovo doc</value></data>
+  <data name="Struct_NavAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Struct_NavAirports" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Struct_NavNeighbours" xml:space="preserve"><value>Confinanti</value></data>
+  <data name="Struct_NavSources" xml:space="preserve"><value>Sorgenti</value></data>
   <data name="Struct_CoverageHierarchy" xml:space="preserve"><value>Gerarchia di copertura</value></data>
   <data name="Struct_Division" xml:space="preserve"><value>divisione</value></data>
   <data name="Struct_HierarchyHelp" xml:space="preserve"><value>Albero di fallback unico per tutta la divisione (&lt;b&gt;cross-ACC&lt;/b&gt;): &lt;b&gt;Aeroporto → APP → settore ACC&lt;/b&gt;. L'aeroporto è la foglia (DEL/GND/TWR condividono la sua vista rapida). I settori si importano/editano dalla &lt;a href="/vsop/admin/acc"&gt;pagina ACC&lt;/a&gt;; qui imposti solo i &lt;b&gt;padri&lt;/b&gt; (il fallback immediato), anche tra ACC diversi.</value></data>
+  <data name="Struct_HierarchyHelpAria" xml:space="preserve"><value>Aiuto sulla gerarchia di copertura</value></data>
   <data name="Struct_TreesByAcc" xml:space="preserve"><value>Alberi per ACC</value></data>
   <data name="Struct_Expand" xml:space="preserve"><value>⊞ espandi</value></data>
   <data name="Struct_Collapse" xml:space="preserve"><value>⊟ comprimi</value></data>
   <data name="Struct_ExpandAllTitle" xml:space="preserve"><value>Espandi tutto</value></data>
   <data name="Struct_CollapseAllTitle" xml:space="preserve"><value>Comprimi tutte le card</value></data>
-  <data name="Struct_Complete" xml:space="preserve"><value>✓ struttura completa: ogni aeroporto e APP ha un padre</value></data>
+  <data name="Struct_Complete" xml:space="preserve"><value>✓ tutto agganciato</value></data>
+  <data name="Struct_CompleteTitle" xml:space="preserve"><value>Struttura completa: ogni aeroporto e ogni APP ha un padre</value></data>
   <data name="Struct_ShowUnassignedTitle" xml:space="preserve"><value>Mostra solo i nodi da agganciare</value></data>
   <data name="Struct_AptToAssign1" xml:space="preserve"><value>{0} aeroporto da assegnare</value></data>
+  <data name="Struct_ToAttachN" xml:space="preserve"><value>{0} da agganciare</value></data>
   <data name="Struct_AptToAssignN" xml:space="preserve"><value>{0} aeroporti da assegnare</value></data>
   <data name="Struct_AppOrphan1" xml:space="preserve"><value>{0} APP orfano</value></data>
   <data name="Struct_AppOrphanN" xml:space="preserve"><value>{0} APP orfani</value></data>
@@ -420,7 +424,6 @@
   <data name="Struct_OptInherit" xml:space="preserve"><value>eredita dalla scaletta ({0})</value></data>
   <data name="Struct_ShowPositions" xml:space="preserve"><value>Posizioni d'aeroporto</value></data>
   <data name="Struct_ShowPositionsTitle" xml:space="preserve"><value>Mostra anche torri, ground e delivery nell'albero</value></data>
-  <data name="Struct_ShowAll" xml:space="preserve"><value>↺ mostra tutti</value></data>
   <data name="Struct_SearchPlaceholder" xml:space="preserve"><value>cerca callsign / ACC…</value></data>
   <data name="Struct_FilterCountry" xml:space="preserve"><value>Filtra per nazione</value></data>
   <data name="Struct_AllCountries" xml:space="preserve"><value>tutte le nazioni</value></data>
@@ -905,7 +908,7 @@
   <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (fino alle {0})</value></data>
   <data name="Lock_ForceTitle" xml:space="preserve"><value>Sblocca comunque e prendi il controllo (admin)</value></data>
   <data name="Lock_ForceUnlock" xml:space="preserve"><value>Forza sblocco</value></data>
-  <data name="Lock_ReadOnly" xml:space="preserve"><value>Sola lettura. Prendi il lock per modificare (una persona alla volta).</value></data>
+  <data name="Lock_ReadOnly" xml:space="preserve"><value>Sola lettura</value></data>
   <data name="Lock_StartEdit" xml:space="preserve"><value>Inizia modifica</value></data>
   <data name="Review_Recommended" xml:space="preserve"><value>Revisione consigliata</value></data>
   <data name="Review_DefaultReason" xml:space="preserve"><value>Contenuti derivati potenzialmente stantii.</value></data>
