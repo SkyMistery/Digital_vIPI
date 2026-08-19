@@ -361,6 +361,61 @@
 
     window.addEventListener('resize', function () { stickyOffsets.forEach(measureStickyOffset); });
 
+    // ---- I «?» si aprono dove c'e' posto ----
+    // Il popover di HelpHint nasce agganciato a sinistra del suo «?». Va bene finche' il «?» sta a sinistra:
+    // quello della barra del lock sta all'ESTREMA DESTRA della testata, e il popover finiva 210px fuori
+    // schermo — misurato, uguale su tutte e tre le pagine che montano EditLockBar.
+    // Non e' esprimibile in CSS: dipende da dove si trova il «?» in quel momento, e la barra si sposta con la
+    // larghezza della finestra. Si misura all'apertura e si ribalta, come farebbe un menu.
+    // ⚠️ Classi PROPRIE (`help-flip`, `help-up`): la classe `left` puo' averla messa chi ha scritto la pagina,
+    // e toglierla qui gli cancellerebbe una decisione presa a mano.
+    function placeHelpPop(d) {
+        var pop = d.querySelector('.help-pop');
+        if (!pop) { return; }
+        d.classList.remove('help-flip');
+        d.classList.remove('help-up');
+        pop.style.removeProperty('margin-left');
+        if (!d.open) { return; }
+
+        var vw = document.documentElement.clientWidth;
+        var vh = document.documentElement.clientHeight;
+        var r = pop.getBoundingClientRect();
+
+        // Fuori a destra → si apre verso sinistra. `getBoundingClientRect` e `clientWidth` parlano la stessa
+        // lingua (pixel di finestra) anche sotto zoom, quindi il confronto regge; ciò che si SCRIVE invece va
+        // in unita' di layout — vedi rootZoom.
+        if (r.right > vw - 8) {
+            d.classList.add('help-flip');
+            r = pop.getBoundingClientRect();
+        }
+        // Se anche ribaltato esce a sinistra (popover piu' largo dello spazio), lo si riporta dentro.
+        if (r.left < 8) {
+            pop.style.marginLeft = Math.round((8 - r.left) / rootZoom()) + 'px';
+            r = pop.getBoundingClientRect();
+        }
+        // Fuori sotto → si apre verso l'alto, ma solo se sopra c'e' piu' spazio: sotto una testata appiccicata
+        // ribaltare in alto vorrebbe dire finire sotto la testata, che e' peggio del bordo dello schermo.
+        // ⚠️ Solo se il «?» e' DAVVERO a schermo: aperto da codice mentre sta mille pixel piu' in giu', "sotto"
+        // e "sopra" non vogliono dire niente e si finirebbe per ribaltare al contrario quello che l'utente
+        // vedra' quando ci arrivera' scorrendo.
+        var dr = d.getBoundingClientRect();
+        var aVista = dr.bottom > 0 && dr.top < vh;
+        if (r.bottom > vh - 8 && aVista && dr.top > r.height + 14) { d.classList.add('help-up'); }
+    }
+
+    // `toggle` non fa bolla: si ascolta in fase di CATTURA, così un solo gestore vale per tutti i «?» della
+    // pagina, compresi quelli che Blazor disegnera' fra un minuto.
+    document.addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (d && d.classList && d.classList.contains('help-hint')) { placeHelpPop(d); }
+    }, true);
+
+    // La finestra cambia larghezza mentre un «?» e' aperto: il posto giusto puo' essere cambiato.
+    window.addEventListener('resize', function () {
+        var aperti = document.querySelectorAll('details.help-hint[open]');
+        for (var i = 0; i < aperti.length; i++) { placeHelpPop(aperti[i]); }
+    });
+
     window.vipiScrollToId = function (id) {
         var el = document.getElementById(id);
         if (!el) return;

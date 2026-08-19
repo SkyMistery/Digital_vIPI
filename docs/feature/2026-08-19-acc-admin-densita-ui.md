@@ -80,6 +80,22 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
     **320**, cioè al `fitMin` del JS — due pavimenti diversi per la stessa cosa sono un pavimento sbagliato, e
     a zoom 1.2 vinceva quello del CSS facendo scorrere la pagina di 21px.
 
+11. **⚠️ I «?» si aprono dove c'è posto.** Segnalato: quello accanto a «Inizia modifica» apriva il popover
+    **fuori schermo**. Misurato: usciva di **210px** a destra, e non solo lì — lo stesso `?` è quello della
+    `EditLockBar`, che sta all'estrema destra della testata in **tutte** le pagine che la montano.
+    Non è esprimibile in CSS: dipende da dove quel «?» si trova in quel momento, e la barra si sposta con la
+    larghezza della finestra. Si misura all'apertura e si ribalta, come farebbe un menu (`placeHelpPop` in
+    `vipi-ui.js`, agganciato a `toggle` in fase di **cattura** — `toggle` non fa bolla, e così un gestore solo
+    vale per tutti i «?» della pagina, compresi quelli che Blazor disegnerà dopo).
+    Tre cose imparate scrivendolo:
+    - le classi che mette il JS sono **proprie** (`help-flip`, `help-up`): la classe `left` può averla messa chi
+      ha scritto la pagina, e toglierla d'ufficio gli cancellerebbe una decisione presa a mano;
+    - il ribaltamento **verso l'alto** vale solo se il «?» è **davvero a schermo**. Aperto da codice mentre sta
+      mille pixel più in giù, «sopra» e «sotto» non vogliono dire niente: la prima stesura ribaltava al
+      contrario proprio ciò che l'utente avrebbe visto arrivandoci;
+    - `getBoundingClientRect` e `clientWidth` parlano la stessa lingua (pixel di finestra) anche sotto zoom, e
+      il confronto regge; ciò che si **scrive** invece va in unità di layout — vedi il punto 10.
+
 ## Cosa NON è cambiato, e perché
 
 - **La select nazione resta duplicata** nelle due tabelle: è lo **stesso** filtro (`_country`), muoverla in una
@@ -125,6 +141,10 @@ Sullo zoom, dopo la correzione (ACC scorsa a 3000px, Struttura a riposo):
 | 1.0 | 0 | `517px` | no |
 | 1.2 | −0,39px | `384px` | no (prima scorreva di 21px) |
 | 1.5 | 0 | nessuna (sotto `fitMin`) | sì — sotto i 320px di riquadro la pagina scorre per scelta |
+
+Sui «?», guidato dopo la correzione: **49 aperture** misurate — cinque pagine (ACC, Struttura, Trasferimenti,
+Aeroporti admin, editor aeroporto) per tre assetti (1600px, 1100px, zoom 120%) — **nessuna fuori schermo**.
+Si ribalta chi deve: il «?» del lock su tutte le pagine, e quello dell'anteprima nel rail dell'editor aeroporto.
 
 Un secondo ritocco, dallo screenshot: il titolo di sezione «ACC» ripeteva il titolo della pagina tre righe più
 sotto. È sparito e il suo conteggio è salito accanto al titolo (`ACC 28`, «12 di 28» quando filtri). Il primo

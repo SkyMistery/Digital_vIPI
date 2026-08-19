@@ -1402,6 +1402,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .help-more:hover{text-decoration:underline}
 /* accanto a controlli allineati a destra: apri il popover verso sinistra */
 .help-hint.left .help-pop{left:auto;right:0}
+/* Le stesse due direzioni, ma decise dalla MISURA all'apertura (placeHelpPop in vipi-ui.js) invece che da chi
+   scrive la pagina: un «?» in fondo a una barra elastica non sa, mentre lo si scrive, dove sara' a schermo. */
+.help-hint.help-flip .help-pop{left:auto;right:0}
+.help-hint.help-up .help-pop{top:auto;bottom:calc(100% + 6px)}
 /* Aiuti lunghi (un paragrafo che prima stava in pagina): a 270px diventavano una colonna di dodici righe. */
 .help-hint.wide .help-pop{width:360px}
 
