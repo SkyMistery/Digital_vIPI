@@ -1,5 +1,16 @@
 ﻿# 07 — Trasferimenti (punto 8) 🟢✅
 
+> ✅ **MODELLO SOSTITUITO — 16/17 agosto 2026** (ramo `feature/accordi-coordinamento`, non ancora in `main`).
+> `TransferFlow` + `TransferPoint` hanno lasciato il posto a un **accordo** fra due parti, a due direzioni:
+> vedi §10 in fondo e la carta
+> [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
+>
+> ⚠️ **Tutto ciò che segue (§1–§9) è STORIA**: descrive il modello fino a quella data. Le *decisioni* restano
+> valide e sono state portate sull'entità nuova — l'outline delle varianti, la condizione a tre dimensioni, la
+> faccetta trasferimento, la direzione owner→next — ma i **nomi** e il posto dove i campi stanno sono cambiati.
+> Le due tabelle esistono ancora, in **sola lettura**, finché la migrazione che le droppa non gira in una
+> release successiva al travaso in produzione.
+
 > **✅ REFACTOR FATTO — 2026-07-09** (branch `refactor/07-transfers`, 222 test).
 > `ITransferService` + 6 DTO estratti in file singoli (§4.1); porta di lettura
 > `INeighbourReader` (ISP) — `AdminTrasferimentiPage` non dipende più dal service import
@@ -222,3 +233,173 @@ Due conseguenze che valgono più della sintassi:
 L'avviso «alternativa con eccezioni ma senza un caso normale» scatta sul dato vero appena lo si apre nella
 forma nuova: la riga 77 porta pista 25 **e** area R403B e non ha una «pista 25, normalmente». Il modello di
 ieri non permetteva nemmeno di accorgersene.
+
+## 10. Il modello diventa un **accordo** (dal 16 agosto 2026) 🟡
+
+Carta, pre-flight e registro delle lacune:
+[`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
+Qui solo cosa cambia per quest'area.
+
+Il modello descrive **un flusso di un settore verso un aeroporto**, e una riga dentro. Regge finché l'accordo è
+uno solo, con un punto, un aeroporto e un mittente — e non è la forma di nessun documento reale. Nella LoA
+EUROCONTROL (Annex D.2) e nell'IPI ENAV la tabella canonica è `rotta │ CoP │ livello │ condizioni`, **una per
+direzione**, con gli aeroporti raccolti in un gruppo («LIRF-LIRA-LIRU-LIRE») e i punti in un elenco.
+
+- **Sostituzione, non affiancamento**: `CoordinationAgreement` (+ `AgreementParty`, `AgreementAirport`,
+  `AgreementClause`) prende il posto di `TransferFlow`/`TransferPoint`, che spariscono dallo schema.
+- **`TransferFlowRow`/`TransferPointRow` restano e cambiano ruolo**: da DTO di lettura dello storage a
+  **proiezione** dell'accordo, prodotta da `AgreementExpansion`. È perché `CoordinationDerivation`, il composer
+  delle frasi, `CoordTable`, la vista live e il matcher Aurora **non si toccano**. Stesso schema dei settori
+  (cataloghi = fonte unica, `Sector` = proiezione).
+- **Cinque duplicazioni chiuse dal modello**: aeroporto, punto, settore mittente, direzione, ACC. Le prime
+  quattro erano visibili nell'archivio; la quarta era già degenerata (i sorvoli LIBB↔LGGG elencano punti diversi
+  nei due versi, e niente lo segnalava).
+- **La rete viene prima del modello.** `CoordinationCharacterizationTests` deriva i **flussi veri** (37/78,
+  congelati in `tests/Vipi.Application.Tests/Fixtures/`) e confronta righe e frasi con un file approvato, in
+  italiano e in inglese. L'invariante del lavoro è che resti verde.
+- **Parità di campi in questo giro.** I campi che i documenti reali richiedono e che ancora mancano — rotta
+  distinta dal punto, *release*, modo di coordinamento, nota per clausola, default in testa, condizione come
+  intestazione, clausole in prosa — sono un **secondo giro dichiarato** (§5 della carta), progettato nel posto
+  dove atterrerà.
+
+### 10.1 Cosa è stato fatto, in ordine
+
+| # | Cosa | Verificato |
+|---|---|---|
+| 0 | Carta, registro delle lacune, **rete di caratterizzazione** sui 78 punti veri | invariante «frasi e righe identiche prima/dopo» |
+| 1 | Quattro entità + migrazione nei due provider + `CopList`/`FlowsToAgreements`/`AgreementExpansion` + porta di scrittura | il **cancello**: giro completo lossless sull'archivio |
+| 2 | Travaso armato all'avvio, lettori sugli accordi, editor riscritto, vecchia scrittura rimossa | live: 41 accordi, albero per controparte, due versi |
+| 3 | Punti richiusi in una riga, prosa a scelta della sezione, colonna «Anche per» | live: otto celle con l'elenco dei punti |
+| 4 | Riceventi proposti · incolla-tabella · cruscotto delle lacune | live: **due asimmetrie vere** trovate |
+| 5 | Propagazione: spec, lavori aperti, guida, memorie, nomi e commenti | — |
+
+### 10.3 L'editor a valle del modello (17 agosto 2026)
+
+Carta ed esito: [`../feature/2026-08-17-editor-accordi-per-relazione.md`](../feature/2026-08-17-editor-accordi-per-relazione.md).
+
+Il modello era nuovo, l'editor no: aveva conservato **due assi del modello vecchio**, e le misure sul `vipi.db`
+vero li hanno resi indiscutibili.
+
+- **L'albero era indicizzato sul lato B**, non sulla controparte. Per 13 accordi di LIBB e **10 su 11 di LIRR**
+  la ACC aperta *è* il lato B, quindi il ramo prendeva il nome dei nostri stessi settori: la pagina rimetteva in
+  cima l'asse «per settore» che il modello aveva appena tolto. Ora è **ACC controparte ▸ ente ▸ accordo**, letto
+  dalla lente `AgreementViewpoint` (7 rami per LIBB invece di 17).
+- ⚠️ **L'orientamento è una lente, non un dato**: A e B in archivio non si toccano. Raddrizzarli cambierebbe di
+  significato le clausole di **entrambi** i versi e le release congelate — e un accordo di confine non ha un
+  verso giusto, dipende da chi lo apre.
+- **Il verso era un interruttore**, e non pagava: in archivio i bilaterali erano **zero**, quindi il tasto
+  dell'altro verso portava sempre a una tabella vuota — e il reciproco non si scriveva perché non si vedeva che
+  mancava. Ora i due versi sono **due blocchi sempre a vista**, come Annex D.2.1/D.2.2. ⚠️ I tasti stanno in
+  **testa** a ogni blocco: il piede-che-tiene-i-tasti vale per *un* corpo che scorre.
+- **`AgreementDirection` smette di essere stato di pagina** e diventa parametro: sette operazioni lo leggevano
+  implicitamente, e con due tabelle a vista quello stato era una bugia.
+- **Il tipo di traffico del verso opposto è calcolato** (`TrafficKinds.Reciprocal`) e **marcato come calcolato**:
+  da un APP verso l'area salgono partenze, non arrivi. ⚠️ *Superato dal §11: il tipo sta sulla SEZIONE, quindi
+  il verso opposto è una sezione sua e non c'è più niente da calcolare — `TrafficKinds` è stato rimosso.*
+- **Due voci nuove nel cruscotto**: «reciproco a parte» (3 casi, con il comando che li unisce) e «relazione
+  spezzata» (1 caso, `#26/#27`, **senza** comando: unirli cambia il documento). Le condizioni della fusione si
+  **rivalidano nel repository**, non si dànno per buone dalla proposta. ⚠️ *Superate dal §11: la prima non può
+  più esistere (la coppia è unica per indice) e la seconda è diventata «sezioni gemelle», con il comando.*
+- **I punti presenti da un lato solo** si dicono sopra le due tabelle, con lo **stesso conto** del cruscotto
+  (`AgreementPoints`).
+- **Un accordo ha due capi, e ora è una regola** (18 agosto): senza lato B non produce niente — la derivazione
+  scarta la riga — e «a UNICOM» non è un capo che si scrive, è ciò che `TransferOnlineResolver` calcola quando il
+  ricevente è offline. L'etichetta `(vuoto = UNICOM)` insegnava il contrario ed è sparita. ⚠️ Il **ripristino** è
+  fuori dalla regola di proposito: in archivio restano due righe che la violano, e un annulla che rifiutasse di
+  rimettere l'accordo appena cancellato sarebbe peggio della regola.
+- **Gli aeroporti si aggiungono dalla testata dell'accordo**, non solo dentro il form dell'intestazione; e nel
+  form il campo compare **dove serve** (arrivi e partenze) o dove ce ne sono già — un campo nascosto che tiene
+  dati è il modo più rapido di perderli. La regola dura «arrivi e partenze pretendono un aeroporto» **resta**,
+  per decisione del committente.
+
+### 10.2 Cosa resta di questo giro
+
+1. ✅ La migrazione che droppa `TransferFlows`/`TransferPoints` è **girata** il 17 agosto.
+2. Le **due asimmetrie** che il cruscotto ha trovato — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti,
+   mai notata prima) — le decidono i colleghi: il travaso non le ha risolte apposta.
+3. ✅ **I tre reciproci separati** (`#13/#32`, `#17/#28`, `#23/#38`) si sono chiusi da soli col §11: i due versi
+   della stessa coppia **sono** lo stesso accordo, e la conversione li ha fusi. Il comando «unisci i due versi»
+   non esiste più perché non può più servire.
+4. Il **secondo giro** dei campi mancanti (§5 della carta di ferragosto).
+5. **Tre difetti di `LevelFormatting`** (L10 + parità su livello assente + parità su livello speciale), congelati
+   nell'approvato: un giro loro, con la riapprovazione guardata riga per riga.
+6. **Merge in `main`**: serve l'ok esplicito.
+
+## 11. Un accordo per COPPIA, il traffico nelle sezioni (18 agosto 2026) 🟢
+
+Carta: [`../feature/2026-08-18-accordi-a-sezioni.md`](../feature/2026-08-18-accordi-a-sezioni.md) ·
+Schema: [`../spec/modello-dati.md`](../spec/modello-dati.md) §9.25-bis.
+
+Il modello di ferragosto aveva ancora l'accordo come «due parti · **un tipo** · **un gruppo di aeroporti**». Le
+misure sul `vipi.db` vero hanno detto che era ancora mezzo asse del modello vecchio:
+
+- **40 accordi stavano in 16 coppie**, e la sola `LGGG_W_CTR ⇄ LIBB_ES_CTR` ne teneva **otto**: «cosa ho
+  concordato con Atene» costava otto schede.
+- **Il verso si esprimeva ORIENTANDO l'accordo**, non con `Direction`: 60 clausole su 60 erano `AtoB`. Ecco
+  perché «zero bilaterali» mentiva — il reciproco c'era, nell'accordo accanto, e il cruscotto doveva avere una
+  voce apposta per dirlo.
+- **Nessun accordo aveva più di un ente per lato**: la collezione `AgreementParty` costava un prodotto cartesiano
+  in proiezione, una tabella, un ordine e un picker multiplo, e non è mai stata usata.
+
+Cosa cambia:
+
+- **L'accordo è la relazione**: `SideASectorId` ⇄ `SideBSectorId`, **uno per coppia** (indice unico), in **forma
+  canonica** perché in SQL non esiste «insieme di due». ⚠️ Il prezzo è dichiarato: «TS EXE trasferisce a PS EXE /
+  PN EXE» si scrive come **due accordi** — scelta del committente.
+- **`AgreementSection` è il traffico**: `Kind` + `Direction` + aeroporti = **una tabella** di clausole. Il verso
+  lascia la clausola, dove costringeva a tenerlo d'accordo su righe che dicono la stessa cosa.
+- ⚠️ **Girare i lati diventa senza perdita**, e solo per questo la canonizzazione è ammissibile: `Direction` sta
+  sulla sezione e si ribalta con loro. Col verso sulla clausola era **vietato**, e a ragione.
+- **Sei tipi muoiono**: `AgreementParty`, `AgreementClause.Direction`, `AgreementMerge` +
+  `AbsorbAsReverseAsync`, `CopyDirectionAsync` (diventa «copia la sezione nel verso opposto»), `TrafficKinds`, e
+  due voci del cruscotto — `NoReceiver` e `ReverseInSeparateAgreement` — che **non possono più esistere**. Una
+  guardia che non può scattare non è una guardia: è un'abitudine.
+- **Il cruscotto guadagna ciò che prima non si poteva nemmeno chiedere**: «sorvoli in un verso solo» e «sezione
+  senza clausole», più le «gemelle» col tasto che le unisce.
+- **La proiezione perde il cartesiano**: una sezione produce `1 mittente × N aeroporti` righe.
+  `real-coordination.approved.txt` **non si è mosso di un carattere**.
+
+### 11.1 La conversione, e cosa ha insegnato
+
+Tre passi — migrazione **additiva** → `tools/Vipi.AgreementsToSections` → migrazione **distruttiva** — e non
+uno: la fusione è **logica** (canonizzazione, ribaltamento dei versi, unione delle gemelle, rinumerazione dei
+gruppi), e scriverla in SQL due volte, una per dialetto, sarebbe due volte il rischio sullo stesso archivio.
+
+Sui dati veri: **40 accordi / 60 clausole → 16 accordi / 38 sezioni / 60 clausole**.
+
+⚠️ **Due difetti che nessun test vedeva, trovati eseguendo:**
+
+1. **La cancellazione dei gusci assorbiti si portava via le clausole.** Fra i due passi lo schema è **misto**:
+   `AgreementClauses.AgreementId` esiste ancora col suo FK in cascade. Riappendere la clausola alla sezione
+   giusta e lasciare il vecchio `AgreementId` puntato al guscio significa perderla quando il guscio se ne va —
+   **col `SectionId` già scritto bene**. Delle 60 ne sopravvivevano **23**, in silenzio.
+2. **Lo scaffolding proponeva un `RenameColumn`** di `AgreementId` in `SectionId`: avrebbe lasciato nella colonna
+   nuova **id di accordi** spacciati per id di sezioni. È la seconda volta su quest'area che un rename automatico
+   produce dati validi e sbagliati. **Le migrazioni si leggono, non si accettano.**
+
+### 11.2 La verifica live, e i tre difetti che ha trovato
+
+Guidata sulla **5035** su una copia già convertita. Ha confermato tutto ciò che il modello promette — albero a
+due livelli, le otto schede di `LIBB ⇄ LGGG` diventate una foglia, arrivi e partenze dello stesso scalo
+accostati, verso che **gira digitando l'ICAO**, blocco fantasma del reciproco, gemelle unite, deep-link — e ha
+trovato tre cose che il DOM non diceva:
+
+1. ⚠️ **L'avviso «scalo non coperto» urlava su tre sezioni su otto**, tutte scritte bene: un'**area** che riceve
+   arrivi e poi li gira all'avvicinamento è il caso **normale**. Ristretto ai riceventi APP/torre. *Una
+   categoria che urla sempre non si guarda più* — seconda volta su questa pagina.
+2. **Lo stesso avviso, nella testata, mandava a capo i tasti della sezione.** Sceso nel corpo, con gli altri.
+3. **Cinque etichette descrivevano l'operazione vecchia**: «unisci i due **versi**» dove si uniscono due
+   **sezioni gemelle dello stesso verso**.
+
+### 11.3 Cosa resta
+
+1. ✅ **Conversione eseguita sul `vipi.db` di sviluppo** (18 agosto): 16 accordi, 38 sezioni, 60 clausole,
+   integrità verificata e app guidata a schermo sull'archivio convertito. ⚠️ Quel DB adesso **vuole questo
+   ramo**; il backup è fuori dal repo e non è in git.
+2. 🟡 **La conversione sulla MariaDB di produzione**, con `--mysql` e le due migrazioni gemelle.
+3. **Merge in `main`**: serve l'ok esplicito.
+
+⚠️ **Due incongruenze del report di consistenza NON vengono da qui**: le clausole `#38`/`#39` puntano a piste
+(`ConditionRefId` 215/216) re-importate con altri Id. Verificato sul **backup pre-conversione**, dove erano
+identiche. L'etichetta denormalizzata (`07`/`25`) c'è, quindi i documenti rendono bene — è esattamente la
+ragione per cui quella verità è denormalizzata. Da sistemare a mano dall'editor, quando si vuole.

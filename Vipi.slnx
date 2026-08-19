@@ -11,6 +11,9 @@
     <Project Path="src/Vipi.Infrastructure.MySqlMigrations/Vipi.Infrastructure.MySqlMigrations.csproj" />
     <Project Path="src/Vipi.Ui/Vipi.Ui.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Vipi.AgreementsToSections/Vipi.AgreementsToSections.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />
     <Project Path="tests/Vipi.AuroraBridge.Tests/Vipi.AuroraBridge.Tests.csproj" />

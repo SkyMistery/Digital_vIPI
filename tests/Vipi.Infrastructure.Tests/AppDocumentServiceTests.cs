@@ -53,7 +53,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var repo = new EfAppDerivationRepository(_db);
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
-        var transfers = new TransferService(new EfTransferRepository(_db), authz, topo);
+        var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
@@ -120,17 +120,14 @@ public class AppDocumentServiceTests : IAsyncLifetime
     [Fact]
     public async Task Derive_Coordination_Classifies_Acc_Vs_Tower()
     {
-        var tr = new EfTransferRepository(_db);
+        var tr = new EfAgreementRepository(_db);
         // Partenza verso ACC (NE): va in TowardAcc.
-        var fDep = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Departure });
-        await tr.AddPointAsync("LIRR", fDep, Point("VALMA", 150, _neId));
+        await Agreement(tr, _appId, _neId, TransferFlowKind.Departure, null, "VALMA", 150);
         // Arrivo verso torre (LIRP_TWR): va in TowardTowers.
-        var fArr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Arrival });
-        await tr.AddPointAsync("LIRR", fArr, Point("", 2000, _ptwrId, feet: true));
+        await Agreement(tr, _appId, _ptwrId, TransferFlowKind.Arrival, null, "", 2000, feet: true);
         // Partenza verso torre: dall'11 agosto 2026 COMPARE. La sezione estesa porta tutto ciò che entra o esce
         // dall'ente; prima veniva scartata in silenzio, e il documento diceva metà dell'accordo con la torre.
-        var fDepTwr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Departure });
-        await tr.AddPointAsync("LIRR", fDepTwr, Point("XYZ", 3000, _ptwrId, feet: true));
+        await Agreement(tr, _appId, _ptwrId, TransferFlowKind.Departure, null, "XYZ", 3000, feet: true);
 
         var coord = await _service.DeriveCoordinationAsync(App);
 
@@ -148,10 +145,9 @@ public class AppDocumentServiceTests : IAsyncLifetime
     [Fact]
     public async Task Derive_Coordination_Includes_Inbound_Arrival_From_Acc()
     {
-        var tr = new EfTransferRepository(_db);
+        var tr = new EfAgreementRepository(_db);
         // Arrivo che l'ACC (NE) consegna all'APP: flusso di PROPRIETÀ del CTR, Next = APP.
-        var fIn = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _neId, Kind = TransferFlowKind.Arrival });
-        await tr.AddPointAsync("LIRR", fIn, Point("MAREL", 150, _appId));
+        await Agreement(tr, _neId, _appId, TransferFlowKind.Arrival, null, "MAREL", 150);
 
         var coord = await _service.DeriveCoordinationAsync(App);
 
@@ -169,9 +165,8 @@ public class AppDocumentServiceTests : IAsyncLifetime
     {
         // Regressione invert: arrivo POSSEDUTO dall'APP verso l'ACC (NE). Direzione owner→next: l'APP è il mittente,
         // NE il destinatario ("… trasferisce a Roma Radar NE …"), non il contrario.
-        var tr = new EfTransferRepository(_db);
-        var fArr = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Arrival, AirportIcao = "LIRP" });
-        await tr.AddPointAsync("LIRR", fArr, Point("MAREL", 150, _neId));
+        var tr = new EfAgreementRepository(_db);
+        await Agreement(tr, _appId, _neId, TransferFlowKind.Arrival, "LIRP", "MAREL", 150);
 
         var coord = await _service.DeriveCoordinationAsync(App);
 
@@ -185,11 +180,11 @@ public class AppDocumentServiceTests : IAsyncLifetime
     [Fact]
     public async Task Overflight_without_airport_goes_to_overflights_group()
     {
-        var tr = new EfTransferRepository(_db);
-        var fOvf = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = _appId, Kind = TransferFlowKind.Overflight });
-        await tr.AddPointAsync("LIRR", fOvf, new TransferPointInput
+        var tr = new EfAgreementRepository(_db);
+        var sec = await SectionAsync(tr, _appId, _neId, TransferFlowKind.Overflight, null);
+        await tr.AddClauseAsync("LIRR", sec, new AgreementClauseInput
         {
-            Cop = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia", NextSectorId = _neId,
+            Cops = "ELB", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Special, LevelSpecial = "per aerovia",
         });
 
         var coord = await _service.DeriveCoordinationAsync(App);
@@ -295,9 +290,8 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var childId = await AddChildAppAsync("LIRP_E_APP", "[[10.5,43.6],[10.6,43.6],[10.6,43.7],[10.5,43.7]]");
 
         // Flusso di PROPRIETÀ del figlio (E) verso l'ACC NE: deve comparire nel doc del padre.
-        var tr = new EfTransferRepository(_db);
-        var fDep = await tr.AddFlowAsync("LIRR", new TransferFlowInput { OwningSectorId = childId, Kind = TransferFlowKind.Departure });
-        await tr.AddPointAsync("LIRR", fDep, Point("VALMA", 150, _neId));
+        var tr = new EfAgreementRepository(_db);
+        await Agreement(tr, childId, _neId, TransferFlowKind.Departure, null, "VALMA", 150);
 
         var coord = await _service.DeriveCoordinationAsync(App);
 
@@ -375,11 +369,41 @@ public class AppDocumentServiceTests : IAsyncLifetime
         ComposePosition = compose, AirportIcao = "LIRP", AccCode = "LIRR", Position = position, Frequency = freq,
     };
 
-    private static TransferPointInput Point(string cop, int level, int next, bool feet = false) => new()
+    /// <summary>Un accordo con una clausola sola: la forma piu' corta di un caso di prova, adesso che il
+    /// ricevente e' dell'accordo e non della riga.</summary>
+    private static async Task Agreement(EfAgreementRepository tr, int from, int to, TransferFlowKind kind,
+        string? icao, string cops, int level, bool feet = false)
     {
-        Cop = cop, LevelValue = level, LevelUnit = feet ? LevelUnit.Feet : LevelUnit.Fl,
-        LevelConstraint = feet ? LevelConstraint.Exact : LevelConstraint.AtOrAbove, NextSectorId = next,
-    };
+        var sec = await SectionAsync(tr, from, to, kind, icao);
+        await tr.AddClauseAsync("LIRR", sec, new AgreementClauseInput
+        {
+            Cops = cops, LevelValue = level, LevelUnit = feet ? LevelUnit.Feet : LevelUnit.Fl,
+            LevelConstraint = feet ? LevelConstraint.Exact : LevelConstraint.AtOrAbove,
+        });
+    }
+
+    /// <summary>
+    /// La sezione dove finiranno le clausole: l'accordo fra i due enti (riusato se c'è già — ne esiste UNO solo
+    /// per coppia) e dentro una sezione col traffico e lo scalo.
+    /// <para>⚠️ Il verso si legge dall'accordo SALVATO perché i lati stanno in forma canonica: «chi cede» può
+    /// essere finito su A o su B, e darlo per scontato scriverebbe il contrario di ciò che il caso intende.</para>
+    /// </summary>
+    private static async Task<int> SectionAsync(EfAgreementRepository tr, int from, int to,
+        TransferFlowKind kind, string? icao)
+    {
+        var id = await tr.FindByPairAsync("LIRR", from, to)
+                 ?? await tr.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = from, SideBSectorId = to });
+
+        var a = (await tr.ListByAccAsync("LIRR")).First(x => x.Id == id);
+        var direction = a.SideA.SectorId == from ? AgreementDirection.AtoB : AgreementDirection.BtoA;
+
+        return await tr.AddSectionAsync("LIRR", id, new AgreementSectionInput
+        {
+            Kind = kind,
+            Direction = direction,
+            Airports = icao is null ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput(icao) },
+        });
+    }
 
     /// <summary>Authz permissiva: le derivazioni di lettura non la invocano; presente solo per i ctor dei service.</summary>
     private sealed class AllowAuthz : IEditAuthorizationService

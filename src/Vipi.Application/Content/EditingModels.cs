@@ -65,6 +65,9 @@ public sealed class EditableSection
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g); l'editor espone il toggle.</summary>
     public bool BeforeParentBody { get; init; }
 
+    /// <summary>Prosa a CAPOFILA: una frase che introduce la tabella invece di una per clausola.</summary>
+    public bool LeadSentence { get; init; }
+
     public required IReadOnlyList<EditableBlock> Blocks { get; init; }
     public required IReadOnlyList<EditableSection> Children { get; init; }
 }

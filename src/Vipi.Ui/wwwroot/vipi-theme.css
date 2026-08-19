@@ -385,6 +385,10 @@
 .coord-table th.c-cop{width:17%}
 .coord-table th.c-level{width:21%}
 .coord-table th.c-cond{width:27%}
+/* «Anche per» (gli altri aeroporti dell'accordo): quattro ICAO separati dal punto mediano stanno in 15%, e la
+   colonna compare solo quando un accordo ne copre piu' d'uno — dove ne copre uno, quello e' gia' il nodo sotto
+   cui la riga si legge. */
+.coord-table th.c-apts{width:15%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
 
 /* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze
@@ -1395,24 +1399,44 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-empty{margin:8px 6px;font-size:12px}
 .xt-nav-foot{padding:8px;border-top:1px solid var(--line);background:#fff}
 .xt-nav-foot .btn{width:100%;justify-content:center}
-.xt-nav-sec,.xt-nav-apt{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;
-  font-size:12.5px;user-select:none}
-.xt-nav-sec{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
-.xt-nav-apt{padding-left:18px;color:var(--ink-soft)}
-.xt-nav-sec:hover,.xt-nav-apt:hover{background:#f2f5ff}
+.xt-nav-sec{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;font-size:12.5px;
+  user-select:none;font-family:var(--font-head);font-weight:700;color:var(--ivao-blue)}
+.xt-nav-sec:hover{background:#f2f5ff}
 .xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Qualifica del ramo («interni»): sta accanto al nome e non deve pesare come il nome. */
+.xt-nav-note{font-size:11px;font-weight:400;font-family:var(--font-body)}
+/* ⚠️ La COPPIA si legge INTERA, e non si taglia nessuno dei due capi.
+   Prima il nostro lato cedeva la larghezza con un'ellissi — «LIB… ⇄ LGGG_W_CTR» — perché la colonna è 260 px e
+   due callsign da undici caratteri più il conteggio non ci stanno in una riga. Ma un callsign troncato non è
+   un'abbreviazione: è un altro callsign, e in un elenco dove LIBB_ES_CTR e LIBD_CS0_APP convivono si legge
+   sbagliato. Quindi: carattere più piccolo, e se ancora non basta la coppia VA A CAPO (flex-wrap) invece di
+   perdere lettere. Il rientro scende da 30 a 18 px perché il livello «relazione» che lo giustificava non
+   esiste più: la foglia sta ora direttamente sotto la ACC. */
+.xt-nav-relnear,.xt-nav-relfar{white-space:nowrap;font-size:11px;letter-spacing:.02em}
+.xt-nav-relway{flex:none;color:var(--ivao-blue);font-size:11px}
+.xt-nav-relfar{font-weight:700;color:var(--ink)}
 .xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
   padding:0 7px;flex:none}
+/* Bilaterale davvero: clausole nei due versi. «3 ⇄ 0» resta neutro, perché è un lavoro da fare, non un pregio. */
+.xt-nav-bi{background:#e6f0e8;color:#2f6b3a}
 /* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
 .xt-nav-warn{color:#b3541e;font-size:11px;flex:none}
 /* La foglia è un bottone vero: si sceglie, e la scelta si vede. */
-.xt-nav-flow{display:flex;align-items:center;gap:6px;margin-left:30px;width:calc(100% - 30px);
+.xt-nav-flow{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px;margin-left:18px;
+  width:calc(100% - 24px);
   padding:5px 8px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer;
-  font-family:var(--font-body);font-size:12.5px;color:var(--ink)}
+  font-family:var(--font-body);font-size:11.5px;color:var(--ink)}
 .xt-nav-flow:hover{background:#f2f5ff}
 .xt-nav-flow.on{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
 .xt-nav-kind{flex:none}
-.xt-nav-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:11.5px}
+/* La nota dell'accordo: riga sua, sotto la coppia. Occupa tutta la larghezza (flex-basis:100%) così non
+   contende lo spazio ai callsign né al conteggio — e le foglie senza nota restano di una riga sola. */
+.xt-nav-desc{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);
+  font-size:11px}
+/* Il gruppo di aeroporti: sotto una coppia è il discriminante fra le foglie, non una nota a margine — quindi si
+   legge come dato. È anche ciò che rende visibile una relazione spezzata: due foglie identiche di fila. */
+.xt-nav-apts{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:11.5px;
+  font-weight:600}
 
 /* ---- Colonna 2: il riquadro di lavoro ----
    Stessa forma del pannello — testata ferma, corpo che scorre — e per la stessa ragione: le azioni in fondo
@@ -1534,6 +1558,24 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-subform{margin:0 0 8px;background:#f2f5ff;border-radius:6px;padding:8px}
 .xt-warn{margin:0 0 6px;font-size:12.5px}
 
+/* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
+   ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
+   con due blocchi il piede del primo finirebbe a metà pagina, che è peggio del problema che risolveva. */
+.xt-dirblock{margin:0 0 14px}
+.xt-dirblock:last-child{margin-bottom:0}
+.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 6px;margin-bottom:4px;
+  border-bottom:1px solid var(--line)}
+/* Il verso di casa porta il filo blu: è quello su cui si lavora, e l'occhio deve trovarlo senza leggere. */
+.xt-out>.xt-dirhead{border-bottom-color:var(--ivao-blue)}
+.xt-dirtoggle{display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;
+  font-family:var(--font-body);color:var(--ink);text-align:left}
+.xt-dirway{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ivao-blue);white-space:nowrap}
+.xt-dirpair{font-size:12.5px;color:var(--ink)}
+/* L'asterisco dice «calcolato»: senza, il tipo del verso opposto passa per una scelta di chi ha scritto. */
+.xt-dirkind{font-size:11px}
+.xt-dirempty{margin:6px 0 0;font-size:12px}
+
 /* Utilità nate dagli stili inline della pagina. */
 .xt-h2{margin-bottom:2px}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -1541,6 +1583,25 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-hint{font-size:11.5px}
 .xt-nowrap{white-space:nowrap}
 .xt-btnrow{display:flex;gap:6px}
+/* ---- form della SEZIONE: il verso si preme, gli scali si digitano ----
+   ⚠️ Il campo del verso NON è `.narrow` (max 130 px): due callsign interi non ci stanno, e tagliarli è
+   inaccettabile per la stessa ragione per cui non si tagliano nel navigatore — un callsign troncato è un altro
+   callsign. Prende la larghezza che gli serve e non la cede a nessuno. */
+.xt-dirfield{flex:0 0 auto!important;min-width:0!important;max-width:none!important}
+/* Il chip È il comando: si legge il verso e ci si clicca sopra per invertirlo. Il ⇄ in coda è il segnale che
+   si può premere — senza, una pill sembra un'etichetta. */
+.xt-dirchip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border:0;cursor:pointer;
+  font-family:var(--font-body);font-size:12px}
+.xt-dirchip:hover{filter:brightness(.94)}
+.xt-dirchip-x{font-size:13px;opacity:.75}
+/* Ci deve stare un ICAO, non una frase: senza questo il picker eredita `min-width:150px; flex:1` dal campo
+   dell'inline-form e spinge il verso fuori riga. */
+.xt-aptpick-narrow{flex:0 0 auto!important;min-width:0!important;width:96px}
+/* ⚠️ Ma il MENU non è l'input: stretto a 96 px spezzava «Bari Palese – LIBB» su due righe illeggibili. Le
+   proposte si leggono per intero — sono il motivo per cui il picker esiste — quindi il menu esce dalla
+   larghezza del campo invece di comprimersi dentro. */
+.xt-aptpick-narrow .sector-pick{flex-wrap:nowrap;width:max-content;max-width:320px}
+.xt-aptpick-narrow .sp-item{white-space:nowrap}
 .xt-selfc{align-self:center}
 .xt-mt0{margin-top:0}
 .xt-m0{margin:0}
@@ -1579,3 +1640,19 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-bulkpick{margin:0;min-width:200px}
 .xt-bulkpick input{margin:0}
 .xt-groupwide{margin-top:6px}
+
+/* ---- Aeroporti dell'accordo, dalla testata ----
+   Il gruppo di aeroporti è ciò che si mette a punto più spesso («vale anche per Brindisi»): prima si toccava solo
+   entrando nel form di sei campi, e per i sorvoli non si toccava affatto perché il campo non c'era. */
+.xt-hdr-apts{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.xt-hdr-apts .xt-apt{font-variant-numeric:tabular-nums}
+.xt-aptadd{padding:1px 7px;font-size:11px}
+.xt-aptpick{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.xt-aptpick input{margin-bottom:0}
+/* L'asterisco del campo obbligatorio: si vede, non urla. */
+.xt-req{color:#b3541e;font-weight:700}
+/* Il tipo di traffico, scelto dalla testata: ha il peso di una pill, non di un campo di form. */
+.xt-kindsel{margin:0;padding:1px 6px;height:auto;font-size:11.5px;border-radius:20px;
+  border:1px solid var(--ivao-blue);background:#eef2ff;color:var(--ivao-blue);font-weight:600}
+/* «Altro» è il tipo con cui un accordo NASCE: si legge come da fare, non come scelto. */
+.xt-kindsel.xt-unset{border-style:dashed;background:#fff;color:var(--ink-soft)}

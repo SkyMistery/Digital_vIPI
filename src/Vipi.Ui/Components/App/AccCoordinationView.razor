@@ -68,6 +68,10 @@
     /// <summary>Etichette in inglese (vLOA). Default false = italiano (vIPI ACC).</summary>
     [Parameter] public bool English { get; set; }
 
+    /// <summary>Prosa a CAPOFILA: una frase che introduce ogni tabella invece di una per clausola. Viene dalla
+    /// SEZIONE, quindi è una scelta editoriale versionata e non un'opzione della vista.</summary>
+    [Parameter] public bool LeadSentence { get; set; }
+
     private string Intro => English
         ? "Sector transfers, grouped by sector → ACC → airport → arrivals/departures. Derived from the configured flows."
         : "Trasferimenti dei settori del blocco, per settore → ACC dell'aeroporto → aeroporto → arrivi/partenze. Derivati dai flussi configurati.";
@@ -92,6 +96,6 @@
         @* Nessun LastColHeader: lo decide CoordTable, che in italiano lo prende dalle risorse e in inglese lo
            scrive in inglese. Qui c'era «Prossimo» scritto a mano, e con l'interfaccia in inglese usciva una
            testata mezza tradotta: VIA · CLEARED · TRANSFER · TRANSFER LEVEL · **PROSSIMO** · CONDITION. *@
-        <CoordTable Rows="rows" English="English" />
+        <CoordTable Rows="rows" English="English" LeadSentence="LeadSentence" />
     };
 }

@@ -16,7 +16,7 @@ cui quel volo va trasferito al prossimo ente e lo scrive nell'etichetta quota de
 | Tema | Decisione | Perché |
 |---|---|---|
 | Campo scritto in Aurora | **`#LBALT` (Altitude label)**, con sonda empirica dell'XFL in F0 | `#LBALT` è l'unico comando di scrittura quota documentato; l'XFL (campo 19 di TRPOS) la wiki lo espone **solo in lettura** |
-| Dove gira il matching | **Server**, endpoint `POST /vsop/api/v1/transfers/resolve` | logica in un posto solo, riusa `ITransferService`/`TransferOnlineResolver`/`OnlineAtcCache`; nessun dato duplicato sul client |
+| Dove gira il matching | **Server**, endpoint `POST /vsop/api/v1/transfers/resolve` | logica in un posto solo, riusa `IAgreementService`/`TransferOnlineResolver`/`OnlineAtcCache`; nessun dato duplicato sul client |
 | Shell del tool | **Avalonia** (net8.0, win-x64 + osx-arm64) | Aurora gira anche fuori Windows; nessun vincolo di riuso Razor essendo l'app fuori dal portale |
 | Scrittura in Aurora | **Solo su azione esplicita** dell'utente (click o hotkey) | un livello sbagliato nel tag è un errore operativo: il tool propone, l'uomo decide |
 | Collocazione | **stesso repo**, nuovi progetti (§4) | contratto DTO condiviso fra host e tool senza pacchetti esterni |
@@ -61,9 +61,14 @@ Macro `%SELTFC%` = callsign selezionata; **il comando viene scartato se nessun t
 - `TransferPointRow`: `Cop`, `LevelValue`/`LevelUnit`/`LevelConstraint`/`LevelSpecial`, `Parity`, `VerticalState`,
   `LevelText`, `NextSectorCallsign`, condizioni (`ConditionLabel` pista, `ConditionRefId` soft-ref pista,
   `ConditionAreaLabel`, `ConditionCustomLabel`), `Order`.
-- `ITransferService.ResolveForAccAsync(acc, online)` + `TransferOnlineResolver`: risalita della gerarchia di
+- `IAgreementService.ResolveForAccAsync(acc, online)` + `TransferOnlineResolver`: risalita della gerarchia di
   copertura (cross-ACC) fino al primo ente online, terminale `UNICOM`.
 - `OnlineAtcCache` (+ SSE `/vsop/live/atc`): chi è online, aggiornato dal polling IVAO.
+
+> ℹ️ **Dal 17 agosto 2026** i coordinamenti si scrivono come **accordi** (`spec/modello-dati.md` §9.25), ma il
+> matcher continua a leggere le **righe piatte** — `IAgreementService.ListFlowsByAccAsync` le proietta. Per lui
+> è la lettura giusta: due varianti *sono* due candidati distinti, e due punti della stessa clausola *sono* due
+> punti fra cui scegliere. Il bridge non è stato toccato, ed è la prova che la proiezione serve.
 - `ISectorTopology.BuildGlobalAsync()` → `Ancestors(callsign)`.
 
 **Manca:** una superficie **JSON pubblica**. Oggi il modulo espone solo `/vsop/live/atc` (SSE) e le immagini.
@@ -86,7 +91,7 @@ al solo caso d'uso trasferimenti.
                                   ▼
         it.ivao.aero  ──►  TransferResolveEndpoint (Vipi.Hosting)
                               └─► TransferMatchService (Vipi.Application, puro)
-                                    ├─ ITransferService / ITransferRepository
+                                    ├─ IAgreementService (righe piatte proiettate dagli accordi)
                                     ├─ ISectorTopology
                                     └─ OnlineAtcCache
 ```

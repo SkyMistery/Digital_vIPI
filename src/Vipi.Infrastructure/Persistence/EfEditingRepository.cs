@@ -133,6 +133,7 @@ public sealed class EfEditingRepository : IEditingRepository
             RenderMode = s.RenderMode,
             IsHidden = s.IsHidden,
             BeforeParentBody = s.BeforeParentBody,
+            LeadSentence = s.LeadSentence,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
                 {
@@ -206,6 +207,7 @@ public sealed class EfEditingRepository : IEditingRepository
                     // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
                     // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
                     RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
+        LeadSentence = s.LeadSentence,
                     RowVersion = Guid.NewGuid().ToByteArray(),
                 };
                 map[s.Id] = ns;
@@ -688,6 +690,15 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
         section.BeforeParentBody = before;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.LeadSentence = lead;
         await _db.SaveChangesAsync(ct);
     }
 

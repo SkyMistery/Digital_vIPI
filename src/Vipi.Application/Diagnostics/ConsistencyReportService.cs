@@ -75,7 +75,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
 
         foreach (var t in d.TransferConditions)
         {
-            var who = $"TransferPoint #{t.PointId} ({t.AccCode}, CoP {t.Cop})";
+            var who = $"Clausola #{t.ClauseId} ({t.AccCode}, punti {t.Points})";
 
             // 1) Pista orfana: soft-ref valorizzato ma la pista non esiste più.
             if (t.ConditionRefId is int refId && !d.RunwayIdents.ContainsKey(refId))

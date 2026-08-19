@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net8 e non net10: la destinazione è lo stesso archivio dell'applicazione — SQLite in sviluppo,
+         MariaDB in produzione — e l'unico provider EF che regge MariaDB è Pomelo, che esiste solo per
+         EF Core 8 (ADR-0007 §D4-ter). È lo stesso motivo per cui Vipi.Host è net8. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Tool ONE-SHOT: non fa parte del deploy, e non gira all'avvio. Vedi il commento in testa a Program.cs
+         per la ragione — una migrazione che droppa più una passata d'avvio che legge la stessa tabella nella
+         stessa release perdono i dati SENZA un errore. -->
+    <RootNamespace>Vipi.AgreementsToSections</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Eredita VipiDbContext + entità + i provider EF; la logica di conversione è pura e sta in
+         Vipi.Application (AgreementsToSections), che arriva da qui. -->
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -786,9 +786,78 @@ picker, annulla che rimette l'outline, modifica in blocco).
 
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora
 dove avviene il trasferimento vanno riviste **a mano** — il loro livello può voler dire «autorizzato» o «al
-trasferimento», e solo chi le ha scritte lo sa. Il filtro **«Da rivedere»** in `/vsop/admin/trasferimenti` le
-elenca e ne tiene il conto. ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15 è il conteggio sul DB
-di sviluppo.
+trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle lacune** in
+`/vsop/admin/trasferimenti` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
+è il conteggio sul DB di sviluppo.
+
+### E6-bis 🟡 Accordi di coordinamento — un accordo per COPPIA, il traffico nelle sezioni (ramo `feature/accordi-coordinamento`, 16-18 ago 2026)
+Carte, in ordine di vigore:
+[`feature/2026-08-18-accordi-a-sezioni.md`](feature/2026-08-18-accordi-a-sezioni.md) **(il modello di adesso)** ·
+[`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md) ·
+[`feature/2026-08-17-editor-accordi-per-relazione.md`](feature/2026-08-17-editor-accordi-per-relazione.md).
+Schema `spec/modello-dati.md` **§9.25-bis**; area `refactor/07-trasferimenti.md` **§11**.
+**Per riprendere da freddo**: [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md).
+
+Tre giri, e ognuno ha tolto un asse del modello precedente. **Ferragosto**: `TransferFlow`+`TransferPoint`
+lasciano il posto all'**accordo** fra due parti (droppate il 17 con `DropLegacyTransferTables`; l'ultima copia di
+quei dati nella forma originale è `tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`). **17 agosto**:
+l'editor, che aveva ancora l'albero sul lato B e il verso come interruttore. **18 agosto**: l'accordo diventa la
+**relazione fra due enti** — uno solo per coppia, un ente per lato — e il traffico scende nelle **sezioni**.
+
+Le misure che hanno deciso il terzo giro, sul `vipi.db` vero: **40 accordi stavano in 16 coppie** (la sola
+`LGGG ⇄ LIBB` ne teneva otto); il **verso** si esprimeva *orientando* l'accordo — 60 clausole su 60 `AtoB` —
+quindi i due sensi finivano in accordi diversi; e **nessun accordo aveva più di un ente per lato**.
+
+Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSections` → migrazione distruttiva:
+**40 accordi / 60 clausole → 16 accordi / 38 sezioni / 60 clausole**, con `real-coordination.approved.txt`
+**invariato carattere per carattere**.
+
+**Cosa resta, ed è il motivo per cui la voce è 🟡:**
+1. ✅ **Verifica live fatta** (porta 5035, copia del DB convertita). Ha confermato albero a due livelli, ordine
+   imposto, verso proposto dall'aeroporto, blocco fantasma del reciproco, gemelle e deep-link — e ha trovato
+   **tre difetti invisibili ai test**, corretti: l'avviso «scalo non coperto» che urlava su 3 sezioni su 8, lo
+   stesso avviso che dalla testata mandava i tasti a capo, e cinque etichette rimaste sull'operazione vecchia.
+2. ✅ **Conversione eseguita sul `vipi.db` di sviluppo** (18 agosto): 40 accordi / 60 clausole →
+   **16 accordi / 38 sezioni / 60 clausole**, `integrity_check` ok, zero orfani, zero violazioni di FK, e
+   l'app ci gira sopra (vIPI ACC LIBB: 37 tabelle, 76 righe di coordinamento).
+   ⚠️ **Da qui in poi quel DB vuole questo ramo**: il codice di `main` cerca ancora `AgreementParties`. Il
+   backup sta **fuori dal repo** in `../vipi.db.bak-pre-sezioni-20260818`, ed è l'unica copia dello stato
+   precedente perché il `vipi.db` non è tracciato in git.
+   ⚠️ Resta da fare sulla **MariaDB di produzione**, con `--mysql` e le migrazioni gemelle.
+3. ✅ **Suite completa 2569 verdi** (E2E inclusi) e `dotnet build -c Release --no-incremental` a **0 warning**
+   su due TFM.
+4. **Le due asimmetrie** — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) — le
+   decidono i colleghi. Adesso stanno nello **stesso accordo**, una sezione sotto l'altra, quindi si vedono.
+5. ✅ **I tre reciproci separati** (`#13/#32`, `#17/#28`, `#23/#38`) e la **relazione spezzata** (`#26/#27`) si
+   sono chiusi da soli: i due versi della stessa coppia **sono** lo stesso accordo, e le gemelle le ha unite la
+   conversione. Anche i **due accordi senza ricevente** sono spariti — il lato è ora una colonna `NOT NULL`.
+6. ✅ **I tre difetti di `LevelFormatting` sono chiusi** (18 agosto): `— (dispari)` diventa `dispari` (21
+   clausole su 60 lo mostravano — non era un caso limite), la parità non si appende più a un livello *speciale*
+   che la dice già a parole, e la colonna del documento prende le parole dal **template** come già facevano
+   handoff e velocità — così una vLOA inglese non scrive più «FL260 (pari)». L'approvato è stato riapprovato
+   **dopo aver letto le nove famiglie di differenza**: 82 righe, nessuna aggiunta o tolta, nessuna frase
+   toccata. ⚠️ Le release **già pubblicate** conservano il testo vecchio: uno snapshot è una fotografia, e il
+   testo nuovo compare alla prossima release.
+7. ✅ **`InlineConfirm` localizzato** (18 agosto): i default di prompt, conferma e annulla passano dal
+   localizer. Erano cablati in italiano e su 14 usi solo 3 passavano le proprie etichette — gli altri 11
+   dicevano «Sì, elimina» anche in pagina inglese, e anche per azioni che non eliminano.
+8. ✅ **Plurali dei conteggi** (18 agosto): «1 clause» invece di «1 clauses», in entrambe le lingue e in quattro
+   punti. Un conteggio è la cosa che si legge più spesso nella pagina.
+8. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+
+⚠️ **Due difetti trovati eseguendo, e che nessun test vedeva** — valgono fuori da quest'area: fra le due
+migrazioni lo schema è **misto**, e cancellare un guscio si portava via clausole già riappese correttamente (60
+→ 23, in silenzio); e lo scaffolding EF ha proposto, per la seconda volta su quest'area, un `RenameColumn` che
+avrebbe prodotto dati **validi e sbagliati** (`AgreementId` spacciato per `SectionId`). Le migrazioni si
+leggono, non si accettano.
+
+### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
+Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge
+toccato). In isolamento passa due volte su tre. Il test lancia due `SendAsync` insieme contro un
+`FakeAuroraServer` su socket TCP di loopback e pretende che ognuna riceva la propria risposta: la serializzazione
+che verifica è giusta, ma la prova dipende dai tempi del socket. Un rosso qui **non** significa che il client
+mescoli le richieste. Va reso deterministico (attesa esplicita invece che implicita nei tempi di rete) prima che
+qualcuno impari a rilanciare la suite finché diventa verde — che è il vero danno di un test ballerino.
 
 ---
 

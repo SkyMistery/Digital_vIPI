@@ -31,6 +31,7 @@ public static class GuideSearchCatalog
         new Entry("editor-app", "Editor APP non remotizzato", "app non remotizzato editor separazioni aor frequenze vfr minime coordinamenti", "L'editor dedicato agli APP non remotizzati con le sei sezioni fisse."),
         new Entry("editor-vloa", "Editor vLOA", "vloa loa vicino estero coordinamenti sorvoli cop coppia accordo", "L'editor delle vLOA: la coppia ACC italiano ↔ vicino estero e i coordinamenti."),
         new Entry("editor-acc", "Editor vIPI ACC", "acc vipi editor multi-albero settori evidenza landing", "L'editor del vIPI di ACC, multi-albero, e cosa mettere in evidenza."),
+        new Entry("accordi", "Accordi di coordinamento", "accordo accordi coordinamento coordinamenti trasferimenti trasferimento clausola clausole punto punti cop quota livello verso versi bilaterale variante varianti alternativa eccezione incolla tabella lacune proposte ricevente mittente aeroporti", "Gli accordi di coordinamento: due lati, più aeroporti, clausole con più punti, due versi; incolla-tabella e cruscotto delle lacune."),
         new Entry("admin", "Aree admin", "admin gerarchia settori trasferimenti sorgenti permessi audit import", "Le pagine admin: gerarchia, trasferimenti, sorgenti, permessi, audit."),
     };
 

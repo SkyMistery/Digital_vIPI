@@ -1,0 +1,33 @@
+# Mappe di risoluzione estratte dal vipi.db reale (16 agosto 2026), ridotte ai soli enti citati
+# dai flussi in real-flows.tsv. Name = Sector.Name (fallback: vince AtcCallsign quando c'e').
+S	Callsign	Type	Code	AtcCallsign	Name	AccName
+S	LAAA_CTR	Ctr		Tirana Control	Tirana Control	Tirana
+S	LATI_APP	App		Tirana Approach	Tirana Approach	Tirana
+S	LDDU_APP	App		Dubrovnik Radar	Dubrovnik Radar	Zagreb
+S	LDSP_APP	App		Split Radar	Split Radar	Zagreb
+S	LDZO_CTR	Ctr		Zagreb Radar	Zagreb Radar	Zagreb
+S	LGGG_W_CTR	Ctr	W	Athinai Radar West	Athinai Radar West	Greece
+S	LGKR_APP	App		Kerkira Approach	Kerkira Approach	Greece
+S	LIBB_ES_CTR	Ctr	ES	Brindisi Radar	Brindisi Radar	Brindisi
+S	LIBD_CS0_APP	App	CS0	Brindisi Radar	Brindisi Radar	Brindisi
+S	LICA_ES0_APP	App	ES0	Roma Radar	Roma Radar	Roma
+S	LIRN_US0_APP	App	US0	Roma Radar	Roma Radar	Roma
+S	LIRR_ES_CTR	Ctr	ES	Roma Radar	Roma Radar	Roma
+S	LIRR_NC_CTR	Ctr	NC	Roma Radar	Roma Radar	Roma
+S	LIRR_NE_CTR	Ctr	NE	Roma Radar	Roma Radar	Roma
+S	LIRR_TS_CTR	Ctr	TS	Roma Radar	Roma Radar	Roma
+S	LIRR_US_CTR	Ctr	US	Roma Radar	Roma Radar	Roma
+S	LYBA_CTR	Ctr		Beograd Radar	Beograd Radar	Beograd
+S	LYTV_APP	App		Tivat Approach	Tivat Approach	Beograd
+A	Icao	Name
+A	LIBD	Bari Palese
+A	LIBG	Taranto Grottaglie
+A	LIBP	Pescara
+A	LIBR	Brindisi Casale
+A	LICA	Lamezia Terme
+A	LIRA	Roma Ciampino
+A	LIRE	Pratica Di Mare
+A	LIRF	Roma Fiumicino
+A	LIRI	Salerno Pontecagnano
+A	LIRN	Napoli Capodichino
+A	LIRU	Roma Urbe

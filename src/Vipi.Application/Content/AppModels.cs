@@ -60,6 +60,31 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     public int VariantDepth { get; init; }
     /// <summary>La riga scavalca le alternative del gruppo: resa in fondo, senza rientro.</summary>
     public bool IsGroupWide { get; init; }
+
+    // ---- provenienza (additivo, 16 agosto 2026) ----
+    // La riga viene da una CLAUSOLA di un accordo, che puo' valere su piu' punti e su piu' aeroporti.
+    // L'espansione apre quell'elenco in tante righe perche' e' la lettura giusta per il matcher e per la vista
+    // live; la tabella del documento lo richiude, e per farlo deve sapere da dove ogni riga viene.
+    //
+    // ⚠️ Additivo e basta: AccCoordination/AppCoordination finiscono serializzate dentro le release congelate
+    // (AccFrozenSectionProvider & co.), quindi rinominare o cambiare tipo a un campo esistente renderebbe
+    // illeggibili le release gia' pubblicate.
+
+    /// <summary>La clausola da cui la riga e' proiettata; <c>null</c> se la riga non viene da un accordo — cioe'
+    /// se arriva da una release congelata prima del 16 agosto 2026.</summary>
+    public int? ClauseId { get; init; }
+
+    /// <summary>L'elenco completo dei punti della clausola («EKMUR, PISIP»).</summary>
+    public string? Points { get; init; }
+
+    /// <summary>Gli aeroporti dell'accordo quando sono <b>piu' d'uno</b>: dice che questa riga non riguarda solo
+    /// lo scalo sotto cui la si sta leggendo.</summary>
+    public string? AgreementAirports { get; init; }
+
+    /// <summary>La frase CAPOFILA della tabella, gia' composta: «X trasferisce a Y il traffico Z secondo la
+    /// tabella seguente:». Arriva composta perche' la lingua vive nel template — che esiste anche in inglese per
+    /// le vLOA — e una vista che la mettesse insieme da se' rifarebbe quel lavoro in italiano.</summary>
+    public string? LeadSentence { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>

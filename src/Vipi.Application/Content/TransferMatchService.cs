@@ -16,20 +16,20 @@ public interface ITransferMatchService
 /// </summary>
 public sealed class TransferMatchService : ITransferMatchService
 {
-    private readonly ITransferRepository _repo;
+    private readonly IAgreementService _agreements;
     private readonly ITopologyProvider _topology;
     private readonly IStationResolver _stations;
     private readonly IOnlineAtcProvider _online;
     private readonly TransferMatchOptions _options;
 
     public TransferMatchService(
-        ITransferRepository repo,
+        IAgreementService agreements,
         ITopologyProvider topology,
         IStationResolver stations,
         IOnlineAtcProvider online,
         TransferMatchOptions? options = null)
     {
-        _repo = repo;
+        _agreements = agreements;
         _topology = topology;
         _stations = stations;
         _online = online;
@@ -52,7 +52,9 @@ public sealed class TransferMatchService : ITransferMatchService
             };
         }
 
-        var flows = await _repo.ListFlowsByAccAsync(acc.Code, ct);
+        // Le righe piatte proiettate dagli accordi: il matcher le legge come le ha sempre lette — due
+        // varianti SONO due candidati distinti, ed e' la lettura giusta per lui.
+        var flows = await _agreements.ListFlowsByAccAsync(acc.Code, ct);
 
         return TransferMatcher.Match(
             request, flows, topo, snapshot.Callsigns, acc.Code,

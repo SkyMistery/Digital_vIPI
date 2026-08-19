@@ -71,12 +71,12 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
     private readonly IVloaDerivationRepository _repo;
     private readonly IAccDerivationRepository _accRepo;
-    private readonly ITransferService _transfers;
+    private readonly IAgreementService _transfers;
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IEditAuthorizationService _authz;
     private readonly NeighboursOptions _neighbours;
 
-    public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, ITransferService transfers,
+    public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours)
     {
         _repo = repo;

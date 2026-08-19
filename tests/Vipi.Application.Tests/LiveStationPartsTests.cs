@@ -144,7 +144,10 @@ public class LiveStationPartsTests
     };
 
     /// <summary>Registra l'insieme online ricevuto: è ciò che il secondo test deve poter osservare.</summary>
-    private sealed class FakeTransfers : ITransferService
+    /// <summary>Registra l'insieme online ricevuto: e' cio' che il secondo test deve poter osservare. Gli altri
+    /// membri del servizio non li tocca nessuno da qui, e lanciano apposta — un finto che risponde a domande che
+    /// il caso di prova non fa e' un finto che nasconde una dipendenza.</summary>
+    private sealed class FakeTransfers : IAgreementService
     {
         private readonly IReadOnlyList<ResolvedTransferFlow> _flows;
         public IReadOnlySet<string>? LastOnline { get; private set; }
@@ -158,45 +161,57 @@ public class LiveStationPartsTests
             return Task.FromResult(_flows);
         }
 
+        public Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string a, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string a, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> AddFlowAsync(string a, TransferFlowInput i, CancellationToken ct = default) =>
+        public Task<int> AddAgreementAsync(string a, AgreementInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task UpdateFlowAsync(string a, int f, TransferFlowInput i, CancellationToken ct = default) =>
+        public Task UpdateAgreementAsync(string a, int id, AgreementInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task DeleteFlowAsync(string a, int f, CancellationToken ct = default) =>
+        public Task DeleteAgreementAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> AddPointAsync(string a, int f, TransferPointInput i, CancellationToken ct = default) =>
+        public Task<int> AddClauseAsync(string a, int id, AgreementClauseInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task UpdatePointAsync(string a, int p, TransferPointInput i, CancellationToken ct = default) =>
+        public Task<int?> FindByPairAsync(string a, int x, int y, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task DeletePointAsync(string a, int p, CancellationToken ct = default) =>
+        public Task<int> AddSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task MovePointAsync(string a, int p, bool up, CancellationToken ct = default) =>
+        public Task UpdateSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task MovePointToEndAsync(string a, int p, bool top, CancellationToken ct = default) =>
+        public Task DeleteSectionAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task MovePointToAsync(string a, int p, int t, CancellationToken ct = default) =>
+        public Task<int?> CopySectionToReverseAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> AddAlternativeAsync(string a, int p, CancellationToken ct = default) =>
+        public Task<int> MergeSectionsAsync(string a, int keep, int absorb, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> AddExceptionAsync(string a, int p, CancellationToken ct = default) =>
+        public Task<int?> RestoreSectionAsync(string a, AgreementSectionRestore s, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> DuplicateVariantGroupAsync(string a, int p, CancellationToken ct = default) =>
+        public Task UpdateClauseAsync(string a, int id, AgreementClauseInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> SetReceiverAsync(string a, IReadOnlyList<int> ids, int? next, CancellationToken ct = default) =>
+        public Task DeleteClauseAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task MoveClauseAsync(string a, int id, bool up, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task MoveClauseToAsync(string a, int id, int t, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> AddAlternativeAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> AddExceptionAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int> DuplicateVariantGroupAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DetachVariantAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, string? custom, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> DeletePointsAsync(string a, IReadOnlyList<int> ids, CancellationToken ct = default) =>
+        public Task<int> DeleteClausesAsync(string a, IReadOnlyList<int> ids, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> RestoreFlowAsync(string a, TransferFlowSnapshot s, CancellationToken ct = default) =>
+        public Task<int> RestoreAgreementAsync(string a, AgreementSnapshot s, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> RestorePointsAsync(string a, IReadOnlyList<TransferPointRestore> p, CancellationToken ct = default) =>
-            throw new NotSupportedException();
-        public Task DetachVariantAsync(string a, int p, CancellationToken ct = default) =>
+        public Task<int> RestoreClausesAsync(string a, IReadOnlyList<AgreementClauseRestore> c, CancellationToken ct = default) =>
             throw new NotSupportedException();
     }
 }

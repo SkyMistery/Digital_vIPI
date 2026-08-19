@@ -31,6 +31,9 @@ public sealed class RawSection
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g). Viaggia nello snapshot con gli altri flag.</summary>
     public bool BeforeParentBody { get; init; }
 
+    /// <summary>Prosa a CAPOFILA: una frase che introduce la tabella invece di una per clausola.</summary>
+    public bool LeadSentence { get; init; }
+
     public List<RawBlock> Blocks { get; init; } = new();
     public List<RawSection> Children { get; init; } = new();
 }
@@ -71,6 +74,9 @@ public sealed class SectionView
 
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g).</summary>
     public bool BeforeParentBody { get; init; }
+
+    /// <summary>Prosa a CAPOFILA: una frase che introduce la tabella invece di una per clausola.</summary>
+    public bool LeadSentence { get; init; }
 
     public required IReadOnlyList<BlockView> Blocks { get; init; }
     public required IReadOnlyList<SectionView> Children { get; init; }

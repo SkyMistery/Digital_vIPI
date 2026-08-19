@@ -23,7 +23,7 @@
         break;
     case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
-    case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" /> break;
+    case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
     case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;
     default:
         @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@

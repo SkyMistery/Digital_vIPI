@@ -116,7 +116,7 @@ public static class VipiModuleExtensions
                 opt.TopologyCacheTtl);
 
             return new Vipi.Application.Content.TransferMatchService(
-                sp.GetRequiredService<Vipi.Application.Abstractions.ITransferRepository>(),
+                sp.GetRequiredService<Vipi.Application.Content.IAgreementService>(),
                 topologia,
                 sp.GetRequiredService<Vipi.Application.Content.IStationResolver>(),
                 sp.GetRequiredService<Vipi.Application.Abstractions.IOnlineAtcProvider>(),

@@ -514,7 +514,7 @@ Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFo
 `SectorType { Del, Gnd, Twr, ITwr, App, Ctr }` · `SectorKind { Airport, Acc }` · `ApproachKind { Remotized, Standalone }` · `DateParity { Any, Even, Odd }` (regole pista, round 9) · `LevelParity { Any, Even, Odd }` (parità livello di crociera su `TransferPoint`, regola semicircolare) · `TransferHandoffKind { Unspecified, Point, AorBoundary, Custom }` (dove passa il controllo/le comunicazioni quando NON coincide col punto d'ingresso, §9.20-bis) · `SpeedConstraint { Unspecified, AtOrBelow, AtOrAbove, Exact }` (restrizione di velocità al trasferimento; enum dedicato e non riuso di `LevelConstraint`, che porta uno `Special` senza senso su una velocità) · `TransferVerticalState { Unspecified, Level, Descending, Climbing }` (stato verticale su `TransferPoint`, indipendente dal `LevelConstraint`; guida la parola «in discesa/salita/stabile» della frase — §7.3 refactor) · `ImportCategory { TransitionAltitude, Runways, Sectors }`. Rimossi `GeometryFormat`, `TransferConditionKind` (la condizione trasferimento è ora tre colonne indipendenti pista/area/personalizzata, §9.20).
 
 ### 9.8 Migrazioni (ordine attuale)
-`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione) → **`AddAirportSectorIsAccApp`** (flag «APP di ACC» + backfill dei callsign a 3 pezzi) → **`ReworkTransfers`** (sostituisce `Transfer` ACC↔ACC con `TransferFlow` settore-proprio + `TransferPoint` CoP/livello strutturato/Next) → **`SimplifyTransferResolution`** (drop `TransferPoint.Fallback` + `ManualChainJson`: la risoluzione live del ricevente/mittente risale la **gerarchia di copertura globale** `ParentCallsign`/`ParentSectorId`, terminale fisso **UNICOM**; rimosso l'enum `TransferFallback`) → **`AddAppProfile`** (profilo APP standalone, §9.13) → **`AddAppCustomSections`** (colonna `CustomSectionsJson`) → **`AddAppHiddenSections`** (colonna `HiddenSectionsJson`) → **`AddAirportCoordsAndTwrSyntheticShape`** (round 22: `Airport.Latitude/Longitude` + `AirportSector.IsShapeSynthetic`, §9.14) → **`AddAccProfile`** (round 23: vIPI ACC data-driven, tabella `AccProfiles` 1:1 con `Acc`, `BlocksJson`, §9.15) → *(round 27–33: `AddNeighbourCandidate`, `AddVloaProfile`, `AddDocRelease`, `AddEditorTask`, `AddDocumentHideFlags` e affini — vedi changelog)* → **`AddSidImport`** (round 34: `AirportSid` +`IsImported`/`Priority`/`StableKey`/`SourceAiracCycle`/`ForcePublished`/`NeedsFixReview`, entità `SidFixAlias`, `ImportPolicy.ImportSids`; import SID dal sectorfile Aurora GitHub) → **`AddImportState`** (round 34: tabella `ImportStates` per il gating degli import periodici, chiave `Category` + `LastSuccessUtc`) → **`AddTransferPointParity`** (colonna `TransferPoint.Parity` enum `LevelParity`, default `Any`; parità del livello di crociera per la regola semicircolare, resa nel `LevelText` come «(pari)»/«(dispari)») → *(round 29→33: `AddTransferFlowAirportName`, `AddDocumentReviewSignal`, `AddSectionRenderMode`, `AddDocumentProfile`/`Drop*Profile`, `SectionKeyCatalog`, `DropCoordinationSentenceTemplate` — vedi changelog)* → **`AddTransferPointCondition`** (2026-07-22: colonne `TransferPoint.ConditionKind` enum `TransferConditionKind` default `None` + `ConditionLabel` max 80 + `ConditionRefId`; condizione operativa pista/area, §9.20) → *(2026-07-22: `AddTransferPointConditionArea`, `SplitTransferConditionColumns` — condizione a tre colonne indipendenti, §9.20)* → **`AddImportStateLastError`** (2026-07-22, audit Fase 1: colonne `ImportState.LastAttemptUtc` + `LastError` per l'osservabilità dei fallimenti degli import periodici; report read-only in `/vsop/admin/sorgenti`). → *(2026-07-24/29: `AddTransferPointVerticalState`, `AddSidInitialClimbByApp` — vedi changelog)* → **`AddSectionIsHidden`** (2026-07-30, doc 11 §3c: colonna `DocumentSections.IsHidden`, default 0 — «sezione nascosta dal documento pubblicato» diventa stato **versionato** sulla sezione, gemello di `RenderMode`; prima viveva in `AccBlockMeta.HiddenSections` per la vIPI ACC e in `DocumentProfiles.HiddenSectionsJson` per APP e vLOA, quindi non versionato. Migrazione dati one-shot idempotente al boot, `IDocumentMaintenance`, che azzera le sorgenti; nello stesso giro le sezioni libere passano dalla chiave costante `"custom"` a `custom:{guid8}` univoca) → **`AddSectionBeforeParentBody`** (2026-07-30, doc 11 §3g: colonna `DocumentSections.BeforeParentBody`, default 0 — una **sotto-sezione** può precedere il corpo della sezione padre, es. una premessa sopra le mappe delle aree regolamentate; terzo flag per-sezione con `RenderMode` e `IsHidden`, nessuna migrazione dati perché il default riproduce il comportamento storico) → **`AddTransferHandoffSpeedAndVariants`** (2026-08-11, §9.20-bis: faccetta trasferimento su `TransferPoint` — `HandoffKind`/`HandoffLabel`/`HandoffLevel*`, `CommsHandoff*` — più `SpeedValue`/`SpeedConstraint` e il gruppo di varianti `VariantGroup`/`IsOtherwise`, con indice `(FlowId, VariantGroup)`. Additiva e senza backfill: i default riproducono il comportamento storico. ⚠️ I default degli enum-stringa sono **dichiarati nel modello** con `HasDefaultValue`, non solo in migrazione, perché lo scaffolding proporrebbe `""` — un valore che nessuno di quegli enum sa rileggere — e perché lo stesso vale per il `PostgresSchemaReconciler`). → **`ReworkVariantsAsOutline`** (2026-08-12, §9.20-ter: **droppa `IsOtherwise`**, aggiunge `VariantDepth` (int) + `IsGroupWide` (bool) e porta l'indice a `(FlowId, VariantGroup, Order)`. Il gruppo di varianti diventa un outline con alternative pari-grado ed eccezioni annidate a profondità libera. Nessun backfill: la colonna droppata non era mai stata scritta. ⚠️ Lo scaffolding proponeva un `RenameColumn`, **diverso nei due provider** — SQLite verso `VariantDepth`, MySQL verso `IsGroupWide`: due inferenze incompatibili dalla stessa modifica, che è la prova che il rename è una supposizione sui tipi e non un'intenzione. Riscritte entrambe come drop + add).
+`InitialCreate` → `AddAirport` → `AddAirportParentSector` → `RemoveAirportParentSector` → `AddAirportProfile` → `AddRunwayRuleSchedule` → `Rename_Vid_To_UserId` → `AddImportPolicy` → `AddFeaturedRank` → `AddVloaFeaturedRank` → `RenameFirToAcc` → `AddAccSector` → `AddAirportSector` → `AddAirportSectorPrimary` → `SimplifyDataModel` → `DropFrequencyTable` → `AddAirportHidden` → `RunwayRuleThresholds` → `AddRunwayRuleDateWindow` → `RenameRunwayRuleTimeToLocal` → `AddAirportExtraSection` → **`AddHierarchyParentCallsign`** (round 20; la `AddAirportHierarchy` di round 19 è stata rimossa prima dell'applicazione) → **`AddAirportSectorIsAccApp`** (flag «APP di ACC» + backfill dei callsign a 3 pezzi) → **`ReworkTransfers`** (sostituisce `Transfer` ACC↔ACC con `TransferFlow` settore-proprio + `TransferPoint` CoP/livello strutturato/Next) → **`SimplifyTransferResolution`** (drop `TransferPoint.Fallback` + `ManualChainJson`: la risoluzione live del ricevente/mittente risale la **gerarchia di copertura globale** `ParentCallsign`/`ParentSectorId`, terminale fisso **UNICOM**; rimosso l'enum `TransferFallback`) → **`AddAppProfile`** (profilo APP standalone, §9.13) → **`AddAppCustomSections`** (colonna `CustomSectionsJson`) → **`AddAppHiddenSections`** (colonna `HiddenSectionsJson`) → **`AddAirportCoordsAndTwrSyntheticShape`** (round 22: `Airport.Latitude/Longitude` + `AirportSector.IsShapeSynthetic`, §9.14) → **`AddAccProfile`** (round 23: vIPI ACC data-driven, tabella `AccProfiles` 1:1 con `Acc`, `BlocksJson`, §9.15) → *(round 27–33: `AddNeighbourCandidate`, `AddVloaProfile`, `AddDocRelease`, `AddEditorTask`, `AddDocumentHideFlags` e affini — vedi changelog)* → **`AddSidImport`** (round 34: `AirportSid` +`IsImported`/`Priority`/`StableKey`/`SourceAiracCycle`/`ForcePublished`/`NeedsFixReview`, entità `SidFixAlias`, `ImportPolicy.ImportSids`; import SID dal sectorfile Aurora GitHub) → **`AddImportState`** (round 34: tabella `ImportStates` per il gating degli import periodici, chiave `Category` + `LastSuccessUtc`) → **`AddTransferPointParity`** (colonna `TransferPoint.Parity` enum `LevelParity`, default `Any`; parità del livello di crociera per la regola semicircolare, resa nel `LevelText` come «(pari)»/«(dispari)») → *(round 29→33: `AddTransferFlowAirportName`, `AddDocumentReviewSignal`, `AddSectionRenderMode`, `AddDocumentProfile`/`Drop*Profile`, `SectionKeyCatalog`, `DropCoordinationSentenceTemplate` — vedi changelog)* → **`AddTransferPointCondition`** (2026-07-22: colonne `TransferPoint.ConditionKind` enum `TransferConditionKind` default `None` + `ConditionLabel` max 80 + `ConditionRefId`; condizione operativa pista/area, §9.20) → *(2026-07-22: `AddTransferPointConditionArea`, `SplitTransferConditionColumns` — condizione a tre colonne indipendenti, §9.20)* → **`AddImportStateLastError`** (2026-07-22, audit Fase 1: colonne `ImportState.LastAttemptUtc` + `LastError` per l'osservabilità dei fallimenti degli import periodici; report read-only in `/vsop/admin/sorgenti`). → *(2026-07-24/29: `AddTransferPointVerticalState`, `AddSidInitialClimbByApp` — vedi changelog)* → **`AddSectionIsHidden`** (2026-07-30, doc 11 §3c: colonna `DocumentSections.IsHidden`, default 0 — «sezione nascosta dal documento pubblicato» diventa stato **versionato** sulla sezione, gemello di `RenderMode`; prima viveva in `AccBlockMeta.HiddenSections` per la vIPI ACC e in `DocumentProfiles.HiddenSectionsJson` per APP e vLOA, quindi non versionato. Migrazione dati one-shot idempotente al boot, `IDocumentMaintenance`, che azzera le sorgenti; nello stesso giro le sezioni libere passano dalla chiave costante `"custom"` a `custom:{guid8}` univoca) → **`AddSectionBeforeParentBody`** (2026-07-30, doc 11 §3g: colonna `DocumentSections.BeforeParentBody`, default 0 — una **sotto-sezione** può precedere il corpo della sezione padre, es. una premessa sopra le mappe delle aree regolamentate; terzo flag per-sezione con `RenderMode` e `IsHidden`, nessuna migrazione dati perché il default riproduce il comportamento storico) → **`AddTransferHandoffSpeedAndVariants`** (2026-08-11, §9.20-bis: faccetta trasferimento su `TransferPoint` — `HandoffKind`/`HandoffLabel`/`HandoffLevel*`, `CommsHandoff*` — più `SpeedValue`/`SpeedConstraint` e il gruppo di varianti `VariantGroup`/`IsOtherwise`, con indice `(FlowId, VariantGroup)`. Additiva e senza backfill: i default riproducono il comportamento storico. ⚠️ I default degli enum-stringa sono **dichiarati nel modello** con `HasDefaultValue`, non solo in migrazione, perché lo scaffolding proporrebbe `""` — un valore che nessuno di quegli enum sa rileggere — e perché lo stesso vale per il `PostgresSchemaReconciler`). → **`ReworkVariantsAsOutline`** (2026-08-12, §9.20-ter: **droppa `IsOtherwise`**, aggiunge `VariantDepth` (int) + `IsGroupWide` (bool) e porta l'indice a `(FlowId, VariantGroup, Order)`. Il gruppo di varianti diventa un outline con alternative pari-grado ed eccezioni annidate a profondità libera. Nessun backfill: la colonna droppata non era mai stata scritta. ⚠️ Lo scaffolding proponeva un `RenameColumn`, **diverso nei due provider** — SQLite verso `VariantDepth`, MySQL verso `IsGroupWide`: due inferenze incompatibili dalla stessa modifica, che è la prova che il rename è una supposizione sui tipi e non un'intenzione. Riscritte entrambe come drop + add). → **`AddCoordinationAgreements`** (2026-08-16, §9.25: quattro tabelle nuove — `CoordinationAgreements`, `AgreementParties`, `AgreementAirports`, `AgreementClauses` — che prendono il posto di `TransferFlows`/`TransferPoints`. Sola `CreateTable`: nessun rename e nessun dato toccato, perché il travaso e il passaggio dell'editor avvengono in un secondo momento e in un colpo solo — due scrittori sugli stessi dati sarebbero due verità). → **`AddSectionLeadSentence`** (2026-08-16, §9.26: colonna `DocumentSections.LeadSentence`, default 0 — quarto flag per-sezione, sceglie fra prosa distesa e capofila nei coordinamenti; opt-in, quindi il default riproduce il comportamento storico)) → **`DropLegacyTransferTables`** (2026-08-17, §9.25: droppa `TransferPoints` **poi** `TransferFlows` — figlio prima del padre, o è errno 150 su MariaDB. Chiude la sostituzione: il travaso è stato eseguito sul `vipi.db` di sviluppo (37 flussi / 78 punti → 41 accordi / 63 clausole) e poi **rimosso col suo macchinario**, perché le migrazioni girano *prima* della manutenzione d'avvio e quindi non avrebbe più potuto leggere niente — su un DB non ancora travasato avrebbe fatto crashare l'avvio. Possibile solo perché il DB di produzione viene sostituito con quello di sviluppo, già convertito. ⚠️ Il `Down` ricrea le tabelle **vuote**: fa tornare lo schema, non l'archivio, e la conversione non è invertibile riga per riga. L'ultima copia di quei dati nella forma originale è `tests/Vipi.Application.Tests/Fixtures/real-flows.tsv`). → **`AgreementSectionsAdditive`** + **`AgreementSectionsFinalize`** (2026-08-18, §9.25-bis: l'accordo diventa la COPPIA — `SideASectorId`/`SideBSectorId` in forma canonica con indice **unico** — e il traffico scende nella tabella nuova `AgreementSections`, che porta `Kind` e `Direction`. Spariscono `AgreementParties`, `CoordinationAgreements.TrafficKind`/`Description` e `AgreementClauses.Direction`. ⚠️ **Due migrazioni e non una**, con in mezzo il comando `tools/Vipi.AgreementsToSections`: la fusione di 40 accordi in 16 coppie è logica — canonizzazione, ribaltamento dei versi, unione delle gemelle — e lo scaffolding proponeva invece un `RenameColumn` di `AgreementId` in `SectionId` che avrebbe lasciato **id di accordi** spacciati per id di sezioni, senza un errore. Il `NOT NULL` e l'indice unico del secondo passo **sono la guardia**: su un archivio non convertito falliscono, ed è il modo giusto di accorgersene).
 
 ### 9.9 `AirportRunwayRule` — regole pista a soglie operative (sessione 28 giu)
 Le condizioni vento-arco/velocità/pioggia-neve sono state sostituite da **soglie operative per-regola**. Su `AirportRunwayRule`: **rimossi** `WindDirFrom/WindDirTo/WindSpeedMin/WindSpeedMax/Rain/Snow`; **aggiunti** `Name` (etichetta), **`MaxTailwindKt`** (int, default 5), **`MaxCrosswindKt`** (int?, null = nessun vincolo), **`Surface`** (enum **`RunwaySurface { Any, Dry, Wet }`**, Wet = pioggia/neve nel METAR). `Order` = priorità (prima regola applicabile vince); `DepRunways/ArrRunways/Note` invariati; i filtri temporali (orario/giorni/parità + finestra stagionale §9.10) restano come **filtro di eleggibilità opzionale** (avanzate, caso Malpensa). Tailwind/crosswind sono **calcolati dal vento** (non più inseriti come direzione). Su `Airport` **nessuna soglia** (sono per-regola). Selezione in `Application/Weather/RunwaySuggestion.EvaluateRules(rules, windDir, windKt, wet, now)`; se nessuna regola si applica → fallback `Suggest()`. Migrazione **`RunwayRuleThresholds`** (drop 6 colonne, add `Name`/`MaxTailwindKt`/`MaxCrosswindKt`/`Surface`, svuota le vecchie righe).
@@ -608,6 +608,11 @@ Un solo schema di anteprima per i 4 tipi di documento, reso **dentro il viewer t
 - **Limite noto**: le sezioni **testuali "altre"** del documento aeroporto, in bozza, restano dall'ultima pubblicazione (il DocumentView si rigenera solo al rebuild persistente). Le parti editabili (piste/TA/TL/frequenze) sono fedeli.
 
 ### 9.20 `TransferPoint` — condizione operativa (pista · area · personalizzata, sessione 22 lug 2026)
+> ⚠️ **STORIA — le tabelle NON ESISTONO PIÙ (droppate il 17 agosto 2026).** Questo paragrafo descrive `TransferPoint`, che dal
+> **§9.25** non è più l'unità di scrittura dei coordinamenti: il suo posto è preso da `AgreementClause`. I campi
+> qui descritti esistono ancora, **con lo stesso nome e lo stesso significato**, sull'entità nuova — quindi il
+> paragrafo resta utile per capire *cosa* significano, non *dove* stanno.
+
 Il livello di un trasferimento può variare per **pista in uso**, **area attiva** o una condizione **personalizzata**. Modello **editoriale** (non calcolato live): le varianti sono più righe con la **stessa CoP** e livelli diversi, ognuna etichettata dalla/e condizione/i; il controllore legge quella attiva. **Tre dimensioni INDIPENDENTI e additive** su `TransferPoint` (una riga può averle tutte; tutte vuote = sempre valida). Verità **denormalizzata** per il display (sopravvive a rename/rimozione della config e agli snapshot pubblicati):
 - `ConditionLabel : string?` (max 80) — **pista/e in uso**; può **elencare più piste** («16R / 16L»): stessa condizione valida per più piste in una sola riga.
 - `ConditionRefId : int?` — **soft-ref** opzionale a `AirportRunwayRule.Id`/`RunwayRow.Id` (**solo pista singola**); **nessun FK**. Tenuto solo se c'è una pista.
@@ -621,6 +626,11 @@ Frase (`CoordinationSentenceComposer`): compone la clausola di ciascuna dimensio
 Propagazione: `TransferPointRow` (+ prop calcolata `ConditionDisplay` = «pista · area · personalizzata», in `TransferConditionText`)/`TransferPointInput` + `EfTransferRepository` (ogni campo trim→null; il ref pista è tenuto solo se c'è una pista); `AppCoordRow.ConditionLabel` = `ConditionDisplay` (colonna nelle sezioni coordinamento ACC/APP/vLOA + pill Ridotta). Editor `AdminTrasferimentiPage`: **tre colonne indipendenti** — Pista = multi-select delle **piste reali** (`AirportRunways`, non le config) del flusso; Area = **picker con ricerca a digitazione** (`SpecialArea` dell'ACC); Personalizzata = testo libero. Nessuna validazione (tutte opzionali).
 
 ### 9.20-bis `TransferPoint` — faccetta **trasferimento**, velocità e gruppo di **varianti** (sessione 11 ago 2026)
+
+> ⚠️ **STORIA — le tabelle NON ESISTONO PIÙ (droppate il 17 agosto 2026).** Questo paragrafo descrive `TransferPoint`, che dal
+> **§9.25** non è più l'unità di scrittura dei coordinamenti: il suo posto è preso da `AgreementClause`. I campi
+> qui descritti esistono ancora, **con lo stesso nome e lo stesso significato**, sull'entità nuova — quindi il
+> paragrafo resta utile per capire *cosa* significano, non *dove* stanno.
 
 Il modello descriveva **un evento con un livello**: bastava per un accordo ACC↔ACC (al CoP il traffico entra e lì
 passa il controllo) e non bastava per un ACC→APP, dove **autorizzazione e trasferimento sono due eventi**
@@ -687,6 +697,11 @@ Propagazione: `TransferPointRow`/`TransferPointInput` (entrambi ora `record`), `
 porta il livello **al trasferimento** quando c'è).
 
 ### 9.20-ter `TransferPoint` — il gruppo di varianti è un **outline** (sessione 12 ago 2026)
+
+> ⚠️ **STORIA — le tabelle NON ESISTONO PIÙ (droppate il 17 agosto 2026).** Questo paragrafo descrive `TransferPoint`, che dal
+> **§9.25** non è più l'unità di scrittura dei coordinamenti: il suo posto è preso da `AgreementClause`. I campi
+> qui descritti esistono ancora, **con lo stesso nome e lo stesso significato**, sull'entità nuova — quindi il
+> paragrafo resta utile per capire *cosa* significano, non *dove* stanno.
 
 Supera §9.20-bis su struttura, ordinamento e resa del gruppo. Carta ed esito:
 [`feature/2026-08-12-varianti-a-livelli.md`](../feature/2026-08-12-varianti-a-livelli.md).
@@ -776,3 +791,115 @@ Nuova colonna su `Acc` (bool, **default `true`** nel modello e nella migrazione 
 - **UI**: colonna «Aree regolamentate» in `/vsop/admin/accs` (`N aree` / `non importate`) + «Importa aree» e «Escludi aree» per riga.
 - **Riconciliazione one-shot** `ISpecialAreaMaintenance.OptOutForeignAreasAsync` al boot: spegne tutti gli `Acc.IsForeign` e libera le loro aree. Gira **una volta sola**, con segnaposto in `ImportState` (categoria `SpecialAreaForeignOptOut`, che non è un import periodico): senza, ogni riavvio ricancellerebbe le aree di un estero appena riabilitato a mano.
 - Verifica su copia del `vipi.db` reale: **993 aree → 230** (le italiane, invariate: LIRR 99, LIBB 65, LIMM 27, LIPP 24, LIZZ 15), 763 legami liberati, nessuna orfana, seconda esecuzione a 0.
+
+### 9.25-bis `AgreementSection` — un accordo per coppia, il traffico nelle sezioni (18 ago 2026) 🟢
+
+> Carta: [`../feature/2026-08-18-accordi-a-sezioni.md`](../feature/2026-08-18-accordi-a-sezioni.md).
+> **Supera §9.25**, che resta come storia dell'area (le quattro tabelle di ferragosto).
+
+L'accordo smette di essere «due parti · un tipo · un gruppo di aeroporti» e diventa **la relazione fra due
+enti**: uno solo per coppia, sempre bidirezionale. Il traffico scende in **sezioni**.
+
+**Perché.** Sul `vipi.db` vero **40 accordi stavano in 16 coppie**, e la sola `LGGG_W_CTR ⇄ LIBB_ES_CTR` ne
+teneva otto: per vedere «cosa ho concordato con Atene» si aprivano otto schede. Peggio, il **verso** si
+esprimeva *orientando* l'accordo — 60 clausole su 60 erano `AtoB` — quindi i due sensi della stessa relazione
+finivano in accordi diversi e nessuno vedeva che il reciproco esisteva già.
+
+| Tabella | Colonne | Note |
+|---|---|---|
+| `CoordinationAgreements` | `Id`, `OwnerAccId` (FK `Accs`, cascade), **`SideASectorId`**, **`SideBSectorId`** (FK `Sectors`, **Restrict**), **`Note`**, `Order` | ⚠️ **un ente per lato**, in **forma canonica** (`SideA < SideB`): l'unicità di una coppia non orientata è un indice, e in SQL non esiste «insieme di due». `Restrict` e non `Cascade`: sparire un settore non deve portarsi via l'accordo con tutte le sue sezioni |
+| **`AgreementSections`** | `Id`, `AgreementId` (cascade), `Kind`, **`Direction {AtoB,BtoA}`**, `Description`, `Order` | una sezione = un traffico, in un verso, per un gruppo di scali = **una tabella** di clausole |
+| `AgreementAirports` | `Id`, **`SectionId`** (cascade), `Icao`, `Name?`, `Order` | scende dall'accordo alla sezione. ICAO soft-ref senza FK né indice |
+| `AgreementClauses` | l'ex clausola meno **`Direction`**, con **`SectionId`** al posto di `AgreementId` | livello, parità, stato verticale, faccetta, velocità, condizione e outline: **gli stessi campi**, mai toccati dalla conversione |
+
+- **Indici**: `(OwnerAccId, Order)`; **`(SideASectorId, SideBSectorId)` UNIQUE**; `(AgreementId, Order)`;
+  `(AgreementId, Kind, Direction)` — «l'accordo ha già una sezione così?» è la domanda che l'editor fa a ogni
+  render; `(SectionId, Order)` e `(SectionId, VariantGroup, Order)` — l'outline vive **dentro la sezione**.
+- ⚠️ **A e B non significano più niente per chi legge**, ed è la ragione per cui il verso ha potuto lasciare la
+  clausola: girare i lati è ora un'operazione **senza perdita**, perché `Direction` si ribalta con loro
+  (`EfAgreementRepository.UpdateAgreementAsync`). Fino a ferragosto era vietato — il verso dipendeva
+  dall'orientamento, e scambiarli capovolgeva il significato di tutto. «Noi/loro» resta una **lente**
+  (`AgreementViewpoint`).
+- **`MySqlStringLengths.Map`**: via `AgreementClause.Direction` e `AgreementParty.Side` (non esistono più),
+  dentro `AgreementSection.Kind` e `.Direction` (32 caratteri, sono **indicizzati**). L'ha detto
+  `IndexedStringLengthTests`, che infatti ha bocciato la prima stesura — su MySQL una stringa senza lunghezza è
+  `longtext`, che non si indicizza.
+
+**La conversione, in tre passi e non in uno** — migrazione **additiva** (`AgreementSectionsAdditive`, tutto
+nullable, nessun drop) → **`tools/Vipi.AgreementsToSections`** → migrazione **distruttiva**
+(`AgreementSectionsFinalize`, `NOT NULL` + indice unico + via il vecchio). Il tool è un **comando**, non una
+passata d'avvio: le migrazioni girano prima della manutenzione, e «migrazione che droppa + passata che legge»
+nella stessa release perde i dati **senza un errore**. La fusione è **logica** — canonizzazione dei lati,
+ribaltamento dei versi, unione delle gemelle, rinumerazione dei gruppi di varianti — e scriverla in SQL due
+volte, una per dialetto, sarebbe due volte il rischio per lo stesso risultato.
+
+Sui dati veri: **40 accordi / 60 clausole → 16 accordi / 38 sezioni / 60 clausole**, una fusione di gemelle
+(`#26`+`#27`, arrivi LIBD) e un guscio scartato (`#41`, senza ricevente e senza clausole). ⚠️ Il passo 3
+**fallisce** se il passo 2 non è girato, ed è la protezione: `NOT NULL` su colonne nulle e indice unico su
+coppie ancora doppie.
+
+⚠️ **Difetto pagato eseguendo, e invisibile ai test:** fra i due passi lo schema è **misto**, e
+`AgreementClauses.AgreementId` esiste ancora col suo FK in cascade. Cancellare un guscio assorbito si portava
+via le sue clausole — **col `SectionId` già scritto giusto**: delle 60 ne sopravvivevano 23, in silenzio. La
+conversione sposta anche il vecchio `AgreementId`, e il tool si rifiuta di girare due volte.
+
+---
+
+### 9.25 `CoordinationAgreement` — l'accordo prende il posto del flusso (sessione 16 ago 2026) ⚪ storia
+
+> Carta, pre-flight e registro delle lacune:
+> [`../feature/2026-08-16-accordi-di-coordinamento.md`](../feature/2026-08-16-accordi-di-coordinamento.md).
+> **Supera §9.20 / -bis / -ter** (`TransferFlow`/`TransferPoint` non esistono più), ed è a sua volta
+> **superata da §9.25-bis**: `AgreementParties` e `TrafficKind` sono spariti il 18 agosto 2026, e il verso è
+> passato dalla clausola alla sezione. Resta qui perché le decisioni di questa sessione — l'accordo al posto
+> del flusso, i punti in elenco, l'`OwnerAcc` di sola autorizzazione — sono ancora quelle in vigore.
+
+Quattro tabelle nuove, migrazione **`AddCoordinationAgreements`** (SQLite **e** MySQL, sola `CreateTable`:
+nessun rename, nessun dato toccato — le due coppie convivono finché l'editor non è portato, perché due
+scrittori sugli stessi dati sarebbero due verità).
+
+| Tabella | Colonne | Note |
+|---|---|---|
+| `CoordinationAgreements` | `Id`, `OwnerAccId` (FK `Accs`, cascade), `TrafficKind`, `Description`, `Order` | `OwnerAccId` serve **solo all'autorizzazione**: la visibilità nei documenti passa dalle PARTI, così un accordo di confine non è invisibile a uno dei suoi due capi |
+| `AgreementParties` | `Id`, `AgreementId`, `Side {A,B}`, `SectorId` (FK `Sectors`, cascade), `Order` | più righe per lato = l'accordo vale per quei settori. Sparisce il settore, sparisce **la parte**, non l'accordo |
+| `AgreementAirports` | `Id`, `AgreementId`, `Icao`, `Name?`, `Order` | ICAO soft-ref senza FK né indice, come `TransferFlow.AirportIcao`. Zero righe = accordo senza aeroporto |
+| `AgreementClauses` | l'ex `TransferPoint` meno `NextSectorId`, più `Direction {AtoB,BtoA}` e `Cops` (elenco, `varchar(200)`) | livello, parità, stato verticale, faccetta trasferimento, velocità, condizione a tre dimensioni e outline varianti sono **gli stessi campi** |
+
+- **Indici**: `(OwnerAccId, Order)`; `(AgreementId, Side, Order)`; `(AgreementId, Order)`;
+  `(AgreementId, Direction, Order)` e `(AgreementId, Direction, VariantGroup, Order)` — la direzione entra
+  nella chiave di lettura perché l'outline vive **dentro** una direzione: le clausole del verso opposto non
+  sono alternative delle prime, sono un'altra tabella (EUROCONTROL Annex D.2 ne ha due).
+- **Default degli enum dichiarati nel modello** (`HandoffKind`, `CommsHandoffKind`, `HandoffLevelUnit`,
+  `HandoffLevelConstraint`, `SpeedConstraint`, `Direction`), come per `TransferPoint` e per la stessa ragione:
+  coprono migrazione EF **e** `PostgresSchemaReconciler`, e valgono solo perché ognuno è lo **zero** del proprio
+  enum.
+- **Sette voci nuove in `MySqlStringLengths.Map`** (32 caratteri): i cinque enum con default più `Direction` e
+  `Side`, che qui sono anche **indicizzati**. Su MySQL una stringa senza lunghezza è `longtext`, che non si
+  indicizza e non può avere un `DEFAULT`; il presidio è `IndexedStringLengthTests`, che infatti ha bocciato la
+  prima stesura.
+
+**Il travaso** (`IAgreementMaintenance.MigrateFlowsToAgreementsAsync`, categoria `ImportStates` =
+`TransferFlowsToAgreements`) converte i flussi una volta sola all'avvio: sui dati veri **37 flussi / 78 punti →
+41 accordi / 63 clausole**. Non accoppia i due versi — le due liste in archivio non coincidono, e sceglierne una
+sarebbe una decisione, non una migrazione — quindi ogni accordo nasce a un verso solo.
+
+⚠️ **`TransferFlows`/`TransferPoints` esistono ancora** ma **nessuno le scrive**: resta la sola lettura
+`ILegacyFlowReader`, che serve al travaso. La migrazione che le droppa va in una release **successiva** a quella
+in cui il travaso ha girato in produzione — le migrazioni girano *prima* della manutenzione d'avvio, e nella
+stessa release il travaso non troverebbe più niente da leggere.
+
+### 9.26 `DocumentSection.LeadSentence` — la prosa dei coordinamenti (sessione 16 ago 2026)
+
+Colonna `bool` su `DocumentSections`, migrazione **`AddSectionLeadSentence`** (SQLite e MySQL,
+`defaultValue: false`). **Quarto flag per-sezione** con `RenderMode`, `IsHidden` e `BeforeParentBody`, e per la
+stessa ragione: è una scelta editoriale, quindi **versionata** e catturata nello snapshot di release.
+
+- `false` (default) = prosa **distesa**: una frase per clausola sopra la tabella — il comportamento storico,
+  quindi nessuna sezione già scritta cambia da sola.
+- `true` = prosa **capofila**: UNA frase che introduce la tabella («… secondo la tabella seguente:»), che è la
+  forma dei documenti veri. Il testo vive nel template (`CoordinationSentenceTemplate.TemplateLead`, IT ed EN),
+  non nella vista: le vLOA lo vogliono in inglese.
+- L'interruttore compare **solo** sulla sezione `coordination`: altrove sarebbe un comando che non fa niente.
+
+⚠️ `defaultValue: false` è corretto qui perché il flag è **opt-in**; su un flag *opt-out* la stessa riga è già
+stata una trappola su questo progetto (vedi `ImportPolicy.ImportSids`).

@@ -76,7 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
-        services.AddScoped<ITransferService, TransferService>();
+        services.AddScoped<IAgreementService, AgreementService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();
         services.AddScoped<IImportPolicyService, ImportPolicyService>();

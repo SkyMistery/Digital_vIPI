@@ -81,8 +81,10 @@ public class VipiDbContext : DbContext
     public DbSet<CoordinationPoint> CoordinationPoints => Set<CoordinationPoint>();
     public DbSet<VectoringMinimaSet> VectoringMinimaSets => Set<VectoringMinimaSet>();
     public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
-    public DbSet<TransferFlow> TransferFlows => Set<TransferFlow>();
-    public DbSet<TransferPoint> TransferPoints => Set<TransferPoint>();
+    public DbSet<CoordinationAgreement> CoordinationAgreements => Set<CoordinationAgreement>();
+    public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
+    public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
+    public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
@@ -189,7 +191,7 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Document).WithMany(d => d.Sectors).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per TransferFlow,
+        // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,
         // SharedBlock e DocumentProfile. Vedi il commento esteso su SharedBlock più sotto.
         b.Entity<UnificationRule>(e =>
         {
@@ -241,7 +243,8 @@ public class VipiDbContext : DbContext
         });
 
         // ─── Perché queste quattro entità NON hanno un token di concorrenza ─────────────────────────────
-        // SharedBlock, UnificationRule, TransferFlow e DocumentProfile dichiaravano un RowVersion che
+        // SharedBlock, UnificationRule, TransferFlow (oggi CoordinationAgreement) e DocumentProfile
+        // dichiaravano un RowVersion che
         // nessun percorso di scrittura ha mai valorizzato: colonna sempre NULL, `WHERE … AND RowVersion IS
         // NULL` sempre vera, quindi una difesa solo nominale. Messi davanti alla scelta — ruotarlo o
         // toglierlo — il 14 agosto 2026 si è deciso di toglierlo: sono modificate da un editor alla volta,
@@ -264,31 +267,69 @@ public class VipiDbContext : DbContext
         b.Entity<VectoringMinimaRow>(e =>
             e.HasOne(x => x.Set).WithMany(s => s.Rows).HasForeignKey(x => x.SetId).OnDelete(DeleteBehavior.Cascade));
 
-        b.Entity<TransferFlow>(e =>
+        // ─── Accordi di coordinamento ──────────────────────────────────────────────────────────────────
+        // Unica scrittura dei coordinamenti (carta: docs/feature/2026-08-16-accordi-di-coordinamento.md).
+        // Hanno preso il posto di TransferFlow/TransferPoint, droppate il 17 agosto 2026 dopo il travaso.
+        b.Entity<CoordinationAgreement>(e =>
         {
-            e.HasIndex(x => new { x.AccId, x.OwningSectorId, x.Order });
+            e.HasIndex(x => new { x.OwnerAccId, x.Order });
             // Niente token di concorrenza: vedi il commento su SharedBlock.
-            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
-            // Il flusso segue il proprio settore: se il settore sparisce, sparisce il flusso.
-            e.HasOne(x => x.OwningSector).WithMany().HasForeignKey(x => x.OwningSectorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.OwnerAcc).WithMany().HasForeignKey(x => x.OwnerAccId).OnDelete(DeleteBehavior.Cascade);
+
+            // ⚠️ UNA scheda per coppia di enti. I lati stanno in forma canonica (id minore = A) perché in SQL
+            // non esiste «insieme di due»: l'unicità di una coppia non orientata è un indice su due colonne
+            // ordinate. Girare i lati non perde niente — il verso vive sulla SEZIONE e si ribalta con loro.
+            e.HasIndex(x => new { x.SideASectorId, x.SideBSectorId }).IsUnique();
+
+            // ⚠️ Restrict e non Cascade: sparire un settore non deve portarsi via l'accordo con tutte le sue
+            // sezioni e clausole. Prima spariva solo la PARTE e l'accordo restava monco; adesso il capo è una
+            // colonna NOT NULL, quindi il solo modo di non perdere lavoro editoriale è impedire la
+            // cancellazione del settore finché un accordo lo cita.
+            e.HasOne(x => x.SideASector).WithMany().HasForeignKey(x => x.SideASectorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SideBSector).WithMany().HasForeignKey(x => x.SideBSectorId).OnDelete(DeleteBehavior.Restrict);
         });
-        b.Entity<TransferPoint>(e =>
+
+        b.Entity<AgreementSection>(e =>
         {
-            e.HasIndex(x => new { x.FlowId, x.Order });
-            e.HasOne(x => x.Flow).WithMany(f => f.Points).HasForeignKey(x => x.FlowId).OnDelete(DeleteBehavior.Cascade);
-            // Il ricevente nominale è un riferimento debole: se il settore sparisce, il punto resta (solo fallback).
-            e.HasOne(x => x.NextSector).WithMany().HasForeignKey(x => x.NextSectorId).OnDelete(DeleteBehavior.SetNull);
-            // Condizione: label denormalizzata (verità per il display). ConditionRefId è soft-ref (no FK: la config
-            // pista/area può essere rinominata/rimossa senza rompere il punto o lo snapshot pubblicato).
+            e.HasOne(x => x.Agreement).WithMany(a => a.Sections).HasForeignKey(x => x.AgreementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.AgreementId, x.Order });
+            // Il traffico e il verso entrano nella chiave di lettura: l'editor cerca «la sezione gemella» e «il
+            // verso opposto» a ogni render del riquadro.
+            e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
+        });
+
+        b.Entity<AgreementAirport>(e =>
+        {
+            e.HasIndex(x => new { x.SectionId, x.Order });
+            e.HasOne(x => x.Section).WithMany(s => s.Airports).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // ICAO come soft-ref, esattamente come TransferFlow.AirportIcao: nessun FK (gli accordi citano anche
+            // scali esteri fuori catalogo) e nessun indice, quindi nessuna lunghezza da dimensionare per MySQL.
+        });
+
+        b.Entity<AgreementClause>(e =>
+        {
+            e.HasOne(x => x.Section).WithMany(s => s.Clauses).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // L'outline vive DENTRO una sezione: le clausole di un'altra non sono alternative delle prime, sono
+            // un'altra tabella (Annex D.2 ne ha due). Fino al 18 agosto 2026 lo scopo era (accordo, verso), che
+            // è la stessa cosa detta con due chiavi.
+            e.HasIndex(x => new { x.SectionId, x.Order });
+            e.HasIndex(x => new { x.SectionId, x.VariantGroup, x.Order });
+
+            // Elenco dei punti: una stringa con separatore, come ConditionLabel fa già per le multi-pista.
+            // Dimensionata anche fuori da MySQL perché è una lista corta per natura, non prosa.
+            e.Property(x => x.Cops).HasMaxLength(200);
             e.Property(x => x.ConditionLabel).HasMaxLength(80);
             e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
             e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
-            // Faccetta trasferimento: etichette denormalizzate come la condizione (fix, confine, testo libero).
             e.Property(x => x.HandoffLabel).HasMaxLength(80);
             e.Property(x => x.CommsHandoffLabel).HasMaxLength(80);
+
             // ⚠️ Default DICHIARATI NEL MODELLO, non solo nella migrazione. Questi enum stanno su colonna
             // testuale (conversione globale più sopra) e chi aggiunge la colonna a una tabella già piena deve
-            // scriverci un valore che l'enum sappia rileggere. I due percorsi sono due: la migrazione EF, e il
+            // scriverci un valore che l'enum sappia rileggere. I percorsi sono due: la migrazione EF, e il
             // PostgresSchemaReconciler del deploy Render — che senza un default dichiarato backfilla con ''
             // (BackfillLiteral → DefaultLiteral) e la prima lettura andrebbe in eccezione. Dichiarandolo qui
             // vale per entrambi. Vale solo perché ognuno di questi default È lo zero del proprio enum: con un
@@ -299,10 +340,6 @@ public class VipiDbContext : DbContext
             e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
             e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
             e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
-            // Varianti: il gruppo si legge sempre insieme al flusso, e le righe di un gruppo vanno tenute vicine.
-            // L'Order entra nell'indice perché in un outline l'ordine NON è solo presentazione: è la struttura
-            // (una riga appartiene all'ultima meno profonda che la precede), quindi si legge sempre ordinato.
-            e.HasIndex(x => new { x.FlowId, x.VariantGroup, x.Order });
         });
 
         b.Entity<EditGrant>(e =>

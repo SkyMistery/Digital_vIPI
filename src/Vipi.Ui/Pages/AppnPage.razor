@@ -86,7 +86,7 @@ else
                                     case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
                                     case "frequencies": <AppFrequencies Rows="_freqs" />; break;
                                     case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
-                                    case "coordination": <AppCoordinationView Coord="_coord" />; break;
+                                    case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
                                     case "regulated": <RegulatedAreas Areas="_areas" />; break;
                                 }
                                 @* Le sotto-sezioni di una sezione speciale restano contenuto del documento (doc 11 §3b):

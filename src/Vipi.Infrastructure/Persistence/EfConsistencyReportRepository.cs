@@ -13,13 +13,16 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
 
     public async Task<ConsistencyDataset> LoadAsync(CancellationToken ct = default)
     {
-        // Condizioni pista/area: solo i punti che hanno effettivamente un soft-ref o un'area da verificare.
+        // Condizioni pista/area: solo le clausole che hanno effettivamente un soft-ref o un'area da verificare.
+        // Legge gli ACCORDI, non piu' i flussi: dopo il travaso la verita' sta li', e un report che guardasse le
+        // tabelle storiche direbbe cose vere di un archivio che nessuno modifica piu'.
         var conditions = await (
-            from p in _db.TransferPoints.AsNoTracking()
-            join f in _db.TransferFlows.AsNoTracking() on p.FlowId equals f.Id
-            join a in _db.Accs.AsNoTracking() on f.AccId equals a.Id
-            where p.ConditionRefId != null || p.ConditionAreaLabel != null
-            select new TransferConditionRow(p.Id, a.Code, p.Cop, p.ConditionRefId, p.ConditionLabel, p.ConditionAreaLabel)
+            from c in _db.AgreementClauses.AsNoTracking()
+            join s in _db.AgreementSections.AsNoTracking() on c.SectionId equals s.Id
+            join g in _db.CoordinationAgreements.AsNoTracking() on s.AgreementId equals g.Id
+            join a in _db.Accs.AsNoTracking() on g.OwnerAccId equals a.Id
+            where c.ConditionRefId != null || c.ConditionAreaLabel != null
+            select new TransferConditionRow(c.Id, a.Code, c.Cops, c.ConditionRefId, c.ConditionLabel, c.ConditionAreaLabel)
         ).ToListAsync(ct);
 
         var runwayIdents = await _db.AirportRunways.AsNoTracking()

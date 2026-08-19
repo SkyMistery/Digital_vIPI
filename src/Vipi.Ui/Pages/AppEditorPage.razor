@@ -420,7 +420,7 @@ else
                 <AppVfr Content="_vfr" Editing="_editing" ContentChanged="SaveVfr" />
                 break;
             case "coordination":
-                <AppCoordinationView Coord="_coord" />
+                <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />
                 break;
             case "regulated":
                 @* Come la vIPI ACC ma senza aree di default: AllowAuto=false, si scelgono tutte a mano. *@

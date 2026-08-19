@@ -1,0 +1,120 @@
+# Flussi e punti di trasferimento estratti dal vipi.db reale (16 agosto 2026).
+# Rete di caratterizzazione: la derivazione di questi dati non deve cambiare quando il modello
+# passa da TransferFlow/TransferPoint agli Accordi. Non modificare a mano.
+F	Id	Acc	Owner	Kind	AirportIcao	AirportName	Order
+P	Id	FlowId	Cop	LevelValue	LevelUnit	LevelConstraint	LevelSpecial	Parity	VerticalState	NextCallsign	ConditionLabel	ConditionRefId	ConditionAreaLabel	ConditionCustomLabel	HandoffKind	HandoffLabel	HandoffLevelValue	HandoffLevelUnit	HandoffLevelConstraint	CommsHandoffKind	CommsHandoffLabel	SpeedValue	SpeedConstraint	VariantGroup	VariantDepth	IsGroupWide	Order
+F	1	LIBB	LIBB_ES_CTR	Arrival	LIBP		1
+P	1	1	Y01-Y12	320	Fl	AtOrBelow		Even	Descending	LIRR_NC_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	81	1	TOPNO 3A	160	Fl	Exact		Any	Unspecified	LIBD_CS0_APP	04	123			AorBoundary		140	Fl	Exact	Unspecified			Unspecified	1	0	0	2
+P	82	1	TOPNO 3A	180	Fl	Exact		Any	Unspecified	LIBD_CS0_APP	04	123	Donald East		AorBoundary		140	Fl	Exact	Unspecified			Unspecified	1	0	0	3
+F	2	LIBB	LIBB_ES_CTR	Departure	LIBD		2
+P	2	2	PISIP	140	Fl	Exact		Any	Level	LIRR_NC_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	24	2	ALL to GR	260	Fl	Exact		Even	Level	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+F	3	LIBB	LIBB_ES_CTR	Arrival	LIRF		3
+P	3	3	ASPIR	210	Fl	AtOrBelow		Odd	Descending	LIRR_US_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	4	LIBB	LIBB_ES_CTR	Arrival	LIRA		4
+P	4	4	ASPIR	210	Fl	AtOrBelow		Even	Descending	LIRR_US_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	5	LIBB	LIBB_ES_CTR	Arrival	LIRU		5
+P	5	5	ASPIR	210	Fl	AtOrBelow		Even	Descending	LIRR_US_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	6	LIBB	LIBB_ES_CTR	Arrival	LIRE		6
+P	6	6	ASPIR	210	Fl	AtOrBelow		Odd	Descending	LIRR_US_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	7	LIBB	LIBB_ES_CTR	Arrival	LIRN		7
+P	7	7	AMSOR	200	Fl	AtOrBelow		Even	Descending	LIRN_US0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	8	7	LUNAR	210	Fl	AtOrBelow		Odd	Descending	LIRN_US0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	9	7	VEGAN	210	Fl	AtOrBelow		Odd	Descending	LIRR_TS_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	10	7	NILTO	260	Fl	AtOrBelow		Even	Descending	LIRR_TS_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+F	8	LIBB	LIBB_ES_CTR	Arrival	LIRI		8
+P	11	8	LUNAR	210	Fl	AtOrBelow		Odd	Descending	LIRN_US0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	12	8	VEGAN	210	Fl	AtOrBelow		Even	Descending	LIRN_US0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	13	8	NILTO	260	Fl	AtOrBelow		Odd	Descending	LIRR_TS_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+F	9	LIBB	LIBB_ES_CTR	Arrival	LICA		9
+P	14	9	LODPA	260	Fl	AtOrBelow		Odd	Descending	LIRR_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	15	9	KOGEB	170	Fl	AtOrBelow		Odd	Descending	LICA_ES0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	16	9	EKPAR	200	Fl	Exact		Any	Level	LICA_ES0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+F	12	LIBB	LIBB_ES_CTR	Overflight			10
+P	17	12	TIGRA		Fl	Exact		Odd	Level	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	18	12	NOSTO		Fl	AtOrBelow		Odd	Level	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	19	12	LATAN		Fl	AtOrBelow		Odd	Level	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	20	12	DINOB		Fl	AtOrBelow		Odd	Descending	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+P	21	12	RUTOM		Fl	AtOrBelow		Odd	Descending	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	5
+P	22	12	LORNO		Fl	AtOrBelow		Odd	Descending	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	6
+P	23	12	BELIX		Fl	AtOrBelow		Odd	Descending	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	7
+F	13	LIBB	LIBB_ES_CTR	Departure	LIBR		11
+P	25	13	ALL to GR	240	Fl	Exact		Any	Level	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	18	LIBB	LIBB_ES_CTR	Arrival	LGKR	Corfu	16
+P	29	18	ALL	150	Fl	AtOrBelow		Any	Descending	LGKR_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	20	LIBB	LIBB_ES_CTR	Arrival	LGKF	Kefallinia	17
+P	31	20	ALL	150	Fl	AtOrBelow		Any	Descending	LGGG_W_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	21	LIBB	LIBB_ES_CTR	Overflight			18
+P	32	21	TORPO		Fl	Exact		Odd	Level	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	33	21	VAPUP		Fl	AtOrBelow		Odd	Descending	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	34	21	XOLTA		Fl	AtOrBelow		Even	Descending	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	35	21	KATTI		Fl	AtOrBelow		Odd	Descending	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+P	36	21	AIOSA		Fl	AtOrBelow		Even	Descending	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	5
+P	37	21	GISAM		Fl	AtOrBelow		Even	Descending						Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	6
+P	38	21	BEVIS		Fl	AtOrBelow		Even	Descending	LDZO_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	7
+F	22	LIBB	LIBB_ES_CTR	Arrival	LDDU	Rudjer Boskovic	19
+P	39	22	ALL	150	Fl	Exact		Any	Level	LDDU_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	23	LIBB	LIBB_ES_CTR	Arrival	LDSP	Sveti Jeronim	20
+P	40	23	ALL	150	Fl	Exact		Any	Level	LDSP_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	28	LIBB	LIBB_ES_CTR	Overflight			21
+P	53	28	CRAYE		Fl	Exact		Odd	Level	LYBA_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	29	LIBB	LIBB_ES_CTR	Arrival	LYTV	Tivat	22
+P	54	29	CRAYE	210	Fl	Exact		Any	Level	LYBA_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	33	LIBB	LIBB_ES_CTR	Overflight			23
+P	58	33	PAPIZ		Fl	AtOrBelow		Odd	Descending	LAAA_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	34	LIBB	LIBB_ES_CTR	Arrival	LATI	Rinas	24
+P	59	34	PAPIZ	190	Fl	AtOrBelow		Any	Descending	LATI_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	35	LIBB	LIBB_ES_CTR	Arrival	LAKU	Kukës Airport	25
+P	60	35	PAPIZ		Fl	AtOrBelow		Odd	Descending	LAAA_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	45	LIBB	LIBB_ES_CTR	Arrival	LIBD		26
+P	74	45	EKMUR	130	Fl	AtOrBelow		Any	Level	LIBD_CS0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	75	45	PISIP	130	Fl	AtOrBelow		Any	Level	LIBD_CS0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	76	45	BIRSU	150	Fl	AtOrBelow		Even	Level	LIBD_CS0_APP	07	215			Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	77	45	BIRSU	130	Fl	AtOrBelow		Any	Descending	LIBD_CS0_APP	25	216	LI R403B		Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+F	46	LIBB	LIBB_ES_CTR	Arrival	LIBD		27
+P	78	46	TOPNO	110	Fl	Exact		Any	Level	LIBD_CS0_APP	25	222	Donald West		AorBoundary			Fl	Exact	AorBoundary			Unspecified	1	0	0	1
+P	79	46	TOPNO	110	Fl	Exact		Any	Level	LIBD_CS0_APP	07	221			AorBoundary			Fl	Exact	AorBoundary			Unspecified	1	0	0	2
+P	80	46	TOPNO	110	Fl	Exact		Any	Level	LIBD_CS0_APP					AorBoundary			Fl	Exact	AorBoundary			Unspecified	1	0	0	3
+F	10	LIRR	LIRR_NE_CTR	Overflight			1
+F	24	LIBB	LDZO_CTR	Overflight			1
+P	41	24	TORPO		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	42	24	XAMIT		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	43	24	VELUG		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	44	24	XOLTA		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+P	45	24	KATTI		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	5
+P	46	24	AIOSA		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	6
+P	47	24	GISAM		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	7
+P	48	24	BESIV		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	8
+F	25	LIBB	LDZO_CTR	Arrival	LIBD		2
+P	49	25	AIOSA	230	Fl	Exact		Any	Level	LIBD_CS0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	50	25	BEVIS		Fl	Exact		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+F	27	LIBB	LDZO_CTR	Arrival	LIBR		3
+P	51	27	AIOSA	250	Fl	Exact		Any	Level	LIBD_CS0_APP					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	52	27	BEVIS		Fl	Exact		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+F	39	LIBB	LGGG_W_CTR	Overflight			1
+P	64	39	OLGAT		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+P	65	39	TIGRA		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	2
+P	66	39	NOSTO		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	3
+P	67	39	LATAN		Fl	Special	Pari (Nord) - Dispari (Sud)	Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	4
+P	68	39	DINOB		Fl	AtOrBelow		Odd	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	5
+P	69	39	RUTOM		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	6
+P	70	39	LORNO		Fl	AtOrBelow		Even	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	7
+F	40	LIBB	LGGG_W_CTR	Arrival	LIBD		2
+P	71	40	ALL	250	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	41	LIBB	LGGG_W_CTR	Arrival	LIBR		3
+P	72	41	ALL	230	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	44	LIBB	LGGG_W_CTR	Arrival	LIBG		4
+P	73	44	ALL	310	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	Exact	Unspecified			Unspecified		0	0	1
+F	30	LIBB	LYTV_APP	Overflight			1
+P	55	30	CRAYE		Fl	Special	Nord(pari) - Sud (dispari)	Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	31	LIBB	LYTV_APP	Arrival	LIBD		2
+P	56	31	CRAYE	190	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	32	LIBB	LYTV_APP	Arrival	LIBR		3
+P	57	32	CRAYE	190	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	36	LIBB	LAAA_CTR	Overflight			1
+P	61	36	PAPIZ		Fl	Special	Pari (Nord) -Dispari (Sud)	Any	Unspecified	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	37	LIBB	LAAA_CTR	Arrival	LIBR		2
+P	62	37	PAPIZ	240	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1
+F	38	LIBB	LAAA_CTR	Arrival	LIBD		3
+P	63	38	PAPIZ	280	Fl	Exact		Any	Level	LIBB_ES_CTR					Unspecified			Fl	AtOrAbove	Unspecified			Unspecified		0	0	1

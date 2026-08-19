@@ -156,7 +156,7 @@ public class IndexedStringLengthTests
         builder.Entity<Vipi.Domain.Entities.Document>();
         builder.Entity<Vipi.Domain.Entities.ContentBlock>();
         builder.Entity<Vipi.Domain.Entities.DocumentVersion>();
-        builder.Entity<Vipi.Domain.Entities.TransferFlow>();
+        builder.Entity<Vipi.Domain.Entities.AgreementClause>();
 
         foreach (var et in builder.Model.GetEntityTypes())
             foreach (var p in et.GetProperties())

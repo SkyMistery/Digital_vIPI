@@ -34,6 +34,13 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- I flussi veri estratti dal vipi.db e il file approvato della loro derivazione: la rete che accompagna la
+       sostituzione del modello dei trasferimenti. Copiati accanto all'assembly perché il test li legge (e ci
+       scrive il .received.txt quando il confronto fallisce). -->
+  <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vipi.Application\Vipi.Application.csproj" />
     <ProjectReference Include="..\..\src\Vipi.Domain\Vipi.Domain.csproj" />

@@ -120,6 +120,10 @@ public interface IEditingRepository
     /// <summary>Colloca una sotto-sezione prima/dopo il corpo del padre (doc 11 §3g). Errore se non è una bozza.</summary>
     Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
 
+    /// <summary>Prosa a CAPOFILA per una sezione derivata a tabelle: una frase che introduce la tabella invece
+    /// di una per clausola.</summary>
+    Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default);
+
     /// <summary>Aggiunge una sezione (radice se parentSectionId è null) in coda ai fratelli. Errore se supera la profondità massima o se non è una bozza. Ritorna l'Id.</summary>
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
 

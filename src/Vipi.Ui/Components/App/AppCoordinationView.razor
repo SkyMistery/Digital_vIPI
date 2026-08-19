@@ -100,6 +100,10 @@
 </div>
 
 @code {
+    /// <summary>Prosa a CAPOFILA: una frase che introduce ogni tabella invece di una per clausola. Viene dalla
+    /// SEZIONE, quindi è una scelta editoriale versionata e non un'opzione della vista.</summary>
+    [Parameter] public bool LeadSentence { get; set; }
+
     [Parameter, EditorRequired] public AppCoordination Coord { get; set; } = AppCoordination.Empty;
 
     // Controlli espandi/comprimi tutto (sezione + sottosezioni). Vedi vipiDetails in vipi-ui.js.
@@ -115,6 +119,6 @@
     // Stessa tabella della vIPI ACC e della vLOA: vedi CoordTable (colonne per presenza dati, gruppi varianti).
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string? lastCol = null) => __builder =>
     {
-        <CoordTable Rows="rows" ShowKind="showKind" LastColHeader="@(lastCol ?? L["AppCoord_Next"])" />
+        <CoordTable LeadSentence="LeadSentence" Rows="rows" ShowKind="showKind" LastColHeader="@(lastCol ?? L["AppCoord_Next"])" />
     };
 }
