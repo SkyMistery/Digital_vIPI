@@ -734,7 +734,32 @@
 }
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:#fff}
-.xfe-table{width:100%;font-size:13px}
+/* ---- Colonne FISSE ----
+   In albero ogni verso è una tabella a sé: a larghezza automatica ognuna sceglieva le proprie colonne in base
+   al contenuto, e «punti» era largo il doppio nel blocco sopra rispetto a quello sotto. Qui si scrive IN CELLA,
+   e un bersaglio che cambia posto fra due tabelle affiancate va ricercato ogni volta. Le larghezze stanno nel
+   colgroup di XferRowsTable; le percentuali non arrivano a 100 perché la condizione prende ciò che resta. */
+.xfe-table{width:100%;font-size:13px;table-layout:fixed}
+.xt-c-drag{width:26px}
+.xt-c-pick{width:26px}
+.xt-c-acts{width:118px}
+.xt-c-pts{width:34%}
+.xt-c-lvl{width:20%}
+/* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */
+.xt-c-ctx{width:13%}
+.xt-c-ctxapt{width:12%}
+.xt-c-kind{width:8%}
+.xt-c-pts-ctx{width:18%}
+.xt-c-lvl-ctx{width:12%}
+/* A colonna fissa il testo non allarga più la tabella: se non ha dove andare a capo, esce. Gli elenchi di CoP
+   e i livelli sono le due celle in cui succede. */
+.xfe-table td{overflow-wrap:anywhere}
+/* ---- Intestazioni che restano ----
+   In ELENCO è una tabella sola e lunga: i nomi di colonna sono già fuori schermo quando servono. In ALBERO
+   invece appiccicare il thead non serve — le colonne sono tre — e servirebbe invece sapere in quale VERSO si
+   sta scrivendo: è la testata del blocco a restare (regola sotto, .xt-dirhead). Due elementi appiccicati alla
+   stessa quota si sovrapporrebbero, e l'altezza dell'uno non è esprimibile nel `top` dell'altro. */
+.xt-pane-body .xfe-table.xt-stick thead th{position:sticky;top:0;z-index:2}
 .xfe-table th{font-size:11px}
 .xfe-table td{padding:7px 9px;vertical-align:middle}
 .xfe-table input{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:#fff}
@@ -1449,8 +1474,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-pane-body{flex:1;min-height:0;overflow:auto;padding:10px 12px}
 .xt-pane-empty{padding:26px 18px;color:var(--ink-soft);font-size:13px}
 .xt-pane-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
-/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato. */
-.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato.
+   A colonna fissa il troppo si taglia con i puntini invece di sfondare la tabella — e il valore intero resta
+   nel `title`, perché un callsign troncato è un altro callsign. */
+.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Scelta ACC: un interruttore, non una sezione titolata — e dal 19 agosto 2026 nemmeno una fascia propria:
    vive nella stessa riga dei filtri, in testa, perché è l'AMBITO di tutto ciò che segue. */
 .xt-acclbl{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
@@ -1571,8 +1598,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    con due blocchi il piede del primo finirebbe a metà pagina, che è peggio del problema che risolveva. */
 .xt-dirblock{margin:0 0 14px}
 .xt-dirblock:last-child{margin-bottom:0}
+/* La testata del verso RESTA mentre le clausole scorrono: scendendo di trenta righe si perdeva di vista in
+   quale verso si stava scrivendo, ed è l'unica cosa che non si può ricostruire guardando la riga. Ogni blocco
+   spinge via il precedente da sé — è il comportamento naturale di due sticky consecutivi.
+   Lo sfondo è obbligatorio: senza, le righe passano SOTTO il testo della testata e si legge un impasto. */
 .xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 6px;margin-bottom:4px;
-  border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3;background:#fff}
 /* Il verso di casa porta il filo blu: è quello su cui si lavora, e l'occhio deve trovarlo senza leggere. */
 .xt-out>.xt-dirhead{border-bottom-color:var(--ivao-blue)}
 .xt-dirtoggle{display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;
