@@ -203,7 +203,21 @@
 
         @if (_acc is null)
         {
-            <p class="help">@L["Xfer_ChooseAcc"]</p>
+            @* ⚠️ Due stati diversi, e prima si vedevano uguali: «non hai ancora scelto» e «quello che stavi
+               guardando non c'è più». Il secondo capita da sé — un link vecchio con ?acc=, o un ACC che in
+               Struttura è stato nascosto o rinominato — e senza dirlo la pagina sembra rotta: titolo, riga
+               degli ACC, e nient'altro. *@
+            @if (!string.IsNullOrWhiteSpace(_accCode))
+            {
+                <div class="callout warning">
+                    <span class="cic">⚠</span>
+                    <div>@L["Xfer_AccUnknown", _accCode]</div>
+                </div>
+            }
+            else
+            {
+                <p class="help">@L["Xfer_ChooseAcc"]</p>
+            }
         }
         else
         {
@@ -2605,9 +2619,17 @@
         SyncUrl();
     }
 
+    /// <summary>
+    /// ⚠️ Il «è già quello» si misura su <c>_acc</c>, non su <c>_accCode</c>. Il codice può esserci senza che
+    /// si sia RISOLTO — un ACC nascosto, rinominato o sparito fra due aperture della pagina, o un link vecchio
+    /// con <c>?acc=</c> — e in quel caso la pagina resta ferma su titolo e riga ACC. Con il confronto sul solo
+    /// codice il chip di QUEL codice era morto: l'unico che chi guarda prova a premere, perché è quello che sta
+    /// cercando di aprire. Succedeva anche cambiando quali ACC sono visibili in Struttura.
+    /// </summary>
     private Task SelectAcc(string code)
     {
-        if (string.Equals(_accCode, code, StringComparison.OrdinalIgnoreCase)) return Task.CompletedTask;
+        if (_acc is not null && string.Equals(_accCode, code, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
         _accCode = code;
         return OnAccChanged();
     }

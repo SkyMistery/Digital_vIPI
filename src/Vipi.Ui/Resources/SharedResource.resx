@@ -777,6 +777,7 @@
   <data name="Xfer_Heading" xml:space="preserve"><value>Accordi di coordinamento</value></data>
   <data name="Xfer_NoAccImport" xml:space="preserve"><value>Nessun ACC. Importa dalla &lt;a href="/vsop/admin/acc"&gt;pagina ACC&lt;/a&gt;.</value></data>
   <data name="Xfer_ChooseAcc" xml:space="preserve"><value>Scegli un ACC per gestirne i trasferimenti.</value></data>
+  <data name="Xfer_AccUnknown" xml:space="preserve"><value>L'ACC «{0}» non è fra quelli disponibili: può essere stato nascosto o rinominato in Struttura, oppure il link è vecchio. Scegline uno dall'elenco qui sopra.</value></data>
   <data name="Xfer_NewGroup" xml:space="preserve"><value>Nuovo gruppo di trasferimenti</value></data>
   <data name="Xfer_SenderSector" xml:space="preserve"><value>Settore mittente</value></data>
   <data name="Xfer_SearchCallsign" xml:space="preserve"><value>cerca callsign…</value></data>
