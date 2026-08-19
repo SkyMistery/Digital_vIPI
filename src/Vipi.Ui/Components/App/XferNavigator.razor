@@ -112,7 +112,7 @@
 
     /// <summary>Cosa dicono i due conteggi della foglia.</summary>
     private string CountsTitle(XferNavAgreement a) =>
-        $"{string.Format(L["Xfer_SectionsN"].Value, a.Sections)} · {string.Format(L["Xfer_ClausesCount"].Value, a.Clauses)}";
+        $"{XferLabels.Sections(L, a.Sections)} · {XferLabels.Clauses(L, a.Clauses)}";
 
     /// <summary>Invio/Spazio sui nodi non-<c>button</c>: senza, l'albero si apre solo col mouse.</summary>
     private static Task Activate(KeyboardEventArgs e, Func<Task> action) =>

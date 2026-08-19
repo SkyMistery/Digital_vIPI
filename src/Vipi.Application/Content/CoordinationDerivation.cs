@@ -51,7 +51,9 @@ public static class CoordinationDerivation
     public static AppCoordRow ToRow(
         CoordinationSentenceTemplate tpl, TransferPointRow p, TransferFlowRow flow,
         string next, TransferFlowKind kind, string ownerCallsign, string? sentence, string? lead = null) =>
-        new(p.Cop, p.LevelText, next, kind)
+        // ⚠️ Il livello dal TEMPLATE come tutto il resto della riga, non da `p.LevelText`: quello è cablato in
+        // italiano, e in una vLOA inglese usciva «FL260 (pari)».
+        new(p.Cop, TransferHandoffText.ClearedLevel(tpl, p), next, kind)
         {
             OwnerCallsign = ownerCallsign,
             AirportIcao = flow.AirportIcao,

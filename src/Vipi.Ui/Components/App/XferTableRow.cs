@@ -93,6 +93,29 @@ public static class XferLabels
     /// <summary>Gli aeroporti della sezione in una riga sola («LIRF · LIRA · LIRU»); vuoto se non ne ha.</summary>
     public static string Airports(AgreementSectionRow s) => s.AirportsLabel;
 
+    /// <summary>
+    /// Un conteggio con la sua parola al numero giusto: «1 clausola» / «5 clausole», «1 clause» / «5 clauses».
+    /// <para>⚠️ Serve perché la sola forma plurale usciva «1 clauses» e «1 clausole» — in <b>entrambe</b> le
+    /// lingue, e in quattro punti diversi. Un conteggio è la cosa che si legge più spesso in questa pagina:
+    /// sbagliarne il numero grammaticale si nota ogni volta.</para>
+    /// <para>Due chiavi e non un formato ICU: il progetto non ha quell'infrastruttura, e le lingue in gioco
+    /// sono due — entrambe con la sola distinzione uno/molti.</para>
+    /// </summary>
+    private static string Count(IStringLocalizer localizer, int n, string keyOne, string keyMany) =>
+        string.Format(localizer[n == 1 ? keyOne : keyMany].Value, n);
+
+    /// <summary>«1 clausola» / «N clausole».</summary>
+    public static string Clauses(IStringLocalizer localizer, int n) =>
+        Count(localizer, n, "Xfer_ClausesCount_One", "Xfer_ClausesCount");
+
+    /// <summary>«1 sezione» / «N sezioni».</summary>
+    public static string Sections(IStringLocalizer localizer, int n) =>
+        Count(localizer, n, "Xfer_SectionsN_One", "Xfer_SectionsN");
+
+    /// <summary>«1 accordo» / «N accordi».</summary>
+    public static string Agreements(IStringLocalizer localizer, int n) =>
+        Count(localizer, n, "Xfer_AgreementsN_One", "Xfer_AgreementsN");
+
     /// <summary>Come si legge una sezione: il traffico e i suoi scali.</summary>
     public static string Section(IStringLocalizer localizer, AgreementSectionRow s)
     {

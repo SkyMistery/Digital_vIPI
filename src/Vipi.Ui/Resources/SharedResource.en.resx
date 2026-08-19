@@ -1502,7 +1502,6 @@
   <data name="Xfer_GapNeighbour" xml:space="preserve"><value>border unwritten</value></data>
   <data name="Xfer_GapAirport" xml:space="preserve"><value>no arrivals</value></data>
   <data name="Xfer_GapSector" xml:space="preserve"><value>silent sector</value></data>
-  <data name="Xfer_GapClauses" xml:space="preserve"><value>{0} clauses</value></data>
   <data name="Xfer_GapOnlyOneWay" xml:space="preserve"><value>one way only: {0}</value></data>
   <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confirmed neighbour with no agreement</value></data>
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>no arrival agreement</value></data>
@@ -1537,4 +1536,9 @@
   <data name="Xfer_GapEmptySectionDetail" xml:space="preserve"><value>The section has no clauses: the document will render nothing.</value></data>
   <data name="Xfer_ExpandSections" xml:space="preserve"><value>Expand all sections</value></data>
   <data name="Xfer_CollapseSections" xml:space="preserve"><value>Collapse all sections</value></data>
+  <data name="Confirm_DefaultPrompt" xml:space="preserve"><value>Delete?</value></data>
+  <data name="Confirm_DefaultYes" xml:space="preserve"><value>Yes, delete</value></data>
+  <data name="Xfer_ClausesCount_One" xml:space="preserve"><value>{0} clause</value></data>
+  <data name="Xfer_SectionsN_One" xml:space="preserve"><value>{0} section</value></data>
+  <data name="Xfer_AgreementsN_One" xml:space="preserve"><value>{0} agreement</value></data>
 </root>

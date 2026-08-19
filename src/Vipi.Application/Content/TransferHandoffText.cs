@@ -44,6 +44,19 @@ public static class TransferHandoffText
         return form.Replace("{v}", body);
     }
 
+    /// <summary>
+    /// Il livello AUTORIZZATO per la colonna di tabella, con le parole della parità prese dal <b>template</b>:
+    /// «FL260 (pari)» in una vIPI, «FL260 (even)» in una vLOA.
+    ///
+    /// <para>⚠️ È l'unica colonna che non passava di qui, e si vedeva: handoff, comunicazioni e velocità
+    /// arrivavano dal template mentre il livello restava cablato in italiano — dentro una vLOA inglese usciva
+    /// «FL260 (pari)». Il difetto era congelato nell'approvato della rete di caratterizzazione, che lo
+    /// fotografava senza poterlo giudicare.</para>
+    /// </summary>
+    public static string ClearedLevel(CoordinationSentenceTemplate tpl, TransferPointRow p) =>
+        LevelFormatting.Format(p.LevelValue, p.LevelUnit, p.LevelConstraint, p.LevelSpecial, p.Parity,
+            p.VerticalState, new LevelFormatting.ParityWords(tpl.Level.ParityEven, tpl.Level.ParityOdd));
+
     /// <summary>Restrizione di velocità a parole: «a 250 kt o inferiore». Vuota se assente.</summary>
     public static string Speed(CoordinationSentenceTemplate tpl, int? value, SpeedConstraint constraint)
     {

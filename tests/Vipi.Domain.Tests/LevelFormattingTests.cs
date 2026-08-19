@@ -40,10 +40,66 @@ public class LevelFormattingTests
     }
 
     [Fact]
-    public void Special_text_keeps_parity_suffix()
+    public void Un_livello_speciale_NON_prende_il_suffisso_di_parita()
     {
-        Assert.Equal("per aerovia (pari)",
+        // ⚠️ Ribalta la decisione precedente («per aerovia (pari)»), e la ragione sta nell'archivio: l'unica
+        // clausola vera con testo libero + parità è «Pari (Nord) - Dispari (Sud)» con parità Odd, e usciva
+        // «Pari (Nord) - Dispari (Sud) (dispari)» — dove il suffisso CONTRADDICE metà della frase. Un livello
+        // speciale è una frase, e una frase che ha bisogno della parità la dice da sé.
+        Assert.Equal("per aerovia",
             LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.Special, "per aerovia", LevelParity.Even));
+        Assert.Equal("Pari (Nord) - Dispari (Sud)",
+            LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.Special, "Pari (Nord) - Dispari (Sud)",
+                LevelParity.Odd));
+    }
+
+    [Fact]
+    public void Senza_valore_la_parita_e_TUTTO_cio_che_la_riga_dice()
+    {
+        // «— (dispari)» faceva sembrare mancante un dato che invece c'è: «traffico a livello dispari», senza
+        // tetto. Non è un caso limite — sul vipi.db vero sono 21 clausole su 60 — e il composer delle frasi lo
+        // sapeva già («per un livello dispari»); era la colonna della tabella a non saperlo.
+        Assert.Equal("dispari",
+            LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Odd));
+        // La freccia dello stato verticale resta, e segue la parola.
+        Assert.Equal("pari ↓",
+            LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Even,
+                TransferVerticalState.Descending));
+        // Senza parità e senza valore non c'è niente da dire: resta il trattino.
+        Assert.Equal("—",
+            LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Any));
+    }
+
+    [Fact]
+    public void La_sola_parola_della_parita_si_rilegge_come_parita()
+    {
+        // Il round-trip Format→Parse deve reggere anche sul caso più frequente dell'archivio, o la cella
+        // rileggerebbe «dispari» come testo libero.
+        var letto = LevelFormatting.Parse("dispari");
+        Assert.Null(letto.Value);
+        Assert.Equal(LevelParity.Odd, letto.Parity);
+        Assert.NotEqual(LevelConstraint.Special, letto.Constraint);
+        Assert.Equal("dispari", LevelFormatting.Format(letto));
+
+        var conFreccia = LevelFormatting.Parse("pari ↓");
+        Assert.Equal(LevelParity.Even, conFreccia.Parity);
+        Assert.Equal(TransferVerticalState.Descending, conFreccia.VerticalState);
+        Assert.Equal("pari ↓", LevelFormatting.Format(conFreccia));
+    }
+
+    [Fact]
+    public void Le_parole_della_parita_vengono_da_fuori_quando_la_lingua_non_e_l_italiano()
+    {
+        // È il difetto L10: dentro una vLOA inglese la colonna usciva «FL260 (pari)». La lingua vive nel
+        // template dei coordinamenti, non qui — e il default italiano resta perché l'EDITOR non deve passare
+        // le proprie parole: là la cella si SCRIVE, e Parse deve rileggere ciò che Format produce.
+        var en = new LevelFormatting.ParityWords("even", "odd");
+        Assert.Equal("FL260 (even)",
+            LevelFormatting.Format(260, LevelUnit.Fl, LevelConstraint.Exact, null, LevelParity.Even,
+                TransferVerticalState.Unspecified, en));
+        Assert.Equal("odd",
+            LevelFormatting.Format(null, LevelUnit.Fl, LevelConstraint.AtOrBelow, null, LevelParity.Odd,
+                TransferVerticalState.Unspecified, en));
     }
 
     [Theory]

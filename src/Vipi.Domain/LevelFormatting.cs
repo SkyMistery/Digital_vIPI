@@ -31,13 +31,56 @@ public static class LevelFormatting
     /// <summary>Le parità che lasciano un suffisso nel testo (<c>Any</c> non ne lascia): i soli casi da rileggere.</summary>
     private static readonly LevelParity[] WrittenParities = { LevelParity.Even, LevelParity.Odd };
 
+    /// <summary>
+    /// Le due parole della regola semicircolare. Esistono come <b>parametro</b> perché la stessa colonna si
+    /// legge in italiano in una vIPI e in inglese in una vLOA: la lingua vive nel template dei coordinamenti,
+    /// non qui.
+    /// <para>⚠️ Il default è italiano <b>di proposito</b>, e non è una svista da sistemare: l'<b>editor</b> non
+    /// deve passare le proprie parole. Là la cella si <b>scrive</b>, e <see cref="Parse"/> deve saper rileggere
+    /// ciò che <see cref="Format"/> ha prodotto — con due grammatiche d'ingresso il round-trip avrebbe due
+    /// significati a seconda della lingua dell'interfaccia. La localizzazione serve dove si <b>legge</b> e basta:
+    /// il documento.</para>
+    /// </summary>
+    public readonly record struct ParityWords(string Even, string Odd)
+    {
+        public static readonly ParityWords Italian = new("pari", "dispari");
+
+        public string Of(LevelParity parity) => parity switch
+        {
+            LevelParity.Even => Even,
+            LevelParity.Odd => Odd,
+            _ => "",
+        };
+    }
+
 
     /// <summary>Rende il livello come testo: «FL130-», «FL280+ ↑ (dispari)», «2500 ft (pari)», «per aerovia» o «—».
     /// Il vincolo di livello è reso col segno «+» (≥) / «-» (≤); lo stato verticale con la freccia «↑» (salita) /
     /// «↓» (discesa); la parità (regola semicircolare) è appesa fra parentesi quando non è <see cref="LevelParity.Any"/>.</summary>
     public static string Format(int? value, LevelUnit unit, LevelConstraint constraint, string? special,
-        LevelParity parity = LevelParity.Any, TransferVerticalState verticalState = TransferVerticalState.Unspecified) =>
-        AppendParity(AppendState(Body(value, unit, constraint, special), verticalState), parity);
+        LevelParity parity = LevelParity.Any, TransferVerticalState verticalState = TransferVerticalState.Unspecified,
+        ParityWords? words = null)
+    {
+        var w = words ?? ParityWords.Italian;
+        var parityWord = w.Of(parity);
+
+        // ⚠️ Un livello SPECIALE non prende il suffisso: è una frase, e una frase che ha bisogno della parità la
+        // dice da sé. In archivio ce n'è una sola e lo prova — «Pari (Nord) - Dispari (Sud)» con parità «Odd»
+        // usciva «Pari (Nord) - Dispari (Sud) (dispari)», dove il suffisso CONTRADDICE metà della frase.
+        // Il dato resta salvato: è la frase a valere, ed è più precisa del flag.
+        if (constraint == LevelConstraint.Special)
+            return Body(value, unit, constraint, special);
+
+        // ⚠️ Senza un valore, la parità NON è un suffisso: è tutto ciò che la riga dice. «— (dispari)» faceva
+        // sembrare mancante un dato che invece c'è — «traffico a livello dispari», senza tetto. Non è un caso
+        // limite: sul vipi.db vero sono 21 clausole su 60. Il composer delle frasi lo sapeva già
+        // (`ForLevelParity` → «per un livello dispari»); la colonna della tabella no.
+        if (value is null && parityWord.Length > 0)
+            return AppendState(parityWord, verticalState);
+
+        var body = AppendState(Body(value, unit, constraint, special), verticalState);
+        return parityWord.Length == 0 ? body : $"{body} ({parityWord})";
+    }
 
     private static string Body(int? value, LevelUnit unit, LevelConstraint constraint, string? special)
     {
@@ -91,9 +134,6 @@ public static class LevelFormatting
         _ => "",
     };
 
-    private static string AppendParity(string body, LevelParity parity) =>
-        parity == LevelParity.Any ? body : $"{body} ({ParityLabel(parity)})";
-
     /// <summary>
     /// Legge un livello scritto a mano: l'inverso di <see cref="Format"/>, per l'editing in cella della tabella
     /// trasferimenti — la colonna mostra <c>Format(...)</c>, e chi ci scrive dentro si aspetta che valga la stessa
@@ -131,6 +171,13 @@ public static class LevelFormatting
         // 3) Quel che resta è il corpo. Vuoto o trattino = nessun livello (la cella svuotata).
         if (s.Length == 0 || s is "—" or "–")
             return new ParsedLevel(null, LevelUnit.Fl, LevelConstraint.Exact, null, parity, state);
+
+        // 3-bis) La sola parola della parità: è ciò che Format produce quando non c'è un valore, e va riletta
+        //        come parità — non come testo libero. Senza questo il round-trip si romperebbe proprio sul caso
+        //        più frequente dell'archivio (21 clausole su 60).
+        foreach (var p in WrittenParities)
+            if (string.Equals(s, ParityLabel(p), StringComparison.OrdinalIgnoreCase))
+                return new ParsedLevel(null, LevelUnit.Fl, LevelConstraint.Exact, null, p, state);
 
         // Il corpo GREZZO va conservato: se non è un livello diventa testo libero, e il testo libero può
         // legittimamente finire con «-» («FL100/FL200-») — che qui sarebbe scambiato per il segno del vincolo.

@@ -242,20 +242,46 @@ fossero ancora vecchie, rifondendo accordi già fusi e mescolandone gli aeroport
    `LDZO ⇄ LIBB` (sei punti da un lato solo). Adesso stanno nello **stesso accordo**, una sezione sotto l'altra,
    quindi finalmente si **vedono**; sceglierne una è una decisione dei colleghi, non una migrazione.
 4. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
-5. ⚠️ **Tre difetti di `LevelFormatting`**, congelati nell'approvato apposta e tutti visti a schermo: L10
-   (`FL260 (pari)` nella resa inglese — `LevelFormatting` non conosce la lingua); `— (dispari)`, cioè la parità
-   appesa a un livello **assente**; e la parità appesa anche a un livello **speciale** che la dice già a parole
-   (`Pari (Nord) - Dispari (Sud) (dispari)`). Un giro loro, insieme, con la riapprovazione guardata riga per riga.
-6. ⚠️ **`InlineConfirm.ConfirmLabel`** con default «Sì, elimina», italiano e cablato. Fuori da quest'area.
-7. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** — due passate su tre in
+5. ✅ **Chiusi il 18 agosto**: i tre difetti di `LevelFormatting`, `InlineConfirm` cablato in italiano e i
+   plurali dei conteggi. Vedi «Le tre rifiniture di lingua e forma» più sotto.
+6. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** — due passate su tre in
    isolamento, su codice che questo lavoro non tocca. Da rendere deterministico prima che qualcuno impari a
    rilanciare la suite finché diventa verde.
+
+## Le tre rifiniture di lingua e forma (18 agosto)
+
+**1. Il livello, tre difetti in un colpo.** `LevelFormatting` produceva `— (dispari)` — che fa sembrare mancante
+un dato che invece c'è: «traffico a livello dispari», senza tetto. ⚠️ **21 clausole su 60** lo mostravano: non
+era un caso limite, era la norma. Ora la parità da sola **è** il testo (`dispari`, `pari ↓`), e `Parse` la
+rilegge — il round-trip regge sul caso più frequente dell'archivio. Un livello **speciale** non prende più il
+suffisso: l'unica clausola vera con testo libero + parità è «Pari (Nord) - Dispari (Sud)» con parità `Odd`, e
+usciva `Pari (Nord) - Dispari (Sud) (dispari)`, dove il suffisso **contraddice metà della frase**.
+
+E la colonna del **documento** prende ora le parole della parità dal **template** (`TransferHandoffText.ClearedLevel`),
+come già facevano handoff, comunicazioni e velocità: era l'unica che non passava di lì, e in una vLOA inglese
+usciva `FL260 (pari)`. ⚠️ Il default di `LevelFormatting` resta **italiano di proposito**: l'editor non deve
+passare le proprie parole, perché là la cella si **scrive** e `Parse` deve rileggere ciò che `Format` produce —
+con due grammatiche d'ingresso il round-trip avrebbe due significati a seconda della lingua dell'interfaccia.
+
+⚠️ **L'approvato è cambiato, ed è stato letto prima di riapprovarlo**: 82 righe in **nove famiglie**, tutte e
+nove attese, nessuna riga aggiunta o tolta, nessuna frase toccata. ⚠️ E le release **già pubblicate** conservano
+il testo vecchio — nella #37 di Brindisi c'è ancora `"Level":"— (dispari)"`. È giusto: uno snapshot è una
+fotografia. Il testo nuovo compare alla **prossima release**.
+
+**2. `InlineConfirm` non parla più italiano da solo.** I default di prompt, conferma e annulla passano dal
+localizer. Su 14 usi solo 3 passavano le proprie etichette: gli altri 11 dicevano «Eliminare? / Sì, elimina /
+Annulla» **anche in pagina inglese**, e anche per azioni che non eliminano. ⚠️ `ConfirmLabel` va comunque
+passata quando l'azione non elimina: il default parla di eliminazione con la parola più allarmante che ha.
+
+**3. I conteggi si accordano al numero.** «1 clauses» / «1 clausole» in quattro punti e in entrambe le lingue.
+Ora `XferLabels.Clauses/Sections/Agreements(L, n)` sceglie fra due chiavi — due chiavi e non un formato ICU,
+perché quell'infrastruttura non c'è e le lingue in gioco hanno la sola distinzione uno/molti.
 
 ## Comandi
 
 ```
 dotnet build Vipi.slnx -c Release --no-incremental     # il cancello vero: avvisi = errori, DUE TFM
-dotnet test Vipi.slnx                                  # 2094 verdi al 18 agosto (E2E inclusi)
+dotnet test Vipi.slnx                                  # 2569 verdi al 18 agosto (E2E inclusi)
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure \
   --startup-project src/Vipi.Infrastructure --output-dir Persistence/Migrations --framework net8.0
 dotnet ef migrations add NOME --project src/Vipi.Infrastructure.MySqlMigrations \

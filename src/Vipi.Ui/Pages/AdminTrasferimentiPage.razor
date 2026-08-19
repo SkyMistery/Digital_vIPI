@@ -126,7 +126,7 @@
                     <option value="@TransferFlowKind.Vfr">@L["Xfer_KindVfr"]</option>
                     <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
                 </select>
-                <span class="muted xt-count">@AgreementsCountLabel(shown.Count) · @(string.Format(L["Xfer_ClausesCount"].Value, shownClauses))</span>
+                <span class="muted xt-count">@XferLabels.Agreements(L, shown.Count) · @XferLabels.Clauses(L, shownClauses)</span>
                 @* Le clausole ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
                    vanno riviste a mano: senza un modo di elencarle, la revisione si perde per strada. *@
                 @{ var toReview = ToReviewCount(); }
@@ -658,7 +658,7 @@
     /// e questa pagina esiste anche in inglese.</summary>
     private string GapDetail(AgreementGap g) => g.Kind switch
     {
-        AgreementGapKind.ToReview => L["Xfer_GapClauses", g.Count],
+        AgreementGapKind.ToReview => XferLabels.Clauses(L, g.Count),
         AgreementGapKind.AsymmetricDirections => L["Xfer_GapOnlyOneWay", string.Join(", ", g.Items)],
         AgreementGapKind.MissingReverse => L["Xfer_GapMissingReverseDetail", g.Count],
         AgreementGapKind.TwinSections => L["Xfer_GapTwinSectionsDetail", g.Count],
@@ -1023,7 +1023,7 @@
         {
             <div class="xt-pane-h">
                 <b>@L["Xfer_ViewFlat"]</b>
-                <span class="muted xt-hint">@(string.Format(L["Xfer_ClausesCount"].Value, rows.Count))</span>
+                <span class="muted xt-hint">@XferLabels.Clauses(L, rows.Count)</span>
                 @* «+ Clausola» compare quando una SEZIONE è a fuoco — la si porta dietro passando da albero a
                    elenco. Senza, non comparirebbe: una clausola appartiene a una tabella, e chiedere quale con
                    un secondo selettore sarebbe un giro più lungo del tornare all'albero (che è il tasto ↗). *@
@@ -1091,7 +1091,7 @@
             {
                 <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
             }
-            <span class="muted xt-hint">@(string.Format(L["Xfer_SectionsN"].Value, ag.Sections.Count))</span>
+            <span class="muted xt-hint">@XferLabels.Sections(L, ag.Sections.Count)</span>
             @if (!string.IsNullOrWhiteSpace(ag.Note))
             {
                 <span class="muted xt-desc" title="@ag.Note">— @ag.Note</span>
@@ -1197,7 +1197,7 @@
 
                 @AirportChips(ag, sec)
 
-                <span class="muted xt-hint">@(string.Format(L["Xfer_ClausesCount"].Value, rows.Count))</span>
+                <span class="muted xt-hint">@XferLabels.Clauses(L, rows.Count)</span>
                 <span class="ln xt-grow"></span>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                         @onclick="() => OpenAddClause(ag, sec)">+ @L["Xfer_AddClause"]</button>
@@ -2357,7 +2357,6 @@
     private static string SenderOf(AgreementRow a, AgreementSectionRow s) => a.Sender(s.Direction).Callsign;
     private static string ReceiverOf(AgreementRow a, AgreementSectionRow s) => a.Receiver(s.Direction).Callsign;
 
-    private string AgreementsCountLabel(int n) => string.Format(L["Xfer_AgreementsN"].Value, n);
 
     /// <summary>Il tipo di traffico pretende almeno un aeroporto: arrivi e partenze sono definiti rispetto a uno
     /// scalo, e senza la frase resterebbe orfana.</summary>

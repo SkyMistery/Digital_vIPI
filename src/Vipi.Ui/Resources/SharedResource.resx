@@ -1508,7 +1508,6 @@
   <data name="Xfer_GapNeighbour" xml:space="preserve"><value>confine scoperto</value></data>
   <data name="Xfer_GapAirport" xml:space="preserve"><value>senza arrivi</value></data>
   <data name="Xfer_GapSector" xml:space="preserve"><value>settore muto</value></data>
-  <data name="Xfer_GapClauses" xml:space="preserve"><value>{0} clausole</value></data>
   <data name="Xfer_GapOnlyOneWay" xml:space="preserve"><value>da un lato solo: {0}</value></data>
   <data name="Xfer_GapNeighbourDetail" xml:space="preserve"><value>confinante confermato senza accordi</value></data>
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>nessun accordo di arrivo</value></data>
@@ -1543,4 +1542,9 @@
   <data name="Xfer_GapEmptySectionDetail" xml:space="preserve"><value>La sezione non ha clausole: il documento non renderà niente.</value></data>
   <data name="Xfer_ExpandSections" xml:space="preserve"><value>Apri tutte le sezioni</value></data>
   <data name="Xfer_CollapseSections" xml:space="preserve"><value>Chiudi tutte le sezioni</value></data>
+  <data name="Confirm_DefaultPrompt" xml:space="preserve"><value>Eliminare?</value></data>
+  <data name="Confirm_DefaultYes" xml:space="preserve"><value>Sì, elimina</value></data>
+  <data name="Xfer_ClausesCount_One" xml:space="preserve"><value>{0} clausola</value></data>
+  <data name="Xfer_SectionsN_One" xml:space="preserve"><value>{0} sezione</value></data>
+  <data name="Xfer_AgreementsN_One" xml:space="preserve"><value>{0} accordo</value></data>
 </root>

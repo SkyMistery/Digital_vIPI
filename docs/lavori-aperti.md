@@ -824,19 +824,25 @@ Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSec
    backup sta **fuori dal repo** in `../vipi.db.bak-pre-sezioni-20260818`, ed è l'unica copia dello stato
    precedente perché il `vipi.db` non è tracciato in git.
    ⚠️ Resta da fare sulla **MariaDB di produzione**, con `--mysql` e le migrazioni gemelle.
-3. ✅ **Suite completa 2094 verdi** (E2E inclusi) e `dotnet build -c Release --no-incremental` a **0 warning**
+3. ✅ **Suite completa 2569 verdi** (E2E inclusi) e `dotnet build -c Release --no-incremental` a **0 warning**
    su due TFM.
 4. **Le due asimmetrie** — `LGGG ⇄ LIBB` (BELIX, OLGAT) e `LDZO ⇄ LIBB` (sei punti da un lato solo) — le
    decidono i colleghi. Adesso stanno nello **stesso accordo**, una sezione sotto l'altra, quindi si vedono.
 5. ✅ **I tre reciproci separati** (`#13/#32`, `#17/#28`, `#23/#38`) e la **relazione spezzata** (`#26/#27`) si
    sono chiusi da soli: i due versi della stessa coppia **sono** lo stesso accordo, e le gemelle le ha unite la
    conversione. Anche i **due accordi senza ricevente** sono spariti — il lato è ora una colonna `NOT NULL`.
-6. **Tre difetti di `LevelFormatting`**, pre-esistenti e congelati nell'approvato: `— (dispari)` su livello
-   assente, la parità appesa a un livello *speciale* che la dice già a parole, e L10 (parità non tradotta). Un
-   giro loro, con la riapprovazione guardata riga per riga.
-7. ⚠️ **`InlineConfirm.ConfirmLabel` ha per default «Sì, elimina», in italiano e cablato nel componente**: nella
-   pagina inglese ogni conferma in linea che non passa l'etichetta lo dice in italiano, anche per azioni che non
-   eliminano. È più largo di quest'area.
+6. ✅ **I tre difetti di `LevelFormatting` sono chiusi** (18 agosto): `— (dispari)` diventa `dispari` (21
+   clausole su 60 lo mostravano — non era un caso limite), la parità non si appende più a un livello *speciale*
+   che la dice già a parole, e la colonna del documento prende le parole dal **template** come già facevano
+   handoff e velocità — così una vLOA inglese non scrive più «FL260 (pari)». L'approvato è stato riapprovato
+   **dopo aver letto le nove famiglie di differenza**: 82 righe, nessuna aggiunta o tolta, nessuna frase
+   toccata. ⚠️ Le release **già pubblicate** conservano il testo vecchio: uno snapshot è una fotografia, e il
+   testo nuovo compare alla prossima release.
+7. ✅ **`InlineConfirm` localizzato** (18 agosto): i default di prompt, conferma e annulla passano dal
+   localizer. Erano cablati in italiano e su 14 usi solo 3 passavano le proprie etichette — gli altri 11
+   dicevano «Sì, elimina» anche in pagina inglese, e anche per azioni che non eliminano.
+8. ✅ **Plurali dei conteggi** (18 agosto): «1 clause» invece di «1 clauses», in entrambe le lingue e in quattro
+   punti. Un conteggio è la cosa che si legge più spesso nella pagina.
 8. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
 
 ⚠️ **Due difetti trovati eseguendo, e che nessun test vedeva** — valgono fuori da quest'area: fra le due
