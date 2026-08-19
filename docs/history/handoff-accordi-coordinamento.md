@@ -1,7 +1,7 @@
 # HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 
-> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`, allineato col
-> remoto, **non ancora in `main`** (serve l'ok esplicito).
+> Contesto minimo per riprendere **dopo un `/clear`**. ✅ **In `main` dal 18 agosto 2026**
+> (`06798a9`, merge non-fast-forward dal ramo `feature/accordi-coordinamento`).
 >
 > **Stato al 18 agosto 2026, sera.** Il modello a sezioni è **fatto e in esercizio**: codice, migrazioni nei due
 > provider, conversione **eseguita sul `vipi.db` di sviluppo**, verifica live guidata a schermo, documenti e
@@ -21,15 +21,20 @@
 > [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §11 · Voci aperte:
 > [`../lavori-aperti.md`](../lavori-aperti.md)
 
-> ## ⚠️ Il `vipi.db` di sviluppo è CONVERTITO — e adesso vuole questo ramo
+> ## ⚠️ IL DEPLOY IN PRODUZIONE RICHIEDE PRIMA LA CONVERSIONE
 >
-> La conversione è girata sull'archivio vero il **18 agosto 2026**: 40 accordi / 60 clausole →
-> **16 accordi / 38 sezioni / 60 clausole**, `integrity_check` ok, zero orfani, zero violazioni di FK.
+> Il codice è in `main`, ma la **MariaDB di produzione non è convertita** — e le migrazioni girano **all'avvio**
+> (`Vipi.Host/Program.cs`). Su un archivio non convertito `AgreementSectionsFinalize` **fallisce**: `NOT NULL`
+> su colonne ancora nulle, indice unico su coppie ancora doppie. È **voluto** (meglio un fallimento rumoroso di
+> un archivio a metà), ma significa che un deploy fatto adesso **non parte**.
 >
-> ⚠️ **Da qui in poi `src/Vipi.Host/vipi.db` gira solo con `feature/accordi-coordinamento`.** Il codice di
-> `main` cerca ancora `AgreementParties`, che non esiste più: tornare indietro **senza rimettere il backup**
-> fa crashare l'avvio. Il backup è **fuori dal repo**, in `../vipi.db.bak-pre-sezioni-20260818` (5,1 MB) — e il
-> `vipi.db` **non è tracciato in git**, quindi quel file è l'unica copia dello stato precedente.
+> Prima del deploy, in quest'ordine: backup → migrazione **additiva** → `tools/Vipi.AgreementsToSections
+> --mysql "<conn>"` (prima senza `--apply`, per leggere il piano) → migrazione **finale**. I comandi sono più
+> sotto, in «La conversione».
+>
+> Il `vipi.db` di **sviluppo** è invece già convertito (16 accordi, 38 sezioni, 60 clausole, `integrity_check`
+> ok). Il backup pre-conversione è **fuori dal repo**, in `../vipi.db.bak-pre-sezioni-20260818` (5,1 MB): è
+> l'unica copia dello stato precedente, perché il `vipi.db` **non è tracciato in git**.
 
 
 ## In una riga
@@ -241,7 +246,8 @@ fossero ancora vecchie, rifondendo accordi già fusi e mescolandone gli aeroport
 3. **Le due asimmetrie note NON sono state toccate** — `LGGG ⇄ LIBB` (BELIX di qua, OLGAT di là) e
    `LDZO ⇄ LIBB` (sei punti da un lato solo). Adesso stanno nello **stesso accordo**, una sezione sotto l'altra,
    quindi finalmente si **vedono**; sceglierne una è una decisione dei colleghi, non una migrazione.
-4. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6.
+4. ✅ **Merge in `main` fatto** il 18 agosto (`06798a9`), col committente che l'ha autorizzato. main verificato
+   dopo il merge: build Release 0 warning su due TFM, 2569 test verdi.
 5. ✅ **Chiusi il 18 agosto**: i tre difetti di `LevelFormatting`, `InlineConfirm` cablato in italiano e i
    plurali dei conteggi. Vedi «Le tre rifiniture di lingua e forma» più sotto.
 6. **`AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile** — due passate su tre in

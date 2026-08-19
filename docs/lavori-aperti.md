@@ -790,7 +790,7 @@ trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle 
 `/vsop/admin/trasferimenti` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
 è il conteggio sul DB di sviluppo.
 
-### E6-bis 🟡 Accordi di coordinamento — un accordo per COPPIA, il traffico nelle sezioni (ramo `feature/accordi-coordinamento`, 16-18 ago 2026)
+### E6-bis 🟡 Accordi di coordinamento — un accordo per COPPIA, il traffico nelle sezioni (in `main` dal 18 ago 2026)
 Carte, in ordine di vigore:
 [`feature/2026-08-18-accordi-a-sezioni.md`](feature/2026-08-18-accordi-a-sezioni.md) **(il modello di adesso)** ·
 [`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md) ·
@@ -843,7 +843,11 @@ Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSec
    dicevano «Sì, elimina» anche in pagina inglese, e anche per azioni che non eliminano.
 8. ✅ **Plurali dei conteggi** (18 agosto): «1 clause» invece di «1 clauses», in entrambe le lingue e in quattro
    punti. Un conteggio è la cosa che si legge più spesso nella pagina.
-8. **Merge in `main`**: serve l'ok esplicito, come per il doc 10 e per B6. Il committente sta provando il ramo.
+8. ✅ **Merge in `main` fatto** il 18 agosto (`06798a9`), autorizzato dal committente; main verificato dopo il
+   merge (build Release 0 warning su due TFM, 2569 test verdi).
+9. ⚠️ **Il deploy in produzione è BLOCCATO finché la MariaDB non è convertita**: le migrazioni girano all'avvio
+   e `AgreementSectionsFinalize` fallisce su un archivio non convertito. È la protezione voluta, ma va saputa
+   **prima** di pubblicare — non dopo.
 
 ⚠️ **Due difetti trovati eseguendo, e che nessun test vedeva** — valgono fuori da quest'area: fra le due
 migrazioni lo schema è **misto**, e cancellare un guscio si portava via clausole già riappese correttamente (60
