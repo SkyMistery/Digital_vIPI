@@ -93,12 +93,25 @@
 .struct .add-form .check{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;margin:2px 0 12px}
 .struct .add-form .check input{width:auto}
 /* Editor struttura: griglia a due colonne che può restringersi (fix overflow label/tabelle nel pannello stretto). */
-.struct .topo-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* ---- Aeroporti: i due pannelli sono alti quanto lo schermo meno ciò che sta sopra ----
+   Il `calc` è il valore di PARTENZA prima che `vipiFitViewport` misuri (la testata cambia altezza da sola:
+   lock, chip d'esito, chip di avanzamento), non la verità. ⚠️ `min-height` allineata al `fitMin` del JS
+   (320): due pavimenti diversi per la stessa cosa sono un pavimento sbagliato — quello del CSS vincerebbe a
+   zoom alto e la pagina tornerebbe a scorrere. */
+.struct .topo-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
 .struct .topo-layout .panel{min-width:0;overflow-x:auto}
+/* Il pannello incastonato governa da sé i suoi assi: scorre il corpo, non la scatola. */
+.struct .topo-layout .panel.st-pane{overflow:hidden}
+/* Il contenuto arriva al bordo dello schermo per costruzione: il respiro in fondo diventerebbe scorrimento
+   su una pagina che non deve scorrere. */
+.wrap.struct:has(.topo-layout){padding-bottom:18px}
 .struct .res-table td{word-break:break-word}
 /* Font dei label dell'editor allineato a quello della pagina (Poppins) invece di Nunito Sans maiuscolo. */
 .struct .add-form .field label,.struct .inline-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
-@media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr}}
+/* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
+   un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
+@media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}}
 
 /* ---------- Layout ---------- */
 .screen{display:none}
@@ -121,6 +134,8 @@
 .pill.green{background:#dafbe7;color:var(--ok-ink)}
 .pill.future{background:#fff3cf;color:var(--warn-ink);border:1px dashed #e2b400}
 .pill.neutral{background:#eef1f7;color:#57606a}  /* pill grigio-azzurra (condizione/nascosta), U8: prima inline */
+.pill.red{background:#ffe0e0;color:#b42318}      /* stato negativo (nascosto dall'admin): prima in linea */
+.pill.amber{background:#ffe9c7;color:#9a6700}    /* avviso su una riga (senza torre): prima in linea */
 
 /* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
 .tok-set{display:inline-flex;gap:2px;flex-wrap:wrap}
@@ -1171,6 +1186,10 @@ button.sh-chip.warn:hover{background:#ffe9a8}
 /* `--st-head-h` la scrive vipiStickyOffset misurando la testata appiccicata (0 se non ce n'è una): senza,
    con la testata in cima il `thead` le passa SOTTO, ed è il difetto che i Trasferimenti hanno già pagato. */
 .res-table.sticky-head thead th{position:sticky;top:calc(62px + var(--st-head-h, 0px));z-index:6;box-shadow:inset 0 -1px 0 var(--line)}
+/* ⚠️ Dentro un riquadro che scorre lo sticky è relativo al CONTENITORE, non alla finestra: la quota della
+   topbar qui non c'entra e lascerebbe l'intestazione sospesa a 62px dal bordo del pannello. Il fondo pieno
+   arriva dalla regola globale `th{background:#eef1fb}`: senza, le righe passerebbero sotto e si vedrebbero. */
+.struct .st-scroll .res-table.sticky-head thead th{top:0}
 /* Cella con una modifica non ancora salvata: si vede da lontano quante ne restano da confermare. */
 .struct .res-table input.lim-dirty{border-color:#e2b400;background:#fffdf3;box-shadow:0 0 0 2px #fff3cf}
 /* Riga che si sceglie: il cursore lo dice prima del clic, il filo blu a sinistra lo dice dopo. Il fondo pieno
@@ -1202,6 +1221,17 @@ button.sh-chip.warn:hover{background:#ffe9a8}
 .struct .bulk-bar select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:#fff}
 .struct .bulk-bar .btn{padding:5px 11px;font-size:12.5px;border-radius:7px}
 .struct .btn.ghost.danger{background:#fde8e8;color:#b3261e}
+/* ---- Aeroporti: colonne, stati e sottotitoli di riga (erano stili in linea) ----
+   Le pill di stato portano un'icona: in linea la `.pill` è `inline-block` e l'icona ci si appoggia col
+   baseline, storta di un pixel e mezzo. Dentro le tabelle diventano scatole flessibili. */
+.struct .res-table .pill{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+.struct .res-table td.col-state,.struct .res-table td.col-act{white-space:nowrap}
+.struct .res-table td .apt-flag{margin-left:6px}
+.struct .res-table td .apt-sub{font-size:11px}
+/* Riga dell'anagrafica già assegnata: si vede col chip, non si può scegliere. */
+.struct .res-table tbody tr.row-done>td{background:#f2fbf5}
+/* Pannello incastonato: il titolo di sezione non ha i 34px di respiro di una sezione di pagina. */
+.struct .st-pane .section-title{margin:0 0 10px}
 /* Celle non editabili cliccabili per selezionare la riga. */
 .struct .res-table td.sel-cell{cursor:pointer;user-select:none}
 .struct .res-table tbody tr:hover td.sel-cell{background:#f2f5ff}
@@ -1735,6 +1765,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   font-size:12.5px;font-weight:600;line-height:1.35;border:1px solid;border-radius:14px;padding:5px 6px 5px 12px}
 .st-head .st-msg.ok{background:#dafbe7;border-color:#a7e9c1;color:var(--ok-ink)}
 .st-head .st-msg.warn{background:#fff3cf;border-color:#e2b400;color:var(--warn-ink)}
+/* Avanzamento di un'azione lunga: stesso posto e stessa forma del chip d'esito (i due non convivono mai),
+   colore neutro perché non è ancora né un successo né un guaio. */
+.st-head .st-msg.prog{background:#eef1fb;border-color:#c3cdf0;color:var(--ivao-blue)}
+.st-head .st-msg.prog .spin{display:inline-block;width:12px;height:12px;flex:none;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+.st-head .st-msg .lnk-mini{flex:none;margin-left:2px}
 .st-head .st-msg [data-icon]{flex:none}
 .st-head .st-msg-t{min-width:0;overflow-wrap:anywhere}
 .st-head .st-msg .tclose{flex:none;border:0;background:transparent;cursor:pointer;font-size:14px;color:inherit;

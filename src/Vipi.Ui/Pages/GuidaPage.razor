@@ -456,6 +456,50 @@
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 
+        new Sec("admin-aeroporti", "plane-takeoff", "Aeroporti: assegnazione alle ACC", "Airports: assignment to ACCs",
+            @"<p>La pagina <b>Aeroporti</b> (<code>/vsop/admin/airports</code>) decide la <b>ACC di competenza</b>
+               di ogni aeroporto: da lì discendono la gerarchia di settori, il documento e la pagina pubblica.
+               A sinistra gli aeroporti già assegnati, a destra l'<b>anagrafica IVAO</b> da cui si pescano.</p>
+              <ul>
+                <li><b>Auto-assegna</b> crea in un colpo gli aeroporti la cui ACC di competenza è già nel DB e
+                    ne importa i settori dalla sorgente. È il primo gesto su un database nuovo.</li>
+                <li>Per gli altri: spunta le righe nell'anagrafica, scegli la ACC nella barra e premi
+                    <b>Assegna selezionati</b>. L'anagrafica mostra i <b>non assegnati</b>; il chip
+                    «già assegnati» riporta gli altri, in verde e non selezionabili.</li>
+                <li><b>Re-importa tutti</b> ripreleva piste e Transition Altitude per tutti gli assegnati:
+                    sono decine di chiamate in fila, l'<b>avanzamento</b> si vede in testata e si può
+                    <b>interrompere</b>. Rispetta la policy di <code>/vsop/admin/sorgenti</code>.</li>
+                <li>Le azioni di gruppo (sposta, genera documenti, elimina, assegna) lavorano sulle righe
+                    spuntate, proseguono oltre i fallimenti e lasciano <b>selezionato chi è fallito</b>: quello
+                    che resta nel contatore è quello che non è passato.</li>
+                <li>I chip <b>nascosti</b>, <b>no settori</b> e <b>no TWR</b> filtrano l'elenco: sono lo stato
+                    che altrimenti si legge solo scorrendo. A zero restano lì, spenti.</li>
+                <li>Un aeroporto <b>senza settori</b> resta nascosto al pubblico finché non genera i documenti;
+                    l'occhio barrato di ogni riga lo nasconde o lo mostra a mano.</li>
+              </ul>
+              <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta.</p>",
+            @"<p>The <b>Airports</b> page (<code>/vsop/admin/airports</code>) decides each airport's
+               <b>owning ACC</b>: the sector hierarchy, the document and the public page follow from it.
+               On the left the already assigned airports, on the right the <b>IVAO directory</b> to pick from.</p>
+              <ul>
+                <li><b>Auto-assign</b> creates in one go the airports whose owning ACC is already in the DB and
+                    imports their sectors from the source. It is the first move on a fresh database.</li>
+                <li>For the others: tick the rows in the directory, pick the ACC in the bar and press
+                    <b>Assign selected</b>. The directory shows the <b>unassigned</b> ones; the
+                    ""already assigned"" chip brings the others back, in green and not selectable.</li>
+                <li><b>Re-import all</b> re-fetches runways and Transition Altitude for every assigned airport:
+                    dozens of calls in a row, <b>progress</b> is shown in the header and can be <b>stopped</b>.
+                    It respects the <code>/vsop/admin/sorgenti</code> policy.</li>
+                <li>Group actions (move, generate documents, delete, assign) work on the ticked rows, carry on
+                    past failures and leave <b>whatever failed still selected</b>: what stays in the counter is
+                    what did not go through.</li>
+                <li>The <b>hidden</b>, <b>no sectors</b> and <b>no TWR</b> chips filter the list: they are the
+                    state you would otherwise only find by scrolling. At zero they stay put, switched off.</li>
+                <li>An airport <b>with no sectors</b> stays hidden from the public until it generates its
+                    documents; the crossed-out eye on each row hides or shows it by hand.</li>
+              </ul>
+              <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
+
         new Sec("admin", "grid", "Aree admin", "Admin areas",
             @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
               <ul>

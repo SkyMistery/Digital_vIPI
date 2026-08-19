@@ -1,8 +1,9 @@
 # Regole di densità e uso per le pagine admin (19 agosto 2026)
 
-> **A cosa serve.** Fra il 16 e il 19 agosto tre pagine admin sono state rifatte nella forma —
+> **A cosa serve.** Fra il 16 e il 19 agosto quattro pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
-> [ACC](../feature/2026-08-19-acc-admin-densita-ui.md) — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> [ACC](../feature/2026-08-19-acc-admin-densita-ui.md), [aeroporti](../feature/2026-08-19-aeroporti-densita-ui.md)
+> — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -153,7 +154,27 @@ pieno di righe.
     «doveva» starci in riga e non ci stava, il chip a zero che «non si vedeva» e invece era verde, il riquadro
     che «era a posto» e sforava di 21px.
 
-## 11. Ricognizione: chi aderisce e chi no (19 agosto 2026)
+## 11. Quello che ha lasciato il giro Aeroporti
+
+51. **`thead` fermo dentro un riquadro che scorre: `top:0`.** La regola 23 vale per una **pagina** che scorre
+    (`top:calc(62px + var(--st-head-h))`, la quota della topbar). Dentro un `.st-scroll` lo sticky è relativo
+    al **contenitore**: la stessa regola lascerebbe l'intestazione sospesa 62px sotto il bordo del pannello.
+    Variante pronta: `.struct .st-scroll .res-table.sticky-head thead th{top:0}`.
+52. **Un ciclo lungo dice a che punto è e si lascia fermare.** Novanta chiamate alla sorgente in fila con solo
+    uno spinner sono indistinguibili da un'applicazione bloccata. Il chip di testata conta (`12/92`), conta i
+    falliti e porta **Interrompi**; l'esito dice quanti non sono stati provati. ⚠️ Dentro un gestore di evento
+    Blazor rende **una volta sola, alla fine**: il render intermedio va sollecitato (`StateHasChanged()` +
+    `await Task.Yield()`), altrimenti l'avanzamento si vede a lavoro finito — cioè mai.
+53. **Una colonna di trattini non è una colonna.** «Assegnazione» era vuota per costruzione (i già assegnati
+    sono nascosti) e occupava un quarto del pannello: esiste solo quando c'è qualcosa da dirci. Vale anche per
+    l'etichetta di un tasto in colonna: a 1280 «Nascondi» spingeva il cestino **oltre il bordo**, e il nome sta
+    benissimo nel `title` se gli altri tasti della colonna sono già icone.
+54. **Il tasto che va a capo per primo è quello in fondo**: la ✕ del «deseleziona» è salita accanto al
+    contatore che azzera. Misurato: la barra stava in 700px dentro 697 — andava a capo per **tre pixel**, e una
+    riga in più di barra è una riga in meno di tabella. Prima di stringere, misurare (regola 34) vale anche
+    quando manca pochissimo.
+
+## 12. Ricognizione: chi aderisce e chi no (19 agosto 2026)
 
 Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB di sviluppo (l'altezza dipende
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
@@ -166,6 +187,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Accordi di coordinamento | `/vsop/admin/trasferimenti` | 900 | testata in riga, altezza misurata, colonne fisse |
 | Struttura | `/vsop/admin/sectorstructure` | 900 | testata in riga, due pannelli con il solo corpo che scorre |
 | ACC | `/vsop/admin/acc` | 8714 | testata appiccicata, `thead` fermo su entrambe le tabelle (28 e 152 righe) |
+| Aeroporti | `/vsop/admin/airports` | 899 | **da 13 745**: due pannelli misurati, `thead` fermo dentro lo scroller, azioni di gruppo con avanzamento ([carta](../feature/2026-08-19-aeroporti-densita-ui.md)) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -173,18 +195,17 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Aeroporti** | `/vsop/admin/airports` | **13 745** | Due tabelle da **92 e 221 righe senza intestazione appiccicata** — è il caso peggiore del ramo. Testata a due blocchi col sottotitolo, **lock in fascia**, 3 callout in fascia, 8 paragrafi d'aiuto in pagina, filtri senza `.htree-*`, cinque emoji-comando (👁 🙈 🚫 🔒 ⚠). Le vale tutte le regole. |
-| 2 | **Editor aeroporto** | `/vsop/{acc}/airports/editor` | **10 059** | Tabella da 39 righe senza `thead` fermo, **9 callout in fascia**, 17 paragrafi d'aiuto, filtri vecchi, emoji-comando. ⚠️ Ha rail e TOC: la testata in riga va **adattata**, non ricopiata — i comandi stanno già nel rail, quindi qui servono soprattutto i «?», il `thead` e i messaggi che non spingono. |
-| 3 | **Editor ACC** | `/vsop/{acc}/editor` | 6 466 | Sottotitolo in testa, 3 paragrafi d'aiuto, tabelle corte (12 righe) ma nessun `thead` fermo; un solo «?». Stesso discorso rail/TOC. |
-| 4 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
-| 5 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
-| 6 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
-| 7 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 8 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 9 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 10 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 11 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 12 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Editor aeroporto** | `/vsop/{acc}/airports/editor` | **10 059** | Tabella da 39 righe senza `thead` fermo, **9 callout in fascia**, 17 paragrafi d'aiuto, filtri vecchi, emoji-comando. ⚠️ Ha rail e TOC: la testata in riga va **adattata**, non ricopiata — i comandi stanno già nel rail, quindi qui servono soprattutto i «?», il `thead` e i messaggi che non spingono. |
+| 2 | **Editor ACC** | `/vsop/{acc}/editor` | 6 466 | Sottotitolo in testa, 3 paragrafi d'aiuto, tabelle corte (12 righe) ma nessun `thead` fermo; un solo «?». Stesso discorso rail/TOC. |
+| 3 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
+| 4 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
+| 5 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
+| 6 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 7 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 8 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 9 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 10 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 11 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ### Fuori ambito: le viste pubbliche
 
@@ -217,7 +238,7 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Chip di stato | `.sh-chip` (`.warn`, `.on`, `:disabled`), gruppo `.sb-chips` |
 | Barra dei filtri | `.struct-bar` + `.htree-search` / `.htree-select` |
 
-## Esempi misurati (le tre carte)
+## Esempi misurati (le quattro carte)
 
 - [Accordi di coordinamento — densità](../feature/2026-08-19-accordi-densita-ui.md): la prima testata in riga,
   le colonne fisse, l'altezza misurata sopra tre colonne.
@@ -225,3 +246,6 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
   saltano, pannelli con il solo corpo che scorre.
 - [Pagina ACC — densità](../feature/2026-08-19-acc-admin-densita-ui.md): intestazioni che restano, la perdita
   dei limiti, la scelta per riga, lo zoom, i «?» fuori schermo.
+- [Aeroporti — densità](../feature/2026-08-19-aeroporti-densita-ui.md): due pannelli misurati al posto di una
+  pagina da 13 745px, il `thead` fermo dentro lo scroller, l'avanzamento vero delle azioni di gruppo e i
+  falliti che restano selezionati.

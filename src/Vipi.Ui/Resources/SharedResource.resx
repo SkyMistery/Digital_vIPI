@@ -724,11 +724,10 @@
   <data name="Conf_PolygonSaved" xml:space="preserve"><value>Poligono salvato.</value></data>
   <data name="Conf_PairAdded" xml:space="preserve"><value>Coppia aggiunta.</value></data>
   <data name="Apt_Title" xml:space="preserve"><value>Aeroporti</value></data>
-  <data name="Apt_Subtitle" xml:space="preserve"><value>Assegnazione aeroporti IVAO alle ACC, ACC di competenza e gerarchia di settori</value></data>
   <data name="Apt_AssignedTitle" xml:space="preserve"><value>Assegnati a una ACC</value></data>
   <data name="Apt_ReimportTitle" xml:space="preserve"><value>Ripreleva da IVAO piste e Transition Altitude per TUTTI gli aeroporti assegnati (rispetta la policy /vsop/admin/sorgenti)</value></data>
-  <data name="Apt_ReimportBtn" xml:space="preserve"><value>Re-importa da IVAO (tutti)</value></data>
-  <data name="Apt_FilterIcaoName" xml:space="preserve"><value>🔎 filtra per ICAO o nome…</value></data>
+  <data name="Apt_ReimportBtn" xml:space="preserve"><value>Re-importa tutti</value></data>
+  <data name="Apt_FilterIcaoName" xml:space="preserve"><value>filtra per ICAO o nome…</value></data>
   <data name="Apt_FilterAccTitle" xml:space="preserve"><value>Filtra per ACC</value></data>
   <data name="Apt_AllAccs" xml:space="preserve"><value>tutte le ACC</value></data>
   <data name="Apt_NoAssigned" xml:space="preserve"><value>Nessun aeroporto assegnato. Assegnane dalla tabella a destra.</value></data>
@@ -742,8 +741,8 @@
   <data name="Apt_GenDocs" xml:space="preserve"><value>Genera documenti</value></data>
   <data name="Apt_DeleteSelectedAria" xml:space="preserve"><value>Elimina aeroporti selezionati</value></data>
   <data name="Apt_DeleteSelectedPrompt" xml:space="preserve"><value>Eliminare {0} selezionati?</value></data>
-  <data name="Apt_DeleteSelected" xml:space="preserve"><value>Elimina selezionati</value></data>
-  <data name="Apt_Deselect" xml:space="preserve"><value>deseleziona</value></data>
+  <data name="Apt_DeleteSelected" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Apt_Deselect" xml:space="preserve"><value>Deseleziona tutte le righe</value></data>
   <data name="Apt_ColSectors" xml:space="preserve"><value>Settori</value></data>
   <data name="Apt_OpenEditorTitle" xml:space="preserve"><value>Apri editor aeroporto {0}</value></data>
   <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Ogni aeroporto deve avere almeno una torre (TWR o I_TWR). Genera i documenti o aggiungi la torre dalla pagina Struttura.</value></data>
@@ -761,24 +760,22 @@
   <data name="Apt_DeleteTriggerTitle" xml:space="preserve"><value>Solo se senza settori</value></data>
   <data name="Apt_IvaoDirTitle" xml:space="preserve"><value>Anagrafica IVAO</value></data>
   <data name="Apt_AutoAssignTitle" xml:space="preserve"><value>Assegna gli aeroporti IVAO alla ACC di competenza già esistente e importa i loro settori dalla sorgente</value></data>
-  <data name="Apt_AutoAssignBtn" xml:space="preserve"><value>Auto-assegna noti</value></data>
+  <data name="Apt_AutoAssignBtn" xml:space="preserve"><value>Auto-assegna</value></data>
   <data name="Apt_IvaoUnavailable" xml:space="preserve"><value>Anagrafica IVAO non disponibile:</value></data>
   <data name="Apt_LoadingIvao" xml:space="preserve"><value>Carico l'anagrafica aeroporti da IVAO…</value></data>
-  <data name="Apt_IvaoIntro" xml:space="preserve"><value>In &lt;span style="color:#1a7f37;font-weight:700"&gt;verde&lt;/span&gt; gli aeroporti già assegnati. «Auto-assegna noti» crea quelli con ACC di competenza già presente nel DB; per gli altri scegli la ACC e premi «assegna».</value></data>
+  <data name="Apt_IvaoIntro" xml:space="preserve"><value>Qui c'è l'anagrafica degli aeroporti IVAO. Di norma si mostrano solo i &lt;b&gt;non assegnati&lt;/b&gt;: il chip «già assegnati» riporta gli altri, che restano in verde e non si possono scegliere. «Auto-assegna» crea in un colpo quelli con ACC di competenza già presente nel DB; per gli altri spunta le righe, scegli la ACC nella barra e premi «Assegna selezionati».</value></data>
   <data name="Apt_NoResultsFor" xml:space="preserve"><value>Nessun risultato per «{0}».</value></data>
   <data name="Apt_AssignToAcc" xml:space="preserve"><value>assegna a ACC…</value></data>
-  <data name="Apt_AssignSelected" xml:space="preserve"><value>Assegna selezionati</value></data>
+  <data name="Apt_AssignSelected" xml:space="preserve"><value>Assegna</value></data>
   <data name="Apt_ColAccFromDb" xml:space="preserve"><value>ACC da DB</value></data>
   <data name="Apt_ColAssignment" xml:space="preserve"><value>Assegnazione</value></data>
-  <data name="Apt_AccOption" xml:space="preserve"><value>ACC…</value></data>
-  <data name="Apt_Assign" xml:space="preserve"><value>assegna</value></data>
   <data name="Apt_AutoAssignNone" xml:space="preserve"><value>Nessun aeroporto da assegnare (già tutti presenti o ACC non create).</value></data>
   <data name="Apt_AutoAssignOk" xml:space="preserve"><value>Assegnati {0} aeroporti alla ACC di competenza (settori importati dalla sorgente).</value></data>
   <data name="Apt_AutoAssignSkipped" xml:space="preserve"><value> {0} aeroporti saltati (dettaglio nei log).</value></data>
   <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Scegli la ACC di destinazione.</value></data>
   <data name="Apt_MovedOk" xml:space="preserve"><value>Spostati {0} aeroporti in {1}</value></data>
   <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} non spostati.</value></data>
-  <data name="Apt_DocsGenerated" xml:space="preserve"><value>Documenti aeroporto generati: {0} (settori creati {1})</value></data>
+  <data name="Apt_DocsGenerated" xml:space="preserve"><value>Documenti aeroporto generati: {0} (settori creati: {1})</value></data>
   <data name="Apt_DocsSkipped" xml:space="preserve"><value>, {0} già esistenti</value></data>
   <data name="Apt_DocsFailed" xml:space="preserve"><value>, {0} falliti</value></data>
   <data name="Apt_ReimportOk" xml:space="preserve"><value>Re-import da IVAO completato per {0} aeroporti</value></data>
@@ -788,6 +785,41 @@
   <data name="Apt_ChooseAcc" xml:space="preserve"><value>Scegli la ACC.</value></data>
   <data name="Apt_AssignedOk" xml:space="preserve"><value>Assegnati {0} aeroporti a {1}</value></data>
   <data name="Apt_AssignedFail" xml:space="preserve"><value>, {0} non assegnati.</value></data>
+  <data name="Apt_HelpAria" xml:space="preserve"><value>Aiuto sulla pagina Aeroporti</value></data>
+  <data name="Apt_HelpBody" xml:space="preserve"><value>&lt;p&gt;Assegnazione degli aeroporti IVAO alle ACC: qui si decide la &lt;b&gt;ACC di competenza&lt;/b&gt; di ogni aeroporto, da cui discendono la gerarchia di settori e la pagina pubblica.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Auto-assegna&lt;/b&gt; crea gli aeroporti la cui ACC di competenza è già nel DB e ne importa i settori dalla sorgente.&lt;/li&gt;&lt;li&gt;&lt;b&gt;Re-importa tutti&lt;/b&gt; ripreleva piste e Transition Altitude per tutti gli assegnati: sono tante chiamate in fila, l&#39;avanzamento si vede in testata e si può interrompere.&lt;/li&gt;&lt;li&gt;Le azioni di gruppo (sposta, genera documenti, elimina, assegna) lavorano sulle righe spuntate; chi fallisce &lt;b&gt;resta selezionato&lt;/b&gt;.&lt;/li&gt;&lt;li&gt;Un aeroporto senza settori resta nascosto al pubblico finché non genera i documenti.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;La pagina condivide il &lt;b&gt;lock&lt;/b&gt; delle pagine di struttura: una persona alla volta.&lt;/p&gt;</value></data>
+  <data name="Apt_IvaoHelpAria" xml:space="preserve"><value>Aiuto sull&#39;anagrafica IVAO</value></data>
+  <data name="Apt_CountOf" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="Apt_NoUnassigned" xml:space="preserve"><value>Nessun aeroporto da assegnare: sono tutti già assegnati a una ACC.</value></data>
+  <data name="Apt_ChipHidden" xml:space="preserve"><value>nascosti {0}</value></data>
+  <data name="Apt_ChipHiddenTitle" xml:space="preserve"><value>Mostra solo gli aeroporti nascosti al pubblico dall&#39;admin</value></data>
+  <data name="Apt_ChipNoSectors" xml:space="preserve"><value>no settori {0}</value></data>
+  <data name="Apt_ChipNoSectorsTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza nemmeno un settore: sono nascosti finché non generano i documenti</value></data>
+  <data name="Apt_ChipNoTwr" xml:space="preserve"><value>no TWR {0}</value></data>
+  <data name="Apt_ChipNoTwrTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza torre (TWR o I_TWR)</value></data>
+  <data name="Apt_ChipAssigned" xml:space="preserve"><value>già assegnati {0}</value></data>
+  <data name="Apt_ChipAssignedTitle" xml:space="preserve"><value>Mostra anche gli aeroporti già assegnati a una ACC (di norma nascosti: si vedono nell&#39;elenco a sinistra)</value></data>
+  <data name="Apt_Stop" xml:space="preserve"><value>Interrompi</value></data>
+  <data name="Apt_StopTitle" xml:space="preserve"><value>Ferma l&#39;operazione: quello che è già stato scritto resta, il resto non viene provato</value></data>
+  <data name="Apt_Stopped" xml:space="preserve"><value> Interrotto: {0} non provati.</value></data>
+  <data name="Apt_StoppedOne" xml:space="preserve"><value> Interrotto: 1 non provato.</value></data>
+  <data name="Apt_ProgFailed" xml:space="preserve"><value> ({0} falliti)</value></data>
+  <data name="Apt_ProgMove" xml:space="preserve"><value>Sposto</value></data>
+  <data name="Apt_ProgDocs" xml:space="preserve"><value>Genero documenti</value></data>
+  <data name="Apt_ProgDelete" xml:space="preserve"><value>Elimino</value></data>
+  <data name="Apt_ProgAssign" xml:space="preserve"><value>Assegno</value></data>
+  <data name="Apt_ProgReimport" xml:space="preserve"><value>Re-importo da IVAO</value></data>
+  <data name="Apt_AutoAssignOkOne" xml:space="preserve"><value>Assegnato 1 aeroporto alla ACC di competenza (settori importati dalla sorgente).</value></data>
+  <data name="Apt_AutoAssignSkippedOne" xml:space="preserve"><value> 1 aeroporto saltato (dettaglio nei log).</value></data>
+  <data name="Apt_MovedOkOne" xml:space="preserve"><value>Spostato 1 aeroporto in {1}</value></data>
+  <data name="Apt_MovedFailOne" xml:space="preserve"><value>, 1 non spostato.</value></data>
+  <data name="Apt_DocsSkippedOne" xml:space="preserve"><value>, 1 già esistente</value></data>
+  <data name="Apt_DocsFailedOne" xml:space="preserve"><value>, 1 fallito</value></data>
+  <data name="Apt_ReimportOkOne" xml:space="preserve"><value>Re-import da IVAO completato per 1 aeroporto</value></data>
+  <data name="Apt_ReimportFailOne" xml:space="preserve"><value>, 1 fallito (dettaglio nei log).</value></data>
+  <data name="Apt_DeletedOkOne" xml:space="preserve"><value>Eliminato 1 aeroporto</value></data>
+  <data name="Apt_DeletedFailOne" xml:space="preserve"><value>, 1 non eliminato (settori collegati).</value></data>
+  <data name="Apt_AssignedOkOne" xml:space="preserve"><value>Assegnato 1 aeroporto a {1}</value></data>
+  <data name="Apt_AssignedFailOne" xml:space="preserve"><value>, 1 non assegnato.</value></data>
   <data name="Xfer_Title" xml:space="preserve"><value>Trasferimenti</value></data>
   <data name="Xfer_Heading" xml:space="preserve"><value>Accordi di coordinamento</value></data>
   <data name="Xfer_NoAccImport" xml:space="preserve"><value>Nessun ACC. Importa dalla &lt;a href="/vsop/admin/acc"&gt;pagina ACC&lt;/a&gt;.</value></data>
