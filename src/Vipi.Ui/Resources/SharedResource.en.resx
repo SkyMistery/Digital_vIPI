@@ -559,11 +559,21 @@
   <!-- Country names live ONCE, further up (Country_LF … Country_LI). A second, near-identical list used to
        sit here: the resource compiler dropped the duplicates with 14 MSB3568 per file, and -warnaserror broke
        the production build. Add new countries up there. -->
-  <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Centers imported from the source. All active: hide some if needed.</value></data>
   <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Import/update ACCs and ACC sectors from the data source</value></data>
+  <data name="AccAdmin_HelpAria" xml:space="preserve"><value>Help on the ACC page</value></data>
+  <data name="AccAdmin_HelpBody" xml:space="preserve"><value>The &lt;b&gt;Area Control Centers&lt;/b&gt; and their &lt;b&gt;sectors&lt;/b&gt; come from the data source via «Import from source»: they are not created by hand here. They all start &lt;b&gt;active&lt;/b&gt;: hide the ones the division does not use (hiding an ACC hides its sectors too). The sectors' &lt;b&gt;level limits&lt;/b&gt; and the &lt;b&gt;regulated areas&lt;/b&gt; are yours to decide. Who covers whom is set in &lt;b&gt;Sector structure&lt;/b&gt; instead.</value></data>
+  <data name="AccAdmin_SubsHelpAria" xml:space="preserve"><value>Help on ACC sectors</value></data>
+  <data name="AccAdmin_CountOf" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="AccAdmin_SectorsChipN" xml:space="preserve"><value>{0} sectors</value></data>
+  <data name="AccAdmin_SectorsChip1" xml:space="preserve"><value>1 sector</value></data>
+  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Show only the sectors of {0} below</value></data>
+  <data name="AccAdmin_SaveAllLimits" xml:space="preserve"><value>Save limits ({0})</value></data>
+  <data name="AccAdmin_SaveAllLimitsTitle" xml:space="preserve"><value>Save every changed level limit in one go</value></data>
+  <data name="AccAdmin_LimitsSavedN" xml:space="preserve"><value>{0} sectors saved.</value></data>
+  <data name="AccAdmin_LimitDirtyTitle" xml:space="preserve"><value>Unsaved change: press «Save limits».</value></data>
   <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Import from source</value></data>
-  <data name="AccAdmin_FilterAcc" xml:space="preserve"><value>🔎 filter by code or name…</value></data>
-  <data name="AccAdmin_FilterSub" xml:space="preserve"><value>🔎 filter by callsign, ACC, position…</value></data>
+  <data name="AccAdmin_FilterAcc" xml:space="preserve"><value>filter by code or name…</value></data>
+  <data name="AccAdmin_FilterSub" xml:space="preserve"><value>filter by callsign, ACC, position…</value></data>
   <data name="AccAdmin_FilterCountryTitle" xml:space="preserve"><value>Filter by country (applies to both tables)</value></data>
   <data name="AccAdmin_AllCountries" xml:space="preserve"><value>all countries</value></data>
   <data name="AccAdmin_NoAcc" xml:space="preserve"><value>No ACC. Press «Import from source» to populate the list.</value></data>

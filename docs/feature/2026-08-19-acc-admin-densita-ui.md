@@ -1,0 +1,70 @@
+# Pagina ACC (admin) — testata, intestazioni che restano, limiti che non si perdono (19 agosto 2026)
+
+Terzo giro della stessa famiglia, dopo
+[accordi](2026-08-19-accordi-densita-ui.md) e [struttura](2026-08-19-struttura-densita-ui.md):
+`/vsop/admin/acc`. Qui però non è solo forma — c'è **una perdita di lavoro** (§D) trovata leggendo il codice
+per il resto del giro.
+
+## Il difetto misurato
+
+Pagina alta **8878px**: 28 ACC e 152 settori srotolati uno sotto l'altro, con l'intestazione delle colonne
+fuori schermo dopo dieci righe. Nella tabella dei settori si **scrive dentro le celle** (due caselle identiche
+da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scrive alla cieca.
+
+## Cosa cambia
+
+1. **Testata in una riga** (`.st-head`, la classe nata per Struttura): `ACC · «?» · ⟳ Importa da sorgente ·
+   Struttura settori → ····· lock`. I due tasti salgono dalla riga-titolo alla testata perché sono comandi di
+   **pagina**, non della tabella. `AccAdmin_Subtitle` rimossa da **entrambi** i resx: quello che diceva lo dice
+   il «?» al clic (`AccAdmin_HelpBody`).
+2. **La nota dei settori diventa il «?»** accanto a «Settori ACC»: `AccAdmin_SubsNote` riusata **identica**.
+3. **Intestazioni che restano** (`.res-table.sticky-head`): `thead` appiccicato sotto la topbar (`top:62px`,
+   `z-index:6` — la topbar è a 45 e deve stargli sopra). Con `border-collapse:collapse` il bordo di una `th`
+   appiccicata si perde durante lo scorrimento: si rifà con `box-shadow:inset`.
+4. **⚠️ I limiti non si perdono più.** `SaveLimits` chiamava `ReloadAsync`, che fa `_lower.Clear()` e ricarica
+   dal DB: **ogni altra cella toccata e non salvata tornava indietro in silenzio**. Chi compilava dieci settori
+   e salvava il primo perdeva gli altri nove senza un avviso. Ora:
+   - `_dirtyLimits` tiene gli id con modifiche pendenti, e la cella si vede (`.lim-dirty`);
+   - `ReloadAsync` **riapplica** i valori pendenti dopo il ricarico invece di scartarli;
+   - **«Salva limiti (N)»** nella riga-titolo dei settori salva tutto in un giro.
+   Il salvataggio per riga resta: è quello che si usa quando si tocca un settore solo.
+5. **Dall'ACC ai suoi settori in un clic**: nella riga ACC un chip «N settori» filtra la tabella sotto su quel
+   codice e ci porta (`vipiScrollToId`). Prima si scorreva a mano fra 152 righe o si ridigitava il codice.
+6. **Contatori onesti**: i pill dei titoli dicono «12 di 28» quando un filtro è attivo. Prima dicevano sempre
+   il totale mentre la tabella mostrava altro.
+7. **Emoji colorate → `Icon`** (regola già presa nel progetto): 👁/🚫 → `eye`/`eye-off`, 💾 → `check-circle`,
+   ⟳ → `refresh`, il 🚫 di «Escludi aree» → `x`. I filtri prendono `.htree-search`/`.htree-select` come in
+   Struttura (e perdono il 🔎 dentro il placeholder: la lente è disegnata nel campo). Resta `🪖` della colonna
+   Militare: nel set non c'è un equivalente.
+
+## Cosa NON è cambiato, e perché
+
+- **La select nazione resta duplicata** nelle due tabelle: è lo **stesso** filtro (`_country`), muoverla in una
+  muove l'altra. È voluto — separarle vorrebbe dire due stati da ricordare — e il `title` lo dice.
+- **Niente altezza misurata alla Struttura**: là le colonne sono affiancate, qui le tabelle sono **impilate**.
+  Incastonarle vorrebbe dire due riquadri che scorrono dentro una pagina che scorre: la trappola già pagata.
+
+## Verifica
+
+`dotnet build Vipi.slnx -c Release --no-incremental`: **0 avvisi, 0 errori** su entrambi i TFM. `dotnet test`:
+**2570 verdi**. Guidata con Edge+puppeteer su copia del DB (porta 5035), in italiano:
+
+- **Testata**: 51px, una riga sola — titolo+conteggio, «?», i due comandi (296px), lock a destra (289px).
+  Nessuna traccia del sottotitolo né della nota dei settori nel testo della pagina; «?» chiusi al passaggio del
+  mouse, aperti al clic (popover 360px).
+- **Intestazioni che restano**: dopo `scrollTo(0, 3000)` la `th` «CALLSIGN» è a `y=62` — esattamente sotto la
+  topbar — e visibile. Quella della prima tabella è fuori campo perché la sua tabella è tutta sopra: giusto così.
+- **Chip**: «4 settori» su LIBB → filtro `LIBB`, **4 righe** su 152, pill «4 di 152», pagina portata a `y=1037`.
+- **La prova della perdita** (il punto del giro): preso il lock, scritti `1600` in `LIBB_ES_CTR` e `2600` in
+  `LIBB_EU_CTR` — due celle sporche, «Salva limiti (2)». Salvata **solo la prima** con il tasto di riga:
+  `['1600','2600']`, sporca solo la seconda, «Salva limiti (1)». Prima di questo giro la seconda tornava a `GND`
+  senza dire niente. Poi «Salva limiti» chiude tutto: «Salva limiti (0)», nessuna cella sporca.
+- Nessun errore di console, nessuna risposta HTTP ≥400, nessuna emoji rimasta nei comandi (`data-icon` presenti:
+  `refresh`, `grid`, `eye`, `eye-off`, `x`, `check-circle`).
+
+Un ritocco nato dalla verifica: il salva-tutti diceva «**1 settori** salvati». A uno solo vale la frase del
+salvataggio per riga, che è già giusta.
+
+Un secondo ritocco, dallo screenshot: il titolo di sezione «ACC» ripeteva il titolo della pagina tre righe più
+sotto. È sparito e il suo conteggio è salito accanto al titolo (`ACC 28`, «12 di 28» quando filtri). Il primo
+riquadro **è** l'elenco; il secondo tiene il suo titolo perché lì comincia un'altra cosa.

@@ -562,11 +562,21 @@
   <!-- I nomi dei paesi vivono UNA volta sola, più in alto (Country_LF … Country_LI). Qui c'era un secondo
        elenco, quasi identico: il compilatore di risorse scartava i duplicati con 14 MSB3568 per file, e con
        -warnaserror la build di produzione non passava. Chi aggiunge un paese lo aggiunge lassù. -->
-  <data name="AccAdmin_Subtitle" xml:space="preserve"><value>Area Control Center importati dalla sorgente. Tutti attivi: nascondine alcuni se serve.</value></data>
   <data name="AccAdmin_ImportTitle" xml:space="preserve"><value>Importa/aggiorna ACC e settori ACC dalla sorgente dati</value></data>
+  <data name="AccAdmin_HelpAria" xml:space="preserve"><value>Aiuto sulla pagina ACC</value></data>
+  <data name="AccAdmin_HelpBody" xml:space="preserve"><value>Gli &lt;b&gt;Area Control Center&lt;/b&gt; e i loro &lt;b&gt;settori&lt;/b&gt; arrivano dalla sorgente dati con «Importa da sorgente»: qui non si creano a mano. Nascono tutti &lt;b&gt;attivi&lt;/b&gt;: si nascondono quelli che la divisione non usa (nascondere un ACC nasconde anche i suoi settori). I &lt;b&gt;limiti di quota&lt;/b&gt; dei settori e le &lt;b&gt;aree regolamentate&lt;/b&gt; li decidi tu. Chi copre chi si imposta invece in &lt;b&gt;Struttura settori&lt;/b&gt;.</value></data>
+  <data name="AccAdmin_SubsHelpAria" xml:space="preserve"><value>Aiuto sui settori ACC</value></data>
+  <data name="AccAdmin_CountOf" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="AccAdmin_SectorsChipN" xml:space="preserve"><value>{0} settori</value></data>
+  <data name="AccAdmin_SectorsChip1" xml:space="preserve"><value>1 settore</value></data>
+  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Mostra qui sotto solo i settori di {0}</value></data>
+  <data name="AccAdmin_SaveAllLimits" xml:space="preserve"><value>Salva limiti ({0})</value></data>
+  <data name="AccAdmin_SaveAllLimitsTitle" xml:space="preserve"><value>Salva in un giro tutti i limiti di quota modificati</value></data>
+  <data name="AccAdmin_LimitsSavedN" xml:space="preserve"><value>{0} settori salvati.</value></data>
+  <data name="AccAdmin_LimitDirtyTitle" xml:space="preserve"><value>Modifica non salvata: premi «Salva limiti».</value></data>
   <data name="AccAdmin_ImportBtn" xml:space="preserve"><value>Importa da sorgente</value></data>
-  <data name="AccAdmin_FilterAcc" xml:space="preserve"><value>🔎 filtra per codice o nome…</value></data>
-  <data name="AccAdmin_FilterSub" xml:space="preserve"><value>🔎 filtra per callsign, ACC, position…</value></data>
+  <data name="AccAdmin_FilterAcc" xml:space="preserve"><value>filtra per codice o nome…</value></data>
+  <data name="AccAdmin_FilterSub" xml:space="preserve"><value>filtra per callsign, ACC, position…</value></data>
   <data name="AccAdmin_FilterCountryTitle" xml:space="preserve"><value>Filtra per nazione (vale per entrambe le tabelle)</value></data>
   <data name="AccAdmin_AllCountries" xml:space="preserve"><value>tutte le nazioni</value></data>
   <data name="AccAdmin_NoAcc" xml:space="preserve"><value>Nessun ACC. Premi «Importa da sorgente» per popolare l'elenco.</value></data>

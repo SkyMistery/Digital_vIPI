@@ -1161,6 +1161,13 @@ button.sh-chip.warn:hover{background:#ffe9a8}
 .sim-online .ptag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:var(--ivao-blue);color:#fff;border-radius:10px;padding:2px 8px}
 .sim-online .nbrtag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:#f0e8ff;color:var(--nbr-ink);border-radius:10px;padding:2px 8px}
 .res-table{width:100%;font-size:13px;margin-bottom:6px}
+/* ---- Intestazioni che restano (tabelle lunghe in una pagina che scorre) ----
+   `top:62px` è l'altezza della topbar, che è appiccicata anche lei; lo `z-index` sta SOTTO il suo (45) e sopra
+   le righe. Con `border-collapse:collapse` il bordo di una `th` appiccicata si perde durante lo scorrimento
+   (il bordo appartiene alla cella che scorre via): si ridisegna con un'ombra interna. */
+.res-table.sticky-head thead th{position:sticky;top:62px;z-index:6;box-shadow:inset 0 -1px 0 var(--line)}
+/* Cella con una modifica non ancora salvata: si vede da lontano quante ne restano da confermare. */
+.struct .res-table input.lim-dirty{border-color:#e2b400;background:#fffdf3;box-shadow:0 0 0 2px #fff3cf}
 .res-table th{font-size:11px}
 .res-table td{padding:7px 10px}
 /* Controlli compatti dentro le tabelle struttura/aeroporti: stile coerente col resto (non più select nativo). */
