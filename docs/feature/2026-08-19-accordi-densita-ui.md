@@ -56,3 +56,26 @@ e intestazione ancora visibile a `scrollTop 500`; form sezione su due righe (cam
 544 largo 902); «?» chiuso prima del clic e aperto dopo; nessun errore di console, di circuito o HTTP ≥ 400.
 
 Suite: verde su entrambi i TFM. `dotnet build Vipi.slnx -c Release --no-incremental` senza avvisi.
+
+## Coda: il guasto emerso durante il round (stesso giorno)
+
+Rendendo visibili due ACC nascosti, la pagina restava su **titolo e riga ACC**. Non era la ripulitura: era
+una parola nel registro dei servizi.
+
+`IStationResolver` è `AddScoped`, e in **Blazor Server** «scoped» non vuol dire «per richiesta» ma **per
+circuito** — la cache dell'elenco ACC dura quanto la sessione SPA, cioè ore. Il chrome (`SopLayout`) è SSR
+con uno scope per richiesta e infatti si aggiornava subito: nella stessa schermata il menu in alto mostrava
+sei ACC e la barra della pagina sette. Se l'ACC che si stava aprendo era proprio uno dei nuovi, non si
+risolveva e la pagina restava vuota — senza dire perché.
+
+Rimedio in tre pezzi:
+
+1. `IStationCatalogVersion`, **singleton di processo**: chi scrive alza il contatore (`AccAdminService`:
+   nascondi ACC, import), chi legge lo confronta prima di usare la cache. Singleton perché nascondere un ACC
+   lo nasconde a **tutte** le sessioni aperte, non solo a chi l'ha fatto.
+2. La pagina ora **distingue** «non hai scelto» da «quello che avevi non c'è più», e lo scrive.
+3. `SelectAcc` confrontava il codice richiesto con `_accCode` — che in quello stato è già uguale, mentre
+   `_acc` è null: il chip di quel codice era **morto**, cioè proprio l'unico che si prova a premere.
+
+Da ricordare: **una cache scoped in Blazor Server è una cache di sessione.** Ogni `AddScoped` che memorizza
+qualcosa letto dal DB va guardato con questo occhio.
