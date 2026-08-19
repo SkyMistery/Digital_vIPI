@@ -347,7 +347,10 @@
                 t.ro.observe(el);
             }
         }
-        scope.style.setProperty('--' + t.varName, Math.round(el.getBoundingClientRect().height) + 'px');
+        // Per difetto, non per eccesso: un pixel di sovrapposizione non si vede (la fascia sta sopra), un pixel
+        // di buco lascia passare le righe — ed è esattamente ciò che si stava correggendo.
+        var h = Math.floor(el.getBoundingClientRect().height / rootZoom());
+        scope.style.setProperty('--' + t.varName, h + 'px');
     }
 
     window.vipiStickyOffset = function (selector, varName, scopeSelector) {
@@ -384,6 +387,19 @@
     // Si rimisura a ogni chiamata (l'editor la chiama a ogni render) e al ridimensionamento della finestra.
     // Sotto la soglia in cui la griglia collassa l'altezza fissa va TOLTA: lì il riquadro sta dentro una pagina
     // che scorre, e bloccarlo creerebbe due barre di scorrimento annidate.
+    // ---- Zoom di pagina: due unità di misura diverse ----
+    // `vipi-zoom.js` applica `zoom` su <html>. Da lì in poi convivono DUE spazi: `getBoundingClientRect` (e
+    // `window.innerHeight`) parlano in pixel di finestra, mentre tutto ciò che si SCRIVE in CSS — `top:`,
+    // `height:` — è in unità di layout, cioè pixel di finestra diviso lo zoom. Misurare in uno e scrivere
+    // nell'altro è il difetto che faceva comparire una striscia di righe sopra l'intestazione appiccicata
+    // (a zoom 1.2 erano 17px; a 0.8 l'intestazione finiva sotto la fascia).
+    function rootZoom() {
+        var v = getComputedStyle(document.documentElement).zoom;
+        var z = parseFloat(v);
+        if (typeof v === 'string' && v.indexOf('%') >= 0) { z = z / 100; }
+        return !z || isNaN(z) || z <= 0 ? 1 : z;
+    }
+
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
@@ -392,7 +408,10 @@
         if (!el) return;
         if (window.innerWidth <= collapseBelow) { el.style.height = ''; return; }
         var top = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
-        var h = Math.round(window.innerHeight - top - 18);
+        // Lo spazio che avanza si misura in pixel di finestra e si SCRIVE in unità di layout: sotto zoom i due
+        // numeri non coincidono (vedi rootZoom). I 18px di respiro restano unità di layout, come li ha pensati
+        // il foglio di stile.
+        var h = Math.round((window.innerHeight - top) / rootZoom() - 18);
         el.style.height = h >= fitMin ? h + 'px' : '';
     }
 

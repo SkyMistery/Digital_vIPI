@@ -1,4 +1,4 @@
-// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
+﻿// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
 //
 // Perché è un file e non uno <script> in fondo alla pagina: serve nel <head>, prima del primo disegno,
 // o si vede la pagina alla dimensione sbagliata per un istante e poi saltare a quella giusta.
@@ -18,6 +18,9 @@
         document.documentElement.style.zoom = z;
         var el = document.getElementById('vipiZoomPct');
         if (el) el.textContent = Math.round(z * 100) + '%';
+        // Chi misura lo spazio disponibile (vipiFitViewport, vipiStickyOffset) deve rifare i conti: lo zoom
+        // cambia quanta pagina ci sta, ma non fa scattare né un render Blazor né un `resize` di suo.
+        try { window.dispatchEvent(new Event('resize')); } catch (e) { }
     };
 
     window.vipiSetZoom = function (v) {

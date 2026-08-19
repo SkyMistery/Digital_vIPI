@@ -1033,8 +1033,11 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
    Il calc qui è il valore di PARTENZA prima che il JS misuri, non la verità.
    Il pannello dettaglio era `.detail-sticky`, agganciato mentre la pagina scorreva: qui la pagina non scorre
    più, i due pannelli sono alti uguali e scorre solo il loro corpo. */
+/* ⚠️ `min-height` allineata al `fitMin` del JS (320): tenerla più alta significa che il pavimento del CSS
+   vince sull'altezza misurata e la pagina scorre lo stesso — succedeva con lo zoom di pagina al 120%, dove lo
+   spazio disponibile scende sotto i 420. Due pavimenti diversi per la stessa cosa sono un pavimento sbagliato. */
 .gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:stretch;
-  height:calc(100vh - 330px);min-height:420px}
+  height:calc(100vh - 330px);min-height:320px}
 /* Il contenuto arriva al bordo dello schermo per costruzione: i 70px di respiro in fondo diventerebbero
    70px di scorrimento su una pagina che non deve scorrere. */
 .wrap.struct:has(.gerarchia-2col){padding-bottom:18px}

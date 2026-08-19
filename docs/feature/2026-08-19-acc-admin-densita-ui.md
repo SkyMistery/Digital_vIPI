@@ -55,6 +55,20 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
    `ResizeObserver`, perché quell'altezza cambia da sola: 72px in riga, **120px a 1000px di larghezza** quando
    la testata va a capo. È la misura che i Trasferimenti avevano rinunciato a fare.
 
+10. **⚠️ Lo zoom di pagina misura in un'unità e scrive in un'altra.** Segnalato a schermo: scorrendo,
+    **sopra** l'intestazione della tabella compariva una striscia da cui si vedevano passare le righe.
+    Causa: `vipi-zoom.js` applica `zoom` su `<html>`, e da lì in poi convivono due spazi —
+    `getBoundingClientRect()` e `window.innerHeight` parlano in **pixel di finestra**, mentre tutto ciò che si
+    **scrive** in CSS (`top:`, `height:`) è in **unità di layout** = pixel di finestra / zoom. Misurato:
+    a zoom **1.2** il buco era di **17,6px**; a **0.8** l'intestazione finiva **sotto** la fascia (−12px).
+    Corretto in `rootZoom()` (`vipi-ui.js`), usata da `vipiStickyOffset` **e** da `vipiFitViewport` — stesso
+    difetto, stessa famiglia. L'arrotondamento è **per difetto**: un pixel di sovrapposizione non si vede (la
+    fascia sta sopra), un pixel di buco lascia passare le righe.
+    Due corollari: `vipiApplyZoom` ora emette un `resize` (cambiare zoom non fa scattare né un render Blazor né
+    un resize di suo, e chi misura deve rifare i conti); e la `min-height` di `.gerarchia-2col` scende da 420 a
+    **320**, cioè al `fitMin` del JS — due pavimenti diversi per la stessa cosa sono un pavimento sbagliato, e
+    a zoom 1.2 vinceva quello del CSS facendo scorrere la pagina di 21px.
+
 ## Cosa NON è cambiato, e perché
 
 - **La select nazione resta duplicata** nelle due tabelle: è lo **stesso** filtro (`_country`), muoverla in una
@@ -87,6 +101,15 @@ Sulla testata appiccicata, guidata a parte: a `scrollY 7714` (fondo pagina) la t
 «Salva limiti (2)» acceso, il `thead` subito sotto a `y=134` (= 62+72), e il salvataggio parte **senza risalire**
 — «2 settori salvati.» compare nella testata stessa. A 1000px di larghezza la testata va a capo (120px) e il
 `thead` la segue a `y=182`.
+
+Sullo zoom, dopo la correzione (ACC scorsa a 3000px, Struttura a riposo):
+
+| Zoom | Buco sopra il `thead` (ACC) | Struttura: altezza scritta | La pagina scorre? |
+|---|---|---|---|
+| 0.8 | −0,78px (sovrapposizione invisibile) | `717px` | no |
+| 1.0 | 0 | `517px` | no |
+| 1.2 | −0,39px | `384px` | no (prima scorreva di 21px) |
+| 1.5 | 0 | nessuna (sotto `fitMin`) | sì — sotto i 320px di riquadro la pagina scorre per scelta |
 
 Un secondo ritocco, dallo screenshot: il titolo di sezione «ACC» ripeteva il titolo della pagina tre righe più
 sotto. È sparito e il suo conteggio è salito accanto al titolo (`ACC 28`, «12 di 28» quando filtri). Il primo
