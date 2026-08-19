@@ -1541,4 +1541,6 @@
   <data name="Xfer_GapTwinSectionsDetail" xml:space="preserve"><value>Due sezioni dicono la stessa cosa ({0} clausole in tutto): si possono unire.</value></data>
   <data name="Xfer_GapEmptySection" xml:space="preserve"><value>sezione vuota</value></data>
   <data name="Xfer_GapEmptySectionDetail" xml:space="preserve"><value>La sezione non ha clausole: il documento non renderà niente.</value></data>
+  <data name="Xfer_ExpandSections" xml:space="preserve"><value>Apri tutte le sezioni</value></data>
+  <data name="Xfer_CollapseSections" xml:space="preserve"><value>Chiudi tutte le sezioni</value></data>
 </root>

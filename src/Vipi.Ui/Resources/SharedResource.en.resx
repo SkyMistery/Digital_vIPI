@@ -1535,4 +1535,6 @@
   <data name="Xfer_GapTwinSectionsDetail" xml:space="preserve"><value>Two sections say the same thing ({0} clauses in total): they can be merged.</value></data>
   <data name="Xfer_GapEmptySection" xml:space="preserve"><value>empty section</value></data>
   <data name="Xfer_GapEmptySectionDetail" xml:space="preserve"><value>The section has no clauses: the document will render nothing.</value></data>
+  <data name="Xfer_ExpandSections" xml:space="preserve"><value>Expand all sections</value></data>
+  <data name="Xfer_CollapseSections" xml:space="preserve"><value>Collapse all sections</value></data>
 </root>

@@ -1405,16 +1405,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Qualifica del ramo («interni»): sta accanto al nome e non deve pesare come il nome. */
 .xt-nav-note{font-size:11px;font-weight:400;font-family:var(--font-body)}
-/* La RELAZIONE (noi ⇄ loro) è un'INTESTAZIONE, non un nodo: sotto Roma stanno cinque relazioni e distinguerle
-   serve, ma farle aprire una per una costerebbe due gesti per una foglia che ne chiede uno.
-   Due callsign interi in 380 px non ci stanno sempre: il NOSTRO capo è quello che cede la larghezza — è lo stesso
-   su quasi tutte le relazioni di una ACC — mentre la controparte, che è il nome che si sta cercando, non si taglia
-   mai. Il titolo porta comunque la coppia piena. */
-.xt-nav-rel{display:flex;align-items:baseline;gap:4px;margin:5px 6px 1px 18px;font-size:11px;
-  text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
-.xt-nav-relnear{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.xt-nav-relway{flex:none;color:var(--ivao-blue)}
-.xt-nav-relfar{flex:none;font-weight:700;color:var(--ink)}
+/* ⚠️ La COPPIA si legge INTERA, e non si taglia nessuno dei due capi.
+   Prima il nostro lato cedeva la larghezza con un'ellissi — «LIB… ⇄ LGGG_W_CTR» — perché la colonna è 260 px e
+   due callsign da undici caratteri più il conteggio non ci stanno in una riga. Ma un callsign troncato non è
+   un'abbreviazione: è un altro callsign, e in un elenco dove LIBB_ES_CTR e LIBD_CS0_APP convivono si legge
+   sbagliato. Quindi: carattere più piccolo, e se ancora non basta la coppia VA A CAPO (flex-wrap) invece di
+   perdere lettere. Il rientro scende da 30 a 18 px perché il livello «relazione» che lo giustificava non
+   esiste più: la foglia sta ora direttamente sotto la ACC. */
+.xt-nav-relnear,.xt-nav-relfar{white-space:nowrap;font-size:11px;letter-spacing:.02em}
+.xt-nav-relway{flex:none;color:var(--ivao-blue);font-size:11px}
+.xt-nav-relfar{font-weight:700;color:var(--ink)}
 .xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:#eef1fb;border-radius:20px;
   padding:0 7px;flex:none}
 /* Bilaterale davvero: clausole nei due versi. «3 ⇄ 0» resta neutro, perché è un lavoro da fare, non un pregio. */
@@ -1422,13 +1422,17 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
 .xt-nav-warn{color:#b3541e;font-size:11px;flex:none}
 /* La foglia è un bottone vero: si sceglie, e la scelta si vede. */
-.xt-nav-flow{display:flex;align-items:center;gap:6px;margin-left:30px;width:calc(100% - 30px);
+.xt-nav-flow{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px;margin-left:18px;
+  width:calc(100% - 24px);
   padding:5px 8px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer;
-  font-family:var(--font-body);font-size:12.5px;color:var(--ink)}
+  font-family:var(--font-body);font-size:11.5px;color:var(--ink)}
 .xt-nav-flow:hover{background:#f2f5ff}
 .xt-nav-flow.on{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
 .xt-nav-kind{flex:none}
-.xt-nav-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:11.5px}
+/* La nota dell'accordo: riga sua, sotto la coppia. Occupa tutta la larghezza (flex-basis:100%) così non
+   contende lo spazio ai callsign né al conteggio — e le foglie senza nota restano di una riga sola. */
+.xt-nav-desc{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);
+  font-size:11px}
 /* Il gruppo di aeroporti: sotto una coppia è il discriminante fra le foglie, non una nota a margine — quindi si
    legge come dato. È anche ciò che rende visibile una relazione spezzata: due foglie identiche di fila. */
 .xt-nav-apts{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:11.5px;

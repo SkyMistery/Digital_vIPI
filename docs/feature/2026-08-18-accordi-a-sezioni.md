@@ -493,3 +493,28 @@ dello stato precedente.
 cartella del progetto di startup e dà `SQLite Error 14: unable to open database file`. Fallisce senza toccare
 niente, ma fa perdere un giro.
 
+## Rifinitura dopo la prima prova del committente
+
+Due richieste, entrambe misurate a schermo.
+
+**1. I due capi si leggono INTERI nella colonna.** La foglia troncava il nostro lato con un'ellissi
+(`LIB… ⇄ LGGG_W_CTR`) perché la colonna è **260 px** — non 380, come diceva il commento che ho ereditato — e due
+callsign da undici caratteri più il conteggio non ci stanno in riga. Ma un callsign troncato non è
+un'abbreviazione: è **un altro callsign**, e in un elenco dove `LIBB_ES_CTR` e `LIBD_CS0_APP` convivono si legge
+sbagliato. Ora: carattere a 11 px, nessuna ellissi su nessuno dei due, e se non ci stanno la riga **va a capo**
+invece di perdere lettere. Il rientro scende da 30 a 18 px, perché il livello «relazione» che lo giustificava
+non esiste più. ⚠️ La **nota** dell'accordo è passata *dopo* il conteggio e va a capo da sola: messa prima,
+rubava la riga al conteggio su **ogni** foglia — il wrap è una proprietà della riga, non del solo elemento
+lungo.
+
+**2. Un accordo si apre con le sezioni chiuse**, e in testata ci sono i due tasti ⊞/⊟ dell'albero — stessa
+forma, stesso ordine, in inglese («Expand/Collapse all sections»). Misurato: il corpo passa da **1977 px a
+924 px** all'apertura. Restano aperte solo le sezioni su cui si sta lavorando: quella appena creata e quella di
+una clausola aperta nel pannello. ⚠️ **Il vuoto non si perde**: il blocco del *reciproco mancante* non è
+collassabile, quindi resta a vista anche con tutto chiuso — che era la ragione per cui esiste.
+
+**E una terza cosa, trovata ispezionando il DOM:** ⚠️ `aria-expanded="@bool"` **non funziona** in Blazor. È
+trattato come attributo *booleano HTML*: con `true` rende `aria-expanded=""` (non valido per ARIA) e con `false`
+**omette l'attributo** — che per uno screen reader vuol dire «non espandibile», non «chiuso». Servono le
+stringhe. Tre occorrenze in quest'area lo sbagliavano; `StrutturaPage` lo faceva già giusto.
+

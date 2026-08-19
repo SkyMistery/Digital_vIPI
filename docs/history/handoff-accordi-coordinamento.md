@@ -85,8 +85,9 @@ precedente.
 | | Com'è | Perché, in una riga |
 |---|---|---|
 | **Albero** | ACC controparte ▸ **accordo** (foglia) | il livello «relazione» esisteva perché una coppia poteva avere più accordi: adesso non può |
-| **Foglia** | i due capi per esteso + «N sezioni ▤ M clausole» | sei sezioni e due clausole = scritto a metà, e il solo «2» non lo direbbe |
+| **Foglia** | i due capi **INTERI** + «N sezioni ▤ M clausole»; la nota a capo | un callsign troncato non è un'abbreviazione, è un altro callsign — e `LIBB_ES_CTR`/`LIBD_CS0_APP` convivono nello stesso elenco |
 | **Riquadro** | testata coi due capi, poi **le sezioni**, ognuna con la sua tabella | un accordo con arrivi, partenze e due versi di sorvoli non ha «un» tipo |
+| **All'apertura** | sezioni tutte **chiuse**, coi tasti ⊞/⊟ in testata | otto tabelle aperte sono duemila pixel: chi apre un accordo sta cercando UNA sezione, e gliela fa trovare l'elenco dei titoli. Il blocco del **reciproco mancante** non è collassabile, quindi il vuoto resta a vista |
 | **Ordine sezioni** | **imposto**: aeroporto (arrivi poi partenze) ▸ sorvoli (due versi) ▸ VFR ▸ Altro | non è struttura come l'ordine delle clausole; a mano si potrebbe nascondere una partenza lontano dai suoi arrivi |
 | **Verso** | **proposto dall'aeroporto**, salvato, correggibile col tasto `⇄` | «arrivi verso LIRF» va verso chi ha LIRF; non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no |
 | **Reciproco mancante** | blocco **vuoto** sotto la sezione, coi tasti «copia l'altro verso» e «+ sezione» | il vuoto **è** l'informazione: l'interruttore di ferragosto nascondeva ciò che mancava, e per questo il reciproco non si scriveva mai |
@@ -94,7 +95,7 @@ precedente.
 | **Creazione** | accordo = **due enti**; sezione = tipo (+ aeroporti) | creare è dire *chi*; il traffico è il *cosa*, e sta dentro |
 | **Coppia già scritta** | il form **apre quella che c'è**, non dà errore | un doppione è una domanda a cui esiste una risposta migliore di «no» |
 
-⚠️ **Nove trappole pagate qui, quasi tutte invisibili ai test** — le ultime tre le ha trovate la verifica live, non il DOM:
+⚠️ **Dieci trappole pagate qui, quasi tutte invisibili ai test** — le ultime tre le ha trovate la verifica live, non il DOM:
 
 1. **Un `<select>` non torna indietro da solo.** Se il salvataggio è rifiutato il valore memorizzato non cambia,
    quindi l'albero di render non cambia, quindi Blazor **non riscrive l'attributo**: la tendina resta sulla
@@ -116,6 +117,11 @@ precedente.
    lunga in più manda «Paste table ✎ ✕» a capo sotto «+ Clause». Gli avvisi stanno nel **corpo**.
 9. **Le etichette sopravvivono all'operazione che descrivevano**: il tasto delle gemelle diceva ancora «unisci i
    due **versi**» dove si uniscono due **sezioni**. Le stringhe vanno rilette quando cambia ciò che fanno.
+10. ⚠️ **`aria-expanded="@bool"` NON funziona in Blazor.** È trattato come attributo *booleano HTML*: con `true`
+    rende `aria-expanded=""` — che per ARIA non è un valore valido — e con `false` **omette l'attributo**, il
+    che per uno screen reader significa «non espandibile», non «chiuso». Serve
+    `@open.ToString().ToLowerInvariant()`. Tre occorrenze in quest'area lo sbagliavano; `StrutturaPage` lo
+    faceva già giusto. Visto **ispezionando il DOM**, non dai test.
 
 ## La rete che protegge tutto
 

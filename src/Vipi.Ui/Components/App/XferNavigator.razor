@@ -33,7 +33,10 @@
         @foreach (var cp in Counterparts)
         {
             var open = ForceOpen || !Collapsed.Contains(cp.Key);
-            <div class="xt-nav-sec xt-clickable" role="button" tabindex="0" aria-expanded="@open"
+            @* ⚠️ La stringa, non il bool: `aria-expanded="@bool"` in Blazor è un attributo booleano HTML —
+               `true` diventa `aria-expanded=""` e `false` sparisce, e un attributo assente dice «non
+               espandibile», non «chiuso». *@
+            <div class="xt-nav-sec xt-clickable" role="button" tabindex="0" aria-expanded="@open.ToString().ToLowerInvariant()"
                  @onclick="() => OnToggle.InvokeAsync(cp.Key)"
                  @onkeydown="e => Activate(e, () => OnToggle.InvokeAsync(cp.Key))">
                 <span class="xt-chev">@(open ? "▾" : "▸")</span>
@@ -53,14 +56,18 @@
                     <span class="xt-nav-relnear">@a.Near</span>
                     <span class="xt-nav-relway">⇄</span>
                     <span class="xt-nav-relfar">@a.Far</span>
-                    @if (!string.IsNullOrWhiteSpace(a.Note))
-                    {
-                        <span class="xt-nav-desc">@a.Note</span>
-                    }
                     @if (a.HasWarning) { <span class="xt-nav-warn" title="@WarnTitle(a)">●</span> }
                     @* SEZIONI e clausole, non il totale delle sole clausole: un accordo con sei sezioni e due
                        clausole è scritto a metà, e il solo «2» non lo direbbe. *@
                     <span class="xt-nav-count" title="@CountsTitle(a)">@a.Sections ▤ @a.Clauses</span>
+                    @* ⚠️ La nota sta DOPO il conteggio e va a capo da sola (`flex-basis:100%`). Messa prima,
+                       rubava la riga al conteggio e mandava a capo QUELLO — su ogni foglia, anche su quelle
+                       senza nota, perché il wrap è una proprietà della riga. Così le foglie senza nota tornano a
+                       una riga sola. *@
+                    @if (!string.IsNullOrWhiteSpace(a.Note))
+                    {
+                        <span class="xt-nav-desc">@a.Note</span>
+                    }
                 </button>
             }
         }

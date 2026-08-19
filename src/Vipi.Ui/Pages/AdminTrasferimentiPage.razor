@@ -1097,6 +1097,11 @@
                 <span class="muted xt-desc" title="@ag.Note">— @ag.Note</span>
             }
             <span class="ln xt-grow"></span>
+            @* Gli stessi due tasti dell'albero, e nello stesso ordine: aprire tutto e chiudere tutto è un gesto
+               che il resto dell'app ha già insegnato, e cambiarne la forma qui costerebbe di impararlo due volte.
+               ⚠️ Non sono sotto il lock: guardare non è scrivere. *@
+            <button class="btn ghost" title="@L["Xfer_ExpandSections"]" @onclick="() => ExpandAllSections(ag)">⊞</button>
+            <button class="btn ghost" title="@L["Xfer_CollapseSections"]" @onclick="() => CollapseAllSections(ag)">⊟</button>
             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenNewSection(ag)">+ @L["Xfer_Section"]</button>
             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenEditHeader(ag)">✎ @L["Xfer_AgreementEdit"]</button>
             <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteGroupAria"]" Disabled="@(_busy || !_canEdit)"
@@ -1171,7 +1176,11 @@
 
         <section class="xt-dirblock @(_lens.IsOutbound(ag, sec) ? "xt-out" : "xt-in")">
             <div class="xt-dirhead">
-                <button type="button" class="xt-dirtoggle" aria-expanded="@open"
+                @* ⚠️ `aria-expanded="@bool"` NON funziona: Blazor lo tratta come attributo BOOLEANO HTML — con
+                   `true` rende `aria-expanded=""`, che per ARIA non è un valore valido, e con `false` OMETTE
+                   l'attributo, che per uno screen reader vuol dire «non espandibile» invece che «chiuso». Serve la
+                   stringa. Visto ispezionando il DOM, non dai test; `StrutturaPage` lo faceva già giusto. *@
+                <button type="button" class="xt-dirtoggle" aria-expanded="@open.ToString().ToLowerInvariant()"
                         @onclick="() => ToggleSection(sec.Id)">
                     <span class="xt-chev">@(open ? "▾" : "▸")</span>
                     <span class="xt-dirway">@XferLabels.Kind(L, sec.Kind)</span>
@@ -2004,7 +2013,7 @@
     private RenderFragment PanelSection(string key, string title, string summary) => __builder =>
     {
         var open = SectionOpen(key);
-        <div class="xt-grp xt-clickable" role="button" tabindex="0" aria-expanded="@open"
+        <div class="xt-grp xt-clickable" role="button" tabindex="0" aria-expanded="@open.ToString().ToLowerInvariant()"
              @onclick="() => ToggleSection(key)"
              @onkeydown="e => SectionKey(e, key)">
             <span>@title</span>
@@ -2631,6 +2640,24 @@
         // scrivere anche appena arrivati.
         _focusSectionId = a.Sections.FirstOrDefault()?.Id;
         _collapsed.Remove(NavKey(a));
+
+        // ⚠️ L'accordo si apre con le sezioni CHIUSE (scelta del committente, 18 agosto 2026). Otto tabelle
+        // aperte sono qualche migliaio di pixel: chi apre un accordo sta cercando UNA sezione, e gliela fa
+        // trovare l'elenco dei titoli — non lo scorrimento.
+        // Il vuoto non si perde per questo: il blocco del **reciproco mancante** non è collassabile, quindi
+        // resta a vista anche con tutto chiuso, e i conteggi sono nelle intestazioni.
+        CollapseAllSections(a);
+    }
+
+    /// <summary>Chiude tutte le sezioni di un accordo.</summary>
+    private void CollapseAllSections(AgreementRow a)
+    {
+        foreach (var sec in a.Sections) _collapsedSections.Add(sec.Id);
+    }
+
+    private void ExpandAllSections(AgreementRow a)
+    {
+        foreach (var sec in a.Sections) _collapsedSections.Remove(sec.Id);
     }
 
     private void OpenNewAgreement()
@@ -2755,7 +2782,9 @@
             newId = await Agreements.AddSectionAsync(_acc!.Code, a.Id, ToSectionInput(_sectionForm));
             _newSectionFor = null;
         }, L["Xfer_SectionAdded"]);
-        if (newId > 0) _focusSectionId = newId;
+        // Una sezione appena creata nasce APERTA, anche se tutte le altre sono chiuse: è quella su cui si sta
+        // lavorando, ed è dove va scritta la prima clausola.
+        if (newId > 0) { _focusSectionId = newId; _collapsedSections.Remove(newId); }
     }
 
     private void OpenEditSection(AgreementSectionRow sec)
@@ -2862,6 +2891,8 @@
         _addClauseSectionId = sec.Id;
         _selectedId = a.Id;
         _focusSectionId = sec.Id;
+        // La tabella in cui la clausola sta per nascere dev'essere a vista: il pannello scrive lì.
+        _collapsedSections.Remove(sec.Id);
         _addClause.Reset();
         // La faccetta parte già aperta sul caso più comune quando si consegna a un APP: «al confine dell'AoR».
         _addClause.Facet.Reset(preset: ReceivesApp(a, sec));
@@ -2876,6 +2907,7 @@
         _addClauseSectionId = null; _editHeaderId = null; _newSectionFor = null; _editSectionId = null;
         _selectedId = a.Id;
         _focusSectionId = sec.Id;
+        _collapsedSections.Remove(sec.Id);
         _editClauseId = c.Id;
         _editClause.LoadFrom(c, ParseRwys);
         ResetPanelSections(_editClause);
