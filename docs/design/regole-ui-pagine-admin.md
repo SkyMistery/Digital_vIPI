@@ -153,6 +153,55 @@ pieno di righe.
     «doveva» starci in riga e non ci stava, il chip a zero che «non si vedeva» e invece era verde, il riquadro
     che «era a posto» e sforava di 21px.
 
+## 11. Ricognizione: chi aderisce e chi no (19 agosto 2026)
+
+Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB di sviluppo (l'altezza dipende
+dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
+messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
+
+### Già a norma — sono le tre che hanno prodotto le regole
+
+| Pagina | Rotta | Altezza | Note |
+|---|---|---:|---|
+| Accordi di coordinamento | `/vsop/admin/trasferimenti` | 900 | testata in riga, altezza misurata, colonne fisse |
+| Struttura | `/vsop/admin/sectorstructure` | 900 | testata in riga, due pannelli con il solo corpo che scorre |
+| ACC | `/vsop/admin/acc` | 8714 | testata appiccicata, `thead` fermo su entrambe le tabelle (28 e 152 righe) |
+
+L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
+
+### Da rifare, in ordine di guadagno
+
+| # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
+|---:|---|---|---:|---|
+| 1 | **Aeroporti** | `/vsop/admin/airports` | **13 745** | Due tabelle da **92 e 221 righe senza intestazione appiccicata** — è il caso peggiore del ramo. Testata a due blocchi col sottotitolo, **lock in fascia**, 3 callout in fascia, 8 paragrafi d'aiuto in pagina, filtri senza `.htree-*`, cinque emoji-comando (👁 🙈 🚫 🔒 ⚠). Le vale tutte le regole. |
+| 2 | **Editor aeroporto** | `/vsop/{acc}/airports/editor` | **10 059** | Tabella da 39 righe senza `thead` fermo, **9 callout in fascia**, 17 paragrafi d'aiuto, filtri vecchi, emoji-comando. ⚠️ Ha rail e TOC: la testata in riga va **adattata**, non ricopiata — i comandi stanno già nel rail, quindi qui servono soprattutto i «?», il `thead` e i messaggi che non spingono. |
+| 3 | **Editor ACC** | `/vsop/{acc}/editor` | 6 466 | Sottotitolo in testa, 3 paragrafi d'aiuto, tabelle corte (12 righe) ma nessun `thead` fermo; un solo «?». Stesso discorso rail/TOC. |
+| 4 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
+| 5 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
+| 6 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
+| 7 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 8 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 9 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 10 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 11 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 12 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+
+### Fuori ambito: le viste pubbliche
+
+`/vsop`, `/vsop/{acc}`, i viewer (vIPI ACC, aeroporto, APP, vLOA), gli elenchi pubblici, `/vsop/changed`,
+`/vsop/search`, `/vsop/live`, `/vsop/guida`, l'anteprima release, l'AoR 3D. Lì il contenuto **è** la pagina e si
+legge scorrendo: la densità non è un problema da risolvere. Di queste regole valgono solo due:
+- le **emoji che sono comandi** diventano `Icon` (quelle che sono **contenuto** — 🌦 🌧 🛫 nel viewer aeroporto —
+  restano: sono la cosa, non un pulsante);
+- i «?» che si aprono dove c'è posto, che ormai è automatico per tutti.
+
+### Come si legge questa tabella
+
+Il numero grande (l'altezza) dice **quanto** si guadagna, non **da dove** cominciare: su Aeroporti il primo
+intervento è il `thead` appiccicato (due tabelle da 92 e 221 righe in cui si scrive), non la testata. La regola
+d'ordine è: **prima ciò che serve a chi sta lavorando in fondo alla pagina** (intestazioni che restano, il posto
+da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la forma (icone, campi, nomi).
+
 ## Dove sta la roba
 
 | Cosa | Dove |
