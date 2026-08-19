@@ -1,7 +1,13 @@
 # HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 
-> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`,
-> **non ancora in `main`**.
+> Contesto minimo per riprendere **dopo un `/clear`**. Ramo `feature/accordi-coordinamento`, allineato col
+> remoto, **non ancora in `main`** (serve l'ok esplicito).
+>
+> **Stato al 18 agosto 2026, sera.** Il modello a sezioni è **fatto e in esercizio**: codice, migrazioni nei due
+> provider, conversione **eseguita sul `vipi.db` di sviluppo**, verifica live guidata a schermo, documenti e
+> memoria allineati. Cinque commit, dal più vecchio: il modello · i tre difetti della verifica live · la
+> conversione · colonna e sezioni chiuse · il chip del verso. **Il prossimo passo è del committente**: sta
+> facendo aggiustamenti di UI — vedi «Dove mettere le mani per un aggiustamento di UI».
 >
 > **Tre carte, e la terza è quella in vigore:**
 > [`../feature/2026-08-18-accordi-a-sezioni.md`](../feature/2026-08-18-accordi-a-sezioni.md) — **il modello di
@@ -122,6 +128,48 @@ precedente.
     che per uno screen reader significa «non espandibile», non «chiuso». Serve
     `@open.ToString().ToLowerInvariant()`. Tre occorrenze in quest'area lo sbagliavano; `StrutturaPage` lo
     faceva già giusto. Visto **ispezionando il DOM**, non dai test.
+
+## Dove mettere le mani per un aggiustamento di UI
+
+Tutta la pagina è **un file**: `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor` (~2900 righe), diviso in
+regioni commentate (`// ---- ...`). Il CSS dell'area sta in `src/Vipi.Ui/wwwroot/vipi-theme.css`, cercabile per
+prefisso **`.xt-`**.
+
+| Cosa si vede | Dove si tocca |
+|---|---|
+| Albero a sinistra (rami ACC, foglie) | `Components/App/XferNavigator.razor` + `XferNavModel.cs`; CSS `.xt-nav*` |
+| Come si costruisce l'albero | `BuildNav` / `NavAgreement` / `NavKey` nella pagina |
+| Testata dell'accordo (capi, ⊞/⊟, + Section, Edit, Delete) | `WorkPane`, primo blocco `<div class="xt-pane-h">`; CSS `.xt-pane-h` |
+| Una sezione (intestazione, avvisi, tabella) | `SectionBlock`; CSS `.xt-dirblock`, `.xt-dirhead`, `.xt-dirway`, `.xt-dirpair` |
+| Il blocco del reciproco che manca | `MissingReverseBlock`; CSS `.xt-ghost` |
+| Form «nuova sezione» / «modifica sezione» | `SectionFields`; CSS `.xt-dirfield`, `.xt-dirchip`, `.xt-aptpick-narrow` |
+| Form dell'accordo (i due capi + nota) | `PairFields` / `SidePicker` |
+| Chip degli aeroporti in testata sezione | `AirportChips`; CSS `.xt-hdr-apts`, `.xt-apt` |
+| Tabella delle clausole | `Components/App/XferRowsTable.razor` + `XferTableRow.cs` |
+| Pannello di destra (la clausola) | `ClausePanel` e seguenti; CSS `.xt-panel*` |
+| Cruscotto delle lacune | `Gaps()` + `GapLabel`/`GapPill`/`GapDetail`; la logica pura è `AgreementGaps` |
+| Etichette | `src/Vipi.Ui/Resources/SharedResource.resx` **e** `.en.resx`, prefisso `Xfer_` |
+
+⚠️ **Le due lingue si toccano insieme.** Una chiave che manca non dà errore: esce a schermo il nome della
+chiave. Il controllo veloce è questo:
+
+```
+python - <<'PY'
+import io,re,glob
+k=set()
+for f in glob.glob('src/Vipi.Ui/**/*.razor',recursive=True)+glob.glob('src/Vipi.Ui/**/*.cs',recursive=True):
+    t=io.open(f,encoding='utf-8').read()
+    k|=set(re.findall(r'L\["(Xfer_[A-Za-z0-9_]+)"',t))|set(re.findall(r'localizer\["(Xfer_[A-Za-z0-9_]+)"',t))
+for r in ['src/Vipi.Ui/Resources/SharedResource.resx','src/Vipi.Ui/Resources/SharedResource.en.resx']:
+    h=set(re.findall(r'<data name="(Xfer_[A-Za-z0-9_]+)"',io.open(r,encoding='utf-8').read()))
+    print(r,'mancanti:',sorted(k-h))
+PY
+```
+
+⚠️ **Le regressioni Blazor sono silenziose coi test verdi.** Le cinque già pagate in quest'area:
+attributo `string` senza `@` (= letterale), `aria-expanded="@bool"` (= attributo booleano HTML),
+`<select>` che non torna indietro dopo un rifiuto (serve l'epoca), `return` dentro un elemento aperto in un
+`RenderFragment`, `v@r.Prop` letto come indirizzo email. **Si guarda a schermo**, non si deduce.
 
 ## La rete che protegge tutto
 
