@@ -1165,7 +1165,9 @@ button.sh-chip.warn:hover{background:#ffe9a8}
    `top:62px` è l'altezza della topbar, che è appiccicata anche lei; lo `z-index` sta SOTTO il suo (45) e sopra
    le righe. Con `border-collapse:collapse` il bordo di una `th` appiccicata si perde durante lo scorrimento
    (il bordo appartiene alla cella che scorre via): si ridisegna con un'ombra interna. */
-.res-table.sticky-head thead th{position:sticky;top:62px;z-index:6;box-shadow:inset 0 -1px 0 var(--line)}
+/* `--st-head-h` la scrive vipiStickyOffset misurando la testata appiccicata (0 se non ce n'è una): senza,
+   con la testata in cima il `thead` le passa SOTTO, ed è il difetto che i Trasferimenti hanno già pagato. */
+.res-table.sticky-head thead th{position:sticky;top:calc(62px + var(--st-head-h, 0px));z-index:6;box-shadow:inset 0 -1px 0 var(--line)}
 /* Cella con una modifica non ancora salvata: si vede da lontano quante ne restano da confermare. */
 .struct .res-table input.lim-dirty{border-color:#e2b400;background:#fffdf3;box-shadow:0 0 0 2px #fff3cf}
 .res-table th{font-size:11px}
@@ -1699,6 +1701,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    collegamenti alle altre pagine admin. Perdono il `max-width:560px` e l'allineamento a destra che avevano
    da blocco a sé, e si stringono per stare in riga: sotto ~1280px vanno a capo sotto il titolo. */
 .st-head{justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+/* ---- Testata che resta in cima (opt-in) ----
+   Serve dove la pagina scorre davvero e i comandi di scrittura stanno lassù: senza, per salvare si risale
+   tutta la tabella. Stesse quote della testata della vista live (.reduced-top): sotto la topbar (62px), sopra
+   le righe e sotto la topbar stessa (45). Sfondo pieno perché ci passa sotto il contenuto, e i lati coprono
+   il respiro del .wrap con un margine negativo — altrimenti si vedono le righe scorrere di fianco. */
+.st-head.sticky{position:sticky;top:62px;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
+  margin-left:calc(clamp(24px,3.5vw,64px) * -1);margin-right:calc(clamp(24px,3.5vw,64px) * -1);
+  padding:10px clamp(24px,3.5vw,64px)}
 .st-head .st-h2{margin:0}
 .st-head .struct-nav{max-width:none;justify-content:flex-start;gap:6px}
 .st-head .struct-nav .btn{padding:5px 9px;font-size:12px}

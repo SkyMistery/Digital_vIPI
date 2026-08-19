@@ -44,6 +44,17 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
    messaggio troncato è mezza informazione. Stesso trattamento in **Struttura**, dove una fascia in più erano
    nodi in meno (là l'altezza del riquadro è misurata).
 
+9. **La testata resta in cima e il «Salva limiti» sta lì.** La pagina è lunga 8878px: chi compila le celle in
+   fondo alla tabella dei settori doveva risalire tutto per confermare. Ora `.st-head.sticky` si ferma sotto la
+   topbar (62px, stesse quote della testata della vista live) e porta con sé il tasto — che resta spento a zero,
+   come i chip.
+   ⚠️ **La quota del `thead` si MISURA**: con una testata appiccicata sopra, il `thead` delle tabelle le
+   passava sotto. `vipiStickyOffset` (nuova, in `vipi-ui.js`) misura la testata e scrive `--st-head-h`
+   **sul `.wrap` della pagina** — non su `<html>`: cambiando pagina l'elemento sparisce e con lui il valore,
+   invece di restare buono per una pagina che non c'entra. Si rimisura a ogni render **e** con un
+   `ResizeObserver`, perché quell'altezza cambia da sola: 72px in riga, **120px a 1000px di larghezza** quando
+   la testata va a capo. È la misura che i Trasferimenti avevano rinunciato a fare.
+
 ## Cosa NON è cambiato, e perché
 
 - **La select nazione resta duplicata** nelle due tabelle: è lo **stesso** filtro (`_country`), muoverla in una
@@ -71,6 +82,11 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
 
 Un ritocco nato dalla verifica: il salva-tutti diceva «**1 settori** salvati». A uno solo vale la frase del
 salvataggio per riga, che è già giusta.
+
+Sulla testata appiccicata, guidata a parte: a `scrollY 7714` (fondo pagina) la testata è ferma a `y=62` con
+«Salva limiti (2)» acceso, il `thead` subito sotto a `y=134` (= 62+72), e il salvataggio parte **senza risalire**
+— «2 settori salvati.» compare nella testata stessa. A 1000px di larghezza la testata va a capo (120px) e il
+`thead` la segue a `y=182`.
 
 Un secondo ritocco, dallo screenshot: il titolo di sezione «ACC» ripeteva il titolo della pagina tre righe più
 sotto. È sparito e il suo conteggio è salito accanto al titolo (`ACC 28`, «12 di 28» quando filtri). Il primo

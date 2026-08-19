@@ -16,7 +16,10 @@
        Come in Struttura e negli Accordi (.st-head). Il sottotitolo diceva in prosa sempre a schermo ciò che il
        «?» dice al clic. Import e «Struttura settori» stanno qui e non nella riga-titolo della tabella: valgono
        per la pagina intera (l'import porta ACC *e* settori), non per l'elenco sotto cui stavano. *@
-    <div class="doc-head st-head">
+    @* `sticky`: la pagina è lunga (28 ACC + 152 settori) e i comandi di scrittura stanno quassù. Senza, per
+       salvare i limiti si risaliva tutta la tabella. L'altezza della fascia la misura vipiStickyOffset, perché
+       il `thead` delle tabelle deve appiccicarsi SOTTO di lei e quell'altezza cambia da sola. *@
+    <div class="doc-head st-head sticky">
         <h2 class="st-h2">ACC <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span></h2>
         <HelpHint Href="/vsop/guida#struttura" AriaLabel="@L["AccAdmin_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["AccAdmin_HelpBody"].Value)
@@ -28,6 +31,13 @@
                     @if (_busy) { <span class="spin"></span> }<Icon Name="refresh" Size="14" /> @L["AccAdmin_ImportBtn"]
                 </button>
                 <a class="btn ghost" href="/vsop/admin/sectorstructure"><Icon Name="grid" Size="14" /> @L["Home_StructTitle"]</a>
+                @* Il salvataggio dei limiti sta QUI e non sopra la tabella dei settori: è l'unica scrittura che
+                   si accumula (N celle in N righe), e il posto da cui la si conferma deve essere a schermo
+                   mentre la si compila. Spento a zero, come i chip: se comparisse, sposterebbe gli altri. *@
+                <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtyLimits.Count == 0)"
+                        @onclick="SaveAllLimits" title="@L["AccAdmin_SaveAllLimitsTitle"]">
+                    <Icon Name="check-circle" Size="14" /> @string.Format(L["AccAdmin_SaveAllLimits"].Value, _dirtyLimits.Count)
+                </button>
             </nav>
             @* L'esito dell'ultima operazione sta QUI, fra i comandi che l'hanno provocata e il lock: era una
                fascia sotto la testata, e comparendo spingeva in giù tutta la pagina — tabella compresa, mentre
@@ -147,11 +157,6 @@
                 @L["AccAdmin_SubsNote"]
             </HelpHint>
             <span class="ln"></span>
-            @* Salvataggio in un giro: con il salva-per-riga, dieci settori compilati erano dieci giri. *@
-            <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtyLimits.Count == 0)"
-                    @onclick="SaveAllLimits" title="@L["AccAdmin_SaveAllLimitsTitle"]">
-                <Icon Name="check-circle" Size="14" /> @string.Format(L["AccAdmin_SaveAllLimits"].Value, _dirtyLimits.Count)
-            </button>
         </div>
         <div class="block">
             <div class="struct-bar">
@@ -250,6 +255,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // L'altezza della testata appiccicata si misura a OGNI render: cambia quando compare il messaggio di
+        // esito o quando la riga va a capo. Il `thead` delle tabelle ci si appoggia (--st-head-h).
+        try { await JS.InvokeVoidAsync("vipiStickyOffset", ".st-head", "st-head-h", ".wrap.struct"); } catch (Exception) { }
+
         if (!_scrollToSubs) return;
         _scrollToSubs = false;
         try { await JS.InvokeVoidAsync("vipiScrollToId", "settori-acc"); } catch (Exception) { }

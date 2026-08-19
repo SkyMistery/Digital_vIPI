@@ -1,4 +1,4 @@
-// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
+﻿// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
 // Ricollegato a ogni navigazione via 'enhancedload' (vedi App.razor).
 (function () {
     function setSector(scope, key, on) {
@@ -325,6 +325,39 @@
     };
 
     // Porta in vista un elemento per id (usato dall'editor struttura: scroll al primo match di ricerca).
+    // ---- Quota di una fascia appiccicata, MISURATA ----
+    // Chi sta sotto una testata appiccicata (es. il `thead` di una tabella) deve saperne l'altezza per non
+    // finirle sotto. In CSS non è esprimibile: quell'altezza cambia da sola — un messaggio che compare, la
+    // riga che va a capo su schermi stretti. Qui si misura e si scrive in una variabile CSS.
+    // La variabile si mette sull'AMBITO (di norma il `.wrap` della pagina), non su <html>: cambiando pagina
+    // l'elemento sparisce e con lui il valore, invece di restare buono per una pagina che non c'entra.
+    var stickyOffsets = [];
+
+    function measureStickyOffset(t) {
+        var scope = t.scope ? document.querySelector(t.scope) : document.documentElement;
+        if (!scope) return;
+        var el = document.querySelector(t.sel);
+        if (!el) { scope.style.removeProperty('--' + t.varName); return; }
+        // Il nodo può essere stato ricreato (navigazione fra pagine): l'osservatore va riagganciato.
+        if (t.el !== el) {
+            if (t.ro) { t.ro.disconnect(); }
+            t.el = el;
+            if (window.ResizeObserver) {
+                t.ro = new ResizeObserver(function () { measureStickyOffset(t); });
+                t.ro.observe(el);
+            }
+        }
+        scope.style.setProperty('--' + t.varName, Math.round(el.getBoundingClientRect().height) + 'px');
+    }
+
+    window.vipiStickyOffset = function (selector, varName, scopeSelector) {
+        var t = stickyOffsets.filter(function (x) { return x.sel === selector && x.varName === varName; })[0];
+        if (!t) { t = { sel: selector, varName: varName, scope: scopeSelector || null, el: null, ro: null }; stickyOffsets.push(t); }
+        measureStickyOffset(t);
+    };
+
+    window.addEventListener('resize', function () { stickyOffsets.forEach(measureStickyOffset); });
+
     window.vipiScrollToId = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
