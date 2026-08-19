@@ -1502,6 +1502,9 @@
   <data name="Xfer_PasteOtherReceiver" xml:space="preserve"><value>Le righe citano «{0}», che non e&apos; il ricevente di questo accordo. Il ricevente NON viene applicato: e&apos; dell&apos;accordo, e cambiarlo da qui lo cambierebbe per tutte le clausole.</value></data>
   <data name="Xfer_Gaps" xml:space="preserve"><value>Lacune</value></data>
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>Cosa manca in questo ACC, in ordine di gravita&apos;. Nessuna e&apos; un errore: sono cose che probabilmente andrebbero scritte.</value></data>
+  <data name="Xfer_ToReviewHelp" xml:space="preserve"><value>Clausole scritte &lt;b&gt;prima&lt;/b&gt; che esistesse la faccetta del trasferimento: non dicono &lt;b&gt;dove&lt;/b&gt; avviene il passaggio, e vanno riviste a mano una per una. Il tasto le &lt;b&gt;filtra&lt;/b&gt;: premilo per vedere solo quelle, ripremilo per tornare a tutte.</value></data>
+  <data name="Xfer_GapsHelp" xml:space="preserve"><value>Cose che &lt;b&gt;probabilmente&lt;/b&gt; andrebbero scritte, non errori: confini senza accordo (quel traffico oggi va a UNICOM), sezioni gemelle da unire, accordi senza aeroporto. Il tasto apre l'elenco, e da ogni voce si salta al punto in cui si lavora.</value></data>
+  <data name="Xfer_PreviewHelp" xml:space="preserve"><value>Mostra sotto ogni clausola la &lt;b&gt;frase&lt;/b&gt; che il documento pubblicato scriverà: è il modo di accorgersi che una clausola dice una cosa diversa da quella che si voleva, &lt;b&gt;prima&lt;/b&gt; di rilasciarla.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Dove lavorare</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>versi diversi</value></data>
   <data name="Xfer_GapNeighbour" xml:space="preserve"><value>confine scoperto</value></data>

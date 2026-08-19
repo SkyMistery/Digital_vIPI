@@ -1,4 +1,4 @@
-@page "/vsop/admin/trasferimenti"
+﻿@page "/vsop/admin/trasferimenti"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -91,10 +91,23 @@
             </div>
         }
 
-        @* ---- Scelta ACC ----
-           Una barra e non un blocco titolato: la scelta dell'ACC è un interruttore, e prendeva l'altezza di una
-           sezione sopra il lavoro vero. *@
-        <div class="xt-accbar">
+        @* ---- UNA barra: ACC · filtri · vista ----
+           Erano due fasce sovrapposte, e sopra le tre colonne ogni fascia costa clausole visibili. Si leggono
+           da sinistra a destra come si lavora: PRIMA l'ambito (quale ACC), poi cosa si cerca dentro, poi come
+           lo si guarda. La scelta dell'ACC è un interruttore, non una sezione, e sta a suo agio in riga.
+           I contatori «N accordi · N clausole» non hanno più una casella propria: in albero il navigatore
+           conta già gli accordi, e il totale completo è nel titolo del chip dell'ACC aperta — informazione
+           conservata, zero altezza. *@
+        var shown = _acc is null ? Array.Empty<AgreementRow>() : FilteredAgreements();
+        @* In albero le righe si costruiscono DENTRO ogni blocco di verso: sono due tabelle, e una lista sola
+           calcolata qui dovrebbe poi essere spezzata in due — cioè lo stesso conto fatto due volte. *@
+        var tableRows = _acc is not null && _view == XferView.Flat ? FlatRows(shown) : Array.Empty<XferTableRow>();
+        var shownClauses = _view == XferView.Flat
+            ? tableRows.Count
+            : shown.Sum(a => a.Sections.Sum(x => x.Clauses.Count));
+        var toReview = _acc is null ? 0 : ToReviewCount();
+        var lacune = _acc is null ? Array.Empty<AgreementGap>() : Gaps();
+        <div class="xfe-filters xt-bar">
             <span class="xt-acclbl">ACC</span>
             @if (Stations.Accs.Count == 0)
             {
@@ -105,27 +118,19 @@
                 @foreach (var a in Stations.Accs)
                 {
                     var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
-                    <button class="btn @(active ? "primary" : "ghost")" disabled="@(_busy)" title="@a.Name" @onclick="() => SelectAcc(a.Code)">@a.Code</button>
+                    @* Il titolo dell'ACC aperta porta i due totali: erano una casella in barra, e una casella
+                       che dice un numero non vale la riga che occupa quando il numero si può leggere qui. *@
+                    var accTitle = active
+                        ? $"{a.Name} — {XferLabels.Agreements(L, shown.Count)} · {XferLabels.Clauses(L, shownClauses)}"
+                        : a.Name;
+                    <button class="btn @(active ? "primary" : "ghost")" disabled="@(_busy)" title="@accTitle"
+                            @onclick="() => SelectAcc(a.Code)">@a.Code</button>
                 }
             }
-        </div>
 
-        @if (_acc is null)
-        {
-            <p class="help">@L["Xfer_ChooseAcc"]</p>
-        }
-        else
-        {
-            var shown = FilteredAgreements();
-            @* In albero le righe si costruiscono DENTRO ogni blocco di verso: sono due tabelle, e una lista sola
-               calcolata qui dovrebbe poi essere spezzata in due — cioè lo stesso conto fatto due volte. *@
-            var tableRows = _view == XferView.Flat ? FlatRows(shown) : Array.Empty<XferTableRow>();
-            var shownClauses = _view == XferView.Flat
-                ? tableRows.Count
-                : shown.Sum(a => a.Sections.Sum(x => x.Clauses.Count));
-
-            @* ---- Barra: filtri, vista, ordinamento ---- *@
-            <div class="xfe-filters xt-bar">
+            @if (_acc is not null)
+            {
+                <span class="xt-barsep"></span>
                 <input class="htree-search xt-search" placeholder="@L["Xfer_FilterPh"]"
                        @bind="_filter" @bind:event="oninput" />
                 <select @bind="_kindFilter">
@@ -136,23 +141,25 @@
                     <option value="@TransferFlowKind.Vfr">@L["Xfer_KindVfr"]</option>
                     <option value="@TransferFlowKind.Other">@L["Xfer_KindOther"]</option>
                 </select>
-                <span class="muted xt-count">@XferLabels.Agreements(L, shown.Count) · @XferLabels.Clauses(L, shownClauses)</span>
-                @* Le clausole ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
+                @* ⚠️ I due tasti diagnostici ci sono SEMPRE, spenti quando il conto è zero. Prima comparivano e
+                   sparivano col contatore, e tutto ciò che stava alla loro destra — vista, ordinamento — si
+                   spostava da solo mentre si lavorava: la posizione di un comando è memoria, e un comando che
+                   cambia posto va ricercato ogni volta.
+                   Le clausole ACC→APP scritte prima della faccetta non dicono dove avviene il trasferimento e
                    vanno riviste a mano: senza un modo di elencarle, la revisione si perde per strada. *@
-                @{ var toReview = ToReviewCount(); }
-                @if (toReview > 0 || _toReviewOnly)
-                {
-                    <button class="btn @(_toReviewOnly ? "primary" : "ghost")"
-                            title="@L["Xfer_ToReviewTitle"]" @onclick="ToggleToReviewFilter">
-                        ⚠ @L["Xfer_ToReview"] (@toReview)
-                    </button>
-                }
-                @{ var lacune = Gaps(); }
-                @if (lacune.Count > 0)
-                {
-                    <button class="btn @(_gapsOpen ? "primary" : "ghost")" title="@L["Xfer_GapsTitle"]"
-                            @onclick="() => _gapsOpen = !_gapsOpen">◎ @L["Xfer_Gaps"] (@lacune.Count)</button>
-                }
+                <button class="btn @(_toReviewOnly ? "primary" : "ghost")" disabled="@(toReview == 0 && !_toReviewOnly)"
+                        title="@L["Xfer_ToReviewTitle"]" @onclick="ToggleToReviewFilter">
+                    ⚠ @L["Xfer_ToReview"] (@toReview)
+                </button>
+                <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_ToReview"]">
+                    @((MarkupString)L["Xfer_ToReviewHelp"].Value)
+                </HelpHint>
+                <button class="btn @(_gapsOpen ? "primary" : "ghost")" disabled="@(lacune.Count == 0)"
+                        title="@L["Xfer_GapsTitle"]"
+                        @onclick="() => _gapsOpen = !_gapsOpen">◎ @L["Xfer_Gaps"] (@lacune.Count)</button>
+                <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_Gaps"]">
+                    @((MarkupString)L["Xfer_GapsHelp"].Value)
+                </HelpHint>
                 @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
                 <span class="ln xt-grow"></span>
                 @* I due filtri diagnostici attraversano gli accordi: in ALBERO si trova l'accordo e si apre, in
@@ -183,16 +190,31 @@
                         </select>
                     </label>
                 }
-                <label class="muted xt-check" title="@L["Xfer_ShowPreviewsTitle"]">
-                    <input type="checkbox" checked="@_showPreviews" @onchange="TogglePreviews" /> @L["Xfer_ShowPreviews"]
-                </label>
-            </div>
+                @* L'anteprima frase era una casella con la sua etichetta: il pezzo più largo della barra per il
+                   peso che ha. Come tasto-icona sta accanto agli altri interruttori di vista, che è ciò che è. *@
+                <button class="btn @(_showPreviews ? "primary" : "ghost")" title="@L["Xfer_ShowPreviewsTitle"]"
+                        aria-label="@L["Xfer_ShowPreviews"]" aria-pressed="@_showPreviews.ToString().ToLowerInvariant()"
+                        @onclick="TogglePreviews">¶</button>
+                <HelpHint ExtraClass="left" Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_ShowPreviews"]">
+                    @((MarkupString)L["Xfer_PreviewHelp"].Value)
+                </HelpHint>
+            }
+        </div>
 
+        @if (_acc is null)
+        {
+            <p class="help">@L["Xfer_ChooseAcc"]</p>
+        }
+        else
+        {
             @* ---- Cruscotto delle lacune ----
                Dice DOVE lavorare. Nessuna di queste voci e' un errore: sono cose che probabilmente andrebbero
                scritte, e chi guarda decide. La prima e' l'unica che succede ORA (traffico a UNICOM); la seconda
                e' l'unica che nessuno vedrebbe guardando una pagina alla volta. *@
-            @if (_gapsOpen)
+            @* ⚠️ Anche il conto, non solo il flag: il tasto che apre il cruscotto ora è SPENTO quando le lacune
+               sono zero, e un cruscotto aperto su una tabella vuota non si potrebbe più chiudere. Chiudendo
+               l'ultima lacuna il pannello se ne va da sé, che è anche il segnale che si è finito. *@
+            @if (_gapsOpen && lacune.Count > 0)
             {
                 <div class="callout info xt-bulk">
                     <span class="cic">◎</span>
@@ -200,7 +222,7 @@
                         <b>@L["Xfer_GapsHeading"]</b>
                         <table class="res-table">
                             <tbody>
-                                @foreach (var g in Gaps())
+                                @foreach (var g in lacune)
                                 {
                                     <tr>
                                         <td><span class="pill @(GapPill(g.Kind))">@GapLabel(g.Kind)</span></td>

@@ -1496,6 +1496,9 @@
   <data name="Xfer_PasteOtherReceiver" xml:space="preserve"><value>The rows name «{0}», which is not this agreement&apos;s receiving unit. The receiver is NOT applied: it belongs to the agreement, and changing it here would change it for every clause.</value></data>
   <data name="Xfer_Gaps" xml:space="preserve"><value>Gaps</value></data>
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>What is missing in this ACC, worst first. None of these is an error: they are things that probably ought to be written.</value></data>
+  <data name="Xfer_ToReviewHelp" xml:space="preserve"><value>Clauses written &lt;b&gt;before&lt;/b&gt; the transfer facet existed: they do not say &lt;b&gt;where&lt;/b&gt; the handover happens, and each needs reviewing by hand. The button &lt;b&gt;filters&lt;/b&gt; them: press it to see only those, press again for all.</value></data>
+  <data name="Xfer_GapsHelp" xml:space="preserve"><value>Things that &lt;b&gt;probably&lt;/b&gt; should be written, not errors: borders with no agreement (that traffic goes to UNICOM today), twin sections to merge, agreements with no airport. The button opens the list, and each entry jumps to where the work is.</value></data>
+  <data name="Xfer_PreviewHelp" xml:space="preserve"><value>Shows, under every clause, the &lt;b&gt;sentence&lt;/b&gt; the published document will carry: it is how you notice a clause saying something other than what you meant, &lt;b&gt;before&lt;/b&gt; releasing it.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Where to work</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>directions differ</value></data>
   <data name="Xfer_GapNeighbour" xml:space="preserve"><value>border unwritten</value></data>

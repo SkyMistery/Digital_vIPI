@@ -1451,10 +1451,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-pane-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
 /* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato. */
 .xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap}
-/* Barra ACC: la scelta è un interruttore, e prendeva l'altezza di una sezione titolata sopra il lavoro vero. */
-.xt-accbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+/* Scelta ACC: un interruttore, non una sezione titolata — e dal 19 agosto 2026 nemmeno una fascia propria:
+   vive nella stessa riga dei filtri, in testa, perché è l'AMBITO di tutto ciò che segue. */
 .xt-acclbl{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
   letter-spacing:.04em;color:var(--ink-soft);margin-right:2px}
+/* Il taglio fra ambito e filtri: si vede che sono due cose, senza spenderci una riga. */
+.xt-barsep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
 /* Commutatore di vista: due bottoni attaccati, così si leggono come un interruttore a due posizioni. */
 .xt-viewsw{display:flex;gap:2px}
 /* Cella scrivibile: il bersaglio è tutta la cella, perché quella VUOTA è proprio quella da riempire. */
@@ -1549,8 +1551,14 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .res-table tr.xt-sel>td{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
 
-.xt-bar{align-items:center;margin:6px 0 12px}
+.xt-bar{align-items:center;margin:0 0 12px}
 .xt-search{flex:1;min-width:180px;margin-bottom:0}
+/* Il «?» sta ATTACCATO al comando che spiega, non a mezza barra di distanza: senza questo prende il gap da 8px
+   come tutti gli altri elementi e sembra un elemento a sé. */
+.xt-bar .help-hint{margin-left:-4px}
+/* Un tasto spento in barra resta LEGGIBILE: dice «qui non c'è niente da rivedere», che è un'informazione, non
+   un comando disattivato per sbaglio. Senza, a 0 sbiadiva fino a sembrare un guasto. */
+.xt-bar .btn:disabled{opacity:.55;cursor:default}
 .xt-count{font-size:12px;white-space:nowrap}
 .xt-grow{flex:1}
 .xt-check{font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
