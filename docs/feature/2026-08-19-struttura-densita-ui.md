@@ -54,6 +54,10 @@ orfani (all'ultimo agganciato la riga si accorciava da sé), e con lui appariva/
      fosse cambiava con la larghezza del pannello: la barra sembrava rotta, non stretta. Raggruppati, la riga
      si spezza in un punto solo — sopra ricerca/nazione/espandi-comprimi, sotto i tre chip.
 
+9. **L'esito in testata** (aggiunto insieme alla pagina ACC): l'avviso d'errore era una fascia sotto la
+   testata e spingeva in giù l'albero mentre ci si lavorava. Ora è un chip `.st-msg` fra i comandi e il lock,
+   con la ✕ per chiuderlo.
+
 ## Trappole attese (dai round gemelli)
 
 - **Specificità**: le regole nuove vanno scritte con `.struct` davanti, e verificate sul valore **calcolato**;

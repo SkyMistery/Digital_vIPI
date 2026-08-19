@@ -37,6 +37,13 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
    Struttura (e perdono il 🔎 dentro il placeholder: la lente è disegnata nel campo). Resta `🪖` della colonna
    Militare: nel set non c'è un equivalente.
 
+8. **L'esito dell'ultima operazione sale in testata**, fra i comandi che l'hanno provocata e il lock
+   (`.st-msg`, verde o giallo, con la ✕ per chiuderlo). Da fascia sotto la testata **spingeva in giù la
+   tabella** mentre ci si lavorava: misurato, la prima riga adesso resta a `y=306` con e senza messaggio.
+   Il chip si stringe e manda a capo il proprio testo invece di spingere via il lock, e non tronca mai — un
+   messaggio troncato è mezza informazione. Stesso trattamento in **Struttura**, dove una fascia in più erano
+   nodi in meno (là l'altezza del riquadro è misurata).
+
 ## Cosa NON è cambiato, e perché
 
 - **La select nazione resta duplicata** nelle due tabelle: è lo **stesso** filtro (`_country`), muoverla in una

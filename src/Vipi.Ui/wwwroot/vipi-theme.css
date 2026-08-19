@@ -1703,6 +1703,20 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .st-head .struct-nav{max-width:none;justify-content:flex-start;gap:6px}
 .st-head .struct-nav .btn{padding:5px 9px;font-size:12px}
 .st-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
+/* ---- Esito dell'ultima operazione, in testata ----
+   Sta fra i comandi e il lock perché è la RISPOSTA a quei comandi. Come fascia sotto la testata spingeva in giù
+   la tabella su cui si stava lavorando, ed è il difetto che questa famiglia di pagine ha già pagato altrove.
+   `flex:0 1 auto` + `min-width:0`: si stringe fino a mandare a capo il proprio testo invece di spingere via il
+   lock, e non taglia mai (un messaggio troncato è mezza informazione). Quando non c'è, non occupa nulla. */
+.st-head .st-msg{display:inline-flex;align-items:center;gap:7px;flex:0 1 auto;min-width:0;max-width:660px;
+  font-size:12.5px;font-weight:600;line-height:1.35;border:1px solid;border-radius:14px;padding:5px 6px 5px 12px}
+.st-head .st-msg.ok{background:#dafbe7;border-color:#a7e9c1;color:var(--ok-ink)}
+.st-head .st-msg.warn{background:#fff3cf;border-color:#e2b400;color:var(--warn-ink)}
+.st-head .st-msg [data-icon]{flex:none}
+.st-head .st-msg-t{min-width:0;overflow-wrap:anywhere}
+.st-head .st-msg .tclose{flex:none;border:0;background:transparent;cursor:pointer;font-size:14px;color:inherit;
+  opacity:.6;padding:0 6px;line-height:1}
+.st-head .st-msg .tclose:hover{opacity:1}
 .st-head .lockbar .btn{margin-left:0}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
 .xt-lbl-soft{font-weight:400}

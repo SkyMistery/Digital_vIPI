@@ -29,6 +29,17 @@
                 </button>
                 <a class="btn ghost" href="/vsop/admin/sectorstructure"><Icon Name="grid" Size="14" /> @L["Home_StructTitle"]</a>
             </nav>
+            @* L'esito dell'ultima operazione sta QUI, fra i comandi che l'hanno provocata e il lock: era una
+               fascia sotto la testata, e comparendo spingeva in giù tutta la pagina — tabella compresa, mentre
+               ci si stava lavorando. Si chiude a mano e sparisce da sé alla prima operazione successiva. *@
+            @if (_msg is not null || _ok is not null)
+            {
+                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
+                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_msg ?? _ok)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                </span>
+            }
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
@@ -40,15 +51,6 @@
     }
     else
     {
-        @if (_msg is not null)
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
-        }
-        @if (_ok is not null)
-        {
-            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
-        }
-
         @* La EditLockBar sta nella TESTATA, vedi in cima. Anche il titolo di sezione «ACC» è sparito: ripeteva
            il titolo della pagina tre righe più sotto, e il suo conteggio è salito accanto a quello. Il primo
            riquadro È l'elenco degli ACC; il secondo ha il suo titolo perché lì comincia un'altra cosa. *@
@@ -237,6 +239,8 @@
     private string? _ok;
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    private void ClearStatus() { _msg = null; _ok = null; }
 
     protected override async Task OnInitializedAsync()
     {
