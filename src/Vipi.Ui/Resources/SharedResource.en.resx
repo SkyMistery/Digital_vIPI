@@ -772,7 +772,6 @@
   <data name="Apt_AssignedFail" xml:space="preserve"><value>, {0} not assigned.</value></data>
   <data name="Xfer_Title" xml:space="preserve"><value>Transfers</value></data>
   <data name="Xfer_Heading" xml:space="preserve"><value>Coordination agreements</value></data>
-  <data name="Xfer_Subtitle" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; holds between two lists of units, for one kind of traffic, over every &lt;b&gt;airport&lt;/b&gt; listed; each &lt;b&gt;clause&lt;/b&gt; says which &lt;b&gt;points&lt;/b&gt; it applies to and at what &lt;b&gt;level&lt;/b&gt;. A bilateral agreement has clauses &lt;b&gt;both ways&lt;/b&gt;. In the operational view, if a unit is closed the hierarchy is climbed up to the first online one (otherwise UNICOM).</value></data>
   <data name="Xfer_NoAccImport" xml:space="preserve"><value>No ACC. Import from the &lt;a href="/vsop/admin/acc"&gt;ACC page&lt;/a&gt;.</value></data>
   <data name="Xfer_ChooseAcc" xml:space="preserve"><value>Choose an ACC to manage its transfers.</value></data>
   <data name="Xfer_NewGroup" xml:space="preserve"><value>New transfer group</value></data>
@@ -1507,7 +1506,7 @@
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>no arrival agreement</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>appears in no agreement</value></data>
   <data name="Xfer_HelpAria" xml:space="preserve"><value>Help on coordination agreements</value></data>
-  <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. &lt;b&gt;Both directions&lt;/b&gt; are always visible, and «us/them» depends on the ACC you opened — not on how the agreement was written. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work.</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>An &lt;b&gt;agreement&lt;/b&gt; binds two lists of units for one kind of traffic, over every airport listed; the &lt;b&gt;clauses&lt;/b&gt; say which points it applies to and at what level. &lt;b&gt;Both directions&lt;/b&gt; are always visible, and «us/them» depends on the ACC you opened — not on how the agreement was written. The &lt;b&gt;Gaps&lt;/b&gt; button tells you where to work. In the operational view, if a unit is closed the hierarchy is climbed up to the first online one (otherwise UNICOM).</value></data>
   <data name="Xfer_Section" xml:space="preserve"><value>Section</value></data>
   <data name="Xfer_SectionsN" xml:space="preserve"><value>{0} sections</value></data>
   <data name="Xfer_NewSection" xml:space="preserve"><value>New section</value></data>

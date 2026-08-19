@@ -1578,6 +1578,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 
 /* Utilità nate dagli stili inline della pagina. */
 .xt-h2{margin-bottom:2px}
+/* ---- Testata in una riga: titolo · «?» · stato del lock ----
+   `.doc-head` è space-between fra DUE blocchi; qui i blocchi sono tre e il terzo deve stare a destra da solo,
+   quindi l'allineamento torna a sinistra e la barra del lock si spinge da sé con `margin-left:auto`.
+   ⚠️ La `.lockbar` porta `margin-bottom:14px` e `.lockbar .btn{margin-left:auto}`: erano giusti quando era una
+   fascia per conto suo, e in riga spaccano l'allineamento. Si azzerano QUI, non nel componente: la barra la
+   usano anche struttura e nuovo documento, dove fascia è ancora la forma giusta. */
+.xt-head{justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.xt-head .xt-h2{margin:0}
+.xt-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
+.xt-head .lockbar .btn{margin-left:0}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
 .xt-lbl-soft{font-weight:400}
 .xt-hint{font-size:11.5px}

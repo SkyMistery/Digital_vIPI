@@ -775,7 +775,6 @@
   <data name="Apt_AssignedFail" xml:space="preserve"><value>, {0} non assegnati.</value></data>
   <data name="Xfer_Title" xml:space="preserve"><value>Trasferimenti</value></data>
   <data name="Xfer_Heading" xml:space="preserve"><value>Accordi di coordinamento</value></data>
-  <data name="Xfer_Subtitle" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; vale fra due elenchi di enti, per un tipo di traffico, su tutti gli &lt;b&gt;aeroporti&lt;/b&gt; elencati; ogni &lt;b&gt;clausola&lt;/b&gt; dice su quali &lt;b&gt;punti&lt;/b&gt; si applica e a quale &lt;b&gt;quota&lt;/b&gt;. Un accordo bilaterale ha clausole nei &lt;b&gt;due versi&lt;/b&gt;. Nella vista operativa, se un ente è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</value></data>
   <data name="Xfer_NoAccImport" xml:space="preserve"><value>Nessun ACC. Importa dalla &lt;a href="/vsop/admin/acc"&gt;pagina ACC&lt;/a&gt;.</value></data>
   <data name="Xfer_ChooseAcc" xml:space="preserve"><value>Scegli un ACC per gestirne i trasferimenti.</value></data>
   <data name="Xfer_NewGroup" xml:space="preserve"><value>Nuovo gruppo di trasferimenti</value></data>
@@ -1513,7 +1512,7 @@
   <data name="Xfer_GapAirportDetail" xml:space="preserve"><value>nessun accordo di arrivo</value></data>
   <data name="Xfer_GapSectorDetail" xml:space="preserve"><value>non compare in nessun accordo</value></data>
   <data name="Xfer_HelpAria" xml:space="preserve"><value>Aiuto sugli accordi di coordinamento</value></data>
-  <data name="Xfer_HelpBody" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; lega due elenchi di enti per un traffico, su tutti gli aeroporti elencati; le &lt;b&gt;clausole&lt;/b&gt; dicono su quali punti vale e a quale quota. I &lt;b&gt;due versi&lt;/b&gt; si vedono sempre entrambi, e «noi/loro» dipende dalla ACC aperta — non da come l'accordo è stato scritto. Il tasto &lt;b&gt;Lacune&lt;/b&gt; dice dove lavorare.</value></data>
+  <data name="Xfer_HelpBody" xml:space="preserve"><value>Un &lt;b&gt;accordo&lt;/b&gt; lega due elenchi di enti per un traffico, su tutti gli aeroporti elencati; le &lt;b&gt;clausole&lt;/b&gt; dicono su quali punti vale e a quale quota. I &lt;b&gt;due versi&lt;/b&gt; si vedono sempre entrambi, e «noi/loro» dipende dalla ACC aperta — non da come l'accordo è stato scritto. Il tasto &lt;b&gt;Lacune&lt;/b&gt; dice dove lavorare. Nella vista operativa, se un ente è chiuso si risale la gerarchia fino al primo online (altrimenti UNICOM).</value></data>
   <data name="Xfer_Section" xml:space="preserve"><value>Sezione</value></data>
   <data name="Xfer_SectionsN" xml:space="preserve"><value>{0} sezioni</value></data>
   <data name="Xfer_NewSection" xml:space="preserve"><value>Nuova sezione</value></data>

@@ -26,13 +26,22 @@
 
 <div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Xfer_Title"]</b></div>
-    <div class="doc-head">
-        <div><h2 class="xt-h2">@L["Xfer_Heading"]</h2><span class="muted">@((MarkupString)L["Xfer_Subtitle"].Value)</span></div>
+    @* ---- Testata in UNA riga: titolo · «?» · lock ----
+       Il sottotitolo non c'è più: diceva quasi parola per parola ciò che il «?» dice al clic, e lo diceva su
+       tre righe di prosa sempre a schermo. Qui l'altezza è tabella: sopra le tre colonne ogni fascia tolta
+       diventa clausole visibili, perché l'altezza del riquadro la MISURA vipiFitViewport a ogni render.
+       La barra del lock sale sulla stessa riga per la stessa ragione — è uno stato, non una sezione. *@
+    <div class="doc-head xt-head">
+        <h2 class="xt-h2">@L["Xfer_Heading"]</h2>
         @* Il «?» porta alla sezione di guida di quest'area: la pagina ha cambiato modello, e chi la riapre dopo
            settimane deve poter ritrovare il perche' senza cercarlo. *@
         <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_HelpAria"]">
             @((MarkupString)L["Xfer_HelpBody"].Value)
         </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" ExpiresChanged="OnLockExpiry" />
+        }
     </div>
 
     @if (!Authz.IsAdmin)
@@ -67,7 +76,8 @@
             </div>
         }
 
-        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" ExpiresChanged="OnLockExpiry" />
+        @* ⚠️ La EditLockBar sta nella TESTATA, non qui: vedi in cima. Resta comunque dentro il ramo da
+           amministratore — chi non lo è non ha un lock da prendere. *@
 
         @* Il lock scadeva senza preavviso: si stava scrivendo e la pagina tornava in sola lettura. *@
         @if (LockEndingSoon)
