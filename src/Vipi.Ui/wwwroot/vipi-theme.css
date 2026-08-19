@@ -740,6 +740,9 @@
    e un bersaglio che cambia posto fra due tabelle affiancate va ricercato ogni volta. Le larghezze stanno nel
    colgroup di XferRowsTable; le percentuali non arrivano a 100 perché la condizione prende ciò che resta. */
 .xfe-table{width:100%;font-size:13px;table-layout:fixed}
+/* L'intestazione resta in ogni blocco di verso — si e' scelto cosi': sta accanto alle righe che descrive,
+   e in un accordo lungo l'unica alternativa era non averla piu' dopo il primo blocco. Piu' bassa, pero'. */
+.struct .xfe-table th{padding:4px 9px}
 .xt-c-drag{width:26px}
 .xt-c-pick{width:26px}
 .xt-c-acts{width:132px}
@@ -762,7 +765,17 @@
    stessa quota si sovrapporrebbero, e l'altezza dell'uno non è esprimibile nel `top` dell'altro. */
 .xt-pane-body .xfe-table.xt-stick thead th{position:sticky;top:0;z-index:2}
 .xfe-table th{font-size:11px}
-.xfe-table td{padding:7px 9px;vertical-align:middle}
+/* ---- Densità: questa tabella si ANALIZZA, non si legge come prosa ----
+   Misurato a schermo prima di scegliere: una clausola costava 152px (riga 43 + anteprima 55, più intestazione
+   38 e testata del verso 51 divise fra le righe del blocco). Con queste misure scende a 101 — un terzo in meno,
+   cioè da 5 a 8 clausole sotto gli occhi in un riquadro da 800px. Non c'è un interruttore di densità: una
+   pagina che serve a confrontare righe non ha una modalità «ariosa» che valga la barra che costerebbe. */
+/* ⚠️ `.struct` non e' decorazione: `.res-table td{padding:7px 10px}` vive 350 righe piu' in basso e ha la
+   STESSA specificita' (una classe + un elemento), quindi vinceva per posizione. Il difetto era invisibile
+   perche' i due valori verticali coincidevano — 7px e 7px — e si e' visto solo misurando il padding
+   calcolato a schermo: la riga restava 43px con la regola nuova gia' in pagina. Seconda volta in questo
+   giro che una regola di questa pagina perde in silenzio contro una piu' generica scritta dopo. */
+.struct .xfe-table td{padding:3px 9px;vertical-align:middle}
 .xfe-table input{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:#fff}
 .xfe-table .pair-row td{background:#eef1fb;font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 .chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
@@ -1488,8 +1501,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* Commutatore di vista: due bottoni attaccati, così si leggono come un interruttore a due posizioni. */
 .xt-viewsw{display:flex;gap:2px}
 /* Cella scrivibile: il bersaglio è tutta la cella, perché quella VUOTA è proprio quella da riempire. */
-.xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:1px 4px;margin:-1px -4px;
-  cursor:text}
+/* ⚠️ Il padding NEGATIVO ricopre esattamente quello della cella: la riga dimagrisce, il bersaglio no. La
+   scrittura in cella e' il gesto principale di questa pagina, e con le celle a 3px un bersaglio «alto quanto il
+   testo» sarebbe sceso a ~22px — piu' stretto di un dito su un portatile. Se un giorno cambia il padding di
+   `.xfe-table td`, questi due numeri vanno cambiati con lui: sono la stessa misura scritta due volte, ed e' il
+   prezzo per non far saltare la riga quando la cella si apre. */
+.struct .xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:3px 9px;
+  margin:-3px -9px;cursor:text}
 .xt-cellclick:hover{background:#f2f5ff;box-shadow:inset 0 0 0 1px var(--line)}
 .xt-cellclick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 /* Il campo prende esattamente il posto del testo che sostituisce: se la cella cambiasse altezza, la riga
@@ -1570,7 +1588,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-row2 .field{flex:1;min-width:90px}
 .xt-preview{margin-top:12px;padding:8px 10px;background:#f7f9ff;border:1px solid var(--line);border-radius:8px;font-size:11.5px}
 .xt-preview b{font-family:var(--font-head);color:var(--ivao-blue)}
-.xt-prev{font-style:italic;color:var(--ink-soft)}
+/* ⚠️ L'anteprima era 55px, PIU' ALTA della riga di dati che commenta (43): una riga di corsivo pagata piu'
+   del dato. Sta sotto la sua clausola e non ha bisogno di respiro sopra — quello lo da' gia' la riga. */
+.res-table tr.xfer-prev>td{padding:1px 9px 5px}
+.xt-prev{font-style:italic;color:var(--ink-soft);font-size:11.5px}
 
 /* Tabella: sola lettura, quindi le colonne possono restare strette e leggibili. */
 .xt-drag{width:26px;text-align:center}
@@ -1600,14 +1621,19 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
    ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
    con due blocchi il piede del primo finirebbe a metà pagina, che è peggio del problema che risolveva. */
-.xt-dirblock{margin:0 0 14px}
+.xt-dirblock{margin:0 0 6px}
 .xt-dirblock:last-child{margin-bottom:0}
 /* La testata del verso RESTA mentre le clausole scorrono: scendendo di trenta righe si perdeva di vista in
    quale verso si stava scrivendo, ed è l'unica cosa che non si può ricostruire guardando la riga. Ogni blocco
    spinge via il precedente da sé — è il comportamento naturale di due sticky consecutivi.
    Lo sfondo è obbligatorio: senza, le righe passano SOTTO il testo della testata e si legge un impasto. */
-.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 6px;margin-bottom:4px;
+.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0 3px;margin-bottom:2px;
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3;background:#fff}
+/* I tasti della testata (clausola, incolla, modifica, elimina) sono comandi di CONTORNO: a grandezza piena
+   alzavano la testata a 51px, cioe' piu' di una riga di dati. A 31 la testata pesa quanto cio' che dice. */
+.xt-dirhead .btn{padding:3px 9px;font-size:12px}
+/* Stessa ragione nella testata del riquadro: e' l'accordo aperto, non una barra di strumenti. */
+.xt-pane-h .btn{padding:4px 10px;font-size:12.5px}
 /* Il verso di casa porta il filo blu: è quello su cui si lavora, e l'occhio deve trovarlo senza leggere. */
 .xt-out>.xt-dirhead{border-bottom-color:var(--ivao-blue)}
 .xt-dirtoggle{display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;
