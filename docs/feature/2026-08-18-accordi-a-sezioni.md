@@ -518,3 +518,25 @@ trattato come attributo *booleano HTML*: con `true` rende `aria-expanded=""` (no
 **omette l'attributo** — che per uno screen reader vuol dire «non espandibile», non «chiuso». Servono le
 stringhe. Tre occorrenze in quest'area lo sbagliavano; `StrutturaPage` lo faceva già giusto.
 
+## Seconda rifinitura: il verso si preme, il form sta in riga
+
+**Il chip È il comando.** Il verso era un'etichetta con un tasto `⇄` accanto: due elementi per una cosa sola, e
+il bersaglio del gesto era il più piccolo dei due. Ora il chip è un `<button>` — ci si clicca sopra e il verso
+si inverte — col `⇄` in coda come segnale che si può premere. Provato a schermo: `LIBB_ES_CTR → LGGG_W_CTR` →
+clic → `LGGG_W_CTR → LIBB_ES_CTR` → clic → torna.
+
+**Il form della sezione sta su una riga.** Il campo del verso non è più `.narrow` (max 130 px: due callsign
+interi non ci stanno, e tagliarli è inaccettabile per la stessa ragione del navigatore), e il picker degli
+aeroporti scende a **96 px** — quanto un ICAO — con segnaposto `LIRF` invece di `LIRF / LFPG`. Senza,
+ereditava `min-width:150px; flex:1` dal campo dell'inline-form e spingeva il verso fuori riga.
+
+⚠️ **Ma il menu non è l'input.** Ristretto a 96 px anche il menu, «LIBD Bari Palese – LIBB» si spezzava su due
+righe illeggibili: le proposte sono il motivo per cui il picker esiste. Il menu esce dalla larghezza del campo
+(`width:max-content`) invece di comprimersi dentro.
+
+⚠️ **Nota di lavorazione:** l'host del committente era acceso sulla **5034** mentre si verificava. Non si tocca —
+la memoria lo dice e ci sono connessioni attive. Si compila in una **cartella separata**
+(`dotnet build src/Vipi.Host -o <scratchpad>/app`) e si lancia da lì la DLL: l'`OutDir` diverso non tocca
+`src/Vipi.Host/bin`, che è ciò che l'host blocca. Il `dotnet test` completo invece resta impossibile —
+`Vipi.E2E.Tests` referenzia `Vipi.Host` e non può compilare.
+

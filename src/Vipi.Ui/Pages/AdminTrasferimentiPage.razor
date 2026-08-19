@@ -1690,13 +1690,15 @@
             </div>
 
             @* Il verso: PROPOSTO dall'aeroporto (chi non ha lo scalo cede a chi ce l'ha) e correggibile con un
-               clic. Non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no — si salva. *@
-            <div class="field narrow"><label>@L["Xfer_Direction"]</label>
-                <div class="xt-btnrow">
-                    <span class="pill blue">@DirectionPairOf(ag, form.Direction)</span>
-                    <button type="button" class="btn ghost" title="@L["Xfer_FlipDirectionTitle"]"
-                            @onclick="() => form.Direction = SectionDirection.Flip(form.Direction)">⇄</button>
-                </div>
+               clic. Non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no — si salva.
+               ⚠️ Il CHIP È IL COMANDO: ci si clicca sopra e si inverte. Prima il verso era un'etichetta con un
+               tasto ⇄ accanto — due elementi per una cosa sola, e il bersaglio del gesto era il più piccolo dei
+               due. Qui si preme ciò che si sta leggendo. *@
+            <div class="field xt-dirfield"><label>@L["Xfer_Direction"]</label>
+                <button type="button" class="pill blue xt-dirchip" title="@L["Xfer_FlipDirectionTitle"]"
+                        @onclick="() => form.Direction = SectionDirection.Flip(form.Direction)">
+                    @DirectionPairOf(ag, form.Direction)<span class="xt-dirchip-x">⇄</span>
+                </button>
             </div>
 
             @* Aeroporti: un elenco, non un campo. È l'asse che il modello di luglio costringeva a moltiplicare —
@@ -1718,7 +1720,11 @@
                     @if (form.Airports.Count == 0) { <span class="muted">—</span> }
                 </div>
                 <div class="xt-btnrow">
-                    <TypeaheadPicker Placeholder="LIRF / LFPG" Items="AirportItems(form.AirportText)"
+                    @* ⚠️ Largo quanto un ICAO e non di più: il picker eredita `min-width:150px; flex:1` dal
+                       campo dell'inline-form, e con quello Direction non stava più in riga. Il segnaposto
+                       scende a un ICAO solo per la stessa ragione — «LIRF / LFPG» non ci entrerebbe. *@
+                    <TypeaheadPicker Class="xt-aptpick-narrow" Placeholder="LIRF"
+                                     Items="AirportItems(form.AirportText)"
                                      @bind-Text="form.AirportText" NoMatch="@NewAptFooter(form.AirportText)"
                                      Footer="@NewAptFooter(form.AirportText)" />
                     @if (!string.IsNullOrWhiteSpace(form.AirportText) && !IsKnownApt(form.AirportText))

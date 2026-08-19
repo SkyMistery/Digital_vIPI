@@ -1583,6 +1583,25 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-hint{font-size:11.5px}
 .xt-nowrap{white-space:nowrap}
 .xt-btnrow{display:flex;gap:6px}
+/* ---- form della SEZIONE: il verso si preme, gli scali si digitano ----
+   ⚠️ Il campo del verso NON è `.narrow` (max 130 px): due callsign interi non ci stanno, e tagliarli è
+   inaccettabile per la stessa ragione per cui non si tagliano nel navigatore — un callsign troncato è un altro
+   callsign. Prende la larghezza che gli serve e non la cede a nessuno. */
+.xt-dirfield{flex:0 0 auto!important;min-width:0!important;max-width:none!important}
+/* Il chip È il comando: si legge il verso e ci si clicca sopra per invertirlo. Il ⇄ in coda è il segnale che
+   si può premere — senza, una pill sembra un'etichetta. */
+.xt-dirchip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border:0;cursor:pointer;
+  font-family:var(--font-body);font-size:12px}
+.xt-dirchip:hover{filter:brightness(.94)}
+.xt-dirchip-x{font-size:13px;opacity:.75}
+/* Ci deve stare un ICAO, non una frase: senza questo il picker eredita `min-width:150px; flex:1` dal campo
+   dell'inline-form e spinge il verso fuori riga. */
+.xt-aptpick-narrow{flex:0 0 auto!important;min-width:0!important;width:96px}
+/* ⚠️ Ma il MENU non è l'input: stretto a 96 px spezzava «Bari Palese – LIBB» su due righe illeggibili. Le
+   proposte si leggono per intero — sono il motivo per cui il picker esiste — quindi il menu esce dalla
+   larghezza del campo invece di comprimersi dentro. */
+.xt-aptpick-narrow .sector-pick{flex-wrap:nowrap;width:max-content;max-width:320px}
+.xt-aptpick-narrow .sp-item{white-space:nowrap}
 .xt-selfc{align-self:center}
 .xt-mt0{margin-top:0}
 .xt-m0{margin:0}

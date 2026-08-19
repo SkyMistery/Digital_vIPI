@@ -89,7 +89,7 @@ precedente.
 | **Riquadro** | testata coi due capi, poi **le sezioni**, ognuna con la sua tabella | un accordo con arrivi, partenze e due versi di sorvoli non ha «un» tipo |
 | **All'apertura** | sezioni tutte **chiuse**, coi tasti ⊞/⊟ in testata | otto tabelle aperte sono duemila pixel: chi apre un accordo sta cercando UNA sezione, e gliela fa trovare l'elenco dei titoli. Il blocco del **reciproco mancante** non è collassabile, quindi il vuoto resta a vista |
 | **Ordine sezioni** | **imposto**: aeroporto (arrivi poi partenze) ▸ sorvoli (due versi) ▸ VFR ▸ Altro | non è struttura come l'ordine delle clausole; a mano si potrebbe nascondere una partenza lontano dai suoi arrivi |
-| **Verso** | **proposto dall'aeroporto**, salvato, correggibile col tasto `⇄` | «arrivi verso LIRF» va verso chi ha LIRF; non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no |
+| **Verso** | **proposto dall'aeroporto**, salvato; nel form **il chip stesso si preme** per invertirlo | «arrivi verso LIRF» va verso chi ha LIRF; non si ricalcola a ogni lettura — l'AoR cambia, l'accordo scritto no. Il chip è il comando: si preme ciò che si legge, invece di un tasto accanto più piccolo del testo |
 | **Reciproco mancante** | blocco **vuoto** sotto la sezione, coi tasti «copia l'altro verso» e «+ sezione» | il vuoto **è** l'informazione: l'interruttore di ferragosto nascondeva ciò che mancava, e per questo il reciproco non si scriveva mai |
 | **Gemelle** | **avviso** + tasto «unisci», non errore | due arrivi a LIRF a condizioni diverse si scrivono con le **varianti**; vietare la seconda sezione non lo insegnerebbe a nessuno |
 | **Creazione** | accordo = **due enti**; sezione = tipo (+ aeroporti) | creare è dire *chi*; il traffico è il *cosa*, e sta dentro |
@@ -219,7 +219,11 @@ emettono **due volte** e **si leggono**: su quest'area lo scaffolding ha già pr
 `RenameColumn` che avrebbe lasciato dati validi ma **sbagliati** — a ferragosto un rename diverso nei due
 provider, il 18 agosto un `AgreementId` spacciato per `SectionId`.
 
-⚠️ **Fermare `Vipi.Host` prima di compilare**, o è `MSB3021` sui DLL bloccati. E prima di credere a ciò che si
+⚠️ **Fermare `Vipi.Host` prima di compilare**, o è `MSB3021` sui DLL bloccati. ⚠️ **Ma se l'host acceso è quello
+del committente (5034, con connessioni attive) NON si spegne**: si compila in una cartella separata —
+`dotnet build src/Vipi.Host -c Debug -f net8.0 -o <scratchpad>/app` — e si lancia da lì `dotnet app/Vipi.Host.dll`.
+L'`OutDir` diverso non tocca `src/Vipi.Host/bin`, che è ciò che l'host blocca. Resta impossibile il `dotnet test`
+completo: `Vipi.E2E.Tests` referenzia `Vipi.Host`. E prima di credere a ciò che si
 vede a schermo, controllare l'ora di `src/Vipi.Host/bin/Debug/net8.0/Vipi.Application.dll`:
 `dotnet build src/Vipi.Ui` **non** aggiorna la copia dentro `bin` dell'host, e `dotnet run --no-build` parte da lì.
 
