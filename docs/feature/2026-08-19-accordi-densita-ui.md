@@ -57,6 +57,46 @@ e intestazione ancora visibile a `scrollTop 500`; form sezione su due righe (cam
 
 Suite: verde su entrambi i TFM. `dotnet build Vipi.slnx -c Release --no-incremental` senza avvisi.
 
+## Densità delle tabelle (secondo giro, stesso giorno)
+
+Misurato **prima** di scegliere, su un accordo vero a 1680×1050: una clausola costava **152 px**.
+
+| pezzo | prima | dopo |
+|---|---|---|
+| riga di dati | 43 | **35** |
+| anteprima frase | 55 ⟵ più alta del dato che commenta | **32** |
+| intestazione colonne | 38 | **26** |
+| testata del verso | 51 (gonfiata dai suoi tasti) | **31** |
+| margine fra blocchi | 14 | 6 |
+| **totale per clausola** | **152** | **104** |
+
+Un terzo in meno: da 5 a 8 clausole in un riquadro da 800 px, e in elenco da 9 a 12.
+
+Due decisioni prese e da non ribaltare per distrazione:
+
+- **Nessun interruttore di densità.** Una pagina che serve a confrontare righe non ha una modalità «ariosa»
+  che valga la barra che costerebbe — proprio ora che di barra ne è rimasta una sola.
+- **L'intestazione di colonna resta in ogni blocco di verso.** Sarebbe eliminabile (le colonne sono identiche
+  per costruzione), ma sta accanto alle righe che descrive: toglierla significa non averla più dopo il primo
+  blocco, in accordi che arrivano a sei sezioni.
+
+⚠️ **Il bersaglio della scrittura in cella non dimagrisce con la riga.** `.xt-cellclick` ha un padding
+negativo che ricopre esattamente quello della cella: misurato 26 px su una riga di 35, dove un bersaglio
+«alto quanto il testo» sarebbe sceso sotto i 20. È il gesto principale della pagina. I due numeri sono la
+stessa misura scritta due volte — se cambia il padding di `.xfe-table td`, vanno cambiati con lui.
+Verificato anche che aprire una cella non fa saltare la riga: 35 prima, 35 dopo.
+
+### La trappola, di nuovo
+
+`.xfe-table td{padding:3px 9px}` **non faceva niente**: `.res-table td{padding:7px 10px}` vive 350 righe più
+in basso con la **stessa specificità** e vinceva per posizione. Invisibile perché i due valori verticali
+coincidevano — 7px e 7px — quindi il difetto è nato nel momento in cui li ho resi diversi. Si è visto solo
+leggendo il padding **calcolato** a schermo: la riga restava 43 px con la regola nuova già servita in pagina.
+
+È la **seconda volta in un giorno** che una regola di questa pagina perde in silenzio contro una più generica
+scritta dopo (la prima fu `.struct .inline-form .field`). Regola pratica per questo foglio: una regola che
+riguarda solo l'editor si scrive con `.struct` davanti, e la si **misura**, non la si guarda.
+
 ## Coda: il guasto emerso durante il round (stesso giorno)
 
 Rendendo visibili due ACC nascosti, la pagina restava su **titolo e riga ACC**. Non era la ripulitura: era
