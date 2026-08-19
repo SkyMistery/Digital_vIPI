@@ -1612,6 +1612,19 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   font-family:var(--font-body);font-size:12px}
 .xt-dirchip:hover{filter:brightness(.94)}
 .xt-dirchip-x{font-size:13px;opacity:.75}
+/* ---- Il form della sezione, senza il buco ----
+   ⚠️ Il campo degli aeroporti è alto tre righe (etichetta, chip, comandi); descrizione è un input solo. In un
+   `inline-form` allineato in fondo stavano in RIGA, e sopra la descrizione restava un vuoto alto quanto due
+   righe — il difetto si vedeva a ogni «nuova sezione». Gli aeroporti scendono su una riga PROPRIA (`flex-basis`
+   100% + `order` in coda, così restano gli ultimi anche quando il tipo di traffico li fa sparire), e in prima
+   riga stanno le tre cose brevi: traffico, verso, descrizione.
+   Flex e non griglia: sotto ai 900 px continua ad andare a capo da sé, senza una media query in più. */
+.xt-secform{align-items:flex-end}
+.xt-secform .xt-f-apts{order:9;flex:1 0 100%;min-width:0}
+/* Chip e comandi d'aggiunta sulla stessa riga: erano due blocchi impilati, e la riga in più non la chiedeva
+   lo spazio — la chiedeva il fatto che fossero due contenitori. */
+.xt-aptline{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.xt-aptline .xt-barsep{align-self:center;height:22px;margin:0 2px}
 /* Ci deve stare un ICAO, non una frase: senza questo il picker eredita `min-width:150px; flex:1` dal campo
    dell'inline-form e spinge il verso fuori riga. */
 .xt-aptpick-narrow{flex:0 0 auto!important;min-width:0!important;width:96px}

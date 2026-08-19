@@ -1710,7 +1710,11 @@
     {
         var form = _sectionForm;
 
-        <div class="inline-form xt-flat">
+        @* ⚠️ Griglia, non flex. In flex con `align-items:flex-end` il campo degli aeroporti — alto tre righe:
+           etichetta, chip, comandi — teneva in riga la descrizione, che è un input solo: sopra la descrizione
+           restava un buco alto quanto due righe, e il form sembrava rotto. Qui le righe sono dichiarate:
+           traffico e verso a misura, descrizione per il resto, aeroporti sotto per tutta la larghezza. *@
+        <div class="inline-form xt-flat xt-secform">
             <div class="field narrow"><label>@L["Xfer_Kind"]</label>
                 <select value="@form.Kind" @onchange="e => PickSectionKind(ag, e)">
                     <option value="@TransferFlowKind.Arrival">@L["Xfer_KindArrival"]</option>
@@ -1739,9 +1743,11 @@
                vista anche col tipo cambiato — un campo nascosto che tiene dati è il modo più rapido di perderli. *@
             @if (AirportsRelevant(form.Kind, form.Airports.Count))
             {
-            <div class="field">
+            <div class="field xt-f-apts">
                 <label>@L["Xfer_AirportsLabel"] <span class="muted xt-lbl-soft">@L["Xfer_AirportsHint"]</span></label>
-                <div class="xt-chips">
+                @* Chip e comandi d'aggiunta sulla STESSA riga: erano due blocchi impilati, e la seconda riga
+                   esisteva solo perché erano due elementi diversi — non perché lo spazio mancasse. *@
+                <div class="xt-aptline">
                     @foreach (var apt in form.Airports.ToList())
                     {
                         <span class="pill neutral">@apt.Icao@(string.IsNullOrWhiteSpace(apt.Name) ? "" : $" · {apt.Name}")
@@ -1750,8 +1756,7 @@
                         </span>
                     }
                     @if (form.Airports.Count == 0) { <span class="muted">—</span> }
-                </div>
-                <div class="xt-btnrow">
+                    <span class="xt-barsep"></span>
                     @* ⚠️ Largo quanto un ICAO e non di più: il picker eredita `min-width:150px; flex:1` dal
                        campo dell'inline-form, e con quello Direction non stava più in riga. Il segnaposto
                        scende a un ICAO solo per la stessa ragione — «LIRF / LFPG» non ci entrerebbe. *@
