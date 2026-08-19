@@ -28,8 +28,19 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
    - `ReloadAsync` **riapplica** i valori pendenti dopo il ricarico invece di scartarli;
    - **«Salva limiti (N)»** nella riga-titolo dei settori salva tutto in un giro.
    Il salvataggio per riga resta: è quello che si usa quando si tocca un settore solo.
-5. **Dall'ACC ai suoi settori in un clic**: nella riga ACC un chip «N settori» filtra la tabella sotto su quel
-   codice e ci porta (`vipiScrollToId`). Prima si scorreva a mano fra 152 righe o si ridigitava il codice.
+5. **Si sceglie un ACC e sotto restano i suoi settori.** La **riga intera** della tabella di sopra è il
+   comando: cliccata sceglie l'ACC, ricliccata lo lascia, e un altro ACC **sposta** la scelta invece di
+   sommarsi — uno alla volta, perché è una scelta e non un insieme di spunte. Il chip «N settori» resta il
+   contatore; il filo blu a sinistra e il fondo pieno dicono qual è la riga scelta (il fondo deve battere
+   l'hover della tabella, che altrimenti la spegneva al passaggio del mouse); Invio e Spazio fanno lo stesso
+   da tastiera. Dopo la scelta la pagina porta alla tabella di sotto (`vipiScrollToId`).
+   Due dettagli che sembrano piccoli e non lo sono:
+   - i tasti dell'ultima colonna **fermano la propagazione**: chi preme «Nascondi» sta facendo un'altra cosa;
+   - la scelta è un **filtro a sé** (`_pickedAcc`), non il codice scritto nella casella di ricerca. Chi sceglie
+     un ACC non deve ritrovarselo nel campo di testo, né perdere la scelta scrivendoci sopra.
+   Nella barra dei settori compare il chip **«solo LIBB ✕»**: un filtro nato da un clic in un'**altra** tabella
+   va detto dove se ne vedono le conseguenze — altrimenti restano 4 righe su 152 e non si sa perché — ed è
+   anche il modo di toglierlo senza risalire.
 6. **Contatori onesti**: i pill dei titoli dicono «12 di 28» quando un filtro è attivo. Prima dicevano sempre
    il totale mentre la tabella mostrava altro.
 7. **Emoji colorate → `Icon`** (regola già presa nel progetto): 👁/🚫 → `eye`/`eye-off`, 💾 → `check-circle`,
@@ -86,7 +97,11 @@ da 70px, «Lim. inf.» e «Lim. sup.»): senza nomi di colonna a schermo si scri
   mouse, aperti al clic (popover 360px).
 - **Intestazioni che restano**: dopo `scrollTo(0, 3000)` la `th` «CALLSIGN» è a `y=62` — esattamente sotto la
   topbar — e visibile. Quella della prima tabella è fuori campo perché la sua tabella è tutta sopra: giusto così.
-- **Chip**: «4 settori» su LIBB → filtro `LIBB`, **4 righe** su 152, pill «4 di 152», pagina portata a `y=1037`.
+- **Scelta dell'ACC**: clic sulla riga LIBB → **4 righe** su 152, tutte `LIBB`, pill «4 di 152», chip «solo
+  LIBB ✕», pagina portata a `y=1154`. Clic su LIMM → la scelta si **sposta** (6 righe, nessuna somma). Clic di
+  nuovo su LIMM → tornano tutte e 152 e il chip sparisce. Premuto «Nascondi» su una riga: la scelta **non**
+  scatta (`scelte []`). Invio sulla riga a fuoco: sceglie. Il campo di ricerca dei settori è rimasto vuoto in
+  tutti i passaggi.
 - **La prova della perdita** (il punto del giro): preso il lock, scritti `1600` in `LIBB_ES_CTR` e `2600` in
   `LIBB_EU_CTR` — due celle sporche, «Salva limiti (2)». Salvata **solo la prima** con il tasto di riga:
   `['1600','2600']`, sporca solo la seconda, «Salva limiti (1)». Prima di questo giro la seconda tornava a `GND`

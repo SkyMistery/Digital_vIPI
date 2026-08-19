@@ -569,7 +569,9 @@
   <data name="AccAdmin_CountOf" xml:space="preserve"><value>{0} di {1}</value></data>
   <data name="AccAdmin_SectorsChipN" xml:space="preserve"><value>{0} settori</value></data>
   <data name="AccAdmin_SectorsChip1" xml:space="preserve"><value>1 settore</value></data>
-  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Mostra qui sotto solo i settori di {0}</value></data>
+  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Mostra qui sotto solo i settori di {0} (di nuovo: tutti)</value></data>
+  <data name="AccAdmin_OnlyAcc" xml:space="preserve"><value>solo {0}</value></data>
+  <data name="AccAdmin_ClearPickTitle" xml:space="preserve"><value>Torna a vedere i settori di tutti gli ACC</value></data>
   <data name="AccAdmin_SaveAllLimits" xml:space="preserve"><value>Salva limiti ({0})</value></data>
   <data name="AccAdmin_SaveAllLimitsTitle" xml:space="preserve"><value>Salva in un giro tutti i limiti di quota modificati</value></data>
   <data name="AccAdmin_LimitsSavedN" xml:space="preserve"><value>{0} settori salvati.</value></data>

@@ -566,7 +566,9 @@
   <data name="AccAdmin_CountOf" xml:space="preserve"><value>{0} of {1}</value></data>
   <data name="AccAdmin_SectorsChipN" xml:space="preserve"><value>{0} sectors</value></data>
   <data name="AccAdmin_SectorsChip1" xml:space="preserve"><value>1 sector</value></data>
-  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Show only the sectors of {0} below</value></data>
+  <data name="AccAdmin_SectorsChipTitle" xml:space="preserve"><value>Show only the sectors of {0} below (click again: all of them)</value></data>
+  <data name="AccAdmin_OnlyAcc" xml:space="preserve"><value>{0} only</value></data>
+  <data name="AccAdmin_ClearPickTitle" xml:space="preserve"><value>Show the sectors of every ACC again</value></data>
   <data name="AccAdmin_SaveAllLimits" xml:space="preserve"><value>Save limits ({0})</value></data>
   <data name="AccAdmin_SaveAllLimitsTitle" xml:space="preserve"><value>Save every changed level limit in one go</value></data>
   <data name="AccAdmin_LimitsSavedN" xml:space="preserve"><value>{0} sectors saved.</value></data>
