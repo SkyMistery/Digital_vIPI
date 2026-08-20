@@ -1093,7 +1093,7 @@
   <data name="Ver_Public" xml:space="preserve"><value>Pubblico</value></data>
   <data name="Ver_EffectiveNowTitle" xml:space="preserve"><value>Release in vigore ora</value></data>
   <data name="Ver_ScheduledFutureTitle" xml:space="preserve"><value>Release schedulata per un ciclo futuro</value></data>
-  <data name="Ver_NoReleaseBadge" xml:space="preserve"><value>No release</value></data>
+  <data name="Ver_NoReleaseBadge" xml:space="preserve"><value>Senza release</value></data>
   <data name="Ver_ShowPublicTitle" xml:space="preserve"><value>Mostra al pubblico</value></data>
   <data name="Ver_HidePublicTitle" xml:space="preserve"><value>Nascondi dal pubblico</value></data>
   <data name="Ver_DeletePermTitle" xml:space="preserve"><value>Elimina definitivamente</value></data>
@@ -1142,6 +1142,7 @@
   <data name="Ver_LockedActionsTitle" xml:space="preserve"><value>{0}: nascondi ed elimina sono sospesi finché non ha finito</value></data>
   <data name="Ver_ForceUnlockPrompt" xml:space="preserve"><value>Togliere il lock a {0}? Le modifiche non salvate andranno perse.</value></data>
   <data name="Ver_Unlocked" xml:space="preserve"><value>Lock rilasciato.</value></data>
+  <data name="Ver_LockMineShort" xml:space="preserve"><value>Tu</value></data>
   <data name="Ver_HideDocAria" xml:space="preserve"><value>Nascondi il documento dal pubblico</value></data>
   <data name="Ver_HidePrompt" xml:space="preserve"><value>Nascondere «{0}» al pubblico? Resta modificabile e si può rimettere a vista.</value></data>
   <data name="Ver_HideConfirmYes" xml:space="preserve"><value>Sì, nascondi</value></data>

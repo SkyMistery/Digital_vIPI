@@ -98,7 +98,7 @@
             <div class="doc-rowi" style="@(d.IsHidden ? "opacity:.6" : "")">
                 <button type="button" class="btn ghost" style="min-width:30px" @onclick="() => Toggle(key)">@(open ? "▾" : "▸")</button>
                 <span class="di"><Icon Name="@KindIcon(d.Kind)" Size="18" /></span>
-                <div style="flex:1">
+                <div class="dr-main">
                     <b>@d.Title</b>
                     <div class="muted" style="font-size:12px">@KindLabel(d.Kind) · @d.Scope</div>
                 </div>
@@ -266,12 +266,15 @@
     // ---- lock: chi ci sta lavorando ----
     private bool IsMyLock(ManagedDoc d) => d.LockedByUserId is { } uid && uid == Authz.CurrentUserId;
 
+    /// <summary>
+    /// Etichetta corta del badge: «chi · ora». La forma distesa («In modifica da X fino alle …») sta nel
+    /// tooltip, non nella pill: guidando la pagina, «🔒 Stai modificando · lock fino alle 00:48» era largo
+    /// abbastanza da mandare a capo la colonna dei tasti, e una riga documento alta il doppio si vede.
+    /// </summary>
     private string LockBadge(ManagedDoc d)
     {
-        var quando = d.LockExpiresUtc is { } e ? e.ToLocalTime().ToString("HH:mm") : null;
-        if (IsMyLock(d)) return L["Lock_Editing"] + (quando is null ? "" : L["Lock_UntilSuffix", quando].Value);
-        var chi = d.LockedByName ?? L["Lock_AnotherEditor"].Value;
-        return chi + (quando is null ? "" : L["Lock_LockedUntilSuffix", quando].Value);
+        var chi = IsMyLock(d) ? L["Ver_LockMineShort"].Value : d.LockedByName ?? L["Lock_AnotherEditor"].Value;
+        return d.LockExpiresUtc is { } e ? $"{chi} · {e.ToLocalTime():HH:mm}" : chi;
     }
 
     private string LockTitle(ManagedDoc d) => IsMyLock(d)

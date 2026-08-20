@@ -2098,3 +2098,18 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    ma il suo box resta nell'area scorribile anche a <details> chiuso: misurato a 1280, il «?» del rail arrivava
    a 1305px e la pagina scorreva di lato. Chiuso non esiste; all'apertura torna e placeHelpPop lo ribalta. */
 .help-hint:not([open]) .help-pop{display:none}
+
+/* ⚠️ La riga documento di /vsop/versioni si SFASCIAVA quando si apriva una conferma in linea. Trovato
+   guardando lo screenshot, non da un numero: la pagina non sforava e non era piu' alta, ma la conferma
+   («Eliminare definitivamente «...»? L'operazione e' irreversibile») entra NELLA riga flex e si prende
+   ~500px, e senza un pavimento il titolo col suo `flex:1` si comprimeva finche' «vLOA — LIBB ↔ LAAA» non
+   andava a capo una parola per riga, e le pill «AIRAC 2607» con lui. Due regole: la riga puo' andare a capo,
+   e il blocco del titolo ha una larghezza minima sotto la quale non scende. Le pill non si spezzano mai:
+   «AIRAC 2607» su tre righe non e' una pill, e' un incidente.
+   ⚠️ Il pavimento e' 200px, non 260: a 260 la riga PIU' CARICA (bozza + senza release + lock + apri + nascondi
+   + cestino + sblocca = ~1053px dentro i 1072 utili a 1280) andava a capo lo stesso, e una riga alta il doppio
+   in un giro di densita' e' il difetto che si stava togliendo. Misurato, non stimato. */
+.doc-rowi{flex-wrap:wrap}
+.doc-rowi>.dr-main{flex:1 1 200px;min-width:200px}
+.doc-rowi .pill{white-space:nowrap}
+.doc-rowi .inline-confirm .ic-prompt{max-width:520px}
