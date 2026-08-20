@@ -70,6 +70,35 @@
 - **A5 — filtri.** Chip stato «in modifica», chip **ACC**, contatore 🔒 nella fascia di riepilogo.
 - **A6 — permessi.** Il markup mostra hide/delete a chi **può editare quell'ACC**, non solo agli admin.
 
+## Fatto, e cosa ha insegnato guidarla
+
+Verificata su copia del `vipi.db` con **due lock veri** scritti nel DB (uno mio, uno di «Giulia Bianchi»),
+a 1600/1440/1280/1024, IT **ed** EN, zoom 0.8→1.5. Tutto quello che la carta prometteva risponde: badge
+«chi · ora», nascondi/elimina spenti sul lock altrui **col perché nel tooltip**, force-unlock che libera
+davvero (la riga sparisce dal filtro «in modifica» e compare «Lock rilasciato»), conferme in linea che
+portano il **titolo del documento**, **zero** dialoghi nativi, zero errori di console.
+
+**Quattro difetti che nessuna asserzione cercava**, due visti solo **guardando** lo screenshot:
+
+1. ⚠️ **La riga documento si sfasciava con una conferma aperta.** `InlineConfirm` entra *dentro* la riga flex
+   e si prende ~500px: senza un pavimento, il titolo col suo `flex:1` si comprimeva finché
+   «vLOA — LIBB ↔ LAAA» non andava a capo **una parola per riga**, e le pill «AIRAC 2607» con lui. La pagina
+   non sforava e non era più alta: **nessun numero lo diceva**.
+2. ⚠️ **Il pavimento giusto è 200px, non 260.** A 260 la riga **più carica** (bozza + senza release + lock +
+   apri + nascondi + cestino + sblocca ≈ 1.053px dentro i 1.072 utili a 1280) andava a capo lo stesso — e una
+   riga alta il doppio è esattamente il difetto che il giro sta togliendo. Misurato, non stimato.
+3. ⚠️ **Un badge lungo manda a capo i tasti.** «🔒 Stai modificando · lock fino alle 00:48» misurava 210px.
+   Il badge dice «chi · ora» (89/147px); la forma distesa vive nel **tooltip**, dove non costa niente.
+4. ⚠️ **Due chiavi, una traduzione.** `Ver_NoReleaseBadge` aveva lo **stesso valore** nei due `.resx`:
+   «No release» compariva in inglese anche in pagina italiana. Il test che confronta le **chiavi** dei due
+   file non lo vede — le chiavi c'erano entrambe.
+
+Resta alta 118px **una sola riga**: quella con un lock altrui *e* i diritti da admin, che è l'unica a portare
+sette elementi più il force-unlock. È il caso peggiore, e comprimerle il titolo sarebbe peggio.
+
+⚠️ **Lo sforo orizzontale a 1280/1024 non è di questa pagina**: è `div.right` della topbar (1.385px), identico
+sulla home, e **niente dentro il `.wrap` sfora**. Verificato elencando gli elementi oltre il bordo.
+
 ## Parte B — densità (dopo)
 
 `.wrap` → `.wrap.struct`, testata in riga con «?», i 3 callout in fascia → `.st-msg`, 27 stili in linea →

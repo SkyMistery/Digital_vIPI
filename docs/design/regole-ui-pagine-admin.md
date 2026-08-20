@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-20 agosto 2026)
+﻿# Regole di densità e uso per le pagine admin (19-21 agosto 2026)
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -6,7 +6,9 @@
 > [editor aeroporto](../feature/2026-08-20-editor-aeroporto-densita-ui.md),
 > [editor ACC](../feature/2026-08-20-editor-acc-densita-ui.md),
 > [confinanti](../feature/2026-08-20-confinanti-densita-ui.md)
-> — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> — e il 21 agosto la parte **lock e azioni** di
+> [versioni](../feature/2026-08-21-versioni-lock-e-azioni.md), che non era di forma ma di sostanza
+> (§18, regole 95-103) — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -259,7 +261,7 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, paragrafi d'aiuto, **nessun «?»**, **3 callout** in fascia, 27 stili in linea. I filtri sono `Chip` sciolti (non `.sh-chip` in gruppo) e **non contano**; il conteggio filtrato è una riga di prosa invece di un pill accanto al titolo. Usa `.wrap` a 1 100px, **non** `.wrap.struct`: decidere se portarla sul layout di lavoro fa parte del giro. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato** (stanno nel markup, non nei resx): restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). Briefing: [handoff-densita-ui](../history/handoff-densita-ui.md). |
+| 1 | **Versioni** | `/vsop/versioni` | 1 664 | ⚠️ **Parte lock e azioni FATTA** il 21 agosto (carta `2026-08-21-versioni-lock-e-azioni.md`, regole 95-103): badge «chi ci sta lavorando», hide/delete inibiti dal lock **nel service**, conferme in linea al posto di tre `window.confirm`, chip «in modifica» e per ACC, tasto Aggiorna, permessi allineati al grant ACC. **Resta la densità**: sottotitolo, paragrafi d'aiuto, **nessun «?»**, **3 callout** in fascia, ~27 stili in linea. I filtri sono `Chip` sciolti (non `.sh-chip` in gruppo) e **non contano**; il conteggio filtrato è una riga di prosa invece di un pill accanto al titolo. Usa `.wrap` a 1 100px, **non** `.wrap.struct`: decidere se portarla sul layout di lavoro fa parte del giro. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato** (stanno nel markup, non nei resx): restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). Briefing: [handoff-densita-ui](../history/handoff-densita-ui.md). |
 | 2 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
 | 3 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
 | 4 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
@@ -373,6 +375,41 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 94. **Chi scrive prende il lock.** Questa pagina materializzava settori esteri e generava documenti senza
     prendere il lock che le altre quattro pagine di struttura prendono da sempre. Prima di aggiungere un
     comando di scrittura a una pagina: **guardare cosa fanno le sorelle**.
+
+## 18. Quello che ha lasciato il giro Versioni (parte lock e azioni)
+
+95. ⚠️ **Un tasto spento non è una guardia.** L'elenco è una fotografia: chi arriva da un'altra scheda, o con
+    la lista caricata dieci minuti fa, preme lo stesso. Il divieto vive nel **service**; `disabled` è cortesia
+    che spiega *perché*, nel `title`. Qui si eliminava un documento **mentre un'altra persona lo editava**.
+96. **Chi mostra un lock ne mostra anche la SCADENZA.** Il lock del `Document` dura 30 minuti e **non ha
+    heartbeat** (a differenza di `EditResourceLock`: 3 minuti + battito): si rinnova al salvataggio e si libera
+    con «Fine modifica». «Bloccato» senza un'ora non dice se aspettare o andare a prendere un caffè — e senza
+    un **force-unlock** per gli admin la pagina si auto-inchioda per mezz'ora quando qualcuno chiude la scheda.
+97. **Due conferme in fila non sono il doppio della sicurezza: sono rumore.** Qui l'eliminazione ne chiedeva
+    due, e il testo utile (titolo del documento, «rimuove versioni e release») stava nella **seconda**, un
+    `window.confirm` nativo — che per giunta blocca il circuito Blazor e manda in stallo la verifica live.
+    Una conferma, **in linea**, e porta la conseguenza scritta.
+98. **La conferma va dove l'azione è irreversibile o esce dal binario, non dove sembra grave.** «Nascondi»
+    (cambia la visibilità pubblica) e «Pubblica ora» (scavalca il ciclo AIRAC) chiedono; «Mostra» no, non
+    distrugge niente. Il criterio è la conseguenza, non la parola sul tasto.
+99. ⚠️ **Il gate del markup e quello del service devono dire la stessa cosa.** Qui il markup mostrava
+    hide/delete ai soli `IsAdmin` mentre il servizio autorizzava per **grant ACC**: chi il permesso ce l'aveva
+    non vedeva i tasti che poteva premere. Un gate più stretto dell'altro non è prudenza, è un bug silenzioso.
+100. ⚠️ **Una conferma in linea entra DENTRO la riga e se la prende.** ~500px di prompt in una riga `flex`:
+    senza un pavimento il titolo col suo `flex:1` si comprime finché non va a capo **una parola per riga**, e
+    le pill con lui. Riga che può andare a capo + `min-width` sul blocco del titolo + `white-space:nowrap`
+    sulle pill. Il pavimento si **misura sul caso più carico**, non si sceglie: 260px sembrava giusto e
+    mandava a capo lo stesso la riga con sette elementi.
+101. ⚠️ **Un badge lungo manda a capo la colonna dei tasti.** «🔒 Stai modificando · lock fino alle 00:48» =
+    210px; «🔒 Tu · 00:48» = 89px. La forma distesa vive nel **tooltip**, dove non costa larghezza. È la
+    regola 54 pagata di nuovo, su un elemento nuovo.
+102. ⚠️ **Due chiavi con la stessa traduzione sfuggono al test dei resx.** `Ver_NoReleaseBadge` valeva
+    «No release» in **tutti e due** i file: la guardia confronta le **chiavi**, e le chiavi c'erano entrambe.
+    Le stringhe nuove in inglese vanno rilette **in pagina italiana**, non solo aggiunte ai due file.
+103. **Un fatto, un posto.** `HasEffectiveRelease` (bool, dal repo) e il riepilogo release (che la pagina si
+    ricaricava da sé) erano lo stesso fatto con due query identiche. Il bool ora è **calcolato** dai cicli che
+    l'elenco già porta. ⚠️ Ma «senza release» e «programmata e non ancora in vigore» restano **due stati**:
+    comprimerli in un bool avrebbe perso l'informazione (`HasAnyRelease`).
 
 ## Dove sta la roba
 

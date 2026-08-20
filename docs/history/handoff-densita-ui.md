@@ -1,4 +1,4 @@
-# Handoff — il ramo della densità UI (aggiornato 20 agosto 2026)
+# Handoff — il ramo della densità UI (aggiornato 21 agosto 2026)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **94 voci in 17 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **103 voci in 18 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -35,6 +35,7 @@ già e si riusa**, non si riscrive.
 | Editor aeroporto | `/vsop/{acc}/airports/editor` | 31 286 → 4 913 (LIRF) | `2026-08-20-editor-aeroporto-densita-ui.md` |
 | Editor ACC | `/vsop/{acc}/editor` | 9 690 → 5 595 **in modifica** | `2026-08-20-editor-acc-densita-ui.md` |
 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | **2 515 → 900** | `2026-08-20-confinanti-densita-ui.md` |
+| **Versioni** — *solo lock e azioni* | `/vsop/versioni` | (densità **non** ancora fatta) | `2026-08-21-versioni-lock-e-azioni.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -53,36 +54,59 @@ Le carte stanno in `docs/feature/`.
 ⚠️ Le mie misure (altezze, sfori orizzontali) **non vedono un elemento assoluto che copre il contenuto**, e non
 vedono i posti dove *manca* qualcosa. Per quelli servono gli occhi.
 
-## Prossima: Versioni — `/vsop/versioni`
+## Versioni: fatta la sostanza, resta la forma
 
-**Ricognizione del 19 agosto: 1 613px.** Misurato di nuovo il 20 agosto sul sorgente
-(`src/Vipi.Ui/Pages/VersioniPage.razor`, **638 righe**), da confermare guidandola:
+Il 21 agosto la pagina è stata aperta per la densità e l'analisi ha trovato **tre buchi di sostanza** che
+venivano prima: si poteva **eliminare un documento che un'altra persona stava editando**, «nascondi» non
+chiedeva niente, «elimina» chiedeva **due volte**. Chiusi tutti
+(carta [`2026-08-21-versioni-lock-e-azioni.md`](../feature/2026-08-21-versioni-lock-e-azioni.md), regole
+95-103): badge «chi ci sta lavorando · fino a che ora», hide/delete inibiti **nel service**, force-unlock
+admin, conferme in linea al posto di tre `window.confirm`, chip «in modifica» e per ACC, tasto «Aggiorna»,
+permessi del markup allineati al grant ACC (li mostrava ai soli admin).
+
+⚠️ **Buco dichiarato e non chiuso**: `AeroportoEditorPage` usa `IAirportEditingService`, **non**
+`IEditingService`, quindi non prende il lock del documento — sugli aeroporti il badge non comparirà mai e
+hide/delete non saranno mai inibiti. Portare l'aeroporto sul lock è un giro suo.
+
+⚠️ Il lock del `Document` dura **30 minuti senza heartbeat** (`EditResourceLock` invece: 3 min + battito):
+si rinnova al salvataggio e si libera con «Fine modifica». Chi chiude la scheda lo lascia in piedi fin quasi
+a mezz'ora — è la ragione per cui il force-unlock non è un lusso.
+
+### Quello che resta da fare su Versioni: la DENSITÀ
+
+Misurato il 21 agosto guidandola: **1 664px** a 1600 (la ricognizione del 19 diceva 1 613).
 
 - **sottotitolo** sempre a schermo (`Ver_Subtitle`) e **nessun `HelpHint`** in tutta la pagina;
 - **3 callout in fascia** (errore, esito, e il riepilogo di campagna);
-- **4 paragrafi** `muted`/`help` — la ricognizione ne contava 7, **da ricontare guidandola**;
-- **27 blocchi di stile in linea**;
+- **4 paragrafi** `muted`/`help` + 4 `span.muted`;
+- ~**27 blocchi di stile in linea**;
 - la pagina usa `.wrap` con `max-width:1100px`, **non** `.wrap.struct`: non è (ancora) una pagina di lavoro
   a piena larghezza. Decidere se portarla sul layout di lavoro fa parte del giro;
 - i filtri sono `Chip` con stile in linea, **non** `.sh-chip` in gruppo come Aeroporti/Confinanti, e **non
-  contano** (regole 30-32, 68);
+  contano** (regole 30-32, 68). ⚠️ Adesso sono **quattro** gruppi (tipo, stato, release, ACC): la barra dei
+  filtri è cresciuta, e la conversione a `.sh-chip` vale di più di prima;
 - il conteggio filtrato è una riga di prosa (`Filtered().Count() … Ver_DocsWord`), non un contatore accanto
   al titolo.
 
-**Le emoji.** 🟢 ×3, 🕒 ×3, 🕓 ×1, ⚠️ ×3 — tutte **nel markup**, nessuna dentro i `.resx` (verificato: nessuna
-chiave `Ver_*` le contiene), quindi si tolgono senza toccare le traduzioni. ⚠️ Ma la ricognizione le aveva
-marcate come **vocabolario di stato**, non come comandi: dicono *effettiva / programmata / senza release*, e
-la regola 40 salva solo le emoji che sono **comandi**. La decisione era di tenerle finché non c'è un set di
-pallini colorati (deferito in `piano-ux-hardening`) — **da riconfermare prima di toccarle**.
-I glifi monocromatici (▾ ▴ ▸ ✎ ✕) restano testo: è la regola.
+**Le emoji.** 🟢 🕒 🕓 ⚠️ 🔒 — tutte **nel markup**, nessuna dentro i `.resx` (verificato), quindi si tolgono
+senza toccare le traduzioni. ⚠️ Ma sono **vocabolario di stato**, non comandi: la regola 40 salva solo le
+emoji che sono comandi. La decisione era di tenerle finché non c'è un set di pallini colorati (deferito in
+`piano-ux-hardening`) — **da riconfermare prima di toccarle**. I glifi monocromatici (▾ ▴ ▸ ✎ ✕) restano
+testo: è la regola.
+
+⚠️ **Una riga resta alta 118px** invece di 67: quella con un lock altrui *e* i diritti da admin (sette
+elementi più il force-unlock). Se il giro di densità accorcia le etichette, si richiuderà da sé.
 
 Dopo Versioni la lista §15 continua con Permessi, Sorgenti, Audit, Diagnostica, Nuovo documento, Incarichi,
 editor APP/vLOA.
 
 ## Aperto, e non è di queste pagine
 
-- ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `.topbar .right` misura **1 411px dentro
-  1 280**, identico su home, struttura e viewer. È del chrome, non di una pagina: va affrontato per sé.
+- ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `div.right` misura **1 385px dentro
+  1 280** (rimisurato il 21 agosto; il 20 erano 1 411), identico su home, struttura, viewer e versioni — e
+  **niente dentro il `.wrap` sfora**, verificato elencando gli elementi oltre il bordo. È del chrome, non di
+  una pagina: va affrontato per sé. È anche la ragione per cui lo sforo orizzontale, da solo, non è più un
+  segnale utile sulle singole pagine finché questo non è chiuso.
 - ⚠️ `Vipi.AuroraBridge.Tests` ha **un test instabile**: ogni tanto fallisce nella suite completa e passa
   sempre da solo (78/78).
 - Sull'editor ACC a blocchi chiusi il pezzo più alto è ormai il **pannello release** (974px con 13 rilasci):
