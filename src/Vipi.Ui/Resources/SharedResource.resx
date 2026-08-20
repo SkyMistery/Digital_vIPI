@@ -1071,25 +1071,20 @@
   <data name="Ver_HelpAria" xml:space="preserve"><value>Aiuto sull'elenco dei documenti</value></data>
   <data name="Ver_CountTitle" xml:space="preserve"><value>Documenti mostrati sul totale</value></data>
   <data name="Ver_CycleTitle" xml:space="preserve"><value>Ciclo AIRAC in vigore adesso</value></data>
+  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Visibili al pubblico, senza bozze aperte</value></data>
+  <data name="Ver_DraftChipTitle" xml:space="preserve"><value>Con una bozza aperta, non ancora pubblicata</value></data>
+  <data name="Ver_HiddenChipTitle" xml:space="preserve"><value>Nascosti dagli elenchi pubblici</value></data>
+  <data name="Ver_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Ver_ClearTitle" xml:space="preserve"><value>Togli i filtri e mostra tutti i documenti</value></data>
   <data name="Ver_Subtitle" xml:space="preserve"><value>Documenti, storico versioni e release AIRAC · ciclo corrente {0}</value></data>
   <data name="Ver_CollapseAll" xml:space="preserve"><value>Comprimi tutti</value></data>
   <data name="Ver_ExpandAll" xml:space="preserve"><value>Espandi tutti</value></data>
   <data name="Ver_NotAllowed" xml:space="preserve"><value>Operazione non consentita</value></data>
-  <data name="Ver_CurrentCycle" xml:space="preserve"><value>Ciclo corrente {0}</value></data>
-  <data name="Ver_NDocs" xml:space="preserve"><value>{0} documenti</value></data>
   <data name="Ver_EffectiveTitle" xml:space="preserve"><value>Con una release in vigore ora</value></data>
-  <data name="Ver_NEffective" xml:space="preserve"><value>{0} in vigore</value></data>
   <data name="Ver_ScheduledTitle" xml:space="preserve"><value>Con una release futura schedulata</value></data>
-  <data name="Ver_NScheduled" xml:space="preserve"><value>{0} schedulate</value></data>
   <data name="Ver_NoReleaseTitle" xml:space="preserve"><value>Senza release: il pubblico vede lo stato live</value></data>
-  <data name="Ver_NNoRelease" xml:space="preserve"><value>{0} senza release</value></data>
   <data name="Ver_SearchPh" xml:space="preserve"><value>cerca titolo / scope / ACC…</value></data>
   <data name="Ver_KindLabel" xml:space="preserve"><value>Tipo:</value></data>
-  <data name="Ver_StatusLabel" xml:space="preserve"><value>Stato:</value></data>
-  <data name="Ver_ReleaseLabel" xml:space="preserve"><value>Release:</value></data>
-  <data name="Ver_OfTotal" xml:space="preserve"><value>su {0}</value></data>
-  <data name="Ver_DocsWord" xml:space="preserve"><value>documenti</value></data>
-  <data name="Ver_FilteredSuffix" xml:space="preserve"><value> (filtrati)</value></data>
   <data name="Ver_NoDoc" xml:space="preserve"><value>Nessun documento</value></data>
   <data name="Ver_NoDocMatch" xml:space="preserve"><value>Nessun documento corrisponde ai filtri.</value></data>
   <data name="Ver_Hidden" xml:space="preserve"><value>Nascosto</value></data>
@@ -1139,7 +1134,6 @@
   <data name="Ver_DocDeleted" xml:space="preserve"><value>Documento eliminato.</value></data>
   <data name="Ver_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
   <data name="Ver_RefreshTitle" xml:space="preserve"><value>Rileggi l'elenco: chi sta modificando cosa cambia mentre la pagina è aperta</value></data>
-  <data name="Ver_NEditing" xml:space="preserve"><value>{0} in modifica</value></data>
   <data name="Ver_EditingTitle" xml:space="preserve"><value>Documenti con un lock di modifica attivo adesso</value></data>
   <data name="Ver_FilterEditing" xml:space="preserve"><value>in modifica</value></data>
   <data name="Ver_AccLabel" xml:space="preserve"><value>ACC:</value></data>

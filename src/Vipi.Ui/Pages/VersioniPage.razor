@@ -69,52 +69,63 @@
     }
     else
     {
-        @* ---- riepilogo campagna release ---- *@
-        <div class="block" style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:10px 0;font-size:13px">
-            <b><Icon Name="calendar" /> @(string.Format(L["Ver_CurrentCycle"].Value, _currentCycle))</b>
-            <span class="muted">@(string.Format(L["Ver_NDocs"].Value, _docs.Count))</span>
-            <span class="pill green" title="@L["Ver_EffectiveTitle"]">🟢 @(string.Format(L["Ver_NEffective"].Value, CampaignCount("effective")))</span>
-            <span class="pill blue" title="@L["Ver_ScheduledTitle"]">🕒 @(string.Format(L["Ver_NScheduled"].Value, CampaignCount("scheduled")))</span>
-            <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @(string.Format(L["Ver_NNoRelease"].Value, CampaignCount("none")))</span>
-            @if (CampaignCount("editing") > 0)
-            {
-                <span class="pill amber" title="@L["Ver_EditingTitle"]">🔒 @(string.Format(L["Ver_NEditing"].Value, CampaignCount("editing")))</span>
-            }
-        </div>
-
-        @* ---- barra ricerca + filtri ---- *@
-        <div class="htree-search" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0">
-            <input class="app-in" style="flex:1;min-width:220px" placeholder="@L["Ver_SearchPh"]"
-                   value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" />
-            <span>@L["Ver_KindLabel"]</span>
-            @foreach (var (k, lab) in KindFilters)
-            {
-                <Chip Class="@($"pill {(_kindFilter == k ? "blue" : "grey")}")" Active="_kindFilter == k" Style="cursor:pointer" OnActivate="() => SetKind(k)">@lab</Chip>
-            }
-            <span style="margin-left:6px">@L["Ver_StatusLabel"]</span>
-            @foreach (var (s, lab) in StatusFilters)
-            {
-                <Chip Class="@($"pill {(_statusFilter == s ? "blue" : "grey")}")" Active="_statusFilter == s" Style="cursor:pointer" OnActivate="() => SetStatus(s)">@lab</Chip>
-            }
-            <span style="margin-left:6px">@L["Ver_ReleaseLabel"]</span>
-            @foreach (var (s, lab) in ReleaseFilters)
-            {
-                <Chip Class="@($"pill {(_releaseFilter == s ? "blue" : "grey")}")" Active="_releaseFilter == s" Style="cursor:pointer" OnActivate="() => SetRelease(s)">@lab</Chip>
-            }
-            @* I chip ACC compaiono solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
+        @* ---- barra: ricerca · chip che CONTANO · tipo e ACC nei menu · ✕ ----
+           Il riepilogo di campagna («3 in vigore · 2 programmate · 1 senza release») era una fascia sopra
+           l'elenco che diceva gli stessi numeri che i chip dei filtri avrebbero dovuto portare: un fatto in
+           due posti (regola 103). Restano i chip, coi numeri dentro. Il ciclo corrente — l'unica cosa della
+           fascia che non fosse un doppione — è salito accanto al titolo.
+           I chip stanno in GRUPPO, così la barra va a capo in un punto solo, e ci sono sempre — spenti a
+           zero, perché un chip che compare col contatore accorcia la riga sotto il puntatore (regole 31-32).
+           Tipo e ACC sono menu e non chip: sono quattro tipi più una ACC per divisione, e come chip da soli
+           chiedevano più larghezza di tutto il resto della barra. *@
+        var n = Counts();
+        <div class="struct-bar">
+            <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
+            <select class="htree-select" aria-label="@L["Ver_KindLabel"]" title="@L["Ver_KindLabel"]"
+                    @onchange="e => SetKind(ParseKind(e.Value?.ToString()))">
+                @foreach (var (k, lab) in KindFilters)
+                {
+                    <option value="@(k?.ToString() ?? "")" selected="@(_kindFilter == k)">@lab</option>
+                }
+            </select>
+            @* Il menu ACC compare solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
                l'elenco è già ristretto, e un filtro con una scelta sola è arredamento. *@
             @if (AccFilters.Count > 1)
             {
-                <span style="margin-left:6px">@L["Ver_AccLabel"]</span>
-                <Chip Class="@($"pill {(_accFilter is null ? "blue" : "grey")}")" Active="_accFilter is null" Style="cursor:pointer" OnActivate="() => SetAcc(null)">@L["Ver_FilterAll_F"]</Chip>
-                @foreach (var acc in AccFilters)
-                {
-                    <Chip Class="@($"pill {(_accFilter == acc ? "blue" : "grey")}")" Active="_accFilter == acc" Style="cursor:pointer" OnActivate="() => SetAcc(acc)">@acc</Chip>
-                }
+                <select class="htree-select" aria-label="@L["Ver_AccLabel"]" title="@L["Ver_AccLabel"]"
+                        @onchange="e => SetAcc(Blank(e.Value?.ToString()))">
+                    <option value="" selected="@(_accFilter is null)">@L["Ver_FilterAll_F"]</option>
+                    @foreach (var acc in AccFilters)
+                    {
+                        <option value="@acc" selected="@(_accFilter == acc)">@acc</option>
+                    }
+                </select>
             }
+            <span class="sb-chips">
+                <button class="sh-chip @(_statusFilter == "public" ? "on" : "")" disabled="@(n.Public == 0)"
+                        title="@L["Ver_PublicChipTitle"]" @onclick='() => ToggleStatus("public")'>@L["Ver_FilterPublic"] <span class="chip-n">@n.Public</span></button>
+                <button class="sh-chip @(_statusFilter == "draft" ? "on" : "")" disabled="@(n.Draft == 0)"
+                        title="@L["Ver_DraftChipTitle"]" @onclick='() => ToggleStatus("draft")'>@L["Ver_FilterDraft"] <span class="chip-n">@n.Draft</span></button>
+                <button class="sh-chip @(_statusFilter == "hidden" ? "on" : "")" disabled="@(n.Hidden == 0)"
+                        title="@L["Ver_HiddenChipTitle"]" @onclick='() => ToggleStatus("hidden")'>@L["Ver_FilterHidden"] <span class="chip-n">@n.Hidden</span></button>
+                <button class="sh-chip @(_statusFilter == "editing" ? "on" : "")" disabled="@(n.Editing == 0)"
+                        title="@L["Ver_EditingTitle"]" @onclick='() => ToggleStatus("editing")'>@L["Ver_FilterEditing"] <span class="chip-n">@n.Editing</span></button>
+                <span class="sb-sep"></span>
+                <button class="sh-chip @(_releaseFilter == "effective" ? "on" : "")" disabled="@(n.Effective == 0)"
+                        title="@L["Ver_EffectiveTitle"]" @onclick='() => ToggleRelease("effective")'>@L["Rel_Effective"] <span class="chip-n">@n.Effective</span></button>
+                <button class="sh-chip @(_releaseFilter == "scheduled" ? "on" : "")" disabled="@(n.Scheduled == 0)"
+                        title="@L["Ver_ScheduledTitle"]" @onclick='() => ToggleRelease("scheduled")'>@L["Ver_FilterScheduled"] <span class="chip-n">@n.Scheduled</span></button>
+                @* Il chip di LAVORO: i documenti senza release sono la coda da smaltire — in giallo quando
+                   ce n'è, spento a zero. *@
+                <button class="sh-chip @(n.NoRelease > 0 ? "warn" : "") @(_releaseFilter == "none" ? "on" : "")" disabled="@(n.NoRelease == 0)"
+                        title="@L["Ver_NoReleaseTitle"]" @onclick='() => ToggleRelease("none")'>@L["Ver_FilterNoRelease"] <span class="chip-n">@n.NoRelease</span></button>
+                @* Il ✕ sta DENTRO il gruppo, non dopo: da solo in fondo è lui ad andare a capo per primo e la
+                   barra diventa di tre righe invece di due. C'è sempre, spento quando non c'è niente da
+                   azzerare; solo il glifo, il nome nel title e in aria-label. *@
+                <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters"
+                        title="@L["Ver_ClearTitle"]" aria-label="@L["Ver_Clear"]">✕</button>
+            </span>
         </div>
-
-        <p class="muted" style="font-size:12px">@Filtered().Count() @(IsFiltering ? string.Format(L["Ver_OfTotal"].Value, _docs.Count) : "") @L["Ver_DocsWord"]@(IsFiltering ? L["Ver_FilteredSuffix"].Value : "")</p>
 
         @if (!Filtered().Any())
         {
@@ -230,17 +241,10 @@
         (null, L["Ver_FilterAll_M"]), (ManagedDocKind.Vloa, "vLOA"), (ManagedDocKind.AccVipi, "ACC"),
         (ManagedDocKind.AirportVipi, L["Nd_Airport"]), (ManagedDocKind.AppVipi, "APP"),
     };
-    private (string, string)[] StatusFilters =>
-    new (string, string)[]
-    {
-        ("all", L["Ver_FilterAll_M"]), ("public", L["Ver_FilterPublic"]), ("draft", L["Ver_FilterDraft"]),
-        ("hidden", L["Ver_FilterHidden"]), ("editing", L["Ver_FilterEditing"]),
-    };
-    private (string, string)[] ReleaseFilters =>
-    new (string, string)[]
-    {
-        ("all", L["Ver_FilterAll_F"]), ("effective", L["Rel_Effective"]), ("scheduled", L["Ver_FilterScheduled"]), ("none", L["Ver_FilterNoRelease"]),
-    };
+    // I valori ammessi nell'URL. Le ETICHETTE non stanno più qui: i chip le portano una per una, coi loro
+    // titoli, e un elenco di coppie serviva solo a generare i chip «tutti» che il ✕ ha sostituito.
+    private static readonly string[] StatusValues = { "public", "draft", "hidden", "editing" };
+    private static readonly string[] ReleaseValues = { "effective", "scheduled", "none" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -368,14 +372,29 @@
         await LoadAsync();
     }
 
-    private int CampaignCount(string kind) => _docs?.Count(d => kind switch
+    /// <summary>
+    /// I sette numeri dei chip, contati in un giro solo sull'elenco che la pagina ha già in mano: nessuna
+    /// query nuova, e i conteggi che la fascia di riepilogo mostrava sono gli stessi che i chip portano
+    /// adesso — un fatto, un posto.
+    /// </summary>
+    private (int Public, int Draft, int Hidden, int Editing, int Effective, int Scheduled, int NoRelease) Counts()
     {
-        "effective" => d.EffectiveCycle is not null,
-        "scheduled" => d.NextScheduledCycle is not null,
-        "none" => !d.HasAnyRelease,
-        "editing" => d.IsLocked,
-        _ => false,
-    }) ?? 0;
+        var (pub, dr, hid, ed, eff, sch, nor) = (0, 0, 0, 0, 0, 0, 0);
+        foreach (var d in _docs ?? Array.Empty<ManagedDoc>())
+        {
+            // ⚠️ Ogni numero conta ESATTAMENTE ciò che il suo chip mostra una volta cliccato (stessa
+            // condizione di Filtered): un documento nascosto con una bozza aperta sta in due chip, e va
+            // bene — un chip che dice 3 e ne mostra 2 è un numero che mente.
+            if (!d.IsHidden && !d.HasDraft) pub++;
+            if (d.HasDraft) dr++;
+            if (d.IsHidden) hid++;
+            if (d.IsLocked) ed++;
+            if (d.EffectiveCycle is not null) eff++;
+            if (d.NextScheduledCycle is not null) sch++;
+            if (!d.HasAnyRelease) nor++;
+        }
+        return (pub, dr, hid, ed, eff, sch, nor);
+    }
 
     /// <summary>Le ACC presenti nell'elenco, per i chip del filtro. Ordinate: sono etichette, non dati.</summary>
     private IReadOnlyList<string> AccFilters => _docs is null
@@ -461,9 +480,23 @@
     // ---- filtri: setter + sync URL (?q=&kind=&stato=&rel=) ----
     private void SetQuery(string? q) { _q = q ?? ""; SyncUrl(); }
     private void SetKind(ManagedDocKind? k) { _kindFilter = k; SyncUrl(); }
-    private void SetStatus(string s) { _statusFilter = s; SyncUrl(); }
-    private void SetRelease(string s) { _releaseFilter = s; SyncUrl(); }
     private void SetAcc(string? a) { _accFilter = a; SyncUrl(); }
+
+    // I chip sono interruttori: ricliccato, il chip acceso torna a «tutti». Il chip «tutti» non c'è — il
+    // totale sta accanto al titolo e il ✕ azzera in un gesto solo.
+    private void ToggleStatus(string s) { _statusFilter = _statusFilter == s ? "all" : s; SyncUrl(); }
+    private void ToggleRelease(string s) { _releaseFilter = _releaseFilter == s ? "all" : s; SyncUrl(); }
+
+    private void ClearFilters()
+    {
+        _q = ""; _kindFilter = null; _statusFilter = "all"; _releaseFilter = "all"; _accFilter = null;
+        SyncUrl();
+    }
+
+    // I menu parlano in stringhe: "" è «tutti», e un valore che non esiste più non deve far esplodere la pagina.
+    private static ManagedDocKind? ParseKind(string? v) =>
+        Enum.TryParse<ManagedDocKind>(v, out var k) ? k : null;
+    private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v;
 
     private void SyncUrl()
     {
@@ -483,8 +516,8 @@
         var q = QueryStringUtil.Parse(new Uri(Nav.Uri).Query);
         if (q.TryGetValue("q", out var qv)) _q = qv;
         if (q.Enum<ManagedDocKind>("kind") is { } k) _kindFilter = k;
-        if (q.Value("stato") is { } sv && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
-        if (q.Value("rel") is { } rv && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
+        if (q.Value("stato") is { } sv && StatusValues.Contains(sv)) _statusFilter = sv;
+        if (q.Value("rel") is { } rv && ReleaseValues.Contains(rv)) _releaseFilter = rv;
         // L'ACC non si valida contro un elenco chiuso: l'elenco dei documenti non è ancora caricato, e una ACC
         // che non c'è filtra a zero — che è esattamente ciò che dice l'URL.
         if (q.Value("acc") is { } av && !string.IsNullOrWhiteSpace(av)) _accFilter = av.ToUpperInvariant();

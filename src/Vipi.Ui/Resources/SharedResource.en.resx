@@ -1068,25 +1068,20 @@
   <data name="Ver_HelpAria" xml:space="preserve"><value>Help on the documents list</value></data>
   <data name="Ver_CountTitle" xml:space="preserve"><value>Documents shown out of the total</value></data>
   <data name="Ver_CycleTitle" xml:space="preserve"><value>AIRAC cycle effective right now</value></data>
+  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Visible to the public, with no open draft</value></data>
+  <data name="Ver_DraftChipTitle" xml:space="preserve"><value>With an open draft, not published yet</value></data>
+  <data name="Ver_HiddenChipTitle" xml:space="preserve"><value>Hidden from the public lists</value></data>
+  <data name="Ver_Clear" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Ver_ClearTitle" xml:space="preserve"><value>Clear the filters and show every document</value></data>
   <data name="Ver_Subtitle" xml:space="preserve"><value>Documents, version history and AIRAC releases · current cycle {0}</value></data>
   <data name="Ver_CollapseAll" xml:space="preserve"><value>Collapse all</value></data>
   <data name="Ver_ExpandAll" xml:space="preserve"><value>Expand all</value></data>
   <data name="Ver_NotAllowed" xml:space="preserve"><value>Operation not allowed</value></data>
-  <data name="Ver_CurrentCycle" xml:space="preserve"><value>Current cycle {0}</value></data>
-  <data name="Ver_NDocs" xml:space="preserve"><value>{0} documents</value></data>
   <data name="Ver_EffectiveTitle" xml:space="preserve"><value>With a release effective now</value></data>
-  <data name="Ver_NEffective" xml:space="preserve"><value>{0} effective</value></data>
   <data name="Ver_ScheduledTitle" xml:space="preserve"><value>With a future scheduled release</value></data>
-  <data name="Ver_NScheduled" xml:space="preserve"><value>{0} scheduled</value></data>
   <data name="Ver_NoReleaseTitle" xml:space="preserve"><value>Without release: the public sees the live state</value></data>
-  <data name="Ver_NNoRelease" xml:space="preserve"><value>{0} without release</value></data>
   <data name="Ver_SearchPh" xml:space="preserve"><value>search title / scope / ACC…</value></data>
   <data name="Ver_KindLabel" xml:space="preserve"><value>Kind:</value></data>
-  <data name="Ver_StatusLabel" xml:space="preserve"><value>Status:</value></data>
-  <data name="Ver_ReleaseLabel" xml:space="preserve"><value>Release:</value></data>
-  <data name="Ver_OfTotal" xml:space="preserve"><value>of {0}</value></data>
-  <data name="Ver_DocsWord" xml:space="preserve"><value>documents</value></data>
-  <data name="Ver_FilteredSuffix" xml:space="preserve"><value> (filtered)</value></data>
   <data name="Ver_NoDoc" xml:space="preserve"><value>No document</value></data>
   <data name="Ver_NoDocMatch" xml:space="preserve"><value>No document matches the filters.</value></data>
   <data name="Ver_Hidden" xml:space="preserve"><value>Hidden</value></data>
@@ -1136,7 +1131,6 @@
   <data name="Ver_DocDeleted" xml:space="preserve"><value>Document deleted.</value></data>
   <data name="Ver_Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Ver_RefreshTitle" xml:space="preserve"><value>Re-read the list: who is editing what changes while the page is open</value></data>
-  <data name="Ver_NEditing" xml:space="preserve"><value>{0} being edited</value></data>
   <data name="Ver_EditingTitle" xml:space="preserve"><value>Documents with an editing lock held right now</value></data>
   <data name="Ver_FilterEditing" xml:space="preserve"><value>being edited</value></data>
   <data name="Ver_AccLabel" xml:space="preserve"><value>ACC:</value></data>
