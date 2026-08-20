@@ -666,6 +666,8 @@
   <data name="Conf_Heading" xml:space="preserve"><value>ACC confinanti → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import ACC esteri dai paesi vicini, calcolo adiacenza geometrica, generazione vLOA per coppia.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Avvisi import:</value></data>
+  <data name="Conf_PolyPoints" xml:space="preserve"><value>{0} vertici</value></data>
+  <data name="Conf_PolyInvalid" xml:space="preserve"><value>JSON non valido (servono almeno 3 punti)</value></data>
   <data name="Conf_ChipPending" xml:space="preserve"><value>da valutare {0}</value></data>
   <data name="Conf_ChipPendingTitle" xml:space="preserve"><value>Mostra solo le coppie non ancora confermate né rifiutate</value></data>
   <data name="Conf_ChipConfirmed" xml:space="preserve"><value>confermate {0}</value></data>

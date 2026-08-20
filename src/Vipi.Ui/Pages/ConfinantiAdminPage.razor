@@ -202,13 +202,24 @@
                         <button class="lnk-mini" @onclick="() => _manualOpen = false">✕ @L["Common_Close"]</button>
                     </div>
                     <div class="st-scroll">
-                        <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" placeholder="es. LIMM" /></div>
-                        <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" placeholder="es. LFMM" /></div>
+                        @* ⚠️ `@bind` da solo scrive al BLUR: i due campi che accendono «Aggiungi coppia»
+                           scrivono a ogni tasto, altrimenti chi ha appena finito di compilare trova il
+                           tasto spento proprio mentre lo punta. *@
+                        <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" @bind:event="oninput" placeholder="es. LIMM" /></div>
+                        <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" @bind:event="oninput" placeholder="es. LFMM" /></div>
                         <div class="field"><label>@L["Conf_LblForeignName"]</label><input @bind="_mName" placeholder="es. Marseille ACC" /></div>
                         <div class="field"><label>@L["Conf_LblCountry"]</label><input @bind="_mCountry" placeholder="es. FR" /></div>
                         <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="default {ACC}_CTR" /></div>
-                        <div class="field"><label>@L["Conf_LblPolyOptional"]</label><textarea rows="3" class="mono-area" @bind="_mPoly"></textarea></div>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="AddManual">+ @L["Conf_AddPair"]</button>
+                        <div class="field">
+                            <label>@L["Conf_LblPolyOptional"]</label>
+                            <textarea rows="3" class="mono-area" value="@_mPoly" @oninput="OnManualPolyInput"></textarea>
+                            @* Opzionale: vuoto va bene, sbagliato no. Il chip lo dice prima del salva. *@
+                            @if (!string.IsNullOrWhiteSpace(_mPoly))
+                            {
+                                <span class="sh-chip @(ManualPolyReady ? "" : "warn")">@ManualPolyLabel()</span>
+                            }
+                        </div>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !ManualReady)" @onclick="AddManual">+ @L["Conf_AddPair"]</button>
                     </div>
                 }
                 else if (Selected() is not NeighbourCandidateRow sel)
@@ -260,7 +271,7 @@
                             }
                             @if (!sel.HasPolygon)
                             {
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="TogglePolygon" title="@L["Conf_PolygonTitle"]">📐 @L["Conf_Polygon"]</button>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="TogglePolygon" title="@L["Conf_PolygonTitle"]"><Icon Name="map" /> @L["Conf_Polygon"]</button>
                             }
                         </div>
 
@@ -269,8 +280,8 @@
                             <div class="field conf-form">
                                 <label>@((MarkupString)string.Format(L["Conf_SectorLabel"].Value, sel.ForeignAccCode))</label>
                                 <div class="conf-acts">
-                                    <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" placeholder="es. LGKR_APP" />
-                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => AddSector(sel.Id)">💾 @L["Conf_AddSector"]</button>
+                                    <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" @bind:event="oninput" placeholder="es. LGKR_APP" />
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || !SectorReady)" @onclick="() => AddSector(sel.Id)">@L["Conf_AddSector"]</button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => _sectorOpen = false">@L["Common_Cancel"]</button>
                                     <HelpHint AriaLabel="@L["Conf_AddSectorTitle"]">@L["Conf_SectorHint"]</HelpHint>
                                 </div>
@@ -279,12 +290,18 @@
 
                         @if (_polyOpen)
                         {
+                            @* Il poligono si scriveva alla cieca: l'errore arrivava dopo il salva, quando il
+                               testo era gia' stato incollato e perso di vista. Qui il conteggio dei vertici
+                               si aggiorna a ogni tasto e il salva resta spento finche' il JSON non regge —
+                               stessa soglia del service (≥3 punti), letta dallo stesso parser. *@
                             <div class="field conf-form">
                                 <label>@((MarkupString)L["Conf_PolyLabel"].Value)</label>
-                                <textarea rows="4" class="mono-area" @bind="_polyText" placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
+                                <textarea rows="4" class="mono-area" value="@_polyText" @oninput="OnPolyInput"
+                                          placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
                                 <div class="conf-acts" style="margin-top:6px">
-                                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SavePolygon(sel.Id)">💾 @L["Conf_SavePolygon"]</button>
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || !PolyReady)" @onclick="() => SavePolygon(sel.Id)">@L["Conf_SavePolygon"]</button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => _polyOpen = false">@L["Common_Cancel"]</button>
+                                    <span class="sh-chip @(PolyReady ? "" : "warn")">@PolyLabel()</span>
                                 </div>
                             </div>
                         }
@@ -395,6 +412,35 @@
     private string _polyText = "";
     private string _sectorCallsign = "";
 
+    // ---- Quello che si scrive si valida MENTRE si scrive, non dopo il salva ----
+    // La soglia è quella vera del service (PolygonGeometry, ≥3 punti): un secondo giudice con una regola
+    // propria direbbe «va bene» a un poligono che il salvataggio poi rifiuta.
+    private int _polyPts, _mPolyPts;
+
+    private void OnPolyInput(ChangeEventArgs e)
+    {
+        _polyText = e.Value?.ToString() ?? "";
+        _polyPts = PolygonGeometry.ParsePoints(_polyText).Count;
+    }
+
+    private void OnManualPolyInput(ChangeEventArgs e)
+    {
+        _mPoly = e.Value?.ToString() ?? "";
+        _mPolyPts = PolygonGeometry.ParsePoints(_mPoly).Count;
+    }
+
+    private bool PolyReady => _polyPts >= 3;
+    private string PolyLabel() => _polyPts >= 3 ? L["Conf_PolyPoints", _polyPts].Value : L["Conf_PolyInvalid"].Value;
+
+    private bool ManualPolyReady => string.IsNullOrWhiteSpace(_mPoly) || _mPolyPts >= 3;
+    private string ManualPolyLabel() => _mPolyPts >= 3 ? L["Conf_PolyPoints", _mPolyPts].Value : L["Conf_PolyInvalid"].Value;
+
+    // Un tasto che si può premere solo per sentirsi dire «manca un campo» è un tasto che mente.
+    private bool ManualReady => ManualPolyReady
+        && !string.IsNullOrWhiteSpace(_mHome) && !string.IsNullOrWhiteSpace(_mForeign);
+
+    private bool SectorReady => !string.IsNullOrWhiteSpace(_sectorCallsign);
+
     // Dettaglio di adiacenza: NON si carica scegliendo una riga (sono decine di GET alla sorgente), si chiede.
     private NeighbourPairDetail? _detail;
     private bool _detailBusy;
@@ -429,7 +475,7 @@
     private void TogglePolygon()
     {
         _polyOpen = !_polyOpen;
-        if (_polyOpen) { _sectorOpen = false; _polyText = ""; }
+        if (_polyOpen) { _sectorOpen = false; _polyText = ""; _polyPts = 0; }
     }
 
     private void ToggleSector()
@@ -624,6 +670,6 @@
         {
             await Neighbours.AddManualAsync(_mHome, _mForeign, _mName, _mCountry, _mCallsign,
                 string.IsNullOrWhiteSpace(_mPoly) ? null : _mPoly);
-            _mHome = _mForeign = _mName = _mCountry = _mCallsign = _mPoly = "";
+            _mHome = _mForeign = _mName = _mCountry = _mCallsign = _mPoly = ""; _mPolyPts = 0;
         }, L["Conf_PairAdded"]);
 }

@@ -663,6 +663,8 @@
   <data name="Conf_Heading" xml:space="preserve"><value>Neighbouring ACCs → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import foreign ACCs from neighbouring countries, compute geometric adjacency, generate a vLOA per pair.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Import warnings:</value></data>
+  <data name="Conf_PolyPoints" xml:space="preserve"><value>{0} vertices</value></data>
+  <data name="Conf_PolyInvalid" xml:space="preserve"><value>Invalid JSON (at least 3 points needed)</value></data>
   <data name="Conf_ChipPending" xml:space="preserve"><value>pending {0}</value></data>
   <data name="Conf_ChipPendingTitle" xml:space="preserve"><value>Show only the pairs not yet confirmed or rejected</value></data>
   <data name="Conf_ChipConfirmed" xml:space="preserve"><value>confirmed {0}</value></data>
