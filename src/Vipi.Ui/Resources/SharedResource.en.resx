@@ -1130,6 +1130,22 @@
   <data name="Ver_DocHidden" xml:space="preserve"><value>Document hidden.</value></data>
   <data name="Ver_DeleteConfirm" xml:space="preserve"><value>Permanently delete «{0}»? The operation is irreversible (removes versions and releases).</value></data>
   <data name="Ver_DocDeleted" xml:space="preserve"><value>Document deleted.</value></data>
+  <data name="Ver_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Ver_RefreshTitle" xml:space="preserve"><value>Re-read the list: who is editing what changes while the page is open</value></data>
+  <data name="Ver_NEditing" xml:space="preserve"><value>{0} being edited</value></data>
+  <data name="Ver_EditingTitle" xml:space="preserve"><value>Documents with an editing lock held right now</value></data>
+  <data name="Ver_FilterEditing" xml:space="preserve"><value>being edited</value></data>
+  <data name="Ver_AccLabel" xml:space="preserve"><value>ACC:</value></data>
+  <data name="Ver_LockedActionsTitle" xml:space="preserve"><value>{0}: hide and delete are on hold until they finish</value></data>
+  <data name="Ver_ForceUnlockPrompt" xml:space="preserve"><value>Take the lock away from {0}? Unsaved changes will be lost.</value></data>
+  <data name="Ver_Unlocked" xml:space="preserve"><value>Lock released.</value></data>
+  <data name="Ver_HideDocAria" xml:space="preserve"><value>Hide the document from the public</value></data>
+  <data name="Ver_HidePrompt" xml:space="preserve"><value>Hide «{0}» from the public? It stays editable and can be shown again.</value></data>
+  <data name="Ver_HideConfirmYes" xml:space="preserve"><value>Yes, hide it</value></data>
+  <data name="Ver_CancelReleaseYes" xml:space="preserve"><value>Yes, cancel the release</value></data>
+  <data name="Ver_CancelReleaseNo" xml:space="preserve"><value>No, keep it</value></data>
+  <data name="Ver_PublishNowPrompt" xml:space="preserve"><value>Publish right away, outside the AIRAC cycle? The document becomes public immediately.</value></data>
+  <data name="Ver_PublishNowYes" xml:space="preserve"><value>Yes, publish now</value></data>
   <data name="Dse_AddSection" xml:space="preserve"><value>+ Add section</value></data>
   <data name="Dse_AddSubsectionTitle" xml:space="preserve"><value>Add subsection</value></data>
   <data name="Dse_AddSubsectionExtraTitle" xml:space="preserve"><value>Add subsection (extra)</value></data>

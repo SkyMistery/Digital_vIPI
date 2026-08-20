@@ -9,7 +9,6 @@
 @inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
 @inject Vipi.Application.Abstractions.IAuditLogReader Audit
 @inject NavigationManager Nav
-@inject IJSRuntime JS
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 
@@ -24,6 +23,9 @@
             {
                 <button type="button" class="btn ghost" @onclick="ToggleExpandAll">@(AllExpanded ? "▴ " + L["Ver_CollapseAll"] : "▾ " + L["Ver_ExpandAll"])</button>
             }
+            @* L'elenco è una fotografia: i lock si prendono e si lasciano mentre la pagina sta aperta. Un tasto,
+               non un poll: il dato cambia poche volte al giorno e il giro costa una query su tutti i documenti. *@
+            <button type="button" class="btn ghost" disabled="@_busy" title="@L["Ver_RefreshTitle"]" @onclick="ReloadAsync">↻ @L["Ver_Refresh"]</button>
             <a class="btn primary" href="/vsop/editor/newdoc"><Icon Name="plus" /> @L["Nd_Title"]</a>
         </div>
     </div>
@@ -44,6 +46,10 @@
             <span class="pill green" title="@L["Ver_EffectiveTitle"]">🟢 @(string.Format(L["Ver_NEffective"].Value, CampaignCount("effective")))</span>
             <span class="pill blue" title="@L["Ver_ScheduledTitle"]">🕒 @(string.Format(L["Ver_NScheduled"].Value, CampaignCount("scheduled")))</span>
             <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @(string.Format(L["Ver_NNoRelease"].Value, CampaignCount("none")))</span>
+            @if (CampaignCount("editing") > 0)
+            {
+                <span class="pill amber" title="@L["Ver_EditingTitle"]">🔒 @(string.Format(L["Ver_NEditing"].Value, CampaignCount("editing")))</span>
+            }
         </div>
 
         @* ---- barra ricerca + filtri ---- *@
@@ -64,6 +70,17 @@
             @foreach (var (s, lab) in ReleaseFilters)
             {
                 <Chip Class="@($"pill {(_releaseFilter == s ? "blue" : "grey")}")" Active="_releaseFilter == s" Style="cursor:pointer" OnActivate="() => SetRelease(s)">@lab</Chip>
+            }
+            @* I chip ACC compaiono solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
+               l'elenco è già ristretto, e un filtro con una scelta sola è arredamento. *@
+            @if (AccFilters.Count > 1)
+            {
+                <span style="margin-left:6px">@L["Ver_AccLabel"]</span>
+                <Chip Class="@($"pill {(_accFilter is null ? "blue" : "grey")}")" Active="_accFilter is null" Style="cursor:pointer" OnActivate="() => SetAcc(null)">@L["Ver_FilterAll_F"]</Chip>
+                @foreach (var acc in AccFilters)
+                {
+                    <Chip Class="@($"pill {(_accFilter == acc ? "blue" : "grey")}")" Active="_accFilter == acc" Style="cursor:pointer" OnActivate="() => SetAcc(acc)">@acc</Chip>
+                }
             }
         </div>
 
@@ -88,27 +105,55 @@
                 @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
                 else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
                 else { <span class="pill green">@L["Ver_Public"]</span> }
-                @{ var sum = SummaryOf(d); }
-                @if (sum is not null && sum.EffectiveCycle is not null)
+                @if (d.EffectiveCycle is { } eff)
                 {
-                    <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @sum.EffectiveCycle</span>
+                    <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @eff</span>
                 }
-                @if (sum is not null && sum.NextScheduledCycle is not null)
+                @if (d.NextScheduledCycle is { } next)
                 {
-                    <span class="pill blue" title="@L["Ver_ScheduledFutureTitle"]">🕒 @sum.NextScheduledCycle</span>
+                    <span class="pill blue" title="@L["Ver_ScheduledFutureTitle"]">🕒 @next</span>
                 }
-                @if (_summariesLoaded && sum is null)
+                @if (!d.HasAnyRelease)
                 {
                     <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
                 }
-                <a class="btn ghost" href="@EditorLink(d)">@L["Nd_OpenEditor"]</a>
-                @if (Authz.IsAdmin)
+                @* Chi sta lavorando a cosa. Il nome e l'ORA sono entrambi necessari: il lock del documento dura
+                   30 minuti e non ha battito, quindi «bloccato» senza scadenza non direbbe se aspettare o no. *@
+                @if (d.IsLocked)
                 {
-                    <button class="btn ghost" disabled="@_busy" title="@(d.IsHidden ? L["Ver_ShowPublicTitle"] : L["Ver_HidePublicTitle"])"
-                            @onclick="() => ToggleHidden(d)"><Icon Name="@(d.IsHidden ? "eye" : "eye-off")" /> @(d.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button>
-                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_DeletePermTitle"]" AriaLabel="@L["Ver_DeleteDocAria"]"
-                                   Prompt="@L["Ver_DeletePrompt"]" Disabled="@_busy" OnConfirm="() => Delete(d)">
+                    <span class="pill @(IsMyLock(d) ? "green" : "amber")" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
+                }
+                <a class="btn ghost" href="@EditorLink(d)">@L["Nd_OpenEditor"]</a>
+                @if (CanManage(d))
+                {
+                    @if (d.IsHidden)
+                    {
+                        @* Rimettere a vista non distrugge niente: resta immediato. *@
+                        <button class="btn ghost" disabled="@ActionsBlocked(d)" title="@BlockedTitle(d, L["Ver_ShowPublicTitle"].Value)"
+                                @onclick="() => ToggleHidden(d)"><Icon Name="eye" /> @L["AccAdmin_Show"]</button>
+                    }
+                    else
+                    {
+                        <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_HidePublicTitle"].Value)" AriaLabel="@L["Ver_HideDocAria"]"
+                                       Prompt="@L["Ver_HidePrompt", d.Title]" ConfirmLabel="@L["Ver_HideConfirmYes"]" CancelLabel="@L["Common_Cancel"]"
+                                       Danger="false" Disabled="@ActionsBlocked(d)" OnConfirm="() => ToggleHidden(d)">
+                            <Trigger><Icon Name="eye-off" /> @L["AccAdmin_Hide"]</Trigger>
+                        </InlineConfirm>
+                    }
+                    @* Il testo che spiega la conseguenza sta QUI, non in un confirm del browser: il nativo bloccava
+                       il circuito (e la verifica live) e faceva la seconda domanda dopo questa. *@
+                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
+                                   Prompt="@L["Ver_DeleteConfirm", d.Title]" Disabled="@ActionsBlocked(d)" OnConfirm="() => Delete(d)">
                         <Trigger><Icon Name="trash" /></Trigger>
+                    </InlineConfirm>
+                }
+                @if (d.IsLocked && !IsMyLock(d) && Authz.IsAdmin)
+                {
+                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Lock_ForceTitle"]" AriaLabel="@L["Lock_ForceUnlock"]"
+                                   Prompt="@L["Ver_ForceUnlockPrompt", d.LockedByName ?? L["Lock_AnotherEditor"].Value]"
+                                   ConfirmLabel="@L["Lock_ForceUnlock"]" CancelLabel="@L["Common_Cancel"]" Disabled="@_busy"
+                                   OnConfirm="() => ForceUnlock(d)">
+                        <Trigger>🔓</Trigger>
                     </InlineConfirm>
                 }
             </div>
@@ -131,8 +176,9 @@
     private readonly HashSet<string> _loadingKeys = new();
     private readonly Dictionary<string, IReadOnlyList<VersionInfo>> _versions = new();
     private readonly Dictionary<string, IReadOnlyList<ReleaseInfo>> _releases = new();
-    private Dictionary<string, ReleaseSummary> _summaries = new();
-    private bool _summariesLoaded;
+    // Chi può gestire (nascondi/elimina) quale ACC: risolto una volta per caricamento. Il servizio autorizza per
+    // grant ACC, non per «admin»; il markup diceva solo IsAdmin e nascondeva i tasti a chi il permesso ce l'ha.
+    private readonly HashSet<string> _accGestibili = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, string> _authorNames = new();
     private readonly Dictionary<string, IReadOnlyList<Vipi.Application.Abstractions.AuditEntry>> _history = new();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -143,8 +189,9 @@
     // filtri
     private string _q = "";
     private ManagedDocKind? _kindFilter;      // null = tutti
-    private string _statusFilter = "all";     // all|public|draft|hidden
+    private string _statusFilter = "all";     // all|public|draft|hidden|editing
     private string _releaseFilter = "all";    // all|effective|scheduled|none
+    private string? _accFilter;               // null = tutte
 
     private (ManagedDocKind?, string)[] KindFilters =>
     new (ManagedDocKind?, string)[]
@@ -155,7 +202,8 @@
     private (string, string)[] StatusFilters =>
     new (string, string)[]
     {
-        ("all", L["Ver_FilterAll_M"]), ("public", L["Ver_FilterPublic"]), ("draft", L["Ver_FilterDraft"]), ("hidden", L["Ver_FilterHidden"]),
+        ("all", L["Ver_FilterAll_M"]), ("public", L["Ver_FilterPublic"]), ("draft", L["Ver_FilterDraft"]),
+        ("hidden", L["Ver_FilterHidden"]), ("editing", L["Ver_FilterEditing"]),
     };
     private (string, string)[] ReleaseFilters =>
     new (string, string)[]
@@ -169,7 +217,14 @@
         _upcoming = Releases.UpcomingCycles(14);
         ReadFiltersFromUrl();
         await LoadAsync();
-        await LoadSummariesAsync();
+    }
+
+    /// <summary>Ricarica l'elenco: i lock nascono e muoiono mentre la pagina sta aperta, e con essi i cicli release.</summary>
+    private async Task ReloadAsync()
+    {
+        _busy = true; _status = _error = null;
+        try { await LoadAsync(); }
+        finally { _busy = false; }
     }
 
     private async Task LoadAsync()
@@ -183,47 +238,78 @@
                 var acc = Acc.Trim().ToUpperInvariant();
                 _docs = _docs.Where(d => string.Equals(d.AccCode, acc, StringComparison.OrdinalIgnoreCase)).ToList();
             }
+            await LoadPermessiAsync();
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }
 
-    // Stato release di TUTTE le righe in un colpo, per badge/filtri/riepilogo senza espandere.
-    private async Task LoadSummariesAsync()
+    // Lo stato release arriva già con l'elenco (ManagedDoc.EffectiveCycle/NextScheduledCycle): fino al 21 agosto
+    // 2026 questa pagina rifaceva la stessa SummariesAsync che il repository aveva appena eseguito.
+
+    /// <summary>
+    /// Quali ACC può gestire l'utente: una domanda per ACC distinta (poche), una volta per caricamento.
+    /// L'<c>AccCode</c> del <c>ManagedDoc</c> è lo stesso che il servizio usa per autorizzare — verificato su
+    /// tutti e quattro i descrittori <c>IReleaseTarget</c>.
+    /// </summary>
+    private async Task LoadPermessiAsync()
     {
-        if (_docs is null) return;
-        var targets = _docs.Select(d => (d.ReleaseTarget, d.ReleaseKey)).Distinct().ToList();
-        var map = await Releases.SummariesAsync(targets);
-        _summaries = _docs
-            .GroupBy(RowKey)
-            .ToDictionary(g => g.Key, g =>
-            {
-                var d = g.First();
-                return map.TryGetValue((d.ReleaseTarget, d.ReleaseKey), out var s) ? s : null;
-            })
-            .Where(kv => kv.Value is not null)
-            .ToDictionary(kv => kv.Key, kv => kv.Value!);
-        _summariesLoaded = true;
+        _accGestibili.Clear();
+        if (_docs is null || Authz.IsAdmin) return;
+        foreach (var acc in _docs.Select(d => d.AccCode).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct(StringComparer.OrdinalIgnoreCase))
+            if (await Authz.CanEditAccAsync(acc!)) _accGestibili.Add(acc!);
     }
 
-    private ReleaseSummary? SummaryOf(ManagedDoc d) => _summaries.TryGetValue(RowKey(d), out var s) ? s : null;
+    /// <summary>Può nascondere/eliminare questa riga: admin, oppure grant sull'ACC del documento.</summary>
+    private bool CanManage(ManagedDoc d) =>
+        Authz.IsAdmin || (d.AccCode is { } acc && _accGestibili.Contains(acc));
 
-    private int CampaignCount(string kind)
+    // ---- lock: chi ci sta lavorando ----
+    private bool IsMyLock(ManagedDoc d) => d.LockedByUserId is { } uid && uid == Authz.CurrentUserId;
+
+    private string LockBadge(ManagedDoc d)
     {
-        if (_docs is null) return 0;
-        return _docs.Count(d =>
-        {
-            var s = SummaryOf(d);
-            return kind switch
-            {
-                "effective" => s?.EffectiveCycle is not null,
-                "scheduled" => s?.NextScheduledCycle is not null,
-                "none" => s is null,
-                _ => false,
-            };
-        });
+        var quando = d.LockExpiresUtc is { } e ? e.ToLocalTime().ToString("HH:mm") : null;
+        if (IsMyLock(d)) return L["Lock_Editing"] + (quando is null ? "" : L["Lock_UntilSuffix", quando].Value);
+        var chi = d.LockedByName ?? L["Lock_AnotherEditor"].Value;
+        return chi + (quando is null ? "" : L["Lock_LockedUntilSuffix", quando].Value);
     }
 
-    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _kindFilter is not null || _statusFilter != "all" || _releaseFilter != "all";
+    private string LockTitle(ManagedDoc d) => IsMyLock(d)
+        ? L["Lock_Editing"].Value
+        : $"{L["Lock_LockedByPrefix"].Value} {d.LockedByName ?? L["Lock_AnotherEditor"].Value}"
+          + (d.LockExpiresUtc is { } e ? L["Lock_LockedUntilSuffix", e.ToLocalTime().ToString("HH:mm")].Value : "");
+
+    /// <summary>Azione di scrittura sconsigliata: lock di un ALTRO. Il divieto vero sta nel servizio (il tasto
+    /// spento è cortesia, non guardia: l'elenco è una fotografia e una scheda vecchia lo aggirerebbe).</summary>
+    private bool ActionsBlocked(ManagedDoc d) => _busy || (d.IsLocked && !IsMyLock(d));
+
+    private string BlockedTitle(ManagedDoc d, string titoloNormale) =>
+        d.IsLocked && !IsMyLock(d) ? L["Ver_LockedActionsTitle", LockTitle(d)].Value : titoloNormale;
+
+    private async Task ForceUnlock(ManagedDoc d)
+    {
+        if (d.DocumentId is not int id) return;
+        await Run(() => Editing.ForceUnlockAsync(id), L["Ver_Unlocked"]);
+        await LoadAsync();
+    }
+
+    private int CampaignCount(string kind) => _docs?.Count(d => kind switch
+    {
+        "effective" => d.EffectiveCycle is not null,
+        "scheduled" => d.NextScheduledCycle is not null,
+        "none" => !d.HasAnyRelease,
+        "editing" => d.IsLocked,
+        _ => false,
+    }) ?? 0;
+
+    /// <summary>Le ACC presenti nell'elenco, per i chip del filtro. Ordinate: sono etichette, non dati.</summary>
+    private IReadOnlyList<string> AccFilters => _docs is null
+        ? Array.Empty<string>()
+        : _docs.Select(d => d.AccCode).Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a!)
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(a => a, StringComparer.OrdinalIgnoreCase).ToList();
+
+    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _kindFilter is not null
+        || _statusFilter != "all" || _releaseFilter != "all" || _accFilter is not null;
 
     private IEnumerable<ManagedDoc> Filtered()
     {
@@ -231,18 +317,20 @@
         var q = _q.Trim();
         return _docs.Where(d =>
             (_kindFilter is null || d.Kind == _kindFilter)
+            && (_accFilter is null || string.Equals(d.AccCode, _accFilter, StringComparison.OrdinalIgnoreCase))
             && (_statusFilter switch
             {
                 "public" => !d.IsHidden && !d.HasDraft,
                 "draft" => d.HasDraft,
                 "hidden" => d.IsHidden,
+                "editing" => d.IsLocked,
                 _ => true,
             })
             && (_releaseFilter switch
             {
-                "effective" => SummaryOf(d)?.EffectiveCycle is not null,
-                "scheduled" => SummaryOf(d)?.NextScheduledCycle is not null,
-                "none" => SummaryOf(d) is null,
+                "effective" => d.EffectiveCycle is not null,
+                "scheduled" => d.NextScheduledCycle is not null,
+                "none" => !d.HasAnyRelease,
                 _ => true,
             })
             && (q.Length == 0
@@ -294,6 +382,7 @@
     private void SetKind(ManagedDocKind? k) { _kindFilter = k; SyncUrl(); }
     private void SetStatus(string s) { _statusFilter = s; SyncUrl(); }
     private void SetRelease(string s) { _releaseFilter = s; SyncUrl(); }
+    private void SetAcc(string? a) { _accFilter = a; SyncUrl(); }
 
     private void SyncUrl()
     {
@@ -303,6 +392,7 @@
             ["kind"] = _kindFilter?.ToString(),
             ["stato"] = _statusFilter == "all" ? null : _statusFilter,
             ["rel"] = _releaseFilter == "all" ? null : _releaseFilter,
+            ["acc"] = _accFilter,
         };
         Nav.NavigateTo(Nav.GetUriWithQueryParameters(qp), forceLoad: false, replace: true);
     }
@@ -314,6 +404,9 @@
         if (q.Enum<ManagedDocKind>("kind") is { } k) _kindFilter = k;
         if (q.Value("stato") is { } sv && StatusFilters.Any(f => f.Item1 == sv)) _statusFilter = sv;
         if (q.Value("rel") is { } rv && ReleaseFilters.Any(f => f.Item1 == rv)) _releaseFilter = rv;
+        // L'ACC non si valida contro un elenco chiuso: l'elenco dei documenti non è ancora caricato, e una ACC
+        // che non c'è filtra a zero — che è esattamente ciò che dice l'URL.
+        if (q.Value("acc") is { } av && !string.IsNullOrWhiteSpace(av)) _accFilter = av.ToUpperInvariant();
     }
 
     // Lazy: versioni (solo Document) + release, caricate quando la riga è espansa.
@@ -463,7 +556,12 @@
                             <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(key, r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
                             @if (Authz.IsAdmin)
                             {
-                                <button class="btn ghost" disabled="@_busy" @onclick="() => CancelRelease(key, r.Id)" title="@L["Rel_CancelTitle"]">✕ @L["Common_Cancel"]</button>
+                                @* Annullare una release riporta il PUBBLICO alla precedente: più delicato di «nascondi». *@
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Rel_CancelTitle"]" AriaLabel="@L["Rel_CancelTitle"]"
+                                               Prompt="@L["Rel_CancelConfirm"]" ConfirmLabel="@L["Ver_CancelReleaseYes"]" CancelLabel="@L["Ver_CancelReleaseNo"]"
+                                               Disabled="@_busy" OnConfirm="() => CancelRelease(key, r.Id)">
+                                    <Trigger>✕ @L["Common_Cancel"]</Trigger>
+                                </InlineConfirm>
                             }
                         </span>
                     </div>
@@ -489,7 +587,12 @@
                 </select>
                 <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
                 <button class="btn primary" disabled="@_busy" @onclick="() => PublishRelease(d)">@L["Ver_PublishAtCycle"]</button>
-                <button class="btn ghost" disabled="@_busy" @onclick="() => PublishNow(d)" title="@L["Ver_PublishNowTitle"]">@L["Ver_PublishNowReview"]</button>
+                @* «Pubblica ora» scavalca il ciclo AIRAC e va al pubblico subito: un clic solo era troppo poco. *@
+                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_PublishNowTitle"]" AriaLabel="@L["Ver_PublishNowReview"]"
+                               Prompt="@L["Ver_PublishNowPrompt"]" ConfirmLabel="@L["Ver_PublishNowYes"]" CancelLabel="@L["Common_Cancel"]"
+                               Danger="false" Disabled="@_busy" OnConfirm="() => PublishNow(d)">
+                    <Trigger>@L["Ver_PublishNowReview"]</Trigger>
+                </InlineConfirm>
             </div>
         </div>
     };
@@ -529,7 +632,7 @@
         _releases.Remove(key);
         await Run(() => Releases.PublishAsync(d.ReleaseTarget, d.ReleaseKey, cycle, NoteOf(key)), string.Format(L["Ver_ReleasePublishedCycle"].Value, cycle));
         await LoadDetailAsync(key);
-        await LoadSummariesAsync();
+        await LoadAsync();   // i cicli release stanno nell'elenco: si rilegge quello, non un secondo riepilogo
     }
 
     private async Task PublishNow(ManagedDoc d)
@@ -538,7 +641,7 @@
         _releases.Remove(key);
         await Run(() => Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
         await LoadDetailAsync(key);
-        await LoadSummariesAsync();
+        await LoadAsync();   // i cicli release stanno nell'elenco: si rilegge quello, non un secondo riepilogo
     }
 
     // ---- annulla / differenze / anteprima release ----
@@ -547,12 +650,10 @@
 
     private async Task CancelRelease(string key, int releaseId)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", L["Rel_CancelConfirm"].Value))
-            return;
         _releases.Remove(key);
         await Run(() => Releases.CancelReleaseAsync(releaseId), L["Rel_Canceled"]);
         await LoadDetailAsync(key);
-        await LoadSummariesAsync();
+        await LoadAsync();   // i cicli release stanno nell'elenco: si rilegge quello, non un secondo riepilogo
     }
 
     private async Task ToggleDiff(string key, int releaseId)
@@ -583,10 +684,11 @@
         await LoadAsync();
     }
 
+    // La conferma è l'InlineConfirm della riga, e porta il titolo del documento e le conseguenze: prima ce n'erano
+    // DUE in fila (quella in linea più un window.confirm), e il testo utile stava nella seconda — che per giunta
+    // blocca il circuito Blazor e manda in stallo la verifica live.
     private async Task Delete(ManagedDoc d)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", string.Format(L["Ver_DeleteConfirm"].Value, d.Title)))
-            return;
         await Run(() => DocAdmin.DeleteAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId)), L["Ver_DocDeleted"]);
         _expanded.Remove(RowKey(d));
         await LoadAsync();
