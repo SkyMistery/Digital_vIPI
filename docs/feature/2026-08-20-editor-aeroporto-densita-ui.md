@@ -196,3 +196,46 @@ che leggere «CON…» al posto di «CONV».
 Entrambe le tabelle mostrano per intero fix corretto, nome SID, quota a cinque cifre, chip e pill di stato;
 riga sempre 45px. In larghezza piena non resta tagliato niente, Condition compresa, e non c'è scorrimento
 orizzontale.
+
+## Quarto giro: tre gesti che tolgono lavoro a mano
+
+1. **I chip Cat. e WTC si accendono a scala.** Una procedura per categoria E vale anche per le più piccole, e
+   quasi sempre si accendono in fila: **doppio clic** (o **Shift+clic**) su un chip accende anche tutti quelli
+   prima; rifatto sullo stesso chip, spegne lui e i precedenti. Shift+clic è la via da tastiera — i chip sono
+   bottoni, il browser consegna Shift+Invio come un clic con lo shift premuto.
+   ⚠️ Il doppio clic del browser arriva **dopo** due clic singoli: i due toggle si annullano fra loro, quindi
+   quando la scala parte lo stato è quello di partenza. Si vede un lampeggio del chip; toglierlo vorrebbe dire
+   ritardare **ogni** clic singolo di un quarto di secondo, e qui di clic se ne fanno a centinaia.
+2. **Doppio clic per scegliere un gruppo di righe.** Su **SID / RWY / Type** sceglie tutte quelle con lo
+   **stesso punto**, su **Trans.** quelle con la **stessa transition**; rifatto, le lascia. Sta sulle celle
+   **non scrivibili**: dentro un campo il doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo —
+   per questo nelle SID manuali, dove ogni cella è un campo, il gesto vive sulla **casella di scelta**. Gli
+   stessi due gesti sono anche **tasti nella barra** (agiscono sulla riga del campo toccato per ultimo): il
+   doppio clic è una scorciatoia, non l'unico modo di arrivarci.
+3. **«Applica alle scelte» (⤓, o Ctrl+Invio dentro la cella).** Copia il valore della cella toccata per ultimo
+   in tutte le righe scelte. L'unità è la **cella**: la quota porta con sé il tasto **APP**, Cat. e WTC copiano
+   il gruppo intero di chip. Punto, nome, pista e transition **non si propagano mai**: sono l'identità della
+   riga. Il tasto dice sempre cosa farà — «Applica «4000» alle 15 scelte» — e sopra le 20 righe chiede conferma.
+
+**Le SID manuali hanno adesso la stessa selezione delle importate** (casella di scelta, «scegli tutte»,
+contatore, gli stessi tasti): non esistono più cose che di qua si possono fare e di là no.
+
+### Verificato guidando il browser (doppio clic **vero**)
+
+⚠️ Nota per chi ripete la verifica: `mouse.click({clickCount: 2})` di puppeteer **non** genera l'evento
+`dblclick` — manda un solo `press` con `detail=2`. Il doppio clic vero è `press(1)/release/press(2)/release`.
+Con la prima forma i gesti sembravano rotti mentre funzionavano: mezz'ora persa a cercare un difetto che era
+nell'attrezzo di misura.
+
+| Gesto | Esito misurato |
+|---|---|
+| Doppio clic su `C` (tutto spento) | `A B C` accesi |
+| Doppio clic di nuovo su `C` | tutti spenti |
+| Shift+clic su `D` | `A B C D` accesi |
+| Doppio clic su `H` (WTC) | `L M H` accesi |
+| Doppio clic sulla cella SID | **9 righe** scelte (le nove varianti di quel punto), rifatto → 0 |
+| Doppio clic su Trans. `OKUNO` | **15 righe** scelte |
+| «Applica «4000» alle 15 scelte» | «Applicato a 15 righe.», 15 quote scritte, 15 righe modificate |
+| Ctrl+Invio con un filtro pista attivo | «Applicato a 9 righe. **6 non sono a schermo** (nascoste da un filtro).» |
+| SID manuali: doppio clic sulla casella di scelta | 2 righe (quelle con lo stesso punto), chip a scala e «applica» come sopra |
+

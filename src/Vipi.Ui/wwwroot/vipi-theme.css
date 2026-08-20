@@ -1924,6 +1924,8 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
 /* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
 .struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
+.struct .res-table.sid-edit td.dbl-pick{user-select:none}
+.struct .res-table.sid-edit tbody tr:hover td.dbl-pick{text-decoration:underline dotted var(--ivao-lightblue);text-underline-offset:3px}
 .struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
 /* Due stati diversi, due segni diversi: scelta (blu, la riga intera) e modificata-non-salvata (giallo, come
    la cella `lim-dirty` della pagina ACC). Una riga può essere entrambe le cose. */
@@ -1961,7 +1963,8 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    dove c'è `list=` — la freccina del datalist, altri ~16px: a 47px il segnaposto «CONV» si leggeva «C» e la
    pista «35» spariva. Stessa regola dell'altra tabella: pixel misurati sulle colonne che hanno una misura,
    e Condition senza larghezza, che si prende quello che avanza. */
-.sid-manual{min-width:1040px}
+.sid-manual{min-width:1068px}
+.struct .res-table.sid-manual th.col-chk,.struct .res-table.sid-manual td.col-chk{width:28px}
 .struct .res-table.sid-manual th.col-fix,.struct .res-table.sid-manual td.col-fix{width:76px}
 .struct .res-table.sid-manual th.col-sid,.struct .res-table.sid-manual td.col-sid{width:94px}
 .struct .res-table.sid-manual th.col-rwy,.struct .res-table.sid-manual td.col-rwy{width:66px}

@@ -1257,6 +1257,21 @@
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Quota imposta in ft (solo numero)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>La quota va concordata con l'APP</value></data>
   <data name="Ape_CatTitle" xml:space="preserve"><value>Categoria aeromobile (VREF)</value></data>
+  <data name="Ape_TokScaleTitle" xml:space="preserve"><value>Clic: solo questa. Doppio clic o Shift+clic: anche tutte le precedenti (e con un altro doppio clic si spengono)</value></data>
+  <data name="Ape_DblSameFixTitle" xml:space="preserve"><value>Doppio clic: scegli tutte le righe con questo punto</value></data>
+  <data name="Ape_DblSameTransTitle" xml:space="preserve"><value>Doppio clic: scegli tutte le righe con questa transition</value></data>
+  <data name="Ape_ManualPickTitle" xml:space="preserve"><value>Clic per scegliere · doppio clic: tutte le righe con lo stesso punto · Invio o Spazio da tastiera</value></data>
+  <data name="Ape_PickSameFix" xml:space="preserve"><value>Stesso punto</value></data>
+  <data name="Ape_PickSameFixTitle" xml:space="preserve"><value>Sceglie tutte le righe a schermo con il punto della riga del campo toccato per ultimo</value></data>
+  <data name="Ape_PickSameTrans" xml:space="preserve"><value>Stessa transition</value></data>
+  <data name="Ape_PickSameTransTitle" xml:space="preserve"><value>Sceglie tutte le righe a schermo con la transition della riga del campo toccato per ultimo</value></data>
+  <data name="Ape_ApplyN" xml:space="preserve"><value>Applica «{0}» alle {1} scelte</value></data>
+  <data name="Ape_ApplyNoSource" xml:space="preserve"><value>Applica alle scelte</value></data>
+  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copia il valore della cella toccata per ultimo in tutte le righe scelte (anche con Ctrl+Invio dentro la cella). Le righe restano modificate finché non salvi.</value></data>
+  <data name="Ape_ApplyConfirm" xml:space="preserve"><value>Applicare «{0}» a {1} righe?</value></data>
+  <data name="Ape_ApplyDone" xml:space="preserve"><value>Applicato a {0} righe.</value></data>
+  <data name="Ape_ApplyDoneOne" xml:space="preserve"><value>Applicato a 1 riga.</value></data>
+  <data name="Ape_ApplyHidden" xml:space="preserve"><value> {0} non sono a schermo (nascoste da un filtro).</value></data>
   <data name="Ape_TypeTitle" xml:space="preserve"><value>Tipo di procedura: CONV o RNAV (l'elenco è un suggerimento, il campo resta libero)</value></data>
   <data name="Ape_PriorityTitle" xml:space="preserve"><value>Ordine di preferenza fra le SID dello stesso punto: il numero più basso viene prima</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>

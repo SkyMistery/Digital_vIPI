@@ -1254,6 +1254,21 @@
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Assigned altitude in ft (number only)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>The altitude must be agreed with the APP</value></data>
   <data name="Ape_CatTitle" xml:space="preserve"><value>Aircraft category (VREF)</value></data>
+  <data name="Ape_TokScaleTitle" xml:space="preserve"><value>Click: only this one. Double click or Shift+click: all the previous ones too (another double click turns them off)</value></data>
+  <data name="Ape_DblSameFixTitle" xml:space="preserve"><value>Double click: pick every row with this point</value></data>
+  <data name="Ape_DblSameTransTitle" xml:space="preserve"><value>Double click: pick every row with this transition</value></data>
+  <data name="Ape_ManualPickTitle" xml:space="preserve"><value>Click to pick · double click: every row with the same point · Enter or Space from the keyboard</value></data>
+  <data name="Ape_PickSameFix" xml:space="preserve"><value>Same point</value></data>
+  <data name="Ape_PickSameFixTitle" xml:space="preserve"><value>Picks every row on screen with the point of the last cell you touched</value></data>
+  <data name="Ape_PickSameTrans" xml:space="preserve"><value>Same transition</value></data>
+  <data name="Ape_PickSameTransTitle" xml:space="preserve"><value>Picks every row on screen with the transition of the last cell you touched</value></data>
+  <data name="Ape_ApplyN" xml:space="preserve"><value>Apply «{0}» to the {1} picked</value></data>
+  <data name="Ape_ApplyNoSource" xml:space="preserve"><value>Apply to picked</value></data>
+  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copies the value of the last cell you touched into every picked row (also with Ctrl+Enter inside the cell). The rows stay changed until you save.</value></data>
+  <data name="Ape_ApplyConfirm" xml:space="preserve"><value>Apply «{0}» to {1} rows?</value></data>
+  <data name="Ape_ApplyDone" xml:space="preserve"><value>Applied to {0} rows.</value></data>
+  <data name="Ape_ApplyDoneOne" xml:space="preserve"><value>Applied to 1 row.</value></data>
+  <data name="Ape_ApplyHidden" xml:space="preserve"><value> {0} are off screen (hidden by a filter).</value></data>
   <data name="Ape_TypeTitle" xml:space="preserve"><value>Procedure type: CONV or RNAV (the list is a suggestion, the field stays free)</value></data>
   <data name="Ape_PriorityTitle" xml:space="preserve"><value>Order of preference among the SIDs of the same point: the lowest number comes first</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
