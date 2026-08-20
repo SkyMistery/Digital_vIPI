@@ -30,7 +30,9 @@
         </div>
     </div>
 
-    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Ver_NotAllowed"]</p>@_error</div></div> }
+    @* ⚠️ Il titolo non e' sempre «Operazione non consentita»: un documento occupato non e' un permesso
+       negato, ed e' un'altra reazione (aspetto un minuto, non chiedo un grant). *@
+    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@(_errorTitle ?? L["Ver_NotAllowed"].Value)</p>@_error</div></div> }
     @if (_status is not null) { <div class="callout success"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_status</div></div> }
 
     @if (_docs is null)
@@ -136,14 +138,15 @@
                     {
                         <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_HidePublicTitle"].Value)" AriaLabel="@L["Ver_HideDocAria"]"
                                        Prompt="@L["Ver_HidePrompt", d.Title]" ConfirmLabel="@L["Ver_HideConfirmYes"]" CancelLabel="@L["Common_Cancel"]"
-                                       Danger="false" Disabled="@ActionsBlocked(d)" OnConfirm="() => ToggleHidden(d)">
+                                       Danger="false" Disabled="@ActionsBlocked(d)" CanOpenAsync="() => RefreshLockAsync(d)" OnConfirm="() => ToggleHidden(d)">
                             <Trigger><Icon Name="eye-off" /> @L["AccAdmin_Hide"]</Trigger>
                         </InlineConfirm>
                     }
                     @* Il testo che spiega la conseguenza sta QUI, non in un confirm del browser: il nativo bloccava
                        il circuito (e la verifica live) e faceva la seconda domanda dopo questa. *@
                     <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
-                                   Prompt="@L["Ver_DeleteConfirm", d.Title]" Disabled="@ActionsBlocked(d)" OnConfirm="() => Delete(d)">
+                                   Prompt="@L["Ver_DeleteConfirm", d.Title]" Disabled="@ActionsBlocked(d)"
+                                   CanOpenAsync="() => RefreshLockAsync(d)" OnConfirm="() => Delete(d)">
                         <Trigger><Icon Name="trash" /></Trigger>
                     </InlineConfirm>
                 }
@@ -184,7 +187,7 @@
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
     private bool _busy;
-    private string? _status, _error;
+    private string? _status, _error, _errorTitle;
 
     // filtri
     private string _q = "";
@@ -222,7 +225,7 @@
     /// <summary>Ricarica l'elenco: i lock nascono e muoiono mentre la pagina sta aperta, e con essi i cicli release.</summary>
     private async Task ReloadAsync()
     {
-        _busy = true; _status = _error = null;
+        _busy = true; _status = _error = _errorTitle = null;
         try { await LoadAsync(); }
         finally { _busy = false; }
     }
@@ -288,6 +291,47 @@
 
     private string BlockedTitle(ManagedDoc d, string titoloNormale) =>
         d.IsLocked && !IsMyLock(d) ? L["Ver_LockedActionsTitle", LockTitle(d)].Value : titoloNormale;
+
+    /// <summary>
+    /// Rilegge il lock di <b>un solo</b> documento subito prima di un'azione delicata, e aggiorna la sua riga.
+    /// Ritorna false se risulta occupato da un altro (l'azione non si avvia).
+    ///
+    /// <para><b>Perché una query per id e non un ricarico.</b> L'elenco è una fotografia: un lock preso dopo
+    /// il caricamento non si vede, e il tasto resta acceso finché il servizio non rifiuta. Rileggere tutta la
+    /// lista a ogni clic — o a intervalli — costa una query su tutti i documenti per un dato che cambia poche
+    /// volte al giorno; rileggere <i>quello che si sta per toccare</i>, nel momento in cui lo si tocca, costa
+    /// una riga.</para>
+    ///
+    /// <para>Questo <b>non</b> sostituisce la guardia: quella vive in <c>DocumentAdminService</c>, perché fra
+    /// questa lettura e la scrittura passa comunque un istante, e perché una scheda vecchia non passa di qui.
+    /// Serve a non fare una domanda («eliminare definitivamente?») la cui risposta verrà comunque rifiutata.</para>
+    /// </summary>
+    private async Task<bool> RefreshLockAsync(ManagedDoc d)
+    {
+        if (d.DocumentId is not int id) return true;
+
+        LockInfo lk;
+        // Se non posso nemmeno ispezionare, non decido qui: lascio parlare il servizio, che dà il messaggio giusto.
+        try { lk = await Editing.InspectLockAsync(id); }
+        catch (EditNotAllowedException) { return true; }
+
+        var fresco = lk.Locked
+            ? d with { LockedByUserId = lk.ByUserId, LockedByName = lk.ByName, LockExpiresUtc = lk.ExpiresUtc }
+            : d with { LockedByUserId = null, LockedByName = null, LockExpiresUtc = null };
+        if (_docs is not null)
+            _docs = _docs.Select(x => ReferenceEquals(x, d) ? fresco : x).ToList();
+
+        if (lk.Locked && !lk.IsMine)
+        {
+            _status = null;
+            _errorTitle = L["Ver_LockedTitle"];
+            _error = L["Ver_LockedNowMsg", d.Title, lk.ByName ?? L["Lock_AnotherEditor"].Value].Value;
+            StateHasChanged();
+            return false;
+        }
+        StateHasChanged();
+        return true;
+    }
 
     private async Task ForceUnlock(ManagedDoc d)
     {
@@ -682,6 +726,8 @@
 
     private async Task ToggleHidden(ManagedDoc d)
     {
+        // «Nascondi» passa dalla conferma, che ha gia' riletto il lock; «Mostra» e' immediato e lo rilegge qui.
+        if (!await RefreshLockAsync(d)) return;
         await Run(() => DocAdmin.SetHiddenAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId), !d.IsHidden),
             d.IsHidden ? L["Ver_DocShown"] : L["Ver_DocHidden"]);
         await LoadAsync();
@@ -699,10 +745,10 @@
 
     private async Task Run(Func<Task> action, string ok)
     {
-        _busy = true; _status = _error = null;
+        _busy = true; _status = _error = _errorTitle = null;
         try { await action(); _status = ok; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
-        catch (EditConflictException ex) { _error = ex.Message; }
+        catch (EditConflictException ex) { _error = ex.Message; _errorTitle = L["Ver_LockedTitle"]; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }
         finally { _busy = false; }

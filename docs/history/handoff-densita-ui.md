@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **103 voci in 18 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **105 voci in 18 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -63,6 +63,11 @@ chiedeva niente, «elimina» chiedeva **due volte**. Chiusi tutti
 95-103): badge «chi ci sta lavorando · fino a che ora», hide/delete inibiti **nel service**, force-unlock
 admin, conferme in linea al posto di tre `window.confirm`, chip «in modifica» e per ACC, tasto «Aggiorna»,
 permessi del markup allineati al grant ACC (li mostrava ai soli admin).
+
+E, su richiesta dopo la prima consegna: **il lock si rilegge al clic**. L'elenco resta una fotografia — un
+lock nato dopo il caricamento non si vede — ma la **domanda** non viene più posta se la risposta sarà un
+rifiuto: `InlineConfirm.CanOpenAsync` (nuovo, additivo, gli altri 13 usi non cambiano) rilegge il lock di
+**quel** documento, aggiorna la riga e non apre la conferma. Il divieto resta comunque nel service.
 
 ⚠️ **Buco dichiarato e non chiuso**: `AeroportoEditorPage` usa `IAirportEditingService`, **non**
 `IEditingService`, quindi non prende il lock del documento — sugli aeroporti il badge non comparirà mai e

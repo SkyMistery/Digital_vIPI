@@ -411,6 +411,18 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
     l'elenco già porta. ⚠️ Ma «senza release» e «programmata e non ancora in vigore» restano **due stati**:
     comprimerli in un bool avrebbe perso l'informazione (`HasAnyRelease`).
 
+104. ⚠️ **Un elenco è una fotografia: il presupposto di un'azione può essere caduto.** Il divieto sta nel
+    service (regola 95), ma la **domanda** non va posta se la risposta sarà comunque un rifiuto. Si rilegge
+    **il solo dato che si sta per toccare, nel momento in cui lo si tocca** — non tutta la lista, non a
+    intervalli: un ricarico periodico costa una query su tutto per un dato che cambia poche volte al giorno.
+    Il gancio è `InlineConfirm.CanOpenAsync`. ⚠️ È un `Func<Task<bool>>` e **non** un `EventCallback`, perché
+    serve la **risposta**: un EventCallback non ne restituisce, e leggere `Disabled` dopo l'`await` non
+    funziona — i parametri di un componente arrivano al render **successivo** del genitore, non al ritorno
+    della chiamata.
+105. **Un callout con un titolo solo mente su metà dei suoi casi.** «Operazione non consentita» copriva anche
+    il conflitto di lock, che non è un permesso negato: porta a un'altra reazione (aspetto un minuto, non
+    chiedo un grant). Il titolo si sceglie **nel ramo `catch`**, dove si sa già che errore è.
+
 ## Dove sta la roba
 
 | Cosa | Dove |

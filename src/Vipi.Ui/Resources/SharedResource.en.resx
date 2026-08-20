@@ -1140,6 +1140,8 @@
   <data name="Ver_ForceUnlockPrompt" xml:space="preserve"><value>Take the lock away from {0}? Unsaved changes will be lost.</value></data>
   <data name="Ver_Unlocked" xml:space="preserve"><value>Lock released.</value></data>
   <data name="Ver_LockMineShort" xml:space="preserve"><value>You</value></data>
+  <data name="Ver_LockedTitle" xml:space="preserve"><value>Document busy</value></data>
+  <data name="Ver_LockedNowMsg" xml:space="preserve"><value>«{0}» has just been taken for editing by {1}: hide and delete stay on hold until they finish.</value></data>
   <data name="Ver_HideDocAria" xml:space="preserve"><value>Hide the document from the public</value></data>
   <data name="Ver_HidePrompt" xml:space="preserve"><value>Hide «{0}» from the public? It stays editable and can be shown again.</value></data>
   <data name="Ver_HideConfirmYes" xml:space="preserve"><value>Yes, hide it</value></data>

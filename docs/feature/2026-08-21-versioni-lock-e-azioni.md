@@ -69,6 +69,7 @@
   lock è altrui; force-unlock admin; tasto «Aggiorna».
 - **A5 — filtri.** Chip stato «in modifica», chip **ACC**, contatore 🔒 nella fascia di riepilogo.
 - **A6 — permessi.** Il markup mostra hide/delete a chi **può editare quell'ACC**, non solo agli admin.
+- **A7 — il lock si rilegge al clic** (chiesta dal committente dopo la prima consegna, vedi sotto).
 
 ## Fatto, e cosa ha insegnato guidarla
 
@@ -98,6 +99,33 @@ sette elementi più il force-unlock. È il caso peggiore, e comprimerle il titol
 
 ⚠️ **Lo sforo orizzontale a 1280/1024 non è di questa pagina**: è `div.right` della topbar (1.385px), identico
 sulla home, e **niente dentro il `.wrap` sfora**. Verificato elencando gli elementi oltre il bordo.
+
+## A7 — «è normale che il lock si veda solo se ricarico?»
+
+Sì, ed era **sicuro**: la guardia sta nel service, quindi un lock nato dopo il caricamento fa fallire
+l'azione con un messaggio, non un danno. Ma la domanda («eliminare definitivamente?») veniva **posta lo
+stesso**, e l'occupato si scopriva solo *dopo* aver confermato.
+
+**Scelta: si rilegge il lock di UN documento al clic**, non tutta la lista e non a intervalli. Rileggere
+tutto a ogni giro costa una query su tutti i documenti per un dato che cambia poche volte al giorno;
+rileggere **quello che si sta per toccare, nel momento in cui lo si tocca**, costa una riga.
+
+Servirebbe un gancio prima dell'apertura, e `InlineConfirm` non ne aveva: ora ha `CanOpenAsync`.
+⚠️ È un `Func<Task<bool>>` e **non** un `EventCallback`, perché serve la **risposta** — un `EventCallback`
+non ne restituisce, e leggere `Disabled` dopo l'`await` non funzionerebbe: i parametri arrivano al render
+successivo del genitore, non al ritorno della chiamata. È additivo: gli altri 13 usi non cambiano.
+
+⚠️ **Questo non sostituisce la guardia.** Fra la lettura e la scrittura passa comunque un istante, e una
+scheda vecchia non passa di qui: il divieto resta in `DocumentAdminService`. Serve a non fare una domanda
+la cui risposta verrà comunque rifiutata.
+
+Nello stesso giro: il callout d'errore aveva **un titolo solo** — «Operazione non consentita» — anche per un
+conflitto di lock. Ma un documento occupato non è un permesso negato, ed è un'altra reazione (aspetto un
+minuto, non chiedo un grant): ora il titolo cambia col ramo d'errore.
+
+**Verificato guidando il caso vero** (`report5.json`): pagina caricata **senza** lock → il lock nasce da
+fuori, come da un'altra scheda → la pagina non lo sa (è una fotografia, atteso) → al clic sul cestino la
+conferma **non si apre**, il badge 🔒 compare, il cestino si spegne e il callout dice «Documento occupato».
 
 ## Parte B — densità (dopo)
 
