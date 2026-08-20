@@ -117,6 +117,16 @@
   <data name="Common_NoApp" xml:space="preserve"><value>Nessun APP non remotizzato</value></data>
   <data name="Common_NoVloa" xml:space="preserve"><value>Nessuna vLoA</value></data>
   <data name="Common_All" xml:space="preserve"><value>Tutti</value></data>
+  <data name="Common_None" xml:space="preserve"><value>Nessuno</value></data>
+  <data name="Aor_View2d" xml:space="preserve"><value>Mappa 2D</value></data>
+  <data name="Aor_View3d" xml:space="preserve"><value>Vista 3D</value></data>
+  <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configurazione:</value></data>
+  <data name="Aor_Clear" xml:space="preserve"><value>azzera</value></data>
+  <data name="Aor_MapHint" xml:space="preserve"><value>Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</value></data>
+  <data name="Aor_3dHint" xml:space="preserve"><value>Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</value></data>
+  <data name="Aor_3dUnavailable" xml:space="preserve"><value>Vista 3D non disponibile (WebGL non attivo su questo dispositivo).</value></data>
+  <data name="Aor_NoShapeTitle" xml:space="preserve"><value>Shape AOR non disponibile</value></data>
+  <data name="Aor_NoShapeBody" xml:space="preserve"><value>Nessun poligono per i settori del blocco (non ancora importati o non leggibili).</value></data>
   <data name="Common_OpenArrow" xml:space="preserve"><value>Apri →</value></data>
   <!-- Cosa è cambiato (/vsop/changed) -->
   <data name="Changed_Title" xml:space="preserve"><value>Cosa è cambiato</value></data>

@@ -1,4 +1,4 @@
-@* Editor editoriale documentale CONDIVISO (doc refactor 08f). Estratto da VloaEditor: sezioni ad albero
+﻿@* Editor editoriale documentale CONDIVISO (doc refactor 08f). Estratto da VloaEditor: sezioni ad albero
    (annidamento fino a DocumentSection.MaxDepth) + blocchi Prose/Callout/Table, su IEditingService — che è
    type-agnostico (opera su versionId/section/block). Riusato da vLOA, ACC, APP, Airport. Le sezioni DERIVATE
    (aor/frequencies/coordination/config/…) sono renderizzate dall'host via DerivedContent; l'host possiede
@@ -259,7 +259,11 @@ else
             @if (IsEditing)
             {
                 <button class="btn ghost" style="@(IsRenderModeToggleable?.Invoke(s) == true ? null : "margin-left:auto")" title="@(hid ? L["Dse_ShowInDocTitle"] : L["Dse_HideFromDocTitle"])"
-                        @onclick="() => ToggleHidden(s)">@(hid ? "🙈 " + L["Dse_HiddenState"] : "👁 " + L["Dse_Hide"])</button>
+                        @onclick="() => ToggleHidden(s)">
+                    @* Emoji di comando -> Icon (regola 40). 🔴/🧊 su Live/Congelata restano: sono vocabolario di
+                       stato, come le emoji della pagina Versioni. *@
+                    <Icon Name="@(hid ? "eye-off" : "eye")" Size="14" /> @(hid ? L["Dse_HiddenState"] : L["Dse_Hide"])
+                </button>
             }
             @* Prosa della sezione: distesa (una frase per clausola) o CAPOFILA (una frase che introduce la
                tabella, come i documenti veri). Solo sui COORDINAMENTI: è l'unica sezione che rende una prosa
