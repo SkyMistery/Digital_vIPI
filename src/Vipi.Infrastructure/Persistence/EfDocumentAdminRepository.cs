@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -30,23 +30,36 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         var draftDocIds = (await _db.DocumentVersions.AsNoTracking()
             .Where(v => v.Status == DocumentStatus.Draft).Select(v => v.DocumentId).Distinct().ToListAsync(ct)).ToHashSet();
 
+        var now = DateTime.UtcNow;
         var result = new List<ManagedDoc>();
         foreach (var d in docs)
             foreach (var target in _targets.ByDescribeOrder)
                 if (target.TryDescribe(d, draftDocIds.Contains(d.Id), out var managed))
                 {
-                    result.Add(managed);
+                    // Il lock di editing esce dalla query che c'è già: il Document è caricato intero, i tre campi
+                    // sono in memoria. Un lock SCADUTO non è un lock — si normalizza qui, così nessun chiamante
+                    // deve ricordarsi di confrontare la scadenza con l'ora (il gate del servizio e il badge della
+                    // pagina leggono lo stesso fatto).
+                    var attivo = d.LockedByUserId is not null && d.LockExpiresUtc is { } exp && exp > now;
+                    result.Add(attivo
+                        ? managed with
+                        {
+                            LockedByUserId = d.LockedByUserId,
+                            LockedByName = d.LockedByName,
+                            LockExpiresUtc = d.LockExpiresUtc,
+                        }
+                        : managed);
                     break;
                 }
 
-        // Visibilità pubblica = release effettiva (doc 10 §3f): una sola query batch per popolare HasEffectiveRelease,
-        // così i gate delle liste pubbliche filtrano su questo invece di Status==Published.
+        // Stato release del bersaglio (doc 10 §3f): una sola query batch. Porta i cicli, non un bool —
+        // HasEffectiveRelease è calcolato da EffectiveCycle, e /vsop/versioni mostra gli stessi cicli senza
+        // rifare la query per conto proprio (fino al 21 agosto 2026 la faceva due volte).
         var summaries = await _releases.SummariesAsync(
             result.Select(m => (m.ReleaseTarget, m.ReleaseKey)).Distinct().ToList(), ct);
-        result = result.Select(m => m with
-        {
-            HasEffectiveRelease = summaries.TryGetValue((m.ReleaseTarget, m.ReleaseKey), out var s) && s.EffectiveCycle is not null,
-        }).ToList();
+        result = result.Select(m => summaries.TryGetValue((m.ReleaseTarget, m.ReleaseKey), out var s)
+            ? m with { EffectiveCycle = s.EffectiveCycle, NextScheduledCycle = s.NextScheduledCycle, HasAnyRelease = s.HasAnyRelease }
+            : m).ToList();
 
         return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
     }
