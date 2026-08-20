@@ -1,10 +1,11 @@
 ﻿# Regole di densità e uso per le pagine admin (19-20 agosto 2026)
 
-> **A cosa serve.** Fra il 16 e il 20 agosto sei pagine admin sono state rifatte nella forma —
+> **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
 > [ACC](../feature/2026-08-19-acc-admin-densita-ui.md), [aeroporti](../feature/2026-08-19-aeroporti-densita-ui.md),
 > [editor aeroporto](../feature/2026-08-20-editor-aeroporto-densita-ui.md),
-> [editor ACC](../feature/2026-08-20-editor-acc-densita-ui.md)
+> [editor ACC](../feature/2026-08-20-editor-acc-densita-ui.md),
+> [confinanti](../feature/2026-08-20-confinanti-densita-ui.md)
 > — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
@@ -250,6 +251,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Aeroporti | `/vsop/admin/airports` | 900 | **da 13 745**: due pannelli misurati, `thead` fermo dentro lo scroller, azioni di gruppo con avanzamento ([carta](../feature/2026-08-19-aeroporti-densita-ui.md)) |
 | Editor aeroporto | `/vsop/{acc}/airports/editor` | 4 913 | **da 31 286** su LIRF (206 SID): riquadro col tetto e `thead` fermo, riga 128→45px, larghezza piena, modificata≠scelta ([carta](../feature/2026-08-20-editor-aeroporto-densita-ui.md)). L'altezza non dipende più dai dati |
 | Editor ACC | `/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
+| Confinanti (vLOA) | `/vsop/admin/confinanti` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -257,15 +259,14 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
-| 2 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
-| 3 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
-| 4 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 5 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 6 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 7 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 8 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 9 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
+| 2 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
+| 3 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 4 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 5 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 6 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 7 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 8 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ### Fuori ambito: le viste pubbliche
 
@@ -327,6 +328,52 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
     quello ACC, perche' li' il contenitore mancava.
 
 
+## 17. Quello che ha lasciato il giro Confinanti
+
+80. **Un dettaglio che si apre DENTRO la tabella sposta la tabella.** La riga espansa (`colspan`) con la sua
+    tabella e le sue due mappe faceva saltare in giù di ~700px la riga successiva, cioè proprio quella che si
+    stava per guardare. In un pannello a fianco la tabella non si muove e le coppie si verificano in fila. È
+    la regola 5 («l'esito non spinge il contenuto») applicata al dettaglio invece che al messaggio.
+81. **Scegliere una riga non deve chiamare la sorgente.** I dati che la riga già porta si mostrano subito; il
+    ricalcolo che riscarica dalla rete resta un **gesto esplicito**, con Interrompi. Caricare in automatico a
+    ogni clic significa bombardare la sorgente mentre si scorre un elenco.
+82. **Due disegni della stessa cosa sono uno di troppo.** SVG proiettato a mano e mappa geografica
+    disegnavano le stesse shape con gli stessi colori, 320px l'uno. Ne resta uno, e il testo dell'altro
+    (`Conf_MapHint`) esce da entrambi i resx col disegno che descriveva.
+83. ⚠️ **Un contenitore idempotente va RICREATO, non riusato.** `.aor-leaflet` si inizializza una volta sola
+    (`data-init`): riusandolo per un'altra coppia resta la mappa di prima. Serve `@key` sull'identità del
+    dato. Vale per ogni innesto JS dentro un ramo Blazor che cambia contenuto senza cambiare forma.
+84. ⚠️ **Lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore.** Misurato: il titolo usciva
+    «…vLOA33» attaccato. Serve un carattere vero (`&nbsp;`), non uno spazio nel sorgente.
+85. ⚠️ **`@bind` da solo scrive al BLUR.** Un tasto la cui accensione dipende dal campo resta spento finché
+    non se ne esce: chi ha appena finito di compilare lo trova spento **proprio mentre lo punta**, e il primo
+    clic serve solo a fare il blur. I campi che governano un tasto vogliono `@bind:event="oninput"`.
+86. **Quello che si scrive si valida mentre si scrive**, e **con la soglia vera del service**. Un secondo
+    giudice con una regola propria direbbe «va bene» a un valore che il salvataggio poi rifiuta: qui il
+    conteggio dei vertici passa dallo stesso `PolygonGeometry` del service.
+87. **Il min-width di una tabella a colonne fisse è la somma delle fisse PIÙ il pavimento dell'elastica.**
+    Con la sola prima somma l'elastica si schiaccia sotto la leggibilità invece di far scorrere il riquadro —
+    misurato a 1024, la colonna del nome finiva a **2px**.
+88. **Due colonne che sembrano gemelle possono non esserlo.** «Home» è testo nudo (60px), «Foreign» è una
+    pill col suo padding (78): con una classe sola a 74 la pill andava a capo e la riga cresceva da 39 a
+    48px — su 33 righe, 300px. Il padding di ciò che sta **dentro** la cella si conta (regola 61).
+89. **Una soglia di media query scelta a occhio sbaglia.** `max-width:1400` faceva stare la barra in una riga
+    a 1400 e in due a 1440. Con `flex:1` il campo si riprende lo spazio quando c'è: meglio nessuna soglia.
+90. ⚠️ **Un `catch (Exception)` inghiotte anche la cancellazione.** Diventava un warning («import ACC fallito
+    (A task was canceled)») e il lavoro proseguiva: chi premeva Interrompi vedeva un elenco di guai al posto
+    dell'esito. `catch (OperationCanceledException) { throw; }` prima del ramo generico, sempre.
+91. ⚠️ **Nei test non usare `Progress<T>`**: posta sul `SynchronizationContext` e in un test non ce n'è uno,
+    quindi le callback arrivano sul thread pool **dopo** le asserzioni. Serve un `IProgress` sincrono.
+92. **Un test sulla cancellazione può passare per caso.** Cancellare da dentro un lambda sperando che l'altra
+    chiamata non sia partita non prova niente: con sei in volo entrambe superano il guard d'ingresso prima
+    che la cancellazione arrivi. La sorgente finta deve **onorare il token**, come fa un client vero.
+93. **Un messaggio non promette più di quanto il codice garantisca.** «Niente è stato scritto» era falso:
+    l'upsert dei candidati sta fuori dalla transazione del catalogo. Un esito vago è meglio di uno preciso e
+    sbagliato.
+94. **Chi scrive prende il lock.** Questa pagina materializzava settori esteri e generava documenti senza
+    prendere il lock che le altre quattro pagine di struttura prendono da sempre. Prima di aggiungere un
+    comando di scrittura a una pagina: **guardare cosa fanno le sorelle**.
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -346,6 +393,8 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Larghezza piena (indice e rail via) | `.ed-layout.sid-wide` |
 | Colonne SID misurate + Condition elastica | `.sid-edit` (base), `.sid-imported` / `.sid-manual` (larghezze) |
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
+| Elenco + dettaglio a fianco, misurati | `.conf-layout` (griglia 1.35/1) + due `.st-pane` |
+| Colonne misurate col font | `.conf-table` (`table-layout:fixed`), `.c-home/.c-fgn/.c-name/.c-num/.c-flag/.c-state` |
 | Blocco della vIPI ACC che si chiude | `details.acc-block` + fisarmonica in `vipi-editor.js` |
 | Espandi/comprimi tutto (ogni editor) | `vipiEditorSections` — sezioni bespoke, blocchi ACC e card `.cb` |
 | Portare un'ancora a schermo | `scrollAfterLayout` — `vipi-ui.js` (due rAF + correzioni) |
@@ -366,6 +415,10 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 - [Editor ACC — densità](../feature/2026-08-20-editor-acc-densita-ui.md): la pagina misurata **in modifica**
   (9 690px), i blocchi che si chiudono a fisarmonica, la prosa di sezione nella riga-titolo, e i due difetti
   vecchi trovati guidandola — il tour che scorreva da solo e il «?» chiuso che allargava la pagina.
+- [Confinanti — densità](../feature/2026-08-20-confinanti-densita-ui.md): il dettaglio che esce dalla tabella
+  e va in un pannello a fianco, una mappa sola al posto di due, le colonne misurate col font, l'import che
+  dice a che punto è; e sei difetti che nessuna asserzione cercava — fra cui il `catch` che inghiottiva la
+  cancellazione, trovato dal test e non guidando.
 - [Editor aeroporto — densità](../feature/2026-08-20-editor-aeroporto-densita-ui.md): la tabella da 206 righe
   con la riga da 128px, il riquadro col tetto, la larghezza piena e i due stati (modificata / scelta) che
   erano diventati uno; poi le larghezze misurate col font con Condition elastica, e i tre gesti (chip a scala,

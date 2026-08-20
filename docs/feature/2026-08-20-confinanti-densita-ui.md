@@ -1,4 +1,4 @@
-# Confinanti (vLOA) — densità e uso (20 agosto 2026)
+﻿# Confinanti (vLOA) — densità e uso (20 agosto 2026)
 
 > Settima pagina del ramo di modifica, prima della lista «da rifare» di
 > [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md) §15: **2 515px** misurati **chiusa**.
@@ -73,10 +73,47 @@ riusato → `@key` sull'id della coppia, altrimenti resta la mappa di prima.
 4. **Coppia a mano nel pannello, icone al posto delle emoji, poligono validato mentre si scrive** — A7/A8/B7.
 5. **Import con avanzamento vero e Interrompi** — B6 (`IProgress` nel service + test sul fetcher).
 
-## Verifica
+## Verifica — cosa hanno detto i numeri
 
-- `dotnet build Vipi.slnx -c Release --no-incremental` (avvisi = errori, **entrambi** i TFM) + `dotnet test`.
-- Live: 1600/1440/1280/1024, **IT ed EN** (`Accept-Language: en`), zoom 0.8→1.5; altezza pagina, quota della
-  prima riga, larghezze di colonna col font calcolato, `thead` che resta, mappa che cambia con la coppia.
-- ⚠️ Nessun test copriva questa pagina né `NeighbourImportService` (unica menzione di striscio in
-  `AgreementFillingTests`): la slice 5 porta il suo test sul `ForeignAccFetcher`.
+Build `Release --no-incremental` verde su **entrambi** i TFM (0 avvisi) e `dotnet test` 496 → **498**
+(il `ForeignAccFetcher` non aveva copertura su avanzamento e interruzione). Pagina guidata con Edge +
+puppeteer-core su una copia del DB, a 1600 / 1440 / 1280 / 1024, in **italiano e in inglese**.
+
+| | Prima | Dopo |
+|---|---:|---:|
+| Altezza pagina (chiusa) | 2 515 | **900 = viewport, non scorre** |
+| Altezza pagina col dettaglio aperto | +tabella +2 mappe dentro la riga | invariata: il dettaglio è a destra |
+| Barra dei filtri a 1600 / 1440 | — | 38px (una riga) |
+| Riga della tabella | 48px dove `LMMM` andava a capo | 39px ovunque |
+| Fasce sopra il contenuto | fino a 4 callout | 0 |
+| Paragrafi d'aiuto sempre a schermo | 10 | 0 (nei «?») |
+
+**Sei difetti che nessuna asserzione cercava**, tutti trovati misurando, guardando gli screenshot o dal test:
+
+1. Il titolo usciva **«…vLOA33»** attaccato: lo spazio fra un'espressione e un `@if` Razor lo mangia il
+   compilatore, serve un carattere vero.
+2. La barra dei filtri andava a capo in **tre** righe e la terza era la sola ✕ — da sola in fondo era lei ad
+   andare a capo per prima (regola 54, pagata una seconda volta).
+3. La pill di `LMMM` andava a capo perché «Home» e «Foreign» avevano **una classe sola**: sono due larghezze
+   diverse (60 testo nudo, 78 con la pill), e la riga cresceva da 39 a 48px — su 33 righe, 300px.
+4. A 1024 la colonna elastica si schiacciava a **2px**: il `min-width` della tabella è la somma delle fisse
+   **più il pavimento dell'elastica**, non solo la prima.
+5. `@bind` da solo scrive al **blur**: un tasto che dipende dal campo resta spento finché non se ne esce, e
+   il primo clic serve solo a fare il blur.
+6. Il `catch (Exception)` del primo giro del fetcher **inghiottiva la cancellazione** e la trasformava in un
+   warning («import ACC fallito (A task was canceled)») mentre l'import proseguiva.
+   Questo l'ha trovato il **test**, non la guida.
+
+E uno vecchio, di striscio: `Common_Editor` contiene già il glifo, il tasto diceva «✎ ✎ Editor».
+
+Flussi guidati: scelta di riga con clic / ri-clic / Invio / spostamento; lock che accende e spegne i comandi;
+«Verifica adiacenza» che disegna la mappa e la **cambia** cambiando coppia (5 settori LAAA → 10 LGGG: il
+`@key` regge); poligono che passa da «JSON non valido» a «3 vertici» mentre si scrive; import vero
+0/29 → 9/29 → 24/29 → 28/29, e premuto subito si ferma a 1/29 lasciando intatte le 33 coppie.
+
+## Cosa resta fuori
+
+- Le **azioni di gruppo** sulle coppie (confermare/rifiutare/generare a blocchi) sono state proposte e
+  **scartate**: si è preferito il gesto singolo con la coppia sempre sott'occhio nel pannello.
+- I due chip di lavoro («no shape», «no vLOA») sono a **zero** sul DB di sviluppo: la loro utilità si vedrà
+  su un database con coppie senza poligono. A zero restano lì, spenti — è la regola 31.
