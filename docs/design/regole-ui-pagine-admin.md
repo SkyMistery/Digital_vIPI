@@ -196,7 +196,44 @@ pieno di righe.
     impilano in verticale e il nome va a capo per sillabe: misurato, **128px per riga** invece di 45 — su 206
     righe sono 17 000px di pagina. Larghezze per classe semantica, `nowrap`, e chi non ci sta scorre.
 
-## 13. Ricognizione: chi aderisce e chi no (19-20 agosto 2026)
+## 13. Larghezze di colonna: come si decidono
+
+60. **Le percentuali sono un gioco a somma zero.** Ogni punto dato a una colonna lo toglie a un'altra, che poi
+    taglia il suo valore («CON…» al posto di «CONV»). La forma che regge: **pixel misurati** per ogni colonna
+    che ha un contenuto misurabile, e **una sola colonna senza larghezza** — quella di prosa — che con
+    `table-layout:fixed` si prende tutto lo spazio che avanza. Il `min-width` della tabella è la somma delle
+    fisse più il pavimento dell'elastica. Misurato sull'editor aeroporto: Condition da 61 a 118px in larghezza
+    normale e a **574** a larghezza piena, con zero celle tagliate.
+61. **Misurare col font, non a occhio**: `canvas.measureText` con il `font` calcolato della cella, sui valori
+    **veri del DB** (non su quelli di esempio). Contare anche ciò che non è testo: le **gronde** del campo
+    (9px per lato), le **frecce** del campo numerico, e la **freccina del `datalist`** dei campi con `list=`
+    (~16px — a 47px il segnaposto «CONV» si leggeva «C» e la pista «35» spariva).
+62. **Anche le intestazioni si tagliano**, e prima di tagliarle si cerca il **nome più corto che resta un
+    nome**: `FIX`, `RWY`, `Stato` — non `Punto (FIX)`, `Runway`, `Pubblicazione` troncati. Solo dopo si taglia
+    coi puntini, col nome per esteso nel `title`. Una colonna che si intitola «R…» non è una colonna.
+63. **Una tabella lunga è la pagina**: se il minimo che non taglia niente supera il riquadro, meglio far
+    scorrere il riquadro (con l'intestazione ferma, e un tasto che allarga) che mozzare dieci campi. La scelta
+    va **dichiarata**, non subìta: sull'editor aeroporto sono 84px di scorrimento che il tasto ⤢ azzera.
+
+## 14. Gesti: doppio clic, scorciatoie, azioni di gruppo
+
+64. **Il doppio clic è una scorciatoia, mai l'unica via.** Ogni gesto rapido ha un tasto equivalente nella
+    barra e una via da tastiera (Shift+clic, che il browser consegna anche come Shift+Invio sui bottoni).
+    Altrimenti la funzione la conosce solo chi l'ha scritta.
+65. **Il doppio clic sta sulle celle NON scrivibili.** Dentro un campo il doppio clic seleziona la parola ed è
+    il gesto di chi sta scrivendo: rubarglielo è un difetto. Dove ogni cella è un campo (le SID manuali) il
+    gesto vive sulla casella di scelta.
+66. ⚠️ **Il doppio clic arriva DOPO due clic singoli.** I due toggle si annullano fra loro, quindi la regola
+    del doppio clic si applica sullo stato di partenza — ma si vede un **lampeggio**. Toglierlo significa
+    ritardare *ogni* clic singolo di ~250ms: su una tabella dove si clicca a centinaia il rimedio è peggio.
+67. **Un'azione di gruppo dice sempre cosa farà e su quante righe**, nell'etichetta: «Applica «4000» alle 15
+    scelte». E se la selezione contiene righe **nascoste da un filtro**, l'esito le conta a parte
+    («6 non sono a schermo»): scrivere su righe che non si vedono, senza dirlo, è una sorpresa.
+68. **Quello che si può fare in una tabella si fa anche nell'altra.** Due tabelle gemelle nella stessa pagina
+    con gesti diversi costringono a ricordare *dove* si è invece di *cosa* si sta facendo: le SID manuali hanno
+    preso la selezione che avevano solo le importate.
+
+## 15. Ricognizione: chi aderisce e chi no (19-20 agosto 2026)
 
 Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB di sviluppo (l'altezza dipende
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
@@ -259,6 +296,11 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Riga scegliibile / scelta | `.acc-pick` / `.acc-pick.picked` |
 | Chip di stato | `.sh-chip` (`.warn`, `.on`, `:disabled`), gruppo `.sb-chips` |
 | Barra dei filtri | `.struct-bar` + `.htree-search` / `.htree-select` |
+| Riquadro col tetto (editor che scorrono) | `.ed-pane` (`max-height`), `thead` con `top:0` dentro lo scroller |
+| Riga-titolo di sezione con «?» e comandi | `.ed-h3` |
+| Larghezza piena (indice e rail via) | `.ed-layout.sid-wide` |
+| Colonne SID misurate + Condition elastica | `.sid-edit` (base), `.sid-imported` / `.sid-manual` (larghezze) |
+| Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
 
 ## Esempi misurati (le cinque carte)
 
@@ -273,4 +315,5 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
   falliti che restano selezionati.
 - [Editor aeroporto — densità](../feature/2026-08-20-editor-aeroporto-densita-ui.md): la tabella da 206 righe
   con la riga da 128px, il riquadro col tetto, la larghezza piena e i due stati (modificata / scelta) che
-  erano diventati uno.
+  erano diventati uno; poi le larghezze misurate col font con Condition elastica, e i tre gesti (chip a scala,
+  scelta di gruppo col doppio clic, «applica alle scelte»).

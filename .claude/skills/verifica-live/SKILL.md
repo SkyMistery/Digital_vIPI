@@ -1,4 +1,4 @@
----
+﻿---
 name: verifica-live
 description: Lancia la vIPI in locale (dotnet run su una copia del DB) e la guida in un browser reale con Edge+puppeteer-core, per verificare a schermo una modifica UI. Usare quando serve provare l'app davvero — non i test — su viewer, editor, pannello release.
 ---
@@ -64,6 +64,30 @@ await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page.waitForFunction(() => !!window.Blazor, { timeout: 90000 });  // 90s: dopo un riavvio il JIT è lento
 await page.waitForSelector('#p-release', { timeout: 60000 });
 await sleep(2500);                                                      // derivazioni async, render successivi
+```
+
+## 4-bis. Gesti col mouse: clic fuori schermo e doppio clic finto
+
+Due modi di perdere mezz'ora inseguendo un difetto che sta nell'attrezzo:
+
+- **`page.mouse.click(x, y)` colpisce le coordinate della finestra, non l'elemento.** Se il bersaglio sta a
+  2500px dall'alto, il clic cade nel vuoto e non succede niente. Portarlo a schermo prima:
+  `el.scrollIntoView({ block: 'center' })`, poi rileggere `getBoundingClientRect()`.
+- **`mouse.click(x, y, { clickCount: 2 })` NON genera l'evento `dblclick`**: manda un solo `press` con
+  `detail=2`. Il doppio clic vero è la sequenza completa:
+
+```js
+await page.mouse.move(x, y);
+await page.mouse.down({ clickCount: 1 }); await page.mouse.up({ clickCount: 1 });
+await page.mouse.down({ clickCount: 2 }); await page.mouse.up({ clickCount: 2 });
+```
+
+Per capire *quale* evento arriva davvero, mettere una spia in cattura e leggerla dal `console` di puppeteer:
+
+```js
+await page.evaluate(() => document.addEventListener('dblclick',
+    e => console.log('DBG dblclick ' + e.target.className + ' detail=' + e.detail), true));
+page.on('console', m => { if (String(m.text()).startsWith('DBG')) console.log(m.text()); });
 ```
 
 Agganciare sempre l'handler dei dialoghi: il pannello release usa `confirm()` e senza handler il click
