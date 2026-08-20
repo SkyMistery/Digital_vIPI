@@ -1783,6 +1783,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   opacity:.6;padding:0 6px;line-height:1}
 .st-head .st-msg .tclose:hover{opacity:1}
 .st-head .lockbar .btn{margin-left:0}
+/* Avvisi dell'import: un chip che li CONTA e li apre al clic, non un callout in fascia alto quanto l'elenco
+   che porta. È un <details> con la stessa meccanica del «?» (popover assoluto, riposizionato da placeHelpPop),
+   quindi eredita anche la regola «chiuso non deve esistere»; qui il summary non è l'icona ma il chip. */
+.st-head .st-warns>summary{cursor:pointer}
+.st-head .st-warns>summary .sh-chip{cursor:pointer}
+.st-head .st-warns[open]>summary .sh-chip{background:#ffe9a8}
+.st-head .st-warns .help-pop-body ul{font-size:12px;line-height:1.5}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
 .xt-lbl-soft{font-weight:400}
 .xt-hint{font-size:11.5px}

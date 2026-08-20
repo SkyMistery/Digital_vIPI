@@ -663,7 +663,9 @@
   <data name="Conf_Heading" xml:space="preserve"><value>Neighbouring ACCs → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import foreign ACCs from neighbouring countries, compute geometric adjacency, generate a vLOA per pair.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Import warnings:</value></data>
-  <data name="Conf_PairsTitle" xml:space="preserve"><value>Neighbouring pairs</value></data>
+  <data name="Conf_HelpAria" xml:space="preserve"><value>How the Neighbours page works</value></data>
+  <data name="Conf_Working" xml:space="preserve"><value>Working…</value></data>
+  <data name="Conf_WarnChip" xml:space="preserve"><value>warnings: {0}</value></data>
   <data name="Conf_ImportTitle" xml:space="preserve"><value>Download the neighbouring countries' ACCs and compute sector adjacency</value></data>
   <data name="Conf_ImportBtn" xml:space="preserve"><value>Import &amp; compute</value></data>
   <data name="Conf_Intro" xml:space="preserve"><value>Neighbouring countries from &lt;code&gt;Neighbours:CountryIds&lt;/code&gt;. Sectors are neighbours when the minimum edge distance is below threshold (&lt;code&gt;AdjacencyThresholdNm&lt;/code&gt;). Non-neighbours are not saved. Confirm a pair and generate the vLOA (Home = editable Italian ACC, Neighbour = read-only foreign).</value></data>

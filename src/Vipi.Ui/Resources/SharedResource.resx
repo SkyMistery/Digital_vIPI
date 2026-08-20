@@ -666,7 +666,9 @@
   <data name="Conf_Heading" xml:space="preserve"><value>ACC confinanti → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import ACC esteri dai paesi vicini, calcolo adiacenza geometrica, generazione vLOA per coppia.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Avvisi import:</value></data>
-  <data name="Conf_PairsTitle" xml:space="preserve"><value>Coppie confinanti</value></data>
+  <data name="Conf_HelpAria" xml:space="preserve"><value>Come funziona la pagina Confinanti</value></data>
+  <data name="Conf_Working" xml:space="preserve"><value>Lavoro in corso…</value></data>
+  <data name="Conf_WarnChip" xml:space="preserve"><value>avvisi: {0}</value></data>
   <data name="Conf_ImportTitle" xml:space="preserve"><value>Scarica gli ACC dei paesi vicini e calcola l'adiacenza dei settori</value></data>
   <data name="Conf_ImportBtn" xml:space="preserve"><value>Import &amp; calcola</value></data>
   <data name="Conf_Intro" xml:space="preserve"><value>Paesi vicini da &lt;code&gt;Neighbours:CountryIds&lt;/code&gt;. Confinano i settori con distanza minima dei bordi sotto soglia (&lt;code&gt;AdjacencyThresholdNm&lt;/code&gt;). I non confinanti non vengono salvati. Conferma una coppia e genera la vLOA (Home = ACC italiano editabile, Neighbour = estero read-only).</value></data>

@@ -597,6 +597,52 @@
               </ul>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
+        new Sec("admin-confinanti", "globe", "Confinanti: coppie e vLOA", "Neighbours: pairs and vLOAs",
+            @"<p>La pagina <b>Confinanti</b> (<code>/vsop/admin/confinanti</code>) tiene le <b>coppie</b>
+               ACC italiano ↔ ACC estero da cui nascono le <b>vLOA</b>. I paesi da cui pescare stanno in
+               <code>Neighbours:CountryIds</code>; confinano i settori la cui distanza minima fra i bordi sta
+               sotto <code>AdjacencyThresholdNm</code>. Le coppie non confinanti non vengono salvate.</p>
+              <ul>
+                <li><b>Import &amp; calcola</b> scarica gli ACC dei paesi vicini e ricalcola l'adiacenza: è
+                    il primo gesto: crea le coppie <b>da valutare</b>.</li>
+                <li>Scegliendo una <b>riga</b> il pannello di destra mostra la coppia. <b>Verifica
+                    adiacenza</b> ricalcola i settori confinanti riscaricandoli dalla sorgente — è lenta e si
+                    può <b>interrompere</b> — e disegna le due aree sulla mappa.</li>
+                <li><b>Conferma</b> la coppia quando il confine è reale, poi <b>Genera vLOA</b>: nasce il
+                    documento con Home = ACC italiano (editabile) e Neighbour = estero (sola lettura).</li>
+                <li>Una coppia <b>rifiutata</b> resta in elenco, spenta: è la memoria di un falso positivo
+                    già valutato.</li>
+                <li><b>Aggiungi settore</b> (solo su coppie confermate) materializza a mano un settore estero
+                    verificandolo sulla sorgente: compare fra i settori dell'ACC estero e nei picker dei
+                    coordinamenti.</li>
+                <li><b>Poligono</b> è il rimedio quando la sorgente non dà la shape dell'ACC estero: senza,
+                    la coppia non ha mappa né adiacenza calcolabile.</li>
+                <li><b>Coppia a mano</b> serve quando IVAO non fornisce affatto l'ACC estero.</li>
+              </ul>
+              <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta.</p>",
+            @"<p>The <b>Neighbours</b> page (<code>/vsop/admin/confinanti</code>) holds the <b>pairs</b>
+               Italian ACC ↔ foreign ACC the <b>vLOAs</b> are born from. The countries to draw from live in
+               <code>Neighbours:CountryIds</code>; sectors are neighbours when the minimum distance between
+               their edges is below <code>AdjacencyThresholdNm</code>. Non-adjacent pairs are not saved.</p>
+              <ul>
+                <li><b>Import &amp; compute</b> fetches the ACCs of the neighbouring countries and recomputes
+                    adjacency: it is the first move, and it creates the <b>pending</b> pairs.</li>
+                <li>Picking a <b>row</b> shows the pair in the right-hand panel. <b>Verify adjacency</b>
+                    recomputes the bordering sectors by re-fetching them from the source — it is slow and can
+                    be <b>stopped</b> — and draws both areas on the map.</li>
+                <li><b>Confirm</b> the pair when the border is real, then <b>Generate vLOA</b>: the document
+                    is created with Home = the Italian ACC (editable) and Neighbour = foreign (read-only).</li>
+                <li>A <b>rejected</b> pair stays in the list, dimmed: it is the memory of a false positive
+                    that has already been assessed.</li>
+                <li><b>Add sector</b> (on confirmed pairs only) materialises a foreign sector by hand after
+                    checking it against the source: it then shows up among the foreign ACC's sectors and in
+                    the coordination pickers.</li>
+                <li><b>Polygon</b> is the remedy when the source has no shape for the foreign ACC: without
+                    one the pair has neither a map nor computable adjacency.</li>
+                <li><b>Pair by hand</b> is for when IVAO does not provide the foreign ACC at all.</li>
+              </ul>
+              <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
+
         new Sec("admin", "grid", "Aree admin", "Admin areas",
             @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
               <ul>
