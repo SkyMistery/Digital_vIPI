@@ -152,9 +152,35 @@ condizione / priorità 3), salvata, **pagina ricaricata da zero**: tutti i campi
   «OKUN». Ora 68px, e lo spazio arriva dalle colonne che ne avevano d'avanzo — i chip Cat./WTC stavano in
   105 e 90px quando gliene bastavano 101 e 83.
 
-La tabella **importate** a 1600 non scorre in orizzontale (`scrollWidth - clientWidth = 0`) e mostra per
-intero fix corretto, nome SID, quota a cinque cifre, chip e pill di stato. Quella **manuale** ha dodici
-colonne di cui dieci scrivibili: il minimo che non taglia nessun valore è **1015px**, settanta più del
-riquadro a 1600 con indice e rail a schermo. Meglio settanta pixel di scorrimento — che il tasto ⤢ azzera, e
-in larghezza piena non c'è più nulla di tagliato, Condition compresa — che dieci campi mozzati: quella
-tabella è corta e non è lei a dettare l'altezza della pagina. Riga sempre 45px in entrambe.
+### Terzo giro: Condition elastica, e le larghezze misurate col font
+
+Le percentuali erano un gioco a somma zero — ogni pixel dato a Condition lo toglieva a una colonna che poi
+tagliava il suo valore («CON…» al posto di «CONV»). Rifatto in due mosse:
+
+1. **Ogni colonna con un contenuto misurabile ha una larghezza in pixel misurata col font della tabella**
+   (Poppins 13px, misurata in pagina con `canvas.measureText`, non stimata) sui **valori veri del DB**:
+   1480 SID, nome fino a 12 caratteri (97px), fix fino a 10 (ma 1403 righe su 1480 stanno in 3-5 lettere),
+   transition «OKUNO» 47px, «CONV» 39px, pill «pubblica» 58px. Più le gronde, e per i campi con `list=` la
+   freccina del datalist.
+2. **Condition non ha larghezza**: con `table-layout:fixed` la colonna senza misura si prende tutto lo spazio
+   che avanza. Il `min-width` della tabella le garantisce un pavimento.
+
+Risultato misurato, con **zero celle tagliate** in entrambe le tabelle e in entrambe le modalità:
+
+| Condition | Prima | Dopo |
+|---|---:|---:|
+| Importate, larghezza normale | 61px | **118** |
+| Importate, larghezza piena | 133px | **574** |
+| Manuali, larghezza normale | 76px | **103** |
+| Manuali, larghezza piena | 142px | **549** |
+
+Il valore intero, che nessuna colonna può contenere (nel DB si arriva a 59 caratteri), si legge col passaggio
+del mouse: `title` sul campo.
+
+⚠️ Il prezzo è lo scorrimento orizzontale del riquadro quando indice e rail sono a schermo (84px sulle
+importate, 95 sulle manuali): il tasto ⤢ lo azzera. La scelta è deliberata — meglio scorrere di ottanta pixel
+che leggere «CON…» al posto di «CONV».
+
+Entrambe le tabelle mostrano per intero fix corretto, nome SID, quota a cinque cifre, chip e pill di stato;
+riga sempre 45px. In larghezza piena non resta tagliato niente, Condition compresa, e non c'è scorrimento
+orizzontale.

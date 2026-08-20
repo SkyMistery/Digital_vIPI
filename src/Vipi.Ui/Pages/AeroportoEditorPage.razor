@@ -484,7 +484,7 @@ else
                                                 }
                                             </div>
                                         </td>
-                                        <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" /></td>
+                                        <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition" /></td>
                                         <td class="col-prio"><input type="number" class="in-prio" @bind="e.Priority" @bind:after="() => TouchImported(e)" aria-label="@L["Ape_Priority"]" /></td>
                                         <td class="col-pub">
                                             @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
@@ -560,7 +560,7 @@ else
                                             }
                                         </div>
                                     </td>
-                                    <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" /></td>
+                                    <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" title="@s.Condition" /></td>
                                     <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]" /></td>
                                     @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
                                        oggi una riga a mano è pubblica appena si pubblica il documento, e la
