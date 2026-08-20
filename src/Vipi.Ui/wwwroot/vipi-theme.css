@@ -113,6 +113,38 @@
    un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
 @media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}}
 
+/* ---- Confinanti: elenco delle coppie a sinistra, coppia scelta a destra ----
+   Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri, non la verità; `min-height` allineata
+   al `fitMin` del JS (320), altrimenti a zoom alto vince il pavimento del CSS e la pagina torna a scorrere.
+   Il dettaglio era una riga `colspan=10` dentro la tabella: aprendolo la tabella saltava di ~700px. */
+.struct .conf-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .conf-layout .panel{min-width:0;padding:18px}
+.struct .conf-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.conf-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .conf-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+/* Una coppia rifiutata resta in elenco, spenta: è la memoria di un falso positivo già valutato. Sbiadire la
+   riga scelta però la renderebbe illeggibile proprio mentre ci si lavora. */
+.struct .conf-table tr.row-off:not(.picked)>td{opacity:.5}
+/* I quattro numeri che la riga già porta, incolonnati: etichetta a sinistra, valore a destra. */
+.struct .conf-facts{list-style:none;margin:0 0 12px;padding:0;font-size:12.5px}
+.struct .conf-facts li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--line)}
+.struct .conf-facts li span{color:var(--ink-soft)}
+/* I tasti del dettaglio vanno a capo insieme, non uno alla volta. */
+.struct .conf-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.struct .conf-acts .btn{margin-left:0}
+.struct .conf-form{margin-top:10px;background:#f7f9ff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.struct .conf-warn{margin:0 0 8px;padding-left:18px;font-size:12px;color:var(--warn-ink)}
+.struct .conf-adj{font-size:12.5px}
+/* Le due pastiglie di colore della mappa valgono anche nella tabella delle adiacenze: stessa cosa, stesso
+   colore. Erano sei blocchi di stile in linea ripetuti. */
+.struct .conf-adj .sw,.struct .aor-toggles .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;border:1px solid}
+.struct .sw-home{background:#0D2C9933;border-color:#0D2C99}
+.struct .sw-foreign{background:#7EA2D633;border-color:#7EA2D6}
+/* Dentro un pannello che scorre la mappa ha un'altezza propria: senza, Leaflet nasce a zero. */
+.struct .conf-map{height:320px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.struct .mono-area{width:100%;font-family:monospace;font-size:11px}
+
 /* ---------- Layout ---------- */
 .screen{display:none}
 .screen.active{display:block}

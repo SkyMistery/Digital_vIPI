@@ -663,6 +663,12 @@
   <data name="Conf_Heading" xml:space="preserve"><value>Neighbouring ACCs → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import foreign ACCs from neighbouring countries, compute geometric adjacency, generate a vLOA per pair.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Import warnings:</value></data>
+  <data name="Conf_DetailTitle" xml:space="preserve"><value>Selected pair</value></data>
+  <data name="Conf_PickHint" xml:space="preserve"><value>Pick a pair in the list to see its data, verify its adjacency and generate the vLOA.</value></data>
+  <data name="Conf_RowPickTitle" xml:space="preserve"><value>Click to pick this pair (click again to drop it)</value></data>
+  <data name="Conf_Deselect" xml:space="preserve"><value>Drop the selected pair</value></data>
+  <data name="Conf_VerifyAdj" xml:space="preserve"><value>Verify adjacency</value></data>
+  <data name="Conf_Stop" xml:space="preserve"><value>Stop</value></data>
   <data name="Conf_HelpAria" xml:space="preserve"><value>How the Neighbours page works</value></data>
   <data name="Conf_Working" xml:space="preserve"><value>Working…</value></data>
   <data name="Conf_WarnChip" xml:space="preserve"><value>warnings: {0}</value></data>
@@ -710,9 +716,6 @@
   <data name="Conf_NoAdjBelow" xml:space="preserve"><value>No sector pair below threshold: the border may be a false positive.</value></data>
   <data name="Conf_SectorOf" xml:space="preserve"><value>{0} sector</value></data>
   <data name="Conf_EdgeDist" xml:space="preserve"><value>Edge dist</value></data>
-  <data name="Conf_Home" xml:space="preserve"><value>home</value></data>
-  <data name="Conf_Foreign" xml:space="preserve"><value>foreign</value></data>
-  <data name="Conf_MapHint" xml:space="preserve"><value>Hover a shape for the callsign. Equirectangular projection (uniform scale).</value></data>
   <data name="Conf_NoShape" xml:space="preserve"><value>No shape available for the map (foreign polygons missing).</value></data>
   <data name="Conf_AllShapes" xml:space="preserve"><value>All</value></data>
   <data name="Conf_NoneShapes" xml:space="preserve"><value>None</value></data>
