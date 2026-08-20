@@ -1067,7 +1067,7 @@
   <data name="Nd_NoAirports" xml:space="preserve"><value>Nessun aeroporto assegnato a {0}. Assegnali dalla &lt;a href="/vsop/admin/airports"&gt;Gestione aeroporti&lt;/a&gt;.</value></data>
   <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Seleziona il settore Home e il settore Neighbour.</value></data>
   <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Impossibile risolvere l'ACC Home della vLOA.</value></data>
-  <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Ogni riga e' un &lt;b&gt;documento&lt;/b&gt;: le pill dicono se e' pubblico, se ha una bozza aperta, se ha una release &lt;b&gt;in vigore&lt;/b&gt; o &lt;b&gt;programmata&lt;/b&gt;, e chi lo sta modificando adesso.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Scegliendo una riga, il pannello di destra mostra le &lt;b&gt;versioni&lt;/b&gt; (con la bozza da pubblicare o scartare), la &lt;b&gt;storia&lt;/b&gt; delle modifiche e le &lt;b&gt;release AIRAC&lt;/b&gt;, da cui si pubblica al ciclo scelto o subito.&lt;/p&gt;&lt;p style="margin:0"&gt;I chip contano: dicono quanti documenti stanno in ogni stato e filtrano l'elenco.&lt;/p&gt;</value></data>
+  <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Ogni riga è un &lt;b&gt;documento&lt;/b&gt;: le pill dicono se è pubblico, se ha una bozza aperta, se ha una release &lt;b&gt;in vigore&lt;/b&gt; o &lt;b&gt;programmata&lt;/b&gt;, e chi lo sta modificando adesso.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Scegliendo una riga, il pannello di destra mostra le &lt;b&gt;versioni&lt;/b&gt; (con la bozza da pubblicare o scartare), la &lt;b&gt;storia&lt;/b&gt; delle modifiche e le &lt;b&gt;release AIRAC&lt;/b&gt;, da cui si pubblica al ciclo scelto o subito.&lt;/p&gt;&lt;p style="margin:0"&gt;I chip contano: dicono quanti documenti stanno in ogni stato e filtrano l'elenco.&lt;/p&gt;</value></data>
   <data name="Ver_HelpAria" xml:space="preserve"><value>Aiuto sull'elenco dei documenti</value></data>
   <data name="Ver_CountTitle" xml:space="preserve"><value>Documenti mostrati sul totale</value></data>
   <data name="Ver_CycleTitle" xml:space="preserve"><value>Ciclo AIRAC in vigore adesso</value></data>
@@ -1109,7 +1109,7 @@
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Autore = chi ha creato la bozza</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Pubblica versione</value></data>
   <data name="Ver_HistoryTitle" xml:space="preserve"><value>Storia modifiche</value></data>
-  <data name="Ver_HistorySubtitle" xml:space="preserve"><value>chi ha editato e quando (i profili non hanno versioni: solo tracciamento)</value></data>
+  <data name="Ver_HistorySubtitle" xml:space="preserve"><value>Chi ha modificato il documento e quando: è l'unione della storia di tutte le sue versioni.</value></data>
   <data name="Ver_NoHistory" xml:space="preserve"><value>Nessuna modifica registrata.</value></data>
   <data name="Ver_ReleaseSubtitle" xml:space="preserve"><value>il pubblico vede la release in vigore al ciclo corrente ({0})</value></data>
   <data name="Ver_AuthorReleaseTitle" xml:space="preserve"><value>Autore = chi ha pubblicato questa release</value></data>
@@ -1121,7 +1121,7 @@
   <data name="Ver_FilterPublic" xml:space="preserve"><value>Pubblici</value></data>
   <data name="Ver_FilterDraft" xml:space="preserve"><value>Solo bozza</value></data>
   <data name="Ver_FilterHidden" xml:space="preserve"><value>Nascosti</value></data>
-  <data name="Ver_FilterScheduled" xml:space="preserve"><value>Schedulate</value></data>
+  <data name="Ver_FilterScheduled" xml:space="preserve"><value>Programmate</value></data>
   <data name="Ver_FilterNoRelease" xml:space="preserve"><value>Senza release</value></data>
   <data name="Ver_SavesSuffix" xml:space="preserve"><value> · {0} salvataggi</value></data>
   <data name="Ver_StBozza" xml:space="preserve"><value>Bozza</value></data>
@@ -1136,7 +1136,7 @@
   <data name="Ver_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
   <data name="Ver_RefreshTitle" xml:space="preserve"><value>Rileggi l'elenco: chi sta modificando cosa cambia mentre la pagina è aperta</value></data>
   <data name="Ver_EditingTitle" xml:space="preserve"><value>Documenti con un lock di modifica attivo adesso</value></data>
-  <data name="Ver_FilterEditing" xml:space="preserve"><value>in modifica</value></data>
+  <data name="Ver_FilterEditing" xml:space="preserve"><value>In modifica</value></data>
   <data name="Ver_AccLabel" xml:space="preserve"><value>ACC:</value></data>
   <data name="Ver_LockedActionsTitle" xml:space="preserve"><value>{0}: nascondi ed elimina sono sospesi finché non ha finito</value></data>
   <data name="Ver_ForceUnlockPrompt" xml:space="preserve"><value>Togliere il lock a {0}? Le modifiche non salvate andranno perse.</value></data>

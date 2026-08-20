@@ -150,7 +150,7 @@
                                 <span class="di"><Icon Name="@KindIcon(d.Kind)" Size="18" /></span>
                                 <div class="dr-main">
                                     <b>@d.Title</b>
-                                    <div class="dr-sub">@KindLabel(d.Kind) · @d.Scope</div>
+                                    <div class="dr-sub">@KindLabel(d.Kind)@(string.IsNullOrWhiteSpace(d.Scope) ? "" : $" · {d.Scope}")</div>
                                 </div>
                                 @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
                                 else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
@@ -191,7 +191,7 @@
                     <div class="ver-detail-head">
                         <div class="dr-main">
                             <b>@sel.Title</b>
-                            <div class="dr-sub">@KindLabel(sel.Kind) · @sel.Scope</div>
+                            <div class="dr-sub">@KindLabel(sel.Kind)@(string.IsNullOrWhiteSpace(sel.Scope) ? "" : $" · {sel.Scope}")</div>
                         </div>
                         @if (sel.IsLocked)
                         {
@@ -666,7 +666,9 @@
             <div class="block ver-sec">
                 <div class="ver-sec-h">
                     <b>🕓 @L["Ver_HistoryTitle"]</b>
-                    <span class="muted">@L["Ver_HistorySubtitle"]</span>
+                    @* La riga di prosa che spiegava la storia stava SEMPRE a schermo, dentro il pannello dove
+                       lo spazio e' quello che e': stesso testo, stessa chiave, si legge al clic (regola 7). *@
+                    <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Ver_HistoryTitle"]">@L["Ver_HistorySubtitle"]</HelpHint>
                 </div>
                 @if (_history.TryGetValue(key, out var hist) && hist.Count > 0)
                 {
@@ -692,7 +694,7 @@
         <div class="block ver-sec">
             <div class="ver-sec-h">
                 <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
-                <span class="muted">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</span>
+                <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Rel_AiracRelease"]">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</HelpHint>
             </div>
             @if (_releases.TryGetValue(key, out var rels) && rels.Count > 0)
             {

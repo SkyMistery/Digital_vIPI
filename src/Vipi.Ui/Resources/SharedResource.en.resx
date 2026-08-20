@@ -1106,7 +1106,7 @@
   <data name="Ver_AuthorDraftTitle" xml:space="preserve"><value>Author = who created the draft</value></data>
   <data name="Ver_PublishVersion" xml:space="preserve"><value>Publish version</value></data>
   <data name="Ver_HistoryTitle" xml:space="preserve"><value>Change history</value></data>
-  <data name="Ver_HistorySubtitle" xml:space="preserve"><value>who edited and when (profiles have no versions: tracking only)</value></data>
+  <data name="Ver_HistorySubtitle" xml:space="preserve"><value>Who changed the document and when: it is the union of the history of all its versions.</value></data>
   <data name="Ver_NoHistory" xml:space="preserve"><value>No change recorded.</value></data>
   <data name="Ver_ReleaseSubtitle" xml:space="preserve"><value>the public sees the release effective at the current cycle ({0})</value></data>
   <data name="Ver_AuthorReleaseTitle" xml:space="preserve"><value>Author = who published this release</value></data>
@@ -1133,7 +1133,7 @@
   <data name="Ver_Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Ver_RefreshTitle" xml:space="preserve"><value>Re-read the list: who is editing what changes while the page is open</value></data>
   <data name="Ver_EditingTitle" xml:space="preserve"><value>Documents with an editing lock held right now</value></data>
-  <data name="Ver_FilterEditing" xml:space="preserve"><value>being edited</value></data>
+  <data name="Ver_FilterEditing" xml:space="preserve"><value>Being edited</value></data>
   <data name="Ver_AccLabel" xml:space="preserve"><value>ACC:</value></data>
   <data name="Ver_LockedActionsTitle" xml:space="preserve"><value>{0}: hide and delete are on hold until they finish</value></data>
   <data name="Ver_ForceUnlockPrompt" xml:space="preserve"><value>Take the lock away from {0}? Unsaved changes will be lost.</value></data>

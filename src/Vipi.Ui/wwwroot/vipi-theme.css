@@ -191,12 +191,21 @@
    blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
 .struct .ver-sec{margin-top:8px}
 .struct .ver-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.struct .ver-sec-h .muted{font-size:12px}
+/* ⚠️ Il titolo di sezione NON si comprime: in un pannello stretto il flex lo strizzava e «Storia modifiche»
+   andava a capo mentre accanto restava spazio vuoto. */
+.struct .ver-sec-h>b{flex:none;white-space:nowrap}
 .struct .ver-diff{margin:2px 0 8px 24px}
 .struct .ver-pub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .struct .ver-cycle{min-width:270px;max-width:340px}
 .struct .ver-note{max-width:240px}
 .struct .ver-layout p.help{margin:0 0 6px}
+/* ⚠️ I tasti di una riga (versione o release) vanno a capo INSIEME, non uno per riga: nel pannello stretto
+   «Anteprima / Differenze / Annulla» si impilavano in tre righe e una release alta il triplo, per tre. */
+.struct .ver-layout .ver-row{flex-wrap:wrap}
+.struct .ver-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
+/* ⚠️ …ma a andare a capo dev'essere il gruppo dei TASTI, non il testo: senza un pavimento sul blocco di
+   mezzo era lui a scendere sotto il numero di versione, e ogni riga cresceva di una riga di vuoto. */
+.struct .ver-layout .ver-row>div{flex:1 1 200px;min-width:0}
 /* ---- Colonne delle coppie: pixel MISURATI col font calcolato sui 33 valori veri del DB ----
    Le percentuali sono un gioco a somma zero (ogni punto dato a una colonna lo toglie a un'altra, che poi
    taglia il suo valore): otto colonne fisse e UNA sola senza larghezza — il nome estero — che con
