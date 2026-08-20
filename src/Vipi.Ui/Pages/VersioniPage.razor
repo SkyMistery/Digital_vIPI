@@ -16,9 +16,20 @@
 
 <div class="wrap" style="max-width:1100px">
     <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Nd_Drafts"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Nd_Drafts"]</h2><span class="muted">@(string.Format(L["Ver_Subtitle"].Value, _currentCycle))</span></div>
-        <div style="display:flex;gap:8px;align-items:center">
+    @* ---- Testata in UNA riga: titolo (+conteggio) · ciclo · «?» · comandi di PAGINA · esito ----
+       Come Struttura, ACC, Accordi, Aeroporti e Confinanti (.st-head). Il sottotitolo diceva SEMPRE a schermo
+       ciò che il «?» dice al clic: stesso testo, stessa chiave (Ver_Subtitle), cambia solo dove si legge. *@
+    <div class="doc-head st-head">
+        @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore: serve un carattere vero. *@
+        <h2 class="st-h2">@L["Nd_Drafts"]&nbsp;<span class="pill blue" title="@L["Ver_CountTitle"]">@CountLabel()</span></h2>
+        @* Il ciclo corrente stava dentro la fascia di riepilogo, ed è l'unica cosa di quella fascia che non
+           fosse un doppione dei chip dei filtri: sale qui, dove costa una pill. *@
+        <span class="pill grey" title="@L["Ver_CycleTitle"]">AIRAC @_currentCycle</span>
+        <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Ver_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@(string.Format(L["Ver_Subtitle"].Value, _currentCycle))</p>
+            @((MarkupString)L["Ver_Intro"].Value)
+        </HelpHint>
+        <nav class="struct-nav">
             @if (_docs is not null && Filtered().Any())
             {
                 <button type="button" class="btn ghost" @onclick="ToggleExpandAll">@(AllExpanded ? "▴ " + L["Ver_CollapseAll"] : "▾ " + L["Ver_ExpandAll"])</button>
@@ -27,13 +38,30 @@
                non un poll: il dato cambia poche volte al giorno e il giro costa una query su tutti i documenti. *@
             <button type="button" class="btn ghost" disabled="@_busy" title="@L["Ver_RefreshTitle"]" @onclick="ReloadAsync">↻ @L["Ver_Refresh"]</button>
             <a class="btn primary" href="/vsop/editor/newdoc"><Icon Name="plus" /> @L["Nd_Title"]</a>
-        </div>
+        </nav>
+        @* L'esito è un chip in testata, fra i comandi che l'hanno provocato e il contenuto: da fascia sopra
+           l'elenco spingeva in giù proprio le righe su cui si stava lavorando (regola 5).
+           ⚠️ Il titolo non e' sempre «Operazione non consentita»: un documento occupato non e' un permesso
+           negato, ed e' un'altra reazione (aspetto un minuto, non chiedo un grant). *@
+        @if (_error is not null || _status is not null)
+        {
+            <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
+                <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                <span class="st-msg-t">
+                    @if (_error is not null)
+                    {
+                        <b>@(_errorTitle ?? L["Ver_NotAllowed"].Value)</b>
+                        <text> </text>@_error
+                    }
+                    else
+                    {
+                        @_status
+                    }
+                </span>
+                <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+            </span>
+        }
     </div>
-
-    @* ⚠️ Il titolo non e' sempre «Operazione non consentita»: un documento occupato non e' un permesso
-       negato, ed e' un'altra reazione (aspetto un minuto, non chiedo un grant). *@
-    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@(_errorTitle ?? L["Ver_NotAllowed"].Value)</p>@_error</div></div> }
-    @if (_status is not null) { <div class="callout success"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_status</div></div> }
 
     @if (_docs is null)
     {
@@ -357,6 +385,12 @@
 
     private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _kindFilter is not null
         || _statusFilter != "all" || _releaseFilter != "all" || _accFilter is not null;
+
+    // Contatore onesto accanto al titolo: «N/TOT» solo quando un filtro è attivo, il totale secco quando non
+    // lo è (regola 30). Era una riga di prosa sotto la barra dei filtri.
+    private string CountLabel() => _docs is null ? "" : IsFiltering ? $"{Filtered().Count()}/{_docs.Count}" : _docs.Count.ToString();
+
+    private void ClearStatus() { _status = _error = _errorTitle = null; }
 
     private IEnumerable<ManagedDoc> Filtered()
     {

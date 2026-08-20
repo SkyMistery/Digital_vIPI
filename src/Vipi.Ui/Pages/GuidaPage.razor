@@ -176,6 +176,48 @@
                the main controls (index, save, preview, publish). To see it again, add <code>?tour=1</code>
                to the editor URL.</p>"),
 
+        new Sec("versioni", "clipboard", "Elenco documenti, versioni e release", "Documents list, versions and releases",
+            @"<p>L'<b>hub documenti</b> (<code>/vsop/versioni</code>) è l'elenco di tutto ciò che si pubblica:
+               vIPI ACC, aeroporti, APP non remotizzati e vLOA. A sinistra le righe, a destra il documento
+               <b>scelto</b>.</p>
+              <ul>
+                <li>Le <b>pill</b> della riga dicono lo stato: pubblico, bozza aperta, nascosto; release
+                    <b>in vigore</b> (🟢) o <b>programmata</b> (🕒); <b>senza release</b> (⚠️: il pubblico
+                    vede lo stato live); e 🔒 <b>chi ci sta lavorando</b>, con l'ora a cui scade il lock.</li>
+                <li>I <b>chip</b> della barra <b>contano</b>: dicono quanti documenti stanno in ogni stato e,
+                    cliccati, filtrano l'elenco. Il ✕ toglie tutti i filtri.</li>
+                <li>Nel pannello di destra: le <b>versioni</b> (la bozza si può <b>pubblicare</b> o
+                    <b>scartare</b> da qui, senza aprire l'editor), la <b>storia</b> delle modifiche, e le
+                    <b>release AIRAC</b> con anteprima, differenze e annullamento.</li>
+                <li><b>Pubblica al ciclo</b> programma la release al ciclo AIRAC scelto; <b>Pubblica ora</b>
+                    scavalca il ciclo e va al pubblico subito — per questo chiede conferma.</li>
+                <li><b>Nascondi</b> toglie il documento dagli elenchi pubblici senza cancellarlo;
+                    <b>Elimina</b> rimuove documento, versioni e release e non si annulla.</li>
+              </ul>
+              <p>Nascondi ed elimina sono <b>sospesi</b> quando un'altra persona ha il documento in modifica.
+               Il lock del documento dura <b>30 minuti</b> e non ha battito: si rinnova salvando e si libera
+               con «Fine modifica». Un <b>admin</b> può forzarne lo sblocco (🔓).</p>",
+            @"<p>The <b>documents hub</b> (<code>/vsop/versioni</code>) lists everything that gets published:
+               ACC vIPIs, airports, non-remoted APPs and vLOAs. Rows on the left, the <b>selected</b> document
+               on the right.</p>
+              <ul>
+                <li>The row <b>pills</b> give the state: public, open draft, hidden; release <b>effective</b>
+                    (🟢) or <b>scheduled</b> (🕒); <b>no release</b> (⚠️: the public sees the live state); and
+                    🔒 <b>who is working on it</b>, with the time the lock expires.</li>
+                <li>The bar <b>chips count</b>: they say how many documents sit in each state and, when
+                    clicked, filter the list. The ✕ clears every filter.</li>
+                <li>In the right-hand panel: the <b>versions</b> (the draft can be <b>published</b> or
+                    <b>discarded</b> right here, without opening the editor), the <b>history</b> of changes,
+                    and the <b>AIRAC releases</b> with preview, diff and cancellation.</li>
+                <li><b>Publish at cycle</b> schedules the release at the chosen AIRAC cycle; <b>Publish now</b>
+                    skips the cycle and goes public immediately — which is why it asks.</li>
+                <li><b>Hide</b> takes the document out of the public lists without deleting it;
+                    <b>Delete</b> removes document, versions and releases, and cannot be undone.</li>
+              </ul>
+              <p>Hide and delete are <b>suspended</b> while somebody else is editing the document. The document
+               lock lasts <b>30 minutes</b> and has no heartbeat: saving renews it, ""Finish editing"" releases
+               it. An <b>admin</b> can force the unlock (🔓).</p>"),
+
         new Sec("editor-lock", "key", "Prendere in carico (lock)", "Taking the lock",
             @"<p>Per evitare che due persone si sovrascrivano, alcune pagine si aprono in <b>sola lettura</b> finché
                non premi <b>«Inizia modifica»</b> nella barra in alto. Da quel momento il documento è tuo:</p>

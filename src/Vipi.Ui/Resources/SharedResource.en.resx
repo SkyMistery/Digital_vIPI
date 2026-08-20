@@ -1064,6 +1064,10 @@
   <data name="Nd_NoAirports" xml:space="preserve"><value>No airport assigned to {0}. Assign them from &lt;a href="/vsop/admin/airports"&gt;Airport management&lt;/a&gt;.</value></data>
   <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Select the Home sector and the Neighbour sector.</value></data>
   <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Cannot resolve the vLOA Home ACC.</value></data>
+  <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Every row is a &lt;b&gt;document&lt;/b&gt;: the pills say whether it is public, whether a draft is open, whether a release is &lt;b&gt;effective&lt;/b&gt; or &lt;b&gt;scheduled&lt;/b&gt;, and who is editing it right now.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Picking a row shows, in the right-hand panel, the &lt;b&gt;versions&lt;/b&gt; (with the draft to publish or discard), the &lt;b&gt;history&lt;/b&gt; of changes and the &lt;b&gt;AIRAC releases&lt;/b&gt;, from where you publish at the chosen cycle or right away.&lt;/p&gt;&lt;p style="margin:0"&gt;The chips count: they say how many documents sit in each state, and they filter the list.&lt;/p&gt;</value></data>
+  <data name="Ver_HelpAria" xml:space="preserve"><value>Help on the documents list</value></data>
+  <data name="Ver_CountTitle" xml:space="preserve"><value>Documents shown out of the total</value></data>
+  <data name="Ver_CycleTitle" xml:space="preserve"><value>AIRAC cycle effective right now</value></data>
   <data name="Ver_Subtitle" xml:space="preserve"><value>Documents, version history and AIRAC releases · current cycle {0}</value></data>
   <data name="Ver_CollapseAll" xml:space="preserve"><value>Collapse all</value></data>
   <data name="Ver_ExpandAll" xml:space="preserve"><value>Expand all</value></data>

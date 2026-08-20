@@ -1067,6 +1067,10 @@
   <data name="Nd_NoAirports" xml:space="preserve"><value>Nessun aeroporto assegnato a {0}. Assegnali dalla &lt;a href="/vsop/admin/airports"&gt;Gestione aeroporti&lt;/a&gt;.</value></data>
   <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Seleziona il settore Home e il settore Neighbour.</value></data>
   <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Impossibile risolvere l'ACC Home della vLOA.</value></data>
+  <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Ogni riga e' un &lt;b&gt;documento&lt;/b&gt;: le pill dicono se e' pubblico, se ha una bozza aperta, se ha una release &lt;b&gt;in vigore&lt;/b&gt; o &lt;b&gt;programmata&lt;/b&gt;, e chi lo sta modificando adesso.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Scegliendo una riga, il pannello di destra mostra le &lt;b&gt;versioni&lt;/b&gt; (con la bozza da pubblicare o scartare), la &lt;b&gt;storia&lt;/b&gt; delle modifiche e le &lt;b&gt;release AIRAC&lt;/b&gt;, da cui si pubblica al ciclo scelto o subito.&lt;/p&gt;&lt;p style="margin:0"&gt;I chip contano: dicono quanti documenti stanno in ogni stato e filtrano l'elenco.&lt;/p&gt;</value></data>
+  <data name="Ver_HelpAria" xml:space="preserve"><value>Aiuto sull'elenco dei documenti</value></data>
+  <data name="Ver_CountTitle" xml:space="preserve"><value>Documenti mostrati sul totale</value></data>
+  <data name="Ver_CycleTitle" xml:space="preserve"><value>Ciclo AIRAC in vigore adesso</value></data>
   <data name="Ver_Subtitle" xml:space="preserve"><value>Documenti, storico versioni e release AIRAC · ciclo corrente {0}</value></data>
   <data name="Ver_CollapseAll" xml:space="preserve"><value>Comprimi tutti</value></data>
   <data name="Ver_ExpandAll" xml:space="preserve"><value>Espandi tutti</value></data>
