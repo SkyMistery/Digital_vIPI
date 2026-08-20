@@ -11,10 +11,11 @@
 @inject NavigationManager Nav
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Nd_Drafts"] · IVAO Italia</PageTitle>
 
-<div class="wrap" style="max-width:1100px">
+<div class="wrap struct">
     <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Nd_Drafts"]</b></div>
     @* ---- Testata in UNA riga: titolo (+conteggio) · ciclo · «?» · comandi di PAGINA · esito ----
        Come Struttura, ACC, Accordi, Aeroporti e Confinanti (.st-head). Il sottotitolo diceva SEMPRE a schermo
@@ -30,10 +31,9 @@
             @((MarkupString)L["Ver_Intro"].Value)
         </HelpHint>
         <nav class="struct-nav">
-            @if (_docs is not null && Filtered().Any())
-            {
-                <button type="button" class="btn ghost" @onclick="ToggleExpandAll">@(AllExpanded ? "▴ " + L["Ver_CollapseAll"] : "▾ " + L["Ver_ExpandAll"])</button>
-            }
+            @* «Espandi tutti» è sparito col dettaglio dentro l'elenco: apriva N righe, cioè N×3 chiamate
+               (versioni, release e storia per ognuna), per una pagina che poi non finiva più. Col pannello a
+               fianco si guarda un documento alla volta, che è come si lavora. *@
             @* L'elenco è una fotografia: i lock si prendono e si lasciano mentre la pagina sta aperta. Un tasto,
                non un poll: il dato cambia poche volte al giorno e il giro costa una query su tutti i documenti. *@
             <button type="button" class="btn ghost" disabled="@_busy" title="@L["Ver_RefreshTitle"]" @onclick="ReloadAsync">↻ @L["Ver_Refresh"]</button>
@@ -79,134 +79,175 @@
            Tipo e ACC sono menu e non chip: sono quattro tipi più una ACC per divisione, e come chip da soli
            chiedevano più larghezza di tutto il resto della barra. *@
         var n = Counts();
-        <div class="struct-bar">
-            <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
-            <select class="htree-select" aria-label="@L["Ver_KindLabel"]" title="@L["Ver_KindLabel"]"
-                    @onchange="e => SetKind(ParseKind(e.Value?.ToString()))">
-                @foreach (var (k, lab) in KindFilters)
-                {
-                    <option value="@(k?.ToString() ?? "")" selected="@(_kindFilter == k)">@lab</option>
-                }
-            </select>
-            @* Il menu ACC compare solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
-               l'elenco è già ristretto, e un filtro con una scelta sola è arredamento. *@
-            @if (AccFilters.Count > 1)
-            {
-                <select class="htree-select" aria-label="@L["Ver_AccLabel"]" title="@L["Ver_AccLabel"]"
-                        @onchange="e => SetAcc(Blank(e.Value?.ToString()))">
-                    <option value="" selected="@(_accFilter is null)">@L["Ver_FilterAll_F"]</option>
-                    @foreach (var acc in AccFilters)
+        @* ---- Due pannelli alti quanto lo schermo meno ciò che sta sopra (vipiFitViewport a ogni render) ----
+           A sinistra l'elenco, a destra il documento scelto. Il dettaglio era una fascia DENTRO l'elenco:
+           aprendolo, la riga sotto — quella che si stava per guardare — saltava in giù di tutto il blocco
+           (versioni + storia + release + barra di pubblicazione). Qui l'elenco non si muove. *@
+        <div class="ver-layout">
+            @* --- SINISTRA: l'elenco dei documenti --- *@
+            <div class="panel st-pane">
+                <div class="struct-bar">
+                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
+                    <select class="htree-select" aria-label="@L["Ver_KindLabel"]" title="@L["Ver_KindLabel"]"
+                            @onchange="e => SetKind(ParseKind(e.Value?.ToString()))">
+                        @foreach (var (k, lab) in KindFilters)
+                        {
+                            <option value="@(k?.ToString() ?? "")" selected="@(_kindFilter == k)">@lab</option>
+                        }
+                    </select>
+                    @* Il menu ACC compare solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
+                       l'elenco è già ristretto, e un filtro con una scelta sola è arredamento. *@
+                    @if (AccFilters.Count > 1)
                     {
-                        <option value="@acc" selected="@(_accFilter == acc)">@acc</option>
+                        <select class="htree-select" aria-label="@L["Ver_AccLabel"]" title="@L["Ver_AccLabel"]"
+                                @onchange="e => SetAcc(Blank(e.Value?.ToString()))">
+                            <option value="" selected="@(_accFilter is null)">@L["Ver_FilterAll_F"]</option>
+                            @foreach (var acc in AccFilters)
+                            {
+                                <option value="@acc" selected="@(_accFilter == acc)">@acc</option>
+                            }
+                        </select>
                     }
-                </select>
-            }
-            <span class="sb-chips">
-                <button class="sh-chip @(_statusFilter == "public" ? "on" : "")" disabled="@(n.Public == 0)"
-                        title="@L["Ver_PublicChipTitle"]" @onclick='() => ToggleStatus("public")'>@L["Ver_FilterPublic"] <span class="chip-n">@n.Public</span></button>
-                <button class="sh-chip @(_statusFilter == "draft" ? "on" : "")" disabled="@(n.Draft == 0)"
-                        title="@L["Ver_DraftChipTitle"]" @onclick='() => ToggleStatus("draft")'>@L["Ver_FilterDraft"] <span class="chip-n">@n.Draft</span></button>
-                <button class="sh-chip @(_statusFilter == "hidden" ? "on" : "")" disabled="@(n.Hidden == 0)"
-                        title="@L["Ver_HiddenChipTitle"]" @onclick='() => ToggleStatus("hidden")'>@L["Ver_FilterHidden"] <span class="chip-n">@n.Hidden</span></button>
-                <button class="sh-chip @(_statusFilter == "editing" ? "on" : "")" disabled="@(n.Editing == 0)"
-                        title="@L["Ver_EditingTitle"]" @onclick='() => ToggleStatus("editing")'>@L["Ver_FilterEditing"] <span class="chip-n">@n.Editing</span></button>
-                <span class="sb-sep"></span>
-                <button class="sh-chip @(_releaseFilter == "effective" ? "on" : "")" disabled="@(n.Effective == 0)"
-                        title="@L["Ver_EffectiveTitle"]" @onclick='() => ToggleRelease("effective")'>@L["Rel_Effective"] <span class="chip-n">@n.Effective</span></button>
-                <button class="sh-chip @(_releaseFilter == "scheduled" ? "on" : "")" disabled="@(n.Scheduled == 0)"
-                        title="@L["Ver_ScheduledTitle"]" @onclick='() => ToggleRelease("scheduled")'>@L["Ver_FilterScheduled"] <span class="chip-n">@n.Scheduled</span></button>
-                @* Il chip di LAVORO: i documenti senza release sono la coda da smaltire — in giallo quando
-                   ce n'è, spento a zero. *@
-                <button class="sh-chip @(n.NoRelease > 0 ? "warn" : "") @(_releaseFilter == "none" ? "on" : "")" disabled="@(n.NoRelease == 0)"
-                        title="@L["Ver_NoReleaseTitle"]" @onclick='() => ToggleRelease("none")'>@L["Ver_FilterNoRelease"] <span class="chip-n">@n.NoRelease</span></button>
-                @* Il ✕ sta DENTRO il gruppo, non dopo: da solo in fondo è lui ad andare a capo per primo e la
-                   barra diventa di tre righe invece di due. C'è sempre, spento quando non c'è niente da
-                   azzerare; solo il glifo, il nome nel title e in aria-label. *@
-                <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters"
-                        title="@L["Ver_ClearTitle"]" aria-label="@L["Ver_Clear"]">✕</button>
-            </span>
-        </div>
-
-        @if (!Filtered().Any())
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">@L["Ver_NoDoc"]</p>@L["Ver_NoDocMatch"]</div></div>
-        }
-
-        @foreach (var d in Filtered())
-        {
-            var key = RowKey(d);
-            var open = _expanded.Contains(key);
-            <div class="doc-rowi" style="@(d.IsHidden ? "opacity:.6" : "")">
-                <button type="button" class="btn ghost" style="min-width:30px" @onclick="() => Toggle(key)">@(open ? "▾" : "▸")</button>
-                <span class="di"><Icon Name="@KindIcon(d.Kind)" Size="18" /></span>
-                <div class="dr-main">
-                    <b>@d.Title</b>
-                    <div class="muted" style="font-size:12px">@KindLabel(d.Kind) · @d.Scope</div>
+                    <span class="sb-chips">
+                        <button class="sh-chip @(_statusFilter == "public" ? "on" : "")" disabled="@(n.Public == 0)"
+                                title="@L["Ver_PublicChipTitle"]" @onclick='() => ToggleStatus("public")'>@L["Ver_FilterPublic"] <span class="chip-n">@n.Public</span></button>
+                        <button class="sh-chip @(_statusFilter == "draft" ? "on" : "")" disabled="@(n.Draft == 0)"
+                                title="@L["Ver_DraftChipTitle"]" @onclick='() => ToggleStatus("draft")'>@L["Ver_FilterDraft"] <span class="chip-n">@n.Draft</span></button>
+                        <button class="sh-chip @(_statusFilter == "hidden" ? "on" : "")" disabled="@(n.Hidden == 0)"
+                                title="@L["Ver_HiddenChipTitle"]" @onclick='() => ToggleStatus("hidden")'>@L["Ver_FilterHidden"] <span class="chip-n">@n.Hidden</span></button>
+                        <button class="sh-chip @(_statusFilter == "editing" ? "on" : "")" disabled="@(n.Editing == 0)"
+                                title="@L["Ver_EditingTitle"]" @onclick='() => ToggleStatus("editing")'>@L["Ver_FilterEditing"] <span class="chip-n">@n.Editing</span></button>
+                        <span class="sb-sep"></span>
+                        <button class="sh-chip @(_releaseFilter == "effective" ? "on" : "")" disabled="@(n.Effective == 0)"
+                                title="@L["Ver_EffectiveTitle"]" @onclick='() => ToggleRelease("effective")'>@L["Rel_Effective"] <span class="chip-n">@n.Effective</span></button>
+                        <button class="sh-chip @(_releaseFilter == "scheduled" ? "on" : "")" disabled="@(n.Scheduled == 0)"
+                                title="@L["Ver_ScheduledTitle"]" @onclick='() => ToggleRelease("scheduled")'>@L["Ver_FilterScheduled"] <span class="chip-n">@n.Scheduled</span></button>
+                        @* Il chip di LAVORO: i documenti senza release sono la coda da smaltire — in giallo quando
+                           ce n'è, spento a zero. *@
+                        <button class="sh-chip @(n.NoRelease > 0 ? "warn" : "") @(_releaseFilter == "none" ? "on" : "")" disabled="@(n.NoRelease == 0)"
+                                title="@L["Ver_NoReleaseTitle"]" @onclick='() => ToggleRelease("none")'>@L["Ver_FilterNoRelease"] <span class="chip-n">@n.NoRelease</span></button>
+                        @* Il ✕ sta DENTRO il gruppo, non dopo: da solo in fondo è lui ad andare a capo per primo e la
+                           barra diventa di tre righe invece di due. C'è sempre, spento quando non c'è niente da
+                           azzerare; solo il glifo, il nome nel title e in aria-label. *@
+                        <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters"
+                                title="@L["Ver_ClearTitle"]" aria-label="@L["Ver_Clear"]">✕</button>
+                    </span>
                 </div>
-                @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
-                else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
-                else { <span class="pill green">@L["Ver_Public"]</span> }
-                @if (d.EffectiveCycle is { } eff)
+
+                @if (Filtered().Any())
                 {
-                    <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @eff</span>
+                    <div class="st-scroll">
+                        @foreach (var d in Filtered())
+                        {
+                            var key = RowKey(d);
+                            @* La riga INTERA è il comando di selezione: cliccata sceglie, ricliccata lascia,
+                               un'altra sposta la scelta; Invio e Spazio fanno quello che fa il clic. Non porta
+                               più tasti: le azioni stanno nel pannello, dove la conferma in linea ha posto e
+                               non fa andare a capo il titolo (era la riga alta 118px). *@
+                            <div class="doc-rowi acc-pick @(_selKey == key ? "picked" : "") @(d.IsHidden ? "row-off" : "")"
+                                 role="button" tabindex="0" aria-pressed="@(_selKey == key ? "true" : "false")"
+                                 title="@L["Ver_RowPickTitle"]" @onclick="() => Pick(key)" @onkeydown="e => OnRowKey(e, key)">
+                                <span class="di"><Icon Name="@KindIcon(d.Kind)" Size="18" /></span>
+                                <div class="dr-main">
+                                    <b>@d.Title</b>
+                                    <div class="dr-sub">@KindLabel(d.Kind) · @d.Scope</div>
+                                </div>
+                                @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
+                                else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
+                                else { <span class="pill green">@L["Ver_Public"]</span> }
+                                @if (d.EffectiveCycle is { } eff)
+                                {
+                                    <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @eff</span>
+                                }
+                                @if (d.NextScheduledCycle is { } next)
+                                {
+                                    <span class="pill blue" title="@L["Ver_ScheduledFutureTitle"]">🕒 @next</span>
+                                }
+                                @if (!d.HasAnyRelease)
+                                {
+                                    <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
+                                }
+                                @* Chi sta lavorando a cosa. Il nome e l'ORA sono entrambi necessari: il lock del
+                                   documento dura 30 minuti e non ha battito, quindi «bloccato» senza scadenza non
+                                   direbbe se aspettare o no. *@
+                                @if (d.IsLocked)
+                                {
+                                    <span class="pill @(IsMyLock(d) ? "green" : "amber")" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
+                                }
+                            </div>
+                        }
+                    </div>
                 }
-                @if (d.NextScheduledCycle is { } next)
+                else
                 {
-                    <span class="pill blue" title="@L["Ver_ScheduledFutureTitle"]">🕒 @next</span>
-                }
-                @if (!d.HasAnyRelease)
-                {
-                    <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
-                }
-                @* Chi sta lavorando a cosa. Il nome e l'ORA sono entrambi necessari: il lock del documento dura
-                   30 minuti e non ha battito, quindi «bloccato» senza scadenza non direbbe se aspettare o no. *@
-                @if (d.IsLocked)
-                {
-                    <span class="pill @(IsMyLock(d) ? "green" : "amber")" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
-                }
-                <a class="btn ghost" href="@EditorLink(d)">@L["Nd_OpenEditor"]</a>
-                @if (CanManage(d))
-                {
-                    @if (d.IsHidden)
-                    {
-                        @* Rimettere a vista non distrugge niente: resta immediato. *@
-                        <button class="btn ghost" disabled="@ActionsBlocked(d)" title="@BlockedTitle(d, L["Ver_ShowPublicTitle"].Value)"
-                                @onclick="() => ToggleHidden(d)"><Icon Name="eye" /> @L["AccAdmin_Show"]</button>
-                    }
-                    else
-                    {
-                        <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_HidePublicTitle"].Value)" AriaLabel="@L["Ver_HideDocAria"]"
-                                       Prompt="@L["Ver_HidePrompt", d.Title]" ConfirmLabel="@L["Ver_HideConfirmYes"]" CancelLabel="@L["Common_Cancel"]"
-                                       Danger="false" Disabled="@ActionsBlocked(d)" CanOpenAsync="() => RefreshLockAsync(d)" OnConfirm="() => ToggleHidden(d)">
-                            <Trigger><Icon Name="eye-off" /> @L["AccAdmin_Hide"]</Trigger>
-                        </InlineConfirm>
-                    }
-                    @* Il testo che spiega la conseguenza sta QUI, non in un confirm del browser: il nativo bloccava
-                       il circuito (e la verifica live) e faceva la seconda domanda dopo questa. *@
-                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(d, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
-                                   Prompt="@L["Ver_DeleteConfirm", d.Title]" Disabled="@ActionsBlocked(d)"
-                                   CanOpenAsync="() => RefreshLockAsync(d)" OnConfirm="() => Delete(d)">
-                        <Trigger><Icon Name="trash" /></Trigger>
-                    </InlineConfirm>
-                }
-                @if (d.IsLocked && !IsMyLock(d) && Authz.IsAdmin)
-                {
-                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Lock_ForceTitle"]" AriaLabel="@L["Lock_ForceUnlock"]"
-                                   Prompt="@L["Ver_ForceUnlockPrompt", d.LockedByName ?? L["Lock_AnotherEditor"].Value]"
-                                   ConfirmLabel="@L["Lock_ForceUnlock"]" CancelLabel="@L["Common_Cancel"]" Disabled="@_busy"
-                                   OnConfirm="() => ForceUnlock(d)">
-                        <Trigger>🔓</Trigger>
-                    </InlineConfirm>
+                    <p class="help">@L["Ver_NoDocMatch"] <a role="button" class="lnk-inline" @onclick="ClearFilters">@L["Ver_Clear"]</a>.</p>
                 }
             </div>
 
-            @if (open)
-            {
-                <div style="margin:6px 0 20px 40px">
-                    @DetailBlock(d)
-                </div>
-            }
-        }
+            @* --- DESTRA: il documento scelto --- *@
+            <div class="panel st-pane">
+                @if (Selected is { } sel)
+                {
+                    <div class="ver-detail-head">
+                        <div class="dr-main">
+                            <b>@sel.Title</b>
+                            <div class="dr-sub">@KindLabel(sel.Kind) · @sel.Scope</div>
+                        </div>
+                        @if (sel.IsLocked)
+                        {
+                            <span class="pill @(IsMyLock(sel) ? "green" : "amber")" title="@LockTitle(sel)">🔒 @LockBadge(sel)</span>
+                        }
+                    </div>
+                    @* Le azioni del documento: erano dentro la riga d'elenco, e con loro la conferma in linea
+                       da ~500px che comprimeva il titolo fino a mandarlo a capo una parola per riga. Qui hanno
+                       una riga propria e vanno a capo insieme. *@
+                    <div class="ver-acts">
+                        <a class="btn ghost" href="@EditorLink(sel)">@L["Nd_OpenEditor"]</a>
+                        @if (CanManage(sel))
+                        {
+                            @if (sel.IsHidden)
+                            {
+                                @* Rimettere a vista non distrugge niente: resta immediato. *@
+                                <button class="btn ghost" disabled="@ActionsBlocked(sel)" title="@BlockedTitle(sel, L["Ver_ShowPublicTitle"].Value)"
+                                        @onclick="() => ToggleHidden(sel)"><Icon Name="eye" /> @L["AccAdmin_Show"]</button>
+                            }
+                            else
+                            {
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_HidePublicTitle"].Value)" AriaLabel="@L["Ver_HideDocAria"]"
+                                               Prompt="@L["Ver_HidePrompt", sel.Title]" ConfirmLabel="@L["Ver_HideConfirmYes"]" CancelLabel="@L["Common_Cancel"]"
+                                               Danger="false" Disabled="@ActionsBlocked(sel)" CanOpenAsync="() => RefreshLockAsync(sel)" OnConfirm="() => ToggleHidden(sel)">
+                                    <Trigger><Icon Name="eye-off" /> @L["AccAdmin_Hide"]</Trigger>
+                                </InlineConfirm>
+                            }
+                            @* Il testo che spiega la conseguenza sta QUI, non in un confirm del browser: il nativo bloccava
+                               il circuito (e la verifica live) e faceva la seconda domanda dopo questa. *@
+                            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
+                                           Prompt="@L["Ver_DeleteConfirm", sel.Title]" Disabled="@ActionsBlocked(sel)"
+                                           CanOpenAsync="() => RefreshLockAsync(sel)" OnConfirm="() => Delete(sel)">
+                                <Trigger><Icon Name="trash" /> @L["Common_Delete"]</Trigger>
+                            </InlineConfirm>
+                        }
+                        @if (sel.IsLocked && !IsMyLock(sel) && Authz.IsAdmin)
+                        {
+                            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Lock_ForceTitle"]" AriaLabel="@L["Lock_ForceUnlock"]"
+                                           Prompt="@L["Ver_ForceUnlockPrompt", sel.LockedByName ?? L["Lock_AnotherEditor"].Value]"
+                                           ConfirmLabel="@L["Lock_ForceUnlock"]" CancelLabel="@L["Common_Cancel"]" Disabled="@_busy"
+                                           OnConfirm="() => ForceUnlock(sel)">
+                                <Trigger>🔓 @L["Lock_ForceUnlock"]</Trigger>
+                            </InlineConfirm>
+                        }
+                    </div>
+                    @* Dentro il pannello scorre SOLO il corpo: testata e azioni restano ferme. *@
+                    <div class="st-scroll">
+                        @DetailBlock(sel)
+                    </div>
+                }
+                else
+                {
+                    <p class="help">@L["Ver_PickHint"]</p>
+                }
+            </div>
+        </div>
     }
 </div>
 
@@ -214,7 +255,8 @@
     [Parameter] public string? Acc { get; set; }
 
     private IReadOnlyList<ManagedDoc>? _docs;
-    private readonly HashSet<string> _expanded = new();
+    // La riga scelta (chiave RowKey), e le chiavi il cui dettaglio si sta caricando.
+    private string? _selKey;
     private readonly HashSet<string> _loadingKeys = new();
     private readonly Dictionary<string, IReadOnlyList<VersionInfo>> _versions = new();
     private readonly Dictionary<string, IReadOnlyList<ReleaseInfo>> _releases = new();
@@ -245,6 +287,16 @@
     // titoli, e un elenco di coppie serviva solo a generare i chip «tutti» che il ✕ ha sostituito.
     private static readonly string[] StatusValues = { "public", "draft", "hidden", "editing" };
     private static readonly string[] ReleaseValues = { "effective", "scheduled", "none" };
+
+    /// <summary>
+    /// L'altezza dei due pannelli e' «schermo meno cio' che sta sopra»: non e' esprimibile in CSS e si
+    /// MISURA, a ogni render — sopra ci sono cose che compaiono e spariscono da sole (il chip d'esito, il
+    /// «?» aperto, la barra che va a capo a schermo stretto). Sotto i 900 il JS toglie l'altezza da se'.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".ver-layout", 900); } catch (Exception) { }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -441,40 +493,28 @@
 
     private static string RowKey(ManagedDoc d) => $"{d.Kind}:{d.ReleaseKey}:{d.DocumentId}";
 
-    private async Task Toggle(string key)
+    /// <summary>
+    /// Il documento scelto — stato di PAGINA, non un filtro: non si scrive nella casella di ricerca e non si
+    /// perde scrivendoci sopra. Se un filtro lo porta fuori dall'elenco, il pannello si svuota da sé invece di
+    /// mostrare un documento che a schermo non c'è più.
+    /// </summary>
+    private ManagedDoc? Selected => _selKey is null ? null : Filtered().FirstOrDefault(d => RowKey(d) == _selKey);
+
+    /// <summary>Scegliere una riga: cliccata sceglie, ricliccata lascia, un'altra sposta la scelta.</summary>
+    private async Task Pick(string key)
     {
-        if (!_expanded.Remove(key))
-        {
-            _expanded.Add(key);
-            _loadingKeys.Add(key);
-            StateHasChanged();
-            await LoadDetailAsync(key);
-            _loadingKeys.Remove(key);
-        }
+        if (_selKey == key) { _selKey = null; return; }
+        _selKey = key;
+        if (_versions.ContainsKey(key) && _releases.ContainsKey(key) && _history.ContainsKey(key)) return;
+        _loadingKeys.Add(key);
+        StateHasChanged();
+        await LoadDetailAsync(key);
+        _loadingKeys.Remove(key);
     }
 
-    private bool AllExpanded => _docs is not null && Filtered().All(d => _expanded.Contains(RowKey(d)));
-
-    private async Task ToggleExpandAll()
+    private async Task OnRowKey(KeyboardEventArgs e, string key)
     {
-        if (_docs is null) return;
-        var rows = Filtered().ToList();
-        if (AllExpanded)
-        {
-            foreach (var d in rows) _expanded.Remove(RowKey(d));
-            return;
-        }
-        foreach (var d in rows)
-        {
-            var key = RowKey(d);
-            if (_expanded.Add(key)) { _loadingKeys.Add(key); }
-        }
-        StateHasChanged();
-        foreach (var d in rows)
-        {
-            var key = RowKey(d);
-            if (_loadingKeys.Contains(key)) { await LoadDetailAsync(key); _loadingKeys.Remove(key); }
-        }
+        if (e.Key is "Enter" or " " or "Spacebar") await Pick(key);
     }
 
     // ---- filtri: setter + sync URL (?q=&kind=&stato=&rel=) ----
@@ -806,7 +846,7 @@
     private async Task Delete(ManagedDoc d)
     {
         await Run(() => DocAdmin.DeleteAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId)), L["Ver_DocDeleted"]);
-        _expanded.Remove(RowKey(d));
+        if (_selKey == RowKey(d)) _selKey = null;   // il documento scelto non esiste più: il pannello si svuota
         await LoadAsync();
     }
 

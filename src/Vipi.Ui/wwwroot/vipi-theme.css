@@ -150,6 +150,43 @@
    query: con `flex:1` il campo si riprende lo spazio quando c'è, e una soglia scelta a occhio sbaglia —
    misurato, a 1400 la barra stava in una riga e a 1440 tornava a due. */
 .struct .conf-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+
+/* ---- Versioni: l'elenco dei documenti a sinistra, il documento scelto a destra ----
+   Stessa forma di Confinanti, e per la stessa ragione: il dettaglio (versioni + storia + release + barra di
+   pubblicazione) si apriva DENTRO l'elenco e spingeva in giu' la riga che si stava per guardare.
+   Il `calc` e' il valore di PARTENZA prima che vipiFitViewport misuri, non la verita'; `min-height` allineata
+   al `fitMin` del JS (320), altrimenti a zoom alto vince il pavimento del CSS e la pagina torna a scorrere. */
+.struct .ver-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .ver-layout .panel{min-width:0;padding:18px}
+.struct .ver-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.ver-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .ver-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+/* In un pannello stretto il campo non deve pretendere i 240px della sua base condivisa: sono loro a mandare
+   a capo la barra prima dei chip. */
+.struct .ver-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+/* ⚠️ Un chip a zero qui e' NEUTRO, non verde: il verde di `button.sh-chip:disabled` significa «coda vuota,
+   bene» (Confinanti), ma «0 in vigore» non e' una buona notizia — e' un numero come gli altri. Serve una
+   classe in piu' della regola condivisa per vincerla, non un `!important`. */
+.struct .ver-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* La riga documento: e' il comando di selezione, quindi si vede che si puo' premere e si vede quale e'
+   scelta. L'ombra a sinistra e' la stessa della riga scelta nelle tabelle (.acc-pick.picked). */
+.struct .ver-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
+.struct .ver-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
+.struct .ver-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
+.struct .ver-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .ver-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
+/* Un documento nascosto resta in elenco, spento: sbiadire quello SCELTO pero' lo renderebbe illeggibile
+   proprio mentre ci si lavora. */
+.struct .ver-layout .doc-rowi.row-off:not(.picked){opacity:.6}
+.struct .dr-sub{font-size:12px;color:var(--ink-soft)}
+/* La testata del pannello di destra e la riga delle azioni restano ferme: scorre solo il corpo. */
+.struct .ver-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.struct .ver-detail-head .dr-main{flex:1 1 200px;min-width:160px}
+.struct .ver-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.struct .ver-acts .btn{margin-left:0}
+/* Il «togli i filtri» dentro una frase: era uno stile in linea ripetuto. */
+.lnk-inline{cursor:pointer;color:var(--ivao-blue);font-weight:600}
 /* ---- Colonne delle coppie: pixel MISURATI col font calcolato sui 33 valori veri del DB ----
    Le percentuali sono un gioco a somma zero (ogni punto dato a una colonna lo toglie a un'altra, che poi
    taglia il suo valore): otto colonne fisse e UNA sola senza larghezza — il nome estero — che con

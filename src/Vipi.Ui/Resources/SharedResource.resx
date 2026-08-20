@@ -1076,6 +1076,8 @@
   <data name="Ver_HiddenChipTitle" xml:space="preserve"><value>Nascosti dagli elenchi pubblici</value></data>
   <data name="Ver_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
   <data name="Ver_ClearTitle" xml:space="preserve"><value>Togli i filtri e mostra tutti i documenti</value></data>
+  <data name="Ver_RowPickTitle" xml:space="preserve"><value>Scegli il documento: versioni, storia e release compaiono a destra</value></data>
+  <data name="Ver_PickHint" xml:space="preserve"><value>Scegli un documento dall'elenco per vederne versioni, storia e release.</value></data>
   <data name="Ver_Subtitle" xml:space="preserve"><value>Documenti, storico versioni e release AIRAC · ciclo corrente {0}</value></data>
   <data name="Ver_CollapseAll" xml:space="preserve"><value>Comprimi tutti</value></data>
   <data name="Ver_ExpandAll" xml:space="preserve"><value>Espandi tutti</value></data>
@@ -1085,7 +1087,6 @@
   <data name="Ver_NoReleaseTitle" xml:space="preserve"><value>Senza release: il pubblico vede lo stato live</value></data>
   <data name="Ver_SearchPh" xml:space="preserve"><value>cerca titolo / scope / ACC…</value></data>
   <data name="Ver_KindLabel" xml:space="preserve"><value>Tipo:</value></data>
-  <data name="Ver_NoDoc" xml:space="preserve"><value>Nessun documento</value></data>
   <data name="Ver_NoDocMatch" xml:space="preserve"><value>Nessun documento corrisponde ai filtri.</value></data>
   <data name="Ver_Hidden" xml:space="preserve"><value>Nascosto</value></data>
   <data name="Ver_DraftOpen" xml:space="preserve"><value>Bozza aperta</value></data>
