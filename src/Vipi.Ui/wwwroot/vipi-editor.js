@@ -50,9 +50,15 @@
             if (!d.open) return;
             var parent = d.parentElement;
             if (!parent) return;
+            // Chiudere un fratello che sta SOPRA accorcia la pagina sotto il puntatore: il blocco appena aperto
+            // scivola in su. Misurato saltandoci da una voce dell'indice: la sezione bersaglio finiva a −249px,
+            // cioè fuori schermo di sopra. Si compensa con uno scrollBy della differenza, come fa vipiDetails.
+            var prima = d.getBoundingClientRect().top;
             parent.querySelectorAll(':scope > details.acc-block').forEach(function (other) {
                 if (other !== d) { other.open = false; }
             });
+            var dopo = d.getBoundingClientRect().top;
+            if (dopo !== prima) window.scrollBy(0, dopo - prima);
         }, true);
     }
 

@@ -91,6 +91,37 @@
         });
     }
 
+    // Porta un elemento a schermo sotto la top-bar. ⚠️ Si MISURA DOPO che il layout si è assestato: aprire un
+    // <details> fa scattare un `toggle`, che è messo in coda e può cambiare l'altezza di quello che sta SOPRA —
+    // sull'editor ACC apre un blocco e la fisarmonica ne chiude un altro. Misurando subito, il bersaglio finiva
+    // a −249px (misurato, saltando dall'indice a una sezione del blocco chiuso). Due giri di rAF: il primo
+    // lascia svuotare la coda dei task, il secondo misura sul layout definitivo.
+    function scrollAfterLayout(el, behavior) {
+        function porta(behavior) {
+            var bar = document.querySelector('.topbar');
+            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
+            var delta = el.getBoundingClientRect().top - off;
+            if (Math.abs(delta) < 4) return true;              // già al posto giusto: non muovere niente
+            window.scrollTo({ top: window.pageYOffset + delta, behavior: behavior || 'auto' });
+            return false;
+        }
+        // Due giri di rAF: il primo lascia svuotare la coda dei task (i `toggle` messi in coda dall'apertura),
+        // il secondo misura sul layout definitivo. Poi una scaletta di correzioni: ciò che sta sopra può ancora
+        // cambiare altezza — una mappa AoR che si inizializza all'apertura del suo <details>, un render Blazor
+        // in arrivo. Ogni giro si ferma da solo appena il bersaglio è al suo posto. ⚠️ Con una correzione sola
+        // il bersaglio atterrava a 25px dal bordo, cioè sotto la top-bar: misurato, ne servono due.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (porta(behavior)) return;
+                var ritardi = [120, 380, 800];
+                (function ritenta(i) {
+                    if (i >= ritardi.length) return;
+                    setTimeout(function () { if (!porta('auto')) ritenta(i + 1); }, ritardi[i]);
+                })(0);
+            });
+        });
+    }
+
     // Apre l'elemento (se <details>) e tutti i <details> che lo contengono, così un deep-link "#id" verso una
     // sezione collassata (Guida, editor) la mostra invece di atterrare su un pannello chiuso. Ritorna l'elemento.
     function openDetailsFor(el) {
@@ -112,13 +143,7 @@
             var el = document.getElementById(id);
             if (!el) return;
             openDetailsFor(el);
-            var bar = document.querySelector('.topbar');
-            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
-            // Ritardo minimo: lascia riflettere l'apertura del <details> nel layout prima di misurare.
-            setTimeout(function () {
-                var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-                window.scrollTo({ top: y, behavior: 'auto' });
-            }, 30);
+            scrollAfterLayout(el, 'auto');
         }
         land();
         if (hashLandingWired) return;
@@ -144,11 +169,7 @@
             e.preventDefault();
             e.stopImmediatePropagation();
             openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
-            // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
-            var bar = document.querySelector('.topbar');
-            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
-            var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-            window.scrollTo({ top: y, behavior: 'smooth' });
+            scrollAfterLayout(el, 'smooth');
             var toc = a.closest('.toc');
             if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
             history.replaceState(null, '', location.pathname + location.search + '#' + id);
