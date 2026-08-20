@@ -43,11 +43,19 @@
             </nav>
             @* L'esito è un chip in testata, fra i comandi che l'hanno provocato e il lock: da fascia sopra la
                tabella spingeva in giù proprio le righe su cui si stava lavorando. *@
+            @* Avanzamento VERO dell'import: sono decine di GET alla sorgente in fila e prima si vedeva solo
+               girare uno spinner — indistinguibile da un'applicazione bloccata. Il chip dice a che punto è,
+               quanti sono falliti, e porta l'interruzione. Occupa lo stesso posto del chip d'esito: i due
+               non convivono mai. *@
             @if (_busy)
             {
                 <span class="st-msg prog" role="status" aria-live="polite">
                     <span class="spin"></span>
-                    <span class="st-msg-t">@L["Conf_Working"]</span>
+                    <span class="st-msg-t">@WorkLabel()</span>
+                    @if (_importCts is not null)
+                    {
+                        <button class="lnk-mini" title="@L["Conf_StopTitle"]" @onclick="CancelImport" disabled="@_stopAsked">@L["Conf_Stop"]</button>
+                    }
                 </span>
             }
             else if (_msg is not null || _ok is not null)
@@ -396,6 +404,11 @@
     private string? _ok;
     private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
 
+    // Import: avanzamento e interruzione. Il token era in firma dal primo giorno e non era mai stato cablato.
+    private ForeignAccFetchProgress? _prog;
+    private CancellationTokenSource? _importCts;
+    private bool _stopAsked;
+
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
     private void ClearStatus() { _msg = null; _ok = null; }
 
@@ -586,18 +599,45 @@
     private async Task Import()
     {
         _busy = true; _msg = null; _ok = null; _warnings.Clear();
+        _prog = null; _stopAsked = false;
+        var cts = new CancellationTokenSource();
+        _importCts = cts;
+        // ⚠️ Dentro un gestore di evento Blazor il render intermedio va SOLLECITATO: senza, l'avanzamento
+        // si vedrebbe a lavoro finito, cioè mai. `IProgress` chiama fuori dal contesto del circuito, quindi
+        // il salto va fatto con InvokeAsync.
+        var progress = new Progress<ForeignAccFetchProgress>(p =>
+            _ = InvokeAsync(() => { _prog = p; StateHasChanged(); }));
         try
         {
-            var r = await Neighbours.ImportAndComputeAsync();
+            var r = await Neighbours.ImportAndComputeAsync(cts.Token, progress);
             _warnings.AddRange(r.Warnings);
             await ReloadAsync();
             _ok = L["Conf_ImportOk", r.CountriesQueried, r.ForeignAccsFetched, r.CandidatesCreated, r.CandidatesUpdated];
         }
+        // Interrotto da chi guardava: non è un errore, e l'esito dice a che punto era arrivato.
+        catch (OperationCanceledException) { _msg = _prog is { } p ? L["Conf_ImportStopped", p.Done, p.Total].Value : L["Conf_Stopped"].Value; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
         catch (Exception ex) { NeighbourDebugLog.Log($"PAGE IMPORT EX: {ex}"); _msg = L["Conf_ImportError"] + ex.Message; }
-        finally { _busy = false; }
+        finally
+        {
+            _busy = false; _prog = null;
+            if (ReferenceEquals(_importCts, cts)) _importCts = null;
+            cts.Dispose();
+        }
     }
+
+    private void CancelImport()
+    {
+        if (_importCts is null) return;
+        _stopAsked = true;
+        try { _importCts.Cancel(); } catch (ObjectDisposedException) { }
+    }
+
+    // Finché la sorgente non ha detto quanti sono, «lavoro in corso» è tutto ciò che si sa onestamente.
+    private string WorkLabel() => _prog is { } p
+        ? (p.Failed > 0 ? L["Conf_ProgFailed", p.Done, p.Total, p.Failed].Value : L["Conf_Prog", p.Done, p.Total].Value)
+        : L["Conf_Working"].Value;
 
     private Task SetStatus(int id, NeighbourCandidateStatus status) =>
         Guarded(() => Neighbours.SetStatusAsync(id, status));
