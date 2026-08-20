@@ -102,7 +102,16 @@ E due difetti **vecchi**, trovati guidando la pagina e non previsti dalla carta:
     3 268px senza che nessuno l'avesse toccata — su **ogni** editor, alla prima visita. Ora il tour scorre
     quando cambia passo (`centra()`, che salta i bersagli sticky e quelli già a schermo) e il riquadro segue
     chi scorre.
-11. **Un «?» chiuso allargava la pagina**: il popover è `position:absolute` e a `<details>` chiuso il suo box
+11. **I chip erano un pannello volante.** `.sector-pick` significava **due cose**: l'elenco di chip in riga
+    (`display:flex`) e il menu a tendina del picker a digitazione (`position:absolute`) — e il secondo, scritto
+    **senza il suo contenitore** e più in basso nel foglio, vinceva su tutti gli altri usi. Risultato, visto in
+    una schermata dell'uso reale: le **frequenze collegate** diventavano barre larghe quanto la finestra
+    sovrapposte al documento (con una barra di scorrimento propria), e i **settori aperti** di una
+    configurazione, i **settori del gruppo APP** e le **aree regolamentate** sparivano da dove dovevano stare.
+    Le regole del menu ora si chiamano `.sector-pick-wrap .sector-pick`. Nello stesso giro l'elenco «collega
+    frequenza» dell'editor ACC ha preso il contenitore `.app-linkpick` che aveva già l'editor APP: stesso
+    gesto, stessa forma.
+12. **Un «?» chiuso allargava la pagina**: il popover è `position:absolute` e a `<details>` chiuso il suo box
     resta nell'area scorribile — a 1280 quello del rail arrivava a 1 305px. Chiuso, ora non esiste.
 
 ## 4. Verifica — i numeri

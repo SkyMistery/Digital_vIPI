@@ -1839,16 +1839,21 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-w96{width:96px}
 .xt-w130{width:130px}
 
-/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina. */
+/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina.
+   ⚠️ Il contenitore `.sector-pick-wrap` DAVANTI non e' decorazione (regola 44). `.sector-pick` senza
+   contenitore e' anche l'elenco di CHIP in riga (`display:flex`, 500 righe piu' su): scritte nude, e piu' in
+   basso nel foglio, queste regole vincevano in silenzio su tutti gli altri usi — le frequenze collegate, i
+   settori del gruppo APP, le shape extra dell'AoR, le aree regolamentate diventavano un pannello ASSOLUTO
+   largo quanto la finestra, sovrapposto al documento, con la sua barra di scorrimento. */
 .sector-pick-wrap{position:relative}
-.sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
+.sector-pick-wrap .sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
   border:1px solid #c4cadb;border-radius:6px;background:#fff;box-shadow:0 6px 18px rgba(13,44,153,.14)}
-.sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
+.sector-pick-wrap .sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
   background:transparent;padding:5px 9px;font-size:13px;cursor:pointer}
-.sector-pick .sp-item:last-child{border-bottom:0}
-.sector-pick .sp-item:hover{background:#f2f5ff}
-.sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
-.sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
+.sector-pick-wrap .sector-pick .sp-item:last-child{border-bottom:0}
+.sector-pick-wrap .sector-pick .sp-item:hover{background:#f2f5ff}
+.sector-pick-wrap .sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
+.sector-pick-wrap .sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
 .toast-fixed{position:fixed;right:18px;bottom:18px;z-index:60;max-width:380px;
   box-shadow:0 8px 24px rgba(13,44,153,.22);border-radius:8px}
 .toast-fixed .callout{margin:0}

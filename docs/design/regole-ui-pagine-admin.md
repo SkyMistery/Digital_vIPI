@@ -314,6 +314,18 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 77. **Il testo d'aiuto di una sezione appartiene alla riga-titolo della sezione**, non al componente del corpo:
     messo lì da una mappa sola (`DocumentSectionsEditor`), lo prendono **tutti** gli editor che montano quel
     componente, invece di doverlo rifare per pagina.
+78. ⚠️ **Una classe non puo' significare due cose, e chi arriva dopo nel foglio vince.** `.sector-pick` era due
+    cose insieme: l'elenco di **chip in riga** (`display:flex`, riga 1352) e il **menu a tendina** del picker a
+    digitazione (`position:absolute`, riga 1844) — e il secondo era scritto **senza il suo contenitore**. Stando
+    piu' in basso vinceva su tutti gli altri usi: frequenze collegate, settori del gruppo APP, settori aperti di
+    una configurazione, aree regolamentate diventavano un pannello **largo quanto la finestra**, sovrapposto al
+    documento, con la sua barra di scorrimento — e i chip **sparivano** da dove dovevano essere. È la regola 44
+    pagata due volte: la cura è scrivere `.sector-pick-wrap .sector-pick`, cioè dire **in quale forma** si sta
+    parlando. Prima di aggiungere una regola a una classe: `grep` di **chi la usa**, non del solo foglio.
+79. **Due editor gemelli devono avere la stessa forma per lo stesso gesto** (regola 68 anche per i contenitori):
+    l'elenco «collega frequenza» era un menu a tendina sull'editor APP (`.app-linkpick`) e chip in riga su
+    quello ACC, perche' li' il contenitore mancava.
+
 
 ## Dove sta la roba
 

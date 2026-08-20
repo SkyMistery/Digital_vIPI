@@ -618,6 +618,10 @@ else
                     }
                 </div>
             }
+            @* Campo + risultati dentro `.app-linkpick`, come l'editor APP: e' quel contenitore a rendere
+               l'elenco un menu a tendina ancorato al campo. Senza, i risultati escono come chip in riga —
+               due forme diverse per lo stesso gesto in due editor gemelli. *@
+            <div class="app-linkpick">
             <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@search"
                    @oninput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(search))
@@ -633,6 +637,7 @@ else
                     }
                 </div>
             }
+            </div>
         </div>
     };
 
