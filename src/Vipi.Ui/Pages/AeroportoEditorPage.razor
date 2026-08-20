@@ -74,8 +74,8 @@ else
             <div class="ed-layout with-rail @(_sidWide ? "sid-wide" : null)">
             <EditorToc Items="BuildToc()">
                 <Footer>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ape_ExpandAllTitle"]">⊞ @L["Common_ExpandAll"]</button>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ape_CollapseAllTitle"]">⊟ @L["Common_CollapseAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
                 </Footer>
             </EditorToc>
             <div>

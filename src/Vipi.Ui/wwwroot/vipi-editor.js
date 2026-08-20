@@ -33,10 +33,39 @@
     window.vipiAirportEditorInit = function (dotRef) { airportRef = dotRef; };
     // Chiamato dalla pagina quando lo stato "sporco" cambia.
     window.vipiSetDirty = function (v) { airportDirty = !!v; };
-    // Espande/comprime tutte le sezioni <details.ed-sec> dell'editor.
+    // Fisarmonica dei BLOCCHI dell'editor ACC: aprendone uno gli altri si chiudono. Senza, la pagina torna
+    // subito ai 9 690px misurati — e con due o tre gruppi APP aperti l'indice non basta più a orientarsi.
+    // `toggle` NON fa bubbling: va ascoltato in cattura (stessa ragione di vipi-aor.js).
+    // Il listener è installato UNA volta: questo file può essere rieseguito da una navigazione arricchita, e
+    // due listener chiuderebbero i fratelli due volte.
+    if (!window.__vipiAccAccordion) {
+        window.__vipiAccAccordion = true;
+        document.addEventListener('toggle', function (ev) {
+            var d = ev.target;
+            if (!d || !d.matches || !d.matches('details.acc-block')) return;
+            // Apertura fatta da «Espandi tutto»: consuma il marchio e lascia stare i fratelli. ⚠️ Il `toggle`
+            // arriva DOPO (è messo in coda), quindi una bandiera spenta in fondo alla funzione di gruppo
+            // sarebbe già spenta quando l'evento arriva — misurato: «espandi tutto» ne apriva uno solo.
+            if (d.__vipiBulk) { d.__vipiBulk = false; return; }
+            if (!d.open) return;
+            var parent = d.parentElement;
+            if (!parent) return;
+            parent.querySelectorAll(':scope > details.acc-block').forEach(function (other) {
+                if (other !== d) { other.open = false; }
+            });
+        }, true);
+    }
+
+    // Espande/comprime tutto l'editor: le sezioni bespoke dell'aeroporto (details.ed-sec), i blocchi della vIPI
+    // ACC e le card di sezione condivise (CollapsibleBlock → details.cb). Un helper solo: due farebbero due
+    // comportamenti diversi per lo stesso tasto. Le aperture di gruppo sono MARCHIATE, altrimenti la
+    // fisarmonica richiuderebbe subito i blocchi appena aperti.
     window.vipiEditorSections = function (open) {
-        document.querySelectorAll('details.ed-sec').forEach(function (d) {
-            if (open) { d.setAttribute('open', ''); } else { d.removeAttribute('open'); }
+        var want = !!open;
+        document.querySelectorAll('details.ed-sec, .ed-layout details.acc-block, .ed-layout details.cb').forEach(function (d) {
+            if (d.open === want) return;       // già com'è: nessun toggle, nessun marchio da consumare
+            d.__vipiBulk = true;               // un marchio = un evento, quindi niente bandiere che restano su
+            if (want) { d.setAttribute('open', ''); } else { d.removeAttribute('open'); }
         });
     };
 

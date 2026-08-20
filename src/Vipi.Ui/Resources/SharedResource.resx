@@ -1178,6 +1178,8 @@
   <data name="Acc_DeniedBody" xml:space="preserve"><value>Non hai i permessi per la ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Caricamento editor vIPI…</value></data>
   <data name="Acc_Subtitle" xml:space="preserve"><value>Settori di aerovia + gruppi APP</value></data>
+  <data name="Acc_BlockSections" xml:space="preserve"><value>{0} sezioni</value></data>
+  <data name="Acc_BlockSectionsOne" xml:space="preserve"><value>1 sezione</value></data>
   <data name="Acc_HelpAria" xml:space="preserve"><value>Aiuto sull'editor vIPI ACC</value></data>
   <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;Il documento e' fatto di &lt;b&gt;blocchi&lt;/b&gt;: i settori di aerovia e un blocco per ogni &lt;b&gt;gruppo APP&lt;/b&gt;. Ogni blocco si apre e si chiude dal titolo; aprendone uno gli altri si chiudono.&lt;/li&gt;&lt;li&gt;Dentro il blocco ogni &lt;b&gt;sezione&lt;/b&gt; si apre e si chiude per conto suo, e «Espandi tutto / Comprimi tutto» in fondo all'indice agisce su tutte.&lt;/li&gt;&lt;li&gt;Qui si scrive nella &lt;b&gt;bozza&lt;/b&gt;: ogni modifica e' salvata subito, ma il pubblico vede solo dopo «Pubblica ora».&lt;/li&gt;&lt;li&gt;AoR, frequenze e coordinamenti sono &lt;b&gt;derivati&lt;/b&gt; dai cataloghi: si cambiano dalla struttura dei settori, non a mano.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Apri la bozza live in una nuova scheda</value></data>
@@ -1307,8 +1309,8 @@
   <data name="Ape_NotFound" xml:space="preserve"><value>Aeroporto non trovato o nessun profilo. Genera prima il documento da «Gestione aeroporti».</value></data>
   <data name="Ape_ReadOnly" xml:space="preserve"><value>Sola lettura: non hai i permessi per editare la ACC {0}.</value></data>
   <data name="Ape_Unsaved" xml:space="preserve"><value>Modifiche non salvate</value></data>
-  <data name="Ape_ExpandAllTitle" xml:space="preserve"><value>Espandi tutte le sezioni</value></data>
-  <data name="Ape_CollapseAllTitle" xml:space="preserve"><value>Comprimi tutte le sezioni</value></data>
+  <data name="Ed_ExpandAllTitle" xml:space="preserve"><value>Espandi tutte le sezioni</value></data>
+  <data name="Ed_CollapseAllTitle" xml:space="preserve"><value>Comprimi tutte le sezioni</value></data>
   <data name="Ape_PanelRules" xml:space="preserve"><value>Regole piste</value></data>
   <data name="Ape_PanelTl" xml:space="preserve"><value>Quote transizione</value></data>
   <data name="Ape_PanelExtra" xml:space="preserve"><value>Sezioni extra</value></data>

@@ -1175,6 +1175,8 @@
   <data name="Acc_DeniedBody" xml:space="preserve"><value>You do not have permission for ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Loading vIPI editor…</value></data>
   <data name="Acc_Subtitle" xml:space="preserve"><value>Airway sectors + APP groups</value></data>
+  <data name="Acc_BlockSections" xml:space="preserve"><value>{0} sections</value></data>
+  <data name="Acc_BlockSectionsOne" xml:space="preserve"><value>1 section</value></data>
   <data name="Acc_HelpAria" xml:space="preserve"><value>Help on the ACC vIPI editor</value></data>
   <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;The document is made of &lt;b&gt;blocks&lt;/b&gt;: the airway sectors and one block per &lt;b&gt;APP group&lt;/b&gt;. Each block opens and closes from its title; opening one closes the others.&lt;/li&gt;&lt;li&gt;Inside a block every &lt;b&gt;section&lt;/b&gt; opens and closes on its own, and «Expand all / Collapse all» at the bottom of the index acts on all of them.&lt;/li&gt;&lt;li&gt;You are writing in the &lt;b&gt;draft&lt;/b&gt;: every change is saved at once, but the public only sees it after «Publish now».&lt;/li&gt;&lt;li&gt;AoR, frequencies and coordination are &lt;b&gt;derived&lt;/b&gt; from the catalogues: change them in the sector structure, not by hand.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Open the live draft in a new tab</value></data>
@@ -1301,8 +1303,8 @@
   <data name="Ape_NotFound" xml:space="preserve"><value>Airport not found or no profile. Generate the document first from «Airport management».</value></data>
   <data name="Ape_ReadOnly" xml:space="preserve"><value>Read-only: you do not have permission to edit ACC {0}.</value></data>
   <data name="Ape_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
-  <data name="Ape_ExpandAllTitle" xml:space="preserve"><value>Expand all sections</value></data>
-  <data name="Ape_CollapseAllTitle" xml:space="preserve"><value>Collapse all sections</value></data>
+  <data name="Ed_ExpandAllTitle" xml:space="preserve"><value>Expand all sections</value></data>
+  <data name="Ed_CollapseAllTitle" xml:space="preserve"><value>Collapse all sections</value></data>
   <data name="Ape_PanelRules" xml:space="preserve"><value>Runway rules</value></data>
   <data name="Ape_PanelTl" xml:space="preserve"><value>Transition levels</value></data>
   <data name="Ape_PanelExtra" xml:space="preserve"><value>Extra sections</value></data>

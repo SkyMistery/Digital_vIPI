@@ -70,28 +70,49 @@ else
             <DocReviewBar DocumentId="_docId" />
 
             <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
-            <EditorToc Items="BuildToc()" />
+            @* Espandi/comprimi tutto: stessi tasti e stesse chiavi dell'editor aeroporto — quello che si fa in
+               un editor si fa anche nell'altro (regola 68). Agiscono su blocchi E sezioni. *@
+            <EditorToc Items="BuildToc()">
+                <Footer>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+                </Footer>
+            </EditorToc>
             <div>
+            @{ var blockIndex = 0; }
             @foreach (var bs in _doc.Sections)
             {
                 var blockSection = bs;
                 var blk = _model.Blocks.FirstOrDefault(b => b.BlockSectionId == blockSection.Id);
                 if (blk is null) { continue; }
                 var isGroup = blk.Block.Kind == AccBlockKind.AppGroup;
+                var firstBlock = blockIndex++ == 0;
 
-                <div class="acc-block" id="@($"blk-{blockSection.Id}")">
-                    <div class="acc-block-head">
+                @* Il blocco si CHIUDE: e' la cosa che vale di piu' su questa pagina (un gruppo APP aperto sono
+                   dieci sezioni e una mappa, ~3 700px). <details> nativo, quindi collassa senza circuito;
+                   `data-persist` ricorda lo stato fra le navigazioni (wireCollapse) e la fisarmonica sta nel JS
+                   (vipi-editor.js), non qui: chiudere i fratelli non e' un'informazione del documento.
+                   Nasce aperto SOLO il primo: e' una decisione, non l'esito di quale `toggle` arriva prima. *@
+                <details class="acc-block" id="@($"blk-{blockSection.Id}")" data-persist="@($"accblk-{blockSection.Id}")" open="@firstBlock">
+                    <summary class="acc-block-head">
+                        <span class="cb-chev" aria-hidden="true">▸</span>
                         @if (_editing && isGroup)
                         {
-                            <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
-                                   @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
-                            <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
+                            @* In modifica il titolo e' un campo: qui dentro il clic NON deve collassare (e il
+                               doppio clic deve restare quello di chi scrive). Il toggle resta al chevron e al
+                               resto del summary. *@
+                            <span class="acc-block-edit" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+                                <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
+                                       @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
+                                <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
+                            </span>
                         }
                         else
                         {
                             <h2 class="acc-block-h">@(isGroup ? blockSection.Title : L["Acc_AirwaySectors"])</h2>
                         }
-                    </div>
+                        <span class="acc-block-n">@Plural(blockSection.Children.Count, "Acc_BlockSections", blockSection.Children.Count)</span>
+                    </summary>
 
                     @if (_editing && isGroup)
                     {
@@ -118,7 +139,7 @@ else
                                             IsDerivedSection="s => SectionCatalog.IsHostRendered(profile, s.SectionKey)" DerivedContent="DerivedFor(blk)"
                                             IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
-                </div>
+                </details>
             }
 
             @if (_editing)
@@ -221,6 +242,21 @@ else
     }
 
     private string ReleasePreviewUrl(int releaseId) => $"/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
+
+    // Espandi/comprimi tutto: lo fa il JS sui <details> (blocchi e sezioni), non un flag Blazor — il collasso
+    // è nativo e vive fuori dal circuito. Prima del primo render interattivo l'interop non è lecita.
+    private bool _jsReady;
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _jsReady = true; }
+    }
+
+    private async Task ToggleAllSections(bool open)
+    {
+        if (_jsReady) await JS.InvokeVoidAsync("vipiEditorSections", open);
+    }
+
+    private string Plural(int n, string key, params object[] args) => L[n == 1 ? key + "One" : key, args].Value;
 
     // Derivate per blocco (chiave = BlockSectionId).
     private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();

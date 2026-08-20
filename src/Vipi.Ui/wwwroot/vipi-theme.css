@@ -2000,3 +2000,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .sh-chip.ok{background:#dafbe7;color:var(--ok-ink);border-color:#a7e9c1}
 /* Comando spinto a fondo riga nella testata, come fa la .lockbar sulle pagine di elenco. */
 .st-head .st-head-end{margin-left:auto}
+
+/* Blocco della vIPI ACC come <details>: il titolo è la maniglia. Il chevron è quello delle card di sezione
+   (.cb-chev) così i due livelli di collasso si riconoscono come lo stesso gesto. */
+details.acc-block > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:6px 2px;user-select:none;scroll-margin-top:84px}
+details.acc-block > summary::-webkit-details-marker{display:none}
+details.acc-block > summary:hover .acc-block-h{color:var(--ivao-lightblue)}
+details.acc-block > summary .cb-chev{transition:transform .15s;color:var(--ivao-lightblue);font-size:13px}
+details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
+.acc-block-h{margin:0}
+/* Conteggio delle sezioni: a blocco chiuso è l'unica cosa che dice quanto c'è dentro. */
+.acc-block-n{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.acc-block-edit{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
