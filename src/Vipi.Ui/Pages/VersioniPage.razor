@@ -628,7 +628,7 @@
         var key = RowKey(d);
         @if (_loadingKeys.Contains(key))
         {
-            <p class="help" style="margin:0 0 6px">@L["Common_Loading"]</p>
+            <p class="help">@L["Common_Loading"]</p>
         }
         @if (_versions.TryGetValue(key, out var vers) && vers.Count > 0)
         {
@@ -663,10 +663,10 @@
 
         @if (d.DocumentId is not null)
         {
-            <div class="block" style="margin-top:8px">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="block ver-sec">
+                <div class="ver-sec-h">
                     <b>🕓 @L["Ver_HistoryTitle"]</b>
-                    <span class="muted" style="font-size:12px">@L["Ver_HistorySubtitle"]</span>
+                    <span class="muted">@L["Ver_HistorySubtitle"]</span>
                 </div>
                 @if (_history.TryGetValue(key, out var hist) && hist.Count > 0)
                 {
@@ -684,15 +684,15 @@
                 }
                 else
                 {
-                    <p class="help" style="margin:0">@L["Ver_NoHistory"]</p>
+                    <p class="help">@L["Ver_NoHistory"]</p>
                 }
             </div>
         }
 
-        <div class="block" style="margin-top:8px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div class="block ver-sec">
+            <div class="ver-sec-h">
                 <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
-                <span class="muted" style="font-size:12px">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</span>
+                <span class="muted">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</span>
             </div>
             @if (_releases.TryGetValue(key, out var rels) && rels.Count > 0)
             {
@@ -721,7 +721,7 @@
                     </div>
                     @if (_diffOpen.Contains(r.Id))
                     {
-                        <div class="block" style="margin:2px 0 8px 24px">
+                        <div class="block ver-diff">
                             <ReleaseDiffTable Diff="@(_diffs.TryGetValue(r.Id, out var d) ? d : null)" />
                         </div>
                     }
@@ -729,17 +729,17 @@
             }
             else
             {
-                <p class="help" style="margin:0 0 6px">@L["Rel_NoRelease"]</p>
+                <p class="help">@L["Rel_NoRelease"]</p>
             }
 
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
-                <select class="app-in" style="min-width:270px;max-width:340px" @onchange="e => SetCycle(key, e.Value?.ToString())">
+            <div class="ver-pub">
+                <select class="app-in ver-cycle" @onchange="e => SetCycle(key, e.Value?.ToString())">
                     @foreach (var c in _upcoming)
                     {
                         <option value="@c.Cycle" selected="@(SelectedCycle(key) == c.Cycle)">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
                     }
                 </select>
-                <input class="app-in" style="max-width:240px" placeholder="@L["Rel_NotePh"]" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
+                <input class="app-in ver-note" placeholder="@L["Rel_NotePh"]" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
                 <button class="btn primary" disabled="@_busy" @onclick="() => PublishRelease(d)">@L["Ver_PublishAtCycle"]</button>
                 @* «Pubblica ora» scavalca il ciclo AIRAC e va al pubblico subito: un clic solo era troppo poco. *@
                 <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_PublishNowTitle"]" AriaLabel="@L["Ver_PublishNowReview"]"

@@ -187,6 +187,16 @@
 .struct .ver-acts .btn{margin-left:0}
 /* Il «togli i filtri» dentro una frase: era uno stile in linea ripetuto. */
 .lnk-inline{cursor:pointer;color:var(--ivao-blue);font-weight:600}
+/* Le sezioni del pannello di destra (storia, release) e la barra di pubblicazione: erano ventisette
+   blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
+.struct .ver-sec{margin-top:8px}
+.struct .ver-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.struct .ver-sec-h .muted{font-size:12px}
+.struct .ver-diff{margin:2px 0 8px 24px}
+.struct .ver-pub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.struct .ver-cycle{min-width:270px;max-width:340px}
+.struct .ver-note{max-width:240px}
+.struct .ver-layout p.help{margin:0 0 6px}
 /* ---- Colonne delle coppie: pixel MISURATI col font calcolato sui 33 valori veri del DB ----
    Le percentuali sono un gioco a somma zero (ogni punto dato a una colonna lo toglie a un'altra, che poi
    taglia il suo valore): otto colonne fisse e UNA sola senza larghezza — il nome estero — che con
