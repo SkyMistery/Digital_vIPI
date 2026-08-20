@@ -525,7 +525,7 @@ else
                     <table class="res-table sid-table sid-edit sid-manual">
                         @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
                            tabelle non deve reimparare dove sta cosa. *@
-                        <thead><tr><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-act"></th></tr></thead>
+                        <thead><tr><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub" title="@L["Ape_Publication"]">@L["Ape_Publication"]</th><th class="col-act"></th></tr></thead>
                         <tbody>
                             @foreach (var s in ManualView())
                             {
@@ -562,6 +562,13 @@ else
                                     </td>
                                     <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" /></td>
                                     <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]" /></td>
+                                    @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
+                                       oggi una riga a mano è pubblica appena si pubblica il documento, e la
+                                       colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
+                                    <td class="col-pub">
+                                        @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                        else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
+                                    </td>
                                     <td class="col-act">
                                         <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
                                         <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
@@ -570,7 +577,7 @@ else
                             }
                             @if (!ManualView().Any())
                             {
-                                <tr><td colspan="11" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
+                                <tr><td colspan="12" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
                             }
                         </tbody>
                     </table>
@@ -1064,13 +1071,13 @@ else
             DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
             DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
         }).ToList();
+        var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
             InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-            Priority = s.Priority,
+            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
         }).ToList();
-        var cyc = Airac.GetCycle(DateTime.UtcNow);
         _imported = _data.Sids.Where(s => s.IsImported)
             .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => new ImportedSidEdit
@@ -1703,6 +1710,8 @@ else
         public string? Runway; public string? Fix; public string? Name; public string? Transition;
         public string? InitialClimb; public bool InitialClimbByApp; public string? Type;
         public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
+        // Stato di pubblicazione calcolato al caricamento con la regola del dominio (SidRow.IsPublicAt).
+        public bool IsPublicNow = true; public string PublishFromCycle = "—";
     }
     private sealed class ImportedSidEdit
     {

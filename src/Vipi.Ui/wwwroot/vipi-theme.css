@@ -1946,20 +1946,23 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table.sid-imported th.col-pub,.struct .res-table.sid-imported td.col-pub{width:8.26%}
 /* --- SID manuali: stesse colonne meno spunta e pubblicazione, più i tasti di riga. --- */
 /* ⚠️ I campi con `list=` (pista, type) portano dentro la freccina del datalist, che si mangia ~16px: a 47px
-   il segnaposto «CONV» si leggeva «C» e «35» spariva. Le larghezze qui sotto tengono conto della freccina;
-   quello che cede è Condition, l'unico campo di testo libero (scorre dentro sé). */
-.sid-manual{min-width:940px}
-.struct .res-table.sid-manual th.col-fix,.struct .res-table.sid-manual td.col-fix{width:8.00%}
-.struct .res-table.sid-manual th.col-sid,.struct .res-table.sid-manual td.col-sid{width:10.50%}
-.struct .res-table.sid-manual th.col-rwy,.struct .res-table.sid-manual td.col-rwy{width:7.23%}
-.struct .res-table.sid-manual th.col-trans,.struct .res-table.sid-manual td.col-trans{width:7.66%}
-.struct .res-table.sid-manual th.col-type,.struct .res-table.sid-manual td.col-type{width:9.68%}
-.struct .res-table.sid-manual th.col-climb,.struct .res-table.sid-manual td.col-climb{width:14.36%}
-.struct .res-table.sid-manual th.col-cat,.struct .res-table.sid-manual td.col-cat{width:11.28%}
-.struct .res-table.sid-manual th.col-wtc,.struct .res-table.sid-manual td.col-wtc{width:9.68%}
-.struct .res-table.sid-manual th.col-cond,.struct .res-table.sid-manual td.col-cond{width:7.20%}
-.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:6.34%}
-.struct .res-table.sid-manual th.col-act,.struct .res-table.sid-manual td.col-act{width:7.98%}
+   il segnaposto «CONV» si leggeva «C» e «35» spariva. Qui le colonne sono DODICI e quasi tutte scrivibili:
+   il minimo che non taglia nessun valore è 1015px, cioè ~70px più del riquadro a 1600 con indice e rail a
+   schermo. Meglio quei 70px di scorrimento (che il tasto ⤢ azzera) che dieci campi tagliati: questa tabella
+   è corta, non è lei a dettare l'altezza della pagina. */
+.sid-manual{min-width:1015px}
+.struct .res-table.sid-manual th.col-fix,.struct .res-table.sid-manual td.col-fix{width:8.08%}
+.struct .res-table.sid-manual th.col-sid,.struct .res-table.sid-manual td.col-sid{width:9.85%}
+.struct .res-table.sid-manual th.col-rwy,.struct .res-table.sid-manual td.col-rwy{width:6.70%}
+.struct .res-table.sid-manual th.col-trans,.struct .res-table.sid-manual td.col-trans{width:7.09%}
+.struct .res-table.sid-manual th.col-type,.struct .res-table.sid-manual td.col-type{width:8.87%}
+.struct .res-table.sid-manual th.col-climb,.struct .res-table.sid-manual td.col-climb{width:13.30%}
+.struct .res-table.sid-manual th.col-cat,.struct .res-table.sid-manual td.col-cat{width:10.05%}
+.struct .res-table.sid-manual th.col-wtc,.struct .res-table.sid-manual td.col-wtc{width:8.28%}
+.struct .res-table.sid-manual th.col-cond,.struct .res-table.sid-manual td.col-cond{width:7.49%}
+.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:5.52%}
+.struct .res-table.sid-manual th.col-pub,.struct .res-table.sid-manual td.col-pub{width:8.28%}
+.struct .res-table.sid-manual th.col-act,.struct .res-table.sid-manual td.col-act{width:6.50%}
 .struct .res-table.sid-manual td.col-act .btn{margin-left:2px;padding:5px 8px}
 /* ⤢ Larghezza piena: indice e rail spariscono e la colonna centrale prende tutta la pagina (a 1600 sono
    946px che diventano 1536 — il 62% in più per dodici colonne). Il tasto per tornare indietro sta nella
