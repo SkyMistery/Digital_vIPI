@@ -1257,6 +1257,8 @@
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Quota imposta in ft (solo numero)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>La quota va concordata con l'APP</value></data>
   <data name="Ape_CatTitle" xml:space="preserve"><value>Categoria aeromobile (VREF)</value></data>
+  <data name="Ape_TypeTitle" xml:space="preserve"><value>Tipo di procedura: CONV o RNAV (l'elenco è un suggerimento, il campo resta libero)</value></data>
+  <data name="Ape_PriorityTitle" xml:space="preserve"><value>Ordine di preferenza fra le SID dello stesso punto: il numero più basso viene prima</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
   <data name="Ape_CloneRow" xml:space="preserve"><value>Duplica riga</value></data>
   <data name="Ape_SidSavedN" xml:space="preserve"><value>Salvate {0} SID.</value></data>
@@ -1351,7 +1353,7 @@
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Ripreleva le SID dal sectorfile GitHub</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-importa SID</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Righe da sorgente: non editabili nei dati, ma imposti &lt;b&gt;priorità per punto&lt;/b&gt;, &lt;b&gt;fix&lt;/b&gt; se «da verificare», e la &lt;b&gt;pubblicazione&lt;/b&gt; (di default dal ciclo successivo al prelievo).</value></data>
-  <data name="Ape_PointFix" xml:space="preserve"><value>Punto (FIX)</value></data>
+  <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priorità</value></data>
   <data name="Ape_Publication" xml:space="preserve"><value>Pubblicazione</value></data>

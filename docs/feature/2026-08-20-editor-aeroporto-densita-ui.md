@@ -112,3 +112,42 @@ questo giro ha scoperto e corretto per l'editor ma che vengono da fuori:
 
 Nel riquadro, invece, lo scorrimento orizzontale c'è ancora quando indice e rail sono a schermo (21px a 1600,
 153 a 1440, 306 a 1280): è dentro un riquadro con l'intestazione ferma, e il tasto ⤢ lo azzera.
+
+## Secondo giro (stesso giorno): le colonne e le SID manuali
+
+Tre cose viste usando la pagina, non misurandola.
+
+1. **L'initial climb non ci stava.** Le quote vere sono a quattro o cinque cifre (3000, 11000) e il campo era
+   largo **52px**, frecce del campo numerico comprese: il valore si leggeva a metà. Ora **76px** — misurato
+   scrivendoci dentro «11000» e controllando che il campo non scorra (`scrollWidth` contro `clientWidth`),
+   sia a larghezza normale (cella 134px) sia a larghezza piena (211px).
+2. **Le SID manuali hanno lo stesso ordine e gli stessi comandi delle importate**: FIX · SID · RWY · Trans. ·
+   Type · Initial climb (**col tasto APP**, «da concordare con l'APP») · **Cat. e WTC a chip** (A B C D E /
+   L M H S) · Condition · **Priorità**. Prima erano nove caselle di testo in un altro ordine, con Cat. e WTC
+   da scrivere a mano e nessun modo di dire «quota da concordare».
+   - ⚠️ La **priorità delle righe manuali non veniva salvata**: la colonna esisteva sull'entità (tabella unica
+     con le importate) ma il repo non la scriveva, quindi tornava sempre vuota. Ora si salva — e conta
+     davvero, perché la derivazione ordina per `Fix` e poi per `Priority`.
+   - L'initial climb manuale resta un **campo di testo** e non numerico come nelle importate: i valori storici
+     portano l'unità («5000ft», «FL80») e un campo numerico li avrebbe buttati via al primo salvataggio.
+3. **Type si sceglie da un elenco senza chiudere il campo**: `datalist` con CONV e RNAV, ma la casella resta
+   libera — le sorgenti portano anche altro e un `select` avrebbe perso quei valori.
+
+Verificato end-to-end: riga compilata (PROVA / PRO1A / 35 / TRANS / RNAV / 11000 / APP / Cat C / WTC H /
+condizione / priorità 3), salvata, **pagina ricaricata da zero**: tutti i campi sono tornati indietro dal DB.
+
+### Larghezze: due trappole misurate
+
+- I campi con `list=` (RWY e Type) portano dentro la **freccina del datalist**, che si mangia ~16px: a 47px il
+  segnaposto «CONV» si leggeva «C» e la pista «35» spariva. Le larghezze ne tengono conto.
+- Le **intestazioni** sconfinavano nella colonna vicina («CONDITIONPRIORITÀ»): ora si tagliano con i puntini e
+  il nome per esteso sta nel `title`. Dove l'etichetta lunga non serviva è sparita: la colonna del punto si
+  intitola **FIX** e quella della pista **RWY** — sono i nomi, non abbreviazioni (stessa scelta del viewer).
+
+- Anche la casella del **fix da confermare** (righe «da verificare») era corta: a 56px «OKUNO» si leggeva
+  «OKUN». Ora 68px, e lo spazio arriva dalle colonne che ne avevano d'avanzo — i chip Cat./WTC stavano in
+  105 e 90px quando gliene bastavano 101 e 83.
+
+A 1600 nessuna delle due tabelle scorre in orizzontale (`scrollWidth - clientWidth = 0`), riga sempre 45px, e
+tutti i valori veri ci stanno per intero: fix corretto, nome SID, quota a cinque cifre, chip, pill di stato.
+Quello che cede resta **Condition**, l'unico campo di prosa: scorre dentro sé.

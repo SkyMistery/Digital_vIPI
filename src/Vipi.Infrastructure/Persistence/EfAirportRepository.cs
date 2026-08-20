@@ -170,6 +170,9 @@ public sealed class EfAirportRepository : IAirportRepository
                 AirportId = id, Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
                 Transition = r.Transition, InitialClimb = r.InitialClimb, InitialClimbByApp = r.InitialClimbByApp,
                 Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
+                // La priorità fra SID dello stesso punto vale anche per le righe a mano: la colonna esisteva
+                // già (tabella unica con le importate), ma qui non veniva scritta e si perdeva a ogni salvataggio.
+                Priority = r.Priority,
                 IsImported = false,
             });
         }

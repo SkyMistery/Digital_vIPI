@@ -432,8 +432,8 @@ else
                         @* Larghezze per CLASSE semantica e `table-layout:fixed`, come nella tabella SID del
                            viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
                            in verticale — misurato, 128px di altezza per riga invece di 44. *@
-                        <table class="res-table sid-table sid-edit sticky-head">
-                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy">@L["Ape_Runway"]</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th><th class="col-prio">@L["Ape_Priority"]</th><th class="col-pub">@L["Ape_Publication"]</th></tr></thead>
+                        <table class="res-table sid-table sid-edit sid-imported sticky-head">
+                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub" title="@L["Ape_Publication"]">@L["Ape_Publication"]</th></tr></thead>
                             <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                                 @for (var vi = 0; vi < iview.Count; vi++)
                                 {
@@ -518,22 +518,50 @@ else
                         <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />
                     </div>
                     <datalist id="ape-rwy-idents">@foreach (var id in RwIdents()) { <option value="@id" /> }</datalist>
+                    @* Type: i due valori veri sono CONV e RNAV, ma il campo resta libero — le sorgenti ne
+                       portano altri e non si vuole perdere un valore solo perché non è in elenco. *@
+                    <datalist id="ape-sid-types"><option value="CONV" /><option value="RNAV" /></datalist>
                     <div class="tbl-scroll">
-                    <table class="res-table sid-table sid-manual">
-                        <thead><tr><th class="col-rwy">@L["Ape_Runway"]</th><th class="col-fix">FIX</th><th class="col-sid">SID</th><th class="col-trans">Transition</th><th class="col-climb">Initial climb</th><th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th><th class="col-act"></th></tr></thead>
+                    <table class="res-table sid-table sid-edit sid-manual">
+                        @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
+                           tabelle non deve reimparare dove sta cosa. *@
+                        <thead><tr><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-act"></th></tr></thead>
                         <tbody>
                             @foreach (var s in ManualView())
                             {
                                 <tr @key="s">
-                                    <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
                                     <td class="col-fix"><input @bind="s.Fix" aria-label="FIX" /></td>
                                     <td class="col-sid"><input @bind="s.Name" aria-label="SID" /></td>
+                                    <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
                                     <td class="col-trans"><input @bind="s.Transition" aria-label="Transition" /></td>
-                                    <td class="col-climb"><input @bind="s.InitialClimb" aria-label="Initial climb" /></td>
-                                    <td class="col-type"><input @bind="s.Type" aria-label="Type" /></td>
-                                    <td class="col-cat"><input @bind="s.Cat" aria-label="Cat." /></td>
-                                    <td class="col-wtc"><input @bind="s.Wtc" aria-label="WTC" /></td>
-                                    <td class="col-cond"><input @bind="s.Condition" aria-label="Condition" /></td>
+                                    <td class="col-type"><input list="ape-sid-types" @bind="s.Type" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
+                                    @* Testo libero e non `type=number` come nelle importate: qui i valori
+                                       storici portano l'unità («5000ft», «FL80») e un campo numerico li
+                                       butterebbe via al primo salvataggio. *@
+                                    <td class="col-climb">
+                                        <input class="in-climb" @bind="s.InitialClimb" placeholder="ft" aria-label="Initial climb" />
+                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" /> APP</label>
+                                    </td>
+                                    <td class="col-cat">
+                                        <div class="tok-set">
+                                            @foreach (var t in CatTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(s.Cat, t) ? "on" : "")" title="@L["Ape_CatTitle"]"
+                                                        @onclick='async () => { s.Cat = ToggleTok(s.Cat, t, CatTokens); await MarkDirty("SID"); }'>@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-wtc">
+                                        <div class="tok-set">
+                                            @foreach (var t in WtcTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(s.Wtc, t) ? "on" : "")" title="@L["Ape_WtcTitle"]"
+                                                        @onclick='async () => { s.Wtc = ToggleTok(s.Wtc, t, WtcTokens); await MarkDirty("SID"); }'>@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" /></td>
+                                    <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]" /></td>
                                     <td class="col-act">
                                         <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
                                         <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
@@ -542,7 +570,7 @@ else
                             }
                             @if (!ManualView().Any())
                             {
-                                <tr><td colspan="10" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
+                                <tr><td colspan="11" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
                             }
                         </tbody>
                     </table>
@@ -1039,7 +1067,8 @@ else
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
-            Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority,
         }).ToList();
         var cyc = Airac.GetCycle(DateTime.UtcNow);
         _imported = _data.Sids.Where(s => s.IsImported)
@@ -1098,7 +1127,8 @@ else
             r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
             CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()));
     private Task SaveSids() => SaveSection("SID", () => Profile.SaveSidsAsync(_icao,
-        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()));
+        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
+            s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()));
     // RenderMode della sezione SID (doc 10 §S4c): persistito subito (non serve ripubblicare per cambiare la resa).
     private Task SetSidsMode(bool live) => Guarded(async () =>
     {
@@ -1337,7 +1367,8 @@ else
         var copy = new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
-            Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority,
         };
         _sids.Insert(i < 0 ? _sids.Count : i + 1, copy);
         _sidManualSearch = "";   // rendi visibile la nuova riga anche se un filtro era attivo
@@ -1664,7 +1695,15 @@ else
         public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)
         public int? DateToDay; public int? DateToMonth;
     }
-    private sealed class SidEdit { public string? Runway; public string? Fix; public string? Name; public string? Transition; public string? InitialClimb; public string? Type; public string? Cat; public string? Wtc; public string? Condition; }
+    // Stessi campi editoriali delle importate: la quota «da concordare con l'APP» e la priorità fra le SID
+    // dello stesso punto esistono già sull'entità (una tabella sola per manuali e importate), erano solo
+    // scoperte dall'editor.
+    private sealed class SidEdit
+    {
+        public string? Runway; public string? Fix; public string? Name; public string? Transition;
+        public string? InitialClimb; public bool InitialClimbByApp; public string? Type;
+        public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
+    }
     private sealed class ImportedSidEdit
     {
         public int Id; public string Fix = ""; public string Name = ""; public string? Runway; public string? Transition; public string? Type;

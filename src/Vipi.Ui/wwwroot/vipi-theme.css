@@ -1898,37 +1898,27 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    le colonne leggibili facendo scorrere il riquadro invece di spezzare le parole a metà. */
 /* ⚠️ Le larghezze vanno scritte con `.struct .res-table` davanti e verificate sul valore CALCOLATO: la
    colonna della spunta ha già una regola `.struct .res-table td.col-chk{width:1%}` (pagina Aeroporti) che a
-   parità di peso vince in silenzio — misurato, la cella usciva 10px invece di 30 e la casella sbordava. */
-/* 920px e non 1010: è la larghezza del riquadro a 1600 con indice e rail a schermo (944). Sopra quel
-   numero la tabella scorreva di lato e la colonna «Pubblicazione» restava mezza fuori — misurato, 85px. Le
-   larghezze qui sotto sono il minimo che non taglia nessun valore: quello che cede è Condition, l'unico
-   campo di testo libero (scorre dentro sé), non il nome della SID, che è l'identità della riga. */
-.sid-edit{table-layout:fixed;min-width:920px}
+   parità di peso vince in silenzio — misurato, la cella usciva 10px invece di 30 e la casella sbordava.
+   Base comune alle due tabelle SID (importate e manuali): stesse colonne, stessi comandi, stesse regole. */
+.sid-edit{table-layout:fixed}
 .struct .res-table.sid-edit th,.struct .res-table.sid-edit td{padding-left:7px;padding-right:7px;vertical-align:middle;white-space:nowrap}
-.struct .res-table.sid-edit th.col-chk,.struct .res-table.sid-edit td.col-chk{width:3.26%}
-.struct .res-table.sid-edit th.col-fix,.struct .res-table.sid-edit td.col-fix{width:13.26%}
-.struct .res-table.sid-edit th.col-sid,.struct .res-table.sid-edit td.col-sid{width:11.52%}
-.struct .res-table.sid-edit th.col-rwy,.struct .res-table.sid-edit td.col-rwy{width:5%}
-.struct .res-table.sid-edit th.col-trans,.struct .res-table.sid-edit td.col-trans{width:6.09%}
-.struct .res-table.sid-edit th.col-type,.struct .res-table.sid-edit td.col-type{width:5.43%}
-.struct .res-table.sid-edit th.col-climb,.struct .res-table.sid-edit td.col-climb{width:11.74%}
-.struct .res-table.sid-edit th.col-cat,.struct .res-table.sid-edit td.col-cat{width:11.41%}
-.struct .res-table.sid-edit th.col-wtc,.struct .res-table.sid-edit td.col-wtc{width:9.57%}
-.struct .res-table.sid-edit th.col-cond,.struct .res-table.sid-edit td.col-cond{width:9.13%}
-.struct .res-table.sid-edit th.col-prio,.struct .res-table.sid-edit td.col-prio{width:5%}
-.struct .res-table.sid-edit th.col-pub,.struct .res-table.sid-edit td.col-pub{width:8.48%}
+/* Anche le INTESTAZIONI si tagliano: senza, «CONDITION» sconfinava nella colonna accanto e si leggeva
+   «CONDITIONPRIORITÀ». Il nome per esteso resta nel `title` della cella. */
+.struct .res-table.sid-edit th{overflow:hidden;text-overflow:ellipsis}
 /* Nessuna cella va a capo: una riga a capo qui sono 50px moltiplicati per duecento righe. Chi non ci sta
    taglia con i puntini (il valore intero resta nel dato, non è un campo). */
 .struct .res-table.sid-edit td.col-sid,.struct .res-table.sid-edit td.col-rwy,.struct .res-table.sid-edit td.col-trans,.struct .res-table.sid-edit td.col-type,.struct .res-table.sid-edit td.col-pub{overflow:hidden;text-overflow:ellipsis}
-/* I chip stanno in RIGA: è la ragione per cui la riga è alta 44px e non 128. */
+/* I chip stanno in RIGA: è la ragione per cui la riga è alta 45px e non 128. */
 .sid-edit .tok-set{flex-wrap:nowrap}
 .sid-edit .tok{min-width:15px;padding:1px 3px}
 .sid-edit .ic-app{margin-left:2px}
 .struct .res-table.sid-edit input{width:100%;box-sizing:border-box}
-.struct .res-table.sid-edit .in-climb{width:52px}
-.struct .res-table.sid-edit .in-fix{width:48px}
+/* ⚠️ 76px e non 52: l'initial climb arriva a cinque cifre («11000») e il campo numerico porta anche le
+   frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato. */
+.struct .res-table.sid-edit .in-climb{width:76px}
+.struct .res-table.sid-edit .in-fix{width:68px}
 .struct .res-table.sid-edit .ic-app{white-space:nowrap}
-.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
+.struct .res-table.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
 /* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
 .struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
 .struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
@@ -1938,19 +1928,39 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table tbody tr.row-dirty>td:first-child{box-shadow:inset 3px 0 0 #e2b400}
 .struct .res-table tbody tr.row-sel.row-dirty>td{background:#f4f2ec}
 .sh-chip .chip-n{opacity:.65;font-weight:600;margin-left:2px}
-/* Tabella delle SID manuali: stesse classi di colonna, niente larghezze in linea sugli input. */
-.sid-manual{table-layout:fixed;min-width:900px}
-.sid-manual input{width:100%;box-sizing:border-box}
-.sid-manual .col-rwy{width:7%}
-.sid-manual .col-fix{width:9%}
-.sid-manual .col-sid{width:11%}
-.sid-manual .col-trans{width:10%}
-.sid-manual .col-climb{width:11%}
-.sid-manual .col-type{width:8%}
-.sid-manual .col-cat{width:7%}
-.sid-manual .col-wtc{width:7%}
-.sid-manual .col-cond{width:19%}
-.sid-manual .col-act{width:11%;white-space:nowrap}
+/* --- SID importate: 12 colonne. Il min-width è la larghezza del riquadro a 1600 con indice e rail a
+   schermo; le larghezze sono il minimo che non taglia nessun valore. Quello che cede è Condition, l'unico
+   campo di testo libero (scorre dentro sé), non il nome della SID né la quota. --- */
+.sid-imported{min-width:920px}
+.struct .res-table.sid-imported th.col-chk,.struct .res-table.sid-imported td.col-chk{width:3.18%}
+.struct .res-table.sid-imported th.col-fix,.struct .res-table.sid-imported td.col-fix{width:15.5%}
+.struct .res-table.sid-imported th.col-sid,.struct .res-table.sid-imported td.col-sid{width:11.2%}
+.struct .res-table.sid-imported th.col-rwy,.struct .res-table.sid-imported td.col-rwy{width:4.87%}
+.struct .res-table.sid-imported th.col-trans,.struct .res-table.sid-imported td.col-trans{width:5.93%}
+.struct .res-table.sid-imported th.col-type,.struct .res-table.sid-imported td.col-type{width:5.72%}
+.struct .res-table.sid-imported th.col-climb,.struct .res-table.sid-imported td.col-climb{width:14%}
+.struct .res-table.sid-imported th.col-cat,.struct .res-table.sid-imported td.col-cat{width:10.7%}
+.struct .res-table.sid-imported th.col-wtc,.struct .res-table.sid-imported td.col-wtc{width:8.8%}
+.struct .res-table.sid-imported th.col-cond,.struct .res-table.sid-imported td.col-cond{width:6.95%}
+.struct .res-table.sid-imported th.col-prio,.struct .res-table.sid-imported td.col-prio{width:4.87%}
+.struct .res-table.sid-imported th.col-pub,.struct .res-table.sid-imported td.col-pub{width:8.26%}
+/* --- SID manuali: stesse colonne meno spunta e pubblicazione, più i tasti di riga. --- */
+/* ⚠️ I campi con `list=` (pista, type) portano dentro la freccina del datalist, che si mangia ~16px: a 47px
+   il segnaposto «CONV» si leggeva «C» e «35» spariva. Le larghezze qui sotto tengono conto della freccina;
+   quello che cede è Condition, l'unico campo di testo libero (scorre dentro sé). */
+.sid-manual{min-width:940px}
+.struct .res-table.sid-manual th.col-fix,.struct .res-table.sid-manual td.col-fix{width:8.00%}
+.struct .res-table.sid-manual th.col-sid,.struct .res-table.sid-manual td.col-sid{width:10.50%}
+.struct .res-table.sid-manual th.col-rwy,.struct .res-table.sid-manual td.col-rwy{width:7.23%}
+.struct .res-table.sid-manual th.col-trans,.struct .res-table.sid-manual td.col-trans{width:7.66%}
+.struct .res-table.sid-manual th.col-type,.struct .res-table.sid-manual td.col-type{width:9.68%}
+.struct .res-table.sid-manual th.col-climb,.struct .res-table.sid-manual td.col-climb{width:14.36%}
+.struct .res-table.sid-manual th.col-cat,.struct .res-table.sid-manual td.col-cat{width:11.28%}
+.struct .res-table.sid-manual th.col-wtc,.struct .res-table.sid-manual td.col-wtc{width:9.68%}
+.struct .res-table.sid-manual th.col-cond,.struct .res-table.sid-manual td.col-cond{width:7.20%}
+.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:6.34%}
+.struct .res-table.sid-manual th.col-act,.struct .res-table.sid-manual td.col-act{width:7.98%}
+.struct .res-table.sid-manual td.col-act .btn{margin-left:2px;padding:5px 8px}
 /* ⤢ Larghezza piena: indice e rail spariscono e la colonna centrale prende tutta la pagina (a 1600 sono
    946px che diventano 1536 — il 62% in più per dodici colonne). Il tasto per tornare indietro sta nella
    riga-titolo delle SID, che resta a schermo. */

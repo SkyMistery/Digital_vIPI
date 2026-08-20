@@ -1254,6 +1254,8 @@
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Assigned altitude in ft (number only)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>The altitude must be agreed with the APP</value></data>
   <data name="Ape_CatTitle" xml:space="preserve"><value>Aircraft category (VREF)</value></data>
+  <data name="Ape_TypeTitle" xml:space="preserve"><value>Procedure type: CONV or RNAV (the list is a suggestion, the field stays free)</value></data>
+  <data name="Ape_PriorityTitle" xml:space="preserve"><value>Order of preference among the SIDs of the same point: the lowest number comes first</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
   <data name="Ape_CloneRow" xml:space="preserve"><value>Duplicate row</value></data>
   <data name="Ape_SidSavedN" xml:space="preserve"><value>Saved {0} SIDs.</value></data>
@@ -1345,7 +1347,7 @@
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Re-fetch the SIDs from the GitHub sectorfile</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-import SIDs</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: not editable in the data, but you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the cycle after the fetch).</value></data>
-  <data name="Ape_PointFix" xml:space="preserve"><value>Point (FIX)</value></data>
+  <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priority</value></data>
   <data name="Ape_Publication" xml:space="preserve"><value>Publication</value></data>
