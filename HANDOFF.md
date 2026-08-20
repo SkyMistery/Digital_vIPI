@@ -10,17 +10,18 @@
 > da freddo si leggono **due** file:
 > [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
 > riparte la prossima pagina — e
-> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 105 regole già pagate più
+> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 116 regole già pagate più
 > la ricognizione misurata di ogni pagina.
 >
 > In due righe: il giro riscrive **la forma** delle pagine di lavoro admin — niente cambia in modello, rotte o
-> dati. **Sette pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC,
-> **Confinanti**), più la **sostanza** di Versioni (lock e azioni delicate, 21 agosto: la pagina lasciava
-> eliminare un documento che un'altra persona stava editando).
+> dati. **Otto pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC, Confinanti,
+> **Versioni**). Versioni è costata due giri: prima la **sostanza** (la pagina lasciava eliminare un documento
+> che un'altra persona stava editando), poi la **densità** — 1 664 → **900px**, cioè il viewport: il dettaglio
+> è uscito dall'elenco e sta nel pannello a fianco, e i chip dei filtri contano al posto della fascia di
+> riepilogo.
 >
-> **La prossima è la DENSITÀ di Versioni** — stessa pagina, seconda metà: `/vsop/versioni`, **1 664px**
-> rimisurati guidandola. Briefing pronto in `handoff-densita-ui.md` §«Versioni». Poi Permessi, Sorgenti,
-> Audit, Diagnostica.
+> **La prossima è Permessi** (`/vsop/admin/permessi`, **1 346px**). Poi Sorgenti, Audit, Diagnostica, Nuovo
+> documento, Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
 >
 > Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
 > `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.

@@ -6,9 +6,10 @@
 > [editor aeroporto](../feature/2026-08-20-editor-aeroporto-densita-ui.md),
 > [editor ACC](../feature/2026-08-20-editor-acc-densita-ui.md),
 > [confinanti](../feature/2026-08-20-confinanti-densita-ui.md)
-> — e il 21 agosto la parte **lock e azioni** di
-> [versioni](../feature/2026-08-21-versioni-lock-e-azioni.md), che non era di forma ma di sostanza
-> (§18, regole 95-103) — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> — e il 21 agosto **versioni** in due giri: prima la parte **lock e azioni**
+> ([carta](../feature/2026-08-21-versioni-lock-e-azioni.md)), che non era di forma ma di sostanza
+> (§18, regole 95-105), poi la **densità** ([carta](../feature/2026-08-21-versioni-densita-ui.md), §19,
+> regole 106-116) — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -237,13 +238,13 @@ pieno di righe.
     con gesti diversi costringono a ricordare *dove* si è invece di *cosa* si sta facendo: le SID manuali hanno
     preso la selezione che avevano solo le importate.
 
-## 15. Ricognizione: chi aderisce e chi no (19-20 agosto 2026)
+## 15. Ricognizione: chi aderisce e chi no (19-21 agosto 2026)
 
 Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB di sviluppo (l'altezza dipende
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — sono le tre che hanno prodotto le regole
+### Già a norma — otto pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -254,6 +255,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Editor aeroporto | `/vsop/{acc}/airports/editor` | 4 913 | **da 31 286** su LIRF (206 SID): riquadro col tetto e `thead` fermo, riga 128→45px, larghezza piena, modificata≠scelta ([carta](../feature/2026-08-20-editor-aeroporto-densita-ui.md)). L'altezza non dipende più dai dati |
 | Editor ACC | `/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
 | Confinanti (vLOA) | `/vsop/admin/confinanti` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
+| Versioni | `/vsop/versioni` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -261,14 +263,13 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Versioni** | `/vsop/versioni` | 1 664 | ⚠️ **Parte lock e azioni FATTA** il 21 agosto (carta `2026-08-21-versioni-lock-e-azioni.md`, regole 95-103): badge «chi ci sta lavorando», hide/delete inibiti dal lock **nel service**, conferme in linea al posto di tre `window.confirm`, chip «in modifica» e per ACC, tasto Aggiorna, permessi allineati al grant ACC. **Resta la densità**: sottotitolo, paragrafi d'aiuto, **nessun «?»**, **3 callout** in fascia, ~27 stili in linea. I filtri sono `Chip` sciolti (non `.sh-chip` in gruppo) e **non contano**; il conteggio filtrato è una riga di prosa invece di un pill accanto al titolo. Usa `.wrap` a 1 100px, **non** `.wrap.struct`: decidere se portarla sul layout di lavoro fa parte del giro. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato** (stanno nel markup, non nei resx): restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). Briefing: [handoff-densita-ui](../history/handoff-densita-ui.md). |
-| 2 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
-| 3 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 4 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 5 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 6 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 7 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 8 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
+| 2 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 3 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 4 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 5 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 6 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 7 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ### Fuori ambito: le viste pubbliche
 
@@ -423,6 +424,43 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
     il conflitto di lock, che non è un permesso negato: porta a un'altra reazione (aspetto un minuto, non
     chiedo un grant). Il titolo si sceglie **nel ramo `catch`**, dove si sa già che errore è.
 
+## 19. Quello che ha lasciato il giro Versioni (parte densità)
+
+106. **Un riepilogo che conta e dei filtri che nominano sono lo stesso fatto.** La fascia diceva «3 in vigore ·
+     2 programmate · 1 senza release»; i chip dei filtri dicevano le stesse parole **senza** i numeri. Il
+     rimedio non è tenerli allineati: è **un posto solo** — i chip, coi numeri dentro (regola 103 applicata a
+     una fascia invece che a una query).
+107. ⚠️ **Il numero sul chip conta ESATTAMENTE ciò che il chip mostra una volta cliccato.** Si scrive con la
+     stessa condizione del filtro, non con una classificazione «pulita»: un documento nascosto **con** una
+     bozza aperta sta in due chip, e va bene. Un chip che dice 3 e ne mostra 2 è un numero che mente — e lo si
+     verifica cliccandoli **tutti**, non leggendo il codice.
+108. ⚠️ **Un chip a zero non è sempre una buona notizia.** `button.sh-chip:disabled` è **verde** perché su
+     Confinanti zero significa «coda vuota, bene». Qui «0 in vigore» è un guaio, non un successo: nella pagina
+     il chip spento è **neutro**. Prima di riusare uno stato visivo condiviso, chiedersi che cosa significa
+     **zero** in questa pagina.
+109. **Quando i filtri diventano quattro gruppi, quelli che sono ELENCHI diventano menu.** Stato e release sono
+     pochi e si contano → chip. Tipo e ACC sono elenchi che crescono → `.htree-select`. Misurato: come chip,
+     quei due gruppi chiedevano più larghezza di tutto il resto della barra.
+110. **Le azioni di una riga possono vivere nel pannello del dettaglio.** Spostandole, la riga torna a essere
+     **identità e stato** (icona, titolo, ambito, pill) e la conferma in linea smette di comprimerla: è il
+     modo strutturale di chiudere la regola 100, invece di misurare l'ennesimo pavimento. Riga 118 → 63px.
+111. ⚠️ **In una riga «testo + gruppo di tasti», a andare a capo dev'essere il GRUPPO DI TASTI.** Con
+     `flex-wrap` sul contenitore e nient'altro, è il testo a scendere sotto l'etichetta di sinistra e ogni riga
+     guadagna una riga di vuoto. Serve `flex-wrap:nowrap` sul gruppo **più** un pavimento (`flex:1 1 200px`)
+     sul blocco di testo. Misurato: riga release 175 → 139px.
+112. **Il titolo di sezione dentro un pannello stretto non si comprime** (`flex:none;white-space:nowrap`):
+     altrimenti va a capo mentre di fianco resta spazio vuoto.
+113. **La prosa di sezione dentro un pannello costa il doppio che in pagina**: lì lo spazio è già stato
+     spartito fra due riquadri. Il «?» nella riga-titolo della sezione (regola 7) vale più che altrove.
+114. ⚠️ **Anche un sottotitolo può descrivere un meccanismo che non c'è più.** `Ver_HistorySubtitle` parlava dei
+     «profili che non hanno versioni» — storage droppato dal doc 08. La regola 42 vale per i nomi **e** per i
+     testi a schermo: quello lo legge anche chi non apre il codice.
+115. **Le etichette sono un insieme, non stringhe indipendenti**: «in modifica» minuscola in mezzo a sei
+     maiuscole si vede, e «Schedulate» non è italiano quando la pill accanto dice «programmata». Si rileggono
+     **in fila**, come le vede chi guarda la barra.
+116. **Un separatore appeso al nulla** («vIPI Aeroporto ·» per un documento senza ambito) è un difetto di dati
+     che si vede solo con i valori veri: il separatore appartiene al pezzo che lo segue, non alla riga.
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -450,7 +488,7 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Aiuto della sezione | mappa `HelpByKey` in `DocumentSectionsEditor` |
 | Larghezza piena (chiavi condivise) | `Ed_Wide` / `Ed_Narrow` / `Ed_WideTitle` / `Ed_NarrowTitle` |
 
-## Esempi misurati (le sei carte)
+## Esempi misurati (le carte)
 
 - [Accordi di coordinamento — densità](../feature/2026-08-19-accordi-densita-ui.md): la prima testata in riga,
   le colonne fisse, l'altezza misurata sopra tre colonne.
@@ -464,6 +502,9 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 - [Editor ACC — densità](../feature/2026-08-20-editor-acc-densita-ui.md): la pagina misurata **in modifica**
   (9 690px), i blocchi che si chiudono a fisarmonica, la prosa di sezione nella riga-titolo, e i due difetti
   vecchi trovati guidandola — il tour che scorreva da solo e il «?» chiuso che allargava la pagina.
+- [Versioni — densità](../feature/2026-08-21-versioni-densita-ui.md): il riepilogo che spariva perché i chip
+  hanno cominciato a contare, le azioni salite dalla riga al pannello (118→63px), e i sei difetti visti
+  guardando gli screenshot — fra cui un sottotitolo che parlava di uno storage droppato da tre settimane.
 - [Confinanti — densità](../feature/2026-08-20-confinanti-densita-ui.md): il dettaglio che esce dalla tabella
   e va in un pannello a fianco, una mappa sola al posto di due, le colonne misurate col font, l'import che
   dice a che punto è; e sei difetti che nessuna asserzione cercava — fra cui il `catch` che inghiottiva la

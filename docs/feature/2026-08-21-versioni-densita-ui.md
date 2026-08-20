@@ -100,3 +100,50 @@ Guidata con la skill `verifica-live` sulla copia del DB: 1600/1440/1280/1024 × 
 italiano» verifica l'inglese). Casi da guidare, non solo misurare: documento con e senza release, bozza aperta,
 documento nascosto, lock **mio**, lock **altrui** con e senza diritti da admin, e i filtri che portano l'elenco
 a zero.
+
+## Esito, misurato guidando la pagina
+
+| | Prima | Dopo |
+|---|---:|---:|
+| Altezza a 1600×900 (elenco chiuso) | 1 664 | **900** (= il viewport: la pagina non scorre, scorre il riquadro) |
+| Altezza col dettaglio **aperto** | cresceva di tutto il blocco per ogni riga aperta | **900**, sempre: il dettaglio è nel pannello a fianco |
+| Riga d'elenco più alta | 118px (lock altrui + diritti admin) | **63px**, tutte uguali |
+| Riga release nel pannello | 175px (tre tasti impilati) | **139px** a 1440 |
+| Callout in fascia | 3 | **0** (esito ed errore sono un chip in testata) |
+| Prosa sempre a schermo | sottotitolo + 4 paragrafi + 4 `span.muted` | **0**: tutto nei «?» |
+| «?» in pagina | 0 | **3** (testata, storia, release) + la sezione di Guida `#versioni` |
+| Stili in linea | ~27 | **1** (il margine del paragrafo dentro il popover, come le altre pagine) |
+
+Provato a **1600/1440/1280/1024 × IT/EN × zoom 0.8→1.5**: la pagina **non scorre mai** in verticale.
+Lo sforo **orizzontale** a 1280/1024 e a zoom ≥1.2 c'è ancora ed è **della topbar**: elencando gli elementi
+oltre il bordo, dentro il `.wrap` non sfora niente (è il punto aperto già dichiarato nell'handoff).
+
+**I chip contano esatto**: cliccati uno per uno, il numero scritto sul chip è il numero di righe mostrate
+(6, 8, 1, 12, 3) e la pill del titolo passa a «N/15».
+
+**Lo stato che l'app non lascia costruire** (due persone, due lock) è stato scritto nel DB della copia: badge
+col nome e l'ora sulla riga, «Nascondi» ed «Elimina» spenti col perché nel `title`, «Forza sblocco» presente
+per l'admin, conferma in linea dell'eliminazione che si apre **dentro** il pannello senza mandare a capo niente.
+
+## Sei difetti trovati guidando, non dai test
+
+1. Il **titolo di sezione si comprimeva**: «Storia modifiche» andava a capo mentre accanto restava spazio vuoto.
+2. I **tasti della riga release si impilavano** uno per riga nel pannello stretto (tre righe per release). A
+   andare a capo dev'essere il **gruppo dei tasti** — e per ottenerlo serve un pavimento sul blocco di testo,
+   altrimenti è il testo a scendere sotto il numero di versione.
+3. Le **due righe di prosa del pannello** (storia, release) stavano sempre a schermo nel posto dove lo spazio
+   costa di più: sono diventate «?».
+4. `Ver_HistorySubtitle` parlava ancora dei «profili che non hanno versioni»: quello **storage per-tipo è stato
+   droppato dal doc 08**. Un sottotitolo che descrive un meccanismo che non c'è più mente come un commento.
+5. **Etichette**: «in modifica» minuscola in mezzo a sei maiuscole, e «Schedulate» che non è italiano —
+   «Programmate», come dice la pill della riga.
+6. Un documento **senza scope** mostrava «vIPI Aeroporto ·»: un separatore appeso al nulla.
+
+## Quello che resta aperto
+
+- ⚠️ **Lo sforo orizzontale della topbar** a 1280/1024 (`div.right` più larga della finestra): è del chrome,
+  vale su tutte le pagine, e va affrontato per sé.
+- Nella topbar in **inglese** «Incarichi» resta in italiano: è del chrome, non di questa pagina.
+- A **1024** il pannello di destra resta a fianco (la soglia di collasso è 900): il dettaglio si legge, ma le
+  righe release tornano a ~200px perché i tasti vanno a capo. Se qualcuno lavorerà davvero a 1024, la soglia
+  si alza — ma va **misurata**, non scelta.

@@ -1,4 +1,4 @@
-# Handoff — il ramo della densità UI (aggiornato 21 agosto 2026)
+﻿# Handoff — il ramo della densità UI (aggiornato 21 agosto 2026, sera)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **105 voci in 18 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **116 voci in 19 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Sette pagine chiuse, più mezza Versioni
+## Otto pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -35,7 +35,7 @@ già e si riusa**, non si riscrive.
 | Editor aeroporto | `/vsop/{acc}/airports/editor` | 31 286 → 4 913 (LIRF) | `2026-08-20-editor-aeroporto-densita-ui.md` |
 | Editor ACC | `/vsop/{acc}/editor` | 9 690 → 5 595 **in modifica** | `2026-08-20-editor-acc-densita-ui.md` |
 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | **2 515 → 900** | `2026-08-20-confinanti-densita-ui.md` |
-| **Versioni** — *solo lock e azioni* | `/vsop/versioni` | (densità **non** ancora fatta) | `2026-08-21-versioni-lock-e-azioni.md` |
+| **Versioni** | `/vsop/versioni` | **1 664 → 900** (+ lock e azioni) | `2026-08-21-versioni-lock-e-azioni.md`, `2026-08-21-versioni-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -54,56 +54,33 @@ Le carte stanno in `docs/feature/`.
 ⚠️ Le mie misure (altezze, sfori orizzontali) **non vedono un elemento assoluto che copre il contenuto**, e non
 vedono i posti dove *manca* qualcosa. Per quelli servono gli occhi.
 
-## Versioni: fatta la sostanza, resta la forma
+## Versioni: chiusa, in due giri
 
-Il 21 agosto la pagina è stata aperta per la densità e l'analisi ha trovato **tre buchi di sostanza** che
-venivano prima: si poteva **eliminare un documento che un'altra persona stava editando**, «nascondi» non
-chiedeva niente, «elimina» chiedeva **due volte**. Chiusi tutti
-(carta [`2026-08-21-versioni-lock-e-azioni.md`](../feature/2026-08-21-versioni-lock-e-azioni.md), regole
-95-103): badge «chi ci sta lavorando · fino a che ora», hide/delete inibiti **nel service**, force-unlock
-admin, conferme in linea al posto di tre `window.confirm`, chip «in modifica» e per ACC, tasto «Aggiorna»,
-permessi del markup allineati al grant ACC (li mostrava ai soli admin).
+**Sostanza** (carta [`2026-08-21-versioni-lock-e-azioni.md`](../feature/2026-08-21-versioni-lock-e-azioni.md),
+regole 95-105): si poteva **eliminare un documento che un'altra persona stava editando**, «nascondi» non
+chiedeva niente, «elimina» chiedeva **due volte**. Chiusi: badge «chi ci sta lavorando · fino a che ora»,
+hide/delete inibiti **nel service**, force-unlock admin, conferme in linea, chip «in modifica» e per ACC,
+tasto «Aggiorna», permessi del markup allineati al grant ACC, e il lock riletto al clic
+(`InlineConfirm.CanOpenAsync`).
 
-E, su richiesta dopo la prima consegna: **il lock si rilegge al clic**. L'elenco resta una fotografia — un
-lock nato dopo il caricamento non si vede — ma la **domanda** non viene più posta se la risposta sarà un
-rifiuto: `InlineConfirm.CanOpenAsync` (nuovo, additivo, gli altri 13 usi non cambiano) rilegge il lock di
-**quel** documento, aggiorna la riga e non apre la conferma. Il divieto resta comunque nel service.
+**Densità** (carta [`2026-08-21-versioni-densita-ui.md`](../feature/2026-08-21-versioni-densita-ui.md),
+regole 106-116): **1 664 → 900px**, cioè il viewport — la pagina non scorre più, a nessun assetto né zoom.
+Il dettaglio è uscito dall'elenco e sta nel pannello a destra (`.ver-layout`, altezza misurata); i chip dei
+filtri **contano** e hanno mangiato la fascia di riepilogo; le azioni sono salite dalla riga al pannello
+(riga 118 → 63px); «Espandi tutti» è sparito con il dettaglio in linea; la prosa è nei «?» e la Guida ha la
+sua sezione `#versioni`.
 
-⚠️ **Buco dichiarato e non chiuso**: `AeroportoEditorPage` usa `IAirportEditingService`, **non**
-`IEditingService`, quindi non prende il lock del documento — sugli aeroporti il badge non comparirà mai e
-hide/delete non saranno mai inibiti. Portare l'aeroporto sul lock è un giro suo.
+⚠️ **Buco dichiarato e non chiuso** (viene dal primo giro): `AeroportoEditorPage` usa
+`IAirportEditingService`, **non** `IEditingService`, quindi non prende il lock del documento — sugli aeroporti
+il badge non comparirà mai e hide/delete non saranno mai inibiti. Portare l'aeroporto sul lock è un giro suo.
 
 ⚠️ Il lock del `Document` dura **30 minuti senza heartbeat** (`EditResourceLock` invece: 3 min + battito):
-si rinnova al salvataggio e si libera con «Fine modifica». Chi chiude la scheda lo lascia in piedi fin quasi
-a mezz'ora — è la ragione per cui il force-unlock non è un lusso.
+si rinnova al salvataggio e si libera con «Fine modifica». È la ragione per cui il force-unlock non è un lusso.
 
-### Quello che resta da fare su Versioni: la DENSITÀ
+### La prossima pagina
 
-Misurato il 21 agosto guidandola: **1 664px** a 1600 (la ricognizione del 19 diceva 1 613).
-
-- **sottotitolo** sempre a schermo (`Ver_Subtitle`) e **nessun `HelpHint`** in tutta la pagina;
-- **3 callout in fascia** (errore, esito, e il riepilogo di campagna);
-- **4 paragrafi** `muted`/`help` + 4 `span.muted`;
-- ~**27 blocchi di stile in linea**;
-- la pagina usa `.wrap` con `max-width:1100px`, **non** `.wrap.struct`: non è (ancora) una pagina di lavoro
-  a piena larghezza. Decidere se portarla sul layout di lavoro fa parte del giro;
-- i filtri sono `Chip` con stile in linea, **non** `.sh-chip` in gruppo come Aeroporti/Confinanti, e **non
-  contano** (regole 30-32, 68). ⚠️ Adesso sono **quattro** gruppi (tipo, stato, release, ACC): la barra dei
-  filtri è cresciuta, e la conversione a `.sh-chip` vale di più di prima;
-- il conteggio filtrato è una riga di prosa (`Filtered().Count() … Ver_DocsWord`), non un contatore accanto
-  al titolo.
-
-**Le emoji.** 🟢 🕒 🕓 ⚠️ 🔒 — tutte **nel markup**, nessuna dentro i `.resx` (verificato), quindi si tolgono
-senza toccare le traduzioni. ⚠️ Ma sono **vocabolario di stato**, non comandi: la regola 40 salva solo le
-emoji che sono comandi. La decisione era di tenerle finché non c'è un set di pallini colorati (deferito in
-`piano-ux-hardening`) — **da riconfermare prima di toccarle**. I glifi monocromatici (▾ ▴ ▸ ✎ ✕) restano
-testo: è la regola.
-
-⚠️ **Una riga resta alta 118px** invece di 67: quella con un lock altrui *e* i diritti da admin (sette
-elementi più il force-unlock). Se il giro di densità accorcia le etichette, si richiuderà da sé.
-
-Dopo Versioni la lista §15 continua con Permessi, Sorgenti, Audit, Diagnostica, Nuovo documento, Incarichi,
-editor APP/vLOA.
+La lista §15 riparte da **Permessi** (`/vsop/admin/permessi`, 1 346px), poi Sorgenti, Audit, Diagnostica,
+Nuovo documento, Incarichi, editor APP/vLOA.
 
 ## Aperto, e non è di queste pagine
 
