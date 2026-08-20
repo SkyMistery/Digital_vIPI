@@ -23,7 +23,10 @@
     }
     var cols = (grouped ? 1 : 0) + 3 + (Editing || RowActions is not null ? 1 : 0);
 }
-<table class="@(grouped ? "cfg-table" : null)">
+@* In MODIFICA la tabella prende `.freq-edit`: righe strette, perche' qui si lavora (si trascina, si
+   riordina) invece di leggere. La classe esisteva gia' nel foglio dal giro APP e non la usava nessuno:
+   il risultato era la riga da ~60px misurata sull'editor ACC. *@
+<table class="@(grouped ? "cfg-table" : null) @(Editing ? "freq-edit" : null)">
     <thead>
         <tr>
             @if (grouped) { <th>@L["AppFreq_UniSector"]</th> }
