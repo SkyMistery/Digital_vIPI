@@ -2018,3 +2018,8 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    nel componente, che e' condiviso col documento pubblico — li' la riga si legge, non si lavora. */
 .freq-edit td .btn{padding:2px 9px;font-size:12px}
 .freq-edit td{vertical-align:middle}
+
+/* ⚠️ Un «?» CHIUSO allargava la pagina. Il popover e' `position:absolute`, quindi non spinge niente in flusso,
+   ma il suo box resta nell'area scorribile anche a <details> chiuso: misurato a 1280, il «?» del rail arrivava
+   a 1305px e la pagina scorreva di lato. Chiuso non esiste; all'apertura torna e placeHelpPop lo ribalta. */
+.help-hint:not([open]) .help-pop{display:none}
