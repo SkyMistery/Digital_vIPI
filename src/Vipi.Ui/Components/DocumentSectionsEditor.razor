@@ -235,6 +235,7 @@ else
             {
                 @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
                 @if (mand) { <span class="pill grey" title="@L["Dse_MandatoryTitle"]">@L["Dse_Mandatory"]</span> }
+                @HelpFor(s)
                 @if (IsEditing && mand)
                 {
                     <button class="btn ghost" title="@L["Dse_AddSubsectionExtraTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
@@ -281,6 +282,26 @@ else
             }
         </div>
     };
+
+    // Aiuto della sezione: il «?» accanto al titolo, per TUTTI gli editor che montano questo componente.
+    // Prima ogni testo stava come paragrafo dentro il componente del corpo (AppFrequencies, AppConfigurations):
+    // tre righe di prosa sempre a schermo, moltiplicate per ogni blocco della vIPI ACC. Il testo è lo STESSO,
+    // stessa chiave (regola 8): cambia dove si legge. Solo in modifica — spiega come si scrive, non cosa si legge.
+    private static readonly IReadOnlyDictionary<string, (string Key, string Anchor)> HelpByKey =
+        new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["frequencies"] = ("AppFreq_EditHelp", "editor-frequenze"),
+            ["configurations"] = ("AppCfg_EditHelp", "editor-configurazioni"),
+        };
+
+    private RenderFragment? HelpFor(EditableSection s) => !IsEditing || !HelpByKey.TryGetValue(s.SectionKey, out var h)
+        ? null
+        : __builder =>
+        {
+            <HelpHint Href="@($"/vsop/guida#{h.Anchor}")" AriaLabel="@L[h.Key + "Aria"]" ExtraClass="wide">
+                @((MarkupString)L[h.Key].Value)
+            </HelpHint>
+        };
 
     // Corpo a TRE SLOT (doc 11 §3g): sotto-sezioni «prima» → corpo (derivato dall'host o blocchi editoriali) →
     // sotto-sezioni «dopo». Stessa sequenza dei viewer.

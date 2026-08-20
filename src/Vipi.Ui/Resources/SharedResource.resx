@@ -69,8 +69,10 @@
   <data name="Vloa_BilateralNoteBody" xml:space="preserve"><value>Modificabile solo dal lato italiano (staff). Il lato del vicino è in sola lettura.</value></data>
   <data name="Aor_ExtraShapesTitle" xml:space="preserve"><value>Shape aggiuntive</value></data>
   <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Aggiungi shape di altri enti (anche esteri o torri) prese dal database: compaiono come anelli accendibili sulla mappa e sono selezionabili nelle configurazioni.</value></data>
+  <data name="Aor_ExtraShapesAria" xml:space="preserve"><value>Aiuto sulle shape extra</value></data>
   <data name="Aor_ColorsTitle" xml:space="preserve"><value>Colori dei settori</value></data>
   <data name="Aor_ColorsHelp" xml:space="preserve"><value>Ogni ente ha un colore di default per tipo (es. le torri in rosso). Cambialo qui per singolo settore; «default» ripristina il colore del tipo.</value></data>
+  <data name="Aor_ColorsAria" xml:space="preserve"><value>Aiuto sui colori dei settori</value></data>
   <data name="AppCfg_PickHint" xml:space="preserve"><value>Apri una configurazione; selezionandola nell'AoR si apre qui in automatico.</value></data>
   <data name="AppCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
   <data name="AppCfg_Range" xml:space="preserve"><value>Range</value></data>
@@ -276,6 +278,7 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Settore unico</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>Nessuna frequenza nel sottoalbero.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Le frequenze si derivano dall'albero dei settori: cambia la gerarchia e cambiano qui. Riordina trascinando ⠿ o con ↑/↓; aggiungi frequenze esterne con «Collega frequenza».</value></data>
+  <data name="AppFreq_EditHelpAria" xml:space="preserve"><value>Aiuto sulle frequenze</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Trasferimenti del settore di avvicinamento: verso gli ACC e verso la/e torre/i. Derivati dai flussi configurati.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>Nessun coordinamento configurato per questo APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Trasferimenti verso ACC</value></data>
@@ -342,6 +345,7 @@
   <data name="AppSep_Add" xml:space="preserve"><value>+ Aggiungi separazione</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>Nessuna separazione indicata.</value></data>
   <data name="AppCfg_EditHelp" xml:space="preserve"><value>Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</value></data>
+  <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Aiuto sulle configurazioni</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Nome configurazione</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Rimuovi configurazione</value></data>
   <data name="AppCfg_OpenSectors" xml:space="preserve"><value>Settori aperti</value></data>

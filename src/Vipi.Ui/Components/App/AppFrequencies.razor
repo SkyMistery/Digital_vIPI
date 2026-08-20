@@ -1,4 +1,4 @@
-@* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link.
+﻿@* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link.
    Con GroupOf (Aerovia ACC): colonna "Settore unico" con rowspan che accorpa le CTR per ramo dell'albero (#5). *@
 @inject IStringLocalizer<SharedResource> L
 @{
@@ -77,10 +77,8 @@
         }
     </tbody>
 </table>
-@if (Editing)
-{
-    <p class="help" style="margin:8px 0 0">@L["AppFreq_EditHelp"]</p>
-}
+@* La spiegazione di come si riordina sta nel «?» della riga-titolo della sezione (DocumentSectionsEditor):
+   stesso testo, stessa chiave (AppFreq_EditHelp), ma non piu' tre righe fisse per ogni blocco. *@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AppFreqRow> Rows { get; set; } = Array.Empty<AppFreqRow>();

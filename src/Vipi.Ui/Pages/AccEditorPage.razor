@@ -555,15 +555,25 @@ else
                 <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
                 @if (_editing)
                 {
+                    @* Titolo e «?» in riga: il paragrafo che stava sempre a schermo si legge al clic, con la sua
+                       chiave (regola 8). Due pannelli per blocco, quindi due paragrafi per blocco. *@
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h4>
-                        <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
+                        <div class="ed-h3">
+                            <h4 style="margin:0">@L["Aor_ExtraShapesTitle"]</h4>
+                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ExtraShapesAria"]" ExtraClass="wide">
+                                @L["Aor_ExtraShapesHelp"]
+                            </HelpHint>
+                        </div>
                         <AorExtraShapePicker Selected="blk.Block.ExtraAorCallsigns" Catalog="_shapeCatalog" Editing="_editing"
                                              SelectedChanged="cs => SaveAorExtras(blk, cs)" />
                     </div>
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h4>
-                        <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
+                        <div class="ed-h3">
+                            <h4 style="margin:0">@L["Aor_ColorsTitle"]</h4>
+                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ColorsAria"]" ExtraClass="wide">
+                                @L["Aor_ColorsHelp"]
+                            </HelpHint>
+                        </div>
                         <AorColorEditor Sectors="(_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty).Sectors" Editing="_editing"
                                         ColorChanged="pick => SaveAorColor(blk, pick)" />
                     </div>

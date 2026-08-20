@@ -1,4 +1,4 @@
-@* Sezione Configurazioni CONDIVISA (vIPI ACC blocco Aerovia/gruppo-APP + vIPI APP standalone). In edit: crea/rinomina
+﻿@* Sezione Configurazioni CONDIVISA (vIPI ACC blocco Aerovia/gruppo-APP + vIPI APP standalone). In edit: crea/rinomina
    configurazioni, scegli i settori aperti, imposta Center Point/Range per settore unificato; il sistema deriva
    l'accorpamento (Tables). In lettura: le tabelle accorpamento in <details>. Emette l'intera lista via ConfigsChanged. *@
 @using Vipi.Application.Content
@@ -6,7 +6,7 @@
 
 @if (Editing)
 {
-    <p class="help" style="margin:0 0 8px">@L["AppCfg_EditHelp"]</p>
+    @* AppCfg_EditHelp e' nel «?» della riga-titolo della sezione: stesso testo, stessa chiave. *@
     @foreach (var c in Configs)
     {
         var cfg = c;

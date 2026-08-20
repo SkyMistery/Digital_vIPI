@@ -69,8 +69,10 @@
   <data name="Vloa_BilateralNoteBody" xml:space="preserve"><value>Editable on the Italian side only (staff). The neighbour side is read-only.</value></data>
   <data name="Aor_ExtraShapesTitle" xml:space="preserve"><value>Additional shapes</value></data>
   <data name="Aor_ExtraShapesHelp" xml:space="preserve"><value>Add shapes of other units (foreign ones or towers too) taken from the database: they appear as toggleable rings on the map and can be selected in the configurations.</value></data>
+  <data name="Aor_ExtraShapesAria" xml:space="preserve"><value>Help on extra shapes</value></data>
   <data name="Aor_ColorsTitle" xml:space="preserve"><value>Sector colours</value></data>
   <data name="Aor_ColorsHelp" xml:space="preserve"><value>Each unit has a default colour by type (towers in red, for instance). Change it here per sector; "default" restores the type colour.</value></data>
+  <data name="Aor_ColorsAria" xml:space="preserve"><value>Help on sector colours</value></data>
   <data name="AppCfg_PickHint" xml:space="preserve"><value>Open a configuration; selecting it on the AoR opens it here automatically.</value></data>
   <data name="AppCfg_CenterPoint" xml:space="preserve"><value>Center Point</value></data>
   <data name="AppCfg_Range" xml:space="preserve"><value>Range</value></data>
@@ -273,6 +275,7 @@
   <data name="AppFreq_UniSector" xml:space="preserve"><value>Unified sector</value></data>
   <data name="AppFreq_NoneInSubtree" xml:space="preserve"><value>No frequency in the subtree.</value></data>
   <data name="AppFreq_EditHelp" xml:space="preserve"><value>Frequencies derive from the sector tree: change the hierarchy and they change here. Reorder by dragging ⠿ or with ↑/↓; add external frequencies with «Link frequency».</value></data>
+  <data name="AppFreq_EditHelpAria" xml:space="preserve"><value>Help on frequencies</value></data>
   <data name="AppCoord_Intro" xml:space="preserve"><value>Approach sector transfers: towards ACCs and towards the tower(s). Derived from the configured flows.</value></data>
   <data name="AppCoord_None" xml:space="preserve"><value>No coordination configured for this APP.</value></data>
   <data name="AppCoord_TowardAcc" xml:space="preserve"><value>Transfers towards ACC</value></data>
@@ -339,6 +342,7 @@
   <data name="AppSep_Add" xml:space="preserve"><value>+ Add separation</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>No separation specified.</value></data>
   <data name="AppCfg_EditHelp" xml:space="preserve"><value>Create a configuration, name it and choose the open sectors. The system computes the merging.</value></data>
+  <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Help on configurations</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Configuration name</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Remove configuration</value></data>
   <data name="AppCfg_OpenSectors" xml:space="preserve"><value>Open sectors</value></data>

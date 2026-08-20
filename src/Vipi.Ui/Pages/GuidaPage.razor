@@ -394,12 +394,56 @@
                and the transfer points (CoP).</p>"),
 
         new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
-            @"<p>L'editor del vIPI di ACC (<code>/vsop/{acc}/editor</code>) è <b>multi-albero</b>: un documento può coprire
-               più alberi di settori (CTR + APP dell'area, anche cross-ACC). Da qui imposti anche cosa mettere
-               <b>«In evidenza»</b> nella landing ACC (aeroporti, APP, vLOA — massimo 3 ciascuno).</p>",
-            @"<p>The ACC vIPI editor (<code>/vsop/{acc}/editor</code>) is <b>multi-tree</b>: one document can cover
-               several sector trees (CTR + APP of the area, even cross-ACC). From here you also set what to
-               <b>""Feature""</b> on the ACC landing (airports, APPs, vLOAs — max 3 each).</p>"),
+            @"<p>L'editor del vIPI di ACC (<code>/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
+               <b>settori di aerovia</b> e un blocco per ogni <b>gruppo APP</b>. Ogni blocco copre il suo albero di
+               settori, anche cross-ACC.</p>
+              <ul>
+                <li><b>Un blocco per volta.</b> Il titolo del blocco è la maniglia: si apre e si chiude, e aprendone
+                    uno gli altri si chiudono. Accanto al nome, quante sezioni contiene.</li>
+                <li><b>Le sezioni si aprono e si chiudono</b> una per una; «Espandi tutto / Comprimi tutto» in fondo
+                    all'indice agisce su blocchi e sezioni insieme.</li>
+                <li><b>Si salva a ogni gesto</b>, nella <b>bozza</b>: il pubblico vede solo dopo «Pubblica ora».
+                    Lo stato del documento e il lock stanno nella riga del titolo.</li>
+                <li><b>⤢ Larghezza piena</b> toglie indice e rail quando serve spazio alle tabelle.</li>
+              </ul>",
+            @"<p>The ACC vIPI editor (<code>/vsop/{acc}/editor</code>) is made of <b>blocks</b>: the
+               <b>airway sectors</b> and one block per <b>APP group</b>. Each block covers its own sector tree, even
+               across ACCs.</p>
+              <ul>
+                <li><b>One block at a time.</b> The block title is the handle: it opens and closes, and opening one
+                    closes the others. Next to the name, how many sections it holds.</li>
+                <li><b>Sections open and close</b> one by one; «Expand all / Collapse all» at the bottom of the index
+                    acts on blocks and sections together.</li>
+                <li><b>Every gesture is saved</b>, in the <b>draft</b>: the public only sees it after «Publish now».
+                    Document status and lock live in the title row.</li>
+                <li><b>⤢ Full width</b> hides index and rail when the tables need the room.</li>
+              </ul>"),
+
+        new Sec("editor-frequenze", "radio", "Frequenze (derivate)", "Frequencies (derived)",
+            @"<p>Le frequenze <b>si derivano dall'albero dei settori</b>: cambia la gerarchia in «Struttura» e
+               cambiano qui. Nell'editor puoi <b>riordinarle</b> trascinando ⠿ o con ↑/↓, e <b>collegare</b> la
+               frequenza di un altro ente (resta un riferimento vivo: se cambia là, cambia qui).</p>",
+            @"<p>Frequencies are <b>derived from the sector tree</b>: change the hierarchy in «Structure» and they
+               change here. In the editor you can <b>reorder</b> them by dragging ⠿ or with ↑/↓, and <b>link</b>
+               another unit's frequency (it stays a live reference: if it changes there, it changes here).</p>"),
+
+        new Sec("editor-configurazioni", "grid", "Configurazioni di settore", "Sector configurations",
+            @"<p>Una <b>configurazione</b> è un assetto di apertura: le dai un nome e scegli quali settori sono
+               <b>aperti</b>. Il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è
+               quella che si legge nel documento. Center Point e Range si impostano per settore unificato.</p>",
+            @"<p>A <b>configuration</b> is an opening layout: you name it and choose which sectors are <b>open</b>.
+               The system computes the <b>merging</b> — who absorbs whom — and the resulting table is the one read in
+               the document. Center Point and Range are set per unified sector.</p>"),
+
+        new Sec("editor-aor", "map", "AOR: shape extra e colori", "AOR: extra shapes and colours",
+            @"<p>La mappa AOR mostra gli anelli dei settori del blocco. Puoi <b>aggiungere shape di altri enti</b>
+               presi dal database (anche esteri o torri): compaiono come anelli accendibili e sono selezionabili
+               nelle configurazioni. Il <b>colore</b> è per tipo di ente (le torri in rosso, ecc.) e si può cambiare
+               per singolo settore; «default» rimette quello del tipo.</p>",
+            @"<p>The AOR map shows the rings of the block's sectors. You can <b>add shapes of other units</b> taken
+               from the database (foreign ones or towers too): they appear as toggleable rings and can be selected in
+               the configurations. The <b>colour</b> comes from the unit type (towers in red, and so on) and can be
+               changed per sector; «default» restores the type's colour.</p>"),
 
         new Sec("accordi", "refresh", "Accordi di coordinamento", "Coordination agreements",
             @"<p>Un <b>accordo</b> lega <b>due elenchi di enti</b> per un tipo di traffico, su <b>tutti gli
