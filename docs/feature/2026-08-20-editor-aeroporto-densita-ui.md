@@ -177,6 +177,18 @@ Risultato misurato, con **zero celle tagliate** in entrambe le tabelle e in entr
 Il valore intero, che nessuna colonna può contenere (nel DB si arriva a 59 caratteri), si legge col passaggio
 del mouse: `title` sul campo.
 
+Poi le due colonne di destra si sono prese quel che serve **per farsi leggere il nome**, e Condition ha ceduto
+(è elastica: dare a una toglie a lei, senza toccare nient'altro):
+
+- «Pubblicazione» → **«Stato»**, con la chiave che c'era già (`Common_State`, la stessa della pagina
+  Aeroporti): in una colonna da 90px «Pubblicazione» non ci stava nemmeno coi puntini. `Ape_Publication` non
+  la usava più nessuno: via da entrambi i resx.
+- «Priorità»/«Priority» come intestazione vuole **69px** (misurato col font delle `th`: 11px maiuscolo,
+  spaziatura .04em), la colonna ne aveva 44: ora 70.
+
+Misurato dopo: **nessuna intestazione tagliata**, in italiano **e** in inglese, in entrambe le tabelle e in
+entrambe le modalità; Condition scende a 92px in larghezza normale e resta a **548** in larghezza piena.
+
 ⚠️ Il prezzo è lo scorrimento orizzontale del riquadro quando indice e rail sono a schermo (84px sulle
 importate, 95 sulle manuali): il tasto ⤢ lo azzera. La scelta è deliberata — meglio scorrere di ottanta pixel
 che leggere «CON…» al posto di «CONV».

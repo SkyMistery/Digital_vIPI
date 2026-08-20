@@ -1954,7 +1954,7 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table.sid-imported th.col-climb,.struct .res-table.sid-imported td.col-climb{width:132px}
 .struct .res-table.sid-imported th.col-cat,.struct .res-table.sid-imported td.col-cat{width:101px}
 .struct .res-table.sid-imported th.col-wtc,.struct .res-table.sid-imported td.col-wtc{width:84px}
-.struct .res-table.sid-imported th.col-prio,.struct .res-table.sid-imported td.col-prio{width:44px}
+.struct .res-table.sid-imported th.col-prio,.struct .res-table.sid-imported td.col-prio{width:70px}
 .struct .res-table.sid-imported th.col-pub,.struct .res-table.sid-imported td.col-pub{width:90px}
 /* --- SID manuali: stesse colonne meno spunta e pubblicazione, più i tasti di riga. --- */
 /* ⚠️ Nelle manuali quasi tutte le celle sono CAMPI, e un campo vuole le sue gronde (9px per lato) più —
@@ -1970,7 +1970,7 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table.sid-manual th.col-climb,.struct .res-table.sid-manual td.col-climb{width:132px}
 .struct .res-table.sid-manual th.col-cat,.struct .res-table.sid-manual td.col-cat{width:101px}
 .struct .res-table.sid-manual th.col-wtc,.struct .res-table.sid-manual td.col-wtc{width:84px}
-.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:58px}
+.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:70px}
 .struct .res-table.sid-manual th.col-pub,.struct .res-table.sid-manual td.col-pub{width:90px}
 .struct .res-table.sid-manual th.col-act,.struct .res-table.sid-manual td.col-act{width:66px}
 .struct .res-table.sid-manual td.col-act .btn{margin-left:2px;padding:5px 8px}

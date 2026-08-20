@@ -433,7 +433,7 @@ else
                            viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
                            in verticale — misurato, 128px di altezza per riga invece di 44. *@
                         <table class="res-table sid-table sid-edit sid-imported sticky-head">
-                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub" title="@L["Ape_Publication"]">@L["Ape_Publication"]</th></tr></thead>
+                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
                             <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                                 @for (var vi = 0; vi < iview.Count; vi++)
                                 {
@@ -525,7 +525,7 @@ else
                     <table class="res-table sid-table sid-edit sid-manual">
                         @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
                            tabelle non deve reimparare dove sta cosa. *@
-                        <thead><tr><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub" title="@L["Ape_Publication"]">@L["Ape_Publication"]</th><th class="col-act"></th></tr></thead>
+                        <thead><tr><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
                         <tbody>
                             @foreach (var s in ManualView())
                             {

@@ -1350,7 +1350,6 @@
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priority</value></data>
-  <data name="Ape_Publication" xml:space="preserve"><value>Publication</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix to verify</value></data>
   <data name="Ape_AliasTitle" xml:space="preserve"><value>Add the alias {0} → for future imports</value></data>
   <data name="Ape_Public" xml:space="preserve"><value>public</value></data>
