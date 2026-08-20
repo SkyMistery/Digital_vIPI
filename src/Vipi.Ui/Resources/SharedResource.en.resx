@@ -1175,6 +1175,8 @@
   <data name="Acc_DeniedBody" xml:space="preserve"><value>You do not have permission for ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Loading vIPI editor…</value></data>
   <data name="Acc_Subtitle" xml:space="preserve"><value>Airway sectors + APP groups</value></data>
+  <data name="Acc_HelpAria" xml:space="preserve"><value>Help on the ACC vIPI editor</value></data>
+  <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;The document is made of &lt;b&gt;blocks&lt;/b&gt;: the airway sectors and one block per &lt;b&gt;APP group&lt;/b&gt;. Each block opens and closes from its title; opening one closes the others.&lt;/li&gt;&lt;li&gt;Inside a block every &lt;b&gt;section&lt;/b&gt; opens and closes on its own, and «Expand all / Collapse all» at the bottom of the index acts on all of them.&lt;/li&gt;&lt;li&gt;You are writing in the &lt;b&gt;draft&lt;/b&gt;: every change is saved at once, but the public only sees it after «Publish now».&lt;/li&gt;&lt;li&gt;AoR, frequencies and coordination are &lt;b&gt;derived&lt;/b&gt; from the catalogues: change them in the sector structure, not by hand.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Open the live draft in a new tab</value></data>
   <data name="Acc_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}.</value></data>
   <data name="Acc_RemoveGroupTitle" xml:space="preserve"><value>Remove group</value></data>
@@ -1230,10 +1232,10 @@
   <data name="Ape_SidManualHelpAria" xml:space="preserve"><value>Help on manual SIDs</value></data>
   <data name="Ape_SidImportedCountTitle" xml:space="preserve"><value>Imported SIDs shown out of the total</value></data>
   <data name="Ape_SidSelectHint" xml:space="preserve"><value>In the left column: click to pick a row, Shift or Ctrl+click for a range, drag down to pick and up to unpick. From the keyboard, Enter or Space on the cell.</value></data>
-  <data name="Ape_SidWide" xml:space="preserve"><value>Full width</value></data>
-  <data name="Ape_SidNarrow" xml:space="preserve"><value>Shrink</value></data>
-  <data name="Ape_SidWideTitle" xml:space="preserve"><value>Hide the index and the rail: the table uses the full page width</value></data>
-  <data name="Ape_SidNarrowTitle" xml:space="preserve"><value>Bring back the index and the rail</value></data>
+  <data name="Ed_Wide" xml:space="preserve"><value>Full width</value></data>
+  <data name="Ed_Narrow" xml:space="preserve"><value>Shrink</value></data>
+  <data name="Ed_WideTitle" xml:space="preserve"><value>Hide the index and the rail: the table uses the full page width</value></data>
+  <data name="Ed_NarrowTitle" xml:space="preserve"><value>Bring back the index and the rail</value></data>
   <data name="Ape_SidSearchPh" xml:space="preserve"><value>search fix, SID or runway…</value></data>
   <data name="Ape_SidManualSearchPh" xml:space="preserve"><value>search fix, name or runway…</value></data>
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>to verify {0}</value></data>

@@ -393,8 +393,8 @@ else
                             <span class="ln"></span>
                             @* ⤢ larghezza piena: TOC e rail via mentre si lavora nelle SID. A 1600 la colonna
                                centrale è 946px per dodici colonne; senza i due lati diventa 1536. *@
-                            <button class="btn ghost" @onclick="() => _sidWide = !_sidWide" title="@(_sidWide ? L["Ape_SidNarrowTitle"] : L["Ape_SidWideTitle"])"
-                                    aria-pressed="@_sidWide.ToString().ToLowerInvariant()">@(_sidWide ? "⤡" : "⤢") @(_sidWide ? L["Ape_SidNarrow"] : L["Ape_SidWide"])</button>
+                            <button class="btn ghost" @onclick="() => _sidWide = !_sidWide" title="@(_sidWide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])"
+                                    aria-pressed="@_sidWide.ToString().ToLowerInvariant()">@(_sidWide ? "⤡" : "⤢") @(_sidWide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
                             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportSid"]</button>
                         </div>
                         @* Barra dei filtri: campi di Struttura (la lente è disegnata nel campo) e chip SEMPRE

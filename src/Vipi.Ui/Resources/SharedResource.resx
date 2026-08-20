@@ -1178,6 +1178,8 @@
   <data name="Acc_DeniedBody" xml:space="preserve"><value>Non hai i permessi per la ACC {0}.</value></data>
   <data name="Acc_LoadingEditor" xml:space="preserve"><value>Caricamento editor vIPI…</value></data>
   <data name="Acc_Subtitle" xml:space="preserve"><value>Settori di aerovia + gruppi APP</value></data>
+  <data name="Acc_HelpAria" xml:space="preserve"><value>Aiuto sull'editor vIPI ACC</value></data>
+  <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;Il documento e' fatto di &lt;b&gt;blocchi&lt;/b&gt;: i settori di aerovia e un blocco per ogni &lt;b&gt;gruppo APP&lt;/b&gt;. Ogni blocco si apre e si chiude dal titolo; aprendone uno gli altri si chiudono.&lt;/li&gt;&lt;li&gt;Dentro il blocco ogni &lt;b&gt;sezione&lt;/b&gt; si apre e si chiude per conto suo, e «Espandi tutto / Comprimi tutto» in fondo all'indice agisce su tutte.&lt;/li&gt;&lt;li&gt;Qui si scrive nella &lt;b&gt;bozza&lt;/b&gt;: ogni modifica e' salvata subito, ma il pubblico vede solo dopo «Pubblica ora».&lt;/li&gt;&lt;li&gt;AoR, frequenze e coordinamenti sono &lt;b&gt;derivati&lt;/b&gt; dai cataloghi: si cambiano dalla struttura dei settori, non a mano.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Apri la bozza live in una nuova scheda</value></data>
   <data name="Acc_LockedByOtherBody" xml:space="preserve"><value>Bloccato da {0}{1}.</value></data>
   <data name="Acc_RemoveGroupTitle" xml:space="preserve"><value>Rimuovi gruppo</value></data>
@@ -1233,10 +1235,10 @@
   <data name="Ape_SidManualHelpAria" xml:space="preserve"><value>Aiuto sulle SID manuali</value></data>
   <data name="Ape_SidImportedCountTitle" xml:space="preserve"><value>SID importate mostrate rispetto al totale</value></data>
   <data name="Ape_SidSelectHint" xml:space="preserve"><value>Nella colonna di sinistra: clic per scegliere una riga, Shift o Ctrl+clic per un intervallo, trascina in giù per scegliere e in su per togliere. Da tastiera, Invio o Spazio sulla cella.</value></data>
-  <data name="Ape_SidWide" xml:space="preserve"><value>Larghezza piena</value></data>
-  <data name="Ape_SidNarrow" xml:space="preserve"><value>Riduci</value></data>
-  <data name="Ape_SidWideTitle" xml:space="preserve"><value>Nascondi indice e rail: la tabella usa tutta la larghezza della pagina</value></data>
-  <data name="Ape_SidNarrowTitle" xml:space="preserve"><value>Rimetti indice e rail</value></data>
+  <data name="Ed_Wide" xml:space="preserve"><value>Larghezza piena</value></data>
+  <data name="Ed_Narrow" xml:space="preserve"><value>Riduci</value></data>
+  <data name="Ed_WideTitle" xml:space="preserve"><value>Nascondi indice e rail: la tabella usa tutta la larghezza della pagina</value></data>
+  <data name="Ed_NarrowTitle" xml:space="preserve"><value>Rimetti indice e rail</value></data>
   <data name="Ape_SidSearchPh" xml:space="preserve"><value>cerca fix, SID o pista…</value></data>
   <data name="Ape_SidManualSearchPh" xml:space="preserve"><value>cerca fix, nome o pista…</value></data>
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>da verificare {0}</value></data>

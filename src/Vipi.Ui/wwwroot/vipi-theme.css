@@ -1992,3 +1992,11 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   .ed-layout,.ed-layout.with-rail,.ed-layout.with-rail.sid-wide{grid-template-columns:minmax(0,1fr)}
   .ed-layout>.toc,.ed-layout>.ed-rail{position:static;max-height:none}
 }
+
+/* ---- Editor ACC, giro densità del 20 agosto 2026 (docs/feature/2026-08-20-editor-acc-densita-ui.md) ----
+   Le regole nuove stanno in CODA al foglio: a parità di peso vince l'ultima (regola 56). */
+
+/* Chip di stato «va bene» in testata: il verde della lockbar, che il set di .sh-chip non aveva. */
+.sh-chip.ok{background:#dafbe7;color:var(--ok-ink);border-color:#a7e9c1}
+/* Comando spinto a fondo riga nella testata, come fa la .lockbar sulle pagine di elenco. */
+.st-head .st-head-end{margin-left:auto}

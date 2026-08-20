@@ -35,22 +35,41 @@ else
         }
         else
         {
+            @* ---- Testata in UNA riga: titolo · «?» · stato · lock ----
+               Come sull'editor aeroporto i comandi di scrittura restano nel rail (già appiccicato) e la riga
+               porta solo DOVE sei e COME sta il documento. Il sottotitolo è dentro il «?» con la sua chiave
+               (regola 8), e il lock è uno STATO in riga, non una fascia (regola 1). *@
             <div class="editor-bar">
-                <div class="doc-head" style="margin:0">
-                    <div><h2 style="margin-bottom:2px">✎ @L["Acc_EditorTitle"] @_accName</h2><span class="muted">@L["Acc_Subtitle"]</span></div>
+                <div class="doc-head st-head" style="margin:0">
+                    <h2 class="st-h2">✎ @L["Acc_EditorTitle"] @_accName</h2>
+                    <HelpHint Href="/vsop/guida#editor-acc" AriaLabel="@L["Acc_HelpAria"]" ExtraClass="wide">
+                        <p>@L["Acc_Subtitle"]</p>
+                        @((MarkupString)L["Acc_HelpBody"].Value)
+                    </HelpHint>
+                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _doc.VersionNumber] : L["Ed_PublishedVN", _doc.VersionNumber])
+                    </span>
+                    @if (_editing)
+                    {
+                        <span class="sh-chip ok">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } me ? L["Lock_UntilSuffix", me.ToLocalTime().ToString("HH:mm")].Value : "")</span>
+                    }
+                    else if (_lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="sh-chip warn" title="@(string.Format(L["Acc_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, ""))">
+                            🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", oe.ToLocalTime().ToString("HH:mm")].Value : "")
+                        </span>
+                    }
+                    @* ⤢ Larghezza piena: stesso comando dell'editor aeroporto, stessa classe (.sid-wide) e stesse
+                       chiavi — qui serve alle tabelle larghe (frequenze, coordinamenti). *@
+                    <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
+                            aria-pressed="@_wide.ToString().ToLowerInvariant()"
+                            title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
                 </div>
             </div>
 
             <DocReviewBar DocumentId="_docId" />
 
-            @if (_lock is { Locked: true, IsMine: false })
-            {
-                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
-                    @(string.Format(L["Acc_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
-            }
-            @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
-
-            <div class="ed-layout with-rail">
+            <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
             <EditorToc Items="BuildToc()" />
             <div>
             @foreach (var bs in _doc.Sections)
@@ -118,11 +137,11 @@ else
                           Published="LoadAsync" />
             </div>
             <aside class="ed-rail">
-                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                    @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
-                </span>
+                @* Stato e lock stanno in TESTATA (riga unica): qui restano i comandi. I badge del lock che
+                   stavano in questo rail scrivevano l'ora in UTC, mentre la lockbar delle altre pagine la
+                   scrive locale — la stessa scadenza compariva a due ore diverse. *@
+                @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
                 <a class="btn ghost" data-tour="preview" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="@L["Acc_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
                 <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
                     Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
@@ -130,12 +149,10 @@ else
                 </HelpHint>
                 @if (_editing)
                 {
-                    <span class="save-badge lock-mine" title="@L["Lock_Editing"]">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToString("HH:mm")) : "")</span>
                     <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
                 }
                 else if (_lock is { Locked: true, IsMine: false })
                 {
-                    <span class="save-badge lock-badge" title="@L["Ed_LockedByOther"]">🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } e ? $" · → {e:HH:mm}" : "")</span>
                     <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
                 }
                 else
@@ -144,6 +161,16 @@ else
                 }
             </aside>
             </div>
+        }
+    </div>
+
+    @* Errore: toast fisso, non una fascia sopra il contenuto (regola 5). In una pagina da migliaia di pixel una
+       fascia in cima è un messaggio che nessuno vede — e che intanto spinge in giù la sezione su cui si lavora. *@
+    <div class="editor-toast">
+        @if (_error is not null)
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div>
+                <button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null" title="@L["Common_Close"]">✕</button></div>
         }
     </div>
 }
@@ -161,6 +188,7 @@ else
     private AccDocumentModel? _model;
     private LockInfo _lock = LockInfo.Free();
     private bool _denied, _editing;
+    private bool _wide;   // ⤲ larghezza piena: indice e rail via, per le tabelle larghe
     private string? _error;
 
     private enum SaveState { Idle, Saving, Saved }
