@@ -1,9 +1,10 @@
-# Regole di densità e uso per le pagine admin (19 agosto 2026)
+﻿# Regole di densità e uso per le pagine admin (19-20 agosto 2026)
 
-> **A cosa serve.** Fra il 16 e il 20 agosto cinque pagine admin sono state rifatte nella forma —
+> **A cosa serve.** Fra il 16 e il 20 agosto sei pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
 > [ACC](../feature/2026-08-19-acc-admin-densita-ui.md), [aeroporti](../feature/2026-08-19-aeroporti-densita-ui.md),
-> [editor aeroporto](../feature/2026-08-20-editor-aeroporto-densita-ui.md)
+> [editor aeroporto](../feature/2026-08-20-editor-aeroporto-densita-ui.md),
+> [editor ACC](../feature/2026-08-20-editor-acc-densita-ui.md)
 > — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
@@ -248,6 +249,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | ACC | `/vsop/admin/acc` | 8714 | testata appiccicata, `thead` fermo su entrambe le tabelle (28 e 152 righe) |
 | Aeroporti | `/vsop/admin/airports` | 900 | **da 13 745**: due pannelli misurati, `thead` fermo dentro lo scroller, azioni di gruppo con avanzamento ([carta](../feature/2026-08-19-aeroporti-densita-ui.md)) |
 | Editor aeroporto | `/vsop/{acc}/airports/editor` | 4 913 | **da 31 286** su LIRF (206 SID): riquadro col tetto e `thead` fermo, riga 128→45px, larghezza piena, modificata≠scelta ([carta](../feature/2026-08-20-editor-aeroporto-densita-ui.md)). L'altezza non dipende più dai dati |
+| Editor ACC | `/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -255,16 +257,15 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Editor ACC** | `/vsop/{acc}/editor` | 6 466 | Sottotitolo in testa, 3 paragrafi d'aiuto, tabelle corte (12 righe) ma nessun `thead` fermo; un solo «?». Stesso discorso rail/TOC. |
-| 2 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
-| 3 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
-| 4 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
-| 5 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 6 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 7 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 8 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 9 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 10 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | 2 515 | Tabella da 33 righe senza `thead` fermo, **4 callout in fascia**, 10 paragrafi d'aiuto, **nessun «?»**, emoji 💾 📐. Ha già i campi `.htree-*`. |
+| 2 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
+| 3 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
+| 4 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 5 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 6 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 7 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 8 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 9 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ### Fuori ambito: le viste pubbliche
 
@@ -281,6 +282,38 @@ Il numero grande (l'altezza) dice **quanto** si guadagna, non **da dove** cominc
 intervento è il `thead` appiccicato (due tabelle da 92 e 221 righe in cui si scrive), non la testata. La regola
 d'ordine è: **prima ciò che serve a chi sta lavorando in fondo alla pagina** (intestazioni che restano, il posto
 da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la forma (icone, campi, nomi).
+
+## 16. Quello che ha lasciato il giro Editor ACC
+
+69. **Si misura la pagina COME SI USA.** La ricognizione aveva pesato l'editor ACC in lettura (6 466px); in
+    **modifica** — che è il solo motivo per cui ci si va — sono 9 690. Ogni comando in più e ogni picker che
+    compare solo in scrittura sta nel numero che conta, e non nell'altro.
+70. **Un contenitore che si chiude vale più di dieci ritocchi dentro.** Un blocco della vIPI ACC aperto sono
+    dieci sezioni e una mappa: chiuderlo toglie ~3 700px, cioè più di tutto il resto del giro messo insieme.
+    Con la **fisarmonica** (aprendone uno gli altri si chiudono) la pagina non torna a crescere da sola.
+71. ⚠️ **L'evento `toggle` arriva DOPO.** Aprire in gruppo e poi spegnere una bandiera «non fare la
+    fisarmonica» non funziona: quando l'evento arriva, la bandiera è già spenta — misurato, «espandi tutto»
+    apriva **un** blocco. Si **marchia l'elemento** (un marchio = un evento, consumato dal gestore).
+72. **Chi porta a schermo un elemento deve misurare DOPO che il layout si è assestato**, e ritentare: aprire un
+    `<details>` mette in coda un `toggle` che può cambiare l'altezza di ciò che sta **sopra** (la fisarmonica,
+    una mappa che si inizializza). Misurato: bersaglio a −249px, cioè fuori schermo di sopra; con una sola
+    correzione tardiva atterrava a 25px, cioè **sotto la top-bar**. Ne servono due.
+73. ⚠️ **Mai `scrollIntoView` dentro un gestore di `scroll`.** È un cane che si morde la coda, e con un
+    bersaglio **appiccicato** non finisce mai: il tour di onboarding puntava l'indice `position:sticky` e
+    scorreva la pagina da solo — 263 chiamate, 3 268px, su ogni editor, alla prima visita. Si scorre quando
+    **cambia il passo**, non quando cambia lo scorrimento.
+74. **Un «?» CHIUSO occupa spazio.** Il popover è `position:absolute`: non spinge niente in flusso, ma il suo
+    box resta nell'**area scorribile**. A 1280 quello di un rail arrivava a 1 305px e la pagina scorreva di
+    lato. Chiuso non deve esistere (`.help-hint:not([open]) .help-pop{display:none}`).
+75. **Una classe morta nel foglio è un difetto che aspetta.** La riga della tabella frequenze era alta 60px
+    perché `.freq-edit` — scritta apposta nel giro APP — non la applicava nessuno. Prima di scrivere una regola
+    nuova, cercare se esiste già e **chi la usa**: `grep` sulla classe, non solo sul foglio.
+76. **La lingua si vede solo guidando nell'altra lingua.** Le frasi scritte a mano dentro un componente non
+    danno errore, non rompono i test e in italiano non si notano: in inglese la pagina diventa **mista**. Un
+    giro di verifica va fatto con `Accept-Language: en`.
+77. **Il testo d'aiuto di una sezione appartiene alla riga-titolo della sezione**, non al componente del corpo:
+    messo lì da una mappa sola (`DocumentSectionsEditor`), lo prendono **tutti** gli editor che montano quel
+    componente, invece di doverlo rifare per pagina.
 
 ## Dove sta la roba
 
@@ -301,8 +334,13 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Larghezza piena (indice e rail via) | `.ed-layout.sid-wide` |
 | Colonne SID misurate + Condition elastica | `.sid-edit` (base), `.sid-imported` / `.sid-manual` (larghezze) |
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
+| Blocco della vIPI ACC che si chiude | `details.acc-block` + fisarmonica in `vipi-editor.js` |
+| Espandi/comprimi tutto (ogni editor) | `vipiEditorSections` — sezioni bespoke, blocchi ACC e card `.cb` |
+| Portare un'ancora a schermo | `scrollAfterLayout` — `vipi-ui.js` (due rAF + correzioni) |
+| Aiuto della sezione | mappa `HelpByKey` in `DocumentSectionsEditor` |
+| Larghezza piena (chiavi condivise) | `Ed_Wide` / `Ed_Narrow` / `Ed_WideTitle` / `Ed_NarrowTitle` |
 
-## Esempi misurati (le cinque carte)
+## Esempi misurati (le sei carte)
 
 - [Accordi di coordinamento — densità](../feature/2026-08-19-accordi-densita-ui.md): la prima testata in riga,
   le colonne fisse, l'altezza misurata sopra tre colonne.
@@ -313,6 +351,9 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 - [Aeroporti — densità](../feature/2026-08-19-aeroporti-densita-ui.md): due pannelli misurati al posto di una
   pagina da 13 745px, il `thead` fermo dentro lo scroller, l'avanzamento vero delle azioni di gruppo e i
   falliti che restano selezionati.
+- [Editor ACC — densità](../feature/2026-08-20-editor-acc-densita-ui.md): la pagina misurata **in modifica**
+  (9 690px), i blocchi che si chiudono a fisarmonica, la prosa di sezione nella riga-titolo, e i due difetti
+  vecchi trovati guidandola — il tour che scorreva da solo e il «?» chiuso che allargava la pagina.
 - [Editor aeroporto — densità](../feature/2026-08-20-editor-aeroporto-densita-ui.md): la tabella da 206 righe
   con la riga da 128px, il riquadro col tetto, la larghezza piena e i due stati (modificata / scelta) che
   erano diventati uno; poi le larghezze misurate col font con Condition elastica, e i tre gesti (chip a scala,
