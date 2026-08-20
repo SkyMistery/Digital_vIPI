@@ -259,7 +259,7 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, 7 paragrafi d'aiuto, nessun «?», 2 callout in fascia. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato**: restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). |
+| 1 | **Versioni** | `/vsop/versioni` | 1 613 | Sottotitolo, paragrafi d'aiuto, **nessun «?»**, **3 callout** in fascia, 27 stili in linea. I filtri sono `Chip` sciolti (non `.sh-chip` in gruppo) e **non contano**; il conteggio filtrato è una riga di prosa invece di un pill accanto al titolo. Usa `.wrap` a 1 100px, **non** `.wrap.struct`: decidere se portarla sul layout di lavoro fa parte del giro. Le emoji 🕒 🕓 🟢 sono **vocabolario di stato** (stanno nel markup, non nei resx): restano finché non c'è il set di pallini colorati (deferito in `piano-ux-hardening`). Briefing: [handoff-densita-ui](../history/handoff-densita-ui.md). |
 | 2 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
 | 3 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
 | 4 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |

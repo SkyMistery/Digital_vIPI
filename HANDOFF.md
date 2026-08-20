@@ -1,10 +1,29 @@
-# HANDOFF — vIPI/vLOA Interactive
+﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 18 agosto 2026 — **accordi di coordinamento**: modello sostituito (16-17 ago) ed
-editor rifatto sopra (17-18 ago), sul ramo `feature/accordi-coordinamento`, **non ancora in `main`**.
+**Ultimo aggiornamento:** 20 agosto 2026 — **densità UI delle pagine admin**, sul ramo
+`ui-trasferimenti-densita`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (18 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (20 agosto 2026)
+>
+> **Il lavoro vivo è sul ramo `ui-trasferimenti-densita`**, allineato col remoto e **non fuso**. Per riprendere
+> da freddo si leggono **due** file:
+> [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
+> riparte la prossima pagina — e
+> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 94 regole già pagate più
+> la ricognizione misurata di ogni pagina.
+>
+> In due righe: il giro riscrive **la forma** delle pagine di lavoro admin — niente cambia in modello, rotte o
+> dati. **Sette pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC,
+> **Confinanti**); la **prossima è Versioni** (`/vsop/versioni`, 1 613px).
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
+> `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.
+>
+> Sotto resta lo stato del **18 agosto** (accordi di coordinamento, ramo `feature/accordi-coordinamento`) e
+> quello del **15 agosto** (consegna a Ivao.It): valgono ancora per tutto ciò che non è quest'area.
+
+> ## 🧭 DA DOVE SI RIPARTIVA IL 18 AGOSTO (accordi di coordinamento)
 >
 > **Il lavoro vivo è sul ramo `feature/accordi-coordinamento`**, allineato col remoto e **non fuso**. Per
 > riprendere da freddo si legge **un** file:
