@@ -127,8 +127,24 @@ minuto, non chiedo un grant): ora il titolo cambia col ramo d'errore.
 fuori, come da un'altra scheda → la pagina non lo sa (è una fotografia, atteso) → al clic sul cestino la
 conferma **non si apre**, il badge 🔒 compare, il cestino si spegne e il callout dice «Documento occupato».
 
-## Parte B — densità (dopo)
+## Parte B — la densità, che resta da fare
 
-`.wrap` → `.wrap.struct`, testata in riga con «?», i 3 callout in fascia → `.st-msg`, 27 stili in linea →
-classi, chip filtro `.sh-chip` **che contano**, conteggio come pill accanto al titolo. Le emoji di **stato**
-(🟢 🕒 🕓) restano finché non c'è il set di pallini colorati: sono vocabolario, non comandi (regola 40).
+**È il prossimo lavoro del ramo**, ed è la stessa pagina: il briefing misurato (inventario, decisioni aperte,
+cosa è cambiato con questo giro) sta in
+[`docs/history/handoff-densita-ui.md`](../history/handoff-densita-ui.md) §«Versioni», non duplicato qui.
+
+In una riga: `.wrap` → `.wrap.struct` (da decidere), testata in riga con «?», i 3 callout in fascia →
+`.st-msg`, ~27 stili in linea → classi, chip filtro `.sh-chip` **che contano**, conteggio come pill accanto
+al titolo.
+
+⚠️ **Due cose che questo giro ha lasciato alla parte B:**
+- i chip filtro sono ora **quattro gruppi** (tipo, stato, release, **ACC**), non tre: la barra è cresciuta e
+  la conversione a `.sh-chip` vale più di quanto diceva la ricognizione del 19;
+- **una riga resta alta 118px** invece di 67 — quella con un lock altrui *e* i diritti da admin (sette
+  elementi più il force-unlock). Se la densità accorcia le etichette si richiude da sé; comprimerle il titolo
+  no, quello è il difetto che si è appena tolto (regola 100).
+
+⚠️ **Le emoji di stato (🟢 🕒 🕓 ⚠️ 🔒) non si toccano senza riconferma.** Stanno nel markup e non nei `.resx`
+— quindi si tolgono senza toccare le traduzioni — ma sono **vocabolario di stato**, non comandi, e la regola
+40 salva solo le emoji-comando. La decisione in vigore è tenerle finché non c'è il set di pallini colorati
+(deferito in `piano-ux-hardening`). **Domanda aperta al committente al 21 agosto 2026.**

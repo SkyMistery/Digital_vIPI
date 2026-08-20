@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Sette pagine chiuse
+## Sette pagine chiuse, più mezza Versioni
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -125,3 +125,25 @@ puppeteer-core, e si attende `window.Blazor`, **non** il DOM (la prima risposta 
 ⚠️ Se l'app di sviluppo è già in esecuzione, i `bin/` sono **bloccati**: `dotnet publish` in una cartella dello
 scratchpad e avviare **su un'altra porta** invece di uccidere l'istanza di chi sta lavorando. E fermare solo
 la propria (`Get-Process Vipi.Host | Where-Object { $_.Path -like '*scratchpad*' }`).
+
+⚠️ **`Vipi.Host` è `net8.0` soltanto**: `dotnet publish -f net10.0` fallisce con `NETSDK1005`. Si pubblica
+senza `-f`. E **5034 è del committente, 5035 può essere già presa**: il 21 agosto ha funzionato la **5037**.
+Un `dotnet test Vipi.slnx` a app accesa muore con `MSB3021` sui `bin/Debug`; `-c Release --no-build` gira lo
+stesso, perché i `bin/Release` non sono bloccati.
+
+⚠️ **Il browser headless parla la lingua del sistema**, non quella che credi: senza
+`setExtraHTTPHeaders({'Accept-Language': 'it-IT,it;q=0.9'})` Edge chiede `en-US` e la prova «in italiano»
+verifica l'inglese. È così che «No release» non tradotto è passato per un giro.
+
+### Provare uno stato che l'app non ti lascia costruire
+
+Per verificare i lock servono **due persone**. Si simula scrivendo nel DB della copia mentre l'app gira:
+
+```python
+c.execute("UPDATE Documents SET LockedByUserId=?, LockedByName=?, LockExpiresUtc=? WHERE Id=3",
+          (555001, 'Giulia Bianchi', fra_25_minuti_utc))
+```
+
+Un lock **mio** = `LockedByUserId` uguale al VID dell'identità di sviluppo (**704798**). Per provare il caso
+«il lock nasce **dopo** il caricamento» si parte con `UPDATE Documents SET LockedByUserId=NULL…`, si carica la
+pagina, **poi** si scrive il lock da fuori e si clicca.

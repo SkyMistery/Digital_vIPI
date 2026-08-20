@@ -1,21 +1,26 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 20 agosto 2026 — **densità UI delle pagine admin**, sul ramo
+**Ultimo aggiornamento:** 21 agosto 2026 — **densità UI delle pagine admin**, sul ramo
 `ui-trasferimenti-densita`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (20 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (21 agosto 2026)
 >
 > **Il lavoro vivo è sul ramo `ui-trasferimenti-densita`**, allineato col remoto e **non fuso**. Per riprendere
 > da freddo si leggono **due** file:
 > [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
 > riparte la prossima pagina — e
-> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 94 regole già pagate più
+> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 105 regole già pagate più
 > la ricognizione misurata di ogni pagina.
 >
 > In due righe: il giro riscrive **la forma** delle pagine di lavoro admin — niente cambia in modello, rotte o
 > dati. **Sette pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC,
-> **Confinanti**); la **prossima è Versioni** (`/vsop/versioni`, 1 613px).
+> **Confinanti**), più la **sostanza** di Versioni (lock e azioni delicate, 21 agosto: la pagina lasciava
+> eliminare un documento che un'altra persona stava editando).
+>
+> **La prossima è la DENSITÀ di Versioni** — stessa pagina, seconda metà: `/vsop/versioni`, **1 664px**
+> rimisurati guidandola. Briefing pronto in `handoff-densita-ui.md` §«Versioni». Poi Permessi, Sorgenti,
+> Audit, Diagnostica.
 >
 > Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
 > `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.
