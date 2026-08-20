@@ -17,7 +17,11 @@
        sparita: il suo conteggio è salito qui. I comandi sono di PAGINA — l'import tocca tutte le coppie —
        quindi stanno in testata e non sopra la tabella. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">@L["Conf_Heading"] @if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }</h2>
+        @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia: misurato, il titolo usciva «…vLOA33»
+           attaccato. Serve un carattere vero, non uno spazio nel sorgente. *@
+        <h2 class="st-h2">
+            @L["Conf_Heading"]&nbsp;@if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }
+        </h2>
         <HelpHint Href="/vsop/guida#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Conf_Subtitle"]</p>
             @((MarkupString)L["Conf_Intro"].Value)
@@ -94,18 +98,37 @@
                 }
                 else
                 {
+                    var n = Counts();
                     <div class="struct-bar">
                         <input class="htree-search" value="@_q" @oninput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
-                        @* I chip stanno in GRUPPO: così la barra va a capo in un punto solo, sempre lo stesso. *@
+                        @* I chip CONTANO: prima erano quattro etichette mute e lo stato dell'elenco si leggeva
+                           solo scorrendo 33 righe. Stanno in gruppo, così la barra va a capo in un punto solo,
+                           e ci sono sempre — spenti a zero, perché un chip che compare col contatore accorcia
+                           la riga sotto il puntatore. Stessa forma di Aeroporti e Struttura (.sh-chip). *@
                         <span class="sb-chips">
-                            <Chip Class="@($"pill {(_statusFilter is null ? "blue" : "grey")}")" Active="_statusFilter is null" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(null)">@L["Common_All"]</Chip>
-                            <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Pending ? "blue" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Pending" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Pending)">@L["Conf_Pending"]</Chip>
-                            <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Confirmed ? "green" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Confirmed" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Confirmed)">@L["Conf_Confirmed"]</Chip>
-                            <Chip Class="pill" Active="_statusFilter == NeighbourCandidateStatus.Rejected" Style="@($"cursor:pointer;user-select:none;{(_statusFilter == NeighbourCandidateStatus.Rejected ? "background:#ffe3e3;color:#b42318" : "background:#eceef5;color:#555")}")" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Rejected)">@L["Conf_Rejected"]</Chip>
+                            @* Il chip «tutte» non c'è: il totale sta già accanto al titolo e il ✕ toglie i
+                               filtri. Misurato, i sei chip più il campo e il ✕ per esteso chiedevano 918px
+                               dentro 832 — la barra andava a capo e una riga di barra è una riga di tabella. *@
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Pending ? "on" : "")" disabled="@(n.Pending == 0)"
+                                    title="@L["Conf_ChipPendingTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Pending)">@L["Conf_ChipPending", n.Pending]</button>
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Confirmed ? "on" : "")" disabled="@(n.Confirmed == 0)"
+                                    title="@L["Conf_ChipConfirmedTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Confirmed)">@L["Conf_ChipConfirmed", n.Confirmed]</button>
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Rejected ? "on" : "")" disabled="@(n.Rejected == 0)"
+                                    title="@L["Conf_ChipRejectedTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Rejected)">@L["Conf_ChipRejected", n.Rejected]</button>
+                            <span class="sb-sep"></span>
+                            @* I due chip di LAVORO: la coda di cose da fare, che altrimenti si trova solo
+                               aprendo le righe una a una. In giallo quando c'è qualcosa, verdi a zero. *@
+                            <button class="sh-chip @(n.NoShape > 0 ? "warn" : "") @(_workFilter == WorkFilter.NoShape ? "on" : "")" disabled="@(n.NoShape == 0)"
+                                    title="@L["Conf_ChipNoShapeTitle"]" @onclick="() => ToggleWork(WorkFilter.NoShape)">@L["Conf_ChipNoShape", n.NoShape]</button>
+                            <button class="sh-chip @(n.NoVloa > 0 ? "warn" : "") @(_workFilter == WorkFilter.NoVloa ? "on" : "")" disabled="@(n.NoVloa == 0)"
+                                    title="@L["Conf_ChipNoVloaTitle"]" @onclick="() => ToggleWork(WorkFilter.NoVloa)">@L["Conf_ChipNoVloa", n.NoVloa]</button>
+                            @* Il ✕ sta DENTRO il gruppo, non dopo: misurato a 1280, da solo in fondo era lui
+                               ad andare a capo per primo e la barra diventava di TRE righe invece di due —
+                               una riga di barra è una riga di tabella. C'è sempre, spento quando non c'è
+                               niente da azzerare; solo il glifo, il nome nel title e in aria-label. *@
+                            <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters"
+                                    title="@L["Conf_ClearTitle"]" aria-label="@L["Conf_Clear"]">✕</button>
                         </span>
-                        @* Il tasto c'è SEMPRE, spento quando non c'è niente da azzerare: comparendo col filtro
-                           accorcerebbe la barra proprio sotto il puntatore. *@
-                        <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters" title="@L["Conf_ClearTitle"]">✕ @L["Conf_Clear"]</button>
                     </div>
                     <div class="st-scroll">
                         @if (Filtered().Count == 0)
@@ -117,18 +140,24 @@
                             @* `sticky-head`: 33 righe che si scorrono cercando una coppia, e «Dist. min» e
                                «Adiac.» sono due numeri identici a colpo d'occhio. Dentro uno scroller il
                                `thead` sta a `top:0`, non alla quota della topbar (regola 51). *@
+                            @* Larghezze per CLASSE SEMANTICA, misurate col font calcolato sui valori veri del
+                               DB (33 righe): otto colonne fisse e una sola elastica — il nome estero — che
+                               con `table-layout:fixed` si prende tutto lo spazio che avanza. I nomi delle
+                               intestazioni sono i più corti che restano nomi, non troncamenti: il nome per
+                               esteso sta nel `title`. Misurato: «Settori adj» chiedeva 98px di intestazione
+                               per celle da 29. *@
                             <table class="res-table sticky-head conf-table">
                                 <thead>
                                     <tr>
-                                        <th>@L["Conf_ColHome"]</th>
-                                        <th>@L["Conf_ColForeign"]</th>
-                                        <th>@L["Airport_Name"]</th>
-                                        <th>@L["Conf_ColCountry"]</th>
-                                        <th>@L["Conf_ColMinDist"]</th>
-                                        <th>@L["Conf_ColAdjSectors"]</th>
-                                        <th>Shape</th>
-                                        <th>@L["Common_State"]</th>
-                                        <th>vLOA</th>
+                                        <th class="c-home" title="@L["Conf_ColHomeTitle"]">@L["Conf_ColHome"]</th>
+                                        <th class="c-fgn" title="@L["Conf_ColForeignTitle"]">@L["Conf_ColForeign"]</th>
+                                        <th class="c-name">@L["Airport_Name"]</th>
+                                        <th class="c-cty">@L["Conf_ColCountry"]</th>
+                                        <th class="c-num" title="@L["Conf_ColMinDistTitle"]">@L["Conf_ColMinDist"]</th>
+                                        <th class="c-num" title="@L["Conf_ColAdjSectorsTitle"]">@L["Conf_ColAdjSectors"]</th>
+                                        <th class="c-flag" title="@L["Conf_ColShapeTitle"]">Shape</th>
+                                        <th class="c-state">@L["Common_State"]</th>
+                                        <th class="c-flag" title="@L["Conf_ColVloaTitle"]">vLOA</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -142,15 +171,15 @@
                                             role="button" tabindex="0" aria-pressed="@((_selId == r.Id) ? "true" : "false")"
                                             title="@L["Conf_RowPickTitle"]"
                                             @onclick="() => Select(r.Id)" @onkeydown="e => OnRowKey(e, r.Id)">
-                                            <td><b>@r.HomeAccCode</b></td>
-                                            <td><span class="pill blue">@r.ForeignAccCode</span></td>
-                                            <td>@r.ForeignAccName</td>
-                                            <td>@r.CountryId</td>
-                                            <td>@(r.MinDistanceNm is double d ? $"{d:0.0} NM" : "—")</td>
-                                            <td>@(r.AdjacentSectorCount > 0 ? r.AdjacentSectorCount.ToString() : "—")</td>
-                                            <td>@(r.HasPolygon ? "✓" : "—")</td>
-                                            <td>@StatusPill(r.Status)</td>
-                                            <td>@(r.VloaDocumentId is null ? "—" : "✓")</td>
+                                            <td class="c-home"><b>@r.HomeAccCode</b></td>
+                                            <td class="c-fgn"><span class="pill blue">@r.ForeignAccCode</span></td>
+                                            <td class="c-name" title="@r.ForeignAccName">@r.ForeignAccName</td>
+                                            <td class="c-cty">@r.CountryId</td>
+                                            <td class="c-num">@(r.MinDistanceNm is double d ? $"{d:0.0} NM" : "—")</td>
+                                            <td class="c-num">@(r.AdjacentSectorCount > 0 ? r.AdjacentSectorCount.ToString() : "—")</td>
+                                            <td class="c-flag">@(r.HasPolygon ? "✓" : "—")</td>
+                                            <td class="c-state">@StatusPill(r.Status)</td>
+                                            <td class="c-flag">@(r.VloaDocumentId is null ? "—" : "✓")</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -223,7 +252,7 @@
                             @if (sel.VloaDocumentId is not null)
                             {
                                 <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
-                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">✎ @L["Common_Editor"]</a>
+                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">@L["Common_Editor"]</a>
                             }
                             @if (sel.Status == NeighbourCandidateStatus.Confirmed)
                             {
@@ -422,16 +451,46 @@
         return new MarkupString($"<span class=\"pill {cls}\">{System.Net.WebUtility.HtmlEncode(L[key].Value)}</span>");
     }
 
-    // Ricerca + filtro stato (client-side sulle righe già caricate).
+    // Ricerca + filtro stato + filtro «coda di lavoro» (client-side sulle righe già caricate).
     private string _q = "";
     private NeighbourCandidateStatus? _statusFilter;
+    private WorkFilter? _workFilter;
 
-    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _statusFilter is not null;
+    /// <summary>La coda di lavoro: cosa manca per arrivare a una vLOA.</summary>
+    private enum WorkFilter
+    {
+        /// <summary>Senza poligono: niente mappa, niente adiacenza calcolabile.</summary>
+        NoShape,
+        /// <summary>Confermate ma senza vLOA: il documento è l'ultimo passo che manca.</summary>
+        NoVloa,
+    }
+
+    private sealed record CountSet(int Pending, int Confirmed, int Rejected, int NoShape, int NoVloa);
+
+    // Contati sull'elenco INTERO, non sul filtrato: un chip che conta ciò che il proprio filtro ha già tolto
+    // direbbe sempre zero appena lo si accende.
+    private CountSet Counts() => new(
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Pending),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Confirmed),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Rejected),
+        _rows.Count(r => !r.HasPolygon),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null));
+
+    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _statusFilter is not null || _workFilter is not null;
+
+    private void ToggleStatus(NeighbourCandidateStatus s) => _statusFilter = _statusFilter == s ? null : s;
+    private void ToggleWork(WorkFilter w) => _workFilter = _workFilter == w ? null : w;
 
     private IReadOnlyList<NeighbourCandidateRow> Filtered()
     {
         IEnumerable<NeighbourCandidateRow> q = _rows;
         if (_statusFilter is { } st) q = q.Where(r => r.Status == st);
+        q = _workFilter switch
+        {
+            WorkFilter.NoShape => q.Where(r => !r.HasPolygon),
+            WorkFilter.NoVloa => q.Where(r => r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null),
+            _ => q,
+        };
         var term = _q?.Trim();
         if (!string.IsNullOrEmpty(term))
             q = q.Where(r =>
@@ -444,7 +503,7 @@
 
     private void OnSearchInput(ChangeEventArgs e) => _q = e.Value?.ToString() ?? "";
     private void SetStatusFilter(NeighbourCandidateStatus? s) => _statusFilter = s;
-    private void ClearFilters() { _q = ""; _statusFilter = null; }
+    private void ClearFilters() { _q = ""; _statusFilter = null; _workFilter = null; }
 
     // form manuale
     private string _mHome = "", _mForeign = "", _mName = "", _mCountry = "", _mCallsign = "", _mPoly = "";

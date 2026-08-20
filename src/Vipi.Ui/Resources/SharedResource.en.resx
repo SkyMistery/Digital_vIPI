@@ -663,6 +663,16 @@
   <data name="Conf_Heading" xml:space="preserve"><value>Neighbouring ACCs → vLOA</value></data>
   <data name="Conf_Subtitle" xml:space="preserve"><value>Import foreign ACCs from neighbouring countries, compute geometric adjacency, generate a vLOA per pair.</value></data>
   <data name="Conf_ImportWarnings" xml:space="preserve"><value>Import warnings:</value></data>
+  <data name="Conf_ChipPending" xml:space="preserve"><value>pending {0}</value></data>
+  <data name="Conf_ChipPendingTitle" xml:space="preserve"><value>Show only the pairs not yet confirmed or rejected</value></data>
+  <data name="Conf_ChipConfirmed" xml:space="preserve"><value>confirmed {0}</value></data>
+  <data name="Conf_ChipConfirmedTitle" xml:space="preserve"><value>Show only the confirmed pairs</value></data>
+  <data name="Conf_ChipRejected" xml:space="preserve"><value>rejected {0}</value></data>
+  <data name="Conf_ChipRejectedTitle" xml:space="preserve"><value>Show only the rejected pairs (false positives already assessed)</value></data>
+  <data name="Conf_ChipNoShape" xml:space="preserve"><value>no shape {0}</value></data>
+  <data name="Conf_ChipNoShapeTitle" xml:space="preserve"><value>Pairs with no foreign ACC polygon: neither a map nor computable adjacency</value></data>
+  <data name="Conf_ChipNoVloa" xml:space="preserve"><value>no vLOA {0}</value></data>
+  <data name="Conf_ChipNoVloaTitle" xml:space="preserve"><value>Confirmed pairs still missing their vLOA document</value></data>
   <data name="Conf_DetailTitle" xml:space="preserve"><value>Selected pair</value></data>
   <data name="Conf_PickHint" xml:space="preserve"><value>Pick a pair in the list to see its data, verify its adjacency and generate the vLOA.</value></data>
   <data name="Conf_RowPickTitle" xml:space="preserve"><value>Click to pick this pair (click again to drop it)</value></data>
@@ -677,18 +687,21 @@
   <data name="Conf_Intro" xml:space="preserve"><value>Neighbouring countries from &lt;code&gt;Neighbours:CountryIds&lt;/code&gt;. Sectors are neighbours when the minimum edge distance is below threshold (&lt;code&gt;AdjacencyThresholdNm&lt;/code&gt;). Non-neighbours are not saved. Confirm a pair and generate the vLOA (Home = editable Italian ACC, Neighbour = read-only foreign).</value></data>
   <data name="Conf_NoPairs" xml:space="preserve"><value>No pair. Press «Import &amp; compute» (or add a pair manually below).</value></data>
   <data name="Conf_SearchPlaceholder" xml:space="preserve"><value>Search ACC (Home/Foreign), foreign name or country…</value></data>
-  <data name="Conf_Pending" xml:space="preserve"><value>To review</value></data>
-  <data name="Conf_Confirmed" xml:space="preserve"><value>Confirmed</value></data>
-  <data name="Conf_Rejected" xml:space="preserve"><value>Rejected</value></data>
   <data name="Conf_ClearTitle" xml:space="preserve"><value>Clear search and filters</value></data>
   <data name="Conf_Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Conf_NoMatch" xml:space="preserve"><value>No pair matches the filter.</value></data>
   <data name="Conf_ClearFilters" xml:space="preserve"><value>Clear the filters</value></data>
-  <data name="Conf_ColHome" xml:space="preserve"><value>Home (IT)</value></data>
+  <data name="Conf_ColHome" xml:space="preserve"><value>Home</value></data>
   <data name="Conf_ColForeign" xml:space="preserve"><value>Foreign</value></data>
   <data name="Conf_ColCountry" xml:space="preserve"><value>Country</value></data>
-  <data name="Conf_ColMinDist" xml:space="preserve"><value>Min dist</value></data>
-  <data name="Conf_ColAdjSectors" xml:space="preserve"><value>Adj sectors</value></data>
+  <data name="Conf_ColMinDist" xml:space="preserve"><value>Dist.</value></data>
+  <data name="Conf_ColAdjSectors" xml:space="preserve"><value>Adj.</value></data>
+  <data name="Conf_ColHomeTitle" xml:space="preserve"><value>The Italian ACC of the pair</value></data>
+  <data name="Conf_ColForeignTitle" xml:space="preserve"><value>The foreign ACC of the pair</value></data>
+  <data name="Conf_ColMinDistTitle" xml:space="preserve"><value>Minimum distance between the edges of the two closest sectors</value></data>
+  <data name="Conf_ColAdjSectorsTitle" xml:space="preserve"><value>How many foreign sectors border this ACC</value></data>
+  <data name="Conf_ColShapeTitle" xml:space="preserve"><value>The pair has the foreign ACC polygon</value></data>
+  <data name="Conf_ColVloaTitle" xml:space="preserve"><value>A vLOA document exists for this pair</value></data>
   <data name="Conf_StatusConfirmed" xml:space="preserve"><value>confirmed</value></data>
   <data name="Conf_StatusRejected" xml:space="preserve"><value>rejected</value></data>
   <data name="Conf_StatusPending" xml:space="preserve"><value>to review</value></data>

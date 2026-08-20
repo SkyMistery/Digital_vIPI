@@ -144,6 +144,37 @@
 /* Dentro un pannello che scorre la mappa ha un'altezza propria: senza, Leaflet nasce a zero. */
 .struct .conf-map{height:320px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
 .struct .mono-area{width:100%;font-family:monospace;font-size:11px}
+/* In un pannello stretto il campo di ricerca non deve pretendere i 240px della sua base condivisa: sono
+   loro a mandare a capo la barra prima dei chip. Misurato a 1280: barra da 2 righe a 1. La regola dice in
+   QUALE forma si sta parlando (dentro .conf-layout), non riscrive la classe per tutti. Niente media
+   query: con `flex:1` il campo si riprende lo spazio quando c'è, e una soglia scelta a occhio sbaglia —
+   misurato, a 1400 la barra stava in una riga e a 1440 tornava a due. */
+.struct .conf-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+/* ---- Colonne delle coppie: pixel MISURATI col font calcolato sui 33 valori veri del DB ----
+   Le percentuali sono un gioco a somma zero (ogni punto dato a una colonna lo toglie a un'altra, che poi
+   taglia il suo valore): otto colonne fisse e UNA sola senza larghezza — il nome estero — che con
+   `table-layout:fixed` si prende tutto lo spazio che avanza. Il `min-width` della tabella è la somma delle
+   fisse più il pavimento dell'elastica.
+   ⚠️ Contati anche i pezzi che non sono testo: le gronde della cella (10px per lato) e il padding proprio
+   della pill (9px per lato) nelle colonne Foreign e Stato. */
+/* Il `min-width` è la somma delle fisse (598) PIÙ il pavimento dell'elastica (120): senza il secondo
+   addendo l'elastica si schiaccia sotto la propria soglia di leggibilità invece di far scorrere il riquadro
+   — misurato a 1024, la colonna del nome finiva a 2px. Quando il minimo che non taglia niente supera il
+   riquadro, la scelta è far scorrere il riquadro (con l'intestazione ferma), e va DICHIARATA. */
+.struct .conf-table{table-layout:fixed;min-width:716px}
+/* ⚠️ Due colonne di ACC, due larghezze: «Home» è testo nudo (60), «Foreign» è una pill col suo padding
+   (78). Con una classe sola a 74 la pill di LMMM andava a capo e la riga cresceva da 39 a 48px — su 33
+   righe sono 300px. Le celle non vanno mai a capo: sono codici, e un codice spezzato non è un codice. */
+.struct .conf-table .c-home{width:64px}
+.struct .conf-table .c-fgn{width:82px}
+.struct .conf-table td.c-home,.struct .conf-table td.c-fgn{white-space:nowrap}
+.struct .conf-table .c-cty{width:62px}
+.struct .conf-table .c-num{width:70px}
+.struct .conf-table .c-flag{width:64px}
+.struct .conf-table .c-state{width:120px}
+/* L'elastica: senza larghezza, e ciò che non ci sta si taglia coi puntini (il nome per esteso è nel title). */
+.struct .conf-table .c-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.struct .conf-table td.c-num,.struct .conf-table td.c-flag,.struct .conf-table td.c-cty{white-space:nowrap}
 
 /* ---------- Layout ---------- */
 .screen{display:none}
