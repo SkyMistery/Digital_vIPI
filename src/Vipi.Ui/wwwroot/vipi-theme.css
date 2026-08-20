@@ -1189,7 +1189,8 @@ button.sh-chip.warn:hover{background:#ffe9a8}
 /* ⚠️ Dentro un riquadro che scorre lo sticky è relativo al CONTENITORE, non alla finestra: la quota della
    topbar qui non c'entra e lascerebbe l'intestazione sospesa a 62px dal bordo del pannello. Il fondo pieno
    arriva dalla regola globale `th{background:#eef1fb}`: senza, le righe passerebbero sotto e si vedrebbero. */
-.struct .st-scroll .res-table.sticky-head thead th{top:0}
+.struct .st-scroll .res-table.sticky-head thead th,
+.struct .ed-pane .res-table.sticky-head thead th{top:0}
 /* Cella con una modifica non ancora salvata: si vede da lontano quante ne restano da confermare. */
 .struct .res-table input.lim-dirty{border-color:#e2b400;background:#fffdf3;box-shadow:0 0 0 2px #fff3cf}
 /* Riga che si sceglie: il cursore lo dice prima del clic, il filo blu a sinistra lo dice dopo. Il fondo pieno
@@ -1246,6 +1247,7 @@ button.sh-chip.warn:hover{background:#ffe9a8}
 .derived2 .none{font-size:12.5px;color:var(--ink-soft);font-style:italic}
 .eff-op{color:var(--warn-ink)}.eff-ho{color:var(--ok-ink)}.eff-col{color:var(--danger-ink)}
 @media(max-width:1180px){.topo-layout{grid-template-columns:1fr}.sim{position:static}}
+
 
 /* ---- Aggiunte vIPI (non nel mockup) ---- */
 .collapsed-strip>summary{cursor:pointer;list-style:none;color:var(--ink-soft);background:#f7f8fc;border:1px dashed var(--ivao-lightblue);border-radius:9px;padding:9px 13px;font-style:italic;font-size:13.5px}
@@ -1395,6 +1397,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .editor-toc .toc-lab{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ivao-blue);padding:0 2px}
 /* Editor: menu-sezioni laterale (TOC) sticky, griglia 2 colonne (toc | contenuto). Vedi EditorToc.razor. */
 .ed-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;align-items:start}
+/* ⚠️ `min-width:0` sui figli della griglia e' obbligatorio quanto il `min-height:0` nei flex: senza, la
+   colonna centrale si rifiuta di stringersi sotto il contenuto e una tabella larga 920px fa scorrere in
+   orizzontale LA PAGINA invece del suo riquadro — misurato, 106px a 1280 e 362 a 1024. */
+.ed-layout>*{min-width:0}
 /* con rail azioni a destra: toc | contenuto | azioni */
 .ed-layout.with-rail{grid-template-columns:248px minmax(0,1fr) 232px}
 .ed-rail{position:sticky;top:70px;align-self:start;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow)}
@@ -1871,3 +1877,92 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   border:1px solid var(--ivao-blue);background:#eef2ff;color:var(--ivao-blue);font-weight:600}
 /* «Altro» è il tipo con cui un accordo NASCE: si legge come da fare, non come scelto. */
 .xt-kindsel.xt-unset{border-style:dashed;background:#fff;color:var(--ink-soft)}
+
+/* ---------- Editor aeroporto: riga-titolo, riquadro delle SID, colonne ----------
+   La riga-titolo tiene insieme titolo, «?», chip e comandi della sezione: i paragrafi d'aiuto che stavano
+   sempre a schermo (dodici, ~460px) sono diventati «?» e questa riga è dove si aprono. */
+.ed-h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.ed-h3 h3{margin:0}
+.ed-h3 .ln{flex:1;height:1px;background:var(--line);min-width:20px}
+.ed-h3-mini{margin:6px 0 0;font-size:12px}
+/* ⚠️ Il riquadro delle SID importate: prima la tabella stava in un `overflow:auto` SENZA altezza — un
+   contenitore di scorrimento che non scorre mai in verticale, dove `position:sticky` non si aggancia a
+   niente. Qui l'altezza è un tetto (`max-height`), non una misura: la sezione vive dentro una pagina che
+   scorre, quindi non c'è un «viewport meno ciò che sta sopra» da misurare — il riquadro è alto quanto gli
+   serve fino al tetto. Sotto il tetto non compare nessuna seconda barra. */
+.ed-pane{overflow:auto;max-height:min(64vh,660px);border:1px solid var(--line);border-radius:10px}
+.ed-pane .res-table{margin-bottom:0}
+/* Tabella delle SID importate: larghezze per CLASSE semantica e layout fisso, come la .sid-view del viewer.
+   Con `table-layout:auto` le colonne dei chip collassavano e Cat./WTC si impilavano in verticale: misurato,
+   128px di altezza per riga (206 righe = 26 353px di tabella). I chip non vanno a capo, e il min-width tiene
+   le colonne leggibili facendo scorrere il riquadro invece di spezzare le parole a metà. */
+/* ⚠️ Le larghezze vanno scritte con `.struct .res-table` davanti e verificate sul valore CALCOLATO: la
+   colonna della spunta ha già una regola `.struct .res-table td.col-chk{width:1%}` (pagina Aeroporti) che a
+   parità di peso vince in silenzio — misurato, la cella usciva 10px invece di 30 e la casella sbordava. */
+/* 920px e non 1010: è la larghezza del riquadro a 1600 con indice e rail a schermo (944). Sopra quel
+   numero la tabella scorreva di lato e la colonna «Pubblicazione» restava mezza fuori — misurato, 85px. Le
+   larghezze qui sotto sono il minimo che non taglia nessun valore: quello che cede è Condition, l'unico
+   campo di testo libero (scorre dentro sé), non il nome della SID, che è l'identità della riga. */
+.sid-edit{table-layout:fixed;min-width:920px}
+.struct .res-table.sid-edit th,.struct .res-table.sid-edit td{padding-left:7px;padding-right:7px;vertical-align:middle;white-space:nowrap}
+.struct .res-table.sid-edit th.col-chk,.struct .res-table.sid-edit td.col-chk{width:3.26%}
+.struct .res-table.sid-edit th.col-fix,.struct .res-table.sid-edit td.col-fix{width:13.26%}
+.struct .res-table.sid-edit th.col-sid,.struct .res-table.sid-edit td.col-sid{width:11.52%}
+.struct .res-table.sid-edit th.col-rwy,.struct .res-table.sid-edit td.col-rwy{width:5%}
+.struct .res-table.sid-edit th.col-trans,.struct .res-table.sid-edit td.col-trans{width:6.09%}
+.struct .res-table.sid-edit th.col-type,.struct .res-table.sid-edit td.col-type{width:5.43%}
+.struct .res-table.sid-edit th.col-climb,.struct .res-table.sid-edit td.col-climb{width:11.74%}
+.struct .res-table.sid-edit th.col-cat,.struct .res-table.sid-edit td.col-cat{width:11.41%}
+.struct .res-table.sid-edit th.col-wtc,.struct .res-table.sid-edit td.col-wtc{width:9.57%}
+.struct .res-table.sid-edit th.col-cond,.struct .res-table.sid-edit td.col-cond{width:9.13%}
+.struct .res-table.sid-edit th.col-prio,.struct .res-table.sid-edit td.col-prio{width:5%}
+.struct .res-table.sid-edit th.col-pub,.struct .res-table.sid-edit td.col-pub{width:8.48%}
+/* Nessuna cella va a capo: una riga a capo qui sono 50px moltiplicati per duecento righe. Chi non ci sta
+   taglia con i puntini (il valore intero resta nel dato, non è un campo). */
+.struct .res-table.sid-edit td.col-sid,.struct .res-table.sid-edit td.col-rwy,.struct .res-table.sid-edit td.col-trans,.struct .res-table.sid-edit td.col-type,.struct .res-table.sid-edit td.col-pub{overflow:hidden;text-overflow:ellipsis}
+/* I chip stanno in RIGA: è la ragione per cui la riga è alta 44px e non 128. */
+.sid-edit .tok-set{flex-wrap:nowrap}
+.sid-edit .tok{min-width:15px;padding:1px 3px}
+.sid-edit .ic-app{margin-left:2px}
+.struct .res-table.sid-edit input{width:100%;box-sizing:border-box}
+.struct .res-table.sid-edit .in-climb{width:52px}
+.struct .res-table.sid-edit .in-fix{width:48px}
+.struct .res-table.sid-edit .ic-app{white-space:nowrap}
+.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
+/* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
+.struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
+.struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+/* Due stati diversi, due segni diversi: scelta (blu, la riga intera) e modificata-non-salvata (giallo, come
+   la cella `lim-dirty` della pagina ACC). Una riga può essere entrambe le cose. */
+.struct .res-table tbody tr.row-dirty>td{background:#fffdf3}
+.struct .res-table tbody tr.row-dirty>td:first-child{box-shadow:inset 3px 0 0 #e2b400}
+.struct .res-table tbody tr.row-sel.row-dirty>td{background:#f4f2ec}
+.sh-chip .chip-n{opacity:.65;font-weight:600;margin-left:2px}
+/* Tabella delle SID manuali: stesse classi di colonna, niente larghezze in linea sugli input. */
+.sid-manual{table-layout:fixed;min-width:900px}
+.sid-manual input{width:100%;box-sizing:border-box}
+.sid-manual .col-rwy{width:7%}
+.sid-manual .col-fix{width:9%}
+.sid-manual .col-sid{width:11%}
+.sid-manual .col-trans{width:10%}
+.sid-manual .col-climb{width:11%}
+.sid-manual .col-type{width:8%}
+.sid-manual .col-cat{width:7%}
+.sid-manual .col-wtc{width:7%}
+.sid-manual .col-cond{width:19%}
+.sid-manual .col-act{width:11%;white-space:nowrap}
+/* ⤢ Larghezza piena: indice e rail spariscono e la colonna centrale prende tutta la pagina (a 1600 sono
+   946px che diventano 1536 — il 62% in più per dodici colonne). Il tasto per tornare indietro sta nella
+   riga-titolo delle SID, che resta a schermo. */
+/* ⚠️ Due classi non bastano: `.ed-layout.with-rail` (tre colonne) sta piu' in basso nel foglio e a parita'
+   di peso vincerebbe — misurato, la colonna centrale finiva nella PRIMA traccia (248px) invece che a tutta
+   larghezza, perche' con `display:none` i due `aside` escono dalla griglia e il centro scala di posto. */
+.ed-layout.with-rail.sid-wide,.ed-layout.sid-wide{grid-template-columns:minmax(0,1fr)}
+.ed-layout.sid-wide>.toc,.ed-layout.sid-wide>.ed-rail{display:none}
+/* ⚠️ Il collasso a una colonna sotto i 1080 esisteva gia' (media query piu' in alto) ma NON si applicava:
+   `.ed-layout.with-rail` e' dichiarata piu' in basso nel foglio e a parita' di peso vinceva. Misurato: a
+   1024 la colonna centrale restava 391px con indice e rail ai lati. Va riscritto DOPO, con le stesse classi. */
+@media(max-width:1080px){
+  .ed-layout,.ed-layout.with-rail,.ed-layout.with-rail.sid-wide{grid-template-columns:minmax(0,1fr)}
+  .ed-layout>.toc,.ed-layout>.ed-rail{position:static;max-height:none}
+}

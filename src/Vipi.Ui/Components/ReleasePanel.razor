@@ -1,4 +1,4 @@
-@* Pannello release AIRAC riutilizzabile: timeline + pubblica al ciclo / pubblica ora. Per gli editor profile-based
+﻿@* Pannello release AIRAC riutilizzabile: timeline + pubblica al ciclo / pubblica ora. Per gli editor profile-based
    (ACC/APP/Aeroporto) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale.
    Parametri opt-in (default = timeline semplice): ShowDiff, AllowCancel, BeforePublishAsync, PreviewUrlFactory. *@
 @inject IReleaseService Releases
@@ -18,10 +18,10 @@
     }
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
-        <HelpHint Href="/vsop/guida#editor-release" AriaLabel="Aiuto sulla pubblicazione">
-            <b>Pubblicare</b> rende la bozza visibile a tutti, legata a un ciclo <b>AIRAC</b>.
-            <b>Pubblica ora</b> = subito; <b>Programma al ciclo</b> = alla data del ciclo scelto.
-            Prima controlla l'<b>anteprima</b> della bozza.
+        @* Le tre righe di aiuto erano scritte a mano in italiano: il pannello lo montano TUTTI gli editor,
+           quindi in inglese erano italiane in cinque pagine, non in una. *@
+        <HelpHint Href="/vsop/guida#editor-release" AriaLabel="@L["Rel_HelpAria"]">
+            @((MarkupString)L["Rel_HelpBody"].Value)
         </HelpHint>
         <span class="muted" style="font-size:12px">@(string.Format(L["Rel_HeaderNote"].Value, _currentCycle))</span>
     </div>

@@ -956,6 +956,8 @@
   <data name="Review_MarkTitle" xml:space="preserve"><value>Mark the document as reviewed</value></data>
   <data name="Review_MarkReviewed" xml:space="preserve"><value>Mark as reviewed</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>AIRAC release</value></data>
+  <data name="Rel_HelpAria" xml:space="preserve"><value>Help on publishing</value></data>
+  <data name="Rel_HelpBody" xml:space="preserve"><value>&lt;b&gt;Publishing&lt;/b&gt; makes the draft visible to everyone, tied to an &lt;b&gt;AIRAC&lt;/b&gt; cycle. &lt;b&gt;Publish now&lt;/b&gt; = right away; &lt;b&gt;Schedule at cycle&lt;/b&gt; = on the date of the chosen cycle. Check the draft &lt;b&gt;preview&lt;/b&gt; first.</value></data>
   <data name="Rel_HeaderNote" xml:space="preserve"><value>the public sees the release effective at the current cycle ({0}); the editor always works on the live draft</value></data>
   <data name="Rel_NoRelease" xml:space="preserve"><value>No release: the document is not yet visible to the public. Publish to make it visible.</value></data>
   <data name="Rel_EffectiveFrom" xml:space="preserve"><value>effective from</value></data>
@@ -1210,6 +1212,71 @@
   <data name="Ape_DraftTitle" xml:space="preserve"><value>No release effective: publish from the «Versions» section</value></data>
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude and the ATC sector catalogue (respects the «Data sources» policy)</value></data>
+  <data name="Ape_HelpAria" xml:space="preserve"><value>Help on the airport editor</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes, and the dot next to its name means it has unsaved changes.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Save all&lt;/b&gt; (in the rail, also &lt;b&gt;Ctrl+S&lt;/b&gt;) writes to the &lt;b&gt;draft&lt;/b&gt;: the public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;&lt;b&gt;Imported SIDs&lt;/b&gt; have their own save: edit the cells and press «Save changed».&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Help on runway selection rules</value></data>
+  <data name="Ape_TlHelpAria" xml:space="preserve"><value>Help on transition levels</value></data>
+  <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Why the Transition Altitude is read-only</value></data>
+  <data name="Ape_FreqHelpAria" xml:space="preserve"><value>Help on frequencies</value></data>
+  <data name="Ape_RwFromSourceAria" xml:space="preserve"><value>Why the runways are read-only</value></data>
+  <data name="Ape_RwEditorialAria" xml:space="preserve"><value>Help on runways</value></data>
+  <data name="Ape_ExtraHelpAria" xml:space="preserve"><value>Help on extra sections</value></data>
+  <data name="Ape_SeasonalHelpAria" xml:space="preserve"><value>Help on times, days and seasonality</value></data>
+  <data name="Ape_SeasonalShort" xml:space="preserve"><value>times, days, seasonality</value></data>
+  <data name="Ape_VersionsHelpAria" xml:space="preserve"><value>Help on versions and publishing</value></data>
+  <data name="Ape_SectorsNoteAria" xml:space="preserve"><value>Help on ATC sectors</value></data>
+  <data name="Ape_SidRenderHelpAria" xml:space="preserve"><value>Help on how SIDs are rendered</value></data>
+  <data name="Ape_SidImportedHelpAria" xml:space="preserve"><value>Help on imported SIDs</value></data>
+  <data name="Ape_SidManualHelpAria" xml:space="preserve"><value>Help on manual SIDs</value></data>
+  <data name="Ape_SidImportedCountTitle" xml:space="preserve"><value>Imported SIDs shown out of the total</value></data>
+  <data name="Ape_SidSelectHint" xml:space="preserve"><value>In the left column: click to pick a row, Shift or Ctrl+click for a range, drag down to pick and up to unpick. From the keyboard, Enter or Space on the cell.</value></data>
+  <data name="Ape_SidWide" xml:space="preserve"><value>Full width</value></data>
+  <data name="Ape_SidNarrow" xml:space="preserve"><value>Shrink</value></data>
+  <data name="Ape_SidWideTitle" xml:space="preserve"><value>Hide the index and the rail: the table uses the full page width</value></data>
+  <data name="Ape_SidNarrowTitle" xml:space="preserve"><value>Bring back the index and the rail</value></data>
+  <data name="Ape_SidSearchPh" xml:space="preserve"><value>search fix, SID or runway…</value></data>
+  <data name="Ape_SidManualSearchPh" xml:space="preserve"><value>search fix, name or runway…</value></data>
+  <data name="Ape_SidReviewChip" xml:space="preserve"><value>to verify {0}</value></data>
+  <data name="Ape_SidReviewChipTitle" xml:space="preserve"><value>Show only the SIDs whose point must be confirmed by hand</value></data>
+  <data name="Ape_SidRwChipTitle" xml:space="preserve"><value>Show only the SIDs of this runway</value></data>
+  <data name="Ape_SidDirtyN" xml:space="preserve"><value>{0} changed</value></data>
+  <data name="Ape_SidDirtyNOne" xml:space="preserve"><value>1 changed</value></data>
+  <data name="Ape_SidSaveDirty" xml:space="preserve"><value>Save changed</value></data>
+  <data name="Ape_SidSelectAll" xml:space="preserve"><value>Pick all</value></data>
+  <data name="Ape_SidUnselectAll" xml:space="preserve"><value>Unpick all</value></data>
+  <data name="Ape_SidPublishSel" xml:space="preserve"><value>Publish picked</value></data>
+  <data name="Ape_SidPublishSelTitle" xml:space="preserve"><value>Force immediate publication of the picked SIDs</value></data>
+  <data name="Ape_SidPickTitle" xml:space="preserve"><value>Click to pick · drag for a range · Enter or Space from the keyboard</value></data>
+  <data name="Ape_SidNoMatch" xml:space="preserve"><value>No imported SID matches the filter.</value></data>
+  <data name="Ape_SidNoManual" xml:space="preserve"><value>No manual SID.</value></data>
+  <data name="Ape_SidNoRowMatch" xml:space="preserve"><value>No row matches the filter.</value></data>
+  <data name="Ape_Alias" xml:space="preserve"><value>alias</value></data>
+  <data name="Ape_ClimbTitle" xml:space="preserve"><value>Assigned altitude in ft (number only)</value></data>
+  <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>The altitude must be agreed with the APP</value></data>
+  <data name="Ape_CatTitle" xml:space="preserve"><value>Aircraft category (VREF)</value></data>
+  <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
+  <data name="Ape_CloneRow" xml:space="preserve"><value>Duplicate row</value></data>
+  <data name="Ape_SidSavedN" xml:space="preserve"><value>Saved {0} SIDs.</value></data>
+  <data name="Ape_SidSavedNOne" xml:space="preserve"><value>Saved 1 SID.</value></data>
+  <data name="Ape_SidSaveFailedN" xml:space="preserve"><value> {0} not saved (details in logs).</value></data>
+  <data name="Ape_SidSaveFailedNOne" xml:space="preserve"><value> 1 not saved (details in logs).</value></data>
+  <data name="Ape_SidPublishedN" xml:space="preserve"><value>Published {0} SIDs.</value></data>
+  <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Published 1 SID.</value></data>
+  <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>There are {0} changed and unsaved SIDs: re-importing discards them. Continue?</value></data>
+  <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>There is 1 changed and unsaved SID: re-importing discards it. Continue?</value></data>
+  <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Save every changed section to the draft — Ctrl+S</value></data>
+  <data name="Ape_SaveAllN" xml:space="preserve"><value>Save all ({0})</value></data>
+  <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Help on saving</value></data>
+  <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Saves every changed section to the &lt;b&gt;draft&lt;/b&gt; (also with &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). The public sees them only after &lt;b&gt;publishing&lt;/b&gt;.</value></data>
+  <data name="Ape_PreviewHelpAria" xml:space="preserve"><value>Help on the draft preview</value></data>
+  <data name="Ape_PreviewHelpBody" xml:space="preserve"><value>Opens the &lt;b&gt;draft&lt;/b&gt; in a new tab (&lt;code&gt;?as=draft&lt;/code&gt;): you see it as it will look, but it is &lt;b&gt;not&lt;/b&gt; public yet. Always check here before &lt;b&gt;publishing&lt;/b&gt;.</value></data>
+  <data name="Ape_DragToReorder" xml:space="preserve"><value>Drag to reorder</value></data>
+  <data name="Ape_TestWinner" xml:space="preserve"><value>Winning rule with the test wind</value></data>
+  <data name="Ape_TestRun" xml:space="preserve"><value>Test</value></data>
+  <data name="Ape_TestClear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Ape_NoUnitFound" xml:space="preserve"><value>No unit found.</value></data>
+  <data name="Ape_AlreadyAdded" xml:space="preserve"><value>already added</value></data>
+  <data name="Ape_Linked" xml:space="preserve"><value>linked</value></data>
   <data name="Ape_ReimportDone" xml:space="preserve"><value>Import from IVAO completed: {0} runways, sectors {1} new / {2} updated.</value></data>
   <data name="Ape_LastImportTitle" xml:space="preserve"><value>Last import of the ATC sector catalogue from IVAO</value></data>
   <data name="Ape_NotFound" xml:space="preserve"><value>Airport not found or no profile. Generate the document first from «Airport management».</value></data>
