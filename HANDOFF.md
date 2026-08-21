@@ -1,27 +1,30 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 21 agosto 2026 — **densità UI delle pagine admin**, sul ramo
+**Ultimo aggiornamento:** 22 agosto 2026 — **densità UI delle pagine admin**, sul ramo
 `ui-trasferimenti-densita`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (21 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (22 agosto 2026)
 >
 > **Il lavoro vivo è sul ramo `ui-trasferimenti-densita`**, allineato col remoto e **non fuso**. Per riprendere
 > da freddo si leggono **due** file:
 > [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
 > riparte la prossima pagina — e
-> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 116 regole già pagate più
+> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 124 regole già pagate più
 > la ricognizione misurata di ogni pagina.
 >
 > In due righe: il giro riscrive **la forma** delle pagine di lavoro admin — niente cambia in modello, rotte o
-> dati. **Otto pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC, Confinanti,
-> **Versioni**). Versioni è costata due giri: prima la **sostanza** (la pagina lasciava eliminare un documento
-> che un'altra persona stava editando), poi la **densità** — 1 664 → **900px**, cioè il viewport: il dettaglio
-> è uscito dall'elenco e sta nel pannello a fianco, e i chip dei filtri contano al posto della fascia di
-> riepilogo.
+> dati. **Nove pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC, Confinanti,
+> Versioni, **Permessi**). Versioni è costata due giri — prima la **sostanza** (la pagina lasciava eliminare un
+> documento che un'altra persona stava editando), poi la densità: 1 664 → **900px**, il dettaglio fuori
+> dall'elenco e i chip che contano. Permessi: **2 449 → 900**, le sei card di navigazione diventate una barra
+> sola e completa, e l'elenco riorganizzato per **persona**.
 >
-> **La prossima è Permessi** (`/vsop/admin/permessi`, **1 346px**). Poi Sorgenti, Audit, Diagnostica, Nuovo
-> documento, Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
+> ⚠️ **La ricognizione di Permessi diceva 1 346px: era la misura a tabella VUOTA.** Le pagine che nel DB di
+> sviluppo non hanno dati vanno **riempite prima di misurarle** — vale per quelle che restano.
+>
+> **La prossima è Sorgenti** (`/vsop/admin/sorgenti`, **1 235px**). Poi Audit, Diagnostica, Nuovo documento,
+> Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
 >
 > Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
 > `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.

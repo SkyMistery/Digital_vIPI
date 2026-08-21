@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-21 agosto 2026)
+﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026)
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -9,7 +9,8 @@
 > — e il 21 agosto **versioni** in due giri: prima la parte **lock e azioni**
 > ([carta](../feature/2026-08-21-versioni-lock-e-azioni.md)), che non era di forma ma di sostanza
 > (§18, regole 95-105), poi la **densità** ([carta](../feature/2026-08-21-versioni-densita-ui.md), §19,
-> regole 106-116) — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> regole 106-116); il 22 agosto **permessi** ([carta](../feature/2026-08-22-permessi-densita-ui.md),
+> §20, regole 117-124) — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -238,13 +239,13 @@ pieno di righe.
     con gesti diversi costringono a ricordare *dove* si è invece di *cosa* si sta facendo: le SID manuali hanno
     preso la selezione che avevano solo le importate.
 
-## 15. Ricognizione: chi aderisce e chi no (19-21 agosto 2026)
+## 15. Ricognizione: chi aderisce e chi no (19-22 agosto 2026)
 
 Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB di sviluppo (l'altezza dipende
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — otto pagine, e sono loro ad aver prodotto le regole
+### Già a norma — nove pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -256,6 +257,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Editor ACC | `/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
 | Confinanti (vLOA) | `/vsop/admin/confinanti` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
 | Versioni | `/vsop/versioni` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
+| Permessi | `/vsop/admin/permessi` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -263,13 +265,12 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 | # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
 |---:|---|---|---:|---|
-| 1 | **Permessi** | `/vsop/admin/permessi` | 1 346 | Sottotitolo, 2 paragrafi d'aiuto, nessun «?», 1 fascia. |
-| 2 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 3 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 4 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 5 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 6 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 7 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
+| 2 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
+| 3 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
+| 4 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
+| 5 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
+| 6 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ### Fuori ambito: le viste pubbliche
 
@@ -461,6 +462,36 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 116. **Un separatore appeso al nulla** («vIPI Aeroporto ·» per un documento senza ambito) è un difetto di dati
      che si vede solo con i valori veri: il separatore appartiene al pezzo che lo segue, non alla riga.
 
+## 20. Quello che ha lasciato il giro Permessi
+
+117. ⚠️ **Una pagina misurata sui DATI SBAGLIATI mente.** La ricognizione dava Permessi a 1 346px: era la
+     misura con la tabella **vuota**, perché il DB di sviluppo non ha grant. Con 16 permessi scritti nella
+     copia sono **2 449** (2 623 in inglese) — da ultima della lista a prima. La regola 69 («si misura la
+     pagina come si usa») vale anche per **quanti dati** ha dentro: prima di misurare, riempirla.
+118. **Un elenco si organizza intorno alla DOMANDA della pagina.** Qui la domanda è «chi può cosa» e le righe
+     erano i *grant* ordinati per ACC: la stessa persona compariva in due punti lontani. Una riga per persona
+     coi chip degli ACC risponde in un colpo. ⚠️ Il raggruppamento è una **vista**: la revoca continua a
+     viaggiare per `Id` del grant, o si è aggiunto un modello gemello (pre-flight 1).
+119. **Chi paga il clic è il gesto RARO.** Il form «Concedi» stava sempre aperto e si prendeva metà larghezza
+     per un gesto che si fa una volta al mese, mentre guardare chi ha i permessi è quotidiano: il raro va in
+     un tasto di testata. E il caso davvero comune — **un secondo ACC a chi c'è già** — diventa un menu dentro
+     il pannello della persona, senza ridigitare l'identificativo.
+120. ⚠️ **Un elenco di scorciatoie va dentro il ramo autorizzato.** Spostando le card in una barra è facile
+     lasciarla fuori dall'`@if` dei permessi: chi non è admin si ritrova un elenco di porte chiuse. Dove
+     stavano le card, sta la barra.
+121. ⚠️ **`@bind` a un valore che non è fra le opzioni non ne sceglie nessuna**: la casella nasce vuota, sembra
+     rotta, e il tasto accanto sembra non fare niente. Il valore iniziale si prende **dalle opzioni vere**, e
+     si ricalcola quando le opzioni cambiano (qui: dopo ogni concessione).
+122. **Il segno «+» sta nell'icona o nell'etichetta, non in tutte e due**: «+ + Concedi» è quello che succede
+     quando una stringa di resx se lo porta dietro dai tempi in cui l'icona non c'era.
+123. **Due elenchi della stessa cosa divergono.** Le pagine admin erano elencate in due posti — sei card qui,
+     quattro link nella barra di Struttura — e **nessuno dei due era completo**: Audit, Incarichi e Diagnostica
+     si raggiungevano solo dalle card; Aeroporti, Sorgenti e Confinanti solo da Struttura. Un componente
+     (`AdminNav`) e una lista sola: aggiungere una pagina admin è una riga.
+124. **Un VID non è un nome.** «Concesso da 704798» non dice niente a nessuno: i VID mostrati si risolvono col
+     roster (`GetDisplayNamesAsync`), che è già in casa — e il nome della persona si prende dal roster anche
+     quando il grant fu scritto senza, invece di mostrare un trattino.
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -502,6 +533,9 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 - [Editor ACC — densità](../feature/2026-08-20-editor-acc-densita-ui.md): la pagina misurata **in modifica**
   (9 690px), i blocchi che si chiudono a fisarmonica, la prosa di sezione nella riga-titolo, e i due difetti
   vecchi trovati guidandola — il tour che scorreva da solo e il «?» chiuso che allargava la pagina.
+- [Permessi — densità](../feature/2026-08-22-permessi-densita-ui.md): la pagina che misurata **vuota**
+  mentiva di mille pixel, le sei card di navigazione diventate una barra sola e completa, e l'elenco
+  riorganizzato intorno alla domanda della pagina («chi può cosa») invece che intorno alla tabella.
 - [Versioni — densità](../feature/2026-08-21-versioni-densita-ui.md): il riepilogo che spariva perché i chip
   hanno cominciato a contare, le azioni salite dalla riga al pannello (118→63px), e i sei difetti visti
   guardando gli screenshot — fra cui un sottotitolo che parlava di uno storage droppato da tre settimane.

@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 21 agosto 2026, sera)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **116 voci in 19 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **124 voci in 20 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Otto pagine chiuse
+## Nove pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -36,6 +36,7 @@ già e si riusa**, non si riscrive.
 | Editor ACC | `/vsop/{acc}/editor` | 9 690 → 5 595 **in modifica** | `2026-08-20-editor-acc-densita-ui.md` |
 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | **2 515 → 900** | `2026-08-20-confinanti-densita-ui.md` |
 | **Versioni** | `/vsop/versioni` | **1 664 → 900** (+ lock e azioni) | `2026-08-21-versioni-lock-e-azioni.md`, `2026-08-21-versioni-densita-ui.md` |
+| **Permessi** | `/vsop/admin/permessi` | **2 449 → 900** | `2026-08-22-permessi-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -77,10 +78,23 @@ il badge non comparirà mai e hide/delete non saranno mai inibiti. Portare l'aer
 ⚠️ Il lock del `Document` dura **30 minuti senza heartbeat** (`EditResourceLock` invece: 3 min + battito):
 si rinnova al salvataggio e si libera con «Fine modifica». È la ragione per cui il force-unlock non è un lusso.
 
+## Permessi: chiusa il 22 agosto
+
+Carta [`2026-08-22-permessi-densita-ui.md`](../feature/2026-08-22-permessi-densita-ui.md), regole 117-124.
+⚠️ **La ricognizione la dava a 1 346px perché la tabella dei permessi era vuota**: col DB di sviluppo non
+c'è nessun grant. Con 16 grant scritti nella copia erano **2 449** (2 623 in inglese) — prima della lista,
+non ultima. Da lì a **900**: barra admin (undici voci, componente `AdminNav`) al posto delle sei card da
+485px, una riga per **persona** coi chip degli ACC, concessione e revoca nel pannello di destra.
+
+⚠️ La barra la monta **solo Permessi**. Estenderla alle altre nove pagine — e ritirare la `.struct-nav` di
+Struttura, che è il suo doppione parziale — è il giro successivo.
+
 ### La prossima pagina
 
-La lista §15 riparte da **Permessi** (`/vsop/admin/permessi`, 1 346px), poi Sorgenti, Audit, Diagnostica,
-Nuovo documento, Incarichi, editor APP/vLOA.
+La lista §15 riparte da **Sorgenti** (`/vsop/admin/sorgenti`, 1 235px: sottotitolo, 8 paragrafi d'aiuto,
+2 callout in fascia, tabelle corte), poi Audit, Diagnostica, Nuovo documento, Incarichi, editor APP/vLOA.
+⚠️ **Prima di misurarle, riempirle**: la lezione di Permessi vale per tutte quelle che mostrano una tabella
+che nel DB di sviluppo è vuota o quasi.
 
 ## Aperto, e non è di queste pagine
 

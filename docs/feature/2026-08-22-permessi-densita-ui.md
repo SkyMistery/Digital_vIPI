@@ -21,9 +21,11 @@
    **solo** dalle card di questa pagina. Non si tolgono le card senza mettere prima la barra che le sostituisce.
    Il «?» punta a una sezione di Guida **nuova** (`#admin-permessi`), registrata in `GuideSearchCatalog`
    (regola 12). Verifica: live a 1600/1440/1280/1024, IT ed EN, zoom 0.8→1.5, **con i 16 grant** nella copia.
-4. **Propagazione** — spariscono le sei card e con loro le descrizioni `Grants_StructDesc`, `Grants_DocsDesc`,
-   `Grants_AuditDesc`, `Grants_TasksDesc`, `Grants_DiagDesc` da **entrambi** i resx (regola 8). `Home_*` resta:
-   la usa anche `SopHome`.
+4. **Propagazione** — spariscono le sei card. Le loro **descrizioni** (`Grants_StructDesc`, `Grants_DocsDesc`,
+   `Grants_AuditDesc`, `Grants_TasksDesc`, `Grants_DiagDesc`) però non si buttano: diventano i `title` delle
+   voci di barra — stesso testo, altro posto, stessa chiave (regola 8). Escono da entrambi i resx solo le due
+   che non ha più nessuno: `Grants_ActiveGrants` e `Grants_When`, i titoli della tabella. `Home_*` resta: la
+   usa anche `SopHome`.
 
 ## Cosa non va, misurato (1600×900, italiano, 16 grant)
 
@@ -47,7 +49,7 @@
 ```
 .wrap.struct
  └ .doc-head.st-head    Permessi + pill «N persone» · «?» · [+ Concedi] · chip esito/errore
- └ nav.admin-nav        le DIECI pagine admin in una riga (componente condiviso, non un elenco copiato)
+ └ nav.admin-nav        le UNDICI pagine admin in una riga (componente condiviso, non un elenco copiato)
  └ .perm-layout         griglia 1.35fr / 1fr, altezza MISURATA (vipiFitViewport, collapseBelow 900)
     ├ .panel.st-pane    SINISTRA — una riga per PERSONA
     │   ├ .struct-bar   ricerca (VID o nome) · chip ACC CHE CONTANO · ✕
@@ -80,7 +82,7 @@ e il testo dice **chi** e **quale ACC**, perché è l'unica cosa che serve saper
 ## Slice
 
 1. **Carta** (questo file).
-2. **`AdminNav` + testata in riga**: le sei card diventano la barra completa a dieci voci; titolo, pill del
+2. **`AdminNav` + testata in riga**: le sei card diventano la barra completa a undici voci; titolo, pill del
    conteggio, «?» (sezione di Guida `#admin-permessi` + `GuideSearchCatalog`), esito in chip `.st-msg`.
 3. **Layout di lavoro**: `.wrap.struct` + `.perm-layout` a due pannelli misurati; elenco **per persona** con
    ricerca e chip ACC che contano; nomi risolti dal roster.
@@ -96,3 +98,50 @@ e il testo dice **chi** e **quale ACC**, perché è l'unica cosa che serve saper
 («Alessandra Ferrari-Colombo») e persone con **due** ACC: sono quelli che mandano a capo le colonne.
 Casi da guidare: concedere a una persona nuova, aggiungere un ACC a chi c'è già, revocare l'ultimo ACC di una
 persona (la riga deve sparire), filtrare per ACC fino a zero righe, e la pagina vista da **non-admin**.
+
+## Esito, misurato guidando la pagina
+
+| | Prima | Dopo |
+|---|---:|---:|
+| Altezza a 1600×900 (16 grant) | 2 449 | **900** (= il viewport: la pagina non scorre) |
+| …in inglese | 2 623 | **900** |
+| Riga d'elenco | 86px (nome e data a capo) | **63px**, tutte uguali |
+| Righe | 16 grant | **12 persone** |
+| Navigazione admin | 6 card = 485px, elenco parziale | **barra da 43px**, undici voci |
+| Form «Concedi» | sempre aperto, metà larghezza | tasto in testata, e «aggiungi ACC» dentro la persona |
+| «?» in pagina | 0 | **1** + la sezione di Guida `#admin-permessi` |
+
+Provato a **1600/1440/1280/1024 × IT/EN × zoom 0.8→1.5**, con i 16 grant nella copia del DB.
+La pagina non scorre in verticale; lo sforo **orizzontale** a 1280/1024 resta quello della topbar (dentro il
+`.wrap` non sfora niente).
+
+⚠️ **A zoom 1.5 la pagina torna a scorrere, ed è voluto** (regola 15): lo spazio che resta sotto la testata
+scende sotto il pavimento dei 320px e `vipiFitViewport` molla l'altezza fissa invece di produrre due barre di
+scorrimento annidate. Su Versioni non succedeva perché lì non c'è la barra admin: sono i suoi 43px (73 a
+schermo stretto) a far scattare il pavimento.
+
+**I chip contano esatto**: cliccati uno per uno, il numero sul chip è il numero di righe mostrate
+(3, 3, 2, 3, 3, 1, 1) e la pill del titolo passa a «N/12».
+
+**Guidati i gesti veri**: scegliere una persona (l'elenco **non si muove**: seconda riga a `y=376` prima e
+dopo), concedere a una persona **nuova** (si finisce sul suo pannello, l'elenco passa a 13), dare un
+**secondo ACC** a chi c'è già (il menu si sposta da solo sul prossimo ACC disponibile), **revocare** con la
+conferma che dice *chi* e *quale ACC*.
+
+## Tre difetti trovati guidando
+
+1. ⚠️ **La barra admin la vedeva anche chi admin non è**: era fuori dal ramo autorizzato, dove prima stavano
+   le card. Una barra di scorciatoie mostrata a chi non può entrare in nessuna di quelle pagine è un elenco
+   di porte chiuse.
+2. Il tasto diceva **«+ + Concedi»**: il segno stava sia nell'icona sia nella stringa del resx.
+3. ⚠️ Il menu **«aggiungi ACC» nasceva vuoto**: `@bind` a una stringa vuota non sceglie nessuna opzione — la
+   casella sembra rotta e il tasto accanto sembra non fare niente. Va portato su un valore che esiste **fra le
+   sue opzioni**, e ricalcolato dopo ogni concessione.
+
+## Quello che resta aperto
+
+- La barra `AdminNav` la monta **solo questa pagina**. Estenderla alle altre nove (e ritirare la
+  `.struct-nav` di Struttura, che è il suo doppione parziale) è il giro successivo, non questo.
+- ⚠️ Un permesso può esistere su un **ACC nascosto** (`Stations.Accs` non lo offre nei menu): il chip lo mostra
+  e la revoca funziona, ma da qui quel permesso non si può ri-concedere. È un caso di dati, non di forma.
+- Lo sforo orizzontale della **topbar** a 1280/1024: del chrome, vale su tutte le pagine.
