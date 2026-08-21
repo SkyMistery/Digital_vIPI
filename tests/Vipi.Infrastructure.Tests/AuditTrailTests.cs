@@ -4,6 +4,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
+using Vipi.Domain.Services;
 using Vipi.Infrastructure.Persistence;
 using Vipi.Infrastructure.Persistence.Seed;
 using Xunit;
@@ -129,5 +130,52 @@ public class AuditTrailTests : IAsyncLifetime
         await repo.SetHiddenAsync(riferimento, hidden: true, actorUserId: 303);
 
         Assert.Equal(1, await _db.AuditLogs.CountAsync(a => a.EntityType == "Document"));
+    }
+
+    /// <summary>
+    /// Togliere il lock a un'altra persona è un atto d'autorità — esposto in /vsop/versioni dal 21 agosto 2026 —
+    /// e la riga serve solo se dice <b>a chi</b> è stato tolto.
+    /// </summary>
+    [Fact]
+    public async Task ForceUnlock_Documento_Registra_Chi_Teneva_Il_Lock()
+    {
+        var repo = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
+        var docId = await _db.Documents.Select(d => d.Id).FirstAsync();
+        await repo.AcquireOrInspectLockAsync(docId, 555, "Giulia Bianchi", 30);
+
+        await repo.ForceUnlockAsync(docId, actorUserId: 704798);
+
+        var riga = await _db.AuditLogs.Where(a => a.Action == AuditAction.ForceUnlock).SingleAsync();
+        Assert.Equal(704798, riga.UserId);
+        Assert.Equal("Document", riga.EntityType);
+        Assert.Contains("Giulia Bianchi", riga.DetailsJson);
+        Assert.Contains("\"HeldByUserId\":555", riga.DetailsJson);
+    }
+
+    /// <summary>Stessa cosa per le pagine senza Document (struttura, newdoc), che usano EditResourceLock.</summary>
+    [Fact]
+    public async Task ForceUnlock_Risorsa_Registra_Chiave_E_Chi_Teneva()
+    {
+        var locks = new EfResourceLockRepository(_db);
+        await locks.AcquireOrInspectAsync("structure", 555, "Giulia Bianchi", 3);
+
+        await locks.ForceUnlockAsync("structure", actorUserId: 704798);
+
+        var riga = await _db.AuditLogs.Where(a => a.Action == AuditAction.ForceUnlock).SingleAsync();
+        Assert.Equal("EditResourceLock", riga.EntityType);
+        Assert.Equal("structure", riga.EntityId);
+        Assert.Contains("Giulia Bianchi", riga.DetailsJson);
+    }
+
+    /// <summary>Forzare un lock che non c'è non è un atto: nessuna riga.</summary>
+    [Fact]
+    public async Task ForceUnlock_Su_Lock_Libero_Non_Scrive_Niente()
+    {
+        var docId = await _db.Documents.Select(d => d.Id).FirstAsync();
+        await new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db))
+            .ForceUnlockAsync(docId, actorUserId: 704798);
+        await new EfResourceLockRepository(_db).ForceUnlockAsync("structure", actorUserId: 704798);
+
+        Assert.Equal(0, await _db.AuditLogs.CountAsync(a => a.Action == AuditAction.ForceUnlock));
     }
 }

@@ -1027,14 +1027,26 @@ public sealed class EfEditingRepository : IEditingRepository
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
     }
 
-    public async Task ForceUnlockAsync(int documentId, CancellationToken ct = default)
+    public async Task ForceUnlockAsync(int documentId, int actorUserId, CancellationToken ct = default)
     {
+        // Chi teneva il lock si legge PRIMA di toglierlo: è l'unica cosa che rende utile la riga di registro.
+        // Un lock già libero (o scaduto) non è un atto d'autorità: niente riga.
+        var chi = await _db.Documents.AsNoTracking().Where(d => d.Id == documentId)
+            .Select(d => new { d.Title, d.LockedByUserId, d.LockedByName, d.LockExpiresUtc }).FirstOrDefaultAsync(ct);
+        if (chi?.LockedByUserId is null) return;
+
         await _db.Documents.Where(d => d.Id == documentId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(d => d.LockedByUserId, (int?)null)
                 .SetProperty(d => d.LockedByName, (string?)null)
                 .SetProperty(d => d.LockedAtUtc, (DateTime?)null)
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
+
+        // ⚠️ ExecuteUpdate scrive subito e non passa dal change-tracker: la riga di audit ha bisogno del suo
+        // SaveChanges esplicito, qui non c'è un salvataggio dell'atto a cui accodarsi.
+        AuditScribe.Write(_db, actorUserId, AuditAction.ForceUnlock, "Document", documentId.ToString(),
+            new { chi.Title, HeldByUserId = chi.LockedByUserId, HeldByName = chi.LockedByName, chi.LockExpiresUtc });
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<bool> IsLockHeldByAsync(int documentId, int UserId, CancellationToken ct = default)

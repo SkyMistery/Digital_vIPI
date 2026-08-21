@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Application.Abstractions;
 
@@ -24,5 +24,7 @@ public interface IResourceLockRepository
     Task ReleaseAsync(string resourceKey, int userId, CancellationToken ct = default);
 
     /// <summary>Sblocca comunque (admin), a prescindere dal proprietario.</summary>
-    Task ForceUnlockAsync(string resourceKey, CancellationToken ct = default);
+    /// <summary>Libera il lock chiunque lo tenga. <paramref name="actorUserId"/> è chi forza: finisce nel
+    /// registro di audit insieme al nome di chi lo teneva.</summary>
+    Task ForceUnlockAsync(string resourceKey, int actorUserId, CancellationToken ct = default);
 }

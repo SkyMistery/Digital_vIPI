@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
@@ -236,7 +236,7 @@ public sealed class EditingService : IEditingService
     public async Task ForceUnlockAsync(int documentId, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
-        await _repo.ForceUnlockAsync(documentId, ct);
+        await _repo.ForceUnlockAsync(documentId, _authz.CurrentUserId ?? 0, ct);
     }
 
     /// <summary>Le mutazioni richiedono che il UserId corrente detenga il lock; rinnova la scadenza (sliding).</summary>
