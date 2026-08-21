@@ -718,6 +718,58 @@
               <p><b>Content changes</b> are not here: a document's history is read from its <b>versions</b>,
                in Documents.</p>"),
 
+        new Sec("admin-sorgenti", "plug", "Sorgenti: cosa arriva da fuori", "Sources: what comes from outside",
+            @"<p>La pagina (<code>/vsop/admin/sorgenti</code>) decide, per ogni <b>categoria</b> di dati, se
+               arriva dalla <b>sorgente</b> (oggi IVAO) o se la gestiamo <b>a mano</b>. È una scelta globale,
+               non per aeroporto, e vale per tutti gli import: quelli automatici e i bottoni.</p>
+              <ul>
+                <li><b>Da sorgente</b> = i dati sono autorevoli e in <b>sola lettura</b> negli editor, e a ogni
+                    import vengono riscritti. <b>Manuale</b> = l''import non li tocca più e gli editor li
+                    lasciano modificabili.</li>
+                <li>⚠️ Passare una categoria da <b>manuale a sorgente</b> è l''unico cambio che <b>distrugge</b>:
+                    al primo import quello che era stato scritto a mano viene sostituito. La conferma lo dice
+                    categoria per categoria prima di salvare.</li>
+                <li>Le <b>aree regolamentate</b> fanno eccezione: non sono modificabili da nessuna pagina,
+                    quindi escluderle non le rende manuali ma le <b>congela</b> — restano quelle già in
+                    archivio. Serve quando la sorgente restituisce dati sbagliati.</li>
+                <li><b>Transition Altitude</b> e <b>Piste</b> non hanno un giro automatico: arrivano solo
+                    quando qualcuno le chiede, dal <b>reimport</b> nell''editor aeroporto o generando il
+                    documento. Le altre girano da sole ogni giorno.</li>
+                <li>L''<b>anagrafica ACC</b> è sempre di sorgente e non ha una spunta: è l''elenco su cui tutto
+                    il resto si appoggia.</li>
+                <li>La colonna <b>Ultimo aggiornamento</b> dice com''è andato l''ultimo giro e quando è atteso
+                    il prossimo. <b>Ferma</b> significa che sono passati più di due giri dall''ultimo successo;
+                    <b>errore</b> mostra il messaggio della sorgente. Una categoria <b>esclusa</b> non è né
+                    verde né rossa: non si importa per scelta.</li>
+              </ul>
+              <p>Chi ha deciso la policy, e quando, è scritto in fondo alla tabella. Ogni cambio finisce anche
+               nel <b>registro</b> (Audit), con le sole categorie toccate.</p>",
+            @"<p>This page (<code>/vsop/admin/sorgenti</code>) decides, for each <b>category</b> of data, whether
+               it comes from the <b>source</b> (today IVAO) or is managed <b>by hand</b>. It is a global choice,
+               not per airport, and it applies to every import: the automatic ones and the buttons.</p>
+              <ul>
+                <li><b>From source</b> = the data is authoritative and <b>read-only</b> in the editors, and it is
+                    rewritten on every import. <b>Manual</b> = the import no longer touches it and the editors
+                    leave it editable.</li>
+                <li>⚠️ Moving a category from <b>manual to source</b> is the only <b>destructive</b> change: on
+                    the first import whatever was entered by hand is replaced. The confirmation says so,
+                    category by category, before saving.</li>
+                <li><b>Regulated areas</b> are the exception: no page can edit them, so excluding them does not
+                    make them manual but <b>freezes</b> them — the ones already stored are kept. Useful when the
+                    source returns bad data.</li>
+                <li><b>Transition Altitude</b> and <b>Runways</b> have no automatic run: they only arrive when
+                    someone asks, from the <b>re-import</b> in the airport editor or by generating the document.
+                    The others run daily on their own.</li>
+                <li>The <b>ACC directory</b> is always from the source and has no checkbox: it is the list
+                    everything else leans on.</li>
+                <li>The <b>Last update</b> column says how the last run went and when the next one is due.
+                    <b>Stalled</b> means more than two runs have passed since the last success; <b>error</b>
+                    shows the source's message. An <b>excluded</b> category is neither green nor red: it is not
+                    imported by choice.</li>
+              </ul>
+              <p>Who decided the policy, and when, is written under the table. Every change also lands in the
+               <b>log</b> (Audit), with the touched categories only.</p>"),
+
         new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
             @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
