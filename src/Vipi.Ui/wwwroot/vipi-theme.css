@@ -2292,3 +2292,49 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in
    cui un import puo' essere fermo da mesi senza che nessuno l'abbia deciso (ImportSids, luglio 2026). */
 .struct .sorg-pane .sorg-never{color:var(--warn-ink);font-weight:600}
+
+
+/* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----
+   A sinistra i rilievi, che crescono senza tetto (otto fanno 480px di tabella, cinquanta ne farebbero
+   tremila): riquadro misurato con `vipiFitViewport` — `height`, non `max-height` come su Sorgenti, perche'
+   qui il contenuto e' piu' alto dello schermo per mestiere — e dentro scorre solo la tabella, col `thead`
+   fermo. A destra due argomenti diversi, compatti e che non crescono.
+   ⚠️ Non e' elenco+dettaglio (regola 140): a destra non c'e' il dettaglio di una riga di sinistra. Il
+   pannello si giustifica perche' sono TRE DOMANDE in una pagina — e perche' la card delle immagini stava
+   sotto 1 349px e ci sarebbe restata per sempre.
+   Il `calc` e' il valore di PARTENZA prima che il JS misuri, non la verita'. */
+.struct .diag-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .diag-layout>.panel{min-width:0;padding:18px;overflow:hidden}
+/* ⚠️ vipiFitViewport misura fin dove arriva il riquadro, non cosa gli sta sotto: senza questo il padding di
+   fondo del `.wrap` lascia uno scorrimento inutile (70px su Sorgenti, 52 su Audit). */
+.wrap.struct:has(.diag-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .diag-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct .diag-layout .struct-bar .htree-search{flex:1 1 180px;min-width:140px}
+/* Un chip a zero qui e' NEUTRO, non verde: zero puo' anche voler dire «quella sonda non gira su questo
+   provider», che non e' una buona notizia — e' l'assenza di una notizia (regola 108). */
+.struct .diag-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* Colonne fisse tranne il dettaglio, che e' prosa e prende quello che avanza. Il min-width della tabella e'
+   la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .diag-table{table-layout:fixed;min-width:640px}
+.struct .diag-table td{padding:6px 10px;vertical-align:top}
+.struct .diag-table .c-cat{width:170px}
+.struct .diag-table .c-ent{width:190px;overflow-wrap:anywhere}
+.struct .diag-table .c-det{min-width:220px;overflow-wrap:anywhere}
+.struct .diag-table .c-where{width:120px}
+.struct .diag-table .pill{white-space:nowrap}
+/* La categoria sotto la pill della gravita': la gravita' qualifica la categoria, non e' una colonna sua. */
+.struct .diag-table .diag-cat{font-weight:700;margin-top:3px;overflow-wrap:anywhere}
+.struct .diag-table .c-where a.lnk-mini{display:inline-block;margin:0}
+/* Da quando e' la fotografia: accanto ai tasti, non sotto il titolo. */
+.struct .st-head .diag-quando{font-size:12px;white-space:nowrap}
+/* ---- La colonna di destra: due schede impilate che si dividono l'altezza ---- */
+.struct .diag-side{display:flex;flex-direction:column;gap:18px;min-width:0;min-height:0}
+.struct .diag-side>*{min-height:0}
+.struct .diag-side .panel,.struct .diag-side .block{margin:0;padding:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.struct .diag-side .st-scroll{margin:0}
+/* La testata della scheda e' la stessa delle pagine, in piccolo: titolo e «?» su una riga. */
+.struct .diag-card-head{margin-bottom:10px}
+.struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
+.struct .diag-admin{min-width:0}
+.struct .diag-admin td{padding:5px 8px}

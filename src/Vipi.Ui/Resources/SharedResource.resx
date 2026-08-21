@@ -467,6 +467,21 @@
   <data name="Diag_Msg_ColonnaMancante" xml:space="preserve"><value>Attesa dal modello ma assente nel database: la riconciliazione all’avvio non l’ha aggiunta (è best-effort, guarda i warning «[vIPI schema]» nei log).</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analisi in corso…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>Il report non è stato eseguito.</value></data>
+  <data name="Diag_HelpAria" xml:space="preserve"><value>Come si legge la diagnostica</value></data>
+  <data name="Diag_Intro" xml:space="preserve"><value>Ogni riga dice &lt;b&gt;di chi è il problema&lt;/b&gt;. &lt;b&gt;Dati&lt;/b&gt;: riferimenti fra entità che non risolvono più — si riparano aprendo un editor, e la riga dice quale. &lt;b&gt;Schema&lt;/b&gt;: il database non ha le colonne che il codice si aspetta. &lt;b&gt;Server&lt;/b&gt;: impostazioni del server di database che l’applicazione assume e non può imporre. &lt;b&gt;Avvio&lt;/b&gt;: una manutenzione dell’avvio è fallita, l’istanza gira ma non è partita intera. &lt;b&gt;Configurazione&lt;/b&gt;: si corregge fuori dall’applicazione.&lt;br /&gt;&lt;br /&gt;Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato viene modificato da questa pagina. E ⚠️ se un controllo non è riuscito, l’assenza di rilievi nella sua area &lt;b&gt;non&lt;/b&gt; vuol dire che vada tutto bene: lo dice una riga apposta.</value></data>
+  <data name="Diag_Count" xml:space="preserve"><value>{0} · {1} gravi</value></data>
+  <data name="Diag_CountNone" xml:space="preserve"><value>nessun rilievo</value></data>
+  <data name="Diag_CountTitle" xml:space="preserve"><value>Rilievi trovati, e quanti sono gravi</value></data>
+  <data name="Diag_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
+  <data name="Diag_RefreshTitle" xml:space="preserve"><value>Riesegue i controlli adesso</value></data>
+  <data name="Diag_AsOf" xml:space="preserve"><value>controllato alle {0}</value></data>
+  <data name="Diag_SearchPh" xml:space="preserve"><value>Cerca fra i rilievi…</value></data>
+  <data name="Diag_ChipTitle" xml:space="preserve"><value>Mostra solo l’area «{0}»</value></data>
+  <data name="Diag_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Diag_ClearTitle" xml:space="preserve"><value>Togli i filtri e mostra tutti i rilievi</value></data>
+  <data name="Diag_NoneInFilter" xml:space="preserve"><value>Nessun rilievo con questi filtri.</value></data>
+  <data name="Diag_Where" xml:space="preserve"><value>Dove si ripara</value></data>
+  <data name="Diag_AdminHelpAria" xml:space="preserve"><value>Come si leggono i codici admin</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>Nessuna incongruenza rilevata: tutti i soft-ref risolvono e le etichette denormalizzate combaciano.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} incongruenze rilevate ({1} gravi). Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato è stato modificato. Correzione manuale via editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Gravità</value></data>

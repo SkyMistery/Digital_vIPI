@@ -464,6 +464,21 @@
   <data name="Diag_Msg_ColonnaMancante" xml:space="preserve"><value>Expected by the model but absent from the database: startup reconciliation did not add it (it is best-effort - check the «[vIPI schema]» warnings in the logs).</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>The report did not run.</value></data>
+  <data name="Diag_HelpAria" xml:space="preserve"><value>How to read the diagnostics</value></data>
+  <data name="Diag_Intro" xml:space="preserve"><value>Every row says &lt;b&gt;whose problem it is&lt;/b&gt;. &lt;b&gt;Data&lt;/b&gt;: references between entities that no longer resolve — fixed by opening an editor, and the row says which one. &lt;b&gt;Schema&lt;/b&gt;: the database does not have the columns the code expects. &lt;b&gt;Server&lt;/b&gt;: database server settings the application assumes and cannot enforce. &lt;b&gt;Startup&lt;/b&gt;: a startup maintenance pass failed — the instance is running but did not start whole. &lt;b&gt;Configuration&lt;/b&gt;: fixed outside the application.&lt;br /&gt;&lt;br /&gt;These are &lt;b&gt;diagnoses only&lt;/b&gt;: this page changes no data. And ⚠️ if a check did not run, the absence of findings in its area does &lt;b&gt;not&lt;/b&gt; mean all is well: a row says so explicitly.</value></data>
+  <data name="Diag_Count" xml:space="preserve"><value>{0} · {1} severe</value></data>
+  <data name="Diag_CountNone" xml:space="preserve"><value>no findings</value></data>
+  <data name="Diag_CountTitle" xml:space="preserve"><value>Findings, and how many are severe</value></data>
+  <data name="Diag_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Diag_RefreshTitle" xml:space="preserve"><value>Run the checks again now</value></data>
+  <data name="Diag_AsOf" xml:space="preserve"><value>checked at {0}</value></data>
+  <data name="Diag_SearchPh" xml:space="preserve"><value>Search the findings…</value></data>
+  <data name="Diag_ChipTitle" xml:space="preserve"><value>Show only the «{0}» area</value></data>
+  <data name="Diag_Clear" xml:space="preserve"><value>Clear the filters</value></data>
+  <data name="Diag_ClearTitle" xml:space="preserve"><value>Clear the filters and show every finding</value></data>
+  <data name="Diag_NoneInFilter" xml:space="preserve"><value>No findings with these filters.</value></data>
+  <data name="Diag_Where" xml:space="preserve"><value>Where to fix it</value></data>
+  <data name="Diag_AdminHelpAria" xml:space="preserve"><value>How to read the admin codes</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>
