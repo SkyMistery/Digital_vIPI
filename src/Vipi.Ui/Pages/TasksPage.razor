@@ -165,7 +165,15 @@
                 }
                 @if (t.CreatedByUserId == (User.Get()?.UserId ?? -1))
                 {
-                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => Delete(t.Id)" title="@L["Common_Remove"]" aria-label="@L["AdminTasks_DeleteTask"]"><Icon Name="trash" /></button>
+                    @* Eliminare e' irreversibile e qui i tasti sono fitti: la conferma in linea c'era solo
+                       nella pagina admin, mentre qui il cestino cancellava al PRIMO clic. Stesso atto, stessa
+                       politica — e il cestino si stacca dalla fila degli avanzamenti. *@
+                    <span style="margin-left:auto">
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["AdminTasks_DeleteTask"]"
+                                       Disabled="@_busy" OnConfirm="() => Delete(t.Id)">
+                            <Trigger><Icon Name="trash" /></Trigger>
+                        </InlineConfirm>
+                    </span>
                 }
             </div>
         </div>

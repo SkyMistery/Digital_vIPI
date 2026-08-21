@@ -44,7 +44,9 @@
             @if (_canEdit)
             {
                 <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
-                <a class="editor-btn" href="/vsop/tasks" title="I miei incarichi"><Icon Name="clipboard" /> Incarichi</a>
+                @* ⚠️ Era l'unica voce della topbar scritta a mano in italiano, accanto a una tradotta:
+                   in pagina inglese diceva «Incarichi». L'etichetta e' la stessa della barra admin. *@
+                <a class="editor-btn" href="/vsop/tasks" title="@L["Chrome_MyTasks"]"><Icon Name="clipboard" /> @L["Nav_Tasks"]</a>
             }
             @if (_isAdmin)
             {

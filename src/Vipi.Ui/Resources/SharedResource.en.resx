@@ -1206,6 +1206,7 @@
   <data name="Nav_AdminAria" xml:space="preserve"><value>Administration pages</value></data>
   <data name="Nav_Docs" xml:space="preserve"><value>Documents</value></data>
   <data name="Nav_Tasks" xml:space="preserve"><value>Tasks</value></data>
+  <data name="Chrome_MyTasks" xml:space="preserve"><value>My tasks</value></data>
   <data name="Nav_Diag" xml:space="preserve"><value>Diagnostics</value></data>
   <data name="Nav_Perms" xml:space="preserve"><value>Permissions</value></data>
   <data name="Nav_AirportsTitle" xml:space="preserve"><value>Airports: assignment to ACCs, runways, TWR sectors.</value></data>

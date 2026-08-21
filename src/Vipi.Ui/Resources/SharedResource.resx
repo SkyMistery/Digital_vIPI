@@ -1209,6 +1209,7 @@
   <data name="Nav_AdminAria" xml:space="preserve"><value>Pagine di amministrazione</value></data>
   <data name="Nav_Docs" xml:space="preserve"><value>Documenti</value></data>
   <data name="Nav_Tasks" xml:space="preserve"><value>Incarichi</value></data>
+  <data name="Chrome_MyTasks" xml:space="preserve"><value>I miei incarichi</value></data>
   <data name="Nav_Diag" xml:space="preserve"><value>Diagnostica</value></data>
   <data name="Nav_Perms" xml:space="preserve"><value>Permessi</value></data>
   <data name="Nav_AirportsTitle" xml:space="preserve"><value>Aeroporti: assegnazione alle ACC, piste, settori TWR.</value></data>
