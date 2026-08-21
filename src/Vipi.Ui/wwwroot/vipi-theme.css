@@ -2519,5 +2519,32 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .vloa-aor-row input[type=checkbox]{flex:none;margin:0}
 .vloa-aor-row .sw{flex:none;width:12px;height:12px;border-radius:3px;border:1px solid}
 .vloa-aor-row .vloa-aor-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Il callsign e' quello che DISTINGUE (quattro settori di Atene si chiamano tutti «Athinai Radar»): sta
+   accanto al nome, in tono minore, ma non sparisce mai per primo. */
+.vloa-aor-row .vloa-aor-name .muted{font-size:11.5px}
 .vloa-aor-row.off{opacity:.55}
 .vloa-aor-row .pill{flex:none}
+
+/* ---- Riga-titolo di una sezione negli editor (DocumentSectionsEditor) ----
+   Titolo piu' pill piu' fino a cinque comandi: andava a capo, e una sezione CHIUSA misurava 92px invece di
+   ~50. Su dieci sezioni sono 900px di sole intestazioni — che si pagano anche dopo aver premuto «Comprimi
+   tutto», cioe' proprio quando si e' chiesto di non vederle.
+   Il titolo si stringe (e tronca) prima dei comandi: e' lui l'elemento elastico, gli altri sono nomi. */
+.ed-layout .dse-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap;min-width:0}
+.ed-layout .dse-head>h3,.ed-layout .dse-head>h4{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-size:19px}
+.ed-layout .dse-head>h4{font-size:16px}
+/* I comandi non si stringono e non vanno a capo; il gruppo scorre solo se davvero non ci sta. */
+.ed-layout .dse-head>.btn,.ed-layout .dse-head>.pill,.ed-layout .dse-head>.help-hint,
+.ed-layout .dse-head>.inline-confirm{flex:none}
+.ed-layout .dse-head .btn{padding:3px 9px;font-size:12.5px}
+/* Il campo di rinomina resta elastico: li' si SCRIVE, ed e' l'unica cosa che deve avere spazio. */
+.ed-layout .dse-head>input.app-in{flex:1 1 auto;min-width:120px}
+
+/* ---- Testata degli editor: il titolo si STRINGE, i comandi no ----
+   Il titolo di un editor puo' essere lungo quanto vuole («Editor vLOA — LIBB ↔ LGGG», «Editor APP Pescara
+   Approach»): misurato, a 1024px i pezzi sommavano 992 in 983 e la riga andava a capo per nove pixel. In una
+   riga «prosa + comandi» a cedere dev'essere la prosa (regola 111): il titolo tronca, i comandi restano nomi
+   interi — un tasto con l'etichetta tagliata e' un altro tasto (regola 33). */
+.editor-bar .st-head>.st-h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-bar .st-head>.pill,.editor-bar .st-head>.sh-chip,.editor-bar .st-head>.btn{flex:none;white-space:nowrap}

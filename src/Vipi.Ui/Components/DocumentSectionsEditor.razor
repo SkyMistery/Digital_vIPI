@@ -232,7 +232,10 @@ else
     {
         @* Header dentro il <summary> di CollapsibleBlock (depth0): preventDefault impedisce che il click sui
            controlli (rinomina/sposta/elimina/nascondi) collassi la card. Il toggle resta sul solo chevron. *@
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+        @* ⚠️ `.dse-head` e non uno stile in linea: la riga andava a capo (titolo + fino a cinque comandi) e
+           una sezione CHIUSA era alta 92px invece di ~50 — su un documento da dieci sezioni sono 900px di
+           sole intestazioni, che si pagano anche quando si e' compresso tutto per non vederle. *@
+        <div class="dse-head" @onclick:preventDefault="true" @onclick:stopPropagation="true">
             @if (IsEditing && !mand)
             {
                 <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"

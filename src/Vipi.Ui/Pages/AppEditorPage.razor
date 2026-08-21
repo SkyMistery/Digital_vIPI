@@ -58,7 +58,12 @@ else
                     </span>
                     @if (_editing)
                     {
-                        <span class="sh-chip ok">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } me ? L["Lock_UntilSuffix", me.ToLocalTime().ToString("HH:mm")].Value : "")</span>
+                        @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
+                           lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
+                           E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
+                        <span class="sh-chip ok" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", mt.ToLocalTime().ToString("HH:mm")].Value : ""))">
+                            🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", me.ToLocalTime().ToString("HH:mm")].Value : L["Lock_EditingNoTime"].Value)
+                        </span>
                     }
                     else if (_lock is { Locked: true, IsMine: false })
                     {
@@ -87,9 +92,6 @@ else
                 <RightRail>
                     @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
                     else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                        @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
-                    </span>
                     <DraftPreviewLink Href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                     @* Il lock e' salito in testata: qui restano i COMANDI, che e' quello per cui il rail
                        esiste. Prima lo stato del lock stava scritto in tre punti (callout, rail, e nulla in

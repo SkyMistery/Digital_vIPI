@@ -51,7 +51,12 @@ else
                     </span>
                     @if (_editing)
                     {
-                        <span class="sh-chip ok">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } me ? L["Lock_UntilSuffix", me.ToLocalTime().ToString("HH:mm")].Value : "")</span>
+                        @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
+                           lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
+                           E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
+                        <span class="sh-chip ok" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", mt.ToLocalTime().ToString("HH:mm")].Value : ""))">
+                            🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", me.ToLocalTime().ToString("HH:mm")].Value : L["Lock_EditingNoTime"].Value)
+                        </span>
                     }
                     else if (_lock is { Locked: true, IsMine: false })
                     {

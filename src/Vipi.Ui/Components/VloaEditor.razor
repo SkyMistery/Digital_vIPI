@@ -47,7 +47,12 @@ else
             </span>
             @if (_editing)
             {
-                <span class="sh-chip ok">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } me ? L["Lock_UntilSuffix", me.ToLocalTime().ToString("HH:mm")].Value : "")</span>
+                @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
+                   lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
+                   E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
+                <span class="sh-chip ok" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", mt.ToLocalTime().ToString("HH:mm")].Value : ""))">
+                    🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", me.ToLocalTime().ToString("HH:mm")].Value : L["Lock_EditingNoTime"].Value)
+                </span>
             }
             else if (_lock is { Locked: true, IsMine: false })
             {
@@ -79,9 +84,6 @@ else
         <RightRail>
             @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
             else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-            <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
-            </span>
             <DraftPreviewLink Href="@($"/vsop/{Home.ToLowerInvariant()}/vloa?acc={Foreign}&as=draft")" />
             @* Il lock e' salito in testata: qui restano i COMANDI (regola 1). *@
             @if (_editing)
@@ -361,7 +363,12 @@ else
                         <label class="vloa-aor-row @(riga.Hidden ? "off" : "")">
                             <input type="checkbox" checked="@(!riga.Hidden)" @onchange="() => ToggleAor(riga.Callsign)" />
                             <span class="sw" style="background:@(riga.Color)33;border-color:@riga.Color"></span>
-                            <span class="vloa-aor-name">@riga.Name</span>
+                            @* ⚠️ Il CALLSIGN accanto al nome, e non e' ridondanza: nel DB quattro settori di
+                               Atene si chiamano tutti «Athinai Radar», e nell'elenco erano quattro righe
+                               identiche — chi spuntava non sapeva quale stava togliendo. Con i chip il
+                               problema c'era uguale, ma nessuno li leggeva come un elenco di scelte.
+                               Il nome e' per chi legge, il callsign e' quello che distingue. *@
+                            <span class="vloa-aor-name">@riga.Name <span class="muted">@riga.Callsign</span></span>
                             @if (riga.IsForeign) { <span class="pill grey">@L["Xfer_Foreign"]</span> }
                         </label>
                     }

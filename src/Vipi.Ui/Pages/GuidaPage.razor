@@ -415,25 +415,77 @@
               </ul>
               <p>As with the others, you save to the draft and publish with the release panel.</p>"),
 
-        new Sec("editor-app", "radio", "Editor APP non remotizzato", "Non-remoted APP editor",
-            @"<p>Per gli APP che non sono remotizzati esiste un editor dedicato (<code>/vsop/{acc}/apps/editor</code>),
-               con 6 sezioni fisse — <b>Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti</b> — più sezioni
-               personalizzate. Frequenze, coordinamenti e AOR sono <b>derivati live</b>. Riordini e nascondi le sezioni;
-               i documenti APP vengono instradati qui automaticamente.</p>",
-            @"<p>For APPs that are not remoted there is a dedicated editor (<code>/vsop/{acc}/apps/editor</code>),
-               with 6 fixed sections — <b>Separations · AOR · Frequencies · VFR · Minima · Coordinations</b> — plus
-               custom sections. Frequencies, coordinations and AOR are <b>derived live</b>. You reorder and hide the
-               sections; APP documents are routed here automatically.</p>"),
+        new Sec("editor-app", "radio", "Editor APP: come si scrive", "APP editor: how to write it",
+            @"<p>L''editor (<code>/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
+               <b>avvicinamento non remotizzato</b>: un APP che ha una vIPI propria invece di stare dentro
+               quella dell''ACC.</p>
+              <ul>
+                <li>Le sezioni &lt;b&gt;derivate&lt;/b&gt; — AOR, frequenze, coordinamenti, configurazioni — non si
+                    scrivono a mano: le calcola l''applicazione dai dati. Qui si scelgono le opzioni (quali
+                    frequenze collegare, quali shape aggiungere alla mappa, quali aree regolamentate).</li>
+                <li>Le altre si riempiono a &lt;b&gt;blocchi&lt;/b&gt;, dal tasto &lt;b&gt;+ Blocco&lt;/b&gt; in fondo alla
+                    sezione: paragrafo, callout, tabella, immagine.</li>
+                <li>&lt;b&gt;Espandi/Comprimi tutto&lt;/b&gt;, sotto l''indice, apre e chiude tutte le sezioni insieme:
+                    con undici sezioni aperte è il modo più rapido per arrivare a quella che serve. Lo stato
+                    di ogni sezione è ricordato fra una visita e l''altra.</li>
+                <li>Una sezione &lt;b&gt;nascosta&lt;/b&gt; resta scritta ma non compare nel documento pubblico, e
+                    nasce chiusa: è esclusa, non è lì che si lavora.</li>
+                <li>&lt;b&gt;Larghezza piena&lt;/b&gt; (⤢) toglie indice e comandi laterali: serve alle tabelle larghe.</li>
+              </ul>
+              <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;,
+               in fondo alla pagina. L''&lt;b&gt;anteprima bozza&lt;/b&gt; la apre in una scheda nuova, come sarà.</p>",
+            @"<p>The editor (<code>/vsop/{acc}/apps/editor?app=…</code>) writes the document of a
+               <b>non-remoted approach</b>: an APP with its own vIPI instead of living inside the ACC''s one.</p>
+              <ul>
+                <li>&lt;b&gt;Derived&lt;/b&gt; sections — AOR, frequencies, coordination, configurations — are not written
+                    by hand: the application computes them from the data. Here you pick the options (which
+                    frequencies to link, which shapes to add to the map, which regulated areas).</li>
+                <li>The others are filled with &lt;b&gt;blocks&lt;/b&gt;, from the &lt;b&gt;+ Block&lt;/b&gt; button at the end of
+                    each section: paragraph, callout, table, image.</li>
+                <li>&lt;b&gt;Expand/Collapse all&lt;/b&gt;, under the index, opens and closes every section at once: with
+                    eleven sections open it is the quickest way to reach the one you need. Each section''s
+                    state is remembered between visits.</li>
+                <li>A &lt;b&gt;hidden&lt;/b&gt; section stays written but does not appear in the public document, and it
+                    starts collapsed: it is excluded, it is not where you are working.</li>
+                <li>&lt;b&gt;Full width&lt;/b&gt; (⤢) removes the index and the side commands: useful for wide tables.</li>
+              </ul>
+              <p>Changes go into a &lt;b&gt;draft&lt;/b&gt; and become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;, at the
+               bottom of the page. The &lt;b&gt;draft preview&lt;/b&gt; opens it in a new tab, as it will look.</p>"),
 
-        new Sec("editor-vloa", "globe", "Editor vLOA", "vLOA editor",
-            @"<p>Una vLOA è l'accordo tra un ACC <b>italiano</b> e un <b>vicino estero</b> (es. Roma ↔ Marsiglia).
-               L'editor (<code>/vsop/{acc}/vloa/editor?acc=YYYY</code>) apre la <b>coppia</b>; senza <code>?acc=</code>
-               mostra un elenco da cui sceglierla. I <b>Coordinamenti</b> includono anche i <b>sorvoli senza aeroporto</b>
-               e i punti di trasferimento (CoP).</p>",
-            @"<p>A vLOA is the agreement between an <b>Italian</b> ACC and a <b>foreign neighbour</b> (e.g. Rome ↔ Marseille).
-               The editor (<code>/vsop/{acc}/vloa/editor?acc=YYYY</code>) opens the <b>pair</b>; without <code>?acc=</code>
-               it shows a list to pick from. The <b>Coordinations</b> also include <b>overflights with no airport</b>
-               and the transfer points (CoP).</p>"),
+        new Sec("editor-vloa", "globe", "Editor vLOA: come si scrive", "vLOA editor: how to write it",
+            @"<p>L''editor (<code>/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una &lt;b&gt;coppia&lt;/b&gt;
+               ACC italiano ↔ ACC estero. Il documento è in &lt;b&gt;inglese&lt;/b&gt;: è la lingua delle vLOA.</p>
+              <ul>
+                <li>⚠️ Solo la parte &lt;b&gt;Home&lt;/b&gt; (l''ACC italiano) si modifica qui. La parte del &lt;b&gt;vicino&lt;/b&gt;
+                    è concordata fuori dal tool.</li>
+                <li>Le sezioni &lt;b&gt;derivate&lt;/b&gt; — aree, frequenze, coordinamenti — uniscono i dati dei &lt;b&gt;due&lt;/b&gt;
+                    ACC: qui si sceglie cosa entra nel documento, non si riscrivono.</li>
+                <li>Nella sezione &lt;b&gt;Areas of Responsibility&lt;/b&gt; ci sono due cose diverse: i &lt;b&gt;chip sopra la
+                    mappa&lt;/b&gt; accendono e spengono i poligoni &lt;i&gt;solo per te&lt;/i&gt;, mentre l''&lt;b&gt;elenco sotto&lt;/b&gt;
+                    decide quali settori fanno parte del documento — quello lo vede chi legge, ed è scritto
+                    nella bozza.</li>
+                <li>Il resto è come negli altri editor: blocchi col tasto &lt;b&gt;+ Blocco&lt;/b&gt;, &lt;b&gt;espandi/comprimi
+                    tutto&lt;/b&gt; sotto l''indice, sezioni nascoste che restano scritte ma fuori dal documento.</li>
+              </ul>
+              <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;.
+               Le coppie da cui nascono le vLOA si gestiscono in &lt;a href=""#admin-confinanti""&gt;Confinanti&lt;/a&gt;.</p>",
+            @"<p>The editor (<code>/vsop/{acc}/vloa/editor?acc=…</code>) writes the vLOA of a &lt;b&gt;pair&lt;/b&gt;
+               Italian ACC ↔ foreign ACC. The document is in &lt;b&gt;English&lt;/b&gt;: it is the language of vLOAs.</p>
+              <ul>
+                <li>⚠️ Only the &lt;b&gt;Home&lt;/b&gt; side (the Italian ACC) is edited here. The &lt;b&gt;neighbour&lt;/b&gt; side is
+                    agreed outside the tool.</li>
+                <li>&lt;b&gt;Derived&lt;/b&gt; sections — areas, frequencies, coordination — merge the data of &lt;b&gt;both&lt;/b&gt;
+                    ACCs: here you choose what goes into the document, you do not rewrite it.</li>
+                <li>The &lt;b&gt;Areas of Responsibility&lt;/b&gt; section holds two different things: the &lt;b&gt;chips above
+                    the map&lt;/b&gt; light the polygons up &lt;i&gt;for you only&lt;/i&gt;, while the &lt;b&gt;list below&lt;/b&gt; decides
+                    which sectors are part of the document — that one is seen by whoever reads it, and it is
+                    written into the draft.</li>
+                <li>The rest is like the other editors: blocks from the &lt;b&gt;+ Block&lt;/b&gt; button,
+                    &lt;b&gt;expand/collapse all&lt;/b&gt; under the index, hidden sections that stay written but out of the
+                    document.</li>
+              </ul>
+              <p>Changes go into a &lt;b&gt;draft&lt;/b&gt; and become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;. The pairs
+               vLOAs are born from live in &lt;a href=""#admin-confinanti""&gt;Neighbours&lt;/a&gt;.</p>"),
 
         new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
             @"<p>L'editor del vIPI di ACC (<code>/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i

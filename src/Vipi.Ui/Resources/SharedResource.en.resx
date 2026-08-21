@@ -1177,6 +1177,8 @@
   <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>
   <data name="Preview_Draft" xml:space="preserve"><value>[Draft]</value></data>
   <data name="Lock_Editing" xml:space="preserve"><value>You are editing</value></data>
+  <data name="Lock_EditingShort" xml:space="preserve"><value>until {0}</value></data>
+  <data name="Lock_EditingNoTime" xml:space="preserve"><value>You are editing</value></data>
   <data name="Lock_UntilSuffix" xml:space="preserve"><value> · lock until {0}</value></data>
   <data name="Lock_ReleaseTitle" xml:space="preserve"><value>Release the lock so another editor can edit</value></data>
   <data name="Lock_FinishEdit" xml:space="preserve"><value>Finish editing</value></data>

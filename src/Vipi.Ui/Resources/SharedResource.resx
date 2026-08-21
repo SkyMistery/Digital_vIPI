@@ -1180,6 +1180,8 @@
   <data name="Preview_Public" xml:space="preserve"><value>[Pubblica]</value></data>
   <data name="Preview_Draft" xml:space="preserve"><value>[Bozza]</value></data>
   <data name="Lock_Editing" xml:space="preserve"><value>Stai modificando</value></data>
+  <data name="Lock_EditingShort" xml:space="preserve"><value>fino alle {0}</value></data>
+  <data name="Lock_EditingNoTime" xml:space="preserve"><value>Stai modificando</value></data>
   <data name="Lock_UntilSuffix" xml:space="preserve"><value> · lock fino alle {0}</value></data>
   <data name="Lock_ReleaseTitle" xml:space="preserve"><value>Rilascia il lock così un altro editor può modificare</value></data>
   <data name="Lock_FinishEdit" xml:space="preserve"><value>Fine modifica</value></data>
