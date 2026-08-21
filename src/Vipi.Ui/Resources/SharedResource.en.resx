@@ -427,7 +427,12 @@
   <data name="Audit_VidN" xml:space="preserve"><value>VID {0}</value></data>
   <!-- Diagnostics (/vsop/admin/diagnostica) -->
   <data name="Diag_Title" xml:space="preserve"><value>Data diagnostics</value></data>
-  <data name="Diag_Subtitle" xml:space="preserve"><value>Inconsistencies in «soft» references (soft-ref): denormalized labels and per-callsign parents that may diverge from the source</value></data>
+  <data name="Diag_Subtitle" xml:space="preserve"><value>What does not add up, in five areas: data, schema, server, startup, configuration</value></data>
+  <data name="Diag_Area_Dati" xml:space="preserve"><value>Data</value></data>
+  <data name="Diag_Area_Schema" xml:space="preserve"><value>Schema</value></data>
+  <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>
+  <data name="Diag_Area_Avvio" xml:space="preserve"><value>Startup</value></data>
+  <data name="Diag_Area_Configurazione" xml:space="preserve"><value>Configuration</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>The report did not run.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>

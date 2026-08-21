@@ -88,7 +88,8 @@ public sealed class AdminCoverageService : IAdminCoverageService
                 $"{c.Rows.Count} staffisti nel roster",
                 $"Nessuno dei codici staff osservati combacia coi pattern admin in vigore ({string.Join(" | ", c.Patterns)}). " +
                 $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può editare né assegnare permessi, " +
-                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division»."),
+                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».",
+                ConsistencyArea.Configurazione),
         };
     }
 }

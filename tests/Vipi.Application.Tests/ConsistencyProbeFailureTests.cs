@@ -47,6 +47,10 @@ public class ConsistencyProbeFailureTests
         Assert.Equal(2, rotte.Count);
         Assert.All(rotte, f => Assert.Equal(ConsistencySeverity.Error, f.Severity));
         Assert.Contains(rotte, f => f.Detail.Contains("il server non risponde"));
+        // ⚠️ Il guasto eredita l'AREA del pezzo che non è riuscito: senza, i conteggi per area direbbero
+        // «0 rilievi di schema» proprio quando la sonda dello schema non ha guardato niente.
+        Assert.Contains(rotte, f => f.Area == ConsistencyArea.Schema);
+        Assert.Contains(rotte, f => f.Area == ConsistencyArea.Server);
     }
 
     /// <summary>Se a rompersi è la lettura dei dati, le sonde di contorno devono comunque parlare.</summary>
@@ -116,7 +120,7 @@ public class ConsistencyProbeFailureTests
         public Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ConsistencyFinding>>(_categoria is null
                 ? Array.Empty<ConsistencyFinding>()
-                : new[] { new ConsistencyFinding(_categoria, ConsistencySeverity.Warning, "x", "y") });
+                : new[] { new ConsistencyFinding(_categoria, ConsistencySeverity.Warning, "x", "y", ConsistencyArea.Schema) });
     }
 
     private sealed class SondaAnnullata : ISchemaDriftProbe

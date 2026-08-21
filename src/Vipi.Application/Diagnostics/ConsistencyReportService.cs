@@ -77,14 +77,21 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // È la lezione di `StartupMaintenanceReport`, che sta in questa stessa cartella e che questo servizio
         // consuma: «un guasto non deve uccidere il giro, ma non deve nemmeno restare zitto». Non era
         // applicata alle sonde di chi quel registro lo legge.
-        await Raccogli(findings, "incongruenze dei dati", async () => Analyze(await _repo.LoadAsync(ct)), ct);
-        if (_schema is not null) await Raccogli(findings, "drift di schema", () => _schema.RunAsync(ct), ct);
-        if (_admin is not null) await Raccogli(findings, "copertura admin", () => _admin.RunAsync(ct), ct);
-        if (_server is not null) await Raccogli(findings, "impostazioni del server", () => _server.RunAsync(ct), ct);
+        // ⚠️ Il guasto eredita l'AREA del pezzo che non è riuscito: è l'area di cui il report non sa più dire
+        // niente, ed è la sola cosa che rende quel rilievo utile a chi guarda i conteggi per area.
+        await Raccogli(findings, "incongruenze dei dati", ConsistencyArea.Dati,
+            async () => Analyze(await _repo.LoadAsync(ct)), ct);
+        if (_schema is not null)
+            await Raccogli(findings, "drift di schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
+        if (_admin is not null)
+            await Raccogli(findings, "copertura admin", ConsistencyArea.Configurazione, () => _admin.RunAsync(ct), ct);
+        if (_server is not null)
+            await Raccogli(findings, "impostazioni del server", ConsistencyArea.Server, () => _server.RunAsync(ct), ct);
         // Non è una sonda: è già successo, all'avvio. Qui si legge soltanto — e può solo fallire se qualcuno
         // ci mettesse dentro dell'I/O, quindi passa dallo stesso cancello per non doverlo ricordare.
         if (_startup is not null)
-            await Raccogli(findings, "manutenzioni d'avvio", () => Task.FromResult(_startup.Findings), ct);
+            await Raccogli(findings, "manutenzioni d'avvio", ConsistencyArea.Avvio,
+                () => Task.FromResult(_startup.Findings), ct);
 
         return findings;
     }
@@ -92,7 +99,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// <summary>
     /// Esegue un pezzo del report e ne accoda i rilievi; se lancia, accoda <b>il guasto</b> e prosegue.
     /// </summary>
-    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo,
+    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo, ConsistencyArea area,
         Func<Task<IReadOnlyList<ConsistencyFinding>>> esegui, CancellationToken ct)
     {
         try
@@ -107,7 +114,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             findings.Add(new ConsistencyFinding(CategoriaSondaRotta, ConsistencySeverity.Error, pezzo,
                 $"Il controllo «{pezzo}» non è andato a buon fine ({ex.GetType().Name}: {ex.Message}). " +
                 "Gli altri controlli sono stati eseguiti lo stesso, ma di quest'area il report non sa dire " +
-                "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene."));
+                "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene.", area));
         }
     }
 
@@ -124,7 +131,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             if (t.ConditionRefId is int refId && !d.RunwayIdents.ContainsKey(refId))
             {
                 findings.Add(new ConsistencyFinding("Pista orfana", ConsistencySeverity.Error, who,
-                    $"ConditionRefId={refId} non corrisponde a nessuna pista: rimossa o re-importata con altro Id."));
+                    $"ConditionRefId={refId} non corrisponde a nessuna pista: rimossa o re-importata con altro Id.",
+                    ConsistencyArea.Dati));
             }
             // 2) Label divergente: la pista esiste ma il suo ident non compare più nell'etichetta denormalizzata.
             else if (t.ConditionRefId is int okId
@@ -133,14 +141,16 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                      && !t.ConditionLabel!.Contains(ident, StringComparison.OrdinalIgnoreCase))
             {
                 findings.Add(new ConsistencyFinding("Label pista divergente", ConsistencySeverity.Warning, who,
-                    $"La pista referenziata è ora «{ident}» ma l'etichetta salvata è «{t.ConditionLabel}»: rinominata dopo il salvataggio."));
+                    $"La pista referenziata è ora «{ident}» ma l'etichetta salvata è «{t.ConditionLabel}»: rinominata dopo il salvataggio.",
+                    ConsistencyArea.Dati));
             }
 
             // 3) Area fantasma: l'area denormalizzata non corrisponde ad alcuna area speciale esistente.
             if (!string.IsNullOrWhiteSpace(t.ConditionAreaLabel) && !d.AreaNames.Contains(t.ConditionAreaLabel!.Trim()))
             {
                 findings.Add(new ConsistencyFinding("Area fantasma", ConsistencySeverity.Warning, who,
-                    $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa."));
+                    $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa.",
+                    ConsistencyArea.Dati));
             }
         }
 
@@ -151,7 +161,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Gerarchia dangling", ConsistencySeverity.Error,
                     $"{p.Kind} {p.Reference}",
-                    $"ParentCallsign «{p.ParentCallsign}» non esiste nei cataloghi: catena di copertura interrotta."));
+                    $"ParentCallsign «{p.ParentCallsign}» non esiste nei cataloghi: catena di copertura interrotta.",
+                    ConsistencyArea.Dati));
             }
         }
 
@@ -171,7 +182,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             findings.Add(new ConsistencyFinding("Area regolamentata dangling", ConsistencySeverity.Warning,
                 $"{r.Kind} {r.Reference}",
                 $"Aree selezionate non più presenti: {string.Join(", ", missing)}. Rimosse dalla sorgente e potate " +
-                "dall'import; nel documento restano citate ma non vengono mostrate."));
+                "dall'import; nel documento restano citate ma non vengono mostrate.", ConsistencyArea.Dati));
         }
 
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
@@ -216,7 +227,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     candidato,
                     $"Con «{altro}» online, «{candidato}» risulterebbe online anche se non lo è: i due callsign si " +
                     "confondono nella risalita della copertura. Rinominare uno dei due, o introdurre una tabella " +
-                    "esplicita callsign↔postazione.");
+                    "esplicita callsign↔postazione.", ConsistencyArea.Dati);
             }
         }
     }

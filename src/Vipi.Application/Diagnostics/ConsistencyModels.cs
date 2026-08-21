@@ -3,12 +3,40 @@ namespace Vipi.Application.Diagnostics;
 /// <summary>Gravità di un'incongruenza rilevata (solo diagnosi: nessun dato viene modificato).</summary>
 public enum ConsistencySeverity { Warning, Error }
 
-/// <summary>Una singola incongruenza dati rilevata dal report di consistenza.</summary>
+/// <summary>
+/// Di <b>chi</b> è il problema. Non è una sfumatura del testo: dice a chi legge se deve aprire un editor, il
+/// pannello del server o il file di configurazione — e sono tre persone diverse in tre momenti diversi.
+///
+/// <para><b>Perché esiste.</b> Fino al 22 agosto 2026 la pagina si presentava come «incongruenze dei
+/// riferimenti deboli (soft-ref)» e nella stessa tabella potevano comparire il drift di schema, le
+/// impostazioni del server di database, il guasto di una manutenzione d'avvio e «nessuno può editare» — che
+/// è il rilievo più grave che l'applicazione sappia produrre. Cinque famiglie presentate come una.</para>
+///
+/// <para>⚠️ Ogni produttore di rilievi la <b>dichiara</b>: è un parametro obbligatorio e non ha un default,
+/// perché un default farebbe finire un controllo nuovo nell'area sbagliata senza che nessuno se ne accorga.</para>
+/// </summary>
+public enum ConsistencyArea
+{
+    /// <summary>Soft-ref e dati editoriali: si ripara aprendo un editor.</summary>
+    Dati,
+    /// <summary>Schema fisico contro modello EF: si ripara con una migrazione o un ALTER.</summary>
+    Schema,
+    /// <summary>Impostazioni del server di database che l'applicazione assume e non può imporre.</summary>
+    Server,
+    /// <summary>Una passata dell'avvio è fallita: l'istanza gira, ma non è partita intera.</summary>
+    Avvio,
+    /// <summary>Configurazione dell'applicazione (pattern admin, sezione Division): si ripara fuori dall'app.</summary>
+    Configurazione,
+}
+
+/// <summary>Una singola incongruenza rilevata dal report di consistenza.</summary>
 /// <param name="Category">Famiglia del controllo (es. «Pista orfana», «Gerarchia dangling»).</param>
 /// <param name="Severity">Gravità.</param>
 /// <param name="Entity">Riferimento leggibile all'entità coinvolta (es. «Clausola #42 (LIRR, punti EKMUR)»).</param>
 /// <param name="Detail">Spiegazione del disallineamento e come si è prodotto.</param>
-public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity, string Detail);
+/// <param name="Area">Di chi è il problema. Vedi <see cref="ConsistencyArea"/>.</param>
+public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity,
+    string Detail, ConsistencyArea Area);
 
 /// <summary>Condizione di una clausola di accordo (soft-ref a pista/area denormalizzate).</summary>
 /// <param name="Points">I punti della clausola, come si leggono: servono solo a dire QUALE clausola nel
