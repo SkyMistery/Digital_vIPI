@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -265,26 +265,34 @@ public class ReleasePanelTests : TestContext
         Assert.Equal(1, fake.PublishedNow);
     }
 
+    /// <summary>
+    /// ⚠️ La conferma e' IN LINEA, non il `confirm()` nativo del browser. Quello bloccava il circuito Blazor
+    /// finche' non si rispondeva, e il testo utile — QUALE release si sta annullando — finiva in una
+    /// finestrella di sistema invece che accanto al tasto. Questi due test presidiavano il `confirm`: ora
+    /// presidiano il gesto vero, cioe' che il primo clic CHIEDE e non fa niente.
+    /// </summary>
     [Fact]
-    public void Annulla_Release_Chiede_Conferma_E_Rispetta_Il_Rifiuto()
+    public void Annulla_Release_Chiede_Prima_E_Il_Primo_Clic_Non_Annulla_Niente()
     {
         var fake = Arrange(Rel(9));
-        JSInterop.Setup<bool>("confirm", _ => true).SetResult(false);   // l'utente annulla
         var cut = Render(allowCancel: true);
 
         cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
 
-        Assert.Equal(0, fake.Canceled);
+        Assert.Equal(0, fake.Canceled);                       // il primo clic apre la domanda
+        Assert.Contains("Rel_CancelPrompt", cut.Markup);      // ...e la domanda NOMINA la release
+        Assert.Contains("2608", cut.Markup);   // il ciclo del bersaglio finto
     }
 
     [Fact]
-    public void Annulla_Release_Procede_Se_Confermato()
+    public void Annulla_Release_Procede_Alla_Conferma()
     {
         var fake = Arrange(Rel(9));
-        JSInterop.Setup<bool>("confirm", _ => true).SetResult(true);
         var cut = Render(allowCancel: true);
 
         cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
+        // Il tasto di conferma dell'InlineConfirm, non quello che ha aperto la domanda.
+        cut.FindAll("button").First(b => b.TextContent.Contains("Rel_CancelYes")).Click();
 
         Assert.Equal(1, fake.Canceled);
     }

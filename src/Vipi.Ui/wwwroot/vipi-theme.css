@@ -59,8 +59,11 @@
    `flex-grow` lo distribuisca, e `.right` ha `margin-left:auto`. Il campo restava quindi al suo minimo a
    OGNI assetto — a 1600 come a 1024 — e il segnaposto usciva troncato: «Cerca Co…», sulla stringa piu'
    visibile dell'applicazione. Con una base dichiarata il campo parte da quella, e il margine auto si prende
-   solo cio' che resta. */
-.top-search{flex:1 1 240px;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
+   solo cio' che resta.
+   ⚠️ Lo shrink resta 1, e non 0: con `flex-shrink:0` il campo non cede piu' e a 1600 e 1440 sforava di
+   80-104px. Il campo DEVE poter cedere quando serve — il segnaposto si accorcia, non si blinda la larghezza:
+   una barra che sfora e' un difetto, un segnaposto piu' corto no. */
+.top-search{flex:1 1 250px;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
 .top-search:focus-within{background:rgba(255,255,255,.95)}
 .top-search .ico{opacity:.85;font-size:13px}
 .top-search:focus-within .ico{opacity:1}
@@ -2625,4 +2628,26 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
     z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
   .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
 }
-}
+
+/* ---- Pannello release: la riga sta in UNA riga ----
+   Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
+   scorre, non si legge riga per riga. L'ora esatta e la nota stanno nel `title` della riga: sono la verita'
+   e non si buttano, ma non e' quello che si guarda scorrendo. */
+/* ⚠️ `#p-release` davanti, e non `.rel-row` nuda: la riga porta DUE classi (`ver-row rel-row`) e il valore
+   calcolato restava quello di `.ver-row` — 11px 14px invece di 6px 10px. Vale la regola gia' scritta per le
+   pagine di struttura: una regola nuova si verifica sul valore CALCOLATO, non sul fatto di averla scritta
+   dopo. L'ancora del pannello e' un id, quindi la specificita' non e' in dubbio. */
+#p-release .rel-row{align-items:center;flex-wrap:nowrap;gap:10px;padding:5px 12px;margin-bottom:5px}
+/* I tasti della riga sono il vero pavimento dell'altezza: 39px l'uno, non il testo (19-25px). */
+#p-release .rel-row .btn{padding:3px 9px;font-size:12.5px}
+#p-release .rel-row .rel-lbl{flex:none;white-space:nowrap;font-size:13.5px}
+/* La meta e' l'unica cosa elastica: e' prosa, e cede lei prima dei tasti (regola 111). */
+#p-release .rel-row .rel-meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#p-release .rel-row .vact{flex:none;margin-left:0;gap:5px}
+#p-release .rel-row .vb{flex:none;min-width:0;font-size:13px}
+
+/* Le superate oltre le prime tre: presenti, contate, chiuse. */
+.rel-old{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.rel-old>summary{cursor:pointer;font-size:12.5px;color:var(--ink-soft);padding:2px 0}
+.rel-old>summary:hover{color:var(--ivao-blue)}
+.rel-old .ver-row{margin-top:4px}

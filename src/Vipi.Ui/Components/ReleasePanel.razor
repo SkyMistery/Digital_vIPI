@@ -2,6 +2,7 @@
    (ACC/APP/Aeroporto) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale.
    Parametri opt-in (default = timeline semplice): ShowDiff, AllowCancel, BeforePublishAsync, PreviewUrlFactory. *@
 @inject IReleaseService Releases
+@inject IServiceProvider Servizi
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 @* Releases NON isolato: il publish è un'unica operazione logica composta con BeforePublishAsync della pagina
@@ -35,39 +36,35 @@
     }
     else
     {
-        @foreach (var r in _rels)
+        @* ⚠️ La release IN VIGORE e le PROGRAMMATE non si collassano mai: sono lo stato del documento, non
+           storia. Le superate oltre le prime tre finiscono in un «altre N» che si apre — di dieci release,
+           nove sono superate, e si guardano quando si cerca qualcosa di preciso. *@
+        @foreach (var r in InEvidenza)
         {
-            <div class="ver-row @(r.IsEffectiveNow ? "current" : "")">
-                <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
-                <div style="flex:1">
-                    <b>@Label(r)</b>
-                    @* «rilascio #N»: N è il progressivo della RELEASE per questo bersaglio (SaveReleaseAsync:
-                       max+1), non la versione del documento. Scritto «rel. vN» si confondeva con la pill
-                       «Bozza vN»/«Pubblicata vN» dell'editor, che invece è la versione. *@
-                    <div class="vmeta">@L["Rel_VersionLabel", r.VersionNumber] · VID @r.CreatedByUserId · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
-                </div>
-                <span class="vact">
-                    @{ var previewUrl = PreviewFor(r.Id); }
-                    @if (previewUrl is not null)
-                    {
-                        <a class="btn ghost" href="@previewUrl" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
-                    }
-                    @if (ShowDiff)
-                    {
-                        <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
-                    }
-                    @if (AllowCancel)
-                    {
-                        <button class="btn ghost" disabled="@_busy" @onclick="() => CancelRelease(r.Id)" title="@L["Rel_CancelTitle"]">✕ @L["Common_Cancel"]</button>
-                    }
-                </span>
-            </div>
+            @RigaRelease(r)
             @if (ShowDiff && _diffOpen.Contains(r.Id))
             {
                 <div class="block" style="margin:2px 0 8px 24px">
                     <ReleaseDiffTable Diff="@(_diffs.TryGetValue(r.Id, out var d) ? d : null)" />
                 </div>
             }
+        }
+
+        @if (Vecchie.Count > 0)
+        {
+            <details class="rel-old">
+                <summary>@L["Rel_OlderN", Vecchie.Count]</summary>
+                @foreach (var r in Vecchie)
+                {
+                    @RigaRelease(r)
+                    @if (ShowDiff && _diffOpen.Contains(r.Id))
+                    {
+                        <div class="block" style="margin:2px 0 8px 24px">
+                            <ReleaseDiffTable Diff="@(_diffs.TryGetValue(r.Id, out var dv) ? dv : null)" />
+                        </div>
+                    }
+                }
+            </details>
         }
     }
 
@@ -111,6 +108,77 @@
     /// «Bozza vN» a pubblicazione avvenuta.</summary>
     [Parameter] public EventCallback Published { get; set; }
 
+    /// <summary>
+    /// Una riga della storia, su UNA riga. Prima ne occupava due — titolo sopra, meta sotto — cioe' 68px
+    /// per dieci righe, 680px per una storia che si scorre e non si legge riga per riga. L'ora esatta e la
+    /// nota stanno nel `title`: sono la verita' della riga e non si buttano, ma non e' quello che si legge
+    /// scorrendo (stessa regola del JSON nel registro di audit).
+    /// </summary>
+    private RenderFragment RigaRelease(ReleaseInfo r) => __builder =>
+    {
+        // ⚠️ Il testo del `title` si compone QUI, non dentro l'attributo: un'interpolazione con virgolette
+        // escapate dentro un attributo Razor chiude il blocco `@code` in faccia al parser (CS9348, e l'errore
+        // punta a venti righe piu' in la').
+        var dettaglio = Dettaglio(r);
+        <div class="ver-row rel-row @(r.IsEffectiveNow ? "current" : "")" title="@dettaglio">
+            <span class="vb">AIRAC @r.ReleaseAiracCycle</span>
+            <b class="rel-lbl">@Label(r)</b>
+            @* «rilascio #N»: N e' il progressivo della RELEASE per questo bersaglio (SaveReleaseAsync: max+1),
+               non la versione del documento. Scritto «rel. vN» si confondeva con la pill «Bozza vN» dell'editor. *@
+            <span class="vmeta rel-meta">@L["Rel_VersionLabel", r.VersionNumber] · @Chi(r.CreatedByUserId) · @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")</span>
+            <span class="vact">
+                @{ var previewUrl = PreviewFor(r.Id); }
+                @if (previewUrl is not null)
+                {
+                    <a class="btn ghost" href="@previewUrl" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
+                }
+                @if (ShowDiff)
+                {
+                    <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
+                }
+                @if (AllowCancel)
+                {
+                    @* ⚠️ `InlineConfirm` e non il `confirm()` nativo: quello BLOCCA il circuito Blazor finche'
+                       non si risponde, e il testo utile — QUALE release si sta annullando — finiva in una
+                       finestrella di sistema invece che accanto al tasto che l'ha aperta. E' la stessa cura
+                       gia' pagata dal giro Versioni il 21 agosto, e qui pesa di piu': annullare una release
+                       e' irreversibile e tocca un documento gia' pubblicato. *@
+                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Rel_CancelTitle"]" AriaLabel="@L["Rel_CancelTitle"]"
+                                   Prompt="@L["Rel_CancelPrompt", r.ReleaseAiracCycle]" Disabled="@_busy"
+                                   ConfirmLabel="@L["Rel_CancelYes"]" CancelLabel="@L["Common_Close"]"
+                                   OnConfirm="() => CancelRelease(r.Id)">
+                        <Trigger>✕ @L["Common_Cancel"]</Trigger>
+                    </InlineConfirm>
+                }
+            </span>
+        </div>
+    };
+
+    /// <summary>Chi ha pubblicato, in chiaro. ⚠️ Un VID non e' un nome (regola 124): il roster e' gia' in casa
+    /// e risolve in UNA chiamata per pannello, non una per riga. Se non lo conosce resta il VID — meglio un
+    /// numero che un trattino. Terzo posto in cui questa regola si ripaga, dopo Permessi e Incarichi.</summary>
+    /// <summary>La verita' della riga per il `title`: rilascio, chi, ora esatta, nota.</summary>
+    private string Dettaglio(ReleaseInfo r)
+    {
+        var nota = string.IsNullOrWhiteSpace(r.Note) ? "" : $" — “{r.Note}”";
+        return $"{L["Rel_VersionLabel", r.VersionNumber].Value} · {Chi(r.CreatedByUserId)} · {r.CreatedUtc:dd MMM yyyy HH:mm} UTC{nota}";
+    }
+
+    private string Chi(int userId) =>
+        _nomi.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : L["Audit_VidN", userId].Value;
+
+    private IReadOnlyDictionary<int, string> _nomi = new Dictionary<int, string>();
+
+    /// <summary>Quelle che contano: la release in vigore, le programmate, e le tre superate piu' recenti.</summary>
+    private IReadOnlyList<ReleaseInfo> InEvidenza =>
+        _rels.Where(r => r.IsEffectiveNow || r.Status == ReleaseStatus.Scheduled)
+             .Concat(_rels.Where(r => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled).Take(3))
+             .ToList();
+
+    /// <summary>Le superate oltre le prime tre: storia, e si aprono quando si cerca qualcosa di preciso.</summary>
+    private IReadOnlyList<ReleaseInfo> Vecchie =>
+        _rels.Where(r => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled).Skip(3).ToList();
+
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
@@ -147,6 +215,17 @@
     private async Task Reload()
     {
         _rels = await Releases.ListAsync(Target, Key);
+        // ⚠️ Una chiamata per PANNELLO, non una per riga: i VID sono pochi e si risolvono in blocco.
+        // ⚠️ E il roster si RISOLVE, non si inietta: dare un nome a un VID e' una comodita', non una
+        // dipendenza del pannello. Iniettarlo come obbligatorio rende il componente non montabile per
+        // chiunque non l'abbia registrato — e questo pannello lo montano quattro editor piu' i test.
+        // Senza roster restano i VID, che e' gia' il ripiego dichiarato in `Chi`.
+        var roster = Servizi.GetService(typeof(Vipi.Application.Abstractions.IStaffRosterRepository))
+            as Vipi.Application.Abstractions.IStaffRosterRepository;
+        var vid = _rels.Select(r => r.CreatedByUserId).Where(v => v > 0).Distinct().ToList();
+        _nomi = roster is null || vid.Count == 0
+            ? new Dictionary<int, string>()
+            : await roster.GetDisplayNamesAsync(vid);
         _diffOpen.Clear(); _diffs.Clear();
     }
 
@@ -164,10 +243,9 @@
         return true;
     }, L["Rel_PublishedNow"], notify: true);
 
+    // La domanda la fa `InlineConfirm` accanto al tasto (vedi RigaRelease): qui resta il solo atto.
     private Task CancelRelease(int releaseId) => Run(async () =>
     {
-        if (!await JS.InvokeAsync<bool>("confirm", L["Rel_CancelConfirm"].Value))
-            return false;
         await Releases.CancelReleaseAsync(releaseId);
         return true;
     }, L["Rel_Canceled"]);

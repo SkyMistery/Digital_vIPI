@@ -101,7 +101,7 @@
   <data name="Chrome_ZoomIn" xml:space="preserve"><value>Aumenta zoom</value></data>
   <data name="Chrome_ZoomReset" xml:space="preserve"><value>Reimposta a 100%</value></data>
   <data name="Chrome_Search" xml:space="preserve"><value>Cerca</value></data>
-  <data name="Chrome_SearchPh" xml:space="preserve"><value>Cerca CoP, FIX, callsign</value></data>
+  <data name="Chrome_SearchPh" xml:space="preserve"><value>Cerca CoP, FIX…</value></data>
   <data name="Chrome_Logout" xml:space="preserve"><value>Esci</value></data>
   <data name="Chrome_Login" xml:space="preserve"><value>Accedi</value></data>
   <data name="Chrome_LoginTitle" xml:space="preserve"><value>Accedi con IVAO</value></data>
@@ -151,7 +151,7 @@
   <data name="Changed_Blocks" xml:space="preserve"><value>blocchi</value></data>
   <!-- Ricerca (/vsop/search) -->
   <data name="Search_Title" xml:space="preserve"><value>Ricerca</value></data>
-  <data name="Search_Placeholder" xml:space="preserve"><value>Cerca CoP, FIX, callsign</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Cerca CoP, FIX…</value></data>
   <data name="Search_MinChars" xml:space="preserve"><value>Digita almeno 2 caratteri.</value></data>
   <data name="Search_ResultsFor" xml:space="preserve"><value>{0} risultati per</value></data>
   <data name="Search_NoResults" xml:space="preserve"><value>Nessun risultato.</value></data>
@@ -1227,6 +1227,9 @@
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release pubblicata al ciclo AIRAC {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release pubblicata subito (review).</value></data>
   <data name="Rel_CancelConfirm" xml:space="preserve"><value>Annullare questa release? Il pubblico tornerà alla precedente in vigore.</value></data>
+  <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
+  <data name="Rel_CancelYes" xml:space="preserve"><value>Annulla la release</value></data>
+  <data name="Rel_OlderN" xml:space="preserve"><value>Altre {0} release superate</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release annullata.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>In vigore</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Schedulata</value></data>

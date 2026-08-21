@@ -101,7 +101,7 @@
   <data name="Chrome_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
   <data name="Chrome_ZoomReset" xml:space="preserve"><value>Reset to 100%</value></data>
   <data name="Chrome_Search" xml:space="preserve"><value>Search</value></data>
-  <data name="Chrome_SearchPh" xml:space="preserve"><value>Search CoP, FIX, callsign</value></data>
+  <data name="Chrome_SearchPh" xml:space="preserve"><value>Search CoP, FIX…</value></data>
   <data name="Chrome_Logout" xml:space="preserve"><value>Sign out</value></data>
   <data name="Chrome_Login" xml:space="preserve"><value>Sign in</value></data>
   <data name="Chrome_LoginTitle" xml:space="preserve"><value>Sign in with IVAO</value></data>
@@ -151,7 +151,7 @@
   <data name="Changed_Blocks" xml:space="preserve"><value>blocks</value></data>
   <!-- Search (/vsop/search) -->
   <data name="Search_Title" xml:space="preserve"><value>Search</value></data>
-  <data name="Search_Placeholder" xml:space="preserve"><value>Search CoP, FIX, callsign</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Search CoP, FIX…</value></data>
   <data name="Search_MinChars" xml:space="preserve"><value>Type at least 2 characters.</value></data>
   <data name="Search_ResultsFor" xml:space="preserve"><value>{0} results for</value></data>
   <data name="Search_NoResults" xml:space="preserve"><value>No results.</value></data>
@@ -1223,7 +1223,10 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Schedule at cycle</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release published at AIRAC cycle {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release published now (review).</value></data>
-  <data name="Rel_CancelConfirm" xml:space="preserve"><value>Cancel this release? The public will revert to the previous effective one.</value></data>
+  <data name="Rel_CancelConfirm" xml:space="preserve"><value>Cancel this release? The public goes back to the previous effective one.</value></data>
+  <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
+  <data name="Rel_CancelYes" xml:space="preserve"><value>Cancel the release</value></data>
+  <data name="Rel_OlderN" xml:space="preserve"><value>{0} more superseded releases</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>Effective</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Scheduled</value></data>
