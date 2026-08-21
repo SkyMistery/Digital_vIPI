@@ -1054,7 +1054,6 @@
   <data name="Rel_ColDetail" xml:space="preserve"><value>Dettaglio</value></data>
   <data name="Rel_LoadingDiff" xml:space="preserve"><value>Caricamento differenze…</value></data>
   <data name="Nd_Title" xml:space="preserve"><value>Nuovo documento</value></data>
-  <data name="Nav_AdminLabel" xml:space="preserve"><value>Admin:</value></data>
   <data name="Nav_AdminAria" xml:space="preserve"><value>Pagine di amministrazione</value></data>
   <data name="Nav_Docs" xml:space="preserve"><value>Documenti</value></data>
   <data name="Nav_Tasks" xml:space="preserve"><value>Incarichi</value></data>

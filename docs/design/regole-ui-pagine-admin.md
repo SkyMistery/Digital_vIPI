@@ -517,6 +517,10 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      clicca sopra. La rete è un test che confronta ogni voce con le `RouteAttribute` vere dell'assembly
      (`AdminNavTests.Ogni_voce_punta_a_una_rotta_che_esiste`) — e deve aggiungere a mano la voce corrente,
      che un href non ce l'ha.
+130. **Un'etichetta che ripete il contesto non è un'etichetta, è rumore.** La barra portava davanti la scritta
+     «Admin:». Compariva su undici pagine per dire una cosa che si vede da sola — sei nell'area staff, e le
+     voci dicono già quali pagine sono. Tolta: il nome della barra resta nell'`aria-label`, dove serve
+     davvero, cioè a chi la incontra senza il colpo d'occhio.
 
 ## Dove sta la roba
 

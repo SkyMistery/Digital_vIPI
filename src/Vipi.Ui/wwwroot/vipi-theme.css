@@ -188,14 +188,14 @@
 /* Il «togli i filtri» dentro una frase: era uno stile in linea ripetuto. */
 .lnk-inline{cursor:pointer;color:var(--ivao-blue);font-weight:600}
 /* ---- Barra delle pagine admin (componente AdminNav) ----
-   Sostituisce le sei card da 138px di «Area Staff» (485px in tutto) e le porta a dieci voci in una riga:
-   l'elenco delle pagine admin stava in due posti e diverso, e nessuno dei due elencava tutto. Le etichette
-   sono nomi corti col nome per esteso nel `title` (regola 33) — una barra che va a capo tre volte costa più
-   di quello che fa risparmiare. */
+   Sta sotto la testata di tutte e undici le pagine admin. Sostituisce le sei card da 138px di «Area Staff»
+   (485px in tutto) e i link sparsi nelle testate: l'elenco stava in due posti e diverso, e nessuno dei due
+   elencava tutto. Le etichette sono nomi corti col nome per esteso nel `title` (regola 33) — una barra che
+   va a capo tre volte costa più di quello che fa risparmiare.
+   Dentro non c'è nessuna etichetta «Admin:»: ripeteva su ogni pagina una cosa che si vede da sola. Il nome
+   della barra vive nell'`aria-label`, dove serve a chi non ha il colpo d'occhio. */
 .admin-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0 0 12px;padding:7px 10px;
   background:var(--surface);border:1px solid var(--line);border-radius:11px}
-.admin-nav .an-lab{font-family:var(--font-head);font-weight:700;font-size:11px;letter-spacing:.4px;
-  text-transform:uppercase;color:var(--ink-soft);margin-right:2px}
 .admin-nav .an-link{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;text-decoration:none;
   font-size:12.5px;font-weight:600;color:var(--ivao-blue);border:1px solid transparent;border-radius:8px;
   padding:3px 8px;transition:.12s}
