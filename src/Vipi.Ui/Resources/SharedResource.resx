@@ -630,6 +630,15 @@
   <data name="AdminTasks_DescOptional" xml:space="preserve"><value>Descrizione (facoltativa)</value></data>
   <data name="AdminTasks_DescPlaceholder" xml:space="preserve"><value>Dettagli dell'incarico…</value></data>
   <data name="AdminTasks_CreateBtn" xml:space="preserve"><value>+ Crea incarico</value></data>
+  <data name="Task_Err_TitleRequired" xml:space="preserve"><value>Serve un titolo per l'incarico.</value></data>
+  <data name="Task_Err_AssigneeRequired" xml:space="preserve"><value>Scegli a chi assegnare l'incarico.</value></data>
+  <data name="Task_Err_NotAuthenticated" xml:space="preserve"><value>Non sei autenticato.</value></data>
+  <data name="Task_Err_AssignOnlySelf" xml:space="preserve"><value>Solo un admin può assegnare incarichi ad altri.</value></data>
+  <data name="Task_Err_TargetMissing" xml:space="preserve"><value>Il documento collegato non esiste.</value></data>
+  <data name="Task_Err_NotFound" xml:space="preserve"><value>Questo incarico non esiste più.</value></data>
+  <data name="Task_Err_UpdateOnlyMine" xml:space="preserve"><value>Puoi aggiornare solo i tuoi incarichi.</value></data>
+  <data name="Task_Err_DeleteOnlyMine" xml:space="preserve"><value>Puoi eliminare solo gli incarichi che hai creato.</value></data>
+  <data name="AdminTasks_NeedTitleAndAssignee" xml:space="preserve"><value>Servono un titolo e una persona a cui assegnarlo.</value></data>
   <data name="AdminTasks_AllTasks" xml:space="preserve"><value>Tutti gli incarichi</value></data>
   <data name="AdminTasks_NoneCreated" xml:space="preserve"><value>Nessun incarico creato.</value></data>
   <data name="AdminTasks_Assignee" xml:space="preserve"><value>Assegnatario</value></data>

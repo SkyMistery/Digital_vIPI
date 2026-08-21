@@ -1,4 +1,4 @@
-@page "/vsop/tasks"
+﻿@page "/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -98,7 +98,7 @@
             await Load();
             _status = L["Tasks_AddedMsg"];
         }
-        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         finally { _busy = false; }
     }

@@ -89,6 +89,46 @@ public class EditorTaskServiceTests
         await Assert.ThrowsAsync<Aor.ValidationException>(() => servizio.CreateAsync(Incarico(assegnatario: Io)));
     }
 
+    /// <summary>
+    /// ⚠️ Il difetto N1 della carta: l'opzione «Seleziona» della tendina vale <c>0</c>, e fino al 22 agosto
+    /// 2026 premere «Crea» senza scegliere nessuno faceva nascere un incarico con <c>AssigneeUserId = 0</c>.
+    /// Quell'incarico non è di nessuno — non compare negli incarichi di nessun utente, si vede solo
+    /// nell'elenco admin, e nemmeno si riassegna, perché la riassegnazione non era in UI.
+    /// </summary>
+    [Fact]
+    public async Task Un_incarico_senza_assegnatario_non_si_crea()
+    {
+        var (servizio, repo) = Servizio(admin: true);
+
+        var ex = await Assert.ThrowsAsync<Aor.ValidationException>(() => servizio.CreateAsync(Incarico(assegnatario: 0)));
+
+        Assert.Equal("Task_Err_AssigneeRequired", ex.Key);
+        Assert.Empty(repo.Tasks);
+    }
+
+    /// <summary>La guardia vale anche sui negativi: un VID non è mai zero né sotto.</summary>
+    [Fact]
+    public async Task Un_assegnatario_negativo_non_e_un_VID()
+    {
+        var (servizio, _) = Servizio(admin: true);
+        await Assert.ThrowsAsync<Aor.ValidationException>(() => servizio.CreateAsync(Incarico(assegnatario: -3)));
+    }
+
+    /// <summary>Il messaggio grezzo resta per i log; la chiave serve a chi lo mostra in pagina (regola 159).</summary>
+    [Fact]
+    public async Task Ogni_rifiuto_porta_la_sua_chiave_di_traduzione()
+    {
+        var (admin, _) = Servizio(admin: true);
+        var senzaTitolo = await Assert.ThrowsAsync<Aor.ValidationException>(() => admin.CreateAsync(Incarico(titolo: " ")));
+        Assert.Equal("Task_Err_TitleRequired", senzaTitolo.Key);
+        Assert.False(string.IsNullOrWhiteSpace(senzaTitolo.Message));
+
+        var (mio, repo) = Servizio(admin: false);
+        var altrui = repo.Semina(assegnatario: Altro, creatore: Altro);
+        var rifiuto = await Assert.ThrowsAsync<Aor.ValidationException>(() => mio.UpdateStatusAsync(altrui, EditorTaskStatus.Done));
+        Assert.Equal("Task_Err_UpdateOnlyMine", rifiuto.Key);
+    }
+
     // ---- stato -----------------------------------------------------------------------------------------
 
     [Fact]
@@ -193,6 +233,17 @@ public class EditorTaskServiceTests
 
         Assert.All(miei, t => Assert.Equal(Io, t.AssigneeUserId));
         Assert.Single(miei);
+    }
+
+    /// <summary>⚠️ Senza identità l'elenco è vuoto, non «quello del VID 0»: gli incarichi orfani nati dal
+    /// difetto N1 esistono ancora nei database veri, e non sono di chi capita.</summary>
+    [Fact]
+    public async Task Senza_identita_i_miei_incarichi_sono_vuoti()
+    {
+        var (servizio, repo) = Servizio(admin: false, utente: null);
+        repo.Semina(assegnatario: 0, creatore: Altro);
+
+        Assert.Empty(await servizio.ListMineAsync());
     }
 
     // ---- ritardo e cicli -------------------------------------------------------------------------------

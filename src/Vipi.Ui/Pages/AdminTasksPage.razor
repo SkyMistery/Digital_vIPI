@@ -37,7 +37,9 @@
         <div class="section-title"><h3>@L["AdminTasks_NewTask"]</h3><span class="ln"></span></div>
         <div class="xfe-form" style="max-width:none">
             <div style="display:flex;flex-wrap:wrap;gap:10px">
-                <div class="field" style="flex:2;min-width:240px"><label>@L["AdminTasks_TitleLabel"]</label><input placeholder="@L["AdminTasks_TitlePlaceholder"]" @bind="_title" /></div>
+                @* `oninput` e non il solo `onchange`: il tasto si accende mentre si scrive, non alla perdita
+                   del fuoco — altrimenti sembra spento per sempre a chi ha appena finito di digitare. *@
+                <div class="field" style="flex:2;min-width:240px"><label>@L["AdminTasks_TitleLabel"]</label><input placeholder="@L["AdminTasks_TitlePlaceholder"]" @bind="_title" @bind:event="oninput" /></div>
                 <div class="field" style="flex:1;min-width:180px"><label>@L["AdminTasks_AssignTo"]</label>
                     <select @bind="_assignee">
                         <option value="0">@L["Grants_Select"]</option>
@@ -67,7 +69,12 @@
                 </div>
             </div>
             <div class="field"><label>@L["AdminTasks_DescOptional"]</label><textarea rows="2" @bind="_desc" placeholder="@L["AdminTasks_DescPlaceholder"]"></textarea></div>
-            <button class="btn primary" disabled="@_busy" @onclick="Create">@L["AdminTasks_CreateBtn"]</button>
+            @* Il tasto è spento finché mancano le due cose che il service pretende, e il PERCHÉ gli sta
+               accanto (regola 170). Senza, «Seleziona» valeva VID 0 e l'incarico nasceva di nessuno. *@
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <button class="btn primary" disabled="@(_busy || !PuoCreare)" @onclick="Create">@L["AdminTasks_CreateBtn"]</button>
+                @if (!PuoCreare) { <span class="muted" style="font-size:12px">@L["AdminTasks_NeedTitleAndAssignee"]</span> }
+            </div>
         </div>
 
         <div class="section-title"><h3>@L["AdminTasks_AllTasks"]</h3><span class="ln"></span></div>
@@ -127,6 +134,10 @@
     private int _assignee;
     private EditorTaskPriority _priority = EditorTaskPriority.Normal;
 
+    // Le due condizioni che il service pretende, lette qui per spegnere il tasto invece di far sbagliare
+    // e poi spiegare. ⚠️ Non sostituiscono la guardia: la porta non può essere più larga della serratura.
+    private bool PuoCreare => !string.IsNullOrWhiteSpace(_title) && _assignee > 0;
+
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
@@ -157,7 +168,7 @@
             await Load();
             _status = L["AdminTasks_CreatedMsg"];
         }
-        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         finally { _busy = false; }
     }

@@ -627,6 +627,15 @@
   <data name="AdminTasks_DescOptional" xml:space="preserve"><value>Description (optional)</value></data>
   <data name="AdminTasks_DescPlaceholder" xml:space="preserve"><value>Task details…</value></data>
   <data name="AdminTasks_CreateBtn" xml:space="preserve"><value>+ Create task</value></data>
+  <data name="Task_Err_TitleRequired" xml:space="preserve"><value>The task needs a title.</value></data>
+  <data name="Task_Err_AssigneeRequired" xml:space="preserve"><value>Choose who the task is assigned to.</value></data>
+  <data name="Task_Err_NotAuthenticated" xml:space="preserve"><value>You are not signed in.</value></data>
+  <data name="Task_Err_AssignOnlySelf" xml:space="preserve"><value>Only an admin can assign tasks to other people.</value></data>
+  <data name="Task_Err_TargetMissing" xml:space="preserve"><value>The linked document does not exist.</value></data>
+  <data name="Task_Err_NotFound" xml:space="preserve"><value>This task no longer exists.</value></data>
+  <data name="Task_Err_UpdateOnlyMine" xml:space="preserve"><value>You can only update your own tasks.</value></data>
+  <data name="Task_Err_DeleteOnlyMine" xml:space="preserve"><value>You can only delete tasks you created.</value></data>
+  <data name="AdminTasks_NeedTitleAndAssignee" xml:space="preserve"><value>A title and a person to assign it to are required.</value></data>
   <data name="AdminTasks_AllTasks" xml:space="preserve"><value>All tasks</value></data>
   <data name="AdminTasks_NoneCreated" xml:space="preserve"><value>No task created.</value></data>
   <data name="AdminTasks_Assignee" xml:space="preserve"><value>Assignee</value></data>
