@@ -40,6 +40,11 @@ il **login OIDC IVAO reale** e l'identità di sviluppo non si attiva: non entri.
 
 `Sectorfile__RawBaseUrl=""` evita che il job d'avvio richiami GitHub: la verifica non deve dipendere dalla rete.
 
+⚠️ **Se invece di `dotnet run` si avvia un exe PUBBLICATO** (quando i `bin/` sono bloccati dall'app di chi
+lavora), lanciarlo **dalla sua cartella**: la content root e' la directory corrente. Avviato da altrove l'app
+parte e risponde 200, ma serve la pagina **senza CSS ne' JS** (`_content/...` in 404, «MIME type ""») — e una
+misura di densita' presa cosi' e' la misura di una pagina nuda.
+
 ## 3. Guida il browser
 
 Su questa macchina **non** ci sono Chrome, Playwright né `chromium-cli`. Ci sono Node ed **Edge**:
@@ -96,6 +101,13 @@ sull'annulla resta appeso.
 ```js
 page.on('dialog', async d => { confirms.push(d.message()); await d.accept(); });
 ```
+
+## 4-ter. Zoom: usare la funzione della pagina
+
+Lo zoom si mette con `window.vipiSetZoom(z)`, **non** scrivendo `document.documentElement.style.zoom`: a mano
+non scatta il `resize`, quindi `vipiFitViewport` non rimisura e il driver denuncia uno scorrimento che nella
+pagina vera non c'e'. E «la pagina scorre?» sotto zoom si chiede con `clientHeight`, non con `innerHeight`:
+`scrollHeight` sta in unita' di layout, `innerHeight` in px di finestra.
 
 ## 5. Bersagli utili nel DB di sviluppo
 

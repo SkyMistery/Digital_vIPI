@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro della barra admin)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Audit)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **132 voci in 21 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **142 voci in 22 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Nove pagine chiuse
+## Dieci pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -37,6 +37,7 @@ già e si riusa**, non si riscrive.
 | **Confinanti (vLOA)** | `/vsop/admin/confinanti` | **2 515 → 900** | `2026-08-20-confinanti-densita-ui.md` |
 | **Versioni** | `/vsop/versioni` | **1 664 → 900** (+ lock e azioni) | `2026-08-21-versioni-lock-e-azioni.md`, `2026-08-21-versioni-densita-ui.md` |
 | **Permessi** | `/vsop/admin/permessi` | **2 449 → 900** | `2026-08-22-permessi-densita-ui.md` |
+| **Audit** | `/vsop/admin/audit` | **13 293 → 900** (+ cosa registra) | `2026-08-22-audit-cosa-registra.md`, `2026-08-22-audit-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -112,22 +113,46 @@ una voce sola — quella della pagina in cui è già — la barra non si rende a
 `AdminNav.Voci` (ci si arriva da Documenti), la seconda è una pagina d'utente. Per newdoc la decisione è
 aperta ed è parte del suo giro.
 
-### La prossima pagina: Audit, non Sorgenti
+## Audit: chiusa il 22 agosto, in due giri
 
-⚠️ **L'ordine della lista §15 è cambiato, e per un motivo che vale la pena leggere.** Rimisurando dopo questo
-giro, **Audit è passata da 1 166 a 1 556px** — e non per la barra (+49px netti): le righe erano **20** alla
-ricognizione, sono **28** adesso. È l'unica pagina dell'elenco la cui altezza **cresce da sola per sempre**:
-un registro non si accorcia. La riga vecchia della ricognizione diceva «tabella sotto la soglia in cui
-l'intestazione appiccicata si ripaga, poco da fare, il «?» e basta»: era vera **quel giorno**, e la pagina
-l'ha smentita da sola in tre giorni. Quindi: `thead` appiccicato, e il resto dietro.
+**Sostanza** (carta [`2026-08-22-audit-cosa-registra.md`](../feature/2026-08-22-audit-cosa-registra.md),
+regole 133-142 insieme alla densità). Aprendo la pagina per il `thead` appiccicato è venuto fuori che in
+tutto il codice l'audit si scriveva in **quattro punti**, e che quindi:
 
-Poi **Sorgenti** (`/vsop/admin/sorgenti`, **1 252px**: sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout
-in fascia, tabelle corte — qui il `thead` fermo **non** serve), poi Diagnostica, Nuovo documento, Incarichi,
-editor APP/vLOA.
+- ⚠️ **eliminare un documento non lasciava traccia** (né nasconderlo), che è l'atto meno reversibile
+  dell'applicazione ed è in mano ad admin **e** responsabili dell'ACC dal 21 agosto;
+- ⚠️ **la revoca di un permesso registrava l'attore sbagliato**: scriveva chi aveva *concesso*;
+- il **force-unlock** (documenti e risorse) non era tracciato, ed è esposto in UI dal 21 agosto;
+- `AuditAction.HierarchyChange` era un valore d'enum che **nessuno scriveva**, mentre il sottotitolo
+  prometteva «pubblicazioni, permessi, **struttura**».
 
-⚠️ **Prima di misurarle, riempirle**: la lezione di Permessi vale per tutte quelle che mostrano una tabella
-che nel DB di sviluppo è vuota o quasi. E Audit dice la lezione gemella: **una misura è una fotografia**, e su
-una pagina che accumula va rifatta, non citata.
+Ora tutti e cinque scrivono, con l'attore giusto e **il nome accanto all'Id** (un registro deve restare vero
+quando l'entità di cui parla non esiste più). Un solo punto di scrittura, `AuditScribe`, con encoder JSON
+rilassato — con quello di serie «vIPI — Roma ACC» finiva nel DB come `vIPI \u2014 Roma ACC`, e il registro
+lo si legge anche in SQL. Fuori, dichiarati: gli **import** e i **salvataggi** di contenuto.
+
+**Densità** (carta [`2026-08-22-audit-densita-ui.md`](../feature/2026-08-22-audit-densita-ui.md)):
+**13 293 → 900**, e resta 900 con 248 righe, con 500, a 1600/1440/1280/1024, IT ed EN, zoom 0.8→1.5.
+
+⚠️ **I 13 293 sono la vera lezione del giro**: la ricognizione diceva 1 166, poi 1 556. Erano fotografie di
+una tabella con 20 e 28 righe in un DB di sviluppo quasi vuoto — ed erano numeri **col tetto**, perché il
+lettore tagliava a 200 righe in silenzio. Un registro cresce **per sempre**: la misura si rifà, non si cita.
+
+Cosa insegna, oltre a questo (regole 133-142): il dato grezzo non si butta e non si mette in colonna (il JSON
+sta nel `title`); il vocabolario vecchio si **legge**, non si riscrive (`Archive` e `Delete` per la stessa
+revoca dicono la stessa frase); il non-evento non si scrive; **un formattatore per tipo di dato, non uno per
+pagina** (`AuditNarrator` è condiviso con la storia di Versioni, dove ha ucciso un parser che leggeva chiavi
+che nessuno scrive); **elenco+dettaglio si giustifica con l'azione**, e qui non c'era azione da fare.
+
+### La prossima pagina: Sorgenti
+
+**Sorgenti** (`/vsop/admin/sorgenti`, **1 252px**: sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in
+fascia, tabelle corte — qui il `thead` fermo **non** serve), poi Diagnostica, Nuovo documento, Incarichi,
+editor APP/vLOA. L'ordine aggiornato sta in §15.
+
+⚠️ **Prima di misurarle, riempirle** (lezione di Permessi) e, se accumulano, **rimisurarle** (lezione di
+Audit). Le due insieme dicono la stessa cosa: il numero della ricognizione è vero il giorno in cui è stato
+preso, e su queste due pagine non lo era già più.
 
 ## Aperto, e non è di queste pagine
 
@@ -172,6 +197,18 @@ stesso, perché i `bin/Release` non sono bloccati.
 ⚠️ **Il browser headless parla la lingua del sistema**, non quella che credi: senza
 `setExtraHTTPHeaders({'Accept-Language': 'it-IT,it;q=0.9'})` Edge chiede `en-US` e la prova «in italiano»
 verifica l'inglese. È così che «No release» non tradotto è passato per un giro.
+
+### Due trappole dell'attrezzo, non della pagina (22 agosto)
+
+⚠️ **L'exe pubblicato va avviato DALLA SUA CARTELLA.** La content root e' la directory corrente: lanciando
+`$sc\pub\Vipi.Host.exe` restando nel repo, l'app parte, risponde 200 e serve una pagina **senza CSS ne' JS**
+(`_content/...` in 404, «MIME type "" is not a supported stylesheet»). La misura che ne esce non e' della
+pagina, e' di una pagina nuda: 8 304px invece di 13 293. Prima di misurare, un `Set-Location "$sc\pub"`.
+
+⚠️ **Lo zoom si mette con `window.vipiSetZoom(z)`, non scrivendo `style.zoom`.** A mano non scatta il
+`resize`, quindi `vipiFitViewport` non rimisura e il driver denuncia uno scorrimento che nella pagina vera non
+c'e' (visto a 1.2 e 1.5 su Audit). E il confronto «scorre?» sotto zoom si fa con `clientHeight`, non con
+`innerHeight`: `scrollHeight` sta in unita' di layout, `innerHeight` in px di finestra.
 
 ### Riempire una pagina che il DB di sviluppo lascia vuota
 

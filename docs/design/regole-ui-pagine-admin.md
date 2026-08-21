@@ -9,7 +9,7 @@
 > — e il 21 agosto **versioni** in due giri: prima la parte **lock e azioni**
 > ([carta](../feature/2026-08-21-versioni-lock-e-azioni.md)), che non era di forma ma di sostanza
 > (§18, regole 95-105), poi la **densità** ([carta](../feature/2026-08-21-versioni-densita-ui.md), §19,
-> regole 106-116); il 22 agosto **permessi** ([carta](../feature/2026-08-22-permessi-densita-ui.md),
+> regole 106-116); il 22 agosto **permessi** e **audit** ([carta](../feature/2026-08-22-permessi-densita-ui.md),
 > §20, regole 117-124) — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
@@ -245,7 +245,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — nove pagine, e sono loro ad aver prodotto le regole
+### Già a norma — dieci pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -258,6 +258,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Confinanti (vLOA) | `/vsop/admin/confinanti` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
 | Versioni | `/vsop/versioni` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
 | Permessi | `/vsop/admin/permessi` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
+| Audit | `/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -270,13 +271,12 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Audit** | `/vsop/admin/audit` | 1 166 | **1 556** | ⚠️ **È cresciuta di 390px senza che nessuno la toccasse**: le righe erano 20 alla ricognizione, sono 28 adesso. È l'unica pagina di questo elenco la cui altezza **cresce da sola per sempre** — un registro non si accorcia — quindi il `thead` appiccicato qui si ripaga eccome, al contrario di quanto diceva la riga vecchia. Più il «?» e il sottotitolo. |
-| 2 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | **1 252** | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). Altezza stabile: non dipende dai dati. |
-| 3 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
-| 4 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
-| 5 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
-| 6 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
-| 7 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | **1 252** | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). Altezza stabile: non dipende dai dati. |
+| 2 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
+| 3 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
+| 4 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
+| 5 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
+| 6 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -562,11 +562,61 @@ Non è il giro di **una** pagina: cambia la testa di **tutte e undici**. Regole 
 - **Niente etichetta «Admin:»** davanti alle voci: il nome della barra vive nell'`aria-label`.
 - **Sette link tolti dalle testate** (cinque in Struttura, due «← Struttura» in ACC e Confinanti) e con loro
   «Nuovo documento», che non era di Struttura: la testata di Struttura non ha più comandi.
-- ⚠️ **Tre pagine mandano la barra a capo**: Audit e Diagnostica (`.wrap` a 1 100px) e Incarichi admin
+- ⚠️ **Tre pagine mandavano la barra a capo**: Audit e Diagnostica (`.wrap` a 1 100px) e Incarichi admin
   (1 200px). 87px invece di 55. Non è un difetto — quelle pagine scorrono — ma il `max-width` è una scelta di
-  larghezza di lettura, e chi lo cambia deve sapere che cambia anche questo.
+  larghezza di lettura, e chi lo cambia deve sapere che cambia anche questo. **Audit è uscita da questo elenco
+  il 22 agosto**: il suo giro le ha tolto il `max-width`, e la barra le sta in una riga.
 - **Rete**: `AdminNavTests` (5 casi), fra cui il confronto di ogni voce con le `RouteAttribute` vere
   dell'assembly — un'etichetta sbagliata si vede, un URL sbagliato no.
+
+## 22. Quello che ha lasciato il giro Audit (22 agosto)
+
+Decima pagina, e come su Versioni la **sostanza è venuta prima della forma**: aprendo `/vsop/admin/audit`
+per il `thead` appiccicato si è scoperto che il registro non registrava l'eliminazione di un documento,
+attribuiva la revoca di un permesso alla persona sbagliata, e prometteva nel sottotitolo una categoria di
+eventi che nessuno aveva mai scritto. Carte:
+[cosa registra](../feature/2026-08-22-audit-cosa-registra.md) e
+[densità](../feature/2026-08-22-audit-densita-ui.md). Regole **133-142**.
+
+133. ⚠️ **Una misura è una fotografia, e una pagina che accumula la smentisce da sola.** La ricognizione dava
+     Audit a 1 166px, tre giorni dopo erano 1 556 senza che nessuno l'avesse toccata, e **con un registro
+     vero (248 righe) sono 13 293**. Le altre pagine crescono quando cresce il lavoro; un registro cresce
+     **per sempre**, perché non si accorcia mai. Su queste pagine la misura si rifà, non si cita — e si rifà
+     **con i dati** (regola 117).
+134. ⚠️ **Un tetto muto è peggio di un elenco lungo.** Il lettore tagliava a 200 righe senza dirlo: chi
+     guardava vedeva un elenco che sembrava completo. Il tetto resta (è una difesa della query) ma il filtro
+     diventa il **periodo**, e quando il tetto morde la pagina lo **dichiara** con i due numeri.
+135. **Il dato grezzo non si butta e non si mette in colonna.** Il JSON dei dettagli era la colonna più larga
+     della tabella e non lo leggeva nessuno. Ora la colonna porta la **frase** e il JSON sta nel `title`
+     della cella: resta consultabile senza costare larghezza a ogni riga.
+136. ⚠️ **Un registro deve restare vero quando l'entità di cui parla non esiste più.** Per questo la riga
+     porta il **nome** accanto all'Id (titolo del documento, callsign del nodo, nome di chi teneva il lock):
+     «eliminato il documento 7» non distingue una pulizia da un incidente, e dopo la cancellazione il titolo
+     non è più recuperabile da nessuna parte. Vale al momento della **scrittura**, non della lettura.
+137. ⚠️ **Il vocabolario vecchio si legge, non si riscrive.** La revoca di un permesso è stata `Archive` fino
+     al 22 agosto e `Delete` dopo; la chiave dell'ACC nei dettagli è stata `acc` e poi `Acc`. Chi rende gli
+     eventi accetta **entrambe** le forme e dice la stessa frase: una migrazione dei dati storici di un
+     registro sarebbe la cosa più sbagliata da fare proprio su un registro.
+138. **Il non-evento non si scrive.** Nascondere ciò che è già nascosto, rimettere lo stesso padre, forzare
+     un lock che non c'è: nessuna riga. Su un elenco che cresce per sempre, le righe che dicono «non è
+     cambiato niente» sono l'unico modo garantito di renderlo illeggibile.
+139. **Un formattatore per un tipo di dato, non uno per pagina.** La stessa riga di audit era resa in due
+     modi da due pagine, ed **entrambi** erano rotti a modo loro (JSON crudo su Audit; su Versioni un parser
+     per chiavi che nessuno scrive, che ritornava sempre vuoto). `AuditNarrator` è condiviso: due pagine che
+     mostrano lo stesso fatto non possono più divergere. Il parser morto non si è cancellato, si è
+     **sostituito** — cancellarlo avrebbe lasciato il buco senza chiudere la causa.
+140. **Elenco+dettaglio non è la risposta a ogni tabella.** Su Confinanti, Versioni e Permessi il pannello a
+     destra serve perché il dettaglio è un oggetto su cui si **agisce**. Qui la riga è già tutto il fatto e
+     il registro non si modifica: un pannello sarebbe stato un terzo di schermo speso per rileggere la riga.
+     **Il pannello si giustifica con l'azione, non con l'abitudine.**
+141. ⚠️ **`vipiFitViewport` misura fin dove arriva il riquadro, non cosa gli sta sotto.** Col padding di fondo
+     del `.wrap` la pagina restava 52px più alta del viewport e scorreva per niente. Serve la stessa regola
+     già scritta per gli altri layout: `.wrap.struct:has(.audit-pane){padding-bottom:18px}`.
+142. ⚠️ **Provando lo zoom, usare la funzione della pagina** (`vipiSetZoom`), non `style.zoom` scritto a mano:
+     a mano non scatta il `resize`, quindi il riquadro non rimisura e **l'attrezzo denuncia un difetto che
+     non c'è**. Stessa famiglia della regola delle due unità: `scrollHeight` (unità di layout) non si
+     confronta con `innerHeight` (px di finestra) — il confronto giusto è con `clientHeight`.
+
 
 ## Dove sta la roba
 
@@ -589,6 +639,8 @@ Non è il giro di **una** pagina: cambia la testa di **tutte e undici**. Regole 
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
 | Elenco + dettaglio a fianco, misurati | `.conf-layout` (griglia 1.35/1) + due `.st-pane` |
 | …lo stesso su Versioni e Permessi | `.ver-layout` / `.perm-layout` (stessa griglia, stesso `vipiFitViewport`) |
+| Frase leggibile di un evento di audit | `AuditNarrator` (`Vipi.Ui/AuditNarrator.cs`) — famiglia, pill, bersaglio, frase; **condiviso** fra Audit e la storia di Versioni |
+| Scrittura nel registro di audit | `AuditScribe.Write` (`Vipi.Infrastructure/Persistence`) — un solo punto, encoder JSON rilassato, nessun `SaveChanges` suo |
 | Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — sopra il titolo, dove stava la briciola; elenco **e regola d'accesso** stanno lì, non nelle pagine |
 | Testata del pannello di destra + riga azioni | `.ver-detail-head` / `.ver-acts` (fermi: scorre solo `.st-scroll`) |
 | Riga scegliibile fuori da una tabella | `.doc-rowi.acc-pick` (+ `.picked`, `.row-off`) |
