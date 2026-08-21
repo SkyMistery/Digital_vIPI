@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: la ricognizione è CHIUSA)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: pagine E chrome, tutto chiuso)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **192 voci in 27 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **204 voci in 28 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -395,14 +395,66 @@ qui erano quattro.
 
 ### E adesso?
 
-La ricognizione (§15) **non ha più pagine da rifare**. Quello che resta non è di una pagina:
+La ricognizione (§15) **non ha più pagine da rifare**, e dal 22 agosto **nemmeno il chrome**: topbar e
+pannello release sono chiusi (vedi il capitolo qui sotto). Resta solo l'**archiviazione degli incarichi**,
+che aspetta il cutover MariaDB.
 
-- la **topbar** che scorre in orizzontale sotto i 1 280px — ⚠️ rimisurato in questo giro: `div.right` arriva
-  a **1 396px**, che è *esattamente* lo `scrollWidth` della pagina, **niente dentro il `.wrap` sfora**, e il
-  numero è identico sulla home. È del chrome, va affrontato per sé;
-- il **pannello release** (974px con 13 rilasci sull'editor ACC), che è roba del giro di `ReleasePanel`;
-- e le due cose lasciate dai giri precedenti: l'**archiviazione degli incarichi** dopo il cutover MariaDB, e
-  la misura di **`/vsop/admin/audit`** da rifare con la famiglia «Incarico» dentro.
+## Il chrome: topbar, pannello release, menu «+ Blocco» — chiusi il 22 agosto
+
+Non sono pagine: sono i **pezzi condivisi** che ogni giro incontrava e rimandava. Carte:
+[topbar](../feature/2026-08-22-topbar-larghezza-e-lingua.md) e
+[pannello release](../feature/2026-08-22-pannello-release.md), regole 193-204 (§28).
+
+### Il menu «+ Blocco» — regressione mia, trovata dal committente guardando
+
+⚠️ Il menu che avevo introdotto tre commit prima **si apriva sotto e non si leggeva**: 172px di altezza,
+**165 invisibili**, tagliati da `.coord-sub{overflow:hidden}`. Il gesto c'era ma non si poteva usare.
+
+⚠️ E spostarlo a destra restando `position:absolute` **non sarebbe bastato**: `overflow:hidden` taglia in
+tutte le direzioni. Si apre **in linea**, in orizzontale — niente assoluto, niente `z-index`, niente da
+ritagliare in nessun editor. Dopo: **44px** invece di 172, e sta **dentro** il bordo invece che 134px fuori.
+Verificato su 18 combinazioni (3 editor × 3 assetti × 2 lingue).
+
+### Topbar — 1385px incomprimibili e **zero** media query
+
+| | prima | dopo |
+|---|---:|---:|
+| 1600 | 1600 (stava) | 1600 |
+| 1440 | «stava», ma coi pezzi **spezzati** | 1440 |
+| 1280 | 1385 (+105) | 1280 |
+| 1024 | 1385 (**+361**) | 1024 |
+
+Tre scaglioni a **1500** e **1300**, e ⚠️ **quindici stringhe cablate in italiano** (`title`, `aria-label`,
+`placeholder`) su un chrome che sta su **ogni** pagina, comprese le pubbliche in inglese.
+
+⚠️ **Tre lezioni, pagate una per volta:**
+1. la prima soglia era 1000 e a **1024 non scattava affatto**: una media query si scrive **sopra** l'assetto
+   da far stare, non sotto;
+2. il `nowrap` **non ha creato** un difetto, l'ha **rivelato**: a 1440 la barra sembrava stare e ci stava
+   andando a capo **dentro i suoi pezzi**. `scrollWidth` misura il bordo, non l'interno;
+3. avevo abbassato una soglia fidandomi di «306px liberi» misurati a 1280 — con la ricerca **chiusa**.
+   Riaprendola si tornava a sforare. **Uno spazio libero non è spazio disponibile** finché non ci si è messo
+   dentro quello che dovrebbe starci.
+
+⚠️ E un difetto preesistente: il **segnaposto della ricerca era troncato a ogni assetto**, anche a 1600 —
+`margin-left:auto` su `.right` assorbe lo spazio **prima** di `flex-grow`.
+
+### Pannello release — 974 → 420px
+
+⚠️ **Correzione a quello che questo stesso file diceva**: la retention **c'è già**
+(`KeepSupersededWithinCycles = 13`), quindi il pannello **non cresce per sempre**. Era densità, non rischio.
+
+- ⚠️ annullare passava dal **`confirm()` nativo** — quello che il giro Versioni aveva tolto il 21 agosto,
+  sull'atto più irreversibile del pannello e su un documento **già pubblicato**;
+- ⚠️ «VID 704798» nudo, **terza volta** dopo Permessi e Incarichi;
+- riga da **68 a 37px**, e le superate oltre le prime tre in un «altre N».
+
+⚠️ **Due errori miei, utili:**
+1. il roster **iniettato** ha reso il pannello **non montabile** senza quel servizio e ha spento **18 test**.
+   Un componente condiviso non acquisisce dipendenze obbligatorie per una **comodità**;
+2. una **`}` di troppo** lasciata negli scaglioni della topbar faceva scartare al parser CSS **solo la prima
+   regola dopo**: le figlie funzionavano, la madre no, e sembrava un problema di specificità. **Contare le
+   graffe** prima di ogni ipotesi sulla cascata.
 
 ## Aperto, e non è di queste pagine
 
@@ -414,20 +466,17 @@ La ricognizione (§15) **non ha più pagine da rifare**. Quello che resta non è
   ed è una migrazione sullo schema del committente: ⚠️ prima va verificato **in produzione** che non
   esistano già coppie duplicate, altrimenti la migrazione fallisce all'avvio.
 
-- ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `div.right` misura **1 396px** a
-  1 024 (rimisurato il 22 agosto sugli editor; il 21 erano 1 385 dentro 1 280, il 20 erano 1 411) — e quel
-  numero è **esattamente lo `scrollWidth`** della pagina, mentre **niente dentro il `.wrap` sfora**,
-  verificato elencando gli elementi oltre il bordo su editor, home e vIPI ACC. È del chrome, non di una
-  pagina: va affrontato per sé, ed è ormai **l'ultima cosa aperta che si vede a schermo**. È anche la ragione
-  per cui lo sforo orizzontale, da solo, non è un segnale utile sulle singole pagine finché non è chiuso.
 - ⚠️ `Vipi.AuroraBridge.Tests` ha **un test instabile**, ora identificato:
   `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`. Fallisce circa **una volta su tre** con
   «Nessuna risposta a #TRPOS entro 15000 ms» e passa da solo. Usa un `FakeAuroraServer` su socket di
   loopback con due richieste concorrenti serializzate dal client: cede quando la macchina è carica (suite in
   parallelo, app accesa). Non è del ramo densità — è roba del bridge Aurora — ma smettere di chiamarlo
   «instabile e basta» costa un `for` di quattro giri.
-- Sull'editor ACC a blocchi chiusi il pezzo più alto è ormai il **pannello release** (974px con 13 rilasci):
-  è roba del giro di `ReleasePanel`, non della densità.
+- ⚠️ **L'archiviazione degli incarichi** resta l'unica cosa aperta di questo ramo: vuole una colonna nuova,
+  quindi una **migrazione**, e il deploy è fermo sulla conversione MariaDB. Il filtro «non conclusi» regge.
+- La misura di **`/vsop/admin/audit`** con la famiglia «Incarico» dentro: è una **verifica**, non un lavoro —
+  la pagina ha il riquadro ad altezza misurata e resta 900 comunque; quello che cambia è il **volume** del
+  registro, cioè quante righe entrano nel periodo e se il tetto morde prima.
 
 ## Ambiente di verifica
 

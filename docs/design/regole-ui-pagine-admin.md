@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 192 voci in 27 gruppi
+﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 204 voci in 28 gruppi
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -15,7 +15,10 @@
 > [densità](../feature/2026-08-22-incarichi-densita-ui.md), §26, regole 171-182), e infine gli **editor APP e
 > vLOA** ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e
 > [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md), §27, regole 183-192), che chiudono la
-> ricognizione — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> ricognizione; poi il **chrome** — topbar, pannello release e il menu «+ Blocco»
+> ([carte](../feature/2026-08-22-topbar-larghezza-e-lingua.md) e
+> [release](../feature/2026-08-22-pannello-release.md), §28, regole 193-204) — e ogni giro ha lasciato una
+> regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -280,9 +283,9 @@ Il ramo ha chiuso **tutte** le pagine di lavoro della ricognizione. L'ultima cop
 è caduta il 22 agosto, e ⚠️ **il loro «900» era una stima**: misurati davvero, e **in modifica**, erano 3 540
 e 4 351.
 
-Quello che resta aperto non è di una pagina: la **topbar** che scorre in orizzontale sotto i 1 280px
-(`div.right` a 1 396 dentro 1 024, identico su ogni pagina, **niente dentro il `.wrap` sfora**) e il pannello
-**release** dell'editor ACC (974px con 13 rilasci), che è roba del giro di `ReleasePanel`.
+⚠️ **E dal 22 agosto non resta aperto nemmeno il chrome**: la topbar sta a 1024 (§28) e il pannello release
+è passato da 974 a 420px. L'unica cosa rimasta è l'**archiviazione degli incarichi**, che vuole una
+migrazione e aspetta il cutover MariaDB.
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -912,6 +915,64 @@ ricognizione stessa dichiara «non verificato» **è una stima**, e una stima in
 come una misura. Meglio una casella vuota.
 
 
+## 28. Quello che ha lasciato il giro del chrome: topbar, pannello release, menu «+ Blocco» (22 agosto 2026)
+
+Non sono pagine: sono i **tre pezzi condivisi** che ogni giro aveva incontrato e rimandato, più una
+regressione introdotta dal giro precedente e trovata dal committente guardando lo schermo. Carte:
+[topbar](../feature/2026-08-22-topbar-larghezza-e-lingua.md) e
+[pannello release](../feature/2026-08-22-pannello-release.md). Regole **193-204**.
+
+193. ⚠️ **Un menu che si apre dentro un contenitore con `overflow:hidden` viene RITAGLIATO, e spostarlo di
+     lato non basta.** Il menu «+ Blocco» cadeva verso il basso: 172px di altezza, **165 invisibili**. E
+     `overflow:hidden` taglia in **tutte** le direzioni — aprirlo a destra restando `position:absolute` lo
+     avrebbe lasciato tagliato vicino al fondo della card. La cura che risolve alla radice è aprirlo **in
+     linea**: niente assoluto, niente `z-index`, niente da ritagliare, e se non ci sta va a capo **dentro il
+     flusso** (la card cresce, non taglia).
+194. ⚠️ **Una media query si scrive sopra l'assetto da far stare, non sotto.** La soglia della topbar era
+     1000px e l'assetto da supportare è **1024**: non scattava affatto, e la barra restava a 1161. Il numero
+     nel `max-width` non è «la larghezza che voglio ottenere», è «la larghezza sotto la quale la regola vale».
+195. ⚠️ **Il `nowrap` non crea difetti: li rivela.** A 1440 la topbar sembrava stare, e ci stava andando a capo
+     **dentro i suoi pezzi** — marchio e badge spezzati su due righe. `scrollWidth` misura il **bordo**, non
+     l'interno: **una barra che sta perché il suo contenuto si spezza non sta**. Vietato il wrap, il difetto
+     vero è venuto fuori (1513 minimi contro 1440).
+196. ⚠️ **Uno spazio libero non è spazio disponibile finché non ci si è messo dentro quello che dovrebbe
+     starci.** Misurati 306px liberi a 1280 avevo abbassato una soglia per riaprire la ricerca: quel numero
+     era preso con la ricerca **chiusa**, e riaprendola si tornava a sforare di 31px. Si misura lo stato in
+     cui la pagina si troverà, non quello in cui l'ho fotografata.
+197. ⚠️ **In flexbox i margini `auto` assorbono lo spazio libero PRIMA di `flex-grow`.** Il campo di ricerca
+     aveva `flex:1` e `.right` un `margin-left:auto`: il campo restava al suo minimo a **ogni** assetto, anche
+     a 1600, e il segnaposto usciva troncato. Serve una `flex-basis` **dichiarata**. ⚠️ E **non**
+     `flex-shrink:0`: provato, e faceva sforare 1600 e 1440 di 80-104px — un campo deve poter cedere, è il
+     **testo** che si accorcia.
+198. **Una barra di navigazione si comprime a scaglioni, per priorità, e niente sparisce.** Cede prima ciò che
+     non è né un comando né uno stato che cambia (il badge staff), poi il **nome** dei comandi frequenti (che
+     restano, come icone), poi ciò che non serve a ogni pagina (la ricerca, che si riapre al clic). ⚠️ E gli
+     **`aria-label` restano interi** dove il testo se ne va: un tasto che diventa un'icona non diventa muto —
+     è la regola 33 applicata all'accessibilità, e senza contesto visivo che compensi.
+199. ⚠️ **Il chrome è il posto peggiore dove cablare una stringa.** Quindici fra `title`, `aria-label` e
+     `placeholder` erano in italiano dentro la topbar: non su tre pagine come il «?» dell'anteprima, ma su
+     **tutte**, comprese quelle pubbliche che un pilota straniero legge in inglese. Un `aria-label` cablato è
+     il caso peggiore del caso peggiore.
+200. ⚠️ **Un componente CONDIVISO non acquisisce dipendenze obbligatorie per una comodità.** `@inject` del
+     roster nel pannello release lo ha reso **non montabile** per chiunque non l'avesse registrato, e ha spento
+     **18 test in un colpo**. Dare un nome a un VID è un di più: si risolve dal service provider (`GetService`,
+     che torna null), e senza restano i VID. Il costo di una dipendenza nuova lo pagano **tutti** gli host.
+201. ⚠️ **Una `}` di troppo scarta UNA regola, e il sintomo somiglia a un problema di specificità.** Una graffa
+     in più chiudeva il foglio in anticipo, e il parser CSS scartava **solo la prima regola dopo**: le regole
+     *figlie* funzionavano, la madre no, e il valore calcolato restava quello vecchio. **Contare le graffe
+     costa un secondo e va fatto prima di ogni ipotesi sulla cascata.**
+202. **Il `confirm()` nativo non torna, nemmeno nei componenti condivisi.** Il pannello release lo usava ancora
+     per annullare — l'atto più irreversibile che faccia, su un documento **già pubblicato**. Blocca il
+     circuito Blazor e mette il testo utile in una finestrella di sistema. Quando una regola si chiude su una
+     pagina (Versioni, 21 agosto) si cerca **chi altro** ha quella forma.
+203. **Su un elenco che è STORIA, in evidenza sta solo ciò che è vivo.** Nel pannello release, di dieci
+     release nove erano superate: restano la **in vigore** e le **programmate** (che sono lo stato del
+     documento, e non si collassano mai) più le tre più recenti; il resto in un «altre N» che si apre.
+204. ⚠️ **La retention cambia la natura di un problema, e va cercata prima di descriverlo.** Avevo scritto che
+     il pannello release «cresce» come il registro di audit: ⚠️ **falso** — `KeepSupersededWithinCycles = 13`
+     lo ferma a ~13 righe. Era densità, non rischio. Prima di dire «cresce senza tetto», cercare il tetto.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -920,7 +981,10 @@ come una misura. Meglio una casella vuota.
 | Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
-| Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regola 187) |
+| Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regole 187 e 193 — si apre IN LINEA, mai in `position:absolute`) |
+| Scaglioni di compressione della topbar | `@media (max-width: 1500px / 1300px)` in coda a `vipi-theme.css` — spazio, badge staff, marchio, nomi dei comandi, ricerca (regola 198) |
+| Riga della storia release | `#p-release .rel-row` — ⚠️ l'id serve: `.rel-row` nuda perde contro `.ver-row` |
+| Servizio facoltativo in un componente condiviso | `IServiceProvider` + `GetService` (regola 200), mai `@inject` |
 | Riga-titolo di una sezione negli editor | `.dse-head` — il titolo tronca, i comandi no (regola 184) |
 | «Anteprima bozza» col suo «?» | `DraftPreviewLink` — uno per tutti e tre gli editor, chiavi `Ed_PreviewHelp*` |
 | Comandi in coda al TOC / larghezza piena (host che montano il TOC condiviso) | parametri `TocFooter` e `Wide` di `DocumentSectionsEditor` |

@@ -86,6 +86,36 @@ all'accessibilità.
   fingere un layout telefono sarebbe inventare un requisito.
 - Il **`.wrap`** delle pagine non c'entra: è già verificato che non sfora.
 
+## Com'è andata
+
+`scrollWidth == clientWidth` su **32 combinazioni**: 4 famiglie di pagina (pubblica, viewer, editor, admin)
+× 4 assetti × 2 lingue. Barra 62px ovunque, 13 comandi su 13 raggiungibili, nessun `aria-label` mancante,
+nessuna stringa italiana in pagina inglese.
+
+Gli scaglioni sono finiti a **1500** (spazio più stretto + badge staff a icona) e **1300** (marchio senza
+sottotitolo, «Editor»/«Incarichi» a icone, ricerca a icona, badge live a pallino). 1385 → **sta a 1024**.
+
+## Tre lezioni, pagate una per volta
+
+1. ⚠️ **Una media query si scrive sopra l'assetto da far stare, non sotto.** La prima soglia era 1000: a
+   **1024 non scattava affatto**, e la barra restava a 1161. Sembra ovvio scritto qui; non lo era mentre
+   guardavo il numero sbagliato.
+2. ⚠️ **Il `nowrap` non ha creato un difetto: l'ha rivelato.** A 1440 la barra sembrava stare, e ci stava
+   andando a capo **dentro i suoi pezzi** — marchio e badge live spezzati su due righe. `scrollWidth` misura
+   il bordo, non l'interno: **una barra che sta perché il suo contenuto si spezza non sta**. Vietato il wrap,
+   il difetto vero è venuto fuori (1513px minimi contro 1440) e la soglia è salita a 1500.
+3. ⚠️ **Uno spazio libero non è spazio disponibile finché non ci si è messo dentro quello che dovrebbe
+   starci.** Misurati **306px liberi** a 1280, avevo abbassato la soglia a 1200 per tenere la ricerca aperta:
+   quel numero era preso con la ricerca **chiusa**, e riaprendola si tornava a sforare di 31px. Tornato a 1300.
+
+## E un difetto preesistente, trovato guardando
+
+Il **segnaposto della ricerca era troncato a OGNI assetto**, anche a 1600 («Cerca Co…»): `.right` ha
+`margin-left:auto`, e in flexbox **i margini `auto` assorbono lo spazio libero prima che `flex-grow` lo
+distribuisca**. Il campo restava quindi al suo minimo per sempre. Serve una `flex-basis` dichiarata —
+⚠️ ma **non** `flex-shrink:0`: provato, e a 1600 e 1440 faceva sforare di 80-104px. Il campo deve poter
+cedere; è il **testo** che si accorcia.
+
 ## Come si verifica
 
 ⚠️ La topbar sta su **ogni** pagina: si guida un campione che copra le famiglie — una pubblica (`/vsop`), un

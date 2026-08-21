@@ -69,6 +69,26 @@ Atteso: **974 → ~350px**, su tutti e quattro gli editor.
   giro non è più il pezzo che detta l'altezza.
 - **Il diff** (`ReleaseDiffTable`) resta com'è: si apre su richiesta e non pesa finché è chiuso.
 
+## Com'è andata
+
+**974 → 420px** sull'editor ACC di LIBB (10 release, il bersaglio più carico del database). La riga è passata
+da **68 a 37px**, e delle dieci release ne restano quattro a schermo — la in vigore più le tre superate più
+recenti — con «Altre 6 release superate» che si apre.
+
+## Tre cose imparate sbagliando
+
+1. ⚠️ **Il roster non si inietta.** `@inject IStaffRosterRepository` ha reso il pannello **non montabile** per
+   chiunque non l'avesse registrato, e ha spento **18 test in un colpo**. Dare un nome a un VID è una
+   **comodità**, non una dipendenza del pannello: si risolve dal service provider, e senza restano i VID —
+   che era già il ripiego dichiarato. ⚠️ Regola generale: un componente **condiviso** non acquisisce
+   dipendenze obbligatorie per una comodità, perché il costo lo pagano tutti i suoi host.
+2. ⚠️ **Una `}` di troppo scarta UNA regola, e sembra un problema di specificità.** Avevo lasciato una graffa
+   in più negli scaglioni della topbar: il parser CSS chiudeva il foglio in anticipo e **scartava la prima
+   regola dopo** — solo quella. Le regole *figlie* funzionavano (`#p-release .rel-row .btn` sì), la madre no,
+   e il valore calcolato restava quello vecchio. Ho cercato a lungo una specificità che non c'entrava niente.
+   **Un conteggio delle graffe lo trova in un secondo** e va fatto prima di ogni altra ipotesi.
+3. ⚠️ **`flex-shrink:0` non è il modo di dare larghezza a un campo** (vedi la carta della topbar).
+
 ## Come si verifica
 
 Guidare **l'editor ACC di LIBB** (10 release, il bersaglio più carico del DB) e almeno un altro editor, a
