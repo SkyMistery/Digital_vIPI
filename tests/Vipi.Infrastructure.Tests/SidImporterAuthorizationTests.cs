@@ -65,6 +65,9 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
         public Task<ImportPolicySnapshot> GetAsync(CancellationToken ct = default) =>
             Task.FromResult(ImportPolicySnapshot.AllImported);
 
+        public Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default) =>
+            Task.FromResult(new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0));
+
         public Task SaveAsync(ImportPolicySnapshot policy, int updatedByUserId, CancellationToken ct = default) =>
             Task.CompletedTask;
     }

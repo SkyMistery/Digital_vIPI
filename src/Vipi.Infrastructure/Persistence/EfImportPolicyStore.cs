@@ -20,6 +20,18 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
                 row.ImportSids, row.ImportSpecialAreas);
     }
 
+    public async Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default)
+    {
+        var row = await _db.ImportPolicies.AsNoTracking().FirstOrDefaultAsync(ct);
+        return row is null
+            // Riga assente: la policy in vigore è il default, e non l'ha decisa nessuno.
+            ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0)
+            : new ImportPolicyInfo(
+                new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
+                    row.ImportSids, row.ImportSpecialAreas),
+                row.UpdatedUtc == default ? null : row.UpdatedUtc, row.UpdatedByUserId);
+    }
+
     public async Task SaveAsync(ImportPolicySnapshot policy, int updatedByUserId, CancellationToken ct = default)
     {
         var row = await _db.ImportPolicies.FirstOrDefaultAsync(ct);
