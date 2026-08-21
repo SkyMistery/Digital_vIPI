@@ -375,7 +375,7 @@
   <data name="Common_NoChange" xml:space="preserve"><value>nessuna modifica</value></data>
   <!-- Audit log (/vsop/admin/audit) -->
   <data name="Audit_Title" xml:space="preserve"><value>Audit log</value></data>
-  <data name="Audit_Subtitle" xml:space="preserve"><value>Ultime azioni registrate (pubblicazioni, permessi, struttura)</value></data>
+  <data name="Audit_Subtitle" xml:space="preserve"><value>Ultime azioni registrate: pubblicazioni, eliminazioni, permessi, gerarchia, lock forzati</value></data>
   <data name="Audit_StaffOnly" xml:space="preserve"><value>Solo lo staff può vedere l'audit.</value></data>
   <data name="Audit_NoEvents" xml:space="preserve"><value>Nessun evento registrato.</value></data>
   <data name="Audit_When" xml:space="preserve"><value>Quando (UTC)</value></data>
