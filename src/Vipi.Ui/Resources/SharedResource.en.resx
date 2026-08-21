@@ -406,7 +406,6 @@
   <data name="Struct_Title" xml:space="preserve"><value>Structure</value></data>
   <data name="Struct_HelpAria" xml:space="preserve"><value>Help on the Structure page</value></data>
   <data name="Struct_HelpBody" xml:space="preserve"><value>The division-wide &lt;b&gt;coverage hierarchy&lt;/b&gt;, plus the way in to the &lt;b&gt;documents&lt;/b&gt; and to the other admin pages (the six buttons next to this). Here you only set the &lt;b&gt;parent&lt;/b&gt; of each node: airports and sectors are imported from their own pages. The editing lock is the one Transfers uses: one person at a time.</value></data>
-  <data name="Struct_NavNewDoc" xml:space="preserve"><value>New doc</value></data>
   <data name="Struct_NavAcc" xml:space="preserve"><value>ACC</value></data>
   <data name="Struct_NavAirports" xml:space="preserve"><value>Airports</value></data>
   <data name="Struct_NavNeighbours" xml:space="preserve"><value>Neighbours</value></data>

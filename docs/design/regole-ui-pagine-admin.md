@@ -511,8 +511,11 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 128. **Quando arriva l'elenco completo, i link sparsi in testata sono doppioni e vanno via.** Con la barra su
      ogni pagina se ne sono tolti sette: cinque in Struttura (ACC, Aeroporti, Confinanti, Trasferimenti,
      Sorgenti — sotto ~1280px mandavano la testata a capo, quindi toglierli restituisce una riga intera) e
-     due «← Struttura» in ACC e Confinanti. In testata restano solo i comandi **di quella pagina**: «Nuovo
-     documento» crea, non naviga, e infatti non è una pagina admin.
+     due «← Struttura» in ACC e Confinanti. In testata restano solo i comandi **di quella pagina**.
+     ⚠️ E «di quella pagina» va preso alla lettera, anche quando il comando non è una navigazione: «Nuovo
+     documento» stava in testata a Struttura, che i documenti non li elenca e non li tiene. Un documento si
+     crea da **Documenti**, dove il tasto c'era già — quello di Struttura era solo un secondo ingresso
+     tenuto in vita dall'abitudine. La testata di Struttura ora non ha comandi: solo lo stato e il lock.
 129. ⚠️ **Un'etichetta sbagliata si vede, un URL sbagliato no**: porta a una pagina bianca, e solo a chi ci
      clicca sopra. La rete è un test che confronta ogni voce con le `RouteAttribute` vere dell'assembly
      (`AdminNavTests.Ogni_voce_punta_a_una_rotta_che_esiste`) — e deve aggiungere a mano la voce corrente,

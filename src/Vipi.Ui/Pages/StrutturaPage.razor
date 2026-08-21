@@ -24,13 +24,12 @@
         </HelpHint>
         @if (Authz.IsAdmin)
         {
-            @* ⚠️ Qui stavano ACC, Aeroporti, Confinanti, Trasferimenti e Sorgenti: erano cinque doppioni della
-               barra admin qui sotto, e sotto ~1280px mandavano la testata a capo. In testata restano i comandi
-               DI QUESTA pagina — «Nuovo documento» crea, non naviga, e infatti non è una pagina admin. *@
-            <nav class="struct-nav">
-                <a class="btn ghost" href="/vsop/editor/newdoc"><Icon Name="file" /> @L["Struct_NavNewDoc"]</a>
-            </nav>
-            @* L'esito sta fra i comandi e il lock, come nella pagina ACC: da fascia sotto la testata spingeva
+            @* ⚠️ La testata di questa pagina non ha più comandi: c'erano ACC, Aeroporti, Confinanti,
+               Trasferimenti e Sorgenti (cinque doppioni della barra admin qui sotto, e sotto ~1280px
+               mandavano la testata a capo) e «Nuovo documento», che era l'unico ingresso a newdoc rimasto
+               qui pur non appartenendo a questa pagina: si crea da Documenti, che è la pagina dei documenti,
+               e quel tasto lì c'è già. Qui restano solo lo stato e il lock — che stati sono, non comandi. *@
+            @* L'esito sta prima del lock, come nella pagina ACC: da fascia sotto la testata spingeva
                in giù l'albero mentre ci si lavorava — e qui l'altezza del riquadro è misurata, quindi una
                fascia in più sono nodi in meno. *@
             @if (_msg is not null)

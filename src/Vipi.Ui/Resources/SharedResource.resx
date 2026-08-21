@@ -409,7 +409,6 @@
   <data name="Struct_Title" xml:space="preserve"><value>Struttura</value></data>
   <data name="Struct_HelpAria" xml:space="preserve"><value>Aiuto sulla pagina Struttura</value></data>
   <data name="Struct_HelpBody" xml:space="preserve"><value>&lt;b&gt;Gerarchia di copertura&lt;/b&gt; di tutta la divisione, più l'ingresso ai &lt;b&gt;documenti&lt;/b&gt; e alle altre pagine admin (i sei tasti qui accanto). Qui si imposta solo il &lt;b&gt;padre&lt;/b&gt; di ogni nodo: aeroporti e settori si importano dalle loro pagine. Il lock di modifica è lo stesso dei Trasferimenti: una persona alla volta.</value></data>
-  <data name="Struct_NavNewDoc" xml:space="preserve"><value>Nuovo doc</value></data>
   <data name="Struct_NavAcc" xml:space="preserve"><value>ACC</value></data>
   <data name="Struct_NavAirports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Struct_NavNeighbours" xml:space="preserve"><value>Confinanti</value></data>
