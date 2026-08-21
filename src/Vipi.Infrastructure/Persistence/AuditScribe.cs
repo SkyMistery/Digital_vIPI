@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -20,6 +21,14 @@ namespace Vipi.Infrastructure.Persistence;
 /// </summary>
 internal static class AuditScribe
 {
+    /// <summary>
+    /// ⚠️ Encoder rilassato di proposito. Con quello di serie «vIPI — Roma ACC» finisce nel registro come
+    /// <c>vIPI — Roma ACC</c>: il registro di audit lo si legge anche in SQL, davanti a un incidente e di
+    /// fretta, e un titolo scappato a metà è un titolo che chi cerca non trova (il <c>LIKE</c> non lo pesca).
+    /// Non è un rischio d'iniezione: il valore torna fuori da un parser JSON e lo rende Blazor, che scappa da sé.
+    /// </summary>
+    private static readonly JsonSerializerOptions Opzioni = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     /// <summary>Accoda una riga di audit al contesto. <paramref name="details"/> è un oggetto qualsiasi:
     /// viene serializzato in JSON (null = nessun dettaglio).</summary>
     public static void Write(VipiDbContext db, int actorUserId, AuditAction action,
@@ -31,6 +40,6 @@ internal static class AuditScribe
             EntityType = entityType,
             EntityId = entityId,
             TimestampUtc = whenUtc ?? DateTime.UtcNow,
-            DetailsJson = details is null ? null : JsonSerializer.Serialize(details),
+            DetailsJson = details is null ? null : JsonSerializer.Serialize(details, Opzioni),
         });
 }

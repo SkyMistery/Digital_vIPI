@@ -35,14 +35,14 @@ public sealed class DocumentAdminService : IDocumentAdminService
     {
         await EnsureCanEditAsync(doc, ct);
         await EnsureNotLockedByOtherAsync(doc, ct);
-        await _repo.SetHiddenAsync(doc, hidden, ct);
+        await _repo.SetHiddenAsync(doc, hidden, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(doc, ct);
         await EnsureNotLockedByOtherAsync(doc, ct);
-        await _repo.DeleteAsync(doc, ct);
+        await _repo.DeleteAsync(doc, _authz.CurrentUserId ?? 0, ct);
     }
 
     /// <summary>

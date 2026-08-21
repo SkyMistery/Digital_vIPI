@@ -72,17 +72,23 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         return await _targets.For(doc.Kind).AuthAccCodeAsync(key, ct);
     }
 
-    public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default)
+    public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default)
     {
         // Post-08 tutti i tipi sono su Document → un solo ramo: il flag vive sul Document.
         if (doc.DocumentId is int id)
         {
             var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
-            if (d is not null) { d.IsHidden = hidden; await _db.SaveChangesAsync(ct); }
+            if (d is null) return;
+            // Il non-evento non si scrive: rimettere «nascosto» su un documento già nascosto non è un atto.
+            if (d.IsHidden == hidden) return;
+            d.IsHidden = hidden;
+            AuditScribe.Write(_db, actorUserId, AuditAction.Update, "Document", id.ToString(),
+                new { d.Title, Kind = doc.Kind.ToString(), Acc = await GetAccCodeAsync(doc, ct), Hidden = hidden });
+            await _db.SaveChangesAsync(ct);
         }
     }
 
-    public async Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default)
+    public async Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default)
     {
         // Rimuovi sempre le release del bersaglio (DocRelease non ha FK → non cascada). Tipo di release dal descrittore.
         var relType = _targets.For(doc.Kind).Type;
@@ -95,6 +101,18 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
             if (d is not null)
             {
+                // ⚠️ L'audit va scritto PRIMA della cancellazione (come in EliminaBozzaAsync): dopo, il titolo
+                // non è più leggibile e resterebbe un registro che dice «eliminato il documento 7». Il nome
+                // accanto all'Id è tutto ciò che, fra sei mesi, distingue una pulizia da un incidente.
+                AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Document", id.ToString(),
+                    new
+                    {
+                        d.Title,
+                        Kind = doc.Kind.ToString(),
+                        Acc = await GetAccCodeAsync(doc, ct),
+                        Releases = rels.Count,
+                    });
+
                 d.CurrentVersionId = null;   // rompi il ciclo CurrentVersion (NoAction) prima del cascade
                 await _db.SaveChangesAsync(ct);
                 _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/DocumentProfile; Sector.DocumentId→SetNull

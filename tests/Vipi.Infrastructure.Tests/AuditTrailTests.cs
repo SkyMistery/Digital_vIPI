@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Infrastructure.Persistence;
 using Vipi.Infrastructure.Persistence.Seed;
@@ -71,5 +72,62 @@ public class AuditTrailTests : IAsyncLifetime
         var riga = await _db.AuditLogs.Where(a => a.EntityType == "EditGrant" && a.Action == AuditAction.Create)
             .SingleAsync();
         Assert.Equal(101, riga.UserId);
+    }
+
+    /// <summary>
+    /// L'atto meno reversibile dell'applicazione non lasciava traccia: <c>DeleteAsync</c> porta via versioni,
+    /// sezioni, blocchi e release e fino al 22 agosto 2026 non scriveva una riga. E il titolo dev'esserci: un
+    /// registro che dice «eliminato il documento 7» non distingue una pulizia da un incidente.
+    /// </summary>
+    [Fact]
+    public async Task Eliminazione_Documento_Lascia_Riga_Col_Titolo()
+    {
+        var repo = TestReleaseTargets.AdminRepo(_db);
+        var doc = (await repo.ListAsync()).First(d => d.DocumentId is not null);
+        var riferimento = new ManagedDocRef(doc.Kind, doc.ReleaseKey, doc.DocumentId);
+
+        await repo.DeleteAsync(riferimento, actorUserId: 404);
+
+        var riga = await _db.AuditLogs.Where(a => a.EntityType == "Document" && a.Action == AuditAction.Delete)
+            .SingleAsync();
+        Assert.Equal(404, riga.UserId);
+        Assert.Equal(doc.DocumentId!.Value.ToString(), riga.EntityId);
+        Assert.Contains(doc.Title, riga.DetailsJson);
+        Assert.False(await _db.Documents.AnyAsync(d => d.Id == doc.DocumentId));   // la riga sopravvive al documento
+    }
+
+    /// <summary>Nascondere cambia la visibilità pubblica: è un atto, e va nel registro con il verso del cambio.</summary>
+    [Fact]
+    public async Task Nascondi_E_Rimostra_Lasciano_Una_Riga_Ciascuno()
+    {
+        var repo = TestReleaseTargets.AdminRepo(_db);
+        var doc = (await repo.ListAsync()).First(d => d.DocumentId is not null && !d.IsHidden);
+        var riferimento = new ManagedDocRef(doc.Kind, doc.ReleaseKey, doc.DocumentId);
+
+        await repo.SetHiddenAsync(riferimento, hidden: true, actorUserId: 303);
+        await repo.SetHiddenAsync(riferimento, hidden: false, actorUserId: 303);
+
+        var righe = await _db.AuditLogs.Where(a => a.EntityType == "Document" && a.Action == AuditAction.Update)
+            .OrderBy(a => a.Id).ToListAsync();
+        Assert.Equal(2, righe.Count);
+        Assert.Contains("\"Hidden\":true", righe[0].DetailsJson);
+        Assert.Contains("\"Hidden\":false", righe[1].DetailsJson);
+    }
+
+    /// <summary>
+    /// Il non-evento non si scrive. Un registro che cresce per sempre non si riempie di righe che dicono
+    /// «nascosto un documento già nascosto»: la seconda chiamata non cambia niente, quindi non è un atto.
+    /// </summary>
+    [Fact]
+    public async Task Nascondere_Cio_Che_E_Gia_Nascosto_Non_Scrive_Niente()
+    {
+        var repo = TestReleaseTargets.AdminRepo(_db);
+        var doc = (await repo.ListAsync()).First(d => d.DocumentId is not null && !d.IsHidden);
+        var riferimento = new ManagedDocRef(doc.Kind, doc.ReleaseKey, doc.DocumentId);
+
+        await repo.SetHiddenAsync(riferimento, hidden: true, actorUserId: 303);
+        await repo.SetHiddenAsync(riferimento, hidden: true, actorUserId: 303);
+
+        Assert.Equal(1, await _db.AuditLogs.CountAsync(a => a.EntityType == "Document"));
     }
 }
