@@ -770,6 +770,62 @@
               <p>Who decided the policy, and when, is written under the table. Every change also lands in the
                <b>log</b> (Audit), with the touched categories only.</p>"),
 
+        new Sec("admin-diagnostica", "activity", "Diagnostica: cosa non torna", "Diagnostics: what does not add up",
+            @"<p>La <b>diagnostica</b> (<code>/vsop/admin/diagnostica</code>) risponde a una domanda sola:
+               <b>qualcosa non torna?</b> Ogni riga dice anche <b>di chi è il problema</b>, perché le cinque
+               aree si riparano in cinque posti diversi — e i chip in cima le contano.</p>
+              <ul>
+                <li><b>Dati</b> — riferimenti fra entità che non risolvono più. Nascono da una rinomina o da una
+                    cancellazione fatta <i>dopo</i> che qualcun altro li aveva citati: sono legami senza vincolo,
+                    scelti apposta così (una release pubblicata deve sopravvivere a un rename). Si riparano
+                    aprendo un editor, e la colonna <b>Dove si ripara</b> dice quale.</li>
+                <li><b>Schema</b> — il database non ha le colonne che il codice si aspetta, o ne ha di vecchie.
+                    ⚠️ Una <i>colonna orfana</i> dopo una rinomina è il caso pericoloso: i dati sono rimasti nella
+                    colonna vecchia e quella nuova è vuota.</li>
+                <li><b>Server</b> — impostazioni del server di database che l’applicazione <b>assume</b> e non può
+                    imporre. Senza strict mode una scrittura troppo lunga viene <b>troncata in silenzio</b>
+                    invece di fallire; con un <code>max_allowed_packet</code> piccolo un’immagine grande non si
+                    carica.</li>
+                <li><b>Avvio</b> — una manutenzione dell’avvio è fallita. L’istanza gira, ma non è partita
+                    intera: sono passate idempotenti, quindi un riavvio riuscito le rifà da capo.</li>
+                <li><b>Configurazione</b> — si corregge fuori dall’applicazione. Qui vive il rilievo più grave
+                    che esista: <b>nessuno è amministratore</b>. Finché è vero nessuno può editare né assegnare
+                    permessi, e <b>non si sblocca da dentro</b>.</li>
+              </ul>
+              <p>⚠️ Se un <b>controllo non è riuscito</b> compare una riga apposta, e vale la pena leggerla: in
+               quell’area l’assenza di rilievi non vuol dire che vada tutto bene, vuol dire che <b>nessuno ha
+               guardato</b>.</p>
+              <p>Sono <b>solo diagnosi</b>: la pagina non modifica nessun dato. Il report è una fotografia presa
+               all’apertura — dopo aver corretto qualcosa, <b>Aggiorna</b>. A destra, chi può editare (i pattern
+               dei codici staff a confronto con quelli visti ai login) e le <b>immagini</b> che nessun documento
+               cita più, che si eliminano in due tempi: prima si guarda l’elenco, poi si cancella.</p>",
+            @"<p>The <b>diagnostics</b> page (<code>/vsop/admin/diagnostica</code>) answers one question:
+               <b>does anything not add up?</b> Every row also says <b>whose problem it is</b>, because the five
+               areas are fixed in five different places — and the chips at the top count them.</p>
+              <ul>
+                <li><b>Data</b> — references between entities that no longer resolve. They come from a rename or
+                    a deletion made <i>after</i> someone else had cited them: these are links without a
+                    constraint, deliberately so (a published release must survive a rename). They are fixed by
+                    opening an editor, and the <b>Where to fix it</b> column says which one.</li>
+                <li><b>Schema</b> — the database lacks columns the code expects, or still has old ones.
+                    ⚠️ An <i>orphan column</i> after a rename is the dangerous case: the data stayed in the old
+                    column and the new one is empty.</li>
+                <li><b>Server</b> — database server settings the application <b>assumes</b> and cannot enforce.
+                    Without strict mode an over-long write is <b>silently truncated</b> instead of failing; with
+                    a small <code>max_allowed_packet</code> a large image will not upload.</li>
+                <li><b>Startup</b> — a startup maintenance pass failed. The instance is running but did not start
+                    whole: those passes are idempotent, so a successful restart redoes them.</li>
+                <li><b>Configuration</b> — fixed outside the application. This is where the gravest finding of
+                    all lives: <b>nobody is an administrator</b>. While that is true nobody can edit or grant
+                    permissions, and <b>it cannot be unblocked from inside</b>.</li>
+              </ul>
+              <p>⚠️ If a <b>check did not run</b> a dedicated row says so, and it is worth reading: in that area
+               the absence of findings does not mean all is well, it means <b>nobody looked</b>.</p>
+              <p>These are <b>diagnoses only</b>: the page changes no data. The report is a snapshot taken when
+               the page opens — after fixing something, press <b>Refresh</b>. On the right: who can edit (the
+               staff-code patterns compared with the ones actually seen at login) and the <b>images</b> no
+               document cites any more, deleted in two steps: first look at the list, then delete.</p>"),
+
         new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
             @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
