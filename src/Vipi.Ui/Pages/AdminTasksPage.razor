@@ -1,4 +1,4 @@
-@page "/vsop/admin/tasks"
+﻿@page "/vsop/admin/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -14,6 +14,11 @@
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px"><Icon Name="clipboard" Size="22" /> @L["Grants_TasksTitle"]</h2><span class="muted">@string.Format(L["AdminTasks_Subtitle"], _currentCycle)</span></div>
     </div>
+
+    @* Le altre pagine admin, in una riga sola e uguale ovunque. Va nuda, senza `@if` intorno: il filtro per
+       autorizzazione lo fa il componente (una regola per voce), e a chi non può aprire niente non compare
+       affatto. *@
+    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

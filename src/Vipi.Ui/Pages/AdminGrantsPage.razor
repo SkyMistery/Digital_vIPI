@@ -42,17 +42,17 @@
 
     @* Le sei card da 138px erano l'unico ingresso ad Audit, Incarichi e Diagnostica, e non elencavano ACC,
        Aeroporti, Confinanti e Sorgenti (che stavano solo nella barra di Struttura): 485px per metà mappa.
-       La barra le elenca tutte in una riga, da un componente solo.
-       ⚠️ Sta DENTRO il ramo admin, dove stavano le card: una barra di scorciatoie mostrata a chi non può
-       entrare in nessuna di quelle pagine è un elenco di porte chiuse. *@
+       La barra le elenca tutte in una riga, da un componente solo, ed è la stessa su tutte le pagine admin.
+       Va nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente (una regola per voce),
+       e a chi non può aprire niente non si mostra affatto — la regola 120 è dentro AdminNav, non qui. *@
+    <AdminNav />
+
     @if (!Authz.IsAdmin)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["Grants_StaffOnly"]</div></div>
     }
     else
     {
-        <AdminNav />
-
         @* ---- Due pannelli alti quanto lo schermo meno ciò che sta sopra (vipiFitViewport a ogni render) ----
            A sinistra una riga per PERSONA, a destra la persona scelta (o il form per una nuova). Prima la
            tabella lavorava in mezza pagina perché l'altra metà era il form «Concedi» sempre aperto: 16 grant

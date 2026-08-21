@@ -63,6 +63,14 @@
         }
     </div>
 
+    @* Le altre pagine admin, in una riga sola e uguale ovunque.
+       ⚠️ Questa pagina è l'unica delle undici senza cancello: chi ha un grant su una ACC ci lavora senza
+       essere admin (vedi LoadPermessiAsync). Per questo la barra NON si mette dentro un `@if (IsAdmin)` — lo
+       nasconderebbe a chi la pagina la usa — e per questo il filtro sta nel componente: là dentro Versioni è
+       l'unica voce marcata `Chi.Chiunque`, e a chi vede solo quella la barra non compare (una voce sola,
+       che è poi la pagina in cui sei già, non è una navigazione). *@
+    <AdminNav />
+
     @if (_docs is null)
     {
         <LoadingState />

@@ -1,4 +1,4 @@
-@page "/vsop/admin/diagnostica"
+﻿@page "/vsop/admin/diagnostica"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Diagnostics
@@ -15,6 +15,11 @@
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">@L["Diag_Title"]</h2><span class="muted">@L["Diag_Subtitle"]</span></div>
     </div>
+
+    @* Le altre pagine admin, in una riga sola e uguale ovunque. Va nuda, senza `@if` intorno: il filtro per
+       autorizzazione lo fa il componente (una regola per voce), e a chi non può aprire niente non compare
+       affatto. *@
+    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

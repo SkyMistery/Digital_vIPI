@@ -1,5 +1,6 @@
 ﻿@inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
+@inject IEditAuthorizationService Authz
 
 @* Barra di navigazione fra le pagine admin.
 
@@ -10,31 +11,54 @@
    Aeroporti e Sorgenti SOLO da Struttura. Qui l'elenco sta in un posto: aggiungere una pagina admin è una
    riga in `Voci`.
 
+   ⚠️ La barra DECIDE DA SÉ chi vedere: ogni voce si porta dietro la sua regola d'accesso (`Chi`) e viene
+   filtrata qui. Le pagine la scrivono nuda — `<AdminNav />`, senza `@if` intorno — perché un `@if` copiato in
+   undici punti è undici posti dove sbagliarsi il giorno che una pagina cambia autorizzazione (ed è la trappola
+   della regola 120: un elenco di porte chiuse a chi non può aprirne nessuna). La regola sta accanto alla voce,
+   una riga, un posto solo.
+
    Le etichette sono NOMI CORTI, non troncamenti (regola 33): il nome per esteso sta nel `title`. Una barra
    che va a capo tre volte costa più di quello che fa risparmiare.
 
    La voce della pagina corrente non è un link ma uno stato: `aria-current="page"` e nessun href — un
    comando che ti porta dove sei già è rumore. *@
 
-<nav class="admin-nav" aria-label="@L["Nav_AdminAria"]">
-    <span class="an-lab">@L["Nav_AdminLabel"]</span>
-    @foreach (var v in Voci)
-    {
-        var corrente = IsCorrente(v.Url);
-        if (corrente)
+@if (Visibili.Count > 1)
+{
+    <nav class="admin-nav" aria-label="@L["Nav_AdminAria"]">
+        <span class="an-lab">@L["Nav_AdminLabel"]</span>
+        @foreach (var v in Visibili)
         {
-            <span class="an-link on" aria-current="page" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</span>
+            var corrente = IsCorrente(v.Url);
+            if (corrente)
+            {
+                <span class="an-link on" aria-current="page" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</span>
+            }
+            else
+            {
+                <a class="an-link" href="@v.Url" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</a>
+            }
         }
-        else
-        {
-            <a class="an-link" href="@v.Url" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</a>
-        }
-    }
-</nav>
+    </nav>
+}
 
 @code {
-    /// <summary>Una pagina admin: rotta, icona, nome corto in barra, nome per esteso nel tooltip.</summary>
-    private sealed record Voce(string Url, string Icon, string LabelKey, string TitleKey);
+    /// <summary>
+    /// Chi può entrare in una pagina admin. È l'unico posto dove sta scritto: se domani una pagina si apre
+    /// (o si chiude), si cambia la sua riga in <see cref="Voci"/> e la barra si adegua ovunque.
+    /// </summary>
+    private enum Chi
+    {
+        /// <summary>Solo admin di divisione (la pagina ha il suo `!Authz.IsAdmin → accesso riservato`).</summary>
+        Admin,
+
+        /// <summary>Chiunque sia loggato: la pagina non ha un cancello, i comandi dentro sì (es. Versioni,
+        /// dove l'elenco si legge e i tasti per riga li abilita il grant sull'ACC del documento).</summary>
+        Chiunque,
+    }
+
+    /// <summary>Una pagina admin: rotta, icona, nome corto in barra, nome per esteso nel tooltip, chi entra.</summary>
+    private sealed record Voce(string Url, string Icon, string LabelKey, string TitleKey, Chi Chi = Chi.Admin);
 
     private static readonly Voce[] Voci =
     {
@@ -44,12 +68,26 @@
         new("/vsop/admin/confinanti",      "globe",          "Struct_NavNeighbours","Conf_Subtitle"),
         new("/vsop/admin/sorgenti",        "plug",           "Struct_NavSources",   "Nav_SourcesTitle"),
         new("/vsop/admin/trasferimenti",   "refresh",        "Home_TransfersTitle", "Home_TransfersDesc"),
-        new("/vsop/versioni",              "file",           "Nav_Docs",            "Grants_DocsDesc"),
+        new("/vsop/versioni",              "file",           "Nav_Docs",            "Grants_DocsDesc", Chi.Chiunque),
         new("/vsop/admin/tasks",           "clipboard",      "Nav_Tasks",           "Grants_TasksDesc"),
         new("/vsop/admin/audit",           "scroll",         "Audit_Title",         "Grants_AuditDesc"),
         new("/vsop/admin/diagnostica",     "activity",       "Nav_Diag",            "Grants_DiagDesc"),
         new("/vsop/admin/permessi",        "key",            "Nav_Perms",           "Grants_GrantHint"),
     };
+
+    /// <summary>
+    /// Le voci che questo utente può davvero aprire.
+    ///
+    /// <para>Niente giro in banca dati: le due regole si rispondono con <c>IsAdmin</c>, che il servizio
+    /// risolve una volta per scope. Una barra che interrogasse il DB girerebbe su undici pagine mentre
+    /// ognuna sta caricando i propri dati, sullo stesso <c>DbContext</c> di circuito — che è esattamente
+    /// come si prende un «A second operation was started on this context».</para>
+    /// </summary>
+    private IReadOnlyList<Voce> Visibili = Array.Empty<Voce>();
+
+    // Una volta sola, non a ogni valutazione del markup: il filtro lo leggono sia il `@if` che il `foreach`.
+    protected override void OnInitialized() =>
+        Visibili = Voci.Where(v => v.Chi == Chi.Chiunque || Authz.IsAdmin).ToArray();
 
     /// <summary>
     /// Confronto sul solo percorso: la pagina corrente può portarsi dietro una query (i filtri di Versioni la

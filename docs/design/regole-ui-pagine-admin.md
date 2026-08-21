@@ -491,6 +491,32 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 124. **Un VID non è un nome.** «Concesso da 704798» non dice niente a nessuno: i VID mostrati si risolvono col
      roster (`GetDisplayNamesAsync`), che è già in casa — e il nome della persona si prende dal roster anche
      quando il grant fu scritto senza, invece di mostrare un trattino.
+125. **Una barra di navigazione si filtra da sé, non con un `@if` copiato undici volte.** `AdminNav` sta ora
+     sotto la testata di *tutte* le pagine admin, e ogni voce si porta dietro la propria regola d'accesso
+     (`Chi.Admin` / `Chi.Chiunque`). Le pagine la scrivono nuda — `<AdminNav />` — perché la regola 120
+     («un elenco di scorciatoie va dentro il ramo autorizzato») è vera ma non si difende ripetendo il
+     cancello in undici punti: si difende mettendola **una volta** accanto alla voce. Il giorno che una
+     pagina cambia autorizzazione, si cambia una riga. ⚠️ Se all'utente resta **una voce sola** — che è poi
+     la pagina in cui è già — la barra non si rende affatto: una voce non è una navigazione.
+126. ⚠️ **Una barra che sta su undici pagine non può interrogare la banca dati.** Girerebbe mentre ognuna di
+     quelle pagine carica i propri dati, sullo stesso `DbContext` di circuito: è la ricetta esatta per
+     «A second operation was started on this context». Le regole d'accesso della barra si rispondono con
+     `IsAdmin`, che il servizio risolve una volta per scope. Se una voce avesse bisogno di un dato dal DB,
+     la risposta è cambiare la regola, non aggiungere una query.
+127. **La barra va FUORI dalla testata, anche quando la testata è appiccicata.** Su ACC (`.st-head.sticky`)
+     dentro la testata resterebbe a schermo per sempre, raddoppiando l'altezza della fascia fissa — e
+     `vipiStickyOffset`, che misura quella fascia per incollarci sotto il `thead`, spingerebbe giù di
+     altrettanto le intestazioni di tutte le tabelle. Fuori, scorre via verso l'alto e passa **sotto** la
+     testata, che ha fondo pieno e `z-index` più alto.
+128. **Quando arriva l'elenco completo, i link sparsi in testata sono doppioni e vanno via.** Con la barra su
+     ogni pagina se ne sono tolti sette: cinque in Struttura (ACC, Aeroporti, Confinanti, Trasferimenti,
+     Sorgenti — sotto ~1280px mandavano la testata a capo, quindi toglierli restituisce una riga intera) e
+     due «← Struttura» in ACC e Confinanti. In testata restano solo i comandi **di quella pagina**: «Nuovo
+     documento» crea, non naviga, e infatti non è una pagina admin.
+129. ⚠️ **Un'etichetta sbagliata si vede, un URL sbagliato no**: porta a una pagina bianca, e solo a chi ci
+     clicca sopra. La rete è un test che confronta ogni voce con le `RouteAttribute` vere dell'assembly
+     (`AdminNavTests.Ogni_voce_punta_a_una_rotta_che_esiste`) — e deve aggiungere a mano la voce corrente,
+     che un href non ce l'ha.
 
 ## Dove sta la roba
 
@@ -513,7 +539,7 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
 | Elenco + dettaglio a fianco, misurati | `.conf-layout` (griglia 1.35/1) + due `.st-pane` |
 | …lo stesso su Versioni e Permessi | `.ver-layout` / `.perm-layout` (stessa griglia, stesso `vipiFitViewport`) |
-| Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — l'elenco sta lì, non nelle pagine |
+| Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — elenco **e regola d'accesso** stanno lì, non nelle pagine |
 | Testata del pannello di destra + riga azioni | `.ver-detail-head` / `.ver-acts` (fermi: scorre solo `.st-scroll`) |
 | Riga scegliibile fuori da una tabella | `.doc-rowi.acc-pick` (+ `.picked`, `.row-off`) |
 | Colonne misurate col font | `.conf-table` (`table-layout:fixed`), `.c-home/.c-fgn/.c-name/.c-num/.c-flag/.c-state` |

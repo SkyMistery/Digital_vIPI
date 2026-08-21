@@ -30,7 +30,6 @@
                 <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["AccAdmin_ImportTitle"]">
                     @if (_busy) { <span class="spin"></span> }<Icon Name="refresh" Size="14" /> @L["AccAdmin_ImportBtn"]
                 </button>
-                <a class="btn ghost" href="/vsop/admin/sectorstructure"><Icon Name="grid" Size="14" /> @L["Home_StructTitle"]</a>
                 @* Il salvataggio dei limiti sta QUI e non sopra la tabella dei settori: è l'unica scrittura che
                    si accumula (N celle in N righe), e il posto da cui la si conferma deve essere a schermo
                    mentre la si compila. Spento a zero, come i chip: se comparisse, sposterebbe gli altri. *@
@@ -54,6 +53,16 @@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
     </div>
+
+    @* Le altre pagine admin, in una riga sola e uguale ovunque (qui stava il tasto «Struttura settori», che
+       era un doppione della prima voce). Va nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il
+       componente, una regola per voce.
+       ⚠️ Sta FUORI dalla testata apposta: la testata è appiccicata (`sticky`) e la barra no. Scorrendo, la
+       barra sale e passa SOTTO la testata — che ha fondo pieno e `z-index` più alto — e sparisce. Dentro la
+       testata, invece, resterebbe a schermo per sempre e la fascia fissa raddoppierebbe di altezza; e
+       `vipiStickyOffset`, che misura quella fascia per incollarci sotto il `thead`, spingerebbe le
+       intestazioni delle tabelle giù di altrettanto. *@
+    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

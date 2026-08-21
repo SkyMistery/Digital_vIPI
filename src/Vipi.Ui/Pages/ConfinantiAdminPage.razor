@@ -39,7 +39,6 @@
                 <button class="btn ghost @(_manualOpen ? "on" : "")" disabled="@(_busy || !_canEdit)" @onclick="ToggleManual" title="@L["Conf_AddManualHint"]">
                     <Icon Name="plus" Size="14" /> @L["Conf_AddManualTitle"]
                 </button>
-                <a class="btn ghost" href="/vsop/admin/sectorstructure">← @L["Struct_Title"]</a>
             </nav>
             @* L'esito è un chip in testata, fra i comandi che l'hanno provocato e il lock: da fascia sopra la
                tabella spingeva in giù proprio le righe su cui si stava lavorando. *@
@@ -86,6 +85,11 @@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
     </div>
+
+    @* Le altre pagine admin, in una riga sola e uguale ovunque. Va nuda, senza `@if` intorno: il filtro per
+       autorizzazione lo fa il componente (una regola per voce), e a chi non può aprire niente non compare
+       affatto. *@
+    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

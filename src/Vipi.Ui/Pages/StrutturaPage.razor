@@ -24,13 +24,11 @@
         </HelpHint>
         @if (Authz.IsAdmin)
         {
+            @* ⚠️ Qui stavano ACC, Aeroporti, Confinanti, Trasferimenti e Sorgenti: erano cinque doppioni della
+               barra admin qui sotto, e sotto ~1280px mandavano la testata a capo. In testata restano i comandi
+               DI QUESTA pagina — «Nuovo documento» crea, non naviga, e infatti non è una pagina admin. *@
             <nav class="struct-nav">
                 <a class="btn ghost" href="/vsop/editor/newdoc"><Icon Name="file" /> @L["Struct_NavNewDoc"]</a>
-                <a class="btn ghost" href="/vsop/admin/acc"><Icon Name="map" /> @L["Struct_NavAcc"]</a>
-                <a class="btn ghost" href="/vsop/admin/airports"><Icon Name="plane-takeoff" /> @L["Struct_NavAirports"]</a>
-                <a class="btn ghost" href="/vsop/admin/confinanti"><Icon Name="globe" /> @L["Struct_NavNeighbours"]</a>
-                <a class="btn ghost" href="/vsop/admin/trasferimenti"><Icon Name="refresh" /> @L["Home_TransfersTitle"]</a>
-                <a class="btn ghost" href="/vsop/admin/sorgenti"><Icon Name="plug" /> @L["Struct_NavSources"]</a>
             </nav>
             @* L'esito sta fra i comandi e il lock, come nella pagina ACC: da fascia sotto la testata spingeva
                in giù l'albero mentre ci si lavorava — e qui l'altezza del riquadro è misurata, quindi una
@@ -48,6 +46,11 @@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
     </div>
+
+    @* Le altre pagine admin, in una riga sola e uguale ovunque. Va nuda, senza `@if` intorno: il filtro per
+       autorizzazione lo fa il componente (una regola per voce). L'altezza che si prende non va scontata a
+       mano: `vipiFitViewport` misura il `top` del riquadro, quindi l'albero si riadatta da solo. *@
+    <AdminNav />
 
     @* Il testo dell'albero di fallback è lo stesso di prima, parola per parola: cambia solo dove si legge —
        dal clic sul «?» invece che da tre righe di prosa sempre a schermo. *@
