@@ -1,4 +1,4 @@
-@page "/vsop/editor/newdoc"
+﻿@page "/vsop/editor/newdoc"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INewDocumentOptionsService Options
@@ -7,6 +7,7 @@
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Nd_Title"] · vIPI IVAO Italia</PageTitle>
 
@@ -48,14 +49,18 @@
     }
     else
     {
-        <div class="panel nd-pane">
+        <div class="panel st-pane nd-pane">
             @* ---- Le quattro schede ----
                L'ordine è ACC · APP · Aeroporto · vLOA: la vLOA apre il form più lungo ma è il documento più
                raro (uno per coppia, e per le confinanti li genera Confinanti in blocco). Le tre vIPI sono il
                lavoro di tutti i giorni.
                Le etichette hanno perso il prefisso «vIPI», vero per tre schede su quattro: non distingueva
                niente e pagava larghezza su ognuna. *@
-            <div class="seg nd-seg">
+            @* ⚠️ NON `.seg`: quella e' la classe di un segmented control che riempie la riga
+               (`.seg button{flex:1}`), e qui stirava le quattro schede a 375px l'una su uno schermo largo.
+               Stessa famiglia della trappola di `.se-row input{flex:1}` su Sorgenti: una classe pensata per
+               un uso, riusata dove la sua regola non serve. *@
+            <div class="nd-seg">
                 <button class="btn @(_kind == Kind.Acc ? "primary" : "ghost")" @onclick="() => Scheda(Kind.Acc)"><Icon Name="map" Size="14" /> @L["Nd_KindAcc"]</button>
                 <button class="btn @(_kind == Kind.App ? "primary" : "ghost")" @onclick="() => Scheda(Kind.App)"><Icon Name="plane-landing" Size="14" /> @L["Nd_KindApp"]</button>
                 <button class="btn @(_kind == Kind.Airport ? "primary" : "ghost")" @onclick="() => Scheda(Kind.Airport)"><Icon Name="plane-takeoff" Size="14" /> @L["Nd_KindAirport"]</button>
@@ -221,6 +226,16 @@
     private string _selKey = "";
 
     protected override async Task OnInitializedAsync() => _opts = await Options.LoadAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // ⚠️ `vipiCapViewport` (max-height), non `vipiFitViewport` (height): il contenuto è corto e FISSO —
+        // quattro schede e tendine che non crescono — quindi stirare il riquadro lascerebbe mezzo pannello
+        // di bianco (lezione di Sorgenti, regola 150). Ma senza misura affatto **sotto zoom** non ci stava
+        // più: a 1.25 la pagina tornava a scorrere di 50px, a 1.5 di 232. Il tetto fa entrambe le cose.
+        // A ogni render: cambiare scheda cambia l'altezza, e il «?» aperto cambia ciò che sta sopra.
+        try { await JS.InvokeVoidAsync("vipiCapViewport", ".nd-pane", 900); } catch (Exception) { }
+    }
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 

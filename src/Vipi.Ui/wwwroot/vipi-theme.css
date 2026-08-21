@@ -2353,9 +2353,14 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    del blocco vLOA. Una griglia a due colonne dice anche qual e' la COPPIA, che e' la cosa che la vLOA e'.
    ⚠️ Niente riquadro misurato qui: il contenuto e' corto e FISSO (quattro schede, tendine che non crescono),
    quindi ne' `vipiFitViewport` ne' `vipiCapViewport` — la pagina ci sta e basta (regola 150). */
-.struct .nd-pane{padding:18px}
+.struct .nd-pane{padding:18px;overflow:auto}
+/* ⚠️ Il `.wrap` porta un padding di fondo che il tetto NON vede (misura fin dove arriva il riquadro, non
+   cosa gli sta sotto): 70px su Sorgenti, 52 su Audit. */
+.wrap.struct:has(.nd-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .nd-pane{max-height:none;overflow:visible}}
 .struct .nd-seg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
-.struct .nd-seg .btn{padding:7px 14px;font-size:12.5px}
+/* Le schede sono larghe quanto il loro testo: `flex:1` le stirerebbe su tutta la riga (vedi `.seg`). */
+.struct .nd-seg .btn{flex:0 0 auto;padding:7px 14px;font-size:12.5px}
 .struct .nd-form{max-width:720px}
 .struct .nd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
 @media(max-width:760px){.struct .nd-grid{grid-template-columns:1fr}}
