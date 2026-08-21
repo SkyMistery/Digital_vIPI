@@ -61,6 +61,21 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// </summary>
     public const string CategoriaSondaRotta = "Sonda non riuscita";
 
+    /// <summary>
+    /// Dove si va a riparare, per famiglia di rilievo. Sta qui e non nella pagina perché è chi produce il
+    /// rilievo a sapere dove si ripara — vedi <see cref="ConsistencyFinding.Where"/>.
+    /// </summary>
+    private const string DoveAccordi = "/vsop/admin/trasferimenti";
+    private const string DoveStruttura = "/vsop/admin/sectorstructure";
+
+    /// <summary>
+    /// L'elenco dei documenti, non l'editor del singolo. ⚠️ Scelta dichiarata: la riga porta il <i>titolo</i>
+    /// del documento, non il suo Id, e la rotta dell'editor dipende dal tipo e dall'ACC — costruirla di qui
+    /// vorrebbe dire portarsi dietro il registro delle rotte per documento (<c>IDocKindRoutes</c>) dentro
+    /// l'analisi pura. Meglio un link vero a un passo di distanza che uno preciso e sbagliato.
+    /// </summary>
+    private const string DoveDocumenti = "/vsop/versioni";
+
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
     {
         var findings = new List<ConsistencyFinding>();
@@ -132,7 +147,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Pista orfana", ConsistencySeverity.Error, who,
                     $"ConditionRefId={refId} non corrisponde a nessuna pista: rimossa o re-importata con altro Id.",
-                    ConsistencyArea.Dati));
+                    ConsistencyArea.Dati, DoveAccordi));
             }
             // 2) Label divergente: la pista esiste ma il suo ident non compare più nell'etichetta denormalizzata.
             else if (t.ConditionRefId is int okId
@@ -142,7 +157,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Label pista divergente", ConsistencySeverity.Warning, who,
                     $"La pista referenziata è ora «{ident}» ma l'etichetta salvata è «{t.ConditionLabel}»: rinominata dopo il salvataggio.",
-                    ConsistencyArea.Dati));
+                    ConsistencyArea.Dati, DoveAccordi));
             }
 
             // 3) Area fantasma: l'area denormalizzata non corrisponde ad alcuna area speciale esistente.
@@ -150,7 +165,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Area fantasma", ConsistencySeverity.Warning, who,
                     $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa.",
-                    ConsistencyArea.Dati));
+                    ConsistencyArea.Dati, DoveAccordi));
             }
         }
 
@@ -162,7 +177,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 findings.Add(new ConsistencyFinding("Gerarchia dangling", ConsistencySeverity.Error,
                     $"{p.Kind} {p.Reference}",
                     $"ParentCallsign «{p.ParentCallsign}» non esiste nei cataloghi: catena di copertura interrotta.",
-                    ConsistencyArea.Dati));
+                    ConsistencyArea.Dati, DoveStruttura));
             }
         }
 
@@ -182,7 +197,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             findings.Add(new ConsistencyFinding("Area regolamentata dangling", ConsistencySeverity.Warning,
                 $"{r.Kind} {r.Reference}",
                 $"Aree selezionate non più presenti: {string.Join(", ", missing)}. Rimosse dalla sorgente e potate " +
-                "dall'import; nel documento restano citate ma non vengono mostrate.", ConsistencyArea.Dati));
+                "dall'import; nel documento restano citate ma non vengono mostrate.",
+                ConsistencyArea.Dati, DoveDocumenti));
         }
 
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
@@ -227,7 +243,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     candidato,
                     $"Con «{altro}» online, «{candidato}» risulterebbe online anche se non lo è: i due callsign si " +
                     "confondono nella risalita della copertura. Rinominare uno dei due, o introdurre una tabella " +
-                    "esplicita callsign↔postazione.", ConsistencyArea.Dati);
+                    "esplicita callsign↔postazione.", ConsistencyArea.Dati, DoveStruttura);
             }
         }
     }

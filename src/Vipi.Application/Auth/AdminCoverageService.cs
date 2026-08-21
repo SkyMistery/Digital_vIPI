@@ -89,6 +89,8 @@ public sealed class AdminCoverageService : IAdminCoverageService
                 $"Nessuno dei codici staff osservati combacia coi pattern admin in vigore ({string.Join(" | ", c.Patterns)}). " +
                 $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può editare né assegnare permessi, " +
                 "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».",
+                // ⚠️ Nessuna rotta: questo NON si ripara da dentro l'applicazione — è proprio ciò che il
+                // rilievo dice. Mandare a /vsop/admin/permessi sarebbe mandare a una porta chiusa.
                 ConsistencyArea.Configurazione),
         };
     }

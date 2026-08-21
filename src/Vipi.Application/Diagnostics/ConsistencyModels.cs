@@ -35,8 +35,20 @@ public enum ConsistencyArea
 /// <param name="Entity">Riferimento leggibile all'entità coinvolta (es. «Clausola #42 (LIRR, punti EKMUR)»).</param>
 /// <param name="Detail">Spiegazione del disallineamento e come si è prodotto.</param>
 /// <param name="Area">Di chi è il problema. Vedi <see cref="ConsistencyArea"/>.</param>
+/// <param name="Where">
+/// Dove si va a ripararlo: la rotta della pagina che lo tocca, o <c>null</c> se non c'è un posto da aprire
+/// (impostazioni del server, configurazione, schema — si correggono fuori dall'applicazione).
+///
+/// <para><b>Perché sul finding e non una mappa nella pagina.</b> Chi produce il rilievo è l'unico che sa
+/// dove si ripara: una mappa categoria→rotta lato UI sarebbe un secondo posto da tenere allineato, e un
+/// controllo nuovo nascerebbe muto senza che il compilatore lo dica. Vale qui la regola del formattatore
+/// unico.</para>
+///
+/// <para>⚠️ <c>null</c> è una risposta, non una dimenticanza: un link che non porta da nessuna parte è
+/// peggio di nessun link.</para>
+/// </param>
 public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity,
-    string Detail, ConsistencyArea Area);
+    string Detail, ConsistencyArea Area, string? Where = null);
 
 /// <summary>Condizione di una clausola di accordo (soft-ref a pista/area denormalizzate).</summary>
 /// <param name="Points">I punti della clausola, come si leggono: servono solo a dire QUALE clausola nel

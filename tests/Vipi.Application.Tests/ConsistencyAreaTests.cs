@@ -42,6 +42,54 @@ public class ConsistencyAreaTests
     }
 
     /// <summary>
+    /// ⚠️ Un rilievo dell'area <b>Dati</b> si ripara aprendo una pagina, e deve dire quale: senza, chi legge
+    /// «Clausola #42 (LIRR, punti EKMUR)» se la va a cercare a mano. È la cosa che mancava di più a chi la
+    /// pagina la apre per lavorare invece che per guardare.
+    /// </summary>
+    [Fact]
+    public void Ogni_rilievo_sui_dati_dice_dove_si_ripara()
+    {
+        var d = new ConsistencyDataset
+        {
+            TransferConditions = new[]
+            {
+                new TransferConditionRow(1, "LIRR", "VALMA", 99001, null, "LI R99Z"),
+                new TransferConditionRow(2, "LIRR", "EKMUR", 10, "Pista 34R", null),
+            },
+            RunwayIdents = new Dictionary<int, string> { [10] = "16R" },
+            ParentRefs = new[] { new ParentRefRow("Settore APT", "LIRF_TWR", "LIXX_APP") },
+            ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_TWR" },
+            RegulatedRefs = new[] { new RegulatedRefRow("vIPI", "Roma ACC", """{"OwnIds":["999"],"ExtraIds":[]}""") },
+        };
+
+        var findings = ConsistencyReportService.Analyze(d);
+
+        Assert.All(findings, f => Assert.False(string.IsNullOrWhiteSpace(f.Where),
+            $"«{f.Category}» non dice dove si ripara."));
+        Assert.All(findings, f => Assert.StartsWith("/vsop/", f.Where!));
+    }
+
+    /// <summary>
+    /// ⚠️ E chi <b>non</b> si ripara da dentro non deve fingere di sì: «nessuno può editare» si corregge nella
+    /// configurazione, e un link a `/vsop/admin/permessi` manderebbe a una porta chiusa — proprio quella che
+    /// il rilievo dice essere chiusa. `null` è una risposta, non una dimenticanza.
+    /// </summary>
+    [Fact]
+    public void Cio_che_non_si_ripara_da_dentro_non_ha_un_link()
+    {
+        var avvio = new StartupMaintenanceReport();
+        avvio.Record("proiezione dei settori", new InvalidOperationException("x"));
+
+        Assert.Null(Assert.Single(avvio.Findings).Where);
+        Assert.All(ServerSettingsAnalyzer.Analyze("NO_STRICT", 1024L), x => Assert.Null(x.Where));
+        Assert.All(
+            SchemaDriftAnalyzer.Compare(
+                model: new[] { new SchemaColumn("Documents", "Titolo", "TEXT") },
+                actual: new[] { new SchemaColumn("Documents", "Title", "TEXT") }),
+            x => Assert.Null(x.Where));
+    }
+
+    /// <summary>
     /// I quattro modi in cui il server può non essere come l'app lo assume. ⚠️ Un caso solo non basterebbe:
     /// i rilievi nascono in quattro rami diversi dell'analizzatore, e l'area va dichiarata in ognuno.
     /// (Un <c>Theory</c> qui non si può: <c>InlineData</c> passa gli interi come <c>int</c> e il parametro è
