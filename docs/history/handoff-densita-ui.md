@@ -126,6 +126,17 @@ stesso, perché i `bin/Release` non sono bloccati.
 `setExtraHTTPHeaders({'Accept-Language': 'it-IT,it;q=0.9'})` Edge chiede `en-US` e la prova «in italiano»
 verifica l'inglese. È così che «No release» non tradotto è passato per un giro.
 
+### Riempire una pagina che il DB di sviluppo lascia vuota
+
+⚠️ **Costato un'analisi sbagliata su Permessi**: la ricognizione la dava a 1 346px perché la tabella dei
+permessi era vuota; con 16 grant erano 2 449. I dati finti si scrivono nella copia **prima** di misurare, con
+i casi che rompono le colonne — nomi lunghi, persone con più righe:
+
+```python
+c.execute("INSERT INTO EditGrants (AccId,DisplayName,GrantedAtUtc,GrantedByUserId,UserId) VALUES (?,?,?,?,?)",
+          (acc_id, 'Alessandra Ferrari-Colombo', '2026-06-01 09:30:00', 704798, 555003))
+```
+
 ### Provare uno stato che l'app non ti lascia costruire
 
 Per verificare i lock servono **due persone**. Si simula scrivendo nel DB della copia mentre l'app gira:

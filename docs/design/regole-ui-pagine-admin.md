@@ -512,6 +512,10 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Colonne SID misurate + Condition elastica | `.sid-edit` (base), `.sid-imported` / `.sid-manual` (larghezze) |
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
 | Elenco + dettaglio a fianco, misurati | `.conf-layout` (griglia 1.35/1) + due `.st-pane` |
+| …lo stesso su Versioni e Permessi | `.ver-layout` / `.perm-layout` (stessa griglia, stesso `vipiFitViewport`) |
+| Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — l'elenco sta lì, non nelle pagine |
+| Testata del pannello di destra + riga azioni | `.ver-detail-head` / `.ver-acts` (fermi: scorre solo `.st-scroll`) |
+| Riga scegliibile fuori da una tabella | `.doc-rowi.acc-pick` (+ `.picked`, `.row-off`) |
 | Colonne misurate col font | `.conf-table` (`table-layout:fixed`), `.c-home/.c-fgn/.c-name/.c-num/.c-flag/.c-state` |
 | Blocco della vIPI ACC che si chiude | `details.acc-block` + fisarmonica in `vipi-editor.js` |
 | Espandi/comprimi tutto (ogni editor) | `vipiEditorSections` — sezioni bespoke, blocchi ACC e card `.cb` |
