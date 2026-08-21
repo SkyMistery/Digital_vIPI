@@ -12,15 +12,20 @@
 <PageTitle>@L["Sorg_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Sorg_Title"]</b></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente. *@
+    <AdminNav />
+
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">@L["Sorg_Title"]</h2><span class="muted">@L["Sorg_Subtitle"]</span></div>
     </div>
-
-    @* Le altre pagine admin, in una riga sola e uguale ovunque. Va nuda, senza `@if` intorno: il filtro per
-       autorizzazione lo fa il componente (una regola per voce), e a chi non può aprire niente non compare
-       affatto. *@
-    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

@@ -492,7 +492,7 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      roster (`GetDisplayNamesAsync`), che è già in casa — e il nome della persona si prende dal roster anche
      quando il grant fu scritto senza, invece di mostrare un trattino.
 125. **Una barra di navigazione si filtra da sé, non con un `@if` copiato undici volte.** `AdminNav` sta ora
-     sotto la testata di *tutte* le pagine admin, e ogni voce si porta dietro la propria regola d'accesso
+     in cima a *tutte* le pagine admin, e ogni voce si porta dietro la propria regola d'accesso
      (`Chi.Admin` / `Chi.Chiunque`). Le pagine la scrivono nuda — `<AdminNav />` — perché la regola 120
      («un elenco di scorciatoie va dentro il ramo autorizzato») è vera ma non si difende ripetendo il
      cancello in undici punti: si difende mettendola **una volta** accanto alla voce. Il giorno che una
@@ -507,7 +507,8 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      dentro la testata resterebbe a schermo per sempre, raddoppiando l'altezza della fascia fissa — e
      `vipiStickyOffset`, che misura quella fascia per incollarci sotto il `thead`, spingerebbe giù di
      altrettanto le intestazioni di tutte le tabelle. Fuori, scorre via verso l'alto e passa **sotto** la
-     testata, che ha fondo pieno e `z-index` più alto.
+     testata, che ha fondo pieno e `z-index` più alto. Vale identico da sopra il titolo: misurato dopo lo
+     spostamento, `--st-head-h` resta 72px e la barra a `bottom:-765` dopo 900px di scorrimento.
 128. **Quando arriva l'elenco completo, i link sparsi in testata sono doppioni e vanno via.** Con la barra su
      ogni pagina se ne sono tolti sette: cinque in Struttura (ACC, Aeroporti, Confinanti, Trasferimenti,
      Sorgenti — sotto ~1280px mandavano la testata a capo, quindi toglierli restituisce una riga intera) e
@@ -524,6 +525,21 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      «Admin:». Compariva su undici pagine per dire una cosa che si vede da sola — sei nell'area staff, e le
      voci dicono già quali pagine sono. Tolta: il nome della barra resta nell'`aria-label`, dove serve
      davvero, cioè a chi la incontra senza il colpo d'occhio.
+131. **La barra sta SOPRA il titolo, e prende il posto della briciola di pane.** Due mosse che sono una sola.
+     Sopra e non sotto perché **un titolo deve toccare il contenuto che intitola**: da sotto, la barra si
+     infilava fra l'H2 e la prima sezione e li staccava, e il titolo finiva a fare da didascalia alla barra
+     invece che alla pagina. E al posto della briciola perché la briciola faceva già quel lavoro, peggio:
+     ⚠️ ogni suo anello portava dove porta la barra (o il logo in topbar, per «Home»); segnava la pagina
+     corrente in grassetto come la barra la segna in blu; **inventava una gerarchia** — «Home › Staff Area ›
+     Structure › Airports», ma Aeroporti sotto Struttura non ci sta, sono pagine sorelle; ed era già
+     divergente da sé, con «Admin» che puntava a `/vsop` in tre pagine e a `/vsop/admin/permessi` in una
+     quarta, e profondità da due a quattro anelli per pagine dello stesso rango. Costava 38px misurati su
+     tutte e undici, che sulle sei pagine ad altezza misurata erano righe e nodi.
+132. ⚠️ **Una briciola di pane si toglie solo dove qualcos'altro la sostituisce.** Sulle pagine pubbliche
+     (`/vsop/{acc}/airports?icao=…` e sorelle) resta, e deve restare: lì non c'è nessuna barra, e
+     «Home › LIBB › Airports › LIBD» è l'unico modo di risalire. La regola non è «le briciole sono rumore»,
+     è «due elenchi della stessa cosa divergono» (regola 123) — e senza il secondo elenco non c'è niente da
+     togliere.
 
 ## Dove sta la roba
 
@@ -546,7 +562,7 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
 | Riga modificata e non salvata | `.row-dirty` (giallo) contro `.row-sel` (blu) |
 | Elenco + dettaglio a fianco, misurati | `.conf-layout` (griglia 1.35/1) + due `.st-pane` |
 | …lo stesso su Versioni e Permessi | `.ver-layout` / `.perm-layout` (stessa griglia, stesso `vipiFitViewport`) |
-| Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — elenco **e regola d'accesso** stanno lì, non nelle pagine |
+| Barra fra le pagine admin | `AdminNav` (`Components/AdminNav.razor`) + `.admin-nav` — sopra il titolo, dove stava la briciola; elenco **e regola d'accesso** stanno lì, non nelle pagine |
 | Testata del pannello di destra + riga azioni | `.ver-detail-head` / `.ver-acts` (fermi: scorre solo `.st-scroll`) |
 | Riga scegliibile fuori da una tabella | `.doc-rowi.acc-pick` (+ `.picked`, `.row-off`) |
 | Colonne misurate col font | `.conf-table` (`table-layout:fixed`), `.c-home/.c-fgn/.c-name/.c-num/.c-flag/.c-state` |

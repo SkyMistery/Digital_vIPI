@@ -11,7 +11,17 @@
 <PageTitle>@L["Common_StaffArea"] · IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Home_PermsTitle"]</b></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente. *@
+    <AdminNav />
+
     @* ---- Testata in UNA riga: titolo (+conteggio) · «?» · comandi di PAGINA · esito ----
        Il titolo era «Area Staff» su una rotta che si chiama /permessi: la pagina era due pagine, un hub di
        navigazione e i permessi. L'hub è diventato la barra qui sotto, e il titolo dice cosa fa la pagina. *@
@@ -39,13 +49,6 @@
             }
         }
     </div>
-
-    @* Le sei card da 138px erano l'unico ingresso ad Audit, Incarichi e Diagnostica, e non elencavano ACC,
-       Aeroporti, Confinanti e Sorgenti (che stavano solo nella barra di Struttura): 485px per metà mappa.
-       La barra le elenca tutte in una riga, da un componente solo, ed è la stessa su tutte le pagine admin.
-       Va nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente (una regola per voce),
-       e a chi non può aprire niente non si mostra affatto — la regola 120 è dentro AdminNav, non qui. *@
-    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

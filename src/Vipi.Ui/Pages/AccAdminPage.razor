@@ -11,7 +11,20 @@
 <PageTitle>ACC · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>ACC</b></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente.
+       ⚠️ Sta FUORI dalla testata, che qui è appiccicata (`sticky`): scorrendo, la barra sale e passa SOTTO
+       la testata e sparisce. Dentro, resterebbe a schermo per sempre, e `vipiStickyOffset` — che misura
+       quella fascia per incollarci sotto il `thead` — spingerebbe giù le intestazioni di tutte le tabelle. *@
+    <AdminNav />
+
     @* ---- Testata in UNA riga: titolo · «?» · comandi di PAGINA · stato del lock ----
        Come in Struttura e negli Accordi (.st-head). Il sottotitolo diceva in prosa sempre a schermo ciò che il
        «?» dice al clic. Import e «Struttura settori» stanno qui e non nella riga-titolo della tabella: valgono
@@ -53,16 +66,6 @@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
     </div>
-
-    @* Le altre pagine admin, in una riga sola e uguale ovunque (qui stava il tasto «Struttura settori», che
-       era un doppione della prima voce). Va nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il
-       componente, una regola per voce.
-       ⚠️ Sta FUORI dalla testata apposta: la testata è appiccicata (`sticky`) e la barra no. Scorrendo, la
-       barra sale e passa SOTTO la testata — che ha fondo pieno e `z-index` più alto — e sparisce. Dentro la
-       testata, invece, resterebbe a schermo per sempre e la fascia fissa raddoppierebbe di altezza; e
-       `vipiStickyOffset`, che misura quella fascia per incollarci sotto il `thead`, spingerebbe le
-       intestazioni delle tabelle giù di altrettanto. *@
-    <AdminNav />
 
     @if (!Authz.IsAdmin)
     {

@@ -16,7 +16,21 @@
 <PageTitle>@L["Nd_Drafts"] · IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">Admin</a> › <b>@L["Nd_Drafts"]</b></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente.
+       ⚠️ Questa pagina è l'unica delle undici senza cancello: chi ha un grant su una ACC ci lavora senza
+       essere admin. Per questo la barra non va chiusa in un `@if (IsAdmin)` — lo nasconderebbe a chi la
+       pagina la usa — e per questo il filtro sta nel componente: là dentro Versioni è l'unica voce marcata
+       `Chi.Chiunque`, e a chi vede solo quella la barra non compare. *@
+    <AdminNav />
+
     @* ---- Testata in UNA riga: titolo (+conteggio) · ciclo · «?» · comandi di PAGINA · esito ----
        Come Struttura, ACC, Accordi, Aeroporti e Confinanti (.st-head). Il sottotitolo diceva SEMPRE a schermo
        ciò che il «?» dice al clic: stesso testo, stessa chiave (Ver_Subtitle), cambia solo dove si legge. *@
@@ -62,14 +76,6 @@
             </span>
         }
     </div>
-
-    @* Le altre pagine admin, in una riga sola e uguale ovunque.
-       ⚠️ Questa pagina è l'unica delle undici senza cancello: chi ha un grant su una ACC ci lavora senza
-       essere admin (vedi LoadPermessiAsync). Per questo la barra NON si mette dentro un `@if (IsAdmin)` — lo
-       nasconderebbe a chi la pagina la usa — e per questo il filtro sta nel componente: là dentro Versioni è
-       l'unica voce marcata `Chi.Chiunque`, e a chi vede solo quella la barra non compare (una voce sola,
-       che è poi la pagina in cui sei già, non è una navigazione). *@
-    <AdminNav />
 
     @if (_docs is null)
     {
