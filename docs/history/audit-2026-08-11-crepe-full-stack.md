@@ -749,9 +749,20 @@ risultato, non una scorciatoia.
 
 - **M2 — nonce e validazione userinfo OIDC.** Richiede un login IVAO vero per essere verificata, e sbagliare
   lì significa non far entrare nessuno il giorno del cutover. Va con **A10**, non prima.
+  → **CHIUSA a metà il 22-ago-2026** (ramo `login-nome-cognome`), col login vero in mano: il **nonce si
+  valida** (IVAO lo mette nell'id_token). La **userinfo no**, e resta così: `/v2/users/me` non è una
+  userinfo OIDC. Scoperta lungo la strada: `RequireState = true` non c'entra con IVAO — ASP.NET Core non
+  popola mai quel campo e il login si rompe con qualunque IdP (`IDX21329`); lo `state` lo controlla
+  l'handler col cookie di correlazione.
 - **A3, seconda metà — `ClaimActions.MapAll()`.** Stessa ragione: restringere la mappa dei claim è giusto,
   ma un nome di campo sbagliato non lancia — toglie l'admin, in silenzio, al primo accesso dopo il cutover.
   Il grosso del cookie erano comunque i token, ed è già andato via.
+  → **CHIUSA il 22-ago-2026** (stesso ramo). Il timore era giusto e il modo di scioglierlo è stato misurare
+  il payload reale di `/v2/users/me` **prima** di scrivere la mappa (sonda con le credenziali di prova
+  pubblicate da IVAO), poi verificare sul login vero che le posizioni staff arrivassero ancora. Restano
+  sette claim; `userStaffPositions` si riduce ai soli codici (erano ~1,5 kB per due incarichi). In più
+  `MapAll()` **azzerava** le `DeleteClaim` del framework (`nonce`, `aud`, `iss`, `iat`, `exp`, `at_hash`):
+  togliendolo tornano in servizio, e questo nell'audit non era stato visto.
 - **D1 — estrarre `Guarded`.** `SaveState` e l'auto-dismiss erano identici e sono stati estratti. `Guarded`
   **no**: confrontati i corpi e non le firme, divergono davvero — `catch` diversi, `EditConflictException`
   che ricarica il lock solo in tre, messaggi diversi, e una versione che torna `bool`. Unificarla porterebbe

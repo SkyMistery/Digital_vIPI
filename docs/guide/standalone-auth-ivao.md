@@ -37,9 +37,10 @@ Tutto vive nel composition root dell'host (`Vipi.Host`), isolato:
 
 Dipendenza: pacchetto `Microsoft.AspNetCore.Authentication.OpenIdConnect` (in `Vipi.Host.csproj`).
 
-L'implementazione replica quella del sito ufficiale `Ivao.It` (progetto `Ivao.OpenIdConnect`):
-authorization code + PKCE, `GetClaimsFromUserInfoEndpoint`, `ClaimActions.MapAll()`, Authority
-`https://api.ivao.aero`.
+L'implementazione nasce da quella del sito ufficiale `Ivao.It` (progetto `Ivao.OpenIdConnect`, gemello
+del campione `aspnetcore7/` in `ivaoaero/OAuth-samples`): authorization code + PKCE,
+`GetClaimsFromUserInfoEndpoint`, Authority `https://api.ivao.aero`. Se ne discosta su tre punti, tutti
+motivati sotto: `SaveTokens=false`, claim mappati a mano invece di `ClaimActions.MapAll()`, nonce validato.
 
 ## Configurazione
 
@@ -48,7 +49,7 @@ authorization code + PKCE, `GetClaimsFromUserInfoEndpoint`, `ClaimActions.MapAll
 "VipiAuth": {
   "Enabled": false,
   "Authority": "https://api.ivao.aero",
-  "Scopes": [ "openid", "email", "tracker" ],
+  "Scopes": [ "openid", "profile", "email" ],
   "CallbackPath": "/signin-oidc",
   "SignedOutCallbackPath": "/signout-callback-oidc"
 }
@@ -93,26 +94,89 @@ I claim IVAO combaciano coi default di `HostIdentityOptions`:
 |---|---|
 | `UserId` | `id` (fallback `sub`) |
 | `Acc` | `centerId` |
-| `StaffPositions` | `userStaffPositions` (array JSON; si estrae `id`, es. `IT-DIR`) |
-| `Name` | `name` (nickname reale, vedi sotto) |
+| `StaffPositions` | `userStaffPositions` (array JSON dei soli codici, es. `["IT-AOA1","IT-T03"]`) |
+| `Name` | `name` (nome e cognome, vedi sotto) |
 
-`userStaffPositions[].id` è il codice posizione (`IT-AOA1`, ...): coerente con `IvaoUserClient`/`StaffPosDto`.
+I codici posizione (`IT-AOA1`, ...) li estrae dal profilo IVAO `StaffPositionCodesJson`, che legge
+`userStaffPositions[].id`: coerente con `IvaoUserClient`/`StaffPosDto`.
 Il roster (`StaffRosterService`) registra solo chi ha codici con prefisso di divisione (`IT-`).
 
-## Limite noto: nome utente
+## Il nome utente dipende dallo scope `profile`
 
-IVAO via OIDC **non espone nome/cognome reali** (nessun claim `firstName`/`lastName` nel token). L'unico
-nome è `publicNickname`/`nickname`; per gli utenti che non hanno impostato un nickname pubblico vale il
-**placeholder** `"User {vid}"`, che il modulo scarta → il display ripiega sul VID.
+> ⚠️ Fino al 22 agosto 2026 questa sezione diceva che «IVAO non espone nome/cognome reali». **Era falso**,
+> e per mesi il sito ha mostrato `UserId 704798` al posto del nome per una riga di configurazione.
 
-Conseguenze:
-- Uno staffista con **Public Nickname** impostato su `ivao.aero` viene mostrato col nickname.
-- Senza nickname, compare come `UserId {vid}` — non è un bug: è il dato che IVAO fornisce.
-- I claim ricevuti dipendono anche dai **permessi dell'app OAuth IVAO** usata: un client "tracker" riceve
-  claim ridotti. Un'app di login dedicata (come quella del sito) può ricevere anche `firstName`/`lastName`;
-  in tal caso reintrodurre la composizione "Nome Cognome" in `OnUserInformationReceived`.
+`/v2/users/me` restituisce `firstName` e `lastName` — ma **solo se si è chiesto lo scope `profile`**.
+Senza, la stessa chiamata risponde ugualmente, con quei due campi assenti: nessun errore, nessun avviso.
+Da cui l'equivoco. Tutti i campioni ufficiali IVAO (`ivaoaero/OAuth-samples`: PHP, Laravel, React) chiedono
+`profile`; la vIPI no.
+
+Misurato il 22-ago-2026 sul flusso reale (scope `openid profile email`), la userinfo contiene:
+
+```
+firstName "Carmine"   lastName "Granato"   publicNickname "Carmine (704798)"
+id 704798   centerId "LIRR"   divisionId "IT"   isStaff true
+userStaffPositions [ { id "IT-AOA1", connectAs …, staffPosition { … } }, … ]
+given_name / family_name  (le stesse due stringhe, nei nomi OIDC standard)
+```
+
+Ordine con cui si compone il nome (`VipiStandaloneAuthExtensions.ComposeDisplayName`):
+
+1. `firstName` + `lastName` (o `given_name`/`family_name`) → «Mario Rossi». Se ne manca uno, si mostra l'altro;
+2. `publicNickname` / `nickname`, se non è il placeholder `"User {vid}"`;
+3. niente → `HostIdentityCurrentUserProvider` ripiega su `UserId {vid}`.
+
+Attenzione: `publicNickname` per chi non ne ha scelto uno vale `"Nome (VID)"` (es. `Carmine (704798)`),
+che **non** è il placeholder `"User {vid}"` e viene accettato come ripiego — è comunque meglio del VID nudo.
+
+Se un giorno il nome sparisse di nuovo, la prima cosa da guardare è lo **scope concesso all'app OAuth**:
+un client registrato per il solo `tracker` non riceve `profile`, e si torna al nickname.
+
+Gli scope chiesti sono **tre**: `openid`, `profile`, `email`. Il `tracker` è stato tolto il 22-ago-2026:
+chiedeva il permesso di leggere la sessione live **dell'utente**, e nessuno lo usava — il pallino «in
+frequenza» (`LiveBadge`) lo alimenta il polling del server col token dell'**applicazione** (sezione `Ivao`),
+e il token utente non lo conserviamo (`SaveTokens = false`). Era un permesso chiesto a ogni staffista nella
+schermata di consenso IVAO in cambio di niente.
 
 `Ivao.It.Logging` **non c'entra** col nome: è la libreria di logging (Serilog) della divisione.
+
+## Cosa finisce nel cookie (e cosa no)
+
+Il cookie di autenticazione viaggia a **ogni** richiesta e a ogni handshake SignalR, quindi contiene solo
+i claim che qualcuno legge. Non c'è più `ClaimActions.MapAll()`: portava dentro l'intero profilo IVAO
+(`hours[]`, `rating{}`, `groups`, `userStaffDetails` con email e note interne, e un `userStaffPositions`
+di ~1,5 kB per due incarichi) e per giunta **azzerava** le `DeleteClaim` che il framework registra da sé
+(`nonce`, `aud`, `iss`, `iat`, `exp`, `at_hash`…), che ora sono di nuovo in servizio.
+
+Si mappano: `id`, `sub`, `centerId`, `firstName`, `lastName`, `publicNickname`, e `userStaffPositions`
+**ridotto ai soli codici** (`["IT-AOA1","IT-T03"]`). Si cancellano dall'id_token `ivao.aero/permissions`,
+`profile`, `jti`, `type`.
+
+⚠️ Toccando quell'elenco si rischia in silenzio: se `userStaffPositions` non si forma, lo staffista entra
+come semplice lettore senza un errore da nessuna parte. Il segnale da controllare dopo ogni modifica è che
+in testata restino i tasti **Editor** e **Permessi**.
+
+## nonce validato; state, il flag da non toccare
+
+Il **nonce** era spento (`IvaoOidcProtocolValidator`) perché si riteneva che IVAO non lo mandasse.
+Misurato il 22-ago-2026: è dentro l'id_token. Ora si valida — è la difesa contro il replay dell'id_token.
+
+**`RequireState` deve restare `false`**, e non è una resa a IVAO. ASP.NET Core non popola mai
+`OpenIdConnectProtocolValidationContext.State`: alzando il flag il validator non trova il campo e lancia
+`IDX21329: State is null` — con qualunque IdP, sempre. Provato sul login vero, e il login si rompe al
+ritorno da IVAO. Lo `state` è comunque controllato, ma dall'handler: ci viaggia l'id del cookie di
+correlazione, confrontato in `ValidateCorrelationId`. Alzare quel flag non aggiunge una difesa: toglie il login.
+
+Resta spenta anche la validazione della **userinfo**: `/v2/users/me` non è una userinfo OIDC.
+
+Via di fuga sul nonce, se un cambio lato IVAO rompe il login in produzione:
+
+```
+VipiAuth__RelaxProtocolValidation=true
+```
+
+Rimette la validazione lasca senza ricompilare né ridistribuire. È una toppa per mentre si indaga, non
+uno stato normale.
 
 ## Test svolto
 

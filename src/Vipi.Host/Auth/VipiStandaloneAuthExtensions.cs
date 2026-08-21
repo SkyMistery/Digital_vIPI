@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -96,22 +97,63 @@ public static class VipiStandaloneAuthExtensions
                 if (!string.IsNullOrWhiteSpace(opt.CallbackPath)) oidc.CallbackPath = opt.CallbackPath;
                 if (!string.IsNullOrWhiteSpace(opt.SignedOutCallbackPath)) oidc.SignedOutCallbackPath = opt.SignedOutCallbackPath;
 
+                // `profile` è lo scope che sblocca firstName/lastName sulla userinfo (/v2/users/me): senza,
+                // IVAO risponde comunque, ma senza i due campi — ed è per questo che per mesi il sito ha
+                // mostrato «UserId 123456» al posto del nome. Misurato il 22-ago sul flusso reale.
                 oidc.Scope.Clear();
-                foreach (var s in opt.Scopes.Length > 0 ? opt.Scopes : new[] { "openid", "email", "tracker" })
+                foreach (var s in opt.Scopes.Length > 0 ? opt.Scopes : VipiAuthOptions.DefaultScopes)
                     oidc.Scope.Add(s);
 
-                // IVAO non è pienamente OIDC-compliant: nonce/state opzionali (come nel sito ufficiale).
-                oidc.ProtocolValidator = new IvaoOidcProtocolValidator(shouldValidateNonce: false) { RequireState = false };
-
-                // Porta a claim TUTTI i campi del profilo IVAO (id, centerId, userStaffPositions, ...).
+                // NONCE acceso: era spento perché si riteneva che IVAO non lo mandasse. Misurato il
+                // 22-ago-2026 sul flusso reale: il `nonce` è dentro l'id_token. È la difesa contro il
+                // replay dell'id_token, e ora si valida.
                 //
-                // ⚠️ Resta MapAll() di proposito, pur essendo più largo del necessario: il modulo legge
-                // cinque claim soli (`id`, `centerId`, `userStaffPositions`, `name`, e `sub` di ripiego —
-                // vedi HostIdentityOptions). Restringere qui è la cosa giusta MA non è verificabile senza un
-                // login IVAO vero, e sbagliare il nome di un campo non lancia: toglie l'admin, in silenzio,
-                // al primo accesso dopo il cutover. Da fare insieme alla verifica di A10, non prima.
-                // Il grosso del cookie erano comunque i token, ed è già andato via con SaveTokens = false.
-                oidc.ClaimActions.MapAll();
+                // RequireState resta FALSO, e non è una resa a IVAO: è che ASP.NET Core non popola mai
+                // `OpenIdConnectProtocolValidationContext.State`. Con `true` il validator non trova il
+                // campo e lancia IDX21329 «State is null» — con qualunque IdP, sempre. Provato: login
+                // rotto al primo ritorno. Lo `state` è comunque controllato, ma dall'handler e per altra
+                // via: ci viaggia l'id del cookie di correlazione, che l'handler confronta da sé
+                // (`ValidateCorrelationId`). Alzare questo flag non aggiunge una difesa, toglie il login.
+                //
+                // ⚠️ La via di fuga per il nonce resta in config, non nel codice: se IVAO smettesse di
+                // mandarlo, il login di produzione si rimette in piedi con
+                // VipiAuth__RelaxProtocolValidation=true, senza ricompilare né ridistribuire.
+                oidc.ProtocolValidator = new IvaoOidcProtocolValidator(shouldValidateNonce: !opt.RelaxProtocolValidation)
+                {
+                    RequireState = false,
+                    RequireNonce = !opt.RelaxProtocolValidation,
+                };
+
+                // Dalla userinfo si portano a claim SOLO i campi che qualcuno legge davvero. Prima c'era
+                // MapAll(), e non era gratis: il profilo IVAO contiene `hours[]`, `rating{}`, `groups`,
+                // `userStaffDetails` (email e note interne dello staffista) e un `userStaffPositions` di
+                // ~1,5 kB per due incarichi — tutta roba che finiva nel cookie di autenticazione, cioè in
+                // ogni richiesta e in ogni handshake SignalR. In più MapAll() AZZERA la collezione, e con
+                // essa le DeleteClaim che il framework registra da sé (nonce, aud, iss, iat, exp, at_hash…):
+                // toglierlo le rimette in servizio, quindi qui si guadagna due volte.
+                //
+                // ⚠️ Sbagliare un nome di campo non lancia: toglie l'identità o l'admin in silenzio. Per
+                // questo l'elenco qui sotto non è dedotto ma MISURATO sul payload reale di /v2/users/me
+                // (22-ago-2026, scope "openid profile email"); i test di ComposeDisplayName e la verifica
+                // live del punto 4 (le posizioni staff devono restare) sono la rete di sicurezza.
+                oidc.ClaimActions.MapJsonKey("id", "id");                 // VID, la chiave dell'identità
+                oidc.ClaimActions.MapJsonKey("sub", "sub");               // ripiego del VID (HostIdentity)
+                oidc.ClaimActions.MapJsonKey("centerId", "centerId");     // ACC di appartenenza (es. LIRR)
+                oidc.ClaimActions.MapJsonKey("firstName", "firstName");   // ↓ i due campi del nome vero
+                oidc.ClaimActions.MapJsonKey("lastName", "lastName");
+                oidc.ClaimActions.MapJsonKey("publicNickname", "publicNickname"); // ripiego del nome
+
+                // Le posizioni staff decidono chi può editare: senza, l'utente resta un lettore. Si tiene
+                // il nome-claim di HostIdentityOptions ma si scrive solo l'elenco dei CODICI, non gli
+                // oggetti interi: ExtractStaffPositions legge già l'array JSON di stringhe.
+                oidc.ClaimActions.MapCustomJson("userStaffPositions", StaffPositionCodesJson);
+
+                // Claim dell'id_token che nessuno legge e che pesano (o che sono dati personali di troppo).
+                // Anche questi visti nel payload reale, non presunti.
+                oidc.ClaimActions.DeleteClaim("ivao.aero/permissions");
+                oidc.ClaimActions.DeleteClaim("profile");   // URL della pagina membro
+                oidc.ClaimActions.DeleteClaim("jti");
+                oidc.ClaimActions.DeleteClaim("type");
 
                 oidc.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -120,35 +162,28 @@ public static class VipiStandaloneAuthExtensions
                     NameClaimType = ClaimTypes.NameIdentifier,
                 };
 
-                // IVAO via OIDC NON espone nome/cognome reali: l'unico nome è publicNickname/nickname, che vale
-                // "User {id}" (placeholder) per chi non ne ha impostato uno. Emetto un claim "name" solo se il
-                // nickname è reale; così il roster mostra il nickname vero, e per i placeholder resta il VID.
+                // Il nome visualizzato si compone qui, una volta sola, e finisce nel claim "name" — l'unico
+                // che il resto del sistema legge (HostIdentityOptions.NameClaims). Vedi ComposeDisplayName.
                 oidc.Events.OnUserInformationReceived = context =>
                 {
                     if (context.Principal?.Identity is ClaimsIdentity identity && identity.FindFirst("name") is null)
                     {
-                        var root = context.User.RootElement;
-                        var nick = (root.TryGetProperty("publicNickname", out var p) ? p.GetString() : null)
-                                   ?? (root.TryGetProperty("nickname", out var n) ? n.GetString() : null);
                         var vid = identity.FindFirst("id")?.Value ?? identity.FindFirst("sub")?.Value;
-                        // "User {id}" è il placeholder IVAO: non è un nome vero.
-                        var isPlaceholder = !string.IsNullOrWhiteSpace(vid) &&
-                                            string.Equals(nick?.Trim(), $"User {vid}", StringComparison.OrdinalIgnoreCase);
-                        if (!string.IsNullOrWhiteSpace(nick) && !isPlaceholder)
-                            identity.AddClaim(new Claim("name", nick.Trim()));
+                        if (ComposeDisplayName(context.User.RootElement, vid) is { } display)
+                            identity.AddClaim(new Claim("name", display));
                     }
                     return Task.CompletedTask;
                 };
             });
 
         // I nomi-claim IVAO combaciano con i default di HostIdentityOptions (UserIdClaim="id",
-        // AccClaim="centerId", StaffPositionsClaim="userStaffPositions"): userStaffPositions è un array JSON
-        // di oggetti { "id": "IT-DIR", ... } e ExtractStaffPositions pesca proprio "id" (= codice posizione).
-        // Va corretto solo il nome visualizzato: IVAO usa publicNickname/firstName, non name/given_name.
+        // AccClaim="centerId", StaffPositionsClaim="userStaffPositions"): il claim userStaffPositions lo
+        // emette la ClaimAction qui sopra come array JSON di codici, ed ExtractStaffPositions lo legge.
+        // Va corretto solo il nome visualizzato: IVAO non usa `name`, usa firstName/lastName.
         builder.Services.PostConfigure<HostIdentityOptions>(h =>
         {
-            // "name" = nickname reale (emesso in OnUserInformationReceived solo se non placeholder).
-            // Niente publicNickname grezzo qui: eviterebbe di scartare il placeholder "User {id}".
+            // "name" = il nome composto in OnUserInformationReceived. Niente firstName/publicNickname
+            // grezzi in elenco: qui passerebbe il solo nome di battesimo, o il placeholder scartato apposta.
             h.NameClaims = new List<string> { "name", ClaimTypes.Name };
         });
 
@@ -173,6 +208,76 @@ public static class VipiStandaloneAuthExtensions
                 new[] { CookieAuthenticationDefaults.AuthenticationScheme, IvaoScheme }));
 
         return app;
+    }
+
+    /// <summary>
+    /// Nome da mostrare, dalla userinfo IVAO (<c>/v2/users/me</c>). In ordine:
+    /// <list type="number">
+    ///   <item><c>firstName</c> + <c>lastName</c> — il nome vero. Arriva <b>solo</b> con lo scope
+    ///     <c>profile</c>: senza, i due campi non ci sono e si scende al ripiego.</item>
+    ///   <item><c>publicNickname</c> / <c>nickname</c>, se non è il placeholder <c>"User {vid}"</c>
+    ///     (che IVAO mette a chi non ne ha scelto uno: non è un nome, è un segnaposto).</item>
+    ///   <item><c>null</c> ⇒ nessun claim <c>name</c>, e <c>HostIdentityCurrentUserProvider</c>
+    ///     ripiega da sé su <c>"UserId {vid}"</c>.</item>
+    /// </list>
+    /// <para>Si accettano anche <c>given_name</c>/<c>family_name</c> (nomi OIDC standard): IVAO li manda
+    /// entrambe le coppie, ma sono lo stesso dato e la coppia standard è quella che sopravviverebbe a un
+    /// cambio di forma dell'API.</para>
+    /// <para>Metà nome è meglio di nessun nome: se manca <c>lastName</c> si mostra il solo nome di
+    /// battesimo, invece di scendere al VID.</para>
+    /// </summary>
+    internal static string? ComposeDisplayName(JsonElement userInfo, string? vid)
+    {
+        var first = Text(userInfo, "firstName") ?? Text(userInfo, "given_name");
+        var last = Text(userInfo, "lastName") ?? Text(userInfo, "family_name");
+
+        var real = string.Join(' ', new[] { first, last }.Where(s => s is not null));
+        if (real.Length > 0) return real;
+
+        var nick = Text(userInfo, "publicNickname") ?? Text(userInfo, "nickname");
+        if (nick is null) return null;
+
+        var isPlaceholder = !string.IsNullOrWhiteSpace(vid) &&
+                            string.Equals(nick, $"User {vid}", StringComparison.OrdinalIgnoreCase);
+        return isPlaceholder ? null : nick;
+    }
+
+    /// <summary>
+    /// I soli codici posizione (<c>IT-AOA1</c>, …) dalla userinfo, come array JSON di stringhe —
+    /// la forma più compatta che <c>HostIdentityCurrentUserProvider.ExtractStaffPositions</c> sa leggere.
+    /// <para>IVAO manda un array di oggetti con dentro l'intero organigramma (<c>staffPosition</c>,
+    /// <c>departmentTeam</c>, <c>department</c>): ~1,5 kB per due incarichi, di cui servono due stringhe.
+    /// Si legge <c>id</c>, con <c>connectAs</c> di riserva (nel payload reale coincidono).</para>
+    /// <para><c>null</c> se non c'è nessun codice: così il claim non viene nemmeno emesso.</para>
+    /// </summary>
+    internal static string? StaffPositionCodesJson(JsonElement userInfo)
+    {
+        if (!userInfo.TryGetProperty("userStaffPositions", out var array) || array.ValueKind != JsonValueKind.Array)
+            return null;
+
+        var codes = new List<string>();
+        foreach (var item in array.EnumerateArray())
+        {
+            var code = item.ValueKind switch
+            {
+                JsonValueKind.String => item.GetString()?.Trim(),
+                JsonValueKind.Object => Text(item, "id") ?? Text(item, "connectAs"),
+                _ => null,
+            };
+            if (!string.IsNullOrWhiteSpace(code)) codes.Add(code);
+        }
+
+        return codes.Count == 0 ? null : JsonSerializer.Serialize(codes);
+    }
+
+    /// <summary>Stringa non vuota di una proprietà JSON, già ripulita dagli spazi; <c>null</c> altrimenti.
+    /// Il controllo su <see cref="JsonValueKind"/> evita l'eccezione di <c>GetString()</c> su un campo che
+    /// l'API dovesse un giorno mandare come numero o come null.</summary>
+    private static string? Text(JsonElement root, string property)
+    {
+        if (!root.TryGetProperty(property, out var el) || el.ValueKind != JsonValueKind.String) return null;
+        var s = el.GetString()?.Trim();
+        return string.IsNullOrEmpty(s) ? null : s;
     }
 
     /// <summary>
@@ -208,6 +313,19 @@ public sealed class VipiAuthOptions
 {
     public const string SectionName = "VipiAuth";
 
+    /// <summary>
+    /// Scope chiesti a IVAO quando la config non ne elenca. <c>profile</c> è quello che porta
+    /// <c>firstName</c>/<c>lastName</c> sulla userinfo: senza, il sito conosce il VID e nient'altro.
+    /// Unico posto dove l'elenco è scritto: <c>appsettings.json</c> lo ripete per renderlo visibile a
+    /// chi configura, ma il default vive qui.
+    /// <para>Niente <c>tracker</c>: chiedeva il permesso di leggere la sessione live <b>dell'utente</b>,
+    /// e nessuno lo usava. Il pallino «in frequenza» (<c>LiveBadge</c>) lo alimenta il polling del server
+    /// col token dell'APPLICAZIONE (sezione <c>Ivao</c>, tutt'altra strada), e il token dell'utente non lo
+    /// conserviamo nemmeno (<c>SaveTokens = false</c>). Era un permesso chiesto a ogni staffista nella
+    /// schermata di consenso IVAO in cambio di niente: si chiede il minimo, e il minimo è questo.</para>
+    /// </summary>
+    public static readonly string[] DefaultScopes = { "openid", "profile", "email" };
+
     /// <summary>Attiva il login IVAO standalone. Default false: in embedded l'auth la fornisce l'host.</summary>
     public bool Enabled { get; set; }
 
@@ -220,12 +338,22 @@ public sealed class VipiAuthOptions
     /// <summary>Client secret. Va in user-secrets / variabili d'ambiente, mai in appsettings versionato.</summary>
     public string? ClientSecret { get; set; }
 
-    /// <summary>Scope richiesti. Default come il sito: openid, email, tracker.</summary>
-    public string[] Scopes { get; set; } = { "openid", "email", "tracker" };
+    /// <summary>Scope richiesti. Default: <see cref="DefaultScopes"/>.</summary>
+    public string[] Scopes { get; set; } = DefaultScopes;
 
     /// <summary>Path del callback OIDC (deve combaciare col redirect URI registrato su IVAO). Default /signin-oidc.</summary>
     public string? CallbackPath { get; set; }
 
     /// <summary>Path del callback di logout. Default /signout-callback-oidc.</summary>
     public string? SignedOutCallbackPath { get; set; }
+
+    /// <summary>
+    /// Spegne la validazione del <c>nonce</c> sul giro di login. Default <c>false</c>: il nonce va
+    /// validato, ed è stato verificato che IVAO lo mette nell'id_token.
+    /// <para>Va acceso SOLO se un cambio lato IVAO rompe il login in produzione: è una toppa da usare
+    /// mentre si indaga (<c>VipiAuth__RelaxProtocolValidation=true</c>), non uno stato normale.</para>
+    /// <para>Non tocca lo <c>state</c>: quello lo valida l'handler col cookie di correlazione, e il
+    /// controllo omonimo del validator è inservibile in ASP.NET Core (vedi il commento sul validator).</para>
+    /// </summary>
+    public bool RelaxProtocolValidation { get; set; }
 }
