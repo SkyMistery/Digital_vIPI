@@ -592,7 +592,10 @@ eventi che nessuno aveva mai scritto. Carte:
 136. ⚠️ **Un registro deve restare vero quando l'entità di cui parla non esiste più.** Per questo la riga
      porta il **nome** accanto all'Id (titolo del documento, callsign del nodo, nome di chi teneva il lock):
      «eliminato il documento 7» non distingue una pulizia da un incidente, e dopo la cancellazione il titolo
-     non è più recuperabile da nessuna parte. Vale al momento della **scrittura**, non della lettura.
+     non è più recuperabile da nessuna parte. Vale al momento della **scrittura**, non della lettura — ma chi
+     legge fa la sua parte: i titoli che le righe vecchie non portano si risolvono con **una** query per
+     pagina (mappa Id→titolo), mai una per riga, e ⚠️ **la mappa non vince sul titolo scritto nella riga**:
+     se il documento è stato rinominato, il registro racconta il passato, non il presente.
 137. ⚠️ **Il vocabolario vecchio si legge, non si riscrive.** La revoca di un permesso è stata `Archive` fino
      al 22 agosto e `Delete` dopo; la chiave dell'ACC nei dettagli è stata `acc` e poi `Acc`. Chi rende gli
      eventi accetta **entrambe** le forme e dice la stessa frase: una migrazione dei dati storici di un

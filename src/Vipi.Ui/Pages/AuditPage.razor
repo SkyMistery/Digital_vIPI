@@ -4,6 +4,7 @@
 @inject IEditAuthorizationService Authz
 @inject IAuditLogReader Audit
 @inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
+@inject Vipi.Application.Abstractions.IDocumentAdminRepository Documenti
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 
@@ -120,7 +121,7 @@
                                     </td>
                                     <td class="c-who">@Chi(r.UserId)</td>
                                     <td class="c-ev"><span class="pill @AuditNarrator.ClassePill(r)">@AuditNarrator.Etichetta(cat, L)</span></td>
-                                    <td class="c-target"><b>@AuditNarrator.Bersaglio(r, L)</b>@AccSuffisso(r)</td>
+                                    <td class="c-target"><b>@AuditNarrator.Bersaglio(r, L, _titoli)</b>@AccSuffisso(r)</td>
                                     @* Il JSON grezzo non sparisce — è la verità della riga — ma sta nel
                                        title: non è quello che si legge scorrendo un registro. *@
                                     <td class="c-what" title="@(r.DetailsJson ?? L["Audit_RawTitle"].Value)">@AuditNarrator.Frase(r, L)</td>
@@ -151,6 +152,10 @@
     // I VID non dicono niente: il roster i nomi ce li ha già (come in Versioni e Permessi).
     private readonly Dictionary<int, string> _nomi = new();
 
+    // Idem per i documenti: le righe scritte prima del 22 agosto 2026 portano solo l'Id, e «documento #12»
+    // non dice a nessuno che cosa è stato pubblicato.
+    private readonly Dictionary<int, string> _titoli = new();
+
     private static readonly AuditNarrator.Categoria[] Categorie =
     {
         AuditNarrator.Categoria.Pubblicazione, AuditNarrator.Categoria.Bozza, AuditNarrator.Categoria.Documento,
@@ -177,6 +182,7 @@
             _rows = await Audit.ListRecentAsync(da, Tetto);
             _troncato = _totale > _rows.Count;
             await RisolviNomiAsync();
+            await RisolviTitoliAsync();
         }
         finally { _busy = false; }
     }
@@ -187,6 +193,23 @@
         var mancanti = _rows.Select(r => r.UserId).Distinct().Where(v => v != 0 && !_nomi.ContainsKey(v)).ToList();
         if (mancanti.Count == 0) return;
         foreach (var kv in await StaffRoster.GetDisplayNamesAsync(mancanti)) _nomi[kv.Key] = kv.Value;
+    }
+
+    /// <summary>
+    /// Titoli dei documenti che le righe citano solo per Id. Una query per tutta la pagina, non una per riga;
+    /// gli Id che non tornano sono documenti <b>eliminati</b>, e per quelli il titolo ce l'ha già la riga.
+    /// </summary>
+    private async Task RisolviTitoliAsync()
+    {
+        if (_rows is null) return;
+        var mancanti = _rows
+            .Select(AuditNarrator.DocumentoDi)
+            .OfType<int>()
+            .Distinct()
+            .Where(id => !_titoli.ContainsKey(id))
+            .ToList();
+        if (mancanti.Count == 0) return;
+        foreach (var kv in await Documenti.GetTitlesAsync(mancanti)) _titoli[kv.Key] = kv.Value;
     }
 
     private string Chi(int vid) => _nomi.TryGetValue(vid, out var n) ? n : L["Audit_VidN", vid].Value;
@@ -221,7 +244,7 @@
                 q = q.Where(r =>
                     Chi(r.UserId).Contains(testo, StringComparison.OrdinalIgnoreCase)
                     || r.UserId.ToString().Contains(testo)
-                    || AuditNarrator.Bersaglio(r, L).Contains(testo, StringComparison.OrdinalIgnoreCase)
+                    || AuditNarrator.Bersaglio(r, L, _titoli).Contains(testo, StringComparison.OrdinalIgnoreCase)
                     || AuditNarrator.Frase(r, L).Contains(testo, StringComparison.OrdinalIgnoreCase)
                     || (r.DetailsJson ?? "").Contains(testo, StringComparison.OrdinalIgnoreCase));
             }

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
@@ -52,17 +52,40 @@ public static class AuditNarrator
     };
 
     /// <summary>
-    /// Il bersaglio in chiaro: il titolo del documento, il callsign del nodo, la chiave della risorsa. Ripiega
-    /// sull'Id interno solo quando la riga non porta un nome (le righe scritte prima del 22 agosto 2026).
+    /// Di quale <b>documento</b> parla la riga, quando ne parla. Le righe di pubblicazione e di scarto hanno
+    /// come <c>EntityId</c> la <i>versione</i>, non il documento: l'Id del documento sta nei dettagli
+    /// (<c>DocumentId</c>, o <c>Id</c> nelle righe di publish). Serve a chi legge per andarsi a prendere i
+    /// titoli mancanti in una query sola, invece che una per riga.
     /// </summary>
-    public static string Bersaglio(AuditEntry e, IStringLocalizer L)
+    public static int? DocumentoDi(AuditEntry e)
+    {
+        var d = Dettagli(e);
+        if (Int(d, "DocumentId") is int docId) return docId;
+        if (e.EntityType == "DocumentVersion" && Int(d, "Id") is int idPub) return idPub;
+        if (e.EntityType == "Document" && int.TryParse(e.EntityId, out var idEnt)) return idEnt;
+        return null;
+    }
+
+    /// <summary>
+    /// Il bersaglio in chiaro: il titolo del documento, il callsign del nodo, la chiave della risorsa.
+    ///
+    /// <para>L'ordine delle fonti non e' casuale. Prima il <b>titolo scritto nella riga</b>: e' quello che il
+    /// documento aveva <b>al momento dell'atto</b>, e per un documento eliminato e' l'unico rimasto. Poi la
+    /// mappa <paramref name="titoli"/>, che serve alle righe scritte prima del 22 agosto 2026 — quelle
+    /// portano solo l'Id. L'Id nudo (&#171;documento #12&#187;) resta l'ultima spiaggia: vuol dire che quel
+    /// documento non c'e' piu' e la sua riga e' troppo vecchia per averne registrato il nome.</para>
+    /// </summary>
+    public static string Bersaglio(AuditEntry e, IStringLocalizer L, IReadOnlyDictionary<int, string>? titoli = null)
     {
         var d = Dettagli(e);
         var titolo = Str(d, "Title") ?? Str(d, "Nodo");
         if (titolo is not null) return titolo;
+        if (DocumentoDi(e) is int doc)
+        {
+            if (titoli is not null && titoli.TryGetValue(doc, out var dalDb)) return dalDb;
+            return L["Audit_DocN", doc].Value;
+        }
         if (e.EntityType == "EditResourceLock") return e.EntityId;
-        if (Int(d, "DocumentId") is int docId) return L["Audit_DocN", docId].Value;
-        if (Int(d, "Id") is int id2) return L["Audit_DocN", id2].Value;
         if (e.EntityType == "EditGrant") return L["Audit_GrantN", e.EntityId].Value;
         return $"{e.EntityType} {e.EntityId}";
     }

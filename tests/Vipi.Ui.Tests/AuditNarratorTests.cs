@@ -68,7 +68,7 @@ public class AuditNarratorTests
         Assert.Contains("Audit_Fr_GrantAdd", AuditNarrator.Frase(add, L));
     }
 
-    /// <summary>Il bersaglio è il nome quando la riga ce l'ha, l'Id interno solo quando manca (righe vecchie).</summary>
+    /// <summary>Il bersaglio è il nome quando la riga ce l'ha, l'Id interno solo quando non c'è altro.</summary>
     [Fact]
     public void Il_bersaglio_preferisce_il_nome_allId()
     {
@@ -77,6 +77,49 @@ public class AuditNarratorTests
 
         var vecchia = Riga(AuditAction.Publish, "DocumentVersion", "32", "{\"Id\":10,\"VersionNumber\":2}");
         Assert.Contains("Audit_DocN", AuditNarrator.Bersaglio(vecchia, L));
+    }
+
+    /// <summary>
+    /// Le righe scritte prima del 22 agosto 2026 portano solo l'Id del documento, e su una riga di
+    /// pubblicazione l'<c>EntityId</c> è la <b>versione</b>: l'Id del documento va pescato dai dettagli,
+    /// altrimenti la mappa dei titoli cercherebbe il documento sbagliato.
+    /// </summary>
+    [Theory]
+    [InlineData("DocumentVersion", "32", "{\"Id\":10,\"VersionNumber\":2}", 10)]           // publish: doc in «Id»
+    [InlineData("DocumentVersion", "44", "{\"DocumentId\":7,\"VersionNumber\":3}", 7)]     // discard: doc in «DocumentId»
+    [InlineData("Document", "5", "{\"Hidden\":true}", 5)]                                  // qui l'EntityId È il documento
+    [InlineData("EditGrant", "3", "{\"UserId\":555003,\"Acc\":\"LIRR\"}", null)]           // non parla di documenti
+    public void Sa_di_quale_documento_parla_la_riga(string tipo, string id, string dettagli, int? atteso) =>
+        Assert.Equal(atteso, AuditNarrator.DocumentoDi(Riga(AuditAction.Publish, tipo, id, dettagli)));
+
+    /// <summary>
+    /// Con la mappa dei titoli una riga vecchia smette di dire «documento #10» e dice il nome. ⚠️ Ma il titolo
+    /// <b>scritto nella riga</b> vince sulla mappa: è quello che il documento aveva al momento dell'atto, e se
+    /// nel frattempo è stato rinominato il registro deve raccontare il passato, non il presente.
+    /// </summary>
+    [Fact]
+    public void La_mappa_dei_titoli_riempie_le_righe_vecchie_ma_non_riscrive_la_storia()
+    {
+        var titoli = new Dictionary<int, string> { [10] = "vIPI — Roma ACC" };
+
+        var senzaTitolo = Riga(AuditAction.Publish, "DocumentVersion", "32", "{\"Id\":10,\"VersionNumber\":2}");
+        Assert.Equal("vIPI — Roma ACC", AuditNarrator.Bersaglio(senzaTitolo, L, titoli));
+
+        var rinominato = Riga(AuditAction.Publish, "DocumentVersion", "33", "{\"Id\":10,\"Title\":\"vIPI Roma (vecchio nome)\"}");
+        Assert.Equal("vIPI Roma (vecchio nome)", AuditNarrator.Bersaglio(rinominato, L, titoli));
+    }
+
+    /// <summary>Un documento eliminato non sta più nella mappa: lì il nome ce l'ha solo la riga di audit.</summary>
+    [Fact]
+    public void Documento_eliminato_resta_leggibile_dalla_sua_riga()
+    {
+        var vuota = new Dictionary<int, string>();
+        var eliminazione = Riga(AuditAction.Delete, "Document", "10", "{\"Title\":\"vIPI — Roma ACC\",\"Releases\":3}");
+        Assert.Equal("vIPI — Roma ACC", AuditNarrator.Bersaglio(eliminazione, L, vuota));
+
+        // Una riga troppo vecchia per aver registrato il nome, su un documento che non c'è più: resta l'Id.
+        var pubblicazioneOrfana = Riga(AuditAction.Publish, "DocumentVersion", "9", "{\"Id\":10,\"VersionNumber\":1}");
+        Assert.Contains("Audit_DocN", AuditNarrator.Bersaglio(pubblicazioneOrfana, L, vuota));
     }
 
     /// <summary>Nascondere e rimettere a vista sono due frasi diverse: il verso dell'atto è il fatto.</summary>

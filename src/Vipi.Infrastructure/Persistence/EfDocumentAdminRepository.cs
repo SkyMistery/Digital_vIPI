@@ -64,6 +64,16 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
     }
 
+    public async Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default)
+    {
+        if (documentIds.Count == 0) return new Dictionary<int, string>();
+        var ids = documentIds.Distinct().ToList();
+        return await _db.Documents.AsNoTracking()
+            .Where(d => ids.Contains(d.Id))
+            .Select(d => new { d.Id, d.Title })
+            .ToDictionaryAsync(x => x.Id, x => x.Title, ct);
+    }
+
     public async Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default)
     {
         // vLOA: la chiave di release è il docId, ma la deriviamo dal DocumentId del ref (identico all'AuthAccCode del

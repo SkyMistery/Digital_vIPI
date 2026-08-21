@@ -1,4 +1,4 @@
-# Audit — densità e leggibilità della pagina (22 agosto 2026)
+﻿# Audit — densità e leggibilità della pagina (22 agosto 2026)
 
 > Parte B del decimo giro del ramo `ui-trasferimenti-densita`. La parte A
 > ([`2026-08-22-audit-cosa-registra.md`](2026-08-22-audit-cosa-registra.md)) ha messo nel registro gli atti
@@ -45,6 +45,15 @@ dati**, come su Permessi (regola 117).
 - **La riga si legge in italiano.** Ogni evento diventa una frase: «Pubblicata la versione 18 di *vIPI Roma
   ACC*», «Revocato il permesso su LIRR a Marco De Angelis», «Tolto il lock a Luca Rossi». Il JSON resta —
   è la verità grezza e nessuno la butta — ma nel **`title`** della cella, non nella colonna.
+- **Il bersaglio dice il TITOLO, e ha tre fonti in ordine.** Prima il titolo **scritto nella riga** (quello
+  che il documento aveva al momento dell'atto, e per un documento eliminato l'unico rimasto); poi una
+  **mappa Id→titolo** letta in **una query** per tutta la pagina, che serve alle righe scritte prima del 22
+  agosto — quelle portano solo l'Id; l'Id nudo («documento #12») resta l'ultima spiaggia, e vuol dire che
+  quel documento non c'è più **e** la riga è troppo vecchia per averne registrato il nome.
+  ⚠️ Su una riga di pubblicazione l'`EntityId` è la **versione**, non il documento: l'Id del documento sta
+  nei dettagli, e cercare la mappa con l'`EntityId` darebbe il titolo di un **altro** documento.
+  ⚠️ La mappa **non** vince sul titolo della riga: se il documento è stato rinominato, il registro deve
+  raccontare il passato, non il presente.
 - **Le parole vecchie e quelle nuove dicono la stessa frase.** `Archive`+`EditGrant` (righe fino al 22
   agosto) e `Delete`+`EditGrant` (dopo) sono lo stesso atto: la pagina li rende identici. La storia non si
   riscrive, si legge.

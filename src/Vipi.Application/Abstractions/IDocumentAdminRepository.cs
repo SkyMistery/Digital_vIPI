@@ -8,6 +8,14 @@ public interface IDocumentAdminRepository
     /// <summary>Elenco unificato (una query sul modello unificato Document). Senza versioni/release.</summary>
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Titolo dei documenti indicati, per Id, in una query sola. Serve al registro di audit: le righe scritte
+    /// prima del 22 agosto 2026 portano solo l'Id del documento, e &#171;documento #12&#187; non dice niente a chi
+    /// legge. Gli Id che non esistono pi&#249; (documento eliminato) semplicemente non tornano — per quelli il
+    /// titolo sta nella riga di audit, che l'ha registrato al momento dell'atto.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default);
+
     /// <summary>Codice ACC del documento (per l'autorizzazione ACC-scoped). null se non risolvibile.</summary>
     Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default);
 
