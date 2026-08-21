@@ -2256,11 +2256,13 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    ⚠️ Qui il `thead` appiccicato NON serve e non c'e': l'altezza di questa pagina non dipende dai dati.
    ⚠️ Le regole vanno scritte con `.struct` davanti e verificate col valore CALCOLATO: senza, le larghezze
    di `.res-table` vincono in silenzio (trappola gia' pagata sui SID). */
-.struct .sorg-pane{height:calc(100vh - 250px);min-height:320px;padding:18px}
-/* vipiFitViewport misura fin dove arriva il pannello, non cosa gli sta sotto: senza questo il padding di
-   fondo del `.wrap` lascia uno scorrimento inutile (misurato su Audit). */
+.struct .sorg-pane{padding:18px}
+/* Il tetto lo scrive vipiCapViewport (max-height, non height): vedi il commento in vipi-ui.js.
+   ⚠️ Misurato: il `.wrap` porta 70px di padding sotto il riquadro, e il tetto NON li vede — misura fin dove
+   arriva il riquadro, non cosa gli sta sotto. Senza questa riga la pagina scorreva di 9px a 1280x800 e di 52
+   a 1024x768 per del bianco. È la stessa trappola gia' pagata su Audit (li' erano 52). */
 .wrap.struct:has(.sorg-pane){padding-bottom:18px}
-@media(max-width:900px){.struct .sorg-pane{height:auto;min-height:0}}
+@media(max-width:900px){.struct .sorg-pane{max-height:none}}
 /* Colonne fisse tranne la categoria, che porta nome e descrizione e prende quello che avanza. Il min-width
    della tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
 .struct .sorg-table{table-layout:fixed;min-width:780px}
@@ -2272,9 +2274,19 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .sorg-table .pill{white-space:nowrap}
 /* La descrizione e' il DATO (quali colonne la sorgente possiede), non prosa d'aiuto: sta sotto il nome. */
 .struct .sorg-table .sorg-desc{font-size:11px;margin-top:2px;overflow-wrap:anywhere}
-/* La spunta e la parola sono la stessa informazione: una cella sola, non una colonna in piu'. */
-.struct .sorg-table .sorg-pick{gap:6px;align-items:center}
-.struct .sorg-table .c-where a.lnk-mini{display:block;margin:0 0 2px}
+/* Il messaggio della sorgente sta in DUE righe: per intero e' nel `title`. Con un errore di rete lungo
+   quattro righe la riga SID veniva alta il doppio di tutte le altre. */
+.struct .sorg-table .sorg-err{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--danger-ink)}
+/* La spunta e la parola sono la stessa informazione: una cella sola, non una colonna in piu'.
+   ⚠️ NON si usa `.se-row` qui, benche' sia la classe delle righe con una casella: `.se-row input{flex:1}` e'
+   pensata per i campi di testo e si applica anche alle CHECKBOX, che si allargavano a riempire la cella —
+   a schermo le caselle delle sei righe non erano incolonnate, e lo spostamento dipendeva dalla lunghezza
+   della parola accanto. Una classe non puo' significare due cose. */
+.struct .sorg-table .sorg-pick{display:flex;align-items:center;gap:7px;cursor:pointer}
+.struct .sorg-table .sorg-pick input{flex:none;margin:0}
+/* ⚠️ `.lnk-mini` e' una pillola col bordo: a `display:block` si stirava per tutta la colonna e a schermo
+   sembrava un CAMPO DI TESTO. Sta larga quanto la parola e va a capo da se'. */
+.struct .sorg-table .c-where a.lnk-mini{display:inline-block;margin:0 5px 4px 0}
 /* Chi ha deciso: fuori dalla tabella, in coda, perche' e' una nota sull'insieme e non su una riga. */
 .struct .sorg-pane .sorg-who{margin:12px 0 0}
 /* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in

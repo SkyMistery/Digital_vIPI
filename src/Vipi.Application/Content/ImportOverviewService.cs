@@ -118,8 +118,13 @@ public sealed class ImportOverviewService : IImportOverviewService
     {
         // La policy vince su tutto: se la categoria è esclusa, quello che il loop ha scritto non la riguarda.
         if (!daSorgente) return ImportHealth.Esclusa;
-        if (cadenza is null) return ImportHealth.SuRichiesta;
+
+        // ⚠️ L'errore batte «su richiesta», e l'ordine non è teorico: un errore in archivio significa che quel
+        // giro c'era e ha fallito. Con la cadenza letta prima, una categoria che aveva fallito e la cui
+        // sorgente è poi stata sconfigurata (Sectorfile:RawBaseUrl vuoto) diceva «su richiesta» e mostrava il
+        // messaggio dell'errore nella riga sotto: la pill smentiva il testo che le stava accanto.
         if (errore is not null) return ImportHealth.InErrore;
+        if (cadenza is null) return ImportHealth.SuRichiesta;
         if (successo is not DateTime u) return ImportHealth.MaiEseguita;
 
         // Due periodi, non uno: alla scadenza esatta il giro non è in ritardo, sta partendo. Il secondo

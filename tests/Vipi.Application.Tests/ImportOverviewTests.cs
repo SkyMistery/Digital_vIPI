@@ -110,6 +110,24 @@ public class ImportOverviewTests
         Assert.Equal("404 su /v2/centers", riga.UltimoErrore);
     }
 
+    /// <summary>
+    /// ⚠️ L'errore batte «su richiesta». Un errore in archivio significa che quel giro c'era e ha fallito:
+    /// se poi la sorgente viene sconfigurata (cadenza <c>null</c>), la pill diceva «su richiesta» mentre la
+    /// riga sotto mostrava il messaggio dell'errore — due frasi accanto che si smentivano.
+    /// </summary>
+    [Fact]
+    public async Task Un_errore_batte_anche_la_mancanza_di_cadenza()
+    {
+        var stato = Stato(ImportCategories.Sid, DateTime.UtcNow.AddHours(-1));
+        stato.LastError = "sectorfile non raggiungibile";
+
+        var riga = (await new ImportOverviewService(new PolicyFinta(ImportPolicySnapshot.AllImported),
+                new StatiFinti(new[] { stato }), new SenzaCadenza()).ListAsync())
+            .Single(r => r.Categoria == ImportCategory.Sids);
+
+        Assert.Equal(ImportHealth.InErrore, riga.Stato);
+    }
+
     [Fact]
     public async Task Senza_nessuno_stato_le_categorie_periodiche_dicono_mai_eseguita()
     {
@@ -144,6 +162,12 @@ public class ImportOverviewTests
         public Task MarkSuccessAsync(string category, DateTime utc, CancellationToken ct = default) => Task.CompletedTask;
         public Task MarkFailureAsync(string category, DateTime utc, string error, CancellationToken ct = default) =>
             Task.CompletedTask;
+    }
+
+    /// <summary>Nessun giro automatico da nessuna parte: è il caso della sorgente sconfigurata.</summary>
+    private sealed class SenzaCadenza : IImportSchedule
+    {
+        public TimeSpan? PeriodOf(string category) => null;
     }
 
     /// <summary>Le cadenze di serie (24h ovunque), così le asserzioni parlano di soglie e non di config.</summary>

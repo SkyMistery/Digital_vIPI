@@ -728,6 +728,7 @@
   <data name="Sorg_DirtyTitle" xml:space="preserve"><value>Categories changed since the last save</value></data>
   <data name="Sorg_SaveTitle" xml:space="preserve"><value>Save the data source policy</value></data>
   <data name="Sorg_RevertTitle" xml:space="preserve"><value>Put the checkboxes back as saved</value></data>
+  <data name="Sorg_Revert" xml:space="preserve"><value>Reset</value></data>
   <data name="Sorg_ColLastUpdate" xml:space="preserve"><value>Last update</value></data>
   <data name="Sorg_ColWhere" xml:space="preserve"><value>Where to edit</value></data>
   <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>always from source</value></data>
@@ -735,14 +736,16 @@
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
   <data name="Sorg_OnDemand" xml:space="preserve"><value>on demand: no automatic run</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
+  <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
+  <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>
   <data name="Sorg_St_Esclusa" xml:space="preserve"><value>excluded</value></data>
   <data name="Sorg_St_SuRichiesta" xml:space="preserve"><value>on demand</value></data>
   <data name="Sorg_St_MaiEseguita" xml:space="preserve"><value>never run</value></data>
   <data name="Sorg_St_InErrore" xml:space="preserve"><value>error</value></data>
   <data name="Sorg_St_Ferma" xml:space="preserve"><value>stalled</value></data>
   <data name="Sorg_St_Aggiornata" xml:space="preserve"><value>up to date</value></data>
-  <data name="Sorg_ChangeToSource" xml:space="preserve"><value>{0}: moves to the source — the next import will replace whatever was entered manually.</value></data>
-  <data name="Sorg_ChangeToManual" xml:space="preserve"><value>{0}: moves to manual — it will no longer update on its own and becomes editable.</value></data>
+  <data name="Sorg_ChangeToSource" xml:space="preserve"><value>Moving to the source: {0} — the next import will replace whatever was entered manually.</value></data>
+  <data name="Sorg_ChangeToManual" xml:space="preserve"><value>Moving to manual: {0} — they will no longer update on their own and become editable.</value></data>
   <data name="Sorg_DecidedBy" xml:space="preserve"><value>Decided by {0} on {1}</value></data>
   <data name="Sorg_NeverDecided" xml:space="preserve"><value>No person has ever saved this policy: the exclusions you see come from the columns' initial values.</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Close</value></data>

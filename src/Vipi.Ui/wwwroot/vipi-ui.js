@@ -479,16 +479,19 @@
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
-    function fitOne(sel, collapseBelow) {
+    function fitOne(sel, collapseBelow, cap) {
         var el = document.querySelector(sel);
         if (!el) return;
-        if (window.innerWidth <= collapseBelow) { el.style.height = ''; return; }
+        var prop = cap ? 'maxHeight' : 'height';
+        var altra = cap ? 'height' : 'maxHeight';
+        el.style[altra] = '';
+        if (window.innerWidth <= collapseBelow) { el.style[prop] = ''; return; }
         var top = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
         // Lo spazio che avanza si misura in pixel di finestra e si SCRIVE in unità di layout: sotto zoom i due
         // numeri non coincidono (vedi rootZoom). I 18px di respiro restano unità di layout, come li ha pensati
         // il foglio di stile.
         var h = Math.round((window.innerHeight - top) / rootZoom() - 18);
-        el.style.height = h >= fitMin ? h + 'px' : '';
+        el.style[prop] = h >= fitMin ? h + 'px' : '';
     }
 
     window.vipiFitViewport = function (selector, collapseBelow) {
@@ -497,8 +500,23 @@
         fitOne(selector, below);
     };
 
+    // Come vipiFitViewport, ma scrive `max-height` invece di `height`: il riquadro sta alto quanto il suo
+    // contenuto e si accorcia SOLO quando non ci starebbe.
+    //
+    // ⚠️ Quale delle due serve dipende da cosa c'è dentro, e la differenza si vede a occhio. `height` è giusto
+    // dove il contenuto è più alto dello schermo per mestiere (il registro di audit, l'elenco aeroporti): lì
+    // stirare il riquadro E far scorrere l'interno è tutto guadagno. È sbagliato dove il contenuto è corto e
+    // FISSO: su /vsop/admin/sorgenti le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
+    // stato stirato a tutto lo schermo. «La pagina non scorre» non è l'obiettivo: l'obiettivo è che ciò che si
+    // guarda stia a schermo, e con `max-height` lo si ottiene senza inventare vuoto.
+    window.vipiCapViewport = function (selector, collapseBelow) {
+        var below = collapseBelow || 0;
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, cap: true });
+        fitOne(selector, below, true);
+    };
+
     window.addEventListener('resize', function () {
-        fitTargets.forEach(function (t) { fitOne(t.sel, t.below); });
+        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap); });
     });
 
     window.vipiRevealPanel = function (id) {

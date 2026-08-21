@@ -46,8 +46,12 @@
                                OnConfirm="Save">
                     <Trigger><Icon Name="check-circle" Size="14" /> @L["Common_Save"]</Trigger>
                 </InlineConfirm>
+                @* ⚠️ «Ripristina» e non «Annulla»: con la conferma aperta questo tasto sta ACCANTO
+                   all'«Annulla» di InlineConfirm, e i due fanno cose diverse — uno chiude la domanda, l'altro
+                   butta le modifiche. Due tasti con la stessa parola a due centimetri l'uno dall'altro è un
+                   difetto che si vede solo guardando la schermata: nessuna misura lo trova. *@
                 <button class="btn ghost" disabled="@(_busy || Cambiate.Count == 0)" @onclick="Annulla"
-                        title="@L["Sorg_RevertTitle"]">@L["Common_Cancel"]</button>
+                        title="@L["Sorg_RevertTitle"]">@L["Sorg_Revert"]</button>
             </nav>
             @if (_msg is not null || _ok is not null)
             {
@@ -75,82 +79,94 @@
            sotto `AirportSector`; sopra «da sorgente / manuale», sotto «ok / errore». Il lettore doveva fare a
            mente un join che sbagliava — nell'elenco degli stati compariva anche il segnaposto delle aree
            estere, che import non è, e mancava la riga dell'anagrafica ACC, che si importa ogni giorno.
-           ⚠️ Qui il `thead` appiccicato NON serve e non si mette: sei righe, e sono sei per sempre. *@
+           ⚠️ Qui il `thead` appiccicato NON serve e non si mette: sei righe, e sono sei per sempre.
+           ⚠️ E il riquadro si misura con `vipiCapViewport`, non con `vipiFitViewport`: `max-height`, non
+           `height`. Con `height` il riquadro veniva stirato a tutto lo schermo per contenere sei righe e
+           lasciava mezzo pannello di bianco; senza misura affatto, a 1024×768 e da zoom 1.25 in su la pagina
+           tornava a scorrere. Il tetto fa entrambe le cose: alto quanto il contenuto quando ci sta, e dentro
+           scorre solo quando non ci starebbe. *@
         <div class="panel st-pane sorg-pane">
             <div class="st-scroll">
-                <table class="res-table sorg-table">
-                    <thead>
+            <table class="res-table sorg-table">
+                <thead>
+                    <tr>
+                        <th class="c-cat">@L["Sorg_ColCategory"]</th>
+                        @* L'etichetta sale qui: «importa dalla sorgente» stava scritto cinque volte, una per riga. *@
+                        <th class="c-prov">@L["Sorg_ColProvenance"]</th>
+                        <th class="c-upd">@L["Sorg_ColLastUpdate"]</th>
+                        <th class="c-where">@L["Sorg_ColWhere"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _righe)
+                    {
                         <tr>
-                            <th class="c-cat">@L["Sorg_ColCategory"]</th>
-                            @* L'etichetta sale qui: «importa dalla sorgente» stava scritto cinque volte, una per riga. *@
-                            <th class="c-prov">@L["Sorg_ColProvenance"]</th>
-                            <th class="c-upd">@L["Sorg_ColLastUpdate"]</th>
-                            <th class="c-where">@L["Sorg_ColWhere"]</th>
+                            <td class="c-cat">
+                                <b>@Nome(r)</b>
+                                <div class="muted sorg-desc">@Descrizione(r)</div>
+                            </td>
+                            <td class="c-prov">
+                                @if (r.Categoria is ImportCategory cat)
+                                {
+                                    @* La spunta e la parola sono la STESSA informazione: una cella sola —
+                                       prima erano una colonna «Provenienza» e una casella che dicevano
+                                       l'una il valore dell'altra.
+                                       ⚠️ `@onchange` e non `@bind`: la pill «modificate» e i due tasti si
+                                       accendono al cambio, e il valore va scritto nel record `_p` (che è
+                                       immutabile) — un `@bind` a `_p.Qualcosa` non si può scrivere. *@
+                                    <label class="sorg-pick">
+                                        <input type="checkbox" checked="@_p.IsImported(cat)"
+                                               @onchange="e => Cambia(cat, (bool)(e.Value ?? false))" />
+                                        <span>@(_p.IsImported(cat) ? L["Sorg_ProvSource"] : L["Sorg_ProvManual"])</span>
+                                    </label>
+                                    @if (cat == ImportCategory.SpecialAreas && !_p.SpecialAreas)
+                                    {
+                                        @* Le aree non sono editabili da nessuna pagina: escluderle non le
+                                           rende manuali, le congela. *@
+                                        <div class="muted sorg-desc">❄ @L["Sorg_SpecialAreasFrozen"]</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="muted">🔒 @L["Sorg_ProvSourceAlways"]</span>
+                                }
+                            </td>
+                            <td class="c-upd">
+                                <span class="pill @ClassePill(r.Stato)" title="@TitoloStato(r)">@Stato(r.Stato)</span>
+                                @* Il messaggio della sorgente non si butta e non si prende la riga: due righe
+                                   a vista (clamp) e per intero nel `title`. Un errore di rete lungo quattro
+                                   righe faceva la riga SID alta il doppio di tutte le altre. *@
+                                <div class="muted sorg-desc @(r.Stato == ImportHealth.InErrore ? "sorg-err" : "")"
+                                     title="@TitoloStato(r)">@Quando(r)</div>
+                            </td>
+                            <td class="c-where">
+                                @* La riga porta al posto da cui l'import si lancia a mano: un sesto
+                                   bottone «importa adesso» su questa pagina sarebbe il modo in cui due
+                                   comandi della stessa cosa divergono. *@
+                                @foreach (var (testo, href) in Dove(r))
+                                {
+                                    <a class="lnk-mini" href="@href">@testo</a>
+                                }
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var r in _righe)
-                        {
-                            <tr>
-                                <td class="c-cat">
-                                    <b>@Nome(r)</b>
-                                    <div class="muted sorg-desc">@Descrizione(r)</div>
-                                </td>
-                                <td class="c-prov">
-                                    @if (r.Categoria is ImportCategory cat)
-                                    {
-                                        @* La spunta e la parola sono la STESSA informazione: una cella sola.
-                                           `@bind:after` perché la pill «modificate» e i tasti si accendono al
-                                           cambio, non al render successivo. *@
-                                        <label class="se-row sorg-pick">
-                                            <input type="checkbox" checked="@_p.IsImported(cat)"
-                                                   @onchange="e => Cambia(cat, (bool)(e.Value ?? false))" />
-                                            <span>@(_p.IsImported(cat) ? L["Sorg_ProvSource"] : L["Sorg_ProvManual"])</span>
-                                        </label>
-                                        @if (cat == ImportCategory.SpecialAreas && !_p.SpecialAreas)
-                                        {
-                                            @* Le aree non sono editabili da nessuna pagina: escluderle non le
-                                               rende manuali, le congela. *@
-                                            <div class="muted sorg-desc">❄ @L["Sorg_SpecialAreasFrozen"]</div>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="muted">🔒 @L["Sorg_ProvSourceAlways"]</span>
-                                    }
-                                </td>
-                                <td class="c-upd">
-                                    <span class="pill @ClassePill(r.Stato)" title="@TitoloStato(r)">@Stato(r.Stato)</span>
-                                    <div class="muted sorg-desc">@Quando(r)</div>
-                                </td>
-                                <td class="c-where">
-                                    @* La riga porta al posto da cui l'import si lancia a mano: un sesto
-                                       bottone «importa adesso» su questa pagina sarebbe il modo in cui due
-                                       comandi della stessa cosa divergono. *@
-                                    @foreach (var (testo, href) in Dove(r))
-                                    {
-                                        <a class="lnk-mini" href="@href">@testo</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                    }
+                </tbody>
+            </table>
 
-                @* Chi ha deciso. ⚠️ Autore 0 = nessuna persona ha mai salvato: le esclusioni che si vedono
-                   vengono dai default delle colonne. Non è archeologia — ImportSids è nato `false` su un DB
-                   già popolato (migration AddSidImport, luglio 2026), e senza questa riga un import fermo da
-                   mesi è indistinguibile da una scelta dell'amministratore. *@
-                <p class="help sorg-who">
-                    @if (_info is { MaiDecisa: true })
-                    {
-                        <span class="@(EscluseOra > 0 ? "sorg-never" : "")">@L["Sorg_NeverDecided"]</span>
-                    }
-                    else if (_info is { UpdatedUtc: DateTime quando })
-                    {
-                        @L["Sorg_DecidedBy", _autore ?? _info.UpdatedByUserId.ToString(), quando.ToString("dd MMM yyyy · HH:mm")]
-                    }
-                </p>
+            @* Chi ha deciso. ⚠️ Autore 0 = nessuna persona ha mai salvato: le esclusioni che si vedono
+               vengono dai default delle colonne. Non è archeologia — ImportSids è nato `false` su un DB
+               già popolato (migration AddSidImport, luglio 2026), e senza questa riga un import fermo da
+               mesi è indistinguibile da una scelta dell'amministratore. *@
+            <p class="help sorg-who">
+                @if (_info is { MaiDecisa: true })
+                {
+                    <span class="@(EscluseOra > 0 ? "sorg-never" : "")">@L["Sorg_NeverDecided"]</span>
+                }
+                else if (_info is { UpdatedUtc: DateTime quando })
+                {
+                    @L["Sorg_DecidedBy", _autore ?? _info.UpdatedByUserId.ToString(), quando.ToString("dd MMM yyyy · HH:mm")]
+                }
+            </p>
             </div>
         </div>
     }
@@ -174,9 +190,9 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!Authz.IsAdmin) return;
-        // «Schermo meno ciò che sta sopra» non è esprimibile in CSS: si misura, e a OGNI render — il «?»
-        // aperto, la conferma in linea e la fascia di stato cambiano ciò che sta sopra.
-        try { await JS.InvokeVoidAsync("vipiFitViewport", ".sorg-pane", 900); } catch (Exception) { }
+        // A OGNI render: il «?» aperto, la conferma in linea e la fascia di stato cambiano ciò che sta sopra,
+        // e «schermo meno ciò che sta sopra» in CSS non è esprimibile.
+        try { await JS.InvokeVoidAsync("vipiCapViewport", ".sorg-pane", 900); } catch (Exception) { }
     }
 
     private async Task LoadAsync()
@@ -224,10 +240,21 @@
     /// </summary>
     private string RaccontoDelCambio()
     {
-        var frasi = Cambiate.Select(c => _p.IsImported(c)
-            ? L["Sorg_ChangeToSource", ImportCategoryLabels.Etichetta(c, L)].Value
-            : L["Sorg_ChangeToManual", ImportCategoryLabels.Etichetta(c, L)].Value);
+        // Raggruppate per VERSO, non una frase per categoria: la spiegazione è la stessa per tutte quelle che
+        // vanno nella stessa direzione, e ripetuta cinque volte diventa un muro che nessuno legge. È anche la
+        // forma che ha la riga di audit — un vocabolario solo.
+        var frasi = new List<string>();
+        var verso = Elenco(Cambiate.Where(c => _p.IsImported(c)));
+        var manuali = Elenco(Cambiate.Where(c => !_p.IsImported(c)));
+        if (verso is not null) frasi.Add(L["Sorg_ChangeToSource", verso]);
+        if (manuali is not null) frasi.Add(L["Sorg_ChangeToManual", manuali]);
         return string.Join(" ", frasi);
+    }
+
+    private string? Elenco(IEnumerable<ImportCategory> cat)
+    {
+        var nomi = cat.Select(c => ImportCategoryLabels.Etichetta(c, L)).ToList();
+        return nomi.Count == 0 ? null : string.Join(", ", nomi);
     }
 
     private async Task Save()
@@ -272,16 +299,34 @@
     };
 
     /// <summary>Il dato grezzo non si butta e non si mette in colonna: l'errore per esteso sta nel title.</summary>
-    private string TitoloStato(ImportOverviewRow r) => r.UltimoErrore ?? Stato(r.Stato);
+    private string TitoloStato(ImportOverviewRow r) =>
+        r.Stato == ImportHealth.InErrore ? r.UltimoErrore! : Stato(r.Stato);
 
+    /// <summary>
+    /// La riga sotto la pill. Dice quello che la pill <b>non</b> dice: mai la stessa cosa due volte.
+    ///
+    /// <para>⚠️ Una categoria <b>esclusa</b> non annuncia il prossimo giro. La riga di stato in archivio è
+    /// rimasta lì con la sua cadenza — <c>GatedImportLoop</c> continua a marcare il successo anche quando il
+    /// run esce subito — e mostrarne il «prossimo» sarebbe la stessa bugia che il giro ha tolto dalla pill,
+    /// spostata di una cella. Resta la data dell'<b>ultimo dato</b>, che è vera e serve: dice quanto è
+    /// vecchio ciò che si sta guardando.</para>
+    /// </summary>
     private string Quando(ImportOverviewRow r)
     {
-        if (r.Stato == ImportHealth.SuRichiesta) return L["Sorg_OnDemand"];
+        var ultimo = r.UltimoSuccessoUtc?.ToString("dd MMM · HH:mm 'UTC'");
+        var ultimoDato = ultimo is null ? "" : L["Sorg_LastData", ultimo].Value;
+
+        // ⚠️ L'ordine conta: una categoria ESCLUSA non racconta l'errore dell'ultimo giro. Quel giro è di
+        // prima della decisione e non la riguarda più — raccontarlo è il verde regalato, al contrario.
+        if (r.Stato is ImportHealth.Esclusa) return ultimoDato;
         if (r.UltimoErrore is { Length: > 0 } err) return err;
-        if (r.UltimoSuccessoUtc is not DateTime u) return "—";
-        var ultimo = u.ToString("dd MMM · HH:mm 'UTC'");
+        if (ultimo is null) return "";                              // la pill dice già «su richiesta»/«mai eseguita»
+        if (r.Stato is ImportHealth.SuRichiesta) return ultimoDato;
+
+        // ⚠️ Un «prossimo» che sta nel PASSATO non è un'attesa, è la prova che il giro è saltato: su una riga
+        // ferma da tre giorni la pagina annunciava «prossimo 19 agosto» col 21 sul calendario.
         return r.ProssimoUtc is DateTime p
-            ? L["Sorg_LastAndNext", ultimo, p.ToString("dd MMM · HH:mm")]
+            ? L[p > DateTime.UtcNow ? "Sorg_LastAndNext" : "Sorg_LastAndMissed", ultimo, p.ToString("dd MMM · HH:mm")]
             : ultimo;
     }
 
