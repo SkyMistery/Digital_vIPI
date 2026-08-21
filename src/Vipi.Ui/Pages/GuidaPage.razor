@@ -770,6 +770,54 @@
               <p>Who decided the policy, and when, is written under the table. Every change also lands in the
                <b>log</b> (Audit), with the touched categories only.</p>"),
 
+        new Sec("nuovo-documento", "plus", "Nuovo documento: cosa crea e cosa apre", "New document: what it creates and what it opens",
+            @"<p>Da <code>/vsop/editor/newdoc</code> nasce un documento nuovo. ⚠️ <b>Il nome dice meno di
+               quello che succede</b>: la <b>vLOA</b> la crei qui davvero; le tre <b>vIPI</b> — ACC, APP,
+               Aeroporto — le crea il loro <b>editor</b>, alla prima apertura, e se il documento c’è già lo
+               apre e basta. Per questo il tasto dice «Apri» invece di «Crea» quando esiste.</p>
+              <ul>
+                <li><b>ACC</b> — la vIPI di un ACC è <b>una per ACC</b>: scegli l’ACC e si apre.</li>
+                <li><b>APP</b> — solo gli APP <b>non remotizzati</b>, che hanno un documento proprio. Se
+                    l’elenco è vuoto non manca il documento: manca l’APP standalone, e da chi è remotizzato e
+                    chi no lo decide la <b>gerarchia dei settori</b> in Struttura.</li>
+                <li><b>Aeroporto</b> — la vIPI d’aeroporto si <b>genera</b> dalle entità strutturate (piste,
+                    SID, regole): l’editor la crea o la rigenera all’apertura. Se l’elenco è vuoto, gli
+                    aeroporti si assegnano all’ACC dalla pagina Aeroporti.</li>
+                <li><b>vLOA</b> — si stipula fra un ACC <b>italiano</b> (Home) e uno <b>estero</b> (Neighbour).
+                    ⚠️ Ne esiste <b>una per coppia</b>, e la direzione conta: Roma→Marsiglia e
+                    Marsiglia→Roma sono due documenti diversi, uno per lato. Se la coppia ce l’ha già, la
+                    pagina non ne crea una seconda e ti offre di aprire quella che c’è.</li>
+              </ul>
+              <p>La vLOA nasce con le sue <b>sezioni obbligatorie</b> già dentro — le stesse, da qui e da
+               <a href=""/vsop/admin/confinanti"">Confinanti</a>, che le genera <b>in blocco</b> per tutte le coppie
+               confinanti confermate. Se le coppie sono molte, conviene quella strada.</p>
+              <p>Serve il <b>permesso</b> sull’ACC: si vedono solo gli ACC su cui si può lavorare, e chi non ne
+               ha nessuno non apre la pagina. Per la vLOA serve anche <b>«Inizia modifica»</b>: la creazione è
+               serializzata, così due persone non creano lo stesso documento nello stesso momento.</p>",
+            @"<p><code>/vsop/editor/newdoc</code> is where a new document is born. ⚠️ <b>The name says less than
+               what happens</b>: you really do create the <b>vLOA</b> here; the three <b>vIPI</b> documents —
+               ACC, APP, Airport — are created by their own <b>editor</b> on first opening, and if the document
+               already exists it simply opens. That is why the button reads «Open» instead of «Create».</p>
+              <ul>
+                <li><b>ACC</b> — an ACC vIPI is <b>one per ACC</b>: pick the ACC and it opens.</li>
+                <li><b>APP</b> — only <b>non-remotized</b> APPs, which have a document of their own. An empty
+                    list does not mean a missing document: it means no standalone APP, and what is remotized
+                    and what is not is decided by the <b>sector hierarchy</b> in Structure.</li>
+                <li><b>Airport</b> — an airport vIPI is <b>generated</b> from the structured entities (runways,
+                    SIDs, rules): the editor creates or regenerates it on opening. If the list is empty,
+                    assign airports to the ACC from the Airports page.</li>
+                <li><b>vLOA</b> — agreed between an <b>Italian</b> ACC (Home) and a <b>foreign</b> one
+                    (Neighbour). ⚠️ There is <b>one per pair</b>, and direction matters: Rome→Marseille and
+                    Marseille→Rome are two different documents, one per side. If the pair already has one, the
+                    page will not create a second and offers to open the existing one.</li>
+              </ul>
+              <p>A vLOA is born with its <b>mandatory sections</b> already in place — the same ones, from here
+               and from <a href=""/vsop/admin/confinanti"">Neighbours</a>, which generates them <b>in bulk</b> for
+               every confirmed neighbouring pair. With many pairs, that is the better route.</p>
+              <p>You need <b>permission</b> on the ACC: only the ACCs you can work on are listed, and someone
+               with none does not get the page at all. The vLOA also needs <b>«Start editing»</b>: creation is
+               serialized, so two people cannot create the same document at the same moment.</p>"),
+
         new Sec("admin-diagnostica", "activity", "Diagnostica: cosa non torna", "Diagnostics: what does not add up",
             @"<p>La <b>diagnostica</b> (<code>/vsop/admin/diagnostica</code>) risponde a una domanda sola:
                <b>qualcosa non torna?</b> Ogni riga dice anche <b>di chi è il problema</b>, perché le cinque

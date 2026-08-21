@@ -1183,6 +1183,11 @@
   <data name="Rel_ColDetail" xml:space="preserve"><value>Detail</value></data>
   <data name="Rel_LoadingDiff" xml:space="preserve"><value>Loading differences…</value></data>
   <data name="Nd_Title" xml:space="preserve"><value>New document</value></data>
+  <data name="Nd_HelpAria" xml:space="preserve"><value>How this page works</value></data>
+  <data name="Nd_Intro" xml:space="preserve"><value>⚠️ &lt;b&gt;The name says less than what happens.&lt;/b&gt; You create the &lt;b&gt;vLOA&lt;/b&gt; here, and it is born with its mandatory structure. The three &lt;b&gt;vIPI&lt;/b&gt; documents — ACC, APP, Airport — are not created here: their editor opens and creates them &lt;b&gt;only if they do not already exist&lt;/b&gt;. That is why the button reads «Open» when the document is there.&lt;br /&gt;&lt;br /&gt;Every target has &lt;b&gt;one&lt;/b&gt; document: one vIPI per ACC, one per non-remotized APP, one per airport, one vLOA per ACC pair. vLOAs with neighbouring ACCs are generated in bulk from &lt;a href="/vsop/admin/confinanti"&gt;Neighbours&lt;/a&gt;.</value></data>
+  <data name="Nd_OpenExisting" xml:space="preserve"><value>Open the existing one →</value></data>
+  <data name="Nd_NeedLock" xml:space="preserve"><value>needs «Start editing»</value></data>
+  <data name="Nd_AlreadyExists" xml:space="preserve"><value>already exists</value></data>
   <data name="Nav_AdminAria" xml:space="preserve"><value>Administration pages</value></data>
   <data name="Nav_Docs" xml:space="preserve"><value>Documents</value></data>
   <data name="Nav_Tasks" xml:space="preserve"><value>Tasks</value></data>
@@ -1192,11 +1197,11 @@
   <data name="Nav_SourcesTitle" xml:space="preserve"><value>Data sources and import policies.</value></data>
   <data name="Nav_PermsTitle" xml:space="preserve"><value>Who can edit which ACC.</value></data>
   <data name="Nd_Drafts" xml:space="preserve"><value>Drafts &amp; versions</value></data>
-  <data name="Nd_Subtitle" xml:space="preserve"><value>Choose the kind, then the target: the editor that creates the document opens.</value></data>
-  <data name="Nd_StaffRequired" xml:space="preserve"><value>Creating documents requires staff/admin permissions.</value></data>
-  <data name="Nd_KindAcc" xml:space="preserve"><value>ACC vIPI</value></data>
-  <data name="Nd_KindApp" xml:space="preserve"><value>APP vIPI (non-remotized)</value></data>
-  <data name="Nd_KindAirport" xml:space="preserve"><value>Airport vIPI</value></data>
+  <data name="Nd_Subtitle" xml:space="preserve"><value>Choose the kind, then the target. You create the vLOA here; the vIPI documents are created by their own editor, if they are not there yet.</value></data>
+  <data name="Nd_StaffRequired" xml:space="preserve"><value>You have no edit permission on any ACC: creating documents requires a permission on at least one ACC, or administrator rights.</value></data>
+  <data name="Nd_KindAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Nd_KindApp" xml:space="preserve"><value>APP</value></data>
+  <data name="Nd_KindAirport" xml:space="preserve"><value>Airport</value></data>
   <data name="Nd_VloaIntro" xml:space="preserve"><value>A vLOA is agreed between an &lt;b&gt;Italian&lt;/b&gt; ACC (Home) and a &lt;b&gt;foreign&lt;/b&gt; one (Neighbour), e.g. Rome ↔ Marseille. vLOAs with neighbouring ACCs can also be generated in bulk from &lt;a href="/vsop/admin/confinanti"&gt;Neighbours&lt;/a&gt;.</value></data>
   <data name="Nd_LblTitle" xml:space="preserve"><value>Title</value></data>
   <data name="Nd_TitlePh" xml:space="preserve"><value>e.g. vLOA Rome–Marseille</value></data>

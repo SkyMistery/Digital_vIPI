@@ -1186,6 +1186,11 @@
   <data name="Rel_ColDetail" xml:space="preserve"><value>Dettaglio</value></data>
   <data name="Rel_LoadingDiff" xml:space="preserve"><value>Caricamento differenze…</value></data>
   <data name="Nd_Title" xml:space="preserve"><value>Nuovo documento</value></data>
+  <data name="Nd_HelpAria" xml:space="preserve"><value>Come funziona questa pagina</value></data>
+  <data name="Nd_Intro" xml:space="preserve"><value>⚠️ &lt;b&gt;Il nome dice meno di quello che succede.&lt;/b&gt; La &lt;b&gt;vLOA&lt;/b&gt; la crei qui, e nasce con la sua struttura obbligatoria. Le tre &lt;b&gt;vIPI&lt;/b&gt; — ACC, APP, Aeroporto — non si creano da qui: si apre il loro editor, che le crea &lt;b&gt;solo se non ci sono già&lt;/b&gt;. Per questo il tasto dice «Apri» quando il documento esiste.&lt;br /&gt;&lt;br /&gt;Ogni bersaglio ha &lt;b&gt;un&lt;/b&gt; documento: una vIPI per ACC, una per APP non remotizzato, una per aeroporto, una vLOA per coppia di ACC. Le vLOA con ACC confinanti si generano in blocco da &lt;a href="/vsop/admin/confinanti"&gt;Confinanti&lt;/a&gt;.</value></data>
+  <data name="Nd_OpenExisting" xml:space="preserve"><value>Apri quella che c'è →</value></data>
+  <data name="Nd_NeedLock" xml:space="preserve"><value>serve «Inizia modifica»</value></data>
+  <data name="Nd_AlreadyExists" xml:space="preserve"><value>esiste già</value></data>
   <data name="Nav_AdminAria" xml:space="preserve"><value>Pagine di amministrazione</value></data>
   <data name="Nav_Docs" xml:space="preserve"><value>Documenti</value></data>
   <data name="Nav_Tasks" xml:space="preserve"><value>Incarichi</value></data>
@@ -1195,11 +1200,11 @@
   <data name="Nav_SourcesTitle" xml:space="preserve"><value>Sorgenti dati e politiche di import.</value></data>
   <data name="Nav_PermsTitle" xml:space="preserve"><value>Chi può modificare quale ACC.</value></data>
   <data name="Nd_Drafts" xml:space="preserve"><value>Bozze &amp; versioni</value></data>
-  <data name="Nd_Subtitle" xml:space="preserve"><value>Scegli il tipo, poi il bersaglio: si apre l'editor che crea il documento.</value></data>
-  <data name="Nd_StaffRequired" xml:space="preserve"><value>La creazione di documenti richiede i permessi di staff/admin.</value></data>
-  <data name="Nd_KindAcc" xml:space="preserve"><value>vIPI ACC</value></data>
-  <data name="Nd_KindApp" xml:space="preserve"><value>vIPI APP (non remotizzato)</value></data>
-  <data name="Nd_KindAirport" xml:space="preserve"><value>vIPI Aeroporto</value></data>
+  <data name="Nd_Subtitle" xml:space="preserve"><value>Scegli il tipo, poi il bersaglio. La vLOA la crei qui; le vIPI le crea il loro editor, se non ci sono già.</value></data>
+  <data name="Nd_StaffRequired" xml:space="preserve"><value>Non hai il permesso di modifica su nessun ACC: la creazione di documenti richiede un permesso su almeno un ACC, o i diritti di amministratore.</value></data>
+  <data name="Nd_KindAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Nd_KindApp" xml:space="preserve"><value>APP</value></data>
+  <data name="Nd_KindAirport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Nd_VloaIntro" xml:space="preserve"><value>Una vLOA si stipula tra un ACC &lt;b&gt;italiano&lt;/b&gt; (Home) e uno &lt;b&gt;estero&lt;/b&gt; (Neighbour), es. Roma ↔ Marsiglia. Le vLOA con ACC confinanti si generano anche in blocco da &lt;a href="/vsop/admin/confinanti"&gt;Confinanti&lt;/a&gt;.</value></data>
   <data name="Nd_LblTitle" xml:space="preserve"><value>Titolo</value></data>
   <data name="Nd_TitlePh" xml:space="preserve"><value>es. vLOA Roma–Marsiglia</value></data>
