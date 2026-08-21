@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Incarichi)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: la ricognizione è CHIUSA)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **182 voci in 26 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **192 voci in 27 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Quindici pagine chiuse
+## Diciassette pagine chiuse: TUTTE quelle della ricognizione
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -43,6 +43,8 @@ già e si riusa**, non si riscrive.
 | **Nuovo documento** | `/vsop/editor/newdoc` | **957 → 900** (+ cosa crea) | `2026-08-22-newdoc-cosa-crea.md`, `2026-08-22-newdoc-densita-ui.md` |
 | **Incarichi admin** | `/vsop/admin/tasks` | **1 813 / 4 764 → 900** (+ cosa sono) | `2026-08-22-incarichi-cosa-sono.md`, `2026-08-22-incarichi-densita-ui.md` |
 | **Incarichi utente** | `/vsop/tasks` | **1 562 → 900** | (le stesse due carte) |
+| **Editor APP** | `/vsop/{acc}/apps/editor` | **3 540 → 3 350**, e **1 654** compresso | `2026-08-22-editori-app-vloa-cosa-fanno.md`, `2026-08-22-editori-app-vloa-densita-ui.md` |
+| **Editor vLOA** | `/vsop/{acc}/vloa/editor` | **4 351 → 4 242**, e **1 359** compresso | (le stesse due carte) |
 
 Le carte stanno in `docs/feature/`.
 
@@ -330,11 +332,77 @@ condiviso, non un difetto del giro.
 - **L'archiviazione degli incarichi resta da fare**, dopo il cutover MariaDB: oggi la crescita è tenuta dal
   filtro, che basta ma non toglie righe dal database.
 
-### La prossima: Editor APP ed Editor vLOA
+## Editor APP e vLOA: chiusi il 22 agosto — e con loro la ricognizione
 
-Sono le ultime due della ricognizione (§15), e ⚠️ **il loro 900 non è verificato**: è la misura coi dati di
-sviluppo, **in lettura**. Vanno rimisurate su un documento vero e **in modifica** — l'editor ACC pesava 6 466
-in lettura e 9 690 in modifica. Prima di stimare, riempire e guidare.
+Le **ultime due**, e le uniche che non avevano mai avuto un giro: montano lo stesso `DocumentSectionsEditor`
+degli altri editor, ma sopra erano rimaste a due generazioni fa. Il lavoro non è stato inventare una forma, è
+stato **portarle su quella già pagata** dall'editor ACC.
+
+⚠️ **Il loro «900» era una stima, e lo diceva la ricognizione stessa.** Misurati su documenti veri e **in
+modifica** — che è come si usa un editor — erano **3 540** (APP, `LIBP_APP`, 11 sezioni) e **4 351** (vLOA,
+`LIBB ↔ LGGG`). Un numero dichiarato «non verificato» dentro una tabella di misure **si legge come una
+misura**: meglio una casella vuota.
+
+**Sostanza** (carta [`2026-08-22-editori-app-vloa-cosa-fanno.md`](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md),
+regole 183-192 insieme alla densità):
+
+- ⚠️ **due file di chip identiche che significano cose opposte.** Nella sezione AoR della vLOA, a sessanta
+  pixel di distanza e con la **stessa classe `.aor-chip`**: quelli sopra **scrivono nel documento**, quelli
+  sotto accendono un poligono finché sei lì. È il difetto `.sector-pick` nella forma peggiore — i due gesti
+  **adiacenti**, e uno solo distruttivo. Ora chi scrive è un **elenco con caselle**, che dice anche quanti
+  settori sono dentro;
+- ⚠️ **il «?» dell'anteprima bozza era lo stesso paragrafo italiano cablato TRE volte** (APP, vLOA, ACC),
+  `AriaLabel` compreso: in pagina inglese si leggeva in italiano. Ora chiavi IT+EN e **un** componente
+  (`DraftPreviewLink`). Stessa famiglia: «Tutti/Nessuno» di `AccAor3d`, cablati mentre il gemello `AccAor` li
+  localizzava;
+- **nessun «?» di pagina** su nessuna delle due, e le loro sezioni di Guida descrivevano il **viewer**.
+
+**Densità** (carta [`2026-08-22-editori-app-vloa-densita-ui.md`](../feature/2026-08-22-editori-app-vloa-densita-ui.md)):
+
+| Editor | Lettura | In modifica | **Compresso** |
+|---|---:|---:|---:|
+| APP | 2 403 | **3 350** | **1 654** |
+| vLOA | 3 333 | **4 242** | **1 359** |
+| ACC (già chiuso) | 3 988 | **5 144** (era 5 595) | 1 468 |
+
+⚠️ **Su un editor il numero che conta è il COMPRESSO.** Un editor scorre per mestiere: la domanda non è
+«quanto è alto tutto aperto» ma **quanto costa arrivare alla sezione che serve** — e su queste due il comando
+«comprimi tutto» semplicemente **non c'era**, benché le sezioni fossero già `<details>` con persistenza.
+
+⚠️ **Il «+ Blocco» sta nel componente CONDIVISO**, quindi ha restituito ~450px anche all'editor ACC senza
+riaprirne il giro. Toccare un componente condiviso è una decisione che va **misurata su tutti i suoi host**:
+qui erano quattro.
+
+### Tre cose trovate guidando, che la carta non prevedeva
+
+1. ⚠️ **Una sezione CHIUSA era alta 92px invece di ~50**: la riga-titolo andava a capo, e su dieci sezioni
+   sono 900px di sole intestazioni — pagati **dopo** aver premuto «Comprimi tutto», cioè proprio quando si è
+   chiesto di non vederle.
+2. ⚠️ **A 1024 la testata andava a capo per NOVE pixel**, e il pezzo più largo era il **chip del lock**
+   (266px). Il chip dice l'ora, la frase sta nel `title`: **stessa cura del giro Versioni** (647 → 289),
+   applicata stavolta a tutti e tre gli editor invece che solo a quello in mano.
+3. **«Bozza v2» compariva due volte**, in testata e nel rail: chi sposta uno stato deve **toglierlo** da dove
+   stava, o non l'ha spostato.
+
+### E due cose che hanno fermato me
+
+- ⚠️ **La rete ha visto un doppione che io non avevo visto**: le ancore `#editor-app` e `#editor-vloa`
+  esistevano già, e le mie erano un secondo blocco con lo stesso `id`
+  (`GuideSearchTests.Catalog_anchors_are_unique` rosso). Sostituite, non affiancate.
+- ⚠️ **Le voci di Guida vecchie erano DATATE**: «6 sezioni fisse» dove ne ho misurate undici. Il testo di un
+  aiuto invecchia come il codice, ma in un posto dove nessuno passa: **chi tocca una pagina rilegge la sua
+  voce di Guida**.
+
+### E adesso?
+
+La ricognizione (§15) **non ha più pagine da rifare**. Quello che resta non è di una pagina:
+
+- la **topbar** che scorre in orizzontale sotto i 1 280px — ⚠️ rimisurato in questo giro: `div.right` arriva
+  a **1 396px**, che è *esattamente* lo `scrollWidth` della pagina, **niente dentro il `.wrap` sfora**, e il
+  numero è identico sulla home. È del chrome, va affrontato per sé;
+- il **pannello release** (974px con 13 rilasci sull'editor ACC), che è roba del giro di `ReleasePanel`;
+- e le due cose lasciate dai giri precedenti: l'**archiviazione degli incarichi** dopo il cutover MariaDB, e
+  la misura di **`/vsop/admin/audit`** da rifare con la famiglia «Incarico» dentro.
 
 ## Aperto, e non è di queste pagine
 
@@ -346,11 +414,12 @@ in lettura e 9 690 in modifica. Prima di stimare, riempire e guidare.
   ed è una migrazione sullo schema del committente: ⚠️ prima va verificato **in produzione** che non
   esistano già coppie duplicate, altrimenti la migrazione fallisce all'avvio.
 
-- ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `div.right` misura **1 385px dentro
-  1 280** (rimisurato il 21 agosto; il 20 erano 1 411), identico su home, struttura, viewer e versioni — e
-  **niente dentro il `.wrap` sfora**, verificato elencando gli elementi oltre il bordo. È del chrome, non di
-  una pagina: va affrontato per sé. È anche la ragione per cui lo sforo orizzontale, da solo, non è più un
-  segnale utile sulle singole pagine finché questo non è chiuso.
+- ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `div.right` misura **1 396px** a
+  1 024 (rimisurato il 22 agosto sugli editor; il 21 erano 1 385 dentro 1 280, il 20 erano 1 411) — e quel
+  numero è **esattamente lo `scrollWidth`** della pagina, mentre **niente dentro il `.wrap` sfora**,
+  verificato elencando gli elementi oltre il bordo su editor, home e vIPI ACC. È del chrome, non di una
+  pagina: va affrontato per sé, ed è ormai **l'ultima cosa aperta che si vede a schermo**. È anche la ragione
+  per cui lo sforo orizzontale, da solo, non è un segnale utile sulle singole pagine finché non è chiuso.
 - ⚠️ `Vipi.AuroraBridge.Tests` ha **un test instabile**, ora identificato:
   `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`. Fallisce circa **una volta su tre** con
   «Nessuna risposta a #TRPOS entro 15000 ms» e passa da solo. Usa un `FakeAuroraServer` su socket di

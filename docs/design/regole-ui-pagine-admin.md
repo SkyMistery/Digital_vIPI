@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 182 voci in 26 gruppi
+﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 192 voci in 27 gruppi
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -12,8 +12,10 @@
 > regole 106-116); il 22 agosto **permessi** e **audit** ([carta](../feature/2026-08-22-permessi-densita-ui.md),
 > §20, regole 117-124), e a chiudere il ramo **incarichi** in due giri
 > ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e
-> [densità](../feature/2026-08-22-incarichi-densita-ui.md), §26, regole 171-182)
-> — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> [densità](../feature/2026-08-22-incarichi-densita-ui.md), §26, regole 171-182), e infine gli **editor APP e
+> vLOA** ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e
+> [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md), §27, regole 183-192), che chiudono la
+> ricognizione — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -248,7 +250,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — quindici pagine, e sono loro ad aver prodotto le regole
+### Già a norma — diciassette pagine: TUTTE. Sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -267,19 +269,20 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Nuovo documento | `/vsop/editor/newdoc` | 900 | **da 957** sulla scheda vLOA (le altre tre erano già 900 — ⚠️ su una pagina a schede si misura **ogni scheda**): campi in griglia, tasto **sotto** i campi che gli servono, schede riordinate, barra admin **senza** voce nell'elenco ([carte](../feature/2026-08-22-newdoc-cosa-crea.md) e [densità](../feature/2026-08-22-newdoc-densita-ui.md)). `max-height`: corto e fisso a zoom 1, non a 1.25 |
 | Incarichi admin | `/vsop/admin/tasks` | 900 | **da 1 813 con 12 incarichi e 4 764 con 60** (la ricognizione diceva 900: `EditorTasks` è **vuota** nel DB di sviluppo — terza volta): elenco+dettaglio con le azioni nel pannello, `thead` fermo, chip che contano col **default «non conclusi»** al posto di un'archiviazione, avanzamento per editore da parete di card a chip che filtrano ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e [densità](../feature/2026-08-22-incarichi-densita-ui.md)). Resta il viewport con 60 |
 | Incarichi (utente) | `/vsop/tasks` | 900 | **da 1 562 con 12 propri** (a 1280×800 scorreva con **quattro**): tre colonne a schermo e due chiuse col conteggio, card con un avanzamento invece di quattro tasti, `vipiCapViewport` **con riserva** per le colonne chiuse. La briciola resta: è una pagina d'utente |
+| Editor APP | `/vsop/{acc}/apps/editor` | 3 350 **in modifica**, 1 654 compresso | **da 3 540** (la ricognizione diceva 900: era una misura in LETTURA sui dati di sviluppo): testata in riga col lock, «?», espandi/comprimi, larghezza piena, «+ Blocco» al posto di quattro tasti per sezione ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md)) |
+| Editor vLOA | `/vsop/{acc}/vloa/editor` | 4 242 **in modifica**, 1 359 compresso | **da 4 351**, con 177px di fasce in testa: il callout bilaterale nel «?», e ⚠️ i chip che SCRIVEVANO nel documento diventati un elenco, perché stavano sopra i chip che non scrivono (stesse carte) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
-### Da rifare, in ordine di guadagno
+### Da rifare: **nessuna**
 
-⚠️ **Rimisurate il 22 agosto**, dopo il giro della barra admin (§21): ogni pagina admin ha perso la briciola
-(−38px) e guadagnato la barra (+55px a larghezza piena, +87 dove il `.wrap` è a 1100/1200 e le undici voci
-vanno su due righe). Le colonne «prima» sono le misure della ricognizione originale, tenute perché dicono
-quanto pesa il giro.
+Il ramo ha chiuso **tutte** le pagine di lavoro della ricognizione. L'ultima coppia — gli editor APP e vLOA —
+è caduta il 22 agosto, e ⚠️ **il loro «900» era una stima**: misurati davvero, e **in modifica**, erano 3 540
+e 4 351.
 
-| # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
-|---:|---|---|---:|---:|---|
-| 1 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | ⚠️ Numero **non verificato**: corte coi dati di sviluppo, da rimisurare su un documento vero e **in modifica** (l'editor ACC pesava 6 466 in lettura e 9 690 in modifica). |
+Quello che resta aperto non è di una pagina: la **topbar** che scorre in orizzontale sotto i 1 280px
+(`div.right` a 1 396 dentro 1 024, identico su ogni pagina, **niente dentro il `.wrap` sfora**) e il pannello
+**release** dell'editor ACC (974px con 13 rilasci), che è roba del giro di `ReleasePanel`.
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -854,6 +857,61 @@ ricerca schiacciata a 150px o un menù largo metà scheda per il gesto che si fa
 in cui gli screenshot vanno **guardati**, non solo prodotti.
 
 
+## 27. Quello che ha lasciato il giro Editor APP e vLOA (22 agosto 2026)
+
+Sedicesima e diciassettesima pagina — **le ultime della ricognizione**, e le uniche due che non avevano mai
+avuto un giro. Il lavoro non è stato inventare una forma: è stato **portarle su quella già pagata** dall'editor
+ACC, e il prezzo è stato scoprire che il componente **condiviso** sotto aveva difetti che nessuno dei giri
+precedenti aveva misurato. Carte: [cosa fanno](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e
+[densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md). Regole **183-192**.
+
+183. ⚠️ **Un editor si misura in tre stati, non in uno: lettura, modifica, e COMPRESSO.** «Quanto è alto tutto
+     aperto» non è la domanda di chi lo usa: la domanda è **quanto costa arrivare alla sezione che serve**.
+     Misurato: APP 3 350 aperto e **1 654** compresso, vLOA 4 242 e **1 359**. Su una pagina che scorre per
+     mestiere il comando «comprimi tutto» vale più di qualunque fascia tolta — e su queste due **non c'era**.
+184. ⚠️ **Una sezione CHIUSA ha un'altezza, e va misurata.** La riga-titolo (titolo più fino a cinque comandi)
+     andava a capo, e ogni sezione chiusa misurava **92px invece di ~50**: su dieci sezioni sono 900px di sole
+     intestazioni, pagati **dopo** aver premuto «Comprimi tutto», cioè proprio quando si è chiesto di non
+     vederle. In una riga «prosa + comandi» a cedere è la **prosa**: il titolo tronca, i comandi restano nomi
+     interi (regole 33 e 111).
+185. ⚠️ **Il pezzo più largo di una testata è quasi sempre il LOCK.** A 1024 la riga andava a capo per **nove**
+     pixel; misurati i pezzi (regola 34), il colpevole era il chip «Stai modificando · lock fino alle 21:06»,
+     **266px**. Il chip dice l'**ora**, la frase intera sta nel `title`. È esattamente la stessa cura del giro
+     Versioni (la frase del lock, 647 → 289): quando una regola si ripaga due volte, la si applica a **tutti**
+     i posti che hanno quella forma, non solo a quello che si sta guardando.
+186. **Uno stato si dice UNA volta.** Salendo la pill di versione in testata, la copia nel rail è rimasta: a
+     schermo «Bozza v2» compariva due volte a venti centimetri di distanza. Chi sposta uno stato **toglie**
+     da dove stava — altrimenti non l'ha spostato, l'ha duplicato.
+187. ⚠️ **Toccare un componente condiviso è una decisione che va misurata su TUTTI i suoi host.** Il «+ Blocco»
+     al posto dei quattro tasti sotto ogni sezione ha restituito ~450px anche all'**editor ACC** (5 595 →
+     5 144) senza riaprirne il giro — ma quello stesso cambio poteva romperlo. Prima si chiede, poi si misura
+     ogni pagina che lo monta: qui erano quattro.
+188. ⚠️ **Un difetto si vede quando cambia il modo di leggerlo.** Nell'elenco AoR quattro settori si chiamavano
+     tutti «Athinai Radar»: il difetto c'era anche prima, quando erano chip, e **nessuno l'aveva visto** perché
+     una fila di chip non la si legge come un elenco di scelte. Il nome è per chi legge, l'**identificatore** è
+     quello che distingue: dove si sceglie, servono entrambi.
+189. ⚠️ **Una fila di chip che SCRIVE non può somigliare a una fila di chip che GUARDA.** Nella sezione AoR
+     della vLOA i due usi stavano uno sopra l'altro, stessa classe `.aor-chip`, e uno dei due **persiste nel
+     documento**. Chi scrive diventa un elenco con caselle, con l'etichetta che dice quanti elementi sono
+     dentro; i chip restano una cosa sola in tutta l'applicazione. Terza forma della regola del `.sector-pick`,
+     e la peggiore, perché qui i due gesti sono **adiacenti**.
+190. **Il testo di un aiuto invecchia come il codice.** Le sezioni di Guida di questi due editor esistevano, e
+     dicevano «6 sezioni fisse» dove oggi ne ho misurate **undici**. È la prosa-che-promette-il-falso già
+     trovata in cinque sottotitoli, ma in un posto dove nessuno passa a controllarla: **chi tocca una pagina
+     rilegge la sua voce di Guida**.
+191. ⚠️ **Aggiungere una sezione di Guida può essere un DOPPIONE, e lo dice solo la rete.** Le ancore
+     `#editor-app` e `#editor-vloa` esistevano già: le mie erano un secondo blocco con lo stesso `id`, e a
+     fermarmi è stato `GuideSearchTests.Catalog_anchors_are_unique`. Una voce nuova si **sostituisce** a quella
+     vecchia; affiancarla lascia due sezioni che divergono e un deep-link che atterra su quella sbagliata.
+192. **Una sezione nascosta nasce chiusa.** È esclusa dal documento: pagava l'altezza intera, solo attenuata, e
+     su un editor da undici sezioni ognuna di quelle era una schermata da scorrere per arrivare al lavoro vero.
+
+⚠️ **E la lezione trasversale del ramo, che qui si chiude:** queste due pagine erano **le ultime due
+misurate a occhio** («900, non verificato»), e i numeri veri erano 3 540 e 4 351. Un numero che la
+ricognizione stessa dichiara «non verificato» **è una stima**, e una stima in una tabella di misure si legge
+come una misura. Meglio una casella vuota.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -862,6 +920,11 @@ in cui gli screenshot vanno **guardati**, non solo prodotti.
 | Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
+| Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regola 187) |
+| Riga-titolo di una sezione negli editor | `.dse-head` — il titolo tronca, i comandi no (regola 184) |
+| «Anteprima bozza» col suo «?» | `DraftPreviewLink` — uno per tutti e tre gli editor, chiavi `Ed_PreviewHelp*` |
+| Comandi in coda al TOC / larghezza piena (host che montano il TOC condiviso) | parametri `TocFooter` e `Wide` di `DocumentSectionsEditor` |
+| Scelta che PERSISTE, accanto a chip che non persistono | `.vloa-aor-pick` — elenco con caselle, mai chip (regola 189) |
 | Testo di un rifiuto di un service | `ServiceErrorNarrator.Testo(ex, L)` — `ValidationException` porta `Key` accanto al messaggio grezzo; chiave ignota ⇒ testo grezzo |
 | Documenti collegabili a un incarico, con la chiave che li ritrova | `IEditorTaskLinksService.OpzioniAsync` — mai fabbricare la chiave in pagina (regola 176) |
 | Elenco + dettaglio degli incarichi | `.task-layout` (griglia 1.9/1, il titolo è la colonna di prosa) + `vipiFitViewport` |

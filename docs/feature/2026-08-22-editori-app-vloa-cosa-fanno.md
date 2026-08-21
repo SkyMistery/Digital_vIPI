@@ -67,6 +67,18 @@ scritte per il **viewer**, non per l'editor.
 - Il **lock del `Document` dura 30 minuti senza heartbeat**: è il buco già dichiarato dal giro Versioni, e
   vale per tutti gli editor allo stesso modo.
 
+## Cosa lascia questo giro
+
+⚠️ **Un difetto si vede quando cambia il modo di leggerlo.** I quattro settori di Atene si chiamavano tutti
+«Athinai Radar» anche prima, quando erano chip: nessuno se n'era accorto perché una fila di chip non la si
+legge come un **elenco di scelte**. Trasformarla in elenco ha reso visibile un difetto che c'era già —
+ed è la ragione per cui la cura di E1 non era solo estetica.
+
+⚠️ **Il testo di un aiuto invecchia come il codice.** Le sezioni di Guida di questi due editor esistevano, e
+dicevano «6 sezioni fisse» dove oggi ne ho misurate **undici**: è la stessa prosa-che-promette-il-falso
+trovata nei sottotitoli di Sorgenti, Diagnostica, Nuovo documento e Incarichi, ma in un posto dove nessuno
+va a controllarla. Chi tocca una pagina rilegge la sua voce di Guida.
+
 ## Slice
 
 1. E2: il «?» dell'anteprima diventa un componente condiviso con le sue chiavi IT+EN, montato dai **tre**

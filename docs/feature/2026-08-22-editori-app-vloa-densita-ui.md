@@ -45,6 +45,60 @@ rimaste a due generazioni fa. Il giro è **portarle sulla riga già pagata**, no
    guadagno (~40px per sezione, ~440px su undici) arriva anche all'editor ACC e all'aeroporto, e **quei due
    vanno riguardati** prima di chiudere (decisione del committente).
 
+## Com'è andata: i numeri, misurati
+
+Guidati con `verifica-live` su documenti veri — APP `LIBP_APP` (11 sezioni), vLOA `LIBB ↔ LGGG` (9) — a
+**1600 / 1440 / 1280 / 1024**, **IT ed EN**, zoom **0.8 → 1.5**, e **in modifica**.
+
+| Editor | Lettura | In modifica | **Compresso** |
+|---|---:|---:|---:|
+| APP | 2 594 → **2 403** | 3 540 → **3 350** | **1 654** |
+| vLOA | 3 531 → **3 333** | 4 351 → **4 242** | **1 359** |
+| ACC (già chiuso) | 4 077 → **3 988** | 5 595 → **5 144** | 1 468 |
+| Aeroporto (già chiuso) | **5 173** | — | 900 |
+
+⚠️ **Il guadagno vero è il «compresso», e su queste due il comando prima non c'era.** Un editor scorre per
+mestiere: la domanda giusta non è «quanto è alto tutto aperto» ma «quanto costa arrivare alla sezione che
+serve», e la risposta è 1 654 e 1 359 invece di 3 350 e 4 242. La testata resta **38px, una riga**, a tutti e
+quattro gli assetti e in tutte e due le lingue.
+
+⚠️ **E il «+ Blocco» condiviso ha restituito ~450px all'editor ACC** (5 595 → 5 144) senza che quel giro
+venisse riaperto: è il segno che la scelta di toccare il componente era quella giusta, e la ragione per cui
+andava rimisurato.
+
+## Tre cose che la misura ha trovato e la carta non prevedeva
+
+1. ⚠️ **Una sezione CHIUSA era alta 92px invece di ~50.** La riga-titolo andava a capo — titolo più fino a
+   cinque comandi — e su dieci sezioni sono **900px di sole intestazioni**, pagati anche **dopo** aver
+   premuto «Comprimi tutto», cioè proprio quando si è chiesto di non vederle. Da qui `.dse-head`: il titolo
+   tronca (è lui la prosa), i comandi restano nomi interi.
+2. ⚠️ **A 1024 la testata andava a capo per NOVE pixel.** Misurati i pezzi (regola 34), il più largo era il
+   **chip del lock**: 266px per «Stai modificando · lock fino alle 21:06». Ora il chip dice l'**ora** e la
+   frase intera sta nel `title` — è la stessa cura già pagata sul giro Versioni (647 → 289), applicata a
+   tutti e tre gli editor.
+3. **«Bozza v2» compariva due volte**, in testata e nel rail: la pill è salita, la copia nel rail è rimasta.
+
+## Quello che ha visto solo l'occhio
+
+- Nell'elenco AoR nuovo **quattro settori si chiamavano tutti «Athinai Radar»**: quattro righe identiche, e
+  chi spuntava non sapeva quale stava togliendo. Il **callsign** accanto al nome li distingue
+  (`LGGG_O_CTR`, `LGGG_CTR`, `LGGG_LO_CTR`, `LGGG_UO_CTR`). ⚠️ Il difetto c'era anche prima, coi chip — ma
+  nessuno leggeva quei chip come un elenco di scelte, ed è per questo che nessuno l'aveva visto.
+
+## E la rete che ha fermato un errore mio
+
+⚠️ Le ancore `#editor-app` e `#editor-vloa` **esistevano già** in `GuidaPage`, puntate a sezioni che
+descrivevano il **viewer**: le mie erano un secondo blocco con lo stesso `id`, e
+`GuideSearchTests.Catalog_anchors_are_unique` è diventato rosso. Sostituite, non affiancate — e quelle vecchie
+erano anche **datate**: «6 sezioni fisse» dove ne ho misurate undici, cioè prosa che promette il falso, lo
+stesso difetto trovato nei sottotitoli degli altri sei giri.
+
+## Cosa resta aperto
+
+⚠️ Lo **sforo orizzontale a 1024** c'è, ed è il difetto della **topbar** già dichiarato: `div.right` arriva a
+1 396px, che è **esattamente** lo `scrollWidth` della pagina, **niente dentro il `.wrap` sfora**, e il numero
+è identico sulla home. Non è di queste pagine.
+
 ## Come si verifica
 
 Guidare **entrambe in modifica** — non in lettura — a **1600 / 1440 / 1280 / 1024**, **IT ed EN**, zoom
