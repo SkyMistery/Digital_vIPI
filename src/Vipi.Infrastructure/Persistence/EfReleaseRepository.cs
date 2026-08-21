@@ -99,7 +99,7 @@ public sealed class EfReleaseRepository : IReleaseRepository
         doc.LastUpdatedAiracCycle = airacCycle;
 
         AuditScribe.Write(_db, actorUserId, AuditAction.Publish, "DocumentVersion", draft.Id.ToString(),
-            new { doc.Id, draft.VersionNumber, Reason = "publish-now-release" }, now);
+            new { doc.Id, doc.Title, draft.VersionNumber, Reason = "publish-now-release" }, now);
 
         await _db.SaveChangesAsync(ct);
     }

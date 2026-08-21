@@ -854,8 +854,10 @@ public sealed class EfEditingRepository : IEditingRepository
         doc.LastUpdatedUtc = now;
         doc.LastUpdatedAiracCycle = _airac.GetCycle(now);
 
+        // Il titolo sta nella riga, non solo l'Id: il registro deve restare leggibile anche dopo che il
+        // documento è stato eliminato — è proprio allora che qualcuno lo va a rileggere.
         AuditScribe.Write(_db, actorUserId, AuditAction.Publish, "DocumentVersion", ver.Id.ToString(),
-            new { doc.Id, ver.VersionNumber, ver.AiracCycle }, now);
+            new { doc.Id, doc.Title, ver.VersionNumber, ver.AiracCycle }, now);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -922,11 +924,12 @@ public sealed class EfEditingRepository : IEditingRepository
                   ?? throw new KeyNotFoundException($"Versione {versionId} inesistente.");
         var numero = ver.VersionNumber;
         var documentId = ver.DocumentId;
+        var titolo = await _db.Documents.Where(d => d.Id == documentId).Select(d => d.Title).FirstOrDefaultAsync(ct);
 
         // L'audit va scritto PRIMA della cancellazione: dopo, la versione non esiste più e resterebbe solo un
         // documento che ha perso una bozza senza che nessuno sappia chi e quando.
         AuditScribe.Write(_db, actorUserId, AuditAction.Discard, "DocumentVersion", versionId.ToString(),
-            new { DocumentId = documentId, VersionNumber = numero });
+            new { DocumentId = documentId, Title = titolo, VersionNumber = numero });
         await _db.SaveChangesAsync(ct);
 
         await LiberaImmaginiAsync(await EliminaVersioneAsync(versionId, ct), ct);
