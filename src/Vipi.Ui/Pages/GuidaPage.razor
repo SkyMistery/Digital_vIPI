@@ -685,6 +685,40 @@
               </ul>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
+        new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
+            @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
+               a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
+               release e nasconderne o eliminarne i documenti.</p>
+              <ul>
+                <li>L'elenco ha <b>una riga per persona</b>: le pill dicono su quali ACC può lavorare. La barra
+                    cerca per VID, nome o ACC, e i <b>chip contano le persone</b> di ogni ACC.</li>
+                <li>Scegliendo una riga, a destra ci sono i suoi permessi: per ognuno la <b>data</b>, <b>chi</b>
+                    glielo ha dato, e la ✕ per <b>toglierlo</b> (chiede conferma e dice quale ACC).</li>
+                <li><b>Aggiungi ACC</b>, in fondo allo stesso pannello, dà un altro ACC alla stessa persona
+                    senza ridigitare il VID.</li>
+                <li><b>Concedi</b>, in testata, serve per una persona <b>nuova</b>: si sceglie dallo staff IT che
+                    si è loggato almeno una volta, oppure si scrive il VID a mano.</li>
+              </ul>
+              <p>Gli <b>admin</b> non hanno bisogno di permessi: possono già tutto in forza del loro codice
+               staff, e non compaiono in questo elenco. Le altre pagine admin si raggiungono dalla <b>barra</b>
+               in cima alla pagina.</p>",
+            @"<p>A <b>permission</b> (<code>/vsop/admin/permessi</code>) ties a person — their <b>VID</b> — to an
+               <b>ACC</b>. From then on they can open the editor for that ACC's documents, publish its releases
+               and hide or delete its documents.</p>
+              <ul>
+                <li>The list has <b>one row per person</b>: the pills say which ACCs they can work on. The bar
+                    searches by VID, name or ACC, and the <b>chips count the people</b> of each ACC.</li>
+                <li>Picking a row shows their permissions on the right: for each one the <b>date</b>, <b>who</b>
+                    granted it, and the ✕ to <b>take it away</b> (it asks, and says which ACC).</li>
+                <li><b>Add ACC</b>, at the bottom of the same panel, grants another ACC to the same person
+                    without retyping the VID.</li>
+                <li><b>Grant</b>, in the header, is for a <b>new</b> person: pick them from the IT staff who have
+                    logged in at least once, or type the VID by hand.</li>
+              </ul>
+              <p><b>Admins</b> need no permission: their staff code already allows everything, and they do not
+               appear in this list. The other admin pages are reachable from the <b>bar</b> at the top of the
+               page.</p>"),
+
         new Sec("admin", "grid", "Aree admin", "Admin areas",
             @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
               <ul>

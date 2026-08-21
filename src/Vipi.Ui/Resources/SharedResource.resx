@@ -489,17 +489,15 @@
   <data name="Grants_DiagDesc" xml:space="preserve"><value>Incongruenze dei riferimenti deboli: piste orfane, etichette divergenti, aree fantasma, gerarchia interrotta.</value></data>
   <data name="Grants_GrantByVid" xml:space="preserve"><value>Grant per VID</value></data>
   <data name="Grants_GrantHint" xml:space="preserve"><value>Seleziona uno staffista dall'elenco (staff IT che si è loggato almeno una volta) oppure inserisci un VID a mano.</value></data>
-  <data name="Grants_ActiveGrants" xml:space="preserve"><value>Permessi attivi</value></data>
   <data name="Grants_NoneGranted" xml:space="preserve"><value>Nessun permesso concesso.</value></data>
   <data name="Grants_GrantedBy" xml:space="preserve"><value>Concesso da</value></data>
-  <data name="Grants_When" xml:space="preserve"><value>Quando</value></data>
   <data name="Grants_Revoke" xml:space="preserve"><value>Revoca</value></data>
   <data name="Grants_GrantPermission" xml:space="preserve"><value>Concedi permesso</value></data>
   <data name="Grants_ItStaffer" xml:space="preserve"><value>Staffista IT</value></data>
   <data name="Grants_Select" xml:space="preserve"><value>— seleziona —</value></data>
   <data name="Grants_NoStaffer" xml:space="preserve"><value>Nessuno staffista nell'elenco: comparirà dopo il primo login. Inserisci il VID a mano.</value></data>
   <data name="Grants_NameOptional" xml:space="preserve"><value>Nome (opzionale)</value></data>
-  <data name="Grants_GrantBtn" xml:space="preserve"><value>+ Concedi</value></data>
+  <data name="Grants_GrantBtn" xml:space="preserve"><value>Concedi</value></data>
   <data name="Grants_GrantedMsg" xml:space="preserve"><value>Permesso concesso.</value></data>
   <data name="Grants_RevokedMsg" xml:space="preserve"><value>Permesso revocato.</value></data>
   <data name="Common_State" xml:space="preserve"><value>Stato</value></data>

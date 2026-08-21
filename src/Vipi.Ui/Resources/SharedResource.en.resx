@@ -486,17 +486,15 @@
   <data name="Grants_DiagDesc" xml:space="preserve"><value>Inconsistencies in soft references: orphan runways, diverging labels, phantom areas, broken hierarchy.</value></data>
   <data name="Grants_GrantByVid" xml:space="preserve"><value>Grant by VID</value></data>
   <data name="Grants_GrantHint" xml:space="preserve"><value>Select a staffer from the list (IT staff who logged in at least once) or enter a VID manually.</value></data>
-  <data name="Grants_ActiveGrants" xml:space="preserve"><value>Active grants</value></data>
   <data name="Grants_NoneGranted" xml:space="preserve"><value>No permission granted.</value></data>
   <data name="Grants_GrantedBy" xml:space="preserve"><value>Granted by</value></data>
-  <data name="Grants_When" xml:space="preserve"><value>When</value></data>
   <data name="Grants_Revoke" xml:space="preserve"><value>Revoke</value></data>
   <data name="Grants_GrantPermission" xml:space="preserve"><value>Grant permission</value></data>
   <data name="Grants_ItStaffer" xml:space="preserve"><value>IT staffer</value></data>
   <data name="Grants_Select" xml:space="preserve"><value>— select —</value></data>
   <data name="Grants_NoStaffer" xml:space="preserve"><value>No staffer in the list: they appear after first login. Enter the VID manually.</value></data>
   <data name="Grants_NameOptional" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="Grants_GrantBtn" xml:space="preserve"><value>+ Grant</value></data>
+  <data name="Grants_GrantBtn" xml:space="preserve"><value>Grant</value></data>
   <data name="Grants_GrantedMsg" xml:space="preserve"><value>Permission granted.</value></data>
   <data name="Grants_RevokedMsg" xml:space="preserve"><value>Permission revoked.</value></data>
   <data name="Common_State" xml:space="preserve"><value>Status</value></data>
