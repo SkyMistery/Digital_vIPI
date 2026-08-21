@@ -635,6 +635,7 @@
   <data name="AdminTasks_DescOptional" xml:space="preserve"><value>Descrizione (facoltativa)</value></data>
   <data name="AdminTasks_DescPlaceholder" xml:space="preserve"><value>Dettagli dell'incarico…</value></data>
   <data name="AdminTasks_CreateBtn" xml:space="preserve"><value>+ Crea incarico</value></data>
+  <data name="Tasks_DocGone" xml:space="preserve"><value>Il documento collegato non esiste più</value></data>
   <data name="Task_Err_TitleRequired" xml:space="preserve"><value>Serve un titolo per l'incarico.</value></data>
   <data name="Task_Err_AssigneeRequired" xml:space="preserve"><value>Scegli a chi assegnare l'incarico.</value></data>
   <data name="Task_Err_NotAuthenticated" xml:space="preserve"><value>Non sei autenticato.</value></data>

@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
 @inject ICurrentUserProvider User
+@inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Tasks_MyTasks"] · IVAO Italia</PageTitle>
@@ -60,6 +61,8 @@
 
 @code {
     private IReadOnlyList<EditorTask>? _tasks;
+    private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
+        new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
     private bool _busy;
@@ -81,9 +84,21 @@
 
     private async Task Load()
     {
-        try { _tasks = await Tasks.ListMineAsync(); }
+        try
+        {
+            _tasks = await Tasks.ListMineAsync();
+            // Una risoluzione per CARICAMENTO, non una per card: il read-model interroga una volta sola, e
+            // se nessun incarico e' legato a un documento non interroga affatto.
+            _links = await TaskLinks.ForAsync(_tasks);
+        }
         catch (Exception ex) { _error = ex.Message; }
     }
+
+    /// <summary>Dove porta il tasto del documento collegato. null = non c'e' un posto dove andare, e allora
+    /// il tasto non si mostra: un'etichetta che mente costa piu' di un'etichetta assente (regola 168).</summary>
+    private EditorTaskLink? Link(EditorTask t) =>
+        t.TargetType is { } tipo && !string.IsNullOrWhiteSpace(t.TargetKey)
+            && _links.TryGetValue((tipo, t.TargetKey!), out var l) ? l : null;
 
     private async Task CreateMine()
     {
@@ -133,8 +148,15 @@
             @if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:12px;margin-top:2px">@t.Description</div> }
             @if (t.TargetKey is not null)
             {
-                <div style="margin-top:4px"><a class="btn ghost" href="@Vipi.Ui.Shared.TaskDocLink.LinkFor(t.TargetType, t.TargetKey)">@L["Tasks_OpenDoc"]</a></div>
+                var link = Link(t);
+                @if (link?.Url is { } url)
+                {
+                    <div style="margin-top:4px"><a class="btn ghost" href="@url" title="@link.TitoloCorrente">@L["Tasks_OpenDoc"]</a></div>
+                }
                 @if (!string.IsNullOrWhiteSpace(t.TargetLabel)) { <div class="muted" style="font-size:11px;margin-top:2px">@t.TargetLabel</div> }
+                @* Il documento non c'e' piu' (o non e' raggiungibile): si dice, invece di offrire un tasto
+                   che porta altrove. L'etichetta resta quella scritta nell'incarico. *@
+                @if (link?.Url is null) { <div class="muted" style="font-size:11px">@L["Tasks_DocGone"]</div> }
             }
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
                 @foreach (var s in Columns.Where(s => s != t.Status))

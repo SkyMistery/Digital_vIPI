@@ -5,6 +5,7 @@
 @inject IEditAuthorizationService Authz
 @inject IStaffRosterService Roster
 @inject IEditingService Editing
+@inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Grants_TasksTitle"] · IVAO Italia</PageTitle>
@@ -98,7 +99,19 @@
                             </td>
                             <td><span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span></td>
                             <td>@(t.DueAiracCycle is null ? "—" : $"AIRAC {t.DueAiracCycle}")@(overdue ? " ⚠" : "")</td>
-                            <td class="muted" style="font-size:11px">@(t.TargetLabel ?? (t.TargetKey is null ? "—" : t.TargetKey))</td>
+                            @* Il documento collegato si APRE anche da qui: chi assegna e controlla aveva
+                               solo l'etichetta, mentre la card dell'utente aveva il tasto. Quello che si fa
+                               in una pagina si fa anche nell'altra (regola 68). *@
+                            <td class="muted" style="font-size:11px">
+                                @if (Link(t)?.Url is { } url)
+                                {
+                                    <a href="@url" title="@Link(t)!.TitoloCorrente">@(t.TargetLabel ?? t.TargetKey)</a>
+                                }
+                                else
+                                {
+                                    @(t.TargetLabel ?? (t.TargetKey is null ? "—" : t.TargetKey))
+                                }
+                            </td>
                             <td><InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["AdminTasks_DeleteTask"]" Disabled="@_busy" OnConfirm="() => Delete(t.Id)"><Trigger><Icon Name="trash" /></Trigger></InlineConfirm></td>
                         </tr>
                     }
@@ -123,6 +136,8 @@
 
 @code {
     private IReadOnlyList<EditorTask>? _tasks;
+    private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
+        new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private IReadOnlyList<StaffRosterEntry>? _members;
     private IReadOnlyList<DocumentSummary> _docs = Array.Empty<DocumentSummary>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -150,9 +165,19 @@
 
     private async Task Load()
     {
-        try { _tasks = await Tasks.ListAllAsync(); }
+        try
+        {
+            _tasks = await Tasks.ListAllAsync();
+            // Una risoluzione per CARICAMENTO, non una per riga (regola 136).
+            _links = await TaskLinks.ForAsync(_tasks);
+        }
         catch (Exception ex) { _error = ex.Message; }
     }
+
+    /// <summary>Dove porta il documento collegato, se c'è ancora un posto dove andare.</summary>
+    private EditorTaskLink? Link(EditorTask t) =>
+        t.TargetType is { } tipo && !string.IsNullOrWhiteSpace(t.TargetKey)
+            && _links.TryGetValue((tipo, t.TargetKey!), out var l) ? l : null;
 
     private async Task Create()
     {

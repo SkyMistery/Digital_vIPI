@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
+        services.AddScoped<IEditorTaskLinksService, EditorTaskLinksService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();

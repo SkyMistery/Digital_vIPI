@@ -632,6 +632,7 @@
   <data name="AdminTasks_DescOptional" xml:space="preserve"><value>Description (optional)</value></data>
   <data name="AdminTasks_DescPlaceholder" xml:space="preserve"><value>Task details…</value></data>
   <data name="AdminTasks_CreateBtn" xml:space="preserve"><value>+ Create task</value></data>
+  <data name="Tasks_DocGone" xml:space="preserve"><value>The linked document no longer exists</value></data>
   <data name="Task_Err_TitleRequired" xml:space="preserve"><value>The task needs a title.</value></data>
   <data name="Task_Err_AssigneeRequired" xml:space="preserve"><value>Choose who the task is assigned to.</value></data>
   <data name="Task_Err_NotAuthenticated" xml:space="preserve"><value>You are not signed in.</value></data>
