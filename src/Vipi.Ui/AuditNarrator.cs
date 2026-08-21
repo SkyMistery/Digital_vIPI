@@ -23,13 +23,14 @@ public static class AuditNarrator
 {
     /// <summary>Famiglia dell'evento: è ciò su cui filtrano i chip della pagina, e non coincide con
     /// <see cref="AuditAction"/> (una eliminazione di documento e una revoca di permesso sono due famiglie).</summary>
-    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Altro }
+    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Altro }
 
     public static Categoria CategoriaDi(AuditEntry e) => (e.EntityType, e.Action) switch
     {
         ("DocumentVersion", AuditAction.Publish) => Categoria.Pubblicazione,
         ("DocumentVersion", AuditAction.Discard) => Categoria.Bozza,
         ("EditGrant", _) => Categoria.Permesso,
+        ("ImportPolicy", _) => Categoria.Sorgenti,
         (_, AuditAction.HierarchyChange) => Categoria.Gerarchia,
         (_, AuditAction.ForceUnlock) => Categoria.Lock,
         ("Document", _) => Categoria.Documento,
@@ -44,6 +45,9 @@ public static class AuditNarrator
     {
         (Categoria.Pubblicazione, _) => "green",
         (Categoria.Lock, _) => "amber",
+        // Ambra come il lock, e per la stessa ragione: non è una perdita di dati, è un cambio di regime che
+        // qualcuno dovrà spiegare se i dati smettono di aggiornarsi.
+        (Categoria.Sorgenti, _) => "amber",
         (_, AuditAction.Delete) => "red",
         (_, AuditAction.Archive) => "red",
         (_, AuditAction.Discard) => "red",
@@ -85,6 +89,7 @@ public static class AuditNarrator
             if (titoli is not null && titoli.TryGetValue(doc, out var dalDb)) return dalDb;
             return L["Audit_DocN", doc].Value;
         }
+        if (e.EntityType == "ImportPolicy") return L["Sorg_Title"].Value;
         if (e.EntityType == "EditResourceLock") return e.EntityId;
         if (e.EntityType == "EditGrant") return L["Audit_GrantN", e.EntityId].Value;
         return $"{e.EntityType} {e.EntityId}";
@@ -125,6 +130,15 @@ public static class AuditNarrator
                                                Str(d, "A") ?? L["Audit_NoParent"].Value].Value;
             case Categoria.Lock:
                 return L["Audit_Fr_ForceUnlock", Str(d, "HeldByName") ?? Int(d, "HeldByUserId")?.ToString() ?? "—"].Value;
+            case Categoria.Sorgenti:
+                // Le sole categorie CAMBIATE, e nelle due direzioni separate: «manuale → da sorgente» è
+                // l'unica che, al prossimo import, sovrascrive il lavoro fatto a mano.
+                var verso = Categorie(d, "DaSorgente", L);
+                var manuali = Categorie(d, "Manuali", L);
+                var frasi = new List<string>();
+                if (verso.Length > 0) frasi.Add(L["Audit_Fr_SrcToSource", string.Join(", ", verso)].Value);
+                if (manuali.Length > 0) frasi.Add(L["Audit_Fr_SrcToManual", string.Join(", ", manuali)].Value);
+                return frasi.Count > 0 ? string.Join(" · ", frasi) : L["Audit_Fr_SrcChanged"].Value;
             default:
                 return e.Action.ToString();
         }
@@ -158,6 +172,17 @@ public static class AuditNarrator
 
     private static int? Int(JsonElement? root, string nome) =>
         Prop(root, nome) is { ValueKind: JsonValueKind.Number } v && v.TryGetInt32(out var n) ? n : null;
+
+    /// <summary>Elenco di categorie di import, tradotto col vocabolario della pagina Sorgenti
+    /// (<see cref="ImportCategoryLabels"/>). Chiave assente o non un array ⇒ elenco vuoto.</summary>
+    private static string[] Categorie(JsonElement? root, string nome, IStringLocalizer L)
+    {
+        if (Prop(root, nome) is not { ValueKind: JsonValueKind.Array } arr) return Array.Empty<string>();
+        return arr.EnumerateArray()
+            .Where(x => x.ValueKind == JsonValueKind.String)
+            .Select(x => ImportCategoryLabels.Etichetta(x.GetString()!, L))
+            .ToArray();
+    }
 
     private static bool? Bool(JsonElement? root, string nome) => Prop(root, nome) switch
     {

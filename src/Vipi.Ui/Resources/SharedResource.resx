@@ -409,6 +409,7 @@
   <data name="Audit_Cat_Permesso" xml:space="preserve"><value>Permesso</value></data>
   <data name="Audit_Cat_Gerarchia" xml:space="preserve"><value>Gerarchia</value></data>
   <data name="Audit_Cat_Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Audit_Cat_Sorgenti" xml:space="preserve"><value>Sorgenti</value></data>
   <data name="Audit_Cat_Altro" xml:space="preserve"><value>Altro</value></data>
   <data name="Audit_Fr_Publish" xml:space="preserve"><value>Pubblicata la versione {0} (AIRAC {1})</value></data>
   <data name="Audit_Fr_PublishNoAirac" xml:space="preserve"><value>Pubblicata la versione {0}</value></data>
@@ -420,6 +421,9 @@
   <data name="Audit_Fr_GrantRevoke" xml:space="preserve"><value>Revocato a {0} il permesso su {1}</value></data>
   <data name="Audit_Fr_Hierarchy" xml:space="preserve"><value>Padre: da {0} a {1}</value></data>
   <data name="Audit_Fr_ForceUnlock" xml:space="preserve"><value>Lock tolto a {0}</value></data>
+  <data name="Audit_Fr_SrcToSource" xml:space="preserve"><value>Passate alla sorgente: {0} (al prossimo import sostituiscono quanto scritto a mano)</value></data>
+  <data name="Audit_Fr_SrcToManual" xml:space="preserve"><value>Passate a manuale: {0}</value></data>
+  <data name="Audit_Fr_SrcChanged" xml:space="preserve"><value>Policy delle sorgenti modificata</value></data>
   <data name="Audit_NoParent" xml:space="preserve"><value>nessuno</value></data>
   <data name="Audit_DocN" xml:space="preserve"><value>documento #{0}</value></data>
   <data name="Audit_GrantN" xml:space="preserve"><value>permesso #{0}</value></data>
@@ -702,6 +706,8 @@
   <data name="Sorg_ColProvenance" xml:space="preserve"><value>Provenienza</value></data>
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>importa dalla sorgente</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Quota di transizione dell'aeroporto</value></data>
+  <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
   <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Piste</value></data>
   <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Ident, lunghezza e bearing delle piste</value></data>
   <data name="Sorg_SectorsLabel" xml:space="preserve"><value>Settori</value></data>

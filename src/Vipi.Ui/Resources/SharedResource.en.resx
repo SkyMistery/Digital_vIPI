@@ -406,6 +406,7 @@
   <data name="Audit_Cat_Permesso" xml:space="preserve"><value>Permission</value></data>
   <data name="Audit_Cat_Gerarchia" xml:space="preserve"><value>Hierarchy</value></data>
   <data name="Audit_Cat_Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Audit_Cat_Sorgenti" xml:space="preserve"><value>Sources</value></data>
   <data name="Audit_Cat_Altro" xml:space="preserve"><value>Other</value></data>
   <data name="Audit_Fr_Publish" xml:space="preserve"><value>Published version {0} (AIRAC {1})</value></data>
   <data name="Audit_Fr_PublishNoAirac" xml:space="preserve"><value>Published version {0}</value></data>
@@ -417,6 +418,9 @@
   <data name="Audit_Fr_GrantRevoke" xml:space="preserve"><value>Revoked {0} permission on {1}</value></data>
   <data name="Audit_Fr_Hierarchy" xml:space="preserve"><value>Parent: from {0} to {1}</value></data>
   <data name="Audit_Fr_ForceUnlock" xml:space="preserve"><value>Lock forced off {0}</value></data>
+  <data name="Audit_Fr_SrcToSource" xml:space="preserve"><value>Moved to the source: {0} (the next import replaces what was entered manually)</value></data>
+  <data name="Audit_Fr_SrcToManual" xml:space="preserve"><value>Moved to manual: {0}</value></data>
+  <data name="Audit_Fr_SrcChanged" xml:space="preserve"><value>Data source policy changed</value></data>
   <data name="Audit_NoParent" xml:space="preserve"><value>none</value></data>
   <data name="Audit_DocN" xml:space="preserve"><value>document #{0}</value></data>
   <data name="Audit_GrantN" xml:space="preserve"><value>permission #{0}</value></data>
@@ -699,6 +703,8 @@
   <data name="Sorg_ColProvenance" xml:space="preserve"><value>Provenance</value></data>
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>import from source</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Airport transition altitude</value></data>
+  <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
   <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Runways</value></data>
   <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Runway ident, length and bearing</value></data>
   <data name="Sorg_SectorsLabel" xml:space="preserve"><value>Sectors</value></data>

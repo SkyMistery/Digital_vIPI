@@ -154,6 +154,49 @@ public class AuditNarratorTests
     }
 
     /// <summary>
+    /// Il cambio di policy delle sorgenti nomina le sole categorie toccate, e tiene separate le due
+    /// direzioni: «manuale → da sorgente» è l'unica che al prossimo import sovrascrive il lavoro a mano.
+    /// Le etichette sono quelle della pagina Sorgenti, non i nomi dell'enum.
+    /// </summary>
+    [Fact]
+    public void Il_cambio_di_sorgenti_dice_quali_categorie_e_in_che_verso()
+    {
+        var r = Riga(AuditAction.Update, "ImportPolicy", "1",
+            "{\"Manuali\":[\"Runways\"],\"DaSorgente\":[\"Sids\"]}");
+
+        Assert.Equal(AuditNarrator.Categoria.Sorgenti, AuditNarrator.CategoriaDi(r));
+        var frase = AuditNarrator.Frase(r, L);
+        Assert.Contains("Audit_Fr_SrcToSource(Sorg_SidLabel)", frase);
+        Assert.Contains("Audit_Fr_SrcToManual(Sorg_RunwaysLabel)", frase);
+        Assert.Equal("Sorg_Title", AuditNarrator.Bersaglio(r, L));
+    }
+
+    /// <summary>Una direzione sola non tira dietro la frase dell'altra (mezza riga vuota si nota).</summary>
+    [Fact]
+    public void Una_direzione_sola_produce_una_frase_sola()
+    {
+        var frase = AuditNarrator.Frase(
+            Riga(AuditAction.Update, "ImportPolicy", "1", "{\"Manuali\":[\"Sectors\"],\"DaSorgente\":[]}"), L);
+
+        Assert.Contains("Audit_Fr_SrcToManual(Sorg_SectorsLabel)", frase);
+        Assert.DoesNotContain("Audit_Fr_SrcToSource", frase);
+    }
+
+    /// <summary>
+    /// ⚠️ Le chiavi degli stati periodici NON sono i nomi di <c>ImportCategory</c> (<c>AirportSector</c>,
+    /// <c>SpecialArea</c>, <c>Sid</c> al singolare): a video sono la stessa riga e devono avere lo stesso
+    /// nome. Una categoria che il lettore non conosce si mostra grezza, non sparisce.
+    /// </summary>
+    [Theory]
+    [InlineData("AirportSector", "Sorg_SectorsLabel")]
+    [InlineData("SpecialArea", "Sorg_SpecialAreasLabel")]
+    [InlineData("Sid", "Sorg_SidLabel")]
+    [InlineData("TransitionAltitude", "Sorg_TaLabel")]
+    [InlineData("Quisquilia", "Quisquilia")]
+    public void Un_solo_vocabolario_per_le_categorie(string nome, string atteso) =>
+        Assert.Equal(atteso, ImportCategoryLabels.Etichetta(nome, L));
+
+    /// <summary>
     /// ⚠️ Dettagli assenti, vuoti o illeggibili non sono un motivo per rompere la pagina: il JSON del registro
     /// è stato scritto in momenti diversi da versioni diverse dell'app.
     /// </summary>
