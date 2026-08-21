@@ -141,7 +141,7 @@
                                                 </span>
                                                 <div class="diag-cat">@ConsistencyNarrator.Categoria(f, L)</div>
                                             </td>
-                                            <td class="c-ent">@f.Entity</td>
+                                            <td class="c-ent">@ConsistencyNarrator.Bersaglio(f, L)</td>
                                             @* ⚠️ Dal narratore, non dal finding: categoria e dettaglio nascono
                                                in italiano perché li leggono anche l'health check e i log,
                                                dove una lingua d'interfaccia non c'è. *@
@@ -298,7 +298,7 @@
     /// <summary>La ricerca guarda quello che si legge — categoria tradotta e dettaglio tradotto — <b>più</b>
     /// il testo grezzo: chi cerca «dangling» lo cerca perché l'ha letto in un log, non in pagina.</summary>
     private bool Cerca(ConsistencyFinding f) =>
-        (f.Entity + " " + f.Category + " " + f.Detail + " " +
+        (f.Entity + " " + f.Category + " " + f.Detail + " " + ConsistencyNarrator.Bersaglio(f, L) + " " +
          ConsistencyNarrator.Categoria(f, L) + " " + ConsistencyNarrator.Dettaglio(f, L))
         .Contains(_q, StringComparison.OrdinalIgnoreCase);
 

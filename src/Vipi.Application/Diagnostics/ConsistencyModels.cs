@@ -67,9 +67,17 @@ public enum ConsistencyArea
 /// <param name="DetailKey">Chiave di traduzione della spiegazione; gli argomenti stanno in
 /// <paramref name="DetailArgs"/>, nell'ordine in cui li usa il testo.</param>
 /// <param name="DetailArgs">Argomenti di <paramref name="DetailKey"/>.</param>
+/// <param name="EntityKey">
+/// Chiave di traduzione del bersaglio, coi suoi <paramref name="EntityArgs"/>. ⚠️ Serve anche a lui: metà dei
+/// bersagli non è un identificatore ma una <b>frase</b> — «Settore ACC LGGG_W_CTR», «Clausola #1 (LIBB,
+/// punti Y01-Y12)» — e in pagina inglese restavano in italiano anche dopo aver tradotto categoria e
+/// dettaglio. <c>null</c> per i bersagli che non sono prosa (<c>sql_mode</c>, <c>Documents.Title</c>).
+/// </param>
+/// <param name="EntityArgs">Argomenti di <paramref name="EntityKey"/>.</param>
 public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity,
     string Detail, ConsistencyArea Area, string? Where = null,
-    string? CategoryKey = null, string? DetailKey = null, object[]? DetailArgs = null);
+    string? CategoryKey = null, string? DetailKey = null, object[]? DetailArgs = null,
+    string? EntityKey = null, object[]? EntityArgs = null);
 
 /// <summary>Condizione di una clausola di accordo (soft-ref a pista/area denormalizzate).</summary>
 /// <param name="Points">I punti della clausola, come si leggono: servono solo a dire QUALE clausola nel
@@ -78,7 +86,9 @@ public sealed record TransferConditionRow(int ClauseId, string AccCode, string P
     int? ConditionRefId, string? ConditionLabel, string? ConditionAreaLabel);
 
 /// <summary>Nodo dei cataloghi che dichiara un padre di copertura per callsign (soft-ref cross-catalogo, no FK).</summary>
-public sealed record ParentRefRow(string Kind, string Reference, string ParentCallsign);
+/// <param name="Kind">Che cosa è il nodo, in chiaro: «Settore ACC», «Settore APT», «Aeroporto».</param>
+/// <param name="KindKey">La stessa cosa come chiave di traduzione, per chi il rilievo lo mostra.</param>
+public sealed record ParentRefRow(string Kind, string Reference, string ParentCallsign, string? KindKey = null);
 
 /// <summary>
 /// Sezione <c>regulated</c> di un documento con la sua selezione di aree, come JSON grezzo: il parse sta

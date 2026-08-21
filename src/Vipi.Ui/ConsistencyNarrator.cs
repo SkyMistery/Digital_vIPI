@@ -25,6 +25,14 @@ public static class ConsistencyNarrator
     public static string Dettaglio(ConsistencyFinding f, IStringLocalizer L) =>
         Tradotto(f.DetailKey, f.DetailArgs, L) ?? f.Detail;
 
+    /// <summary>
+    /// Il bersaglio, tradotto. ⚠️ Serve anche a lui: metà dei bersagli non è un identificatore ma una
+    /// <b>frase</b> — «Settore ACC LGGG_W_CTR», «Clausola #1 (LIBB, punti Y01-Y12)» — e in pagina inglese
+    /// restavano in italiano anche dopo aver tradotto categoria e dettaglio. La cura a metà si vede.
+    /// </summary>
+    public static string Bersaglio(ConsistencyFinding f, IStringLocalizer L) =>
+        Tradotto(f.EntityKey, f.EntityArgs, L) ?? f.Entity;
+
     /// <summary>Il nome dell'area, per i chip e per la Guida.</summary>
     public static string Area(ConsistencyArea area, IStringLocalizer L) => L["Diag_Area_" + area].Value;
 

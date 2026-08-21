@@ -449,7 +449,7 @@
   <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Callsign ambiguo</value></data>
   <data name="Diag_Msg_CallsignAmbiguo" xml:space="preserve"><value>Con «{0}» online, «{1}» risulterebbe online anche se non lo è: i due callsign si confondono nella risalita della copertura.</value></data>
   <data name="Diag_Cat_SondaRotta" xml:space="preserve"><value>Controllo non riuscito</value></data>
-  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>Il controllo «{0}» non è andato a buon fine ({1}: {2}). Gli altri sono stati eseguiti lo stesso, ma di quest’area il report non sa dire niente: qui l’assenza di rilievi non vuol dire che vada tutto bene.</value></data>
+  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>Non è andato a buon fine ({0}: {1}). Gli altri controlli sono stati eseguiti lo stesso, ma di quest’area il report non sa dire niente: qui l’assenza di rilievi non vuol dire che vada tutto bene.</value></data>
   <data name="Diag_Cat_Server" xml:space="preserve"><value>Configurazione del server</value></data>
   <data name="Diag_Msg_SqlModeIllegibile" xml:space="preserve"><value>Non si è riusciti a leggere @@sql_mode: impossibile dire se una scrittura troppo lunga fallirebbe o verrebbe troncata in silenzio.</value></data>
   <data name="Diag_Msg_NoStrictMode" xml:space="preserve"><value>Il server NON è in strict mode (@@sql_mode = «{0}»): un valore più lungo della sua colonna viene troncato in silenzio invece di far fallire la scrittura. Serve {1}. Si corregge nella configurazione del server, non da qui.</value></data>
@@ -482,7 +482,17 @@
   <data name="Diag_NoneInFilter" xml:space="preserve"><value>Nessun rilievo con questi filtri.</value></data>
   <data name="Diag_Where" xml:space="preserve"><value>Dove si ripara</value></data>
   <data name="Diag_AdminHelpAria" xml:space="preserve"><value>Come si leggono i codici admin</value></data>
-  <data name="Diag_NoIssues" xml:space="preserve"><value>Nessuna incongruenza rilevata: tutti i soft-ref risolvono e le etichette denormalizzate combaciano.</value></data>
+  <data name="Diag_Ent_Clausola" xml:space="preserve"><value>Clausola #{0} ({1}, punti {2})</value></data>
+  <data name="Diag_Ent_SettoreAcc" xml:space="preserve"><value>Settore ACC {0}</value></data>
+  <data name="Diag_Ent_SettoreApt" xml:space="preserve"><value>Settore d’aeroporto {0}</value></data>
+  <data name="Diag_Ent_Aeroporto" xml:space="preserve"><value>Aeroporto {0}</value></data>
+  <data name="Diag_Ent_Staffisti" xml:space="preserve"><value>{0} staffisti nel roster</value></data>
+  <data name="Diag_Pezzo_Dati" xml:space="preserve"><value>Incongruenze dei dati</value></data>
+  <data name="Diag_Pezzo_Schema" xml:space="preserve"><value>Drift di schema</value></data>
+  <data name="Diag_Pezzo_Admin" xml:space="preserve"><value>Copertura admin</value></data>
+  <data name="Diag_Pezzo_Server" xml:space="preserve"><value>Impostazioni del server</value></data>
+  <data name="Diag_Pezzo_Avvio" xml:space="preserve"><value>Manutenzioni d’avvio</value></data>
+  <data name="Diag_NoIssues" xml:space="preserve"><value>Nessun rilievo: tutti i controlli sono andati a buon fine e nessuno ha trovato niente da dire — dati, schema, server, avvio e configurazione.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} incongruenze rilevate ({1} gravi). Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato è stato modificato. Correzione manuale via editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Gravità</value></data>
   <data name="Diag_Category" xml:space="preserve"><value>Categoria</value></data>
@@ -1662,7 +1672,7 @@
   <data name="Img_CaptionPh" xml:space="preserve"><value>Testo sotto l'immagine (facoltativo)</value></data>
   <data name="Img_Remove" xml:space="preserve"><value>Rimuovi immagine</value></data>
   <data name="MediaClean_Title" xml:space="preserve"><value>Immagini dei documenti</value></data>
-  <data name="MediaClean_Intro" xml:space="preserve"><value>Le immagini restano nel database anche quando togli il blocco che le mostrava: una versione pubblicata potrebbe ancora citarle. Qui vedi quelle che non serve piu' tenere e puoi liberarne lo spazio.</value></data>
+  <data name="MediaClean_Intro" xml:space="preserve"><value>Le immagini restano nel database anche quando togli il blocco che le mostrava: una versione pubblicata potrebbe ancora citarle. Qui vedi quelle che non serve più tenere e puoi liberarne lo spazio.</value></data>
   <data name="MediaClean_Analyze" xml:space="preserve"><value>Analizza</value></data>
   <data name="MediaClean_Working" xml:space="preserve"><value>Analisi in corso...</value></data>
   <data name="MediaClean_Total" xml:space="preserve"><value>{0} immagini, {1} in tutto</value></data>

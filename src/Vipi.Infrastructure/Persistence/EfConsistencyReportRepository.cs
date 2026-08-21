@@ -36,13 +36,13 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
         var parentRefs = new List<ParentRefRow>();
         parentRefs.AddRange(await _db.AccSectors.AsNoTracking()
             .Where(s => s.ParentCallsign != null)
-            .Select(s => new ParentRefRow("Settore ACC", s.ComposePosition, s.ParentCallsign!)).ToListAsync(ct));
+            .Select(s => new ParentRefRow("Settore ACC", s.ComposePosition, s.ParentCallsign!, "Diag_Ent_SettoreAcc")).ToListAsync(ct));
         parentRefs.AddRange(await _db.AirportSectors.AsNoTracking()
             .Where(s => s.ParentCallsign != null)
-            .Select(s => new ParentRefRow("Settore APT", s.ComposePosition, s.ParentCallsign!)).ToListAsync(ct));
+            .Select(s => new ParentRefRow("Settore APT", s.ComposePosition, s.ParentCallsign!, "Diag_Ent_SettoreApt")).ToListAsync(ct));
         parentRefs.AddRange(await _db.Airports.AsNoTracking()
             .Where(a => a.ParentCallsign != null)
-            .Select(a => new ParentRefRow("Aeroporto", a.Icao, a.ParentCallsign!)).ToListAsync(ct));
+            .Select(a => new ParentRefRow("Aeroporto", a.Icao, a.ParentCallsign!, "Diag_Ent_Aeroporto")).ToListAsync(ct));
 
         // Callsign validi come padre = chiavi naturali dei cataloghi (ACC + aeroporto).
         var valid = (await _db.AccSectors.AsNoTracking().Select(s => s.ComposePosition).ToListAsync(ct))

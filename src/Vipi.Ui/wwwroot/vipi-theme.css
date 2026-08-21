@@ -2316,10 +2316,12 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .diag-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
 /* Colonne fisse tranne il dettaglio, che e' prosa e prende quello che avanza. Il min-width della tabella e'
    la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
-.struct .diag-table{table-layout:fixed;min-width:640px}
+.struct .diag-table{table-layout:fixed;min-width:700px}
 .struct .diag-table td{padding:6px 10px;vertical-align:top}
 .struct .diag-table .c-cat{width:170px}
-.struct .diag-table .c-ent{width:190px;overflow-wrap:anywhere}
+/* ⚠️ Misurata sul valore più lungo che il produttore sa generare («Settore d’aeroporto LIRF_APP»),
+   non a occhio: a 190px alcune righe andavano a capo e altre no, e l’elenco sembrava sghembo. */
+.struct .diag-table .c-ent{width:230px;overflow-wrap:anywhere}
 .struct .diag-table .c-det{min-width:220px;overflow-wrap:anywhere}
 .struct .diag-table .c-where{width:120px}
 .struct .diag-table .pill{white-space:nowrap}
@@ -2338,3 +2340,9 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
 .struct .diag-admin{min-width:0}
 .struct .diag-admin td{padding:5px 8px}
+/* Spaziatura interna delle schede della Diagnostica: era `style="margin-top:Npx"` sparso nel markup, con tre
+   valori diversi per la stessa cosa. */
+.struct .diag-side .diag-mt{margin:10px 0 0}
+/* La tabella delle immagini scorre dentro la scheda, non allunga la pagina. */
+.struct .diag-side .res-table{min-width:0}
+.struct .diag-side .img-thumb{max-width:48px;height:auto}

@@ -94,6 +94,25 @@ public class ConsistencyNarratorTests
         Assert.Equal(f.Detail, ConsistencyNarrator.Dettaglio(f, mancante));
     }
 
+    /// <summary>
+    /// ⚠️ Anche il <b>bersaglio</b> va tradotto quando è una frase. La prima stesura di questo giro aveva
+    /// tradotto categoria e dettaglio e lasciato indietro l'entità: in pagina inglese si leggeva
+    /// «severe | Broken hierarchy | <b>Settore ACC</b> LGGG_W_CTR». Una cura a metà si vede.
+    /// </summary>
+    [Fact]
+    public void Anche_il_bersaglio_si_traduce_quando_e_una_frase()
+    {
+        var conFrase = TuttiIRilievi().Where(f => f.EntityKey is not null).ToList();
+        Assert.NotEmpty(conFrase);
+        Assert.All(conFrase, f => Assert.StartsWith(f.EntityKey!, ConsistencyNarrator.Bersaglio(f, L)));
+
+        // ⚠️ E chi NON è una frase resta com'è: «sql_mode» e «Documents.Title» sono identificatori, non
+        // prosa, e tradurli sarebbe inventare un secondo nome per la stessa cosa.
+        var identificatori = TuttiIRilievi().Where(f => f.EntityKey is null).ToList();
+        Assert.NotEmpty(identificatori);
+        Assert.All(identificatori, f => Assert.Equal(f.Entity, ConsistencyNarrator.Bersaglio(f, L)));
+    }
+
     /// <summary>Un rilievo senza chiavi (venuto da codice più vecchio) si legge lo stesso.</summary>
     [Fact]
     public void Un_rilievo_senza_chiavi_mostra_il_testo_grezzo()
@@ -128,7 +147,9 @@ public class ConsistencyNarratorTests
                 new TransferConditionRow(2, "LIRR", "EKMUR", 10, "Pista 34R", null),
             },
             RunwayIdents = new Dictionary<int, string> { [10] = "16R" },
-            ParentRefs = new[] { new ParentRefRow("Settore APT", "LIRF_TWR", "LIXX_APP") },
+            // ⚠️ La chiave del tipo di nodo la dichiara il REPOSITORY: qui va passata come in produzione,
+            // altrimenti il test proverebbe un caso che nell'app non esiste.
+            ParentRefs = new[] { new ParentRefRow("Settore APT", "LIRF_TWR", "LIXX_APP", "Diag_Ent_SettoreApt") },
             ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_TWR", "LIRF_TWR_X" },
             RegulatedRefs = new[] { new RegulatedRefRow("vIPI", "Roma ACC", """{"OwnIds":["999"],"ExtraIds":[]}""") },
         };

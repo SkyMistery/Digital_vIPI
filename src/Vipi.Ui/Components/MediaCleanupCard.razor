@@ -1,4 +1,4 @@
-@* Pulizia delle immagini non più usate (docs/feature/2026-07-31-pulizia-immagini-orfane.md).
+﻿@* Pulizia delle immagini non più usate (docs/feature/2026-07-31-pulizia-immagini-orfane.md).
    Due tempi: prima si guarda l'elenco, poi si cancella. Mai in un colpo solo, e mai in automatico: se un domani
    nascesse un quarto posto in cui un'immagine può essere citata e ci si dimenticasse di includerlo nella ricerca,
    un lavoro automatico cancellerebbe foto ancora in uso di notte, senza che nessuno veda. *@
@@ -8,40 +8,46 @@
 @inject IStringLocalizer<SharedResource> L
 @* IMediaMaintenance dallo scope PROPRIO: legge tabelle grosse e non deve passare per il DbContext del circuito. *@
 
-<div class="block" style="margin-top:18px">
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <h3 style="margin:0;flex:1">@L["MediaClean_Title"]</h3>
-        <button class="btn ghost" disabled="@_busy" @onclick="AnalyzeAsync">
-            <Icon Name="refresh" /> @L["MediaClean_Analyze"]
-        </button>
+@* ⚠️ La testata è la stessa dell'altra scheda della Diagnostica: due schede affiancate con due pesi
+   tipografici diversi si leggono come due livelli, e non lo sono. E l'introduzione — tre righe di prosa che
+   spiegano il MECCANISMO — sta nel «?» come su tutte le pagine del giro (regola 7): serve a chi si chiede
+   perché un'immagine risulti inutilizzata, non a chi guarda quante sono. *@
+<div class="panel diag-card">
+    <div class="doc-head st-head diag-card-head">
+        <h3 class="st-h2"><Icon Name="copy" Size="15" /> @L["MediaClean_Title"]</h3>
+        <HelpHint AriaLabel="@L["MediaClean_Title"]" ExtraClass="wide">@L["MediaClean_Intro"]</HelpHint>
+        <nav class="struct-nav">
+            <button class="btn ghost" disabled="@_busy" @onclick="AnalyzeAsync">
+                <Icon Name="refresh" Size="14" /> @L["MediaClean_Analyze"]
+            </button>
+        </nav>
     </div>
-    <p class="muted" style="margin:6px 0 0">@L["MediaClean_Intro"]</p>
 
     @if (_busy)
     {
-        <p class="help" style="margin-top:10px">@L["MediaClean_Working"]</p>
+        <p class="help diag-mt">@L["MediaClean_Working"]</p>
     }
     else if (_report is { } r)
     {
-        <p style="margin:10px 0 0">
+        <p class="diag-mt">
             <b>@Plurale("MediaClean_Total", r.TotalCount, r.TotalCount, Human(r.TotalBytes))</b>
         </p>
 
         @if (r.Orphans.Count == 0)
         {
-            <div class="callout" style="margin-top:8px">
+            <div class="callout diag-mt">
                 <span class="cic"><Icon Name="check-circle" Size="18" /></span>
                 <div>@L["MediaClean_NoneUnused"]</div>
             </div>
         }
         else
         {
-            <div class="callout warning" style="margin-top:8px">
+            <div class="callout warning diag-mt">
                 <span class="cic">⚠️</span>
                 <div>@Plurale("MediaClean_FoundUnused", r.Orphans.Count, r.Orphans.Count, Human(r.ReclaimableBytes))</div>
             </div>
 
-            <table class="res-table" style="margin-top:10px">
+            <table class="res-table diag-mt">
                 <thead>
                     <tr>
                         <th style="width:96px">@L["MediaClean_ColPreview"]</th>
@@ -67,7 +73,7 @@
                 </tbody>
             </table>
 
-            <div style="margin-top:10px">
+            <div class="diag-mt">
                 <InlineConfirm TriggerClass="btn danger" TriggerTitle="@L["MediaClean_DeleteTitle"]"
                                Prompt="@Plurale("MediaClean_DeletePrompt", _report.Orphans.Count, _report.Orphans.Count)"
                                Disabled="@_busy" OnConfirm="DeleteAsync">
@@ -79,7 +85,7 @@
 
     @if (_done is { } messaggio)
     {
-        <div class="callout" style="margin-top:8px">
+        <div class="callout diag-mt">
             <span class="cic"><Icon Name="check-circle" Size="18" /></span>
             <div>@messaggio</div>
         </div>

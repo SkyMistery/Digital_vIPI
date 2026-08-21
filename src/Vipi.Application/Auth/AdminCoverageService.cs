@@ -93,7 +93,8 @@ public sealed class AdminCoverageService : IAdminCoverageService
                 // rilievo dice. Mandare a /vsop/admin/permessi sarebbe mandare a una porta chiusa.
                 ConsistencyArea.Configurazione,
                 CategoryKey: "Diag_Cat_NessunAdmin", DetailKey: "Diag_Msg_NessunAdmin",
-                DetailArgs: new object[] { string.Join(" | ", c.Patterns), visti }),
+                DetailArgs: new object[] { string.Join(" | ", c.Patterns), visti },
+                EntityKey: "Diag_Ent_Staffisti", EntityArgs: new object[] { c.Rows.Count }),
         };
     }
 }

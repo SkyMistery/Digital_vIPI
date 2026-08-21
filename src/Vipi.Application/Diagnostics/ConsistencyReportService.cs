@@ -94,18 +94,18 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // applicata alle sonde di chi quel registro lo legge.
         // ⚠️ Il guasto eredita l'AREA del pezzo che non è riuscito: è l'area di cui il report non sa più dire
         // niente, ed è la sola cosa che rende quel rilievo utile a chi guarda i conteggi per area.
-        await Raccogli(findings, "incongruenze dei dati", ConsistencyArea.Dati,
+        await Raccogli(findings, "incongruenze dei dati", "Diag_Pezzo_Dati", ConsistencyArea.Dati,
             async () => Analyze(await _repo.LoadAsync(ct)), ct);
         if (_schema is not null)
-            await Raccogli(findings, "drift di schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
+            await Raccogli(findings, "drift di schema", "Diag_Pezzo_Schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
         if (_admin is not null)
-            await Raccogli(findings, "copertura admin", ConsistencyArea.Configurazione, () => _admin.RunAsync(ct), ct);
+            await Raccogli(findings, "copertura admin", "Diag_Pezzo_Admin", ConsistencyArea.Configurazione, () => _admin.RunAsync(ct), ct);
         if (_server is not null)
-            await Raccogli(findings, "impostazioni del server", ConsistencyArea.Server, () => _server.RunAsync(ct), ct);
+            await Raccogli(findings, "impostazioni del server", "Diag_Pezzo_Server", ConsistencyArea.Server, () => _server.RunAsync(ct), ct);
         // Non è una sonda: è già successo, all'avvio. Qui si legge soltanto — e può solo fallire se qualcuno
         // ci mettesse dentro dell'I/O, quindi passa dallo stesso cancello per non doverlo ricordare.
         if (_startup is not null)
-            await Raccogli(findings, "manutenzioni d'avvio", ConsistencyArea.Avvio,
+            await Raccogli(findings, "manutenzioni d'avvio", "Diag_Pezzo_Avvio", ConsistencyArea.Avvio,
                 () => Task.FromResult(_startup.Findings), ct);
 
         return findings;
@@ -114,8 +114,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// <summary>
     /// Esegue un pezzo del report e ne accoda i rilievi; se lancia, accoda <b>il guasto</b> e prosegue.
     /// </summary>
-    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo, ConsistencyArea area,
-        Func<Task<IReadOnlyList<ConsistencyFinding>>> esegui, CancellationToken ct)
+    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo, string pezzoKey,
+        ConsistencyArea area, Func<Task<IReadOnlyList<ConsistencyFinding>>> esegui, CancellationToken ct)
     {
         try
         {
@@ -131,9 +131,18 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 "Gli altri controlli sono stati eseguiti lo stesso, ma di quest'area il report non sa dire " +
                 "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene.", area,
                 CategoryKey: "Diag_Cat_SondaRotta", DetailKey: "Diag_Msg_SondaRotta",
-                DetailArgs: new object[] { pezzo, ex.GetType().Name, ex.Message }));
+                // ⚠️ Il nome del pezzo NON entra negli argomenti: sta già nella colonna del bersaglio, e da
+                // lì lo traduce il narratore. Ripetuto qui compariva grezzo — in italiano dentro una frase
+                // inglese — perché un argomento è un valore, non una chiave.
+                DetailArgs: new object[] { ex.GetType().Name, ex.Message },
+                EntityKey: pezzoKey));
         }
     }
+
+    /// <summary>Come si nomina una clausola a video: numero, ACC e punti. Un posto solo, perché tre rilievi
+    /// diversi parlano della stessa clausola e devono chiamarla allo stesso modo.</summary>
+    private static object[] ArgomentiClausola(TransferConditionRow t) =>
+        new object[] { t.ClauseId, t.AccCode, t.Points };
 
     // Logica pura (nessuna dipendenza da EF): il dataset è già in memoria ⇒ testabile con fixture.
     public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d)
@@ -151,7 +160,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     $"ConditionRefId={refId} non corrisponde a nessuna pista: rimossa o re-importata con altro Id.",
                     ConsistencyArea.Dati, DoveAccordi,
                     CategoryKey: "Diag_Cat_PistaOrfana", DetailKey: "Diag_Msg_PistaOrfana",
-                    DetailArgs: new object[] { refId }));
+                    DetailArgs: new object[] { refId },
+                    EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
             // 2) Label divergente: la pista esiste ma il suo ident non compare più nell'etichetta denormalizzata.
             else if (t.ConditionRefId is int okId
@@ -163,7 +173,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     $"La pista referenziata è ora «{ident}» ma l'etichetta salvata è «{t.ConditionLabel}»: rinominata dopo il salvataggio.",
                     ConsistencyArea.Dati, DoveAccordi,
                     CategoryKey: "Diag_Cat_LabelPista", DetailKey: "Diag_Msg_LabelPista",
-                    DetailArgs: new object[] { ident, t.ConditionLabel! }));
+                    DetailArgs: new object[] { ident, t.ConditionLabel! },
+                    EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
 
             // 3) Area fantasma: l'area denormalizzata non corrisponde ad alcuna area speciale esistente.
@@ -173,7 +184,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa.",
                     ConsistencyArea.Dati, DoveAccordi,
                     CategoryKey: "Diag_Cat_AreaFantasma", DetailKey: "Diag_Msg_AreaFantasma",
-                    DetailArgs: new object[] { t.ConditionAreaLabel! }));
+                    DetailArgs: new object[] { t.ConditionAreaLabel! },
+                    EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
         }
 
@@ -187,7 +199,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     $"ParentCallsign «{p.ParentCallsign}» non esiste nei cataloghi: catena di copertura interrotta.",
                     ConsistencyArea.Dati, DoveStruttura,
                     CategoryKey: "Diag_Cat_GerarchiaDangling", DetailKey: "Diag_Msg_GerarchiaDangling",
-                    DetailArgs: new object[] { p.ParentCallsign }));
+                    DetailArgs: new object[] { p.ParentCallsign },
+                    EntityKey: p.KindKey, EntityArgs: new object[] { p.Reference }));
             }
         }
 

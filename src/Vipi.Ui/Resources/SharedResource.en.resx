@@ -446,7 +446,7 @@
   <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Ambiguous callsign</value></data>
   <data name="Diag_Msg_CallsignAmbiguo" xml:space="preserve"><value>With «{0}» online, «{1}» would also appear online when it is not: the two callsigns are confused when walking up the coverage chain.</value></data>
   <data name="Diag_Cat_SondaRotta" xml:space="preserve"><value>Check did not run</value></data>
-  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>The check «{0}» did not complete ({1}: {2}). The others still ran, but this area is unknown to the report: no findings here does not mean all is well.</value></data>
+  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>It did not complete ({0}: {1}). The other checks still ran, but this area is unknown to the report: no findings here does not mean all is well.</value></data>
   <data name="Diag_Cat_Server" xml:space="preserve"><value>Database server settings</value></data>
   <data name="Diag_Msg_SqlModeIllegibile" xml:space="preserve"><value>@@sql_mode could not be read: there is no way to tell whether an over-long write would fail or be silently truncated.</value></data>
   <data name="Diag_Msg_NoStrictMode" xml:space="preserve"><value>The server is NOT in strict mode (@@sql_mode = «{0}»): a value longer than its column is silently truncated instead of failing the write. {1} is required. Fix it in the server configuration, not here.</value></data>
@@ -479,7 +479,17 @@
   <data name="Diag_NoneInFilter" xml:space="preserve"><value>No findings with these filters.</value></data>
   <data name="Diag_Where" xml:space="preserve"><value>Where to fix it</value></data>
   <data name="Diag_AdminHelpAria" xml:space="preserve"><value>How to read the admin codes</value></data>
-  <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>
+  <data name="Diag_Ent_Clausola" xml:space="preserve"><value>Clause #{0} ({1}, points {2})</value></data>
+  <data name="Diag_Ent_SettoreAcc" xml:space="preserve"><value>ACC sector {0}</value></data>
+  <data name="Diag_Ent_SettoreApt" xml:space="preserve"><value>Airport sector {0}</value></data>
+  <data name="Diag_Ent_Aeroporto" xml:space="preserve"><value>Airport {0}</value></data>
+  <data name="Diag_Ent_Staffisti" xml:space="preserve"><value>{0} staff members in the roster</value></data>
+  <data name="Diag_Pezzo_Dati" xml:space="preserve"><value>Data inconsistencies</value></data>
+  <data name="Diag_Pezzo_Schema" xml:space="preserve"><value>Schema drift</value></data>
+  <data name="Diag_Pezzo_Admin" xml:space="preserve"><value>Admin coverage</value></data>
+  <data name="Diag_Pezzo_Server" xml:space="preserve"><value>Server settings</value></data>
+  <data name="Diag_Pezzo_Avvio" xml:space="preserve"><value>Startup maintenance</value></data>
+  <data name="Diag_NoIssues" xml:space="preserve"><value>No findings: every check completed and none had anything to report — data, schema, server, startup and configuration.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>
   <data name="Diag_Category" xml:space="preserve"><value>Category</value></data>
