@@ -272,27 +272,63 @@ rende affatto** (il componente si nasconde con una voce sola): tolta la briciola
 «Bozze & versioni» in testata — verificato, perché togliere una briciola in una pagina senza barra sarebbe
 stato lasciarla senza uscita.
 
-### La prossima pagina: Incarichi
+### La prossima pagina: Incarichi — briefing MISURATO (22 agosto)
 
-**Incarichi admin** (`/vsop/admin/tasks`, 900px) e **Incarichi utente** (`/vsop/tasks`, 900px) — due pagine,
-non una, e la differenza è dichiarata: la seconda è d'utente e resta **senza barra**, con la sua briciola.
-Poi gli **editor APP/vLOA**. L'ordine aggiornato sta in §15.
+Due pagine, non una. ⚠️ **La ricognizione le dava entrambe a 900: erano misure a tabella VUOTA** — nel DB di
+sviluppo `EditorTasks` ha **zero righe**. Rimisurate riempiendola (12 incarichi = uso normale, 60 = un ciclo
+accumulato; sei persone, perché il riepilogo per editore cresce col numero di **persone**, non di incarichi):
 
-⚠️ **Quei 900 sono misure a pagina quasi vuota**, e dopo cinque giri vale la pena dirlo prima: la
-ricognizione dava 900 anche a Diagnostica (erano 1 349 con otto rilievi), 1 346 a Permessi (erano 2 449) e
-1 556 ad Audit (erano 13 293).
+| Pagina | Con 12 | Con 60 | Cosa cresce |
+|---|---:|---:|---|
+| **Incarichi admin** `/vsop/admin/tasks` | **1 813** | **4 764** | la tabella: **64px a riga**, e non ha tetto |
+| **Incarichi utente** `/vsop/tasks` | 900 (con 2 suoi) | **1 562** (con 12 suoi) | le schede kanban nelle cinque colonne |
 
-Le tre lezioni del ramo, in ordine di quanto sono costate:
-1. ⚠️ **Prima di renderla bella, verificare che dica il vero.** **Cinque** pagine su cinque — Versioni,
-   Audit, Sorgenti, Diagnostica, Nuovo documento — aperte per la densità nascondevano un difetto di sostanza.
-   Su quattro era la **prosa della pagina** a prometterlo; sulla quinta era il **nome**.
-2. ⚠️ **Prima di misurarla riempirla** (Permessi) e, se accumula, **rimisurarla** (Audit). E se ha schede,
-   **misurarle tutte** (Nuovo documento).
-3. **Il riquadro misurato non è un riflesso**: `height` dove il contenuto è più alto dello schermo per
-   mestiere, `max-height` dove è corto e fisso — ma `max-height` **serve lo stesso**, perché lo zoom cambia
-   quello che «ci sta».
+A 1280×800 la pagina utente **scorre già** con quattro incarichi (854 su 800).
+
+**Cosa le manca, misurato (1600×900, IT, 12 incarichi):**
+
+- ⚠️ **Il form «Nuovo incarico» sta in cima, sempre aperto**: 242px di modulo + 34 di titolo di sezione =
+  **276px prima di vedere un solo incarico**. È il gesto **raro** (si crea di tanto in tanto, si guarda
+  l'elenco sempre) che paga zero clic mentre quello comune scorre. È la regola 118 di Permessi
+  («chi paga il clic è il gesto raro»), qui al contrario.
+- ⚠️ **`thead` non fermo** su una tabella che a 60 righe è alta 3 730px. `<table>` nuda, non `.res-table`.
+- ⚠️ **Le tre sezioni in colonna**: «Nuovo incarico», «Tutti gli incarichi», «Avanzamento per editor».
+  L'avanzamento sta **sotto 1 500px** e non lo vede nessuno — stesso difetto della card immagini in
+  Diagnostica, e stessa cura possibile (una colonna a destra).
+- **Riepilogo per editore**: sei schede da 244px in tutto per **due numeri ciascuna** («0/2 completati · 1 in
+  ritardo»). Con 20 staffisti diventa una parete.
+- **Riga da 64px**: titolo su due righe più la descrizione sotto in 11px.
+- `.wrap` a **1 200px** ⇒ la barra admin va su **due righe** (75px invece di 55).
+- **Nessun «?» in nessuna delle due**, e due sottotitoli in fascia.
+- La pagina utente **non ha la barra e ha la briciola**, ed è giusto: è una pagina d'utente. ⚠️ Ma dopo
+  Nuovo documento sappiamo che la briciola lì è **l'unica** risalita, quindi non si tocca.
+
+**Da guardare per la sostanza** (il giro precedente insegna che la densità nasconde sempre qualcosa —
+cinque pagine su cinque):
+
+- la colonna **Stato** è una `<select>` per riga che scrive subito: nessuna conferma, nessun undo, e su
+  «Fatto» scrive anche `CompletedUtc`. Vale la pena vedere se un cambio di stato lascia traccia da qualche
+  parte — **l'audit non lo registra** (le cinque scritture note sono documenti, permessi, force-unlock,
+  gerarchia, sorgenti);
+- `ListAllAsync` è `EnsureAdmin`, ma la pagina utente mostra i **propri**: verificare che un editor non
+  possa vedere o toccare gli incarichi altrui passando dall'URL;
+- gli incarichi **non si archiviano**: «Fatto» resta nell'elenco per sempre, ed è la ragione per cui la
+  pagina cresce senza tetto. Un filtro per stato/ciclo AIRAC è probabilmente la cosa che serve di più a chi
+  la usa, più della densità.
+
+⚠️ **Il metodo, sintetizzato dopo cinque giri**: riempire → misurare ogni stato (e ogni scheda, se ce ne
+sono) → leggere il codice cercando cosa la pagina *afferma* → carta → slice → verifica live → guardare gli
+screenshot.
 
 ## Aperto, e non è di queste pagine
+
+- ⚠️ **La guardia «una coppia, una vLOA» non è atomica.** `CreateDocumentAsync` cerca la coppia e poi crea;
+  non c'è un **indice unico** su `DocumentParty` per (Home, Neighbour). Due richieste in parallelo possono
+  passare entrambe il controllo. In pratica lo copre il lock `newdoc` — che è la ragione per cui quel lock
+  resta anche adesso che la guardia c'è — ma il lock vale solo per **quella porta**: una creazione che
+  arrivi da un seed, da un test o da una pagina futura non lo prende. La difesa definitiva è l'indice unico,
+  ed è una migrazione sullo schema del committente: ⚠️ prima va verificato **in produzione** che non
+  esistano già coppie duplicate, altrimenti la migrazione fallisce all'avvio.
 
 - ⚠️ La **topbar** fa scorrere la pagina in orizzontale a 1280/1024: `div.right` misura **1 385px dentro
   1 280** (rimisurato il 21 agosto; il 20 erano 1 411), identico su home, struttura, viewer e versioni — e

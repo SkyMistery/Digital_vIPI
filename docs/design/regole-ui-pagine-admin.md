@@ -274,9 +274,9 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
-| 2 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
-| 3 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | **1 813** | ⚠️ **Rimisurata il 22 agosto riempiendo `EditorTasks`, che nel DB di sviluppo è VUOTA**: 1 813 con 12 incarichi, **4 764 con 60**, e non ha tetto (64px a riga, il «Fatto» non si archivia). Il form «Nuovo incarico» sta in cima sempre aperto — 276px prima del primo incarico, e creare è il gesto RARO (regola 118 al contrario). `thead` non fermo su una tabella da 3 730px. L'«Avanzamento per editor» sta sotto 1 500px: non lo vede nessuno. Nessun «?», barra su due righe (`.wrap` a 1 200px). |
+| 2 | **Incarichi** (utente) | `/vsop/tasks` | 900 | **1 562** | Con 12 incarichi propri (900 con due). ⚠️ A 1280×800 **scorre già con quattro**. Cinque colonne kanban, nessun «?». ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente — e dopo Nuovo documento sappiamo che lì la briciola è l'**unica** risalita, quindi non si tocca. |
+| 3 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | ⚠️ Numero **non verificato**: corte coi dati di sviluppo, da rimisurare su un documento vero e **in modifica** (l'editor ACC pesava 6 466 in lettura e 9 690 in modifica). |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
