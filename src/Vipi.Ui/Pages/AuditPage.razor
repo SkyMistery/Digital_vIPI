@@ -160,7 +160,7 @@
     {
         AuditNarrator.Categoria.Pubblicazione, AuditNarrator.Categoria.Bozza, AuditNarrator.Categoria.Documento,
         AuditNarrator.Categoria.Permesso, AuditNarrator.Categoria.Gerarchia, AuditNarrator.Categoria.Lock,
-        AuditNarrator.Categoria.Sorgenti,
+        AuditNarrator.Categoria.Sorgenti, AuditNarrator.Categoria.Incarico,
     };
 
     protected override Task OnInitializedAsync() => Authz.IsAdmin ? LoadAsync() : Task.CompletedTask;

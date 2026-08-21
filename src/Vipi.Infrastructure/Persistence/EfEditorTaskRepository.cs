@@ -65,6 +65,18 @@ public sealed class EfEditorTaskRepository : IEditorTaskRepository
             UpdatedUtc = now,
         };
         _db.EditorTasks.Add(t);
+        // ⚠️ L'Id non c'è ancora: la riga di registro vuole l'incarico salvato per poterlo nominare, e resta
+        // comunque nella stessa transazione logica dell'atto (secondo SaveChanges, stesso metodo).
+        await _db.SaveChangesAsync(ct);
+        AuditScribe.Write(_db, createdByUserId, AuditAction.Create, "EditorTask", t.Id.ToString(), new
+        {
+            Title = t.Title,
+            AssigneeUserId = t.AssigneeUserId,
+            AssigneeName = t.AssigneeName,
+            Priority = t.Priority.ToString(),
+            Due = t.DueAiracCycle,
+            Target = t.TargetLabel ?? t.TargetKey,
+        });
         await _db.SaveChangesAsync(ct);
         return t.Id;
     }
@@ -73,32 +85,48 @@ public sealed class EfEditorTaskRepository : IEditorTaskRepository
     /// non salva niente. Non è pignoleria — è la stessa regola del registro di audit (una riga «non è
     /// cambiato niente» su un elenco che cresce per sempre è l'unico modo garantito di renderlo illeggibile),
     /// e qui difende anche l'ora dell'ultimo cambio, che è il dato con cui si capisce se un incarico è fermo.</summary>
-    public async Task UpdateStatusAsync(int id, EditorTaskStatus status, CancellationToken ct = default)
+    public async Task UpdateStatusAsync(int id, EditorTaskStatus status, int actorUserId, CancellationToken ct = default)
     {
         var t = await _db.EditorTasks.FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new InvalidOperationException($"Incarico {id} inesistente.");
         if (t.Status == status) return;
+        var prima = t.Status;
         t.Status = status;
         t.UpdatedUtc = DateTime.UtcNow;
         t.CompletedUtc = status == EditorTaskStatus.Done ? DateTime.UtcNow : null;
+        AuditScribe.Write(_db, actorUserId, AuditAction.Update, "EditorTask", t.Id.ToString(),
+            new { Title = t.Title, Da = prima.ToString(), A = status.ToString() });
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task AssignAsync(int id, int assigneeUserId, string? assigneeName, CancellationToken ct = default)
+    public async Task AssignAsync(int id, int assigneeUserId, string? assigneeName, int actorUserId, CancellationToken ct = default)
     {
         var t = await _db.EditorTasks.FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw new InvalidOperationException($"Incarico {id} inesistente.");
         if (t.AssigneeUserId == assigneeUserId && t.AssigneeName == assigneeName) return;   // non-evento
+        var (daId, daNome) = (t.AssigneeUserId, t.AssigneeName);
         t.AssigneeUserId = assigneeUserId;
         t.AssigneeName = assigneeName;
         t.UpdatedUtc = DateTime.UtcNow;
+        AuditScribe.Write(_db, actorUserId, AuditAction.Update, "EditorTask", t.Id.ToString(),
+            new { Title = t.Title, DaUserId = daId, DaNome = daNome, AUserId = assigneeUserId, ANome = assigneeName });
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    /// <summary>⚠️ La riga di registro si scrive <b>prima</b> della cancellazione, quando il titolo e
+    /// l'assegnatario sono ancora leggibili: dopo, «eliminato l'incarico 12» non distingue una pulizia da un
+    /// incidente, e il titolo non è più recuperabile da nessuna parte (regola 136).</summary>
+    public async Task DeleteAsync(int id, int actorUserId, CancellationToken ct = default)
     {
         var t = await _db.EditorTasks.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (t is null) return;
+        AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "EditorTask", t.Id.ToString(), new
+        {
+            Title = t.Title,
+            AssigneeUserId = t.AssigneeUserId,
+            AssigneeName = t.AssigneeName,
+            Stato = t.Status.ToString(),
+        });
         _db.EditorTasks.Remove(t);
         await _db.SaveChangesAsync(ct);
     }

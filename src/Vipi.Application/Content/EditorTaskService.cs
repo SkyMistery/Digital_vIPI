@@ -99,13 +99,15 @@ public sealed class EditorTaskService : IEditorTaskService
         var me = _authz.CurrentUserId ?? 0;
         if (!_authz.IsAdmin && t.AssigneeUserId != me)
             throw new Aor.ValidationException("Puoi aggiornare solo i tuoi incarichi.", "Task_Err_UpdateOnlyMine");
-        await _repo.UpdateStatusAsync(id, status, ct);
+        await _repo.UpdateStatusAsync(id, status, me, ct);
     }
 
     public async Task AssignAsync(int id, int assigneeUserId, string? assigneeName, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
-        await _repo.AssignAsync(id, assigneeUserId, assigneeName, ct);
+        if (assigneeUserId <= 0)
+            throw new Aor.ValidationException("Scegli a chi assegnare l'incarico.", "Task_Err_AssigneeRequired");
+        await _repo.AssignAsync(id, assigneeUserId, assigneeName, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -114,7 +116,7 @@ public sealed class EditorTaskService : IEditorTaskService
         var me = _authz.CurrentUserId ?? 0;
         if (!_authz.IsAdmin && t.CreatedByUserId != me)
             throw new Aor.ValidationException("Puoi eliminare solo gli incarichi che hai creato.", "Task_Err_DeleteOnlyMine");
-        await _repo.DeleteAsync(id, ct);
+        await _repo.DeleteAsync(id, me, ct);
     }
 
     public string CurrentCycle() => _airac.GetCycle(DateTime.UtcNow);

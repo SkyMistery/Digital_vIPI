@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Ui;
@@ -58,6 +58,52 @@ public class AuditNarratorTests
         Assert.Contains("Audit_Fr_GrantRevoke", AuditNarrator.Frase(nuova, L));
         Assert.Contains("LIRR", AuditNarrator.Frase(vecchia, L));
         Assert.Equal("LIRR", AuditNarrator.Acc(vecchia));   // la chiave minuscola si legge lo stesso
+    }
+
+
+    // ---- incarichi (carta 2026-08-22-incarichi-cosa-sono.md, N7) ---------------------------------------
+
+    /// <summary>⚠️ Tre atti diversi sotto la stessa famiglia, e due di loro sono entrambi <c>Update</c>: a
+    /// distinguerli è COSA porta la riga, non l'azione.</summary>
+    [Fact]
+    public void I_tre_atti_di_un_incarico_dicono_tre_frasi_diverse()
+    {
+        var creato = Riga(AuditAction.Create, "EditorTask", "7",
+            "{\"Title\":\"Rivedere LIRF\",\"AssigneeUserId\":555003,\"AssigneeName\":\"Mario Rossi\"}");
+        var stato = Riga(AuditAction.Update, "EditorTask", "7",
+            "{\"Title\":\"Rivedere LIRF\",\"Da\":\"Todo\",\"A\":\"InReview\"}");
+        var riassegnato = Riga(AuditAction.Update, "EditorTask", "7",
+            "{\"Title\":\"Rivedere LIRF\",\"DaUserId\":555003,\"DaNome\":\"Mario Rossi\",\"AUserId\":555004,\"ANome\":\"Giulia Bianchi\"}");
+
+        Assert.Equal(AuditNarrator.Categoria.Incarico, AuditNarrator.CategoriaDi(creato));
+        Assert.Contains("Audit_Fr_TaskCreate", AuditNarrator.Frase(creato, L));
+        Assert.Contains("Mario Rossi", AuditNarrator.Frase(creato, L));
+        Assert.Contains("Audit_Fr_TaskStatus", AuditNarrator.Frase(stato, L));
+        Assert.Contains("TaskStatus_InReview", AuditNarrator.Frase(stato, L));
+        Assert.Contains("Audit_Fr_TaskReassign", AuditNarrator.Frase(riassegnato, L));
+        Assert.Contains("Giulia Bianchi", AuditNarrator.Frase(riassegnato, L));
+    }
+
+    /// <summary>Il titolo scritto nella riga è l'unico rimasto dopo l'eliminazione: è quello che si mostra,
+    /// non «EditorTask 7».</summary>
+    [Fact]
+    public void Un_incarico_eliminato_si_chiama_ancora_col_suo_nome()
+    {
+        var eliminato = Riga(AuditAction.Delete, "EditorTask", "7",
+            "{\"Title\":\"Incarico sbagliato\",\"AssigneeUserId\":555003,\"AssigneeName\":\"Mario Rossi\",\"Stato\":\"Todo\"}");
+
+        Assert.Equal("Incarico sbagliato", AuditNarrator.Bersaglio(eliminato, L));
+        Assert.Contains("Audit_Fr_TaskDelete", AuditNarrator.Frase(eliminato, L));
+        Assert.Equal("red", AuditNarrator.ClassePill(eliminato));
+    }
+
+    /// <summary>Senza nome resta il VID: non è un nome (regola 124), ma è meglio di un trattino quando la
+    /// persona non l'ha mai avuto scritto accanto.</summary>
+    [Fact]
+    public void Senza_nome_dell_assegnatario_resta_il_VID()
+    {
+        var creato = Riga(AuditAction.Create, "EditorTask", "7", "{\"Title\":\"x\",\"AssigneeUserId\":555003}");
+        Assert.Contains("Audit_VidN", AuditNarrator.Frase(creato, L));
     }
 
     /// <summary>Concedere e revocare non sono lo stesso atto e non dicono la stessa frase.</summary>

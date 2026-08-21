@@ -23,7 +23,7 @@ public static class AuditNarrator
 {
     /// <summary>Famiglia dell'evento: è ciò su cui filtrano i chip della pagina, e non coincide con
     /// <see cref="AuditAction"/> (una eliminazione di documento e una revoca di permesso sono due famiglie).</summary>
-    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Altro }
+    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Incarico, Altro }
 
     public static Categoria CategoriaDi(AuditEntry e) => (e.EntityType, e.Action) switch
     {
@@ -31,6 +31,9 @@ public static class AuditNarrator
         ("DocumentVersion", AuditAction.Discard) => Categoria.Bozza,
         ("EditGrant", _) => Categoria.Permesso,
         ("ImportPolicy", _) => Categoria.Sorgenti,
+        // ⚠️ È la famiglia più prolifica del registro: un incarico attraversa quattro stati, e ogni passaggio
+        // è una riga. Il chip di famiglia serve proprio a poterla mettere da parte quando si cerca altro.
+        ("EditorTask", _) => Categoria.Incarico,
         (_, AuditAction.HierarchyChange) => Categoria.Gerarchia,
         (_, AuditAction.ForceUnlock) => Categoria.Lock,
         ("Document", _) => Categoria.Documento,
@@ -125,6 +128,18 @@ public static class AuditNarrator
                 return e.Action is AuditAction.Delete or AuditAction.Archive
                     ? L["Audit_Fr_GrantRevoke", quale, acc ?? "—"].Value
                     : L["Audit_Fr_GrantAdd", quale, acc ?? "—"].Value;
+            case Categoria.Incarico:
+                // Tre atti sotto la stessa famiglia, distinti da COSA porta la riga, non dall'azione: la
+                // riassegnazione e il cambio di stato sono entrambi `Update`.
+                if (e.Action == AuditAction.Delete)
+                    return L["Audit_Fr_TaskDelete", Persona(d, "AssigneeUserId", "AssigneeName", L),
+                                                    Stato(Str(d, "Stato"), L)].Value;
+                if (Str(d, "A") is { } aStato)
+                    return L["Audit_Fr_TaskStatus", Stato(Str(d, "Da"), L), Stato(aStato, L)].Value;
+                if (Prop(d, "AUserId") is not null)
+                    return L["Audit_Fr_TaskReassign", Persona(d, "DaUserId", "DaNome", L),
+                                                      Persona(d, "AUserId", "ANome", L)].Value;
+                return L["Audit_Fr_TaskCreate", Persona(d, "AssigneeUserId", "AssigneeName", L)].Value;
             case Categoria.Gerarchia:
                 return L["Audit_Fr_Hierarchy", Str(d, "Da") ?? L["Audit_NoParent"].Value,
                                                Str(d, "A") ?? L["Audit_NoParent"].Value].Value;
@@ -142,6 +157,20 @@ public static class AuditNarrator
             default:
                 return e.Action.ToString();
         }
+    }
+
+    /// <summary>Chi, in chiaro: il nome se la riga lo porta (regola 136), altrimenti il VID — che un VID non
+    /// è un nome, ma è meglio di un trattino quando la persona non l'ha mai avuto scritto.</summary>
+    private static string Persona(JsonElement? d, string chiaveId, string chiaveNome, IStringLocalizer L) =>
+        Str(d, chiaveNome) ?? (Int(d, chiaveId) is int vid ? L["Audit_VidN", vid].Value : "—");
+
+    /// <summary>Il nome di uno stato d'incarico nella lingua della pagina. ⚠️ Nel JSON sta il nome dell'enum,
+    /// e vale il patto del narratore: chiave sconosciuta ⇒ testo grezzo, mai <c>TaskStatus_Qualcosa</c> a video.</summary>
+    private static string Stato(string? valore, IStringLocalizer L)
+    {
+        if (string.IsNullOrWhiteSpace(valore)) return "—";
+        var s = L["TaskStatus_" + valore];
+        return s.ResourceNotFound ? valore : s.Value;
     }
 
     /// <summary>ACC toccato dall'evento, se la riga lo porta (colonna e chip della pagina).</summary>

@@ -408,6 +408,11 @@
   <data name="Audit_Cat_Lock" xml:space="preserve"><value>Lock</value></data>
   <data name="Audit_Cat_Sorgenti" xml:space="preserve"><value>Sources</value></data>
   <data name="Audit_Cat_Altro" xml:space="preserve"><value>Other</value></data>
+  <data name="Audit_Cat_Incarico" xml:space="preserve"><value>Task</value></data>
+  <data name="Audit_Fr_TaskCreate" xml:space="preserve"><value>task assigned to {0}</value></data>
+  <data name="Audit_Fr_TaskStatus" xml:space="preserve"><value>status: {0} → {1}</value></data>
+  <data name="Audit_Fr_TaskReassign" xml:space="preserve"><value>reassigned from {0} to {1}</value></data>
+  <data name="Audit_Fr_TaskDelete" xml:space="preserve"><value>task deleted (was {0}'s, status “{1}”)</value></data>
   <data name="Audit_Fr_Publish" xml:space="preserve"><value>Published version {0} (AIRAC {1})</value></data>
   <data name="Audit_Fr_PublishNoAirac" xml:space="preserve"><value>Published version {0}</value></data>
   <data name="Audit_Fr_Discard" xml:space="preserve"><value>Discarded draft v{0}</value></data>

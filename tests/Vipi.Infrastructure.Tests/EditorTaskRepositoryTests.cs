@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
@@ -19,6 +19,8 @@ namespace Vipi.Infrastructure.Tests;
 /// </summary>
 public class EditorTaskRepositoryTests : IAsyncLifetime
 {
+    private const int Attore = 704798;
+
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
     private EfEditorTaskRepository _repo = default!;
@@ -41,7 +43,7 @@ public class EditorTaskRepositoryTests : IAsyncLifetime
         var secondo = await Crea("Bozza di vLOA");
         var terzo = await Crea("Controllare le piste");
 
-        await _repo.UpdateStatusAsync(primo, EditorTaskStatus.InProgress);
+        await _repo.UpdateStatusAsync(primo, EditorTaskStatus.InProgress, Attore);
 
         var elenco = await _repo.ListAllAsync();
         Assert.Equal(new[] { primo, secondo, terzo }, elenco.Select(t => t.Id));
@@ -54,7 +56,7 @@ public class EditorTaskRepositoryTests : IAsyncLifetime
         var alta = await Crea("Alta", priorita: EditorTaskPriority.High);
         var bassa = await Crea("Bassa", priorita: EditorTaskPriority.Low);
         var concluso = await Crea("Concluso", priorita: EditorTaskPriority.High);
-        await _repo.UpdateStatusAsync(concluso, EditorTaskStatus.Done);
+        await _repo.UpdateStatusAsync(concluso, EditorTaskStatus.Done, Attore);
 
         var elenco = await _repo.ListAllAsync();
 
@@ -82,7 +84,7 @@ public class EditorTaskRepositoryTests : IAsyncLifetime
         var prima = (await _repo.GetAsync(id))!.UpdatedUtc;
         await Task.Delay(10);
 
-        await _repo.UpdateStatusAsync(id, EditorTaskStatus.Todo);
+        await _repo.UpdateStatusAsync(id, EditorTaskStatus.Todo, Attore);
 
         Assert.Equal(prima, (await _repo.GetAsync(id))!.UpdatedUtc);
     }
@@ -91,11 +93,11 @@ public class EditorTaskRepositoryTests : IAsyncLifetime
     public async Task Riassegnare_alla_stessa_persona_non_e_un_evento()
     {
         var id = await Crea("Fermo");
-        await _repo.AssignAsync(id, 555001, "Giulia Bianchi");
+        await _repo.AssignAsync(id, 555001, "Giulia Bianchi", Attore);
         var prima = (await _repo.GetAsync(id))!.UpdatedUtc;
         await Task.Delay(10);
 
-        await _repo.AssignAsync(id, 555001, "Giulia Bianchi");
+        await _repo.AssignAsync(id, 555001, "Giulia Bianchi", Attore);
 
         Assert.Equal(prima, (await _repo.GetAsync(id))!.UpdatedUtc);
     }
@@ -107,12 +109,83 @@ public class EditorTaskRepositoryTests : IAsyncLifetime
     {
         var id = await Crea("Con ritorno");
 
-        await _repo.UpdateStatusAsync(id, EditorTaskStatus.Done);
+        await _repo.UpdateStatusAsync(id, EditorTaskStatus.Done, Attore);
         Assert.NotNull((await _repo.GetAsync(id))!.CompletedUtc);
 
-        await _repo.UpdateStatusAsync(id, EditorTaskStatus.InProgress);
+        await _repo.UpdateStatusAsync(id, EditorTaskStatus.InProgress, Attore);
         Assert.Null((await _repo.GetAsync(id))!.CompletedUtc);
     }
+
+
+    // ---- il registro (carta N7) ------------------------------------------------------------------------
+
+    /// <summary>Assegnare lavoro a qualcuno era, dopo il giro Sorgenti, uno degli ultimi atti amministrativi
+    /// muti: ora lascia una riga, col titolo e con chi lo riceve.</summary>
+    [Fact]
+    public async Task Creare_un_incarico_lascia_una_riga_col_titolo_e_con_l_assegnatario()
+    {
+        var id = await Crea("Rivedere le frequenze di LIRF");
+
+        var riga = await Riga(AuditAction.Create);
+        Assert.Equal(id.ToString(), riga.EntityId);
+        Assert.Equal(Attore, riga.UserId);
+        Assert.Contains("Rivedere le frequenze di LIRF", riga.DetailsJson);
+        Assert.Contains("Chi Lavora", riga.DetailsJson);
+    }
+
+    [Fact]
+    public async Task Il_cambio_di_stato_registra_da_dove_a_dove()
+    {
+        var id = await Crea("Con stato");
+
+        await _repo.UpdateStatusAsync(id, EditorTaskStatus.InReview, 555002);
+
+        var riga = await Riga(AuditAction.Update);
+        Assert.Equal(555002, riga.UserId);
+        Assert.Contains("\"Da\":\"Todo\"", riga.DetailsJson);
+        Assert.Contains("\"A\":\"InReview\"", riga.DetailsJson);
+    }
+
+    [Fact]
+    public async Task La_riassegnazione_registra_le_due_persone()
+    {
+        var id = await Crea("Da passare");
+
+        await _repo.AssignAsync(id, 555001, "Giulia Bianchi", Attore);
+
+        var riga = await Riga(AuditAction.Update);
+        Assert.Contains("Chi Lavora", riga.DetailsJson);
+        Assert.Contains("Giulia Bianchi", riga.DetailsJson);
+    }
+
+    /// <summary>⚠️ La riga si scrive PRIMA della cancellazione: dopo, il titolo non è più recuperabile da
+    /// nessuna parte e «eliminato l'incarico 12» non distingue una pulizia da un incidente (regola 136).</summary>
+    [Fact]
+    public async Task L_eliminazione_conserva_il_titolo_di_cio_che_non_esiste_piu()
+    {
+        var id = await Crea("Incarico sbagliato");
+
+        await _repo.DeleteAsync(id, Attore);
+
+        var riga = await Riga(AuditAction.Delete);
+        Assert.Contains("Incarico sbagliato", riga.DetailsJson);
+        Assert.Empty(await _db.EditorTasks.ToListAsync());
+    }
+
+    /// <summary>Il non-evento non si scrive: su un registro che cresce per sempre, le righe che dicono «non è
+    /// cambiato niente» sono l'unico modo garantito di renderlo illeggibile (regola 138).</summary>
+    [Fact]
+    public async Task Il_non_evento_non_lascia_riga()
+    {
+        var id = await Crea("Fermo");
+        await _repo.UpdateStatusAsync(id, EditorTaskStatus.Todo, Attore);
+        await _repo.AssignAsync(id, 704798, "Chi Lavora", Attore);
+
+        Assert.Empty(await _db.AuditLogs.Where(a => a.Action == AuditAction.Update).ToListAsync());
+    }
+
+    private async Task<AuditLog> Riga(AuditAction azione) =>
+        await _db.AuditLogs.Where(a => a.EntityType == "EditorTask" && a.Action == azione).SingleAsync();
 
     private Task<int> Crea(string titolo, EditorTaskPriority priorita = EditorTaskPriority.Normal,
         string? scadenza = null) =>

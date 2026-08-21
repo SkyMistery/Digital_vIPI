@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -346,7 +346,7 @@ public class EditorTaskServiceTests
             return Task.FromResult(t.Id);
         }
 
-        public Task UpdateStatusAsync(int id, EditorTaskStatus status, CancellationToken ct = default)
+        public Task UpdateStatusAsync(int id, EditorTaskStatus status, int actorUserId, CancellationToken ct = default)
         {
             var t = Tasks.Single(x => x.Id == id);
             t.Status = status;
@@ -354,7 +354,7 @@ public class EditorTaskServiceTests
             return Task.CompletedTask;
         }
 
-        public Task AssignAsync(int id, int assigneeUserId, string? assigneeName, CancellationToken ct = default)
+        public Task AssignAsync(int id, int assigneeUserId, string? assigneeName, int actorUserId, CancellationToken ct = default)
         {
             var t = Tasks.Single(x => x.Id == id);
             t.AssigneeUserId = assigneeUserId;
@@ -362,7 +362,7 @@ public class EditorTaskServiceTests
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(int id, CancellationToken ct = default)
+        public Task DeleteAsync(int id, int actorUserId, CancellationToken ct = default)
         {
             Tasks.RemoveAll(t => t.Id == id);
             return Task.CompletedTask;
