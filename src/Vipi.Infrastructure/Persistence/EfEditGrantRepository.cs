@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -61,16 +61,11 @@ public sealed class EfEditGrantRepository : IEditGrantRepository
     }
 
     // Traccia un'azione sui permessi nell'audit log (chi, cosa, su quale UserId/ACC).
+    // ⚠️ La chiave dell'ACC nei dettagli era «acc» minuscola, unica in tutto il registro: ora la serializza
+    // AuditScribe come le altre («Acc»). Le righe vecchie restano minuscole — chi le legge accetta entrambe.
     private void Audit(int actorUserId, AuditAction action, int grantId, int targetUserId, string accCode) =>
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = action,
-            EntityType = "EditGrant",
-            EntityId = grantId.ToString(),
-            TimestampUtc = DateTime.UtcNow,
-            DetailsJson = $"{{\"UserId\":{targetUserId},\"acc\":\"{accCode}\"}}",
-        });
+        AuditScribe.Write(_db, actorUserId, action, "EditGrant", grantId.ToString(),
+            new { UserId = targetUserId, Acc = accCode });
 
     public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) =>
         _db.EditGrants.AnyAsync(g => g.UserId == UserId && g.Acc!.Code == accCode, ct);

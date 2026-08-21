@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -855,15 +854,8 @@ public sealed class EfEditingRepository : IEditingRepository
         doc.LastUpdatedUtc = now;
         doc.LastUpdatedAiracCycle = _airac.GetCycle(now);
 
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = AuditAction.Publish,
-            EntityType = "DocumentVersion",
-            EntityId = ver.Id.ToString(),
-            TimestampUtc = now,
-            DetailsJson = JsonSerializer.Serialize(new { doc.Id, ver.VersionNumber, ver.AiracCycle }),
-        });
+        AuditScribe.Write(_db, actorUserId, AuditAction.Publish, "DocumentVersion", ver.Id.ToString(),
+            new { doc.Id, ver.VersionNumber, ver.AiracCycle }, now);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -933,15 +925,8 @@ public sealed class EfEditingRepository : IEditingRepository
 
         // L'audit va scritto PRIMA della cancellazione: dopo, la versione non esiste più e resterebbe solo un
         // documento che ha perso una bozza senza che nessuno sappia chi e quando.
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = AuditAction.Discard,
-            EntityType = "DocumentVersion",
-            EntityId = versionId.ToString(),
-            TimestampUtc = DateTime.UtcNow,
-            DetailsJson = JsonSerializer.Serialize(new { DocumentId = documentId, VersionNumber = numero }),
-        });
+        AuditScribe.Write(_db, actorUserId, AuditAction.Discard, "DocumentVersion", versionId.ToString(),
+            new { DocumentId = documentId, VersionNumber = numero });
         await _db.SaveChangesAsync(ct);
 
         await LiberaImmaginiAsync(await EliminaVersioneAsync(versionId, ct), ct);

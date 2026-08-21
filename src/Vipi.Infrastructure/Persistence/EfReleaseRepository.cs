@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -98,15 +98,8 @@ public sealed class EfReleaseRepository : IReleaseRepository
         doc.LastUpdatedUtc = now;
         doc.LastUpdatedAiracCycle = airacCycle;
 
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = AuditAction.Publish,
-            EntityType = "DocumentVersion",
-            EntityId = draft.Id.ToString(),
-            TimestampUtc = now,
-            DetailsJson = JsonSerializer.Serialize(new { doc.Id, draft.VersionNumber, Reason = "publish-now-release" }),
-        });
+        AuditScribe.Write(_db, actorUserId, AuditAction.Publish, "DocumentVersion", draft.Id.ToString(),
+            new { doc.Id, draft.VersionNumber, Reason = "publish-now-release" }, now);
 
         await _db.SaveChangesAsync(ct);
     }
