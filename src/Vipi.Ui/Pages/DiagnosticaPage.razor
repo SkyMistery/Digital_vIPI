@@ -34,6 +34,15 @@
     {
         <div class="help">@L["Diag_Analyzing"]</div>
     }
+    else if (_errore is not null)
+    {
+        @* Il report non è girato. Dirlo è il minimo: senza, la pagina resterebbe vuota e sembrerebbe che
+           non ci sia niente da segnalare — che è l'esatto contrario di quello che si sa. *@
+        <div class="callout danger">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div><p class="ct">@L["Diag_Failed"]</p>@_errore</div>
+        </div>
+    }
     else if (_findings.Count == 0)
     {
         <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@L["Diag_NoIssues"]</div></div>
@@ -127,14 +136,33 @@
     private IReadOnlyList<ConsistencyFinding> _findings = Array.Empty<ConsistencyFinding>();
     private AdminCoverage? _admin;
     private bool _loading = true;
+    private string? _errore;
+    private DateTime? _quando;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Authz.IsAdmin) { _loading = false; return; }
-        // Grave prima, poi per categoria: la lista più urgente in cima.
-        var all = await Consistency.RunAsync();
-        _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
-        _admin = await AdminCoverage.DescribeAsync();
-        _loading = false;
+        if (!Authz.IsAdmin) return;
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// ⚠️ La pagina che serve a capire cosa non va non può morire perché qualcosa non va. Le singole sonde si
+    /// proteggono da sé (il guasto esce come rilievo, vedi <c>ConsistencyReportService</c>), ma la rete qui
+    /// resta: senza, una qualunque eccezione lascia il circuito Blazor morto e il motivo solo nei log.
+    /// </summary>
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _errore = null;
+        try
+        {
+            // Grave prima, poi per categoria: la lista più urgente in cima.
+            var all = await Consistency.RunAsync();
+            _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
+            _admin = await AdminCoverage.DescribeAsync();
+            _quando = DateTime.UtcNow;
+        }
+        catch (Exception ex) { _errore = ex.Message; }
+        finally { _loading = false; }
     }
 }

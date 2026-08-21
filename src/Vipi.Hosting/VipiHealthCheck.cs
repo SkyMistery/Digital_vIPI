@@ -47,7 +47,24 @@ public sealed class VipiHealthCheck : IHealthCheck
 
         // Incongruenze dati soft-ref (label/ref denormalizzati divergenti): degradato, la consultazione regge.
         // Dalla cache: l'endpoint è anonimo e il report fa scansioni complete. Vedi ConsistencyReportCache.
-        var findings = await _reportCache.GetAsync(_consistency.RunAsync, ct);
+        //
+        // ⚠️ Rete attorno al report: dal 22 agosto 2026 le singole sonde si proteggono da sé e un loro guasto
+        // esce come rilievo, ma il report resta pur sempre codice che gira. Se fallisce lui, questo check
+        // deve dire «degradato: non so» — non «il sito è giù». Un monitor che legge Unhealthy sveglia
+        // qualcuno di notte, e la differenza fra «la sonda è rotta» e «il sito è rotto» è tutta.
+        IReadOnlyList<ConsistencyFinding> findings;
+        try
+        {
+            findings = await _reportCache.GetAsync(_consistency.RunAsync, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            data["consistencyReportError"] = ex.Message;
+            return HealthCheckResult.Degraded(
+                "Report di consistenza non eseguibile: le condizioni critiche sono a posto, ma le " +
+                "incongruenze dati non sono state verificate.", ex, data);
+        }
         if (findings.Count > 0)
         {
             data["dataConsistencyFindings"] = findings.Count;

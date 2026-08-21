@@ -429,6 +429,7 @@
   <data name="Diag_Title" xml:space="preserve"><value>Data diagnostics</value></data>
   <data name="Diag_Subtitle" xml:space="preserve"><value>Inconsistencies in «soft» references (soft-ref): denormalized labels and per-callsign parents that may diverge from the source</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
+  <data name="Diag_Failed" xml:space="preserve"><value>The report did not run.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>

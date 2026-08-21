@@ -432,6 +432,7 @@
   <data name="Diag_Title" xml:space="preserve"><value>Diagnostica dati</value></data>
   <data name="Diag_Subtitle" xml:space="preserve"><value>Incongruenze dei riferimenti «deboli» (soft-ref): etichette denormalizzate e padri per callsign che possono divergere dalla fonte</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analisi in corso…</value></data>
+  <data name="Diag_Failed" xml:space="preserve"><value>Il report non è stato eseguito.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>Nessuna incongruenza rilevata: tutti i soft-ref risolvono e le etichette denormalizzate combaciano.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} incongruenze rilevate ({1} gravi). Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato è stato modificato. Correzione manuale via editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Gravità</value></data>

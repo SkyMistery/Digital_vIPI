@@ -55,17 +55,60 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _startup = startup;
     }
 
+    /// <summary>
+    /// Categoria dei guasti delle sonde stesse. ⚠️ Non è un dettaglio interno: se una sonda non ha risposto,
+    /// «zero rilievi in quell'area» **non** significa «va tutto bene», e chi legge deve saperlo.
+    /// </summary>
+    public const string CategoriaSondaRotta = "Sonda non riuscita";
+
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
     {
-        var findings = Analyze(await _repo.LoadAsync(ct)).ToList();
+        var findings = new List<ConsistencyFinding>();
 
-        if (_schema is not null) findings.AddRange(await _schema.RunAsync(ct));
-        if (_admin is not null) findings.AddRange(await _admin.RunAsync(ct));
-        if (_server is not null) findings.AddRange(await _server.RunAsync(ct));
-        // Non è una sonda: è già successo, all'avvio. Qui si legge soltanto.
-        if (_startup is not null) findings.AddRange(_startup.Findings);
+        // ⚠️ Ogni pezzo nel proprio try, e il guasto diventa un RILIEVO invece di travolgere il resto.
+        //
+        // Prima erano cinque chiamate in fila senza protezione, e le conseguenze erano due — la seconda
+        // peggiore: (1) una sonda che lancia (il server MySQL che non risponde, la connessione caduta sotto
+        // la sonda di drift) uccideva il circuito Blazor della pagina, che è proprio la pagina dove si va a
+        // capire cosa non va; (2) anche prendendo l'eccezione più in alto, il guasto di UNA sonda cancellava
+        // il lavoro di tutte le altre — un problema del server di database nascondeva una pista orfana che
+        // `Analyze` aveva già trovato.
+        //
+        // È la lezione di `StartupMaintenanceReport`, che sta in questa stessa cartella e che questo servizio
+        // consuma: «un guasto non deve uccidere il giro, ma non deve nemmeno restare zitto». Non era
+        // applicata alle sonde di chi quel registro lo legge.
+        await Raccogli(findings, "incongruenze dei dati", async () => Analyze(await _repo.LoadAsync(ct)), ct);
+        if (_schema is not null) await Raccogli(findings, "drift di schema", () => _schema.RunAsync(ct), ct);
+        if (_admin is not null) await Raccogli(findings, "copertura admin", () => _admin.RunAsync(ct), ct);
+        if (_server is not null) await Raccogli(findings, "impostazioni del server", () => _server.RunAsync(ct), ct);
+        // Non è una sonda: è già successo, all'avvio. Qui si legge soltanto — e può solo fallire se qualcuno
+        // ci mettesse dentro dell'I/O, quindi passa dallo stesso cancello per non doverlo ricordare.
+        if (_startup is not null)
+            await Raccogli(findings, "manutenzioni d'avvio", () => Task.FromResult(_startup.Findings), ct);
 
         return findings;
+    }
+
+    /// <summary>
+    /// Esegue un pezzo del report e ne accoda i rilievi; se lancia, accoda <b>il guasto</b> e prosegue.
+    /// </summary>
+    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo,
+        Func<Task<IReadOnlyList<ConsistencyFinding>>> esegui, CancellationToken ct)
+    {
+        try
+        {
+            findings.AddRange(await esegui());
+        }
+        // ⚠️ Prima di `catch (Exception)`: la richiesta annullata non è un guasto della sonda, ed è l'unica
+        // eccezione che non va trasformata in un rilievo (nessuno lo leggerebbe: la risposta non parte).
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            findings.Add(new ConsistencyFinding(CategoriaSondaRotta, ConsistencySeverity.Error, pezzo,
+                $"Il controllo «{pezzo}» non è andato a buon fine ({ex.GetType().Name}: {ex.Message}). " +
+                "Gli altri controlli sono stati eseguiti lo stesso, ma di quest'area il report non sa dire " +
+                "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene."));
+        }
     }
 
     // Logica pura (nessuna dipendenza da EF): il dataset è già in memoria ⇒ testabile con fixture.
