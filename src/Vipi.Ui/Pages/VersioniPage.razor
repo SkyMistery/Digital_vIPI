@@ -619,23 +619,11 @@
     private string Author(int vid) =>
         _authorNames.TryGetValue(vid, out var n) ? $"{n} (VID {vid})" : $"VID {vid}";
 
-    // Riepilogo leggero delle aree toccate dal DetailsJson {"Areas":[...],"Saves":N}.
-    private string HistoryDetail(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return "";
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var areas = root.TryGetProperty("Areas", out var a) && a.ValueKind == System.Text.Json.JsonValueKind.Array
-                ? string.Join(", ", a.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)))
-                : "";
-            var saves = root.TryGetProperty("Saves", out var s) && s.TryGetInt32(out var n) ? n : 0;
-            var sfx = saves > 1 ? string.Format(L["Ver_SavesSuffix"].Value, saves) : "";
-            return areas.Length > 0 ? $"{areas}{sfx}" : sfx.TrimStart(' ', '·', ' ');
-        }
-        catch (System.Text.Json.JsonException) { return ""; }
-    }
+    // ⚠️ Qui c'era un parser che leggeva {"Areas":[...],"Saves":N} dal DetailsJson: chiavi che NESSUNO
+    // scrive, quindi ritornava sempre stringa vuota — un riepilogo che non ha mai riepilogato niente.
+    // Non si cancella e basta: si sostituisce con lo stesso formattatore della pagina Audit, cosi' due
+    // pagine che mostrano lo stesso evento non possono piu' divergere.
+    private string HistoryDetail(AuditEntry e) => AuditNarrator.Frase(e, L);
 
     private RenderFragment DetailBlock(ManagedDoc d) => __builder =>
     {
@@ -688,7 +676,7 @@
                 {
                     foreach (var e in hist)
                     {
-                        var detail = HistoryDetail(e.DetailsJson);
+                        var detail = HistoryDetail(e);
                         <div class="ver-row">
                             <span class="vb">✎</span>
                             <div>

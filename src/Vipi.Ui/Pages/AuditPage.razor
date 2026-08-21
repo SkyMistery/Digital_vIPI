@@ -3,24 +3,44 @@
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
 @inject IAuditLogReader Audit
+@inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Audit_Title"] · IVAO Italia</PageTitle>
 
-<div class="wrap" style="max-width:1100px">
-    @* ---- Le pagine admin, dove stava la briciola di pane ----
-       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
-       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
-       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
-       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
-       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
-       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
-       infilava fra l'H2 e la sua prima sezione e li staccava.
-       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente. *@
+@* La pagina è a larghezza piena (prima `max-width:1100px`): con il `.wrap` stretto le undici voci della barra
+   admin andavano a capo — 87px invece di 55 — e la tabella del registro, che ha sei colonne di cui una di
+   prosa, lavorava in tre quarti di schermo. *@
+<div class="wrap struct">
     <AdminNav />
 
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Audit_Title"]</h2><span class="muted">@L["Audit_Subtitle"]</span></div>
+    @* ---- Testata in UNA riga: titolo · conteggio · «?» · Aggiorna ----
+       Il sottotitolo era una fascia sempre a schermo che diceva a chiunque, ogni volta, quello che il «?»
+       dice a chi lo chiede (regola 7). Qui vale doppio: ogni pixel tolto in testa è una riga di registro in
+       più, e questa è l'unica pagina la cui altezza cresce da sola per sempre. *@
+    <div class="doc-head st-head">
+        <h2 class="st-h2">
+            @L["Audit_Title"]
+            @if (_rows is not null)
+            {
+                <span>&nbsp;</span><span class="pill blue" title="@L["Audit_CountTitle"]">@Filtrate.Count / @_totale</span>
+            }
+        </h2>
+        <HelpHint Href="/vsop/guida#admin-audit" AriaLabel="@L["Audit_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Audit_Subtitle"]</p>
+            @((MarkupString)L["Audit_Intro"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                @* L'unico comando della pagina: un registro non si modifica, non si nasconde, non si cancella.
+                   Ma cresce mentre lo si guarda, e l'elenco è una fotografia. *@
+                <button class="btn ghost" disabled="@_busy" title="@L["Audit_RefreshTitle"]" @onclick="LoadAsync">
+                    <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
+                </button>
+            </nav>
+        }
     </div>
 
     @if (!Authz.IsAdmin)
@@ -31,37 +51,181 @@
     {
         <LoadingState />
     }
-    else if (_rows.Count == 0)
-    {
-        <div class="callout info"><span class="cic"><Icon Name="info" Size="18" /></span><div>@L["Audit_NoEvents"]</div></div>
-    }
     else
     {
-        <table>
-            <thead><tr><th>@L["Audit_When"]</th><th>VID</th><th>@L["Audit_Action"]</th><th>@L["Audit_Entity"]</th><th>Id</th><th>@L["Audit_Details"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows)
-                {
-                    <tr>
-                        <td>@r.TimestampUtc.ToString("dd MMM yyyy HH:mm:ss")</td>
-                        <td><b>@r.UserId</b></td>
-                        <td>@r.Action</td>
-                        <td>@r.EntityType</td>
-                        <td>@r.EntityId</td>
-                        <td class="muted" style="font-size:12px">@r.DetailsJson</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        @* Un pannello solo, alto quanto lo schermo meno ciò che sta sopra, e dentro scorre soltanto la
+           tabella: il `thead` resta. Niente elenco+dettaglio come su Confinanti/Versioni/Permessi — là il
+           dettaglio è un oggetto su cui si AGISCE, qui la riga è già tutto il fatto. *@
+        <div class="panel st-pane audit-pane">
+            <div class="struct-bar">
+                <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Audit_SearchPh"]" />
+
+                @* Il periodo prende il posto del tetto muto: prima la pagina mostrava le 200 righe più
+                   recenti senza dire che sotto c'era altro. *@
+                <select class="htree-select" @bind="_giorni" @bind:after="LoadAsync" title="@L["Audit_Period"]">
+                    <option value="7">@L["Audit_Period7"]</option>
+                    <option value="30">@L["Audit_Period30"]</option>
+                    <option value="90">@L["Audit_Period90"]</option>
+                    <option value="0">@L["Audit_PeriodAll"]</option>
+                </select>
+
+                @* I chip CONTANO (regola 107), e contano esattamente la condizione che applicano: la somma
+                   dei chip è il totale del periodo. ⚠️ Zero qui è NEUTRO, non verde (regola 108): «0
+                   eliminazioni» non è una coda vuota da festeggiare, è solo un fatto. *@
+                <span class="sb-chips">
+                    @foreach (var cat in Categorie)
+                    {
+                        var n = Conta(cat);
+                        <button class="sh-chip @(_cat == cat ? "on" : "")" disabled="@(n == 0)"
+                                title="@L["Audit_ChipTitle", AuditNarrator.Etichetta(cat, L)]" @onclick="() => ToggleCat(cat)">
+                            @AuditNarrator.Etichetta(cat, L) <span class="chip-n">@n</span>
+                        </button>
+                    }
+                    <button class="lnk-mini" disabled="@(!Filtra)" @onclick="ClearFilters"
+                            title="@L["Audit_ClearTitle"]" aria-label="@L["Audit_Clear"]">✕</button>
+                </span>
+            </div>
+
+            @if (_troncato)
+            {
+                <p class="help audit-note">@L["Audit_Truncated", _rows.Count, _totale]</p>
+            }
+
+            @if (Filtrate.Count == 0)
+            {
+                <p class="help">@L["Audit_NoneInPeriod"]</p>
+            }
+            else
+            {
+                <div class="st-scroll">
+                    <table class="res-table sticky-head audit-table">
+                        <thead>
+                            <tr>
+                                <th class="c-when">@L["Audit_When"]</th>
+                                <th class="c-who">@L["Audit_Who"]</th>
+                                <th class="c-ev">@L["Audit_Event"]</th>
+                                <th class="c-target">@L["Audit_Target"]</th>
+                                <th class="c-what">@L["Audit_What"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Filtrate)
+                            {
+                                var cat = AuditNarrator.CategoriaDi(r);
+                                <tr>
+                                    @* Data su UNA riga: i secondi servono una volta l'anno e stanno nel
+                                       title; la riga su due righe si pagava 200 volte (64px l'una). *@
+                                    <td class="c-when" title="@r.TimestampUtc.ToString("dd MMMM yyyy HH:mm:ss") UTC">
+                                        @r.TimestampUtc.ToString("dd MMM yy · HH:mm")
+                                    </td>
+                                    <td class="c-who">@Chi(r.UserId)</td>
+                                    <td class="c-ev"><span class="pill @AuditNarrator.ClassePill(r)">@AuditNarrator.Etichetta(cat, L)</span></td>
+                                    <td class="c-target"><b>@AuditNarrator.Bersaglio(r, L)</b>@AccSuffisso(r)</td>
+                                    @* Il JSON grezzo non sparisce — è la verità della riga — ma sta nel
+                                       title: non è quello che si legge scorrendo un registro. *@
+                                    <td class="c-what" title="@(r.DetailsJson ?? L["Audit_RawTitle"].Value)">@AuditNarrator.Frase(r, L)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     }
 </div>
 
 @code {
     private IReadOnlyList<AuditEntry>? _rows;
+    private int _totale;
+    private bool _troncato;
+    private bool _busy;
 
-    protected override async Task OnInitializedAsync()
+    private string _q = "";
+    private int _giorni = 30;
+    private AuditNarrator.Categoria? _cat;
+
+    /// <summary>Tetto di sicurezza sulla query. Non è il filtro — quello è il periodo — ed è dichiarato in
+    /// pagina quando morde (<c>Audit_Truncated</c>), perché un tetto muto fa credere completo ciò che non lo è.</summary>
+    private const int Tetto = 500;
+
+    // I VID non dicono niente: il roster i nomi ce li ha già (come in Versioni e Permessi).
+    private readonly Dictionary<int, string> _nomi = new();
+
+    private static readonly AuditNarrator.Categoria[] Categorie =
+    {
+        AuditNarrator.Categoria.Pubblicazione, AuditNarrator.Categoria.Bozza, AuditNarrator.Categoria.Documento,
+        AuditNarrator.Categoria.Permesso, AuditNarrator.Categoria.Gerarchia, AuditNarrator.Categoria.Lock,
+    };
+
+    protected override Task OnInitializedAsync() => Authz.IsAdmin ? LoadAsync() : Task.CompletedTask;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!Authz.IsAdmin) return;
-        _rows = await Audit.ListRecentAsync();
+        // «Schermo meno ciò che sta sopra» non è esprimibile in CSS: si misura, e a ogni render (la nota del
+        // troncamento e il «?» aperto cambiano ciò che sta sopra).
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".audit-pane", 900); } catch (Exception) { }
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = true;
+        try
+        {
+            var da = _giorni > 0 ? DateTime.UtcNow.AddDays(-_giorni) : (DateTime?)null;
+            _totale = await Audit.CountAsync(da);
+            _rows = await Audit.ListRecentAsync(da, Tetto);
+            _troncato = _totale > _rows.Count;
+            await RisolviNomiAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RisolviNomiAsync()
+    {
+        if (_rows is null) return;
+        var mancanti = _rows.Select(r => r.UserId).Distinct().Where(v => v != 0 && !_nomi.ContainsKey(v)).ToList();
+        if (mancanti.Count == 0) return;
+        foreach (var kv in await StaffRoster.GetDisplayNamesAsync(mancanti)) _nomi[kv.Key] = kv.Value;
+    }
+
+    private string Chi(int vid) => _nomi.TryGetValue(vid, out var n) ? n : L["Audit_VidN", vid].Value;
+
+    private string AccSuffisso(AuditEntry e) => AuditNarrator.Acc(e) is { } acc ? $" · {acc}" : "";
+
+    private bool Filtra => _cat is not null || !string.IsNullOrWhiteSpace(_q);
+
+    private void SetQuery(string? v) { _q = v ?? ""; }
+
+    private void ToggleCat(AuditNarrator.Categoria c) => _cat = _cat == c ? null : c;
+
+    private void ClearFilters() { _cat = null; _q = ""; }
+
+    /// <summary>Quante righe del periodo cadono in quella famiglia. È la stessa unità delle righe che il chip
+    /// filtra — e non risente della ricerca, altrimenti i numeri cambierebbero sotto le dita mentre si digita.</summary>
+    private int Conta(AuditNarrator.Categoria c) =>
+        _rows is null ? 0 : _rows.Count(r => AuditNarrator.CategoriaDi(r) == c);
+
+    private IReadOnlyList<AuditEntry> Filtrate
+    {
+        get
+        {
+            if (_rows is null) return Array.Empty<AuditEntry>();
+            IEnumerable<AuditEntry> q = _rows;
+            if (_cat is { } c) q = q.Where(r => AuditNarrator.CategoriaDi(r) == c);
+            var testo = _q.Trim();
+            if (testo.Length > 0)
+            {
+                // Si cerca su ciò che la pagina MOSTRA (nome, bersaglio, frase) più il VID e il JSON grezzo:
+                // chi cerca «555002» o «LIRR» lo fa perché li ha letti da qualche parte, non per forza qui.
+                q = q.Where(r =>
+                    Chi(r.UserId).Contains(testo, StringComparison.OrdinalIgnoreCase)
+                    || r.UserId.ToString().Contains(testo)
+                    || AuditNarrator.Bersaglio(r, L).Contains(testo, StringComparison.OrdinalIgnoreCase)
+                    || AuditNarrator.Frase(r, L).Contains(testo, StringComparison.OrdinalIgnoreCase)
+                    || (r.DetailsJson ?? "").Contains(testo, StringComparison.OrdinalIgnoreCase));
+            }
+            return q.ToList();
+        }
     }
 }

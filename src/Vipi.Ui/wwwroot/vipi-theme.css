@@ -2221,3 +2221,31 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .doc-rowi>.dr-main{flex:1 1 200px;min-width:200px}
 .doc-rowi .pill{white-space:nowrap}
 .doc-rowi .inline-confirm .ic-prompt{max-width:520px}
+
+
+/* ---- Audit: il registro che cresce da solo per sempre (22 agosto 2026) ----
+   Un pannello solo, misurato da vipiFitViewport, e dentro scorre soltanto la tabella: il `thead` resta.
+   Il `calc` e' il valore di PARTENZA prima che il JS misuri, non la verita'.
+   ⚠️ Le regole vanno scritte con `.struct` davanti e verificate col valore CALCOLATO: senza, `.res-table
+   td{padding:7px 10px}` e le larghezze di `.res-table` vincono in silenzio (trappola gia' pagata sui SID). */
+.struct .audit-pane{height:calc(100vh - 250px);min-height:320px;padding:18px}
+/* ⚠️ Misurato: col padding di fondo del `.wrap` la pagina restava 52px piu' alta del viewport e
+   scorreva per niente. vipiFitViewport misura fin dove arriva il pannello, non cosa gli sta sotto. */
+.wrap.struct:has(.audit-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .audit-pane{height:auto;min-height:0}}
+.struct .audit-pane .struct-bar .htree-search{flex:1 1 200px;min-width:150px}
+/* Un chip a zero qui e' NEUTRO, non verde: «0 eliminazioni» non e' una coda vuota da festeggiare come su
+   Confinanti, e' solo un fatto del periodo scelto (regola 108). */
+.struct .audit-pane button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* La nota del troncamento sta FUORI dallo scroller: e' una condizione dell'elenco, non una sua riga. */
+.struct .audit-pane .audit-note{margin:0 0 8px;color:var(--warn-ink)}
+/* Colonne a larghezza fissa tranne «Cosa», che e' la prosa e prende quello che avanza. Il min-width della
+   tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .audit-table{table-layout:fixed;min-width:820px}
+.struct .audit-table td{padding:5px 10px;vertical-align:top}
+.struct .audit-table .c-when{width:132px;white-space:nowrap}
+.struct .audit-table .c-who{width:170px}
+.struct .audit-table .c-ev{width:126px}
+.struct .audit-table .c-target{width:230px}
+.struct .audit-table .c-what{min-width:200px;color:var(--ink-soft)}
+.struct .audit-table .c-ev .pill{white-space:nowrap}

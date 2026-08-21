@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -9,15 +9,19 @@ public sealed class EfAuditLogReader : IAuditLogReader
     private readonly VipiDbContext _db;
     public EfAuditLogReader(VipiDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<AuditEntry>> ListRecentAsync(int max = 200, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AuditEntry>> ListRecentAsync(DateTime? sinceUtc = null, int max = 500, CancellationToken ct = default)
     {
         return await _db.AuditLogs
+            .Where(a => sinceUtc == null || a.TimestampUtc >= sinceUtc)
             .OrderByDescending(a => a.Id)
-            .Take(Math.Clamp(max, 1, 1000))
+            .Take(Math.Clamp(max, 1, 2000))
             .Select(a => new AuditEntry(a.Id, a.UserId, a.Action, a.EntityType, a.EntityId, a.TimestampUtc, a.DetailsJson))
             .AsNoTracking()
             .ToListAsync(ct);
     }
+
+    public Task<int> CountAsync(DateTime? sinceUtc = null, CancellationToken ct = default) =>
+        _db.AuditLogs.CountAsync(a => sinceUtc == null || a.TimestampUtc >= sinceUtc, ct);
 
     public async Task<IReadOnlyList<AuditEntry>> ListForEntityAsync(string entityType, string entityId, int max = 50, CancellationToken ct = default)
     {

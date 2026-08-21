@@ -685,6 +685,39 @@
               </ul>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
+        new Sec("admin-audit", "clock", "Audit: chi ha fatto cosa", "Audit: who did what",
+            @"<p>Il <b>registro</b> (<code>/vsop/admin/audit</code>) elenca gli <b>atti amministrativi</b>:
+               pubblicazioni, bozze scartate, documenti eliminati o nascosti, permessi concessi e revocati,
+               cambi di gerarchia, e i <b>lock tolti</b> a un'altra persona. Non si modifica e non si
+               cancella: è la memoria di chi ha fatto cosa, e resta vera anche quando il documento di cui
+               parla non esiste più — per questo ogni riga porta il <b>nome</b> accanto all'Id.</p>
+              <ul>
+                <li>Il <b>periodo</b> (7 / 30 / 90 giorni, oppure tutto) decide cosa si carica. Se il periodo
+                    contiene più righe del tetto, la pagina lo <b>dice</b>: un elenco tagliato in silenzio
+                    sembra completo.</li>
+                <li>I <b>chip contano</b> gli eventi del periodo per famiglia e filtrano l'elenco; la ricerca
+                    guarda nome, VID, bersaglio e dettagli.</li>
+                <li>La colonna <b>Cosa</b> è la frase; passandoci sopra il mouse compare il dettaglio
+                    <b>grezzo</b> della riga, che è quello che sta scritto nel database.</li>
+              </ul>
+              <p>Le <b>modifiche al contenuto</b> di un documento non stanno qui: la storia di un documento si
+               legge dalle sue <b>versioni</b>, in Documenti.</p>",
+            @"<p>The <b>log</b> (<code>/vsop/admin/audit</code>) lists <b>administrative acts</b>: publications,
+               discarded drafts, documents deleted or hidden, permissions granted and revoked, hierarchy
+               changes, and <b>locks forced off</b> someone else. It cannot be edited or cleared: it is the
+               memory of who did what, and it stays true even when the document it talks about is gone —
+               which is why every entry carries the <b>name</b> next to the Id.</p>
+              <ul>
+                <li>The <b>period</b> (7 / 30 / 90 days, or all) decides what is loaded. If the period holds
+                    more entries than the cap, the page <b>says so</b>: a list silently cut looks complete.</li>
+                <li>The <b>chips count</b> the period's events by family and filter the list; the search looks
+                    at name, VID, target and details.</li>
+                <li>The <b>What</b> column is the sentence; hovering it shows the <b>raw</b> detail of the
+                    entry, which is what is written in the database.</li>
+              </ul>
+              <p><b>Content changes</b> are not here: a document's history is read from its <b>versions</b>,
+               in Documents.</p>"),
+
         new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
             @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le

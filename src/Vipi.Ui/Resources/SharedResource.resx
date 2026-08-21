@@ -382,6 +382,48 @@
   <data name="Audit_Action" xml:space="preserve"><value>Azione</value></data>
   <data name="Audit_Entity" xml:space="preserve"><value>Entità</value></data>
   <data name="Audit_Details" xml:space="preserve"><value>Dettagli</value></data>
+  <data name="Audit_Who" xml:space="preserve"><value>Chi</value></data>
+  <data name="Audit_Event" xml:space="preserve"><value>Evento</value></data>
+  <data name="Audit_Target" xml:space="preserve"><value>Bersaglio</value></data>
+  <data name="Audit_What" xml:space="preserve"><value>Cosa</value></data>
+  <data name="Audit_RawTitle" xml:space="preserve"><value>Dettagli grezzi della riga di registro</value></data>
+  <data name="Audit_HelpAria" xml:space="preserve"><value>Che cos'è il registro di audit</value></data>
+  <data name="Audit_Intro" xml:space="preserve"><value>&lt;p&gt;Il &lt;b&gt;registro&lt;/b&gt; elenca gli atti amministrativi: pubblicazioni, bozze scartate, documenti eliminati o nascosti, permessi concessi e revocati, cambi di gerarchia e lock tolti a un'altra persona. Non si modifica e non si cancella: è la memoria di chi ha fatto cosa.&lt;/p&gt;&lt;p&gt;Le &lt;b&gt;modifiche al contenuto&lt;/b&gt; di un documento non stanno qui: la storia di un documento si legge dalle sue versioni, in Documenti.&lt;/p&gt;&lt;p&gt;I &lt;b&gt;chip&lt;/b&gt; contano gli eventi del periodo scelto e filtrano l'elenco. Il dettaglio grezzo della riga compare passando il mouse sulla colonna &#171;Cosa&#187;.&lt;/p&gt;</value></data>
+  <data name="Audit_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
+  <data name="Audit_RefreshTitle" xml:space="preserve"><value>Rilegge il registro: cresce mentre lo guardi</value></data>
+  <data name="Audit_SearchPh" xml:space="preserve"><value>Cerca persona, bersaglio, ACC...</value></data>
+  <data name="Audit_Period" xml:space="preserve"><value>Periodo</value></data>
+  <data name="Audit_Period7" xml:space="preserve"><value>Ultimi 7 giorni</value></data>
+  <data name="Audit_Period30" xml:space="preserve"><value>Ultimi 30 giorni</value></data>
+  <data name="Audit_Period90" xml:space="preserve"><value>Ultimi 90 giorni</value></data>
+  <data name="Audit_PeriodAll" xml:space="preserve"><value>Tutto</value></data>
+  <data name="Audit_CountTitle" xml:space="preserve"><value>Eventi mostrati / eventi nel periodo</value></data>
+  <data name="Audit_Truncated" xml:space="preserve"><value>Mostrati i {0} più recenti di {1} nel periodo: restringi il periodo per vedere gli altri.</value></data>
+  <data name="Audit_NoneInPeriod" xml:space="preserve"><value>Nessun evento nel periodo scelto.</value></data>
+  <data name="Audit_ClearTitle" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Audit_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Audit_ChipTitle" xml:space="preserve"><value>Mostra solo: {0}</value></data>
+  <data name="Audit_Cat_Pubblicazione" xml:space="preserve"><value>Pubblicazione</value></data>
+  <data name="Audit_Cat_Bozza" xml:space="preserve"><value>Bozza scartata</value></data>
+  <data name="Audit_Cat_Documento" xml:space="preserve"><value>Documento</value></data>
+  <data name="Audit_Cat_Permesso" xml:space="preserve"><value>Permesso</value></data>
+  <data name="Audit_Cat_Gerarchia" xml:space="preserve"><value>Gerarchia</value></data>
+  <data name="Audit_Cat_Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Audit_Cat_Altro" xml:space="preserve"><value>Altro</value></data>
+  <data name="Audit_Fr_Publish" xml:space="preserve"><value>Pubblicata la versione {0} (AIRAC {1})</value></data>
+  <data name="Audit_Fr_PublishNoAirac" xml:space="preserve"><value>Pubblicata la versione {0}</value></data>
+  <data name="Audit_Fr_Discard" xml:space="preserve"><value>Scartata la bozza v{0}</value></data>
+  <data name="Audit_Fr_DocDelete" xml:space="preserve"><value>Eliminato definitivamente, con {0} rilasci</value></data>
+  <data name="Audit_Fr_DocHide" xml:space="preserve"><value>Nascosto al pubblico</value></data>
+  <data name="Audit_Fr_DocShow" xml:space="preserve"><value>Rimesso a vista</value></data>
+  <data name="Audit_Fr_GrantAdd" xml:space="preserve"><value>Concesso a {0} il permesso su {1}</value></data>
+  <data name="Audit_Fr_GrantRevoke" xml:space="preserve"><value>Revocato a {0} il permesso su {1}</value></data>
+  <data name="Audit_Fr_Hierarchy" xml:space="preserve"><value>Padre: da {0} a {1}</value></data>
+  <data name="Audit_Fr_ForceUnlock" xml:space="preserve"><value>Lock tolto a {0}</value></data>
+  <data name="Audit_NoParent" xml:space="preserve"><value>nessuno</value></data>
+  <data name="Audit_DocN" xml:space="preserve"><value>documento #{0}</value></data>
+  <data name="Audit_GrantN" xml:space="preserve"><value>permesso #{0}</value></data>
+  <data name="Audit_VidN" xml:space="preserve"><value>VID {0}</value></data>
   <!-- Diagnostica (/vsop/admin/diagnostica) -->
   <data name="Diag_Title" xml:space="preserve"><value>Diagnostica dati</value></data>
   <data name="Diag_Subtitle" xml:space="preserve"><value>Incongruenze dei riferimenti «deboli» (soft-ref): etichette denormalizzate e padri per callsign che possono divergere dalla fonte</value></data>
@@ -1149,7 +1191,6 @@
   <data name="Ver_FilterHidden" xml:space="preserve"><value>Nascosti</value></data>
   <data name="Ver_FilterScheduled" xml:space="preserve"><value>Programmate</value></data>
   <data name="Ver_FilterNoRelease" xml:space="preserve"><value>Senza release</value></data>
-  <data name="Ver_SavesSuffix" xml:space="preserve"><value> · {0} salvataggi</value></data>
   <data name="Ver_StBozza" xml:space="preserve"><value>Bozza</value></data>
   <data name="Ver_StPubblicata" xml:space="preserve"><value>Pubblicata</value></data>
   <data name="Ver_StArchiviata" xml:space="preserve"><value>Archiviata</value></data>
