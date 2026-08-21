@@ -55,7 +55,14 @@ public sealed class EfStaffRosterRepository : IStaffRosterRepository
     {
         var sm = await _db.StaffMembers.FirstOrDefaultAsync(x => x.UserId == UserId, ct);
         if (sm is null) return;
-        if (!string.IsNullOrWhiteSpace(displayName)) sm.DisplayName = displayName;
+        // Il nickname riempie il nome SOLO se il nome manca. La ri-verifica passa da /v2/users/{vid} col
+        // token APPLICATIVO, che il nome vero non ce l'ha: dà `publicNickname`, che nel payload reale vale
+        // "Carmine (704798)". Sovrascrivere significherebbe far oscillare l'elenco — «Carmine Granato»
+        // dopo il login, «Carmine (704798)» dopo la ri-verifica notturna, e avanti così.
+        // Il nome autorevole viene dal LOGIN (scope `profile`, firstName+lastName); qui si resta indietro
+        // di un cambio di nickname, e va benissimo: ora c'è di meglio da mostrare.
+        if (string.IsNullOrWhiteSpace(sm.DisplayName) && !string.IsNullOrWhiteSpace(displayName))
+            sm.DisplayName = displayName;
         sm.AtcRating = atcRating;
         sm.StaffPositionsCsv = string.Join(',', positions);
         sm.IsActive = true;

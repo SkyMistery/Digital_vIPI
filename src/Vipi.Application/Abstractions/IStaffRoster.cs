@@ -22,7 +22,10 @@ public interface IStaffRosterRepository
     /// <summary>UserId di tutti gli staffisti nel roster (per la verifica periodica).</summary>
     Task<IReadOnlyList<int>> ListAllUserIdsAsync(CancellationToken ct = default);
 
-    /// <summary>Aggiorna i dati verificati via API (rating/posizioni/nome) e marca LastVerifiedUtc.</summary>
+    /// <summary>Aggiorna i dati verificati via API (rating/posizioni) e marca LastVerifiedUtc.
+    /// <para><paramref name="displayName"/> è un RIPIEGO: riempie il nome solo se manca. Il nome buono lo
+    /// porta il login (nome e cognome veri); qui arriva il solo nickname del token applicativo, e
+    /// sovrascrivere farebbe oscillare l'elenco a ogni ri-verifica.</para></summary>
     Task UpdateVerifiedAsync(int UserId, string? displayName, string? atcRating, IReadOnlyList<string> positions, CancellationToken ct = default);
 
     /// <summary>Disattiva uno staffista che non è più staff IT (IsActive=false, LastVerifiedUtc aggiornato).</summary>
