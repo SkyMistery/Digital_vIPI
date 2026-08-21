@@ -245,7 +245,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — undici pagine, e sono loro ad aver prodotto le regole
+### Già a norma — dodici pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -260,6 +260,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Permessi | `/vsop/admin/permessi` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
 | Audit | `/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
 | Sorgenti | `/vsop/admin/sorgenti` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
+| Diagnostica | `/vsop/admin/diagnostica` | 900 | **da 1 349** misurata con otto rilievi (la ricognizione diceva 900 col report **vuoto**), e resta 900 con **76**: due colonne, riquadro misurato col `thead` fermo, chip per **area**, «Dove si ripara» ([carte](../feature/2026-08-22-diagnostica-cosa-afferma.md) e [densità](../feature/2026-08-22-diagnostica-densita-ui.md)). ⚠️ Qui `height` e non `max-height`: il contenuto è più alto dello schermo per mestiere |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -272,11 +273,10 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
-| 2 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
-| 3 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
-| 4 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
-| 5 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
+| 2 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
+| 3 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
+| 4 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -682,6 +682,62 @@ categoria e l'import non la tocca più» — era falsa per **due categorie su ci
      tabella non è un form.
 
 
+## 24. Quello che ha lasciato il giro Diagnostica (22 agosto)
+
+Dodicesima pagina, e la **quarta di fila** in cui la sostanza è venuta prima della forma. Il giro precedente
+aveva lasciato scritto «prima di renderla bella, verificare che dica il vero», e qui la verifica ha trovato
+il difetto peggiore del ramo: **la pagina che diagnostica i guasti moriva se ne aveva uno**. Carte:
+[cosa afferma](../feature/2026-08-22-diagnostica-cosa-afferma.md) e
+[densità](../feature/2026-08-22-diagnostica-densita-ui.md). Regole **153-162**.
+
+153. ⚠️ **Chi raccoglie i guasti degli altri deve proteggersi dai propri.** Le cinque parti del report
+     giravano in fila senza protezione: una sonda che lanciava uccideva il circuito Blazor, e — peggio — il
+     guasto di **una** cancellava il lavoro di **tutte** le altre, perché il report è una lista sola
+     costruita in ordine. Un problema del server di database nascondeva una pista orfana già trovata. La
+     lezione stava scritta nella stessa cartella (`StartupMaintenanceReport`: «un guasto non deve uccidere
+     il giro, ma non deve nemmeno restare zitto») e non era applicata a sé.
+154. **Un guasto di sonda è un rilievo, e porta l'area del pezzo che non è riuscito.** Altrimenti i conteggi
+     per area direbbero «0 rilievi di schema» proprio quando la sonda dello schema non ha guardato niente. E
+     il testo del rilievo dice la cosa che serve sapere: **in quest'area l'assenza di rilievi non vuol dire
+     che vada tutto bene**.
+155. ⚠️ **«La sonda è rotta» non è «il sito è giù».** Un guasto del report faceva uscire l'health check
+     `Unhealthy` con lo stack: un monitor lo legge come «il sito non c'è» e sveglia qualcuno di notte. È
+     `Degraded` con un messaggio leggibile — le condizioni critiche restano quelle della sonda `ready`.
+156. ⚠️ **Un sottotitolo che promette MENO di quello che la pagina mostra è un difetto come quello che ne
+     promette di più.** Qui diceva «incongruenze dei soft-ref» e nella stessa tabella comparivano schema,
+     impostazioni del server, guasti d'avvio e «nessuno può editare» — che è il rilievo più grave che
+     l'applicazione sappia produrre. È Audit al contrario, e costa uguale.
+157. **Di chi è il problema è un dato, non una sfumatura del testo.** `ConsistencyArea` in cinque valori,
+     **obbligatoria e senza default**: un default farebbe nascere un controllo nuovo nell'area sbagliata in
+     silenzio. È anche l'unità giusta per i chip — le categorie sono tredici e crescono con ogni controllo,
+     le aree sono cinque e rispondono alla domanda che si fa chi legge.
+158. **Chi produce il rilievo è l'unico che sa dove si ripara.** La rotta sta sul rilievo (`Where`), non in
+     una mappa categoria→rotta lato pagina: quella sarebbe un secondo posto da tenere allineato, e un
+     controllo nuovo nascerebbe muto senza che il compilatore lo dica. ⚠️ E `null` è una risposta: server,
+     schema e configurazione si correggono **fuori** dall'applicazione — in particolare «nessuno può
+     editare» non manda alla pagina dei permessi, che è esattamente la porta chiusa di cui parla.
+159. ⚠️ **Il testo di un rilievo va scritto due volte, e non è una ridondanza.** Grezzo per l'health check e
+     i log — dove una lingua d'interfaccia non esiste e il rilievo nasce anche fuori da una richiesta HTTP —
+     e come **chiave** per chi lo mostra. Localizzare alla scrittura non si può. Il patto del narratore è
+     quello di `AuditNarrator`: **chiave sconosciuta ⇒ testo grezzo**, mai il nome della chiave a video (il
+     localizzatore, quando non trova, restituisce la chiave *come valore*: senza il controllo su
+     `ResourceNotFound` a schermo compare `Diag_Msg_Qualcosa`).
+160. ⚠️ **La localizzazione a metà si vede.** Tradotti categoria e dettaglio, il **bersaglio** restava in
+     italiano: «severe | Broken hierarchy | *Settore ACC* LGGG_W_CTR». Metà dei bersagli non è un
+     identificatore ma una frase. Regola pratica: quello che va tradotto è ciò che è **prosa**; ciò che è un
+     identificatore (`sql_mode`, `Documents.Title`) resta, perché tradurlo è inventargli un secondo nome.
+     Stessa trappola in piccolo negli **argomenti**: un argomento è un valore, non una chiave — passare il
+     nome di un pezzo come argomento lo fa comparire grezzo dentro una frase tradotta.
+161. **Un pannello di destra si giustifica anche con «sono tre domande», non solo con l'azione.** La regola
+     140 diceva che il dettaglio a destra vuole un'azione; qui a destra non c'è il dettaglio di una riga di
+     sinistra, ci sono **due argomenti diversi**. Il motivo vero è misurato: la card delle immagini stava
+     sotto 1 349px e ci sarebbe restata per sempre — più rilievi ci sono, più è lontana, ed è proprio quando
+     si scorre meno.
+162. ⚠️ **Due schede affiancate con due pesi tipografici diversi si leggono come due livelli**, e non lo
+     sono. Quando un componente condiviso finisce accanto a un altro, la sua testata va allineata a quella
+     del vicino — non lasciata com'era quando stava da solo in fondo alla pagina.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -690,6 +746,7 @@ categoria e l'import non la tocca più» — era falsa per **due categorie su ci
 | Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Etichette delle categorie di import | `ImportCategoryLabels` — condivise fra la pagina Sorgenti e `AuditNarrator` |
+| Testo dei rilievi di diagnostica | `ConsistencyNarrator` — chiave ⇒ traduzione, chiave ignota ⇒ testo grezzo (regola 159) |
 | Quota di una fascia appiccicata | `vipiStickyOffset(selettore, nomeVar, ambito)` → variabile CSS sul `.wrap` |
 | Fattore di zoom | `rootZoom()` — `vipi-ui.js` |
 | «?» che si apre dove c'è posto | `placeHelpPop` + `toggle` in cattura — `vipi-ui.js` |

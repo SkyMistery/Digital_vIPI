@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Sorgenti)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Diagnostica)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **152 voci in 23 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **162 voci in 24 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Undici pagine chiuse
+## Dodici pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -39,6 +39,7 @@ già e si riusa**, non si riscrive.
 | **Permessi** | `/vsop/admin/permessi` | **2 449 → 900** | `2026-08-22-permessi-densita-ui.md` |
 | **Audit** | `/vsop/admin/audit` | **13 293 → 900** (+ cosa registra) | `2026-08-22-audit-cosa-registra.md`, `2026-08-22-audit-densita-ui.md` |
 | **Sorgenti** | `/vsop/admin/sorgenti` | **1 252 → 900** (+ cosa fa la policy) | `2026-08-22-sorgenti-cosa-fa-la-policy.md`, `2026-08-22-sorgenti-densita-ui.md` |
+| **Diagnostica** | `/vsop/admin/diagnostica` | **1 349 → 900** (+ cosa afferma) | `2026-08-22-diagnostica-cosa-afferma.md`, `2026-08-22-diagnostica-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -191,16 +192,56 @@ diverse (l'uno del componente, l'altro della pagina); le sei caselle **non incol
 modifica» che a `display:block` sembravano campi; un errore di rete lungo quattro righe che faceva la riga
 SID alta il doppio; e `e'`/`piu'` al posto di `è`/`più` in tre stringhe nuove.
 
-### La prossima pagina: Diagnostica
+## Diagnostica: chiusa il 22 agosto, in due giri
 
-**Diagnostica** (`/vsop/admin/diagnostica`, 900px: sottotitolo, 1 fascia, nessun «?»; ⚠️ la barra ci sta su
-**due righe** — 87px — perché è una delle tre pagine col `.wrap` a 1 100px), poi Nuovo documento, Incarichi,
-editor APP/vLOA. L'ordine aggiornato sta in §15.
+**Sostanza** (carta [`2026-08-22-diagnostica-cosa-afferma.md`](../feature/2026-08-22-diagnostica-cosa-afferma.md),
+regole 153-162 insieme alla densità). La regola lasciata dal giro Sorgenti — *prima di renderla bella,
+verificare che dica il vero* — ha pagato subito, e ha trovato il difetto peggiore del ramo:
 
-⚠️ **Prima di misurarle, riempirle** (lezione di Permessi) e, se accumulano, **rimisurarle** (lezione di
-Audit). E, dopo Sorgenti, una terza: ⚠️ **prima di renderla bella, verificare che la pagina dica il vero.**
-Tre pagine su tre, aperte per la densità, nascondevano un difetto di sostanza — e su tutte e tre era la
-**prosa della pagina** a prometterlo. La diagnostica è, per mestiere, una pagina che afferma cose.
+- ⚠️ **la pagina che diagnostica i guasti moriva se ne aveva uno.** Le cinque parti del report giravano in
+  fila senza protezione e `OnInitializedAsync` chiamava `RunAsync` senza `try/catch`. Peggio del circuito
+  morto: il guasto di **una** sonda cancellava il lavoro di **tutte** le altre — un problema del server di
+  database nascondeva una pista orfana già trovata. Era la lezione di `StartupMaintenanceReport`, che sta
+  nella stessa cartella e che quel servizio **consuma**, non applicata a sé;
+- ⚠️ il sottotitolo prometteva **meno** di quello che la tabella mostrava («soft-ref», mentre ospita anche
+  schema, server, avvio e «nessuno può editare»): è Audit al contrario;
+- ⚠️ in pagina inglese i rilievi erano **in italiano** — è l'unica pagina admin il cui contenuto è prosa
+  scritta dall'applicazione invece che dati;
+- otto rilievi e **zero link**: la riga diceva «Clausola #1 (LIBB, punti Y01-Y12)» e la si andava a cercare
+  a mano, benché chi produce il rilievo sappia dove si ripara;
+- nessun «Aggiorna»: una fotografia da ~1,3 s che per rifarsi voleva un ricaricamento della pagina.
+
+**Densità** (carta [`2026-08-22-diagnostica-densita-ui.md`](../feature/2026-08-22-diagnostica-densita-ui.md)):
+**1 349 → 900**, e resta 900 **con 76 rilievi**, a 1600/1440/1280/1024, IT ed EN, zoom 0.8→1.5. Il `thead`
+resta fermo dopo 4 024px di scorrimento interno. Tre domande diverse in due colonne; `.wrap` a larghezza
+piena (a 1 100px la barra admin andava su **due righe**); chip che contano per **area** e non per categoria.
+
+⚠️ **La ricognizione diceva 900 perché il report era VUOTO**: nel DB di sviluppo nessun soft-ref è rotto.
+Terza volta nel giro, dopo Permessi (1 346 a tabella vuota → 2 449) e Audit (1 556 con 28 righe → 13 293) —
+ma qui il numero non era *vecchio*: era la misura di una pagina che **non aveva niente da dire**.
+
+⚠️ E la coppia `height`/`max-height` si è chiusa: su Sorgenti serviva `vipiCapViewport` perché il contenuto
+è corto e fisso, qui serve `vipiFitViewport` perché cresce senza tetto. **Quale delle due dipende da cosa
+c'è dentro**, e la differenza si vede a occhio prima che nei numeri.
+
+⚠️ Un difetto lo ha trovato la verifica live e non i test: la localizzazione era **a metà**. Tradotti
+categoria e dettaglio, il **bersaglio** restava italiano — «severe | Broken hierarchy | *Settore ACC*
+LGGG_W_CTR». Metà dei bersagli non è un identificatore ma una frase.
+
+### La prossima pagina: Nuovo documento
+
+**Nuovo documento** (`/vsop/editor/newdoc`, 957px: sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia; ⚠️
+**non ha la barra** e ha ancora la briciola, perché non è in `AdminNav.Voci` — se entri nell'elenco è parte
+del suo giro), poi Incarichi ed editor APP/vLOA. L'ordine aggiornato sta in §15.
+
+Le tre lezioni da portarsi dietro, in ordine di quanto sono costate:
+1. ⚠️ **Prima di renderla bella, verificare che dica il vero.** Quattro pagine su quattro — Versioni, Audit,
+   Sorgenti, Diagnostica — aperte per la densità nascondevano un difetto di sostanza, e su tutte e quattro
+   era la **prosa della pagina** a prometterlo.
+2. ⚠️ **Prima di misurarla, riempirla** (Permessi) e, se accumula, **rimisurarla** (Audit). Una pagina che
+   non ha niente da dire misura sempre poco.
+3. **Il riquadro misurato non è un riflesso**: `height` dove il contenuto è più alto dello schermo per
+   mestiere, `max-height` dove è corto e fisso, niente dove non serve.
 
 ## Aperto, e non è di queste pagine
 

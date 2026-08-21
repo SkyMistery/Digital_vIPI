@@ -64,7 +64,7 @@ GRAVITÀ+CATEGORIA        ENTITÀ                        DETTAGLIO              
 ```
 
 - **I chip contano** e contano la condizione che applicano (regola 107): la somma è il totale. ⚠️ Qui contano
-  per **area** (dati/schema/server/avvio/configurazione), non per categoria: le categorie sono nove e
+  per **area** (dati/schema/server/avvio/configurazione), non per categoria: le categorie sono **tredici** e
   crescono con ogni controllo nuovo, le aree sono cinque e rispondono alla domanda «di chi è il problema».
 - ⚠️ Un chip a **zero è neutro**, non verde (regola 108): «0 rilievi di schema» è un fatto, e su questa
   pagina lo è ancora di più — zero può voler dire «la sonda non gira su questo provider».
@@ -83,8 +83,8 @@ chip che contano una fetta del totale. Accanto al tasto, in `muted`, **da quando
 
 - `HelpHint Href="/vsop/guida#admin-diagnostica"` con dentro il sottotitolo **corretto** (tutte e cinque le
   aree), la frase «sono solo diagnosi», e cosa vuol dire ogni area.
-- Sezione `#admin-diagnostica` nella Guida, IT **ed** EN: le nove categorie con, per ognuna, **come nasce** e
-  **dove si ripara**. È la pagina in cui la Guida serve di più: ogni riga della tabella è un termine tecnico.
+- Sezione `#admin-diagnostica` nella Guida, IT **ed** EN: le cinque **aree** con, per ognuna, **come nasce** e
+  **dove si ripara** (le categorie sono tredici e crescono: raccontarle una per una invecchierebbe). È la pagina in cui la Guida serve di più: ogni riga della tabella è un termine tecnico.
 - Voce in `GuideSearchCatalog` (oggi «diagnostica» compare solo dentro la voce «Aree admin»).
 - Il «?» della scheda «Chi può editare» si prende i **pattern regex** e la spiegazione di cosa sono.
 
@@ -105,25 +105,58 @@ fotografare **e guardare**:
 1. zero rilievi (il caso buono, che è anche il più frequente);
 2. otto rilievi, misti fra le aree;
 3. cinquanta rilievi (il riquadro tiene? il `thead` resta?);
-4. una **sonda rotta** — è la slice 1, e il modo di provarla è puntare la connessione a un server che non
-   risponde;
+4. una **sonda rotta** — è la slice 1. Il modo economico di provarla è **rinominare via** la tabella che il
+   report interroga: la lettura dei dati fallisce e tutto il resto della pagina deve arrivare lo stesso;
 5. la scheda immagini dopo «Analizza», con e senza orfane;
 6. il caso «nessuno è admin», che è il rilievo più grave che l'applicazione sappia produrre.
 
 ⚠️ Lo sforo **orizzontale** non è un segnale utile finché la topbar non è sistemata (`div.right` 1 411px
 dentro 1 280, identico su ogni pagina).
 
-## Slice di questo pezzo (dopo le cinque della sostanza)
+## Esito misurato (verifica live del 22 agosto)
 
-6. **Due colonne** (`.diag-layout`), riquadro misurato con `vipiFitViewport` + `thead` fermo, `.wrap` a
-   larghezza piena, testata in una riga con «Aggiorna» e la pill.
-7. **Chip per area che contano** + ricerca, gravità come pill sulla categoria, colonna «Dove», larghezze
-   misurate col font sui valori veri.
-8. **Prosa nei «?»** + sezione Guida `#admin-diagnostica` (IT/EN) + voce nel catalogo di ricerca.
-9. **Misura e rifiniture**: quattro assetti, due lingue, cinque zoom, due volumi di rilievi; poi carta +
-   regole + ricognizione §15 + memoria.
+**1 349 → 900**, cioè il viewport: la pagina **non scorre** a 1600×900, 1440×900, 1280×800 e 1024×768, in
+italiano **e** in inglese, da zoom **0.8 a 1.5** — e **con 76 rilievi come con zero**. Il riquadro misura
+682px (582 e 519 sugli assetti bassi) e dentro scorre solo la tabella: il `thead` resta fermo a 269px dopo
+**4 024px su 4 618** di scorrimento interno.
 
-⚠️ Trappole già pagate che valgono qui: le regole CSS nuove si scrivono **in coda** al foglio e con `.struct`
-davanti; dentro uno scroller il `thead` appiccicato vuole **`top:0`**; il `.wrap` porta un padding di fondo
-che il riquadro misurato **non vede** (70px su Sorgenti, 52 su Audit); una classe non può significare due
-cose; e le stringhe nuove si rileggono **in pagina italiana**, non nel file resx.
+Guidata con la skill `verifica-live` su copia del DB, con **quattro stati che il DB di sviluppo non ha** e
+che sono stati scritti nella copia mentre l'app girava:
+
+| Stato | Come si è costruito | Cosa ha detto |
+|---|---|---|
+| zero rilievi | il DB di sviluppo così com'è | pill **verde** «nessun rilievo», `/vsop/health` = `Healthy` |
+| otto | tre clausole sporcate + cinque padri inesistenti | 900px, i link portano a Struttura e Accordi |
+| settantasei | 25 clausole + 50 nodi | 900px lo stesso; scorre il riquadro, non la pagina |
+| **sonda rotta** | la tabella che il report interroga **rinominata via** | la pagina **vive**, mostra il rilievo del guasto, la colonna di destra arriva intatta, e `/vsop/health` risponde **`Degraded`** |
+
+L'ultima riga è la slice 1 verificata dove conta: non nei test, ma nella pagina.
+
+### Quello che ha visto l'occhio e non i numeri
+
+- ⚠️ **La localizzazione era a metà.** Tradotti categoria e dettaglio, il **bersaglio** restava italiano:
+  «severe | Broken hierarchy | *Settore ACC* LGGG_W_CTR». Metà dei bersagli non è un identificatore ma una
+  frase. Regola pratica emersa: si traduce ciò che è **prosa**; ciò che è un identificatore (`sql_mode`,
+  `Documents.Title`) resta, perché tradurlo è inventargli un secondo nome.
+- ⚠️ E la stessa trappola in piccolo: il nome del controllo dentro il messaggio della sonda rotta era un
+  **argomento**, quindi grezzo — «The check *«incongruenze dei dati»* did not complete». Un argomento è un
+  valore, non una chiave. Lì non ci andava affatto: sta già nella colonna del bersaglio, tradotto.
+- **Le due schede di destra avevano due pesi tipografici diversi** e si leggevano come due livelli:
+  `MediaCleanupCard` teneva la testata che aveva quando stava da sola in fondo alla pagina.
+- `piu'` invece di `più` nel testo della card immagini (difetto preesistente, ben visibile una volta
+  portata a destra).
+- La colonna «Entità» a 190px mandava a capo **alcune** righe e non altre, e l'elenco sembrava sghembo:
+  rimisurata sul valore più lungo che il produttore sa generare.
+- Il messaggio di «tutto a posto» prometteva ancora i **soli soft-ref** — la stessa promessa ridotta del
+  sottotitolo, sopravvissuta in un altro punto della pagina.
+
+### Rimasto aperto, e non è di questa pagina
+
+⚠️ A **1024×768** la barra admin torna su due righe (75px): lì undici voci non ci stanno comunque, e non è
+più il difetto del `.wrap` a 1 100px — a 1280 ora sono 43px. E lo sforo **orizzontale** resta quello della
+topbar (`div.right` 1 411px dentro 1 280, identico su ogni pagina).
+
+## Slice, come sono andate
+
+Nove sulla carta, nove fatte — cinque di sostanza e quattro di forma — più il giro di correzioni che la
+verifica live ha fatto nascere, ed è quello che ha prodotto le regole 160 e 162.
