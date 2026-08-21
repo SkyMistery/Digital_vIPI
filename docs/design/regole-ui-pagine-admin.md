@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026)
+﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 182 voci in 26 gruppi
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -10,7 +10,10 @@
 > ([carta](../feature/2026-08-21-versioni-lock-e-azioni.md)), che non era di forma ma di sostanza
 > (§18, regole 95-105), poi la **densità** ([carta](../feature/2026-08-21-versioni-densita-ui.md), §19,
 > regole 106-116); il 22 agosto **permessi** e **audit** ([carta](../feature/2026-08-22-permessi-densita-ui.md),
-> §20, regole 117-124) — e ogni giro ha lasciato una regola pagata a caro prezzo,
+> §20, regole 117-124), e a chiudere il ramo **incarichi** in due giri
+> ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e
+> [densità](../feature/2026-08-22-incarichi-densita-ui.md), §26, regole 171-182)
+> — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -245,7 +248,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — tredici pagine, e sono loro ad aver prodotto le regole
+### Già a norma — quindici pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -262,6 +265,8 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Sorgenti | `/vsop/admin/sorgenti` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
 | Diagnostica | `/vsop/admin/diagnostica` | 900 | **da 1 349** misurata con otto rilievi (la ricognizione diceva 900 col report **vuoto**), e resta 900 con **76**: due colonne, riquadro misurato col `thead` fermo, chip per **area**, «Dove si ripara» ([carte](../feature/2026-08-22-diagnostica-cosa-afferma.md) e [densità](../feature/2026-08-22-diagnostica-densita-ui.md)). ⚠️ Qui `height` e non `max-height`: il contenuto è più alto dello schermo per mestiere |
 | Nuovo documento | `/vsop/editor/newdoc` | 900 | **da 957** sulla scheda vLOA (le altre tre erano già 900 — ⚠️ su una pagina a schede si misura **ogni scheda**): campi in griglia, tasto **sotto** i campi che gli servono, schede riordinate, barra admin **senza** voce nell'elenco ([carte](../feature/2026-08-22-newdoc-cosa-crea.md) e [densità](../feature/2026-08-22-newdoc-densita-ui.md)). `max-height`: corto e fisso a zoom 1, non a 1.25 |
+| Incarichi admin | `/vsop/admin/tasks` | 900 | **da 1 813 con 12 incarichi e 4 764 con 60** (la ricognizione diceva 900: `EditorTasks` è **vuota** nel DB di sviluppo — terza volta): elenco+dettaglio con le azioni nel pannello, `thead` fermo, chip che contano col **default «non conclusi»** al posto di un'archiviazione, avanzamento per editore da parete di card a chip che filtrano ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e [densità](../feature/2026-08-22-incarichi-densita-ui.md)). Resta il viewport con 60 |
+| Incarichi (utente) | `/vsop/tasks` | 900 | **da 1 562 con 12 propri** (a 1280×800 scorreva con **quattro**): tre colonne a schermo e due chiuse col conteggio, card con un avanzamento invece di quattro tasti, `vipiCapViewport` **con riserva** per le colonne chiuse. La briciola resta: è una pagina d'utente |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -274,9 +279,7 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | **1 813** | ⚠️ **Rimisurata il 22 agosto riempiendo `EditorTasks`, che nel DB di sviluppo è VUOTA**: 1 813 con 12 incarichi, **4 764 con 60**, e non ha tetto (64px a riga, il «Fatto» non si archivia). Il form «Nuovo incarico» sta in cima sempre aperto — 276px prima del primo incarico, e creare è il gesto RARO (regola 118 al contrario). `thead` non fermo su una tabella da 3 730px. L'«Avanzamento per editor» sta sotto 1 500px: non lo vede nessuno. Nessun «?», barra su due righe (`.wrap` a 1 200px). |
-| 2 | **Incarichi** (utente) | `/vsop/tasks` | 900 | **1 562** | Con 12 incarichi propri (900 con due). ⚠️ A 1280×800 **scorre già con quattro**. Cinque colonne kanban, nessun «?». ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente — e dopo Nuovo documento sappiamo che lì la briciola è l'**unica** risalita, quindi non si tocca. |
-| 3 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | ⚠️ Numero **non verificato**: corte coi dati di sviluppo, da rimisurare su un documento vero e **in modifica** (l'editor ACC pesava 6 466 in lettura e 9 690 in modifica). |
+| 1 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | ⚠️ Numero **non verificato**: corte coi dati di sviluppo, da rimisurare su un documento vero e **in modifica** (l'editor ACC pesava 6 466 in lettura e 9 690 in modifica). |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -564,8 +567,9 @@ Non è il giro di **una** pagina: cambia la testa di **tutte e undici**. Regole 
   «Nuovo documento», che non era di Struttura: la testata di Struttura non ha più comandi.
 - ⚠️ **Tre pagine mandavano la barra a capo**: Audit e Diagnostica (`.wrap` a 1 100px) e Incarichi admin
   (1 200px). 87px invece di 55. Non è un difetto — quelle pagine scorrono — ma il `max-width` è una scelta di
-  larghezza di lettura, e chi lo cambia deve sapere che cambia anche questo. **Audit è uscita da questo elenco
-  il 22 agosto**: il suo giro le ha tolto il `max-width`, e la barra le sta in una riga.
+  larghezza di lettura, e chi lo cambia deve sapere che cambia anche questo. **Audit e Incarichi admin sono
+  uscite da questo elenco il 22 agosto**: il loro giro ha tolto il `max-width`, e la barra sta in una riga.
+  Resta **Diagnostica**.
 - **Rete**: `AdminNavTests` (5 casi), fra cui il confronto di ogni voce con le `RouteAttribute` vere
   dell'assembly — un'etichetta sbagliata si vede, un URL sbagliato no.
 
@@ -784,6 +788,72 @@ nel **nome**: la pagina si chiama «Nuovo documento» e per tre tipi su quattro 
      accanto, non solo in una barra in cima.
 
 
+## 26. Quello che ha lasciato il giro Incarichi (22 agosto 2026)
+
+Quattordicesima e quindicesima pagina — due, non una — e la **sesta di fila** con un difetto di sostanza
+sotto la densità. Qui i difetti erano **dodici**, e i due peggiori li ha trovati la **verifica live**, non la
+lettura del codice: un sottotitolo che prometteva un gesto inesistente, e una chiave fabbricata che non
+ritrovava niente. Carte: [cosa sono](../feature/2026-08-22-incarichi-cosa-sono.md) e
+[densità](../feature/2026-08-22-incarichi-densita-ui.md). Regole **171-182**.
+
+171. ⚠️ **Un valore che la tendina usa come «non ho scelto» non può essere un valore valido.** L'opzione
+     «Seleziona» valeva `0`, e `0` finiva nel database come assegnatario: nasceva un incarico **di nessuno** —
+     invisibile a chi dovrebbe farlo, e non riassegnabile perché la riassegnazione non era in UI. La guardia
+     sta nel **service** (la porta non può essere più larga della serratura, regola 166 al contrario), e il
+     tasto è spento col **perché accanto** (regola 170). Con `@bind:event="oninput"`, o il tasto sembra spento
+     per sempre a chi ha appena finito di digitare.
+172. ⚠️ **Un metodo di servizio senza chiamanti non è funzionalità: è una promessa.** `AssignAsync` era
+     implementato, autorizzato e documentato, e non lo invocava **nessuno** — né UI né test. Un incarico dato
+     alla persona sbagliata si poteva solo cancellare e rifare. È il gemello di `HierarchyChange`, il valore
+     d'enum che nessuno scriveva (giro Audit): prima di credere a un'interfaccia, cercarne i chiamanti.
+173. ⚠️ **Un elenco su cui si agisce riga per riga non può riordinarsi per effetto dell'azione.** Si ordinava
+     per `UpdatedUtc` discendente e il cambio di stato riscrive proprio `UpdatedUtc`: la riga toccata
+     **saltava in cima** e sotto il puntatore ne arrivava un'altra. Con una tendina che scrive al primo
+     cambio, senza conferma e senza undo, il clic successivo finisce sull'incarico sbagliato. L'ordine dev'essere
+     **stabile**: proprietà del dato (ritardo, priorità, scadenza, titolo), mai l'ultimo tocco.
+174. ⚠️ **Gli enum persistiti come TESTO si ordinano come PAROLE.** `ThenByDescending(t => t.Priority)` su una
+     colonna `varchar(32)` ordina «High, Low, Normal»: il risultato non sembra sbagliato, sembra **casuale**.
+     Il rango si scrive a mano nella query; il confronto per uguaglianza resta leggibile in SQL.
+175. **Il non-evento non si scrive, e non tocca nemmeno l'orologio.** Rimettere lo stato che c'è già, o
+     riassegnare alla stessa persona, non lascia riga di audit **e** non riscrive `UpdatedUtc` — che è il dato
+     con cui si capisce se un incarico è fermo. La regola 138 vale anche per i timestamp, non solo per il registro.
+176. ⚠️ **Chi sceglie una chiave e chi la ritrova devono leggere lo stesso elenco.** La tendina si costruiva
+     la chiave del bersaglio (`$"{acc}|"` per la vIPI ACC) mentre la chiave vera è `{acc}|{callsign primario}`:
+     l'incarico nasceva puntando a un documento **inesistente**. La cura non è correggere la formula, è
+     **togliere la formula** — le chiavi vengono da chi le possiede (un read-model), perché una formula
+     duplicata diverge il giorno che l'originale cambia. Terza forma delle regole 143 e 163.
+177. ⚠️ **Un difetto invisibile può essere tenuto in vita da un secondo difetto.** La chiave sbagliata (176)
+     non si vedeva perché il link non consultava nessun elenco: componeva l'URL spezzando la stringa, e
+     funzionava **per caso**. Riparare una cosa ne scopre un'altra — e la seconda non poteva stare nella carta
+     iniziale. Dopo una riparazione si **riguarda**, non si dà per chiuso.
+178. **In una tendina non si offre ciò che non si potrà ritrovare.** Fra le opzioni compariva un documento con
+     la **chiave vuota**: un collegamento che nasce già rotto. Una tendina è una comodità, e una comodità non
+     deve mentire (corollario della regola 96, «una tendina non è una guardia»).
+179. ⚠️ **`vipiFitViewport` non vede cosa sta SOTTO il riquadro.** Su Audit erano i 18px di padding e si sono
+     chiusi nel foglio di stile (regola 141); dove sotto c'è **contenuto** — le due colonne chiuse in fondo a
+     «I miei incarichi» — il foglio non basta, perché quell'altezza dipende da quante ce ne sono. Da qui il
+     terzo argomento **`reserveSel`**, facoltativo. ⚠️ E il padding del `.wrap` resta comunque da chiudere:
+     **52px**, gli stessi identici di Audit, su una pagina nuova che non l'aveva applicato.
+180. ⚠️ **Una griglia col tetto vuole `grid-template-rows:minmax(0,1fr)`.** Senza, la riga implicita si
+     dimensiona sul **contenuto** e ignora l'altezza misurata: il riquadro cresce lo stesso e la pagina scorre
+     (952 su 900). È la regola 55 (`min-width:0` sui figli di griglia) sull'asse verticale, e vale per **ogni**
+     riquadro misurato che sia una griglia.
+181. ⚠️ **Estendere un selettore condiviso è un'operazione, non una riscrittura.** Togliendo la classe nuova
+     dal selettore che porta `display:grid`, per darle colonne diverse, la pagina ha smesso di essere una
+     griglia e i due pannelli si sono impilati — con altezze **plausibili e sbagliate**. L'override va in coda
+     e porta **solo** ciò che cambia.
+182. **Prima di dire «l'ho rotto io», misurare le gemelle.** A zoom 1.5 sotto i 1 440px queste pagine
+     scorrono: sembrava un difetto del giro, ed è il comportamento della **famiglia** — Permessi e Audit danno
+     gli **stessi identici numeri** (1 196 e 1 148). È il pavimento condiviso (regola 15). Un numero brutto su
+     una pagina sola è un difetto; lo stesso numero su tre pagine è una scelta di progetto, e va **dichiarata**
+     invece che ricorretta di nascosto.
+
+⚠️ **E la lezione trasversale: metà di questi li ha visti l'occhio.** Nessuna misura trova undici titoli
+troncati, una scadenza tagliata proprio sul segno di ritardo, un chip che *sembra* acceso senza esserlo, una
+ricerca schiacciata a 150px o un menù largo metà scheda per il gesto che si fa di rado. Sesta pagina di fila
+in cui gli screenshot vanno **guardati**, non solo prodotti.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -791,6 +861,10 @@ nel **nome**: la pagina si chiama «Nuovo documento» e per tre tipi su quattro 
 | Testata in riga | `.st-head` / `.xt-head` (`vipi-theme.css`), esito `.st-msg` |
 | Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
+| Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
+| Testo di un rifiuto di un service | `ServiceErrorNarrator.Testo(ex, L)` — `ValidationException` porta `Key` accanto al messaggio grezzo; chiave ignota ⇒ testo grezzo |
+| Documenti collegabili a un incarico, con la chiave che li ritrova | `IEditorTaskLinksService.OpzioniAsync` — mai fabbricare la chiave in pagina (regola 176) |
+| Elenco + dettaglio degli incarichi | `.task-layout` (griglia 1.9/1, il titolo è la colonna di prosa) + `vipiFitViewport` |
 | Etichette delle categorie di import | `ImportCategoryLabels` — condivise fra la pagina Sorgenti e `AuditNarrator` |
 | Testo dei rilievi di diagnostica | `ConsistencyNarrator` — chiave ⇒ traduzione, chiave ignota ⇒ testo grezzo (regola 159) |
 | Elenchi filtrati per chi guarda | un **read-model di pagina** (`NewDocumentOptionsService`, `ImportOverviewService`) — regola 167 |

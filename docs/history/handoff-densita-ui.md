@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Nuovo documento)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Incarichi)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **170 voci in 25 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **182 voci in 26 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Tredici pagine chiuse
+## Quindici pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -41,6 +41,8 @@ già e si riusa**, non si riscrive.
 | **Sorgenti** | `/vsop/admin/sorgenti` | **1 252 → 900** (+ cosa fa la policy) | `2026-08-22-sorgenti-cosa-fa-la-policy.md`, `2026-08-22-sorgenti-densita-ui.md` |
 | **Diagnostica** | `/vsop/admin/diagnostica` | **1 349 → 900** (+ cosa afferma) | `2026-08-22-diagnostica-cosa-afferma.md`, `2026-08-22-diagnostica-densita-ui.md` |
 | **Nuovo documento** | `/vsop/editor/newdoc` | **957 → 900** (+ cosa crea) | `2026-08-22-newdoc-cosa-crea.md`, `2026-08-22-newdoc-densita-ui.md` |
+| **Incarichi admin** | `/vsop/admin/tasks` | **1 813 / 4 764 → 900** (+ cosa sono) | `2026-08-22-incarichi-cosa-sono.md`, `2026-08-22-incarichi-densita-ui.md` |
+| **Incarichi utente** | `/vsop/tasks` | **1 562 → 900** | (le stesse due carte) |
 
 Le carte stanno in `docs/feature/`.
 
@@ -272,53 +274,67 @@ rende affatto** (il componente si nasconde con una voce sola): tolta la briciola
 «Bozze & versioni» in testata — verificato, perché togliere una briciola in una pagina senza barra sarebbe
 stato lasciarla senza uscita.
 
-### La prossima pagina: Incarichi — briefing MISURATO (22 agosto)
+## Incarichi: chiuse il 22 agosto, due pagine in un giro
 
-Due pagine, non una. ⚠️ **La ricognizione le dava entrambe a 900: erano misure a tabella VUOTA** — nel DB di
-sviluppo `EditorTasks` ha **zero righe**. Rimisurate riempiendola (12 incarichi = uso normale, 60 = un ciclo
-accumulato; sei persone, perché il riepilogo per editore cresce col numero di **persone**, non di incarichi):
+**Sostanza** (carta [`2026-08-22-incarichi-cosa-sono.md`](../feature/2026-08-22-incarichi-cosa-sono.md),
+regole 171-182 insieme alla densità). Sesta pagina di fila con un difetto di sostanza sotto la densità, e qui
+erano **dodici** — dieci trovati leggendo, **due guardando**, e il secondo dei due è il peggiore:
 
-| Pagina | Con 12 | Con 60 | Cosa cresce |
-|---|---:|---:|---|
-| **Incarichi admin** `/vsop/admin/tasks` | **1 813** | **4 764** | la tabella: **64px a riga**, e non ha tetto |
-| **Incarichi utente** `/vsop/tasks` | 900 (con 2 suoi) | **1 562** (con 12 suoi) | le schede kanban nelle cinque colonne |
+- ⚠️ **si creavano incarichi assegnati a NESSUNO**: «Seleziona» valeva `0` e nessuno validava. Quell'incarico
+  non compare negli incarichi di nessuno, si vede solo nell'elenco admin, e non era nemmeno riassegnabile;
+- ⚠️ **`AssignAsync` non aveva un solo chiamante** — né UI né test: un incarico dato alla persona sbagliata si
+  poteva solo cancellare e rifare;
+- ⚠️ **«Apri documento» non apriva il documento per 3 tipi su 4**: `TaskDocLink` sapeva comporre l'URL solo
+  per la vIPI ACC, per gli altri rimandava a `/vsop/versioni` — un tasto che dice «apri» e mostra un elenco;
+- ⚠️ **l'elenco si riordinava sotto le mani**: ordinato per `UpdatedUtc`, che il cambio di stato riscrive;
+- ⚠️ **l'audit non registrava niente** degli incarichi — gli ultimi atti amministrativi muti dopo Sorgenti;
+- **gli errori del service erano in italiano fisso**, e la voce «Incarichi» in topbar era l'unica scritta a
+  mano non tradotta;
+- ⚠️ **zero test**: in tutta la suite `EditorTask` compariva una volta, per la lunghezza delle colonne.
 
-A 1280×800 la pagina utente **scorre già** con quattro incarichi (854 su 800).
+**Decisione del committente**: l'audit registra **tutto** (creazione, stato, riassegnazione, eliminazione);
+niente archiviazione, la crescita si chiude col **filtro «non conclusi»** — una colonna nuova sarebbe una
+migrazione, e il deploy è già fermo sul cutover MariaDB.
 
-**Cosa le manca, misurato (1600×900, IT, 12 incarichi):**
+**Densità** (carta [`2026-08-22-incarichi-densita-ui.md`](../feature/2026-08-22-incarichi-densita-ui.md)):
+**1 813 (12 incarichi) e 4 764 (60) → il viewport**, e **1 562 → il viewport** sulla pagina utente. A
+1600/1440/1280/1024, IT ed EN, zoom 0.8→1.25.
 
-- ⚠️ **Il form «Nuovo incarico» sta in cima, sempre aperto**: 242px di modulo + 34 di titolo di sezione =
-  **276px prima di vedere un solo incarico**. È il gesto **raro** (si crea di tanto in tanto, si guarda
-  l'elenco sempre) che paga zero clic mentre quello comune scorre. È la regola 118 di Permessi
-  («chi paga il clic è il gesto raro»), qui al contrario.
-- ⚠️ **`thead` non fermo** su una tabella che a 60 righe è alta 3 730px. `<table>` nuda, non `.res-table`.
-- ⚠️ **Le tre sezioni in colonna**: «Nuovo incarico», «Tutti gli incarichi», «Avanzamento per editor».
-  L'avanzamento sta **sotto 1 500px** e non lo vede nessuno — stesso difetto della card immagini in
-  Diagnostica, e stessa cura possibile (una colonna a destra).
-- **Riepilogo per editore**: sei schede da 244px in tutto per **due numeri ciascuna** («0/2 completati · 1 in
-  ritardo»). Con 20 staffisti diventa una parete.
-- **Riga da 64px**: titolo su due righe più la descrizione sotto in 11px.
-- `.wrap` a **1 200px** ⇒ la barra admin va su **due righe** (75px invece di 55).
-- **Nessun «?» in nessuna delle due**, e due sottotitoli in fascia.
-- La pagina utente **non ha la barra e ha la briciola**, ed è giusto: è una pagina d'utente. ⚠️ Ma dopo
-  Nuovo documento sappiamo che la briciola lì è **l'unica** risalita, quindi non si tocca.
+⚠️ **I due difetti peggiori li ha trovati la verifica live, non la lettura.**
 
-**Da guardare per la sostanza** (il giro precedente insegna che la densità nasconde sempre qualcosa —
-cinque pagine su cinque):
+1. Il sottotitolo della pagina utente diceva «**trascina lo stato** per aggiornare l'avanzamento»: il
+   trascinamento non è mai esistito. Sesta pagina del ramo con prosa che promette ciò che il codice non fa.
+2. ⚠️ **La tendina fabbricava la chiave del documento** — `"{acc}|"` per la vIPI ACC — mentre la chiave vera è
+   `{acc}|{callsign primario}` (verificato sui dati: `LIBB|LIBB_ES_CTR`). L'incarico nasceva puntando a un
+   documento **inesistente**. E non si vedeva perché **un secondo difetto lo copriva**: finché il link si
+   componeva spezzando la stringa, funzionava per caso. **Riparare una cosa ne scopre un'altra** — e la
+   seconda non poteva stare nella carta iniziale.
 
-- la colonna **Stato** è una `<select>` per riga che scrive subito: nessuna conferma, nessun undo, e su
-  «Fatto» scrive anche `CompletedUtc`. Vale la pena vedere se un cambio di stato lascia traccia da qualche
-  parte — **l'audit non lo registra** (le cinque scritture note sono documenti, permessi, force-unlock,
-  gerarchia, sorgenti);
-- `ListAllAsync` è `EnsureAdmin`, ma la pagina utente mostra i **propri**: verificare che un editor non
-  possa vedere o toccare gli incarichi altrui passando dall'URL;
-- gli incarichi **non si archiviano**: «Fatto» resta nell'elenco per sempre, ed è la ragione per cui la
-  pagina cresce senza tetto. Un filtro per stato/ciclo AIRAC è probabilmente la cosa che serve di più a chi
-  la usa, più della densità.
+⚠️ **Due trappole di misura, entrambe già scritte e non applicate qui.** `vipiFitViewport` non vede cosa sta
+**sotto** il riquadro: sotto il tabellone ci sono le colonne chiuse (da qui il terzo argomento `reserveSel`,
+facoltativo) e sotto ancora i **70px** del `.wrap` — **52px**, gli stessi identici di Audit. E una **griglia**
+col tetto vuole `grid-template-rows:minmax(0,1fr)`, o la riga implicita si dimensiona sul contenuto e ignora
+l'altezza misurata: è la regola del `min-width:0` sull'asse verticale.
 
-⚠️ **Il metodo, sintetizzato dopo cinque giri**: riempire → misurare ogni stato (e ogni scheda, se ce ne
-sono) → leggere il codice cercando cosa la pagina *afferma* → carta → slice → verifica live → guardare gli
-screenshot.
+⚠️ **E prima di dire «l'ho rotto io», misurare le gemelle**: a zoom 1.5 sotto i 1 440px queste pagine
+scorrono, e lo fanno **Permessi e Audit con gli stessi identici numeri** (1 196 e 1 148). È il pavimento
+condiviso, non un difetto del giro.
+
+### Cosa lascia in giro, per chi viene dopo
+
+- **`ValidationException` porta ora una chiave** accanto al messaggio grezzo, e `ServiceErrorNarrator` la
+  traduce — terzo narratore della famiglia. È **facoltativa**: gli altri service la prendono quando qualcuno
+  li tocca. Non è un cantiere aperto, è un posto pronto.
+- ⚠️ **L'audit ha una famiglia nuova, ed è la più prolifica che abbia mai avuto** (quattro stati per
+  incarico): la misura di `/vsop/admin/audit` **va rifatta** con gli incarichi dentro.
+- **L'archiviazione degli incarichi resta da fare**, dopo il cutover MariaDB: oggi la crescita è tenuta dal
+  filtro, che basta ma non toglie righe dal database.
+
+### La prossima: Editor APP ed Editor vLOA
+
+Sono le ultime due della ricognizione (§15), e ⚠️ **il loro 900 non è verificato**: è la misura coi dati di
+sviluppo, **in lettura**. Vanno rimisurate su un documento vero e **in modifica** — l'editor ACC pesava 6 466
+in lettura e 9 690 in modifica. Prima di stimare, riempire e guidare.
 
 ## Aperto, e non è di queste pagine
 
@@ -378,6 +394,16 @@ verifica l'inglese. È così che «No release» non tradotto è passato per un g
 `$sc\pub\Vipi.Host.exe` restando nel repo, l'app parte, risponde 200 e serve una pagina **senza CSS ne' JS**
 (`_content/...` in 404, «MIME type "" is not a supported stylesheet»). La misura che ne esce non e' della
 pagina, e' di una pagina nuda: 8 304px invece di 13 293. Prima di misurare, un `Set-Location "$sc\pub"`.
+
+⚠️ **La riserva e la griglia.** Due cose che il giro Incarichi ha aggiunto all'attrezzo, e che valgono per
+chiunque misuri un riquadro: `vipiFitViewport`/`vipiCapViewport` accettano un **terzo argomento**
+(`reserveSel`, facoltativo) per togliere dallo spazio quello che sta **sotto** il riquadro — e se il riquadro
+è una **griglia**, gli serve `grid-template-rows:minmax(0,1fr)`, o la riga si dimensiona sul contenuto e
+l'altezza misurata non ha effetto.
+
+⚠️ **Prima di dire «l'ho rotto io», misurare le pagine gemelle.** A zoom 1.5 sotto i 1 440px le pagine a due
+pannelli scorrono **tutte** con gli stessi numeri (1 196 e 1 148): è il pavimento condiviso, non il giro in
+corso. Un numero brutto su una pagina sola è un difetto; lo stesso numero su tre è una scelta di progetto.
 
 ⚠️ **Lo zoom si mette con `window.vipiSetZoom(z)`, non scrivendo `style.zoom`.** A mano non scatta il
 `resize`, quindi `vipiFitViewport` non rimisura e il driver denuncia uno scorrimento che nella pagina vera non

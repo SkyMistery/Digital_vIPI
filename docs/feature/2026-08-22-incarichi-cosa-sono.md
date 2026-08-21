@@ -9,7 +9,8 @@
 Admin: «**chi sta facendo cosa, e cosa è in ritardo**». Utente: «**cosa devo fare io**».
 
 Quattordicesima e quindicesima pagina del ramo, e **sesta volta di fila** che sotto la densità c'è un difetto
-di sostanza. Qui non è uno: sono dieci, e il primo produce dati che nessuno può più raggiungere.
+di sostanza. Qui non è uno: sono **dodici** — dieci trovati leggendo il codice, due (N11 e N12) trovati
+**guardando la pagina**, e il secondo dei due è il peggiore di tutti.
 
 ## Cosa ho trovato
 
@@ -130,6 +131,35 @@ scritti **prima** di toccare il service (test-first sul cuore, FEATURE-PROCESS).
 `var uid = _authz.CurrentUserId ?? 0` elenca, senza identità, gli incarichi del VID 0 — che con N1 possono
 esistere davvero. Le pagine schermano, ma la regola sta nel service: senza identità l'elenco è **vuoto**.
 
+### ⚠️ N11 — Il sottotitolo prometteva un gesto che non esiste
+
+`Tasks_Subtitle` diceva «Ciclo AIRAC corrente {0} · **trascina lo stato per aggiornare l'avanzamento**». Il
+trascinamento non è mai esistito: lo stato si è sempre cambiato coi tasti della scheda. Sesta pagina del ramo
+in cui la prosa promette ciò che il codice non fa — e questa mandava a cercare un gesto che non c'è, che è
+peggio di non dire niente.
+
+### ⚠️ N12 — La chiave che si sceglie non è la chiave che ritrova (trovato guidando)
+
+Il difetto peggiore del giro, e **nessuna asserzione lo cercava**: si è visto sullo schermo, come una riga che
+diceva «il documento collegato non esiste più» su un documento che era lì.
+
+`AdminTasksPage.DocKey` fabbricava la chiave del bersaglio: per la vIPI ACC scriveva `$"{acc}|"` — l'ACC più
+una barra, col «root primario» lasciato vuoto. La chiave vera, quella che scrive `AccVipiReleaseTarget`, è
+`{acc}|{callsign del settore primario}`: **verificato sui dati veri**, `LIBB|LIBB_ES_CTR`, non `LIBB|`.
+
+Finché il link si costruiva a mano (N3) il difetto era invisibile: `TaskDocLink` non consultava nessun elenco,
+spezzava la stringa sulla barra, prendeva l'ACC e componeva `/vsop/{acc}/editor`. Funzionava **per caso**.
+Appena il link ha cominciato a risolversi contro l'elenco vero, la chiave non ha più combaciato con niente.
+
+⚠️ La cura non è correggere la formula: è **togliere la formula**. Le chiavi vengono da chi le possiede
+(`IEditorTaskLinksService.OpzioniAsync`), cioè dallo stesso elenco che poi le ritrova — chi sceglie e chi
+cerca non possono leggere due posti diversi. È la regola 143 («un gate per categoria, non uno per chiamante»)
+e la 163 («due porte che creano la stessa cosa hanno due politiche») nella loro terza forma.
+
+E guidando la stessa tendina è saltata fuori una seconda cosa: fra le opzioni compariva **`Airport:` con la
+chiave vuota**. Un incarico creato su quella non si sarebbe risolto mai — un collegamento che nasce già rotto.
+Una tendina è una comodità, e una comodità non deve mentire.
+
 ## Fuori ambito, dichiarato
 
 - **Nessuna archiviazione** degli incarichi conclusi: la crescita senza tetto si chiude col filtro per stato
@@ -141,13 +171,29 @@ esistere davvero. Le pagine schermano, ma la regola sta nel service: senza ident
   `EnsureCanEditTargetAsync` vale per i non-admin): è una scelta, non un difetto — un admin assegna a chi
   vuole. Non si aggiunge un divieto.
 
-## Slice
+## Slice — tutte fatte
 
-1. **Test-first**: caratterizzazione di `EditorTaskService` (autorizzazioni, ritardo, cicli AIRAC).
+1. **Test-first**: caratterizzazione di `EditorTaskService` (autorizzazioni, ritardo, cicli AIRAC). 24 test.
 2. N1 + N10: guardia sull'assegnatario, elenco vuoto senza identità, tasto spento col perché accanto.
-3. N6: ordine stabile nel repository, non-evento senza scrittura.
+3. N6: ordine stabile nel repository, non-evento senza scrittura. 11 test su DB vero.
 4. N7: `AuditScribe` sui quattro atti + famiglia `Incarico` in `AuditNarrator` + chip nella pagina Audit.
-5. N3 + N4: read-model dei bersagli, `TaskDocLink` sostituito, link in entrambe le pagine.
+5. N3 + N4: read-model dei bersagli, `TaskDocLink` **sostituito**, link in entrambe le pagine.
 6. N5: conferma sull'eliminazione anche nella pagina utente.
-7. N8: chiavi IT+EN per gli errori del service e per la voce di topbar.
-8. N2: riassegnazione nel pannello — arriva con la carta gemella, che il pannello lo crea.
+7. N8 + N11: chiavi IT+EN per gli errori del service e per la voce di topbar; sottotitolo che dice il vero.
+8. N2: riassegnazione nel pannello, che la carta gemella crea.
+9. N12: le chiavi vengono dall'elenco che le ritrova; chiavi vuote e documenti nascosti fuori dalle opzioni.
+
+## Cosa lascia questo giro
+
+⚠️ **Un difetto invisibile può essere tenuto in vita da un secondo difetto.** N12 esisteva dal primo giorno e
+non si vedeva perché N3 lo copriva: il link sbagliato non consultava l'elenco, quindi la chiave sbagliata non
+incontrava mai la chiave giusta. **Riparare una cosa ne scopre un'altra**, e la seconda va cercata guidando,
+non dedotta — la carta iniziale non poteva contenerla.
+
+⚠️ **La `ValidationException` porta ora una chiave** accanto al messaggio grezzo, e `ServiceErrorNarrator` la
+traduce (terzo narratore della famiglia, dopo quello degli eventi e quello dei rilievi). È **facoltativa**:
+gli altri service la prendono quando qualcuno li tocca. Non è un cantiere aperto, è un posto pronto.
+
+⚠️ **L'audit ha una famiglia nuova, ed è la più prolifica che abbia mai avuto**: un incarico attraversa
+quattro stati e ogni passaggio è una riga. La misura di `/vsop/admin/audit` va rifatta con gli incarichi
+dentro — il chip di famiglia esiste proprio per poterla mettere da parte.

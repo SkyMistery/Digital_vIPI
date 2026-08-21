@@ -58,6 +58,58 @@ A 1280×800 la pagina utente **scorre già con quattro** incarichi (854 su 800).
     che lì la briciola è l'**unica** risalita (regola 132).
 14. **Il «?»** anche qui, con la sua sezione di Guida.
 
+## Com'è andata: i numeri, misurati
+
+Guidate entrambe con `verifica-live` (Edge + puppeteer-core, DB copiato e **riempito**), a
+**1600 / 1440 / 1280 / 1024**, **IT ed EN**, zoom **0.8 → 1.5**, con **12** e con **60** incarichi.
+
+| Pagina | Prima (12) | Prima (60) | **Dopo** |
+|---|---:|---:|---:|
+| Incarichi admin `/vsop/admin/tasks` | 1 813 | 4 764 | **il viewport**, con 12 e con 60 |
+| Incarichi utente `/vsop/tasks` | 1 562 | — | **il viewport**, con 12 propri e con 10 |
+
+Entrambe restano il viewport a **tutti e quattro** gli assetti, in **tutte e due** le lingue, da zoom 0.8 a
+1.25. ⚠️ **A zoom 1.5 sotto i 1 440px scorrono**, ed è il comportamento della **famiglia**, non di queste
+pagine: misurato, Permessi e Audit danno gli **stessi identici numeri** (1 196 a 1280×800, 1 148 a 1024×768).
+È il pavimento condiviso — sotto i 320px di altezza utile l'altezza fissa sparisce per scelta (regola 15),
+perché un riquadro più basso è inutilizzabile e due barre annidate sono peggio di una pagina che scorre.
+Prima di dire «l'ho rotto io», si misurano le gemelle.
+
+## Tre cose che la misura non avrebbe trovato da sola
+
+1. ⚠️ **`vipiFitViewport` misura fin dove arriva il riquadro, e non vede cosa gli sta SOTTO.** Sulla pagina
+   utente sotto il tabellone ci sono le due colonne chiuse: da qui il terzo argomento **`reserveSel`**,
+   facoltativo, che toglie dallo spazio l'altezza di quello che indica. E sotto ancora c'erano i **70px** di
+   respiro del `.wrap`: **52px** esatti di scorrimento, **gli stessi di Audit** — la regola (141) era già
+   scritta e non l'avevo applicata alla mia pagina.
+2. ⚠️ **`grid-template-rows:minmax(0,1fr)`.** Senza, la riga implicita di una griglia si dimensiona sul
+   **contenuto** e ignora l'altezza misurata: il tabellone cresceva lo stesso (952 su 900). È la regola del
+   `min-width:0` sui figli di griglia (55), sull'asse verticale — e vale per **ogni** riquadro misurato che
+   sia una griglia, non solo per questo.
+3. ⚠️ **Estendere un selettore condiviso è un'operazione, non una riscrittura.** Togliendo `.task-layout` dal
+   selettore che porta `display:grid` per dargli colonne diverse, la pagina ha smesso di essere una griglia e
+   i due pannelli si sono impilati — con le altezze che tornavano plausibili e sbagliate. L'override va in
+   coda e porta **solo** ciò che cambia.
+
+## Quello che ha visto l'occhio, e nessuna misura
+
+- **Tutti e undici i titoli uscivano troncati** mentre cinque colonne misurabili si prendevano 636px. Il
+  titolo **è** la colonna di prosa (regola 60), e la griglia vuole **1.9/1**, non 1.35/1 come Permessi: lì la
+  riga è «nome + chip», qui è una frase.
+- La scadenza tagliava **«AIRAC 2606 ⚠»** proprio sul segno del ritardo — cioè sulla cosa che quella colonna
+  esiste per dire.
+- Il chip **«In ritardo»** con la classe `warn` sembrava **già acceso**: si leggeva come un filtro attivo che
+  nessuno aveva chiesto. Il colore va sul numero, non sullo stato.
+- La **ricerca** schiacciata al suo minimo dai sei chip: «Cerca per titolo, person…».
+- La tendina **«Altro stato…»** larga metà della scheda, per il gesto che si fa di rado, accanto
+  all'avanzamento che è il passo che si fa davvero.
+
+## E i gesti, guidati
+
+Scelta della riga, cambio di stato (**la riga non salta più**: verificato, resta in posizione 2 prima e
+dopo), riassegnazione, tasto «Crea» spento finché mancano titolo o persona, e il link che apre **l'editor
+giusto** — `/vsop/libb/editor` → «Editor vIPI Brindisi», non l'elenco dei documenti.
+
 ## Come si verifica
 
 Riempire `EditorTasks` nella **copia** del DB prima di misurare (12 e 60 incarichi, sei persone, un titolo
