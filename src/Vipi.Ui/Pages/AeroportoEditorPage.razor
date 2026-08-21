@@ -36,9 +36,22 @@ else
             <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
         </div>
 
+        @* ---- Testata in UNA riga: titolo · «?» · stato ----
+           Adattata, non ricopiata dalle pagine di elenco: qui i comandi stanno nel rail (che è già
+           appiccicato) e la riga porta solo ciò che dice DOVE sei e COME sta il documento. Il sottotitolo
+           col nome dell'ACC è sparito: lo dice il pangrattato due righe sopra. *@
         <div class="editor-bar">
-            <div class="doc-head" style="margin:0">
-                <div><h2 style="margin-bottom:2px">✎ @L["Ape_EditorTitle"] @_icao</h2><span class="muted">@_acc.Name</span></div>
+            <div class="doc-head st-head" style="margin:0">
+                <h2 class="st-h2">✎ @L["Ape_EditorTitle"] @_icao</h2>
+                <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
+                    @((MarkupString)L["Ape_HelpBody"].Value)
+                </HelpHint>
+                @if (_data is not null)
+                {
+                    <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
+                        @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
+                    </span>
+                }
             </div>
         </div>
 
@@ -58,11 +71,11 @@ else
                 <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
             }
 
-            <div class="ed-layout with-rail">
+            <div class="ed-layout with-rail @(_sidWide ? "sid-wide" : null)">
             <EditorToc Items="BuildToc()">
                 <Footer>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ape_ExpandAllTitle"]">⊞ @L["Common_ExpandAll"]</button>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ape_CollapseAllTitle"]">⊟ @L["Common_CollapseAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
                 </Footer>
             </EditorToc>
             <div>
@@ -71,9 +84,15 @@ else
             <details id="sec-regole" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Regole piste")@if (_dirtySections.Contains("Regole piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Regole piste")'>
-                    <h3 style="margin-top:0">@L["Ape_RwRulesTitle"]</h3>
-                    <p class="help">@((MarkupString)L["Ape_RwRulesHelp"].Value)</p>
-                    <p class="help" style="margin-top:-4px">@L["Ape_RwRulesHelp2"]</p>
+                    @* La prosa che stava sempre a schermo (due paragrafi, 97px) la dice il «?» al clic:
+                       testo riusato IDENTICO, stesse chiavi. *@
+                    <div class="ed-h3">
+                        <h3>@L["Ape_RwRulesTitle"]</h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
+                            @((MarkupString)L["Ape_RwRulesHelp"].Value)
+                            <p>@L["Ape_RwRulesHelp2"]</p>
+                        </HelpHint>
+                    </div>
 
                     @{ var issues = RuleIssues(); }
                     @if (issues.Errors.Count > 0)
@@ -91,8 +110,8 @@ else
                              style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--brand,#0D2C99);outline-offset:2px" : null)"
                              @ondragover:preventDefault="true" @ondragenter="() => RuleDragEnter(idx)" @ondrop="RuleDrop" @ondragend="() => _ruleDrag = null">
                             <div class="rule-head">
-                                <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="Trascina per riordinare">⠿</span>
-                                <span class="rule-ord">#@(idx + 1)@if (_testRan && _testHit?.RuleIndex == idx) { <span title="Regola vincente col vento di prova"> ✓</span> }</span>
+                                <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="@L["Ape_DragToReorder"]">⠿</span>
+                                <span class="rule-ord">#@(idx + 1)@if (_testRan && _testHit?.RuleIndex == idx) { <span title="@L["Ape_TestWinner"]"> ✓</span> }</span>
                                 <div style="display:flex;gap:6px">
                                     <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="@L["Common_Up"]">↑</button>
                                     <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="@L["Common_Down"]">↓</button>
@@ -142,7 +161,10 @@ else
                                         </span>
                                     </label>
                                 </div>
-                                <p class="help" style="margin:6px 0 0">@((MarkupString)L["Ape_SeasonalHelp"].Value)</p>
+                                <div class="ed-h3 ed-h3-mini">
+                                    <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
+                                    <span class="muted">@L["Ape_SeasonalShort"]</span>
+                                </div>
                                 <div class="rule-days">
                                     <span class="muted">@L["Ape_Days"]</span>
                                     @for (var b = 0; b < 7; b++)
@@ -167,9 +189,9 @@ else
                                 <input type="number" min="0" max="360" style="width:90px" @bind="_testDir" placeholder="calmo" /></label>
                             <label style="display:flex;flex-direction:column;font-size:12px">Intensità (kt)
                                 <input type="number" min="0" max="99" style="width:80px" @bind="_testKt" /></label>
-                            <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_testWet" /> Pista bagnata</label>
-                            <button type="button" class="btn ghost" @onclick="RunRuleTest">▷ Prova</button>
-                            @if (_testRan) { <button type="button" class="btn ghost" @onclick="() => _testRan = false">✕ Pulisci</button> }
+                            <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_testWet" /> @L["Ape_SurfWet"]</label>
+                            <button type="button" class="btn ghost" @onclick="RunRuleTest">▷ @L["Ape_TestRun"]</button>
+                            @if (_testRan) { <button type="button" class="btn ghost" @onclick="() => _testRan = false">✕ @L["Ape_TestClear"]</button> }
                         </div>
                         @if (_testRan)
                         {
@@ -195,12 +217,17 @@ else
             <details id="sec-tl" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Quote transizione")@if (_dirtySections.Contains("Quote transizione")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Quote transizione")'>
-                    <h3 style="margin-top:0">@L["Ape_TlTitle"]</h3>
-                    <p class="help">@((MarkupString)L["Ape_TlHelp"].Value)</p>
-                    @if (_policy.TransitionAltitude)
-                    {
-                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="@L["Ape_TaFromSourceTitle"]">🔒 @L["Ape_FromSource"]</span> @L["Ape_TaFromSource"]</p>
-                    }
+                    <div class="ed-h3">
+                        <h3>@L["Ape_TlTitle"]</h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
+                        @if (_policy.TransitionAltitude)
+                        {
+                            @* Il chip resta a schermo (è uno STATO: questo dato non si tocca), la spiegazione
+                               del perché va nel «?» accanto. *@
+                            <span class="pill neutral" title="@L["Ape_TaFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
+                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
+                        }
+                    </div>
                     @{ var tlIssues = TlIssues(); }
                     @if (tlIssues.Count > 0)
                     {
@@ -236,8 +263,10 @@ else
             <details id="sec-freq" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Frequenze")@if (_dirtySections.Contains("Frequenze")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Frequenze")'>
-                    <h3 style="margin-top:0">@L["Common_Frequencies"]</h3>
-                    <p class="help">@L["Ape_FreqHelp"]</p>
+                    <div class="ed-h3">
+                        <h3>@L["Common_Frequencies"]</h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
+                    </div>
                     <table class="res-table freq-table">
                         <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
                         <tbody>
@@ -250,7 +279,7 @@ else
                                 var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
                                 <tr @key="id">
                                     <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
-                                    <td class="muted">link</td>
+                                    <td class="muted">@L["Ape_Linked"]</td>
                                     <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
                                 </tr>
                             }
@@ -267,7 +296,7 @@ else
                                 <div class="freq-picker-list">
                                     @if (opts.Count == 0)
                                     {
-                                        <div class="freq-picker-empty muted">Nessun ente trovato.</div>
+                                        <div class="freq-picker-empty muted">@L["Ape_NoUnitFound"]</div>
                                     }
                                     @foreach (var lf in opts)
                                     {
@@ -275,7 +304,7 @@ else
                                         var added = _linkIds.Contains(id);
                                         <button type="button" class="freq-picker-item" disabled="@added"
                                                 @onmousedown:preventDefault="true" @onmousedown="() => PickLinkable(id)">
-                                            <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — già aggiunto</span> }
+                                            <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — @L["Ape_AlreadyAdded"]</span> }
                                         </button>
                                     }
                                 </div>
@@ -290,15 +319,18 @@ else
             <details id="sec-piste" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Piste")@if (_dirtySections.Contains("Piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Piste")'>
-                    <h3 style="margin-top:0">@L["Sorg_RunwaysLabel"]</h3>
-                    @if (_policy.Runways)
-                    {
-                        <p class="help"><span class="pill" style="background:#eef1f6;color:#5b6470" title="@L["Ape_RwFromSourceTitle"]">🔒 @L["Ape_FromSource"]</span> @L["Ape_RwFromSource"]</p>
-                    }
-                    else
-                    {
-                        <p class="help">@L["Ape_RwEditorial"]</p>
-                    }
+                    <div class="ed-h3">
+                        <h3>@L["Sorg_RunwaysLabel"]</h3>
+                        @if (_policy.Runways)
+                        {
+                            <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
+                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
+                        }
+                        else
+                        {
+                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
+                        }
+                    </div>
                     @{ var rwIssues = RwIssues(); }
                     @if (rwIssues.Count > 0)
                     {
@@ -335,94 +367,149 @@ else
                 <div class="block">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                         <h3 style="margin:0">@L["Ape_SidRenderTitle"]</h3>
+                        @* 🔴/🧊 restano: sono VOCABOLARIO DI STATO (come 🕒🟢 in Versioni), non comandi. *@
                         <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])</span>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidRenderHelpAria"]" ExtraClass="wide">
+                            @((MarkupString)L["Ape_SidRenderHelp"].Value)
+                        </HelpHint>
                         <span class="ln" style="flex:1"></span>
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                                 @onclick="() => SetSidsMode(!_sidsLive)">
                             @(_sidsLive ? "🧊 " + L["Ape_FreezeAtPublish"] : "🔴 " + L["Ape_MakeAlwaysLive"])
                         </button>
                     </div>
-                    <p class="help">@((MarkupString)L["Ape_SidRenderHelp"].Value)</p>
                 </div>
 
                 @if (_imported.Count > 0)
                 {
                     <div class="block">
-                        @{ var nReview = _imported.Count(e => e.NeedsReview); }
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                            <h3 style="margin:0">@L["Ape_SidImportedTitle"]</h3>
-                            <span class="pill blue" title="Totale importate">@_imported.Count</span>
-                            @if (nReview > 0) { <span class="pill" style="background:#fff3cd;color:#7a5b00" title="Fix da verificare">⚠ @nReview</span> }
-                            <span class="ln" style="flex:1"></span>
-                            <input style="width:150px" placeholder="cerca fix/pista…" @bind="_sidSearch" @bind:event="oninput" />
-                            @if (nReview > 0)
-                            {
-                                <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" @bind="_sidOnlyReview" /> solo da verificare</label>
-                            }
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]">↻ @L["Ape_ReimportSid"]</button>
+                        @{ var nReview = _imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
+                        <div class="ed-h3">
+                            <h3>@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h3>
+                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
+                                @((MarkupString)L["Ape_SidImportedHelp"].Value)
+                                <p>@L["Ape_SidSelectHint"]</p>
+                            </HelpHint>
+                            <span class="ln"></span>
+                            @* ⤢ larghezza piena: TOC e rail via mentre si lavora nelle SID. A 1600 la colonna
+                               centrale è 946px per dodici colonne; senza i due lati diventa 1536. *@
+                            <button class="btn ghost" @onclick="() => _sidWide = !_sidWide" title="@(_sidWide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])"
+                                    aria-pressed="@_sidWide.ToString().ToLowerInvariant()">@(_sidWide ? "⤡" : "⤢") @(_sidWide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportSid"]</button>
                         </div>
-                        <p class="help">@((MarkupString)L["Ape_SidImportedHelp"].Value)</p>
-                        @{ var iview = ImportedView(); }
-                        <div class="se-row" style="gap:8px;margin-bottom:6px;flex-wrap:wrap">
-                            <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? "☑ Deseleziona tutte" : "☐ Seleziona tutte")</button>
-                            <button class="btn primary" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="SaveSelectedImported">💾 Salva selezionate (@_selSid.Count)</button>
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="PublishSelectedImported" title="Forza la pubblicazione immediata delle SID selezionate">🕒 Pubblica selezionate (@_selSid.Count)</button>
-                            <span class="muted" style="font-size:11.5px;align-self:center">Click = seleziona · Shift/Ctrl+click = intervallo · trascina giù = seleziona, su = deseleziona.</span>
+                        @* Barra dei filtri: campi di Struttura (la lente è disegnata nel campo) e chip SEMPRE
+                           presenti, spenti a zero — un chip che compare col contatore accorcia la riga sotto
+                           il puntatore. I chip pista tagliano 206 righe a una quarantina con un clic. *@
+                        <div class="struct-bar">
+                            <input class="htree-search" placeholder="@L["Ape_SidSearchPh"]" @bind="_sidSearch" @bind:event="oninput" />
+                            <span class="sb-chips">
+                                <button class="sh-chip @(nReview > 0 ? "warn" : "") @(_sidOnlyReview ? "on" : "")" disabled="@(nReview == 0)"
+                                        title="@L["Ape_SidReviewChipTitle"]" @onclick="() => _sidOnlyReview = !_sidOnlyReview">@L["Ape_SidReviewChip", nReview]</button>
+                                @foreach (var rw in ImportedRunways())
+                                {
+                                    var id = rw.Ident;
+                                    <button class="sh-chip @(_sidRwFilter == id ? "on" : "")" title="@L["Ape_SidRwChipTitle"]"
+                                            @onclick="() => _sidRwFilter = _sidRwFilter == id ? null : id">@id <span class="chip-n">@rw.Count</span></button>
+                                }
+                            </span>
                         </div>
-                        <div style="overflow:auto">
-                        <table class="res-table sid-table">
-                            <thead><tr><th style="width:26px"><input type="checkbox" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th>@L["Ape_PointFix"]</th><th>SID</th><th>@L["Ape_Runway"]</th><th>@L["Ape_Trans"]</th><th>Type</th><th>Initial climb</th><th>Cat.</th><th>WTC</th><th>Condition</th><th>@L["Ape_Priority"]</th><th>@L["Ape_Publication"]</th><th></th></tr></thead>
+                        @* Barra delle azioni FUORI dal riquadro che scorre: chi compila in fondo alle 206 righe
+                           non deve risalire per confermare. «Salva modificate» conta le righe TOCCATE, che non
+                           sono più le righe SCELTE: due stati diversi, due colori diversi. *@
+                        <div class="bulk-bar">
+                            <b>@L["Ape_SidDirtyN", _dirtySid.Count]</b>
+                            <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtySid.Count == 0)" @onclick="SaveDirtyImported"><Icon Name="check-circle" /> @L["Ape_SidSaveDirty"]</button>
+                            <span class="sb-sep"></span>
+                            <b>@L["Apt_NSelected", _selSid.Count]</b>
+                            <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                            @* Gli stessi due gesti del doppio clic, raggiungibili anche da tastiera: agiscono
+                               sulla riga del campo toccato per ultimo. *@
+                            <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                            <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                            <button class="btn ghost" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="PublishSelectedImported" title="@L["Ape_SidPublishSelTitle"]"><Icon Name="clock" /> @L["Ape_SidPublishSel"]</button>
+                            @* «Applica alle scelte»: dice sempre COSA copierà e DOVE — niente azioni al buio. *@
+                            <button class="btn ghost" disabled="@(!CanApply(true))" @onclick="() => ApplyToSelected(true)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(true)</button>
+                            <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selSid.Count == 0)" @onclick="ClearSidSelection">✕</button>
+                        </div>
+                        @* ⚠️ Prima la tabella stava in un `overflow:auto` SENZA altezza: un contenitore di
+                           scorrimento che non scorre mai in verticale, dove uno `sticky` non si aggancia a
+                           niente. Con l'altezza il corpo scorre davvero e l'intestazione resta. *@
+                        <div class="ed-pane">
+                        @* Larghezze per CLASSE semantica e `table-layout:fixed`, come nella tabella SID del
+                           viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
+                           in verticale — misurato, 128px di altezza per riga invece di 44. *@
+                        <table class="res-table sid-table sid-edit sid-imported sticky-head">
+                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
                             <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                                 @for (var vi = 0; vi < iview.Count; vi++)
                                 {
                                     var idx = vi; var e = iview[idx];
-                                    <tr style="@(_selSid.Contains(e.Id) ? "background:#eaf1ff" : null)">
-                                        <td style="cursor:ns-resize;user-select:none" title="Click per selezionare · trascina per selezionare a intervallo" @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" @onclick:preventDefault="true" /></td>
-                                        <td>
+                                    @* Due stati distinti, due segni distinti: `row-sel` = scelta (per pubblicare),
+                                       `row-dirty` = toccata e non ancora salvata. Prima erano la stessa cosa —
+                                       modificare una cella metteva la riga fra le «selezionate». *@
+                                    <tr class="@(_selSid.Contains(e.Id) ? "row-sel" : null) @(_dirtySid.Contains(e.Id) ? "row-dirty" : null)">
+                                        @* La cella di scelta è il comando: da mouse col trascinamento, da
+                                           TASTIERA con Invio/Spazio (prima la casella aveva tabindex -1 e le
+                                           righe non si potevano scegliere senza mouse). *@
+                                        <td class="col-chk sid-pick" role="button" tabindex="0"
+                                            aria-pressed="@_selSid.Contains(e.Id).ToString().ToLowerInvariant()"
+                                            aria-label="@L["Apt_SelectRow", e.Fix + " " + e.Name]"
+                                            title="@L["Ape_SidPickTitle"]"
+                                            @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"
+                                            @onkeydown="ev => PickSidOnKey(ev, e.Id)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                                        <td class="col-fix">
                                             @if (e.NeedsReview)
                                             {
-                                                <span title="@L["Ape_FixToVerify"]">⚠</span>
-                                                <input style="width:70px" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" />
-                                                <label style="font-size:11px" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> alias</label>
+                                                <span title="@L["Ape_FixToVerify"]" class="fix-warn"><Icon Name="warning" Size="12" /></span>
+                                                <input class="in-fix" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" aria-label="@L["Ape_FixToVerify"]" />
+                                                <label class="ic-app" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> @L["Ape_Alias"]</label>
                                             }
                                             else { <b>@e.Fix</b> }
                                         </td>
-                                        <td>@e.Name</td>
-                                        <td>@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
-                                        <td style="white-space:nowrap">
-                                            <input type="number" min="0" step="100" style="width:58px" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="Quota imposta in ft (solo numero)" />
-                                            <label class="ic-app" title="La quota va concordata con l'APP"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" /> APP</label>
+                                        @* Il doppio clic sta sulle celle NON scrivibili: dentro un campo il
+                                           doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo. *@
+                                        <td class="col-sid dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@e.Name</td>
+                                        <td class="col-rwy dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
+                                        <td class="col-trans dbl-pick" title="@L["Ape_DblSameTransTitle"]" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
+                                        <td class="col-type dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
+                                        <td class="col-climb">
+                                            <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
+                                                   @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
+                                            <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
                                         </td>
-                                        <td>
+                                        <td class="col-cat">
                                             <div class="tok-set">
                                                 @foreach (var t in CatTokens)
                                                 {
-                                                    <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" @onclick="() => { e.Cat = ToggleTok(e.Cat, t, CatTokens); TouchImported(e); }" title="Categoria aeromobile (VREF)">@t</button>
+                                                    <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                            @onclick="ev => TokClick(ev, true, e, t, CatTokens)" @ondblclick="() => TokScale(true, e, t, CatTokens)"
+                                                            @onfocus="() => Src(true, e, SidCol.Cat)">@t</button>
                                                 }
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="col-wtc">
                                             <div class="tok-set">
                                                 @foreach (var t in WtcTokens)
                                                 {
-                                                    <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" @onclick="() => { e.Wtc = ToggleTok(e.Wtc, t, WtcTokens); TouchImported(e); }" title="Wake Turbulence Category">@t</button>
+                                                    <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                            @onclick="ev => TokClick(ev, true, e, t, WtcTokens)" @ondblclick="() => TokScale(true, e, t, WtcTokens)"
+                                                            @onfocus="() => Src(true, e, SidCol.Wtc)">@t</button>
                                                 }
                                             </div>
                                         </td>
-                                        <td><input style="width:120px" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" /></td>
-                                        <td><input type="number" style="width:60px" @bind="e.Priority" @bind:after="() => TouchImported(e)" /></td>
-                                        <td style="white-space:nowrap">
+                                        <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition"
+                                                                     @onfocus="() => Src(true, e, SidCol.Cond)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                        <td class="col-prio"><input type="number" class="in-prio" @bind="e.Priority" @bind:after="() => TouchImported(e)" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                                     @onfocus="() => Src(true, e, SidCol.Prio)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                        <td class="col-pub">
                                             @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
-                                            else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))">🕒 @e.PublishFromCycle</span> }
+                                            else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))"><Icon Name="clock" Size="11" /> @e.PublishFromCycle</span> }
                                         </td>
-                                        <td><button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => SaveImported(e)">💾</button></td>
                                     </tr>
                                 }
                                 @if (iview.Count == 0)
                                 {
-                                    <tr><td colspan="13" class="muted">Nessuna SID importata corrisponde al filtro.</td></tr>
+                                    <tr><td colspan="12" class="muted">@L["Ape_SidNoMatch"]</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -431,42 +518,104 @@ else
                 }
 
                 <div class="block" @onchange='() => MarkDirty("SID")'>
-                    <h3 style="margin-top:0">@L["Ape_SidManualTitle"] <span class="pill blue">@_sids.Count</span></h3>
-                    <p class="help">@L["Ape_SidManualHelp"]</p>
+                    <div class="ed-h3">
+                        <h3>@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
+                            @L["Ape_SidManualHelp"]
+                        </HelpHint>
+                    </div>
                     @{ var sidIssues = SidIssues(); }
                     @if (sidIssues.Count > 0)
                     {
                         <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@m</div> }</div></div>
                     }
-                    <div class="se-row" style="margin-bottom:6px">
-                        <input style="width:170px" placeholder="cerca fix/nome/pista…" @bind="_sidManualSearch" @bind:event="oninput" />
+                    <div class="struct-bar">
+                        <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />
+                    </div>
+                    @{ var mview = ManualView().ToList(); }
+                    @* Stessa barra delle importate: quello che si può fare di là si può fare anche di qua. *@
+                    <div class="bulk-bar">
+                        <b>@L["Apt_NSelected", _selManual.Count]</b>
+                        <button type="button" class="btn ghost" disabled="@(mview.Count == 0)" @onclick="() => ToggleSelectAllManual(mview)">@(mview.Count > 0 && mview.All(_selManual.Contains) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                        <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                        <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                        <button class="btn ghost" disabled="@(!CanApply(false))" @onclick="() => ApplyToSelected(false)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(false)</button>
+                        <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selManual.Count == 0)" @onclick="() => _selManual.Clear()">✕</button>
                     </div>
                     <datalist id="ape-rwy-idents">@foreach (var id in RwIdents()) { <option value="@id" /> }</datalist>
-                    <div style="overflow:auto">
-                    <table class="res-table sid-table">
-                        <thead><tr><th>@L["Ape_Runway"]</th><th>FIX</th><th>SID</th><th>Transition</th><th>Initial climb</th><th>Type</th><th>Cat.</th><th>WTC</th><th>Condition</th><th></th></tr></thead>
+                    @* Type: i due valori veri sono CONV e RNAV, ma il campo resta libero — le sorgenti ne
+                       portano altri e non si vuole perdere un valore solo perché non è in elenco. *@
+                    <datalist id="ape-sid-types"><option value="CONV" /><option value="RNAV" /></datalist>
+                    <div class="tbl-scroll">
+                    <table class="res-table sid-table sid-edit sid-manual">
+                        @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
+                           tabelle non deve reimparare dove sta cosa. *@
+                        <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
                         <tbody>
-                            @foreach (var s in ManualView())
+                            @foreach (var s in mview)
                             {
-                                <tr @key="s">
-                                    <td><input style="width:56px" list="ape-rwy-idents" @bind="s.Runway" /></td>
-                                    <td><input style="width:70px" @bind="s.Fix" /></td>
-                                    <td><input style="width:90px" @bind="s.Name" /></td>
-                                    <td><input style="width:80px" @bind="s.Transition" /></td>
-                                    <td><input style="width:90px" @bind="s.InitialClimb" /></td>
-                                    <td><input style="width:70px" @bind="s.Type" /></td>
-                                    <td><input style="width:48px" @bind="s.Cat" /></td>
-                                    <td><input style="width:48px" @bind="s.Wtc" /></td>
-                                    <td><input style="width:120px" @bind="s.Condition" /></td>
-                                    <td style="white-space:nowrap">
-                                        <button class="btn ghost" @onclick="() => CloneSid(s)" title="Duplica riga">⎘</button>
-                                        <button class="btn ghost" @onclick="() => RemoveSid(s)">✕</button>
+                                <tr @key="s" class="@(_selManual.Contains(s) ? "row-sel" : null)">
+                                    @* Qui tutte le celle sono campi, quindi il doppio clic «stesso punto» vive
+                                       sulla cella di scelta: dentro un campo il doppio clic serve a chi scrive. *@
+                                    <td class="col-chk sid-pick" role="button" tabindex="0"
+                                        aria-pressed="@_selManual.Contains(s).ToString().ToLowerInvariant()"
+                                        aria-label="@L["Apt_SelectRow", (s.Fix ?? "") + " " + (s.Name ?? "")]"
+                                        title="@L["Ape_ManualPickTitle"]"
+                                        @onclick="() => ToggleManual(s)" @onkeydown="ev => ToggleManualOnKey(ev, s)"
+                                        @ondblclick="() => PickSameFixManual(s)"><input type="checkbox" checked="@_selManual.Contains(s)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                                    <td class="col-fix"><input @bind="s.Fix" aria-label="FIX" /></td>
+                                    <td class="col-sid"><input @bind="s.Name" aria-label="SID" /></td>
+                                    <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
+                                    <td class="col-trans"><input @bind="s.Transition" aria-label="Transition" /></td>
+                                    <td class="col-type"><input list="ape-sid-types" @bind="s.Type" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
+                                    @* Testo libero e non `type=number` come nelle importate: qui i valori
+                                       storici portano l'unità («5000ft», «FL80») e un campo numerico li
+                                       butterebbe via al primo salvataggio. *@
+                                    <td class="col-climb">
+                                        <input class="in-climb" @bind="s.InitialClimb" placeholder="ft" aria-label="Initial climb"
+                                               @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
+                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
+                                    </td>
+                                    <td class="col-cat">
+                                        <div class="tok-set">
+                                            @foreach (var t in CatTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(s.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                        @onclick="ev => TokClick(ev, false, s, t, CatTokens)" @ondblclick="() => TokScale(false, s, t, CatTokens)"
+                                                        @onfocus="() => Src(false, s, SidCol.Cat)">@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-wtc">
+                                        <div class="tok-set">
+                                            @foreach (var t in WtcTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(s.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                        @onclick="ev => TokClick(ev, false, s, t, WtcTokens)" @ondblclick="() => TokScale(false, s, t, WtcTokens)"
+                                                        @onfocus="() => Src(false, s, SidCol.Wtc)">@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" title="@s.Condition"
+                                                                 @onfocus="() => Src(false, s, SidCol.Cond)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                                    <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                                 @onfocus="() => Src(false, s, SidCol.Prio)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                                    @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
+                                       oggi una riga a mano è pubblica appena si pubblica il documento, e la
+                                       colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
+                                    <td class="col-pub">
+                                        @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                        else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
+                                    </td>
+                                    <td class="col-act">
+                                        <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
+                                        <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
                                     </td>
                                 </tr>
                             }
-                            @if (!ManualView().Any())
+                            @if (mview.Count == 0)
                             {
-                                <tr><td colspan="10" class="muted">@(_sids.Count == 0 ? "Nessuna SID manuale." : "Nessuna riga corrisponde al filtro.")</td></tr>
+                                <tr><td colspan="13" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
                             }
                         </tbody>
                     </table>
@@ -482,8 +631,10 @@ else
             <details id="sec-extra" class="ed-sec" open>
                 <summary class="ed-sec-head">@PanelLabel("Sezioni extra")@if (_dirtySections.Contains("Sezioni extra")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Sezioni extra")'>
-                    <h3 style="margin-top:0">@L["Ape_ExtraTitle"]</h3>
-                    <p class="help">@((MarkupString)L["Ape_ExtraHelp"].Value)</p>
+                    <div class="ed-h3">
+                        <h3>@L["Ape_ExtraTitle"]</h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_ExtraHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_ExtraHelp"].Value)</HelpHint>
+                    </div>
                     @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
                     {
                         <div class="rule-card" @key="s">
@@ -510,7 +661,8 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Settori")@if (_dirtySections.Contains("Settori")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Settori")'>
                     <div class="section-title" style="margin-top:0">
-                        <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3><span class="ln"></span>
+                        <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
                         @if (LastImport() is DateTime lastImp)
                         {
                             @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
@@ -524,7 +676,6 @@ else
                             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
                         }
                     </div>
-                    <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["Ape_SectorsNote"]</p>
                     @if (_sectors.Count == 0)
                     {
                         <p class="help">@L["Ape_NoSectors"]</p>
@@ -578,15 +729,15 @@ else
                                             }
                                             else
                                             {
-                                                <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
+                                                <span class="pill green">@L["AccAdmin_Active"]</span>
                                             }
                                         </td>
                                         <td style="white-space:nowrap">
                                             @if (hasLimits && !s.LimitsFromSource)
                                             {
-                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]">💾</button>
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]" aria-label="@L["AccAdmin_SaveLimits"]"><Icon Name="check-circle" /></button>
                                             }
-                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]">@(s.IsHidden ? "👁" : "🚫")</button>
+                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
                                         </td>
                                     </tr>
                                 }
@@ -602,8 +753,10 @@ else
                 <div class="block">
                     @* Titolo e aiuto sono già qui dentro (questa pagina ha il proprio <details> di sezione):
                        il pannello non li ripete. *@
-                    <h3 style="margin-top:0">@L["Rel_SectionTitle"]</h3>
-                    <p class="help">@((MarkupString)L["Ape_VersionsHelp"].Value)</p>
+                    <div class="ed-h3">
+                        <h3>@L["Rel_SectionTitle"]</h3>
+                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_VersionsHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_VersionsHelp"].Value)</HelpHint>
+                    </div>
 
                     @if (!_canEdit)
                     {
@@ -624,26 +777,24 @@ else
             </details>
             </div>
             <aside class="ed-rail">
-                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                @if (_canEdit && _dirtySections.Count > 0)
+                @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
+                @if (_canEdit)
                 {
-                    <button class="btn primary" data-tour="save" disabled="@_busy" @onclick="SaveAllClicked" title="Salva tutte le sezioni modificate — Ctrl+S">💾 Salva tutto (@_dirtySections.Count)</button>
-                    <HelpHint Href="/vsop/guida#editor-salva" AriaLabel="Aiuto sul salvataggio">
-                        Salva tutte le sezioni modificate nella <b>bozza</b> (anche con
-                        <span class="guida-kbd">Ctrl</span>+<span class="guida-kbd">S</span>). Il pubblico le vede
-                        solo dopo la <b>pubblicazione</b>.
+                    @* Presente sempre, spento a zero: comparendo col contatore spostava in giù tutti i comandi
+                       del rail proprio mentre ci si mirava. *@
+                    <button class="btn primary" data-tour="save" disabled="@(_busy || _dirtySections.Count == 0)" @onclick="SaveAllClicked" title="@L["Ape_SaveAllTitle"]">
+                        <Icon Name="check-circle" Size="14" /> @L["Ape_SaveAllN", _dirtySections.Count]
+                    </button>
+                    <HelpHint Href="/vsop/guida#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
+                        @((MarkupString)L["Ape_SaveHelpBody"].Value)
                     </HelpHint>
                 }
-                <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
-                    @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
-                </span>
                 <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
-                    Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
-                    <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
+                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="@L["Ape_PreviewHelpAria"]">
+                    @((MarkupString)L["Ape_PreviewHelpBody"].Value)
                 </HelpHint>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]">↻ @L["Ape_ReimportIvao"]</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
                 @if (LastImport() is DateTime li)
                 {
                     <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
@@ -705,7 +856,17 @@ else
     private string _sidSearch = "";           // filtro tabella importate (fix/pista)
     private bool _sidOnlyReview;              // mostra solo le importate col fix da verificare
     private string _sidManualSearch = "";     // filtro tabella manuali
-    private readonly HashSet<int> _selSid = new();   // id delle importate selezionate (multi-select)
+    private readonly HashSet<int> _selSid = new();   // id delle importate SCELTE (per pubblicarle in blocco)
+    // ⚠️ «Toccata» e «scelta» erano lo stesso insieme: modificare una cella metteva la riga fra le selezionate,
+    // e chi trascinava per scegliere cinquanta righe le vedeva identiche a cinquanta righe modificate. Ora la
+    // riga toccata sta qui, si vede col suo colore, e «Salva modificate» conta questo — non la selezione.
+    private readonly HashSet<int> _dirtySid = new();
+    private string? _sidRwFilter;   // chip pista nella barra delle importate (null = tutte)
+    // Le manuali hanno la loro selezione: stessi gesti delle importate, così non esistono cose che «di qua si
+    // possono fare e di là no». La chiave è l'oggetto stesso (le righe a mano non hanno un id finché non sono
+    // salvate); il ricarico ricostruisce la lista e la selezione si azzera da sé.
+    private readonly HashSet<SidEdit> _selManual = new();
+    private bool _sidWide;          // ⤢ larghezza piena: TOC e rail nascosti mentre si lavora nelle SID
     private int? _lastSelIdx;                 // ancora per la selezione a intervallo (Shift/Ctrl+click)
     private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
     private List<ExtraEdit> _extras = new();
@@ -952,12 +1113,13 @@ else
             DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
             DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
         }).ToList();
+        var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
-            Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
         }).ToList();
-        var cyc = Airac.GetCycle(DateTime.UtcNow);
         _imported = _data.Sids.Where(s => s.IsImported)
             .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => new ImportedSidEdit
@@ -967,7 +1129,10 @@ else
                 IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
                 InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
             }).ToList();
-        _selSid.Clear();   // i buffer importati sono nuovi: azzera selezione multipla e ancora
+        _selSid.Clear();   // i buffer importati sono nuovi: azzera scelta, modifiche pendenti e ancora
+        _dirtySid.Clear();
+        _selManual.Clear();
+        _src = null;
         _lastSelIdx = null;
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
         _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body, Blocks = ExtraBlocks.Parse(s.Body) }).ToList();
@@ -1013,7 +1178,8 @@ else
             r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
             CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()));
     private Task SaveSids() => SaveSection("SID", () => Profile.SaveSidsAsync(_icao,
-        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type, s.Cat, s.Wtc, s.Condition)).ToList()));
+        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
+            s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()));
     // RenderMode della sezione SID (doc 10 §S4c): persistito subito (non serve ripubblicare per cambiare la resa).
     private Task SetSidsMode(bool live) => Guarded(async () =>
     {
@@ -1031,6 +1197,8 @@ else
     /// non si muoveva mai e sembrava che il bottone non facesse niente. L'esito ora è scritto nel callout.</summary>
     private async Task Reimport()
     {
+        if (!await ConfirmDiscardingSidEdits())
+            return;
         if (!await Confirm(L["Ape_ReimportConfirm"].Value))
             return;
 
@@ -1051,9 +1219,19 @@ else
     // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
     // ImportForCurrentUserAsync e non ImportAsync: quest'ultimo è l'ingresso del job periodico, che gira
     // senza utente e quindi senza controllo di autorizzazione. Vedi ISidImporter.
-    private async Task ReimportSids() { if (await Guarded(() => SidImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync(); }
+    // ⚠️ Ricarica i buffer dal DB: le righe toccate e non salvate sparirebbero in silenzio. Prima si chiede.
+    private async Task ReimportSids()
+    {
+        if (!await ConfirmDiscardingSidEdits()) return;
+        if (await Guarded(() => SidImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync();
+    }
 
-    private Task SaveImported(ImportedSidEdit e) => Guarded(() => PersistImported(e));
+    private async Task<bool> ConfirmDiscardingSidEdits() =>
+        _dirtySid.Count == 0 || await Confirm(Plural(_dirtySid.Count, "Ape_SidDiscardConfirm", _dirtySid.Count));
+
+    // «Salvate 1 SID» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno: le chiavi con un
+    // contatore hanno la loro forma singolare, con lo stesso nome più «One».
+    private string Plural(int n, string key, params object[] args) => L[n == 1 ? key + "One" : key, args].Value;
 
     private async Task PersistImported(ImportedSidEdit e)
     {
@@ -1087,17 +1265,299 @@ else
     }
 
     // Ogni modifica a una riga importata la auto-seleziona: così "Salva selezionate" raccoglie tutte le righe toccate.
-    private void TouchImported(ImportedSidEdit e) => _selSid.Add(e.Id);
+    private void TouchImported(ImportedSidEdit e) => _dirtySid.Add(e.Id);
+
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Chip Cat./WTC: clic = solo questo, doppio clic o Shift+clic = anche i precedenti
+    //
+    // Una procedura per categoria E vale anche per le più piccole, e quasi sempre si accendono a scala.
+    // ⚠️ Il doppio clic del browser arriva DOPO due clic singoli: i due toggle si annullano fra loro, quindi
+    // quando `TokScale` parte lo stato è quello di partenza e la regola si applica su quello giusto. Si vede
+    // un lampeggio del chip: toglierlo vorrebbe dire ritardare ogni clic singolo di un quarto di secondo, e
+    // qui di clic se ne fanno a centinaia.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    private static string? ScaleTok(string? csv, string tok, string[] order)
+    {
+        var turnOn = !HasTok(csv, tok);
+        var upTo = Array.IndexOf(order, tok);
+        if (upTo < 0) return csv;
+        var set = new HashSet<string>(
+            (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i <= upTo; i++)
+        {
+            if (turnOn) { set.Add(order[i]); } else { set.Remove(order[i]); }
+        }
+        var res = string.Join(",", order.Where(t => set.Contains(t)));
+        return res.Length == 0 ? null : res;
+    }
+
+    // Shift+clic (e Shift+Invio, che il browser consegna come clic con lo shift premuto) fa quello che fa il
+    // doppio clic: è la via da tastiera, e i chip sono già bottoni raggiungibili con Tab.
+    private async Task TokClick(MouseEventArgs ev, bool imported, object row, string tok, string[] order)
+    {
+        if (ev.ShiftKey) { await TokScale(imported, row, tok, order); return; }
+        SetTok(imported, row, order, Toggle: true, tok);
+        await TouchRow(imported, row);
+    }
+
+    private async Task TokScale(bool imported, object row, string tok, string[] order)
+    {
+        SetTok(imported, row, order, Toggle: false, tok);
+        await TouchRow(imported, row);
+    }
+
+    private void SetTok(bool imported, object row, string[] order, bool Toggle, string tok)
+    {
+        var cat = ReferenceEquals(order, CatTokens);
+        if (imported)
+        {
+            var e = (ImportedSidEdit)row;
+            var cur = cat ? e.Cat : e.Wtc;
+            var next = Toggle ? ToggleTok(cur, tok, order) : ScaleTok(cur, tok, order);
+            if (cat) { e.Cat = next; } else { e.Wtc = next; }
+        }
+        else
+        {
+            var m = (SidEdit)row;
+            var cur = cat ? m.Cat : m.Wtc;
+            var next = Toggle ? ToggleTok(cur, tok, order) : ScaleTok(cur, tok, order);
+            if (cat) { m.Cat = next; } else { m.Wtc = next; }
+        }
+    }
+
+    private Task TouchRow(bool imported, object row)
+    {
+        if (imported) { TouchImported((ImportedSidEdit)row); return Task.CompletedTask; }
+        return MarkDirty("SID");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Scelta di gruppo: tutte le righe con lo stesso punto o la stessa transition
+    //
+    // Le varianti per pista e transizione della stessa procedura sono un gruppo naturale (su LIRF «NENIG»
+    // sono nove righe): sceglierle una per una prima di «Pubblica scelte» è lavoro inutile. Agisce su ciò che
+    // è A SCHERMO: scegliere righe nascoste da un filtro sarebbe una sorpresa, non una comodità.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    private void PickSameFix(ImportedSidEdit e) =>
+        PickGroup(ImportedView().Where(x => string.Equals(x.Fix, e.Fix, OIC)).Select(x => x.Id).ToList());
+
+    private void PickSameTrans(ImportedSidEdit e) =>
+        PickGroup(ImportedView().Where(x => string.Equals(x.Transition ?? "", e.Transition ?? "", OIC)).Select(x => x.Id).ToList());
+
+    private void PickGroup(List<int> ids)
+    {
+        if (ids.Count == 0) return;
+        if (ids.All(_selSid.Contains)) { foreach (var id in ids) { _selSid.Remove(id); } }
+        else { foreach (var id in ids) { _selSid.Add(id); } }
+        _lastSelIdx = null;
+    }
+
+    private void PickSameFixManual(SidEdit s) =>
+        PickGroupManual(ManualView().Where(x => string.Equals(x.Fix ?? "", s.Fix ?? "", OIC)).ToList());
+
+    private void PickSameTransManual(SidEdit s) =>
+        PickGroupManual(ManualView().Where(x => string.Equals(x.Transition ?? "", s.Transition ?? "", OIC)).ToList());
+
+    private void PickGroupManual(List<SidEdit> rows)
+    {
+        if (rows.Count == 0) return;
+        if (rows.All(_selManual.Contains)) { foreach (var r in rows) { _selManual.Remove(r); } }
+        else { foreach (var r in rows) { _selManual.Add(r); } }
+    }
+
+    // I due gesti valgono anche dai tasti della barra, che agiscono sulla riga del campo toccato per ultimo:
+    // il doppio clic è una scorciatoia, non l'unico modo di arrivarci.
+    private void PickSameFromBar(bool imported, bool byTransition)
+    {
+        if (_src is null || _src.Imported != imported) return;
+        if (imported)
+        {
+            var e = (ImportedSidEdit)_src.Row;
+            if (byTransition) { PickSameTrans(e); } else { PickSameFix(e); }
+        }
+        else
+        {
+            var m = (SidEdit)_src.Row;
+            if (byTransition) { PickSameTransManual(m); } else { PickSameFixManual(m); }
+        }
+    }
+
+    private void ToggleManual(SidEdit s) { if (!_selManual.Remove(s)) { _selManual.Add(s); } }
+
+    private void ToggleManualOnKey(KeyboardEventArgs ev, SidEdit s)
+    {
+        if (ev.Key != "Enter" && ev.Key != " " && ev.Key != "Spacebar") return;
+        ToggleManual(s);
+    }
+
+    private void ToggleSelectAllManual(List<SidEdit> view)
+    {
+        if (view.Count == 0) return;
+        if (view.All(_selManual.Contains)) { foreach (var r in view) { _selManual.Remove(r); } }
+        else { foreach (var r in view) { _selManual.Add(r); } }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // «Applica alle scelte»: copia il valore della cella toccata per ultimo nelle righe scelte
+    //
+    // L'unità è la CELLA, non il campo: la quota porta con sé il tasto APP (sono la stessa informazione), e
+    // Cat./WTC copiano il gruppo intero di chip. Fix, nome, pista e transition non si propagano mai: sono
+    // l'identità della riga. Si scrive nei buffer, quindi le righe restano «modificate» e un errore si annulla
+    // ricaricando la pagina senza salvare.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    private enum SidCol { Climb, Cat, Wtc, Cond, Prio }
+    private sealed record CellSource(bool Imported, object Row, SidCol Col);
+    private CellSource? _src;
+
+    private void Src(bool imported, object row, SidCol col) => _src = new CellSource(imported, row, col);
+
+    private bool CanApply(bool imported) =>
+        _src is not null && _src.Imported == imported && SelCount(imported) > 0 && _canEdit && !_busy;
+
+    private int SelCount(bool imported) => imported ? _selSid.Count : _selManual.Count;
+
+    /// <summary>Valore della cella sorgente, come si legge nel tasto e nella conferma.</summary>
+    private string SourceValue()
+    {
+        if (_src is null) return "";
+        string v;
+        if (_src.Imported)
+        {
+            var e = (ImportedSidEdit)_src.Row;
+            v = _src.Col switch
+            {
+                SidCol.Climb => (e.InitialClimb ?? "—") + (e.InitialClimbByApp ? " + APP" : ""),
+                SidCol.Cat => e.Cat ?? "—",
+                SidCol.Wtc => e.Wtc ?? "—",
+                SidCol.Cond => e.Condition ?? "—",
+                _ => e.Priority?.ToString() ?? "—",
+            };
+        }
+        else
+        {
+            var m = (SidEdit)_src.Row;
+            v = _src.Col switch
+            {
+                SidCol.Climb => (m.InitialClimb ?? "—") + (m.InitialClimbByApp ? " + APP" : ""),
+                SidCol.Cat => m.Cat ?? "—",
+                SidCol.Wtc => m.Wtc ?? "—",
+                SidCol.Cond => m.Condition ?? "—",
+                _ => m.Priority?.ToString() ?? "—",
+            };
+        }
+        v = v.Trim();
+        if (v.Length == 0) { v = "—"; }
+        return v.Length > 22 ? v[..21] + "…" : v;
+    }
+
+    private string ApplyLabel(bool imported) =>
+        _src is null || _src.Imported != imported
+            ? L["Ape_ApplyNoSource"].Value
+            : L["Ape_ApplyN", SourceValue(), SelCount(imported)].Value;
+
+    private async Task ApplyToSelected(bool imported)
+    {
+        if (!CanApply(imported)) return;
+        var value = SourceValue();
+        var n = SelCount(imported);
+        // Sopra le venti righe si rilegge prima di scrivere: sotto sarebbe rumore, sopra è una scrittura
+        // che vale la pena confermare.
+        if (n > 20 && !await Confirm(L["Ape_ApplyConfirm", value, n].Value)) return;
+
+        var hidden = 0;
+        if (imported)
+        {
+            var src = (ImportedSidEdit)_src!.Row;
+            var visible = ImportedView().Select(x => x.Id).ToHashSet();
+            foreach (var e in _imported.Where(x => _selSid.Contains(x.Id)))
+            {
+                CopyCell(src, e, _src.Col);
+                TouchImported(e);
+                if (!visible.Contains(e.Id)) { hidden++; }
+            }
+        }
+        else
+        {
+            var src = (SidEdit)_src!.Row;
+            var visible = ManualView().ToHashSet();
+            foreach (var m in _selManual)
+            {
+                CopyCell(src, m, _src.Col);
+                if (!visible.Contains(m)) { hidden++; }
+            }
+            await MarkDirty("SID");
+        }
+        _saveInfo = Plural(n, "Ape_ApplyDone", n) + (hidden > 0 ? L["Ape_ApplyHidden", hidden].Value : "");
+        _saveInfoWarn = false;
+        ProgrammaChiusuraInformativa();
+    }
+
+    private static void CopyCell(ImportedSidEdit from, ImportedSidEdit to, SidCol col)
+    {
+        switch (col)
+        {
+            case SidCol.Climb: to.InitialClimb = from.InitialClimb; to.InitialClimbByApp = from.InitialClimbByApp; break;
+            case SidCol.Cat: to.Cat = from.Cat; break;
+            case SidCol.Wtc: to.Wtc = from.Wtc; break;
+            case SidCol.Cond: to.Condition = from.Condition; break;
+            default: to.Priority = from.Priority; break;
+        }
+    }
+
+    private static void CopyCell(SidEdit from, SidEdit to, SidCol col)
+    {
+        switch (col)
+        {
+            case SidCol.Climb: to.InitialClimb = from.InitialClimb; to.InitialClimbByApp = from.InitialClimbByApp; break;
+            case SidCol.Cat: to.Cat = from.Cat; break;
+            case SidCol.Wtc: to.Wtc = from.Wtc; break;
+            case SidCol.Cond: to.Condition = from.Condition; break;
+            default: to.Priority = from.Priority; break;
+        }
+    }
+
+    /// <summary>Ctrl+Invio dentro un campo = «applica alle scelte», senza staccare le mani dalla tastiera.</summary>
+    private Task CellKey(KeyboardEventArgs ev, bool imported) =>
+        ev.CtrlKey && ev.Key == "Enter" ? ApplyToSelected(imported) : Task.CompletedTask;
+
+    // Scelta da tastiera sulla cella di selezione (regola generale delle tabelle: Invio e Spazio fanno il clic).
+    private void PickSidOnKey(KeyboardEventArgs ev, int id)
+    {
+        if (ev.Key != "Enter" && ev.Key != " " && ev.Key != "Spacebar") return;
+        if (!_selSid.Remove(id)) _selSid.Add(id);
+        _lastSelIdx = null;
+    }
+
+    private void ClearSidSelection() { _selSid.Clear(); _lastSelIdx = null; }
+
+    // Conteggio onesto: «N di TOT» quando un filtro è attivo, il totale secco quando non lo è.
+    private string CountLabel(int shown, int total) =>
+        shown == total ? total.ToString() : L["Apt_CountOf", shown, total].Value;
+
+    // Piste presenti fra le importate, con quante righe ciascuna: sono i chip della barra. Il conteggio segue
+    // gli altri filtri (ricerca, «da verificare»), altrimenti un chip da 40 righe ne mostrerebbe 3 senza dirlo.
+    private List<(string Ident, int Count)> ImportedRunways() =>
+        FilteredImported(ignoreRunway: true)
+            .Where(e => !string.IsNullOrWhiteSpace(e.Runway))
+            .GroupBy(e => e.Runway!, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (g.Key, g.Count()))
+            .ToList();
 
     // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
-    private List<ImportedSidEdit> ImportedView()
+    private List<ImportedSidEdit> ImportedView() => FilteredImported(ignoreRunway: false).ToList();
+
+    private IEnumerable<ImportedSidEdit> FilteredImported(bool ignoreRunway)
     {
         IEnumerable<ImportedSidEdit> q = _imported;
         if (_sidOnlyReview) q = q.Where(e => e.NeedsReview);
         var s = (_sidSearch ?? "").Trim();
         if (s.Length > 0)
             q = q.Where(e => e.Fix.Contains(s, OIC) || e.Name.Contains(s, OIC) || (e.Runway?.Contains(s, OIC) ?? false));
-        return q.ToList();
+        if (!ignoreRunway && _sidRwFilter is { Length: > 0 } rw)
+            q = q.Where(e => string.Equals(e.Runway, rw, StringComparison.OrdinalIgnoreCase));
+        return q;
     }
 
     // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
@@ -1161,15 +1621,26 @@ else
         _lastSelIdx = null;
     }
 
-    private Task SaveSelectedImported() => Guarded(async () =>
+    // Salva TUTTE le righe toccate (non le scelte). Chi fallisce resta modificato: sparire dal contatore
+    // senza essere stata scritta è la stessa perdita di non averla mai provata.
+    private Task SaveDirtyImported() => Guarded(async () =>
     {
-        var targets = _imported.Where(e => _selSid.Contains(e.Id)).ToList();
+        var targets = _imported.Where(e => _dirtySid.Contains(e.Id)).ToList();
         if (targets.Count == 0) return;
-        foreach (var e in targets) await PersistImported(e);
-        _selSid.Clear();
-        _lastSelIdx = null;
-        _saveInfo = $"Salvate {targets.Count} SID selezionate.";
-        _saveInfoWarn = false;
+        var ok = 0;
+        var failed = new List<string>();
+        foreach (var e in targets)
+        {
+            try { await PersistImported(e); _dirtySid.Remove(e.Id); ok++; }
+            catch (Exception ex)
+            {
+                failed.Add(e.Fix);
+                Logger.LogWarning(ex, "Salvataggio SID importata fallito ({Icao} {Fix}).", _icao, e.Fix);
+            }
+        }
+        _saveInfo = Plural(ok, "Ape_SidSavedN", ok)
+            + (failed.Count > 0 ? Plural(failed.Count, "Ape_SidSaveFailedN", failed.Count) : "");
+        _saveInfoWarn = failed.Count > 0;
         ProgrammaChiusuraInformativa();
     });
 
@@ -1178,10 +1649,10 @@ else
     {
         var targets = _imported.Where(e => _selSid.Contains(e.Id)).ToList();
         if (targets.Count == 0) return;
-        foreach (var e in targets) { e.ForcePublished = true; await PersistImported(e); }
+        foreach (var e in targets) { e.ForcePublished = true; await PersistImported(e); _dirtySid.Remove(e.Id); }
         _selSid.Clear();
         _lastSelIdx = null;
-        _saveInfo = $"Pubblicate {targets.Count} SID selezionate.";
+        _saveInfo = Plural(targets.Count, "Ape_SidPublishedN", targets.Count);
         _saveInfoWarn = false;
         ProgrammaChiusuraInformativa();
     });
@@ -1201,7 +1672,8 @@ else
         var copy = new SidEdit
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
-            Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority,
         };
         _sids.Insert(i < 0 ? _sids.Count : i + 1, copy);
         _sidManualSearch = "";   // rendi visibile la nuova riga anche se un filtro era attivo
@@ -1528,7 +2000,17 @@ else
         public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)
         public int? DateToDay; public int? DateToMonth;
     }
-    private sealed class SidEdit { public string? Runway; public string? Fix; public string? Name; public string? Transition; public string? InitialClimb; public string? Type; public string? Cat; public string? Wtc; public string? Condition; }
+    // Stessi campi editoriali delle importate: la quota «da concordare con l'APP» e la priorità fra le SID
+    // dello stesso punto esistono già sull'entità (una tabella sola per manuali e importate), erano solo
+    // scoperte dall'editor.
+    private sealed class SidEdit
+    {
+        public string? Runway; public string? Fix; public string? Name; public string? Transition;
+        public string? InitialClimb; public bool InitialClimbByApp; public string? Type;
+        public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
+        // Stato di pubblicazione calcolato al caricamento con la regola del dominio (SidRow.IsPublicAt).
+        public bool IsPublicNow = true; public string PublishFromCycle = "—";
+    }
     private sealed class ImportedSidEdit
     {
         public int Id; public string Fix = ""; public string Name = ""; public string? Runway; public string? Transition; public string? Type;

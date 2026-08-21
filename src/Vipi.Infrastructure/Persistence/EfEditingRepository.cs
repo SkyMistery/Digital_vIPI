@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -281,17 +280,42 @@ public sealed class EfEditingRepository : IEditingRepository
         _db.DocumentVersions.Add(version);
         await _db.SaveChangesAsync(ct); // serve version.Id
 
-        // Sezione radice vuota di partenza (l'editor ne aggiunge altre).
-        _db.DocumentSections.Add(new DocumentSection
+        if (parties is { } coppia)
         {
-            DocumentVersionId = version.Id,
-            ParentSectionId = null,
-            Title = "Scopo e validità",
-            Order = 1,
-            Depth = 0,
-            SectionKey = SectionKeys.NewCustom(),
-            RowVersion = Guid.NewGuid().ToByteArray(),
-        });
+            // ⚠️ Una vLOA nasce con la struttura del CATALOGO, da qualunque porta la si crei.
+            //
+            // Prima da qui nasceva con una sezione sola — «Scopo e validità», per giunta con una chiave
+            // libera (`SectionKeys.NewCustom()`) che non è nessuna delle sette del profilo Vloa — mentre la
+            // stessa vLOA generata da «ACC confinanti» nasceva con le sette canoniche. Due porte per la
+            // stessa cosa, due risultati diversi, e da questa usciva un documento **fuori catalogo**: le
+            // sezioni obbligatorie assenti, e l'unica presente sconosciuta a chi decide chi rende il corpo
+            // (doc 13 §3a). La pagina lo dichiarava perfino — «la vLOA nasce vuota» — ma un difetto
+            // documentato resta un difetto.
+            var codici = await _db.Sectors.AsNoTracking()
+                .Where(s => s.Id == coppia.homeSectorId || s.Id == coppia.neighbourSectorId)
+                .Select(s => new { s.Id, AccCode = s.Acc!.Code, AccName = s.Acc.Name })
+                .ToListAsync(ct);
+            var home = codici.FirstOrDefault(x => x.Id == coppia.homeSectorId);
+            var foreign = codici.FirstOrDefault(x => x.Id == coppia.neighbourSectorId);
+
+            Seed.VloaStructureSeeder.Seed(_db, version, Vipi.Application.Content.VloaSections.Canonical(
+                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName, version.AiracCycle));
+        }
+        else
+        {
+            // Le vIPI di questo percorso restano com'erano: la loro struttura la costruisce l'editor, e
+            // `EnsureVipiDocumentAsync` — il percorso vero delle vIPI — semina già dal catalogo.
+            _db.DocumentSections.Add(new DocumentSection
+            {
+                DocumentVersionId = version.Id,
+                ParentSectionId = null,
+                Title = "Scopo e validità",
+                Order = 1,
+                Depth = 0,
+                SectionKey = SectionKeys.NewCustom(),
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;
@@ -855,15 +879,10 @@ public sealed class EfEditingRepository : IEditingRepository
         doc.LastUpdatedUtc = now;
         doc.LastUpdatedAiracCycle = _airac.GetCycle(now);
 
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = AuditAction.Publish,
-            EntityType = "DocumentVersion",
-            EntityId = ver.Id.ToString(),
-            TimestampUtc = now,
-            DetailsJson = JsonSerializer.Serialize(new { doc.Id, ver.VersionNumber, ver.AiracCycle }),
-        });
+        // Il titolo sta nella riga, non solo l'Id: il registro deve restare leggibile anche dopo che il
+        // documento è stato eliminato — è proprio allora che qualcuno lo va a rileggere.
+        AuditScribe.Write(_db, actorUserId, AuditAction.Publish, "DocumentVersion", ver.Id.ToString(),
+            new { doc.Id, doc.Title, ver.VersionNumber, ver.AiracCycle }, now);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -930,18 +949,12 @@ public sealed class EfEditingRepository : IEditingRepository
                   ?? throw new KeyNotFoundException($"Versione {versionId} inesistente.");
         var numero = ver.VersionNumber;
         var documentId = ver.DocumentId;
+        var titolo = await _db.Documents.Where(d => d.Id == documentId).Select(d => d.Title).FirstOrDefaultAsync(ct);
 
         // L'audit va scritto PRIMA della cancellazione: dopo, la versione non esiste più e resterebbe solo un
         // documento che ha perso una bozza senza che nessuno sappia chi e quando.
-        _db.AuditLogs.Add(new AuditLog
-        {
-            UserId = actorUserId,
-            Action = AuditAction.Discard,
-            EntityType = "DocumentVersion",
-            EntityId = versionId.ToString(),
-            TimestampUtc = DateTime.UtcNow,
-            DetailsJson = JsonSerializer.Serialize(new { DocumentId = documentId, VersionNumber = numero }),
-        });
+        AuditScribe.Write(_db, actorUserId, AuditAction.Discard, "DocumentVersion", versionId.ToString(),
+            new { DocumentId = documentId, Title = titolo, VersionNumber = numero });
         await _db.SaveChangesAsync(ct);
 
         await LiberaImmaginiAsync(await EliminaVersioneAsync(versionId, ct), ct);
@@ -1042,14 +1055,26 @@ public sealed class EfEditingRepository : IEditingRepository
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
     }
 
-    public async Task ForceUnlockAsync(int documentId, CancellationToken ct = default)
+    public async Task ForceUnlockAsync(int documentId, int actorUserId, CancellationToken ct = default)
     {
+        // Chi teneva il lock si legge PRIMA di toglierlo: è l'unica cosa che rende utile la riga di registro.
+        // Un lock già libero (o scaduto) non è un atto d'autorità: niente riga.
+        var chi = await _db.Documents.AsNoTracking().Where(d => d.Id == documentId)
+            .Select(d => new { d.Title, d.LockedByUserId, d.LockedByName, d.LockExpiresUtc }).FirstOrDefaultAsync(ct);
+        if (chi?.LockedByUserId is null) return;
+
         await _db.Documents.Where(d => d.Id == documentId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(d => d.LockedByUserId, (int?)null)
                 .SetProperty(d => d.LockedByName, (string?)null)
                 .SetProperty(d => d.LockedAtUtc, (DateTime?)null)
                 .SetProperty(d => d.LockExpiresUtc, (DateTime?)null), ct);
+
+        // ⚠️ ExecuteUpdate scrive subito e non passa dal change-tracker: la riga di audit ha bisogno del suo
+        // SaveChanges esplicito, qui non c'è un salvataggio dell'atto a cui accodarsi.
+        AuditScribe.Write(_db, actorUserId, AuditAction.ForceUnlock, "Document", documentId.ToString(),
+            new { chi.Title, HeldByUserId = chi.LockedByUserId, HeldByName = chi.LockedByName, chi.LockExpiresUtc });
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<bool> IsLockHeldByAsync(int documentId, int UserId, CancellationToken ct = default)

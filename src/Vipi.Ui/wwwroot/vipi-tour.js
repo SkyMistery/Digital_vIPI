@@ -66,10 +66,23 @@
         };
     }
 
+    // Porta il bersaglio a schermo. ⚠️ Sta QUI e non in place(): place() gira anche a ogni `scroll`, e uno
+    // scrollIntoView incondizionato dentro un gestore di scroll e' un cane che si morde la coda — con un
+    // bersaglio APPICCICATO (l'indice dell'editor, position:sticky) non si centra mai, quindi ogni giro
+    // scorre ancora. Misurato sull'editor ACC: 263 chiamate e la pagina scesa da sola a 3 268px senza che
+    // nessuno l'avesse toccata. Il tour scorre quando CAMBIA passo; poi il riquadro segue chi scorre.
+    function centra() {
+        var el = state.steps[state.i].el;
+        var pos = getComputedStyle(el).position;
+        if (pos === 'sticky' || pos === 'fixed') return;   // si sposta con la pagina: inseguirlo non finisce mai
+        var r = el.getBoundingClientRect();
+        if (r.top >= 8 && r.bottom <= window.innerHeight - 8) return;   // già a schermo: non muovere niente
+        el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+    }
+
     function place() {
         var s = state.steps[state.i], n = state.nodes;
         var el = s.el;
-        el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
         // Spot e card sono position:fixed → coordinate VIEWPORT dirette (getBoundingClientRect), senza pageYOffset:
         // robusto con rail/TOC sticky, elementi più alti del viewport e zoom pagina (zoom su <html>).
         var r = el.getBoundingClientRect();
@@ -97,6 +110,7 @@
         n.body.innerHTML = s.body;
         n.prev.style.visibility = state.i === 0 ? 'hidden' : 'visible';
         n.next.textContent = state.i === total - 1 ? 'Fine' : 'Avanti';
+        centra();
         place();
     }
 

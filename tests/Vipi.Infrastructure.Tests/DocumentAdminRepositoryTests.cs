@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -128,5 +128,80 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         var all = await _repo.ListAsync();
         Assert.True(Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi).HasEffectiveRelease);
         Assert.False(Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi).HasEffectiveRelease);   // published ma senza release
+    }
+
+    /// <summary>
+    /// «Senza release» e «programmata ma non ancora in vigore» sono due stati diversi, e l'elenco li distingue:
+    /// col solo <c>HasEffectiveRelease</c> un documento con una release FUTURA sarebbe indistinguibile da uno
+    /// che non ne ha mai avute.
+    /// </summary>
+    [Fact]
+    public async Task List_PortaICicliRelease_EffettivoEProgrammato()
+    {
+        _db.DocReleases.AddRange(
+            new DocRelease
+            {
+                TargetType = ReleaseTargetType.Airport, TargetKey = "LIRA", VersionNumber = 1,
+                ReleaseAiracCycle = "2606", ReleaseEffectiveUtc = DateTime.UtcNow.AddMinutes(-1),
+                Status = ReleaseStatus.Effective, PayloadJson = "{}", CreatedUtc = DateTime.UtcNow,
+            },
+            new DocRelease
+            {
+                TargetType = ReleaseTargetType.Airport, TargetKey = "LIRA", VersionNumber = 2,
+                ReleaseAiracCycle = "2607", ReleaseEffectiveUtc = DateTime.UtcNow.AddDays(28),
+                Status = ReleaseStatus.Scheduled, PayloadJson = "{}", CreatedUtc = DateTime.UtcNow,
+            },
+            new DocRelease
+            {
+                TargetType = ReleaseTargetType.App, TargetKey = "LIRR_APP", VersionNumber = 1,
+                ReleaseAiracCycle = "2607", ReleaseEffectiveUtc = DateTime.UtcNow.AddDays(28),
+                Status = ReleaseStatus.Scheduled, PayloadJson = "{}", CreatedUtc = DateTime.UtcNow,
+            });
+        await _db.SaveChangesAsync();
+
+        var all = await _repo.ListAsync();
+
+        var air = Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi);
+        Assert.Equal("2606", air.EffectiveCycle);
+        Assert.Equal("2607", air.NextScheduledCycle);
+
+        // Solo una release FUTURA: non è pubblicamente visibile, ma non è nemmeno «senza release».
+        var app = Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi);
+        Assert.Null(app.EffectiveCycle);
+        Assert.False(app.HasEffectiveRelease);
+        Assert.True(app.HasAnyRelease);
+        Assert.Equal("2607", app.NextScheduledCycle);
+
+        var acc = Assert.Single(all, m => m.Kind == ManagedDocKind.AccVipi);
+        Assert.False(acc.HasAnyRelease);
+    }
+
+    /// <summary>
+    /// Il lock di editing esce dalla query dell'elenco (il <c>Document</c> è caricato intero): serve a
+    /// /vsop/versioni per dire chi sta lavorando a cosa, e al servizio per rifiutare hide/delete.
+    /// ⚠️ Un lock SCADUTO non è un lock: si normalizza qui, non nei chiamanti.
+    /// </summary>
+    [Fact]
+    public async Task List_PortaIlLockAttivo_EIgnoraQuelloScaduto()
+    {
+        var vivo = await _db.Documents.FirstAsync(d => d.Title == "vIPI Roma");
+        vivo.LockedByUserId = 4242; vivo.LockedByName = "Tizio"; vivo.LockExpiresUtc = DateTime.UtcNow.AddMinutes(10);
+
+        var morto = await _db.Documents.FirstAsync(d => d.Title == "vIPI LIRR_APP");
+        morto.LockedByUserId = 99; morto.LockedByName = "Caio"; morto.LockExpiresUtc = DateTime.UtcNow.AddMinutes(-1);
+        await _db.SaveChangesAsync();
+
+        var all = await _repo.ListAsync();
+
+        var acc = Assert.Single(all, m => m.Kind == ManagedDocKind.AccVipi);
+        Assert.True(acc.IsLocked);
+        Assert.Equal(4242, acc.LockedByUserId);
+        Assert.Equal("Tizio", acc.LockedByName);
+
+        var app = Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi);
+        Assert.False(app.IsLocked);
+        Assert.Null(app.LockedByName);
+
+        Assert.False(Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi).IsLocked);
     }
 }

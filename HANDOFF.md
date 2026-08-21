@@ -1,10 +1,47 @@
-# HANDOFF — vIPI/vLOA Interactive
+﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 18 agosto 2026 — **accordi di coordinamento**: modello sostituito (16-17 ago) ed
-editor rifatto sopra (17-18 ago), sul ramo `feature/accordi-coordinamento`, **non ancora in `main`**.
+**Ultimo aggiornamento:** 22 agosto 2026 — **densità UI delle pagine admin**, sul ramo
+`ui-trasferimenti-densita`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (18 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (22 agosto 2026)
+>
+> **Il lavoro vivo è sul ramo `ui-trasferimenti-densita`**, allineato col remoto e **non fuso**. Per riprendere
+> da freddo si leggono **due** file:
+> [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
+> riparte la prossima pagina — e
+> [`docs/design/regole-ui-pagine-admin.md`](docs/design/regole-ui-pagine-admin.md), le 124 regole già pagate più
+> la ricognizione misurata di ogni pagina.
+>
+> In due righe: il giro riscrive **la forma** delle pagine di lavoro admin — niente cambia in modello, rotte o
+> dati. **Nove pagine chiuse** (accordi, struttura, ACC, aeroporti, editor aeroporto, editor ACC, Confinanti,
+> Versioni, **Permessi**). Versioni è costata due giri — prima la **sostanza** (la pagina lasciava eliminare un
+> documento che un'altra persona stava editando), poi la densità: 1 664 → **900px**, il dettaglio fuori
+> dall'elenco e i chip che contano. Permessi: **2 449 → 900**, le sei card di navigazione diventate una barra
+> sola e completa, e l'elenco riorganizzato per **persona**.
+>
+> ⚠️ **La ricognizione di Permessi diceva 1 346px: era la misura a tabella VUOTA.** Le pagine che nel DB di
+> sviluppo non hanno dati vanno **riempite prima di misurarle** — vale per quelle che restano.
+>
+> Poi, il **22 agosto**, un giro che non è di una pagina ma della **testa di tutte e undici**: la barra
+> `AdminNav` sta ora **sopra il titolo** di ogni pagina admin, **al posto della briciola di pane**, e ogni sua
+> voce si porta dietro la propria regola d'accesso — cambiare chi entra in una pagina è **una riga**, non
+> undici `@if` (regole 125-132, §21).
+>
+> ⚠️ **La prossima è AUDIT, non più Sorgenti.** `/vsop/admin/audit` è passata da **1 166 a 1 556px** senza che
+> nessuno la toccasse: le righe erano 20 alla ricognizione, sono 28 adesso. È l'unica pagina dell'elenco la cui
+> altezza **cresce da sola per sempre** — un registro non si accorcia — quindi il `thead` appiccicato lì si
+> ripaga, al contrario di quanto diceva la riga vecchia della ricognizione. **Una misura è una fotografia: su
+> una pagina che accumula va rifatta, non citata.** Poi **Sorgenti** (**1 252px**), Diagnostica, Nuovo
+> documento, Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
+> `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.
+>
+> Sotto resta lo stato del **18 agosto** (accordi di coordinamento, ramo `feature/accordi-coordinamento`) e
+> quello del **15 agosto** (consegna a Ivao.It): valgono ancora per tutto ciò che non è quest'area.
+
+> ## 🧭 DA DOVE SI RIPARTIVA IL 18 AGOSTO (accordi di coordinamento)
 >
 > **Il lavoro vivo è sul ramo `feature/accordi-coordinamento`**, allineato col remoto e **non fuso**. Per
 > riprendere da freddo si legge **un** file:

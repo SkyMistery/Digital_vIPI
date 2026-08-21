@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 using Vipi.Application.Content;
 using Vipi.Domain.Entities;
 
@@ -75,8 +76,18 @@ public sealed class EfResourceLockRepository : IResourceLockRepository
     public Task ReleaseAsync(string resourceKey, int userId, CancellationToken ct = default) =>
         _db.EditResourceLocks.Where(l => l.ResourceKey == resourceKey && l.LockedByUserId == userId).ExecuteDeleteAsync(ct);
 
-    public Task ForceUnlockAsync(string resourceKey, CancellationToken ct = default) =>
-        _db.EditResourceLocks.Where(l => l.ResourceKey == resourceKey).ExecuteDeleteAsync(ct);
+    public async Task ForceUnlockAsync(string resourceKey, int actorUserId, CancellationToken ct = default)
+    {
+        // Come per il documento: chi lo teneva si legge prima, e un lock già libero non è un atto.
+        var chi = await _db.EditResourceLocks.AsNoTracking().Where(l => l.ResourceKey == resourceKey)
+            .Select(l => new { l.LockedByUserId, l.LockedByName, l.LockExpiresUtc }).FirstOrDefaultAsync(ct);
+        if (chi is null) return;
+
+        await _db.EditResourceLocks.Where(l => l.ResourceKey == resourceKey).ExecuteDeleteAsync(ct);
+        AuditScribe.Write(_db, actorUserId, AuditAction.ForceUnlock, "EditResourceLock", resourceKey,
+            new { HeldByUserId = chi.LockedByUserId, HeldByName = chi.LockedByName, chi.LockExpiresUtc });
+        await _db.SaveChangesAsync(ct);
+    }
 
     private static LockInfo Mine(int userId, string? name, DateTime expires) =>
         new() { Locked = true, IsMine = true, ByUserId = userId, ByName = name, ExpiresUtc = expires };

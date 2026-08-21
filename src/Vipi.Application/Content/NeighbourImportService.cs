@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
@@ -17,7 +17,9 @@ namespace Vipi.Application.Content;
 /// </summary>
 public interface INeighbourImportService : INeighbourReader
 {
-    Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default);
+    /// <param name="progress">Facoltativo: avanzamento delle GET di dettaglio (la parte lunga).</param>
+    Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default,
+        IProgress<ForeignAccFetchProgress>? progress = null);
 
     /// <summary>Ricalcola on-demand il dettaglio di adiacenza di una coppia (settori adiacenti + shapes per mappa),
     /// per far verificare all'admin se il confine è reale. Non persiste nulla.</summary>
@@ -64,13 +66,17 @@ public sealed class NeighbourImportService : INeighbourImportService
         _sectorResolver = sectorResolver;
     }
 
-    public async Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default)
+    public async Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default,
+        IProgress<ForeignAccFetchProgress>? progress = null)
     {
-        try { return await ImportAndComputeCoreAsync(ct); }
+        try { return await ImportAndComputeCoreAsync(ct, progress); }
+        // L'interruzione chiesta da chi guarda non è un guaio da registrare: risale pulita alla UI.
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex) { NeighbourDebugLog.Log($"IMPORT EX: {ex}"); throw; }
     }
 
-    private async Task<NeighbourImportResult> ImportAndComputeCoreAsync(CancellationToken ct)
+    private async Task<NeighbourImportResult> ImportAndComputeCoreAsync(CancellationToken ct,
+        IProgress<ForeignAccFetchProgress>? progress)
     {
         NeighbourDebugLog.Log("Import start");
         _authz.EnsureAdmin();
@@ -97,7 +103,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         NeighbourDebugLog.Log($"Domestic ACC codes: {domesticCodes.Count} · countries cfg: {_opt.CountryIds.Count} [{string.Join(",", _opt.CountryIds)}] · threshold {threshold}");
 
         // 2) Fetch ACC + subcenter esteri (IO, parallelo) → dati grezzi + warning.
-        var (foreign, fetchWarnings) = await _fetcher.FetchAsync(_opt.CountryIds, domesticCodes, ct);
+        var (foreign, fetchWarnings) = await _fetcher.FetchAsync(_opt.CountryIds, domesticCodes, ct, progress);
         warnings.AddRange(fetchWarnings);
         NeighbourDebugLog.Log($"Foreign ACCs fetched: {foreign.Count} [{string.Join(",", foreign.Select(f => f.Code))}]");
 

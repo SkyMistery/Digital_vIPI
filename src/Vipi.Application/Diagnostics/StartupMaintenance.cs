@@ -45,7 +45,9 @@ public sealed class StartupMaintenanceReport : IStartupMaintenanceReport
         var finding = new ConsistencyFinding(Category, ConsistencySeverity.Error, passata,
             $"La passata «{passata}» è fallita all'avvio ({errore.GetType().Name}: {errore.Message}). " +
             "L'applicazione è partita lo stesso, ma ciò che quella passata avrebbe sistemato è rimasto " +
-            "com'era. È idempotente: un riavvio riuscito la rifà da capo.");
+            "com'era. È idempotente: un riavvio riuscito la rifà da capo.", ConsistencyArea.Avvio,
+            CategoryKey: "Diag_Cat_Avvio", DetailKey: "Diag_Msg_Avvio",
+            DetailArgs: new object[] { passata, errore.GetType().Name, errore.Message });
 
         lock (_lock) _findings.Add(finding);
     }

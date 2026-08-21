@@ -1,4 +1,4 @@
-@inject IStringLocalizer<SharedResource> L
+﻿@inject IStringLocalizer<SharedResource> L
 
 @*
     Tabella delle clausole. UNA, usata sia dall'accordo scelto nell'albero sia dalla vista a elenco: le due viste
@@ -16,7 +16,36 @@
     lei a sapere se sta scorrendo un accordo o attraversandoli tutti.
 *@
 
-<table class="res-table xfe-table">
+@*
+    ⚠️ Le colonne sono FISSE (`table-layout:fixed` + questo colgroup), e non è una scelta estetica: in albero
+    ogni verso è una tabella a sé, e a larghezza automatica ognuna sceglieva le proprie colonne in base al
+    contenuto — «punti» largo il doppio nel blocco sopra rispetto a quello sotto. Si scrive in cella, e un
+    bersaglio che cambia posto fra due tabelle affiancate si ricerca ogni volta.
+
+    Le percentuali si sommano a meno di 100: la colonna della condizione prende ciò che resta, che è anche
+    l'unica il cui contenuto non ha una lunghezza tipica.
+*@
+<table class="res-table xfe-table @(ShowContext ? "xt-stick" : null)">
+    <colgroup>
+        <col class="xt-c-drag" />
+        <col class="xt-c-pick" />
+        @if (ShowContext)
+        {
+            <col class="xt-c-ctx" />
+            <col class="xt-c-ctx" />
+            <col class="xt-c-ctxapt" />
+            <col class="xt-c-kind" />
+            <col class="xt-c-pts-ctx" />
+            <col class="xt-c-lvl-ctx" />
+        }
+        else
+        {
+            <col class="xt-c-pts" />
+            <col class="xt-c-lvl" />
+        }
+        <col />
+        <col class="@(ShowContext ? "xt-c-acts-ctx" : "xt-c-acts")" />
+    </colgroup>
     <thead>
         <tr>
             <th class="xt-drag"></th>
@@ -61,9 +90,11 @@
                 @if (ShowContext)
                 {
                     @* In elenco il contesto è il dato che dice DI CHI è la riga: senza, l'elenco è un mucchio. *@
-                    <td class="xt-ctx">@Dash(XferLabels.Sender(r.Agreement, r.Section))</td>
-                    <td class="xt-ctx">@Dash(XferLabels.Receiver(r.Agreement, r.Section))</td>
-                    <td class="xt-ctx">@Dash(XferLabels.Airports(r.Section))</td>
+                    @* Il titolo porta il valore intero: a colonna fissa un callsign lungo si tronca, e un
+                       callsign troncato è un altro callsign. *@
+                    <td class="xt-ctx" title="@XferLabels.Sender(r.Agreement, r.Section)">@Dash(XferLabels.Sender(r.Agreement, r.Section))</td>
+                    <td class="xt-ctx" title="@XferLabels.Receiver(r.Agreement, r.Section)">@Dash(XferLabels.Receiver(r.Agreement, r.Section))</td>
+                    <td class="xt-ctx" title="@XferLabels.Airports(r.Section)">@Dash(XferLabels.Airports(r.Section))</td>
                     <td class="xt-ctx"><span class="pill blue">@XferLabels.Kind(L, r.Section.Kind)</span></td>
                 }
                 @* I punti sono l'IDENTITÀ dell'accordo dentro il gruppo e il salvataggio li propaga a tutte le

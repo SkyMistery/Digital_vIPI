@@ -1,4 +1,4 @@
-@* InlineConfirm — conferma inline a due stati per azioni DISTRUTTIVE su dati persistiti.
+﻿@* InlineConfirm — conferma inline a due stati per azioni DISTRUTTIVE su dati persistiti.
    Vedi docs/design/piano-ux-hardening.md §3a (U1). Estrae il pattern collaudato di
    AdminTrasferimentiPage (_confirmDeleteFlowId) in un componente unico e riusabile: lo
    stato aperto/chiuso è INTERNO, le pagine chiamanti non tengono più un id «in conferma».
@@ -56,9 +56,30 @@
     /// <summary>Invocato alla conferma. La chiusura avviene prima dell'invocazione.</summary>
     [Parameter] public EventCallback OnConfirm { get; set; }
 
+    /// <summary>
+    /// Controllo opzionale eseguito <b>prima</b> di aprire la conferma: se ritorna <c>false</c> la conferma
+    /// non si apre.
+    ///
+    /// <para><b>Perché esiste.</b> Una pagina che elenca è una <i>fotografia</i>: il presupposto dell'azione
+    /// può essere cambiato dopo il caricamento. In /vsop/versioni un documento può passare in modifica a
+    /// qualcun altro mentre l'elenco sta aperto — il servizio rifiuta comunque (il divieto è lì), ma senza
+    /// questo gancio l'utente scopriva l'occupato solo <b>dopo</b> aver confermato un'eliminazione. Qui la
+    /// riga si rinfresca al clic e la domanda non viene nemmeno posta.</para>
+    ///
+    /// <para>È un <c>Func&lt;Task&lt;bool&gt;&gt;</c> e non un <c>EventCallback</c> perché serve la
+    /// <b>risposta</b>: un EventCallback non ne restituisce, e leggere <c>Disabled</c> dopo l'await non
+    /// funzionerebbe — i parametri arrivano al render successivo del genitore, non al ritorno della chiamata.
+    /// Chi lo usa aggiorna il proprio stato e chiama <c>StateHasChanged</c> da sé.</para>
+    /// </summary>
+    [Parameter] public Func<Task<bool>>? CanOpenAsync { get; set; }
+
     private bool _open;
 
-    private void Open() => _open = true;
+    private async Task Open()
+    {
+        if (CanOpenAsync is not null && !await CanOpenAsync()) return;
+        _open = true;
+    }
     private void Cancel() => _open = false;
 
     private async Task ConfirmAsync()

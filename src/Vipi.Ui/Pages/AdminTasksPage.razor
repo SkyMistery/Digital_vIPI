@@ -1,121 +1,360 @@
-@page "/vsop/admin/tasks"
+﻿@page "/vsop/admin/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
 @inject IEditAuthorizationService Authz
 @inject IStaffRosterService Roster
-@inject IEditingService Editing
+@inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Grants_TasksTitle"] · IVAO Italia</PageTitle>
 
-<div class="wrap" style="max-width:1200px">
-    <div class="breadcrumb"><a href="/vsop/admin/permessi">Admin</a> › <b>@L["Grants_TasksTitle"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px"><Icon Name="clipboard" Size="22" /> @L["Grants_TasksTitle"]</h2><span class="muted">@string.Format(L["AdminTasks_Subtitle"], _currentCycle)</span></div>
+@* La pagina è a larghezza piena (prima `max-width:1200px`): con il `.wrap` stretto le undici voci della
+   barra admin andavano a capo — 87px invece di 55 — e la tabella lavorava in tre quarti di schermo. *@
+<div class="wrap struct">
+    @* La barra sta dove stava la briciola di pane, sopra il titolo, e resta nuda: il filtro per
+       autorizzazione lo fa il componente. *@
+    <AdminNav />
+
+    @* ---- Testata in UNA riga: titolo · conteggio · «?» · comandi di PAGINA · esito ----
+       Il sottotitolo era una fascia sempre a schermo che diceva a chiunque, ogni volta, quello che il «?»
+       dice a chi lo chiede (regola 7). *@
+    <div class="doc-head st-head">
+        <h2 class="st-h2">
+            @L["Grants_TasksTitle"]
+            @if (_tasks is not null)
+            {
+                <span>&nbsp;</span><span class="pill blue" title="@L["AdminTasks_CountTitle"]">@Filtrate.Count / @_tasks.Count</span>
+            }
+        </h2>
+        <HelpHint Href="/vsop/guida#admin-incarichi" AriaLabel="@L["AdminTasks_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@string.Format(L["AdminTasks_Subtitle"].Value, _currentCycle)</p>
+            @((MarkupString)L["AdminTasks_Intro"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                @* Creare è il gesto RARO — si assegna di tanto in tanto, si guarda l'elenco tutti i giorni —
+                   e paga il clic: il form stava in cima sempre aperto, 276px prima del primo incarico
+                   (regola 119). *@
+                <button class="btn primary @(_newOpen ? "on" : "")" disabled="@_busy" @onclick="ToggleNew"
+                        title="@L["AdminTasks_NewTask"]"><Icon Name="plus" Size="14" /> @L["AdminTasks_NewTask"]</button>
+                <button class="btn ghost" disabled="@_busy" @onclick="Load" title="@L["AdminTasks_RefreshTitle"]">
+                    <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
+                </button>
+            </nav>
+            @if (_error is not null || _status is not null)
+            {
+                <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
+                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_error ?? _status)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                </span>
+            }
+        }
     </div>
 
     @if (!Authz.IsAdmin)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["AdminTasks_StaffOnly"]</div></div>
     }
+    else if (_tasks is null)
+    {
+        <LoadingState />
+    }
     else
     {
-        @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
-        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
+        @* ---- Elenco a sinistra, incarico scelto a destra, alti quanto lo schermo meno ciò che sta sopra ----
+           Il pannello è giustificato dall'AZIONE (regola 140): sull'incarico scelto si cambia stato, si
+           riassegna, si apre il documento, si elimina. Prima quelle azioni stavano nella riga (una tendina
+           per riga) o non c'erano affatto (la riassegnazione). *@
+        <div class="task-layout">
+            <div class="panel st-pane">
+                <div class="struct-bar">
+                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["AdminTasks_SearchPh"]" />
 
-        <div class="section-title"><h3>@L["AdminTasks_NewTask"]</h3><span class="ln"></span></div>
-        <div class="xfe-form" style="max-width:none">
-            <div style="display:flex;flex-wrap:wrap;gap:10px">
-                <div class="field" style="flex:2;min-width:240px"><label>@L["AdminTasks_TitleLabel"]</label><input placeholder="@L["AdminTasks_TitlePlaceholder"]" @bind="_title" /></div>
-                <div class="field" style="flex:1;min-width:180px"><label>@L["AdminTasks_AssignTo"]</label>
-                    <select @bind="_assignee">
-                        <option value="0">@L["Grants_Select"]</option>
-                        @if (_members is not null)
+                    <select class="htree-select" @bind="_airac" title="@L["AdminTasks_DueFilterTitle"]">
+                        <option value="">@L["AdminTasks_AllDue"]</option>
+                        @foreach (var c in Scadenze)
                         {
-                            @foreach (var m in _members)
-                            {
-                                <option value="@m.UserId">@m.UserId@(string.IsNullOrWhiteSpace(m.DisplayName) ? "" : $" — {m.DisplayName}")</option>
-                            }
+                            <option value="@c">AIRAC @c</option>
                         }
                     </select>
-                </div>
-                <div class="field" style="flex:1;min-width:130px"><label>@L["AdminTasks_Priority"]</label>
-                    <select @bind="_priority">@foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }</select>
-                </div>
-                <div class="field" style="flex:1;min-width:150px"><label>@L["AdminTasks_DueAirac"]</label>
-                    <select @bind="_due"><option value="">@L["AdminTasks_None"]</option>@foreach (var c in _upcoming) { <option value="@c.Cycle">@c.Cycle</option> }</select>
-                </div>
-                <div class="field" style="flex:2;min-width:240px"><label>@L["AdminTasks_DocOptional"]</label>
-                    <select @bind="_docKey">
-                        <option value="">@L["AdminTasks_FreeTask"]</option>
-                        @foreach (var d in _docs)
+
+                    @* I chip CONTANO e contano esattamente la condizione che applicano (regola 30). Sempre
+                       presenti, spenti a zero, in un gruppo solo perché la barra vada a capo in un punto
+                       solo (regole 31-32).
+                       ⚠️ Senza chip acceso l'elenco mostra i NON CONCLUSI: gli incarichi non si archiviano e
+                       «Fatto» resterebbe lì per sempre — a 60 incarichi la pagina era alta 4 764px. I
+                       conclusi sono a un clic, e il contatore in testata dice sempre «N di TOT». *@
+                    <span class="sb-chips">
+                        @foreach (var s in Stati)
                         {
-                            <option value="@DocKey(d)">@d.Type · @d.Title (@d.Scope)</option>
+                            var n = Conta(s);
+                            <button class="sh-chip @(_stato == s ? "on" : "")" disabled="@(n == 0)"
+                                    title="@L["AdminTasks_ChipStateTitle", ColLabel(s)]" @onclick="() => ToggleStato(s)">
+                                @ColLabel(s) <span class="chip-n">@n</span>
+                            </button>
                         }
-                    </select>
+                        <button class="sh-chip tk-late-chip @(_soloRitardo ? "on" : "")" disabled="@(InRitardo == 0)"
+                                title="@L["AdminTasks_ChipLateTitle"]" @onclick="ToggleRitardo">
+                            @L["AdminTasks_ChipLate"] <span class="chip-n">@InRitardo</span>
+                        </button>
+                        <button class="lnk-mini" disabled="@(!Filtra)" @onclick="ClearFilters"
+                                title="@L["AdminTasks_ClearTitle"]" aria-label="@L["Audit_Clear"]">✕</button>
+                    </span>
                 </div>
-            </div>
-            <div class="field"><label>@L["AdminTasks_DescOptional"]</label><textarea rows="2" @bind="_desc" placeholder="@L["AdminTasks_DescPlaceholder"]"></textarea></div>
-            <button class="btn primary" disabled="@_busy" @onclick="Create">@L["AdminTasks_CreateBtn"]</button>
-        </div>
 
-        <div class="section-title"><h3>@L["AdminTasks_AllTasks"]</h3><span class="ln"></span></div>
-        @if (_tasks is null) { <LoadingState /> }
-        else if (_tasks.Count == 0) { <p class="help">@L["AdminTasks_NoneCreated"]</p> }
-        else
-        {
-            <table>
-                <thead><tr><th>@L["AdminTasks_TitleLabel"]</th><th>@L["AdminTasks_Assignee"]</th><th>@L["Common_State"]</th><th>@L["AdminTasks_Priority"]</th><th>@L["AdminTasks_Due"]</th><th>@L["AdminTasks_Document"]</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var t in _tasks)
-                    {
-                        var overdue = Tasks.IsOverdue(t);
-                        <tr style="@(overdue ? "background:rgba(209,36,47,.06)" : "")">
-                            <td><b>@t.Title</b>@if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:11px">@t.Description</div> }</td>
-                            <td>@t.AssigneeUserId@(string.IsNullOrWhiteSpace(t.AssigneeName) ? "" : $" — {t.AssigneeName}")</td>
-                            <td>
-                                <select class="app-in" style="max-width:150px" @onchange="e => SetStatus(t.Id, e.Value?.ToString())">
-                                    @foreach (var s in Enum.GetValues<EditorTaskStatus>()) { <option value="@s" selected="@(s == t.Status)">@ColLabel(s)</option> }
-                                </select>
-                            </td>
-                            <td><span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span></td>
-                            <td>@(t.DueAiracCycle is null ? "—" : $"AIRAC {t.DueAiracCycle}")@(overdue ? " ⚠" : "")</td>
-                            <td class="muted" style="font-size:11px">@(t.TargetLabel ?? (t.TargetKey is null ? "—" : t.TargetKey))</td>
-                            <td><InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["AdminTasks_DeleteTask"]" Disabled="@_busy" OnConfirm="() => Delete(t.Id)"><Trigger><Icon Name="trash" /></Trigger></InlineConfirm></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-
-            <div class="section-title" style="margin-top:18px"><h3>@L["AdminTasks_ProgressByEditor"]</h3><span class="ln"></span></div>
-            <div class="choice-grid">
-                @foreach (var grp in _tasks.GroupBy(t => (t.AssigneeUserId, t.AssigneeName)).OrderBy(g => g.Key.AssigneeUserId))
+                @* «Avanzamento per editore» era una griglia di card da 244px l'una SOTTO la tabella: a 12
+                   incarichi cominciava oltre i 1 500px e non la vedeva nessuno (regola 161). Qui è una riga
+                   di chip che dice le stesse due cose — quanti aperti, quanti in ritardo — e in più FILTRA. *@
+                @if (Persone.Count > 0)
                 {
-                    var done = grp.Count(t => t.Status == EditorTaskStatus.Done);
-                    var late = grp.Count(Tasks.IsOverdue);
-                    <div class="choice">
-                        <h4>@grp.Key.AssigneeUserId@(string.IsNullOrWhiteSpace(grp.Key.AssigneeName) ? "" : $" — {grp.Key.AssigneeName}")</h4>
-                        <p class="muted">@string.Format(L["AdminTasks_DoneCount"], done, grp.Count())@(late > 0 ? string.Format(L["AdminTasks_LateCount"], late) : "")</p>
+                    <div class="struct-bar tk-people">
+                        <span class="tk-people-lbl">@L["AdminTasks_ProgressByEditor"]</span>
+                        <span class="sb-chips">
+                            @foreach (var p in Persone)
+                            {
+                                <button class="sh-chip @(_persona == p.UserId ? "on" : "")"
+                                        title="@L["AdminTasks_PersonChipTitle", p.Aperti, p.Completati, p.Ritardo]"
+                                        @onclick="() => TogglePersona(p.UserId)">
+                                    @p.Nome <span class="chip-n">@p.Aperti</span>@(p.Ritardo > 0 ? " ⚠" : "")
+                                </button>
+                            }
+                        </span>
+                    </div>
+                }
+
+                @if (Filtrate.Count == 0)
+                {
+                    <p class="help">@(_tasks.Count == 0 ? L["AdminTasks_NoneCreated"] : L["AdminTasks_NoMatch"])</p>
+                }
+                else
+                {
+                    @* Dentro un riquadro che scorre l'intestazione si aggancia al CONTENITORE (`top:0`,
+                       regola 51): a 60 incarichi la tabella è alta 3 730px, e prima era una `<table>` nuda. *@
+                    <div class="st-scroll">
+                        <table class="res-table sticky-head tk-table">
+                            <thead>
+                                <tr>
+                                    <th class="c-task">@L["AdminTasks_TitleLabel"]</th>
+                                    <th class="c-who">@L["AdminTasks_Assignee"]</th>
+                                    <th class="c-state">@L["Common_State"]</th>
+                                    <th class="c-prio">@L["AdminTasks_Priority"]</th>
+                                    <th class="c-due">@L["AdminTasks_Due"]</th>
+                                    <th class="c-doc">@L["AdminTasks_Document"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in Filtrate)
+                                {
+                                    var overdue = Tasks.IsOverdue(t);
+                                    @* La riga intera è il comando di selezione: cliccata sceglie, ricliccata
+                                       lascia, un'altra sposta la scelta; Invio e Spazio fanno il clic. *@
+                                    <tr class="acc-pick @(_sel == t.Id ? "picked" : "") @(overdue ? "tk-late" : "")"
+                                        role="button" tabindex="0" aria-pressed="@(_sel == t.Id ? "true" : "false")"
+                                        title="@L["AdminTasks_RowPickTitle"]"
+                                        @onclick="() => Pick(t.Id)" @onkeydown="e => OnRowKey(e, t.Id)">
+                                        @* Titolo su una riga: la descrizione stava sotto in 11px e faceva la
+                                           riga da 64px — ora sta nel pannello (e nel `title`). *@
+                                        <td class="c-task" title="@(t.Description ?? t.Title)"><b>@t.Title</b></td>
+                                        <td class="c-who">@Chi(t)</td>
+                                        <td class="c-state"><span class="pill @StatoPill(t.Status)">@ColLabel(t.Status)</span></td>
+                                        <td class="c-prio"><span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span></td>
+                                        <td class="c-due">@(t.DueAiracCycle is null ? "—" : $"AIRAC {t.DueAiracCycle}")@(overdue ? " ⚠" : "")</td>
+                                        <td class="c-doc" title="@(t.TargetLabel ?? t.TargetKey)">@(t.TargetLabel ?? (t.TargetKey is null ? "—" : t.TargetKey))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 }
             </div>
-        }
+
+            @* --- DESTRA: il form del gesto raro, oppure l'incarico scelto --- *@
+            <div class="panel st-pane">
+                @if (_newOpen)
+                {
+                    <div class="ver-detail-head">
+                        <div class="dr-main"><b>@L["AdminTasks_NewTask"]</b><div class="dr-sub">@L["AdminTasks_NewTaskHint"]</div></div>
+                        <button class="lnk-mini" @onclick="ToggleNew" title="@L["Common_Close"]" aria-label="@L["Common_Close"]">✕</button>
+                    </div>
+                    <div class="st-scroll">
+                        <div class="perm-form">
+                            @* `oninput` e non il solo `onchange`: il tasto si accende mentre si scrive, non
+                               alla perdita del fuoco. *@
+                            <div class="field"><label>@L["AdminTasks_TitleLabel"]</label>
+                                <input class="app-in" placeholder="@L["AdminTasks_TitlePlaceholder"]" @bind="_title" @bind:event="oninput" /></div>
+                            <div class="field"><label>@L["AdminTasks_AssignTo"]</label>
+                                <select class="app-in" @bind="_assignee">
+                                    <option value="0">@L["Grants_Select"]</option>
+                                    @if (_members is not null)
+                                    {
+                                        @foreach (var m in _members)
+                                        {
+                                            <option value="@m.UserId">@NomeRoster(m)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="field"><label>@L["AdminTasks_Priority"]</label>
+                                <select class="app-in" @bind="_priority">@foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }</select>
+                            </div>
+                            <div class="field"><label>@L["AdminTasks_DueAirac"]</label>
+                                <select class="app-in" @bind="_due"><option value="">@L["AdminTasks_None"]</option>@foreach (var c in _upcoming) { <option value="@c.Cycle">@c.Cycle</option> }</select>
+                            </div>
+                            <div class="field"><label>@L["AdminTasks_DocOptional"]</label>
+                                @* ⚠️ Le chiavi vengono dall'elenco che poi le RITROVA: fabbricarle qui
+                                   («{acc}|» per la vIPI ACC) faceva nascere incarichi che puntavano a un
+                                   documento inesistente. *@
+                                <select class="app-in" @bind="_docKey">
+                                    <option value="">@L["AdminTasks_FreeTask"]</option>
+                                    @foreach (var o in _opzioni)
+                                    {
+                                        <option value="@ChiaveOpzione(o)">@o.Etichetta</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field"><label>@L["AdminTasks_DescOptional"]</label>
+                                <textarea class="app-in" rows="3" @bind="_desc" placeholder="@L["AdminTasks_DescPlaceholder"]"></textarea></div>
+                            @* Il tasto sta DOVE FINISCE quello che gli serve, e il perché di un tasto spento
+                               gli sta accanto (regola 170). *@
+                            <button class="btn primary perm-go" disabled="@(_busy || !PuoCreare)" @onclick="Create">
+                                <Icon Name="plus" Size="14" /> @L["AdminTasks_CreateBtn"]</button>
+                            @if (!PuoCreare) { <p class="help">@L["AdminTasks_NeedTitleAndAssignee"]</p> }
+                        </div>
+                    </div>
+                }
+                else if (Scelto is { } sel)
+                {
+                    var inRitardo = Tasks.IsOverdue(sel);
+                    <div class="ver-detail-head">
+                        <div class="dr-main">
+                            <b>@sel.Title</b>
+                            <div class="dr-sub">@Chi(sel) · @(sel.DueAiracCycle is null ? L["AdminTasks_NoDue"].Value : $"AIRAC {sel.DueAiracCycle}")</div>
+                        </div>
+                        <span class="pill @(inRitardo ? "future" : StatoPill(sel.Status))">@(inRitardo ? L["Tasks_Late"].Value : ColLabel(sel.Status))</span>
+                    </div>
+                    <div class="st-scroll">
+                        @if (!string.IsNullOrWhiteSpace(sel.Description))
+                        {
+                            <p class="tk-desc">@sel.Description</p>
+                        }
+
+                        @* Chi l'ha dato e quando: tre date che esistevano dal primo giorno e non le leggeva
+                           nessuno (regola 146). *@
+                        <div class="tk-meta">
+                            <div>@L["AdminTasks_CreatedBy", Nome(sel.CreatedByUserId), sel.CreatedUtc.ToLocalTime().ToString("dd MMM yyyy")]</div>
+                            <div>@L["AdminTasks_UpdatedAt", sel.UpdatedUtc.ToLocalTime().ToString("dd MMM yyyy · HH:mm")]</div>
+                            @if (sel.CompletedUtc is { } fine)
+                            {
+                                <div>@L["AdminTasks_CompletedAt", fine.ToLocalTime().ToString("dd MMM yyyy · HH:mm")]</div>
+                            }
+                        </div>
+
+                        @if (sel.TargetKey is not null)
+                        {
+                            <div class="tk-doc">
+                                <span class="vmeta">@L["AdminTasks_Document"]: @(sel.TargetLabel ?? sel.TargetKey)</span>
+                                @if (Link(sel)?.Url is { } url)
+                                {
+                                    <a class="btn ghost" href="@url" title="@Link(sel)!.TitoloCorrente">@L["Tasks_OpenDoc"]</a>
+                                }
+                                else
+                                {
+                                    <span class="help">@L["Tasks_DocGone"]</span>
+                                }
+                            </div>
+                        }
+
+                        @* Lo stato si cambia QUI, non da una tendina per riga: una tendina che scrive al
+                           primo cambio, su una tabella lunga, è un'azione senza conferma sulla riga
+                           sbagliata — e l'elenco si riordinava sotto le mani (N6 della carta gemella). *@
+                        <div class="tk-block">
+                            <div class="vmeta">@L["Common_State"]</div>
+                            <div class="tk-states">
+                                @foreach (var s in Stati)
+                                {
+                                    <button class="btn ghost @(sel.Status == s ? "on" : "")" disabled="@(_busy || sel.Status == s)"
+                                            title="@L["AdminTasks_SetStateTitle", ColLabel(s)]" @onclick="() => SetStatus(sel.Id, s)">@ColLabel(s)</button>
+                                }
+                            </div>
+                        </div>
+
+                        @* La riassegnazione: il servizio c'era dal primo giorno e non la chiamava nessuno.
+                           Senza, un incarico dato alla persona sbagliata si poteva solo cancellare e rifare. *@
+                        <div class="tk-block">
+                            <div class="vmeta">@L["AdminTasks_Reassign"]</div>
+                            <div class="perm-add">
+                                <select class="app-in" @bind="_reassignTo">
+                                    <option value="0">@L["Grants_Select"]</option>
+                                    @if (_members is not null)
+                                    {
+                                        @foreach (var m in _members.Where(m => m.UserId != sel.AssigneeUserId))
+                                        {
+                                            <option value="@m.UserId">@NomeRoster(m)</option>
+                                        }
+                                    }
+                                </select>
+                                <button class="btn ghost" disabled="@(_busy || _reassignTo <= 0)" @onclick="() => Reassign(sel.Id)"
+                                        title="@L["AdminTasks_ReassignTitle"]"><Icon Name="refresh" Size="14" /> @L["AdminTasks_Reassign"]</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ver-acts">
+                        <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["AdminTasks_DeleteTask"]" AriaLabel="@L["AdminTasks_DeleteTask"]"
+                                       Prompt="@L["AdminTasks_DeletePrompt", sel.Title]" Disabled="@_busy"
+                                       ConfirmLabel="@L["Common_Remove"]" CancelLabel="@L["Common_Cancel"]"
+                                       OnConfirm="() => Delete(sel.Id)">
+                            <Trigger><Icon Name="trash" Size="14" /> @L["Common_Remove"]</Trigger>
+                        </InlineConfirm>
+                    </div>
+                }
+                else
+                {
+                    <p class="help">@L["AdminTasks_PickHint"]</p>
+                }
+            </div>
+        </div>
     }
 </div>
 
 @code {
     private IReadOnlyList<EditorTask>? _tasks;
     private IReadOnlyList<StaffRosterEntry>? _members;
-    private IReadOnlyList<DocumentSummary> _docs = Array.Empty<DocumentSummary>();
+    private IReadOnlyList<EditorTaskTargetOption> _opzioni = Array.Empty<EditorTaskTargetOption>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
+    private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
+        new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private string _currentCycle = "";
     private bool _busy;
     private string? _status, _error;
 
+    // Stato di PAGINA: l'incarico scelto e il form del gesto raro, che non convivono nel pannello di destra.
+    private int? _sel;
+    private bool _newOpen;
+
     private string _title = "", _desc = "", _due = "", _docKey = "";
     private int _assignee;
+    private int _reassignTo;
     private EditorTaskPriority _priority = EditorTaskPriority.Normal;
+
+    // Filtri. ⚠️ `_stato` null NON vuol dire «tutti»: vuol dire «i non conclusi» (vedi Filtrate).
+    private string _q = "", _airac = "";
+    private EditorTaskStatus? _stato;
+    private bool _soloRitardo;
+    private int? _persona;
+
+    private static readonly EditorTaskStatus[] Stati =
+        { EditorTaskStatus.Todo, EditorTaskStatus.InProgress, EditorTaskStatus.InReview, EditorTaskStatus.Blocked, EditorTaskStatus.Done };
+
+    // Le due condizioni che il service pretende, lette qui per spegnere il tasto invece di far sbagliare e
+    // poi spiegare. ⚠️ Non sostituiscono la guardia: la porta non può essere più larga della serratura.
+    private bool PuoCreare => !string.IsNullOrWhiteSpace(_title) && _assignee > 0;
+
+    private bool Filtra => _stato is not null || _soloRitardo || _persona is not null
+        || !string.IsNullOrWhiteSpace(_q) || !string.IsNullOrWhiteSpace(_airac);
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,15 +362,121 @@
         _currentCycle = Tasks.CurrentCycle();
         _upcoming = Tasks.UpcomingCycles(14);
         _members = await Roster.ListActiveAsync();
-        _docs = await Editing.ListDocumentsAsync();
+        _opzioni = await TaskLinks.OpzioniAsync();
         await Load();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!Authz.IsAdmin) return;
+        // «Schermo meno ciò che sta sopra» non è esprimibile in CSS: si misura, e a ogni render — sopra ci
+        // sono cose che compaiono e spariscono (il chip d'esito, la riga delle persone, il «?» aperto).
+        // ⚠️ `vipiFitViewport` e non `vipiCapViewport`: qui il contenuto è più alto dello schermo per
+        // mestiere (l'elenco non ha tetto), quindi il riquadro si stira e dentro scorre (regola 150).
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".task-layout", 900); } catch (Exception) { }
     }
 
     private async Task Load()
     {
-        try { _tasks = await Tasks.ListAllAsync(); }
+        _busy = true;
+        try
+        {
+            _tasks = await Tasks.ListAllAsync();
+            // Una risoluzione per CARICAMENTO, non una per riga (regola 136).
+            _links = await TaskLinks.ForAsync(_tasks);
+            // La scelta sopravvive al ricarico, ma non a un incarico che non c'è più.
+            if (_sel is { } id && _tasks.All(t => t.Id != id)) _sel = null;
+        }
         catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
     }
+
+    private EditorTask? Scelto => _sel is { } id ? _tasks?.FirstOrDefault(t => t.Id == id) : null;
+
+    private EditorTaskLink? Link(EditorTask t) =>
+        t.TargetType is { } tipo && !string.IsNullOrWhiteSpace(t.TargetKey)
+            && _links.TryGetValue((tipo, t.TargetKey!), out var l) ? l : null;
+
+    // ---- filtri ----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// L'elenco a schermo. ⚠️ Senza chip di stato acceso si vedono i <b>non conclusi</b>: gli incarichi non
+    /// si archiviano, e «Fatto» resterebbe nell'elenco per sempre (a 60 incarichi la pagina era alta 4 764px).
+    /// Il contatore in testata dice sempre «N di TOT», così il filtro implicito non è un numero che mente.
+    /// </summary>
+    private IReadOnlyList<EditorTask> Filtrate
+    {
+        get
+        {
+            if (_tasks is null) return Array.Empty<EditorTask>();
+            IEnumerable<EditorTask> q = _stato is { } s
+                ? _tasks.Where(t => t.Status == s)
+                : _tasks.Where(t => t.Status != EditorTaskStatus.Done);
+            if (_soloRitardo) q = q.Where(Tasks.IsOverdue);
+            if (_persona is { } p) q = q.Where(t => t.AssigneeUserId == p);
+            if (!string.IsNullOrWhiteSpace(_airac)) q = q.Where(t => t.DueAiracCycle == _airac);
+            if (!string.IsNullOrWhiteSpace(_q))
+            {
+                var cerca = _q.Trim();
+                q = q.Where(t => Contiene(t.Title, cerca) || Contiene(t.Description, cerca)
+                                 || Contiene(t.TargetLabel, cerca) || Contiene(t.AssigneeName, cerca)
+                                 || t.AssigneeUserId.ToString().Contains(cerca));
+            }
+            return q.ToList();
+        }
+    }
+
+    private static bool Contiene(string? s, string cerca) =>
+        s is not null && s.Contains(cerca, StringComparison.OrdinalIgnoreCase);
+
+    private int Conta(EditorTaskStatus s) => _tasks?.Count(t => t.Status == s) ?? 0;
+    private int InRitardo => _tasks?.Count(Tasks.IsOverdue) ?? 0;
+
+    /// <summary>I cicli AIRAC che compaiono davvero fra le scadenze: una tendina di cicli che nessun incarico
+    /// usa è un filtro che non filtra.</summary>
+    private IReadOnlyList<string> Scadenze =>
+        _tasks?.Where(t => t.DueAiracCycle is not null).Select(t => t.DueAiracCycle!).Distinct().OrderBy(c => c).ToList()
+        ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+    private sealed record Persona(int UserId, string Nome, int Aperti, int Completati, int Ritardo);
+
+    /// <summary>L'avanzamento per editore: quanti aperti (il numero del chip), quanti conclusi e quanti in
+    /// ritardo (nel <c>title</c>). Cresce col numero di PERSONE, non di incarichi.</summary>
+    private IReadOnlyList<Persona> Persone =>
+        _tasks?.GroupBy(t => t.AssigneeUserId)
+            .Select(g => new Persona(g.Key,
+                Nome(g.Key, g.Select(t => t.AssigneeName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))),
+                g.Count(t => t.Status != EditorTaskStatus.Done), g.Count(t => t.Status == EditorTaskStatus.Done),
+                g.Count(Tasks.IsOverdue)))
+            .OrderBy(p => p.Nome).ToList()
+        ?? (IReadOnlyList<Persona>)Array.Empty<Persona>();
+
+    private void SetQuery(string? v) => _q = v ?? "";
+    private void ToggleStato(EditorTaskStatus s) => _stato = _stato == s ? null : s;
+    private void ToggleRitardo() => _soloRitardo = !_soloRitardo;
+    private void TogglePersona(int userId) => _persona = _persona == userId ? null : userId;
+    private void ClearFilters() { _q = ""; _airac = ""; _stato = null; _soloRitardo = false; _persona = null; }
+    private void ClearStatus() { _status = _error = null; }
+
+    private void Pick(int id)
+    {
+        _sel = _sel == id ? null : id;
+        if (_sel is not null) _newOpen = false;   // il form e il dettaglio non convivono nel pannello
+        _reassignTo = 0;
+    }
+
+    private void OnRowKey(KeyboardEventArgs e, int id)
+    {
+        if (e.Key is "Enter" or " ") Pick(id);
+    }
+
+    private void ToggleNew()
+    {
+        _newOpen = !_newOpen;
+        if (_newOpen) _sel = null;
+    }
+
+    // ---- scritture -------------------------------------------------------------------------------------
 
     private async Task Create()
     {
@@ -144,19 +489,36 @@
                 _assignee, name, _priority, string.IsNullOrWhiteSpace(_due) ? null : _due, type, key, label);
             await Tasks.CreateAsync(input);
             _title = ""; _desc = ""; _due = ""; _docKey = ""; _assignee = 0;
+            _newOpen = false;
             await Load();
             _status = L["AdminTasks_CreatedMsg"];
         }
-        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
 
-    private async Task SetStatus(int id, string? s)
+    private async Task SetStatus(int id, EditorTaskStatus status)
     {
-        if (s is null || !Enum.TryParse<EditorTaskStatus>(s, out var status)) return;
         _busy = true; _status = _error = null;
         try { await Tasks.UpdateStatusAsync(id, status); await Load(); }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Reassign(int id)
+    {
+        _busy = true; _status = _error = null;
+        try
+        {
+            var m = _members?.FirstOrDefault(x => x.UserId == _reassignTo);
+            await Tasks.AssignAsync(id, _reassignTo, m?.DisplayName);
+            _reassignTo = 0;
+            await Load();
+            _status = L["AdminTasks_ReassignedMsg"];
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
@@ -164,29 +526,37 @@
     private async Task Delete(int id)
     {
         _busy = true; _status = _error = null;
-        try { await Tasks.DeleteAsync(id); await Load(); _status = L["AdminTasks_DeletedMsg"]; }
+        try { await Tasks.DeleteAsync(id); _sel = null; await Load(); _status = L["AdminTasks_DeletedMsg"]; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
 
-    // Chiave documento per il picker: "{type}:{key}" con etichetta ricavata dal DocumentSummary.
-    private static string DocKey(DocumentSummary d)
+    // ---- nomi, etichette, chiavi -----------------------------------------------------------------------
+
+    /// <summary>Un VID non è un nome (regola 124): il nome è quello scritto sull'incarico e, se manca, quello
+    /// del roster — che è già in casa. Solo se non c'è nemmeno lì resta il VID.</summary>
+    private string Nome(int userId, string? scritto = null)
     {
-        if (d.Type == DocumentType.Vloa) return $"Vloa:{d.Id}";
-        if (d.IsAirport) return $"Airport:{d.Scope}";
-        if (d.IsStandaloneApp) return $"App:{d.Scope}";
-        return $"AccVipi:{(d.AccCode ?? d.Scope)}|";   // ACC vIPI: root primario (vuoto)
+        if (!string.IsNullOrWhiteSpace(scritto)) return scritto!;
+        var m = _members?.FirstOrDefault(x => x.UserId == userId);
+        return string.IsNullOrWhiteSpace(m?.DisplayName) ? L["Audit_VidN", userId].Value : m!.DisplayName!;
     }
+
+    private string Chi(EditorTask t) => Nome(t.AssigneeUserId, t.AssigneeName);
+
+    private static string NomeRoster(StaffRosterEntry m) =>
+        string.IsNullOrWhiteSpace(m.DisplayName) ? $"VID {m.UserId}" : $"{m.DisplayName} · {m.UserId}";
+
+    // Il valore della tendina: la coppia (tipo, chiave) serializzata. ⚠️ La chiave non si costruisce, si
+    // COPIA da chi la possiede — vedi il commento su IEditorTaskLinksService.OpzioniAsync.
+    private static string ChiaveOpzione(EditorTaskTargetOption o) => $"{o.Type}:{o.Key}";
 
     private (ReleaseTargetType?, string?, string?) ParseDocKey(string dk)
     {
         if (string.IsNullOrWhiteSpace(dk)) return (null, null, null);
-        var idx = dk.IndexOf(':');
-        if (idx < 0) return (null, null, null);
-        var type = Enum.Parse<ReleaseTargetType>(dk[..idx]);
-        var key = dk[(idx + 1)..];
-        var label = _docs.FirstOrDefault(d => DocKey(d) == dk) is { } d ? $"{d.Type} · {d.Title}" : key;
-        return (type, key, label);
+        var scelta = _opzioni.FirstOrDefault(o => ChiaveOpzione(o) == dk);
+        return scelta is null ? (null, null, null) : (scelta.Type, scelta.Key, scelta.Etichetta);
     }
 
     private string ColLabel(EditorTaskStatus s) => s switch
@@ -204,5 +574,10 @@
     private static string PrioPill(EditorTaskPriority p) => p switch
     {
         EditorTaskPriority.High => "future", EditorTaskPriority.Normal => "blue", _ => "grey",
+    };
+
+    private static string StatoPill(EditorTaskStatus s) => s switch
+    {
+        EditorTaskStatus.Done => "green", EditorTaskStatus.Blocked => "future", EditorTaskStatus.InReview => "blue", _ => "grey",
     };
 }

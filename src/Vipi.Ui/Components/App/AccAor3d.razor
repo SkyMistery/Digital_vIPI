@@ -1,4 +1,4 @@
-@* Viewer 3D dell'AoR: ogni settore = prisma estruso (base = shape reale, altezza = banda FL). L'interattività
+﻿@* Viewer 3D dell'AoR: ogni settore = prisma estruso (base = shape reale, altezza = banda FL). L'interattività
    (orbita/zoom/legenda) è client-side (vipi-aor3d.js); data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[b,t]}].
    Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL.
 
@@ -6,6 +6,7 @@
    vipi-aor.js, che applica lo stato allo stage 3D via `_aorSetSec` esattamente come fa col layer Leaflet.
    Niente chip «configurazione» qui: nel 3D si accendono i singoli settori. *@
 @using System.Text.Json
+@inject IStringLocalizer<SharedResource> L
 @if (View.Sectors is { Count: > 0 })
 {
     <div class="aor3d-wrap aor-block" data-aor3d="@Id" data-aor="@Id">
@@ -16,7 +17,7 @@
                     <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
                 </span>
             }
-            <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+            <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Common_All"]</a> · <a class="aor-all" data-act="none">@L["Common_None"]</a></span>
         </div>
         <div class="aor3d-bar">
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
@@ -34,7 +35,7 @@
         <div @key="Signature()" class="aor3d-stage" data-sectors3d="@SectorsJson()" style="@StageStyle">
             <div class="aor3d-legend"><div class="lgt">Settori</div><div class="aor3d-legrows"></div></div>
             <div class="aor3d-hint">🖱️ trascina = ruota · rotellina = zoom</div>
-            <div class="aor3d-fallback">Vista 3D non disponibile (WebGL non attivo su questo dispositivo).</div>
+            <div class="aor3d-fallback">@L["Aor_3dUnavailable"]</div>
         </div>
     </div>
 }

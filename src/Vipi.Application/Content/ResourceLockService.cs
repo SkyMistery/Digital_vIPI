@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 
 namespace Vipi.Application.Content;
@@ -94,7 +94,7 @@ public sealed class ResourceLockService : IResourceLockService
     public Task ForceUnlockAsync(string resourceKey, CancellationToken ct = default)
     {
         if (!_authz.IsAdmin) throw new EditNotAllowedException();
-        return _repo.ForceUnlockAsync(resourceKey, ct);
+        return _repo.ForceUnlockAsync(resourceKey, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task EnsureHeldAsync(string resourceKey, CancellationToken ct = default)

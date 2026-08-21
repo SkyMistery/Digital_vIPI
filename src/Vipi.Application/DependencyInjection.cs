@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain.Services;
@@ -21,6 +21,9 @@ public static class DependencyInjection
         services.AddSingleton<IAiracService, AiracService>();
         services.AddSingleton<IAorService, AorService>();
         services.AddSingleton<IContentService, ContentService>();
+        // Singleton: dice a TUTTE le sessioni che il catalogo ACC e' cambiato. Vedi IStationCatalogVersion —
+        // senza, la cache del resolver (scoped = per CIRCUITO in Blazor Server) invecchia per ore.
+        services.AddSingleton<IStationCatalogVersion, StationCatalogVersion>();
         services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
@@ -68,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
+        services.AddScoped<IEditorTaskLinksService, EditorTaskLinksService>();
         services.AddScoped<IDocumentReviewService, DocumentReviewService>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
@@ -80,6 +84,8 @@ public static class DependencyInjection
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();
         services.AddScoped<IImportPolicyService, ImportPolicyService>();
+        services.AddScoped<IImportOverviewService, ImportOverviewService>();
+        services.AddScoped<INewDocumentOptionsService, NewDocumentOptionsService>();
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();
         return services;
     }

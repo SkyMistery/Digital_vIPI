@@ -10,6 +10,10 @@ namespace Vipi.Application.Content;
 public interface IImportPolicyService
 {
     Task<ImportPolicySnapshot> GetAsync(CancellationToken ct = default);
+
+    /// <summary>La policy più chi l'ha decisa e quando (per la pagina admin).</summary>
+    Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default);
+
     Task SaveAsync(ImportPolicySnapshot policy, CancellationToken ct = default);
 }
 
@@ -26,6 +30,8 @@ public sealed class ImportPolicyService : IImportPolicyService
     }
 
     public Task<ImportPolicySnapshot> GetAsync(CancellationToken ct = default) => _store.GetAsync(ct);
+
+    public Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default) => _store.GetInfoAsync(ct);
 
     public Task SaveAsync(ImportPolicySnapshot policy, CancellationToken ct = default)
     {

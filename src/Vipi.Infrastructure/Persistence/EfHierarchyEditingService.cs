@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
@@ -193,19 +193,45 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             }
         }
 
-        // 3. Scrivi il ParentCallsign sull'entità giusta.
+        // 3. Scrivi il ParentCallsign sull'entità giusta, e registra il cambio (da → a).
+        string? padrePrima;
+        var etichetta = childCallsign;   // per un aeroporto (foglia, senza callsign) l'etichetta è l'ICAO
         switch (kind)
         {
             case HierarchyNodeKind.Acc:
-                (await _db.AccSectors.FirstAsync(s => s.Id == nodeId, ct)).ParentCallsign = parentCallsign;
+            {
+                var e = await _db.AccSectors.FirstAsync(s => s.Id == nodeId, ct);
+                padrePrima = e.ParentCallsign; e.ParentCallsign = parentCallsign;
                 break;
+            }
             case HierarchyNodeKind.AirportPosition:
-                (await _db.AirportSectors.FirstAsync(s => s.Id == nodeId, ct)).ParentCallsign = parentCallsign;
+            {
+                var e = await _db.AirportSectors.FirstAsync(s => s.Id == nodeId, ct);
+                padrePrima = e.ParentCallsign; e.ParentCallsign = parentCallsign;
                 break;
+            }
             case HierarchyNodeKind.Airport:
-                (await _db.Airports.FirstAsync(a => a.Id == nodeId, ct)).ParentCallsign = parentCallsign;
+            {
+                var e = await _db.Airports.FirstAsync(a => a.Id == nodeId, ct);
+                padrePrima = e.ParentCallsign; e.ParentCallsign = parentCallsign; etichetta = e.Icao;
+                break;
+            }
+            default:
+                padrePrima = null;
                 break;
         }
+
+        // ⚠️ HierarchyChange è stato per due anni un valore d'enum che nessuno scriveva, mentre il sottotitolo
+        // della pagina Audit prometteva «pubblicazioni, permessi, STRUTTURA». Chi cambia il padre di un settore
+        // sposta traffico: è il tipo di modifica che, quando qualcosa non torna, si vuole poter ricostruire.
+        // Il non-evento non si scrive: rimettere lo stesso padre non è un cambio.
+        if (!string.Equals(padrePrima, parentCallsign, StringComparison.OrdinalIgnoreCase))
+        {
+            AuditScribe.Write(_db, _authz.CurrentUserId ?? 0, AuditAction.HierarchyChange, kind.ToString(),
+                nodeId.ToString(),
+                new { Nodo = etichetta, Acc = childAccCode, Da = padrePrima, A = parentCallsign });
+        }
+
         await _db.SaveChangesAsync(ct);
 
         // 4. Riproietta i Sector operativi (l'albero AoR deriva da qui). La riproiezione invalida essa stessa la

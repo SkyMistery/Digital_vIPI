@@ -139,4 +139,53 @@ public class ImportPolicyTests : IAsyncLifetime
         Assert.Equal(4000, data!.TransitionAltitudeFt);            // TA esclusa: invariata
         Assert.Equal(3902, data.Runways.Single().LengthM);         // Piste escluse: invariate
     }
+
+    /// <summary>
+    /// Il cambio di policy va nel registro: decide quali dati la sorgente può sovrascrivere, ed è l'atto che
+    /// qualcuno andrà a cercare il giorno in cui un dato smette di aggiornarsi. Nella riga stanno le sole
+    /// categorie <b>cambiate</b>, divise per verso.
+    /// </summary>
+    [Fact]
+    public async Task Changing_the_policy_is_written_to_the_audit_log()
+    {
+        await _store.SaveAsync(new ImportPolicySnapshot(true, Runways: false, true, Sids: false, true), 704798);
+
+        var riga = await _db.AuditLogs.AsNoTracking().SingleAsync();
+        Assert.Equal(704798, riga.UserId);
+        Assert.Equal("ImportPolicy", riga.EntityType);
+        Assert.Contains("Runways", riga.DetailsJson);
+        Assert.Contains("Sids", riga.DetailsJson);
+        Assert.DoesNotContain("Sectors", riga.DetailsJson);        // non è cambiata: non se ne parla
+    }
+
+    /// <summary>
+    /// ⚠️ Il non-evento non si scrive: un salvataggio che non cambia niente non è un atto, e riscriverebbe
+    /// «deciso da X» su una decisione che aveva preso qualcun altro.
+    /// </summary>
+    [Fact]
+    public async Task Saving_the_same_policy_writes_nothing()
+    {
+        await _store.SaveAsync(new ImportPolicySnapshot(true, false, true, true, true), 1);
+        var quando = (await _db.ImportPolicies.AsNoTracking().SingleAsync()).UpdatedUtc;
+
+        await _store.SaveAsync(new ImportPolicySnapshot(true, false, true, true, true), 999);
+
+        Assert.Equal(1, await _db.AuditLogs.CountAsync());
+        var riga = await _db.ImportPolicies.AsNoTracking().SingleAsync();
+        Assert.Equal(1, riga.UpdatedByUserId);                     // l'autore resta chi ha deciso davvero
+        Assert.Equal(quando, riga.UpdatedUtc);
+    }
+
+    /// <summary>
+    /// La prima scrittura registra CHI, anche quando i valori coincidono col default: è l'unica cosa che
+    /// distingue una policy decisa da una nata dai default delle colonne (il caso <c>ImportSids</c>).
+    /// </summary>
+    [Fact]
+    public async Task The_first_save_records_the_author_even_without_changes()
+    {
+        await _store.SaveAsync(ImportPolicySnapshot.AllImported, 704798);
+
+        Assert.Equal(704798, (await _db.ImportPolicies.AsNoTracking().SingleAsync()).UpdatedByUserId);
+        Assert.Equal(0, await _db.AuditLogs.CountAsync());         // nessuna categoria è cambiata
+    }
 }

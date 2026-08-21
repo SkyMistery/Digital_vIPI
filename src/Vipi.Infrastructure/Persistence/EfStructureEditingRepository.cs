@@ -162,7 +162,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         await _db.Airports.AsNoTracking()
             .OrderBy(a => a.Acc!.Code).ThenBy(a => a.Icao)
             .Select(a => new AirportAdminRow(a.Id, a.Icao, a.Name, a.Acc!.Code, a.Sectors.Count,
-                a.Sectors.Any(s => s.Type == SectorType.Twr || s.Type == SectorType.ITwr), a.IsHidden))
+                a.Sectors.Any(s => s.Type == SectorType.Twr || s.Type == SectorType.ITwr), a.IsHidden,
+                // Il documento dell'aeroporto lo tiene uno dei suoi settori (come GetDocumentIdAsync).
+                a.Sectors.Where(s => s.DocumentId != null).Select(s => s.DocumentId).FirstOrDefault()))
             .ToListAsync(ct);
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)

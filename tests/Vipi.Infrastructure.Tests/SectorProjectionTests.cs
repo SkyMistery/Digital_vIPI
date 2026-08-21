@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
@@ -347,5 +347,35 @@ public class SectorProjectionTests : IAsyncLifetime
         // TS è già padre di NE? No: NE è padre di TS (da seed). Mettere NE sotto TS creerebbe un ciclo.
         await Assert.ThrowsAsync<ValidationException>(
             () => _hier.SetParentAsync(HierarchyNodeKind.Acc, ne.Id, "LIRR_TS_CTR"));
+    }
+
+    /// <summary>
+    /// ⚠️ <c>AuditAction.HierarchyChange</c> è stato per due anni un valore d'enum che nessuno scriveva, mentre
+    /// il sottotitolo della pagina Audit prometteva «pubblicazioni, permessi, struttura». Chi cambia il padre di
+    /// un settore sposta traffico: la riga deve dire da dove a dove.
+    /// </summary>
+    [Fact]
+    public async Task SetParent_Registra_Il_Cambio_Da_Dove_A_Dove()
+    {
+        var gnd = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_GND");
+        await _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, gnd.Id, "LIRP_APP");
+
+        var riga = await _db.AuditLogs.Where(a => a.Action == AuditAction.HierarchyChange).SingleAsync();
+        Assert.Equal(1, riga.UserId);                              // l'admin del setup
+        Assert.Equal("AirportPosition", riga.EntityType);
+        Assert.Equal(gnd.Id.ToString(), riga.EntityId);
+        Assert.Contains("LIRP_GND", riga.DetailsJson);
+        Assert.Contains("\"A\":\"LIRP_APP\"", riga.DetailsJson);
+    }
+
+    /// <summary>Il non-evento non si scrive: rimettere lo stesso padre non è un cambio di gerarchia.</summary>
+    [Fact]
+    public async Task SetParent_Allo_Stesso_Padre_Non_Scrive_Una_Seconda_Riga()
+    {
+        var gnd = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_GND");
+        await _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, gnd.Id, "LIRP_APP");
+        await _hier.SetParentAsync(HierarchyNodeKind.AirportPosition, gnd.Id, "LIRP_APP");
+
+        Assert.Equal(1, await _db.AuditLogs.CountAsync(a => a.Action == AuditAction.HierarchyChange));
     }
 }

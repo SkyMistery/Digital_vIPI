@@ -1,4 +1,4 @@
-@page "/vsop/admin/acc"
+﻿@page "/vsop/admin/acc"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
@@ -6,13 +6,65 @@
 @inject IEditAuthorizationService Authz
 @inject ILogger<AccAdminPage> Logger
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>ACC · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>ACC</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">ACC</h2><span class="muted">@L["AccAdmin_Subtitle"]</span></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente.
+       ⚠️ Sta FUORI dalla testata, che qui è appiccicata (`sticky`): scorrendo, la barra sale e passa SOTTO
+       la testata e sparisce. Dentro, resterebbe a schermo per sempre, e `vipiStickyOffset` — che misura
+       quella fascia per incollarci sotto il `thead` — spingerebbe giù le intestazioni di tutte le tabelle. *@
+    <AdminNav />
+
+    @* ---- Testata in UNA riga: titolo · «?» · comandi di PAGINA · stato del lock ----
+       Come in Struttura e negli Accordi (.st-head). Il sottotitolo diceva in prosa sempre a schermo ciò che il
+       «?» dice al clic. Import e «Struttura settori» stanno qui e non nella riga-titolo della tabella: valgono
+       per la pagina intera (l'import porta ACC *e* settori), non per l'elenco sotto cui stavano. *@
+    @* `sticky`: la pagina è lunga (28 ACC + 152 settori) e i comandi di scrittura stanno quassù. Senza, per
+       salvare i limiti si risaliva tutta la tabella. L'altezza della fascia la misura vipiStickyOffset, perché
+       il `thead` delle tabelle deve appiccicarsi SOTTO di lei e quell'altezza cambia da sola. *@
+    <div class="doc-head st-head sticky">
+        <h2 class="st-h2">ACC <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span></h2>
+        <HelpHint Href="/vsop/guida#struttura" AriaLabel="@L["AccAdmin_HelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["AccAdmin_HelpBody"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["AccAdmin_ImportTitle"]">
+                    @if (_busy) { <span class="spin"></span> }<Icon Name="refresh" Size="14" /> @L["AccAdmin_ImportBtn"]
+                </button>
+                @* Il salvataggio dei limiti sta QUI e non sopra la tabella dei settori: è l'unica scrittura che
+                   si accumula (N celle in N righe), e il posto da cui la si conferma deve essere a schermo
+                   mentre la si compila. Spento a zero, come i chip: se comparisse, sposterebbe gli altri. *@
+                <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtyLimits.Count == 0)"
+                        @onclick="SaveAllLimits" title="@L["AccAdmin_SaveAllLimitsTitle"]">
+                    <Icon Name="check-circle" Size="14" /> @string.Format(L["AccAdmin_SaveAllLimits"].Value, _dirtyLimits.Count)
+                </button>
+            </nav>
+            @* L'esito dell'ultima operazione sta QUI, fra i comandi che l'hanno provocata e il lock: era una
+               fascia sotto la testata, e comparendo spingeva in giù tutta la pagina — tabella compresa, mentre
+               ci si stava lavorando. Si chiude a mano e sparisce da sé alla prima operazione successiva. *@
+            @if (_msg is not null || _ok is not null)
+            {
+                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
+                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_msg ?? _ok)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                </span>
+            }
+            @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+        }
     </div>
 
     @if (!Authz.IsAdmin)
@@ -21,26 +73,15 @@
     }
     else
     {
-        @if (_msg is not null)
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
-        }
-        @if (_ok is not null)
-        {
-            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
-        }
-
-        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
-
-        <div class="section-title">
-            <h3>ACC <span class="pill blue">@_accs.Count</span></h3><span class="ln"></span>
-            <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["AccAdmin_ImportTitle"]">@if (_busy) { <span class="spin"></span> }⟳ @L["AccAdmin_ImportBtn"]</button>
-            <a class="btn ghost" href="/vsop/admin/sectorstructure">@L["Home_StructTitle"] →</a>
-        </div>
+        @* La EditLockBar sta nella TESTATA, vedi in cima. Anche il titolo di sezione «ACC» è sparito: ripeteva
+           il titolo della pagina tre righe più sotto, e il suo conteggio è salito accanto a quello. Il primo
+           riquadro È l'elenco degli ACC; il secondo ha il suo titolo perché lì comincia un'altra cosa. *@
         <div class="block">
-            <div class="field" style="display:flex;gap:8px;align-items:center">
-                <input placeholder="@L["AccAdmin_FilterAcc"]" @bind="_q" @bind:event="oninput" style="flex:1" />
-                <select @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]" style="width:auto;flex:none;min-width:160px">
+            @* Stessi campi di Struttura (.htree-search/.htree-select): la lente è disegnata nel campo, non
+               scritta nel testo del segnaposto. *@
+            <div class="struct-bar">
+                <input class="htree-search" placeholder="@L["AccAdmin_FilterAcc"]" @bind="_q" @bind:event="oninput" />
+                <select class="htree-select" @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]">
                     <option value="">@L["AccAdmin_AllCountries"]</option>
                     @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
                 </select>
@@ -55,12 +96,18 @@
             }
             else
             {
-                <table class="res-table">
-                    <thead><tr><th>@L["AccAdmin_ColCode"]</th><th>@L["Airport_Name"]</th><th>@L["AccAdmin_ColMilitary"]</th><th>@L["Common_State"]</th><th>@L["AccAdmin_ColAreas"]</th><th></th></tr></thead>
+                <table class="res-table sticky-head">
+                    <thead><tr><th>@L["AccAdmin_ColCode"]</th><th>@L["Airport_Name"]</th><th>@L["AccAdmin_ColMilitary"]</th><th>@L["Common_State"]</th><th>@L["AccAdmin_ColAreas"]</th><th>@L["AccAdmin_SubsTitle"]</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var a in ShownAccs())
                         {
-                            <tr style="@(a.IsHidden ? "opacity:.5" : "")">
+                            @* La riga INTERA sceglie l'ACC e filtra i settori qui sotto; ricliccata, lo lascia.
+                               Uno alla volta: e' una scelta, non un insieme di spunte. I tasti dell'ultima colonna
+                               fermano la propagazione — chi preme «Nascondi» sta facendo un'altra cosa. *@
+                            <tr class="acc-pick @(IsPicked(a.Code) ? "picked" : "")" style="@(a.IsHidden ? "opacity:.5" : "")"
+                                role="button" tabindex="0" aria-pressed="@IsPicked(a.Code).ToString().ToLowerInvariant()"
+                                title="@string.Format(L["AccAdmin_SectorsChipTitle"].Value, a.Code)"
+                                @onclick="() => TogglePick(a.Code)" @onkeydown="e => PickOnKey(e, a.Code)">
                                 <td><b>@a.Code</b></td>
                                 <td>@a.Name</td>
                                 <td>@(a.IsMilitary ? "🪖 " + L["Common_Yes"] : "—")</td>
@@ -86,16 +133,32 @@
                                         <span class="pill neutral" title="@L["AccAdmin_AreasOffHint"]">@L["AccAdmin_AreasOff"]</span>
                                     }
                                 </td>
+                                @* Dall'ACC ai suoi settori in un clic: filtra la tabella sotto e ci porta. Prima
+                                   si scorreva a mano fra 152 righe o si ridigitava il codice nel secondo filtro. *@
                                 <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ImportAreas(a.Code)"
-                                            title="@L["AccAdmin_ImportAreasTitle"]">⟳ @L["AccAdmin_ImportAreas"]</button>
+                                    @* Il chip resta il CONTATORE: a cliccare ci pensa la riga intera. *@
+                                    @{ var nSub = SubCountFor(a.Code); }
+                                    @if (nSub > 0)
+                                    {
+                                        <span class="sh-chip @(IsPicked(a.Code) ? "on" : "")">
+                                            @(nSub == 1 ? L["AccAdmin_SectorsChip1"].Value : string.Format(L["AccAdmin_SectorsChipN"].Value, nSub))
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ImportAreas(a.Code)" @onclick:stopPropagation="true"
+                                            title="@L["AccAdmin_ImportAreasTitle"]"><Icon Name="refresh" Size="14" /> @L["AccAdmin_ImportAreas"]</button>
                                     @if (a.SpecialAreasEnabled)
                                     {
-                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetAreasEnabled(a.Id, false)"
-                                                title="@L["AccAdmin_AreasDisableTitle"]">🚫 @L["AccAdmin_AreasDisable"]</button>
+                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetAreasEnabled(a.Id, false)" @onclick:stopPropagation="true"
+                                                title="@L["AccAdmin_AreasDisableTitle"]"><Icon Name="x" Size="14" /> @L["AccAdmin_AreasDisable"]</button>
                                     }
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)">
-                                        @(a.IsHidden ? "👁 " + L["AccAdmin_Show"] : "🚫 " + L["AccAdmin_Hide"])
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)" @onclick:stopPropagation="true">
+                                        <Icon Name="@(a.IsHidden ? "eye" : "eye-off")" Size="14" /> @(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])
                                     </button>
                                 </td>
                             </tr>
@@ -105,15 +168,29 @@
             }
         </div>
 
-        <div class="section-title"><h3>@L["AccAdmin_SubsTitle"] <span class="pill blue">@_subs.Count</span></h3><span class="ln"></span></div>
+        <div class="section-title" id="settori-acc">
+            <h3>@L["AccAdmin_SubsTitle"] <span class="pill blue">@CountLabel(ShownSubs().Count(), _subs.Count)</span></h3>
+            @* La nota che stava qui sotto in prosa: la dice il «?» al clic, identica. *@
+            <HelpHint Href="/vsop/guida#struttura" AriaLabel="@L["AccAdmin_SubsHelpAria"]" ExtraClass="wide">
+                @L["AccAdmin_SubsNote"]
+            </HelpHint>
+            <span class="ln"></span>
+        </div>
         <div class="block">
-            <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["AccAdmin_SubsNote"]</p>
-            <div class="field" style="display:flex;gap:8px;align-items:center">
-                <input placeholder="@L["AccAdmin_FilterSub"]" @bind="_qSub" @bind:event="oninput" style="flex:1" />
-                <select @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]" style="width:auto;flex:none;min-width:160px">
+            <div class="struct-bar">
+                <input class="htree-search" placeholder="@L["AccAdmin_FilterSub"]" @bind="_qSub" @bind:event="oninput" />
+                <select class="htree-select" @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]">
                     <option value="">@L["AccAdmin_AllCountries"]</option>
                     @foreach (var c in CountryOptions()) { <option value="@c.Prefix">@c.Name</option> }
                 </select>
+                @* Un filtro nato da un clic in un'ALTRA tabella va detto QUI, dove se ne vedono le conseguenze:
+                   altrimenti restano 4 righe su 152 e non si sa perché. Il chip è anche il modo di toglierlo. *@
+                @if (_pickedAcc is not null)
+                {
+                    <button class="sh-chip on" @onclick="() => TogglePick(_pickedAcc)" title="@L["AccAdmin_ClearPickTitle"]">
+                        @string.Format(L["AccAdmin_OnlyAcc"].Value, _pickedAcc) ✕
+                    </button>
+                }
             </div>
             @if (_subs.Count == 0)
             {
@@ -125,7 +202,9 @@
             }
             else
             {
-                <table class="res-table">
+                @* Qui si scrive DENTRO le celle, e «Lim. inf.» e «Lim. sup.» sono due caselle identiche da 70px:
+                   con 152 righe l'intestazione è fuori schermo proprio quando serve. *@
+                <table class="res-table sticky-head">
                     <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th>Freq</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var s in ShownSubs())
@@ -138,8 +217,10 @@
                                 <td>@(s.MiddleIdentifier ?? "—")</td>
                                 <td>@(s.Frequency ?? "—")</td>
                                 <td>@(s.HasPolygon ? "✓" : "—")</td>
-                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => _lower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" /></td>
-                                <td><input style="width:70px" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => _upper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" /></td>
+                                <td><input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))"
+                                           @onchange="e => SetLower(s.Id, e.Value)" title="@(IsDirty(s.Id) ? L["AccAdmin_LimitDirtyTitle"].Value : L["AccAdmin_LowerHint"].Value)" /></td>
+                                <td><input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))"
+                                           @onchange="e => SetUpper(s.Id, e.Value)" title="@(IsDirty(s.Id) ? L["AccAdmin_LimitDirtyTitle"].Value : L["AccAdmin_UpperHint"].Value)" /></td>
                                 <td>
                                     @if (s.AccHidden)
                                     {
@@ -155,10 +236,10 @@
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]">💾</button>
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || !IsDirty(s.Id))" @onclick="() => SaveLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]"><Icon Name="check-circle" Size="15" /></button>
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit || s.AccHidden)" @onclick="() => SetSubHidden(s.Id, !s.IsHidden)"
                                             title="@(s.AccHidden ? L["AccAdmin_ShowAccFirst"] : L["AccAdmin_ToggleHide"])">
-                                        @(s.IsHidden ? "👁" : "🚫")
+                                        <Icon Name="@(s.IsHidden ? "eye" : "eye-off")" Size="15" />
                                     </button>
                                 </td>
                             </tr>
@@ -175,6 +256,12 @@
     private IReadOnlyList<AccSectorRow> _subs = Array.Empty<AccSectorRow>();
     private readonly Dictionary<int, int?> _lower = new();
     private readonly Dictionary<int, int?> _upper = new();
+    // Settori con limiti toccati e non ancora salvati. ⚠️ Serve a due cose: farli VEDERE, e sopravvivere al
+    // ricarico — ReloadAsync rifà i due dizionari dal DB, e senza questo insieme ogni cella scritta in un'altra
+    // riga tornava indietro in silenzio al primo salvataggio.
+    private readonly HashSet<int> _dirtyLimits = new();
+    private string? _pickedAcc;   // ACC scelto nella tabella di sopra: sotto si vedono solo i suoi settori
+    private bool _scrollToSubs;   // dopo la scelta: porta in vista la tabella di sotto
     private string _q = "";
     private string _qSub = "";
     private string _country = "";   // filtro nazione (prefisso ICAO, "" = tutte) condiviso dalle due tabelle
@@ -185,18 +272,99 @@
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
+    private void ClearStatus() { _msg = null; _ok = null; }
+
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsAdmin) return;
         await ReloadAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // L'altezza della testata appiccicata si misura a OGNI render: cambia quando compare il messaggio di
+        // esito o quando la riga va a capo. Il `thead` delle tabelle ci si appoggia (--st-head-h).
+        try { await JS.InvokeVoidAsync("vipiStickyOffset", ".st-head", "st-head-h", ".wrap.struct"); } catch (Exception) { }
+
+        if (!_scrollToSubs) return;
+        _scrollToSubs = false;
+        try { await JS.InvokeVoidAsync("vipiScrollToId", "settori-acc"); } catch (Exception) { }
+    }
+
     private async Task ReloadAsync()
     {
+        // I valori pendenti si mettono da parte PRIMA e si rimettono DOPO: il ricarico dice cosa c'è nel DB,
+        // non cosa ha scritto chi sta lavorando. Prima li scartava, e il salvataggio di una riga cancellava in
+        // silenzio le altre celle compilate.
+        var pendingLower = _dirtyLimits.ToDictionary(id => id, id => _lower.GetValueOrDefault(id));
+        var pendingUpper = _dirtyLimits.ToDictionary(id => id, id => _upper.GetValueOrDefault(id));
+
         _accs = await Acc.ListAccsAsync();
         _subs = await Acc.ListSubcentersAsync();
         _lower.Clear(); _upper.Clear();
         foreach (var s in _subs) { _lower[s.Id] = s.LowerLimit; _upper[s.Id] = s.UpperLimit; }
+
+        // Un settore sparito dalla sorgente non ha più una cella da riempire: esce anche dai pendenti.
+        var alive = _subs.Select(s => s.Id).ToHashSet();
+        _dirtyLimits.RemoveWhere(id => !alive.Contains(id));
+        foreach (var id in _dirtyLimits)
+        {
+            _lower[id] = pendingLower.GetValueOrDefault(id);
+            _upper[id] = pendingUpper.GetValueOrDefault(id);
+        }
+    }
+
+    // --- Limiti: scrittura, stato «modificato», salvataggio in un giro ---
+    private void SetLower(int id, object? v)
+    {
+        var parsed = ParseLower(v);
+        _lower[id] = parsed;
+        MarkDirty(id);
+    }
+
+    private void SetUpper(int id, object? v)
+    {
+        _upper[id] = ParseUpper(v);
+        MarkDirty(id);
+    }
+
+    /// <summary>Sporco solo se il valore in cella differisce da quello salvato: riscrivere lo stesso numero
+    /// non deve accendere il contatore del «Salva limiti».</summary>
+    private void MarkDirty(int id)
+    {
+        var row = _subs.FirstOrDefault(x => x.Id == id);
+        if (row is null) return;
+        var changed = (_lower.GetValueOrDefault(id) ?? 0) != (row.LowerLimit ?? 0)
+                      || _upper.GetValueOrDefault(id) != row.UpperLimit;
+        if (changed) _dirtyLimits.Add(id); else _dirtyLimits.Remove(id);
+    }
+
+    private bool IsDirty(int id) => _dirtyLimits.Contains(id);
+    private string DirtyClass(int id) => IsDirty(id) ? "lim-dirty" : "";
+
+    /// <summary>Etichetta del pill di sezione: il totale quando non filtri, «mostrati di totale» quando filtri —
+    /// il numero deve dire quello che si vede, non quello che c'è.</summary>
+    private string CountLabel(int shown, int total) =>
+        shown == total ? total.ToString() : string.Format(L["AccAdmin_CountOf"].Value, shown, total);
+
+    private int SubCountFor(string accCode) =>
+        _subs.Count(s => string.Equals(s.CenterId, accCode, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsPicked(string accCode) => string.Equals(_pickedAcc, accCode, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Clic su una riga ACC: qui sotto restano solo i suoi settori. Ricliccata la stessa riga, tornano
+    /// tutti. Uno alla volta — è una scelta, non un insieme di spunte.
+    /// Lo scorrimento si programma e si esegue dopo il render: adesso la tabella filtrata non esiste ancora.</summary>
+    private void TogglePick(string accCode)
+    {
+        var wasPicked = IsPicked(accCode);
+        _pickedAcc = wasPicked ? null : accCode;
+        _scrollToSubs = !wasPicked;
+    }
+
+    private void PickOnKey(KeyboardEventArgs e, string accCode)
+    {
+        if (e.Key is "Enter" or " ") TogglePick(accCode);
     }
 
     private IEnumerable<AccAdminRow> ShownAccs() =>
@@ -206,7 +374,10 @@
                 || a.Name.Contains(_q, StringComparison.OrdinalIgnoreCase)));
 
     private IEnumerable<AccSectorRow> ShownSubs() =>
-        _subs.Where(s => (string.IsNullOrEmpty(_country) || PrefixOf(s.CenterId) == _country)
+        // L'ACC scelto è un filtro a sé, non una parola scritta nella casella: chi lo sceglie non deve
+        // ritrovarsi il codice dentro il campo di ricerca, né perdere la scelta scrivendoci sopra.
+        _subs.Where(s => (_pickedAcc is null || string.Equals(s.CenterId, _pickedAcc, StringComparison.OrdinalIgnoreCase))
+            && (string.IsNullOrEmpty(_country) || PrefixOf(s.CenterId) == _country)
             && (string.IsNullOrWhiteSpace(_qSub)
                 || s.ComposePosition.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
                 || s.CenterId.Contains(_qSub, StringComparison.OrdinalIgnoreCase)
@@ -349,11 +520,40 @@
         try
         {
             await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
+            _dirtyLimits.Remove(id);   // prima del ricarico: è lui a decidere cosa resta pendente
             await ReloadAsync();
             _ok = L["AccAdmin_LimitsSaved"];
         }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Salva in un giro tutti i limiti modificati. Una riga che fallisce non ferma le altre e RESTA
+    /// pendente: sparire dal contatore senza essere stata scritta sarebbe la stessa perdita silenziosa di prima.</summary>
+    private async Task SaveAllLimits()
+    {
+        _busy = true; _msg = null; _ok = null;
+        var saved = 0;
+        try
+        {
+            foreach (var id in _dirtyLimits.ToList())
+            {
+                try
+                {
+                    await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
+                    _dirtyLimits.Remove(id);
+                    saved++;
+                }
+                catch (EditNotAllowedException ex) { _msg = ex.Message; break; }
+                catch (InvalidOperationException ex) { _msg = ex.Message; }
+            }
+            await ReloadAsync();
+            // «1 settori salvati» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno:
+            // a uno solo vale il messaggio del salvataggio per riga, che è già la frase giusta.
+            if (saved == 1) _ok = L["AccAdmin_LimitsSaved"];
+            else if (saved > 1) _ok = string.Format(L["AccAdmin_LimitsSavedN"].Value, saved);
+        }
         finally { _busy = false; }
     }
 }

@@ -1,4 +1,4 @@
-namespace Vipi.Domain;
+﻿namespace Vipi.Domain;
 
 /// <summary>Tipo di settore/postazione ATC (top-down DEL→GND→TWR→APP→CTR). <c>ITwr</c> = torre informativa (AFIS): stesso livello operativo della TWR ma servizio informazioni.</summary>
 public enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }
@@ -62,7 +62,11 @@ public enum BlockSection
 /// <summary>Azione registrata nell'audit log.</summary>
 // ⚠️ Salvato come STRINGA: aggiungere un valore è additivo e sicuro, RINOMINARNE uno lascia le righe
 // vecchie non più trovabili (voce B2 dell'audit del 22 luglio 2026).
-public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard }
+// Delete = la riga non c'è più (documento eliminato, permesso revocato). Distinto da Archive, che nel resto
+// del modello significa «tolto di mezzo ma conservato»: per un atto irreversibile sarebbe una bugia gentile.
+// ForceUnlock è un valore suo e non un Update perché la domanda a cui il registro deve rispondere è «chi ha
+// tolto il lock a chi», e la risposta sta nei dettagli della riga.
+public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock }
 
 /// <summary>Tipo di riferimento nav per la validazione semantica.</summary>
 public enum NavRefType { Fix, Airway, Navaid }

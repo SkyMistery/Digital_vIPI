@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
@@ -174,7 +174,9 @@ public interface IEditingRepository
     /// <summary>Rilascia il lock se il UserId è il titolare.</summary>
     Task ReleaseLockAsync(int documentId, int UserId, CancellationToken ct = default);
     /// <summary>Rilascia il lock incondizionatamente (force admin).</summary>
-    Task ForceUnlockAsync(int documentId, CancellationToken ct = default);
+    /// <summary>Libera il lock chiunque lo tenga. <paramref name="actorUserId"/> è chi forza: togliere il lock a
+    /// un'altra persona è un atto d'autorità, e finisce nel registro di audit con il nome di chi lo teneva.</summary>
+    Task ForceUnlockAsync(int documentId, int actorUserId, CancellationToken ct = default);
     /// <summary>Vero se il UserId detiene un lock attivo (non scaduto) sul documento.</summary>
     Task<bool> IsLockHeldByAsync(int documentId, int UserId, CancellationToken ct = default);
 }

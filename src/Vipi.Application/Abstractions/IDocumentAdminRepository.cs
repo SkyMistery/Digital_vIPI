@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Application.Abstractions;
 
@@ -8,12 +8,22 @@ public interface IDocumentAdminRepository
     /// <summary>Elenco unificato (una query sul modello unificato Document). Senza versioni/release.</summary>
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Titolo dei documenti indicati, per Id, in una query sola. Serve al registro di audit: le righe scritte
+    /// prima del 22 agosto 2026 portano solo l'Id del documento, e &#171;documento #12&#187; non dice niente a chi
+    /// legge. Gli Id che non esistono pi&#249; (documento eliminato) semplicemente non tornano — per quelli il
+    /// titolo sta nella riga di audit, che l'ha registrato al momento dell'atto.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default);
+
     /// <summary>Codice ACC del documento (per l'autorizzazione ACC-scoped). null se non risolvibile.</summary>
     Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default);
 
-    /// <summary>Imposta/azzera il flag nascosto (reversibile).</summary>
-    Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default);
+    /// <summary>Imposta/azzera il flag nascosto (reversibile). <paramref name="actorUserId"/> finisce nel registro
+    /// di audit: cambiare la visibilità pubblica di un documento è un atto amministrativo, non una preferenza.</summary>
+    Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default);
 
-    /// <summary>Cancella definitivamente il documento (+ release orfane, + cascade EF per i Document).</summary>
-    Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default);
+    /// <summary>Cancella definitivamente il documento (+ release orfane, + cascade EF per i Document).
+    /// <paramref name="actorUserId"/> finisce nel registro di audit: è l'atto meno reversibile dell'applicazione.</summary>
+    Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default);
 }

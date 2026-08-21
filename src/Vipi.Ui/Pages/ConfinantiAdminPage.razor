@@ -3,15 +3,97 @@
 @rendermode InteractiveServer
 @inject INeighbourImportService Neighbours
 @inject IEditAuthorizationService Authz
-@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Conf_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Conf_Title"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Conf_Heading"]</h2><span class="muted">@L["Conf_Subtitle"]</span></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente. *@
+    <AdminNav />
+
+    @* ---- Testata in UNA riga: titolo (+conteggio) · «?» · comandi di PAGINA · esito · lock ----
+       Come Struttura, ACC, Accordi e Aeroporti (.st-head). Il sottotitolo e la prosa d'apertura dicevano
+       SEMPRE a schermo ciò che il «?» dice al clic: stesso testo, stesse chiavi (Conf_Subtitle, Conf_Intro),
+       cambia solo dove si legge. La riga-titolo «Coppie confinanti» ripeteva il titolo di pagina ed è
+       sparita: il suo conteggio è salito qui. I comandi sono di PAGINA — l'import tocca tutte le coppie —
+       quindi stanno in testata e non sopra la tabella. *@
+    <div class="doc-head st-head">
+        @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia: misurato, il titolo usciva «…vLOA33»
+           attaccato. Serve un carattere vero, non uno spazio nel sorgente. *@
+        <h2 class="st-h2">
+            @L["Conf_Heading"]&nbsp;@if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }
+        </h2>
+        <HelpHint Href="/vsop/guida#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Conf_Subtitle"]</p>
+            @((MarkupString)L["Conf_Intro"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                @* Niente spinner dentro il tasto: comparendo ne cambia la larghezza e sposta i vicini.
+                   Lo stato «sto lavorando» lo dice il chip qui accanto. *@
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["Conf_ImportTitle"]">
+                    <Icon Name="refresh" Size="14" /> @L["Conf_ImportBtn"]
+                </button>
+                @* «Coppia a mano» è il rimedio a un caso raro: da qui apre il pannello di destra, invece di
+                   stare sempre aperta in fondo alla pagina. *@
+                <button class="btn ghost @(_manualOpen ? "on" : "")" disabled="@(_busy || !_canEdit)" @onclick="ToggleManual" title="@L["Conf_AddManualHint"]">
+                    <Icon Name="plus" Size="14" /> @L["Conf_AddManualTitle"]
+                </button>
+            </nav>
+            @* L'esito è un chip in testata, fra i comandi che l'hanno provocato e il lock: da fascia sopra la
+               tabella spingeva in giù proprio le righe su cui si stava lavorando. *@
+            @* Avanzamento VERO dell'import: sono decine di GET alla sorgente in fila e prima si vedeva solo
+               girare uno spinner — indistinguibile da un'applicazione bloccata. Il chip dice a che punto è,
+               quanti sono falliti, e porta l'interruzione. Occupa lo stesso posto del chip d'esito: i due
+               non convivono mai. *@
+            @if (_busy)
+            {
+                <span class="st-msg prog" role="status" aria-live="polite">
+                    <span class="spin"></span>
+                    <span class="st-msg-t">@WorkLabel()</span>
+                    @if (_importCts is not null)
+                    {
+                        <button class="lnk-mini" title="@L["Conf_StopTitle"]" @onclick="CancelImport" disabled="@_stopAsked">@L["Conf_Stop"]</button>
+                    }
+                </span>
+            }
+            else if (_msg is not null || _ok is not null)
+            {
+                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
+                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_msg ?? _ok)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                </span>
+            }
+            @* Gli avvisi dell'import erano un callout in fascia con dentro un elenco: alto quanto gli avvisi
+               che porta, e sopra la tabella. Qui sono un chip che li conta e li apre al clic. *@
+            @if (_warnings.Count > 0)
+            {
+                <details class="help-hint wide st-warns">
+                    <summary aria-label="@L["Conf_ImportWarnings"]"><span class="sh-chip warn">@L["Conf_WarnChip", _warnings.Count]</span></summary>
+                    <div class="help-pop">
+                        <div class="help-pop-body">
+                            <b>@L["Conf_ImportWarnings"]</b>
+                            <ul style="margin:4px 0 0;padding-left:16px">@foreach (var w in _warnings) { <li>@w</li> }</ul>
+                        </div>
+                    </div>
+                </details>
+            }
+            @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente.
+               Questa pagina scrive settori esteri e genera documenti: prende lo stesso lock delle altre
+               quattro pagine di struttura, che finora le mancava. *@
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+        }
     </div>
 
     @if (!Authz.IsAdmin)
@@ -20,253 +102,305 @@
     }
     else
     {
-        @if (_msg is not null)
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
-        }
-        @if (_ok is not null)
-        {
-            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
-        }
-        @if (_warnings.Count > 0)
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div>
-                <b>@L["Conf_ImportWarnings"]</b>
-                <ul style="margin:4px 0 0">@foreach (var w in _warnings) { <li>@w</li> }</ul>
-            </div></div>
-        }
-
-        <div class="section-title">
-            <h3>@L["Conf_PairsTitle"] <span class="pill blue">@(IsFiltering ? $"{Filtered().Count}/{_rows.Count}" : _rows.Count.ToString())</span></h3><span class="ln"></span>
-            <button class="btn primary" disabled="@_busy" @onclick="Import" title="@L["Conf_ImportTitle"]">@if (_busy) { <span class="spin"></span> }⟳ @L["Conf_ImportBtn"]</button>
-            <a class="btn ghost" href="/vsop/admin/sectorstructure">← @L["Struct_Title"]</a>
-        </div>
-        <div class="block">
-            <p class="muted" style="font-size:11.5px;margin:0 0 8px">@((MarkupString)L["Conf_Intro"].Value)</p>
-            @if (_rows.Count == 0)
-            {
-                <p class="help">@L["Conf_NoPairs"]</p>
-            }
-            else
-            {
-                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">
-                    <input class="htree-search" style="flex:1;min-width:220px;max-width:340px;margin:0"
-                           value="@_q" @oninput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
-                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                        <Chip Class="@($"pill {(_statusFilter is null ? "blue" : "grey")}")" Active="_statusFilter is null" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(null)">@L["Common_All"]</Chip>
-                        <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Pending ? "blue" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Pending" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Pending)">@L["Conf_Pending"]</Chip>
-                        <Chip Class="@($"pill {(_statusFilter == NeighbourCandidateStatus.Confirmed ? "green" : "grey")}")" Active="_statusFilter == NeighbourCandidateStatus.Confirmed" Style="cursor:pointer;user-select:none" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Confirmed)">@L["Conf_Confirmed"]</Chip>
-                        <Chip Class="pill" Active="_statusFilter == NeighbourCandidateStatus.Rejected" Style="@($"cursor:pointer;user-select:none;{(_statusFilter == NeighbourCandidateStatus.Rejected ? "background:#ffe3e3;color:#b42318" : "background:#eceef5;color:#555")}")" OnActivate="() => SetStatusFilter(NeighbourCandidateStatus.Rejected)">@L["Conf_Rejected"]</Chip>
-                    </div>
-                    @if (IsFiltering)
-                    {
-                        <a class="btn ghost" style="padding:4px 10px" @onclick="ClearFilters" title="@L["Conf_ClearTitle"]">✕ @L["Conf_Clear"]</a>
-                    }
-                </div>
-
-                @if (Filtered().Count == 0)
+        @* ---- Due pannelli alti quanto lo schermo meno ciò che sta sopra (vipiFitViewport a ogni render) ----
+           A sinistra le coppie, a destra la coppia scelta. Il dettaglio era una riga `colspan=10` DENTRO la
+           tabella: aprendolo la tabella saltava di ~700px e la riga sotto finiva fuori schermo. Qui la
+           tabella non si muove e le coppie si verificano in fila. *@
+        <div class="conf-layout">
+            @* --- SINISTRA: l'elenco delle coppie --- *@
+            <div class="panel st-pane">
+                @if (_rows.Count == 0)
                 {
-                    <p class="help">@L["Conf_NoMatch"] <a role="button" style="cursor:pointer;color:var(--ivao-blue)" @onclick="ClearFilters">@L["Conf_ClearFilters"]</a>.</p>
+                    <p class="help">@L["Conf_NoPairs"]</p>
                 }
                 else
                 {
-                <table class="res-table">
-                    <thead><tr><th>@L["Conf_ColHome"]</th><th>@L["Conf_ColForeign"]</th><th>@L["Airport_Name"]</th><th>@L["Conf_ColCountry"]</th><th>@L["Conf_ColMinDist"]</th><th>@L["Conf_ColAdjSectors"]</th><th>Shape</th><th>@L["Common_State"]</th><th>vLOA</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var r in Filtered())
+                    var n = Counts();
+                    <div class="struct-bar">
+                        <input class="htree-search" value="@_q" @oninput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
+                        @* I chip CONTANO: prima erano quattro etichette mute e lo stato dell'elenco si leggeva
+                           solo scorrendo 33 righe. Stanno in gruppo, così la barra va a capo in un punto solo,
+                           e ci sono sempre — spenti a zero, perché un chip che compare col contatore accorcia
+                           la riga sotto il puntatore. Stessa forma di Aeroporti e Struttura (.sh-chip). *@
+                        <span class="sb-chips">
+                            @* Il chip «tutte» non c'è: il totale sta già accanto al titolo e il ✕ toglie i
+                               filtri. Misurato, i sei chip più il campo e il ✕ per esteso chiedevano 918px
+                               dentro 832 — la barra andava a capo e una riga di barra è una riga di tabella. *@
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Pending ? "on" : "")" disabled="@(n.Pending == 0)"
+                                    title="@L["Conf_ChipPendingTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Pending)">@L["Conf_ChipPending", n.Pending]</button>
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Confirmed ? "on" : "")" disabled="@(n.Confirmed == 0)"
+                                    title="@L["Conf_ChipConfirmedTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Confirmed)">@L["Conf_ChipConfirmed", n.Confirmed]</button>
+                            <button class="sh-chip @(_statusFilter == NeighbourCandidateStatus.Rejected ? "on" : "")" disabled="@(n.Rejected == 0)"
+                                    title="@L["Conf_ChipRejectedTitle"]" @onclick="() => ToggleStatus(NeighbourCandidateStatus.Rejected)">@L["Conf_ChipRejected", n.Rejected]</button>
+                            <span class="sb-sep"></span>
+                            @* I due chip di LAVORO: la coda di cose da fare, che altrimenti si trova solo
+                               aprendo le righe una a una. In giallo quando c'è qualcosa, verdi a zero. *@
+                            <button class="sh-chip @(n.NoShape > 0 ? "warn" : "") @(_workFilter == WorkFilter.NoShape ? "on" : "")" disabled="@(n.NoShape == 0)"
+                                    title="@L["Conf_ChipNoShapeTitle"]" @onclick="() => ToggleWork(WorkFilter.NoShape)">@L["Conf_ChipNoShape", n.NoShape]</button>
+                            <button class="sh-chip @(n.NoVloa > 0 ? "warn" : "") @(_workFilter == WorkFilter.NoVloa ? "on" : "")" disabled="@(n.NoVloa == 0)"
+                                    title="@L["Conf_ChipNoVloaTitle"]" @onclick="() => ToggleWork(WorkFilter.NoVloa)">@L["Conf_ChipNoVloa", n.NoVloa]</button>
+                            @* Il ✕ sta DENTRO il gruppo, non dopo: misurato a 1280, da solo in fondo era lui
+                               ad andare a capo per primo e la barra diventava di TRE righe invece di due —
+                               una riga di barra è una riga di tabella. C'è sempre, spento quando non c'è
+                               niente da azzerare; solo il glifo, il nome nel title e in aria-label. *@
+                            <button class="lnk-mini" disabled="@(!IsFiltering)" @onclick="ClearFilters"
+                                    title="@L["Conf_ClearTitle"]" aria-label="@L["Conf_Clear"]">✕</button>
+                        </span>
+                    </div>
+                    <div class="st-scroll">
+                        @if (Filtered().Count == 0)
                         {
-                            <tr style="@(r.Status == NeighbourCandidateStatus.Rejected ? "opacity:.5" : "")">
-                                <td><b>@r.HomeAccCode</b></td>
-                                <td><span class="pill blue">@r.ForeignAccCode</span></td>
-                                <td>@r.ForeignAccName</td>
-                                <td>@r.CountryId</td>
-                                <td>@(r.MinDistanceNm is double d ? $"{d:0.0} NM" : "—")</td>
-                                <td>@(r.AdjacentSectorCount > 0 ? r.AdjacentSectorCount.ToString() : "—")</td>
-                                <td>@(r.HasPolygon ? "✓" : "—")</td>
-                                <td>
-                                    @switch (r.Status)
+                            <p class="help">@L["Conf_NoMatch"] <a role="button" style="cursor:pointer;color:var(--ivao-blue)" @onclick="ClearFilters">@L["Conf_ClearFilters"]</a>.</p>
+                        }
+                        else
+                        {
+                            @* `sticky-head`: 33 righe che si scorrono cercando una coppia, e «Dist. min» e
+                               «Adiac.» sono due numeri identici a colpo d'occhio. Dentro uno scroller il
+                               `thead` sta a `top:0`, non alla quota della topbar (regola 51). *@
+                            @* Larghezze per CLASSE SEMANTICA, misurate col font calcolato sui valori veri del
+                               DB (33 righe): otto colonne fisse e una sola elastica — il nome estero — che
+                               con `table-layout:fixed` si prende tutto lo spazio che avanza. I nomi delle
+                               intestazioni sono i più corti che restano nomi, non troncamenti: il nome per
+                               esteso sta nel `title`. Misurato: «Settori adj» chiedeva 98px di intestazione
+                               per celle da 29. *@
+                            <table class="res-table sticky-head conf-table">
+                                <thead>
+                                    <tr>
+                                        <th class="c-home" title="@L["Conf_ColHomeTitle"]">@L["Conf_ColHome"]</th>
+                                        <th class="c-fgn" title="@L["Conf_ColForeignTitle"]">@L["Conf_ColForeign"]</th>
+                                        <th class="c-name">@L["Airport_Name"]</th>
+                                        <th class="c-cty">@L["Conf_ColCountry"]</th>
+                                        <th class="c-num" title="@L["Conf_ColMinDistTitle"]">@L["Conf_ColMinDist"]</th>
+                                        <th class="c-num" title="@L["Conf_ColAdjSectorsTitle"]">@L["Conf_ColAdjSectors"]</th>
+                                        <th class="c-flag" title="@L["Conf_ColShapeTitle"]">Shape</th>
+                                        <th class="c-state">@L["Common_State"]</th>
+                                        <th class="c-flag" title="@L["Conf_ColVloaTitle"]">vLOA</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in Filtered())
                                     {
-                                        case NeighbourCandidateStatus.Confirmed:
-                                            <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["Conf_StatusConfirmed"]</span>
-                                            break;
-                                        case NeighbourCandidateStatus.Rejected:
-                                            <span class="pill" style="background:#ffe3e3;color:#b42318">@L["Conf_StatusRejected"]</span>
-                                            break;
-                                        default:
-                                            <span class="pill neutral">@L["Conf_StatusPending"]</span>
-                                            break;
+                                        @* La riga INTERA è il comando di scelta: cliccata sceglie, ricliccata
+                                           lascia, un'altra sposta la scelta. Da tastiera Invio e Spazio fanno
+                                           quello che fa il clic. Scegliere NON scarica niente: i numeri qui
+                                           sotto la riga li porta già. *@
+                                        <tr class="acc-pick @(_selId == r.Id ? "picked" : "") @(r.Status == NeighbourCandidateStatus.Rejected ? "row-off" : "")"
+                                            role="button" tabindex="0" aria-pressed="@((_selId == r.Id) ? "true" : "false")"
+                                            title="@L["Conf_RowPickTitle"]"
+                                            @onclick="() => Select(r.Id)" @onkeydown="e => OnRowKey(e, r.Id)">
+                                            <td class="c-home"><b>@r.HomeAccCode</b></td>
+                                            <td class="c-fgn"><span class="pill blue">@r.ForeignAccCode</span></td>
+                                            <td class="c-name" title="@r.ForeignAccName">@r.ForeignAccName</td>
+                                            <td class="c-cty">@r.CountryId</td>
+                                            <td class="c-num">@(r.MinDistanceNm is double d ? $"{d:0.0} NM" : "—")</td>
+                                            <td class="c-num">@(r.AdjacentSectorCount > 0 ? r.AdjacentSectorCount.ToString() : "—")</td>
+                                            <td class="c-flag">@(r.HasPolygon ? "✓" : "—")</td>
+                                            <td class="c-state">@StatusPill(r.Status)</td>
+                                            <td class="c-flag">@(r.VloaDocumentId is null ? "—" : "✓")</td>
+                                        </tr>
                                     }
-                                </td>
-                                <td>
-                                    @if (r.VloaDocumentId is int docId)
-                                    {
-                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/vloa?acc=@r.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
-                                        <a class="btn ghost" href="/vsop/@r.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@r.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">✎ @L["Common_Editor"]</a>
-                                    }
-                                    else { <span class="muted">—</span> }
-                                </td>
-                                <td style="white-space:nowrap">
-                                    <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDetail(r.Id)" title="@L["Conf_VerifyTitle"]"><Icon Name="search" /> @(_detailId == r.Id ? L["Common_Close"] : L["Conf_Verify"])</button>
-                                    @if (r.Status != NeighbourCandidateStatus.Confirmed)
-                                    {
-                                        <button class="btn ghost" disabled="@_busy" @onclick="() => SetStatus(r.Id, NeighbourCandidateStatus.Confirmed)" title="@L["Conf_ConfirmTitle"]">✓ @L["Conf_Confirm"]</button>
-                                    }
-                                    @if (r.Status != NeighbourCandidateStatus.Rejected)
-                                    {
-                                        <button class="btn ghost" disabled="@_busy" @onclick="() => SetStatus(r.Id, NeighbourCandidateStatus.Rejected)" title="@L["Conf_RejectTitle"]">✕ @L["Conf_Reject"]</button>
-                                    }
-                                    @if (r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null)
-                                    {
-                                        <button class="btn primary" disabled="@_busy" @onclick="() => Generate(r.Id)" title="@L["Conf_GenerateTitle"]"><Icon Name="globe" /> @L["Conf_GenerateVloa"]</button>
-                                    }
-                                    @if (r.Status == NeighbourCandidateStatus.Confirmed)
-                                    {
-                                        <button class="btn ghost" disabled="@_busy" @onclick="() => OpenSector(r.Id)" title="@L["Conf_AddSectorTitle"]"><Icon Name="plus" /> @(_sectorAddId == r.Id ? L["Common_Close"] : L["Conf_Sector"])</button>
-                                    }
-                                    @if (!r.HasPolygon)
-                                    {
-                                        <button class="btn ghost" disabled="@_busy" @onclick="() => OpenPolygon(r.Id)" title="@L["Conf_PolygonTitle"]">📐 @L["Conf_Polygon"]</button>
-                                    }
-                                </td>
-                            </tr>
-                            @if (_polyEditId == r.Id)
-                            {
-                                <tr>
-                                    <td colspan="10">
-                                        <div class="field">
-                                            <label>@((MarkupString)L["Conf_PolyLabel"].Value)</label>
-                                            <textarea rows="4" style="width:100%;font-family:monospace;font-size:11px" @bind="_polyText" placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
-                                            <div style="display:flex;gap:8px;margin-top:6px">
-                                                <button class="btn primary" disabled="@_busy" @onclick="() => SavePolygon(r.Id)">💾 @L["Conf_SavePolygon"]</button>
-                                                <button class="btn ghost" disabled="@_busy" @onclick="() => _polyEditId = null">@L["Common_Cancel"]</button>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                            @if (_sectorAddId == r.Id)
-                            {
-                                <tr>
-                                    <td colspan="10">
-                                        <div class="field">
-                                            <label>@((MarkupString)string.Format(L["Conf_SectorLabel"].Value, r.ForeignAccCode))</label>
-                                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                                                <input style="min-width:180px;max-width:240px;text-transform:uppercase" @bind="_sectorCallsign" placeholder="es. LGKR_APP" />
-                                                <button class="btn primary" disabled="@_busy" @onclick="() => AddSector(r.Id)">💾 @L["Conf_AddSector"]</button>
-                                                <button class="btn ghost" disabled="@_busy" @onclick="() => _sectorAddId = null">@L["Common_Cancel"]</button>
-                                            </div>
-                                            <p class="muted" style="font-size:11px;margin:6px 0 0">@L["Conf_SectorHint"]</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                            @if (_detailId == r.Id)
-                            {
-                                <tr>
-                                    <td colspan="10">
-                                        @if (_detailBusy)
-                                        {
-                                            <p class="help">@L["Conf_ComputingAdj"]</p>
-                                        }
-                                        else if (_detail is { } det)
-                                        {
-                                            <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start">
-                                                <div>
-                                                    <h4 style="margin:0 0 6px">@L["Conf_AdjSectors"] <span class="pill blue">@det.Adjacencies.Count</span></h4>
-                                                    @if (det.Warnings.Count > 0)
-                                                    {
-                                                        <div class="callout warning" style="margin:0 0 8px"><span class="cic">⚠️</span><div>
-                                                            <ul style="margin:0">@foreach (var w in det.Warnings) { <li>@w</li> }</ul>
-                                                        </div></div>
-                                                    }
-                                                    @if (det.Adjacencies.Count == 0)
-                                                    {
-                                                        <p class="help">@L["Conf_NoAdjBelow"]</p>
-                                                    }
-                                                    else
-                                                    {
-                                                        <table class="res-table">
-                                                            <thead><tr><th>@string.Format(L["Conf_SectorOf"].Value, det.HomeAccCode) (IT)</th><th>@string.Format(L["Conf_SectorOf"].Value, det.ForeignAccCode)</th><th>@L["Conf_EdgeDist"]</th></tr></thead>
-                                                            <tbody>
-                                                                @foreach (var a in det.Adjacencies)
-                                                                {
-                                                                    <tr>
-                                                                        <td><span class="sw" style="background:#0D2C9933;border:1px solid #0D2C99;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.HomeSector</td>
-                                                                        <td><span class="sw" style="background:#7EA2D633;border:1px solid #7EA2D6;display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px"></span>@a.ForeignSector</td>
-                                                                        <td>@a.DistanceNm.ToString("0.0") NM</td>
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-                                                        </table>
-                                                    }
-                                                </div>
-                                                <div>
-                                                    <div style="display:flex;gap:12px;font-size:11.5px;margin:0 0 4px">
-                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#0D2C9933;border:1px solid #0D2C99;border-radius:2px"></span> @det.HomeAccCode (@L["Conf_Home"])</span>
-                                                        <span><span style="display:inline-block;width:10px;height:10px;background:#7EA2D633;border:1px solid #7EA2D6;border-radius:2px"></span> @det.ForeignAccCode (@L["Conf_Foreign"])</span>
-                                                    </div>
-                                                    @if (det.MapViewBox is { } vb)
-                                                    {
-                                                        <svg viewBox="@vb" width="100%" height="320" style="background:#f7f9ff;border:1px solid var(--line);border-radius:11px">
-                                                            @foreach (var s in det.HomeShapes)
-                                                            {
-                                                                <path d="@s.Path" fill="#0D2C99" fill-opacity="0.16" stroke="#0D2C99" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
-                                                            }
-                                                            @foreach (var s in det.ForeignShapes)
-                                                            {
-                                                                <path d="@s.Path" fill="#7EA2D6" fill-opacity="0.16" stroke="#7EA2D6" stroke-width="1.6" stroke-linejoin="round"><title>@s.Sector</title></path>
-                                                            }
-                                                        </svg>
-                                                        <p class="muted" style="font-size:11px;margin:4px 0 0">@L["Conf_MapHint"]</p>
-                                                    }
-                                                    else
-                                                    {
-                                                        <p class="help">@L["Conf_NoShape"]</p>
-                                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                }
+            </div>
 
-                                                    @if (det.HomeShapes.Count > 0 || det.ForeignShapes.Count > 0)
-                                                    {
-                                                        <div class="aor-block" data-aor="nb-@r.Id" style="margin-top:12px">
-                                                            <div class="aor-toggles">
-                                                                @foreach (var s in det.HomeShapes)
-                                                                {
-                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#0D2C9933;border-color:#0D2C99"></span> @s.Sector</span>
-                                                                }
-                                                                @foreach (var s in det.ForeignShapes)
-                                                                {
-                                                                    <span class="aor-chip on" data-sec="@s.Sector"><span class="sw" style="background:#7EA2D633;border-color:#7EA2D6"></span> @s.Sector</span>
-                                                                }
-                                                                <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Conf_AllShapes"]</a> · <a class="aor-all" data-act="none">@L["Conf_NoneShapes"]</a></span>
-                                                            </div>
-                                                            <div class="aor-leaflet" data-sectors="@GeoSectorsJson(det)" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden"></div>
-                                                            <p class="muted" style="font-size:11px;margin:4px 0 0">@L["Conf_GeoMapHint"]</p>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
+            @* --- DESTRA: due modi, mai insieme — la coppia scelta, oppure una coppia nuova a mano.
+                   Il form «a mano» era una sezione sempre aperta in fondo alla pagina: è il rimedio a un caso
+                   raro (IVAO non dà affatto l'ACC estero) e costava spazio a ogni visita. --- *@
+            <div class="panel st-pane">
+                @if (_manualOpen)
+                {
+                    <div class="sub-h">
+                        @L["Conf_AddManualTitle"]
+                        <HelpHint AriaLabel="@L["Conf_AddManualTitle"]">@L["Conf_AddManualHint"]</HelpHint>
+                        <span class="ln" style="flex:1"></span>
+                        <button class="lnk-mini" @onclick="() => _manualOpen = false">✕ @L["Common_Close"]</button>
+                    </div>
+                    <div class="st-scroll">
+                        @* ⚠️ `@bind` da solo scrive al BLUR: i due campi che accendono «Aggiungi coppia»
+                           scrivono a ogni tasto, altrimenti chi ha appena finito di compilare trova il
+                           tasto spento proprio mentre lo punta. *@
+                        <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" @bind:event="oninput" placeholder="es. LIMM" /></div>
+                        <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" @bind:event="oninput" placeholder="es. LFMM" /></div>
+                        <div class="field"><label>@L["Conf_LblForeignName"]</label><input @bind="_mName" placeholder="es. Marseille ACC" /></div>
+                        <div class="field"><label>@L["Conf_LblCountry"]</label><input @bind="_mCountry" placeholder="es. FR" /></div>
+                        <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="default {ACC}_CTR" /></div>
+                        <div class="field">
+                            <label>@L["Conf_LblPolyOptional"]</label>
+                            <textarea rows="3" class="mono-area" value="@_mPoly" @oninput="OnManualPolyInput"></textarea>
+                            @* Opzionale: vuoto va bene, sbagliato no. Il chip lo dice prima del salva. *@
+                            @if (!string.IsNullOrWhiteSpace(_mPoly))
+                            {
+                                <span class="sh-chip @(ManualPolyReady ? "" : "warn")">@ManualPolyLabel()</span>
+                            }
+                        </div>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !ManualReady)" @onclick="AddManual">+ @L["Conf_AddPair"]</button>
+                    </div>
+                }
+                else if (Selected() is not NeighbourCandidateRow sel)
+                {
+                    <div class="sub-h">@L["Conf_DetailTitle"]</div>
+                    <div class="st-scroll"><p class="help">@L["Conf_PickHint"]</p></div>
+                }
+                else
+                {
+                    <div class="sub-h">
+                        @L["Conf_DetailTitle"]
+                        <span class="ln" style="flex:1"></span>
+                        <button class="lnk-mini" title="@L["Conf_Deselect"]" @onclick="() => Select(sel.Id)">✕</button>
+                    </div>
+                    <div class="st-scroll">
+                        <p style="margin:0 0 8px">
+                            <b>@sel.HomeAccCode</b> ↔ <span class="pill blue">@sel.ForeignAccCode</span>
+                            <span class="muted">@sel.ForeignAccName</span> @StatusPill(sel.Status)
+                        </p>
+                        @* I fatti che la riga già porta: si leggono senza chiamare la sorgente. *@
+                        <ul class="conf-facts">
+                            <li><span>@L["Conf_ColCountry"]</span><b>@(string.IsNullOrWhiteSpace(sel.CountryId) ? "—" : sel.CountryId)</b></li>
+                            <li><span>@L["Conf_ColMinDist"]</span><b>@(sel.MinDistanceNm is double md ? $"{md:0.0} NM" : "—")</b></li>
+                            <li><span>@L["Conf_ColAdjSectors"]</span><b>@(sel.AdjacentSectorCount > 0 ? sel.AdjacentSectorCount.ToString() : "—")</b></li>
+                            <li><span>Shape</span><b>@(sel.HasPolygon ? "✓" : "—")</b></li>
+                        </ul>
+
+                        <div class="conf-acts">
+                            @if (sel.Status != NeighbourCandidateStatus.Confirmed)
+                            {
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetStatus(sel.Id, NeighbourCandidateStatus.Confirmed)" title="@L["Conf_ConfirmTitle"]">✓ @L["Conf_Confirm"]</button>
+                            }
+                            @if (sel.Status != NeighbourCandidateStatus.Rejected)
+                            {
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetStatus(sel.Id, NeighbourCandidateStatus.Rejected)" title="@L["Conf_RejectTitle"]">✕ @L["Conf_Reject"]</button>
+                            }
+                            @if (sel.Status == NeighbourCandidateStatus.Confirmed && sel.VloaDocumentId is null)
+                            {
+                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="() => Generate(sel.Id)" title="@L["Conf_GenerateTitle"]"><Icon Name="globe" /> @L["Conf_GenerateVloa"]</button>
+                            }
+                            @if (sel.VloaDocumentId is not null)
+                            {
+                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
+                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">@L["Common_Editor"]</a>
+                            }
+                            @if (sel.Status == NeighbourCandidateStatus.Confirmed)
+                            {
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ToggleSector" title="@L["Conf_AddSectorTitle"]"><Icon Name="plus" /> @L["Conf_Sector"]</button>
+                            }
+                            @if (!sel.HasPolygon)
+                            {
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="TogglePolygon" title="@L["Conf_PolygonTitle"]"><Icon Name="map" /> @L["Conf_Polygon"]</button>
+                            }
+                        </div>
+
+                        @if (_sectorOpen)
+                        {
+                            <div class="field conf-form">
+                                <label>@((MarkupString)string.Format(L["Conf_SectorLabel"].Value, sel.ForeignAccCode))</label>
+                                <div class="conf-acts">
+                                    <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" @bind:event="oninput" placeholder="es. LGKR_APP" />
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || !SectorReady)" @onclick="() => AddSector(sel.Id)">@L["Conf_AddSector"]</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _sectorOpen = false">@L["Common_Cancel"]</button>
+                                    <HelpHint AriaLabel="@L["Conf_AddSectorTitle"]">@L["Conf_SectorHint"]</HelpHint>
+                                </div>
+                            </div>
+                        }
+
+                        @if (_polyOpen)
+                        {
+                            @* Il poligono si scriveva alla cieca: l'errore arrivava dopo il salva, quando il
+                               testo era gia' stato incollato e perso di vista. Qui il conteggio dei vertici
+                               si aggiorna a ogni tasto e il salva resta spento finche' il JSON non regge —
+                               stessa soglia del service (≥3 punti), letta dallo stesso parser. *@
+                            <div class="field conf-form">
+                                <label>@((MarkupString)L["Conf_PolyLabel"].Value)</label>
+                                <textarea rows="4" class="mono-area" value="@_polyText" @oninput="OnPolyInput"
+                                          placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
+                                <div class="conf-acts" style="margin-top:6px">
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || !PolyReady)" @onclick="() => SavePolygon(sel.Id)">@L["Conf_SavePolygon"]</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _polyOpen = false">@L["Common_Cancel"]</button>
+                                    <span class="sh-chip @(PolyReady ? "" : "warn")">@PolyLabel()</span>
+                                </div>
+                            </div>
+                        }
+
+                        @* «Verifica adiacenza» RISCARICA i settori esteri dalla sorgente: è lenta, quindi resta
+                           un gesto esplicito — scegliere una riga non deve bombardare IVAO — e si interrompe.
+                           Il CancellationToken era in firma dal primo giorno e non era mai stato cablato. *@
+                        <div class="conf-acts" style="margin-top:12px">
+                            @if (_detailBusy)
+                            {
+                                <span class="st-msg prog" role="status" aria-live="polite">
+                                    <span class="spin"></span>
+                                    <span class="st-msg-t">@L["Conf_ComputingAdj"]</span>
+                                    <button class="lnk-mini" @onclick="CancelVerify">@L["Conf_Stop"]</button>
+                                </span>
+                            }
+                            else
+                            {
+                                <button class="btn ghost" disabled="@_busy" @onclick="() => VerifyAsync(sel.Id)" title="@L["Conf_VerifyTitle"]">
+                                    <Icon Name="search" /> @L["Conf_VerifyAdj"]
+                                </button>
+                            }
+                        </div>
+
+                        @if (_detail is { } det)
+                        {
+                            <div class="sub-h" style="margin-top:12px">@L["Conf_AdjSectors"] <span class="pill blue">@det.Adjacencies.Count</span></div>
+                            @if (det.Warnings.Count > 0)
+                            {
+                                <ul class="conf-warn">@foreach (var w in det.Warnings) { <li>@w</li> }</ul>
+                            }
+                            @if (det.Adjacencies.Count == 0)
+                            {
+                                <p class="help">@L["Conf_NoAdjBelow"]</p>
+                            }
+                            else
+                            {
+                                <table class="res-table conf-adj">
+                                    <thead><tr><th>@string.Format(L["Conf_SectorOf"].Value, det.HomeAccCode)</th><th>@string.Format(L["Conf_SectorOf"].Value, det.ForeignAccCode)</th><th>@L["Conf_EdgeDist"]</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var a in det.Adjacencies)
+                                        {
+                                            <tr>
+                                                <td><span class="sw sw-home"></span>@a.HomeSector</td>
+                                                <td><span class="sw sw-foreign"></span>@a.ForeignSector</td>
+                                                <td>@a.DistanceNm.ToString("0.0") NM</td>
+                                            </tr>
                                         }
-                                    </td>
-                                </tr>
+                                    </tbody>
+                                </table>
+                            }
+
+                            @* UNA mappa sola. L'SVG proiettato a mano disegnava le stesse shape con gli stessi
+                               colori della geografica: due modi di guardare la stessa cosa, 320px l'uno.
+                               ⚠️ `@key` sull'id della coppia: il contenitore .aor-leaflet è idempotente per
+                               `data-init`, e riusato mostrerebbe ancora la mappa della coppia di prima. *@
+                            @if (det.HomeShapes.Count > 0 || det.ForeignShapes.Count > 0)
+                            {
+                                <div class="aor-block" data-aor="nb-@sel.Id" @key="@($"map-{sel.Id}")" style="margin-top:12px">
+                                    <div class="aor-toggles">
+                                        @foreach (var s in det.HomeShapes)
+                                        {
+                                            <span class="aor-chip on" data-sec="@s.Sector"><span class="sw sw-home"></span> @s.Sector</span>
+                                        }
+                                        @foreach (var s in det.ForeignShapes)
+                                        {
+                                            <span class="aor-chip on" data-sec="@s.Sector"><span class="sw sw-foreign"></span> @s.Sector</span>
+                                        }
+                                        <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Conf_AllShapes"]</a> · <a class="aor-all" data-act="none">@L["Conf_NoneShapes"]</a></span>
+                                    </div>
+                                    <div class="aor-leaflet conf-map" data-sectors="@GeoSectorsJson(det)"></div>
+                                    <HelpHint AriaLabel="@L["Conf_GeoMapHint"]">@L["Conf_GeoMapHint"]</HelpHint>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="help">@L["Conf_NoShape"]</p>
                             }
                         }
-                    </tbody>
-                </table>
+                    </div>
                 }
-            }
-        </div>
-
-        <div class="section-title"><h3>@L["Conf_AddManualTitle"]</h3><span class="ln"></span></div>
-        <div class="block">
-            <p class="muted" style="font-size:11.5px;margin:0 0 8px">@L["Conf_AddManualHint"]</p>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-                <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" placeholder="es. LIMM" /></div>
-                <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" placeholder="es. LFMM" /></div>
-                <div class="field"><label>@L["Conf_LblForeignName"]</label><input @bind="_mName" placeholder="es. Marseille ACC" /></div>
-                <div class="field"><label>@L["Conf_LblCountry"]</label><input @bind="_mCountry" placeholder="es. FR" /></div>
-                <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="default {ACC}_CTR" /></div>
             </div>
-            <div class="field" style="margin-top:8px"><label>@L["Conf_LblPolyOptional"]</label><textarea rows="3" style="width:100%;font-family:monospace;font-size:11px" @bind="_mPoly"></textarea></div>
-            <button class="btn primary" disabled="@_busy" @onclick="AddManual" style="margin-top:8px">+ @L["Conf_AddPair"]</button>
         </div>
     }
 </div>
@@ -277,28 +411,154 @@
     private bool _busy;
     private string? _msg;
     private string? _ok;
+    private bool _canEdit;   // true = questa sessione tiene il lock di struttura (EditLockBar)
 
-    private int? _polyEditId;
+    // Import: avanzamento e interruzione. Il token era in firma dal primo giorno e non era mai stato cablato.
+    private ForeignAccFetchProgress? _prog;
+    private CancellationTokenSource? _importCts;
+    private bool _stopAsked;
+
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+    private void ClearStatus() { _msg = null; _ok = null; }
+
+    // Contatore onesto: «N di TOT» solo quando un filtro è attivo, il totale secco quando non lo è.
+    private string CountLabel() => IsFiltering ? $"{Filtered().Count}/{_rows.Count}" : _rows.Count.ToString();
+
+    // ---- La coppia scelta (stato di PAGINA, non un filtro) ----
+    // La scelta non si scrive nella casella di ricerca e non si perde scrivendoci sopra: i due convivono.
+    private int? _selId;
+    private bool _manualOpen;      // il pannello di destra mostra il form «coppia a mano» invece del dettaglio
+    private bool _polyOpen;        // …e, dentro il dettaglio, i due form che si aprono uno per volta
+    private bool _sectorOpen;
+
     private string _polyText = "";
-
-    private int? _detailId;
-    private NeighbourPairDetail? _detail;
-    private bool _detailBusy;
-
-    // Aggiunta manuale di un settore estero a una coppia confermata.
-    private int? _sectorAddId;
     private string _sectorCallsign = "";
 
-    // Ricerca + filtro stato (client-side sulle righe già caricate).
+    // ---- Quello che si scrive si valida MENTRE si scrive, non dopo il salva ----
+    // La soglia è quella vera del service (PolygonGeometry, ≥3 punti): un secondo giudice con una regola
+    // propria direbbe «va bene» a un poligono che il salvataggio poi rifiuta.
+    private int _polyPts, _mPolyPts;
+
+    private void OnPolyInput(ChangeEventArgs e)
+    {
+        _polyText = e.Value?.ToString() ?? "";
+        _polyPts = PolygonGeometry.ParsePoints(_polyText).Count;
+    }
+
+    private void OnManualPolyInput(ChangeEventArgs e)
+    {
+        _mPoly = e.Value?.ToString() ?? "";
+        _mPolyPts = PolygonGeometry.ParsePoints(_mPoly).Count;
+    }
+
+    private bool PolyReady => _polyPts >= 3;
+    private string PolyLabel() => _polyPts >= 3 ? L["Conf_PolyPoints", _polyPts].Value : L["Conf_PolyInvalid"].Value;
+
+    private bool ManualPolyReady => string.IsNullOrWhiteSpace(_mPoly) || _mPolyPts >= 3;
+    private string ManualPolyLabel() => _mPolyPts >= 3 ? L["Conf_PolyPoints", _mPolyPts].Value : L["Conf_PolyInvalid"].Value;
+
+    // Un tasto che si può premere solo per sentirsi dire «manca un campo» è un tasto che mente.
+    private bool ManualReady => ManualPolyReady
+        && !string.IsNullOrWhiteSpace(_mHome) && !string.IsNullOrWhiteSpace(_mForeign);
+
+    private bool SectorReady => !string.IsNullOrWhiteSpace(_sectorCallsign);
+
+    // Dettaglio di adiacenza: NON si carica scegliendo una riga (sono decine di GET alla sorgente), si chiede.
+    private NeighbourPairDetail? _detail;
+    private bool _detailBusy;
+    private CancellationTokenSource? _verifyCts;
+
+    private NeighbourCandidateRow? Selected() =>
+        _selId is int id ? _rows.FirstOrDefault(r => r.Id == id) : null;
+
+    // Cliccata sceglie, ricliccata lascia, un'altra sposta la scelta. Cambiando coppia il dettaglio calcolato
+    // e i form aperti se ne vanno con lei: erano di quella coppia, non di questa.
+    private void Select(int id)
+    {
+        CancelVerify();
+        _selId = _selId == id ? null : id;
+        _manualOpen = false;
+        _detail = null;
+        _polyOpen = false;
+        _sectorOpen = false;
+    }
+
+    private void OnRowKey(KeyboardEventArgs e, int id)
+    {
+        if (e.Key is "Enter" or " " or "Spacebar") Select(id);
+    }
+
+    private void ToggleManual()
+    {
+        _manualOpen = !_manualOpen;
+        if (_manualOpen) CancelVerify();
+    }
+
+    private void TogglePolygon()
+    {
+        _polyOpen = !_polyOpen;
+        if (_polyOpen) { _sectorOpen = false; _polyText = ""; _polyPts = 0; }
+    }
+
+    private void ToggleSector()
+    {
+        _sectorOpen = !_sectorOpen;
+        if (_sectorOpen) { _polyOpen = false; _sectorCallsign = ""; }
+    }
+
+    // Le pill di stato erano tre blocchi di stile in linea ripetuti nella tabella: qui una funzione sola, e i
+    // colori vengono dalle classi che il foglio ha già (.pill.green / .pill.red / .pill.neutral).
+    private MarkupString StatusPill(NeighbourCandidateStatus st)
+    {
+        var (cls, key) = st switch
+        {
+            NeighbourCandidateStatus.Confirmed => ("green", "Conf_StatusConfirmed"),
+            NeighbourCandidateStatus.Rejected => ("red", "Conf_StatusRejected"),
+            _ => ("neutral", "Conf_StatusPending"),
+        };
+        return new MarkupString($"<span class=\"pill {cls}\">{System.Net.WebUtility.HtmlEncode(L[key].Value)}</span>");
+    }
+
+    // Ricerca + filtro stato + filtro «coda di lavoro» (client-side sulle righe già caricate).
     private string _q = "";
     private NeighbourCandidateStatus? _statusFilter;
+    private WorkFilter? _workFilter;
 
-    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _statusFilter is not null;
+    /// <summary>La coda di lavoro: cosa manca per arrivare a una vLOA.</summary>
+    private enum WorkFilter
+    {
+        /// <summary>Senza poligono: niente mappa, niente adiacenza calcolabile.</summary>
+        NoShape,
+        /// <summary>Confermate ma senza vLOA: il documento è l'ultimo passo che manca.</summary>
+        NoVloa,
+    }
+
+    private sealed record CountSet(int Pending, int Confirmed, int Rejected, int NoShape, int NoVloa);
+
+    // Contati sull'elenco INTERO, non sul filtrato: un chip che conta ciò che il proprio filtro ha già tolto
+    // direbbe sempre zero appena lo si accende.
+    private CountSet Counts() => new(
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Pending),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Confirmed),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Rejected),
+        _rows.Count(r => !r.HasPolygon),
+        _rows.Count(r => r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null));
+
+    private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _statusFilter is not null || _workFilter is not null;
+
+    private void ToggleStatus(NeighbourCandidateStatus s) => _statusFilter = _statusFilter == s ? null : s;
+    private void ToggleWork(WorkFilter w) => _workFilter = _workFilter == w ? null : w;
 
     private IReadOnlyList<NeighbourCandidateRow> Filtered()
     {
         IEnumerable<NeighbourCandidateRow> q = _rows;
         if (_statusFilter is { } st) q = q.Where(r => r.Status == st);
+        q = _workFilter switch
+        {
+            WorkFilter.NoShape => q.Where(r => !r.HasPolygon),
+            WorkFilter.NoVloa => q.Where(r => r.Status == NeighbourCandidateStatus.Confirmed && r.VloaDocumentId is null),
+            _ => q,
+        };
         var term = _q?.Trim();
         if (!string.IsNullOrEmpty(term))
             q = q.Where(r =>
@@ -311,7 +571,7 @@
 
     private void OnSearchInput(ChangeEventArgs e) => _q = e.Value?.ToString() ?? "";
     private void SetStatusFilter(NeighbourCandidateStatus? s) => _statusFilter = s;
-    private void ClearFilters() { _q = ""; _statusFilter = null; }
+    private void ClearFilters() { _q = ""; _statusFilter = null; _workFilter = null; }
 
     // form manuale
     private string _mHome = "", _mForeign = "", _mName = "", _mCountry = "", _mCallsign = "", _mPoly = "";
@@ -321,6 +581,15 @@
         if (!Authz.IsAdmin) return;
         try { await ReloadAsync(); }
         catch (Exception ex) { NeighbourDebugLog.Log($"PAGE INIT EX: {ex}"); _msg = L["Conf_LoadError"] + ex.Message; }
+    }
+
+    // L'altezza dei due pannelli è «schermo meno ciò che sta sopra»: in CSS non è esprimibile, si MISURA — e
+    // si rimisura a ogni render, perché sopra ci sono cose che compaiono e spariscono da sole (chip d'esito,
+    // avvisi, lock). Sotto i 900px l'altezza fissa sparisce da sé (collapseBelow).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!Authz.IsAdmin) return;
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".conf-layout", 900); } catch (Exception) { }
     }
 
     private async Task ReloadAsync() => _rows = await Neighbours.ListAsync();
@@ -339,32 +608,51 @@
     private async Task Import()
     {
         _busy = true; _msg = null; _ok = null; _warnings.Clear();
+        _prog = null; _stopAsked = false;
+        var cts = new CancellationTokenSource();
+        _importCts = cts;
+        // ⚠️ Dentro un gestore di evento Blazor il render intermedio va SOLLECITATO: senza, l'avanzamento
+        // si vedrebbe a lavoro finito, cioè mai. `IProgress` chiama fuori dal contesto del circuito, quindi
+        // il salto va fatto con InvokeAsync.
+        var progress = new Progress<ForeignAccFetchProgress>(p =>
+            _ = InvokeAsync(() => { _prog = p; StateHasChanged(); }));
         try
         {
-            var r = await Neighbours.ImportAndComputeAsync();
+            var r = await Neighbours.ImportAndComputeAsync(cts.Token, progress);
             _warnings.AddRange(r.Warnings);
             await ReloadAsync();
             _ok = L["Conf_ImportOk", r.CountriesQueried, r.ForeignAccsFetched, r.CandidatesCreated, r.CandidatesUpdated];
         }
+        // Interrotto da chi guardava: non è un errore, e l'esito dice a che punto era arrivato.
+        catch (OperationCanceledException) { _msg = _prog is { } p ? L["Conf_ImportStopped", p.Done, p.Total].Value : L["Conf_Stopped"].Value; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
         catch (Exception ex) { NeighbourDebugLog.Log($"PAGE IMPORT EX: {ex}"); _msg = L["Conf_ImportError"] + ex.Message; }
-        finally { _busy = false; }
+        finally
+        {
+            _busy = false; _prog = null;
+            if (ReferenceEquals(_importCts, cts)) _importCts = null;
+            cts.Dispose();
+        }
     }
+
+    private void CancelImport()
+    {
+        if (_importCts is null) return;
+        _stopAsked = true;
+        try { _importCts.Cancel(); } catch (ObjectDisposedException) { }
+    }
+
+    // Finché la sorgente non ha detto quanti sono, «lavoro in corso» è tutto ciò che si sa onestamente.
+    private string WorkLabel() => _prog is { } p
+        ? (p.Failed > 0 ? L["Conf_ProgFailed", p.Done, p.Total, p.Failed].Value : L["Conf_Prog", p.Done, p.Total].Value)
+        : L["Conf_Working"].Value;
 
     private Task SetStatus(int id, NeighbourCandidateStatus status) =>
         Guarded(() => Neighbours.SetStatusAsync(id, status));
 
     private Task Generate(int id) =>
         Guarded(() => Neighbours.GenerateVloaAsync(id), L["Conf_VloaGenerated"]);
-
-    private void OpenPolygon(int id) { _polyEditId = id; _polyText = ""; }
-
-    private void OpenSector(int id)
-    {
-        if (_sectorAddId == id) { _sectorAddId = null; return; }
-        _sectorAddId = id; _sectorCallsign = "";
-    }
 
     // Guard dedicato (non Guarded): il messaggio ok è dinamico e Guarded lo azzererebbe a fine azione.
     private async Task AddSector(int id)
@@ -378,7 +666,7 @@
                 ? L["Conf_SectorAlreadyPresent", res.Callsign, res.ForeignAccCode]
                     + (res.Hidden ? L["Conf_SectorHiddenSuffix"].Value : ".")
                 : L["Conf_SectorAdded", res.Callsign, res.ForeignAccCode];
-            _sectorAddId = null; _sectorCallsign = "";
+            _sectorOpen = false; _sectorCallsign = "";
         }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
@@ -387,7 +675,7 @@
         finally { _busy = false; }
     }
 
-    // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero rosso.
+    // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero azzurro.
     private static string GeoSectorsJson(NeighbourPairDetail det)
     {
         var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#0D2C99", rings = new[] { s.Points } })
@@ -396,23 +684,41 @@
         return System.Text.Json.JsonSerializer.Serialize(list);
     }
 
-    private async Task ToggleDetail(int id)
+    // Il ricalcolo riscarica i settori esteri dalla sorgente: chi si accorge che risponde male non deve
+    // aspettarla fino in fondo. Il token c'era già in firma, mancava chi lo tenesse.
+    private async Task VerifyAsync(int id)
     {
-        if (_detailId == id) { _detailId = null; _detail = null; return; }
-        _detailId = id; _detail = null; _detailBusy = true; _msg = null;
-        try { _detail = await Neighbours.GetPairDetailAsync(id); }
-        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE DETAIL EX: {ex}"); _msg = L["Conf_VerifyError"] + ex.Message; _detailId = null; }
-        finally { _detailBusy = false; }
+        CancelVerify();
+        var cts = new CancellationTokenSource();
+        _verifyCts = cts;
+        _detail = null; _detailBusy = true; _msg = null;
+        try { _detail = await Neighbours.GetPairDetailAsync(id, cts.Token); }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { NeighbourDebugLog.Log($"PAGE DETAIL EX: {ex}"); _msg = L["Conf_VerifyError"] + ex.Message; }
+        finally
+        {
+            _detailBusy = false;
+            if (ReferenceEquals(_verifyCts, cts)) _verifyCts = null;
+            cts.Dispose();
+        }
+    }
+
+    private void CancelVerify()
+    {
+        if (_verifyCts is null) return;
+        try { _verifyCts.Cancel(); } catch (ObjectDisposedException) { }
+        _verifyCts = null;
+        _detailBusy = false;
     }
 
     private Task SavePolygon(int id) =>
-        Guarded(async () => { await Neighbours.SetPolygonAsync(id, _polyText); _polyEditId = null; }, L["Conf_PolygonSaved"]);
+        Guarded(async () => { await Neighbours.SetPolygonAsync(id, _polyText); _polyOpen = false; }, L["Conf_PolygonSaved"]);
 
     private Task AddManual() =>
         Guarded(async () =>
         {
             await Neighbours.AddManualAsync(_mHome, _mForeign, _mName, _mCountry, _mCallsign,
                 string.IsNullOrWhiteSpace(_mPoly) ? null : _mPoly);
-            _mHome = _mForeign = _mName = _mCountry = _mCallsign = _mPoly = "";
+            _mHome = _mForeign = _mName = _mCountry = _mCallsign = _mPoly = ""; _mPolyPts = 0;
         }, L["Conf_PairAdded"]);
 }

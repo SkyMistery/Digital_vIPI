@@ -45,6 +45,9 @@
 
 /* ---------- Product top bar ---------- */
 .topbar{position:sticky;top:0;z-index:45;background:var(--ivao-blue);color:#fff;display:flex;align-items:center;gap:18px;padding:0 22px;height:62px;box-shadow:0 2px 10px rgba(13,44,153,.18)}
+/* ⚠️ Nessun pezzo della barra va a capo DENTRO se stesso: una barra che «sta» perche' il suo contenuto si
+   spezza in due righe non sta. Lo vede l'occhio e non `scrollWidth`, che misura solo il bordo. */
+.topbar .brand,.topbar .live-badge,.topbar .staff-badge,.topbar .editor-btn,.topbar .acc-nav a{white-space:nowrap}
 .brand{display:flex;align-items:center;gap:11px;font-family:var(--font-head);font-weight:800;font-size:19px;color:#fff;letter-spacing:.02em}
 .brand .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fff,#cfd8ff);display:grid;place-items:center;color:var(--ivao-blue);font-weight:800;font-size:13px}
 .brand small{font-weight:400;opacity:.7;font-family:var(--font-body);font-size:12px}
@@ -52,7 +55,15 @@
 .acc-nav a{color:#cdd6ff;padding:8px 15px;border-radius:9px;font-size:14px;font-weight:500;transition:.15s;font-family:var(--font-head)}
 .acc-nav a:hover{background:rgba(255,255,255,.1);color:#fff}
 .acc-nav a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
-.top-search{flex:1;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
+/* ⚠️ `flex-basis` e non solo `flex:1`: in flexbox i margini `auto` assorbono lo spazio libero PRIMA che
+   `flex-grow` lo distribuisca, e `.right` ha `margin-left:auto`. Il campo restava quindi al suo minimo a
+   OGNI assetto — a 1600 come a 1024 — e il segnaposto usciva troncato: «Cerca Co…», sulla stringa piu'
+   visibile dell'applicazione. Con una base dichiarata il campo parte da quella, e il margine auto si prende
+   solo cio' che resta.
+   ⚠️ Lo shrink resta 1, e non 0: con `flex-shrink:0` il campo non cede piu' e a 1600 e 1440 sforava di
+   80-104px. Il campo DEVE poter cedere quando serve — il segnaposto si accorcia, non si blinda la larghezza:
+   una barra che sfora e' un difetto, un segnaposto piu' corto no. */
+.top-search{flex:1 1 250px;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
 .top-search:focus-within{background:rgba(255,255,255,.95)}
 .top-search .ico{opacity:.85;font-size:13px}
 .top-search:focus-within .ico{opacity:1}
@@ -93,12 +104,196 @@
 .struct .add-form .check{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;margin:2px 0 12px}
 .struct .add-form .check input{width:auto}
 /* Editor struttura: griglia a due colonne che può restringersi (fix overflow label/tabelle nel pannello stretto). */
-.struct .topo-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* ---- Aeroporti: i due pannelli sono alti quanto lo schermo meno ciò che sta sopra ----
+   Il `calc` è il valore di PARTENZA prima che `vipiFitViewport` misuri (la testata cambia altezza da sola:
+   lock, chip d'esito, chip di avanzamento), non la verità. ⚠️ `min-height` allineata al `fitMin` del JS
+   (320): due pavimenti diversi per la stessa cosa sono un pavimento sbagliato — quello del CSS vincerebbe a
+   zoom alto e la pagina tornerebbe a scorrere. */
+.struct .topo-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
 .struct .topo-layout .panel{min-width:0;overflow-x:auto}
+/* Il pannello incastonato governa da sé i suoi assi: scorre il corpo, non la scatola. */
+.struct .topo-layout .panel.st-pane{overflow:hidden}
+/* Il contenuto arriva al bordo dello schermo per costruzione: il respiro in fondo diventerebbe scorrimento
+   su una pagina che non deve scorrere. */
+.wrap.struct:has(.topo-layout){padding-bottom:18px}
 .struct .res-table td{word-break:break-word}
 /* Font dei label dell'editor allineato a quello della pagina (Poppins) invece di Nunito Sans maiuscolo. */
 .struct .add-form .field label,.struct .inline-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
-@media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr}}
+/* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
+   un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
+@media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+
+/* ---- Confinanti: elenco delle coppie a sinistra, coppia scelta a destra ----
+   Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri, non la verità; `min-height` allineata
+   al `fitMin` del JS (320), altrimenti a zoom alto vince il pavimento del CSS e la pagina torna a scorrere.
+   Il dettaglio era una riga `colspan=10` dentro la tabella: aprendolo la tabella saltava di ~700px. */
+.struct .conf-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .conf-layout .panel{min-width:0;padding:18px}
+.struct .conf-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.conf-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .conf-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+/* Una coppia rifiutata resta in elenco, spenta: è la memoria di un falso positivo già valutato. Sbiadire la
+   riga scelta però la renderebbe illeggibile proprio mentre ci si lavora. */
+.struct .conf-table tr.row-off:not(.picked)>td{opacity:.5}
+/* I quattro numeri che la riga già porta, incolonnati: etichetta a sinistra, valore a destra. */
+.struct .conf-facts{list-style:none;margin:0 0 12px;padding:0;font-size:12.5px}
+.struct .conf-facts li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--line)}
+.struct .conf-facts li span{color:var(--ink-soft)}
+/* I tasti del dettaglio vanno a capo insieme, non uno alla volta. */
+.struct .conf-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.struct .conf-acts .btn{margin-left:0}
+.struct .conf-form{margin-top:10px;background:#f7f9ff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.struct .conf-warn{margin:0 0 8px;padding-left:18px;font-size:12px;color:var(--warn-ink)}
+.struct .conf-adj{font-size:12.5px}
+/* Le due pastiglie di colore della mappa valgono anche nella tabella delle adiacenze: stessa cosa, stesso
+   colore. Erano sei blocchi di stile in linea ripetuti. */
+.struct .conf-adj .sw,.struct .aor-toggles .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;border:1px solid}
+.struct .sw-home{background:#0D2C9933;border-color:#0D2C99}
+.struct .sw-foreign{background:#7EA2D633;border-color:#7EA2D6}
+/* Dentro un pannello che scorre la mappa ha un'altezza propria: senza, Leaflet nasce a zero. */
+.struct .conf-map{height:320px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.struct .mono-area{width:100%;font-family:monospace;font-size:11px}
+/* In un pannello stretto il campo di ricerca non deve pretendere i 240px della sua base condivisa: sono
+   loro a mandare a capo la barra prima dei chip. Misurato a 1280: barra da 2 righe a 1. La regola dice in
+   QUALE forma si sta parlando (dentro .conf-layout), non riscrive la classe per tutti. Niente media
+   query: con `flex:1` il campo si riprende lo spazio quando c'è, e una soglia scelta a occhio sbaglia —
+   misurato, a 1400 la barra stava in una riga e a 1440 tornava a due. */
+.struct .conf-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+
+/* ---- Versioni: l'elenco dei documenti a sinistra, il documento scelto a destra ----
+   Stessa forma di Confinanti, e per la stessa ragione: il dettaglio (versioni + storia + release + barra di
+   pubblicazione) si apriva DENTRO l'elenco e spingeva in giu' la riga che si stava per guardare.
+   Il `calc` e' il valore di PARTENZA prima che vipiFitViewport misuri, non la verita'; `min-height` allineata
+   al `fitMin` del JS (320), altrimenti a zoom alto vince il pavimento del CSS e la pagina torna a scorrere. */
+.struct .ver-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .ver-layout .panel{min-width:0;padding:18px}
+.struct .ver-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.ver-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .ver-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+/* In un pannello stretto il campo non deve pretendere i 240px della sua base condivisa: sono loro a mandare
+   a capo la barra prima dei chip. */
+.struct .ver-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+/* ⚠️ Un chip a zero qui e' NEUTRO, non verde: il verde di `button.sh-chip:disabled` significa «coda vuota,
+   bene» (Confinanti), ma «0 in vigore» non e' una buona notizia — e' un numero come gli altri. Serve una
+   classe in piu' della regola condivisa per vincerla, non un `!important`. */
+.struct .ver-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* La riga documento: e' il comando di selezione, quindi si vede che si puo' premere e si vede quale e'
+   scelta. L'ombra a sinistra e' la stessa della riga scelta nelle tabelle (.acc-pick.picked). */
+.struct .ver-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
+.struct .ver-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
+.struct .ver-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
+.struct .ver-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .ver-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
+/* Un documento nascosto resta in elenco, spento: sbiadire quello SCELTO pero' lo renderebbe illeggibile
+   proprio mentre ci si lavora. */
+.struct .ver-layout .doc-rowi.row-off:not(.picked){opacity:.6}
+.struct .dr-sub{font-size:12px;color:var(--ink-soft)}
+/* La testata del pannello di destra e la riga delle azioni restano ferme: scorre solo il corpo. */
+.struct .ver-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.struct .ver-detail-head .dr-main{flex:1 1 200px;min-width:160px}
+.struct .ver-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.struct .ver-acts .btn{margin-left:0}
+/* Il «togli i filtri» dentro una frase: era uno stile in linea ripetuto. */
+.lnk-inline{cursor:pointer;color:var(--ivao-blue);font-weight:600}
+/* ---- Barra delle pagine admin (componente AdminNav) ----
+   Sta sotto la testata di tutte e undici le pagine admin. Sostituisce le sei card da 138px di «Area Staff»
+   (485px in tutto) e i link sparsi nelle testate: l'elenco stava in due posti e diverso, e nessuno dei due
+   elencava tutto. Le etichette sono nomi corti col nome per esteso nel `title` (regola 33) — una barra che
+   va a capo tre volte costa più di quello che fa risparmiare.
+   Dentro non c'è nessuna etichetta «Admin:»: ripeteva su ogni pagina una cosa che si vede da sola. Il nome
+   della barra vive nell'`aria-label`, dove serve a chi non ha il colpo d'occhio. */
+.admin-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0 0 12px;padding:7px 10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px}
+.admin-nav .an-link{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;text-decoration:none;
+  font-size:12.5px;font-weight:600;color:var(--ivao-blue);border:1px solid transparent;border-radius:8px;
+  padding:3px 8px;transition:.12s}
+.admin-nav a.an-link:hover{background:#eef1fb;border-color:var(--line)}
+/* La voce della pagina corrente è uno stato, non un comando: niente href e nessun effetto al passaggio. */
+.admin-nav .an-link.on{background:var(--ivao-blue);color:#fff;cursor:default}
+.admin-nav .an-link [data-icon]{flex:none;opacity:.85}
+
+/* ---- Permessi: chi ha un permesso a sinistra, la persona scelta (o la concessione) a destra ----
+   Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri; `min-height` allineata al `fitMin` del
+   JS (320). Prima la tabella lavorava in mezza pagina perché l'altra metà era il form «Concedi» sempre
+   aperto — 16 grant facevano righe da 86px, e sotto il form restavano ~1 100px di bianco. */
+.struct .perm-layout, .struct .task-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .perm-layout .panel, .struct .task-layout .panel{min-width:0;padding:18px}
+.struct .perm-layout .panel.st-pane, .struct .task-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.perm-layout), .wrap.struct:has(.task-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .perm-layout,.struct .task-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct .perm-layout .struct-bar .htree-search, .struct .task-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+/* Un chip a zero qui è neutro, non verde: «0 persone su LIMM» non è una buona notizia (regola 108). */
+.struct .perm-layout button.sh-chip:disabled, .struct .task-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+.struct .perm-layout .doc-rowi, .struct .task-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
+.struct .perm-layout .doc-rowi.acc-pick, .struct .task-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
+.struct .perm-layout .doc-rowi.acc-pick:hover, .struct .task-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
+.struct .perm-layout .doc-rowi.acc-pick:focus-visible, .struct .task-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .perm-layout .doc-rowi.acc-pick.picked, .struct .task-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.struct .perm-layout .doc-rowi .pill, .struct .task-layout .doc-rowi .pill{white-space:nowrap}
+/* Nel pannello: a andare a capo è il gruppo dei tasti, non il testo (regola 111). */
+.struct .perm-layout .ver-row, .struct .task-layout .ver-row{flex-wrap:wrap}
+.struct .perm-layout .ver-row>div, .struct .task-layout .ver-row>div{flex:1 1 180px;min-width:0}
+.struct .perm-layout .ver-row .vact, .struct .task-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
+.struct .perm-layout .ver-row .vb, .struct .task-layout .ver-row .vb{min-width:56px}
+.struct .perm-layout p.help, .struct .task-layout p.help{margin:0 0 6px}
+/* Il form di concessione: label in tondo come le altre pagine di lavoro, non in maiuscoletto. */
+.struct .perm-form .field{margin-bottom:10px}
+.struct .perm-form .field label{display:block;font-family:var(--font-body);text-transform:none;letter-spacing:normal;
+  font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
+.struct .perm-form .app-in{width:100%}
+.struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* «Un ACC in più a chi c'è già»: menu e tasto sulla stessa riga, in fondo all'elenco dei suoi permessi. */
+.struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--line)}
+.struct .perm-add .app-in{flex:1 1 180px;min-width:140px}
+/* Le sezioni del pannello di destra (storia, release) e la barra di pubblicazione: erano ventisette
+   blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
+.struct .ver-sec{margin-top:8px}
+.struct .ver-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+/* ⚠️ Il titolo di sezione NON si comprime: in un pannello stretto il flex lo strizzava e «Storia modifiche»
+   andava a capo mentre accanto restava spazio vuoto. */
+.struct .ver-sec-h>b{flex:none;white-space:nowrap}
+.struct .ver-diff{margin:2px 0 8px 24px}
+.struct .ver-pub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.struct .ver-cycle{min-width:270px;max-width:340px}
+.struct .ver-note{max-width:240px}
+.struct .ver-layout p.help{margin:0 0 6px}
+/* ⚠️ I tasti di una riga (versione o release) vanno a capo INSIEME, non uno per riga: nel pannello stretto
+   «Anteprima / Differenze / Annulla» si impilavano in tre righe e una release alta il triplo, per tre. */
+.struct .ver-layout .ver-row{flex-wrap:wrap}
+.struct .ver-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
+/* ⚠️ …ma a andare a capo dev'essere il gruppo dei TASTI, non il testo: senza un pavimento sul blocco di
+   mezzo era lui a scendere sotto il numero di versione, e ogni riga cresceva di una riga di vuoto. */
+.struct .ver-layout .ver-row>div{flex:1 1 200px;min-width:0}
+/* ---- Colonne delle coppie: pixel MISURATI col font calcolato sui 33 valori veri del DB ----
+   Le percentuali sono un gioco a somma zero (ogni punto dato a una colonna lo toglie a un'altra, che poi
+   taglia il suo valore): otto colonne fisse e UNA sola senza larghezza — il nome estero — che con
+   `table-layout:fixed` si prende tutto lo spazio che avanza. Il `min-width` della tabella è la somma delle
+   fisse più il pavimento dell'elastica.
+   ⚠️ Contati anche i pezzi che non sono testo: le gronde della cella (10px per lato) e il padding proprio
+   della pill (9px per lato) nelle colonne Foreign e Stato. */
+/* Il `min-width` è la somma delle fisse (598) PIÙ il pavimento dell'elastica (120): senza il secondo
+   addendo l'elastica si schiaccia sotto la propria soglia di leggibilità invece di far scorrere il riquadro
+   — misurato a 1024, la colonna del nome finiva a 2px. Quando il minimo che non taglia niente supera il
+   riquadro, la scelta è far scorrere il riquadro (con l'intestazione ferma), e va DICHIARATA. */
+.struct .conf-table{table-layout:fixed;min-width:716px}
+/* ⚠️ Due colonne di ACC, due larghezze: «Home» è testo nudo (60), «Foreign» è una pill col suo padding
+   (78). Con una classe sola a 74 la pill di LMMM andava a capo e la riga cresceva da 39 a 48px — su 33
+   righe sono 300px. Le celle non vanno mai a capo: sono codici, e un codice spezzato non è un codice. */
+.struct .conf-table .c-home{width:64px}
+.struct .conf-table .c-fgn{width:82px}
+.struct .conf-table td.c-home,.struct .conf-table td.c-fgn{white-space:nowrap}
+.struct .conf-table .c-cty{width:62px}
+.struct .conf-table .c-num{width:70px}
+.struct .conf-table .c-flag{width:64px}
+.struct .conf-table .c-state{width:120px}
+/* L'elastica: senza larghezza, e ciò che non ci sta si taglia coi puntini (il nome per esteso è nel title). */
+.struct .conf-table .c-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.struct .conf-table td.c-num,.struct .conf-table td.c-flag,.struct .conf-table td.c-cty{white-space:nowrap}
 
 /* ---------- Layout ---------- */
 .screen{display:none}
@@ -121,6 +316,8 @@
 .pill.green{background:#dafbe7;color:var(--ok-ink)}
 .pill.future{background:#fff3cf;color:var(--warn-ink);border:1px dashed #e2b400}
 .pill.neutral{background:#eef1f7;color:#57606a}  /* pill grigio-azzurra (condizione/nascosta), U8: prima inline */
+.pill.red{background:#ffe0e0;color:#b42318}      /* stato negativo (nascosto dall'admin): prima in linea */
+.pill.amber{background:#ffe9c7;color:#9a6700}    /* avviso su una riga (senza torre): prima in linea */
 
 /* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
 .tok-set{display:inline-flex;gap:2px;flex-wrap:wrap}
@@ -734,9 +931,48 @@
 }
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:#fff}
-.xfe-table{width:100%;font-size:13px}
+/* ---- Colonne FISSE ----
+   In albero ogni verso è una tabella a sé: a larghezza automatica ognuna sceglieva le proprie colonne in base
+   al contenuto, e «punti» era largo il doppio nel blocco sopra rispetto a quello sotto. Qui si scrive IN CELLA,
+   e un bersaglio che cambia posto fra due tabelle affiancate va ricercato ogni volta. Le larghezze stanno nel
+   colgroup di XferRowsTable; le percentuali non arrivano a 100 perché la condizione prende ciò che resta. */
+.xfe-table{width:100%;font-size:13px;table-layout:fixed}
+/* L'intestazione resta in ogni blocco di verso — si e' scelto cosi': sta accanto alle righe che descrive,
+   e in un accordo lungo l'unica alternativa era non averla piu' dopo il primo blocco. Piu' bassa, pero'. */
+.struct .xfe-table th{padding:4px 9px}
+.xt-c-drag{width:26px}
+.xt-c-pick{width:26px}
+.xt-c-acts{width:132px}
+.xt-c-acts-ctx{width:168px}
+.xt-c-pts{width:34%}
+.xt-c-lvl{width:20%}
+/* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */
+.xt-c-ctx{width:13%}
+.xt-c-ctxapt{width:12%}
+.xt-c-kind{width:8%}
+.xt-c-pts-ctx{width:18%}
+.xt-c-lvl-ctx{width:12%}
+/* A colonna fissa il testo non allarga più la tabella: se non ha dove andare a capo, esce. Gli elenchi di CoP
+   e i livelli sono le due celle in cui succede. */
+.xfe-table td{overflow-wrap:anywhere}
+/* ---- Intestazioni che restano ----
+   In ELENCO è una tabella sola e lunga: i nomi di colonna sono già fuori schermo quando servono. In ALBERO
+   invece appiccicare il thead non serve — le colonne sono tre — e servirebbe invece sapere in quale VERSO si
+   sta scrivendo: è la testata del blocco a restare (regola sotto, .xt-dirhead). Due elementi appiccicati alla
+   stessa quota si sovrapporrebbero, e l'altezza dell'uno non è esprimibile nel `top` dell'altro. */
+.xt-pane-body .xfe-table.xt-stick thead th{position:sticky;top:0;z-index:2}
 .xfe-table th{font-size:11px}
-.xfe-table td{padding:7px 9px;vertical-align:middle}
+/* ---- Densità: questa tabella si ANALIZZA, non si legge come prosa ----
+   Misurato a schermo prima di scegliere: una clausola costava 152px (riga 43 + anteprima 55, più intestazione
+   38 e testata del verso 51 divise fra le righe del blocco). Con queste misure scende a 101 — un terzo in meno,
+   cioè da 5 a 8 clausole sotto gli occhi in un riquadro da 800px. Non c'è un interruttore di densità: una
+   pagina che serve a confrontare righe non ha una modalità «ariosa» che valga la barra che costerebbe. */
+/* ⚠️ `.struct` non e' decorazione: `.res-table td{padding:7px 10px}` vive 350 righe piu' in basso e ha la
+   STESSA specificita' (una classe + un elemento), quindi vinceva per posizione. Il difetto era invisibile
+   perche' i due valori verticali coincidevano — 7px e 7px — e si e' visto solo misurando il padding
+   calcolato a schermo: la riga restava 43px con la regola nuova gia' in pagina. Seconda volta in questo
+   giro che una regola di questa pagina perde in silenzio contro una piu' generica scritta dopo. */
+.struct .xfe-table td{padding:3px 9px;vertical-align:middle}
 .xfe-table input{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:#fff}
 .xfe-table .pair-row td{background:#eef1fb;font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 .chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
@@ -964,7 +1200,11 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .res-where{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);font-size:13px;margin-bottom:4px}
 .res-snip{font-size:14px;color:var(--ink-soft)}
 .res-snip mark{background:#fff3cf;color:var(--ink);padding:0 3px;border-radius:3px;font-weight:600}
-@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:1fr}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
+/* ⚠️ `minmax(0,1fr)` e non `1fr`: una traccia `1fr` ha `min-width:auto`, cioe' il min-content del suo
+   contenuto — e non scende sotto. E' la regola del `min-width:0` sui figli di griglia, che il progetto ha
+   gia' scritta per gli editor e che qui, nel collasso a una colonna, non era applicata: misurato, a 375px il
+   viewer aeroporto teneva una colonna da 592 e imporre `width:340px` al layout non la faceva cedere. */
+@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}.doc-layout>*,.ed-layout>*{min-width:0}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 5b: Topologia settori ---------- */
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
@@ -988,12 +1228,29 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .htree li.live-out{opacity:.35}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-top:12px}
 
-/* editor gerarchia settori (albero + dettaglio) */
-.gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
-@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr}}
-/* il pannello dettaglio segue lo scroll (sticky), sotto la topbar (62px) così il titolo resta visibile */
-.detail-sticky{position:sticky;top:78px;align-self:start;max-height:calc(100vh - 94px);overflow:auto}
-@media(max-width:900px){.detail-sticky{position:static;max-height:none}}
+/* ---- editor gerarchia settori (albero + dettaglio) ----
+   L'altezza vera la scrive vipiFitViewport, che misura dove il riquadro comincia: quanto spazio resta lo sa
+   solo il browser, e sopra ci sono barra dell'applicazione, briciole, testata e — a volte — un avviso.
+   Il calc qui è il valore di PARTENZA prima che il JS misuri, non la verità.
+   Il pannello dettaglio era `.detail-sticky`, agganciato mentre la pagina scorreva: qui la pagina non scorre
+   più, i due pannelli sono alti uguali e scorre solo il loro corpo. */
+/* ⚠️ `min-height` allineata al `fitMin` del JS (320): tenerla più alta significa che il pavimento del CSS
+   vince sull'altezza misurata e la pagina scorre lo stesso — succedeva con lo zoom di pagina al 120%, dove lo
+   spazio disponibile scende sotto i 420. Due pavimenti diversi per la stessa cosa sono un pavimento sbagliato. */
+.gerarchia-2col{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 330px);min-height:320px}
+/* Il contenuto arriva al bordo dello schermo per costruzione: i 70px di respiro in fondo diventerebbero
+   70px di scorrimento su una pagina che non deve scorrere. */
+.wrap.struct:has(.gerarchia-2col){padding-bottom:18px}
+/* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
+   un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
+@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr;height:auto;min-height:0}}
+/* Pannello incastonato: intestazione e barra dei filtri ferme, corpo che scorre.
+   `min-height:0` è obbligatorio — senza, un figlio che scorre dentro un flex si rifiuta di rimpicciolirsi
+   sotto il proprio contenuto e il riquadro cresce oltre l'altezza misurata. */
+.st-pane{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.st-scroll{flex:1;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px}
+@media(max-width:900px){.st-pane{overflow:visible}.st-scroll{overflow:visible}}
 /* campo di ricerca dell'albero, stile brand */
 .htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:var(--font-body);font-size:13px;background:#fff url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
 .htree-search:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px #e2e8ff}
@@ -1052,14 +1309,28 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .node-badge.fss{background:#f0e8ff;color:var(--nbr-ink)}
 .node-badge.apt{background:#dafbe7;color:#1a7f37}
 .acc-tag{font-size:10px;color:#888;font-family:var(--font-head);font-weight:700;letter-spacing:.03em;margin-right:2px}
-/* editor struttura: strip completezza, dot online, drop-target drag&drop */
-.struct-health{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.struct-health .sh-ok{font-size:12.5px;font-weight:600;color:var(--ok-ink);background:#dafbe7;border:1px solid #a7e9c1;border-radius:20px;padding:5px 12px}
-.struct-health .sh-chip{font-size:12px;font-weight:600;color:var(--ink-soft);background:#eceef5;border:1px solid var(--line);border-radius:20px;padding:5px 11px}
-.struct-health button.sh-chip{cursor:pointer;transition:.12s}
-.struct-health .sh-chip.warn{background:#fff3cf;color:var(--warn-ink);border-color:#e2b400}
-.struct-health .sh-chip.warn:hover{background:#ffe9a8}
-.struct-health .sh-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
+/* ---- editor struttura: barra unica dei filtri, dot online, drop-target drag&drop ----
+   Erano due fasce (chip di salute, poi ricerca) per comandi che si usano nello stesso gesto: qui si legge
+   da sinistra a destra come si lavora — cosa cerco → come guardo → come sto.
+   ⚠️ `.htree-search`/`.htree-select` portano `margin-bottom:12px` (erano fasce per conto loro): si azzera
+   QUI, dentro la barra, non nelle regole di base — la ricerca dell'albero la usano anche altre viste. */
+.struct-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.struct-bar .htree-search{flex:1 1 240px;width:auto;margin-bottom:0}
+/* I chip scendono INSIEME quando la riga non li tiene: il gruppo si spezza in un punto solo. */
+.struct-bar .sb-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.struct-bar .htree-select{margin-bottom:0;flex:none}
+.struct-bar .lnk-mini{margin-left:0}
+.struct-bar .sb-count{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+/* Separatore fra i tre gruppi: dice dove finisce «cerco» e comincia «guardo» senza scrivere un'etichetta. */
+.struct-bar .sb-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+.sh-chip{font-size:12px;font-weight:600;color:var(--ink-soft);background:#eceef5;border:1px solid var(--line);border-radius:20px;padding:5px 11px}
+button.sh-chip{cursor:pointer;transition:.12s}
+/* A zero il chip resta al suo posto, spento: se comparisse col contatore, all'ultimo nodo agganciato la
+   riga si accorcerebbe sotto il puntatore mentre ci si sta mirando. */
+button.sh-chip:disabled{cursor:default;background:#dafbe7;color:var(--ok-ink);border-color:#a7e9c1}
+.sh-chip.warn{background:#fff3cf;color:var(--warn-ink);border-color:#e2b400}
+button.sh-chip.warn:hover{background:#ffe9a8}
+.sh-chip.on{background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)}
 .onl-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ivao-green);display:inline-block;box-shadow:0 0 0 2px #dafbe7}
 .acc-row[draggable="true"]{cursor:grab}
 .acc-row.drop-ok{background:#dafbe7;box-shadow:inset 0 0 0 2px var(--ivao-green)}
@@ -1094,6 +1365,26 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .sim-online .ptag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:var(--ivao-blue);color:#fff;border-radius:10px;padding:2px 8px}
 .sim-online .nbrtag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:#f0e8ff;color:var(--nbr-ink);border-radius:10px;padding:2px 8px}
 .res-table{width:100%;font-size:13px;margin-bottom:6px}
+/* ---- Intestazioni che restano (tabelle lunghe in una pagina che scorre) ----
+   `top:62px` è l'altezza della topbar, che è appiccicata anche lei; lo `z-index` sta SOTTO il suo (45) e sopra
+   le righe. Con `border-collapse:collapse` il bordo di una `th` appiccicata si perde durante lo scorrimento
+   (il bordo appartiene alla cella che scorre via): si ridisegna con un'ombra interna. */
+/* `--st-head-h` la scrive vipiStickyOffset misurando la testata appiccicata (0 se non ce n'è una): senza,
+   con la testata in cima il `thead` le passa SOTTO, ed è il difetto che i Trasferimenti hanno già pagato. */
+.res-table.sticky-head thead th{position:sticky;top:calc(62px + var(--st-head-h, 0px));z-index:6;box-shadow:inset 0 -1px 0 var(--line)}
+/* ⚠️ Dentro un riquadro che scorre lo sticky è relativo al CONTENITORE, non alla finestra: la quota della
+   topbar qui non c'entra e lascerebbe l'intestazione sospesa a 62px dal bordo del pannello. Il fondo pieno
+   arriva dalla regola globale `th{background:#eef1fb}`: senza, le righe passerebbero sotto e si vedrebbero. */
+.struct .st-scroll .res-table.sticky-head thead th,
+.struct .ed-pane .res-table.sticky-head thead th{top:0}
+/* Cella con una modifica non ancora salvata: si vede da lontano quante ne restano da confermare. */
+.struct .res-table input.lim-dirty{border-color:#e2b400;background:#fffdf3;box-shadow:0 0 0 2px #fff3cf}
+/* Riga che si sceglie: il cursore lo dice prima del clic, il filo blu a sinistra lo dice dopo. Il fondo pieno
+   deve battere l'hover della tabella, che altrimenti «spegne» la riga scelta appena ci passi sopra. */
+.struct .res-table tr.acc-pick{cursor:pointer}
+.struct .res-table tr.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .res-table tr.acc-pick.picked>td,.struct .res-table tr.acc-pick.picked:hover>td{background:#e8ecff}
+.struct .res-table tr.acc-pick.picked>td:first-child{box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .res-table th{font-size:11px}
 .res-table td{padding:7px 10px}
 /* Controlli compatti dentro le tabelle struttura/aeroporti: stile coerente col resto (non più select nativo). */
@@ -1117,6 +1408,17 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .struct .bulk-bar select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:#fff}
 .struct .bulk-bar .btn{padding:5px 11px;font-size:12.5px;border-radius:7px}
 .struct .btn.ghost.danger{background:#fde8e8;color:#b3261e}
+/* ---- Aeroporti: colonne, stati e sottotitoli di riga (erano stili in linea) ----
+   Le pill di stato portano un'icona: in linea la `.pill` è `inline-block` e l'icona ci si appoggia col
+   baseline, storta di un pixel e mezzo. Dentro le tabelle diventano scatole flessibili. */
+.struct .res-table .pill{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+.struct .res-table td.col-state,.struct .res-table td.col-act{white-space:nowrap}
+.struct .res-table td .apt-flag{margin-left:6px}
+.struct .res-table td .apt-sub{font-size:11px}
+/* Riga dell'anagrafica già assegnata: si vede col chip, non si può scegliere. */
+.struct .res-table tbody tr.row-done>td{background:#f2fbf5}
+/* Pannello incastonato: il titolo di sezione non ha i 34px di respiro di una sezione di pagina. */
+.struct .st-pane .section-title{margin:0 0 10px}
 /* Celle non editabili cliccabili per selezionare la riga. */
 .struct .res-table td.sel-cell{cursor:pointer;user-select:none}
 .struct .res-table tbody tr:hover td.sel-cell{background:#f2f5ff}
@@ -1131,6 +1433,7 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .derived2 .none{font-size:12.5px;color:var(--ink-soft);font-style:italic}
 .eff-op{color:var(--warn-ink)}.eff-ho{color:var(--ok-ink)}.eff-col{color:var(--danger-ink)}
 @media(max-width:1180px){.topo-layout{grid-template-columns:1fr}.sim{position:static}}
+
 
 /* ---- Aggiunte vIPI (non nel mockup) ---- */
 .collapsed-strip>summary{cursor:pointer;list-style:none;color:var(--ink-soft);background:#f7f8fc;border:1px dashed var(--ivao-lightblue);border-radius:9px;padding:9px 13px;font-style:italic;font-size:13.5px}
@@ -1280,6 +1583,10 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .editor-toc .toc-lab{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ivao-blue);padding:0 2px}
 /* Editor: menu-sezioni laterale (TOC) sticky, griglia 2 colonne (toc | contenuto). Vedi EditorToc.razor. */
 .ed-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;align-items:start}
+/* ⚠️ `min-width:0` sui figli della griglia e' obbligatorio quanto il `min-height:0` nei flex: senza, la
+   colonna centrale si rifiuta di stringersi sotto il contenuto e una tabella larga 920px fa scorrere in
+   orizzontale LA PAGINA invece del suo riquadro — misurato, 106px a 1280 e 362 a 1024. */
+.ed-layout>*{min-width:0}
 /* con rail azioni a destra: toc | contenuto | azioni */
 .ed-layout.with-rail{grid-template-columns:248px minmax(0,1fr) 232px}
 .ed-rail{position:sticky;top:70px;align-self:start;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow)}
@@ -1317,6 +1624,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .help-more:hover{text-decoration:underline}
 /* accanto a controlli allineati a destra: apri il popover verso sinistra */
 .help-hint.left .help-pop{left:auto;right:0}
+/* Le stesse due direzioni, ma decise dalla MISURA all'apertura (placeHelpPop in vipi-ui.js) invece che da chi
+   scrive la pagina: un «?» in fondo a una barra elastica non sa, mentre lo si scrive, dove sara' a schermo. */
+.help-hint.help-flip .help-pop{left:auto;right:0}
+.help-hint.help-up .help-pop{top:auto;bottom:calc(100% + 6px)}
+/* Aiuti lunghi (un paragrafo che prima stava in pagina): a 270px diventavano una colonna di dodici righe. */
+.help-hint.wide .help-pop{width:360px}
 
 /* ── Pagina Guida ─────────────────────────────────────────────────────────────── */
 .guida-toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 18px;margin:6px 0 24px;
@@ -1449,17 +1762,26 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-pane-body{flex:1;min-height:0;overflow:auto;padding:10px 12px}
 .xt-pane-empty{padding:26px 18px;color:var(--ink-soft);font-size:13px}
 .xt-pane-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);margin:0 0 4px}
-/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato. */
-.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap}
-/* Barra ACC: la scelta è un interruttore, e prendeva l'altezza di una sezione titolata sopra il lavoro vero. */
-.xt-accbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+/* Colonne di contesto della vista a elenco: dicono DI CHI è la riga, e non devono rubare spazio al dato.
+   A colonna fissa il troppo si taglia con i puntini invece di sfondare la tabella — e il valore intero resta
+   nel `title`, perché un callsign troncato è un altro callsign. */
+.xt-ctx{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Scelta ACC: un interruttore, non una sezione titolata — e dal 19 agosto 2026 nemmeno una fascia propria:
+   vive nella stessa riga dei filtri, in testa, perché è l'AMBITO di tutto ciò che segue. */
 .xt-acclbl{font-family:var(--font-head);font-weight:700;font-size:11px;text-transform:uppercase;
   letter-spacing:.04em;color:var(--ink-soft);margin-right:2px}
+/* Il taglio fra ambito e filtri: si vede che sono due cose, senza spenderci una riga. */
+.xt-barsep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
 /* Commutatore di vista: due bottoni attaccati, così si leggono come un interruttore a due posizioni. */
 .xt-viewsw{display:flex;gap:2px}
 /* Cella scrivibile: il bersaglio è tutta la cella, perché quella VUOTA è proprio quella da riempire. */
-.xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:1px 4px;margin:-1px -4px;
-  cursor:text}
+/* ⚠️ Il padding NEGATIVO ricopre esattamente quello della cella: la riga dimagrisce, il bersaglio no. La
+   scrittura in cella e' il gesto principale di questa pagina, e con le celle a 3px un bersaglio «alto quanto il
+   testo» sarebbe sceso a ~22px — piu' stretto di un dito su un portatile. Se un giorno cambia il padding di
+   `.xfe-table td`, questi due numeri vanno cambiati con lui: sono la stessa misura scritta due volte, ed e' il
+   prezzo per non far saltare la riga quando la cella si apre. */
+.struct .xt-cellclick{display:block;min-width:40px;min-height:20px;border-radius:6px;padding:3px 9px;
+  margin:-3px -9px;cursor:text}
 .xt-cellclick:hover{background:#f2f5ff;box-shadow:inset 0 0 0 1px var(--line)}
 .xt-cellclick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 /* Il campo prende esattamente il posto del testo che sostituisce: se la cella cambiasse altezza, la riga
@@ -1540,17 +1862,29 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-row2 .field{flex:1;min-width:90px}
 .xt-preview{margin-top:12px;padding:8px 10px;background:#f7f9ff;border:1px solid var(--line);border-radius:8px;font-size:11.5px}
 .xt-preview b{font-family:var(--font-head);color:var(--ivao-blue)}
-.xt-prev{font-style:italic;color:var(--ink-soft)}
+/* ⚠️ L'anteprima era 55px, PIU' ALTA della riga di dati che commenta (43): una riga di corsivo pagata piu'
+   del dato. Sta sotto la sua clausola e non ha bisogno di respiro sopra — quello lo da' gia' la riga. */
+.res-table tr.xfer-prev>td{padding:1px 9px 5px}
+.xt-prev{font-style:italic;color:var(--ink-soft);font-size:11.5px}
 
 /* Tabella: sola lettura, quindi le colonne possono restare strette e leggibili. */
 .xt-drag{width:26px;text-align:center}
-.xt-acts{width:118px;white-space:nowrap;text-align:right}
+/* La larghezza la decide il colgroup (profilo albero o elenco): qui resta solo la forma. In albero le
+   azioni sono TRE, in elenco QUATTRO — la quarta è il salto all'accordo — e una misura sola per due
+   contenuti diversi tagliava l'ultimo tasto. Misurate a schermo: servono 128px e 163px. */
+.xt-acts{white-space:nowrap;text-align:right}
 .xt-facet{color:var(--ink-soft);font-size:11.5px}
 .res-table tr.xt-sel>td{background:#eef2ff;box-shadow:inset 3px 0 0 var(--ivao-blue)}
 .res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
 
-.xt-bar{align-items:center;margin:6px 0 12px}
+.xt-bar{align-items:center;margin:0 0 12px}
 .xt-search{flex:1;min-width:180px;margin-bottom:0}
+/* Il «?» sta ATTACCATO al comando che spiega, non a mezza barra di distanza: senza questo prende il gap da 8px
+   come tutti gli altri elementi e sembra un elemento a sé. */
+.xt-bar .help-hint{margin-left:-4px}
+/* Un tasto spento in barra resta LEGGIBILE: dice «qui non c'è niente da rivedere», che è un'informazione, non
+   un comando disattivato per sbaglio. Senza, a 0 sbiadiva fino a sembrare un guasto. */
+.xt-bar .btn:disabled{opacity:.55;cursor:default}
 .xt-count{font-size:12px;white-space:nowrap}
 .xt-grow{flex:1}
 .xt-check{font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
@@ -1561,10 +1895,19 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
    ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
    con due blocchi il piede del primo finirebbe a metà pagina, che è peggio del problema che risolveva. */
-.xt-dirblock{margin:0 0 14px}
+.xt-dirblock{margin:0 0 6px}
 .xt-dirblock:last-child{margin-bottom:0}
-.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0 6px;margin-bottom:4px;
-  border-bottom:1px solid var(--line)}
+/* La testata del verso RESTA mentre le clausole scorrono: scendendo di trenta righe si perdeva di vista in
+   quale verso si stava scrivendo, ed è l'unica cosa che non si può ricostruire guardando la riga. Ogni blocco
+   spinge via il precedente da sé — è il comportamento naturale di due sticky consecutivi.
+   Lo sfondo è obbligatorio: senza, le righe passano SOTTO il testo della testata e si legge un impasto. */
+.xt-dirhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0 3px;margin-bottom:2px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3;background:#fff}
+/* I tasti della testata (clausola, incolla, modifica, elimina) sono comandi di CONTORNO: a grandezza piena
+   alzavano la testata a 51px, cioe' piu' di una riga di dati. A 31 la testata pesa quanto cio' che dice. */
+.xt-dirhead .btn{padding:3px 9px;font-size:12px}
+/* Stessa ragione nella testata del riquadro: e' l'accordo aperto, non una barra di strumenti. */
+.xt-pane-h .btn{padding:4px 10px;font-size:12.5px}
 /* Il verso di casa porta il filo blu: è quello su cui si lavora, e l'occhio deve trovarlo senza leggere. */
 .xt-out>.xt-dirhead{border-bottom-color:var(--ivao-blue)}
 .xt-dirtoggle{display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;
@@ -1578,6 +1921,61 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 
 /* Utilità nate dagli stili inline della pagina. */
 .xt-h2{margin-bottom:2px}
+/* ---- Testata in una riga: titolo · «?» · stato del lock ----
+   `.doc-head` è space-between fra DUE blocchi; qui i blocchi sono tre e il terzo deve stare a destra da solo,
+   quindi l'allineamento torna a sinistra e la barra del lock si spinge da sé con `margin-left:auto`.
+   ⚠️ La `.lockbar` porta `margin-bottom:14px` e `.lockbar .btn{margin-left:auto}`: erano giusti quando era una
+   fascia per conto suo, e in riga spaccano l'allineamento. Si azzerano QUI, non nel componente: la barra la
+   usano anche struttura e nuovo documento, dove fascia è ancora la forma giusta. */
+.xt-head{justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.xt-head .xt-h2{margin:0}
+.xt-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
+.xt-head .lockbar .btn{margin-left:0}
+/* ---- Struttura: stessa testata in una riga (titolo · «?» · sei tasti · lock) ----
+   Le ragioni sono quelle di `.xt-head` qui sopra, lock compreso; cambia solo che in mezzo ci sono i sei
+   collegamenti alle altre pagine admin. Perdono il `max-width:560px` e l'allineamento a destra che avevano
+   da blocco a sé, e si stringono per stare in riga: sotto ~1280px vanno a capo sotto il titolo. */
+.st-head{justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+/* ---- Testata che resta in cima (opt-in) ----
+   Serve dove la pagina scorre davvero e i comandi di scrittura stanno lassù: senza, per salvare si risale
+   tutta la tabella. Stesse quote della testata della vista live (.reduced-top): sotto la topbar (62px), sopra
+   le righe e sotto la topbar stessa (45). Sfondo pieno perché ci passa sotto il contenuto, e i lati coprono
+   il respiro del .wrap con un margine negativo — altrimenti si vedono le righe scorrere di fianco. */
+.st-head.sticky{position:sticky;top:62px;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
+  margin-left:calc(clamp(24px,3.5vw,64px) * -1);margin-right:calc(clamp(24px,3.5vw,64px) * -1);
+  padding:10px clamp(24px,3.5vw,64px)}
+.st-head .st-h2{margin:0}
+.st-head .struct-nav{max-width:none;justify-content:flex-start;gap:6px}
+.st-head .struct-nav .btn{padding:5px 9px;font-size:12px}
+.st-head .lockbar{margin:0 0 0 auto;padding:5px 12px;flex:none}
+/* ---- Esito dell'ultima operazione, in testata ----
+   Sta fra i comandi e il lock perché è la RISPOSTA a quei comandi. Come fascia sotto la testata spingeva in giù
+   la tabella su cui si stava lavorando, ed è il difetto che questa famiglia di pagine ha già pagato altrove.
+   `flex:0 1 auto` + `min-width:0`: si stringe fino a mandare a capo il proprio testo invece di spingere via il
+   lock, e non taglia mai (un messaggio troncato è mezza informazione). Quando non c'è, non occupa nulla. */
+.st-head .st-msg{display:inline-flex;align-items:center;gap:7px;flex:0 1 auto;min-width:0;max-width:660px;
+  font-size:12.5px;font-weight:600;line-height:1.35;border:1px solid;border-radius:14px;padding:5px 6px 5px 12px}
+.st-head .st-msg.ok{background:#dafbe7;border-color:#a7e9c1;color:var(--ok-ink)}
+.st-head .st-msg.warn{background:#fff3cf;border-color:#e2b400;color:var(--warn-ink)}
+/* Avanzamento di un'azione lunga: stesso posto e stessa forma del chip d'esito (i due non convivono mai),
+   colore neutro perché non è ancora né un successo né un guaio. */
+.st-head .st-msg.prog{background:#eef1fb;border-color:#c3cdf0;color:var(--ivao-blue)}
+.st-head .st-msg.prog .spin{display:inline-block;width:12px;height:12px;flex:none;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+.st-head .st-msg .lnk-mini{flex:none;margin-left:2px}
+.st-head .st-msg [data-icon]{flex:none}
+.st-head .st-msg-t{min-width:0;overflow-wrap:anywhere}
+.st-head .st-msg .tclose{flex:none;border:0;background:transparent;cursor:pointer;font-size:14px;color:inherit;
+  opacity:.6;padding:0 6px;line-height:1}
+.st-head .st-msg .tclose:hover{opacity:1}
+.st-head .lockbar .btn{margin-left:0}
+/* Avvisi dell'import: un chip che li CONTA e li apre al clic, non un callout in fascia alto quanto l'elenco
+   che porta. È un <details> con la stessa meccanica del «?» (popover assoluto, riposizionato da placeHelpPop),
+   quindi eredita anche la regola «chiuso non deve esistere»; qui il summary non è l'icona ma il chip. */
+.st-head .st-warns>summary{cursor:pointer}
+.st-head .st-warns>summary .sh-chip{cursor:pointer}
+.st-head .st-warns[open]>summary .sh-chip{background:#ffe9a8}
+.st-head .st-warns .help-pop-body ul{font-size:12px;line-height:1.5}
 .xt-chips{display:flex;flex-wrap:wrap;gap:8px}
 .xt-lbl-soft{font-weight:400}
 .xt-hint{font-size:11.5px}
@@ -1594,6 +1992,22 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   font-family:var(--font-body);font-size:12px}
 .xt-dirchip:hover{filter:brightness(.94)}
 .xt-dirchip-x{font-size:13px;opacity:.75}
+/* ---- Il form della sezione, senza il buco ----
+   ⚠️ Il campo degli aeroporti è alto tre righe (etichetta, chip, comandi); descrizione è un input solo. In un
+   `inline-form` allineato in fondo stavano in RIGA, e sopra la descrizione restava un vuoto alto quanto due
+   righe — il difetto si vedeva a ogni «nuova sezione». Gli aeroporti scendono su una riga PROPRIA (`flex-basis`
+   100% + `order` in coda, così restano gli ultimi anche quando il tipo di traffico li fa sparire), e in prima
+   riga stanno le tre cose brevi: traffico, verso, descrizione.
+   Flex e non griglia: sotto ai 900 px continua ad andare a capo da sé, senza una media query in più.
+   ⚠️ Il selettore è lungo apposta: `.struct .inline-form .field{flex:1}` vale tre classi, e un `.xt-secform
+   .xt-f-apts` da due perdeva in silenzio — misurato a schermo, gli aeroporti restavano in riga con la
+   descrizione e il buco era ancora lì. */
+.struct .inline-form.xt-secform{align-items:flex-end}
+.struct .inline-form.xt-secform .field.xt-f-apts{order:9;flex:1 0 100%;min-width:0}
+/* Chip e comandi d'aggiunta sulla stessa riga: erano due blocchi impilati, e la riga in più non la chiedeva
+   lo spazio — la chiedeva il fatto che fossero due contenitori. */
+.xt-aptline{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.xt-aptline .xt-barsep{align-self:center;height:22px;margin:0 2px}
 /* Ci deve stare un ICAO, non una frase: senza questo il picker eredita `min-width:150px; flex:1` dal campo
    dell'inline-form e spinge il verso fuori riga. */
 .xt-aptpick-narrow{flex:0 0 auto!important;min-width:0!important;width:96px}
@@ -1618,16 +2032,21 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-w96{width:96px}
 .xt-w130{width:130px}
 
-/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina. */
+/* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina.
+   ⚠️ Il contenitore `.sector-pick-wrap` DAVANTI non e' decorazione (regola 44). `.sector-pick` senza
+   contenitore e' anche l'elenco di CHIP in riga (`display:flex`, 500 righe piu' su): scritte nude, e piu' in
+   basso nel foglio, queste regole vincevano in silenzio su tutti gli altri usi — le frequenze collegate, i
+   settori del gruppo APP, le shape extra dell'AoR, le aree regolamentate diventavano un pannello ASSOLUTO
+   largo quanto la finestra, sovrapposto al documento, con la sua barra di scorrimento. */
 .sector-pick-wrap{position:relative}
-.sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
+.sector-pick-wrap .sector-pick{position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:2px;max-height:200px;overflow-y:auto;
   border:1px solid #c4cadb;border-radius:6px;background:#fff;box-shadow:0 6px 18px rgba(13,44,153,.14)}
-.sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
+.sector-pick-wrap .sector-pick .sp-item{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef1f7;
   background:transparent;padding:5px 9px;font-size:13px;cursor:pointer}
-.sector-pick .sp-item:last-child{border-bottom:0}
-.sector-pick .sp-item:hover{background:#f2f5ff}
-.sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
-.sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
+.sector-pick-wrap .sector-pick .sp-item:last-child{border-bottom:0}
+.sector-pick-wrap .sector-pick .sp-item:hover{background:#f2f5ff}
+.sector-pick-wrap .sector-pick .sp-item.on{background:#0D2C99;color:#fff;font-weight:600}
+.sector-pick-wrap .sector-pick .sp-empty{display:block;padding:6px 9px;color:#8a90a2;font-size:12px}
 .toast-fixed{position:fixed;right:18px;bottom:18px;z-index:60;max-width:380px;
   box-shadow:0 8px 24px rgba(13,44,153,.22);border-radius:8px}
 .toast-fixed .callout{margin:0}
@@ -1656,3 +2075,680 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   border:1px solid var(--ivao-blue);background:#eef2ff;color:var(--ivao-blue);font-weight:600}
 /* «Altro» è il tipo con cui un accordo NASCE: si legge come da fare, non come scelto. */
 .xt-kindsel.xt-unset{border-style:dashed;background:#fff;color:var(--ink-soft)}
+
+/* ---------- Editor aeroporto: riga-titolo, riquadro delle SID, colonne ----------
+   La riga-titolo tiene insieme titolo, «?», chip e comandi della sezione: i paragrafi d'aiuto che stavano
+   sempre a schermo (dodici, ~460px) sono diventati «?» e questa riga è dove si aprono. */
+.ed-h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.ed-h3 h3{margin:0}
+.ed-h3 .ln{flex:1;height:1px;background:var(--line);min-width:20px}
+.ed-h3-mini{margin:6px 0 0;font-size:12px}
+/* ⚠️ Il riquadro delle SID importate: prima la tabella stava in un `overflow:auto` SENZA altezza — un
+   contenitore di scorrimento che non scorre mai in verticale, dove `position:sticky` non si aggancia a
+   niente. Qui l'altezza è un tetto (`max-height`), non una misura: la sezione vive dentro una pagina che
+   scorre, quindi non c'è un «viewport meno ciò che sta sopra» da misurare — il riquadro è alto quanto gli
+   serve fino al tetto. Sotto il tetto non compare nessuna seconda barra. */
+.ed-pane{overflow:auto;max-height:min(64vh,660px);border:1px solid var(--line);border-radius:10px}
+.ed-pane .res-table{margin-bottom:0}
+/* Tabella delle SID importate: larghezze per CLASSE semantica e layout fisso, come la .sid-view del viewer.
+   Con `table-layout:auto` le colonne dei chip collassavano e Cat./WTC si impilavano in verticale: misurato,
+   128px di altezza per riga (206 righe = 26 353px di tabella). I chip non vanno a capo, e il min-width tiene
+   le colonne leggibili facendo scorrere il riquadro invece di spezzare le parole a metà. */
+/* ⚠️ Le larghezze vanno scritte con `.struct .res-table` davanti e verificate sul valore CALCOLATO: la
+   colonna della spunta ha già una regola `.struct .res-table td.col-chk{width:1%}` (pagina Aeroporti) che a
+   parità di peso vince in silenzio — misurato, la cella usciva 10px invece di 30 e la casella sbordava.
+   Base comune alle due tabelle SID (importate e manuali): stesse colonne, stessi comandi, stesse regole. */
+.sid-edit{table-layout:fixed}
+.struct .res-table.sid-edit th,.struct .res-table.sid-edit td{padding-left:7px;padding-right:7px;vertical-align:middle;white-space:nowrap}
+/* Anche le INTESTAZIONI si tagliano: senza, «CONDITION» sconfinava nella colonna accanto e si leggeva
+   «CONDITIONPRIORITÀ». Il nome per esteso resta nel `title` della cella. */
+.struct .res-table.sid-edit th{overflow:hidden;text-overflow:ellipsis}
+/* Nessuna cella va a capo: una riga a capo qui sono 50px moltiplicati per duecento righe. Chi non ci sta
+   taglia con i puntini (il valore intero resta nel dato, non è un campo). */
+.struct .res-table.sid-edit td.col-sid,.struct .res-table.sid-edit td.col-rwy,.struct .res-table.sid-edit td.col-trans,.struct .res-table.sid-edit td.col-type,.struct .res-table.sid-edit td.col-pub{overflow:hidden;text-overflow:ellipsis}
+/* I chip stanno in RIGA: è la ragione per cui la riga è alta 45px e non 128. */
+.sid-edit .tok-set{flex-wrap:nowrap}
+.sid-edit .tok{min-width:15px;padding:1px 3px}
+.sid-edit .ic-app{margin-left:2px}
+.struct .res-table.sid-edit input{width:100%;box-sizing:border-box}
+/* ⚠️ 76px e non 52: l'initial climb arriva a cinque cifre («11000») e il campo numerico porta anche le
+   frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato. */
+.struct .res-table.sid-edit .in-climb{width:76px}
+/* 64px = cinque caratteri PIU' le gronde del campo (9px per lato): cinque lettere sono il 95% dei fix veri
+   — misurato sul DB, 1403 righe su 1480 stanno in 3-5 lettere, le poche da 9-10 sono scarti del parser. Il
+   resto della colonna se lo prendono l'avviso e la casella «alias», non il testo. */
+.struct .res-table.sid-edit .in-fix{width:64px}
+.struct .res-table.sid-edit .ic-app{white-space:nowrap}
+.struct .res-table.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
+/* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
+.struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
+.struct .res-table.sid-edit td.dbl-pick{user-select:none}
+.struct .res-table.sid-edit tbody tr:hover td.dbl-pick{text-decoration:underline dotted var(--ivao-lightblue);text-underline-offset:3px}
+.struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+/* Due stati diversi, due segni diversi: scelta (blu, la riga intera) e modificata-non-salvata (giallo, come
+   la cella `lim-dirty` della pagina ACC). Una riga può essere entrambe le cose. */
+.struct .res-table tbody tr.row-dirty>td{background:#fffdf3}
+.struct .res-table tbody tr.row-dirty>td:first-child{box-shadow:inset 3px 0 0 #e2b400}
+.struct .res-table tbody tr.row-sel.row-dirty>td{background:#f4f2ec}
+.sh-chip .chip-n{opacity:.65;font-weight:600;margin-left:2px}
+/* --- SID: larghezze in PIXEL misurati, e Condition elastica ---------------------------------------
+   Le percentuali erano un gioco a somma zero: ogni pixel dato a Condition lo toglieva a una colonna che
+   poi tagliava il suo valore («CON…» al posto di «CONV»). Qui ogni colonna ha la larghezza che le serve
+   DAVVERO — misurata col font della tabella (Poppins 13px) sui valori veri del DB di sviluppo: 1480 SID,
+   nome fino a 12 caratteri (97px), fix fino a 10, transition «OKUNO» 47px, «CONV» 39px, pill «pubblica»
+   58px — più le gronde da 7px per lato.
+   Condition **non** ha larghezza: con `table-layout:fixed` la colonna senza misura si prende tutto lo
+   spazio che avanza. È l'unica colonna di prosa (fino a 59 caratteri nel DB) e l'unica che non potrà mai
+   bastare: così a larghezza piena diventa enorme, e il valore intero si legge comunque col passaggio del
+   mouse (`title`). Il `min-width` della tabella è la somma delle colonne fisse più il minimo di Condition:
+   sotto quella soglia scorre il riquadro, non si taglia niente. --- */
+/* 1020 = le colonne fisse (902) più un pavimento di ~118px per Condition: sotto quella soglia scorre il
+   riquadro (66px a 1600 con indice e rail; il tasto ⤢ li azzera e Condition sale a ~590px). */
+.sid-imported{min-width:1028px}
+.struct .res-table.sid-imported th.col-chk,.struct .res-table.sid-imported td.col-chk{width:28px}
+.struct .res-table.sid-imported th.col-fix,.struct .res-table.sid-imported td.col-fix{width:146px}
+.struct .res-table.sid-imported th.col-sid,.struct .res-table.sid-imported td.col-sid{width:111px}
+.struct .res-table.sid-imported th.col-rwy,.struct .res-table.sid-imported td.col-rwy{width:46px}
+.struct .res-table.sid-imported th.col-trans,.struct .res-table.sid-imported td.col-trans{width:61px}
+.struct .res-table.sid-imported th.col-type,.struct .res-table.sid-imported td.col-type{width:53px}
+.struct .res-table.sid-imported th.col-climb,.struct .res-table.sid-imported td.col-climb{width:132px}
+.struct .res-table.sid-imported th.col-cat,.struct .res-table.sid-imported td.col-cat{width:101px}
+.struct .res-table.sid-imported th.col-wtc,.struct .res-table.sid-imported td.col-wtc{width:84px}
+.struct .res-table.sid-imported th.col-prio,.struct .res-table.sid-imported td.col-prio{width:70px}
+.struct .res-table.sid-imported th.col-pub,.struct .res-table.sid-imported td.col-pub{width:90px}
+/* --- SID manuali: stesse colonne meno spunta e pubblicazione, più i tasti di riga. --- */
+/* ⚠️ Nelle manuali quasi tutte le celle sono CAMPI, e un campo vuole le sue gronde (9px per lato) più —
+   dove c'è `list=` — la freccina del datalist, altri ~16px: a 47px il segnaposto «CONV» si leggeva «C» e la
+   pista «35» spariva. Stessa regola dell'altra tabella: pixel misurati sulle colonne che hanno una misura,
+   e Condition senza larghezza, che si prende quello che avanza. */
+.sid-manual{min-width:1068px}
+.struct .res-table.sid-manual th.col-chk,.struct .res-table.sid-manual td.col-chk{width:28px}
+.struct .res-table.sid-manual th.col-fix,.struct .res-table.sid-manual td.col-fix{width:76px}
+.struct .res-table.sid-manual th.col-sid,.struct .res-table.sid-manual td.col-sid{width:94px}
+.struct .res-table.sid-manual th.col-rwy,.struct .res-table.sid-manual td.col-rwy{width:66px}
+.struct .res-table.sid-manual th.col-trans,.struct .res-table.sid-manual td.col-trans{width:74px}
+.struct .res-table.sid-manual th.col-type,.struct .res-table.sid-manual td.col-type{width:82px}
+.struct .res-table.sid-manual th.col-climb,.struct .res-table.sid-manual td.col-climb{width:132px}
+.struct .res-table.sid-manual th.col-cat,.struct .res-table.sid-manual td.col-cat{width:101px}
+.struct .res-table.sid-manual th.col-wtc,.struct .res-table.sid-manual td.col-wtc{width:84px}
+.struct .res-table.sid-manual th.col-prio,.struct .res-table.sid-manual td.col-prio{width:70px}
+.struct .res-table.sid-manual th.col-pub,.struct .res-table.sid-manual td.col-pub{width:90px}
+.struct .res-table.sid-manual th.col-act,.struct .res-table.sid-manual td.col-act{width:66px}
+.struct .res-table.sid-manual td.col-act .btn{margin-left:2px;padding:5px 8px}
+/* ⤢ Larghezza piena: indice e rail spariscono e la colonna centrale prende tutta la pagina (a 1600 sono
+   946px che diventano 1536 — il 62% in più per dodici colonne). Il tasto per tornare indietro sta nella
+   riga-titolo delle SID, che resta a schermo. */
+/* ⚠️ Due classi non bastano: `.ed-layout.with-rail` (tre colonne) sta piu' in basso nel foglio e a parita'
+   di peso vincerebbe — misurato, la colonna centrale finiva nella PRIMA traccia (248px) invece che a tutta
+   larghezza, perche' con `display:none` i due `aside` escono dalla griglia e il centro scala di posto. */
+.ed-layout.with-rail.sid-wide,.ed-layout.sid-wide{grid-template-columns:minmax(0,1fr)}
+.ed-layout.sid-wide>.toc,.ed-layout.sid-wide>.ed-rail{display:none}
+/* ⚠️ Il collasso a una colonna sotto i 1080 esisteva gia' (media query piu' in alto) ma NON si applicava:
+   `.ed-layout.with-rail` e' dichiarata piu' in basso nel foglio e a parita' di peso vinceva. Misurato: a
+   1024 la colonna centrale restava 391px con indice e rail ai lati. Va riscritto DOPO, con le stesse classi. */
+@media(max-width:1080px){
+  .ed-layout,.ed-layout.with-rail,.ed-layout.with-rail.sid-wide{grid-template-columns:minmax(0,1fr)}
+  .ed-layout>.toc,.ed-layout>.ed-rail{position:static;max-height:none}
+}
+
+/* ---- Editor ACC, giro densità del 20 agosto 2026 (docs/feature/2026-08-20-editor-acc-densita-ui.md) ----
+   Le regole nuove stanno in CODA al foglio: a parità di peso vince l'ultima (regola 56). */
+
+/* Chip di stato «va bene» in testata: il verde della lockbar, che il set di .sh-chip non aveva. */
+.sh-chip.ok{background:#dafbe7;color:var(--ok-ink);border-color:#a7e9c1}
+/* Comando spinto a fondo riga nella testata, come fa la .lockbar sulle pagine di elenco. */
+.st-head .st-head-end{margin-left:auto}
+
+/* Blocco della vIPI ACC come <details>: il titolo è la maniglia. Il chevron è quello delle card di sezione
+   (.cb-chev) così i due livelli di collasso si riconoscono come lo stesso gesto. */
+details.acc-block > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:6px 2px;user-select:none;scroll-margin-top:84px}
+details.acc-block > summary::-webkit-details-marker{display:none}
+details.acc-block > summary:hover .acc-block-h{color:var(--ivao-lightblue)}
+details.acc-block > summary .cb-chev{transition:transform .15s;color:var(--ivao-lightblue);font-size:13px}
+details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
+.acc-block-h{margin:0}
+/* Conteggio delle sezioni: a blocco chiuso è l'unica cosa che dice quanto c'è dentro. */
+.acc-block-n{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.acc-block-edit{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+
+/* Frequenze in modifica: le due frecce d'ordine sono il pezzo piu' alto della riga. Rimpicciolite qui e non
+   nel componente, che e' condiviso col documento pubblico — li' la riga si legge, non si lavora. */
+.freq-edit td .btn{padding:2px 9px;font-size:12px}
+.freq-edit td{vertical-align:middle}
+
+/* ⚠️ Un «?» CHIUSO allargava la pagina. Il popover e' `position:absolute`, quindi non spinge niente in flusso,
+   ma il suo box resta nell'area scorribile anche a <details> chiuso: misurato a 1280, il «?» del rail arrivava
+   a 1305px e la pagina scorreva di lato. Chiuso non esiste; all'apertura torna e placeHelpPop lo ribalta. */
+.help-hint:not([open]) .help-pop{display:none}
+
+/* ⚠️ La riga documento di /vsop/versioni si SFASCIAVA quando si apriva una conferma in linea. Trovato
+   guardando lo screenshot, non da un numero: la pagina non sforava e non era piu' alta, ma la conferma
+   («Eliminare definitivamente «...»? L'operazione e' irreversibile») entra NELLA riga flex e si prende
+   ~500px, e senza un pavimento il titolo col suo `flex:1` si comprimeva finche' «vLOA — LIBB ↔ LAAA» non
+   andava a capo una parola per riga, e le pill «AIRAC 2607» con lui. Due regole: la riga puo' andare a capo,
+   e il blocco del titolo ha una larghezza minima sotto la quale non scende. Le pill non si spezzano mai:
+   «AIRAC 2607» su tre righe non e' una pill, e' un incidente.
+   ⚠️ Il pavimento e' 200px, non 260: a 260 la riga PIU' CARICA (bozza + senza release + lock + apri + nascondi
+   + cestino + sblocca = ~1053px dentro i 1072 utili a 1280) andava a capo lo stesso, e una riga alta il doppio
+   in un giro di densita' e' il difetto che si stava togliendo. Misurato, non stimato. */
+.doc-rowi{flex-wrap:wrap}
+.doc-rowi>.dr-main{flex:1 1 200px;min-width:200px}
+.doc-rowi .pill{white-space:nowrap}
+.doc-rowi .inline-confirm .ic-prompt{max-width:520px}
+
+
+/* ---- Audit: il registro che cresce da solo per sempre (22 agosto 2026) ----
+   Un pannello solo, misurato da vipiFitViewport, e dentro scorre soltanto la tabella: il `thead` resta.
+   Il `calc` e' il valore di PARTENZA prima che il JS misuri, non la verita'.
+   ⚠️ Le regole vanno scritte con `.struct` davanti e verificate col valore CALCOLATO: senza, `.res-table
+   td{padding:7px 10px}` e le larghezze di `.res-table` vincono in silenzio (trappola gia' pagata sui SID). */
+.struct .audit-pane{height:calc(100vh - 250px);min-height:320px;padding:18px}
+/* ⚠️ Misurato: col padding di fondo del `.wrap` la pagina restava 52px piu' alta del viewport e
+   scorreva per niente. vipiFitViewport misura fin dove arriva il pannello, non cosa gli sta sotto. */
+.wrap.struct:has(.audit-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .audit-pane{height:auto;min-height:0}}
+.struct .audit-pane .struct-bar .htree-search{flex:1 1 200px;min-width:150px}
+/* Un chip a zero qui e' NEUTRO, non verde: «0 eliminazioni» non e' una coda vuota da festeggiare come su
+   Confinanti, e' solo un fatto del periodo scelto (regola 108). */
+.struct .audit-pane button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* La nota del troncamento sta FUORI dallo scroller: e' una condizione dell'elenco, non una sua riga. */
+.struct .audit-pane .audit-note{margin:0 0 8px;color:var(--warn-ink)}
+/* Colonne a larghezza fissa tranne «Cosa», che e' la prosa e prende quello che avanza. Il min-width della
+   tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .audit-table{table-layout:fixed;min-width:820px}
+.struct .audit-table td{padding:5px 10px;vertical-align:top}
+.struct .audit-table .c-when{width:132px;white-space:nowrap}
+.struct .audit-table .c-who{width:170px}
+.struct .audit-table .c-ev{width:126px}
+.struct .audit-table .c-target{width:230px}
+.struct .audit-table .c-what{min-width:200px;color:var(--ink-soft)}
+.struct .audit-table .c-ev .pill{white-space:nowrap}
+
+
+/* ---- Sorgenti: una tabella sola, sei righe, e sono sei per sempre (22 agosto 2026) ----
+   Un pannello misurato da vipiFitViewport. Il `calc` e' il valore di PARTENZA prima che il JS misuri.
+   ⚠️ Qui il `thead` appiccicato NON serve e non c'e': l'altezza di questa pagina non dipende dai dati.
+   ⚠️ Le regole vanno scritte con `.struct` davanti e verificate col valore CALCOLATO: senza, le larghezze
+   di `.res-table` vincono in silenzio (trappola gia' pagata sui SID). */
+.struct .sorg-pane{padding:18px}
+/* Il tetto lo scrive vipiCapViewport (max-height, non height): vedi il commento in vipi-ui.js.
+   ⚠️ Misurato: il `.wrap` porta 70px di padding sotto il riquadro, e il tetto NON li vede — misura fin dove
+   arriva il riquadro, non cosa gli sta sotto. Senza questa riga la pagina scorreva di 9px a 1280x800 e di 52
+   a 1024x768 per del bianco. È la stessa trappola gia' pagata su Audit (li' erano 52). */
+.wrap.struct:has(.sorg-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .sorg-pane{max-height:none}}
+/* Colonne fisse tranne la categoria, che porta nome e descrizione e prende quello che avanza. Il min-width
+   della tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .sorg-table{table-layout:fixed;min-width:780px}
+.struct .sorg-table td{padding:9px 10px;vertical-align:top}
+.struct .sorg-table .c-cat{min-width:220px}
+.struct .sorg-table .c-prov{width:230px}
+.struct .sorg-table .c-upd{width:250px}
+.struct .sorg-table .c-where{width:180px}
+.struct .sorg-table .pill{white-space:nowrap}
+/* La descrizione e' il DATO (quali colonne la sorgente possiede), non prosa d'aiuto: sta sotto il nome. */
+.struct .sorg-table .sorg-desc{font-size:11px;margin-top:2px;overflow-wrap:anywhere}
+/* Il messaggio della sorgente sta in DUE righe: per intero e' nel `title`. Con un errore di rete lungo
+   quattro righe la riga SID veniva alta il doppio di tutte le altre. */
+.struct .sorg-table .sorg-err{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--danger-ink)}
+/* La spunta e la parola sono la stessa informazione: una cella sola, non una colonna in piu'.
+   ⚠️ NON si usa `.se-row` qui, benche' sia la classe delle righe con una casella: `.se-row input{flex:1}` e'
+   pensata per i campi di testo e si applica anche alle CHECKBOX, che si allargavano a riempire la cella —
+   a schermo le caselle delle sei righe non erano incolonnate, e lo spostamento dipendeva dalla lunghezza
+   della parola accanto. Una classe non puo' significare due cose. */
+.struct .sorg-table .sorg-pick{display:flex;align-items:center;gap:7px;cursor:pointer}
+.struct .sorg-table .sorg-pick input{flex:none;margin:0}
+/* ⚠️ `.lnk-mini` e' una pillola col bordo: a `display:block` si stirava per tutta la colonna e a schermo
+   sembrava un CAMPO DI TESTO. Sta larga quanto la parola e va a capo da se'. */
+.struct .sorg-table .c-where a.lnk-mini{display:inline-block;margin:0 5px 4px 0}
+/* Chi ha deciso: fuori dalla tabella, in coda, perche' e' una nota sull'insieme e non su una riga. */
+.struct .sorg-pane .sorg-who{margin:12px 0 0}
+/* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in
+   cui un import puo' essere fermo da mesi senza che nessuno l'abbia deciso (ImportSids, luglio 2026). */
+.struct .sorg-pane .sorg-never{color:var(--warn-ink);font-weight:600}
+
+
+/* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----
+   A sinistra i rilievi, che crescono senza tetto (otto fanno 480px di tabella, cinquanta ne farebbero
+   tremila): riquadro misurato con `vipiFitViewport` — `height`, non `max-height` come su Sorgenti, perche'
+   qui il contenuto e' piu' alto dello schermo per mestiere — e dentro scorre solo la tabella, col `thead`
+   fermo. A destra due argomenti diversi, compatti e che non crescono.
+   ⚠️ Non e' elenco+dettaglio (regola 140): a destra non c'e' il dettaglio di una riga di sinistra. Il
+   pannello si giustifica perche' sono TRE DOMANDE in una pagina — e perche' la card delle immagini stava
+   sotto 1 349px e ci sarebbe restata per sempre.
+   Il `calc` e' il valore di PARTENZA prima che il JS misuri, non la verita'. */
+.struct .diag-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .diag-layout>.panel{min-width:0;padding:18px;overflow:hidden}
+/* ⚠️ vipiFitViewport misura fin dove arriva il riquadro, non cosa gli sta sotto: senza questo il padding di
+   fondo del `.wrap` lascia uno scorrimento inutile (70px su Sorgenti, 52 su Audit). */
+.wrap.struct:has(.diag-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .diag-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct .diag-layout .struct-bar .htree-search{flex:1 1 180px;min-width:140px}
+/* Un chip a zero qui e' NEUTRO, non verde: zero puo' anche voler dire «quella sonda non gira su questo
+   provider», che non e' una buona notizia — e' l'assenza di una notizia (regola 108). */
+.struct .diag-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+/* Colonne fisse tranne il dettaglio, che e' prosa e prende quello che avanza. Il min-width della tabella e'
+   la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .diag-table{table-layout:fixed;min-width:700px}
+.struct .diag-table td{padding:6px 10px;vertical-align:top}
+.struct .diag-table .c-cat{width:170px}
+/* ⚠️ Misurata sul valore più lungo che il produttore sa generare («Settore d’aeroporto LIRF_APP»),
+   non a occhio: a 190px alcune righe andavano a capo e altre no, e l’elenco sembrava sghembo. */
+.struct .diag-table .c-ent{width:230px;overflow-wrap:anywhere}
+.struct .diag-table .c-det{min-width:220px;overflow-wrap:anywhere}
+.struct .diag-table .c-where{width:120px}
+.struct .diag-table .pill{white-space:nowrap}
+/* La categoria sotto la pill della gravita': la gravita' qualifica la categoria, non e' una colonna sua. */
+.struct .diag-table .diag-cat{font-weight:700;margin-top:3px;overflow-wrap:anywhere}
+.struct .diag-table .c-where a.lnk-mini{display:inline-block;margin:0}
+/* Da quando e' la fotografia: accanto ai tasti, non sotto il titolo. */
+.struct .st-head .diag-quando{font-size:12px;white-space:nowrap}
+/* ---- La colonna di destra: due schede impilate che si dividono l'altezza ---- */
+.struct .diag-side{display:flex;flex-direction:column;gap:18px;min-width:0;min-height:0}
+.struct .diag-side>*{min-height:0}
+.struct .diag-side .panel,.struct .diag-side .block{margin:0;padding:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.struct .diag-side .st-scroll{margin:0}
+/* La testata della scheda e' la stessa delle pagine, in piccolo: titolo e «?» su una riga. */
+.struct .diag-card-head{margin-bottom:10px}
+.struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
+.struct .diag-admin{min-width:0}
+.struct .diag-admin td{padding:5px 8px}
+/* Spaziatura interna delle schede della Diagnostica: era `style="margin-top:Npx"` sparso nel markup, con tre
+   valori diversi per la stessa cosa. */
+.struct .diag-side .diag-mt{margin:10px 0 0}
+/* La tabella delle immagini scorre dentro la scheda, non allunga la pagina. */
+.struct .diag-side .res-table{min-width:0}
+.struct .diag-side .img-thumb{max-width:48px;height:auto}
+
+
+/* ---- Nuovo documento: i campi si dispongono, non si impilano (22 agosto 2026) ----
+   Cinque campi larghi 940px l'uno sotto l'altro per contenere «LIRR · Roma ACC» erano la ragione dei 542px
+   del blocco vLOA. Una griglia a due colonne dice anche qual e' la COPPIA, che e' la cosa che la vLOA e'.
+   ⚠️ Niente riquadro misurato qui: il contenuto e' corto e FISSO (quattro schede, tendine che non crescono),
+   quindi ne' `vipiFitViewport` ne' `vipiCapViewport` — la pagina ci sta e basta (regola 150). */
+.struct .nd-pane{padding:18px;overflow:auto}
+/* ⚠️ Il `.wrap` porta un padding di fondo che il tetto NON vede (misura fin dove arriva il riquadro, non
+   cosa gli sta sotto): 70px su Sorgenti, 52 su Audit. */
+.wrap.struct:has(.nd-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .nd-pane{max-height:none;overflow:visible}}
+.struct .nd-seg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+/* Le schede sono larghe quanto il loro testo: `flex:1` le stirerebbe su tutta la riga (vedi `.seg`). */
+.struct .nd-seg .btn{flex:0 0 auto;padding:7px 14px;font-size:12.5px}
+.struct .nd-form{max-width:720px}
+.struct .nd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+@media(max-width:760px){.struct .nd-grid{grid-template-columns:1fr}}
+/* ⚠️ I campi NON usano `.se-row`: quella e' la riga di un form e la sua `input{flex:1}` e' pensata per i
+   campi di testo (trappola gia' pagata su Sorgenti con le checkbox). Qui la larghezza la da' la griglia. */
+.struct .nd-grid .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.struct .nd-grid .field label{font-size:11.5px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);
+  text-transform:uppercase;letter-spacing:.03em}
+.struct .nd-grid .field input,.struct .nd-grid .field select{width:100%;min-width:0;border:1px solid var(--line);
+  border-radius:7px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:#fff}
+.struct .nd-grid .field select:disabled{background:#f4f6fb;color:var(--ink-soft)}
+/* Il tasto sta in fondo, dove finisce quello che gli serve, e il perche' di uno spento gli sta ACCANTO. */
+.struct .nd-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.struct .nd-hint{font-size:12px}
+/* Le risposte «non c'e' niente qui» non sono prosa d'aiuto: restano in pagina e dicono dove si rimedia. */
+.struct .nd-vuoto{margin:12px 0 0;font-size:12px}
+.struct .nd-msg{margin:0 0 12px}
+/* La barra del lock sta dentro il pannello, sopra la sola scheda che crea. */
+.struct .nd-pane .lockbar{margin:0 0 12px}
+
+/* ---- Incarichi: l'elenco a sinistra, l'incarico scelto a destra ----
+   Il layout e' quello di Permessi/Versioni (stessa griglia, stesso vipiFitViewport): il selettore e'
+   condiviso piu' sopra, qui stanno solo le cose che sono di QUESTA pagina.
+   Le regole nuove vanno in coda al foglio, o perdono in silenzio contro quelle condivise (regola 56). */
+.struct .task-layout .tk-table{table-layout:fixed;min-width:700px}
+/* ⚠️ Le larghezze sono un gioco a somma zero (regola 60): guardando la pagina, TUTTI e undici i titoli
+   uscivano troncati mentre cinque colonne misurabili si prendevano 636px. Il titolo e' IL dato della riga —
+   e' lui la colonna di prosa, e le altre stanno nel minimo che non taglia il loro contenuto. */
+.struct .task-layout .tk-table .c-who{width:132px}
+.struct .task-layout .tk-table .c-state{width:100px}
+.struct .task-layout .tk-table .c-prio{width:84px}
+/* ⚠️ 104px tagliavano «AIRAC 2606 ⚠» proprio sul segno del ritardo — cioe' la cosa che quella colonna
+   esiste per dire. Misurato guardando la pagina, non da un'asserzione. */
+.struct .task-layout .tk-table .c-due{width:124px}
+.struct .task-layout .tk-table .c-doc{width:136px}
+/* La colonna di prosa e' l'unica senza larghezza: si prende quello che avanza (regola 60). Il resto non va
+   a capo — una riga alta il doppio si paga su ogni incarico. */
+.struct .task-layout .tk-table td.c-who,.struct .task-layout .tk-table td.c-due,
+.struct .task-layout .tk-table td.c-doc,.struct .task-layout .tk-table td.c-task{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* L'incarico in ritardo si vede scorrendo, senza aprire niente: il fondo perde contro la riga scelta
+   (regola 27), che deve restare riconoscibile anche quando e' in ritardo. */
+.struct .task-layout .tk-table tr.tk-late>td{background:rgba(209,36,47,.06)}
+.struct .task-layout .tk-table tr.tk-late.picked>td{background:#e8ecff}
+
+/* La riga dell'avanzamento per editore: un'etichetta e i chip, che filtrano. */
+.struct .task-layout .tk-people{margin-top:-4px}
+.struct .task-layout .tk-people-lbl{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+
+/* Il pannello di destra: descrizione, tre date, documento, stato, riassegnazione. */
+.struct .task-layout .tk-desc{margin:0 0 10px;font-size:13.5px}
+.struct .task-layout .tk-meta{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-bottom:10px}
+.struct .task-layout .tk-doc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.struct .task-layout .tk-block{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.struct .task-layout .tk-block .vmeta{margin-bottom:6px}
+.struct .task-layout .tk-states{display:flex;gap:6px;flex-wrap:wrap}
+/* Lo stato in cui l'incarico e' GIA' resta a schermo, spento: sparire farebbe ballare i tasti sotto il
+   puntatore proprio mentre ci si sta mirando (regola 31). */
+.struct .task-layout .tk-states .btn.on{background:#e8ecff;border-color:var(--ivao-blue);color:var(--ivao-blue)}
+
+/* ---- I miei incarichi (/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
+   Cinque colonne da 230px a 1280 sono quattro incarichi e la pagina scorreva (854 su 800). Il tabellone e'
+   misurato con vipiCapViewport (max-height): il contenuto e' corto — gli incarichi di UNA persona — quindi
+   si stira solo fin dove serve, ma misurato lo e' comunque, o a 1024x768 e da zoom 1.25 si torna a scorrere. */
+/* ⚠️ `grid-template-rows:minmax(0,1fr)` non e' decorazione: senza, la riga implicita della griglia e' `auto`
+   e si dimensiona sul CONTENUTO, ignorando il max-height misurato — il tabellone cresceva e la pagina
+   scorreva lo stesso (misurato: 952 su 900 con 12 incarichi propri). E' la regola del `min-width:0` sui figli
+   di griglia, sull'asse verticale: il minimo automatico di una traccia e' il suo contenuto, e va tolto a mano. */
+.struct.tasks-mine .tk-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:minmax(0,1fr);gap:12px;align-items:stretch;min-height:0}
+@media(max-width:900px){.struct.tasks-mine .tk-board{grid-template-columns:1fr;max-height:none}}
+.struct.tasks-mine .tk-col{display:flex;flex-direction:column;min-width:0;min-height:0}
+/* L'intestazione della colonna resta ferma: e' l'unica cosa che dice DOVE si sta guardando quando si scorre. */
+.struct.tasks-mine .tk-col-head{position:sticky;top:0;z-index:1;background:var(--paper,#fff);
+  display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:13.5px;
+  padding:4px 0 6px;border-bottom:2px solid var(--line)}
+.struct.tasks-mine .tk-col-body{flex:1;min-height:0;overflow:auto;padding:8px 4px 0;margin:0 -4px}
+.struct.tasks-mine .tk-empty{margin:6px 2px 0;font-size:12px}
+
+/* La card: quattro tasti «-> stato» diventano un avanzamento + un menu, e la fila non va piu' a capo. */
+.struct.tasks-mine .tk-card{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;
+  background:var(--paper,#fff)}
+.struct.tasks-mine .tk-card.late{border-color:var(--ivao-red)}
+.struct.tasks-mine .tk-card-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.struct.tasks-mine .tk-card-desc{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.struct.tasks-mine .tk-card-doc{display:inline-block;font-size:12px;margin-top:4px}
+.struct.tasks-mine .tk-card-acts{display:flex;align-items:center;gap:6px;margin-top:8px}
+.struct.tasks-mine .tk-card-acts .tk-go{font-size:11.5px;padding:2px 8px;white-space:nowrap}
+/* ⚠️ `flex:1` la faceva larga META' della scheda, per il gesto che si fa di rado: guardando la pagina il
+   menu pesava piu' dell'avanzamento, che e' il passo che si fa davvero (regola 119, in piccolo). */
+.struct.tasks-mine .tk-card-acts .tk-more{font-size:11.5px;padding:2px 4px;height:auto;flex:0 0 auto;
+  width:auto;max-width:130px}
+.struct.tasks-mine .tk-card-acts .tk-del{margin-left:auto}
+
+/* Concluso e bloccato: presenti, contati, chiusi. */
+.struct.tasks-mine .tk-closed{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.struct.tasks-mine .tk-closed>summary{cursor:pointer;font-family:var(--font-head);font-size:13px;
+  display:flex;align-items:center;gap:6px}
+.struct.tasks-mine .tk-closed-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:8px;margin-top:10px}
+.struct.tasks-mine .tk-closed-body .tk-card{margin-bottom:0}
+
+/* ⚠️ La stessa regola gia' pagata da Audit: la misura arriva fin dove arriva il riquadro e NON vede cosa gli
+   sta sotto — qui i 70px di respiro in fondo al `.wrap`. Misurato: l'ultima colonna chiusa finiva a 882 dentro
+   900, e la pagina era alta 952 e scorreva per il solo padding. Cinquantadue pixel, gli stessi di Audit. */
+.wrap.struct.tasks-mine{padding-bottom:18px}
+
+/* Il form del promemoria personale: una riga sola, il titolo elastico. */
+.struct.tasks-mine .tk-new{margin-bottom:12px}
+.struct.tasks-mine .tk-new-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.struct.tasks-mine .tk-new-row .app-in{flex:1;min-width:220px}
+.struct.tasks-mine .tk-new-row .tk-w-prio{flex:0 0 130px;min-width:0}
+.struct.tasks-mine .tk-new-row .tk-w-due{flex:0 0 180px;min-width:0}
+.struct.tasks-mine .tk-new .help{margin:6px 0 0}
+
+/* ⚠️ Non 1.35/1 come Permessi: li' la riga e' «nome + chip», qui e' un TITOLO in prosa, e a 1.35 usciva
+   troncato su tutte le righe. La destra resta larga abbastanza per il form di creazione (misurata). */
+.struct .task-layout{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+/* Sei chip di stato piu' il ritardo schiacciavano la ricerca al suo minimo (150px, ereditato da Permessi,
+   dove i chip sono meno): a schermo si leggeva «Cerca per titolo, person…». */
+.struct .task-layout .struct-bar .htree-search{flex:1 1 210px;min-width:190px}
+/* Il chip «In ritardo» conta e filtra come gli altri: `warn` lo faceva sembrare GIA' ACCESO — guardando la
+   pagina si legge come un filtro attivo che nessuno ha chiesto. Colora il numero, non lo stato. */
+.struct .task-layout .sh-chip.tk-late-chip .chip-n{background:#f6d55c;color:#5a4600}
+.struct .task-layout .sh-chip.tk-late-chip.on .chip-n{background:#fff;color:#5a4600}
+
+/* ---- Menu «+ Blocco» degli editor (DocumentSectionsEditor) ----
+   Quattro tasti sotto OGNI sezione erano quattro righe di comandi ripetute per ogni sezione di ogni editor,
+   per un gesto che si fa qualche volta. Uno solo, col tipo scelto dopo. <details> nativo: si apre senza
+   circuito Blazor, e la delega in vipi-ui.js lo chiude al clic su una voce o fuori. */
+/* ⚠️ Il menu si apre DI LATO, in linea. La prima versione cadeva sotto in `position:absolute` ed era
+   ritagliata: misurato, 172px di altezza di cui 165 invisibili, tagliati da `.coord-sub{overflow:hidden}`.
+   Spostarlo a destra restando assoluto non basta — `overflow:hidden` taglia in tutte le direzioni, e vicino
+   al fondo della card sarebbe tagliato uguale. In linea non c'è niente da ritagliare, e lo spazio a destra
+   della riga era vuoto (856px misurati a 1024). `flex-wrap`: se non ci sta va a capo DENTRO il flusso, e la
+   card cresce invece di tagliare. */
+.blk-add{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+/* ⚠️ Il marcatore di serie va tolto in DUE modi: `list-style` copre Firefox, lo pseudo-elemento WebKit copre
+   Chrome ed Edge. Con uno solo resta il triangolino dentro il tasto. */
+.blk-add>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;flex:none}
+.blk-add>summary::-webkit-details-marker{display:none}
+.blk-add>summary::marker{content:""}
+/* ⚠️ Esplicito, e non lasciato al browser: con `display:flex` su un <details> il contenuto non-summary resta
+   un flex item, e chi lo nasconde a menu chiuso è una regola dell'UA su cui non conviene contare. */
+.blk-add:not([open])>.blk-add-menu{display:none}
+.blk-add-menu{display:flex;gap:4px;flex-wrap:wrap;align-items:center;
+  padding:3px 6px;border-left:2px solid var(--line)}
+/* Le voci sono larghe quanto il loro nome: e' una fila, non una colonna, e un nome tagliato sarebbe un
+   altro nome (regola 33). */
+.blk-add-menu .btn{flex:none;white-space:nowrap}
+.blk-add-menu .btn:hover{background:#eef1fb}
+
+/* ---- vLOA: quali settori stanno NEL DOCUMENTO (editor AoR) ----
+   Erano `.aor-chip` come i chip che AccAor disegna sessanta pixel piu' su, e i due gesti non c'entrano
+   niente: questi scrivono nel documento, quelli accendono un poligono per chi guarda. Un elenco con caselle
+   non si confonde con una fila di chip, e in piu' dice QUANTI settori sono dentro. */
+.vloa-aor-pick{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.vloa-aor-pick .help{margin:2px 0 8px}
+.vloa-aor-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px}
+.vloa-aor-row{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:6px;cursor:pointer;min-width:0}
+.vloa-aor-row:hover{background:#eef1fb}
+/* ⚠️ La casella NON prende `flex:1`: e' la regola dei campi di testo, e su una checkbox la stira a riempire
+   la cella lasciando l'elenco non incolonnato (gia' pagata sulla pagina Sorgenti). */
+.vloa-aor-row input[type=checkbox]{flex:none;margin:0}
+.vloa-aor-row .sw{flex:none;width:12px;height:12px;border-radius:3px;border:1px solid}
+.vloa-aor-row .vloa-aor-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Il callsign e' quello che DISTINGUE (quattro settori di Atene si chiamano tutti «Athinai Radar»): sta
+   accanto al nome, in tono minore, ma non sparisce mai per primo. */
+.vloa-aor-row .vloa-aor-name .muted{font-size:11.5px}
+.vloa-aor-row.off{opacity:.55}
+.vloa-aor-row .pill{flex:none}
+
+/* ---- Riga-titolo di una sezione negli editor (DocumentSectionsEditor) ----
+   Titolo piu' pill piu' fino a cinque comandi: andava a capo, e una sezione CHIUSA misurava 92px invece di
+   ~50. Su dieci sezioni sono 900px di sole intestazioni — che si pagano anche dopo aver premuto «Comprimi
+   tutto», cioe' proprio quando si e' chiesto di non vederle.
+   Il titolo si stringe (e tronca) prima dei comandi: e' lui l'elemento elastico, gli altri sono nomi. */
+.ed-layout .dse-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap;min-width:0}
+.ed-layout .dse-head>h3,.ed-layout .dse-head>h4{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-size:19px}
+.ed-layout .dse-head>h4{font-size:16px}
+/* I comandi non si stringono e non vanno a capo; il gruppo scorre solo se davvero non ci sta. */
+.ed-layout .dse-head>.btn,.ed-layout .dse-head>.pill,.ed-layout .dse-head>.help-hint,
+.ed-layout .dse-head>.inline-confirm{flex:none}
+.ed-layout .dse-head .btn{padding:3px 9px;font-size:12.5px}
+/* Il campo di rinomina resta elastico: li' si SCRIVE, ed e' l'unica cosa che deve avere spazio. */
+.ed-layout .dse-head>input.app-in{flex:1 1 auto;min-width:120px}
+
+/* ---- Testata degli editor: il titolo si STRINGE, i comandi no ----
+   Il titolo di un editor puo' essere lungo quanto vuole («Editor vLOA — LIBB ↔ LGGG», «Editor APP Pescara
+   Approach»): misurato, a 1024px i pezzi sommavano 992 in 983 e la riga andava a capo per nove pixel. In una
+   riga «prosa + comandi» a cedere dev'essere la prosa (regola 111): il titolo tronca, i comandi restano nomi
+   interi — un tasto con l'etichetta tagliata e' un altro tasto (regola 33). */
+.editor-bar .st-head>.st-h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-bar .st-head>.pill,.editor-bar .st-head>.sh-chip,.editor-bar .st-head>.btn{flex:none;white-space:nowrap}
+
+/* ---- La topbar sotto i 1400px: tre scaglioni, per priorita' ----
+   ⚠️ Fino al 22 agosto 2026 non c'era UNA media query sulla topbar: non era un difetto da limare, era una
+   cosa mai fatta. Misurato, la barra aveva una larghezza minima INCOMPRIMIBILE di 1385px (1395 in inglese) e
+   il numero non cambiava fra 1280 e 1024 — da li' in giu' la pagina scorreva in orizzontale, e non era la
+   pagina a sforare: dentro il `.wrap` non usciva niente, su editor, home e vIPI ACC.
+
+   Ogni scaglione toglie cio' che serve MENO, e niente sparisce: quello che si comprime resta raggiungibile.
+   ⚠️ E gli `aria-label` restano INTERI dove il testo se ne va: un tasto che diventa un'icona non diventa
+   muto — e' la regola del `title` sui tasti accorciati, applicata all'accessibilita'. */
+
+/* Scaglione 0 (~1500): si stringe lo SPAZIO, non si toglie niente. −30px (gap 18→12 fra quattro pezzi,
+   padding 22→16 per lato). */
+@media (max-width: 1500px) {
+  .topbar{gap:12px;padding:0 16px}
+}
+
+/* Scaglione 1 (~1500): il badge staff perde il testo e resta l'icona. E' l'unico pezzo che non e' ne' un
+   comando ne' uno stato che cambia: «chi sei» lo sai gia'. −110px.
+   ⚠️ La soglia e' 1500 e non 1400, e a dirlo e' stato il `nowrap`: finche' i pezzi potevano andare a capo
+   DENTRO se stessi, a 1440 la barra sembrava stare — si spezzavano il marchio e il badge live, e
+   `scrollWidth` non se ne accorgeva. Vietato il wrap, il difetto e' venuto fuori: 1513px minimi contro 1440.
+   Il wrap non risolveva niente, nascondeva. */
+@media (max-width: 1500px) {
+  .topbar .staff-badge .sb-t{display:none}
+  .topbar .staff-badge{padding:6px 9px}
+}
+
+/* Scaglione 2 (~1300): «Editor» e «Incarichi» a sole icone, la ricerca si chiude in un'icona e si apre al
+   clic a piena riga sotto la barra, il badge live resta il solo pallino col suo `title`.
+   ⚠️ La soglia e' 1300, e ci sono arrivato SBAGLIANDO due volte in direzioni opposte. Prima troppo bassa
+   (1000, poi 1100): a 1024 la media query non scattava affatto e la barra restava a 1161. Poi troppo alta
+   nell'altro senso — misurando lo spazio libero a 1280 avevo letto **306px** e avevo abbassato la soglia a
+   1200 per tenere la ricerca aperta: quel numero era misurato con la ricerca CHIUSA, e riaprendola la barra
+   tornava a sforare di 31px. La misura giusta e' quella dello stato in cui la pagina si trovera', non di
+   quello in cui l'ho fotografata — e uno spazio libero non e' spazio disponibile finche' non ci si e' messo
+   dentro quello che dovrebbe starci.
+   ⚠️ `:focus-within` e non uno stato JS: si apre col fuoco da tastiera esattamente come col clic, e si
+   richiude da sola — nessuno stato da ricordare, niente che possa restare aperto. */
+@media (max-width: 1300px) {
+  /* Il sottotitolo del marchio: e' l'unica cosa della barra che non dice ne' dove sei ne' cosa puoi fare,
+     e col sottotitolo il marchio pesa 202px invece di 81. */
+  .topbar .brand small{display:none}
+
+  /* «Editor» e «Incarichi» diventano sole icone: sono comandi frequenti e restano, ma il loro nome si impara
+     al primo uso e il `title` lo ridà. −120px. */
+  .topbar .editor-btn .eb-t{display:none}
+  .topbar .editor-btn{padding:7px 10px}
+
+  /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
+     intera. Resta cliccabile e resta un link alla vista live. */
+  .topbar .live-badge .lb-t{display:none}
+  .topbar .live-badge{padding:6px 9px}
+
+  .topbar .top-search{position:relative;flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
+    transition:width .15s}
+  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
+  .topbar .top-search:focus-within{position:absolute;left:12px;right:12px;top:calc(100% + 6px);width:auto;
+    z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
+  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
+}
+
+/* ---- Pannello release: la riga sta in UNA riga ----
+   Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
+   scorre, non si legge riga per riga. L'ora esatta e la nota stanno nel `title` della riga: sono la verita'
+   e non si buttano, ma non e' quello che si guarda scorrendo. */
+/* ⚠️ `#p-release` davanti, e non `.rel-row` nuda: la riga porta DUE classi (`ver-row rel-row`) e il valore
+   calcolato restava quello di `.ver-row` — 11px 14px invece di 6px 10px. Vale la regola gia' scritta per le
+   pagine di struttura: una regola nuova si verifica sul valore CALCOLATO, non sul fatto di averla scritta
+   dopo. L'ancora del pannello e' un id, quindi la specificita' non e' in dubbio. */
+#p-release .rel-row{align-items:center;flex-wrap:nowrap;gap:10px;padding:5px 12px;margin-bottom:5px}
+/* I tasti della riga sono il vero pavimento dell'altezza: 39px l'uno, non il testo (19-25px). */
+#p-release .rel-row .btn{padding:3px 9px;font-size:12.5px}
+#p-release .rel-row .rel-lbl{flex:none;white-space:nowrap;font-size:13.5px}
+/* La meta e' l'unica cosa elastica: e' prosa, e cede lei prima dei tasti (regola 111). */
+#p-release .rel-row .rel-meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#p-release .rel-row .vact{flex:none;margin-left:0;gap:5px}
+#p-release .rel-row .vb{flex:none;min-width:0;font-size:13px}
+
+/* Le superate oltre le prime tre: presenti, contate, chiuse. */
+.rel-old{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.rel-old>summary{cursor:pointer;font-size:12.5px;color:var(--ink-soft);padding:2px 0}
+.rel-old>summary:hover{color:var(--ivao-blue)}
+.rel-old .ver-row{margin-top:4px}
+
+/* ---- Telefono: la barra cambia FORMA, non si comprime piu' ----
+   Sotto i 700px non c'era piu' niente da togliere in riga: misurato, la barra ha un pavimento di 959px che
+   non scende a nessuna larghezza — 959 anche a 375, con 4 comandi su 13 raggiungibili — e i soli codici ACC
+   sono 263px, due terzi di uno schermo da 375. Da qui il menu: in riga restano marchio, ricerca e «☰»;
+   dentro il menu tutto il resto, in un pannello a piena larghezza.
+   ⚠️ La soglia e' 900, e ci sono arrivato correggendomi: l'avevo scritta a 700 dando per buono che «il
+   tablet verticale sta comodo con la barra in riga». Misurato, NON sta: a 768 la barra restava a 959 e
+   sforava di 191px, con 10 comandi su 23 raggiungibili. Un'assunzione scritta in una carta resta
+   un'assunzione finche' non la si misura. */
+.tb-menu{display:none}
+.tb-menu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:34px;border-radius:9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+  color:#fff;font-size:17px;flex:none}
+.tb-menu>summary::-webkit-details-marker{display:none}
+.tb-menu>summary::marker{content:""}
+.tb-menu[open]>summary{background:#fff;color:var(--ivao-blue)}
+
+@media (max-width: 900px) {
+  .topbar{gap:10px;padding:0 12px}
+  .tb-menu{display:block}
+  /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
+  .topbar .acc-nav,.topbar .staff-badge,.topbar .zoom-ctrl,.topbar .live-badge,
+  .topbar .right>.editor-btn,.topbar .right>.user-chip{display:none}
+  .topbar .right{margin-left:auto;gap:8px}
+  /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
+  .topbar .brand div{display:none}
+  /* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
+  .topbar .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
+  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0}
+  .topbar .top-search:focus-within{position:absolute;left:10px;right:10px;top:calc(100% + 6px);width:auto;
+    z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
+  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
+
+  /* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
+  .tb-menu-pan{position:fixed;left:0;right:0;top:62px;z-index:44;background:var(--ivao-blue);
+    padding:10px 12px 14px;box-shadow:0 10px 26px rgba(13,44,153,.3);
+    max-height:calc(100vh - 62px);overflow:auto;display:flex;flex-direction:column;gap:2px}
+  .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:#dfe5ff;padding:11px 10px;border-radius:9px;
+    font-size:15px}
+  .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:#fff}
+  /* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
+  .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.18)}
+  .tb-menu-acc a{color:#cdd6ff;padding:9px 15px;border-radius:9px;font-family:var(--font-head);font-weight:600;
+    background:rgba(255,255,255,.1)}
+  .tb-menu-acc a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
+}
+
+/* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
+   ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice
+   laterale (che si adeguava) ma le TABELLE. Due cause diverse, e la prima cura ne ha coperta una sola:
+   `.sid-table` porta un `min-width:720px` DICHIARATO, mentre `.rwy-table` non dichiara niente e pretende 542
+   per il suo CONTENUTO. Serve tutte e due le cose — azzerare il minimo e far scorrere — e su TUTTE le
+   tabelle del viewer, non su un elenco di classi che si dimentica sempre la prossima.
+   E' la regola gia' scritta per gli editor: se il minimo che non taglia niente supera il contenitore, meglio
+   far scorrere il contenitore che mozzare dieci campi.
+   ⚠️ Solo dentro `.doc-layout`: negli editor le tabelle stanno gia' in `.st-scroll`, e un secondo
+   contenitore scorrevole darebbe due barre annidate. */
+@media (max-width: 900px) {
+  .wrap .block,.wrap .cb-body,.wrap .doc-main{min-width:0;max-width:100%}
+  /* ⚠️ `.wrap table` e non `.doc-layout table`: la prima versione copriva solo il viewer, e la pagina di
+     RICERCA — che mostra le stesse tabelle fuori da quel layout — restava a 569px su uno schermo da 375.
+     Un elenco di contenitori si dimentica sempre il prossimo: si prende tutto il contenuto e si ESCLUDE
+     dove non serve, invece del contrario.
+     `display:block` fa scorrere la tabella dentro di se'; `min-width:0` toglie i minimi dichiarati, che
+     sopra i 900 servono e sono misurati (le colonne SID sono calcolate col font sui valori veri del DB). */
+  .wrap table{display:block;overflow-x:auto;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+  /* ⚠️ Dentro gli scroller degli editor si RIPRISTINA: la' la tabella sta gia' in un contenitore che scorre,
+     e due barre annidate sono peggio di una pagina che scorre (regola 15). */
+  .st-scroll table,.ed-layout .st-scroll table{display:table;overflow-x:visible}
+  /* Un titolo lungo va a capo invece di allargare la card: «Settori di aerovia» pretendeva 411px su 390. */
+  .wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
+  /* ⚠️ E i risultati di ricerca: gli estratti riportano testo del documento, dove capitano sequenze senza
+     spazi (coordinate, elenchi di fix) che con `overflow-wrap` normale NON si spezzano e allargano tutto.
+     Misurato: `/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
+     «chi sfora» non compariva NESSUNO, perche' una volta allargato il viewport le righe ci stanno dentro.
+     Il colpevole si trova confrontando la pagina con e senza contenuto, non cercando chi sborda. */
+  .wrap .res-snip,.wrap .res-where,.wrap .prose,.wrap td,.wrap .vmeta{overflow-wrap:anywhere}
+  /* ⚠️ L'indice, che su desktop sta di lato, su telefono finisce IN CIMA e si mangiava il 31% della prima
+     schermata (260px su 844) — su un telefono piccolo quasi il 40%. Chi apre una vIPI dal telefono vuole
+     vedere il documento, non il suo sommario: resta, si vede che c'e', e scorre dentro di se'.
+     ⚠️ Va dopo la media query a 1080, che gli mette `max-height:none`: l'ordine nel foglio conta quanto il
+     peso, e una regola scritta prima perde in silenzio. */
+  .toc{max-height:34vh;overflow:auto}
+
+  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /vsop/{acc}/vipi i tre tasti sono 277px
+     e col titolo superavano lo schermo. Qui a cedere e' la RIGA, che va a capo. */
+  .doc-head{flex-wrap:wrap}
+  .doc-head>*{min-width:0}
+
+  /* ⚠️ 16px sui campi, e non e' una scelta tipografica: sotto quella soglia i browser mobile ZOOMANO da soli
+     quando il campo prende il fuoco, e il layout viewport resta allargato anche dopo. E' cosi' che la pagina
+     di ricerca misurava 569 su uno schermo da 375 pur non avendo UN SOLO elemento oltre il bordo — il
+     documento non sforava, era il viewport a essere largo. Nessuna misura del contenuto lo trova. */
+  .searchbar input,.top-search input,input.app-in,select.app-in,textarea.app-ta,.htree-search,.htree-select{font-size:16px}
+}

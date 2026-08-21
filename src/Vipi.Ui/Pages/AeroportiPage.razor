@@ -9,13 +9,68 @@
 @inject IEditAuthorizationService Authz
 @inject ILogger<AeroportiPage> Logger
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Apt_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap struct">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/admin/permessi">@L["Common_StaffArea"]</a> › <a href="/vsop/admin/sectorstructure">@L["Struct_Title"]</a> › <b>@L["Apt_Title"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px">@L["Apt_Title"]</h2><span class="muted">@L["Apt_Subtitle"]</span></div>
+    @* ---- Le pagine admin, dove stava la briciola di pane ----
+       La barra è al posto della briciola perché ne faceva già il lavoro e meglio: «Home › Staff Area ›
+       Structure › Airports» portava a tre posti che sono tutti qui dentro (o nel logo in topbar), diceva
+       «sei in Airports» come lo dice la voce accesa, e inventava una gerarchia — Aeroporti NON sta sotto
+       Struttura, sono pagine sorelle, e la barra le mostra per quello che sono. Le briciole erano anche già
+       divergenti fra loro: «Admin» portava a due indirizzi diversi a seconda della pagina.
+       Sopra il titolo e non sotto: il titolo deve toccare il contenuto che intitola. Da sotto, la barra si
+       infilava fra l'H2 e la sua prima sezione e li staccava.
+       ⚠️ Resta nuda, senza `@if` intorno: il filtro per autorizzazione lo fa il componente. *@
+    <AdminNav />
+
+    @* ---- Testata in UNA riga: titolo · «?» · comandi di PAGINA · esito · lock ----
+       Come in Struttura, ACC e Accordi (.st-head). Il sottotitolo diceva sempre a schermo ciò che il «?» dice
+       al clic. «Auto-assegna» sta qui e non nella riga-titolo dell'anagrafica: crea aeroporti, quindi tocca
+       *entrambe* le tabelle. Nessuna testata appiccicata: dopo questo giro la pagina non scorre più — sono i
+       due pannelli ad avere l'altezza misurata e a scorrere per conto loro. *@
+    <div class="doc-head st-head">
+        <h2 class="st-h2">@L["Apt_Title"]</h2>
+        <HelpHint Href="/vsop/guida#admin-aeroporti" AriaLabel="@L["Apt_HelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["Apt_HelpBody"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <nav class="struct-nav">
+                @* Niente spinner dentro i tasti: comparendo ne cambiava la larghezza e spostava i vicini.
+                   Lo stato «sto lavorando» lo dice il chip di avanzamento qui accanto, che è anche il posto
+                   da cui si interrompe. *@
+                <button class="btn primary" disabled="@(_busy || !_canEdit || _ivao is null)" @onclick="AutoAssign" title="@L["Apt_AutoAssignTitle"]">
+                    <Icon Name="plus" Size="14" /> @L["Apt_AutoAssignBtn"]
+                </button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit || _assigned.Count == 0)" @onclick="ReimportAll" title="@L["Apt_ReimportTitle"]">
+                    <Icon Name="refresh" Size="14" /> @L["Apt_ReimportBtn"]
+                </button>
+            </nav>
+            @* Avanzamento VERO delle azioni lunghe: «Re-importa tutti» sono 92 chiamate alla sorgente in fila
+               e prima si vedeva solo girare lo spinner. Il chip dice a che punto è, quanti sono falliti, e
+               porta l'interruzione — chi si accorge che la sorgente risponde male non aspetta le altre
+               ottanta. Occupa lo stesso posto del chip d'esito: i due non convivono mai. *@
+            @if (_prog is not null)
+            {
+                <span class="st-msg prog" role="status" aria-live="polite">
+                    <span class="spin"></span>
+                    <span class="st-msg-t">@ProgressLabel()</span>
+                    <button class="lnk-mini" title="@L["Apt_StopTitle"]" @onclick="() => _stopRequested = true" disabled="@_stopRequested">@L["Apt_Stop"]</button>
+                </span>
+            }
+            else if (_msg is not null || _ok is not null)
+            {
+                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
+                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_msg ?? _ok)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                </span>
+            }
+            @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+        }
     </div>
 
     @if (!Authz.IsAdmin)
@@ -24,72 +79,87 @@
     }
     else
     {
-        @if (_msg is not null)
-        {
-            <div class="callout warning"><span class="cic">⚠️</span><div>@_msg</div></div>
-        }
-        @if (_ok is not null)
-        {
-            <div class="callout"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_ok</div></div>
-        }
-
-        <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
-
+        @* Due pannelli alti quanto lo schermo meno ciò che sta sopra (misurato da vipiFitViewport a ogni
+           render): scorre solo il corpo di ciascuno. Prima erano due tabelle srotolate in una pagina da
+           13 745px, e quella di sinistra finiva a metà mentre a destra si continuava a scorrere. *@
         <div class="topo-layout">
             @* --- SINISTRA: aeroporti assegnati a una ACC --- *@
-            <div class="panel">
-                <div class="section-title"><h3>@L["Apt_AssignedTitle"] <span class="pill blue">@_assigned.Count</span></h3><span class="ln"></span>
-                    @if (_assigned.Count > 0)
-                    {
-                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportAll" title="@L["Apt_ReimportTitle"]">@if (_busy) { <span class="spin"></span> }↻ @L["Apt_ReimportBtn"]</button>
-                    }
+            <div class="panel st-pane">
+                @{ var shownAssigned = ShownAssigned(); var baseAssigned = BaseAssigned(); }
+                <div class="section-title">
+                    <h3>@L["Apt_AssignedTitle"] <span class="pill blue">@CountLabel(shownAssigned.Count, _assigned.Count)</span></h3>
+                    <span class="ln"></span>
                 </div>
-                <div class="block">
-                    <div class="se-row">
-                        <input style="flex:1" placeholder="@L["Apt_FilterIcaoName"]" @bind="_qAssigned" @bind:event="oninput" />
-                        <select @bind="_filterAcc" title="@L["Apt_FilterAccTitle"]">
-                            <option value="">@L["Apt_AllAccs"]</option>
-                            @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
-                        </select>
-                    </div>
+                @* Stessi campi di Struttura e ACC: la lente è disegnata nel campo, non scritta nel segnaposto.
+                   I tre chip sono uno STATO che prima si leggeva solo scorrendo 92 righe; stanno in gruppo
+                   così la barra va a capo in un punto solo, e ci sono sempre — spenti a zero, perché un chip
+                   che compare col contatore accorcia la riga sotto il puntatore. *@
+                <div class="struct-bar">
+                    <input class="htree-search" placeholder="@L["Apt_FilterIcaoName"]" @bind="_qAssigned" @bind:event="oninput" />
+                    <select class="htree-select" @bind="_filterAcc" title="@L["Apt_FilterAccTitle"]">
+                        <option value="">@L["Apt_AllAccs"]</option>
+                        @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
+                    </select>
+                    @{
+                        var nHidden = baseAssigned.Count(a => a.Sectors > 0 && a.IsHidden);
+                        var nNoSec = baseAssigned.Count(a => a.Sectors == 0);
+                        var nNoTwr = baseAssigned.Count(a => !a.HasTower);
+                    }
+                    <span class="sb-chips">
+                        <button class="sh-chip @(_stateFilter == StateFilter.Hidden ? "on" : "")" disabled="@(nHidden == 0)"
+                                title="@L["Apt_ChipHiddenTitle"]" @onclick="() => ToggleState(StateFilter.Hidden)">@L["Apt_ChipHidden", nHidden]</button>
+                        <button class="sh-chip @(nNoSec > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoSectors ? "on" : "")" disabled="@(nNoSec == 0)"
+                                title="@L["Apt_ChipNoSectorsTitle"]" @onclick="() => ToggleState(StateFilter.NoSectors)">@L["Apt_ChipNoSectors", nNoSec]</button>
+                        <button class="sh-chip @(nNoTwr > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoTwr ? "on" : "")" disabled="@(nNoTwr == 0)"
+                                title="@L["Apt_ChipNoTwrTitle"]" @onclick="() => ToggleState(StateFilter.NoTwr)">@L["Apt_ChipNoTwr", nNoTwr]</button>
+                    </span>
+                </div>
+                @* La barra delle azioni c'è SEMPRE ed è FUORI dal corpo che scorre: prima compariva alla prima
+                   spunta (misurato: +91px sotto il puntatore) e stava dentro l'area che scorre, quindi chi
+                   selezionava in fondo doveva risalire per confermare. *@
+                <div class="bulk-bar">
+                    <b>@L["Apt_NSelected", _selAssigned.Count]</b>
+                    @* «Deseleziona» per esteso erano 97px dei 697 della barra, e la barra andava a capo per
+                       tre: il nome resta nel title, il gesto è la ✕ (glifo monocromatico, non emoji). Sta
+                       attaccata al contatore che azzera, non in fondo: da sola in fondo era lei ad andare a
+                       capo per prima, e una riga in più di barra è una riga in meno di tabella. *@
+                    <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selAssigned.Count == 0)" @onclick="() => _selAssigned.Clear()">✕</button>
+                    <select @bind="_bulkMoveAcc" disabled="@(_busy || !_canEdit || _selAssigned.Count == 0)" title="@L["Apt_MoveToAcc"]">
+                        <option value="">@L["Apt_MoveToAcc"]</option>
+                        @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
+                    </select>
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit || _selAssigned.Count == 0 || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">@L["Apt_Move"]</button>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit || _selAssigned.Count == 0)" @onclick="GenerateDocs" title="@L["Apt_GenDocsTitle"]"><Icon Name="file" /> @L["Apt_GenDocs"]</button>
+                    <InlineConfirm TriggerClass="btn ghost danger" AriaLabel="@L["Apt_DeleteSelectedAria"]"
+                                   Prompt="@(L["Apt_DeleteSelectedPrompt", _selAssigned.Count].Value)"
+                                   Disabled="@(_busy || !_canEdit || _selAssigned.Count == 0)" OnConfirm="BulkDeleteAssigned">
+                        <Trigger><Icon Name="trash" /> @L["Apt_DeleteSelected"]</Trigger>
+                    </InlineConfirm>
+                </div>
+                <div class="st-scroll">
                     @if (_assigned.Count == 0)
                     {
                         <p class="help">@L["Apt_NoAssigned"]</p>
                     }
-                    else if (ShownAssigned().Count == 0)
+                    else if (shownAssigned.Count == 0)
                     {
                         <p class="help">@NoAssignedResults()</p>
                     }
                     else
                     {
-                        @if (_selAssigned.Count > 0)
-                        {
-                            <div class="bulk-bar">
-                                <b>@string.Format(L["Apt_NSelected"].Value, _selAssigned.Count)</b>
-                                <select @bind="_bulkMoveAcc">
-                                    <option value="">@L["Apt_MoveToAcc"]</option>
-                                    @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
-                                </select>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">@L["Apt_Move"]</button>
-                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="GenerateDocs" title="@L["Apt_GenDocsTitle"]">@if (_busy) { <span class="spin"></span> }<Icon Name="file" /> @L["Apt_GenDocs"]</button>
-                                <InlineConfirm TriggerClass="btn ghost danger" AriaLabel="@L["Apt_DeleteSelectedAria"]"
-                                               Prompt="@(string.Format(L["Apt_DeleteSelectedPrompt"].Value, _selAssigned.Count))" Disabled="@(_busy || !_canEdit)" OnConfirm="BulkDeleteAssigned">
-                                    <Trigger><Icon Name="trash" /> @L["Apt_DeleteSelected"]</Trigger>
-                                </InlineConfirm>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selAssigned.Clear()">@L["Apt_Deselect"]</button>
-                            </div>
-                        }
-                        <table class="res-table">
+                        @* `sticky-head`: nelle celle si SCRIVE (la ACC di competenza è una select per riga) e
+                           i nomi di colonna servono proprio quando sono fuori schermo. *@
+                        <table class="res-table sticky-head">
                             <thead><tr>
-                                <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(ShownAssigned().Count > 0 && ShownAssigned().All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
+                                <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(shownAssigned.Count > 0 && shownAssigned.All(a => _selAssigned.Contains(a.Id)))" @onchange="e => ToggleAllAssigned((bool)e.Value!)" /></th>
                                 <th class="col-icao">ICAO</th><th>ACC</th><th>@L["Apt_ColSectors"]</th><th>@L["Common_State"]</th><th></th>
                             </tr></thead>
                             <tbody>
-                                @foreach (var a in ShownAssigned())
+                                @foreach (var a in shownAssigned)
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
                                         <td class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectRow", a.Icao]" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
-                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted" style="font-size:11px">@a.Name</span></td>
+                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted apt-sub">@a.Name</span></td>
                                         <td>
                                             <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
@@ -106,28 +176,36 @@
                                             @a.Sectors
                                             @if (!a.HasTower)
                                             {
-                                                <span class="pill" style="background:#ffe9c7;color:#9a6700;margin-left:6px" title="@L["Apt_NoTwrTitle"]">⚠ @L["Apt_NoTwr"]</span>
+                                                <span class="pill amber apt-flag" title="@L["Apt_NoTwrTitle"]"><Icon Name="warning" Size="11" /> @L["Apt_NoTwr"]</span>
                                             }
                                         </td>
-                                        <td style="white-space:nowrap">
+                                        <td class="col-state">
+                                            @* 🚫 non ha equivalente nel set di icone: lo stato «nascosto perché senza settori»
+                                               usa `eye-off` in pill neutra, e il perché sta nel title. *@
                                             @if (a.Sectors == 0)
                                             {
-                                                <span class="pill" style="background:#eee;color:#666" title="@L["Apt_HiddenNoSectorsTitle"]">🚫 @L["Apt_HiddenNoSectors"]</span>
+                                                <span class="pill neutral" title="@L["Apt_HiddenNoSectorsTitle"]"><Icon Name="eye-off" Size="11" /> @L["Apt_HiddenNoSectors"]</span>
                                             }
                                             else if (a.IsHidden)
                                             {
-                                                <span class="pill" style="background:#ffe0e0;color:#b42318" title="@L["Apt_HiddenAdminTitle"]">🙈 @L["Apt_HiddenState"]</span>
+                                                <span class="pill red" title="@L["Apt_HiddenAdminTitle"]"><Icon Name="eye-off" Size="11" /> @L["Apt_HiddenState"]</span>
                                             }
                                             else
                                             {
-                                                <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["Apt_VisibleTitle"]">👁 @L["Apt_Visible"]</span>
+                                                <span class="pill green" title="@L["Apt_VisibleTitle"]"><Icon Name="eye" Size="11" /> @L["Apt_Visible"]</span>
                                             }
                                         </td>
-                                        <td style="white-space:nowrap">
+                                        <td class="col-act">
                                             <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@L["Apt_EditorProfileTitle"]">✎</a>
                                             @if (a.Sectors > 0)
                                             {
-                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleHidden(a)" title="@(a.IsHidden ? L["Apt_ShowTitle"] : L["Apt_HideTitle"])"><Icon Name="@(a.IsHidden ? "eye" : "eye-off")" /> @(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])</button>
+                                                @* Icona sola come le altre due della colonna: con l'etichetta la
+                                                   riga non ci stava nel pannello a 1280 e i tasti finivano
+                                                   oltre il bordo, raggiungibili solo scorrendo in orizzontale.
+                                                   Il nome resta nel title e nell'aria-label. *@
+                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleHidden(a)"
+                                                        aria-label="@(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])"
+                                                        title="@(a.IsHidden ? L["Apt_ShowTitle"] : L["Apt_HideTitle"])"><Icon Name="@(a.IsHidden ? "eye" : "eye-off")" /></button>
                                             }
                                             <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Apt_DeleteAria"]" TriggerTitle="@L["Apt_DeleteTriggerTitle"]"
                                                            Disabled="@(_busy || !_canEdit)" OnConfirm="() => Remove(a.Id, a.AccCode)"><Trigger><Icon Name="trash" /></Trigger></InlineConfirm>
@@ -141,85 +219,90 @@
             </div>
 
             @* --- DESTRA: anagrafica aeroporti IVAO (DB) --- *@
-            <div class="panel">
-                <div class="section-title"><h3>@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : _ivao.Count.ToString())</span></h3><span class="ln"></span>
-                    @if (_ivao is not null)
-                    {
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="AutoAssign" title="@L["Apt_AutoAssignTitle"]">@if (_busy) { <span class="spin"></span> }⟳ @L["Apt_AutoAssignBtn"]</button>
-                    }
+            <div class="panel st-pane">
+                @{ var shownIvao = ShownIvao(); var ivaoTotal = _ivao?.Count ?? 0; var nAssignedIvao = AssignedInDirectory(); }
+                <div class="section-title">
+                    <h3>@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : CountLabel(shownIvao.Count, ivaoTotal))</span></h3>
+                    @* La nota che stava qui sotto in prosa: la dice il «?» al clic, con la stessa chiave. *@
+                    <HelpHint Href="/vsop/guida#admin-aeroporti" AriaLabel="@L["Apt_IvaoHelpAria"]" ExtraClass="wide">
+                        @((MarkupString)L["Apt_IvaoIntro"].Value)
+                    </HelpHint>
+                    <span class="ln"></span>
                 </div>
-                <div class="block">
+                <div class="struct-bar">
+                    <input class="htree-search" placeholder="@L["Apt_FilterIcaoName"]" @bind="_qIvao" @bind:event="oninput" disabled="@(_ivao is null)" />
+                    @* 92 righe verdi su 221 erano rumore: gli aeroporti già assegnati si vedono di là. Il chip
+                       le riporta, spento di default e presente anche a zero. *@
+                    <span class="sb-chips">
+                        <button class="sh-chip @(_showAssignedIvao ? "on" : "")" disabled="@(nAssignedIvao == 0)"
+                                title="@L["Apt_ChipAssignedTitle"]" @onclick="() => _showAssignedIvao = !_showAssignedIvao">@L["Apt_ChipAssigned", nAssignedIvao]</button>
+                    </span>
+                </div>
+                @* L'assegnazione è SOLO qui: la cella «ACC… + assegna» per riga diceva la stessa cosa 221
+                   volte (221 select + 221 bottoni) e due comandi per lo stesso stato sono uno di troppo. *@
+                <div class="bulk-bar">
+                    <b>@L["Apt_NSelected", _selIvao.Count]</b>
+                    <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selIvao.Count == 0)" @onclick="() => _selIvao.Clear()">✕</button>
+                    <select @bind="_bulkAssignAcc" disabled="@(_busy || !_canEdit || _selIvao.Count == 0)" title="@L["Apt_AssignToAcc"]">
+                        <option value="">@L["Apt_AssignToAcc"]</option>
+                        @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
+                    </select>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit || _selIvao.Count == 0 || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">@L["Apt_AssignSelected"]</button>
+                </div>
+                <div class="st-scroll">
                     @if (_ivaoErr is not null)
                     {
-                        <div class="callout warning" style="margin-top:0"><span class="cic">🔒</span><div>@L["Apt_IvaoUnavailable"] @_ivaoErr</div></div>
+                        <div class="callout warning" style="margin-top:0"><span class="cic"><Icon Name="key" Size="18" /></span><div>@L["Apt_IvaoUnavailable"] @_ivaoErr</div></div>
                     }
                     else if (_ivao is null)
                     {
                         <p class="help">@L["Apt_LoadingIvao"]</p>
                     }
+                    else if (shownIvao.Count == 0)
+                    {
+                        <p class="help">@NoIvaoResults()</p>
+                    }
                     else
                     {
-                        <p class="muted" style="font-size:11.5px;margin:0 0 8px">@((MarkupString)L["Apt_IvaoIntro"].Value)</p>
-                        <div class="field"><input placeholder="@L["Apt_FilterIcaoName"]" @bind="_qIvao" @bind:event="oninput" /></div>
-                        @if (!_ivao.Any(a => Match(a.Icao, a.Name, _qIvao)))
-                        {
-                            <p class="help">@(string.Format(L["Apt_NoResultsFor"].Value, _qIvao))</p>
-                        }
-                        else
-                        {
-                            @if (_selIvao.Count > 0)
-                            {
-                                <div class="bulk-bar">
-                                    <b>@string.Format(L["Apt_NSelected"].Value, _selIvao.Count)</b>
-                                    <select @bind="_bulkAssignAcc">
-                                        <option value="">@L["Apt_AssignToAcc"]</option>
-                                        @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
-                                    </select>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(_bulkAssignAcc))" @onclick="BulkAssignIvao">@L["Apt_AssignSelected"]</button>
-                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => _selIvao.Clear()">@L["Apt_Deselect"]</button>
-                                </div>
-                            }
-                            <table class="res-table">
-                                <thead><tr>
-                                    <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
-                                    <th class="col-icao">ICAO</th><th>@L["Apt_ColAccFromDb"]</th><th>@L["Apt_ColAssignment"]</th>
-                                </tr></thead>
-                                <tbody>
-                                    @foreach (var ap in ShownIvao())
-                                    {
-                                        var assignedAcc = AssignedAccOf(ap.Icao);
-                                        var selectable = assignedAcc is null;
-                                        <tr class="@(selectable && _selIvao.Contains(ap.Icao) ? "row-sel" : null)" style="@(assignedAcc is not null ? "background:#dafbe7" : "")">
-                                            <td class="col-chk">
-                                                @if (selectable)
-                                                {
-                                                    <input type="checkbox" aria-label="@L["Apt_SelectRow", ap.Icao]" checked="@_selIvao.Contains(ap.Icao)" @onchange="e => ToggleIvao(ap.Icao, (bool)e.Value!)" />
-                                                }
-                                            </td>
-                                            <td class="col-icao @(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><b>@ap.Icao</b><br /><span class="muted" style="font-size:11px">@ap.Name</span></td>
-                                            <td class="@(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><span class="muted" style="font-size:12px">@(ap.AccCode ?? "—")</span></td>
-                                            <td>
+                        <table class="res-table sticky-head">
+                            <thead><tr>
+                                <th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(ShownIvaoUnassigned().Count > 0 && ShownIvaoUnassigned().All(a => _selIvao.Contains(a.Icao)))" @onchange="e => ToggleAllIvao((bool)e.Value!)" /></th>
+                                <th class="col-icao">ICAO</th><th>@L["Apt_ColAccFromDb"]</th>
+                                @* La colonna «Assegnazione» esiste solo quando c'è qualcosa da dirci: con i già
+                                   assegnati nascosti sarebbe una colonna di trattini larga un quarto di pannello. *@
+                                @if (_showAssignedIvao) { <th>@L["Apt_ColAssignment"]</th> }
+                            </tr></thead>
+                            <tbody>
+                                @foreach (var ap in shownIvao)
+                                {
+                                    var assignedAcc = AssignedAccOf(ap.Icao);
+                                    var selectable = assignedAcc is null;
+                                    <tr class="@(selectable && _selIvao.Contains(ap.Icao) ? "row-sel" : null) @(selectable ? null : "row-done")">
+                                        <td class="col-chk">
+                                            @if (selectable)
+                                            {
+                                                <input type="checkbox" aria-label="@L["Apt_SelectRow", ap.Icao]" checked="@_selIvao.Contains(ap.Icao)" @onchange="e => ToggleIvao(ap.Icao, (bool)e.Value!)" />
+                                            }
+                                        </td>
+                                        <td class="col-icao @(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><b>@ap.Icao</b><br /><span class="muted apt-sub">@ap.Name</span></td>
+                                        <td class="@(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)"><span class="muted">@(ap.AccCode ?? "—")</span></td>
+                                        @if (_showAssignedIvao)
+                                        {
+                                            <td class="@(selectable ? "sel-cell" : null)" @onclick="() => ClickIvao(ap.Icao)">
                                                 @if (assignedAcc is not null)
                                                 {
-                                                    <span style="color:#1a7f37;font-weight:700">✓ @assignedAcc</span>
+                                                    <span class="pill green"><Icon Name="check-circle" Size="11" /> @assignedAcc</span>
                                                 }
                                                 else
                                                 {
-                                                    var pick = _assignAcc.GetValueOrDefault(ap.Icao, "");
-                                                    <div class="assign-cell">
-                                                        <select disabled="@(_busy || !_canEdit)" value="@pick" @onchange="e => SetAssignAcc(ap.Icao, e.Value?.ToString())">
-                                                            <option value="">@L["Apt_AccOption"]</option>
-                                                            @foreach (var f in _accs) { <option value="@f.Code">@f.Code</option> }
-                                                        </select>
-                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit || string.IsNullOrEmpty(pick))" @onclick="() => Assign(ap)">@L["Apt_Assign"]</button>
-                                                    </div>
+                                                    <span class="muted">—</span>
                                                 }
                                             </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     }
                 </div>
             </div>
@@ -230,9 +313,9 @@
 @code {
     private IReadOnlyList<AccRow> _accs = Array.Empty<AccRow>();
     private IReadOnlyList<AirportAdminRow> _assigned = Array.Empty<AirportAdminRow>();
+    private Dictionary<string, string> _assignedByIcao = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<SourceAirport>? _ivao;
     private string? _ivaoErr;
-    private readonly Dictionary<string, string> _assignAcc = new(StringComparer.OrdinalIgnoreCase);
     private string _qAssigned = "", _qIvao = "";
     private string _filterAcc = "";   // filtro ACC sulla tabella di sinistra ("" = tutte)
     private bool _busy;
@@ -240,21 +323,65 @@
     private string? _msg;
     private string? _ok;
 
-    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+    // Filtro di stato dell'elenco assegnati: i tre chip della barra. Uno alla volta (sono tre tagli diversi
+    // dello stesso elenco, non tre spunte da sommare); ricliccato, torna a «tutti».
+    private enum StateFilter { All, Hidden, NoSectors, NoTwr }
+    private StateFilter _stateFilter = StateFilter.All;
+    // L'anagrafica IVAO mostra i NON assegnati: i già assegnati si vedono nel pannello di sinistra.
+    private bool _showAssignedIvao;
 
-    // selezione multipla (azioni bulk)
+    private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+    private void ClearStatus() { _msg = null; _ok = null; }
+
+    private void ToggleState(StateFilter f) => _stateFilter = _stateFilter == f ? StateFilter.All : f;
+
+    // selezione multipla (azioni di gruppo)
     private readonly HashSet<int> _selAssigned = new();
     private readonly HashSet<string> _selIvao = new(StringComparer.OrdinalIgnoreCase);
     private string _bulkMoveAcc = "", _bulkAssignAcc = "";
 
-    private List<AirportAdminRow> ShownAssigned() =>
+    // ---- Avanzamento delle azioni di gruppo ----
+    // Un ciclo di N scritture (o N chiamate alla sorgente) senza avanzamento a schermo è indistinguibile da
+    // un'applicazione bloccata: il chip di testata dice a che punto è e permette di fermarlo.
+    private sealed record BulkProgress(string Label, int Total, int Done, int Failed);
+    private BulkProgress? _prog;
+    private bool _stopRequested;
+
+    private string ProgressLabel()
+    {
+        var p = _prog!;
+        var s = $"{p.Label} {p.Done}/{p.Total}";
+        return p.Failed > 0 ? s + L["Apt_ProgFailed", p.Failed].Value : s;
+    }
+
+    // Elenco filtrato per ricerca e ACC: è la base su cui contano i chip di stato (un chip che contasse
+    // sull'elenco intero manderebbe la tabella a zero righe senza dire perché).
+    private List<AirportAdminRow> BaseAssigned() =>
         _assigned.Where(a => Match(a.Icao, a.Name, _qAssigned)
             && (string.IsNullOrEmpty(_filterAcc) || string.Equals(a.AccCode, _filterAcc, StringComparison.OrdinalIgnoreCase)))
             .ToList();
+
+    private List<AirportAdminRow> ShownAssigned() => BaseAssigned().Where(PassesState).ToList();
+
+    private bool PassesState(AirportAdminRow a) => _stateFilter switch
+    {
+        StateFilter.Hidden => a.Sectors > 0 && a.IsHidden,
+        StateFilter.NoSectors => a.Sectors == 0,
+        StateFilter.NoTwr => !a.HasTower,
+        _ => true
+    };
+
     private List<SourceAirport> ShownIvao() =>
-        (_ivao ?? Enumerable.Empty<SourceAirport>()).Where(a => Match(a.Icao, a.Name, _qIvao)).ToList();
+        (_ivao ?? Enumerable.Empty<SourceAirport>())
+            .Where(a => Match(a.Icao, a.Name, _qIvao) && (_showAssignedIvao || AssignedAccOf(a.Icao) is null))
+            .ToList();
+
     private List<SourceAirport> ShownIvaoUnassigned() =>
         ShownIvao().Where(a => AssignedAccOf(a.Icao) is null).ToList();
+
+    // Quanti, fra quelli che il filtro di ricerca lascia passare, sono già assegnati: è il conteggio del chip.
+    private int AssignedInDirectory() =>
+        (_ivao ?? Enumerable.Empty<SourceAirport>()).Count(a => Match(a.Icao, a.Name, _qIvao) && AssignedAccOf(a.Icao) is not null);
 
     private void ToggleAssigned(int id, bool on) { if (on) _selAssigned.Add(id); else _selAssigned.Remove(id); }
     private void ToggleAllAssigned(bool on)
@@ -282,10 +409,24 @@
         _ = LoadIvaoAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // ⚠️ L'altezza «schermo meno ciò che sta sopra» non è esprimibile in CSS: si MISURA, e si rimisura a
+        // ogni render perché sopra ci sono cose che compaiono e spariscono da sole (barra del lock, chip di
+        // esito o di avanzamento). Sotto i 900px la griglia è a una colonna e l'altezza fissa va TOLTA: un
+        // riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate.
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".topo-layout", 900); } catch (Exception) { }
+    }
+
     private async Task ReloadAsync()
     {
         _accs = await Struct.ListAccsAsync();
         _assigned = await Struct.ListAllAirportsAsync();
+        // Indice per ICAO: l'anagrafica IVAO chiede «è già assegnato?» per ognuna delle sue ~220 righe a ogni
+        // render, e una scansione lineare dell'elenco assegnati per riga sono ventimila confronti per nulla.
+        _assignedByIcao = _assigned
+            .GroupBy(a => a.Icao, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().AccCode, StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task LoadIvaoAsync()
@@ -295,19 +436,24 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private string CountLabel(int shown, int total) =>
+        shown == total ? total.ToString() : L["Apt_CountOf", shown, total].Value;
+
     private string NoAssignedResults() =>
         L["Apt_NoResults"].Value
         + (string.IsNullOrEmpty(_filterAcc) ? "" : string.Format(L["Apt_NoResultsAccPart"].Value, _filterAcc))
         + (string.IsNullOrWhiteSpace(_qAssigned) ? "" : string.Format(L["Apt_NoResultsQPart"].Value, _qAssigned))
         + ".";
 
+    private string NoIvaoResults() =>
+        string.IsNullOrWhiteSpace(_qIvao) ? L["Apt_NoUnassigned"].Value : string.Format(L["Apt_NoResultsFor"].Value, _qIvao);
+
     private static bool Match(string icao, string name, string q) =>
         string.IsNullOrWhiteSpace(q)
         || icao.Contains(q, StringComparison.OrdinalIgnoreCase)
         || name.Contains(q, StringComparison.OrdinalIgnoreCase);
 
-    private string? AssignedAccOf(string icao) =>
-        _assigned.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase))?.AccCode;
+    private string? AssignedAccOf(string icao) => _assignedByIcao.GetValueOrDefault(icao);
 
     private async Task Guarded(Func<Task> action)
     {
@@ -319,16 +465,6 @@
         finally { _busy = false; }
     }
 
-    private void SetAssignAcc(string icao, string? acc) => _assignAcc[icao] = acc ?? "";
-
-    private Task Assign(SourceAirport ap) => Guarded(async () =>
-    {
-        var acc = _assignAcc.GetValueOrDefault(ap.Icao, "");
-        if (string.IsNullOrEmpty(acc)) return;
-        await Struct.CreateAirportAsync(acc, ap.Icao, ap.Name);
-        _assignAcc.Remove(ap.Icao);
-    });
-
     private Task AutoAssign() => Guarded(async () =>
     {
         var r = await Struct.AutoAssignKnownAirportsAsync();
@@ -336,8 +472,8 @@
             Logger.LogWarning(f.Error, "Import settori aeroporto {Icao} saltato in auto-assegnazione.", f.Icao);
         _ok = r.Assigned == 0
             ? L["Apt_AutoAssignNone"].Value
-            : L["Apt_AutoAssignOk", r.Assigned].Value
-              + (r.Failures.Count > 0 ? L["Apt_AutoAssignSkipped", r.Failures.Count].Value : "");
+            : Plural(r.Assigned, "Apt_AutoAssignOk", r.Assigned)
+              + (r.Failures.Count > 0 ? Plural(r.Failures.Count, "Apt_AutoAssignSkipped", r.Failures.Count) : "");
     });
 
     private Task ChangeAcc(int id, string fromAcc, string? toAcc) =>
@@ -349,91 +485,141 @@
     private Task ToggleHidden(AirportAdminRow a) =>
         Guarded(() => Struct.SetAirportHiddenAsync(a.AccCode, a.Id, !a.IsHidden));
 
-    // --- Azioni bulk: continuano oltre i fallimenti per-riga e riassumono il risultato. ---
+    // --- Azioni di gruppo -------------------------------------------------------------------------------
+    // Un ciclo solo per tutte: prosegue oltre i fallimenti per-riga, mostra l'avanzamento, si lascia fermare
+    // e restituisce CHI è fallito — perché una riga che fallisce deve restare selezionata: sparire dal
+    // contatore senza essere stata scritta è la stessa perdita di non averla mai provata.
+    private sealed record BulkResult<T>(List<T> Failed, int Done, bool Stopped);
+
+    private async Task<BulkResult<T>> ForEachWithProgress<T>(string label, IReadOnlyList<T> items, Func<T, Task> body)
+    {
+        var failed = new List<T>();
+        var done = 0;
+        var stopped = false;
+        _stopRequested = false;
+        _prog = new BulkProgress(label, items.Count, 0, 0);
+        foreach (var it in items)
+        {
+            if (_stopRequested) { stopped = true; break; }
+            try { await body(it); }
+            catch (Exception ex) { failed.Add(it); Logger.LogWarning(ex, "Azione di gruppo fallita su {Item}.", it); }
+            done++;
+            _prog = _prog with { Done = done, Failed = failed.Count };
+            // Il render intermedio va sollecitato: dentro un gestore di evento Blazor rende una volta sola,
+            // alla fine, e l'avanzamento si vedrebbe solo a lavoro finito. Il `Yield` lascia partire il batch.
+            StateHasChanged();
+            await Task.Yield();
+        }
+        return new BulkResult<T>(failed, done, stopped);
+    }
+
     private async Task RunBulk(Func<Task> body)
     {
         _busy = true; _msg = null; _ok = null;
         try { await body(); await ReloadAsync(); }
         catch (Exception ex) { _msg = ex.Message; }
-        finally { _busy = false; }
+        finally { _busy = false; _prog = null; _stopRequested = false; }
     }
+
+    // «Spostati 1 aeroporti» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno: le chiavi
+    // con un contatore hanno la loro forma singolare, con lo stesso nome più «One».
+    private string Plural(int n, string key, params object[] args) =>
+        L[n == 1 ? key + "One" : key, args].Value;
+
+    // Interrotta a metà: quanti non sono mai stati provati. Zero = niente da dire.
+    private string StoppedPart(int remaining) => remaining > 0 ? Plural(remaining, "Apt_Stopped", remaining) : "";
 
     private Task BulkMoveAssigned() => RunBulk(async () =>
     {
         if (string.IsNullOrEmpty(_bulkMoveAcc)) { _msg = L["Apt_ChooseTargetAcc"]; return; }
         var target = _bulkMoveAcc;
-        int ok = 0, fail = 0;
-        foreach (var id in _selAssigned.ToList())
+        var items = _selAssigned.ToList();
+        var todo = items.Where(id => _assigned.FirstOrDefault(x => x.Id == id) is { } a && a.AccCode != target).ToList();
+        var r = await ForEachWithProgress(L["Apt_ProgMove"].Value, todo, async id =>
         {
-            var a = _assigned.FirstOrDefault(x => x.Id == id);
-            if (a is null || a.AccCode == target) continue;
-            try { await Struct.MoveAirportAsync(id, a.AccCode, target); ok++; }
-            catch { fail++; }
-        }
-        _selAssigned.Clear(); _bulkMoveAcc = "";
-        _ok = L["Apt_MovedOk", ok, target].Value + (fail > 0 ? L["Apt_MovedFail", fail].Value : ".");
+            var a = _assigned.First(x => x.Id == id);
+            await Struct.MoveAirportAsync(id, a.AccCode, target);
+        });
+        var ok = r.Done - r.Failed.Count;
+        KeepOnlyFailed(_selAssigned, r.Failed, r.Stopped ? todo.Skip(r.Done) : Enumerable.Empty<int>());
+        if (!r.Failed.Any()) { _bulkMoveAcc = ""; }
+        _ok = Plural(ok, "Apt_MovedOk", ok, target)
+            + (r.Failed.Count > 0 ? Plural(r.Failed.Count, "Apt_MovedFail", r.Failed.Count) : ".")
+            + StoppedPart(todo.Count - r.Done);
     });
 
     private Task GenerateDocs() => RunBulk(async () =>
     {
-        int created = 0, sectors = 0, skipped = 0, fail = 0;
-        foreach (var id in _selAssigned.ToList())
+        int created = 0, sectors = 0, skipped = 0;
+        var todo = _selAssigned.ToList();
+        var r = await ForEachWithProgress(L["Apt_ProgDocs"].Value, todo, async id =>
         {
             var a = _assigned.FirstOrDefault(x => x.Id == id);
-            if (a is null) continue;
-            try
-            {
-                var r = await Struct.GenerateAirportDocumentAsync(a.Icao);
-                if (r.Created) { created++; sectors += r.SectorsCreated; } else skipped++;
-            }
-            catch { fail++; }
-        }
-        _selAssigned.Clear();
+            if (a is null) return;
+            var res = await Struct.GenerateAirportDocumentAsync(a.Icao);
+            if (res.Created) { created++; sectors += res.SectorsCreated; } else { skipped++; }
+        });
+        KeepOnlyFailed(_selAssigned, r.Failed, r.Stopped ? todo.Skip(r.Done) : Enumerable.Empty<int>());
         _ok = L["Apt_DocsGenerated", created, sectors].Value
-            + (skipped > 0 ? L["Apt_DocsSkipped", skipped].Value : "")
-            + (fail > 0 ? L["Apt_DocsFailed", fail].Value : "") + ".";
-    });
-
-    // Re-import da IVAO (piste + Transition Altitude) per TUTTI gli aeroporti assegnati: una chiamata sorgente per
-    // aeroporto (best-effort, prosegue oltre i fallimenti). Rispetta la policy import (categorie escluse = nessun tocco).
-    private Task ReimportAll() => RunBulk(async () =>
-    {
-        int ok = 0, fail = 0;
-        foreach (var a in _assigned.ToList())
-        {
-            try { await AptEdit.ReimportFromSourceAsync(a.Icao); ok++; }
-            catch { fail++; }
-        }
-        _ok = L["Apt_ReimportOk", ok].Value + (fail > 0 ? L["Apt_ReimportFail", fail].Value : ".");
+            + (skipped > 0 ? Plural(skipped, "Apt_DocsSkipped", skipped) : "")
+            + (r.Failed.Count > 0 ? Plural(r.Failed.Count, "Apt_DocsFailed", r.Failed.Count) : "") + "."
+            + StoppedPart(todo.Count - r.Done);
     });
 
     private Task BulkDeleteAssigned() => RunBulk(async () =>
     {
-        int ok = 0, fail = 0;
-        foreach (var id in _selAssigned.ToList())
+        var todo = _selAssigned.ToList();
+        var r = await ForEachWithProgress(L["Apt_ProgDelete"].Value, todo, async id =>
         {
             var a = _assigned.FirstOrDefault(x => x.Id == id);
-            if (a is null) continue;
-            try { await Struct.DeleteAirportAsync(a.AccCode, id); ok++; }
-            catch { fail++; }
-        }
-        _selAssigned.Clear();
-        _ok = L["Apt_DeletedOk", ok].Value + (fail > 0 ? L["Apt_DeletedFail", fail].Value : ".");
+            if (a is null) return;
+            await Struct.DeleteAirportAsync(a.AccCode, id);
+        });
+        var ok = r.Done - r.Failed.Count;
+        KeepOnlyFailed(_selAssigned, r.Failed, r.Stopped ? todo.Skip(r.Done) : Enumerable.Empty<int>());
+        _ok = Plural(ok, "Apt_DeletedOk", ok)
+            + (r.Failed.Count > 0 ? Plural(r.Failed.Count, "Apt_DeletedFail", r.Failed.Count) : ".")
+            + StoppedPart(todo.Count - r.Done);
     });
 
     private Task BulkAssignIvao() => RunBulk(async () =>
     {
         if (string.IsNullOrEmpty(_bulkAssignAcc)) { _msg = L["Apt_ChooseAcc"]; return; }
         var target = _bulkAssignAcc;
-        int ok = 0, fail = 0;
-        foreach (var icao in _selIvao.ToList())
+        var todo = _selIvao.Where(i => AssignedAccOf(i) is null).ToList();
+        var r = await ForEachWithProgress(L["Apt_ProgAssign"].Value, todo, async icao =>
         {
             var ap = _ivao?.FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase));
-            if (ap is null || AssignedAccOf(icao) is not null) continue;
-            try { await Struct.CreateAirportAsync(target, ap.Icao, ap.Name); ok++; }
-            catch { fail++; }
-        }
-        _selIvao.Clear(); _bulkAssignAcc = "";
-        _ok = L["Apt_AssignedOk", ok, target].Value + (fail > 0 ? L["Apt_AssignedFail", fail].Value : ".");
+            if (ap is null) return;
+            await Struct.CreateAirportAsync(target, ap.Icao, ap.Name);
+        });
+        var ok = r.Done - r.Failed.Count;
+        KeepOnlyFailed(_selIvao, r.Failed, r.Stopped ? todo.Skip(r.Done) : Enumerable.Empty<string>());
+        if (!r.Failed.Any()) { _bulkAssignAcc = ""; }
+        _ok = Plural(ok, "Apt_AssignedOk", ok, target)
+            + (r.Failed.Count > 0 ? Plural(r.Failed.Count, "Apt_AssignedFail", r.Failed.Count) : ".")
+            + StoppedPart(todo.Count - r.Done);
     });
+
+    // Re-import da IVAO (piste + Transition Altitude) per TUTTI gli aeroporti assegnati: una chiamata sorgente
+    // per aeroporto (best-effort, prosegue oltre i fallimenti). Rispetta la policy import (categorie escluse =
+    // nessun tocco). Sono ~90 chiamate di rete in fila: qui l'avanzamento e l'interruzione servono davvero.
+    private Task ReimportAll() => RunBulk(async () =>
+    {
+        var todo = _assigned.Select(a => a.Icao).ToList();
+        var r = await ForEachWithProgress(L["Apt_ProgReimport"].Value, todo, icao => AptEdit.ReimportFromSourceAsync(icao));
+        var ok = r.Done - r.Failed.Count;
+        _ok = Plural(ok, "Apt_ReimportOk", ok)
+            + (r.Failed.Count > 0 ? Plural(r.Failed.Count, "Apt_ReimportFail", r.Failed.Count) : ".")
+            + StoppedPart(todo.Count - r.Done);
+    });
+
+    // Dopo un'azione di gruppo la selezione tiene SOLO ciò che non è passato: i falliti e — se l'operazione è
+    // stata interrotta — quelli che non sono mai stati provati. Il resto è fatto e sparisce dal contatore.
+    private static void KeepOnlyFailed<T>(HashSet<T> selection, IEnumerable<T> failed, IEnumerable<T> notTried)
+    {
+        selection.Clear();
+        foreach (var x in failed) { selection.Add(x); }
+        foreach (var x in notTried) { selection.Add(x); }
+    }
 }

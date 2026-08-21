@@ -1,0 +1,241 @@
+﻿# Editor aeroporto — la tabella SID lavorabile (20 agosto 2026)
+
+Quinto giro della famiglia, dopo [accordi](2026-08-19-accordi-densita-ui.md),
+[struttura](2026-08-19-struttura-densita-ui.md), [ACC](2026-08-19-acc-admin-densita-ui.md) e
+[aeroporti](2026-08-19-aeroporti-densita-ui.md): `/vsop/{acc}/airports/editor`. Le
+[regole](../design/regole-ui-pagine-admin.md) la davano a 10 059px; misurata su un aeroporto vero è molto
+peggio, e per una ragione sola.
+
+## Il difetto misurato (1600×900, IT, copia del DB di sviluppo)
+
+| Aeroporto | SID importate | Pagina | di cui sezione SID |
+|---|---:|---:|---:|
+| LIML | 23 | 7 135px | 3 756 |
+| LIPZ | 54 | 11 033px | 7 564 |
+| **LIRF** | **206** | **31 286px** | **27 085 (87%)** |
+
+I 10 059px della ricognizione erano un aeroporto medio: **l'altezza di questa pagina è il numero di SID**.
+TOC e rail erano già appiccicati (verificato: a −1 140px di scorrimento restano a schermo), quindi qui il
+lavoro non era la testata — era la tabella.
+
+Quattro difetti nella tabella delle SID importate, tre dei quali visti **solo guardando** lo screenshot:
+
+- **Nessuna intestazione di colonna** dopo dieci righe: si scrive alla cieca in caselle identiche
+  («Initial climb»? «Condition»? «Priorità»?). E aggiungere `sticky-head` non sarebbe bastato: la tabella
+  stava dentro un `<div style="overflow:auto">` **senza altezza**, cioè un contenitore di scorrimento che
+  non scorre mai in verticale — lì `position:sticky` non si aggancia a niente.
+- **Colonne strizzate**: il nome SID andava a capo una sillaba per riga (`NE N5 A- GIL 9G`), «Type»
+  diventava `CON V`, e i chip Cat./WTC si impilavano in verticale invece che in riga. Misurato:
+  **128px di altezza per riga**.
+- **Ultima colonna oltre il bordo** già a 1600px (`scrollWidth 984` contro `clientWidth 946`): il tasto di
+  salvataggio della riga si raggiungeva solo scorrendo di lato.
+- **1 415 campi e 1 714 stili in linea** in una pagina sola.
+
+E due difetti di comportamento, trovati leggendo il codice:
+
+- **«Toccata» e «scelta» erano lo stesso insieme** (`TouchImported` faceva `_selSid.Add`): modificare una
+  cella metteva la riga fra le «selezionate», e chi trascinava per scegliere cinquanta righe da pubblicare
+  le vedeva identiche a cinquanta righe modificate.
+- **Il ri-prelievo scartava il lavoro in silenzio**: `ReimportSids` → `LoadAsync` rifà i buffer dal DB, e le
+  righe compilate e non salvate sparivano senza un avviso.
+
+Più uno di lingua: **19 attributi, ~10 testi visibili e 2 messaggi** scritti a mano in italiano — in inglese
+la pagina era mista.
+
+## Cosa cambia
+
+1. **La tabella SID diventa lavorabile.** Larghezze per **classe semantica** e `table-layout:fixed` (come la
+   `.sid-view` del viewer), chip in riga (`nowrap`), niente stili in linea sugli input. Misurato:
+   **riga 128 → 45px**, corpo della tabella 26 353 → 9 309.
+2. **Riquadro con un tetto e intestazione ferma.** `.ed-pane` con `max-height:min(64vh,660px)`: scorre il
+   corpo, il `thead` resta (`top:0`, perché dentro un riquadro lo sticky è relativo al contenitore).
+   Sezione SID **27 085 → 1 223px** su ogni aeroporto — l'altezza della pagina non dipende più dai dati.
+3. **⤢ Larghezza piena**: indice e rail spariscono e la tabella prende tutta la pagina (a 1600: 946 → 1 484px,
+   zero scorrimento orizzontale; a 1280: 637 → 1 177).
+4. **Modificata ≠ scelta.** `_dirtySid` è un insieme suo: la riga toccata diventa gialla, il contatore dice
+   «N modificate» e **Salva modificate** conferma tutto in un colpo — chi fallisce **resta modificato**. La
+   scelta (blu) resta per «Pubblica scelte». Il salvataggio per riga sparisce: era lo stesso gesto.
+5. **Il ri-prelievo chiede prima**: «C'è 1 SID modificata e non salvata: il ri-prelievo la scarta. Continuare?»
+6. **Si sceglie anche da tastiera**: la cella di scelta è `role="button"`, `tabindex="0"`, `aria-pressed`, e
+   Invio/Spazio fanno il clic. Prima la casella aveva `tabindex="-1"` e il gesto era solo mouse: senza mouse
+   quelle righe non si potevano scegliere.
+7. **Filtri e conteggi**: `.htree-search`, chip **da verificare** sempre presente e spento a zero, **chip per
+   pista** con il conteggio (su LIRF: 206 righe → 3 con un clic), pill «N di TOT».
+8. **Dodici paragrafi d'aiuto diventano «?»** accanto al titolo della loro sezione (testo identico, stesse
+   chiavi), testata in una riga con lo stato Bozza/Pubblicata, e le due righe «da sorgente» restano come chip
+   con la spiegazione nel «?».
+9. **Icone e lingua**: 💾 🕒 ⚠ 🔒 → `Icon`; 🔴/🧊 restano (vocabolario di stato, come 🕒🟢 in Versioni).
+   Tutte le stringhe in resx IT **ed** EN, con singolare e plurale sui contatori.
+10. **Anche il pannello release** (condiviso da tutti gli editor) aveva tre righe d'aiuto scritte a mano in
+    italiano: in inglese erano italiane in cinque pagine, non in una.
+
+## Verifica
+
+`dotnet build Vipi.slnx -c Release --no-incremental` verde su **entrambi** i TFM (0 avvisi) + `dotnet test`
+verde (2 577). Poi guida live con Edge+puppeteer sulla copia del DB.
+
+### Prima → dopo (LIRF, 1600×900, IT)
+
+| Cosa | Prima | Dopo |
+|---|---:|---:|
+| Pagina | 31 286px | **4 913** (largo: 4 690) |
+| Sezione SID | 27 085px | **1 223** |
+| Altezza di riga | 128px | **45** (identica su tutte e 206) |
+| `thead` durante lo scorrimento | via a dieci righe | **fermo** (3 000px dentro il riquadro, resta a `gap=0`) |
+| Colonna finale | fuori dal bordo | **dentro** (pill a 1 270 contro un bordo a 1 279) |
+| Stili in linea | 1 714 | **149** |
+| Prosa sempre a schermo / «?» | 12 / 2 | **1 / 15** |
+| Campi filtro `.htree-*` | 0 | **2** |
+
+L'altezza della pagina non segue più i dati: **LIML 7 135 → 4 091**, **LIPZ 11 033 → 4 181**,
+**LIRF 31 286 → 4 913**.
+
+### Comportamento, guidato davvero
+
+- Scritto in una cella: `1 modificate` / `0 selez.`, riga gialla. **Invio** sulla cella di scelta di un'altra
+  riga: `1 modificate` / `1 selez.`, riga blu — i due stati non si confondono più.
+- «Salva modificate» → «Salvata 1 SID.» (singolare giusto) e il contatore torna a `0 modificate`.
+- Chip pista `07 3`: 206 righe → 3.
+- Con una modifica pendente, «Re-importa SID» chiede conferma prima di scartarla.
+
+### Assetti e zoom
+
+1600 / 1440 / 1280 / 1024, IT ed EN, zoom 0.8 → 1.5: riga sempre 45px (38 a 0.8, 68 a 1.5), riquadro sempre
+~574px, nessuno scorrimento orizzontale **di pagina** dovuto all'editor. Restano da sistemare due cose che
+questo giro ha scoperto e corretto per l'editor ma che vengono da fuori:
+
+- il **collasso a una colonna sotto i 1080px** non si applicava (`.ed-layout.with-rail` è dichiarata più in
+  basso nel foglio e vinceva): a 1024 la colonna centrale restava **391px** con indice e rail ai lati. Ora
+  931px;
+- l'unico scorrimento orizzontale di pagina che resta a 1280/1024 è della **topbar** (`.right`, `user-chip`):
+  è identico sulla home e sulle altre pagine — **non** è di questa pagina, e resta aperto.
+
+Nel riquadro, invece, lo scorrimento orizzontale c'è ancora quando indice e rail sono a schermo (21px a 1600,
+153 a 1440, 306 a 1280): è dentro un riquadro con l'intestazione ferma, e il tasto ⤢ lo azzera.
+
+## Secondo giro (stesso giorno): le colonne e le SID manuali
+
+Tre cose viste usando la pagina, non misurandola.
+
+1. **L'initial climb non ci stava.** Le quote vere sono a quattro o cinque cifre (3000, 11000) e il campo era
+   largo **52px**, frecce del campo numerico comprese: il valore si leggeva a metà. Ora **76px** — misurato
+   scrivendoci dentro «11000» e controllando che il campo non scorra (`scrollWidth` contro `clientWidth`),
+   sia a larghezza normale (cella 134px) sia a larghezza piena (211px).
+2. **Le SID manuali hanno lo stesso ordine e gli stessi comandi delle importate**: FIX · SID · RWY · Trans. ·
+   Type · Initial climb (**col tasto APP**, «da concordare con l'APP») · **Cat. e WTC a chip** (A B C D E /
+   L M H S) · Condition · **Priorità** · **Pubblicazione**. Prima erano nove caselle di testo in un altro ordine, con Cat. e WTC
+   da scrivere a mano e nessun modo di dire «quota da concordare».
+   - ⚠️ La **priorità delle righe manuali non veniva salvata**: la colonna esisteva sull'entità (tabella unica
+     con le importate) ma il repo non la scriveva, quindi tornava sempre vuota. Ora si salva — e conta
+     davvero, perché la derivazione ordina per `Fix` e poi per `Priority`.
+   - L'initial climb manuale resta un **campo di testo** e non numerico come nelle importate: i valori storici
+     portano l'unità («5000ft», «FL80») e un campo numerico li avrebbe buttati via al primo salvataggio.
+   - C'è anche la colonna **Pubblicazione**, e non dice «pubblica» perché è cablato: lo stato lo calcola
+     `SidRow.IsPublicAt`, **la stessa regola delle importate**. Oggi per una riga a mano risponde sempre di
+     sì (il differimento al ciclo AIRAC vale solo per ciò che arriva dalla sorgente); se domani la regola
+     cambia, la colonna dice già la verità senza toccare la pagina.
+3. **Type si sceglie da un elenco senza chiudere il campo**: `datalist` con CONV e RNAV, ma la casella resta
+   libera — le sorgenti portano anche altro e un `select` avrebbe perso quei valori.
+
+Verificato end-to-end: riga compilata (PROVA / PRO1A / 35 / TRANS / RNAV / 11000 / APP / Cat C / WTC H /
+condizione / priorità 3), salvata, **pagina ricaricata da zero**: tutti i campi sono tornati indietro dal DB.
+
+### Larghezze: due trappole misurate
+
+- I campi con `list=` (RWY e Type) portano dentro la **freccina del datalist**, che si mangia ~16px: a 47px il
+  segnaposto «CONV» si leggeva «C» e la pista «35» spariva. Le larghezze ne tengono conto.
+- Le **intestazioni** sconfinavano nella colonna vicina («CONDITIONPRIORITÀ»): ora si tagliano con i puntini e
+  il nome per esteso sta nel `title`. Dove l'etichetta lunga non serviva è sparita: la colonna del punto si
+  intitola **FIX** e quella della pista **RWY** — sono i nomi, non abbreviazioni (stessa scelta del viewer).
+
+- Anche la casella del **fix da confermare** (righe «da verificare») era corta: a 56px «OKUNO» si leggeva
+  «OKUN». Ora 68px, e lo spazio arriva dalle colonne che ne avevano d'avanzo — i chip Cat./WTC stavano in
+  105 e 90px quando gliene bastavano 101 e 83.
+
+### Terzo giro: Condition elastica, e le larghezze misurate col font
+
+Le percentuali erano un gioco a somma zero — ogni pixel dato a Condition lo toglieva a una colonna che poi
+tagliava il suo valore («CON…» al posto di «CONV»). Rifatto in due mosse:
+
+1. **Ogni colonna con un contenuto misurabile ha una larghezza in pixel misurata col font della tabella**
+   (Poppins 13px, misurata in pagina con `canvas.measureText`, non stimata) sui **valori veri del DB**:
+   1480 SID, nome fino a 12 caratteri (97px), fix fino a 10 (ma 1403 righe su 1480 stanno in 3-5 lettere),
+   transition «OKUNO» 47px, «CONV» 39px, pill «pubblica» 58px. Più le gronde, e per i campi con `list=` la
+   freccina del datalist.
+2. **Condition non ha larghezza**: con `table-layout:fixed` la colonna senza misura si prende tutto lo spazio
+   che avanza. Il `min-width` della tabella le garantisce un pavimento.
+
+Risultato misurato, con **zero celle tagliate** in entrambe le tabelle e in entrambe le modalità:
+
+| Condition | Prima | Dopo |
+|---|---:|---:|
+| Importate, larghezza normale | 61px | **118** |
+| Importate, larghezza piena | 133px | **574** |
+| Manuali, larghezza normale | 76px | **103** |
+| Manuali, larghezza piena | 142px | **549** |
+
+Il valore intero, che nessuna colonna può contenere (nel DB si arriva a 59 caratteri), si legge col passaggio
+del mouse: `title` sul campo.
+
+Poi le due colonne di destra si sono prese quel che serve **per farsi leggere il nome**, e Condition ha ceduto
+(è elastica: dare a una toglie a lei, senza toccare nient'altro):
+
+- «Pubblicazione» → **«Stato»**, con la chiave che c'era già (`Common_State`, la stessa della pagina
+  Aeroporti): in una colonna da 90px «Pubblicazione» non ci stava nemmeno coi puntini. `Ape_Publication` non
+  la usava più nessuno: via da entrambi i resx.
+- «Priorità»/«Priority» come intestazione vuole **69px** (misurato col font delle `th`: 11px maiuscolo,
+  spaziatura .04em), la colonna ne aveva 44: ora 70.
+
+Misurato dopo: **nessuna intestazione tagliata**, in italiano **e** in inglese, in entrambe le tabelle e in
+entrambe le modalità; Condition scende a 92px in larghezza normale e resta a **548** in larghezza piena.
+
+⚠️ Il prezzo è lo scorrimento orizzontale del riquadro quando indice e rail sono a schermo (84px sulle
+importate, 95 sulle manuali): il tasto ⤢ lo azzera. La scelta è deliberata — meglio scorrere di ottanta pixel
+che leggere «CON…» al posto di «CONV».
+
+Entrambe le tabelle mostrano per intero fix corretto, nome SID, quota a cinque cifre, chip e pill di stato;
+riga sempre 45px. In larghezza piena non resta tagliato niente, Condition compresa, e non c'è scorrimento
+orizzontale.
+
+## Quarto giro: tre gesti che tolgono lavoro a mano
+
+1. **I chip Cat. e WTC si accendono a scala.** Una procedura per categoria E vale anche per le più piccole, e
+   quasi sempre si accendono in fila: **doppio clic** (o **Shift+clic**) su un chip accende anche tutti quelli
+   prima; rifatto sullo stesso chip, spegne lui e i precedenti. Shift+clic è la via da tastiera — i chip sono
+   bottoni, il browser consegna Shift+Invio come un clic con lo shift premuto.
+   ⚠️ Il doppio clic del browser arriva **dopo** due clic singoli: i due toggle si annullano fra loro, quindi
+   quando la scala parte lo stato è quello di partenza. Si vede un lampeggio del chip; toglierlo vorrebbe dire
+   ritardare **ogni** clic singolo di un quarto di secondo, e qui di clic se ne fanno a centinaia.
+2. **Doppio clic per scegliere un gruppo di righe.** Su **SID / RWY / Type** sceglie tutte quelle con lo
+   **stesso punto**, su **Trans.** quelle con la **stessa transition**; rifatto, le lascia. Sta sulle celle
+   **non scrivibili**: dentro un campo il doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo —
+   per questo nelle SID manuali, dove ogni cella è un campo, il gesto vive sulla **casella di scelta**. Gli
+   stessi due gesti sono anche **tasti nella barra** (agiscono sulla riga del campo toccato per ultimo): il
+   doppio clic è una scorciatoia, non l'unico modo di arrivarci.
+3. **«Applica alle scelte» (⤓, o Ctrl+Invio dentro la cella).** Copia il valore della cella toccata per ultimo
+   in tutte le righe scelte. L'unità è la **cella**: la quota porta con sé il tasto **APP**, Cat. e WTC copiano
+   il gruppo intero di chip. Punto, nome, pista e transition **non si propagano mai**: sono l'identità della
+   riga. Il tasto dice sempre cosa farà — «Applica «4000» alle 15 scelte» — e sopra le 20 righe chiede conferma.
+
+**Le SID manuali hanno adesso la stessa selezione delle importate** (casella di scelta, «scegli tutte»,
+contatore, gli stessi tasti): non esistono più cose che di qua si possono fare e di là no.
+
+### Verificato guidando il browser (doppio clic **vero**)
+
+⚠️ Nota per chi ripete la verifica: `mouse.click({clickCount: 2})` di puppeteer **non** genera l'evento
+`dblclick` — manda un solo `press` con `detail=2`. Il doppio clic vero è `press(1)/release/press(2)/release`.
+Con la prima forma i gesti sembravano rotti mentre funzionavano: mezz'ora persa a cercare un difetto che era
+nell'attrezzo di misura.
+
+| Gesto | Esito misurato |
+|---|---|
+| Doppio clic su `C` (tutto spento) | `A B C` accesi |
+| Doppio clic di nuovo su `C` | tutti spenti |
+| Shift+clic su `D` | `A B C D` accesi |
+| Doppio clic su `H` (WTC) | `L M H` accesi |
+| Doppio clic sulla cella SID | **9 righe** scelte (le nove varianti di quel punto), rifatto → 0 |
+| Doppio clic su Trans. `OKUNO` | **15 righe** scelte |
+| «Applica «4000» alle 15 scelte» | «Applicato a 15 righe.», 15 quote scritte, 15 righe modificate |
+| Ctrl+Invio con un filtro pista attivo | «Applicato a 9 righe. **6 non sono a schermo** (nascoste da un filtro).» |
+| SID manuali: doppio clic sulla casella di scelta | 2 righe (quelle con lo stesso punto), chip a scala e «applica» come sopra |
+

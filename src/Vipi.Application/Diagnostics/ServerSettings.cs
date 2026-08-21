@@ -64,21 +64,25 @@ public static class ServerSettingsAnalyzer
         {
             findings.Add(new ConsistencyFinding(Category, ConsistencySeverity.Warning, "sql_mode",
                 "Non è stato possibile leggere @@sql_mode: impossibile dire se una scrittura troppo lunga " +
-                "fallirebbe o troncherebbe in silenzio."));
+                "fallirebbe o troncherebbe in silenzio.", ConsistencyArea.Server,
+                CategoryKey: "Diag_Cat_Server", DetailKey: "Diag_Msg_SqlModeIllegibile"));
         }
         else if (!sqlMode.Split(',').Any(m => m.Trim().Equals(StrictMode, StringComparison.OrdinalIgnoreCase)))
         {
             findings.Add(new ConsistencyFinding(Category, ConsistencySeverity.Error, "sql_mode",
                 $"Il server NON è in strict mode (@@sql_mode = «{sqlMode}»): un valore più lungo della sua " +
                 $"colonna viene troncato in silenzio invece di fallire. Serve {StrictMode}. " +
-                "Si corregge nella configurazione del server, non da qui."));
+                "Si corregge nella configurazione del server, non da qui.", ConsistencyArea.Server,
+                CategoryKey: "Diag_Cat_Server", DetailKey: "Diag_Msg_NoStrictMode",
+                DetailArgs: new object[] { sqlMode, StrictMode }));
         }
 
         if (maxAllowedPacket is null)
         {
             findings.Add(new ConsistencyFinding(Category, ConsistencySeverity.Warning, "max_allowed_packet",
                 "Non è stato possibile leggere @@max_allowed_packet: impossibile dire se il caricamento di " +
-                "un'immagine al limite dei 3 MB andrebbe a buon fine."));
+                "un'immagine al limite dei 3 MB andrebbe a buon fine.", ConsistencyArea.Server,
+                CategoryKey: "Diag_Cat_Server", DetailKey: "Diag_Msg_PacketIllegibile"));
         }
         else if (maxAllowedPacket < MinMaxAllowedPacket)
         {
@@ -86,7 +90,9 @@ public static class ServerSettingsAnalyzer
                 $"@@max_allowed_packet = {maxAllowedPacket} byte, sotto il minimo di {MinMaxAllowedPacket} " +
                 "(4 MiB) richiesto dalle immagini dei blocchi, che l'app accetta fino a 3 MB. Il " +
                 "caricamento di un'immagine grande fallirà con «Got a packet bigger than " +
-                "'max_allowed_packet' bytes». Si corregge nella configurazione del server."));
+                "'max_allowed_packet' bytes». Si corregge nella configurazione del server.", ConsistencyArea.Server,
+                CategoryKey: "Diag_Cat_Server", DetailKey: "Diag_Msg_PacketPiccolo",
+                DetailArgs: new object[] { maxAllowedPacket, MinMaxAllowedPacket }));
         }
 
         return findings;

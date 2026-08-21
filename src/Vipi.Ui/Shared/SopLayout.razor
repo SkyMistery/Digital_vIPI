@@ -12,7 +12,44 @@
 @if (Chrome.Value.RenderTopbar)
 {
     <header class="topbar">
-        <a class="brand" href="/vsop" aria-label="Home vIPI / vLOA">
+        @* ---- Telefono: il menu a scomparsa ----
+           Sotto i 700px la barra non si comprime piu' in riga (misurato: pavimento a 959px, e i soli
+           codici ACC sono 263 su 375 di schermo): cambia FORMA. In riga restano marchio, ricerca e
+           questo tasto; dentro, gli ACC e tutti i comandi.
+           ⚠️ `<details>` nativo e non un menu Blazor: il layout e' SSR statico, e un menu che
+           dipendesse dal circuito non funzionerebbe proprio sulle pagine pubbliche — che sono quelle
+           che si guardano dal telefono. Sopra i 700px il tasto non si rende affatto (CSS). *@
+        <details class="tb-menu" id="tb-menu">
+            <summary aria-label="@L["Chrome_Menu"]" title="@L["Chrome_Menu"]"><span aria-hidden="true">☰</span></summary>
+            <div class="tb-menu-pan">
+                <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
+                    @foreach (var acc in Stations.Accs)
+                    {
+                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
+                    }
+                </nav>
+                <a href="/vsop/guida"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
+                <a href="/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
+                @if (_canEdit)
+                {
+                    <a href="/vsop/versioni"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
+                    <a href="/vsop/tasks"><Icon Name="clipboard" /> @L["Nav_Tasks"]</a>
+                }
+                @if (_isAdmin)
+                {
+                    <a href="/vsop/admin/permessi"><Icon Name="key" /> @L["Chrome_Permissions"]</a>
+                }
+                @if (_user is null)
+                {
+                    <a href="/vsop/auth/login?returnUrl=/vsop"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+                }
+                else
+                {
+                    <a href="/vsop/auth/logout"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
+                }
+            </div>
+        </details>
+        <a class="brand" href="/vsop" aria-label="@L["Chrome_BrandHome"]">
             <span class="logo">vIPI</span>
             <div>vIPI <small>@L["Chrome_BrandSubtitle"]</small></div>
         </a>
@@ -24,18 +61,18 @@
         </nav>
         <form class="top-search" action="/vsop/search" method="get" role="search">
             <span class="ico"><Icon Name="search" /></span>
-            <input name="q" placeholder="Cerca CoP, FIX, callsign, frequenze…" aria-label="Cerca" />
+            <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
         <div class="right">
-            <a class="editor-btn icon-only" href="/vsop/guida" title="Guida" aria-label="Guida"><Icon Name="help-circle" /></a>
+            <a class="editor-btn icon-only" href="/vsop/guida" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {
-                <div class="staff-badge" title="Posizione staff"><Icon Name="award" /> @_staff</div>
+                <div class="staff-badge" title="@L["Chrome_StaffPosition"]"><Icon Name="award" /> <span class="sb-t">@_staff</span></div>
             }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
-                <button type="button" onclick="vipiZoom(-0.1)" title="Riduci zoom" aria-label="Riduci zoom">−</button>
-                <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="Zoom pagina" onclick="vipiZoomReset()" title="Reimposta a 100%">100%</span>
-                <button type="button" onclick="vipiZoom(0.1)" title="Aumenta zoom" aria-label="Aumenta zoom">+</button>
+                <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
+                <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
+                <button type="button" onclick="vipiZoom(0.1)" title="@L["Chrome_ZoomIn"]" aria-label="@L["Chrome_ZoomIn"]">+</button>
             </div>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
@@ -43,8 +80,10 @@
             <LiveBadge UserId="_user?.UserId" />
             @if (_canEdit)
             {
-                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
-                <a class="editor-btn" href="/vsop/tasks" title="I miei incarichi"><Icon Name="clipboard" /> Incarichi</a>
+                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]" aria-label="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> <span class="eb-t">@L["Chrome_Editor"]</span></a>
+                @* ⚠️ Era l'unica voce della topbar scritta a mano in italiano, accanto a una tradotta:
+                   in pagina inglese diceva «Incarichi». L'etichetta e' la stessa della barra admin. *@
+                <a class="editor-btn" href="/vsop/tasks" title="@L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]"><Icon Name="clipboard" /> <span class="eb-t">@L["Nav_Tasks"]</span></a>
             }
             @if (_isAdmin)
             {
@@ -55,12 +94,12 @@
                 <div class="user-chip">
                     <span class="avatar" title="@u.Name">@Initials(u.Name)</span>
                     @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
-                    <a class="editor-btn icon-only" href="/vsop/auth/logout" title="Logout" aria-label="Logout"><Icon Name="log-out" /></a>
+                    <a class="editor-btn icon-only" href="/vsop/auth/logout" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
                 </div>
             }
             else
             {
-                <a class="editor-btn" href="/vsop/auth/login?returnUrl=/vsop" title="Login IVAO"><Icon Name="log-in" /> Login</a>
+                <a class="editor-btn" href="/vsop/auth/login?returnUrl=/vsop" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
             }
         </div>
     </header>

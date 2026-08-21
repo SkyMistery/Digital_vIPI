@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
@@ -15,7 +15,14 @@ public sealed record AuditEntry(
 /// <summary>Lettura dell'audit log (per la pagina admin). Impl. EF.</summary>
 public interface IAuditLogReader
 {
-    Task<IReadOnlyList<AuditEntry>> ListRecentAsync(int max = 200, CancellationToken ct = default);
+    /// <summary>Eventi più recenti, opzionalmente dal momento indicato in poi. <paramref name="max"/> è un
+    /// tetto di sicurezza sulla query, non il filtro: quello lo fa <paramref name="sinceUtc"/>.
+    /// <para>⚠️ Un tetto <b>muto</b> su un registro fa credere completo un elenco che non lo è: chi chiama
+    /// legge anche <see cref="CountAsync"/> e dice quante righe ci sono davvero nel periodo.</para></summary>
+    Task<IReadOnlyList<AuditEntry>> ListRecentAsync(DateTime? sinceUtc = null, int max = 500, CancellationToken ct = default);
+
+    /// <summary>Quanti eventi ci sono nel periodo (nessun tetto). Serve a dire «mostrate 500 di 1 240».</summary>
+    Task<int> CountAsync(DateTime? sinceUtc = null, CancellationToken ct = default);
 
     /// <summary>Audit di uno specifico bersaglio (EntityType+EntityId), più recente prima. Per la storia modifiche
     /// contestuale nel dettaglio del profilo.</summary>

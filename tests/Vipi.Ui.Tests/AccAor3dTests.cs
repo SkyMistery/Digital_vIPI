@@ -1,6 +1,9 @@
-using Bunit;
+﻿using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
 using Vipi.Ui.Components.App;
+
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -9,6 +12,17 @@ namespace Vipi.Ui.Tests;
 /// (vipi-aor3d.js), qui si verifica solo che il componente emetta stage, fallback e i dati dei settori corretti.</summary>
 public class AccAor3dTests : TestContext
 {
+    /// <summary>Localizer che rende la chiave stessa: il fallback «3D non disponibile» ora e' localizzato.</summary>
+    private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] => new(name, name, resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    public AccAor3dTests() =>
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+
     private static AppAorPolygon Poly() => new(
         "0 0 100 100", "M0 0L10 0L10 10Z",
         new[] { new[] { 43.0, 10.0 }, new[] { 43.0, 11.0 }, new[] { 44.0, 11.0 } },

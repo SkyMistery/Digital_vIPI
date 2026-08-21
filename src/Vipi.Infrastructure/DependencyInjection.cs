@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
@@ -118,6 +118,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
+        // Cadenza dei giri automatici, dalle opzioni della sorgente: la pagina admin la legge da qui
+        // perche' Vipi.Ui non vede IvaoOptions (ne' deve: la sorgente e' sostituibile).
+        services.AddSingleton<Vipi.Application.Abstractions.IImportSchedule, ImportSchedule>();
         services.AddScoped<Vipi.Application.Abstractions.IConsistencyReportRepository, EfConsistencyReportRepository>();
         // Drift di schema: registrato sempre, si disattiva da sé fuori da Npgsql (dove le migrazioni EF girano
         // davvero e il drift non si accumula). Confluisce nel report di consistenza. Vedi ADR-0007.

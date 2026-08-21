@@ -35,44 +35,89 @@ else
         }
         else
         {
+            @* ---- Testata in UNA riga: titolo · «?» · stato · lock ----
+               Come sull'editor aeroporto i comandi di scrittura restano nel rail (già appiccicato) e la riga
+               porta solo DOVE sei e COME sta il documento. Il sottotitolo è dentro il «?» con la sua chiave
+               (regola 8), e il lock è uno STATO in riga, non una fascia (regola 1). *@
             <div class="editor-bar">
-                <div class="doc-head" style="margin:0">
-                    <div><h2 style="margin-bottom:2px">✎ @L["Acc_EditorTitle"] @_accName</h2><span class="muted">@L["Acc_Subtitle"]</span></div>
+                <div class="doc-head st-head" style="margin:0">
+                    <h2 class="st-h2">✎ @L["Acc_EditorTitle"] @_accName</h2>
+                    <HelpHint Href="/vsop/guida#editor-acc" AriaLabel="@L["Acc_HelpAria"]" ExtraClass="wide">
+                        <p>@L["Acc_Subtitle"]</p>
+                        @((MarkupString)L["Acc_HelpBody"].Value)
+                    </HelpHint>
+                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _doc.VersionNumber] : L["Ed_PublishedVN", _doc.VersionNumber])
+                    </span>
+                    @if (_editing)
+                    {
+                        @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
+                           lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
+                           E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
+                        <span class="sh-chip ok" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", mt.ToLocalTime().ToString("HH:mm")].Value : ""))">
+                            🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", me.ToLocalTime().ToString("HH:mm")].Value : L["Lock_EditingNoTime"].Value)
+                        </span>
+                    }
+                    else if (_lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="sh-chip warn" title="@(string.Format(L["Acc_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, ""))">
+                            🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", oe.ToLocalTime().ToString("HH:mm")].Value : "")
+                        </span>
+                    }
+                    @* ⤢ Larghezza piena: stesso comando dell'editor aeroporto, stessa classe (.sid-wide) e stesse
+                       chiavi — qui serve alle tabelle larghe (frequenze, coordinamenti). *@
+                    <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
+                            aria-pressed="@_wide.ToString().ToLowerInvariant()"
+                            title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
                 </div>
             </div>
 
             <DocReviewBar DocumentId="_docId" />
 
-            @if (_lock is { Locked: true, IsMine: false })
-            {
-                <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Ed_LockedByOther"]</p>
-                    @(string.Format(L["Acc_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } e ? $" (→ {e:HH:mm})" : ""))</div></div>
-            }
-            @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div> }
-
-            <div class="ed-layout with-rail">
-            <EditorToc Items="BuildToc()" />
+            <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
+            @* Espandi/comprimi tutto: stessi tasti e stesse chiavi dell'editor aeroporto — quello che si fa in
+               un editor si fa anche nell'altro (regola 68). Agiscono su blocchi E sezioni. *@
+            <EditorToc Items="BuildToc()">
+                <Footer>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+                </Footer>
+            </EditorToc>
             <div>
+            @{ var blockIndex = 0; }
             @foreach (var bs in _doc.Sections)
             {
                 var blockSection = bs;
                 var blk = _model.Blocks.FirstOrDefault(b => b.BlockSectionId == blockSection.Id);
                 if (blk is null) { continue; }
                 var isGroup = blk.Block.Kind == AccBlockKind.AppGroup;
+                var firstBlock = blockIndex++ == 0;
 
-                <div class="acc-block" id="@($"blk-{blockSection.Id}")">
-                    <div class="acc-block-head">
+                @* Il blocco si CHIUDE: e' la cosa che vale di piu' su questa pagina (un gruppo APP aperto sono
+                   dieci sezioni e una mappa, ~3 700px). <details> nativo, quindi collassa senza circuito;
+                   `data-persist` ricorda lo stato fra le navigazioni (wireCollapse) e la fisarmonica sta nel JS
+                   (vipi-editor.js), non qui: chiudere i fratelli non e' un'informazione del documento.
+                   Nasce aperto SOLO il primo: e' una decisione, non l'esito di quale `toggle` arriva prima. *@
+                <details class="acc-block" id="@($"blk-{blockSection.Id}")" data-persist="@($"accblk-{blockSection.Id}")" open="@firstBlock">
+                    <summary class="acc-block-head">
+                        <span class="cb-chev" aria-hidden="true">▸</span>
                         @if (_editing && isGroup)
                         {
-                            <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
-                                   @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
-                            <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
+                            @* In modifica il titolo e' un campo: qui dentro il clic NON deve collassare (e il
+                               doppio clic deve restare quello di chi scrive). Il toggle resta al chevron e al
+                               resto del summary. *@
+                            <span class="acc-block-edit" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+                                <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
+                                       @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
+                                <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
+                            </span>
                         }
                         else
                         {
                             <h2 class="acc-block-h">@(isGroup ? blockSection.Title : L["Acc_AirwaySectors"])</h2>
                         }
-                    </div>
+                        <span class="acc-block-n">@Plural(blockSection.Children.Count, "Acc_BlockSections", blockSection.Children.Count)</span>
+                    </summary>
 
                     @if (_editing && isGroup)
                     {
@@ -99,7 +144,7 @@ else
                                             IsDerivedSection="s => SectionCatalog.IsHostRendered(profile, s.SectionKey)" DerivedContent="DerivedFor(blk)"
                                             IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
-                </div>
+                </details>
             }
 
             @if (_editing)
@@ -118,24 +163,18 @@ else
                           Published="LoadAsync" />
             </div>
             <aside class="ed-rail">
-                @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-                else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                    @(_doc.VersionStatus == DocumentStatus.Draft ? string.Format(L["Ed_DraftVN"].Value, _doc.VersionNumber) : string.Format(L["Ed_PublishedVN"].Value, _doc.VersionNumber))
-                </span>
-                <a class="btn ghost" data-tour="preview" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="@L["Acc_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
-                    Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
-                    <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
-                </HelpHint>
+                @* Stato e lock stanno in TESTATA (riga unica): qui restano i comandi. I badge del lock che
+                   stavano in questo rail scrivevano l'ora in UTC, mentre la lockbar delle altre pagine la
+                   scrive locale — la stessa scadenza compariva a due ore diverse. *@
+                @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
+                else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
+                <DraftPreviewLink Href="@($"/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 @if (_editing)
                 {
-                    <span class="save-badge lock-mine" title="@L["Lock_Editing"]">🔒 @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToString("HH:mm")) : "")</span>
                     <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
                 }
                 else if (_lock is { Locked: true, IsMine: false })
                 {
-                    <span class="save-badge lock-badge" title="@L["Ed_LockedByOther"]">🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } e ? $" · → {e:HH:mm}" : "")</span>
                     <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
                 }
                 else
@@ -144,6 +183,16 @@ else
                 }
             </aside>
             </div>
+        }
+    </div>
+
+    @* Errore: toast fisso, non una fascia sopra il contenuto (regola 5). In una pagina da migliaia di pixel una
+       fascia in cima è un messaggio che nessuno vede — e che intanto spinge in giù la sezione su cui si lavora. *@
+    <div class="editor-toast">
+        @if (_error is not null)
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div>
+                <button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null" title="@L["Common_Close"]">✕</button></div>
         }
     </div>
 }
@@ -161,6 +210,7 @@ else
     private AccDocumentModel? _model;
     private LockInfo _lock = LockInfo.Free();
     private bool _denied, _editing;
+    private bool _wide;   // ⤲ larghezza piena: indice e rail via, per le tabelle larghe
     private string? _error;
 
     private enum SaveState { Idle, Saving, Saved }
@@ -193,6 +243,21 @@ else
     }
 
     private string ReleasePreviewUrl(int releaseId) => $"/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
+
+    // Espandi/comprimi tutto: lo fa il JS sui <details> (blocchi e sezioni), non un flag Blazor — il collasso
+    // è nativo e vive fuori dal circuito. Prima del primo render interattivo l'interop non è lecita.
+    private bool _jsReady;
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _jsReady = true; }
+    }
+
+    private async Task ToggleAllSections(bool open)
+    {
+        if (_jsReady) await JS.InvokeVoidAsync("vipiEditorSections", open);
+    }
+
+    private string Plural(int n, string key, params object[] args) => L[n == 1 ? key + "One" : key, args].Value;
 
     // Derivate per blocco (chiave = BlockSectionId).
     private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();
@@ -491,15 +556,25 @@ else
                 <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
                 @if (_editing)
                 {
+                    @* Titolo e «?» in riga: il paragrafo che stava sempre a schermo si legge al clic, con la sua
+                       chiave (regola 8). Due pannelli per blocco, quindi due paragrafi per blocco. *@
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h4>
-                        <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
+                        <div class="ed-h3">
+                            <h4 style="margin:0">@L["Aor_ExtraShapesTitle"]</h4>
+                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ExtraShapesAria"]" ExtraClass="wide">
+                                @L["Aor_ExtraShapesHelp"]
+                            </HelpHint>
+                        </div>
                         <AorExtraShapePicker Selected="blk.Block.ExtraAorCallsigns" Catalog="_shapeCatalog" Editing="_editing"
                                              SelectedChanged="cs => SaveAorExtras(blk, cs)" />
                     </div>
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h4>
-                        <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
+                        <div class="ed-h3">
+                            <h4 style="margin:0">@L["Aor_ColorsTitle"]</h4>
+                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ColorsAria"]" ExtraClass="wide">
+                                @L["Aor_ColorsHelp"]
+                            </HelpHint>
+                        </div>
                         <AorColorEditor Sectors="(_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty).Sectors" Editing="_editing"
                                         ColorChanged="pick => SaveAorColor(blk, pick)" />
                     </div>
@@ -544,6 +619,10 @@ else
                     }
                 </div>
             }
+            @* Campo + risultati dentro `.app-linkpick`, come l'editor APP: e' quel contenitore a rendere
+               l'elenco un menu a tendina ancorato al campo. Senza, i risultati escono come chip in riga —
+               due forme diverse per lo stesso gesto in due editor gemelli. *@
+            <div class="app-linkpick">
             <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@search"
                    @oninput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(search))
@@ -559,6 +638,7 @@ else
                     }
                 </div>
             }
+            </div>
         </div>
     };
 

@@ -24,11 +24,30 @@ public sealed record ImportPolicySnapshot(
     };
 }
 
+/// <summary>
+/// La policy più <b>chi</b> l'ha decisa e <b>quando</b>. Separata da <see cref="ImportPolicySnapshot"/> di
+/// proposito: quello è lo stato che il dominio consulta a ogni import, e sta in cinque punti di
+/// enforcement e in tre suite di test — aggiungergli l'autore lo trasformerebbe da «stato» in «stato + chi».
+///
+/// <para>⚠️ <paramref name="UpdatedByUserId"/> a <c>0</c> significa che <b>nessuna persona</b> ha mai salvato
+/// questa policy: i valori che si vedono vengono dai default delle colonne. Non è un dettaglio da archivio —
+/// <c>ImportSids</c> è nato <c>false</c> su un DB già popolato (migration <c>AddSidImport</c>, luglio 2026),
+/// e senza questo campo un import fermo da mesi è indistinguibile da una scelta dell'amministratore.</para>
+/// </summary>
+public sealed record ImportPolicyInfo(ImportPolicySnapshot Policy, DateTime? UpdatedUtc, int UpdatedByUserId)
+{
+    /// <summary>Vero se la riga non l'ha mai scritta una persona (o non c'è affatto).</summary>
+    public bool MaiDecisa => UpdatedByUserId == 0;
+}
+
 /// <summary>Persistenza della policy di import globale (riga singola, get-or-create). Impl. EF.</summary>
 public interface IImportPolicyStore
 {
     /// <summary>Legge la policy corrente; crea la riga di default (tutto importato) se assente.</summary>
     Task<ImportPolicySnapshot> GetAsync(CancellationToken ct = default);
+
+    /// <summary>Come <see cref="GetAsync"/>, ma con autore e data dell'ultima decisione (pagina admin).</summary>
+    Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default);
 
     /// <summary>Salva la policy, marcando autore e timestamp.</summary>
     Task SaveAsync(ImportPolicySnapshot policy, int updatedByUserId, CancellationToken ct = default);

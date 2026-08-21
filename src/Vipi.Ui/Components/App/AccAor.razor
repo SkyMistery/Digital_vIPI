@@ -1,11 +1,12 @@
-@* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
+﻿@* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
    data-sectors = [{sec,name,color,rings:[[[lat,lng],…]]}]; l'interattività è client-side (vipi-aor.js). SVG di fallback. *@
 @using System.Text.Json
+@inject IStringLocalizer<SharedResource> L
 @if (View.Sectors is { Count: > 0 })
 {
     <div class="aor-viewmode" data-aor-view>
-        <button type="button" class="aor-vm-btn on" data-view="2d">Mappa 2D</button>
-        <button type="button" class="aor-vm-btn" data-view="3d">Vista 3D</button>
+        <button type="button" class="aor-vm-btn on" data-view="2d">@L["Aor_View2d"]</button>
+        <button type="button" class="aor-vm-btn" data-view="3d">@L["Aor_View3d"]</button>
     </div>
     <div class="aor-view aor-view-2d">
     <div class="aor-block" data-aor="@Id">
@@ -16,7 +17,7 @@
                     <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
                 </span>
             }
-            <span class="aor-chip-actions"><a class="aor-all" data-act="all">Tutti</a> · <a class="aor-all" data-act="none">Nessuno</a></span>
+            <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Common_All"]</a> · <a class="aor-all" data-act="none">@L["Common_None"]</a></span>
         </div>
 
         <div @key="MapSignature()" class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
@@ -34,20 +35,20 @@
         @if (View.Configs is { Count: > 0 })
         {
             <div class="cfg-sel">
-                <span class="cfg-sel-lab">Configurazione:</span>
+                <span class="cfg-sel-lab">@L["Aor_ConfigLabel"]</span>
                 @foreach (var c in View.Configs)
                 {
                     <span class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key">@c.Name</span>
                 }
-                <a class="cfg-clear" data-rows="">azzera</a>
+                <a class="cfg-clear" data-rows="">@L["Aor_Clear"]</a>
             </div>
         }
-        <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</p>
+        <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Aor_MapHint"]</p>
     </div>
     </div>
     <div class="aor-view aor-view-3d" hidden>
         <AccAor3d View="View" Id="@($"{Id}-3d")" />
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</p>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">@L["Aor_3dHint"]</p>
     </div>
 }
 else
@@ -55,8 +56,8 @@ else
     <div class="callout warning" style="margin:0">
         <span class="cic"><Icon Name="map" Size="18" /></span>
         <div>
-            <p class="ct">Shape AOR non disponibile</p>
-            Nessun poligono per i settori del blocco (non ancora importati o non leggibili).
+            <p class="ct">@L["Aor_NoShapeTitle"]</p>
+            @L["Aor_NoShapeBody"]
         </div>
     </div>
 }

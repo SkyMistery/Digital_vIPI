@@ -23,7 +23,10 @@ public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, i
 /// <paramref name="HasTower"/> = ha almeno una torre (TWR o I_TWR): invariante "ogni aeroporto ha sempre una torre".
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).
 /// </summary>
-public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower, bool IsHidden = false)
+/// <param name="DocumentId">Il documento vIPI dell'aeroporto, se già esiste. Serve a chi deve distinguere
+/// «crea» da «apri»: la pagina «Nuovo documento» si chiama così e per l'aeroporto apre quasi sempre.</param>
+public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower,
+    bool IsHidden = false, int? DocumentId = null)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;

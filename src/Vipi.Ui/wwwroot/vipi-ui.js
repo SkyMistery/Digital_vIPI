@@ -1,4 +1,4 @@
-// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
+﻿// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
 // Ricollegato a ogni navigazione via 'enhancedload' (vedi App.razor).
 (function () {
     function setSector(scope, key, on) {
@@ -91,6 +91,37 @@
         });
     }
 
+    // Porta un elemento a schermo sotto la top-bar. ⚠️ Si MISURA DOPO che il layout si è assestato: aprire un
+    // <details> fa scattare un `toggle`, che è messo in coda e può cambiare l'altezza di quello che sta SOPRA —
+    // sull'editor ACC apre un blocco e la fisarmonica ne chiude un altro. Misurando subito, il bersaglio finiva
+    // a −249px (misurato, saltando dall'indice a una sezione del blocco chiuso). Due giri di rAF: il primo
+    // lascia svuotare la coda dei task, il secondo misura sul layout definitivo.
+    function scrollAfterLayout(el, behavior) {
+        function porta(behavior) {
+            var bar = document.querySelector('.topbar');
+            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
+            var delta = el.getBoundingClientRect().top - off;
+            if (Math.abs(delta) < 4) return true;              // già al posto giusto: non muovere niente
+            window.scrollTo({ top: window.pageYOffset + delta, behavior: behavior || 'auto' });
+            return false;
+        }
+        // Due giri di rAF: il primo lascia svuotare la coda dei task (i `toggle` messi in coda dall'apertura),
+        // il secondo misura sul layout definitivo. Poi una scaletta di correzioni: ciò che sta sopra può ancora
+        // cambiare altezza — una mappa AoR che si inizializza all'apertura del suo <details>, un render Blazor
+        // in arrivo. Ogni giro si ferma da solo appena il bersaglio è al suo posto. ⚠️ Con una correzione sola
+        // il bersaglio atterrava a 25px dal bordo, cioè sotto la top-bar: misurato, ne servono due.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (porta(behavior)) return;
+                var ritardi = [120, 380, 800];
+                (function ritenta(i) {
+                    if (i >= ritardi.length) return;
+                    setTimeout(function () { if (!porta('auto')) ritenta(i + 1); }, ritardi[i]);
+                })(0);
+            });
+        });
+    }
+
     // Apre l'elemento (se <details>) e tutti i <details> che lo contengono, così un deep-link "#id" verso una
     // sezione collassata (Guida, editor) la mostra invece di atterrare su un pannello chiuso. Ritorna l'elemento.
     function openDetailsFor(el) {
@@ -112,13 +143,7 @@
             var el = document.getElementById(id);
             if (!el) return;
             openDetailsFor(el);
-            var bar = document.querySelector('.topbar');
-            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
-            // Ritardo minimo: lascia riflettere l'apertura del <details> nel layout prima di misurare.
-            setTimeout(function () {
-                var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-                window.scrollTo({ top: y, behavior: 'auto' });
-            }, 30);
+            scrollAfterLayout(el, 'auto');
         }
         land();
         if (hashLandingWired) return;
@@ -144,14 +169,31 @@
             e.preventDefault();
             e.stopImmediatePropagation();
             openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
-            // Scroll con offset = altezza reale della top-bar sticky (così il titolo resta leggibile).
-            var bar = document.querySelector('.topbar');
-            var off = (bar ? bar.getBoundingClientRect().height : 62) + 14;
-            var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-            window.scrollTo({ top: y, behavior: 'smooth' });
+            scrollAfterLayout(el, 'smooth');
             var toc = a.closest('.toc');
             if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
             history.replaceState(null, '', location.pathname + location.search + '#' + id);
+        }, true);
+    }
+
+    // Il menu «+ Blocco» degli editor si comporta come un menu: si chiude al clic su una voce e al clic fuori.
+    //
+    // ⚠️ `open` di un <details> e' stato del DOM, non del markup: dopo che Blazor ha aggiunto il blocco e
+    // ri-renderizzato, il menu resterebbe spalancato sotto la sezione. E chiuderlo dal C# vorrebbe dire
+    // passare per JS a ogni clic. Una delega sola, in cattura, vale per tutti gli editor e per le sezioni
+    // che ancora non esistono.
+    var blockMenuWired = false;
+    function wireBlockMenu() {
+        if (blockMenuWired) return;
+        blockMenuWired = true;
+        document.addEventListener('click', function (e) {
+            var dentro = e.target && e.target.closest ? e.target.closest('details.blk-add') : null;
+            document.querySelectorAll('details.blk-add[open]').forEach(function (d) {
+                // Il clic sul proprio <summary> lo gestisce il browser (apre/chiude): non toccarlo, o si
+                // riaprirebbe subito dopo essere stato chiuso.
+                if (d === dentro && e.target.closest('summary') === d.querySelector('summary')) return;
+                d.open = false;
+            });
         }, true);
     }
 
@@ -325,6 +367,97 @@
     };
 
     // Porta in vista un elemento per id (usato dall'editor struttura: scroll al primo match di ricerca).
+    // ---- Quota di una fascia appiccicata, MISURATA ----
+    // Chi sta sotto una testata appiccicata (es. il `thead` di una tabella) deve saperne l'altezza per non
+    // finirle sotto. In CSS non è esprimibile: quell'altezza cambia da sola — un messaggio che compare, la
+    // riga che va a capo su schermi stretti. Qui si misura e si scrive in una variabile CSS.
+    // La variabile si mette sull'AMBITO (di norma il `.wrap` della pagina), non su <html>: cambiando pagina
+    // l'elemento sparisce e con lui il valore, invece di restare buono per una pagina che non c'entra.
+    var stickyOffsets = [];
+
+    function measureStickyOffset(t) {
+        var scope = t.scope ? document.querySelector(t.scope) : document.documentElement;
+        if (!scope) return;
+        var el = document.querySelector(t.sel);
+        if (!el) { scope.style.removeProperty('--' + t.varName); return; }
+        // Il nodo può essere stato ricreato (navigazione fra pagine): l'osservatore va riagganciato.
+        if (t.el !== el) {
+            if (t.ro) { t.ro.disconnect(); }
+            t.el = el;
+            if (window.ResizeObserver) {
+                t.ro = new ResizeObserver(function () { measureStickyOffset(t); });
+                t.ro.observe(el);
+            }
+        }
+        // Per difetto, non per eccesso: un pixel di sovrapposizione non si vede (la fascia sta sopra), un pixel
+        // di buco lascia passare le righe — ed è esattamente ciò che si stava correggendo.
+        var h = Math.floor(el.getBoundingClientRect().height / rootZoom());
+        scope.style.setProperty('--' + t.varName, h + 'px');
+    }
+
+    window.vipiStickyOffset = function (selector, varName, scopeSelector) {
+        var t = stickyOffsets.filter(function (x) { return x.sel === selector && x.varName === varName; })[0];
+        if (!t) { t = { sel: selector, varName: varName, scope: scopeSelector || null, el: null, ro: null }; stickyOffsets.push(t); }
+        measureStickyOffset(t);
+    };
+
+    window.addEventListener('resize', function () { stickyOffsets.forEach(measureStickyOffset); });
+
+    // ---- I «?» si aprono dove c'e' posto ----
+    // Il popover di HelpHint nasce agganciato a sinistra del suo «?». Va bene finche' il «?» sta a sinistra:
+    // quello della barra del lock sta all'ESTREMA DESTRA della testata, e il popover finiva 210px fuori
+    // schermo — misurato, uguale su tutte e tre le pagine che montano EditLockBar.
+    // Non e' esprimibile in CSS: dipende da dove si trova il «?» in quel momento, e la barra si sposta con la
+    // larghezza della finestra. Si misura all'apertura e si ribalta, come farebbe un menu.
+    // ⚠️ Classi PROPRIE (`help-flip`, `help-up`): la classe `left` puo' averla messa chi ha scritto la pagina,
+    // e toglierla qui gli cancellerebbe una decisione presa a mano.
+    function placeHelpPop(d) {
+        var pop = d.querySelector('.help-pop');
+        if (!pop) { return; }
+        d.classList.remove('help-flip');
+        d.classList.remove('help-up');
+        pop.style.removeProperty('margin-left');
+        if (!d.open) { return; }
+
+        var vw = document.documentElement.clientWidth;
+        var vh = document.documentElement.clientHeight;
+        var r = pop.getBoundingClientRect();
+
+        // Fuori a destra → si apre verso sinistra. `getBoundingClientRect` e `clientWidth` parlano la stessa
+        // lingua (pixel di finestra) anche sotto zoom, quindi il confronto regge; ciò che si SCRIVE invece va
+        // in unita' di layout — vedi rootZoom.
+        if (r.right > vw - 8) {
+            d.classList.add('help-flip');
+            r = pop.getBoundingClientRect();
+        }
+        // Se anche ribaltato esce a sinistra (popover piu' largo dello spazio), lo si riporta dentro.
+        if (r.left < 8) {
+            pop.style.marginLeft = Math.round((8 - r.left) / rootZoom()) + 'px';
+            r = pop.getBoundingClientRect();
+        }
+        // Fuori sotto → si apre verso l'alto, ma solo se sopra c'e' piu' spazio: sotto una testata appiccicata
+        // ribaltare in alto vorrebbe dire finire sotto la testata, che e' peggio del bordo dello schermo.
+        // ⚠️ Solo se il «?» e' DAVVERO a schermo: aperto da codice mentre sta mille pixel piu' in giu', "sotto"
+        // e "sopra" non vogliono dire niente e si finirebbe per ribaltare al contrario quello che l'utente
+        // vedra' quando ci arrivera' scorrendo.
+        var dr = d.getBoundingClientRect();
+        var aVista = dr.bottom > 0 && dr.top < vh;
+        if (r.bottom > vh - 8 && aVista && dr.top > r.height + 14) { d.classList.add('help-up'); }
+    }
+
+    // `toggle` non fa bolla: si ascolta in fase di CATTURA, così un solo gestore vale per tutti i «?» della
+    // pagina, compresi quelli che Blazor disegnera' fra un minuto.
+    document.addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (d && d.classList && d.classList.contains('help-hint')) { placeHelpPop(d); }
+    }, true);
+
+    // La finestra cambia larghezza mentre un «?» e' aperto: il posto giusto puo' essere cambiato.
+    window.addEventListener('resize', function () {
+        var aperti = document.querySelectorAll('details.help-hint[open]');
+        for (var i = 0; i < aperti.length; i++) { placeHelpPop(aperti[i]); }
+    });
+
     window.vipiScrollToId = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -351,26 +484,79 @@
     // Si rimisura a ogni chiamata (l'editor la chiama a ogni render) e al ridimensionamento della finestra.
     // Sotto la soglia in cui la griglia collassa l'altezza fissa va TOLTA: lì il riquadro sta dentro una pagina
     // che scorre, e bloccarlo creerebbe due barre di scorrimento annidate.
+    // ---- Zoom di pagina: due unità di misura diverse ----
+    // `vipi-zoom.js` applica `zoom` su <html>. Da lì in poi convivono DUE spazi: `getBoundingClientRect` (e
+    // `window.innerHeight`) parlano in pixel di finestra, mentre tutto ciò che si SCRIVE in CSS — `top:`,
+    // `height:` — è in unità di layout, cioè pixel di finestra diviso lo zoom. Misurare in uno e scrivere
+    // nell'altro è il difetto che faceva comparire una striscia di righe sopra l'intestazione appiccicata
+    // (a zoom 1.2 erano 17px; a 0.8 l'intestazione finiva sotto la fascia).
+    function rootZoom() {
+        var v = getComputedStyle(document.documentElement).zoom;
+        var z = parseFloat(v);
+        if (typeof v === 'string' && v.indexOf('%') >= 0) { z = z / 100; }
+        return !z || isNaN(z) || z <= 0 ? 1 : z;
+    }
+
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
-    function fitOne(sel, collapseBelow) {
-        var el = document.querySelector(sel);
-        if (!el) return;
-        if (window.innerWidth <= collapseBelow) { el.style.height = ''; return; }
-        var top = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
-        var h = Math.round(window.innerHeight - top - 18);
-        el.style.height = h >= fitMin ? h + 'px' : '';
+    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /vsop/admin/audit
+    // erano i 18px di padding del `.wrap` e si sono chiusi nel foglio di stile; dove sotto c'è invece
+    // CONTENUTO — le due colonne chiuse in fondo a «I miei incarichi» — il foglio non basta, perché
+    // quell'altezza dipende da quante colonne chiuse ci sono. `reserveSel` è la risposta: gli elementi che
+    // indica si tolgono dallo spazio disponibile. Facoltativo: chi non lo passa si comporta esattamente come
+    // prima.
+    function riserva(reserveSel) {
+        if (!reserveSel) return 0;
+        var tot = 0;
+        var nodi = document.querySelectorAll(reserveSel);
+        for (var i = 0; i < nodi.length; i++) {
+            var r = nodi[i].getBoundingClientRect();
+            if (r.height <= 0) continue;
+            var st = getComputedStyle(nodi[i]);
+            tot += r.height + (parseFloat(st.marginTop) || 0) * rootZoom() + (parseFloat(st.marginBottom) || 0) * rootZoom();
+        }
+        return tot;
     }
 
-    window.vipiFitViewport = function (selector, collapseBelow) {
+    function fitOne(sel, collapseBelow, cap, reserveSel) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        var prop = cap ? 'maxHeight' : 'height';
+        var altra = cap ? 'height' : 'maxHeight';
+        el.style[altra] = '';
+        if (window.innerWidth <= collapseBelow) { el.style[prop] = ''; return; }
+        var top = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
+        // Lo spazio che avanza si misura in pixel di finestra e si SCRIVE in unità di layout: sotto zoom i due
+        // numeri non coincidono (vedi rootZoom). I 18px di respiro restano unità di layout, come li ha pensati
+        // il foglio di stile.
+        var h = Math.round((window.innerHeight - top - riserva(reserveSel)) / rootZoom() - 18);
+        el.style[prop] = h >= fitMin ? h + 'px' : '';
+    }
+
+    window.vipiFitViewport = function (selector, collapseBelow, reserveSel) {
         var below = collapseBelow || 0;
-        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below });
-        fitOne(selector, below);
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, res: reserveSel });
+        fitOne(selector, below, false, reserveSel);
+    };
+
+    // Come vipiFitViewport, ma scrive `max-height` invece di `height`: il riquadro sta alto quanto il suo
+    // contenuto e si accorcia SOLO quando non ci starebbe.
+    //
+    // ⚠️ Quale delle due serve dipende da cosa c'è dentro, e la differenza si vede a occhio. `height` è giusto
+    // dove il contenuto è più alto dello schermo per mestiere (il registro di audit, l'elenco aeroporti): lì
+    // stirare il riquadro E far scorrere l'interno è tutto guadagno. È sbagliato dove il contenuto è corto e
+    // FISSO: su /vsop/admin/sorgenti le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
+    // stato stirato a tutto lo schermo. «La pagina non scorre» non è l'obiettivo: l'obiettivo è che ciò che si
+    // guarda stia a schermo, e con `max-height` lo si ottiene senza inventare vuoto.
+    window.vipiCapViewport = function (selector, collapseBelow, reserveSel) {
+        var below = collapseBelow || 0;
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, cap: true, res: reserveSel });
+        fitOne(selector, below, true, reserveSel);
     };
 
     window.addEventListener('resize', function () {
-        fitTargets.forEach(function (t) { fitOne(t.sel, t.below); });
+        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
     });
 
     window.vipiRevealPanel = function (id) {
@@ -448,6 +634,7 @@
         wireExpand();
         wireAnchors();
         wireCollapse();
+        wireBlockMenu();
         applyDense();
         wireUtcClock();
         wireSearchKey();
