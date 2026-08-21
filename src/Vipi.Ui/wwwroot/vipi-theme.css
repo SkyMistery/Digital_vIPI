@@ -2491,19 +2491,27 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    Quattro tasti sotto OGNI sezione erano quattro righe di comandi ripetute per ogni sezione di ogni editor,
    per un gesto che si fa qualche volta. Uno solo, col tipo scelto dopo. <details> nativo: si apre senza
    circuito Blazor, e la delega in vipi-ui.js lo chiude al clic su una voce o fuori. */
-.blk-add{position:relative;display:inline-block;margin-top:8px}
+/* ⚠️ Il menu si apre DI LATO, in linea. La prima versione cadeva sotto in `position:absolute` ed era
+   ritagliata: misurato, 172px di altezza di cui 165 invisibili, tagliati da `.coord-sub{overflow:hidden}`.
+   Spostarlo a destra restando assoluto non basta — `overflow:hidden` taglia in tutte le direzioni, e vicino
+   al fondo della card sarebbe tagliato uguale. In linea non c'è niente da ritagliare, e lo spazio a destra
+   della riga era vuoto (856px misurati a 1024). `flex-wrap`: se non ci sta va a capo DENTRO il flusso, e la
+   card cresce invece di tagliare. */
+.blk-add{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
 /* ⚠️ Il marcatore di serie va tolto in DUE modi: `list-style` copre Firefox, lo pseudo-elemento WebKit copre
    Chrome ed Edge. Con uno solo resta il triangolino dentro il tasto. */
-.blk-add>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.blk-add>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;flex:none}
 .blk-add>summary::-webkit-details-marker{display:none}
 .blk-add>summary::marker{content:""}
-.blk-add-menu{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:170px;
-  display:flex;flex-direction:column;gap:2px;padding:6px;
-  background:var(--paper,#fff);border:1px solid var(--line);border-radius:8px;
-  box-shadow:0 8px 24px rgba(16,24,64,.14)}
-/* Le voci sono un elenco, non una barra: piene, allineate a sinistra, senza bordo che le faccia sembrare tasti. */
-.blk-add-menu .btn{justify-content:flex-start;width:100%;border-color:transparent;text-align:left}
-.blk-add-menu .btn:hover{background:#eef1fb;border-color:transparent}
+/* ⚠️ Esplicito, e non lasciato al browser: con `display:flex` su un <details> il contenuto non-summary resta
+   un flex item, e chi lo nasconde a menu chiuso è una regola dell'UA su cui non conviene contare. */
+.blk-add:not([open])>.blk-add-menu{display:none}
+.blk-add-menu{display:flex;gap:4px;flex-wrap:wrap;align-items:center;
+  padding:3px 6px;border-left:2px solid var(--line)}
+/* Le voci sono larghe quanto il loro nome: e' una fila, non una colonna, e un nome tagliato sarebbe un
+   altro nome (regola 33). */
+.blk-add-menu .btn{flex:none;white-space:nowrap}
+.blk-add-menu .btn:hover{background:#eef1fb}
 
 /* ---- vLOA: quali settori stanno NEL DOCUMENTO (editor AoR) ----
    Erano `.aor-chip` come i chip che AccAor disegna sessanta pixel piu' su, e i due gesti non c'entrano

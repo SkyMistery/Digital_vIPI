@@ -349,7 +349,15 @@ else
                    sezione. Uno solo, col tipo scelto dopo: chi paga lo spazio è il gesto raro (regola 119),
                    e qui lo pagava su ogni sezione di ogni editor.
                    `<details>` nativo e non un menu Blazor: si apre e si chiude senza circuito, e si chiude da
-                   sé al clic su una voce perché il gestore azzera `open`. *@
+                   sé al clic su una voce perché il gestore azzera `open`.
+
+                   ⚠️ E si apre DI LATO, in linea — non sotto, e non in `position:absolute`. La prima versione
+                   cadeva verso il basso ed era **ritagliata**: misurato, 172px di menu di cui 165 invisibili,
+                   tagliati da `.coord-sub{overflow:hidden}`. Spostarlo a destra restando assoluto non
+                   basterebbe: `overflow:hidden` taglia in TUTTE le direzioni, quindi vicino al fondo della
+                   card resterebbe tagliato uguale. In linea non c'è niente da ritagliare — e usa lo spazio a
+                   destra della riga, che era vuoto (856px misurati a 1024). Se in un assetto stretto non ci
+                   stesse, va a capo DENTRO il flusso: la card cresce, non taglia. *@
                 <details class="blk-add" @key="s.Id">
                     <summary class="btn ghost">+ @L["Dse_Block"]</summary>
                     <div class="blk-add-menu">
